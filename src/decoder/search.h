@@ -7,7 +7,6 @@
 #include <limits>
 #include <sstream>
 #include <boost/timer/timer.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include <thrust/functional.h>
 #include <thrust/device_vector.h>
