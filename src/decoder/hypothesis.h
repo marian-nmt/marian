@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.h"
+
 class Hypothesis {
  public:
     Hypothesis(size_t word, size_t prev, float cost)
@@ -26,3 +28,6 @@ class Hypothesis {
     const float cost_;
 };
 
+typedef std::vector<Hypothesis> Beam;
+typedef std::pair<Sentence, Hypothesis> Result;
+typedef std::vector<Result> NBestList;

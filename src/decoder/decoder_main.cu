@@ -13,50 +13,6 @@
 #include "vocab.h"
 #include "search.h"
 
-void ProgramOptions(int argc, char *argv[],
-    std::string& modelPath,
-    std::string& svPath,
-    std::string& tvPath,
-    size_t& beamsize,
-    size_t& device) {
-  bool help = false;
-
-  namespace po = boost::program_options;
-  po::options_description cmdline_options("Allowed options");
-  cmdline_options.add_options()
-    ("beamsize,b", po::value(&beamsize)->default_value(12),
-     "Beam size")
-    ("device,d", po::value(&device)->default_value(0),
-     "CUDA Device")
-    ("model,m", po::value(&modelPath)->required(),
-     "Path to a model")
-    ("source,s", po::value(&svPath)->required(),
-     "Path to a source vocab file.")
-    ("target,t", po::value(&tvPath)->required(),
-     "Path to a target vocab file.")
-    ("help,h", po::value(&help)->zero_tokens()->default_value(false),
-     "Print this help message and exit.")
-  ;
-  po::variables_map vm;
-  try {
-    po::store(po::command_line_parser(argc, argv).
-              options(cmdline_options).run(), vm);
-    po::notify(vm);
-  } catch (std::exception& e) {
-    std::cout << "Error: " << e.what() << std::endl << std::endl;
-
-    std::cout << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
-    std::cout << cmdline_options << std::endl;
-    exit(0);
-  }
-
-  if (help) {
-    std::cout << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
-    std::cout << cmdline_options << std::endl;
-    exit(0);
-  }
-}
-
 class BPE {
   public:
     BPE(const std::string& sep = "@@ ")
@@ -87,8 +43,47 @@ class BPE {
 int main(int argc, char* argv[]) {
   std::string modelPath, srcVocabPath, trgVocabPath;
   size_t device = 0;
+  size_t nbest = 0;
   size_t beamSize = 12;
-  ProgramOptions(argc, argv, modelPath, srcVocabPath, trgVocabPath, beamSize, device);
+  bool help = false;
+
+  namespace po = boost::program_options;
+  po::options_description cmdline_options("Allowed options");
+  cmdline_options.add_options()
+    ("beamsize,b", po::value(&beamSize)->default_value(12),
+     "Beam size")
+    ("n-best-list", po::value(&nbest)->default_value(0),
+     "N-best list")
+    ("device,d", po::value(&device)->default_value(0),
+     "CUDA Device")
+    ("model,m", po::value(&modelPath)->required(),
+     "Path to a model")
+    ("source,s", po::value(&srcVocabPath)->required(),
+     "Path to a source vocab file.")
+    ("target,t", po::value(&trgVocabPath)->required(),
+     "Path to a target vocab file.")
+    ("help,h", po::value(&help)->zero_tokens()->default_value(false),
+     "Print this help message and exit.");
+  
+  po::variables_map vm;
+  try {
+    po::store(po::command_line_parser(argc, argv).
+              options(cmdline_options).run(), vm);
+    po::notify(vm);
+  } catch (std::exception& e) {
+    std::cout << "Error: " << e.what() << std::endl << std::endl;
+
+    std::cout << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
+    std::cout << cmdline_options << std::endl;
+    exit(0);
+  }
+
+  if (help) {
+    std::cout << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
+    std::cout << cmdline_options << std::endl;
+    exit(0);
+  }
+
   std::cerr << "Using device GPU" << device << std::endl;;
   cudaSetDevice(device);
   std::cerr << "Loading model... ";
@@ -107,6 +102,7 @@ int main(int argc, char* argv[]) {
   
   boost::timer::cpu_timer timer;
   std::string in;
+  size_t lineCounter = 0;
   while(std::getline(std::cin, in)) {
     Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
     History history = search.Decode(sentence, beamSize);
@@ -114,6 +110,14 @@ int main(int argc, char* argv[]) {
     if(bpe)
       out = bpe.unsplit(out);
     std::cout << out << std::endl;
+    if(nbest > 0) {
+      NBestList nbl = history.NBest(beamSize);
+      for(size_t i = 0; i < nbl.size(); ++i) {
+        auto& r = nbl[i];
+        std::cout << lineCounter << " ||| " << bpe.unsplit(trgVocab(r.first)) << " ||| ||| " << r.second.GetCost() << std::endl;
+      }
+    }
+    lineCounter++;
   }
   std::cerr << timer.format() << std::endl;
   return 0;
