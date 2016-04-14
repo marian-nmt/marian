@@ -1,5 +1,3 @@
-#include <boost/utility/result_of.hpp>
-
 #include <iostream>
 #include <string>
 #include <memory>
