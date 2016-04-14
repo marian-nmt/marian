@@ -21,6 +21,7 @@
 #include "dl4mt.h"
 #include "vocab.h"
 #include "hypothesis.h"
+#include "utils.h"
 
 #define EOL "</s>"
 
@@ -51,8 +52,7 @@ class Search {
     std::string Decode(const std::string& source, size_t beamSize = 12) {
       // this should happen somewhere else
       std::vector<std::string> sourceSplit;
-      boost::split(sourceSplit, source, boost::is_any_of(" "),
-                   boost::token_compress_on);
+      Split(source, sourceSplit, " ");
       std::vector<size_t> sourceWords(sourceSplit.size());
       std::transform(sourceSplit.begin(), sourceSplit.end(), sourceWords.begin(),
                      [&](const std::string& w) { return svcb_[w]; });

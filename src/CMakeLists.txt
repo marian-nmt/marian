@@ -18,12 +18,12 @@ cuda_add_executable(
 )
 
 cuda_add_executable(
-  amunn_rescorer
+  rescorer
   rescorer/rescorer_main.cu
   $<TARGET_OBJECTS:libamunn>
 )
 
-foreach(exec amunn amunn_rescorer)
+foreach(exec amunn rescorer)
   target_link_libraries(${exec} ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
