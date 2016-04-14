@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
      "N-best list")
     ("device,d", po::value(&device)->default_value(0),
      "CUDA Device")
-    ("model,m", po::value(&modelPaths)->multitoken()->required(),
+    ("model(s),m", po::value(&modelPaths)->multitoken()->required(),
      "Path to a model")
     ("source,s", po::value(&srcVocabPath)->required(),
      "Path to a source vocab file.")
@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
   
   std::cerr << "done." << std::endl;
 
-  Search search(models);
+  Search search(models, nbest > 0);
 
   std::cerr << "Translating...\n";
 
@@ -120,7 +120,11 @@ int main(int argc, char* argv[]) {
       NBestList nbl = history.NBest(beamSize);
       for(size_t i = 0; i < nbl.size(); ++i) {
         auto& r = nbl[i];
-        std::cout << lineCounter << " ||| " << bpe.unsplit(trgVocab(r.first)) << " ||| ||| " << r.second.GetCost() << std::endl;
+        std::cout << lineCounter << " ||| " << bpe.unsplit(trgVocab(r.first)) << " |||";
+        for(size_t j = 0; j < r.second.GetCostBreakdown().size(); ++j) {
+          std::cout << " F" << j << "=" << r.second.GetCostBreakdown()[j];
+        }
+        std::cout << " ||| " << r.second.GetCost() << std::endl;
       }
     }
     lineCounter++;

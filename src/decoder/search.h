@@ -41,9 +41,11 @@ class Search {
     
     typedef std::unique_ptr<EncoderDecoder> EncoderDecoderPtr;
     std::vector<EncoderDecoderPtr> encDecs_;
+    bool doBreakdown_;
     
   public:
-    Search(const std::vector<std::unique_ptr<Weights>>& models) {
+    Search(const std::vector<std::unique_ptr<Weights>>& models, bool doBreakdown = false)
+    : doBreakdown_(doBreakdown) {
       for(auto& m : models)
         encDecs_.emplace_back(new EncoderDecoder(*m));
     }
@@ -54,6 +56,7 @@ class Search {
       History history;
       Beam prevHyps;
       prevHyps.emplace_back(0, 0, 0.0);
+      prevHyps.back().GetCostBreakdown().resize(encDecs_.size(), 0.0);
       
       for(auto& encDec : encDecs_) {
         encDec->encoder_.GetContext(sourceWords, encDec->SourceContext_);
@@ -130,14 +133,37 @@ class Search {
       thrust::host_vector<float> bestCosts(beamSize);
       thrust::copy_n(Probs.begin(), beamSize, bestCosts.begin());
       
+      std::vector<thrust::host_vector<float>> breakDowns;
+      if(doBreakdown_) {
+        breakDowns.push_back(bestCosts);
+        for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+          thrust::host_vector<float> modelCosts(beamSize);
+          auto it = thrust::make_permutation_iterator(ProbsEnsemble[i]->begin(), keys.begin());
+          thrust::copy(it, it + beamSize, modelCosts.begin());
+          breakDowns.push_back(modelCosts);
+        }
+      }
+    
       for(size_t i = 0; i < beamSize; i++) {
         size_t wordIndex = bestKeys[i] % Probs.Cols();
         size_t hypIndex  = bestKeys[i] / Probs.Cols();
-        float  cost = bestCosts[i];
-        //if(costBreakDown_) {
-        //  
-        //}
-        bestHyps.emplace_back(wordIndex, hypIndex, cost);  
+        float cost = bestCosts[i];
+        
+        Hypothesis hyp(wordIndex, hypIndex, cost);
+        if(doBreakdown_) {
+          float sum = 0;
+          for(size_t j = 0; j < ProbsEnsemble.size(); ++j) {
+            if(j == 0)
+              hyp.GetCostBreakdown().push_back(breakDowns[j][i]);
+            else {
+              float cost = log(breakDowns[j][i]) + const_cast<Hypothesis&>(prevHyps[hypIndex]).GetCostBreakdown()[j];
+              sum += cost;
+              hyp.GetCostBreakdown().push_back(cost);
+            }
+          }
+          hyp.GetCostBreakdown()[0] -= sum;
+        }
+        bestHyps.push_back(hyp);  
       }
     }
 };
