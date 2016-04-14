@@ -106,7 +106,9 @@ class Search {
       return history;
     }
     
-    void BestHyps(Beam& bestHyps, const Beam& prevHyps, std::vector<mblas::Matrix*>& ProbsEnsemble, const size_t beamSize) {
+    void BestHyps(Beam& bestHyps, const Beam& prevHyps,
+                  std::vector<mblas::Matrix*>& ProbsEnsemble,
+                  const size_t beamSize) {
       using namespace mblas;
       
       Matrix& Probs = *ProbsEnsemble[0];
