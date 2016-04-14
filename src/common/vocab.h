@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sstream>
+
+#include "types.h"
+#include "utils.h"
 
 class Vocab {
   public:
@@ -15,8 +19,6 @@ class Vocab {
             str2id_[line] = c++;
             id2str_.push_back(line);
         }
-        //str2id_["</s>"] = c;
-        //id2str_.push_back("</s>");
     }
 
     size_t operator[](const std::string& word) const {
@@ -27,15 +29,32 @@ class Vocab {
             return 1;
     }
 
-    inline std::vector<size_t> Encode(const std::vector<std::string>& sentence, bool addEOS=false) const {
-      std::vector<size_t> indexes;
-      for (auto& word: sentence) {
-        indexes.push_back((*this)[word]);
+    Sentence operator()(const std::vector<std::string>& lineTokens, bool addEOS = true) const {
+      Sentence words(lineTokens.size());
+      std::transform(lineTokens.begin(), lineTokens.end(), words.begin(),
+                     [&](const std::string& w) { return (*this)[w]; });
+      if(addEOS)
+        words.push_back(EOS);
+      return words;
+    }
+    
+    Sentence operator()(const std::string& line, bool addEOS = true) const {
+      std::vector<std::string> lineTokens;
+      Split(line, lineTokens, " ");
+      return (*this)(lineTokens, addEOS);
+    }
+
+    std::string operator()(const Sentence& sentence, bool ignoreEOS = true) const {
+      std::stringstream line;
+      for(size_t i = 0; i < sentence.size(); ++i) {
+        if(sentence[i] != EOS || !ignoreEOS) {
+          if(i > 0) {
+            line << " ";
+          }
+          line << (*this)[sentence[i]];
+        }
       }
-      if (addEOS) {
-        indexes.push_back((*this)["</s>"]);
-      }
-      return indexes;
+      return line.str();
     }
 
 

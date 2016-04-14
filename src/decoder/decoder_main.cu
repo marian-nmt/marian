@@ -57,6 +57,33 @@ void ProgramOptions(int argc, char *argv[],
   }
 }
 
+class BPE {
+  public:
+    BPE(const std::string& sep = "@@ ")
+     : sep_(sep) {}
+    
+    std::string split(const std::string& line) {
+      return line;
+    }
+    
+    std::string unsplit(const std::string& line) {
+      std::string joined = line;
+      size_t pos = joined.find(sep_);
+      while(pos != std::string::npos) {
+        joined.erase(pos, sep_.size());
+        pos = joined.find(sep_, pos);
+      }
+      return joined;
+    }
+    
+    operator bool() const {
+      return true;
+    }
+    
+  private:
+    std::string sep_;
+};
+
 int main(int argc, char* argv[]) {
   std::string modelPath, srcVocabPath, trgVocabPath;
   size_t device = 0;
@@ -70,17 +97,23 @@ int main(int argc, char* argv[]) {
   Vocab trgVocab(trgVocabPath);
   std::cerr << "done." << std::endl;
 
-  Search search(model, srcVocab, trgVocab);
+  Search search(model);
 
   std::cerr << "Translating...\n";
 
   std::ios_base::sync_with_stdio(false);
 
-  std::string line;
+  BPE bpe;
+  
   boost::timer::cpu_timer timer;
-  while(std::getline(std::cin, line)) {
-    auto result = search.Decode(line, beamSize);
-    std::cout << result << std::endl;
+  std::string in;
+  while(std::getline(std::cin, in)) {
+    Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
+    History history = search.Decode(sentence, beamSize);
+    std::string out = trgVocab(history.Top().first);
+    if(bpe)
+      out = bpe.unsplit(out);
+    std::cout << out << std::endl;
   }
   std::cerr << timer.format() << std::endl;
   return 0;

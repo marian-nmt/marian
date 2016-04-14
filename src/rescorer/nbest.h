@@ -41,7 +41,7 @@ class NBest {
     std::vector<std::vector<std::string>> SplitBatch(std::vector<std::string>& batch) const;
     void ParseInputFile(const std::string& path);
 
-    Batch EncodeBatch(const std::vector<std::vector<std::string>>& batch) const;
+    Batch EncodeBatch(const std::vector<std::string>& batch) const;
 
     Batch MaskAndTransposeBatch(const Batch& batch) const;
 

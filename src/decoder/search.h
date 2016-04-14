@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include <sstream>
+#include <queue>
 #include <boost/timer/timer.hpp>
 
 #include <thrust/functional.h>
@@ -16,24 +17,70 @@
 #include <thrust/sort.h>
 #include <thrust/sequence.h>
 
+#include "types.h"
 #include "matrix.h"
 #include "dl4mt.h"
-#include "vocab.h"
 #include "hypothesis.h"
 #include "utils.h"
 
-#define EOL "</s>"
+typedef std::vector<Hypothesis> Beam;
+typedef std::pair<Sentence, Hypothesis> Result;
+typedef std::vector<Result> NBestList;
+  
+class History {
+  private:
+    struct HypothesisCoord {
+      bool operator<(const HypothesisCoord& hc) const {
+        return cost < hc.cost;
+      }
+      
+      size_t i;
+      size_t j;
+      float cost;
+    };
+  
+  public:
+    void Add(const Beam& beam, bool last = false) {
+      for(size_t j = 0; j < beam.size(); ++j)
+        if(beam[j].GetWord() == EOS || last)
+          topHyps_.push({ history_.size(), j, beam[j].GetCost() });
+      history_.push_back(beam);
+    }
+    
+    size_t size() const {
+      return history_.size();
+    }
+    
+    NBestList NBest(size_t n) {
+      
+    }
+    
+    Result Top() const {
+      Sentence targetWords;
+      auto bestHypCoord = topHyps_.top();
+      size_t start = bestHypCoord.i;
+      size_t j  = bestHypCoord.j;
+      for(int i = start; i >= 0; i--) {
+        auto& bestHyp = history_[i][j];
+        targetWords.push_back(bestHyp.GetWord());
+        j = bestHyp.GetPrevStateIndex();
+      }
+    
+      std::reverse(targetWords.begin(), targetWords.end());
+      return Result(targetWords, history_[bestHypCoord.i][bestHypCoord.j]);
+    }
+    
+  private:
+    std::vector<Beam> history_;
+    std::priority_queue<HypothesisCoord> topHyps_;
+      
+};
 
 class Search {
-  typedef std::vector<Hypothesis> Beam;
-  typedef std::vector<Beam> History;
-  
   private:
     const Weights& model_;
     Encoder encoder_;
     Decoder decoder_;
-    const Vocab svcb_;
-    const Vocab tvcb_;
     
     mblas::Matrix State_, NextState_, BeamState_;
     mblas::Matrix Embeddings_, NextEmbeddings_;
@@ -41,24 +88,14 @@ class Search {
     mblas::Matrix SourceContext_;
 
   public:
-    Search(const Weights& model, const Vocab& svcb, const Vocab tvcb)
+    Search(const Weights& model)
     : model_(model),
       encoder_(model_),
-      decoder_(model_),
-      svcb_(svcb), tvcb_(tvcb)
+      decoder_(model_)
     {}
     
-    std::string Decode(const std::string& source, size_t beamSize = 12) {
-      // this should happen somewhere else
-      std::vector<std::string> sourceSplit;
-      Split(source, sourceSplit, " ");
-      std::vector<size_t> sourceWords(sourceSplit.size());
-      std::transform(sourceSplit.begin(), sourceSplit.end(), sourceWords.begin(),
-                     [&](const std::string& w) { return svcb_[w]; });
-      sourceWords.push_back(svcb_[EOL]);
-      
+    History Decode(const Sentence sourceWords, size_t beamSize = 12) {
       encoder_.GetContext(sourceWords, SourceContext_);
-    
       decoder_.EmptyState(State_, SourceContext_, 1);
       decoder_.EmptyEmbedding(Embeddings_, 1);
       
@@ -72,13 +109,13 @@ class Search {
         
         Beam hyps;
         BestHyps(hyps, prevHyps, Probs_, beamSize);
-        history.push_back(hyps);
+        history.Add(hyps, history.size() + 1 == sourceWords.size() * 3);
         
         Beam survivors;
         std::vector<size_t> beamWords;
         std::vector<size_t> beamStateIds;
         for(auto& h : hyps) {
-          if(h.GetWord() != tvcb_[EOL]) {
+          if(h.GetWord() != EOS) {
             survivors.push_back(h);
             beamWords.push_back(h.GetWord());
             beamStateIds.push_back(h.GetPrevStateIndex());
@@ -98,7 +135,7 @@ class Search {
         
       } while(history.size() < sourceWords.size() * 3);
       
-      return FindBest(history);
+      return history;
     }
     
     void BestHyps(Beam& bestHyps, const Beam& prevHyps, mblas::Matrix& Probs, const size_t beamSize) {
@@ -131,44 +168,4 @@ class Search {
         bestHyps.emplace_back(wordIndex, hypIndex, cost);  
       }
     }
-    
-    std::string FindBest(const History& history) {
-      std::vector<size_t> targetWords;
-      
-      size_t best = 0;
-      size_t beamSize = 0;
-      float bestCost = std::numeric_limits<float>::lowest();
-          
-      for(auto b = history.rbegin(); b != history.rend(); b++) {
-        if(b->size() > beamSize) {
-          beamSize = b->size();
-          for(size_t i = 0; i < beamSize; ++i) {
-            if(b == history.rbegin() || (*b)[i].GetWord() == tvcb_[EOL]) {
-              if((*b)[i].GetCost() > bestCost) {
-                best = i;
-                bestCost = (*b)[i].GetCost();
-                targetWords.clear();
-              }
-            }
-          }
-        }
-        
-        auto& bestHyp = (*b)[best];
-        targetWords.push_back(bestHyp.GetWord());
-        best = bestHyp.GetPrevStateIndex();
-      }
-    
-      std::reverse(targetWords.begin(), targetWords.end());
-      std::stringstream translation;
-      for(size_t i = 0; i < targetWords.size(); ++i) {
-        if(tvcb_[targetWords[i]] != EOL) {
-          if(i > 0) {
-            translation << " ";
-          }
-          translation << tvcb_[targetWords[i]];
-        }
-      }
-      return translation.str();
-    }
-
 };

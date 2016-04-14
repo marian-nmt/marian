@@ -39,9 +39,7 @@ std::vector<std::string> NBest::GetTokens(const size_t index) const {
 }
 
 std::vector<size_t> NBest::GetEncodedTokens(const size_t index) const {
-  std::vector<std::string> tokens;
-  Split(srcSentences_[index], tokens);
-  return srcVocab_->Encode(tokens, true);
+  return (*srcVocab_)(srcSentences_[index]);
 }
 
 void NBest::Parse_(const std::string& path) {
@@ -76,10 +74,10 @@ inline std::vector< std::vector< std::string > > NBest::SplitBatch(std::vector<s
   return splittedBatch;
 }
 
-inline Batch NBest::EncodeBatch(const std::vector<std::vector<std::string>>& batch) const {
+inline Batch NBest::EncodeBatch(const std::vector<std::string>& batch) const {
   Batch encodedBatch;
   for (auto& sentence: batch) {
-    encodedBatch.push_back(trgVocab_->Encode(sentence, true));
+    encodedBatch.push_back((*trgVocab_)(sentence));
   }
   return encodedBatch;
 }
@@ -103,7 +101,7 @@ inline Batch NBest::MaskAndTransposeBatch(const Batch& batch) const {
 
 
 Batch NBest::ProcessBatch(std::vector<std::string>& batch) const {
-  return MaskAndTransposeBatch(EncodeBatch(SplitBatch(batch)));
+  return MaskAndTransposeBatch(EncodeBatch(batch));
 }
 
 std::vector<Batch> NBest::GetBatches(const size_t index) const {
