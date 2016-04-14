@@ -21,11 +21,17 @@ class Hypothesis {
     float GetCost() const {
       return cost_;
     }
+    
+    std::vector<float>& GetCostBreakdown() {
+      return costBreakdown_;
+    }
 
  private:
     const size_t prev_;
     const size_t word_;
     const float cost_;
+    
+    std::vector<float> costBreakdown_;
 };
 
 typedef std::vector<Hypothesis> Beam;

@@ -25,37 +25,53 @@
   
 class Search {
   private:
-    const Weights& model_;
-    Encoder encoder_;
-    Decoder decoder_;
     
-    mblas::Matrix State_, NextState_, BeamState_;
-    mblas::Matrix Embeddings_, NextEmbeddings_;
-    mblas::Matrix Probs_;
-    mblas::Matrix SourceContext_;
-
+    struct EncoderDecoder {
+      EncoderDecoder(const Weights& model)
+      : encoder_(model), decoder_(model)
+      {}
+      
+      Encoder encoder_;
+      Decoder decoder_;
+      
+      mblas::Matrix State_, NextState_, BeamState_;
+      mblas::Matrix Embeddings_, NextEmbeddings_, Probs_;
+      mblas::Matrix SourceContext_;
+    };
+    
+    typedef std::unique_ptr<EncoderDecoder> EncoderDecoderPtr;
+    std::vector<EncoderDecoderPtr> encDecs_;
+    
   public:
-    Search(const Weights& model)
-    : model_(model),
-      encoder_(model_),
-      decoder_(model_)
-    {}
+    Search(const std::vector<std::unique_ptr<Weights>>& models) {
+      for(auto& m : models)
+        encDecs_.emplace_back(new EncoderDecoder(*m));
+    }
     
     History Decode(const Sentence sourceWords, size_t beamSize = 12) {
-      encoder_.GetContext(sourceWords, SourceContext_);
-      decoder_.EmptyState(State_, SourceContext_, 1);
-      decoder_.EmptyEmbedding(Embeddings_, 1);
+      using namespace mblas;
       
       History history;
-      
       Beam prevHyps;
       prevHyps.emplace_back(0, 0, 0.0);
       
+      for(auto& encDec : encDecs_) {
+        encDec->encoder_.GetContext(sourceWords, encDec->SourceContext_);
+        encDec->decoder_.EmptyState(encDec->State_, encDec->SourceContext_, 1);
+        encDec->decoder_.EmptyEmbedding(encDec->Embeddings_, 1);
+      }
+      
       do {
-        decoder_.MakeStep(NextState_, Probs_, State_, Embeddings_, SourceContext_);
+        std::vector<Matrix*> Probs;
+        for(auto& encDec : encDecs_) {
+          encDec->decoder_.MakeStep(encDec->NextState_, encDec->Probs_,
+                                    encDec->State_, encDec->Embeddings_,
+                                    encDec->SourceContext_);
+          Probs.push_back(&encDec->Probs_);
+        }
         
         Beam hyps;
-        BestHyps(hyps, prevHyps, Probs_, beamSize);
+        BestHyps(hyps, prevHyps, Probs, beamSize);
         history.Add(hyps, history.size() + 1 == sourceWords.size() * 3);
         
         Beam survivors;
@@ -73,11 +89,13 @@ class Search {
         if(beamSize == 0)
           break;
         
-        decoder_.Lookup(NextEmbeddings_, beamWords);
-        mblas::Assemble(BeamState_, NextState_, beamStateIds);
+        for(auto& encDec : encDecs_) {
+          encDec->decoder_.Lookup(encDec->NextEmbeddings_, beamWords);
+          Assemble(encDec->BeamState_, encDec->NextState_, beamStateIds);
+          Swap(encDec->Embeddings_, encDec->NextEmbeddings_);
+          Swap(encDec->State_, encDec->BeamState_);
+        }
         
-        mblas::Swap(Embeddings_, NextEmbeddings_);
-        mblas::Swap(State_, BeamState_);
         prevHyps.swap(survivors);
         
       } while(history.size() < sourceWords.size() * 3);
@@ -85,8 +103,10 @@ class Search {
       return history;
     }
     
-    void BestHyps(Beam& bestHyps, const Beam& prevHyps, mblas::Matrix& Probs, const size_t beamSize) {
+    void BestHyps(Beam& bestHyps, const Beam& prevHyps, std::vector<mblas::Matrix*>& ProbsEnsemble, const size_t beamSize) {
       using namespace mblas;
+      
+      Matrix& Probs = *ProbsEnsemble[0];
       
       Matrix Costs(Probs.Rows(), 1);
       thrust::host_vector<float> vCosts;
@@ -95,7 +115,9 @@ class Search {
       thrust::copy(vCosts.begin(), vCosts.end(), Costs.begin());
       
       BroadcastVecColumn(Log(_1) + _2, Probs, Costs);
-      
+      for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
+        Element(_1 + Log(_2), Probs, *ProbsEnsemble[i]);
+    
       thrust::device_vector<unsigned> keys(Probs.size());
       thrust::sequence(keys.begin(), keys.end());
       
@@ -112,6 +134,9 @@ class Search {
         size_t wordIndex = bestKeys[i] % Probs.Cols();
         size_t hypIndex  = bestKeys[i] / Probs.Cols();
         float  cost = bestCosts[i];
+        //if(costBreakDown_) {
+        //  
+        //}
         bestHyps.emplace_back(wordIndex, hypIndex, cost);  
       }
     }

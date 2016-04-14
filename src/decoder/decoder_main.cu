@@ -41,7 +41,8 @@ class BPE {
 };
 
 int main(int argc, char* argv[]) {
-  std::string modelPath, srcVocabPath, trgVocabPath;
+  std::string srcVocabPath, trgVocabPath;
+  std::vector<std::string> modelPaths;
   size_t device = 0;
   size_t nbest = 0;
   size_t beamSize = 12;
@@ -56,7 +57,7 @@ int main(int argc, char* argv[]) {
      "N-best list")
     ("device,d", po::value(&device)->default_value(0),
      "CUDA Device")
-    ("model,m", po::value(&modelPath)->required(),
+    ("model,m", po::value(&modelPaths)->multitoken()->required(),
      "Path to a model")
     ("source,s", po::value(&srcVocabPath)->required(),
      "Path to a source vocab file.")
@@ -86,13 +87,18 @@ int main(int argc, char* argv[]) {
 
   std::cerr << "Using device GPU" << device << std::endl;;
   cudaSetDevice(device);
-  std::cerr << "Loading model... ";
-  Weights model(modelPath);
   Vocab srcVocab(srcVocabPath);
   Vocab trgVocab(trgVocabPath);
+  
+  std::vector<std::unique_ptr<Weights>> models;
+  for(auto& modelPath : modelPaths) {
+    std::cerr << "Loading model " << modelPath << std::endl;
+    models.emplace_back(new Weights(modelPath));
+  }
+  
   std::cerr << "done." << std::endl;
 
-  Search search(model);
+  Search search(models);
 
   std::cerr << "Translating...\n";
 
