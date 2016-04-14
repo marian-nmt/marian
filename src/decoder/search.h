@@ -124,16 +124,28 @@ class Search {
         Element(_1 + Log(_2), Probs, *ProbsEnsemble[i]);
     
       thrust::device_vector<unsigned> keys(Probs.size());
-      thrust::sequence(keys.begin(), keys.end());
-      
-      // Here it would be nice to have a partial sort instead of full sort
-      thrust::sort_by_key(Probs.begin(), Probs.end(),
-                          keys.begin(), thrust::greater<float>());
-      
       thrust::host_vector<unsigned> bestKeys(beamSize);
-      thrust::copy_n(keys.begin(), beamSize, bestKeys.begin());
       thrust::host_vector<float> bestCosts(beamSize);
-      thrust::copy_n(Probs.begin(), beamSize, bestCosts.begin());
+      
+      // @TODO: Here it we need to have a partial sort
+      if(beamSize < 10) {
+        for(size_t i = 0; i < beamSize; ++i) {
+          thrust::device_vector<float>::iterator iter =
+            thrust::max_element(Probs.begin(), Probs.end());
+          bestKeys[i] = iter - Probs.begin();
+          bestCosts[i] = *iter;
+          *iter = std::numeric_limits<float>::lowest();
+        }
+        thrust::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
+      }
+      else {
+        thrust::sequence(keys.begin(), keys.end());
+        thrust::sort_by_key(Probs.begin(), Probs.end(),
+                            keys.begin(), thrust::greater<float>());
+      
+        thrust::copy_n(keys.begin(), beamSize, bestKeys.begin());
+        thrust::copy_n(Probs.begin(), beamSize, bestCosts.begin());
+      }
       
       std::vector<thrust::host_vector<float>> breakDowns;
       if(doBreakdown_) {
