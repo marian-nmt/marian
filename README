@@ -8,4 +8,4 @@ on Ubuntu 16.04, you need g++4.9 and cuda-7.5 and a boost version compiled with 
 
 CUDA_BIN_PATH=/usr/local/cuda-7.5 BOOST_ROOT=/home/marcin/myboost cmake .. -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9
 
-Vocabularies need to be converted to text with the scripts in the scripts folder. The end of sentence symbol is </s>. (Can be changed in decoder/search.h)
+Vocabularies need to be converted to text with the scripts in the scripts folder.
