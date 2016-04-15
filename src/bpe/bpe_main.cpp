@@ -2,6 +2,8 @@
 #include <string>
 #include "bpe.h"
 
+#include "utf8.h"
+
 int main(int argc, char *argv[])
 {
   if (argc < 1) {

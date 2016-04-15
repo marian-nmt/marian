@@ -9,6 +9,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "utf8.h"
+
 class BPE {
   using BPEPair = std::pair<std::string, std::string>;
  public:
@@ -76,26 +78,23 @@ class BPE {
       return cache_[word];
     }
 
-    std::vector<std::string> vWord;
-    for (auto& ch : word) {
-      vWord.push_back(std::string(1, ch));
-    }
+    std::vector<std::string> vWord = SplitWordIntoLetters(word);
     vWord.push_back("</w>");
-    //std::cerr << "WORDS: ";
+    // std::cerr << "WORDS: ";
     // for (auto word : vWord) std::cerr << word << " ";
-    //std::cerr << std::endl;
+    // std::cerr << std::endl;
 
     auto pairs = GetPairs(vWord);
-    //std::cerr << "PAIRS: ";
+    // std::cerr << "PAIRS: ";
     // for (auto& pair : pairs) std::cerr << "(" << pair.first << " , " << pair.second <<")  " ;
-    //std::cerr << std::endl;
+    // std::cerr << std::endl;
 
     while (true) {
       BPEPair* bigram = FindBestBigram(pairs);
       if(bigram == nullptr) {
         break;
       }
-      //std::cerr << "BEST BIGRAM: " << "(" << bigram->first << " < " << bigram->second << ")" << std::endl;
+      // std::cerr << "BEST BIGRAM: " << "(" << bigram->first << " < " << bigram->second << ")" << std::endl;
 
       std::vector<std::string> newWord;
 
@@ -147,6 +146,24 @@ class BPE {
  private:
   bool isCached(const std::string& word) {
     return cache_.find(word) != cache_.end();
+  }
+
+  std::vector<std::string> SplitWordIntoLetters(const std::string& word) {
+    char* charWord = (char*)word.c_str();
+    auto b = charWord;
+    auto e = charWord + strlen(charWord);
+
+    std::vector<std::string> letters;
+    int prevBegin = 0;
+    while (b != e) {
+      int end = utf8::next(b, e);
+      std::vector<unsigned char> utf8result;
+      utf8::utf32to8(&end,&end + 1, std::back_inserter(utf8result));
+      // for (auto& ch : utf8result) std::cerr << ch ;
+      // std::cerr << std::endl;
+      letters.emplace_back(utf8result.begin(), utf8result.end());
+    }
+    return letters;
   }
 
   std::vector<BPEPair> bpeCodes_;
