@@ -28,3 +28,5 @@ foreach(exec amunn rescorer)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
+
+add_subdirectory(bpe)
