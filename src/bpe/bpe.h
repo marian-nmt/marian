@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <set>
+#include <unordered_map>
 #include <map>
 #include <iterator>
 
@@ -17,12 +18,12 @@ class BPE {
   BPE(std::ifstream&& file, const std::string sep = "@@")
     : sep_(sep) {
     std::string inputLine;
+    size_t index = 0;
     while (std::getline(file, inputLine)) {
       std::vector<std::string> code;
       boost::split(code, inputLine, boost::is_any_of(" "));
-      bpeCodes_.emplace_back(code[0], code[1]);
+      bpeCodes_[make_pair(code[0], code[1])] = index++;
     }
-    //std::cerr << bpeCodes_.size() << " codes were loaded.\n";
   }
 
   BPE(const std::string& path, const std::string sep = "@@")
@@ -54,22 +55,25 @@ class BPE {
     return pairSet;
   }
 
-  BPEPair* FindBestBigram(const std::set<BPEPair>& pairs) {
+  const BPEPair* FindBestBigram(const std::set<BPEPair>& pairs) {
     size_t minDist = bpeCodes_.size();
+    auto best = bpeCodes_.begin();
 
     for (const auto& pair : pairs) {
-      auto it = std::find(bpeCodes_.begin(), bpeCodes_.end(), pair);
-      size_t dist = std::distance(bpeCodes_.begin(), it);
-      //std::cerr << "DIST: " << dist << " min: " << minDist << std::endl;
-      if (dist < minDist) {
-        minDist = dist;
+      auto it = bpeCodes_.find(pair);
+      if (it == bpeCodes_.end()) {
+        continue;
+      }
+      if (it->second < minDist) {
+        minDist = it->second;
+        best = it;
       }
     }
     if (minDist == bpeCodes_.size()) {
       return nullptr;
     }
     else {
-    return &bpeCodes_[minDist];
+    return &(best->first);
     }
   }
 
@@ -80,21 +84,14 @@ class BPE {
 
     std::vector<std::string> vWord = SplitWordIntoLetters(word);
     vWord.push_back("</w>");
-    // std::cerr << "WORDS: ";
-    // for (auto word : vWord) std::cerr << word << " ";
-    // std::cerr << std::endl;
 
     auto pairs = GetPairs(vWord);
-    // std::cerr << "PAIRS: ";
-    // for (auto& pair : pairs) std::cerr << "(" << pair.first << " , " << pair.second <<")  " ;
-    // std::cerr << std::endl;
 
     while (true) {
-      BPEPair* bigram = FindBestBigram(pairs);
+      const BPEPair* bigram = FindBestBigram(pairs);
       if(bigram == nullptr) {
         break;
       }
-      // std::cerr << "BEST BIGRAM: " << "(" << bigram->first << " < " << bigram->second << ")" << std::endl;
 
       std::vector<std::string> newWord;
 
@@ -107,9 +104,8 @@ class BPE {
 
         if (jt == vWord.end()) {
           break;
-        } else {
-          it = jt;
         }
+        it = jt;
 
         if (*it == bigram->first && (it+1) != vWord.end() && *(it+1) == bigram->second) {
           newWord.emplace_back(bigram->first + bigram->second);
@@ -119,25 +115,23 @@ class BPE {
           it += 1;
         }
       }
-      vWord = newWord;
-      if (vWord.size() == 1) {
+      std::swap(vWord, newWord);
+      if (newWord.size() == 1) {
         break;
       } else {
         pairs = GetPairs(vWord);
       }
     }
+
     if (vWord.back() == "</w>") {
       vWord.pop_back();
     }
-    auto eos = vWord.back().find_last_of("</w>");
-    if (eos != std::string::npos) {
-      vWord.back().resize(eos - 3);
+
+    if (EndsWith(vWord.back(), "</w>")) {
+      vWord.back().resize(vWord.back().size() - 4);
     }
 
     cache_[word] = vWord;
-    //std::cerr << "RESULT: ";
-    // for (auto& word : vWord) std:: cerr << word << " ";
-    //std::cerr << std::endl;
 
     return vWord;
   }
@@ -159,17 +153,20 @@ class BPE {
       int end = utf8::next(b, e);
       std::vector<unsigned char> utf8result;
       utf8::utf32to8(&end,&end + 1, std::back_inserter(utf8result));
-      // for (auto& ch : utf8result) std::cerr << ch ;
-      // std::cerr << std::endl;
       letters.emplace_back(utf8result.begin(), utf8result.end());
     }
     return letters;
   }
 
-  std::vector<BPEPair> bpeCodes_;
+  bool EndsWith(std::string const &fullString, std::string const suffix) {
+      if (fullString.length() >= suffix.length()) {
+              return (0 == fullString.compare(fullString.length() - suffix.length(), suffix.length(), suffix));
+          } else {
+                  return false;
+              }
+  }
+
+  std::map<BPEPair, size_t> bpeCodes_;
   const std::string sep_;
   std::map<std::string, std::vector<std::string>> cache_;
-
-
-
 };
