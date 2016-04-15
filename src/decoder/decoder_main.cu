@@ -33,7 +33,7 @@ class BPE {
     }
     
     operator bool() const {
-      return true;
+      return false;
     }
     
   private:
