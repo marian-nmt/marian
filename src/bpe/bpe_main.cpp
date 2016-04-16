@@ -11,16 +11,10 @@ int main(int argc, char *argv[])
   }
   BPE bpe(argv[1]);
   std::string line;
+  std::ios_base::sync_with_stdio(false);
   while (std::getline(std::cin, line)) {
-    auto tokens = bpe.Segment(line);
-    for (size_t i = 0; i < tokens.size(); ++i) {
-      std::cout << tokens[i];
-      if (i == tokens.size() - 1) {
-        std::cout << std::endl;
-      } else {
-        std::cout << " ";
-      }
-    }
+    if (line.empty()) std::cout << std::endl;
+    bpe.PrintSegment(line);
   }
   return 0;
 }

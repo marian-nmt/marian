@@ -12,8 +12,29 @@
 
 #include "utf8.h"
 
+template<class T>
+inline void hash_combine(std::size_t & seed, const T & v)
+{
+  std::hash<T> hasher;
+  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+namespace std
+{
+  template<typename S, typename T> struct hash<pair<S, T>>
+  {
+      inline size_t operator()(const pair<S, T> & v) const
+      {
+            size_t seed = 0;
+            ::hash_combine(seed, v.first);
+            ::hash_combine(seed, v.second);
+            return seed;
+          }
+    };
+}
 class BPE {
   using BPEPair = std::pair<std::string, std::string>;
+
  public:
   BPE(std::ifstream&& file, const std::string sep = "@@")
     : sep_(sep) {
@@ -32,11 +53,8 @@ class BPE {
   std::vector<std::string> Segment(const std::string& sentence) {
     std::vector<std::string> words, tokens;
     boost::split(words, sentence, boost::is_any_of(" "));
-    //for (auto& word : words) std::cerr << word << " ";
-    //std::cerr << std::endl;
 
     for (auto& word : words) {
-      //std::cerr << "Encoding " << word << "..." << std::endl;
       if (word.empty()) continue;
       auto codes = Encode(word);
       for (size_t i = 0; i < codes.size() - 1; ++i) {
@@ -47,10 +65,29 @@ class BPE {
     return tokens;
   }
 
-  static std::set<BPEPair> GetPairs(std::vector<std::string>& word) {
+  void PrintSegment(const std::string& sentence) {
+    std::vector<std::string> words, tokens;
+    boost::split(words, sentence, boost::is_any_of(" "));
+
+    for (size_t wi = 0; wi < words.size(); ++wi) {
+      if (words[wi].empty()) continue;
+      auto codes = Encode(words[wi]);
+      for (size_t i = 0; i < codes.size() - 1; ++i) {
+        std::cout << codes[i] + sep_ << " ";
+      }
+      std::cout << codes.back();
+      if (wi == words.size() -1 ) {
+        std::cout << std::endl;
+      } else {
+        std::cout << " ";
+      }
+    }
+  }
+
+  static std::set<BPEPair> GetPairs(const std::vector<std::string>& word) {
     std::set<BPEPair> pairSet;
     for (size_t i = 1; i < word.size(); ++i) {
-      pairSet.insert(std::make_pair(word[i-1], word[i]));
+      pairSet.emplace(word[i-1], word[i]);
     }
     return pairSet;
   }
@@ -77,7 +114,7 @@ class BPE {
     }
   }
 
-  std::vector<std::string> Encode(const std::string& word) {
+  std::vector<std::string>& Encode(const std::string& word) {
     if (isCached(word)) {
       return cache_[word];
     }
@@ -89,7 +126,7 @@ class BPE {
 
     while (true) {
       const BPEPair* bigram = FindBestBigram(pairs);
-      if(bigram == nullptr) {
+      if (bigram == nullptr) {
         break;
       }
 
@@ -133,7 +170,7 @@ class BPE {
 
     cache_[word] = vWord;
 
-    return vWord;
+    return cache_[word];
   }
 
 
@@ -159,14 +196,14 @@ class BPE {
   }
 
   bool EndsWith(std::string const &fullString, std::string const suffix) {
-      if (fullString.length() >= suffix.length()) {
-              return (0 == fullString.compare(fullString.length() - suffix.length(), suffix.length(), suffix));
-          } else {
-                  return false;
-              }
+    if (fullString.length() >= suffix.length()) {
+      return (0 == fullString.compare(fullString.length() - suffix.length(), suffix.length(), suffix));
+    } else {
+      return false;
+    }
   }
 
-  std::map<BPEPair, size_t> bpeCodes_;
+  std::unordered_map<BPEPair, size_t> bpeCodes_;
   const std::string sep_;
-  std::map<std::string, std::vector<std::string>> cache_;
+  std::unordered_map<std::string, std::vector<std::string>> cache_;
 };
