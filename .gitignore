@@ -16,6 +16,9 @@
 # Fortran module files
 *.mod
 
+# python compiled files
+*.pyc
+
 # Compiled Static libraries
 *.lai
 *.la
@@ -26,5 +29,8 @@
 *.exe
 *.out
 *.app
+
+# Temporaty files created by editors
+.*.sw*
 
 build
