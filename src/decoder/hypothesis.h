@@ -1,21 +1,28 @@
 #pragma once
 
 #include "types.h"
+#include "kenlm.h"
 
 class Hypothesis {
  public:
-    Hypothesis(size_t word, size_t prev, float cost)
-      : prev_(prev),
+    Hypothesis(const Hypothesis* prevHyp, size_t word, size_t prevIndex, float cost)
+      : prevHyp_(prevHyp),
+        prevIndex_(prevIndex),
         word_(word),
-        cost_(cost) {
+        cost_(cost)
+    {}
+
+    const Hypothesis* GetPrevHyp() const {
+      return prevHyp_;
     }
 
+    
     size_t GetWord() const {
       return word_;
     }
 
     size_t GetPrevStateIndex() const {
-      return prev_;
+      return prevIndex_;
     }
 
     float GetCost() const {
@@ -25,15 +32,25 @@ class Hypothesis {
     std::vector<float>& GetCostBreakdown() {
       return costBreakdown_;
     }
+    
+    void AddLMState(const KenlmState& state) {
+      lmStates_.push_back(state);
+    }
+    
+    const std::vector<KenlmState>& GetLMStates() const {
+      return lmStates_;
+    }
 
  private:
-    const size_t prev_;
+    const Hypothesis* prevHyp_;
+    const size_t prevIndex_;
     const size_t word_;
     const float cost_;
+    std::vector<KenlmState> lmStates_;
     
     std::vector<float> costBreakdown_;
 };
 
-typedef std::vector<Hypothesis> Beam;
-typedef std::pair<Sentence, Hypothesis> Result;
+typedef std::vector<Hypothesis*> Beam;
+typedef std::pair<Sentence, Hypothesis*> Result;
 typedef std::vector<Result> NBestList;

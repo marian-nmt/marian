@@ -121,15 +121,15 @@ class FastGRU {
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(h_[0], RU_, Context, w_.W_);
-      Prod(h_[1], H_,  Context, w_.Wx_);
+      Prod(/*h_[0],*/ RU_, Context, w_.W_);
+      Prod(/*h_[1],*/ H_,  Context, w_.Wx_);
       // -----------------------------------------------------
       
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(h_[2], Temp1_, State, w_.U_);
-      Prod(h_[3], Temp2_, State, w_.Ux_);        
+      Prod(/*h_[2],*/ Temp1_, State, w_.U_);
+      Prod(/*h_[3],*/ Temp2_, State, w_.Ux_);        
       // -----------------------------------------------------
-      cudaDeviceSynchronize();
+      //cudaDeviceSynchronize();
       
       ElementwiseOps(NextState, State, RU_, H_, Temp1_, Temp2_);
     }

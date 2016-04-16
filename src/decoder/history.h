@@ -15,13 +15,21 @@ class History {
     };
   
   public:
-    void Add(const Beam& beam, bool last = false) {
-      for(size_t j = 0; j < beam.size(); ++j)
-        if(beam[j].GetWord() == EOS || last)
-          topHyps_.push({ history_.size(), j, beam[j].GetCost() });
-      history_.push_back(beam);
+    ~History() {
+      for(auto& b : history_)
+        for(auto h : b)
+          delete h;
     }
     
+    void Add(const Beam& beam, bool last = false) {
+      if(beam.back()->GetPrevHyp() != nullptr) {
+        for(size_t j = 0; j < beam.size(); ++j)
+          if(beam[j]->GetWord() == EOS || last)
+            topHyps_.push({ history_.size(), j, beam[j]->GetCost() });
+      }
+      history_.push_back(beam);
+    }
+  
     size_t size() const {
       return history_.size();
     }
@@ -37,10 +45,10 @@ class History {
         size_t j  = bestHypCoord.j;
         
         Sentence targetWords;
-        for(int i = start; i >= 0; i--) {
-          auto& bestHyp = history_[i][j];
-          targetWords.push_back(bestHyp.GetWord());
-          j = bestHyp.GetPrevStateIndex();
+        const Hypothesis* bestHyp = history_[start][j];
+        while(bestHyp->GetPrevHyp() != nullptr) {
+          targetWords.push_back(bestHyp->GetWord());
+          bestHyp = bestHyp->GetPrevHyp();
         }
       
         std::reverse(targetWords.begin(), targetWords.end());

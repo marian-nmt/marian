@@ -12,6 +12,7 @@
 #include "dl4mt.h"
 #include "vocab.h"
 #include "search.h"
+#include "threadpool.h"
 
 class BPE {
   public:
@@ -43,9 +44,12 @@ class BPE {
 int main(int argc, char* argv[]) {
   std::string srcVocabPath, trgVocabPath;
   std::vector<std::string> modelPaths;
-  size_t device = 0;
+  std::vector<std::string> lmPaths;
+  std::vector<float> lmWeights;
+  std::vector<size_t> devices;
   size_t nbest = 0;
   size_t beamSize = 12;
+  size_t threads = 1;
   bool help = false;
 
   namespace po = boost::program_options;
@@ -53,12 +57,18 @@ int main(int argc, char* argv[]) {
   cmdline_options.add_options()
     ("beamsize,b", po::value(&beamSize)->default_value(12),
      "Beam size")
+    ("threads", po::value(&threads)->default_value(1),
+     "Number of threads")
     ("n-best-list", po::value(&nbest)->default_value(0),
      "N-best list")
-    ("device,d", po::value(&device)->default_value(0),
+    ("device(s),d", po::value(&devices)->multitoken(),
      "CUDA Device")
     ("model(s),m", po::value(&modelPaths)->multitoken()->required(),
      "Path to a model")
+    ("lms(s),l", po::value(&lmPaths)->multitoken(),
+     "Path to a kenlm language model")
+    ("lw(s)", po::value(&lmWeights)->multitoken(),
+     "Language Model weights")
     ("source,s", po::value(&srcVocabPath)->required(),
      "Path to a source vocab file.")
     ("target,t", po::value(&trgVocabPath)->required(),
@@ -85,20 +95,29 @@ int main(int argc, char* argv[]) {
     exit(0);
   }
 
-  std::cerr << "Using device GPU" << device << std::endl;;
-  cudaSetDevice(device);
+  if(devices.empty())
+    devices.push_back(0);
+  
   Vocab srcVocab(srcVocabPath);
   Vocab trgVocab(trgVocabPath);
   
   std::vector<std::unique_ptr<Weights>> models;
   for(auto& modelPath : modelPaths) {
     std::cerr << "Loading model " << modelPath << std::endl;
-    models.emplace_back(new Weights(modelPath));
+    models.emplace_back(new Weights(modelPath, devices[0]));
+  }
+  
+  std::vector<LM> lms;
+  if(lmWeights.size() < lmPaths.size())
+    lmWeights.resize(lmPaths.size(), 0.2);
+  for(auto& lmPath : lmPaths) {
+    std::cerr << "Loading lm " << lmPath << std::endl;
+    size_t index = lms.size();
+    float weight = lmWeights[index];
+    lms.emplace_back(lmPath, trgVocab, index, weight);
   }
   
   std::cerr << "done." << std::endl;
-
-  Search search(models, nbest > 0);
 
   std::cerr << "Translating...\n";
 
@@ -106,25 +125,52 @@ int main(int argc, char* argv[]) {
 
   BPE bpe;
   
+  
   boost::timer::cpu_timer timer;
+  
+  //ThreadPool pool(threads);
+  std::vector<std::future<History>> results;
+  
   std::string in;
+  
   size_t lineCounter = 0;
   while(std::getline(std::cin, in)) {
-    Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
-    History history = search.Decode(sentence, beamSize);
+  //  auto call = [in, beamSize, nbest, &models, &lms, &bpe, &srcVocab] {
+  //    thread_local Search search(models, lms, nbest > 0);
+  //    
+  //    Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
+  //    return search.Decode(sentence, beamSize);
+  //  }
+  
+  
+  //  results.emplace_back(
+  //    pool.enqueue(call)
+  //  );
+  //}
+  //
+  //for(auto&& result : results) {
+    auto call = [in, beamSize, nbest, &models, &lms, &bpe, &srcVocab] {
+      thread_local Search search(models, lms, nbest > 0);
+      
+      Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
+      return search.Decode(sentence, beamSize);
+    };
+    History history = call();
+    
+    //History history = result.get();
     std::string out = trgVocab(history.Top().first);
     if(bpe)
       out = bpe.unsplit(out);
     std::cout << out << std::endl;
     if(nbest > 0) {
-      NBestList nbl = history.NBest(beamSize);
+      NBestList nbl = history.NBest(nbest);
       for(size_t i = 0; i < nbl.size(); ++i) {
         auto& r = nbl[i];
-        std::cout << lineCounter << " ||| " << bpe.unsplit(trgVocab(r.first)) << " |||";
-        for(size_t j = 0; j < r.second.GetCostBreakdown().size(); ++j) {
-          std::cout << " F" << j << "=" << r.second.GetCostBreakdown()[j];
+        std::cout << lineCounter << " ||| " << (bpe ? bpe.unsplit(trgVocab(r.first)) : trgVocab(r.first, false)) << " |||";
+        for(size_t j = 0; j < r.second->GetCostBreakdown().size(); ++j) {
+          std::cout << " F" << j << "=" << r.second->GetCostBreakdown()[j];
         }
-        std::cout << " ||| " << r.second.GetCost() << std::endl;
+        std::cout << " ||| " << r.second->GetCost() << std::endl;
       }
     }
     lineCounter++;

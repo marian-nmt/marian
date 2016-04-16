@@ -9,6 +9,7 @@ add_library(libamunn OBJECT
   cnpy/cnpy.cpp
   rescorer/nbest.cpp
   common/utils.cpp
+  decoder/kenlm.cpp
 )
 
 cuda_add_executable(
