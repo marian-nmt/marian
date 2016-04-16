@@ -16,6 +16,13 @@ class History {
   
   public:
     ~History() {
+      //std::cerr << "Deleting" << std::endl;
+      //for(auto& b : history_)
+      //  for(auto h : b)
+      //    delete h;
+    }
+    
+    void Clear() {
       for(auto& b : history_)
         for(auto h : b)
           delete h;
@@ -63,6 +70,6 @@ class History {
     
   private:
     std::vector<Beam> history_;
-    mutable std::priority_queue<HypothesisCoord> topHyps_;
+    std::priority_queue<HypothesisCoord> topHyps_;
       
 };

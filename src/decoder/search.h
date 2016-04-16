@@ -48,6 +48,7 @@ class Search {
     std::vector<EncoderDecoderPtr> encDecs_;
     const std::vector<LM>& lms_;
     bool doBreakdown_;
+    size_t device_;
     std::vector<mblas::Matrix> LmProbs_;
   
   public:
@@ -55,9 +56,9 @@ class Search {
            const std::vector<LM>& lms,
            bool doBreakdown = false)
     : lms_(lms),
-      doBreakdown_(doBreakdown)
+      doBreakdown_(doBreakdown),
+      device_(models[0]->GetDevice())
     {
-      cudaSetDevice(models[0]->GetDevice());
       for(auto& m : models)
         encDecs_.emplace_back(new EncoderDecoder(*m));
       LmProbs_.resize(lms.size());
@@ -137,7 +138,7 @@ class Search {
       states.resize(rows * cols);
 
       {
-        ThreadPool pool(4);
+        //ThreadPool pool(4);
         for(size_t i = 0; i < prevHyps.size(); i++) {
           auto call = [i, cols, &prevHyps, &lm, &costs, &states] {
             const KenlmState state = prevHyps[i]->GetLMStates()[lm.GetIndex()];
@@ -149,9 +150,11 @@ class Search {
               costs[i * cols + wp.second] = lm.Score(state, wp.first, states[i * cols + wp.second]);
             }
           };
-          pool.enqueue(call);
+          call();
+          //pool.enqueue(call);
         }
       }
+      cudaSetDevice(device_);
       thrust::copy(costs.begin(), costs.end(), LmProbs.begin());
     }
     

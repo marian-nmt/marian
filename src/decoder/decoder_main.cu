@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <memory>
+#include <atomic>
 #include <boost/timer/timer.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -101,10 +102,23 @@ int main(int argc, char* argv[]) {
   Vocab srcVocab(srcVocabPath);
   Vocab trgVocab(trgVocabPath);
   
-  std::vector<std::unique_ptr<Weights>> models;
-  for(auto& modelPath : modelPaths) {
-    std::cerr << "Loading model " << modelPath << std::endl;
-    models.emplace_back(new Weights(modelPath, devices[0]));
+  typedef std::unique_ptr<Weights> Model;
+  typedef std::vector<Model> Models;
+  typedef std::vector<Models> ModelsPerDevice;
+  
+  ModelsPerDevice modelsPerDevice(devices.size());
+  
+  {
+    ThreadPool devicePool(devices.size());
+    for(size_t i = 0; i < devices.size(); ++i) {
+      devicePool.enqueue([i, &devices, &modelsPerDevice, &modelPaths]{
+        cudaSetDevice(devices[i]);
+        for(auto& modelPath : modelPaths) {
+          std::cerr << "Loading model " << modelPath << " onto gpu" << devices[i] << std::endl;
+          modelsPerDevice[i].emplace_back(new Weights(modelPath, devices[i]));
+        }
+      });
+    }
   }
   
   std::vector<LM> lms;
@@ -128,36 +142,33 @@ int main(int argc, char* argv[]) {
   
   boost::timer::cpu_timer timer;
   
-  //ThreadPool pool(threads);
+  ThreadPool pool(std::max(threads, devices.size()));
   std::vector<std::future<History>> results;
   
   std::string in;
-  
-  size_t lineCounter = 0;
+  std::size_t threadCounter = 0;
   while(std::getline(std::cin, in)) {
-  //  auto call = [in, beamSize, nbest, &models, &lms, &bpe, &srcVocab] {
-  //    thread_local Search search(models, lms, nbest > 0);
-  //    
-  //    Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
-  //    return search.Decode(sentence, beamSize);
-  //  }
-  
-  
-  //  results.emplace_back(
-  //    pool.enqueue(call)
-  //  );
-  //}
-  //
-  //for(auto&& result : results) {
-    auto call = [in, beamSize, nbest, &models, &lms, &bpe, &srcVocab] {
-      thread_local Search search(models, lms, nbest > 0);
+    auto call = [in, beamSize, threadCounter, devices, nbest, &modelsPerDevice, &lms, &bpe, &srcVocab] {
+      thread_local std::unique_ptr<Search> search;
+      if(!search) {
+        Models& models = modelsPerDevice[threadCounter % devices.size()];
+        cudaSetDevice(models[0]->GetDevice());
+        search.reset(new Search(models, lms, nbest > 0));
+      }
       
       Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
-      return search.Decode(sentence, beamSize);
+      return search->Decode(sentence, beamSize);
     };
-    History history = call();
-    
-    //History history = result.get();
+  
+    results.emplace_back(
+      pool.enqueue(call)
+    );
+    threadCounter++;
+  }
+  
+  size_t lineCounter = 0;
+  for(auto&& result : results) {
+    History history = result.get();
     std::string out = trgVocab(history.Top().first);
     if(bpe)
       out = bpe.unsplit(out);
@@ -173,6 +184,7 @@ int main(int argc, char* argv[]) {
         std::cout << " ||| " << r.second->GetCost() << std::endl;
       }
     }
+    history.Clear();
     lineCounter++;
   }
   std::cerr << timer.format() << std::endl;

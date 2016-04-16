@@ -32,6 +32,7 @@ namespace std
           }
     };
 }
+
 class BPE {
   using BPEPair = std::pair<std::string, std::string>;
 
