@@ -110,14 +110,14 @@ int main(int argc, char* argv[]) {
   
   {
     ThreadPool devicePool(devices.size());
-    for(size_t i = 0; i < devices.size(); ++i) {
-      std::cerr << "Loading model " << modelPaths[i] << " onto gpu" << devices[i] << std::endl;
-      devicePool.enqueue([i, &devices, &modelsPerDevice, &modelPaths]{
-        cudaSetDevice(devices[i]);
-        for(auto& modelPath : modelPaths) {
+    for(auto& modelPath : modelPaths) {
+      for(size_t i = 0; i < devices.size(); ++i) {
+        std::cerr << "Loading model " << modelPath << " onto gpu" << devices[i] << std::endl;
+        devicePool.enqueue([i, &devices, &modelPath, &modelsPerDevice]{
+          cudaSetDevice(devices[i]);
           modelsPerDevice[i].emplace_back(new Weights(modelPath, devices[i]));
-        }
-      });
+        });
+      }
     }
   }
   
@@ -154,8 +154,7 @@ int main(int argc, char* argv[]) {
         Models& models = modelsPerDevice[threadCounter % devices.size()];
         cudaSetDevice(models[0]->GetDevice());
         search.reset(new Search(models, lms, nbest > 0));
-      }
-      
+      } 
       Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
       return search->Decode(sentence, beamSize);
     };
@@ -169,10 +168,6 @@ int main(int argc, char* argv[]) {
   size_t lineCounter = 0;
   for(auto&& result : results) {
     History history = result.get();
-    std::string out = trgVocab(history.Top().first);
-    if(bpe)
-      out = bpe.unsplit(out);
-    std::cout << out << std::endl;
     if(nbest > 0) {
       NBestList nbl = history.NBest(nbest);
       for(size_t i = 0; i < nbl.size(); ++i) {
@@ -183,6 +178,12 @@ int main(int argc, char* argv[]) {
         }
         std::cout << " ||| " << r.second->GetCost() << std::endl;
       }
+    }
+    else {
+      std::string out = trgVocab(history.Top().first);
+      if(bpe)
+        out = bpe.unsplit(out);
+      std::cout << out << std::endl;
     }
     history.Clear();
     lineCounter++;
