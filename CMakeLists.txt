@@ -19,10 +19,15 @@ else(Boost_FOUND)
 endif(Boost_FOUND)
 
 ### KenLM stuff - BEGIN ###
-set(EXT_LIBS ${EXT_LIBS} /home/marcinj/Badania/kenlm/build/lib/libkenlm.a)
-set(EXT_LIBS ${EXT_LIBS} /home/marcinj/Badania/kenlm/build/lib/libkenlm_util.a)
-include_directories(/home/marcinj/Badania/kenlm)
-add_definitions(-DKENLM_MAX_ORDER=9)
+set(KENLM CACHE STRING "Path to compiled kenlm directory")
+if (NOT EXISTS "${KENLM}/build/lib/libkenlm.a")
+  message(FATAL_ERROR "Could not find ${KENLM}/build/lib/libkenlm.a")
+endif()
+
+set(EXT_LIBS ${EXT_LIBS} ${KENLM}/build/lib/libkenlm.a)
+set(EXT_LIBS ${EXT_LIBS} ${KENLM}/build/lib/libkenlm_util.a)
+include_directories(${KENLM})
+add_definitions(-DKENLM_MAX_ORDER=6)
 
 #find_package (OpenMP)
 #if (OPENMP_FOUND)
