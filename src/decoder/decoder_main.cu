@@ -172,7 +172,7 @@ int main(int argc, char* argv[]) {
       NBestList nbl = history.NBest(nbest);
       for(size_t i = 0; i < nbl.size(); ++i) {
         auto& r = nbl[i];
-        std::cout << lineCounter << " ||| " << (bpe ? bpe.unsplit(trgVocab(r.first)) : trgVocab(r.first, false)) << " |||";
+        std::cout << lineCounter << " ||| " << (bpe ? bpe.unsplit(trgVocab(r.first)) : trgVocab(r.first)) << " |||";
         for(size_t j = 0; j < r.second->GetCostBreakdown().size(); ++j) {
           std::cout << " F" << j << "=" << r.second->GetCostBreakdown()[j];
         }
