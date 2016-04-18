@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
   {
     ThreadPool devicePool(devices.size());
     for(size_t i = 0; i < devices.size(); ++i) {
-      std::cerr << "Loading model " << modelPath << " onto gpu" << devices[i] << std::endl;
+      std::cerr << "Loading model " << modelPaths[i] << " onto gpu" << devices[i] << std::endl;
       devicePool.enqueue([i, &devices, &modelsPerDevice, &modelPaths]{
         cudaSetDevice(devices[i]);
         for(auto& modelPath : modelPaths) {
