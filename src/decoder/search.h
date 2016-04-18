@@ -73,9 +73,7 @@ class Search {
       Hypothesis* bos = new Hypothesis(nullptr, 0, 0, 0.0);
       bos->GetCostBreakdown().resize(encDecs_.size() + lms_.size(), 0.0);
       for(auto& lm : lms_) {
-        KenlmState state;
-        lm.BeginSentenceState(state);
-        bos->AddLMState(state);
+        bos->AddLMState(lm.BeginSentenceState());
       }
       Beam prevHyps = { bos };
       history.Add(prevHyps);
