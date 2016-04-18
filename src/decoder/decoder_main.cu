@@ -111,10 +111,10 @@ int main(int argc, char* argv[]) {
   {
     ThreadPool devicePool(devices.size());
     for(size_t i = 0; i < devices.size(); ++i) {
+      std::cerr << "Loading model " << modelPath << " onto gpu" << devices[i] << std::endl;
       devicePool.enqueue([i, &devices, &modelsPerDevice, &modelPaths]{
         cudaSetDevice(devices[i]);
         for(auto& modelPath : modelPaths) {
-          std::cerr << "Loading model " << modelPath << " onto gpu" << devices[i] << std::endl;
           modelsPerDevice[i].emplace_back(new Weights(modelPath, devices[i]));
         }
       });

@@ -22,7 +22,7 @@ endif(Boost_FOUND)
 set(EXT_LIBS ${EXT_LIBS} /home/marcinj/Badania/kenlm/build/lib/libkenlm.a)
 set(EXT_LIBS ${EXT_LIBS} /home/marcinj/Badania/kenlm/build/lib/libkenlm_util.a)
 include_directories(/home/marcinj/Badania/kenlm)
-add_definitions(-DKENLM_MAX_ORDER=9)
+add_definitions(-DKENLM_MAX_ORDER=6)
 
 #find_package (OpenMP)
 #if (OPENMP_FOUND)
