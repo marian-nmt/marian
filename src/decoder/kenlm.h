@@ -55,6 +55,7 @@ class LM {
     WordPairs::const_iterator end() const;
     size_t GetIndex() const;
     float GetWeight() const;
+    size_t size() const;
     
   private:
     std::unique_ptr<KenlmModel> lm_;

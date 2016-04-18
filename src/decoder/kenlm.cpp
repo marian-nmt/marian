@@ -102,3 +102,6 @@ float LM::GetWeight() const {
   return weight_;
 }
 
+size_t LM::size() const {
+  return vm_.size();
+}
