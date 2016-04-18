@@ -138,7 +138,7 @@ class Search {
       states.resize(rows * cols);
 
       {
-        //ThreadPool pool(4);
+        ThreadPool pool(4);
         for(size_t i = 0; i < prevHyps.size(); i++) {
           auto call = [i, cols, &prevHyps, &lm, &costs, &states] {
             const KenlmState state = prevHyps[i]->GetLMStates()[lm.GetIndex()];
@@ -150,8 +150,7 @@ class Search {
               costs[i * cols + wp.second] = lm.Score(state, wp.first, states[i * cols + wp.second]);
             }
           };
-          call();
-          //pool.enqueue(call);
+          pool.enqueue(call);
         }
       }
       cudaSetDevice(device_);
