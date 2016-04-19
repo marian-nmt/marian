@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "hypothesis.h"
 
 class History {

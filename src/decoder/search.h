@@ -1,24 +1,10 @@
 #pragma once
 
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <limits>
-#include <sstream>
-#include <queue>
-#include <set>
-#include <boost/timer/timer.hpp>
-#include <thread>
 #include <algorithm>
 
-#include <thrust/functional.h>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_ptr.h>
-#include <thrust/extrema.h>
 #include <thrust/sort.h>
 #include <thrust/sequence.h>
+#include <thrust/extrema.h>
 
 #include "types.h"
 #include "matrix.h"
@@ -165,6 +151,8 @@ class Search {
         size_t wordIndex = bestKeys[i] % Probs.Cols();
         size_t hypIndex  = bestKeys[i] / Probs.Cols();
         float cost = bestCosts[i];
+        
+        // Do this with shared pointers
         Hypothesis* hyp = new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);
         
         if(doBreakdown_) {
