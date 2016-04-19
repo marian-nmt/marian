@@ -15,12 +15,11 @@ class History {
     };
   
   public:
-    ~History() {
-      //std::cerr << "Deleting" << std::endl;
-      //for(auto& b : history_)
-      //  for(auto h : b)
-      //    delete h;
-    }
+    History(bool normalize)
+    : normalize_(normalize)
+    {}
+    
+    ~History() {}
     
     void Clear() {
       for(auto& b : history_)
@@ -31,8 +30,10 @@ class History {
     void Add(const Beam& beam, bool last = false) {
       if(beam.back()->GetPrevHyp() != nullptr) {
         for(size_t j = 0; j < beam.size(); ++j)
-          if(beam[j]->GetWord() == EOS || last)
-            topHyps_.push({ history_.size(), j, beam[j]->GetCost() });
+          if(beam[j]->GetWord() == EOS || last) {
+            float cost = normalize_ ? beam[j]->GetCost() / (history_.size() - 1) : beam[j]->GetCost();
+            topHyps_.push({ history_.size(), j, cost });
+          }
       }
       history_.push_back(beam);
     }
@@ -71,5 +72,5 @@ class History {
   private:
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
-      
+    bool normalize_;  
 };

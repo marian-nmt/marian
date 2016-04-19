@@ -48,6 +48,8 @@ class Search {
   
     std::vector<EncoderDecoderPtr> encDecs_;
     const std::vector<LM>& lms_;
+    const std::vector<float> weights_;
+    bool normalize_;
     bool doBreakdown_;
     size_t device_;
     std::vector<mblas::Matrix> LmProbs_;
@@ -55,8 +57,12 @@ class Search {
   public:
     Search(const std::vector<std::unique_ptr<Weights>>& models,
            const std::vector<LM>& lms,
+           const std::vector<float> weights,
+           bool normalize = false,
            bool doBreakdown = false)
     : lms_(lms),
+      weights_(weights),
+      normalize_(normalize),
       doBreakdown_(doBreakdown),
       device_(models[0]->GetDevice())
     {
@@ -68,7 +74,7 @@ class Search {
     History Decode(const Sentence sourceWords, size_t beamSize = 12) {
       using namespace mblas;
       
-      History history;
+      History history(normalize_);
       
       Hypothesis* bos = new Hypothesis(nullptr, 0, 0, 0.0);
       bos->GetCostBreakdown().resize(encDecs_.size() + lms_.size(), 0.0);
@@ -177,17 +183,18 @@ class Search {
         vCosts.push_back(h->GetCost());
       thrust::copy(vCosts.begin(), vCosts.end(), Costs.begin());
       
-      BroadcastVecColumn(Log(_1) + _2, Probs, Costs);
+      BroadcastVecColumn(weights_[0] * Log(_1) + _2, Probs, Costs);
       for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
-        Element(_1 + Log(_2), Probs, *ProbsEnsemble[i]);
+        Element(_1 + weights_[i] * Log(_2), Probs, *ProbsEnsemble[i]);
       
       std::vector<std::vector<KenlmState>> states(lms_.size());
       if(!lms_.empty()) {
+        size_t enSize = ProbsEnsemble.size();
         for(auto& lm : lms_) {
           size_t index = lm.GetIndex();
           LmProbs_[index].Resize(Probs.Rows(), Probs.Cols());
           CalcLMProbs(LmProbs_[index], states[lm.GetIndex()], prevHyps, lm);
-          Element(_1 + lm.GetWeight() * _2, Probs, LmProbs_[index]);
+          Element(_1 + weights_[enSize + index] * _2, Probs, LmProbs_[index]);
         }
       }
       
@@ -247,18 +254,16 @@ class Search {
               hyp->GetCostBreakdown().push_back(breakDowns[j][i]);
             else {
               float cost = 0;
-              if(j < ProbsEnsemble.size()) {
+              if(j < ProbsEnsemble.size())
                 cost = log(breakDowns[j][i]) + const_cast<Hypothesis*>(prevHyps[hypIndex])->GetCostBreakdown()[j];
-                sum += cost;  
-              }
-              else {
+              else
                 cost = breakDowns[j][i] + const_cast<Hypothesis*>(prevHyps[hypIndex])->GetCostBreakdown()[j];
-                sum += lms_[j - ProbsEnsemble.size()].GetWeight() * cost;
-              }
+              sum += weights_[j] * cost;  
               hyp->GetCostBreakdown().push_back(cost);
             }
           }
           hyp->GetCostBreakdown()[0] -= sum;
+          hyp->GetCostBreakdown()[0] /= weights_[0];
         }
         bestHyps.push_back(hyp);  
       }

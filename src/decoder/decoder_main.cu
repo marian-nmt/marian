@@ -46,29 +46,32 @@ int main(int argc, char* argv[]) {
   std::string srcVocabPath, trgVocabPath;
   std::vector<std::string> modelPaths;
   std::vector<std::string> lmPaths;
-  std::vector<float> lmWeights;
+  std::vector<float> weights;
   std::vector<size_t> devices;
   size_t nbest = 0;
   size_t beamSize = 12;
   size_t threads = 1;
   bool help = false;
+  bool normalize = false;
 
   namespace po = boost::program_options;
   po::options_description cmdline_options("Allowed options");
   cmdline_options.add_options()
     ("beamsize,b", po::value(&beamSize)->default_value(12),
      "Beam size")
+    ("normalize", po::value(&normalize)->default_value(false),
+     "Normalize by length")
     ("threads", po::value(&threads)->default_value(1),
      "Number of threads")
     ("n-best-list", po::value(&nbest)->default_value(0),
      "N-best list")
-    ("device(s),d", po::value(&devices)->multitoken(),
+    ("devices,d", po::value(&devices)->multitoken(),
      "CUDA Device")
-    ("model(s),m", po::value(&modelPaths)->multitoken()->required(),
+    ("models,m", po::value(&modelPaths)->multitoken()->required(),
      "Path to a model")
-    ("lms(s),l", po::value(&lmPaths)->multitoken(),
-     "Path to a kenlm language model")
-    ("lw(s)", po::value(&lmWeights)->multitoken(),
+    ("lms,l", po::value(&lmPaths)->multitoken(),
+     "Paths to a kenlm language model")
+    ("weights,w", po::value(&weights)->multitoken(),
      "Language Model weights")
     ("source,s", po::value(&srcVocabPath)->required(),
      "Path to a source vocab file.")
@@ -121,14 +124,16 @@ int main(int argc, char* argv[]) {
     }
   }
   
+  if(weights.size() < modelPaths.size())
+    weights.resize(modelPaths.size(), 1.0);
+  if(weights.size() < lmPaths.size())
+    weights.resize(weights.size() + lmPaths.size(), 0.0);
+  
   std::vector<LM> lms;
-  if(lmWeights.size() < lmPaths.size())
-    lmWeights.resize(lmPaths.size(), 0.2);
   for(auto& lmPath : lmPaths) {
     std::cerr << "Loading lm " << lmPath << std::endl;
     size_t index = lms.size();
-    float weight = lmWeights[index];
-    lms.emplace_back(lmPath, trgVocab, index, weight);
+    lms.emplace_back(lmPath, trgVocab, index, 0);
   }
   
   std::cerr << "done." << std::endl;
@@ -148,12 +153,12 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t threadCounter = 0;
   while(std::getline(std::cin, in)) {
-    auto call = [in, beamSize, threadCounter, devices, nbest, &modelsPerDevice, &lms, &bpe, &srcVocab] {
+    auto call = [=, &weights, &modelsPerDevice, &lms, &bpe, &srcVocab] {
       thread_local std::unique_ptr<Search> search;
       if(!search) {
         Models& models = modelsPerDevice[threadCounter % devices.size()];
         cudaSetDevice(models[0]->GetDevice());
-        search.reset(new Search(models, lms, nbest > 0));
+        search.reset(new Search(models, lms, weights, normalize, nbest > 0));
       } 
       Sentence sentence = bpe ? srcVocab(bpe.split(in)) : srcVocab(in);
       return search->Decode(sentence, beamSize);
