@@ -54,7 +54,7 @@ class LanguageModel : public SourceIndependentScorer {
       }
       
       {  
-        ThreadPool pool(8); // this should be a parameter somewhere
+        ThreadPool pool(4); // this should be a parameter somewhere
         size_t batchSize = 1000; // this, too
         for(size_t batchStart = 0; batchStart < lm_.size(); batchStart += batchSize) {
           auto call = [batchStart, batchSize, cols, this, &costs, &inStates, &outStates] {
@@ -82,12 +82,15 @@ class LanguageModel : public SourceIndependentScorer {
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
                                    State& out) {
+
       const LMState& lmIn = in.get<LMState>();
       LMState& lmOut = out.get<LMState>();
       
+      size_t cols = lmIn.GetStates().size() / beam.size();
+      
       lmOut.GetStates().resize(beam.size());
       for(size_t i = 0; i < beam.size(); ++i)
-         lmOut.GetStates()[i] = lmIn.GetStates()[beam[i]->GetPrevStateIndex()];
+         lmOut.GetStates()[i] = lmIn.GetStates()[i * cols + beam[i]->GetWord()];
     }
     
   private:
