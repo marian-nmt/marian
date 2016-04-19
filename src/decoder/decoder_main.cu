@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
   cmdline_options.add_options()
     ("beamsize,b", po::value(&beamSize)->default_value(12),
      "Beam size")
-    ("normalize", po::value(&normalize)->default_value(false),
+    ("normalize", po::value(&normalize)->zero_tokens()->default_value(false),
      "Normalize by length")
     ("threads", po::value(&threads)->default_value(1),
      "Number of threads")
