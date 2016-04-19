@@ -24,9 +24,7 @@ class Search {
       size_t vocabSize = 85000; // evil, where can I get that from?
                                 // max from all vocab sizes?
       
-      HypothesisPtr bos(new Hypothesis(nullptr, 0, 0, 0.0));
-      bos->GetCostBreakdown().resize(scorers_.size(), 0.0);
-      Beam prevHyps = { bos };
+      Beam prevHyps.emplace(new Hypothesis());
       history.Add(prevHyps);
       
       States states(scorers_.size());
@@ -137,16 +135,17 @@ class Search {
         HypothesisPtr hyp(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         
         if(doBreakdown) {
+          hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
           float sum = 0;
           for(size_t j = 0; j < ProbsEnsemble.size(); ++j) {
             if(j == 0)
-              hyp->GetCostBreakdown().push_back(breakDowns[j][i]);
+              hyp->GetCostBreakdown()[0] = breakDowns[0][i];
             else {
               float cost = 0;
               if(j < ProbsEnsemble.size())
                 cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
               sum += weights[j] * cost;  
-              hyp->GetCostBreakdown().push_back(cost);
+              hyp->GetCostBreakdown()[j] = cost;
             }
           }
           hyp->GetCostBreakdown()[0] -= sum;

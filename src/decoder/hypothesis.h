@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include "kenlm.h"
 
 class Hypothesis;
 
@@ -9,11 +8,18 @@ typedef std::shared_ptr<Hypothesis> HypothesisPtr;
 
 class Hypothesis {
  public:
+    Hypothesis()
+     : prevHyp_(nullptr),
+       prevIndex_(0),
+       word_(0),
+       cost_(0.0),
+    {}
+    
     Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost)
       : prevHyp_(prevHyp),
         prevIndex_(prevIndex),
         word_(word),
-        cost_(cost)
+        cost_(cost),
     {}
 
     const HypothesisPtr GetPrevHyp() const {
