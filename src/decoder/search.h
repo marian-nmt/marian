@@ -19,12 +19,12 @@ class Search {
       // it should be enough to keep track of hypotheses in
       // separate History objects.
       
-      History history(normalize);
+      History history;
       
       size_t vocabSize = 85000; // evil, where can I get that from?
                                 // max from all vocab sizes?
       
-      Hypothesis* bos = new Hypothesis(nullptr, 0, 0, 0.0);
+      HypothesisPtr bos(new Hypothesis(nullptr, 0, 0, 0.0));
       bos->GetCostBreakdown().resize(scorers_.size(), 0.0);
       Beam prevHyps = { bos };
       history.Add(prevHyps);
@@ -82,7 +82,7 @@ class Search {
       
       Matrix Costs(Probs.Rows(), 1);
       HostVector<float> vCosts;
-      for(const Hypothesis* h : prevHyps)
+      for(auto& h : prevHyps)
         vCosts.push_back(h->GetCost());
       algo::copy(vCosts.begin(), vCosts.end(), Costs.begin());
       
@@ -134,8 +134,7 @@ class Search {
         size_t hypIndex  = bestKeys[i] / Probs.Cols();
         float cost = bestCosts[i];
         
-        // Do this with shared pointers
-        Hypothesis* hyp = new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);
+        HypothesisPtr hyp(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         
         if(doBreakdown) {
           float sum = 0;
@@ -145,7 +144,7 @@ class Search {
             else {
               float cost = 0;
               if(j < ProbsEnsemble.size())
-                cost = breakDowns[j][i] + const_cast<Hypothesis*>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+                cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
               sum += weights[j] * cost;  
               hyp->GetCostBreakdown().push_back(cost);
             }

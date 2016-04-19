@@ -208,3 +208,31 @@ class BPE {
   const std::string sep_;
   std::unordered_map<std::string, std::vector<std::string>> cache_;
 };
+
+
+//class BPE {
+//  public:
+//    BPE(const std::string& sep = "@@ ")
+//     : sep_(sep) {}
+//    
+//    std::string split(const std::string& line) {
+//      return line;
+//    }
+//    
+//    std::string unsplit(const std::string& line) {
+//      std::string joined = line;
+//      size_t pos = joined.find(sep_);
+//      while(pos != std::string::npos) {
+//        joined.erase(pos, sep_.size());
+//        pos = joined.find(sep_, pos);
+//      }
+//      return joined;
+//    }
+//    
+//    operator bool() const {
+//      return false;
+//    }
+//    
+//  private:
+//    std::string sep_;
+//};

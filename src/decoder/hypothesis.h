@@ -3,16 +3,20 @@
 #include "types.h"
 #include "kenlm.h"
 
+class Hypothesis;
+
+typedef std::shared_ptr<Hypothesis> HypothesisPtr;
+
 class Hypothesis {
  public:
-    Hypothesis(const Hypothesis* prevHyp, size_t word, size_t prevIndex, float cost)
+    Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost)
       : prevHyp_(prevHyp),
         prevIndex_(prevIndex),
         word_(word),
         cost_(cost)
     {}
 
-    const Hypothesis* GetPrevHyp() const {
+    const HypothesisPtr GetPrevHyp() const {
       return prevHyp_;
     }
 
@@ -42,7 +46,7 @@ class Hypothesis {
     }
 
  private:
-    const Hypothesis* prevHyp_;
+    const HypothesisPtr prevHyp_;
     const size_t prevIndex_;
     const size_t word_;
     const float cost_;
@@ -51,6 +55,6 @@ class Hypothesis {
     std::vector<float> costBreakdown_;
 };
 
-typedef std::vector<Hypothesis*> Beam;
-typedef std::pair<Sentence, Hypothesis*> Result;
+typedef std::vector<HypothesisPtr> Beam;
+typedef std::pair<Sentence, HypothesisPtr> Result;
 typedef std::vector<Result> NBestList;

@@ -12,23 +12,20 @@ add_library(libamunn OBJECT
   decoder/kenlm.cpp
 )
 
-cuda_compile(MATRIX mblas/matrix.cu)
-cuda_compile(GRU dl4mt/gru.cu)
-
 cuda_add_executable(
   amunn
   decoder/decoder_main.cu
   decoder/god.cu
-  ${MATRIX}
-  ${GRU}
+  mblas/matrix.cu
+  dl4mt/gru.cu
   $<TARGET_OBJECTS:libamunn>
 )
 
 cuda_add_executable(
   rescorer
   rescorer/rescorer_main.cu
-  ${MATRIX}
-  ${GRU}
+  mblas/matrix.cu
+  dl4mt/gru.cu
   $<TARGET_OBJECTS:libamunn>
 )
 

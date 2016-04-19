@@ -39,9 +39,9 @@ God& God::NonStaticInit(int argc, char** argv) {
     ("target,t", po::value(&targetVocabPath)->required(),
      "Path to target vocabulary file.")
     ("lm,l", po::value(&lmPaths)->multitoken(),
-     "Paths to kenlm language model(s)")
+     "Paths to KenLM language model(s)")
     ("weights,w", po::value(&weights_)->multitoken(),
-     "Language Model weights")
+     "Model weights (for NMT and LM)")
     ("devices,d", po::value(&devices)->multitoken(),
      "Allowed CUDA Device(s)")
     ("threads", po::value<size_t>()->default_value(1),
@@ -60,9 +60,18 @@ God& God::NonStaticInit(int argc, char** argv) {
      "Output n-best list with n = beam-size")
   ;
 
+  po::options_description kenlm("KenLM specific options");
+  kenlm.add_options()
+    ("batch-size", po::value<size_t>()->default_value(1000),
+     "Batch size for batched queries")
+    ("batch-threads", po::value<size_t>()->default_value(4),
+     "Concurrent worker threads for batch processing")
+  ;
+
   po::options_description cmdline_options("Allowed options");
   cmdline_options.add(general);
   cmdline_options.add(search);
+  cmdline_options.add(kenlm);
 
   try {
     po::store(po::command_line_parser(argc,argv)

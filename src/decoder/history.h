@@ -2,6 +2,7 @@
 
 #include <queue>
 
+#include "god.h"
 #include "hypothesis.h"
 
 class History {
@@ -17,18 +18,10 @@ class History {
     };
   
   public:
-    History(bool normalize)
-    : normalize_(normalize)
+    History()
+    : normalize_(God::Get<bool>("normalize"))
     {}
-    
-    ~History() {}
-    
-    void Clear() {
-      for(auto& b : history_)
-        for(auto h : b)
-          delete h;
-    }
-    
+        
     void Add(const Beam& beam, bool last = false) {
       if(beam.back()->GetPrevHyp() != nullptr) {
         for(size_t j = 0; j < beam.size(); ++j)
@@ -55,7 +48,7 @@ class History {
         size_t j  = bestHypCoord.j;
         
         Sentence targetWords;
-        const Hypothesis* bestHyp = history_[start][j];
+        HypothesisPtr bestHyp = history_[start][j];
         while(bestHyp->GetPrevHyp() != nullptr) {
           targetWords.push_back(bestHyp->GetWord());
           bestHyp = bestHyp->GetPrevHyp();
