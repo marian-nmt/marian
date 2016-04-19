@@ -124,17 +124,17 @@ int main(int argc, char* argv[]) {
     }
   }
   
-  if(weights.size() < modelPaths.size())
-    weights.resize(modelPaths.size(), 1.0);
-  if(weights.size() < lmPaths.size())
-    weights.resize(weights.size() + lmPaths.size(), 0.0);
-  
   std::vector<LM> lms;
   for(auto& lmPath : lmPaths) {
     std::cerr << "Loading lm " << lmPath << std::endl;
     size_t index = lms.size();
-    lms.emplace_back(lmPath, trgVocab, index, 0);
+    lms.emplace_back(lmPath, trgVocab);
   }
+  
+  if(weights.size() < modelPaths.size())
+    weights.resize(modelPaths.size(), 1.0);
+  if(weights.size() < lmPaths.size())
+    weights.resize(weights.size() + lmPaths.size(), 0.0);
   
   std::cerr << "done." << std::endl;
 
@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
         auto& r = nbl[i];
         std::cout << lineCounter << " ||| " << (bpe ? bpe.unsplit(trgVocab(r.first)) : trgVocab(r.first)) << " |||";
         for(size_t j = 0; j < r.second->GetCostBreakdown().size(); ++j) {
-          std::cout << " F" << j << "=" << r.second->GetCostBreakdown()[j];
+          std::cout << " F" << j << "= " << r.second->GetCostBreakdown()[j];
         }
         std::cout << " ||| " << r.second->GetCost() << std::endl;
       }

@@ -22,8 +22,7 @@ class VocabGetter : public lm::EnumerateVocab {
     const Vocab& vocab_;
 };
     
-LM::LM(const std::string& path, const Vocab& vocab, size_t index, float weight)
- : index_(index), weight_(weight) {
+LM::LM(const std::string& path, const Vocab& vocab) {
   lm::ngram::Config config;
   VocabGetter* vg = new VocabGetter(vm_, vocab);
   config.enumerate_vocab = vg;
@@ -34,7 +33,7 @@ LM::LM(const std::string& path, const Vocab& vocab, size_t index, float weight)
 LM::~LM() {}
 
 LM::LM(LM&& lm)
- : lm_(std::move(lm.lm_)), vm_(std::move(lm.vm_)), index_(lm.index_), weight_(lm.weight_)
+ : lm_(std::move(lm.lm_)), vm_(std::move(lm.vm_))
 {}
 
 float LM::Score(const KenlmState& in, lm::WordIndex index, KenlmState& out) const {
@@ -52,14 +51,6 @@ WordPairs::const_iterator LM::begin() const {
 
 WordPairs::const_iterator LM::end() const {
   return vm_.end();    
-}
-
-size_t LM::GetIndex () const {
-    return index_;
-}
-
-float LM::GetWeight() const {
-  return weight_;
 }
 
 size_t LM::size() const {

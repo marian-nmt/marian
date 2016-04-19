@@ -26,7 +26,7 @@ class LM {
     typedef lm::ngram::ProbingModel KenlmModel;
     
   public:
-    LM(const std::string& path, const Vocab& vocab, size_t index, float weight);
+    LM(const std::string& path, const Vocab& vocab);
     LM(LM&& lm);
     ~LM();
     
@@ -34,13 +34,9 @@ class LM {
     const KenlmState& BeginSentenceState() const;
     WordPairs::const_iterator begin() const;
     WordPairs::const_iterator end() const;
-    size_t GetIndex() const;
-    float GetWeight() const;
     size_t size() const;
     
   private:
     std::unique_ptr<KenlmModel> lm_;
     WordPairs vm_;
-    size_t index_;
-    float weight_;
 };
