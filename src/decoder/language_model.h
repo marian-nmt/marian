@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "types.h"
 #include "scorer.h"
 #include "matrix.h"
 #include "dl4mt.h"
@@ -41,7 +42,7 @@ class LanguageModel : public SourceIndependentScorer {
       size_t rows = prob.Rows();
       size_t cols = prob.Cols();
       
-      std::vector<float> costs(rows * cols);
+      HostVector<float> costs(rows * cols);
       const std::vector<KenlmState>& inStates = lmIn.GetStates();
       std::vector<KenlmState>& outStates = lmOut.GetStates();
       outStates.resize(rows * cols);
@@ -66,7 +67,7 @@ class LanguageModel : public SourceIndependentScorer {
           pool.enqueue(call);
         }
       }  
-      thrust::copy(costs.begin(), costs.end(), prob.begin());
+      algo::copy(costs.begin(), costs.end(), prob.begin());
     }
     
     virtual State* NewState() {

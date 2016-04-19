@@ -1,49 +1,25 @@
 #pragma once
 
-#include <algorithm>
-
-#include <thrust/sort.h>
-#include <thrust/sequence.h>
-#include <thrust/extrema.h>
-
-#include "types.h"
-#include "matrix.h"
-#include "hypothesis.h"
+#include "god.h"
 #include "history.h"
-#include "threadpool.h"
-#include "encoder_decoder.h"
-#include "language_model.h"
 
 class Search {
-  private:  
+  private:
     std::vector<ScorerPtr> scorers_;
-    const std::vector<float> weights_;
-    bool normalize_;
-    bool doBreakdown_;
-    size_t device_;
-    std::vector<mblas::Matrix> LmProbs_;
   
   public:
-    Search(const std::vector<std::unique_ptr<Weights>>& models,
-           const std::vector<LM>& lms,
-           const std::vector<float> weights,
-           bool normalize = false,
-           bool doBreakdown = false)
-    : weights_(weights),
-      normalize_(normalize),
-      doBreakdown_(doBreakdown),
-      device_(models[0]->GetDevice())
-    {
-      for(auto& m : models)
-        scorers_.emplace_back(new EncoderDecoder(*m));
-      for(auto& lm : lms)
-        scorers_.emplace_back(new LanguageModel(lm));
-    }
+    Search(size_t threadId)
+    : scorers_(God::GetScorers(threadId)) {}
     
-    History Decode(const Sentence sourceWords, size_t beamSize = 12) {
-      using namespace mblas;
+    History Decode(const Sentence sourceWords) {
+      size_t beamSize = God::Get<size_t>("beam-size");
+      bool normalize = God::Get<bool>("normalize");
       
-      History history(normalize_);
+      // @TODO Future: in order to do batch sentence decoding
+      // it should be enough to keep track of hypotheses in
+      // separate History objects.
+      
+      History history(normalize);
       
       size_t vocabSize = 85000; // evil, where can I get that from?
                                 // max from all vocab sizes?
@@ -100,49 +76,55 @@ class Search {
                   const size_t beamSize) {
       using namespace mblas;
       
+      auto& weights = God::GetScorerWeights();
+      
       Matrix& Probs = ProbsEnsemble[0];
       
       Matrix Costs(Probs.Rows(), 1);
-      thrust::host_vector<float> vCosts;
+      HostVector<float> vCosts;
       for(const Hypothesis* h : prevHyps)
         vCosts.push_back(h->GetCost());
-      thrust::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+      algo::copy(vCosts.begin(), vCosts.end(), Costs.begin());
       
-      BroadcastVecColumn(weights_[0] * _1 + _2, Probs, Costs);
+      BroadcastVecColumn(weights[0] * _1 + _2, Probs, Costs);
       for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
-        Element(_1 + weights_[i] * _2, Probs, ProbsEnsemble[i]);
+        Element(_1 + weights[i] * _2, Probs, ProbsEnsemble[i]);
       
-      thrust::device_vector<unsigned> keys(Probs.size());
-      thrust::host_vector<unsigned> bestKeys(beamSize);
-      thrust::host_vector<float> bestCosts(beamSize);
+      DeviceVector<unsigned> keys(Probs.size());
+      HostVector<unsigned> bestKeys(beamSize);
+      HostVector<float> bestCosts(beamSize);
       
       // @TODO: Here we need to have a partial sort
       if(beamSize < 10) {
         for(size_t i = 0; i < beamSize; ++i) {
-          thrust::device_vector<float>::iterator iter =
-            thrust::max_element(Probs.begin(), Probs.end());
+          DeviceVector<float>::iterator iter =
+            algo::max_element(Probs.begin(), Probs.end());
           bestKeys[i] = iter - Probs.begin();
           bestCosts[i] = *iter;
           *iter = std::numeric_limits<float>::lowest();
         }
-        thrust::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
+        algo::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
       }
       else {
+        // these two function do not have equivalents in
+        // in the standard library or boost, keeping thrust
+        // namespace for now
         thrust::sequence(keys.begin(), keys.end());
         thrust::sort_by_key(Probs.begin(), Probs.end(),
-                            keys.begin(), thrust::greater<float>());
+                            keys.begin(), algo::greater<float>());
       
-        thrust::copy_n(keys.begin(), beamSize, bestKeys.begin());
-        thrust::copy_n(Probs.begin(), beamSize, bestCosts.begin());
+        algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
+        algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
       }
       
-      std::vector<thrust::host_vector<float>> breakDowns;
-      if(doBreakdown_) {
+      std::vector<HostVector<float>> breakDowns;
+      bool doBreakdown = God::Get<bool>("n-best-list");
+      if(doBreakdown) {
         breakDowns.push_back(bestCosts);
         for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-          thrust::host_vector<float> modelCosts(beamSize);
-          auto it = thrust::make_permutation_iterator(ProbsEnsemble[i].begin(), keys.begin());
-          thrust::copy(it, it + beamSize, modelCosts.begin());
+          HostVector<float> modelCosts(beamSize);
+          auto it = iteralgo::make_permutation_iterator(ProbsEnsemble[i].begin(), keys.begin());
+          algo::copy(it, it + beamSize, modelCosts.begin());
           breakDowns.push_back(modelCosts);
         }
       }
@@ -155,7 +137,7 @@ class Search {
         // Do this with shared pointers
         Hypothesis* hyp = new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);
         
-        if(doBreakdown_) {
+        if(doBreakdown) {
           float sum = 0;
           for(size_t j = 0; j < ProbsEnsemble.size(); ++j) {
             if(j == 0)
@@ -164,12 +146,12 @@ class Search {
               float cost = 0;
               if(j < ProbsEnsemble.size())
                 cost = breakDowns[j][i] + const_cast<Hypothesis*>(prevHyps[hypIndex])->GetCostBreakdown()[j];
-              sum += weights_[j] * cost;  
+              sum += weights[j] * cost;  
               hyp->GetCostBreakdown().push_back(cost);
             }
           }
           hyp->GetCostBreakdown()[0] -= sum;
-          hyp->GetCostBreakdown()[0] /= weights_[0];
+          hyp->GetCostBreakdown()[0] /= weights[0];
         }
         bestHyps.push_back(hyp);  
       }

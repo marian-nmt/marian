@@ -4,6 +4,7 @@
 
 #include "types.h"
 #include "matrix.h"
+#include "hypothesis.h"
 
 typedef mblas::Matrix Prob;
 typedef std::vector<Prob> Probs;
@@ -46,4 +47,4 @@ class SourceIndependentScorer : public Scorer {
     virtual void SetSource(const Sentence& source) {}
 };
 
-typedef std::unique_ptr<Scorer> ScorerPtr;
+typedef std::shared_ptr<Scorer> ScorerPtr;
