@@ -33,7 +33,7 @@ class God {
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<float>& GetScorerWeights();
     
-    static void ClearModels();
+    static void CleanUp();
     
   private:
     God& NonStaticInit(int argc, char** argv);

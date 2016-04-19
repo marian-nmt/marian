@@ -153,7 +153,7 @@ std::vector<float>& God::GetScorerWeights() {
 }
 
 // clean up cuda vectors before cuda context goes out of scope
-void God::ClearModels() {
+void God::CleanUp() {
   for(auto& models : Summon().modelsPerDevice_)
     for(auto& m : models)
       m.reset(nullptr);

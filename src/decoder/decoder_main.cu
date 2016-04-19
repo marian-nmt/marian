@@ -21,13 +21,12 @@ int main(int argc, char* argv[]) {
   ThreadPool pool(God::Get<size_t>("threads"));
   std::vector<std::future<History>> results;
   while(std::getline(std::cin, in)) {
-    Sentence sentence = God::GetSourceVocab()(in);
       
-    auto translationTask = [sentence, taskCounter] {
+    auto translationTask = [in, taskCounter] {
       thread_local std::unique_ptr<Search> search;
       if(!search)
         search.reset(new Search(taskCounter));
-      return search->Decode(sentence);
+      return search->Decode(God::GetSourceVocab()(in));
     };
     
     results.emplace_back(pool.enqueue(translationTask));
@@ -40,6 +39,7 @@ int main(int argc, char* argv[]) {
     Printer(result.get(), lineCounter++, std::cout);
 
   std::cerr << timer.format() << std::endl;
-  God::ClearModels();
+  God::CleanUp();
+  
   return 0;
 }
