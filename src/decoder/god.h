@@ -5,6 +5,8 @@
 #include "types.h"
 #include "scorer.h"
 #include "dl4mt.h"
+#include "vocab.h"
+#include "kenlm.h"
 
 namespace po = boost::program_options;
   

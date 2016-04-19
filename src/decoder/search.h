@@ -24,7 +24,7 @@ class Search {
       size_t vocabSize = 85000; // evil, where can I get that from?
                                 // max from all vocab sizes?
       
-      Beam prevHyps.emplace(new Hypothesis());
+      Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
       history.Add(prevHyps);
       
       States states(scorers_.size());

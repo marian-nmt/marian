@@ -21,12 +21,13 @@ int main(int argc, char* argv[]) {
   ThreadPool pool(God::Get<size_t>("threads"));
   std::vector<std::future<History>> results;
   while(std::getline(std::cin, in)) {
-    
-    auto translationTask = [taskCounter, &in]{
+    Sentence sentence = God::GetSourceVocab()(in);
+      
+    auto translationTask = [&, taskCounter]{
       thread_local std::unique_ptr<Search> search;
       if(!search)
         search.reset(new Search(taskCounter));
-      return search->Decode(God::GetSourceVocab()(in));
+      return search->Decode(sentence);
     };
     
     results.emplace_back(pool.enqueue(translationTask));
