@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
   while(std::getline(std::cin, in)) {
     Sentence sentence = God::GetSourceVocab()(in);
       
-    auto translationTask = [&, taskCounter]{
+    auto translationTask = [sentence, taskCounter] {
       thread_local std::unique_ptr<Search> search;
       if(!search)
         search.reset(new Search(taskCounter));
@@ -40,5 +40,6 @@ int main(int argc, char* argv[]) {
     Printer(result.get(), lineCounter++, std::cout);
 
   std::cerr << timer.format() << std::endl;
+  God::ClearModels();
   return 0;
 }
