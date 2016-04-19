@@ -142,8 +142,11 @@ class Search {
               hyp->GetCostBreakdown()[0] = breakDowns[0][i];
             else {
               float cost = 0;
-              if(j < ProbsEnsemble.size())
+              if(j < ProbsEnsemble.size()) {
+                if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
+                  const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
                 cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+              }
               sum += weights[j] * cost;  
               hyp->GetCostBreakdown()[j] = cost;
             }
