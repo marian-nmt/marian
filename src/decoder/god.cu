@@ -61,7 +61,7 @@ God& God::NonStaticInit(int argc, char** argv) {
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
      "Normalize scores by translation length")
-    ("n-best-list", po::value<bool>()->zero_tokens()->default_value(false),
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
      "Output n-best list with n = beam-size")
   ;
 

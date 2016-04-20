@@ -122,7 +122,7 @@ class Search {
       }
       
       std::vector<HostVector<float>> breakDowns;
-      bool doBreakdown = God::Get<bool>("n-best-list");
+      bool doBreakdown = God::Get<bool>("n-best");
       if(doBreakdown) {
         breakDowns.push_back(bestCosts);
         for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
