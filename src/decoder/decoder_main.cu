@@ -4,16 +4,31 @@
 #include <boost/timer/timer.hpp>
 
 #include "god.h"
+#include "logging.h"
 #include "search.h"
 #include "threadpool.h"
 #include "printer.h"
+
+History TranslationTask(const std::string& in, size_t taskCounter) {
+  LOG(info) << "Line " << taskCounter
+            << " (thread " << std::this_thread::get_id() << "): "
+            << in;
+  
+  thread_local std::unique_ptr<Search> search;
+  if(!search) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();  
+    search.reset(new Search(taskCounter));
+  }
+            
+  return search->Decode(God::GetSourceVocab()(in));  
+}
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
   std::ios_base::sync_with_stdio(false);
   boost::timer::cpu_timer timer;
   
-  std::cerr << "Translating...\n";
+  LOG(info) << "Reading input";
   
   std::string in;
   std::size_t taskCounter = 0;
@@ -21,15 +36,12 @@ int main(int argc, char* argv[]) {
   ThreadPool pool(God::Get<size_t>("threads"));
   std::vector<std::future<History>> results;
   while(std::getline(std::cin, in)) {
-      
-    auto translationTask = [in, taskCounter] {
-      thread_local std::unique_ptr<Search> search;
-      if(!search)
-        search.reset(new Search(taskCounter));
-      return search->Decode(God::GetSourceVocab()(in));
-    };
     
-    results.emplace_back(pool.enqueue(translationTask));
+    results.emplace_back(
+      pool.enqueue(
+        [=]{ return TranslationTask(in, taskCounter); }
+      )
+    );
     
     taskCounter++;
   }
@@ -38,7 +50,7 @@ int main(int argc, char* argv[]) {
   for(auto&& result : results)
     Printer(result.get(), lineCounter++, std::cout);
 
-  std::cerr << timer.format() << std::endl;
+  LOG(info) << timer.format();
   God::CleanUp();
   
   return 0;

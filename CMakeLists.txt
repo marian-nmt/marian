@@ -7,10 +7,12 @@ LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -a
 add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
+add_definitions(-DBOOST_LOG_DYN_LINK)
+
 include_directories(${amunn_SOURCE_DIR})
 find_package(CUDA REQUIRED)
 
-find_package(Boost COMPONENTS system filesystem program_options timer)
+find_package(Boost COMPONENTS system filesystem program_options timer log)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})

@@ -7,11 +7,13 @@
 #include "dl4mt.h"
 #include "vocab.h"
 #include "kenlm.h"
+#include "logging.h"
 
 namespace po = boost::program_options;
   
 class God {
   public:
+        
     static God& Init(const std::string&);
     static God& Init(int argc, char** argv);
 

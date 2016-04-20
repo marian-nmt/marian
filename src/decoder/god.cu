@@ -104,7 +104,7 @@ God& God::NonStaticInit(int argc, char** argv) {
     ThreadPool devicePool(devices.size());
     for(auto& modelPath : modelPaths) {
       for(size_t i = 0; i < devices.size(); ++i) {
-        std::cerr << "Loading model " << modelPath << " onto gpu" << devices[i] << std::endl;
+        LOG(info) << "Loading model " << modelPath << " onto gpu" << devices[i];
         devicePool.enqueue([i, &devices, &modelPath, this]{
           cudaSetDevice(devices[i]);
           modelsPerDevice_[i].emplace_back(new Weights(modelPath, devices[i]));
@@ -114,7 +114,7 @@ God& God::NonStaticInit(int argc, char** argv) {
   }
   
   for(auto& lmPath : lmPaths) {
-    std::cerr << "Loading lm " << lmPath << std::endl;
+    LOG(info) << "Loading lm " << lmPath;
     lms_.emplace_back(lmPath, *targetVocab_);
   }
 
@@ -124,8 +124,6 @@ God& God::NonStaticInit(int argc, char** argv) {
   if(weights_.size() < lmPaths.size())
     weights_.resize(weights_.size() + lmPaths.size(), 0.0);
   
-  std::cerr << "done." << std::endl;
-
   return *this;
 }
 

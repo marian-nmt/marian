@@ -1,9 +1,9 @@
 
 include_directories(.)
+include_directories(dl4mt)
 include_directories(common)
 include_directories(decoder)
 include_directories(mblas)
-include_directories(dl4mt)
 
 add_library(libamunn OBJECT
   cnpy/cnpy.cpp
