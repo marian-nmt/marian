@@ -3,11 +3,10 @@
 #include <vector>
 
 typedef size_t Word;
+typedef std::vector<Word> Words;
 
 const Word EOS = 0;
 const Word UNK = 1;
-
-typedef std::vector<Word> Sentence;
 
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>

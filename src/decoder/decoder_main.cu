@@ -8,17 +8,16 @@
 #include "search.h"
 #include "threadpool.h"
 #include "printer.h"
+#include "sentence.h"
 
 History TranslationTask(const std::string& in, size_t taskCounter) {
   thread_local std::unique_ptr<Search> search;
   if(!search) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();  
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
     search.reset(new Search(taskCounter));
   }
   
-  LOG(progress) << "Line " << taskCounter << " | Input: " << in;
-  
-  return search->Decode(God::GetSourceVocab()(in));  
+  return search->Decode(Sentence(taskCounter, in));  
 }
 
 int main(int argc, char* argv[]) {
@@ -47,7 +46,7 @@ int main(int argc, char* argv[]) {
   for(auto&& result : results)
     Printer(result.get(), lineCounter++, std::cout);
 
-  LOG(info) << timer.format();
+  LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
   
   return 0;

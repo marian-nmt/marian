@@ -52,5 +52,5 @@ class Hypothesis {
 };
 
 typedef std::vector<HypothesisPtr> Beam;
-typedef std::pair<Sentence, HypothesisPtr> Result;
+typedef std::pair<Words, HypothesisPtr> Result;
 typedef std::vector<Result> NBestList;

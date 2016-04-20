@@ -1,6 +1,7 @@
 #pragma once
 
 #include "god.h"
+#include "sentence.h"
 #include "history.h"
 
 class Search {
@@ -11,7 +12,9 @@ class Search {
     Search(size_t threadId)
     : scorers_(God::GetScorers(threadId)) {}
     
-    History Decode(const Sentence sourceWords) {
+    History Decode(const Sentence& sentence) {
+      boost::timer::cpu_timer timer;
+      
       size_t beamSize = God::Get<size_t>("beam-size");
       bool normalize = God::Get<bool>("normalize");
       
@@ -32,7 +35,7 @@ class Search {
       Probs probs(scorers_.size());
       
       for(size_t i = 0; i < scorers_.size(); i++) {
-        scorers_[i]->SetSource(sourceWords);
+        scorers_[i]->SetSource(sentence.GetWords());
         
         states[i].reset(scorers_[i]->NewState());
         nextStates[i].reset(scorers_[i]->NewState());
@@ -40,7 +43,7 @@ class Search {
         scorers_[i]->BeginSentenceState(*states[i]);
       }
       
-      const size_t maxLength = sourceWords.size() * 3;
+      const size_t maxLength = sentence.GetWords().size() * 3;
       do {
         for(size_t i = 0; i < scorers_.size(); i++) {
           probs[i].Resize(beamSize, vocabSize);
@@ -65,6 +68,9 @@ class Search {
         prevHyps.swap(survivors);
         
       } while(history.size() <= maxLength);
+      
+      LOG(progress) << "Line " << sentence.GetLine()
+        << ": Search took " << timer.format(3, "%ws");
       
       return history;
     }

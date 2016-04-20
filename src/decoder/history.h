@@ -47,7 +47,7 @@ class History {
         size_t start = bestHypCoord.i;
         size_t j  = bestHypCoord.j;
         
-        Sentence targetWords;
+        Words targetWords;
         HypothesisPtr bestHyp = history_[start][j];
         while(bestHyp->GetPrevHyp() != nullptr) {
           targetWords.push_back(bestHyp->GetWord());

@@ -37,14 +37,14 @@ class Scorer {
                                    const Beam& beam,
                                    State& out) = 0;
     
-    virtual void SetSource(const Sentence& source) = 0;
+    virtual void SetSource(const Words& source) = 0;
     
     virtual State* NewState() = 0;
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
-    virtual void SetSource(const Sentence& source) {}
+    virtual void SetSource(const Words& source) {}
 };
 
 typedef std::shared_ptr<Scorer> ScorerPtr;

@@ -29,8 +29,8 @@ class Vocab {
             return 1;
     }
 
-    Sentence operator()(const std::vector<std::string>& lineTokens, bool addEOS = true) const {
-      Sentence words(lineTokens.size());
+    Words operator()(const std::vector<std::string>& lineTokens, bool addEOS = true) const {
+      Words words(lineTokens.size());
       std::transform(lineTokens.begin(), lineTokens.end(), words.begin(),
                      [&](const std::string& w) { return (*this)[w]; });
       if(addEOS)
@@ -38,13 +38,13 @@ class Vocab {
       return words;
     }
     
-    Sentence operator()(const std::string& line, bool addEOS = true) const {
+    Words operator()(const std::string& line, bool addEOS = true) const {
       std::vector<std::string> lineTokens;
       Split(line, lineTokens, " ");
       return (*this)(lineTokens, addEOS);
     }
 
-    std::string operator()(const Sentence& sentence, bool ignoreEOS = true) const {
+    std::string operator()(const Words& sentence, bool ignoreEOS = true) const {
       std::stringstream line;
       for(size_t i = 0; i < sentence.size(); ++i) {
         if(sentence[i] != EOS || !ignoreEOS) {

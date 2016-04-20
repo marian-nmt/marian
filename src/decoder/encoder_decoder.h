@@ -59,7 +59,7 @@ class EncoderDecoder : public Scorer {
       decoder_.EmptyEmbedding(edState.GetEmbeddings(), 1);
     }
 
-    virtual void SetSource(const Sentence& source) {
+    virtual void SetSource(const Words& source) {
       encoder_.GetContext(source, SourceContext_);
     }
     
