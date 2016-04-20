@@ -1,5 +1,5 @@
 #pragma once
 
-#include <boost/log/trivial.hpp>
+#include "spdlog/spdlog.h"
 
-#define LOG BOOST_LOG_TRIVIAL
+#define LOG(logger) spdlog::get(#logger)->info()

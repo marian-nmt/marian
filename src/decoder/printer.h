@@ -4,6 +4,11 @@
 
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
+  LOG(progress) << "Line " << lineNo
+    << " | Best translation: "
+    << God::GetTargetVocab()(history.Top().first)
+    << " ||| " << history.Top().second->GetCost();
+    
   if(God::Get<bool>("n-best-list")) {
     NBestList nbl = history.NBest(God::Get<size_t>("beam-size"));
     for(size_t i = 0; i < nbl.size(); ++i) {

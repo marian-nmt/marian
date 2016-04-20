@@ -10,22 +10,19 @@
 #include "printer.h"
 
 History TranslationTask(const std::string& in, size_t taskCounter) {
-  LOG(info) << "Line " << taskCounter
-            << " (thread " << std::this_thread::get_id() << "): "
-            << in;
-  
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();  
     search.reset(new Search(taskCounter));
   }
-            
+  
+  LOG(progress) << "Line " << taskCounter << " | Input: " << in;
+  
   return search->Decode(God::GetSourceVocab()(in));  
 }
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
-  std::ios_base::sync_with_stdio(false);
   boost::timer::cpu_timer timer;
   
   LOG(info) << "Reading input";

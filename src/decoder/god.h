@@ -55,5 +55,8 @@ class God {
     
     std::vector<ScorerPtr> scorers_;
     std::vector<float> weights_;
+    
+    std::shared_ptr<spdlog::logger> info_;
+    std::shared_ptr<spdlog::logger> progress_;
 };
 

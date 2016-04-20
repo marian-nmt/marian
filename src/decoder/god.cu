@@ -22,7 +22,12 @@ God& God::Init(int argc, char** argv) {
 }
 
 God& God::NonStaticInit(int argc, char** argv) {
-
+  info_ = spdlog::stderr_logger_mt("info");
+  info_->set_pattern("[%c] (%L) %v");
+  
+  progress_ = spdlog::stderr_logger_mt("progress");
+  progress_->set_pattern("%v");
+  
   po::options_description general("General options");
   
   std::vector<size_t> devices;
