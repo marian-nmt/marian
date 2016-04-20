@@ -4,7 +4,7 @@
 A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-based scripts from DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
 ## Requirements:
- * CMake 3.5.1
+ * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * Boost 1.5
  * CUDA 7.5
  * KenLM (https://github.com/kpu/kenlm, current master)
