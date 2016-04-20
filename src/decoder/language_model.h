@@ -55,8 +55,8 @@ class LanguageModel : public SourceIndependentScorer {
       }
       
       {  
-        ThreadPool pool(God::Get<size_t>("batch-threads")); 
-        size_t batchSize = God::Get<size_t>("batch-size"); 
+        ThreadPool pool(God::Get<size_t>("kenlm-batch-threads")); 
+        size_t batchSize = God::Get<size_t>("kenlm-batch-size"); 
         for(size_t batchStart = 0; batchStart < lm_.size(); batchStart += batchSize) {
           auto call = [batchStart, batchSize, cols, this, &costs, &inStates, &outStates] {
             size_t batchEnd = min(batchStart + batchSize, lm_.size());

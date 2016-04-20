@@ -67,9 +67,9 @@ God& God::NonStaticInit(int argc, char** argv) {
 
   po::options_description kenlm("KenLM specific options");
   kenlm.add_options()
-    ("batch-size", po::value<size_t>()->default_value(1000),
+    ("kenlm-batch-size", po::value<size_t>()->default_value(1000),
      "Batch size for batched queries")
-    ("batch-threads", po::value<size_t>()->default_value(4),
+    ("kenlm-batch-threads", po::value<size_t>()->default_value(4),
      "Concurrent worker threads for batch processing")
   ;
 
@@ -161,5 +161,3 @@ void God::CleanUp() {
     for(auto& m : models)
       m.reset(nullptr);
 }
-
-
