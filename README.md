@@ -20,7 +20,7 @@ The project is a standard Cmake out-of-source build:
 On Ubuntu 16.04, you need g++4.9 and cuda-7.5 and a boost version compiled with g++4.9
 
     CUDA_BIN_PATH=/usr/local/cuda-7.5 BOOST_ROOT=/home/marcin/myboost cmake .. \
-    -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9
+    -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9 -DKENLM=path/to/kenlm
 
 Vocabularies (*.pkl extension) need to be converted to text with the scripts in the scripts folder.
 
