@@ -16,7 +16,7 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
         out << " F" << j << "= " << r.second->GetCostBreakdown()[j];
       }
       if(God::Get<bool>("normalize"))
-        out << " ||| " << -r.second->GetCost() / r.first.size() << std::endl;
+        out << " ||| " << r.second->GetCost() / r.first.size() << std::endl;
       else
         out << " ||| " << r.second->GetCost() << std::endl;
     }
