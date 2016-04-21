@@ -44,13 +44,14 @@ God& God::NonStaticInit(int argc, char** argv) {
     ("target,t", po::value(&targetVocabPath)->required(),
      "Path to target vocabulary file.")
     ("lm,l", po::value(&lmPaths)->multitoken(),
-     "Paths to KenLM language model(s)")
+     "Path to KenLM language model(s)")
     ("weights,w", po::value(&weights_)->multitoken(),
-     "Model weights (for NMT and LM)")
+     "Model weights (for neural models and KenLM models)")
     ("devices,d", po::value(&devices)->multitoken(),
-     "Allowed CUDA Device(s)")
+     "CUDA device(s) to use, set to 0 by default. "
+     "Implicitly sets minimal number of threads to number of devices")
     ("threads", po::value<size_t>()->default_value(1),
-     "Number of threads, at least equal to number of devices")
+     "Number of threads per device, total thread count equals threads x devices")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
   ;
@@ -60,7 +61,7 @@ God& God::NonStaticInit(int argc, char** argv) {
     ("beam-size,b", po::value<size_t>()->default_value(12),
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
-     "Normalize scores by translation length")
+     "Normalize scores by translation length after decoding")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
      "Output n-best list with n = beam-size")
   ;
@@ -68,7 +69,7 @@ God& God::NonStaticInit(int argc, char** argv) {
   po::options_description kenlm("KenLM specific options");
   kenlm.add_options()
     ("kenlm-batch-size", po::value<size_t>()->default_value(1000),
-     "Batch size for batched queries")
+     "Batch size for batched queries to KenLM")
     ("kenlm-batch-threads", po::value<size_t>()->default_value(4),
      "Concurrent worker threads for batch processing")
   ;
