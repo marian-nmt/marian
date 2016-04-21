@@ -36,6 +36,7 @@ class God {
     static std::vector<float>& GetScorerWeights();
     
     static void CleanUp();
+    static void PrintConfig();
     
   private:
     God& NonStaticInit(int argc, char** argv);

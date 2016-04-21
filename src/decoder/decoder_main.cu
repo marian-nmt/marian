@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t taskCounter = 0;
   
-  size_t threadCount = God::Get<size_t>("threads")
+  size_t threadCount = God::Get<size_t>("threads-per-device")
                        * God::Get<std::vector<size_t>>("devices").size();
   LOG(info) << "Setting number of threads to " << threadCount;
   ThreadPool pool(threadCount);

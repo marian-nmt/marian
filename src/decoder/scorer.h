@@ -11,6 +11,8 @@ typedef std::vector<Prob> Probs;
 
 class State {
   public:
+    virtual ~State() {}
+    
     template <class T>
     T& get() {
       return static_cast<T&>(*this);
@@ -27,6 +29,8 @@ typedef std::vector<StatePtr> States;
 
 class Scorer {
   public:
+    virtual ~Scorer() {}
+    
     virtual void Score(const State& in,
                        Prob& prob,
                        State& out) = 0;
@@ -40,10 +44,14 @@ class Scorer {
     virtual void SetSource(const Words& source) = 0;
     
     virtual State* NewState() = 0;
+    
+    virtual void CleanUpAfterSentence() {}
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
+    virtual ~SourceIndependentScorer() {}
+    
     virtual void SetSource(const Words& source) {}
 };
 

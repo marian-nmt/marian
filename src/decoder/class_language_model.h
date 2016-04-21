@@ -2,34 +2,18 @@
 
 #include <vector>
 
-#include "types.h"
-#include "scorer.h"
-#include "matrix.h"
-#include "dl4mt.h"
-#include "threadpool.h"
-#include "kenlm.h"
+#include "language_model.h"
 
-class LanguageModelState : public State {
-  public:
-    std::vector<KenlmState>& GetStates() {
-      return states_;
-    }
-  
-    const std::vector<KenlmState>& GetStates() const {
-      return states_;
-    }
-  
-  private:
-    std::vector<KenlmState> states_;
-};
-
-class LanguageModel : public SourceIndependentScorer {
+class ClassLanguageModel : public LanguageModel {
   private:
     typedef LanguageModelState LMState;
     
+    
   public:
-    LanguageModel(const LM& lm)
-    : lm_(lm)
+    ClassLanguageModel(const LM& lm,
+                       const std::string& classPath)
+    : LanguageModel(lm),
+      classes_(LoadClasses(classPath))
     {}
     
     virtual void Score(const State& in,
@@ -70,30 +54,6 @@ class LanguageModel : public SourceIndependentScorer {
       algo::copy(costs.begin(), costs.end(), prob.begin());
     }
     
-    virtual State* NewState() {
-      return new LMState(); 
-    }
-    
-    virtual void BeginSentenceState(State& state) {
-      LMState& lmState = state.get<LMState>();
-      lmState.GetStates().resize(1);
-      lmState.GetStates()[0] = lm_.BeginSentenceState();
-    }
-    
-    virtual void AssembleBeamState(const State& in,
-                                   const Beam& beam,
-                                   State& out) {
-
-      const LMState& lmIn = in.get<LMState>();
-      LMState& lmOut = out.get<LMState>();
-      
-      size_t cols = lmIn.GetStates().size() / beam.size();
-      
-      lmOut.GetStates().resize(beam.size());
-      for(size_t i = 0; i < beam.size(); ++i)
-         lmOut.GetStates()[i] = lmIn.GetStates()[i * cols + beam[i]->GetWord()];
-    }
-    
   private:
-    const LM& lm_;
+    std::vector<std::vector<Word>> classes_;
 };

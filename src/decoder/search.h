@@ -24,8 +24,9 @@ class Search {
       
       History history;
       
-      size_t vocabSize = 85000; // evil, where can I get that from?
-                                // max from all vocab sizes?
+      size_t vocabSize = God::Get<size_t>("kenlm-vocab-size");
+      // evil, where can I get that from?
+      // max from all vocab sizes?
       
       Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
       history.Add(prevHyps);
@@ -72,6 +73,8 @@ class Search {
       LOG(progress) << "Line " << sentence.GetLine()
         << ": Search took " << timer.format(3, "%ws");
       
+      for(auto&& scorer : scorers_)
+        scorer->CleanUpAfterSentence();
       return history;
     }
 

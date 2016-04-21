@@ -35,7 +35,8 @@ class EncoderDecoder : public Scorer {
     
   public:
     EncoderDecoder(const Weights& model)
-    : encoder_(model), decoder_(model)
+    : model_(model),
+      encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
     {}
     
     virtual void Score(const State& in,
@@ -44,7 +45,7 @@ class EncoderDecoder : public Scorer {
       const EDState& edIn = in.get<EDState>();
       EDState& edOut = out.get<EDState>();
       
-      decoder_.MakeStep(edOut.GetStates(), prob,
+      decoder_->MakeStep(edOut.GetStates(), prob,
                         edIn.GetStates(), edIn.GetEmbeddings(),
                         SourceContext_);
     }
@@ -55,12 +56,12 @@ class EncoderDecoder : public Scorer {
     
     virtual void BeginSentenceState(State& state) {
       EDState& edState = state.get<EDState>();
-      decoder_.EmptyState(edState.GetStates(), SourceContext_, 1);
-      decoder_.EmptyEmbedding(edState.GetEmbeddings(), 1);
+      decoder_->EmptyState(edState.GetStates(), SourceContext_, 1);
+      decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
     }
 
     virtual void SetSource(const Words& source) {
-      encoder_.GetContext(source, SourceContext_);
+      encoder_->GetContext(source, SourceContext_);
     }
     
     virtual void AssembleBeamState(const State& in,
@@ -78,12 +79,13 @@ class EncoderDecoder : public Scorer {
       
       mblas::Assemble(edOut.GetStates(),
                       edIn.GetStates(), beamStateIds);
-      decoder_.Lookup(edOut.GetEmbeddings(), beamWords);
+      decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
     }
     
   private:
-    Encoder encoder_;
-    Decoder decoder_;
+    const Weights& model_;
+    std::unique_ptr<Encoder> encoder_;
+    std::unique_ptr<Decoder> decoder_;
     
     mblas::Matrix SourceContext_;
 };
