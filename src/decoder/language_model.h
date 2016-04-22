@@ -94,6 +94,10 @@ class LanguageModel : public SourceIndependentScorer {
          lmOut.GetStates()[i] = lmIn.GetStates()[i * cols + beam[i]->GetWord()];
     }
     
+    virtual size_t GetVocabSize() const {
+      return lm_.size();
+    }
+    
   private:
     const LM& lm_;
 };

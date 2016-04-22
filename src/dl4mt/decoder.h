@@ -18,8 +18,12 @@ class Decoder {
           Assemble(Rows, w_.E_, ids);
         }
         
-        size_t GetDim() {
+        size_t GetCols() {
           return w_.E_.Cols();    
+        }
+        
+        size_t GetRows() const {
+          return w_.E_.Rows();    
         }
         
       private:
@@ -110,6 +114,10 @@ class Decoder {
           
           mblas::Softmax(A_);
           Prod(AlignedSourceContext, A_, SourceContext);
+        }
+        
+        void GetAttention(mblas::Matrix& Attention) {
+          mblas::Copy(Attention, A_);
         }
       
       private:
@@ -210,7 +218,7 @@ class Decoder {
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t batchSize = 1) {
       Embedding.Clear();
-      Embedding.Resize(batchSize, embeddings_.GetDim(), 0);
+      Embedding.Resize(batchSize, embeddings_.GetCols(), 0);
     }
     
     void Lookup(mblas::Matrix& Embedding,
@@ -219,11 +227,18 @@ class Decoder {
     }
     
     void Filter(const std::vector<size_t>& ids) {
-    
+      // @TODO
     }
       
+    void GetAttention(mblas::Matrix& Attention) {
+      alignment_.GetAttention(Attention);
+    }
     
-    //private:
+    size_t GetVocabSize() const {
+      return embeddings_.GetRows();
+    }
+    
+  private:
     
     void GetHiddenState(mblas::Matrix& HiddenState,
                         const mblas::Matrix& PrevState,
@@ -250,7 +265,6 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
       softmax_.GetProbs(Probs, State, Embedding, AlignedSourceContext);
     }
-    
     
   private:
     mblas::Matrix HiddenState_;

@@ -45,6 +45,8 @@ class Scorer {
     
     virtual State* NewState() = 0;
     
+    virtual size_t GetVocabSize() const = 0;
+    
     virtual void CleanUpAfterSentence() {}
 };
 

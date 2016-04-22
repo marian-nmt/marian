@@ -38,6 +38,8 @@ class God {
     static void CleanUp();
     static void PrintConfig();
     
+    void LoadWeights(const std::string& path);
+    
   private:
     God& NonStaticInit(int argc, char** argv);
 

@@ -22,37 +22,6 @@ God& God::Init(int argc, char** argv) {
   return Summon().NonStaticInit(argc, argv);
 }
 
-void God::PrintConfig() {
-  LOG(info) << "Options set: ";
-  for(auto& entry: instance_.vm_) {
-    std::stringstream ss;
-    ss << "\t" << entry.first << " = ";
-    try {
-      for(auto& v : entry.second.as<std::vector<std::string>>())
-        ss << v << " ";
-    } catch(...) { }
-    try {
-      for(auto& v : entry.second.as<std::vector<float>>())
-        ss << v << " ";
-    } catch(...) { }
-    try {
-      for(auto& v : entry.second.as<std::vector<size_t>>())
-        ss << v << " ";
-    } catch(...) { }
-    try {
-      ss << entry.second.as<std::string>();
-    } catch(...) { }
-    try {
-      ss << entry.second.as<bool>();
-    } catch(...) { }
-    try {
-      ss << entry.second.as<size_t>();
-    } catch(...) { }
-    
-    LOG(info) << ss.str();
-  }
-}
-
 God& God::NonStaticInit(int argc, char** argv) {
   info_ = spdlog::stderr_logger_mt("info");
   info_->set_pattern("[%c] (%L) %v");
@@ -97,6 +66,10 @@ God& God::NonStaticInit(int argc, char** argv) {
      "Output n-best list with n = beam-size")
     ("weights,w", po::value(&weights_)->multitoken()->default_value(std::vector<float>(1, 1.0), "1.0"),
      "Model weights (for neural models and KenLM models)")
+    ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
+     "Output used weights to stdout and exit")
+    ("load-weights", po::value<std::string>(),
+     "Load scorer weights from this file")
   ;
 
   po::options_description kenlm("KenLM specific options");
@@ -105,8 +78,6 @@ God& God::NonStaticInit(int argc, char** argv) {
      "Batch size for batched queries to KenLM")
     ("kenlm-batch-threads", po::value<size_t>()->default_value(4),
      "Concurrent worker threads for batch processing")
-    ("kenlm-vocab-size", po::value<size_t>()->default_value(85000),
-     "NMT model target vocab size to by used by KenLM")
   ;
 
   po::options_description cmdline_options("Allowed options");
@@ -143,8 +114,31 @@ God& God::NonStaticInit(int argc, char** argv) {
     devices.push_back(0);
   }
 
-  modelsPerDevice_.resize(devices.size());
+  if(weights_.size() < modelPaths.size()) {
+    // this should be a warning
+    LOG(info) << "More neural models than weights, setting weights to 1.0";
+    weights_.resize(modelPaths.size(), 1.0);
+  }
 
+  if(weights_.size() < lmPaths.size()) {
+    // this should be a warning
+    LOG(info) << "More KenLM models than weights, setting weights to 0.0";
+    weights_.resize(weights_.size() + lmPaths.size(), 0.0);
+  }
+  
+  if(Has("load-weights")) {
+    LoadWeights(Get<std::string>("load-weights"));
+  }
+  
+  if(Get<bool>("show-weights")) {
+    LOG(info) << "Outputting weights and exiting";
+    for(size_t i = 0; i < weights_.size(); ++i) {
+      std::cout << "F" << i << "= " << weights_[i] << std::endl;
+    }
+    exit(0);
+  }
+  
+  modelsPerDevice_.resize(devices.size());
   {
     ThreadPool devicePool(devices.size());
     for(auto& modelPath : modelPaths) {
@@ -162,19 +156,7 @@ God& God::NonStaticInit(int argc, char** argv) {
     LOG(info) << "Loading lm " << lmPath;
     lms_.emplace_back(lmPath, *targetVocab_);
   }
-
-  if(weights_.size() < modelPaths.size()) {
-    // this should be a warning
-    LOG(info) << "More neural models than weights, setting weights to 1.0";
-    weights_.resize(modelPaths.size(), 1.0);
-  }
-
-  if(weights_.size() < lmPaths.size()) {
-    // this should be a warning
-    LOG(info) << "More KenLM models than weights, setting weights to 0.0";
-    weights_.resize(weights_.size() + lmPaths.size(), 0.0);
-  }
-
+  
   return *this;
 }
 
@@ -207,4 +189,49 @@ void God::CleanUp() {
   for(auto& models : Summon().modelsPerDevice_)
     for(auto& m : models)
       m.reset(nullptr);
+}
+
+void God::LoadWeights(const std::string& path) {
+  LOG(info) << "Reading weights from " << path;
+  std::ifstream fweights(path.c_str());
+  std::string name;
+  float weight;
+  size_t i = 0;
+  weights_.clear();
+  while(fweights >> name >> weight) {
+    LOG(info) << "F" << i << "= " << weight; 
+    weights_.push_back(weight);
+    i++;
+  }
+}
+
+void God::PrintConfig() {
+  LOG(info) << "Options set: ";
+  for(auto& entry: instance_.vm_) {
+    std::stringstream ss;
+    ss << "\t" << entry.first << " = ";
+    try {
+      for(auto& v : entry.second.as<std::vector<std::string>>())
+        ss << v << " ";
+    } catch(...) { }
+    try {
+      for(auto& v : entry.second.as<std::vector<float>>())
+        ss << v << " ";
+    } catch(...) { }
+    try {
+      for(auto& v : entry.second.as<std::vector<size_t>>())
+        ss << v << " ";
+    } catch(...) { }
+    try {
+      ss << entry.second.as<std::string>();
+    } catch(...) { }
+    try {
+      ss << entry.second.as<bool>();
+    } catch(...) { }
+    try {
+      ss << entry.second.as<size_t>();
+    } catch(...) { }
+    
+    LOG(info) << ss.str();
+  }
 }

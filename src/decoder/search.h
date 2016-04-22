@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
+
 #include "god.h"
 #include "sentence.h"
 #include "history.h"
+#include "encoder_decoder.h"
 
 class Search {
   private:
@@ -17,17 +20,14 @@ class Search {
       
       size_t beamSize = God::Get<size_t>("beam-size");
       bool normalize = God::Get<bool>("normalize");
+      size_t vocabSize = scorers_[0]->GetVocabSize();
       
       // @TODO Future: in order to do batch sentence decoding
       // it should be enough to keep track of hypotheses in
       // separate History objects.
       
       History history;
-      
-      size_t vocabSize = God::Get<size_t>("kenlm-vocab-size");
-      // evil, where can I get that from?
-      // max from all vocab sizes?
-      
+    
       Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
       history.Add(prevHyps);
       
@@ -50,6 +50,11 @@ class Search {
           probs[i].Resize(beamSize, vocabSize);
           scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
         }
+
+        // Looking at attention vectors        
+        //mblas::Matrix A;
+        //std::static_pointer_cast<EncoderDecoder>(scorers_[0])->GetAttention(A);
+        //mblas::debug1(A, 0, sentence.GetWords().size());
         
         Beam hyps;
         BestHyps(hyps, prevHyps, probs, beamSize);

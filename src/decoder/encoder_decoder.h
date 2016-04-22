@@ -82,6 +82,14 @@ class EncoderDecoder : public Scorer {
       decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
     }
     
+    void GetAttention(mblas::Matrix& Attention) {
+      decoder_->GetAttention(Attention);
+    }
+    
+    size_t GetVocabSize() const {
+      return decoder_->GetVocabSize();
+    }
+    
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
