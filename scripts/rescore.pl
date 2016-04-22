@@ -4,6 +4,9 @@ use strict;
 use Getopt::Long;
 use File::Temp qw(tempfile);
 
+my $PID = $$;
+$SIG{TERM} = $SIG{INT} = $SIG{QUIT} = sub { die; };
+
 my $RESCORER;
 my $INPUT;
 my $NBEST;
@@ -39,8 +42,8 @@ while (<W>) {
 }
 close(W);
 
-my $PATTERN1 = join(" ", map { "\\b$_= \\S+" } @FEATURES);
-my $PATTERN2 = "\\b$BEFORE \\S+";
+my $PATTERN1 = quotemeta(join(" ", map { "\\b$_= \\S+" } @FEATURES));
+my $PATTERN2 = quotemeta("\\b$BEFORE \\S+");
 
 print STDERR $PATTERN1, "\n";
 print STDERR $PATTERN2, "\n";
@@ -59,7 +62,7 @@ close(NBEST_IN);
 close($NBEST_TEMP_HANDLE);
 
 foreach my $i (0 .. $#MODELS) {
-    system("$RESCORER -i $INPUT -m $MODELS[$i] -s $VSRC -t $VTRG -f $FEATURES[$i] -n $NBEST_TEMP_FILE1 > $NBEST_TEMP_FILE2");
+    execute("$RESCORER -i $INPUT -m $MODELS[$i] -s $VSRC -t $VTRG -f $FEATURES[$i] -n $NBEST_TEMP_FILE1 > $NBEST_TEMP_FILE2");
     rename($NBEST_TEMP_FILE2, $NBEST_TEMP_FILE1);
 }
 
@@ -67,12 +70,31 @@ open($NBEST_TEMP_HANDLE, "<", $NBEST_TEMP_FILE1) or die "Could not open";
 
 while (<$NBEST_TEMP_HANDLE>) {
     chomp;
-    if (/\Q$PATTERN2/) {
-        if(s/(\Q$PATTERN1)//) {
+    if (/$PATTERN2/) {
+        if(s/($PATTERN1)//) {
             my $FEAT = $1;
-            s/($PATTERN2 )/$1$FEAT lala /;   
+            s/($PATTERN2 )/$1$FEAT /;   
         }
     }
     print "$_\n";
+}
+
+sub execute {
+    my $command = shift;
+    logMessage("Executing:\t$command");
+    my $ret = system($command);
+    if($ret != 0) {
+        logMessage("Command '$command' finished with return status $ret");
+        logMessage("Aborting and killing parent process");
+        kill(2, $PID);
+        die;
+    }
+}
+
+sub logMessage {
+    my $message = shift;
+    my $time = POSIX::strftime("%m/%d/%Y %H:%M:%S", localtime());
+    my $log_message = $time."\t$message\n"; 
+    print STDERR $log_message;
 }
 
