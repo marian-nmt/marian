@@ -3,6 +3,7 @@
 use strict;
 use Getopt::Long;
 use File::Temp qw(tempfile);
+use POSIX;
 
 my $PID = $$;
 $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = sub { die; };
