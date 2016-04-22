@@ -61,7 +61,7 @@ class Rescorer {
         for (size_t j = 0; j < w.size(); ++j) {
           if (batch[lengthIndex][j]) {
             float p = Probs_(j, w[j]);
-            scores[j] += log(p);
+            scores[j] += p;
           }
         }
 
