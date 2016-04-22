@@ -39,6 +39,12 @@ while (<W>) {
 }
 close(W);
 
+my $PATTERN1 = join(" ", map { "\\b$_= \\S+" } @FEATURES);
+my $PATTERN2 = "\\b$BEFORE \\S+";
+
+print STDERR $PATTERN1, "\n";
+print STDERR $PATTERN2, "\n";
+
 my ($NBEST_TEMP_HANDLE, $NBEST_TEMP_FILE1) = tempfile();
 my (undef, $NBEST_TEMP_FILE2) = tempfile();
 open(NBEST_IN, "<", $NBEST) or die "Could not open";
@@ -59,13 +65,10 @@ foreach my $i (0 .. $#MODELS) {
 
 open($NBEST_TEMP_HANDLE, "<", $NBEST_TEMP_FILE1) or die "Could not open";
 
-my $PATTERN1 = quotemeta(join(" ", map { "\\w$_= \\S+" } @FEATURES));
-my $PATTERN2 = quotemeta("\\w$BEFORE \\S+");
-
 while (<$NBEST_TEMP_HANDLE>) {
     chomp;
-    if (/$PATTERN2/) {
-        if(s/($PATTERN1)//) {
+    if (/\Q$PATTERN2/) {
+        if(s/(\Q$PATTERN1)//) {
             my $FEAT = $1;
             s/($PATTERN2 )/$1$FEAT lala /;   
         }
