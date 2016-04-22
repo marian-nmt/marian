@@ -120,7 +120,7 @@ God& God::NonStaticInit(int argc, char** argv) {
     weights_.resize(modelPaths.size(), 1.0);
   }
 
-  if(weights_.size() < lmPaths.size()) {
+  if(weights_.size() < modelPaths.size() + lmPaths.size()) {
     // this should be a warning
     LOG(info) << "More KenLM models than weights, setting weights to 0.0";
     weights_.resize(weights_.size() + lmPaths.size(), 0.0);
@@ -199,7 +199,7 @@ void God::LoadWeights(const std::string& path) {
   size_t i = 0;
   weights_.clear();
   while(fweights >> name >> weight) {
-    LOG(info) << "F" << i << "= " << weight; 
+    LOG(info) << " > F" << i << "= " << weight; 
     weights_.push_back(weight);
     i++;
   }
@@ -226,7 +226,7 @@ void God::PrintConfig() {
       ss << entry.second.as<std::string>();
     } catch(...) { }
     try {
-      ss << entry.second.as<bool>();
+      ss << entry.second.as<bool>() ? "true" : "false";
     } catch(...) { }
     try {
       ss << entry.second.as<size_t>();
