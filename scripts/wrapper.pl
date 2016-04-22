@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
+use POSIX;
 
 my $PID = $$;
 
@@ -32,7 +33,8 @@ else {
   my $input = $1;
   print STDERR "OPTS: $opts\n";
   execute("$MOSES $opts");
-  execute("$RESCORER_WRAPPER -r $RESCORER $MODELS $FEATURES -s $SVCB -t $TVCB -n $nbest -i $input -w features.list > $nbest");
+  execute("$RESCORER_WRAPPER -r $RESCORER $MODELS $FEATURES -s $SVCB -t $TVCB -n $nbest -i $input -w features.list > $nbest.temp");
+  rename("$nbest.temp", $nbest);
 }
 
 sub execute {
