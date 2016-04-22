@@ -2,6 +2,8 @@
 
 use strict;
 
+my $PID = $$;
+
 my $MOSES = "/work/mosesdecoder/bin/moses";
 my $RESCORER = "/work/amunn/build/bin/rescorer";
 my $RESCORER_WRAPPER = "/work/amunn/scripts/rescore.pl";
@@ -29,8 +31,27 @@ else {
   $opts =~ /-input-file (\S+)/;
   my $input = $1;
   print STDERR "OPTS: $opts\n";
-  system("$MOSES $opts");
-  system("$RESCORER_WRAPPER -r $RESCORER $MODELS $FEATURES -s $SVCB -t $TVCB -n $nbest -i $input -w features.list > $nbest");
+  execute("$MOSES $opts");
+  execute("$RESCORER_WRAPPER -r $RESCORER $MODELS $FEATURES -s $SVCB -t $TVCB -n $nbest -i $input -w features.list > $nbest");
+}
+
+sub execute {
+    my $command = shift;
+    logMessage("Executing:\t$command");
+    my $ret = system($command);
+    if($ret != 0) {
+        logMessage("Command '$command' finished with return status $ret");
+        logMessage("Aborting and killing parent process");
+        kill(2, $PID);
+        die;
+    }
+}
+
+sub logMessage {
+    my $message = shift;
+    my $time = POSIX::strftime("%m/%d/%Y %H:%M:%S", localtime());
+    my $log_message = $time."\t$message\n"; 
+    print STDERR $log_message;
 }
 
  
