@@ -5,6 +5,8 @@ use Getopt::Long;
 use File::Temp qw(tempfile);
 use POSIX;
 
+$File::Temp::KEEP_ALL = 1;
+
 my $PID = $$;
 $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = sub { die; };
 
