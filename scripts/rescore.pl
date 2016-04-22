@@ -43,8 +43,8 @@ while (<W>) {
 }
 close(W);
 
-my $PATTERN1 = quotemeta(join(" ", map { "\\b$_= \\S+" } @FEATURES));
-my $PATTERN2 = quotemeta("\\b$BEFORE \\S+");
+my $PATTERN1 = join(" ", map { "\\b$_= \\S+" } @FEATURES);
+my $PATTERN2 = "\\b$BEFORE \\S+";
 
 print STDERR $PATTERN1, "\n";
 print STDERR $PATTERN2, "\n";
