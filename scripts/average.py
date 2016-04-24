@@ -5,7 +5,7 @@ import numpy as np;
 
 average = dict()
 
-n = len(argv[1:-1])
+n = len(sys.argv[1:-1])
 for filename in sys.argv[1:-1]:
     print "Loading", filename 
     with open(filename, "rb") as mfile:
