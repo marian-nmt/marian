@@ -24,8 +24,6 @@ int main(int argc, char* argv[]) {
   God::Init(argc, argv);
   boost::timer::cpu_timer timer;
   
-  LOG(info) << "Reading input";
-  
   std::string in;
   std::size_t taskCounter = 0;
   
@@ -34,6 +32,8 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Setting number of threads to " << threadCount;
   ThreadPool pool(threadCount);
   std::vector<std::future<History>> results;
+  
+  LOG(info) << "Reading input";
   while(std::getline(std::cin, in)) {
     
     results.emplace_back(
