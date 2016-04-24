@@ -12,12 +12,9 @@ for filename in sys.argv[1:-1]:
         m = np.load(mfile)
         for k in m:
             if k not in average:
-                average[k] = 1 / m[k]
+                average[k] = m[k] / n
             elif average[k].shape == m[k].shape:
-                average[k] += 1 / m[k]
-
-for k in average:
-    average[k] = n / average[k]
+                average[k] += m[k] / n
 
 print "Saving to", sys.argv[-1]
 np.savez(sys.argv[-1], **average)
