@@ -15,15 +15,18 @@ import numpy as np;
 average = dict()
 n = len(args.model)
 for filename in args.model:
-    print "Loading", filename 
-    with open(filename, "rb") as mfile:
-        m = np.load(mfile)
-        for k in m:
-            if k != "history_errs":
-                if k not in average:
-                    average[k] = m[k] / n
-                elif average[k].shape == m[k].shape:
-                    average[k] += m[k] / n
+  print "Loading", filename 
+  with open(filename, "rb") as mfile:
+    m = np.load(mfile)
+    for k in m:
+      if k != "history_errs":
+        if k not in average:
+          average[k] = m[k]
+        elif average[k].shape == m[k].shape:
+          average[k] += m[k]
+
+for k in average:
+  average[k] /= n
 
 print "Saving to", args.output
 np.savez(args.output, **average)

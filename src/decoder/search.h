@@ -21,7 +21,7 @@ class Search {
       size_t beamSize = God::Get<size_t>("beam-size");
       bool normalize = God::Get<bool>("normalize");
       size_t vocabSize = scorers_[0]->GetVocabSize();
-      
+      std::cerr << vocabSize << std::endl;
       // @TODO Future: in order to do batch sentence decoding
       // it should be enough to keep track of hypotheses in
       // separate History objects.

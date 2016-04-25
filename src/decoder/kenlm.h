@@ -6,7 +6,9 @@
 
 #include "vocab.h"
 
+#pragma diag_suppress 172
 #include "lm/state.hh"
+#pragma diag_default 172
 
 namespace lm {
   namespace ngram {
