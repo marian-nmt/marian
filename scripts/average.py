@@ -24,7 +24,6 @@ for filename in args.model:
                     average[k] = m[k] / n
                 elif average[k].shape == m[k].shape:
                     average[k] += m[k] / n
-                
 
 print "Saving to", args.output
 np.savez(args.output, **average)
