@@ -13,8 +13,8 @@ args = parser.parse_args()
 import numpy as np;
 
 average = dict()
-n = len(args.models)
-for filename in args.models:
+n = len(args.model)
+for filename in args.model:
     print "Loading", filename 
     with open(filename, "rb") as mfile:
         m = np.load(mfile)
