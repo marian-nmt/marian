@@ -29,7 +29,7 @@ class LanguageModel : public SourceIndependentScorer {
     
   public:
     LanguageModel(const LM& lm)
-    : lm_(lm)
+    : SourceIndependentScorer(), lm_(lm)
     {}
     
     virtual void Score(const State& in,
@@ -61,8 +61,9 @@ class LanguageModel : public SourceIndependentScorer {
           auto call = [batchStart, batchSize, cols, this, &costs, &inStates, &outStates] {
             size_t batchEnd = min(batchStart + batchSize, lm_.size());
             for(auto it = lm_.begin() + batchStart; it != lm_.begin() + batchEnd; ++it)
-              for(size_t i = 0; i < inStates.size(); i++)
-                costs[i * cols + it->second] = lm_.Score(inStates[i], it->first, outStates[i * cols + it->second]);
+              if(it->second < cols)
+                for(size_t i = 0; i < inStates.size(); i++)
+                  costs[i * cols + it->second] = lm_.Score(inStates[i], it->first, outStates[i * cols + it->second]);
           };
           pool.enqueue(call);
         }

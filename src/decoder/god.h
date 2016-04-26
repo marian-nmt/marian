@@ -3,13 +3,16 @@
 #include <boost/program_options.hpp>
 
 #include "types.h"
-#include "scorer.h"
-#include "dl4mt.h"
 #include "vocab.h"
-#include "kenlm.h"
+#include "scorer.h"
 #include "logging.h"
 
+// this should not be here
+#include "kenlm.h"
+
 namespace po = boost::program_options;
+  
+class Weights;
   
 class God {
   public:
@@ -30,7 +33,7 @@ class God {
       return instance_.vm_[key].as<T>();
     }
     
-    static Vocab& GetSourceVocab();
+    static Vocab& GetSourceVocab(size_t i = 0);
     static Vocab& GetTargetVocab();
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<float>& GetScorerWeights();
@@ -46,7 +49,7 @@ class God {
     static God instance_;
     po::variables_map vm_;
     
-    std::unique_ptr<Vocab> sourceVocab_;
+    std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;
     
     typedef std::unique_ptr<Weights> Model;

@@ -4,17 +4,19 @@
 #include <boost/timer/timer.hpp>
 
 #include "god.h"
+#include "backend_gpu.h"
 #include "logging.h"
 #include "search.h"
 #include "threadpool.h"
 #include "printer.h"
 #include "sentence.h"
 
+template <class Backend>
 History TranslationTask(const std::string& in, size_t taskCounter) {
-  thread_local std::unique_ptr<Search> search;
+  thread_local std::unique_ptr<Search<Backend>> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(taskCounter));
+    search.reset(new Search<Backend>(taskCounter));
   }
   
   return search->Decode(Sentence(taskCounter, in));  
@@ -38,7 +40,7 @@ int main(int argc, char* argv[]) {
     
     results.emplace_back(
       pool.enqueue(
-        [=]{ return TranslationTask(in, taskCounter); }
+        [=]{ return TranslationTask<BackendGPU>(in, taskCounter); }
       )
     );
     

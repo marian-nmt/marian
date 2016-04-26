@@ -34,8 +34,8 @@ class EncoderDecoder : public Scorer {
     typedef EncoderDecoderState EDState;
     
   public:
-    EncoderDecoder(const Weights& model)
-    : model_(model),
+    EncoderDecoder(const Weights& model, size_t sourceIndex)
+    : Scorer(sourceIndex), model_(model),
       encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
     {}
     
@@ -60,8 +60,9 @@ class EncoderDecoder : public Scorer {
       decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
     }
 
-    virtual void SetSource(const Words& source) {
-      encoder_->GetContext(source, SourceContext_);
+    virtual void SetSource(const Sentence& source) {
+      encoder_->GetContext(source.GetWords(sourceIndex_),
+                           SourceContext_);
     }
     
     virtual void AssembleBeamState(const State& in,

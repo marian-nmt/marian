@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "god.h"
+#include "scorer.h"
 #include "threadpool.h"
 #include "encoder_decoder.h"
 #include "language_model.h"
@@ -34,13 +35,13 @@ God& God::NonStaticInit(int argc, char** argv) {
   std::vector<size_t> devices;
   std::vector<std::string> modelPaths;
   std::vector<std::string> lmPaths;
-  std::string sourceVocabPath;
+  std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
 
   general.add_options()
     ("model,m", po::value(&modelPaths)->multitoken()->required(),
      "Path to neural translation model(s)")
-    ("source,s", po::value(&sourceVocabPath)->required(),
+    ("source,s", po::value(&sourceVocabPaths)->multitoken()->required(),
      "Path to source vocabulary file.")
     ("target,t", po::value(&targetVocabPath)->required(),
      "Path to target vocabulary file.")
@@ -106,7 +107,8 @@ God& God::NonStaticInit(int argc, char** argv) {
 
   PrintConfig();
   
-  sourceVocab_.reset(new Vocab(sourceVocabPath));
+  for(auto& sourceVocabPath : sourceVocabPaths)
+    sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
   targetVocab_.reset(new Vocab(targetVocabPath));
 
   if(devices.empty()) {
@@ -160,8 +162,8 @@ God& God::NonStaticInit(int argc, char** argv) {
   return *this;
 }
 
-Vocab& God::GetSourceVocab() {
-  return *Summon().sourceVocab_;
+Vocab& God::GetSourceVocab(size_t i) {
+  return *(Summon().sourceVocabs_[i]);
 }
 
 Vocab& God::GetTargetVocab() {
@@ -174,7 +176,7 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   cudaSetDevice(device);
   std::vector<ScorerPtr> scorers;
   for(auto& m : Summon().modelsPerDevice_[deviceId])
-    scorers.emplace_back(new EncoderDecoder(*m));
+    scorers.emplace_back(new EncoderDecoder(*m, 0));
   for(auto& lm : Summon().lms_)
     scorers.emplace_back(new LanguageModel(lm));
   return scorers;
