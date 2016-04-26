@@ -12,6 +12,12 @@ class Search {
     std::vector<ScorerPtr> scorers_;
   
     using Matrix = typename Backend::Payload;
+    
+    template <typename T>
+    using DeviceVector = typename Backend::DeviceVector<T>;
+    
+    template <typename T>
+    using HostVector = typename Backend::HostVector<T>;
   
   public:
     Search(size_t threadId)
@@ -90,30 +96,31 @@ class Search {
       
       Matrix& probs = probsEnsemble[0];
       
-      Matrix costs(probs.Rows(), 1);
+      Matrix costs;
+      (*costs).Resize((*probs).Rows(), 1);
       HostVector<float> vCosts;
       for(auto& h : prevHyps)
         vCosts.push_back(h->GetCost());
       Backend::copy(vCosts.begin(), vCosts.end(), costs.begin());
       
-      Backend::BroadcastVecColumn(weights[0] * Backend::_1 + Backend::_2,
-                                  probs, costs);
+      Backend::Broadcast(weights[0] * Backend::_1 + Backend::_2,
+                         probs, costs);
       for(size_t i = 0; i < probsEnsemble.size(); ++i)
         Backend::Element(Backend::_1 + weights[i] * Backend::_2,
                          probs, probsEnsemble[i]);
       
-      Backend::HostVector<unsigned> bestKeys(beamSize);
-      Backend::HostVector<float> bestCosts(beamSize);
+      HostVector<unsigned> bestKeys(beamSize);
+      HostVector<float> bestCosts(beamSize);
       
       Backend::PartialSortByKey(probs, bestKeys, bestCosts);
       
-      std::vector<Backend::HostVector<float>> breakDowns;
+      std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = God::Get<bool>("n-best");
       if(doBreakdown) {
         breakDowns.push_back(bestCosts);
         for(size_t i = 1; i < probsEnsemble.size(); ++i) {
           HostVector<float> modelCosts(beamSize);
-          auto it = Backend::make_permutation_iterator(probsEnsemble[i].begin(), keys.begin());
+          auto it = Backend::make_permutation_iterator(probsEnsemble[i].begin(), bestKeys.begin());
           Backend::copy(it, it + beamSize, modelCosts.begin());
           breakDowns.push_back(modelCosts);
         }
@@ -136,7 +143,7 @@ class Search {
               float cost = 0;
               if(j < probsEnsemble.size()) {
                 if(prevHyps[hypIndex]->GetCostBreakdown().size() < probsEnsemble.size())
-                  const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
+                  const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(probsEnsemble.size(), 0.0);
                 cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
               }
               sum += weights[j] * cost;  
