@@ -5,11 +5,18 @@ include_directories(common)
 include_directories(decoder)
 include_directories(mblas)
 
-add_library(libamunn OBJECT
+add_library(libcommon OBJECT
   cnpy/cnpy.cpp
-  rescorer/nbest.cpp
   common/utils.cpp
+)
+
+add_library(librescorer OBJECT
+  rescorer/nbest.cpp
+)
+
+add_library(libamunn OBJECT
   decoder/kenlm.cpp
+  decoder/sentence.cpp
 )
 
 cuda_add_executable(
@@ -19,6 +26,7 @@ cuda_add_executable(
   mblas/matrix.cu
   dl4mt/gru.cu
   $<TARGET_OBJECTS:libamunn>
+  $<TARGET_OBJECTS:libcommon>
 )
 
 cuda_add_executable(
@@ -26,7 +34,8 @@ cuda_add_executable(
   rescorer/rescorer_main.cu
   mblas/matrix.cu
   dl4mt/gru.cu
-  $<TARGET_OBJECTS:libamunn>
+  $<TARGET_OBJECTS:librescorer>
+  $<TARGET_OBJECTS:libcommon>
 )
 
 foreach(exec amunn rescorer)

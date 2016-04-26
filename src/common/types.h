@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdlib>
+#include <cstdint>
 #include <vector>
 
 typedef size_t Word;

@@ -1,23 +1,17 @@
 #pragma once
 
-#include "god.h"
+#include "types.h"
 
 class Sentence {
   public:
-    Sentence(size_t lineNo, const std::string& line)
-    : lineNo_(lineNo), line_(line), words_(God::GetSourceVocab()(line))
-    {}
+    Sentence(size_t lineNo, const std::string& line);
     
-    const Words& GetWords() const {
-      return words_;
-    }
+    const Words& GetWords(size_t index = 0) const;
     
-    size_t GetLine() const {
-      return lineNo_;
-    }
+    size_t GetLine() const;
     
   private:
-    Words words_;
+    std::vector<Words> words_;
     size_t lineNo_;
     std::string line_;
 };
