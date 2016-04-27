@@ -16,13 +16,13 @@ add_library(librescorer OBJECT
 
 add_library(libamunn OBJECT
   decoder/kenlm.cpp
-  decoder/sentence.cpp
 )
 
 cuda_add_executable(
   amunn
   decoder/decoder_main.cu
   decoder/god.cu
+  decoder/sentence.cu
   mblas/matrix.cu
   dl4mt/gru.cu
   $<TARGET_OBJECTS:libamunn>

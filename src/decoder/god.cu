@@ -6,6 +6,7 @@
 #include "threadpool.h"
 #include "encoder_decoder.h"
 #include "language_model.h"
+#include "ape_penalty.h"
 
 God God::instance_;
 
@@ -45,8 +46,12 @@ God& God::NonStaticInit(int argc, char** argv) {
      "Path to source vocabulary file.")
     ("target,t", po::value(&targetVocabPath)->required(),
      "Path to target vocabulary file.")
+    ("ape", po::value<bool>()->zero_tokens()->default_value(false),
+     "Add APE-penalty")
     ("lm,l", po::value(&lmPaths)->multitoken(),
      "Path to KenLM language model(s)")
+    ("tab-map", po::value(&tabMap_)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
+     "tab map")
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
      "e.g. set to 0 1 to use gpu0 and gpu1. "
@@ -116,9 +121,21 @@ God& God::NonStaticInit(int argc, char** argv) {
     devices.push_back(0);
   }
 
+  if(tabMap_.size() < modelPaths.size()) {
+    // this should be a warning
+    LOG(info) << "More neural models than weights, setting missing tabs to 0";
+    tabMap_.resize(modelPaths.size(), 0);
+  }
+  
+  // @TODO: handle this better!
   if(weights_.size() < modelPaths.size()) {
     // this should be a warning
     LOG(info) << "More neural models than weights, setting weights to 1.0";
+    weights_.resize(modelPaths.size(), 1.0);
+  }
+  
+  if(Get<bool>("ape") && weights_.size() < modelPaths.size() + 1) {
+    LOG(info) << "Adding weight for APE-penalty: " << 1.0;
     weights_.resize(modelPaths.size(), 1.0);
   }
 
@@ -175,8 +192,11 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   size_t device = Summon().modelsPerDevice_[deviceId][0]->GetDevice();
   cudaSetDevice(device);
   std::vector<ScorerPtr> scorers;
+  size_t i = 0;
   for(auto& m : Summon().modelsPerDevice_[deviceId])
-    scorers.emplace_back(new EncoderDecoder(*m, 0));
+    scorers.emplace_back(new EncoderDecoder(*m, Summon().tabMap_[i++]));
+  if(God::Get<bool>("ape"))
+    scorers.emplace_back(new ApePenalty(Summon().tabMap_[i++]));
   for(auto& lm : Summon().lms_)
     scorers.emplace_back(new LanguageModel(lm));
   return scorers;
@@ -184,6 +204,10 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
 
 std::vector<float>& God::GetScorerWeights() {
   return Summon().weights_;
+}
+
+std::vector<size_t>& God::GetTabMap() {
+  return Summon().tabMap_;
 }
 
 // clean up cuda vectors before cuda context goes out of scope

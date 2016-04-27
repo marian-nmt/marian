@@ -37,6 +37,7 @@ class God {
     static Vocab& GetTargetVocab();
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<float>& GetScorerWeights();
+    static std::vector<size_t>& GetTabMap();
     
     static void CleanUp();
     static void PrintConfig();
@@ -61,6 +62,7 @@ class God {
     
     std::vector<ScorerPtr> scorers_;
     std::vector<float> weights_;
+    std::vector<size_t> tabMap_;
     
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;
