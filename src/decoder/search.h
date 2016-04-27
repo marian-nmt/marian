@@ -36,7 +36,7 @@ class Search {
       Probs probs(scorers_.size());
       
       for(size_t i = 0; i < scorers_.size(); i++) {
-        scorers_[i]->SetSource(sentence.GetWords());
+        scorers_[i]->SetSource(sentence);
         
         states[i].reset(scorers_[i]->NewState());
         nextStates[i].reset(scorers_[i]->NewState());

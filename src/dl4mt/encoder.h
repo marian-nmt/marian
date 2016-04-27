@@ -30,7 +30,7 @@ class Encoder {
         
         void InitializeState(size_t batchSize = 1) {
           State_.Clear();
-          State_.Resize(batchSize, 1024, 0.0);
+          State_.Resize(batchSize, gru_.GetStateLength(), 0.0);
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -49,11 +49,15 @@ class Encoder {
           while(it != end) {
             GetNextState(State_, State_, *it++);
             if(invert)
-              mblas::PasteRow(Context, State_, n - i - 1, 1024);
+              mblas::PasteRow(Context, State_, n - i - 1, gru_.GetStateLength());
             else
               mblas::PasteRow(Context, State_, i, 0);
             ++i;
           }
+        }
+        
+        size_t GetStateLength() const {
+          return gru_.GetStateLength();
         }
         
       private:
@@ -74,7 +78,7 @@ class Encoder {
                     mblas::Matrix& Context) {
       std::vector<mblas::Matrix> embeddedWords;
       
-      Context.Resize(words.size(), 2048);
+      Context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
       for(auto& w : words) {
         embeddedWords.emplace_back();
         embeddings_.Lookup(embeddedWords.back(), w);

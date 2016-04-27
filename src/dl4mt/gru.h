@@ -43,6 +43,10 @@ class SlowGRU {
       Swap(NextState, U_);
     }
     
+    size_t GetStateLength() const {
+      return w_.U_.Rows();
+    }
+    
   private:
     // Model matrices
     const Weights& w_;
@@ -121,6 +125,11 @@ class FastGRU {
                                           rows, cols);
       cudaStreamSynchronize(0);
     }
+    
+    size_t GetStateLength() const {
+      return w_.U_.Rows();
+    }
+
     
   private:
     // Model matrices
