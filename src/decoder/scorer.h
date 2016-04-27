@@ -4,21 +4,7 @@
 
 #include "hypothesis.h"
 #include "sentence.h"
-
-class PayloadBase {
-  public:
-    virtual ~PayloadBase() {}
-    
-    template <class T>
-    T& get() {
-      return static_cast<T&>(*this);
-    }
-    
-    template <class T>
-    const T& get() const {
-      return static_cast<const T&>(*this);;
-    }
-};
+#include "matrix.h"
 
 class State {
   public:
@@ -37,6 +23,8 @@ class State {
 
 typedef std::unique_ptr<State> StatePtr;
 typedef std::vector<StatePtr> States;
+typedef mblas::Matrix Prob;
+typedef std::vector<Prob> Probs;
 
 class Scorer {
   public:
@@ -46,7 +34,7 @@ class Scorer {
     virtual ~Scorer() {}
     
     virtual void Score(const State& in,
-                       PayloadBase& payload,
+                       Prob& prob,
                        State& out) = 0;
     
     virtual void BeginSentenceState(State& state) = 0;

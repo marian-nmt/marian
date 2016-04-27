@@ -34,7 +34,7 @@ GetOptions(
     "o|decoder-opts=s" => \$DECODER_OPTS,
 );
 
-my $AMUNN = "$AMUNN_DIR/bin";
+my $AMUNN = "$AMUNN_DIR/bin/amunn";
 my $MIRA = "$MOSES_DIR/kbmira";
 my $EVAL = "$MOSES_DIR/evaluator";
 my $EXTR = "$MOSES_DIR/extractor";
@@ -97,7 +97,8 @@ sub normalizeWeights {
         print $temp_h $_->[0], "= ", $_->[1]/$sum, "\n";
     }
     close($temp_h);
-    rename($temp, $path) or die "can't rename $temp to $path: $!";
+    execute("mv $temp $path");
+    #rename($temp, $path) or die "can't rename $temp to $path: $!";
 }
 
 sub logMessage {

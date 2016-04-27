@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "scorer.h"
 #include "matrix.h"
+#include "scorer.h"
 #include "dl4mt.h"
 
 class EncoderDecoderState : public State {
