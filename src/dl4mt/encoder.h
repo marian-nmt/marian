@@ -15,7 +15,10 @@ class Encoder {
           
         void Lookup(mblas::Matrix& Row, size_t i) {
           using namespace mblas;
-          CopyRow(Row, w_.E_, i);
+          if(i < w_.E_.Rows())
+            CopyRow(Row, w_.E_, i);
+          else
+            CopyRow(Row, w_.E_, 1); // UNK
         }
       
       private:

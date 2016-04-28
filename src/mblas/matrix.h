@@ -11,6 +11,9 @@
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 
+//#include "nervana_c_api.h"
+  
+
 #include "thrust_functions.h"
 
 namespace lib = thrust;

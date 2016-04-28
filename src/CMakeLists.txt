@@ -15,6 +15,7 @@ add_library(librescorer OBJECT
 )
 
 add_library(libamunn OBJECT
+  decoder/config.cpp
   decoder/kenlm.cpp
 )
 
@@ -39,7 +40,7 @@ cuda_add_executable(
 )
 
 foreach(exec amunn rescorer)
-  target_link_libraries(${exec} ${EXT_LIBS})
+  target_link_libraries(${exec} ${EXT_LIBS} cuda)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)

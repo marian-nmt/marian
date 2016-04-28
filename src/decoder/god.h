@@ -1,7 +1,7 @@
 #pragma once
 
-#include <boost/program_options.hpp>
 
+#include "config.h"
 #include "types.h"
 #include "vocab.h"
 #include "scorer.h"
@@ -9,8 +9,6 @@
 
 // this should not be here
 #include "kenlm.h"
-
-namespace po = boost::program_options;
   
 class Weights;
   
@@ -25,12 +23,12 @@ class God {
     }
 
     static bool Has(const std::string& key) {
-      return instance_.vm_.count(key) > 0;
+      return Summon().config_.Has(key);
     }
 
     template <typename T>
     static T Get(const std::string& key) {
-      return instance_.vm_[key].as<T>();
+      return Summon().config_.Get<T>(key);
     }
     
     static Vocab& GetSourceVocab(size_t i = 0);
@@ -40,7 +38,6 @@ class God {
     static std::vector<size_t>& GetTabMap();
     
     static void CleanUp();
-    static void PrintConfig();
     
     void LoadWeights(const std::string& path);
     
@@ -48,7 +45,7 @@ class God {
     God& NonStaticInit(int argc, char** argv);
 
     static God instance_;
-    po::variables_map vm_;
+    Config config_;
     
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;

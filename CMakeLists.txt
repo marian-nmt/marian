@@ -18,6 +18,13 @@ else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
+find_package (YamlCpp)
+if (YAMLCPP_FOUND)
+  include_directories(${YAMLCPP_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${YAMLCPP_LIBRARY})
+endif (YAMLCPP_FOUND)
+
+
 set(KENLM CACHE STRING "Path to compiled kenlm directory")
 if (NOT EXISTS "${KENLM}/build/lib/libkenlm.a")
   message(FATAL_ERROR "Could not find ${KENLM}/build/lib/libkenlm.a")

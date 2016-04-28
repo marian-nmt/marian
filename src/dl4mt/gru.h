@@ -13,7 +13,7 @@ class SlowGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
       
-      const size_t cols = State.Cols();
+      const size_t cols = GetStateLength();
       
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
@@ -76,11 +76,11 @@ class FastGRU {
   public:
     FastGRU(const Weights& model)
     : w_(model) {
-      for(int i = 0; i < 4; ++i) {
+      /*for(int i = 0; i < 4; ++i) {
         cudaStreamCreate(&s_[i]);
         cublasCreate(&h_[i]);
         cublasSetStream(h_[i], s_[i]);            
-      }
+      }*/
     }
           
     void GetNextState(mblas::Matrix& NextState,
@@ -88,7 +88,7 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
       
-      const size_t cols = State.Cols();
+      const size_t cols = GetStateLength();
       
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
