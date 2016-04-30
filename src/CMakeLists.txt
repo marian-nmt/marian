@@ -8,6 +8,7 @@ include_directories(mblas)
 add_library(libcommon OBJECT
   cnpy/cnpy.cpp
   common/utils.cpp
+  common/exception.cpp
 )
 
 add_library(librescorer OBJECT

@@ -1,10 +1,14 @@
 #pragma once
 
 #include <vector>
+#include <yaml-cpp/yaml.h>
 
 #include "matrix.h"
 #include "scorer.h"
+#include "loader.h"
 #include "dl4mt.h"
+
+#include "threadpool.h"
 
 class EncoderDecoderState : public State {
   public:
@@ -34,8 +38,8 @@ class EncoderDecoder : public Scorer {
     typedef EncoderDecoderState EDState;
     
   public:
-    EncoderDecoder(const Weights& model, size_t sourceIndex)
-    : Scorer(sourceIndex), model_(model),
+    EncoderDecoder(const Weights& model, size_t tabIndex)
+    : Scorer(tabIndex), model_(model),
       encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
     {}
     
@@ -97,4 +101,34 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<Decoder> decoder_;
     
     mblas::Matrix SourceContext_;
+};
+
+class EncoderDecoderLoader : public Loader {
+  public:
+    EncoderDecoderLoader(const YAML::Node& config)
+     : Loader(config) {}
+  
+    virtual void Load() {
+      std::string path = Get<std::string>("path");
+      auto devices = God::Get<std::vector<size_t>>("devices");
+      ThreadPool devicePool(devices.size());
+      for(auto d : devices) {
+        devicePool.enqueue([d, &path, this] {
+          LOG(info) << "Loading model " << path << " onto gpu" << d;
+          cudaSetDevice(d);
+          weights_.emplace_back(new Weights(path, d));
+        });
+      }
+    }
+  
+    virtual ScorerPtr NewScorer(size_t taskId) {
+      size_t i = taskId % weights_.size();
+      size_t d = weights_[i]->GetDevice();
+      cudaSetDevice(d);
+      size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
+      return ScorerPtr(new EncoderDecoder(*weights_[i], tab));
+    }
+    
+  private:
+    std::vector<std::unique_ptr<Weights>> weights_;
 };

@@ -4,6 +4,7 @@
 #include "config.h"
 #include "types.h"
 #include "vocab.h"
+#include "loader.h"
 #include "scorer.h"
 #include "logging.h"
 
@@ -50,16 +51,9 @@ class God {
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;
     
-    typedef std::unique_ptr<Weights> Model;
-    typedef std::vector<Model> Models;
-    typedef std::vector<Models> ModelsPerDevice;
-
-    ModelsPerDevice modelsPerDevice_;
-    std::vector<LM> lms_;
+    std::vector<LoaderPtr> loaders_;
     
-    std::vector<ScorerPtr> scorers_;
     std::vector<float> weights_;
-    std::vector<size_t> tabMap_;
     
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;

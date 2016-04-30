@@ -24,7 +24,6 @@ if (YAMLCPP_FOUND)
   set(EXT_LIBS ${EXT_LIBS} ${YAMLCPP_LIBRARY})
 endif (YAMLCPP_FOUND)
 
-
 set(KENLM CACHE STRING "Path to compiled kenlm directory")
 if (NOT EXISTS "${KENLM}/build/lib/libkenlm.a")
   message(FATAL_ERROR "Could not find ${KENLM}/build/lib/libkenlm.a")

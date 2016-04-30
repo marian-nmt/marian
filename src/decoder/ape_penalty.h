@@ -7,7 +7,7 @@
 #include "matrix.h"
 
 class ApePenaltyState : public State {
-  // Dummy
+  // Dummy, this scorer is stateless
 };
 
 class ApePenalty : public Scorer {
@@ -17,19 +17,20 @@ class ApePenalty : public Scorer {
     : Scorer(sourceIndex)
     { }
     
+    // @TODO: make this work on GPU
     virtual void SetSource(const Sentence& source) {
-        const Words& words = source.GetWords(sourceIndex_);
-        const Vocab& svcb = God::GetSourceVocab(sourceIndex_);
-        const Vocab& tvcb = God::GetTargetVocab();
-        
-        costs_.clear();
-        costs_.resize(tvcb.size(), -1.0);
-        for(auto& s : words) {
-          const std::string& sstr = svcb[s];
-          Word t = tvcb[sstr];
-          if(t != UNK && t < costs_.size())
-            costs_[t] = 0.0;
-        }
+      const Words& words = source.GetWords(sourceIndex_);
+      const Vocab& svcb = God::GetSourceVocab(sourceIndex_);
+      const Vocab& tvcb = God::GetTargetVocab();
+      
+      costs_.clear();
+      costs_.resize(tvcb.size(), -1.0);
+      for(auto& s : words) {
+        const std::string& sstr = svcb[s];
+        Word t = tvcb[sstr];
+        if(t != UNK && t < costs_.size())
+          costs_[t] = 0.0;
+      }
     }
     
     virtual void Score(const State& in,
@@ -56,4 +57,19 @@ class ApePenalty : public Scorer {
     
   private:
     std::vector<float> costs_;
+};
+
+class ApePenaltyLoader : public Loader {
+  public:
+    ApePenaltyLoader(const YAML::Node& config)
+     : Loader(config) {}
+  
+    virtual void Load() {
+      // @TODO: IDF weights
+    }
+  
+    virtual ScorerPtr NewScorer(size_t taskId) {
+      size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
+      return ScorerPtr(new ApePenalty(tab));
+    }
 };

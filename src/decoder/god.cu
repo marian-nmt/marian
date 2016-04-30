@@ -7,9 +7,7 @@
 #include "config.h"
 #include "scorer.h"
 #include "threadpool.h"
-#include "encoder_decoder.h"
-#include "language_model.h"
-#include "ape_penalty.h"
+#include "loader_factory.h"
 
 God God::instance_;
 
@@ -27,38 +25,12 @@ God& God::NonStaticInit(int argc, char** argv) {
   config_.AddOptions(argc, argv);
   config_.LogOptions();
   
-  for(auto sourceVocabPath : Get<std::vector<std::string>>("source"))
+  for(auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab"))
     sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
-  targetVocab_.reset(new Vocab(Get<std::string>("target")));
+  targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
-  auto modelPaths = Get<std::vector<std::string>>("model");
-  
-  tabMap_ =  Get<std::vector<size_t>>("tab-map");
-  if(tabMap_.size() < modelPaths.size()) {
-    // this should be a warning
-    LOG(info) << "More neural models than tabs, setting missing tabs to 0";
-    tabMap_.resize(modelPaths.size(), 0);
-  }
-  
-  // @TODO: handle this better!
   weights_ = Get<std::vector<float>>("weights");
-  if(weights_.size() < modelPaths.size()) {
-    // this should be a warning
-    LOG(info) << "More neural models than weights, setting weights to 1.0";
-    weights_.resize(modelPaths.size(), 1.0);
-  }
-  
-  if(Get<bool>("ape") && weights_.size() < modelPaths.size() + 1) {
-    LOG(info) << "Adding weight for APE-penalty: " << 1.0;
-    weights_.resize(modelPaths.size(), 1.0);
-  }
-
-  //if(weights_.size() < modelPaths.size() + lmPaths.size()) {
-  //  // this should be a warning
-  //  LOG(info) << "More KenLM models than weights, setting weights to 0.0";
-  //  weights_.resize(weights_.size() + lmPaths.size(), 0.0);
-  //}
-  
+    
   if(Has("load-weights")) {
     LoadWeights(Get<std::string>("load-weights"));
   }
@@ -71,25 +43,8 @@ God& God::NonStaticInit(int argc, char** argv) {
     exit(0);
   }
   
-  auto devices = Get<std::vector<size_t>>("devices");
-  modelsPerDevice_.resize(devices.size());
-  {
-    ThreadPool devicePool(devices.size());
-    for(auto& modelPath : modelPaths) {
-      for(size_t i = 0; i < devices.size(); ++i) {
-        devicePool.enqueue([i, &devices, &modelPath, this]{
-          LOG(info) << "Loading model " << modelPath << " onto gpu" << devices[i];
-          cudaSetDevice(devices[i]);
-          modelsPerDevice_[i].emplace_back(new Weights(modelPath, devices[i]));
-        });
-      }
-    }
-  }
-
-  //for(auto& lmPath : lmPaths) {
-  //  LOG(info) << "Loading lm " << lmPath;
-  //  lms_.emplace_back(lmPath, *targetVocab_);
-  //}
+  for(auto&& modelConfig : config_.Get()["scorers"])
+    loaders_.emplace_back(LoaderFactory::Create(modelConfig));
   
   return *this;
 }
@@ -102,18 +57,10 @@ Vocab& God::GetTargetVocab() {
   return *Summon().targetVocab_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
-  size_t deviceId = threadId % Summon().modelsPerDevice_.size();
-  size_t device = Summon().modelsPerDevice_[deviceId][0]->GetDevice();
-  cudaSetDevice(device);
+std::vector<ScorerPtr> God::GetScorers(size_t taskId) {
   std::vector<ScorerPtr> scorers;
-  size_t i = 0;
-  for(auto& m : Summon().modelsPerDevice_[deviceId])
-    scorers.emplace_back(new EncoderDecoder(*m, Summon().tabMap_[i++]));
-  if(God::Get<bool>("ape"))
-    scorers.emplace_back(new ApePenalty(Summon().tabMap_[i++]));
-  for(auto& lm : Summon().lms_)
-    scorers.emplace_back(new LanguageModel(lm));
+  for(auto&& loader : Summon().loaders_)
+    scorers.emplace_back(loader->NewScorer(taskId));
   return scorers;
 }
 
@@ -121,15 +68,10 @@ std::vector<float>& God::GetScorerWeights() {
   return Summon().weights_;
 }
 
-std::vector<size_t>& God::GetTabMap() {
-  return Summon().tabMap_;
-}
-
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
-  for(auto& models : Summon().modelsPerDevice_)
-    for(auto& m : models)
-      m.reset(nullptr);
+  for(auto& loader : Summon().loaders_)
+     loader.reset(nullptr);
 }
 
 void God::LoadWeights(const std::string& path) {
