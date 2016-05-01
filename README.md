@@ -38,6 +38,41 @@ Vocabulary files (and all other config files) in amuNN are by default YAML files
 
 * Vocabularies from the DL4MT repository (*.pkl extension) need to be converted to JSON/YAML:
 ```    
-python scripts/vocab2yaml.py vocab.en.pkl > vocab.en
+python scripts/pkl2json.py vocab.en.pkl > vocab.json
 ```
+or
+```    
+python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
+```
+
 * Vocabulary files from Nematus can be used directly, as JSON is a proper subset of YAML. 
+
+## Running amuNN
+
+    ./build/bin/amunn -c config.yml <<< "This is a test ."
+
+## Configuration files
+
+An example configuration:
+
+    # performance
+    beam-size: 12
+    devices: [0]
+    normalize: true
+    threads-per-device: 1
+    
+    # scorer configuration
+    scorers: 
+      F0:
+        path: model.en-de.npz 
+        type: Nematus
+      
+    # vocabularies
+    
+    source-vocab: [ vocab.en.yml.gz ]
+    target-vcoab: vocab.de.yml.gz
+    
+    # scorer weights
+    weights: 
+      F0: 1
+
