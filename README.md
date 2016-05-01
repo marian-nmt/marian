@@ -49,7 +49,7 @@ python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
 
 ## Running amuNN
 
-    ./build/bin/amunn -c config.yml <<< "This is a test ."
+    ./bin/amunn -c config.yml <<< "This is a test ."
 
 ## Configuration files
 
@@ -68,7 +68,6 @@ An example configuration:
         type: Nematus
       
     # vocabularies
-    
     source-vocab: [ vocab.en.yml.gz ]
     target-vcoab: vocab.de.yml.gz
     
