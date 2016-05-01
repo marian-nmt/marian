@@ -4,6 +4,8 @@
 A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-based scripts from 
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
+We aim at keeping compatibility with Nematus (at least as long as there is no training framework in amunNN), the continued compatbility with DL4MT will not be guaranteed. 
+
 ## Requirements:
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * Boost 1.5
