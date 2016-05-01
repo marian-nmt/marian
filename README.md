@@ -69,9 +69,9 @@ An example configuration:
       
     # vocabularies
     source-vocab: [ vocab.en.yml.gz ]
-    target-vcoab: vocab.de.yml.gz
+    target-vocab: vocab.de.yml.gz
     
     # scorer weights
     weights: 
-      F0: 1
+      F0: 1.0
 
