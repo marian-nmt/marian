@@ -51,9 +51,10 @@ python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
 
 An example configuration:
 
+    # Path are relative to config file location
     relative-paths: yes
 
-    # performance
+    # performance settings
     beam-size: 12
     devices: [0]
     normalize: yes
@@ -64,12 +65,12 @@ An example configuration:
       F0:
         path: model.en-de.npz 
         type: Nematus
-      
-    # vocabularies
-    source-vocab: [ vocab.en.yml.gz ]
-    target-vocab: vocab.de.yml.gz
-    
+
     # scorer weights
     weights: 
       F0: 1.0
-
+  
+    # vocabularies
+    source-vocab: vocab.en.yml.gz
+    target-vocab: vocab.de.yml.gz
+    

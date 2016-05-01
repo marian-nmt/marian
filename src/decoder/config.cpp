@@ -69,6 +69,40 @@ void Validate(const YAML::Node& config) {
   //@TODO: Stray weight, model without weight?
 }
 
+
+void OutputRec(const YAML::Node node, YAML::Emitter& out) {
+  std::set<std::string> flow = { "devices" };
+  std::set<std::string> sorter;
+  switch (node.Type()) {
+    case YAML::NodeType::Null:
+      out << node; break;
+    case YAML::NodeType::Scalar:
+      out << node; break;
+    case YAML::NodeType::Sequence:
+      out << YAML::BeginSeq;
+      for(auto&& n : node)
+        OutputRec(n, out);
+      out << YAML::EndSeq;
+      break;
+    case YAML::NodeType::Map:
+      for(auto& n : node)
+        sorter.insert(n.first.as<std::string>());
+      out << YAML::BeginMap;
+      for(auto& key : sorter) {
+        out << YAML::Key;
+        out << key;
+        out << YAML::Value;
+        if(flow.count(key))
+          out << YAML::Flow;
+        OutputRec(node[key], out);
+      }
+      out << YAML::EndMap;
+      break;
+    case YAML::NodeType::Undefined:
+      out << node; break;
+  }
+}
+
 void Config::AddOptions(size_t argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description general("General options");
@@ -107,13 +141,13 @@ void Config::AddOptions(size_t argc, char** argv) {
   configuration.add_options()
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
      "All paths are relative to the config file location")
-    ("config-scorer", po::value<std::string>(),
-     "Overwrite scorer configuration with YAML string")
-    ("config-weights", po::value<std::string>(),
-     "Overwrite weight configuration with YAML string")
-    ("config-any", po::value<std::string>(),
-     "Overwrite any configuration items with YAML string")
-    ("dump-config", po::value<std::string>(),
+    //("config-scorer", po::value<std::string>(),
+    // "Overwrite scorer configuration with YAML string")
+    //("config-weights", po::value<std::string>(),
+    // "Overwrite weight configuration with YAML string")
+    //("config-any", po::value<std::string>(),
+    // "Overwrite any configuration items with YAML string")
+    ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
      "Dump current (modified) configuration to stdout and exit")
   ;
 
@@ -155,41 +189,16 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("relative-paths", bool);
 
   // @TODO: Apply complex overwrites
+  
   if(Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
   Validate(config_);
-}
-
-void OutputRec(const YAML::Node node, YAML::Emitter& out) {
-  std::set<std::string> flow = { "weights", "devices"};
-  std::set<std::string> sorter;
-  switch (node.Type()) {
-    case YAML::NodeType::Null:
-      out << node; break;
-    case YAML::NodeType::Scalar:
-      out << node; break;
-    case YAML::NodeType::Sequence:
-      out << YAML::BeginSeq;
-      for(auto&& n : node)
-        OutputRec(n, out);
-      out << YAML::EndSeq;
-      break;
-    case YAML::NodeType::Map:
-      for(auto& n : node)
-        sorter.insert(n.first.as<std::string>());
-      out << YAML::BeginMap;
-      for(auto& key : sorter) {
-        out << YAML::Key;
-        out << key;
-        out << YAML::Value;
-        if(flow.count(key))
-          out << YAML::Flow;
-        OutputRec(node[key], out);
-      }
-      out << YAML::EndMap;
-      break;
-    case YAML::NodeType::Undefined:
-      out << node; break;
+  
+  if(vm_["dump-config"].as<bool>()) {
+    YAML::Emitter emit;
+    OutputRec(config_, emit);
+    std::cout << emit.c_str() << std::endl;
+    exit(0);
   }
 }
 
