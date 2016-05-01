@@ -25,11 +25,14 @@ Or with KenLM support:
     cmake .. -DKENLM=path/to/kenlm
 
 
-On Ubuntu 16.04, you need g++4.9 and cuda-7.5 and a boost version compiled with g++4.9
+On Ubuntu 16.04, you currently need g++4.9 to compile and cuda-7.5, this also requires a custom boost build compiled with g++4.9 instead of the standard g++5.3. The binaries are not compatible. g++5 support will probably arrive with cuda-8.0.
 
     CUDA_BIN_PATH=/usr/local/cuda-7.5 BOOST_ROOT=/path/to/custom/boost cmake .. \
-    -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9 -DKENLM=path/to/kenlm
+    -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9
 
-Vocabularies (*.pkl extension) need to be converted to text with the scripts in the scripts folder.
+## Vocabulary files
+Vocabulary files (and all other config files) in amuNN are by default YAML files. AmuNN also reads gzipped yml.gz files. 
 
-    python scripts/vocab2txt.py vocab.en.pkl > vocab.en
+* Vocabularies from the DL4MT repository (*.pkl extension) need to be converted to JSON/YAML:
+    python scripts/vocab2yaml.py vocab.en.pkl > vocab.en
+* Vocabulary files from Nematus can be used directly, as JSON is a proper subset of YAML. 
