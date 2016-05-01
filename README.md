@@ -34,18 +34,14 @@ On Ubuntu 16.04, you currently need g++4.9 to compile and cuda-7.5, this also re
     -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9
 
 ## Vocabulary files
-Vocabulary files (and all other config files) in amuNN are by default YAML files. AmuNN also reads gzipped yml.gz files. 
+Vocabulary files (and all other config files) in amuNN are by default YAML files. amuNN also reads gzipped yml.gz files. 
 
-* Vocabularies from the DL4MT repository (*.pkl extension) need to be converted to JSON/YAML:
+* Vocabulary files from models trained with Nematus can be used directly as JSON is a proper subset of YAML.
+* Vocabularies for models trained with DL4MT (*.pkl extension) need to be converted to JSON/YAML with either of the two scripts below:
 ```    
 python scripts/pkl2json.py vocab.en.pkl > vocab.json
-```
-or
-```    
 python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
-```
-
-* Vocabulary files from Nematus can be used directly, as JSON is a proper subset of YAML. 
+``` 
 
 ## Running amuNN
 
