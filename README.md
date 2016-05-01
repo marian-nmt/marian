@@ -34,6 +34,7 @@ On Ubuntu 16.04, you currently need g++4.9 to compile and cuda-7.5, this also re
 Vocabulary files (and all other config files) in amuNN are by default YAML files. AmuNN also reads gzipped yml.gz files. 
 
 * Vocabularies from the DL4MT repository (*.pkl extension) need to be converted to JSON/YAML:
-    <blockquote>python scripts/vocab2yaml.py vocab.en.pkl > vocab.en</blockquote>
-
+```    
+python scripts/vocab2yaml.py vocab.en.pkl > vocab.en</blockquote>
+```
 * Vocabulary files from Nematus can be used directly, as JSON is a proper subset of YAML. 
