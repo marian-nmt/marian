@@ -7,15 +7,23 @@ A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-ba
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * Boost 1.5
  * CUDA 7.5
- * KenLM (https://github.com/kpu/kenlm, current master)
+ * yaml-cpp 0.5 (https://github.com/jbeder/yaml-cpp.git)
+
+## Optional
+ * KenLM for n-gram language models (https://github.com/kpu/kenlm, current master)
 
 ## Compilation
 The project is a standard Cmake out-of-source build:
 
     mkdir build
     cd build
-    cmake .. -DKENLM=path/to/kenlm
+    cmake ..
     make -j
+
+Or with KenLM support:
+
+    cmake .. -DKENLM=path/to/kenlm
+
 
 On Ubuntu 16.04, you need g++4.9 and cuda-7.5 and a boost version compiled with g++4.9
 
