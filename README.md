@@ -56,7 +56,7 @@ An example configuration:
     # performance
     beam-size: 12
     devices: [0]
-    normalize: true
+    normalize: yes
     threads-per-device: 1
     
     # scorer configuration

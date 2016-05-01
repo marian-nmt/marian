@@ -27,6 +27,5 @@ class Config {
       return out;
     }
     
-    void Validate();
     void LogOptions();
 };

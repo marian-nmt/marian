@@ -5,14 +5,14 @@
 #include "exception.h"
 
 #define SET_OPTION(key, type) \
-if(!vm_[key].defaulted() || !config_[key]) { \
+do { if(!vm_[key].defaulted() || !config_[key]) { \
   config_[key] = vm_[key].as<type>(); \
-}
+}} while(0)
 
 #define SET_OPTION_NONDEFAULT(key, type) \
-if(vm_.count(key) > 0) { \
+do { if(vm_.count(key) > 0) { \
   config_[key] = vm_[key].as<type>(); \
-}
+}} while(0)
 
 bool Config::Has(const std::string& key) {
   return config_[key];
@@ -20,6 +20,53 @@ bool Config::Has(const std::string& key) {
 
 YAML::Node& Config::Get() {
   return config_;
+}
+
+void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
+  using namespace boost::filesystem;
+  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab",
+                                 "load-weights"};
+  
+  if(isPath) {
+    if(node.Type() == YAML::NodeType::Scalar) {
+      std::string nodePath = node.as<std::string>();
+      node = canonical(path{nodePath}, configPath).string();
+    }
+    if(node.Type() == YAML::NodeType::Sequence) {
+      for(auto&& sub : node)
+        ProcessPaths(sub, configPath, true);
+    }
+  }
+  else {
+    switch (node.Type()) {
+      case YAML::NodeType::Sequence:
+        for(auto&& sub : node)
+          ProcessPaths(sub, configPath, false);
+        break;
+      case YAML::NodeType::Map:
+        for(auto&& sub : node) {
+          std::string key = sub.first.as<std::string>();
+          ProcessPaths(sub.second, configPath, paths.count(key) > 0);
+        }
+        break;
+    } 
+  }
+}
+
+void Validate(const YAML::Node& config) {
+  UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
+                 "No scorers given in config file");
+  
+  UTIL_THROW_IF2(!config["source-vocab"] || config["source-vocab"].size() == 0,
+                 "No source-vocab given in config file");
+  
+  UTIL_THROW_IF2(!config["target-vocab"],
+                 "No target-vocab given in config file");
+  
+  UTIL_THROW_IF2(config["weights"].size() != config["scorers"].size(),
+                "Different number of models and weights in config file");
+  
+  //@TODO: Stray weight, model without weight?
 }
 
 void Config::AddOptions(size_t argc, char** argv) {
@@ -97,32 +144,20 @@ void Config::AddOptions(size_t argc, char** argv) {
   
   config_ = YAML::Load(InputFileStream(configPath));
    
-  SET_OPTION("n-best", bool)
-  SET_OPTION("normalize", bool)
-  SET_OPTION("beam-size", size_t)
-  SET_OPTION("threads-per-device", size_t)
-  SET_OPTION("devices", std::vector<size_t>)
-  SET_OPTION("show-weights", bool)
-  SET_OPTION_NONDEFAULT("load-weights", std::string)
-    
-  Validate();
-  //@TODO: ProcessPaths();
-}
+  // Simple overwrites
+  SET_OPTION("n-best", bool);
+  SET_OPTION("normalize", bool);
+  SET_OPTION("beam-size", size_t);
+  SET_OPTION("threads-per-device", size_t);
+  SET_OPTION("devices", std::vector<size_t>);
+  SET_OPTION("show-weights", bool);
+  SET_OPTION_NONDEFAULT("load-weights", std::string);
+  SET_OPTION("relative-paths", bool);
 
-void Config::Validate() {
-  UTIL_THROW_IF2(!config_["scorers"] || config_["scorers"].size() == 0,
-                 "No scorers given in config file");
-  
-  UTIL_THROW_IF2(!config_["source-vocab"] || config_["source-vocab"].size() == 0,
-                 "No source-vocab given in config file");
-  
-  UTIL_THROW_IF2(!config_["target-vocab"],
-                 "No target-vocab given in config file");
-  
-  UTIL_THROW_IF2(config_["weights"].size() != config_["scorers"].size(),
-                "Different number of models and weights in config file");
-  
-  //@TODO: Stray weight, model without weight?
+  // @TODO: Apply complex overwrites
+  if(Get<bool>("relative-paths"))
+    ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
+  Validate();
 }
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {

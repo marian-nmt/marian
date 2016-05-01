@@ -93,6 +93,8 @@ void God::LoadWeights(const std::string& path) {
   size_t i = 0;
   weights_.clear();
   while(fweights >> name >> weight) {
+    if(name.back() == '=')
+      name.pop_back();
     LOG(info) << " > " << name << "= " << weight; 
     weights_[name] = weight;
     i++;
