@@ -28,8 +28,8 @@ typedef std::vector<Prob> Probs;
 
 class Scorer {
   public:
-    Scorer() : sourceIndex_(0) {} 
-    Scorer(size_t sourceIndex) : sourceIndex_(sourceIndex) {} 
+    Scorer(const YAML::Node& config, size_t tab)
+    : config_(config), tab_(tab) {} 
     
     virtual ~Scorer() {}
     
@@ -52,13 +52,14 @@ class Scorer {
     virtual void CleanUpAfterSentence() {}
     
   protected:
-    size_t sourceIndex_;
+    const YAML::Node& config_;
+    size_t tab_;
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
-    SourceIndependentScorer() : Scorer(0) {} 
-    SourceIndependentScorer(size_t) : Scorer(0) {} 
+    SourceIndependentScorer(const YAML::Node& config, size_t)
+    : Scorer(config, 0) {} 
     
     virtual ~SourceIndependentScorer() {}
     

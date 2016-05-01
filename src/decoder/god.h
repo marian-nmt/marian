@@ -7,9 +7,6 @@
 #include "loader.h"
 #include "scorer.h"
 #include "logging.h"
-
-// this should not be here
-#include "kenlm.h"
   
 class Weights;
   

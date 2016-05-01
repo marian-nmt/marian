@@ -3,36 +3,48 @@
 #include <vector>
 
 #include "types.h"
+#include "file_stream.h"
 #include "scorer.h"
 #include "matrix.h"
+
+typedef std::vector<Word> SrcTrgMap;
+typedef std::vector<float> Penalties; 
 
 class ApePenaltyState : public State {
   // Dummy, this scorer is stateless
 };
 
 class ApePenalty : public Scorer {
+  private:
+    const SrcTrgMap& srcTrgMap_;
+    const Penalties& penalties_;
     
   public:
-    ApePenalty(size_t sourceIndex)
-    : Scorer(sourceIndex)
+    ApePenalty(
+               const SrcTrgMap& srcTrgMap,
+               const Penalties& penalties,
+               const YAML::Node& config,
+               size_t tab)
+    : Scorer(config, tab), srcTrgMap_(srcTrgMap),
+      penalties_(penalties)
     { }
     
     // @TODO: make this work on GPU
     virtual void SetSource(const Sentence& source) {
-      const Words& words = source.GetWords(sourceIndex_);
-      const Vocab& svcb = God::GetSourceVocab(sourceIndex_);
-      const Vocab& tvcb = God::GetTargetVocab();
+      const Words& words = source.GetWords(tab_);
       
       costs_.clear();
-      costs_.resize(tvcb.size(), -1.0);
-      for(auto& s : words) {
-        const std::string& sstr = svcb[s];
-        Word t = tvcb[sstr];
+      costs_.resize(penalties_.size());
+      algo::copy(penalties_.begin(), penalties_.end(), costs_.begin());
+      
+      for(auto&& s : words) {
+        Word t = srcTrgMap_[s];
         if(t != UNK && t < costs_.size())
           costs_[t] = 0.0;
       }
     }
     
+    // @TODO: make this work on GPU
     virtual void Score(const State& in,
                        Prob& prob,
                        State& out) {
@@ -65,11 +77,34 @@ class ApePenaltyLoader : public Loader {
      : Loader(config) {}
   
     virtual void Load() {
-      // @TODO: IDF weights
+      size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
+      const Vocab& svcb = God::GetSourceVocab(tab);
+      const Vocab& tvcb = God::GetTargetVocab();
+      
+      srcTrgMap_.resize(svcb.size(), UNK);
+      for(Word s = 0; s < svcb.size(); ++s)
+        srcTrgMap_[s] = tvcb[svcb[s]];
+      
+      penalties_.resize(tvcb.size(), -1.0);
+        
+      if(Has("path")) {
+        LOG(info) << "Loading APE penalties from " << Get<std::string>("path");
+        YAML::Node penalties = YAML::Load(InputFileStream(Get<std::string>("path")));
+        for(auto&& pair : penalties) {
+          std::string entry = pair.first.as<std::string>();
+          float penalty = pair.second.as<float>();
+          penalties_[tvcb[entry]] = -penalty;
+        }
+      }
     }
   
     virtual ScorerPtr NewScorer(size_t taskId) {
       size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-      return ScorerPtr(new ApePenalty(tab));
+      return ScorerPtr(new ApePenalty(srcTrgMap_, penalties_,
+                                      config_, tab));
     }
+    
+  private:
+    SrcTrgMap srcTrgMap_;
+    Penalties penalties_; 
 };

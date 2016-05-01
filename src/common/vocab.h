@@ -3,19 +3,19 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <fstream>
 #include <sstream>
 
 #include "types.h"
 #include "utils.h"
+#include "file_stream.h"
 
 class Vocab {
   public:
-    Vocab(const std::string& txt) {
-        std::ifstream in(txt.c_str());
+    Vocab(const std::string& path) {
+        InputFileStream in(path);
         size_t c = 0;
         std::string line;
-        while(std::getline(in, line)) {
+        while(std::getline((std::istream&)in, line)) {
             str2id_[line] = c++;
             id2str_.push_back(line);
         }

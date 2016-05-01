@@ -1,7 +1,6 @@
 #pragma once
 
-#include "util/string_stream.hh"
-
+#include <sstream>
 #include <exception>
 #include <limits>
 #include <string>
@@ -15,6 +14,7 @@ class Exception : public std::exception {
   public:
     Exception() throw();
     virtual ~Exception() throw();
+    Exception(const Exception& o) throw();
 
     const char *what() const throw() { return what_.str().c_str(); }
 
@@ -34,7 +34,7 @@ class Exception : public std::exception {
       typedef T Identity;
     };
 
-    StringStream what_;
+    std::stringstream what_;
 };
 
 /* This implements the normal operator<< for Exception and all its children.

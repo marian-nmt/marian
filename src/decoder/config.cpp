@@ -1,6 +1,7 @@
 #include <set>
 
 #include "config.h"
+#include "file_stream.h"
 #include "exception.h"
 
 #define SET_OPTION(key, type) \
@@ -79,7 +80,7 @@ void Config::AddOptions(size_t argc, char** argv) {
     exit(0);
   }
   
-  config_ = YAML::LoadFile(configPath);
+  config_ = YAML::Load(InputFileStream(configPath));
    
   SET_OPTION("n-best", bool)
   SET_OPTION("normalize", bool)

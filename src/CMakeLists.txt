@@ -17,7 +17,7 @@ add_library(librescorer OBJECT
 
 add_library(libamunn OBJECT
   decoder/config.cpp
-  decoder/kenlm.cpp
+#  decoder/kenlm.cpp
 )
 
 cuda_add_executable(

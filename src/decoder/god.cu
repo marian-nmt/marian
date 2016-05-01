@@ -7,6 +7,7 @@
 #include "config.h"
 #include "scorer.h"
 #include "threadpool.h"
+#include "file_stream.h"
 #include "loader_factory.h"
 
 God God::instance_;
@@ -76,7 +77,7 @@ void God::CleanUp() {
 
 void God::LoadWeights(const std::string& path) {
   LOG(info) << "Reading weights from " << path;
-  std::ifstream fweights(path.c_str());
+  InputFileStream fweights(path);
   std::string name;
   float weight;
   size_t i = 0;

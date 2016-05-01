@@ -1,4 +1,4 @@
-#include "util/exception.hh"
+#include "exception.h"
 
 #ifdef __GXX_RTTI
 #include <typeinfo>
@@ -17,14 +17,18 @@ namespace util {
 Exception::Exception() throw() {}
 Exception::~Exception() throw() {}
 
+Exception::Exception(const Exception& o) throw() {
+  what_.str(o.what_.str());
+}
+
 void Exception::SetLocation(const char *file, unsigned int line, const char *func, const char *child_name, const char *condition) {
   /* The child class might have set some text, but we want this to come first.
    * Another option would be passing this information to the constructor, but
    * then child classes would have to accept constructor arguments and pass
    * them down.
    */
-  std::string old_text;
-  what_.swap(old_text);
+  std::string old_text = what_.str();
+  what_.str(std::string());
   what_ << file << ':' << line;
   if (func) what_ << " in " << func << " threw ";
   if (child_name) {

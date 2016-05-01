@@ -38,8 +38,10 @@ class EncoderDecoder : public Scorer {
     typedef EncoderDecoderState EDState;
     
   public:
-    EncoderDecoder(const Weights& model, size_t tabIndex)
-    : Scorer(tabIndex), model_(model),
+    EncoderDecoder(const Weights& model,
+                   const YAML::Node& config,
+                   size_t tab)
+    : Scorer(config, tab), model_(model),
       encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
     {}
     
@@ -65,7 +67,7 @@ class EncoderDecoder : public Scorer {
     }
 
     virtual void SetSource(const Sentence& source) {
-      encoder_->GetContext(source.GetWords(sourceIndex_),
+      encoder_->GetContext(source.GetWords(tab_),
                            SourceContext_);
     }
     
@@ -107,7 +109,7 @@ class EncoderDecoderLoader : public Loader {
   public:
     EncoderDecoderLoader(const YAML::Node& config)
      : Loader(config) {}
-  
+   
     virtual void Load() {
       std::string path = Get<std::string>("path");
       auto devices = God::Get<std::vector<size_t>>("devices");
@@ -126,7 +128,7 @@ class EncoderDecoderLoader : public Loader {
       size_t d = weights_[i]->GetDevice();
       cudaSetDevice(d);
       size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-      return ScorerPtr(new EncoderDecoder(*weights_[i], tab));
+      return ScorerPtr(new EncoderDecoder(*weights_[i], config_, tab));
     }
     
   private:
