@@ -106,6 +106,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION_NONDEFAULT("load-weights", std::string)
     
   Validate();
+  //@TODO: ProcessPaths();
 }
 
 void Config::Validate() {
@@ -121,7 +122,7 @@ void Config::Validate() {
   UTIL_THROW_IF2(config_["weights"].size() != config_["scorers"].size(),
                 "Different number of models and weights in config file");
   
-  // Stray weight, model without weight?
+  //@TODO: Stray weight, model without weight?
 }
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {
