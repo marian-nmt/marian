@@ -58,6 +58,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   
   po::options_description configuration("Configuration meta options");
   configuration.add_options()
+    ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
+     "All paths are relative to the config file location")
     ("config-scorer", po::value<std::string>(),
      "Overwrite scorer configuration with YAML string")
     ("config-weights", po::value<std::string>(),

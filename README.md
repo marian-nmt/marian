@@ -51,6 +51,8 @@ python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
 
 An example configuration:
 
+    relative-paths: yes
+
     # performance
     beam-size: 12
     devices: [0]
