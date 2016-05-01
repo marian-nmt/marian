@@ -4,21 +4,27 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <yaml-cpp/yaml.h>
 
 #include "types.h"
 #include "utils.h"
 #include "file_stream.h"
+#include "exception.h"
 
 class Vocab {
   public:
     Vocab(const std::string& path) {
-        InputFileStream in(path);
-        size_t c = 0;
-        std::string line;
-        while(std::getline((std::istream&)in, line)) {
-            str2id_[line] = c++;
-            id2str_.push_back(line);
+        YAML::Node vocab = YAML::Load(InputFileStream(path));
+        for(auto&& pair : vocab) {
+          auto str = pair.first.as<std::string>();
+          auto id = pair.second.as<Word>();
+          str2id_[str] = id;
+          if(id >= id2str_.size())
+            id2str_.resize(id + 1);
+          id2str_[id] = str;
         }
+        UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
+        id2str_[0] = "</s>";
     }
 
     size_t operator[](const std::string& word) const {
@@ -59,7 +65,8 @@ class Vocab {
 
 
     const std::string& operator[](size_t id) const {
-        return id2str_[id];
+      UTIL_THROW_IF2(id >= id2str_.size(), "Unknown word id: " << id);
+      return id2str_[id];
     }
 
     size_t size() const {

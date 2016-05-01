@@ -8,12 +8,13 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
   LOG(progress) << "Best translation: " << best;
     
   if(God::Get<bool>("n-best")) {
+    std::vector<std::string> scorerNames = God::GetScorerNames();
     NBestList nbl = history.NBest(God::Get<size_t>("beam-size"));
     for(size_t i = 0; i < nbl.size(); ++i) {
       auto& r = nbl[i];
       out << lineNo << " ||| " << God::GetTargetVocab()(r.first) << " |||";
       for(size_t j = 0; j < r.second->GetCostBreakdown().size(); ++j) {
-        out << " F" << j << "= " << r.second->GetCostBreakdown()[j];
+        out << " " << scorerNames[j] << "= " << r.second->GetCostBreakdown()[j];
       }
       if(God::Get<bool>("normalize"))
         out << " ||| " << r.second->GetCost() / r.first.size() << std::endl;

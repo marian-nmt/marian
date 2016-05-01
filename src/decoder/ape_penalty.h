@@ -20,12 +20,12 @@ class ApePenalty : public Scorer {
     const Penalties& penalties_;
     
   public:
-    ApePenalty(
-               const SrcTrgMap& srcTrgMap,
-               const Penalties& penalties,
+    ApePenalty(const std::string& name,
                const YAML::Node& config,
-               size_t tab)
-    : Scorer(config, tab), srcTrgMap_(srcTrgMap),
+               size_t tab,
+               const SrcTrgMap& srcTrgMap,
+               const Penalties& penalties)
+    : Scorer(name, config, tab), srcTrgMap_(srcTrgMap),
       penalties_(penalties)
     { }
     
@@ -49,6 +49,7 @@ class ApePenalty : public Scorer {
                        Prob& prob,
                        State& out) {
       size_t cols = prob.Cols();
+      costs_.resize(cols, -1.0);
       for(size_t i = 0; i < prob.Rows(); ++i)
         algo::copy(costs_.begin(), costs_.begin() + cols, prob.begin() + i * cols);
     }
@@ -64,7 +65,7 @@ class ApePenalty : public Scorer {
                                    State& out) { }
     
     virtual size_t GetVocabSize() const {
-      return 0;
+      UTIL_THROW2("Not correctly implemented");
     }
     
   private:
@@ -73,8 +74,9 @@ class ApePenalty : public Scorer {
 
 class ApePenaltyLoader : public Loader {
   public:
-    ApePenaltyLoader(const YAML::Node& config)
-     : Loader(config) {}
+    ApePenaltyLoader(const std::string& name,
+                     const YAML::Node& config)
+     : Loader(name, config) {}
   
     virtual void Load() {
       size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
@@ -100,8 +102,8 @@ class ApePenaltyLoader : public Loader {
   
     virtual ScorerPtr NewScorer(size_t taskId) {
       size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-      return ScorerPtr(new ApePenalty(srcTrgMap_, penalties_,
-                                      config_, tab));
+      return ScorerPtr(new ApePenalty(name_, config_, tab,
+                                      srcTrgMap_, penalties_));
     }
     
   private:

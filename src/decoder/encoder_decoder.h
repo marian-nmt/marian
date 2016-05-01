@@ -38,10 +38,11 @@ class EncoderDecoder : public Scorer {
     typedef EncoderDecoderState EDState;
     
   public:
-    EncoderDecoder(const Weights& model,
+    EncoderDecoder(const std::string& name,
                    const YAML::Node& config,
-                   size_t tab)
-    : Scorer(config, tab), model_(model),
+                   size_t tab,
+                   const Weights& model)
+    : Scorer(name, config, tab), model_(model),
       encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
     {}
     
@@ -107,8 +108,9 @@ class EncoderDecoder : public Scorer {
 
 class EncoderDecoderLoader : public Loader {
   public:
-    EncoderDecoderLoader(const YAML::Node& config)
-     : Loader(config) {}
+    EncoderDecoderLoader(const std::string name,
+                         const YAML::Node& config)
+     : Loader(name, config) {}
    
     virtual void Load() {
       std::string path = Get<std::string>("path");
@@ -128,7 +130,8 @@ class EncoderDecoderLoader : public Loader {
       size_t d = weights_[i]->GetDevice();
       cudaSetDevice(d);
       size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-      return ScorerPtr(new EncoderDecoder(*weights_[i], config_, tab));
+      return ScorerPtr(new EncoderDecoder(name_, config_,
+                                          tab, *weights_[i]));
     }
     
   private:

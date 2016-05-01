@@ -12,10 +12,10 @@
 #include "language_model.h"
 #endif
 
-#define IF_MATCH_RETURN(typeStr, nameStr, LoaderType) \
+#define IF_MATCH_RETURN(typeVar, typeStr, LoaderType) \
 do { \
-  if(typeStr == nameStr) { \
-    LoaderPtr loader(new LoaderType(config)); \
+  if(typeVar == typeStr) { \
+    LoaderPtr loader(new LoaderType(name, config)); \
     loader->Load(); \
     return loader; \
   } \
@@ -23,7 +23,8 @@ do { \
 
 class LoaderFactory {
   public:
-    static LoaderPtr Create(const YAML::Node& config) {
+    static LoaderPtr Create(const std::string& name,
+                            const YAML::Node& config) {
       UTIL_THROW_IF2(!config["type"],
                      "Missing scorer type in config file");
       

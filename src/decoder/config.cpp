@@ -55,10 +55,23 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
      "Output n-best list with n = beam-size")
   ;
+  
+  po::options_description configuration("Configuration meta options");
+  configuration.add_options()
+    ("config-scorer", po::value<std::string>(),
+     "Overwrite scorer configuration with YAML string")
+    ("config-weights", po::value<std::string>(),
+     "Overwrite weight configuration with YAML string")
+    ("config-any", po::value<std::string>(),
+     "Overwrite any configuration items with YAML string")
+    ("dump-config", po::value<std::string>(),
+     "Dump current (modified) configuration to stdout and exit")
+  ;
 
   po::options_description cmdline_options("Allowed options");
   cmdline_options.add(general);
   cmdline_options.add(search);
+  cmdline_options.add(configuration);
   
   po::variables_map vm_;
   try {
@@ -105,6 +118,8 @@ void Config::Validate() {
   
   UTIL_THROW_IF2(config_["weights"].size() != config_["scorers"].size(),
                 "Different number of models and weights in config file");
+  
+  // Stray weight, model without weight?
 }
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {

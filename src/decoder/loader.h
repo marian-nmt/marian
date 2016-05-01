@@ -7,8 +7,10 @@
 
 class Loader {
   public:
-    Loader(const YAML::Node& config)
-    : config_(YAML::Clone(config)) {}
+    Loader(const std::string& name,
+           const YAML::Node& config)
+    : name_(name), config_(YAML::Clone(config))
+    {}
 
     virtual ~Loader() {};
 
@@ -25,7 +27,12 @@ class Loader {
 
     virtual ScorerPtr NewScorer(size_t) = 0;
 
+    const std::string& GetName() {
+      return name_;
+    }
+    
   protected:
+    const std::string name_;
     const YAML::Node config_;
 };
 

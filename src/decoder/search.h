@@ -98,9 +98,11 @@ class Search {
         vCosts.push_back(h->GetCost());
       algo::copy(vCosts.begin(), vCosts.end(), Costs.begin());
       
-      BroadcastVecColumn(weights[0] * _1 + _2, Probs, Costs);
+      BroadcastVecColumn(weights[scorers_[0]->GetName()] * _1 + _2,
+                         Probs, Costs);
       for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
-        Element(_1 + weights[i] * _2, Probs, ProbsEnsemble[i]);
+        Element(_1 + weights[scorers_[i]->GetName()] * _2,
+                Probs, ProbsEnsemble[i]);
       
       DeviceVector<unsigned> keys(Probs.size());
       HostVector<unsigned> bestKeys(beamSize);
@@ -161,12 +163,12 @@ class Search {
                   const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
                 cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
               }
-              sum += weights[j] * cost;  
+              sum += weights[scorers_[j]->GetName()] * cost;  
               hyp->GetCostBreakdown()[j] = cost;
             }
           }
           hyp->GetCostBreakdown()[0] -= sum;
-          hyp->GetCostBreakdown()[0] /= weights[0];
+          hyp->GetCostBreakdown()[0] /= weights[scorers_[0]->GetName()];
         }
         bestHyps.push_back(hyp);  
       }

@@ -1,5 +1,6 @@
 #include <vector>
 #include <sstream>
+#include <boost/range/adaptor/map.hpp>
 
 #include <yaml-cpp/yaml.h>
 
@@ -30,7 +31,7 @@ God& God::NonStaticInit(int argc, char** argv) {
     sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
-  weights_ = Get<std::vector<float>>("weights");
+  weights_ = Get<std::map<std::string, float>>("weights");
     
   if(Has("load-weights")) {
     LoadWeights(Get<std::string>("load-weights"));
@@ -38,14 +39,16 @@ God& God::NonStaticInit(int argc, char** argv) {
   
   if(Get<bool>("show-weights")) {
     LOG(info) << "Outputting weights and exiting";
-    for(size_t i = 0; i < weights_.size(); ++i) {
-      std::cout << "F" << i << "= " << weights_[i] << std::endl;
+    for(auto && pair : weights_) {
+      std::cout << pair.first << "= " << pair.second << std::endl;
     }
     exit(0);
   }
   
-  for(auto&& modelConfig : config_.Get()["scorers"])
-    loaders_.emplace_back(LoaderFactory::Create(modelConfig));
+  for(auto&& pair : config_.Get()["scorers"]) {
+    std::string name = pair.first.as<std::string>();
+    loaders_.emplace(name, LoaderFactory::Create(name, pair.second));
+  }
   
   return *this;
 }
@@ -60,18 +63,25 @@ Vocab& God::GetTargetVocab() {
 
 std::vector<ScorerPtr> God::GetScorers(size_t taskId) {
   std::vector<ScorerPtr> scorers;
-  for(auto&& loader : Summon().loaders_)
+  for(auto&& loader : Summon().loaders_ | boost::adaptors::map_values)
     scorers.emplace_back(loader->NewScorer(taskId));
   return scorers;
 }
 
-std::vector<float>& God::GetScorerWeights() {
+std::vector<std::string> God::GetScorerNames() {
+  std::vector<std::string> scorerNames;
+  for(auto&& name : Summon().loaders_ | boost::adaptors::map_keys)
+    scorerNames.push_back(name);
+  return scorerNames;
+}
+
+std::map<std::string, float>& God::GetScorerWeights() {
   return Summon().weights_;
 }
 
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
-  for(auto& loader : Summon().loaders_)
+  for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
      loader.reset(nullptr);
 }
 
@@ -83,8 +93,8 @@ void God::LoadWeights(const std::string& path) {
   size_t i = 0;
   weights_.clear();
   while(fweights >> name >> weight) {
-    LOG(info) << " > F" << i << "= " << weight; 
-    weights_.push_back(weight);
+    LOG(info) << " > " << name << "= " << weight; 
+    weights_[name] = weight;
     i++;
   }
 }

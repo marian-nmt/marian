@@ -31,9 +31,10 @@ class God {
     
     static Vocab& GetSourceVocab(size_t i = 0);
     static Vocab& GetTargetVocab();
+    
     static std::vector<ScorerPtr> GetScorers(size_t);
-    static std::vector<float>& GetScorerWeights();
-    static std::vector<size_t>& GetTabMap();
+    static std::vector<std::string> GetScorerNames();
+    static std::map<std::string, float>& GetScorerWeights();
     
     static void CleanUp();
     
@@ -48,9 +49,8 @@ class God {
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;
     
-    std::vector<LoaderPtr> loaders_;
-    
-    std::vector<float> weights_;
+    std::map<std::string, LoaderPtr> loaders_;
+    std::map<std::string, float> weights_;
     
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;
