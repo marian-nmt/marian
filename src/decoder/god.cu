@@ -27,8 +27,13 @@ God& God::NonStaticInit(int argc, char** argv) {
   config_.AddOptions(argc, argv);
   config_.LogOptions();
   
-  for(auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab"))
-    sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
+  if(Get("source-vocab").IsSequence()) {
+    for(auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab"))
+      sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
+  }
+  else {
+    sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));    
+  }
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
   weights_ = Get<std::map<std::string, float>>("weights");

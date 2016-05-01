@@ -57,7 +57,7 @@ void Validate(const YAML::Node& config) {
   UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
                  "No scorers given in config file");
   
-  UTIL_THROW_IF2(!config["source-vocab"] || config["source-vocab"].size() == 0,
+  UTIL_THROW_IF2(!config["source-vocab"],
                  "No source-vocab given in config file");
   
   UTIL_THROW_IF2(!config["target-vocab"],
@@ -157,7 +157,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   // @TODO: Apply complex overwrites
   if(Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
-  Validate();
+  Validate(config_);
 }
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {

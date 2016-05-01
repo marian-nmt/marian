@@ -12,6 +12,10 @@ class Config {
   public:
     bool Has(const std::string& key);
     
+    YAML::Node Get(const std::string& key) {
+      return config_[key];
+    }
+    
     template <typename T>
     T Get(const std::string& key) {
       return config_[key].as<T>();

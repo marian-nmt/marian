@@ -29,6 +29,10 @@ class God {
       return Summon().config_.Get<T>(key);
     }
     
+    static YAML::Node Get(const std::string& key) {
+      return Summon().config_.Get(key);
+    }
+    
     static Vocab& GetSourceVocab(size_t i = 0);
     static Vocab& GetTargetVocab();
     
