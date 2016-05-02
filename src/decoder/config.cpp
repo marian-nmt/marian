@@ -24,8 +24,7 @@ YAML::Node& Config::Get() {
 
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
-  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab",
-                                 "load-weights"};
+  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab"};
   
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
@@ -66,7 +65,12 @@ void Validate(const YAML::Node& config) {
   UTIL_THROW_IF2(config["weights"].size() != config["scorers"].size(),
                 "Different number of models and weights in config file");
   
-  //@TODO: Stray weight, model without weight?
+  for(auto&& pair: config["weights"])
+    UTIL_THROW_IF2(!(config["scorers"][pair.first.as<std::string>()]),
+                   "Weight has no scorer: " << pair.first.as<std::string>());
+    
+  for(auto&& pair: config["scorers"])
+    UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
 }
 
 
@@ -102,6 +106,23 @@ void OutputRec(const YAML::Node node, YAML::Emitter& out) {
       out << node; break;
   }
 }
+
+void LoadWeights(YAML::Node& config, const std::string& path) {
+  LOG(info) << "Reading weights from " << path;
+  InputFileStream fweights(path);
+  std::string name;
+  float weight;
+  size_t i = 0;
+  weights_.clear();
+  while(fweights >> name >> weight) {
+    if(name.back() == '=')
+      name.pop_back();
+    LOG(info) << " > " << name << "= " << weight; 
+    config["weights"][name] = weight;
+    i++;
+  }
+}
+
 
 void Config::AddOptions(size_t argc, char** argv) {
   namespace po = boost::program_options;
@@ -190,6 +211,10 @@ void Config::AddOptions(size_t argc, char** argv) {
 
   // @TODO: Apply complex overwrites
   
+  if(Has("load-weights")) {
+    LoadWeights(config_, Get<std::string>("load-weights"));
+  }
+
   if(Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
   Validate(config_);

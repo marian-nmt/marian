@@ -38,10 +38,6 @@ God& God::NonStaticInit(int argc, char** argv) {
 
   weights_ = Get<std::map<std::string, float>>("weights");
     
-  if(Has("load-weights")) {
-    LoadWeights(Get<std::string>("load-weights"));
-  }
-  
   if(Get<bool>("show-weights")) {
     LOG(info) << "Outputting weights and exiting";
     for(auto && pair : weights_) {
@@ -88,20 +84,4 @@ std::map<std::string, float>& God::GetScorerWeights() {
 void God::CleanUp() {
   for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
      loader.reset(nullptr);
-}
-
-void God::LoadWeights(const std::string& path) {
-  LOG(info) << "Reading weights from " << path;
-  InputFileStream fweights(path);
-  std::string name;
-  float weight;
-  size_t i = 0;
-  weights_.clear();
-  while(fweights >> name >> weight) {
-    if(name.back() == '=')
-      name.pop_back();
-    LOG(info) << " > " << name << "= " << weight; 
-    weights_[name] = weight;
-    i++;
-  }
 }

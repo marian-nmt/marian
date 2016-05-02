@@ -8,6 +8,7 @@ my $PID = $$;
 $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = sub { die; };
 
 use Getopt::Long;
+use File::Spec;
 
 my $AMUNN_DIR = "";
 my $MOSES_DIR = "";
@@ -34,7 +35,7 @@ GetOptions(
     "o|decoder-opts=s" => \$DECODER_OPTS,
 );
 
-my $AMUNN = "$AMUNN_DIR/bin/amunn";
+my $AMUNN = "$AMUNN_DIR/amunn";
 my $MIRA = "$MOSES_DIR/kbmira";
 my $EVAL = "$MOSES_DIR/evaluator";
 my $EXTR = "$MOSES_DIR/extractor";
@@ -43,6 +44,8 @@ my $DEV_SRC = "$DEV.$SRC";
 my $DEV_TRG = "$DEV.$TRG";
 
 my $CONFIG = "--sctype $SCORER --filter /work/wmt16/tools/scripts/cleanBPE";
+
+$WORK = File::Spec->rel2abs($WORK);
 
 execute("mkdir -p $WORK");
 execute("$AMUNN $DECODER_OPTS --show-weights > $WORK/run1.dense");
