@@ -116,12 +116,16 @@ class EncoderDecoderLoader : public Loader {
       std::string path = Get<std::string>("path");
       auto devices = God::Get<std::vector<size_t>>("devices");
       ThreadPool devicePool(devices.size());
+      weights_.resize(devices.size());
+      
+      size_t i = 0;
       for(auto d : devices) {
-        devicePool.enqueue([d, &path, this] {
+        devicePool.enqueue([i, d, &path, this] {
           LOG(info) << "Loading model " << path << " onto gpu" << d;
           cudaSetDevice(d);
-          weights_.emplace_back(new Weights(path, d));
+          weights_[i].reset(new Weights(path, d));
         });
+        ++i;
       }
     }
   

@@ -51,7 +51,7 @@ python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
 
 An example configuration:
 
-    # Path are relative to config file location
+    # Paths are relative to config file location
     relative-paths: yes
 
     # performance settings
