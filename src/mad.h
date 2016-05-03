@@ -24,6 +24,7 @@ struct Chainable {
     virtual void set_zero_adjoint() { }
     
     static inline void* operator new(size_t nbytes) {
+      // thread_local variable
       return p.ordered_malloc(nbytes);
     }
 };
