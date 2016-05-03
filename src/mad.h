@@ -9,9 +9,11 @@
 
 namespace mad {
 
-typedef float Tensor;
+typedef float Tensor; // Now do this for cuDNN tensors!
+struct Chainable;
 
 boost::pool<> p(sizeof(char));
+std::vector<Chainable*> stack;
 
 struct Chainable {
     Chainable() { }
@@ -25,8 +27,6 @@ struct Chainable {
       return p.ordered_malloc(nbytes);
     }
 };
-
-std::vector<Chainable*> stack;
 
 class Vimpl : public Chainable {
   public:
