@@ -1,3 +1,3 @@
-# mad
+# MAD
 
 Massively (Parallel) Automatic Differentiation
