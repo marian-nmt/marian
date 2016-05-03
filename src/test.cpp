@@ -16,8 +16,11 @@ int main(int argc, char** argv) {
         Var y = 0.0;
         for(int i = 0; i < max; i++) {
             Var xi = i;
-            y = y + x0 + log(x2) + x1 + xi;
-            x.push_back(xi);
+            y = y + x0 + log(x2) + x1;
+            for(int j = 0; j < i; ++i) {
+                y = y + xi;
+                x.push_back(xi);
+            }
         }
         
            
