@@ -13,8 +13,11 @@ int main(int argc, char** argv) {
         Var x0 = 1, x1 = 2, x2 = 3;
         
         Var y = 0.0;
-        for(int i = 0; i < max; i++)
-            y = y + x0 + log(x2) + x1;
+        for(int i = 0; i < max; i++) {
+            Var xi = i;
+            y = y + x0 + log(x2) + x1 + xi;
+            x.push_back(xi);
+        }
         
         std::vector<Var> x = { x0, x1, x2 };
            
