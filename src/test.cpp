@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     using namespace marian;
     
     Var y1 = layer(10);
-    Var y2 = layer(5);
+    Var y2 = layer(rand() % 20 + 1);
     
     Var y = y1 + log(y2);
     
