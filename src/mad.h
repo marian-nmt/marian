@@ -40,7 +40,7 @@ class Vimpl : public Chainable {
     virtual void set_zero_adjoint() { adj_ = 0; }
     
     const Tensor& val() const { return val_; };
-    Tensor& adj() { return adj_; };
+    Tensor& grad() { return adj_; };
         
   protected:
     const Tensor val_;
@@ -72,15 +72,15 @@ class Var {
       return vimpl_->val();
     }
     
-    Tensor& adj() {
-        return vimpl_->adj();
+    Tensor& grad() {
+        return vimpl_->grad();
     }
     
     VimplPtr vimpl() const {
         return vimpl_;
     }
     
-    void grad() {
+    void calc_gradients() {
       mad::grad(vimpl_);
     }
     
@@ -99,7 +99,7 @@ struct LogVimpl : public OpVimpl {
   LogVimpl(VimplPtr a) : OpVimpl(std::log(a->val()), a) { }
   
   void chain() {
-    a_->adj() += adj_ / a_->val();
+    a_->grad() += adj_ / a_->val();
   }
 };
 
@@ -122,8 +122,8 @@ struct PlusVimplVV : public OpVimplVV {
   PlusVimplVV(VimplPtr a, VimplPtr b) : OpVimplVV(a->val() + b->val(), a, b) { }
   
   void chain() {
-    a_->adj() += adj_;
-    b_->adj() += adj_;
+    a_->grad() += adj_;
+    b_->grad() += adj_;
   }
 };
 
