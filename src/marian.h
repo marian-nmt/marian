@@ -7,7 +7,7 @@
 
 #include <boost/pool/pool.hpp>
 
-namespace mad {
+namespace marian {
 
 typedef float Tensor; // Now do this for cuDNN tensors!
 struct Chainable;
@@ -82,7 +82,7 @@ class Var {
     }
     
     void calc_gradients() {
-      mad::grad(vimpl_);
+      marian::grad(vimpl_);
     }
     
   private:

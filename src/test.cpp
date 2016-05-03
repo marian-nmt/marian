@@ -1,11 +1,11 @@
 #include <iostream>
 #include <ctime>
 
-#include "mad.h"
+#include "marian.h"
 
-mad::Var layer(size_t max) {
+marian::Var layer(size_t max) {
     
-    using namespace mad;
+    using namespace marian;
     
     Var x0 = 1, x1 = 2, x2 = 3;
     Var y = 0.0;
@@ -23,7 +23,7 @@ mad::Var layer(size_t max) {
 int main(int argc, char** argv) {
     srand(time(NULL));
     
-    using namespace mad;
+    using namespace marian;
     
     Var y1 = layer(10);
     Var y2 = layer(5);
