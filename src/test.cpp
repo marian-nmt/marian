@@ -6,7 +6,7 @@
 using namespace marian;
 
 Var layer(size_t max, std::vector<Var>& x) {
-    Var x0 = 1, x1 = 2, x2 = 3;
+    Var x0 = rand() % 100, x1 = rand() % 100, x2 = rand() % 100;
     x = { x0, x1, x2 };
     
     Var y = 0.0;
@@ -42,8 +42,8 @@ int main(int argc, char** argv) {
     std::cerr << "dy/dy2 = " << y2.grad() << std::endl;
     
     for(size_t i = 0; i < x1.size(); ++i)
-        std::cerr << "dy/dx1_" << i << " = " << x1[i].grad() << std::endl;
+        std::cerr << "x1_" << i << " = " << x1[i].val() << " : dy/dx1_" << i << " = " << x1[i].grad() << std::endl;
     for(size_t i = 0; i < x2.size(); ++i)
-        std::cerr << "dy/dx2_" << i << " = " << x2[i].grad() << std::endl;
+        std::cerr << "x2_" << i << " = " << x2[i].val() << " : dy/dx2_" << i << " = " << x2[i].grad() << std::endl;
     
 }
