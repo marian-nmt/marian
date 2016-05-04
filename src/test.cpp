@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     Var y1 = layer(10, x1);
     Var y2 = layer(rand() % 20 + 1, x2);
     
-    Var y = y1 + log(y2);
+    Var y = sigma(log(y1) / log(y2));
     
     set_zero_all_adjoints();
     y.calc_gradients();
