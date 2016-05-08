@@ -4,68 +4,109 @@
 #include <algorithm>
 #include <random>
 #include <boost/timer/timer.hpp>
+#include <typeinfo>
+#include <typeindex>
+#include <unordered_map>
+
+#include <boost/any.hpp>
 
 #include "marian.h"
 #include "operators.h"
+#include "keywords.h"
 
 using namespace marian;
 
+
 int main(int argc, char** argv) {
-    boost::timer::auto_cpu_timer t;   
+
+    using namespace keywords;
     
-    Var x = input("X", Tensor({4, 2}));
-    Var y = input("Y", Tensor({4, 2}));
+    auto layer = demo(300, prefix="test_");
     
-    std::vector<float> vx = {
-        0, 0,
-        0, 1,
-        1, 0,
-        1, 1
-    };
+    //auto x = input("X", shape={1, 768});
+    //auto y = input("Y", shape={1, 10});
+    //
+    //auto l = x;
+    //for(auto n : { 300, 200, 100, 50, 20 })
+    //    l = dense(n, l, activation=tanh);
+    //    
+    //auto w = param("W", init=orthogonal, shape={20, 10});
+    //auto b = param("b", init=orthogonal, shape={1, 10});
+    //l = sigmoid(dot(w, l) + b);
+    //
+    //auto lp = dense(10, l, activation=softmax(axis=1));
+    //auto cost = -mean(sum(y * log(lp), axis=1));
+
     
-    std::vector<float> vy = {
-        1, 0,
-        1, 0,
-        0, 1,
-        1, 0
-    };
-    
-    thrust::copy(vx.begin(), vx.end(), x.val().begin());
-    thrust::copy(vy.begin(), vy.end(), y.val().begin());
-    
-    Var w0 = forsave("W0", uniform(Tensor({2, 2})));
-    Var b0 = forsave("b0", uniform(Tensor({1, 2})));
-    
-    Var w1 = forsave("W1", uniform(Tensor({2, 2})));
-    Var b1 = forsave("b1", uniform(Tensor({1, 2})));
-    
-    std::vector<Var> params = { w0, w1, b0, b1 };
-    
-    Var ry = sigma(dot(x, w0) + b0);
-    ry = softmax(dot(ry, w1) + b1, Axis::axis1);
-    Var cost = -mean(sum(y * log(ry), Axis::axis1), Axis::axis0); 
-    
-    float alpha = 0.1;
-    for(size_t i = 0; i < 30000; ++i) {
-      cost.forward();
-      
-      if(i % 100 == 0) {
-        for(size_t j = 0; j < 4; ++j) {
-          std::cerr << ry.val()[j*2] << std::endl;
-        }
-        std::cerr << i << " ct: " << cost.val()[0] << std::endl;
-        //  alpha = alpha * 0.9;
-      }
-      
-      cost.backward();
-      for(auto p : params) {
-        //std::cerr << p.grad()[0] << std::endl;
-        auto update =
-            _1 -= alpha * _2;
-            
-        Element(update, p.val(), p.grad());
-      }
-    }
+    //auto x1 = input(k::name="x0", k::shape={1,100});
+    //auto x2 = input(k::name="x1", k::shape={1,100});
+    //auto y = output(k::name="y", k::shape={1,10});
+    //
+    //auto l1 = dense(100,
+    //                k::name="layer1",
+    //                k::input={x1, x2},
+    //                k::activation=sigmoid,
+    //                k::init_w=orthogonal,
+    //                k::init_b=uniform(-0.1,0.1)
+    //                k::merge=concat);
+    //auto l2 = dense(100, k::input=l1, k::name="charlie"
+    //                k::activation=tanh);
+    //auto lout = dense(10, k::input=l2,
+    //                k::activation=softmax);
+    //
+    //auto cost = -mean(sum(y * log(lout), k::axis=1));
+    //
+    //auto w = cost["charlie_w"];
+    //auto b = cost["layer1_b"];
+    //
+    //auto opt = optimizer(cost,
+    //                     k::method=adadelta);
+    //
+    //Tensor X(k::shape={60, 768}, k::init=mnist(""));
+    //Tensor Y(k::shape={60, 10}, k::init=mnist(""));
+    //
+    //float c = opt.fit_batch({X1, X2}, Y, k::logger=logger);
+    //
+    //Tensor xTrain
+    //    (shape, {60000, 784})
+    //    (init, mnist("train.ubyte"));
+    //
+    //Tensor yTrain
+    //    (shape, {60000, 10})
+    //    (init, mnist("train.ubyte", true));
+    //
+    //Tensor xBatch = slice(xTrain, {0, 50, 5});
+    //
+    //Var x = input("X");
+    //Var y = input("Y");
+    //
+    //ry = dense(input=x, size=200, activation=tanh,
+    //           init_w=orthogonal, init_b=uniform(-0.1. 0.1));
+    //
+    //ry = dense(ry)(size, 100)(activation, tanh);
+    //ry = dense(ry)(size, 10)(activation, softmax);
+    //
+    //Var cost = -mean(y * log(ry) + (1 - y) * log(1 - ry)); 
+    //
+    //boost::timer::auto_cpu_timer t;   
+    //float eta = 0.01;
+    //for(size_t i = 0; i < 2000; ++i) {
+    //  cost.forward();
+    //  
+    //  if(i % 200 == 0) {
+    //    for(size_t j = 0; j < 4; ++j) {
+    //      std::cerr << ry.val()[j] << std::endl;
+    //    }
+    //    std::cerr << i << " ct: " << cost.val()[0] << std::endl;
+    //  }
+    //  
+    //  cost.backward();
+    //  for(auto p : params) {
+    //    auto update =
+    //        _1 -= eta * _2;
+    //    Element(update, p.val(), p.grad());
+    //  }
+    //}
     
     return 0;
 }
