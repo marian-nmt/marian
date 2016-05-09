@@ -183,7 +183,7 @@ Var broadcast(Shape shape, Var a) {
           a = dot(a, one);
         }
         else {
-          UTIL_THROW2("Not inplemented");        
+          UTIL_THROW2("Not implemented");        
         }
       }
     }
@@ -327,10 +327,10 @@ inline Var sum(Var a, Axis axis = Axis::undef) {
     return dot(a, one);          
   }
   else if(axis == Axis::axis2) {
-    UTIL_THROW2("Not inplemented");
+    UTIL_THROW2("Not implemented");
   }
   else if(axis == Axis::axis3) {
-    UTIL_THROW2("Not inplemented");
+    UTIL_THROW2("Not implemented");
   }
   return sum(sum(a, Axis::axis0), Axis::axis1);
 }
@@ -356,15 +356,6 @@ inline Var mean(Var a, Axis axis = Axis::undef) {
       default:
         return sum(a) / a.val().size();
     }
-}
-
-// FAKE
-inline Var input(const std::string& name, Var v) {
-    return v;
-}
-
-inline Var forsave(const std::string& name, Var v) {
-    return v;
 }
 
 }
