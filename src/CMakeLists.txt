@@ -15,19 +15,19 @@ add_library(librescorer OBJECT
   rescorer/nbest.cpp
 )
 
-add_library(libamunn OBJECT
+add_library(libamun OBJECT
   decoder/config.cpp
 #  decoder/kenlm.cpp
 )
 
 cuda_add_executable(
-  amunn
+  amun
   decoder/decoder_main.cu
   decoder/god.cu
   decoder/sentence.cu
   mblas/matrix.cu
   dl4mt/gru.cu
-  $<TARGET_OBJECTS:libamunn>
+  $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
 )
 
@@ -40,7 +40,7 @@ cuda_add_executable(
   $<TARGET_OBJECTS:libcommon>
 )
 
-foreach(exec amunn rescorer)
+foreach(exec amun rescorer)
   target_link_libraries(${exec} ${EXT_LIBS} cuda)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

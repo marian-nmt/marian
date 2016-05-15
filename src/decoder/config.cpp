@@ -52,6 +52,16 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
   }
 }
 
+void OverwriteModels(YAML::Node& config, std::vector<std::string>& modelPaths) {
+  //config["scorers"].clear();
+  for(size_t i = 0; i < modelPaths.size(); ++i) {
+    std::stringstream name;
+    name << "F" << i;
+    config["scorers"][name.str()]["type"] = "Nematus";
+    config["scorers"][name.str()]["path"] = modelPaths[i];
+  }
+}
+
 void Validate(const YAML::Node& config) {
   UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
                  "No scorers given in config file");
@@ -157,10 +167,14 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Output n-best list with n = beam-size")
   ;
   
+  std::vector<std::string> modelPaths;
   po::options_description configuration("Configuration meta options");
   configuration.add_options()
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
      "All paths are relative to the config file location")
+    ("model,m", po::value(&modelPaths)->multitoken(),
+     "Overwrite scorer section in config file with these models. "
+     "Assumes models of type Nematus and assigns model names F0, F1, ...")
     //("config-scorer", po::value<std::string>(),
     // "Overwrite scorer configuration with YAML string")
     //("config-weights", po::value<std::string>(),
@@ -214,6 +228,10 @@ void Config::AddOptions(size_t argc, char** argv) {
     LoadWeights(config_, Get<std::string>("load-weights"));
   }
 
+  if(modelPaths.size()) {
+    OverwriteModels(config_, modelPaths);
+  }
+  
   if(Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
   Validate(config_);

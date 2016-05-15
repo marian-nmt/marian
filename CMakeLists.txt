@@ -7,7 +7,7 @@ LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -a
 add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-include_directories(${amunn_SOURCE_DIR})
+include_directories(${amunmt_SOURCE_DIR})
 find_package(CUDA REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem program_options timer iostreams)
@@ -53,5 +53,5 @@ if (LIBLZMA_FOUND)
 endif (LIBLZMA_FOUND)
 ### KenLM stuff - END ###
 
-include_directories($amunn_SOURCE_DIR}/src)
+include_directories($amunmt_SOURCE_DIR}/src)
 add_subdirectory(src)
