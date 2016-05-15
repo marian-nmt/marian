@@ -15,7 +15,11 @@ class Decoder {
             
         void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
           using namespace mblas;
-          Assemble(Rows, w_.E_, ids);
+          std::vector<size_t> tids = ids;
+          for(auto&& id : tids)
+            if(id >= w_.E_.Rows())
+              id = 1;
+          Assemble(Rows, w_.E_, tids);
         }
         
         size_t GetCols() {

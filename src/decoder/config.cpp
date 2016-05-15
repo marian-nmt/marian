@@ -113,7 +113,6 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
   std::string name;
   float weight;
   size_t i = 0;
-  weights_.clear();
   while(fweights >> name >> weight) {
     if(name.back() == '=')
       name.pop_back();
