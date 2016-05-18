@@ -18,22 +18,6 @@ else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
-find_package (YamlCpp)
-if (YAMLCPP_FOUND)
-  include_directories(${YAMLCPP_INCLUDE_DIRS})
-  set(EXT_LIBS ${EXT_LIBS} ${YAMLCPP_LIBRARY})
-endif (YAMLCPP_FOUND)
-
-#set(KENLM CACHE STRING "Path to compiled kenlm directory")
-#if (NOT EXISTS "${KENLM}/build/lib/libkenlm.a")
-#  message(FATAL_ERROR "Could not find ${KENLM}/build/lib/libkenlm.a")
-#endif()
-
-#set(EXT_LIBS ${EXT_LIBS} ${KENLM}/build/lib/libkenlm.a)
-#set(EXT_LIBS ${EXT_LIBS} ${KENLM}/build/lib/libkenlm_util.a)
-#include_directories(${KENLM})
-#add_definitions(-DKENLM_MAX_ORDER=6)
-
 find_package (BZip2)
 if (BZIP2_FOUND)
   include_directories(${BZIP2_INCLUDE_DIRS})
@@ -51,7 +35,6 @@ if (LIBLZMA_FOUND)
   include_directories(${LIBLZMA_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${LIBLZMA_LIBRARIES})
 endif (LIBLZMA_FOUND)
-### KenLM stuff - END ###
 
 include_directories($amunmt_SOURCE_DIR}/src)
 add_subdirectory(src)

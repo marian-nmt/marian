@@ -5,6 +5,9 @@ include_directories(common)
 include_directories(decoder)
 include_directories(mblas)
 
+include_directories(yaml-cpp)
+add_subdirectory(yaml-cpp)
+
 add_library(libcommon OBJECT
   cnpy/cnpy.cpp
   common/utils.cpp
@@ -29,6 +32,7 @@ cuda_add_executable(
   dl4mt/gru.cu
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
+  $<TARGET_OBJECTS:libyaml-cpp>
 )
 
 cuda_add_executable(
@@ -38,6 +42,7 @@ cuda_add_executable(
   dl4mt/gru.cu
   $<TARGET_OBJECTS:librescorer>
   $<TARGET_OBJECTS:libcommon>
+  $<TARGET_OBJECTS:libyaml-cpp>
 )
 
 foreach(exec amun rescorer)
