@@ -53,13 +53,22 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
 }
 
 void OverwriteModels(YAML::Node& config, std::vector<std::string>& modelPaths) {
-  //config["scorers"].clear();
   for(size_t i = 0; i < modelPaths.size(); ++i) {
     std::stringstream name;
     name << "F" << i;
     config["scorers"][name.str()]["type"] = "Nematus";
     config["scorers"][name.str()]["path"] = modelPaths[i];
+    if(!config["weights"][name.str()])
+      config["weights"][name.str()] = 1;
   }
+}
+
+void OverwriteSourceVocabs(YAML::Node& config, std::vector<std::string>& sourceVocabPaths) {
+    config["source-vocab"] = sourceVocabPaths;
+}
+
+void OverwriteTargetVocab(YAML::Node& config, std::string& targetVocabPath) {
+    config["target-vocab"] = targetVocabPath;
 }
 
 void Validate(const YAML::Node& config) {
@@ -138,11 +147,22 @@ void Config::AddOptions(size_t argc, char** argv) {
   po::options_description general("General options");
 
   std::string configPath;
+  std::vector<std::string> modelPaths;
+  std::vector<std::string> sourceVocabPaths;
+  std::string targetVocabPath;
+  
   std::vector<size_t> devices;
   
   general.add_options()
-    ("config,c", po::value(&configPath)->required(),
+    ("config,c", po::value(&configPath),
      "Configuration file")
+    ("model,m", po::value(&modelPaths)->multitoken(),
+     "Overwrite scorer section in config file with these models. "
+     "Assumes models of type Nematus and assigns model names F0, F1, ...")
+    ("source-vocab,s", po::value(&sourceVocabPaths)->multitoken(),
+     "Overwrite source vocab section in config file with vocab file.")
+    ("target-vocab,t", po::value(&targetVocabPath),
+     "Overwrite target vocab section in config file with vocab file.")
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
      "e.g. set to 0 1 to use gpu0 and gpu1. "
@@ -167,14 +187,10 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Output n-best list with n = beam-size")
   ;
   
-  std::vector<std::string> modelPaths;
   po::options_description configuration("Configuration meta options");
   configuration.add_options()
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
      "All paths are relative to the config file location")
-    ("model,m", po::value(&modelPaths)->multitoken(),
-     "Overwrite scorer section in config file with these models. "
-     "Assumes models of type Nematus and assigns model names F0, F1, ...")
     //("config-scorer", po::value<std::string>(),
     // "Overwrite scorer configuration with YAML string")
     //("config-weights", po::value<std::string>(),
@@ -210,7 +226,8 @@ void Config::AddOptions(size_t argc, char** argv) {
     exit(0);
   }
   
-  config_ = YAML::Load(InputFileStream(configPath));
+  if(configPath.size())
+    config_ = YAML::Load(InputFileStream(configPath));
    
   // Simple overwrites
   SET_OPTION("n-best", bool);
@@ -230,6 +247,14 @@ void Config::AddOptions(size_t argc, char** argv) {
 
   if(modelPaths.size()) {
     OverwriteModels(config_, modelPaths);
+  }
+  
+  if(sourceVocabPaths.size()) {
+    OverwriteSourceVocabs(config_, sourceVocabPaths);
+  }
+
+  if(targetVocabPath.size()) {
+    OverwriteTargetVocab(config_, targetVocabPath);
   }
   
   if(Get<bool>("relative-paths"))
