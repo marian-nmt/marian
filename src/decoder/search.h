@@ -108,6 +108,12 @@ class Search {
       HostVector<unsigned> bestKeys(beamSize);
       HostVector<float> bestCosts(beamSize);
       
+      // @TODO: make this more efficient
+      if(!God::Get<bool>("allow-unk")) {
+        for(size_t i = 0; i < Probs.Rows(); i++)
+          Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
+      }
+      
       // @TODO: Here we need to have a partial sort
       if(beamSize < 10) {
         for(size_t i = 0; i < beamSize; ++i) {

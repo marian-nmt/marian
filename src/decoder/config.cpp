@@ -183,6 +183,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
      "Normalize scores by translation length after decoding")
+    ("allow-unk,u", po::value<bool>()->zero_tokens()->default_value(false),
+     "Allow generation of UNK")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
      "Output n-best list with n = beam-size")
   ;
@@ -232,6 +234,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   // Simple overwrites
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
+  SET_OPTION("allow-unk", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads-per-device", size_t);
   SET_OPTION("devices", std::vector<size_t>);
