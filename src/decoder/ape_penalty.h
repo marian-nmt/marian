@@ -35,7 +35,7 @@ class ApePenalty : public Scorer {
       
       costs_.clear();
       costs_.resize(penalties_.size());
-      algo::copy(penalties_.begin(), penalties_.end(), costs_.begin());
+      std::copy(penalties_.begin(), penalties_.end(), costs_.begin());
       
       for(auto&& s : words) {
         Word t = srcTrgMap_[s];
@@ -51,7 +51,7 @@ class ApePenalty : public Scorer {
       size_t cols = prob.Cols();
       costs_.resize(cols, -1.0);
       for(size_t i = 0; i < prob.Rows(); ++i)
-        algo::copy(costs_.begin(), costs_.begin() + cols, prob.begin() + i * cols);
+        std::copy(costs_.begin(), costs_.begin() + cols, prob.begin() + i * cols);
     }
     
     virtual State* NewState() {

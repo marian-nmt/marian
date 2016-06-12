@@ -6,6 +6,7 @@
 #include "sentence.h"
 #include "history.h"
 #include "encoder_decoder.h"
+#include <boost/iterator/permutation_iterator.hpp>
 
 class Search {
   private:
@@ -96,7 +97,7 @@ class Search {
       HostVector<float> vCosts;
       for(auto& h : prevHyps)
         vCosts.push_back(h->GetCost());
-      algo::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+      std::copy(vCosts.begin(), vCosts.end(), Costs.begin());
       
       BroadcastVecColumn(weights[scorers_[0]->GetName()] * _1 + _2,
                          Probs, Costs);
@@ -115,27 +116,27 @@ class Search {
       }
       
       // @TODO: Here we need to have a partial sort
-      if(beamSize < 10) {
+      if(beamSize < 10000) {
         for(size_t i = 0; i < beamSize; ++i) {
           DeviceVector<float>::iterator iter =
-            algo::max_element(Probs.begin(), Probs.end());
+            std::max_element(Probs.begin(), Probs.end());
           bestKeys[i] = iter - Probs.begin();
           bestCosts[i] = *iter;
           *iter = std::numeric_limits<float>::lowest();
         }
-        algo::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
+        std::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
       }
-      else {
-        // these two function do not have equivalents in
-        // in the standard library or boost, keeping thrust
-        // namespace for now
-        thrust::sequence(keys.begin(), keys.end());
-        thrust::sort_by_key(Probs.begin(), Probs.end(),
-                            keys.begin(), algo::greater<float>());
-      
-        algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
-        algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
-      }
+      //else {
+      //  // these two function do not have equivalents in
+      //  // in the standard library or boost, keeping thrust
+      //  // namespace for now
+      //  thrust::sequence(keys.begin(), keys.end());
+      //  thrust::sort_by_key(Probs.begin(), Probs.end(),
+      //                      keys.begin(), algo::greater<float>());
+      //
+      //  algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
+      //  algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
+      //}
       
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = God::Get<bool>("n-best");
@@ -143,8 +144,8 @@ class Search {
         breakDowns.push_back(bestCosts);
         for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
           HostVector<float> modelCosts(beamSize);
-          auto it = iteralgo::make_permutation_iterator(ProbsEnsemble[i].begin(), keys.begin());
-          algo::copy(it, it + beamSize, modelCosts.begin());
+          auto it = boost::make_permutation_iterator(ProbsEnsemble[i].begin(), keys.begin());
+          std::copy(it, it + beamSize, modelCosts.begin());
           breakDowns.push_back(modelCosts);
         }
       }

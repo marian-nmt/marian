@@ -88,13 +88,7 @@ class Decoder {
       public:
         Alignment(const Weights& model)
         : w_(model)
-        {
-          //for(int i = 0; i < 2; ++i) {
-          //  cudaStreamCreate(&s_[i]);
-          //  cublasCreate(&h_[i]);
-          //  cublasSetStream(h_[i], s_[i]);            
-          //}
-        }
+        {  }
           
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const mblas::Matrix& HiddenState,
@@ -104,8 +98,6 @@ class Decoder {
           Prod(/*h_[0],*/ Temp1_, SourceContext, w_.U_);
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
-          
-          //cudaDeviceSynchronize();
           
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
           
@@ -127,9 +119,6 @@ class Decoder {
       private:
         const Weights& w_;
         
-        cublasHandle_t h_[2];
-        cudaStream_t s_[2];
-        
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
@@ -144,11 +133,6 @@ class Decoder {
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
         {
-          //for(int i = 0; i < 3; ++i) {
-          //  cudaStreamCreate(&s_[i]);
-          //  cublasCreate(&h_[i]);
-          //  cublasSetStream(h_[i], s_[i]);            
-          //}
         }
           
         void GetProbs(mblas::Matrix& Probs,
@@ -180,9 +164,6 @@ class Decoder {
        
       private:        
         const Weights& w_;
-        
-        cublasHandle_t h_[3];
-        cudaStream_t s_[3];
         
         bool filtered_;
         mblas::Matrix FilteredWo_;

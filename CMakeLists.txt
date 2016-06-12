@@ -3,12 +3,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -funroll-loops -Wno-unused-result -Wno-deprecated")
-LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
-add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
-SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 include_directories(${amunmt_SOURCE_DIR})
-find_package(CUDA REQUIRED)
 
 find_package(Boost COMPONENTS system filesystem program_options timer iostreams)
 if(Boost_FOUND)
@@ -17,6 +13,13 @@ if(Boost_FOUND)
 else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
+
+find_package(Atlas)
+if(Atlas_FOUND)
+    set(EXT_LIBS ${EXT_LIBS} ${Atlas_LIBRARIES})
+else(Atlas_FOUND)
+    message(SEND_ERROR "Cannot find Atlas libraries. Terminating." )
+endif(Atlas_FOUND)
 
 find_package (BZip2)
 if (BZIP2_FOUND)

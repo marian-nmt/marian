@@ -1,27 +1,19 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 
 #include "base_matrix.h"
 
 #define MAX_THREADS 512
 #define MAX_BLOCKS 65535
 
-#include <cublas_v2.h>
-#include <thrust/device_vector.h>
-#include <thrust/functional.h>
-
-//#include "nervana_c_api.h"
-  
-
-#include "thrust_functions.h"
-
-namespace lib = thrust;
-namespace iterlib = thrust;
+#include <cblas.h>
+#include "phoenix_functions.h"
 
 namespace mblas {
 
-using namespace thrust::placeholders;
+using namespace boost::phoenix::placeholders;
 
 template <class VecType>
 class TMatrix : public BaseMatrix {
@@ -105,11 +97,11 @@ class TMatrix : public BaseMatrix {
     }
 
     value_type* data() {
-      return thrust::raw_pointer_cast(data_.data());
+      return data_.data();
     }
 
     const value_type* data() const {
-      return thrust::raw_pointer_cast(data_.data());
+      return data_.data();
     }
 
     iterator begin() {
@@ -138,45 +130,8 @@ class TMatrix : public BaseMatrix {
     VecType data_;
 };
 
-typedef thrust::device_vector<float> FVec;
-typedef thrust::device_vector<unsigned int> IVec;
-
-class CublasHandler {
-  public:
-
-    ~CublasHandler() {
-      if(handle_ != nullptr) {
-        cublasDestroy(*handle_);
-        delete handle_;
-        handle_ = nullptr;
-      }
-    }
-
-    static cublasHandle_t GetHandle() {
-      if(instance_.handle_ == nullptr) {
-        instance_.CreateHandle();
-      }
-      return *instance_.handle_;
-    }
-
-    static void StaticHandle() {
-      instance_.CreateHandle();
-    }
-
-  private:
-
-    void CreateHandle() {
-      if(handle_ != nullptr) {
-        cublasDestroy(*handle_);
-        delete handle_;
-      }
-      handle_ = new cublasHandle_t;
-      cublasCreate(handle_);
-    }
-
-    static thread_local cublasHandle_t* handle_;
-    static CublasHandler instance_;
-};
+typedef std::vector<float> FVec;
+typedef std::vector<unsigned int> IVec;
 
 typedef TMatrix<FVec> Matrix;
 typedef TMatrix<IVec> IMatrix;
@@ -214,7 +169,7 @@ Matrix& CopyRow(Matrix& Out,
 
 typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
-typedef thrust::device_vector<RowPair> DeviceRowPairs;
+typedef std::vector<RowPair> DeviceRowPairs;
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
@@ -233,37 +188,13 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim);
 
-Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
-
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 Matrix& Softmax(Matrix& Out);
 
 template <class Functor>
-__global__ void gBroadcast(Functor functor,
-                           float* out, const float* in1, const float* in2,
-                           size_t rows, size_t rows1, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-
-      const float* rowIn1 = in1 + (j % rows1) * cols;
-      const float* rowIn2 = in2 + (j / rows1) * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowIn1[i], rowIn2[i]);
-      }
-    }
-  }
-}
-
-template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows1 = Out.Rows();
   size_t rows2 = In.Rows();
 
@@ -276,156 +207,71 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t s
   const float* d_in1 = Out.data();
   const float* d_in2 = In.data();
 
-  int blocks  = std::min(MAX_BLOCKS, (int)rows);
-  int threads = std::min(MAX_THREADS, (int)cols);
-  gBroadcast<<<blocks, threads, 0, stream>>>(functor, d_out, d_in1, d_in2,
-                                             rows, rows1, cols);
-  cudaStreamSynchronize(stream);
+  for(int j = 0; j < rows; ++j) {
+    float* rowOut = d_out + j * cols;
+    const float* rowIn1 = d_in1 + (j % rows1) * cols;
+    const float* rowIn2 = d_in2 + (j / rows1) * cols;
+    
+    for(int i = 0; i < cols; ++i)
+      rowOut[i] = functor(rowIn1[i], rowIn2[i]);
+  }
+  
   Swap(Out, Temp);
   return Out;
 }
 
 template <class Functor>
-Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
   // @TODO: Make this efficient with special kernel!
   Matrix InTemp;
   Transpose(InTemp, In);
 
   Transpose(Out);
-  Broadcast(functor, Out, InTemp, stream);
+  Broadcast(functor, Out, InTemp);
   Transpose(Out);
   return Out;
 }
 
 template <class Functor>
-__global__ void gBroadcastVecColumn(Functor functor,
-                                    float* out, const float* in, size_t rows, size_t cols) {
-  for(int bid = 0; bid < cols; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < cols) {
-      for(int tid = 0; tid < rows; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < rows) {
-          float* rowOut = out + i * cols + j;
-          const float* rowIn  = in + i;
-          *rowOut = functor(*rowOut, *rowIn);
-        }
-      }
-    }
-  }
-}
-
-template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows  = Out.Rows();
   size_t cols = Out.Cols();
 
   float* d_out = Out.data();
   const float* d_in = In.data();
 
-  int blocks  = std::min(MAX_BLOCKS, (int)cols);
-  int threads = std::min(MAX_THREADS, (int)rows);
-  gBroadcastVecColumn<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, rows, cols);
-  cudaStreamSynchronize(stream);
+  for(int j = 0; j < cols; ++j) {    
+    for(int i = 0; i < rows; ++i) {
+      float* rowOut = d_out + i * cols + j;
+      const float* rowIn  = d_in + i;
+      *rowOut = functor(*rowOut, *rowIn);      
+    }
+  }
   return Out;
 }
 
 template <class Functor>
-__global__ void gBroadcastVec(Functor functor,
-                              float* out, const float* in, size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols) {
-          rowOut[i] = functor(rowOut[i], in[i]);
-        }
-      }
-    }
-  }
-}
-
-template <class Functor>
-Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
-  //Broadcast(functor, Out, In, stream);
+Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows  = Out.Rows();
   size_t cols = Out.Cols();
 
   float* d_out = Out.data();
   const float* d_in = In.data();
 
-  int blocks  = std::min(MAX_BLOCKS, (int)rows);
-  int threads = std::min(MAX_THREADS, (int)cols);
-  gBroadcastVec<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, rows, cols);
-  cudaStreamSynchronize(stream);
+  for(int j = 0; j < rows; ++j) {
+    float* rowOut = d_out + j * cols;
+    for(int i = 0; i < cols; ++i)
+      rowOut[i] = functor(rowOut[i], d_in[i]);
+  }
+  
   return Out;
-}
-
-
-template <class Functor>
-__global__ void gElement(Functor functor, float* out,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i]);;
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         float* out, const float* in,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn = in + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn[i]);;
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         float* out, const float* in1, const float* in2,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn1 = in1 + j * cols;
-      const float* rowIn2 = in2 + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i]);
-      }
-    }
-  }
 }
 
 template <class Functor>
 Matrix& Element(Functor functor, Matrix& Out) {
   float* d_out = Out.data();
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
-  int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  gElement<<<blocks, threads>>>(functor, d_out, Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
+  for(int i = 0; i < Out.size(); ++i)
+    d_out[i] = functor(d_out[i]);
   return Out;
 }
 
@@ -435,10 +281,9 @@ Matrix& Element(Functor functor,
   float* d_out = Out.data();
   const float* d_in = In.data();
 
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
-  int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  gElement<<<blocks, threads>>>(functor, d_out, d_in, Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
+  for(int i = 0; i < Out.size(); ++i)
+    d_out[i] = functor(d_out[i], d_in[i]);
+
   return Out;
 }
 
@@ -450,11 +295,9 @@ Matrix& Element(Functor functor,
   const float* d_in1 = In1.data();
   const float* d_in2 = In2.data();
   
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
-  int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  gElement<<<blocks, threads>>>(functor, d_out, d_in1, d_in2,
-                                Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
+  for(int i = 0; i < Out.size(); ++i)
+    d_out[i] = functor(d_out[i], d_in1[i], d_in2[i]);
+
   return Out;
 }
 

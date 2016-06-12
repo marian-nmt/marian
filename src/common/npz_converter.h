@@ -59,7 +59,7 @@ class NpzConverter {
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
-        lib::copy(np.data(), np.data() + np.size(), matrix.begin());
+        std::copy(np.data(), np.data() + np.size(), matrix.begin());
       }
       else {
         std::cerr << "Missing " << key << std::endl; 
@@ -74,7 +74,7 @@ class NpzConverter {
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
-        lib::copy(np.data(), np.data() + np.size(), matrix.begin());
+        std::copy(np.data(), np.data() + np.size(), matrix.begin());
       }
       mblas::Transpose(matrix);
       return std::move(matrix);

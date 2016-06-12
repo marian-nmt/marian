@@ -122,7 +122,6 @@ class EncoderDecoderLoader : public Loader {
       for(auto d : devices) {
         devicePool.enqueue([i, d, &path, this] {
           LOG(info) << "Loading model " << path << " onto gpu" << d;
-          cudaSetDevice(d);
           weights_[i].reset(new Weights(path, d));
         });
         ++i;
@@ -132,7 +131,6 @@ class EncoderDecoderLoader : public Loader {
     virtual ScorerPtr NewScorer(size_t taskId) {
       size_t i = taskId % weights_.size();
       size_t d = weights_[i]->GetDevice();
-      cudaSetDevice(d);
       size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
       return ScorerPtr(new EncoderDecoder(name_, config_,
                                           tab, *weights_[i]));

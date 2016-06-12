@@ -51,6 +51,7 @@ class Encoder {
           size_t i = 0;
           while(it != end) {
             GetNextState(State_, State_, *it++);
+            
             if(invert)
               mblas::PasteRow(Context, State_, n - i - 1, gru_.GetStateLength());
             else
@@ -86,7 +87,6 @@ class Encoder {
         embeddedWords.emplace_back();
         embeddings_.Lookup(embeddedWords.back(), w);
       }
-      
       forwardRnn_.GetContext(embeddedWords.cbegin(),
                              embeddedWords.cend(),
                              Context, false);

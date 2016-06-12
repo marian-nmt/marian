@@ -60,28 +60,22 @@ class SlowGRU {
     mutable mblas::Matrix Temp2_;
 };
 
-__global__ void gElementwiseOps(float* out,
-                                const float* state,
-                                const float* ru,
-                                const float* h,
-                                const float* t1,
-                                const float* t2,
-                                const float* b,
-                                const float* bx1,
-                                const float* bx2,
-                                size_t rows, size_t cols);
+void gElementwiseOps(float* out,
+                    const float* state,
+                    const float* ru,
+                    const float* h,
+                    const float* t1,
+                    const float* t2,
+                    const float* b,
+                    const float* bx1,
+                    const float* bx2,
+                    size_t rows, size_t cols);
 
 template <class Weights>
 class FastGRU {
   public:
     FastGRU(const Weights& model)
-    : w_(model) {
-      /*for(int i = 0; i < 4; ++i) {
-        cudaStreamCreate(&s_[i]);
-        cublasCreate(&h_[i]);
-        cublasSetStream(h_[i], s_[i]);            
-      }*/
-    }
+    : w_(model) { }
           
     void GetNextState(mblas::Matrix& NextState,
                       const mblas::Matrix& State,
@@ -105,7 +99,7 @@ class FastGRU {
       
       ElementwiseOps(NextState, State, RU_, H_, Temp1_, Temp2_);
     }
-        
+          
     void ElementwiseOps(mblas::Matrix& NextState,
                         const mblas::Matrix& State,
                         const mblas::Matrix& RU,
@@ -116,14 +110,11 @@ class FastGRU {
       const size_t cols = State.Cols();
       NextState.Resize(rows, cols);
       
-      int blocks  = std::min(MAX_BLOCKS, (int)rows);
-      int threads = std::min(MAX_THREADS, (int)cols);
-      gElementwiseOps<<<blocks, threads>>>(NextState.data(), State.data(),
-                                          RU.data(), H.data(),
-                                          Temp1.data(), Temp2.data(),
-                                          w_.B_.data(), w_.Bx1_.data(), w_.Bx2_.data(),
-                                          rows, cols);
-      cudaStreamSynchronize(0);
+      gElementwiseOps(NextState.data(), State.data(),
+                      RU.data(), H.data(),
+                      Temp1.data(), Temp2.data(),
+                      w_.B_.data(), w_.Bx1_.data(), w_.Bx2_.data(),
+                      rows, cols);
     }
     
     size_t GetStateLength() const {
@@ -134,9 +125,6 @@ class FastGRU {
   private:
     // Model matrices
     const Weights& w_;
-    
-    cublasHandle_t h_[4];
-    cudaStream_t s_[4];
         
     // reused to avoid allocation
     mutable mblas::Matrix RU_;
