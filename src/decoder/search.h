@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <chrono>
 
 #include "god.h"
 #include "sentence.h"
@@ -17,15 +18,11 @@ class Search {
     : scorers_(God::GetScorers(threadId)) {}
     
     History Decode(const Sentence& sentence) {
-      boost::timer::cpu_timer timer;
+      std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
       
       size_t beamSize = God::Get<size_t>("beam-size");
       bool normalize = God::Get<bool>("normalize");
       size_t vocabSize = scorers_[0]->GetVocabSize();
-      
-      // @TODO Future: in order to do batch sentence decoding
-      // it should be enough to keep track of hypotheses in
-      // separate History objects.
       
       History history;
     
@@ -51,11 +48,6 @@ class Search {
           probs[i].Resize(beamSize, vocabSize);
           scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
         }
-
-        // Looking at attention vectors        
-        //mblas::Matrix A;
-        //std::static_pointer_cast<EncoderDecoder>(scorers_[0])->GetAttention(A);
-        //mblas::debug1(A, 0, sentence.GetWords().size());
         
         Beam hyps;
         BestHyps(hyps, prevHyps, probs, beamSize);
@@ -76,14 +68,27 @@ class Search {
         
       } while(history.size() <= maxLength);
       
+      std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> fp_s = end - start;
       LOG(progress) << "Line " << sentence.GetLine()
-        << ": Search took " << timer.format(3, "%ws");
+        << ": Search took " << fp_s.count()
+        << "s";
       
       for(auto&& scorer : scorers_)
         scorer->CleanUpAfterSentence();
       return history;
     }
 
+    struct ProbCompare {
+      ProbCompare(const float* data) : data_(data) {}
+      
+      bool operator()(const unsigned a, const unsigned b) {
+        return data_[a] > data_[b];
+      }
+      
+      const float* data_;
+    };
+    
     void BestHyps(Beam& bestHyps, const Beam& prevHyps,
                   std::vector<mblas::Matrix>& ProbsEnsemble,
                   const size_t beamSize) {
@@ -94,10 +99,8 @@ class Search {
       Matrix& Probs = ProbsEnsemble[0];
       
       Matrix Costs(Probs.Rows(), 1);
-      HostVector<float> vCosts;
-      for(auto& h : prevHyps)
-        vCosts.push_back(h->GetCost());
-      std::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+      for(int i = 0; i < prevHyps.size(); ++i)
+        Costs.data()[i] = prevHyps[i]->GetCost();
       
       BroadcastVecColumn(weights[scorers_[0]->GetName()] * _1 + _2,
                          Probs, Costs);
@@ -105,39 +108,26 @@ class Search {
         Element(_1 + weights[scorers_[i]->GetName()] * _2,
                 Probs, ProbsEnsemble[i]);
       
-      DeviceVector<unsigned> keys(Probs.size());
-      HostVector<unsigned> bestKeys(beamSize);
-      HostVector<float> bestCosts(beamSize);
+      std::vector<unsigned> keys(Probs.size());
+      for(unsigned i = 0; i < keys.size(); ++i)
+        keys[i] = i;
       
-      // @TODO: make this more efficient
+      std::vector<unsigned> bestKeys(beamSize);
+      std::vector<float> bestCosts(beamSize);
+      
       if(!God::Get<bool>("allow-unk")) {
         for(size_t i = 0; i < Probs.Rows(); i++)
           Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
       }
       
-      // @TODO: Here we need to have a partial sort
-      if(beamSize < 10000) {
-        for(size_t i = 0; i < beamSize; ++i) {
-          DeviceVector<float>::iterator iter =
-            std::max_element(Probs.begin(), Probs.end());
-          bestKeys[i] = iter - Probs.begin();
-          bestCosts[i] = *iter;
-          *iter = std::numeric_limits<float>::lowest();
-        }
-        std::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
-      }
-      //else {
-      //  // these two function do not have equivalents in
-      //  // in the standard library or boost, keeping thrust
-      //  // namespace for now
-      //  thrust::sequence(keys.begin(), keys.end());
-      //  thrust::sort_by_key(Probs.begin(), Probs.end(),
-      //                      keys.begin(), algo::greater<float>());
-      //
-      //  algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
-      //  algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
-      //}
+      std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
+                       ProbCompare(Probs.data()));
       
+      for(int i = 0; i < beamSize; ++i) {
+        bestKeys[i] = keys[i];
+        bestCosts[i] = Probs.data()[keys[i]];
+      }
+    
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = God::Get<bool>("n-best");
       if(doBreakdown) {

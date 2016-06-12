@@ -20,6 +20,11 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
   return search->Decode(Sentence(taskCounter, in));  
 }
 
+extern "C" 
+{
+  void openblas_set_num_threads(int num_threads);
+}
+
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
   boost::timer::cpu_timer timer;
@@ -27,8 +32,12 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t taskCounter = 0;
   
-  size_t threadCount = God::Get<size_t>("threads-per-device")
-                       * God::Get<std::vector<size_t>>("devices").size();
+  size_t threadOpenBLAS = God::Get<size_t>("threads-openblas");
+  
+  LOG(info) << "Setting number of OpenBLAS threads to " << threadOpenBLAS;
+  openblas_set_num_threads(threadOpenBLAS);
+  
+  size_t threadCount = God::Get<size_t>("threads");
   LOG(info) << "Setting number of threads to " << threadCount;
   ThreadPool pool(threadCount);
   std::vector<std::future<History>> results;

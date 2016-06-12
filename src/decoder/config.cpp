@@ -167,8 +167,10 @@ void Config::AddOptions(size_t argc, char** argv) {
      "CUDA device(s) to use, set to 0 by default, "
      "e.g. set to 0 1 to use gpu0 and gpu1. "
      "Implicitly sets minimal number of threads to number of devices.")
-    ("threads-per-device", po::value<size_t>()->default_value(1),
-     "Number of threads per device, total thread count equals threads x devices")
+    ("threads", po::value<size_t>()->default_value(1),
+     "Number of threads")
+    ("threads-openblas", po::value<size_t>()->default_value(1),
+     "Number of threads for OpenBLAS operations")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -236,7 +238,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("normalize", bool);
   SET_OPTION("allow-unk", bool);
   SET_OPTION("beam-size", size_t);
-  SET_OPTION("threads-per-device", size_t);
+  SET_OPTION("threads", size_t);
+  SET_OPTION("threads-openblas", size_t);
   SET_OPTION("devices", std::vector<size_t>);
   SET_OPTION("show-weights", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);

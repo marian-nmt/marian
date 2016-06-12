@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
-SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -funroll-loops -Wno-unused-result -Wno-deprecated")
+SET(CMAKE_CXX_FLAGS " -std=c++11 -fopenmp -Ofast -funroll-loops -Wno-unused-result -Wno-deprecated")
 
 include_directories(${amunmt_SOURCE_DIR})
 
@@ -14,12 +14,13 @@ else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
-find_package(Atlas)
-if(Atlas_FOUND)
-    set(EXT_LIBS ${EXT_LIBS} ${Atlas_LIBRARIES})
-else(Atlas_FOUND)
-    message(SEND_ERROR "Cannot find Atlas libraries. Terminating." )
-endif(Atlas_FOUND)
+find_package(OpenBLAS)
+if(OPENBLAS_FOUND)
+    message(${OPENBLAS})
+    set(EXT_LIBS ${EXT_LIBS} ${OPENBLAS})
+else(OPENBLAS_FOUND)
+    message(SEND_ERROR "Cannot find OpenBLAS libraries. Terminating." )
+endif(OPENBLAS_FOUND)
 
 find_package (BZip2)
 if (BZIP2_FOUND)

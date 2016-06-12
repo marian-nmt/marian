@@ -32,7 +32,7 @@ add_executable(
 )
 
 foreach(exec amun)
-  target_link_libraries(${exec} ${EXT_LIBS} pthread tcmalloc_minimal)
+  target_link_libraries(${exec} ${EXT_LIBS} tcmalloc_minimal)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
 
