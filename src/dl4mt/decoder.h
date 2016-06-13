@@ -95,9 +95,9 @@ class Decoder {
                                      const mblas::Matrix& SourceContext) {
           using namespace mblas;  
           
-          Prod(/*h_[0],*/ Temp1_, SourceContext, w_.U_);
-          Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
-          BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
+          Prod(Temp1_, SourceContext, w_.U_);
+          Prod(Temp2_, HiddenState, w_.W_);
+          BroadcastVec(_1 + _2, Temp2_, w_.B_);
           
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
           
@@ -132,8 +132,7 @@ class Decoder {
       public:
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
-        {
-        }
+        {}
           
         void GetProbs(mblas::Matrix& Probs,
                   const mblas::Matrix& State,
@@ -141,15 +140,13 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
           
-          Prod(/*h_[0],*/ T1_, State, w_.W1_);
-          Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
-          Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+          Prod(T1_, State, w_.W1_);
+          Prod(T2_, Embedding, w_.W2_);
+          Prod(T3_, AlignedSourceContext, w_.W3_);
           
-          BroadcastVec(_1 + _2, T1_, w_.B1_ /*,s_[0]*/);
-          BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
-          BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
-      
-          //cudaDeviceSynchronize();
+          BroadcastVec(_1 + _2, T1_, w_.B1_);
+          BroadcastVec(_1 + _2, T2_, w_.B2_);
+          BroadcastVec(_1 + _2, T3_, w_.B3_);
       
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
           
@@ -160,6 +157,7 @@ class Decoder {
         }
     
         void Filter(const std::vector<size_t>& ids) {
+          
         }
        
       private:        

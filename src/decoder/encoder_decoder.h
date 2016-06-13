@@ -121,7 +121,7 @@ class EncoderDecoderLoader : public Loader {
       size_t i = 0;
       for(auto d : devices) {
         devicePool.enqueue([i, d, &path, this] {
-          LOG(info) << "Loading model " << path << " onto gpu" << d;
+          LOG(info) << "Loading model " << path;
           weights_[i].reset(new Weights(path, d));
         });
         ++i;

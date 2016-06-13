@@ -12,6 +12,7 @@
 class Search {
   private:
     std::vector<ScorerPtr> scorers_;
+    bool filter_{false};
   
   public:
     Search(size_t threadId)
@@ -22,7 +23,6 @@ class Search {
       
       size_t beamSize = God::Get<size_t>("beam-size");
       bool normalize = God::Get<bool>("normalize");
-      size_t vocabSize = scorers_[0]->GetVocabSize();
       
       History history;
     
@@ -33,8 +33,18 @@ class Search {
       States nextStates(scorers_.size());
       Probs probs(scorers_.size());
       
+      size_t vocabSize = scorers_[0]->GetVocabSize();
+      
+      std::vector<size_t> filterIds;
+      if(filter_) {
+        //MakeFilter(filterIds, sentence, vocabSize);
+        vocabSize = filterIds.size();
+      }
+      
       for(size_t i = 0; i < scorers_.size(); i++) {
         scorers_[i]->SetSource(sentence);
+        if(filter_)
+          scorers_[i]->Filter(filterIds);
         
         states[i].reset(scorers_[i]->NewState());
         nextStates[i].reset(scorers_[i]->NewState());

@@ -46,6 +46,8 @@ class Scorer {
     
     virtual void SetSource(const Sentence& source) = 0;
     
+    virtual void Filter(const std::vector<size_t>&) {}
+    
     virtual State* NewState() = 0;
     
     virtual size_t GetVocabSize() const = 0;
