@@ -26,7 +26,7 @@ class InputFileStream {
     }
     
     operator bool () {
-      return istream_;
+      return (bool)istream_;
     }
     
     template <typename T>
