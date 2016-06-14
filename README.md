@@ -10,7 +10,6 @@ We aim at keeping compatibility with Nematus (at least as long as there is no tr
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * Boost 1.5
  * CUDA 7.5
- * yaml-cpp 0.5 (https://github.com/jbeder/yaml-cpp.git)
 
 ## Optional
  * KenLM for n-gram language models (https://github.com/kpu/kenlm, current master)
