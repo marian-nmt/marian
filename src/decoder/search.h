@@ -26,7 +26,7 @@ class Search {
       
       History history;
     
-      Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
+      Beam prevHyps = { history.NewHypothesis() };
       history.Add(prevHyps);
       
       States states(scorers_.size());
@@ -60,7 +60,7 @@ class Search {
         }
         
         Beam hyps;
-        BestHyps(hyps, prevHyps, probs, beamSize);
+        BestHyps(hyps, prevHyps, probs, beamSize, history);
         history.Add(hyps, history.size() == maxLength);
         
         Beam survivors;
@@ -101,7 +101,8 @@ class Search {
     
     void BestHyps(Beam& bestHyps, const Beam& prevHyps,
                   std::vector<mblas::Matrix>& ProbsEnsemble,
-                  const size_t beamSize) {
+                  const size_t beamSize,
+                  History& history) {
       using namespace mblas;
       
       auto& weights = God::GetScorerWeights();
@@ -155,7 +156,7 @@ class Search {
         size_t hypIndex  = bestKeys[i] / Probs.Cols();
         float cost = bestCosts[i];
         
-        HypothesisPtr hyp(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
+        HypothesisPtr hyp = history.NewHypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);
         
         if(doBreakdown) {
           hyp->GetCostBreakdown().resize(ProbsEnsemble.size());

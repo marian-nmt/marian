@@ -194,6 +194,27 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 Matrix& Softmax(Matrix& Out);
 
 template <class Functor>
+void gSoftMax(float* d, size_t rows, size_t cols, Functor f) {
+  float sum[rows];
+  for(int j = 0; j < rows; ++j) {
+    sum[j] = 0;
+    float* out = d + j * cols;
+    for(int i = 0; i < cols; ++i) {
+      out[i] = expf(out[i]);
+      sum[j]+= out[i];
+    }
+    for(int i = 0; i < cols; ++i) {
+      out[i] = f(out[i] / sum[j]);
+    }
+  }
+}
+
+template <class Functor>
+Matrix& Softmax(Matrix& Out, Functor functor) {
+  gSoftMax(Out.data(), Out.Rows(), Out.Cols(), functor);
+}
+
+template <class Functor>
 Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows1 = Out.Rows();
   size_t rows2 = In.Rows();
