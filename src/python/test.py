@@ -3,6 +3,11 @@ import sys
 
 nmt.init(sys.argv[1])
 
+sentences = []
 for line in sys.stdin:
-    output = nmt.translate(line)
-    sys.stdout.write(output)
+    sentences.append(line)
+
+output = nmt.translate(sentences)
+
+for line in output:
+    sys.stdout.write(line)
