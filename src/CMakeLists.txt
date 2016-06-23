@@ -18,20 +18,27 @@ add_library(libcommon OBJECT
 )
 
 add_library(libamun OBJECT
-  decoder/decoder_main.cpp
   decoder/god.cpp
   decoder/sentence.cpp
   decoder/config.cpp
 )
 
-add_executable(
-  amun
+add_library(amunmt SHARED
+  python/amunmt.cpp
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
-foreach(exec amun)
+add_executable(
+  amun
+  decoder/decoder_main.cpp
+  $<TARGET_OBJECTS:libamun>
+  $<TARGET_OBJECTS:libcommon>
+  $<TARGET_OBJECTS:libyaml-cpp>
+)
+
+foreach(exec amun amunmt)
   target_link_libraries(${exec} ${EXT_LIBS} tcmalloc_minimal)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
