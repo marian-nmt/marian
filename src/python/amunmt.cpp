@@ -33,6 +33,7 @@ boost::python::list translate(boost::python::list& in) {
   for(int i = 0; i < boost::python::len(in); ++i) {
     std::stringstream ss;
     std::string s = boost::python::extract<std::string>(boost::python::object(in[i]));
+    std::cerr << "'" << s << "'" << std::endl;
     Printer(search->Decode(Sentence(i, s)), i, ss);
     result.append(ss.str());
   }

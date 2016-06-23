@@ -5,7 +5,7 @@ nmt.init(sys.argv[1])
 
 sentences = []
 for line in sys.stdin:
-    sentences.append(line)
+    sentences.append(line.rstrip())
 
 output = nmt.translate(sentences)
 
