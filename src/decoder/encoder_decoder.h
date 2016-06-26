@@ -98,6 +98,10 @@ class EncoderDecoder : public Scorer {
       return decoder_->GetVocabSize();
     }
     
+    void Filter(const std::vector<size_t>& filterIds) {
+      decoder_->Filter(filterIds);  
+    }
+     
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;

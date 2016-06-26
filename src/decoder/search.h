@@ -12,17 +12,23 @@
 class Search {
   private:
     std::vector<ScorerPtr> scorers_;
-    bool filter_{false};
   
   public:
     Search(size_t threadId)
     : scorers_(God::GetScorers(threadId)) {}
+    
+    void MakeFilter(std::vector<size_t>& filterIds, const Sentence& sentence, size_t vocabSize) {
+      
+      for(size_t i = 0; i < 10000; ++i)
+        filterIds.push_back(i);
+    }
     
     History Decode(const Sentence& sentence) {
       std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
       
       size_t beamSize = God::Get<size_t>("beam-size");
       bool normalize = God::Get<bool>("normalize");
+      bool filter = God::Get<bool>("softmax-filter");
       
       History history;
     
@@ -36,14 +42,14 @@ class Search {
       size_t vocabSize = scorers_[0]->GetVocabSize();
       
       std::vector<size_t> filterIds;
-      if(filter_) {
-        //MakeFilter(filterIds, sentence, vocabSize);
+      if(filter) {
+        MakeFilter(filterIds, sentence, vocabSize);
         vocabSize = filterIds.size();
       }
       
       for(size_t i = 0; i < scorers_.size(); i++) {
         scorers_[i]->SetSource(sentence);
-        if(filter_)
+        if(filter)
           scorers_[i]->Filter(filterIds);
         
         states[i].reset(scorers_[i]->NewState());

@@ -68,6 +68,9 @@ class ApePenalty : public Scorer {
       UTIL_THROW2("Not correctly implemented");
     }
     
+   void Filter(const std::vector<size_t>& filterIds) {}
+
+    
   private:
     std::vector<float> costs_;
 };

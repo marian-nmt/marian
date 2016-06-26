@@ -185,6 +185,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
      "Normalize scores by translation length after decoding")
+    ("softmax-filter,f", po::value<bool>()->zero_tokens()->default_value(false),
+     "Filter final softmax")
     ("allow-unk,u", po::value<bool>()->zero_tokens()->default_value(false),
      "Allow generation of UNK")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -236,6 +238,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   // Simple overwrites
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
+  SET_OPTION("softmax-filter", bool);
   SET_OPTION("allow-unk", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads", size_t);
