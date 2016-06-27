@@ -201,7 +201,7 @@ void gSoftMax(float* d, size_t rows, size_t cols, Functor f) {
     sum[j] = 0;
     float* out = d + j * cols;
     for(int i = 0; i < cols; ++i) {
-      out[i] = expf(out[i]);
+      out[i] = expapprox(out[i]);
       sum[j]+= out[i];
     }
     for(int i = 0; i < cols; ++i) {

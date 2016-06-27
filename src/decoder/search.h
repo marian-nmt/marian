@@ -18,7 +18,6 @@ class Search {
     : scorers_(God::GetScorers(threadId)) {}
     
     void MakeFilter(std::vector<size_t>& filterIds, const Sentence& sentence, size_t vocabSize) {
-      
       for(size_t i = 0; i < 10000; ++i)
         filterIds.push_back(i);
     }

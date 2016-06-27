@@ -101,7 +101,15 @@ class EncoderDecoder : public Scorer {
     void Filter(const std::vector<size_t>& filterIds) {
       decoder_->Filter(filterIds);  
     }
-     
+    
+    Encoder& GetEncoder() {
+      return *encoder_;
+    }
+
+    Decoder& GetDecoder() {
+      return *decoder_;
+    }
+    
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;

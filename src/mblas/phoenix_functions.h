@@ -3,22 +3,24 @@
 #include <cmath>
 #include <boost/phoenix/phoenix.hpp>
 
+#include "simd_math_prims.h"
+
 namespace mblas
 {
   template <class T>
-  auto Exp(const T& x) -> decltype(boost::phoenix::bind(exp, x))
+  auto Exp(const T& x) -> decltype(boost::phoenix::bind(expapprox, x))
   {
-    return boost::phoenix::bind(exp, x);  
+    return boost::phoenix::bind(expapprox, x);  
   }
   
   template <typename T>
-  auto Tanh(const T& x) -> decltype(boost::phoenix::bind(tanh, x)) {
-    return boost::phoenix::bind(tanh, x);  
+  auto Tanh(const T& x) -> decltype(boost::phoenix::bind(tanhapprox, x)) {
+    return boost::phoenix::bind(tanhapprox, x);  
   }
   
   template <typename T>
-  auto Log(const T& x) -> decltype(boost::phoenix::bind(log, x)) {
-    return boost::phoenix::bind(log, x);  
+  auto Log(const T& x) -> decltype(boost::phoenix::bind(logapprox, x)) {
+    return boost::phoenix::bind(logapprox, x);  
   }
   
   float logit(float x);
