@@ -1,4 +1,5 @@
 #include "gru.h"
+#include "simd_math_prims.h"
 
 void gElementwiseOps(float* out,
                     const float* state,
@@ -20,16 +21,16 @@ void gElementwiseOps(float* out,
     const float* rowState = state + j * cols;
     
     for(int i = 0; i < cols; ++i) {
-      float ev1 = expf(-(rowRu[i] + b[i] + rowT1[i]));
+      float ev1 = expapprox(-(rowRu[i] + b[i] + rowT1[i]));
       float r = 1.0 / (1.0 + ev1);
       
       int k = i + cols;
-      float ev2 = expf(-(rowRu[k] + b[k] + rowT1[k]));
+      float ev2 = expapprox(-(rowRu[k] + b[k] + rowT1[k]));
       float u = 1.0 / (1.0 + ev2);              
 
       float hv = rowH[i] + bx1[i];
       float t2v = rowT2[i] + bx2[i];
-      hv = tanhf(hv + r * t2v);
+      hv = tanhapprox(hv + r * t2v);
       rowOut[i] = (1.0 - u) * hv + u * rowState[i];
     }
   }

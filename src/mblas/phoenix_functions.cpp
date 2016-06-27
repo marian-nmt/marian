@@ -4,7 +4,7 @@ namespace mblas
 {
   
   float logit(float x) {
-    return 1.0 / (1.0 + exp(-x));
+    return 1.0 / (1.0 + expapprox(-x));
   }
   
   float max(float x, float y) {

@@ -45,10 +45,14 @@ class Decoder {
                              const size_t batchSize = 1) {
           using namespace mblas;
           
+          // calculate mean of source context, rowwise
           Mean(Temp1_, SourceContext);
+          
+          // Repeat mean batchSize times by broadcasting
           Temp2_.Clear();
           Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
           BroadcastVec(_1 + _2, Temp2_, Temp1_);
+          
           Prod(State, Temp2_, w_.Wi_);
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
@@ -99,16 +103,19 @@ class Decoder {
           Prod(Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_);
           
+          // For batching: create an A across different sentences,
+          // maybe by mapping and looping. In the and join different
+          // alignment matrices into one
+          // Or masking?
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
-          
           Prod(A_, w_.V_, Temp1_, false, true);
-          
-          size_t rows1 = SourceContext.Rows();
-          size_t rows2 = HiddenState.Rows();     
-          A_.Reshape(rows2, rows1); // due to broadcasting above
+          size_t words = SourceContext.Rows();
+          // batch size, for batching, divide by numer of sentences
+          size_t batchSize = HiddenState.Rows(); 
+          A_.Reshape(batchSize, words); // due to broadcasting above
           Element(_1 + w_.C_(0,0), A_);
-          
           mblas::Softmax(A_);
+          
           Prod(AlignedSourceContext, A_, SourceContext);
         }
         

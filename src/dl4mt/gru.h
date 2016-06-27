@@ -96,7 +96,11 @@ class FastGRU {
       Prod(/*h_[3],*/ Temp2_, State, w_.Ux_);        
       // -----------------------------------------------------
       //cudaDeviceSynchronize();
-      
+      //RU_.Resize(Context.Rows(), w_.W_.Cols());
+      //H_.Resize(Context.Rows(), w_.Wx_.Cols());
+      //Temp1_.Resize(State.Rows(), w_.U_.Cols());
+      //Temp2_.Resize(State.Rows(), w_.Ux_.Cols());        
+    
       ElementwiseOps(NextState, State, RU_, H_, Temp1_, Temp2_);
     }
           

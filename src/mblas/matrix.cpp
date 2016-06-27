@@ -1,4 +1,5 @@
 #include "matrix.h"
+#include "simd_math_prims.h"
 
 namespace mblas {
 
@@ -183,7 +184,7 @@ void gSoftMax(float* d, size_t rows, size_t cols) {
     sum[j] = 0;
     float* out = d + j * cols;
     for(int i = 0; i < cols; ++i) {
-      out[i] = expf(out[i]);
+      out[i] = expapprox(out[i]);
       sum[j]+= out[i];
     }
     for(int i = 0; i < cols; ++i) {

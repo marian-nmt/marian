@@ -38,7 +38,15 @@ add_executable(
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
-foreach(exec amun amunmt)
+add_executable(
+  experimental
+  test/test_main.cpp
+  $<TARGET_OBJECTS:libamun>
+  $<TARGET_OBJECTS:libcommon>
+  $<TARGET_OBJECTS:libyaml-cpp>
+)
+
+foreach(exec amun amunmt experimental)
   target_link_libraries(${exec} ${EXT_LIBS} tcmalloc_minimal)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
