@@ -3,6 +3,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
 SET(CMAKE_CXX_FLAGS " -std=c++11 -fPIC -fopenmp -Ofast -funroll-loops -Wno-unused-result -Wno-deprecated")
+#SET(CMAKE_CXX_FLAGS " -std=c++11 -fPIC -fopenmp -g -Og -DDEBUG -Bdynamic -lprofiler -ltcmalloc_and_profiler -funroll-loops -Wno-unused-result -Wno-deprecated")
 
 include_directories(${amunmt_SOURCE_DIR})
 
