@@ -198,4 +198,24 @@ Matrix& Softmax(Matrix& Out) {
   return Out;
 }
 
+void gSoftMaxLog(float* d, size_t rows, size_t cols) {
+  float sum[rows];
+  for(int j = 0; j < rows; ++j) {
+    sum[j] = 0;
+    float* out = d + j * cols;
+    for(int i = 0; i < cols; ++i) {
+      out[i] = expapprox(out[i]);
+      sum[j]+= out[i];
+    }
+    for(int i = 0; i < cols; ++i) {
+      out[i] = logapprox(out[i] / sum[j]);
+    }
+  }
+}
+
+Matrix& SoftmaxLog(Matrix& Out) {
+  gSoftMaxLog(Out.data(), Out.Rows(), Out.Cols());
+}
+
+
 }

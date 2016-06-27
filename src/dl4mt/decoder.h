@@ -164,7 +164,7 @@ class Decoder {
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
-          mblas::Softmax(Probs, Log(_1));
+          mblas::SoftmaxLog(Probs);
         }
     
         void Filter(const std::vector<size_t>& ids) {
