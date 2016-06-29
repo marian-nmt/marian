@@ -7,7 +7,7 @@ SET(CMAKE_CXX_FLAGS " -std=c++11 -fPIC -Ofast -funroll-loops -Wno-unused-result 
 
 include_directories(${amunmt_SOURCE_DIR})
 
-find_package(Boost COMPONENTS system filesystem program_options timer iostreams python)
+find_package(Boost COMPONENTS system filesystem program_options timer iostreams python thread)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})

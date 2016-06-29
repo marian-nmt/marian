@@ -2,14 +2,14 @@
 #include <iostream>
 #include <string>
 #include <boost/timer/timer.hpp>
+#include <boost/thread/tss.hpp>
+#include <boost/python.hpp>
 
 #include "god.h"
 #include "logging.h"
 #include "search.h"
 #include "printer.h"
 #include "sentence.h"
-
-#include <boost/python.hpp>
 
 extern "C" 
 {
@@ -24,10 +24,13 @@ void init(const std::string& options) {
 }
 
 boost::python::list translate(boost::python::list& in) {
-  thread_local std::unique_ptr<Search> search;
-  if(!search) {
+  static boost::thread_specific_ptr<Search> s_search;
+  Search *search = s_search.get();
+
+  if(search == NULL) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(0));
+   	search = new Search(0);
+    s_search.reset(search);
   }
   boost::python::list result;
   for(int i = 0; i < boost::python::len(in); ++i) {

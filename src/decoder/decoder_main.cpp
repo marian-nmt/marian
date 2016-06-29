@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <boost/timer/timer.hpp>
+#include <boost/thread/tss.hpp>
 
 #include "god.h"
 #include "logging.h"
@@ -11,10 +12,12 @@
 #include "sentence.h"
 
 History TranslationTask(const std::string& in, size_t taskCounter) {
-  thread_local std::unique_ptr<Search> search;
-  if(!search) {
+  static boost::thread_specific_ptr<Search> s_search;
+  Search *search = s_search.get();
+  if(search == NULL) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(taskCounter));
+	search = new Search(taskCounter);
+    s_search.reset(search);
   }
   
   return search->Decode(Sentence(taskCounter, in));  

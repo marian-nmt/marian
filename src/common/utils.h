@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <boost/algorithm/string.hpp>
 
 void Trim(std::string& s);
