@@ -14,6 +14,7 @@
 History TranslationTask(const std::string& in, size_t taskCounter) {
   static boost::thread_specific_ptr<Search> s_search;
   Search *search = s_search.get();
+
   if(search == NULL) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
 	search = new Search(taskCounter);

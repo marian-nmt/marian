@@ -118,10 +118,10 @@ class Search {
       for(int i = 0; i < prevHyps.size(); ++i)
         Costs.data()[i] = prevHyps[i]->GetCost();
       
-      BroadcastVecColumn(weights[scorers_[0]->GetName()] * _1 + _2,
+      BroadcastVecColumn(weights[scorers_[0]->GetName()] * boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2,
                          Probs, Costs);
       for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
-        Element(_1 + weights[scorers_[i]->GetName()] * _2,
+        Element(boost::phoenix::placeholders::_1 + weights[scorers_[i]->GetName()] * boost::phoenix::placeholders::_2,
                 Probs, ProbsEnsemble[i]);
       
       std::vector<unsigned> keys(Probs.size());

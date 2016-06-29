@@ -1,5 +1,4 @@
 #pragma once
-
 #include "mblas/matrix.h"
 
 template <class Weights>
@@ -28,16 +27,16 @@ class SlowGRU {
       // -----------------------------------------------------
       
       // @TODO: Organize into one kernel ---------------------
-      BroadcastVec(_1 + _2, RU_, w_.B_); // Broadcasting row-wise
-      Element(Logit(_1 + _2), RU_, Temp1_);
+      BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, RU_, w_.B_); // Broadcasting row-wise
+      Element(Logit(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), RU_, Temp1_);
       Slice(R_, RU_, 0, cols);
       Slice(U_, RU_, 1, cols);
       
-      BroadcastVec(_1 + _2, H_,    w_.Bx1_); // Broadcasting row-wise
-      BroadcastVec(_1 + _2, Temp2_, w_.Bx2_); // Broadcasting row-wise
+      BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, H_,    w_.Bx1_); // Broadcasting row-wise
+      BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, w_.Bx2_); // Broadcasting row-wise
       
-      Element(Tanh(_1 + _2 * _3), H_, R_, Temp2_);
-      Element((1.0 - _1) * _2 + _1 * _3, U_, H_, State);
+      Element(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2 * boost::phoenix::placeholders::_3), H_, R_, Temp2_);
+      Element((1.0 - boost::phoenix::placeholders::_1) * boost::phoenix::placeholders::_2 + boost::phoenix::placeholders::_1 * boost::phoenix::placeholders::_3, U_, H_, State);
       // -----------------------------------------------------
       
       Swap(NextState, U_);

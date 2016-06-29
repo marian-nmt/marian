@@ -51,10 +51,10 @@ class Decoder {
           // Repeat mean batchSize times by broadcasting
           Temp2_.Clear();
           Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
-          BroadcastVec(_1 + _2, Temp2_, Temp1_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, Temp1_);
           
           Prod(State, Temp2_, w_.Wi_);
-          BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
+          BroadcastVec(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), State, w_.Bi_);
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -101,19 +101,19 @@ class Decoder {
           
           Prod(Temp1_, SourceContext, w_.U_);
           Prod(Temp2_, HiddenState, w_.W_);
-          BroadcastVec(_1 + _2, Temp2_, w_.B_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, w_.B_);
           
           // For batching: create an A across different sentences,
           // maybe by mapping and looping. In the and join different
           // alignment matrices into one
           // Or masking?
-          Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
+          Broadcast(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), Temp1_, Temp2_);
           Prod(A_, w_.V_, Temp1_, false, true);
           size_t words = SourceContext.Rows();
           // batch size, for batching, divide by numer of sentences
           size_t batchSize = HiddenState.Rows(); 
           A_.Reshape(batchSize, words); // due to broadcasting above
-          Element(_1 + w_.C_(0,0), A_);
+          Element(boost::phoenix::placeholders::_1 + w_.C_(0,0), A_);
           mblas::Softmax(A_);
           
           Prod(AlignedSourceContext, A_, SourceContext);
@@ -151,18 +151,18 @@ class Decoder {
           Prod(T2_, Embedding, w_.W2_);
           Prod(T3_, AlignedSourceContext, w_.W3_);
           
-          BroadcastVec(_1 + _2, T1_, w_.B1_);
-          BroadcastVec(_1 + _2, T2_, w_.B2_);
-          BroadcastVec(_1 + _2, T3_, w_.B3_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T1_, w_.B1_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T2_, w_.B2_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T3_, w_.B3_);
       
-          Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
+          Element(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2 + boost::phoenix::placeholders::_3), T1_, T2_, T3_);
           
           if(!filtered_) {
             Prod(Probs, T1_, w_.W4_);
-            BroadcastVec(_1 + _2, Probs, w_.B4_);
+            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, w_.B4_);
           } else {
             Prod(Probs, T1_, FilteredW4_);
-            BroadcastVec(_1 + _2, Probs, FilteredB4_);
+            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, FilteredB4_);
           }
           mblas::SoftmaxLog(Probs);
         }
