@@ -7,6 +7,8 @@
 #include "hypothesis.h"
 
 class History {
+  friend std::ostream& operator<<(std::ostream &out, const History &obj);
+
   private:
     struct HypothesisCoord {
       bool operator<(const HypothesisCoord& hc) const {

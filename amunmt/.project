@@ -176,6 +176,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/god.h</locationURI>
 		</link>
 		<link>
+			<name>decoder/history.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/history.cpp</locationURI>
+		</link>
+		<link>
 			<name>decoder/history.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/history.h</locationURI>
