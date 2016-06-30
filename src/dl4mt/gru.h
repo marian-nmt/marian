@@ -74,9 +74,7 @@ class FastGRU {
   public:
     FastGRU(const Weights& model)
     : w_(model) {
-    
       using namespace mblas;
-      
       Transpose(WWx_, w_.W_);
       Matrix WxT;
       Transpose(WxT, w_.Wx_);
@@ -94,12 +92,8 @@ class FastGRU {
                       const mblas::Matrix& State,
                       const mblas::Matrix& Context) const {
       using namespace mblas;
-      
-      const size_t cols = GetStateLength();
-      
       Prod(RUH_, Context, WWx_);
       Prod(Temp_, State, UUx_);
-      
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
           
@@ -127,12 +121,7 @@ class FastGRU {
     // Model matrices
     const Weights& w_;
         
-    // reused to avoid allocation
-    mutable mblas::Matrix RU_;
-    mutable mblas::Matrix H_;
-    mutable mblas::Matrix Temp1_;
-    mutable mblas::Matrix Temp2_;
-    
+    // reused to avoid allocation    
     mutable mblas::Matrix WWx_;
     mutable mblas::Matrix UUx_;
     
