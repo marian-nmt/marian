@@ -54,6 +54,13 @@ Matrix& Transpose(Matrix& Out) {
   return Out;
 }
 
+Matrix& Concat(Matrix& Out, const Matrix& In) {
+  size_t oldSize = Out.size();
+  Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
+  lib::copy(In.begin(), In.end(), Out.begin() + oldSize);
+  return Out;
+}
+
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
   lib::copy(In.begin(), In.end(), Out.begin());
