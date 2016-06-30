@@ -110,6 +110,13 @@ Matrix& CopyRows(Matrix& Out,
   return Out;
 }
 
+Matrix& Concat(Matrix& Out, const Matrix& In) {
+  size_t oldSize = Out.size();
+  Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
+  std::copy(In.begin(), In.end(), Out.begin() + oldSize);
+  return Out;
+}
+
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const std::vector<size_t>& indeces) {
