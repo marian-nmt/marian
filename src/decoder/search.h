@@ -39,6 +39,7 @@ class Search {
       Probs probs(scorers_.size());
       
       size_t vocabSize = scorers_[0]->GetVocabSize();
+      //std::cerr << "beamSize=" << beamSize << " vocabSize=" << vocabSize << std::endl;
       
       std::vector<size_t> filterIds;
       if(filter) {
@@ -60,7 +61,12 @@ class Search {
       const size_t maxLength = sentence.GetWords().size() * 3;
       do {
         for(size_t i = 0; i < scorers_.size(); i++) {
-          probs[i].Resize(beamSize, vocabSize);
+          Prob &prob = probs[i];
+          prob.Resize(beamSize, vocabSize);
+
+          //debug1(prob);
+          //std::cerr << std::endl;
+
           scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
         }
         

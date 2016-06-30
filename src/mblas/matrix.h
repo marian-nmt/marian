@@ -14,11 +14,12 @@
 
 namespace mblas {
 
-using namespace boost::phoenix::placeholders;
+//using namespace boost::phoenix::placeholders;
 
 template <class VecType>
 class TMatrix : public BaseMatrix {
-  public:
+
+public:
     typedef typename VecType::value_type value_type;
     typedef typename VecType::iterator iterator;
     typedef typename VecType::const_iterator const_iterator;
