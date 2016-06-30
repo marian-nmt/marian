@@ -92,8 +92,6 @@ class FastGRU {
       Transpose(UxT, w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
-      
-      std::cerr << "haha" << std::endl;
     }
           
     void GetNextState(mblas::Matrix& NextState,
