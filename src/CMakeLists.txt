@@ -21,6 +21,7 @@ add_library(libamun OBJECT
   decoder/god.cpp
   decoder/sentence.cpp
   decoder/config.cpp
+  decoder/hypothesis.cpp
 )
 
 add_library(amunmt SHARED

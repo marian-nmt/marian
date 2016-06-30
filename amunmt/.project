@@ -181,6 +181,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/history.h</locationURI>
 		</link>
 		<link>
+			<name>decoder/hypothesis.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/hypothesis.cpp</locationURI>
+		</link>
+		<link>
 			<name>decoder/hypothesis.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/hypothesis.h</locationURI>

@@ -8,6 +8,8 @@ class Hypothesis;
 typedef Hypothesis* HypothesisPtr;
 
 class Hypothesis {
+  friend std::ostream& operator<<(std::ostream &out, const Hypothesis &obj);
+
  public:
     Hypothesis(const std::tuple<>&)
      : prevHyp_(nullptr),
@@ -55,3 +57,4 @@ class Hypothesis {
 typedef std::vector<HypothesisPtr> Beam;
 typedef std::pair<Words, HypothesisPtr> Result;
 typedef std::vector<Result> NBestList;
+

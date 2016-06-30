@@ -64,6 +64,7 @@ class History {
         Words targetWords;
         HypothesisPtr bestHyp = history_[start][j];
         while(bestHyp->GetPrevHyp() != nullptr) {
+          //std::cerr << "bestHyp=" << *bestHyp << std::endl;
           targetWords.push_back(bestHyp->GetWord());
           bestHyp = bestHyp->GetPrevHyp();
         }
