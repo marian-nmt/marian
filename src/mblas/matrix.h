@@ -173,6 +173,8 @@ typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
 typedef std::vector<RowPair> DeviceRowPairs;
 
+Matrix& Concat(Matrix& Out, const Matrix& In);
+
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
                  const RowPair* devPairs,

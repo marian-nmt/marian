@@ -3,29 +3,27 @@
 
 void gElementwiseOps(float* out,
                     const float* state,
-                    const float* ru,
-                    const float* h,
-                    const float* t1,
-                    const float* t2,
+                    const float* ruh,
+                    const float* t,
                     const float* b,
                     const float* bx1,
                     const float* bx2,
                     size_t rows, size_t cols) {
   for(int j = 0; j < rows; ++j) {
     float* rowOut = out + j * cols;
-    const float* rowRu = ru + j * cols * 2;
-    const float* rowT1 = t1 + j * cols * 2;
+    const float* rowRuh = ruh + j * cols * 3;
+    const float* rowT = t + j * cols * 3;
     
-    const float* rowH = h + j * cols;
-    const float* rowT2 = t2 + j * cols;
+    const float* rowH = rowRuh + 2 * cols;
+    const float* rowT2 = rowT + 2 * cols;
     const float* rowState = state + j * cols;
     
     for(int i = 0; i < cols; ++i) {
-      float ev1 = expapprox(-(rowRu[i] + b[i] + rowT1[i]));
+      float ev1 = expapprox(-(rowRuh[i] + b[i] + rowT[i]));
       float r = 1.0 / (1.0 + ev1);
       
       int k = i + cols;
-      float ev2 = expapprox(-(rowRu[k] + b[k] + rowT1[k]));
+      float ev2 = expapprox(-(rowRuh[k] + b[k] + rowT[k]));
       float u = 1.0 / (1.0 + ev2);              
 
       float hv = rowH[i] + bx1[i];
