@@ -79,20 +79,20 @@ class Encoder {
     {}
     
     void GetContext(const std::vector<size_t>& words,
-                    mblas::Matrix& Context) {
+                    mblas::Matrix& context) {
       std::vector<mblas::Matrix> embeddedWords;
       
-      Context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
+      context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
       for(auto& w : words) {
         embeddedWords.emplace_back();
         embeddings_.Lookup(embeddedWords.back(), w);
       }
       forwardRnn_.GetContext(embeddedWords.cbegin(),
                              embeddedWords.cend(),
-                             Context, false);
+                             context, false);
       backwardRnn_.GetContext(embeddedWords.crbegin(),
                               embeddedWords.crend(),
-                              Context, true);
+                              context, true);
     }
     
   private:

@@ -88,9 +88,9 @@ class Decoder {
     };
         
     template <class Weights>
-    class Alignment {
+    class Attention {
       public:
-        Alignment(const Weights& model)
+        Attention(const Weights& model)
         : w_(model)
         {  }
           
@@ -200,7 +200,7 @@ class Decoder {
     : embeddings_(model.decEmbeddings_),
       rnn1_(model.decInit_, model.decGru1_),
       rnn2_(model.decGru2_),
-      alignment_(model.decAlignment_),
+	  attention_(model.decAttention_),
       softmax_(model.decSoftmax_)
     {}
     
@@ -236,8 +236,8 @@ class Decoder {
       softmax_.Filter(ids);
     }
       
-    void GetAttention(mblas::Matrix& Attention) {
-      alignment_.GetAttention(Attention);
+    void GetAttention(mblas::Matrix& attention) {
+    	attention_.GetAttention(attention);
     }
     
     size_t GetVocabSize() const {
@@ -255,7 +255,7 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                  const mblas::Matrix& HiddenState,
                                  const mblas::Matrix& SourceContext) {
-      alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext);
+    	attention_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext);
     }
     
     void GetNextState(mblas::Matrix& State,
@@ -279,6 +279,6 @@ class Decoder {
     Embeddings<Weights::DecEmbeddings> embeddings_;
     RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
     RNNFinal<Weights::DecGRU2> rnn2_;
-    Alignment<Weights::DecAlignment> alignment_;
+    Attention<Weights::DecAttention> attention_;
     Softmax<Weights::DecSoftmax> softmax_;
 };

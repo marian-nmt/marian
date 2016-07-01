@@ -118,8 +118,8 @@ struct Weights {
     const mblas::Matrix Ux_;
   };
   
-  struct DecAlignment {
-    DecAlignment(const NpzConverter& model)
+  struct DecAttention {
+	  DecAttention(const NpzConverter& model)
     : V_(model("decoder_U_att", true)),
       W_(model["decoder_W_comb_att"]),
       B_(model("decoder_b_att", true)),
@@ -168,7 +168,7 @@ struct Weights {
     decInit_(model),
     decGru1_(model),
     decGru2_(model),
-    decAlignment_(model),
+	decAttention_(model),
     decSoftmax_(model),
     device_(device)
     {}
@@ -184,7 +184,7 @@ struct Weights {
   const DecInit decInit_;
   const DecGRU1 decGru1_;
   const DecGRU2 decGru2_;
-  const DecAlignment decAlignment_;
+  const DecAttention decAttention_;
   const DecSoftmax decSoftmax_;
   
   const size_t device_;

@@ -58,8 +58,6 @@ int main(int argc, char* argv[]) {
     taskCounter++;
   }
   
-  std::cerr << "HH A" << std::endl;
-
   size_t lineCounter = 0;
   for(auto&& result : results)
     Printer(result.get(), lineCounter++, std::cout);
