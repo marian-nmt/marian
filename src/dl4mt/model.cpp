@@ -1,5 +1,7 @@
 #include "model.h"
 
+using namespace std;
+
 Weights::EncEmbeddings::EncEmbeddings(const NpzConverter& model)
 : E_(model["Wemb"])
 {}
@@ -87,4 +89,6 @@ decGru2_(model),
 decAttention_(model),
 decSoftmax_(model),
 device_(device)
-{}
+{
+	cerr << encEmbeddings_.E_ << endl;
+}

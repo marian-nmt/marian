@@ -151,6 +151,14 @@ void debug1(const M& m, size_t pos = 0, size_t l = 5) {
   }
 }
 
+template <class VecType>
+std::ostream& operator<<(std::ostream &out, const TMatrix<VecType> &m)
+{
+  out << m.Rows() << " " << m.Cols() << " " << typeid(VecType).name() << std::endl;
+
+  return out;
+}
+
 Matrix& Swap(Matrix& Out, Matrix& In);
 
 Matrix& Mean(Matrix& Out, const Matrix& In);
