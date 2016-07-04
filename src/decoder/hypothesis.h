@@ -1,5 +1,6 @@
 #pragma once
-
+#include <iostream>
+#include <tuple>
 #include "types.h"
 
 class Hypothesis;
