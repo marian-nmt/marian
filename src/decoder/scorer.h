@@ -43,7 +43,7 @@ class Scorer {
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
                                    State& out) = 0;
-    
+
     virtual void SetSource(const Sentence& source) = 0;
     
     virtual void Filter(const std::vector<size_t>&) = 0;

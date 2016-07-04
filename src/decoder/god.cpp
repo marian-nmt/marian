@@ -47,7 +47,15 @@ God& God::NonStaticInit(int argc, char** argv) {
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
   weights_ = Get<std::map<std::string, float>>("weights");
-    
+
+  /*
+  std::cerr << "WEIGHTS:";
+  for (auto i: weights_) {
+	std::cerr << i.first << "=" << i.second << " ";
+  }
+  std::cerr << std::endl;
+  */
+
   if(Get<bool>("show-weights")) {
     LOG(info) << "Outputting weights and exiting";
     for(auto && pair : weights_) {

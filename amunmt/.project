@@ -281,6 +281,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/gru.h</locationURI>
 		</link>
 		<link>
+			<name>dl4mt/model.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/model.cpp</locationURI>
+		</link>
+		<link>
 			<name>dl4mt/model.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/model.h</locationURI>
