@@ -14,10 +14,13 @@
 #include "printer.h"
 #include "sentence.h"
 
-#ifdef __APPLE__
 History TranslationTask(const std::string& in, size_t taskCounter) {
-  static boost::thread_specific_ptr<Search> s_search;
-  Search *search = s_search.get();
+  #ifdef __APPLE__
+    static boost::thread_specific_ptr<Search> s_search;
+    Search *search = s_search.get();
+  #else
+    thread_local std::unique_ptr<Search> search;
+  #endif
 
   if(search == NULL) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
@@ -27,17 +30,6 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
   
   return search->Decode(Sentence(taskCounter, in));  
 }
-#else
-History TranslationTask(const std::string& in, size_t taskCounter) {
-  thread_local std::unique_ptr<Search> search;
-  if(!search) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(taskCounter));
-  }
-
-  return search->Decode(Sentence(taskCounter, in));
-}
-#endif
 
 extern "C" 
 {

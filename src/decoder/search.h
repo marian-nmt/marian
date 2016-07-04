@@ -34,10 +34,12 @@ class Search {
       Beam prevHyps = { history.NewHypothesis() };
       history.Add(prevHyps);
       
+      /*
       std::cerr << "SCORERS:" << std::endl;
       for (auto scorer: scorers_) {
     	  std::cerr << scorer->GetName() << std::endl;
       }
+	  */
 
       States states(scorers_.size());
       States nextStates(scorers_.size());
