@@ -6,41 +6,21 @@ Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &ke
 : E_(model[key])
 {}
 
-Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)
-: W_(model["encoder_W"]),
-  B_(model("encoder_b", true)),
-  U_(model["encoder_U"]),
-  Wx_(model["encoder_Wx"]),
-  Bx1_(model("encoder_bx", true)),
+Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &keys)
+: W_(model[keys.at(0)]),
+  B_(model(keys.at(1), true)),
+  U_(model[keys.at(2)]),
+  Wx_(model[keys.at(3)]),
+  Bx1_(model(keys.at(4), true)),
   Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0),
-  Ux_(model["encoder_Ux"])
+  Ux_(model[keys.at(5)])
 { }
-
-Weights::EncBackwardGRU::EncBackwardGRU(const NpzConverter& model)
-: W_(model["encoder_r_W"]),
-  B_(model("encoder_r_b", true)),
-  U_(model["encoder_r_U"]),
-  Wx_(model["encoder_r_Wx"]),
-  Bx1_(model("encoder_r_bx", true)),
-  Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0),
-  Ux_(model["encoder_r_Ux"])
-{}
 
 //////////////////////////////////////////////////////////////////////////////
 
 Weights::DecInit::DecInit(const NpzConverter& model)
 : Wi_(model["ff_state_W"]),
   Bi_(model("ff_state_b", true))
-{}
-
-Weights::DecGRU1::DecGRU1(const NpzConverter& model)
-: W_(model["decoder_W"]),
-  B_(model("decoder_b", true)),
-  U_(model["decoder_U"]),
-  Wx_(model["decoder_Wx"]),
-  Bx1_(model("decoder_bx", true)),
-  Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0),
-  Ux_(model["decoder_Ux"])
 {}
 
 Weights::DecGRU2::DecGRU2(const NpzConverter& model)
@@ -76,11 +56,11 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 
 Weights::Weights(const NpzConverter& model, size_t device)
 : encEmbeddings_(model, "Wemb"),
-encForwardGRU_(model),
-encBackwardGRU_(model),
+encForwardGRU_(model, {"encoder_W", "encoder_b", "encoder_U", "encoder_Wx", "encoder_bx", "encoder_Ux"}),
+encBackwardGRU_(model, {"encoder_r_W", "encoder_r_b", "encoder_r_U", "encoder_r_Wx", "encoder_r_bx", "encoder_r_Ux"}),
 decEmbeddings_(model, "Wemb_dec"),
 decInit_(model),
-decGru1_(model),
+decGru1_(model, {"decoder_W", "decoder_b", "decoder_U", "decoder_Wx", "decoder_bx", "decoder_Ux"}),
 decGru2_(model),
 decAttention_(model),
 decSoftmax_(model),

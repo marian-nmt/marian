@@ -7,6 +7,7 @@
 #include "scorer.h"
 #include "loader.h"
 #include "dl4mt.h"
+#include "god.h"
 
 #include "threadpool.h"
 

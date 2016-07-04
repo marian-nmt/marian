@@ -281,7 +281,7 @@ class Decoder {
     mblas::Matrix AlignedSourceContext_;  
     
     Embeddings<Weights::Embeddings> embeddings_;
-    RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
+    RNNHidden<Weights::DecInit, Weights::GRU> rnn1_;
     RNNFinal<Weights::DecGRU2> rnn2_;
     Attention<Weights::DecAttention> attention_;
     Softmax<Weights::DecSoftmax> softmax_;
