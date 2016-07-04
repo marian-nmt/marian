@@ -11,8 +11,8 @@ struct Weights {
   
   //////////////////////////////////////////////////////////////////////////////
   
-  struct EncEmbeddings {
-    EncEmbeddings(const NpzConverter& model);
+  struct Embeddings {
+    Embeddings(const NpzConverter& model, const std::string &key);
     
     const mblas::Matrix E_;
   };
@@ -43,12 +43,6 @@ struct Weights {
   
   //////////////////////////////////////////////////////////////////////////////
   
-  struct DecEmbeddings {
-    DecEmbeddings(const NpzConverter& model);
-    
-    const mblas::Matrix E_;
-  };
-
   struct DecInit {
     DecInit(const NpzConverter& model);
     
@@ -115,8 +109,8 @@ struct Weights {
     return device_;
   }
   
-  const EncEmbeddings encEmbeddings_;
-  const DecEmbeddings decEmbeddings_;
+  const Embeddings encEmbeddings_;
+  const Embeddings decEmbeddings_;
   const EncForwardGRU encForwardGRU_;
   const EncBackwardGRU encBackwardGRU_;
   const DecInit decInit_;

@@ -280,7 +280,7 @@ class Decoder {
     mblas::Matrix HiddenState_;
     mblas::Matrix AlignedSourceContext_;  
     
-    Embeddings<Weights::DecEmbeddings> embeddings_;
+    Embeddings<Weights::Embeddings> embeddings_;
     RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
     RNNFinal<Weights::DecGRU2> rnn2_;
     Attention<Weights::DecAttention> attention_;

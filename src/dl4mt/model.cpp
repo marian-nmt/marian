@@ -2,8 +2,8 @@
 
 using namespace std;
 
-Weights::EncEmbeddings::EncEmbeddings(const NpzConverter& model)
-: E_(model["Wemb"])
+Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
+: E_(model[key])
 {}
 
 Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)
@@ -27,10 +27,6 @@ Weights::EncBackwardGRU::EncBackwardGRU(const NpzConverter& model)
 {}
 
 //////////////////////////////////////////////////////////////////////////////
-
-Weights::DecEmbeddings::DecEmbeddings(const NpzConverter& model)
-: E_(model["Wemb_dec"])
-{}
 
 Weights::DecInit::DecInit(const NpzConverter& model)
 : Wi_(model["ff_state_W"]),
@@ -79,10 +75,10 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 //////////////////////////////////////////////////////////////////////////////
 
 Weights::Weights(const NpzConverter& model, size_t device)
-: encEmbeddings_(model),
+: encEmbeddings_(model, "Wemb"),
 encForwardGRU_(model),
 encBackwardGRU_(model),
-decEmbeddings_(model),
+decEmbeddings_(model, "Wemb_dec"),
 decInit_(model),
 decGru1_(model),
 decGru2_(model),
