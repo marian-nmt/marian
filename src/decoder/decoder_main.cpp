@@ -2,7 +2,10 @@
 #include <iostream>
 #include <string>
 #include <boost/timer/timer.hpp>
+
+#ifdef __APPLE__
 #include <boost/thread/tss.hpp>
+#endif
 
 #include "god.h"
 #include "logging.h"
@@ -11,6 +14,7 @@
 #include "printer.h"
 #include "sentence.h"
 
+#ifdef __APPLE__
 History TranslationTask(const std::string& in, size_t taskCounter) {
   static boost::thread_specific_ptr<Search> s_search;
   Search *search = s_search.get();
@@ -23,6 +27,17 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
   
   return search->Decode(Sentence(taskCounter, in));  
 }
+#else
+History TranslationTask(const std::string& in, size_t taskCounter) {
+  thread_local std::unique_ptr<Search> search;
+  if(!search) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    search.reset(new Search(taskCounter));
+  }
+
+  return search->Decode(Sentence(taskCounter, in));
+}
+#endif
 
 extern "C" 
 {
