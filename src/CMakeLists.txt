@@ -19,6 +19,7 @@ add_library(libcommon OBJECT
 
 add_library(libamun OBJECT
   decoder/god.cpp
+  decoder/search.cpp
   decoder/sentence.cpp
   decoder/config.cpp
   decoder/history.cpp

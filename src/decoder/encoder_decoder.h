@@ -33,6 +33,7 @@ class EncoderDecoderState : public State {
     mblas::Matrix embeddings_;
 };
 
+//////////////////////////////////////////////////////////////
 class EncoderDecoder : public Scorer {
   private:
     typedef EncoderDecoderState EDState;
@@ -118,6 +119,7 @@ class EncoderDecoder : public Scorer {
     mblas::Matrix SourceContext_;
 };
 
+//////////////////////////////////////////////////////////////
 class EncoderDecoderLoader : public Loader {
   public:
     EncoderDecoderLoader(const std::string name,

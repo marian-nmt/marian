@@ -161,6 +161,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/decoder_main.cpp</locationURI>
 		</link>
 		<link>
+			<name>decoder/encoder_decoder.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/encoder_decoder.cpp</locationURI>
+		</link>
+		<link>
 			<name>decoder/encoder_decoder.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/encoder_decoder.h</locationURI>
@@ -229,6 +234,11 @@
 			<name>decoder/scorer.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/scorer.h</locationURI>
+		</link>
+		<link>
+			<name>decoder/search.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/decoder/search.cpp</locationURI>
 		</link>
 		<link>
 			<name>decoder/search.h</name>

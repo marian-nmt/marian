@@ -34,6 +34,7 @@ class Decoder {
         const Weights& w_;
     };
     
+    //////////////////////////////////////////////////////////////
     template <class Weights1, class Weights2>
     class RNNHidden {
       public:
@@ -71,6 +72,7 @@ class Decoder {
         mblas::Matrix Temp2_;
     };
     
+    //////////////////////////////////////////////////////////////
     template <class Weights>
     class RNNFinal {
       public:
@@ -87,6 +89,7 @@ class Decoder {
         const GRU<Weights> gru_;
     };
         
+    //////////////////////////////////////////////////////////////
     template <class Weights>
     class Attention {
       public:
@@ -134,6 +137,7 @@ class Decoder {
         mblas::Matrix Sums_;
     };
     
+    //////////////////////////////////////////////////////////////
     template <class Weights>
     class Softmax {
       public:
