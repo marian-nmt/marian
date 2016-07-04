@@ -90,5 +90,5 @@ decAttention_(model),
 decSoftmax_(model),
 device_(device)
 {
-	cerr << encEmbeddings_.E_ << endl;
+	cerr << *this << endl;
 }

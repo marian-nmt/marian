@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <map>
 #include <string>
 
@@ -126,3 +127,20 @@ struct Weights {
   
   const size_t device_;
 };
+
+inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
+{
+	out << "encEmbeddings_.E_ =" << obj.encEmbeddings_.E_ << std::endl;
+	out << "decEmbeddings_.E_ =" << obj.decEmbeddings_.E_ << std::endl;
+
+	out << "encForwardGRU_.W_ =" << obj.encForwardGRU_.W_ << std::endl;
+	out << "encForwardGRU_.B_ =" << obj.encForwardGRU_.B_ << std::endl;
+	out << "encForwardGRU_.U_ =" << obj.encForwardGRU_.U_ << std::endl;
+	out << "encForwardGRU_.Wx_ =" << obj.encForwardGRU_.Wx_ << std::endl;
+	out << "encForwardGRU_.Bx1_ =" << obj.encForwardGRU_.Bx1_ << std::endl;
+	out << "encForwardGRU_.Bx2_ =" << obj.encForwardGRU_.Bx2_ << std::endl;
+	out << "encForwardGRU_.Ux_ =" << obj.encForwardGRU_.Ux_ << std::endl;
+
+	return out;
+}
+
