@@ -154,7 +154,7 @@ void debug1(const M& m, size_t pos = 0, size_t l = 5) {
 template <class VecType>
 std::ostream& operator<<(std::ostream &out, const TMatrix<VecType> &m)
 {
-  out << m.Rows() << " " << m.Cols() << " " << typeid(VecType).name();
+  out << m.Rows() << "\t" << m.Cols() << "\t" << typeid(VecType).name();
 
   return out;
 }
