@@ -66,5 +66,5 @@ decAttention_(model),
 decSoftmax_(model),
 device_(device)
 {
-	cerr << *this << endl;
+	//cerr << *this << endl;
 }
