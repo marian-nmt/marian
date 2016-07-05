@@ -150,9 +150,9 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
-  
+
   std::vector<size_t> devices;
-  
+
   general.add_options()
     ("config,c", po::value(&configPath),
      "Configuration file")
@@ -185,14 +185,14 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
      "Normalize scores by translation length after decoding")
-    ("softmax-filter,f", po::value<bool>()->zero_tokens()->default_value(false),
-     "Filter final softmax")
+    ("softmax-filter,f", po::value<std::vector<std::string>>()->multitoken(),
+     "Filter final softmax: path to file with alignment [N first words]")
     ("allow-unk,u", po::value<bool>()->zero_tokens()->default_value(false),
      "Allow generation of UNK")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
      "Output n-best list with n = beam-size")
   ;
-  
+
   po::options_description configuration("Configuration meta options");
   configuration.add_options()
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -238,7 +238,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   // Simple overwrites
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
-  SET_OPTION("softmax-filter", bool);
+  SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads", size_t);

@@ -12,6 +12,7 @@ add_library(libcommon OBJECT
   cnpy/cnpy.cpp
   common/utils.cpp
   common/exception.cpp
+  common/filter.cpp
   mblas/matrix.cpp
   mblas/phoenix_functions.cpp
   dl4mt/encoder.cpp
