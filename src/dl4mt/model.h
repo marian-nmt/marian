@@ -176,6 +176,8 @@ inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
 
 	out << "\n decSoftmax_ \n" << obj.decSoftmax_ << std::endl;
 
+	//Debug2(obj.encEmbeddings_.E_);
+
 	return out;
 }
 

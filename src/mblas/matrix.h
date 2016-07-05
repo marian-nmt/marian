@@ -136,10 +136,10 @@ typedef std::vector<float> FVec;
 typedef std::vector<unsigned int> IVec;
 
 typedef TMatrix<FVec> Matrix;
-typedef TMatrix<IVec> IMatrix;
+//typedef TMatrix<IVec> IMatrix;
 
 template <class M>
-void debug1(const M& m, size_t pos = 0, size_t l = 5) {
+void Debug(const M& m, size_t pos = 0, size_t l = 5) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
   for(size_t i = 0; i < m.Rows(); ++i) {
     for(size_t j = pos; j < m.Cols() && j < pos + l; ++j) {
@@ -151,10 +151,21 @@ void debug1(const M& m, size_t pos = 0, size_t l = 5) {
   }
 }
 
+template <class M>
+void Debug2(const M& m) {
+  std::cerr << m.Rows() << " " << m.Cols() << std::endl;
+  for(size_t i = 0; i < m.Rows(); ++i) {
+    for(size_t j = 0; j < m.Cols(); ++j) {
+      std::cerr << m(i, j) << " ";
+    }
+    std::cerr << std::endl;
+  }
+}
+
 template <class VecType>
 std::ostream& operator<<(std::ostream &out, const TMatrix<VecType> &m)
 {
-  out << m.Rows() << "\t" << m.Cols() << "\t" << typeid(VecType).name();
+  out << m.Rows() << "\t" << m.Cols() << "\t" << typeid(typename VecType::value_type).name();
 
   return out;
 }
