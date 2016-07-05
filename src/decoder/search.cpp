@@ -1,89 +1,84 @@
 #include "search.h"
 
+size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
+  std::vector<size_t> filterIds;
+  filterIds = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
+  for (size_t i = 0; i < filterIds.size(); ++i) {
+    filterMap_[filterIds[i]] = i;
+  }
+  for(size_t i = 0; i < scorers_.size(); i++) {
+      scorers_[i]->Filter(filterIds);
+  }
+  return filterIds.size();
+}
+
 History Search::Decode(const Sentence& sentence)
 {
-    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
-    size_t beamSize = God::Get<size_t>("beam-size");
-    bool normalize = God::Get<bool>("normalize");
-    bool filter = God::Get<bool>("softmax-filter");
+  size_t beamSize = God::Get<size_t>("beam-size");
+  bool normalize = God::Get<bool>("normalize");
 
-    History history;
+  History history;
 
-    Beam prevHyps = { history.NewHypothesis() };
-    history.Add(prevHyps);
+  Beam prevHyps = { history.NewHypothesis() };
+  history.Add(prevHyps);
 
-    /*
-    std::cerr << "SCORERS:" << std::endl;
-    for (auto scorer: scorers_) {
-  	  std::cerr << scorer->GetName() << std::endl;
-    }
-	  */
+  States states(scorers_.size());
+  States nextStates(scorers_.size());
+  Probs probs(scorers_.size());
 
-    States states(scorers_.size());
-    States nextStates(scorers_.size());
-    Probs probs(scorers_.size());
+  size_t vocabSize = scorers_[0]->GetVocabSize();
 
-    size_t vocabSize = scorers_[0]->GetVocabSize();
-    //std::cerr << "beamSize=" << beamSize << " vocabSize=" << vocabSize << std::endl;
+  bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+  if(filter) {
+    vocabSize = MakeFilter(sentence.GetWords(), vocabSize);
+  }
 
-    std::vector<size_t> filterIds;
-    if(filter) {
-      MakeFilter(filterIds, sentence, vocabSize);
-      vocabSize = filterIds.size();
-    }
+  for(size_t i = 0; i < scorers_.size(); i++) {
+    scorers_[i]->SetSource(sentence);
 
-    for(size_t i = 0; i < scorers_.size(); i++) {
-      scorers_[i]->SetSource(sentence);
-      if(filter)
-        scorers_[i]->Filter(filterIds);
+    states[i].reset(scorers_[i]->NewState());
+    nextStates[i].reset(scorers_[i]->NewState());
 
-      states[i].reset(scorers_[i]->NewState());
-      nextStates[i].reset(scorers_[i]->NewState());
+    scorers_[i]->BeginSentenceState(*states[i]);
+  }
 
-      scorers_[i]->BeginSentenceState(*states[i]);
+  const size_t maxLength = sentence.GetWords().size() * 3;
+  do {
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      probs[i].Resize(beamSize, vocabSize);
+      scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
     }
 
-    const size_t maxLength = sentence.GetWords().size() * 3;
-    do {
-      for(size_t i = 0; i < scorers_.size(); i++) {
-        Prob &prob = probs[i];
-        prob.Resize(beamSize, vocabSize);
+    Beam hyps;
+    BestHyps(hyps, prevHyps, probs, beamSize, history);
+    history.Add(hyps, history.size() == maxLength);
 
-        //debug1(prob);
-        //std::cerr << std::endl;
+    Beam survivors;
+    for(auto h : hyps) {
+      if(h->GetWord() != EOS)
+        survivors.push_back(h);
+    }
+    beamSize = survivors.size();
+    if(beamSize == 0)
+      break;
 
-        scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
-      }
+    for(size_t i = 0; i < scorers_.size(); i++)
+      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
 
-      Beam hyps;
-      BestHyps(hyps, prevHyps, probs, beamSize, history);
-      history.Add(hyps, history.size() == maxLength);
+    prevHyps.swap(survivors);
 
-      Beam survivors;
-      for(auto h : hyps)
-        if(h->GetWord() != EOS)
-          survivors.push_back(h);
-      beamSize = survivors.size();
-      if(beamSize == 0)
-        break;
+  } while(history.size() <= maxLength);
 
-      for(size_t i = 0; i < scorers_.size(); i++)
-        scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> fp_s = end - start;
+  LOG(progress) << "Line " << sentence.GetLine()
+    << ": Search took " << fp_s.count()
+    << "s";
 
-      prevHyps.swap(survivors);
-
-    } while(history.size() <= maxLength);
-
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> fp_s = end - start;
-    LOG(progress) << "Line " << sentence.GetLine()
-      << ": Search took " << fp_s.count()
-      << "s";
-
-    for(auto&& scorer : scorers_)
-      scorer->CleanUpAfterSentence();
-    return history;
+  CleanUp();
+  return history;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -150,8 +145,14 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
     }
   }
 
+  bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
   for(size_t i = 0; i < beamSize; i++) {
     size_t wordIndex = bestKeys[i] % Probs.Cols();
+
+    if (filter) {
+      wordIndex = filterMap_[wordIndex];
+    }
+
     size_t hypIndex  = bestKeys[i] / Probs.Cols();
     float cost = bestCosts[i];
 
@@ -178,5 +179,12 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
       hyp->GetCostBreakdown()[0] /= weights[scorers_[0]->GetName()];
     }
     bestHyps.push_back(hyp);
+  }
+}
+
+void Search::CleanUp() {
+  filterMap_.clear();
+  for(auto&& scorer : scorers_) {
+    scorer->CleanUpAfterSentence();
   }
 }
