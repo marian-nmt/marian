@@ -14,6 +14,7 @@ add_library(libcommon OBJECT
   common/exception.cpp
   mblas/matrix.cpp
   mblas/phoenix_functions.cpp
+  dl4mt/encoder.cpp
   dl4mt/gru.cpp
   dl4mt/model.cpp
 )

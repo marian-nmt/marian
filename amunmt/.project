@@ -266,6 +266,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/dl4mt.h</locationURI>
 		</link>
 		<link>
+			<name>dl4mt/encoder.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/encoder.cpp</locationURI>
+		</link>
+		<link>
 			<name>dl4mt/encoder.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/encoder.h</locationURI>

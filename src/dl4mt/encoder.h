@@ -6,6 +6,8 @@
  
 class Encoder {
   private:
+
+	/////////////////////////////////////////////////////////////////
     template <class Weights>
     class Embeddings {
       public:
@@ -25,6 +27,7 @@ class Encoder {
         const Weights& w_;
     };
     
+    /////////////////////////////////////////////////////////////////
     template <class Weights>
     class RNN {
       public:
@@ -71,6 +74,7 @@ class Encoder {
         mblas::Matrix State_;
     };
     
+  /////////////////////////////////////////////////////////////////
   public:
     Encoder(const Weights& model)
     : embeddings_(model.encEmbeddings_),
@@ -79,21 +83,7 @@ class Encoder {
     {}
     
     void GetContext(const std::vector<size_t>& words,
-                    mblas::Matrix& context) {
-      std::vector<mblas::Matrix> embeddedWords;
-      
-      context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
-      for(auto& w : words) {
-        embeddedWords.emplace_back();
-        embeddings_.Lookup(embeddedWords.back(), w);
-      }
-      forwardRnn_.GetContext(embeddedWords.cbegin(),
-                             embeddedWords.cend(),
-                             context, false);
-      backwardRnn_.GetContext(embeddedWords.crbegin(),
-                              embeddedWords.crend(),
-                              context, true);
-    }
+                    mblas::Matrix& context);
     
   private:
     Embeddings<Weights::Embeddings> embeddings_;
