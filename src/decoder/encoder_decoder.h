@@ -4,31 +4,32 @@
 #include <yaml-cpp/yaml.h>
 
 #include "matrix.h"
-#include "scorer.h"
-#include "loader.h"
+#include "decoder/scorer.h"
+#include "decoder/loader.h"
 #include "dl4mt.h"
-#include "god.h"
+#include "decoder/god.h"
 
-#include "threadpool.h"
+#include "common/threadpool.h"
+#include "decoder/sentence.h"
 
 class EncoderDecoderState : public State {
   public:
     mblas::Matrix& GetStates() {
       return states_;
     }
-    
+
     mblas::Matrix& GetEmbeddings() {
       return embeddings_;
     }
-  
+
     const mblas::Matrix& GetStates() const {
       return states_;
     }
-    
+
     const mblas::Matrix& GetEmbeddings() const {
       return embeddings_;
     }
-  
+
   private:
     mblas::Matrix states_;
     mblas::Matrix embeddings_;
@@ -38,7 +39,7 @@ class EncoderDecoderState : public State {
 class EncoderDecoder : public Scorer {
   private:
     typedef EncoderDecoderState EDState;
-    
+
   public:
     EncoderDecoder(const std::string& name,
                    const YAML::Node& config,
@@ -47,22 +48,22 @@ class EncoderDecoder : public Scorer {
     : Scorer(name, config, tab), model_(model),
       encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
     {}
-    
+
     virtual void Score(const State& in,
                        Prob& prob,
                        State& out) {
       const EDState& edIn = in.get<EDState>();
       EDState& edOut = out.get<EDState>();
-      
+
       decoder_->MakeStep(edOut.GetStates(), prob,
                         edIn.GetStates(), edIn.GetEmbeddings(),
                         SourceContext_);
     }
-    
+
     virtual State* NewState() {
-      return new EDState(); 
+      return new EDState();
     }
-    
+
     virtual void BeginSentenceState(State& state) {
       EDState& edState = state.get<EDState>();
       decoder_->EmptyState(edState.GetStates(), SourceContext_, 1);
@@ -73,7 +74,7 @@ class EncoderDecoder : public Scorer {
       encoder_->GetContext(source.GetWords(tab_),
                            SourceContext_);
     }
-    
+
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
                                    State& out) {
@@ -83,27 +84,27 @@ class EncoderDecoder : public Scorer {
          beamWords.push_back(h->GetWord());
          beamStateIds.push_back(h->GetPrevStateIndex());
       }
-      
+
       const EDState& edIn = in.get<EDState>();
       EDState& edOut = out.get<EDState>();
-      
+
       mblas::Assemble(edOut.GetStates(),
                       edIn.GetStates(), beamStateIds);
       decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
     }
-    
+
     void GetAttention(mblas::Matrix& Attention) {
       decoder_->GetAttention(Attention);
     }
-    
+
     size_t GetVocabSize() const {
       return decoder_->GetVocabSize();
     }
-    
+
     void Filter(const std::vector<size_t>& filterIds) {
-      decoder_->Filter(filterIds);  
+      decoder_->Filter(filterIds);
     }
-    
+
     Encoder& GetEncoder() {
       return *encoder_;
     }
@@ -111,12 +112,12 @@ class EncoderDecoder : public Scorer {
     Decoder& GetDecoder() {
       return *decoder_;
     }
-    
+
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    
+
     mblas::Matrix SourceContext_;
 };
 
@@ -126,13 +127,13 @@ class EncoderDecoderLoader : public Loader {
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config)
      : Loader(name, config) {}
-   
+
     virtual void Load() {
       std::string path = Get<std::string>("path");
       auto devices = God::Get<std::vector<size_t>>("devices");
       ThreadPool devicePool(devices.size());
       weights_.resize(devices.size());
-      
+
       size_t i = 0;
       for(auto d : devices) {
         devicePool.enqueue([i, d, &path, this] {
@@ -142,7 +143,7 @@ class EncoderDecoderLoader : public Loader {
         ++i;
       }
     }
-  
+
     virtual ScorerPtr NewScorer(size_t taskId) {
       size_t i = taskId % weights_.size();
       size_t d = weights_[i]->GetDevice();
@@ -150,7 +151,7 @@ class EncoderDecoderLoader : public Loader {
       return ScorerPtr(new EncoderDecoder(name_, config_,
                                           tab, *weights_[i]));
     }
-    
+
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
 };

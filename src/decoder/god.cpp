@@ -68,9 +68,9 @@ God& God::NonStaticInit(int argc, char** argv) {
     Filter* filter = nullptr;
     if (filterOptions.size() >= 2) {
       const size_t numNFirst = stoi(filterOptions[1]);
-      filter = new Filter(alignmentFile, numNFirst);
+      filter = new Filter(GetTargetVocab(), alignmentFile, numNFirst);
     } else {
-      filter = new Filter(alignmentFile);
+      filter = new Filter(GetTargetVocab(), alignmentFile);
     }
     filter_.reset(filter);
   }

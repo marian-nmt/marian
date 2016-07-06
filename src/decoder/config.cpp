@@ -25,7 +25,7 @@ YAML::Node& Config::Get() {
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
   std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab"};
-  
+
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
       std::string nodePath = node.as<std::string>();
@@ -48,7 +48,7 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
           ProcessPaths(sub.second, configPath, paths.count(key) > 0);
         }
         break;
-    } 
+    }
   }
 }
 
@@ -74,20 +74,20 @@ void OverwriteTargetVocab(YAML::Node& config, std::string& targetVocabPath) {
 void Validate(const YAML::Node& config) {
   UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
                  "No scorers given in config file");
-  
+
   UTIL_THROW_IF2(!config["source-vocab"],
                  "No source-vocab given in config file");
-  
+
   UTIL_THROW_IF2(!config["target-vocab"],
                  "No target-vocab given in config file");
-  
+
   UTIL_THROW_IF2(config["weights"].size() != config["scorers"].size(),
                 "Different number of models and weights in config file");
-  
+
   for(auto&& pair: config["weights"])
     UTIL_THROW_IF2(!(config["scorers"][pair.first.as<std::string>()]),
                    "Weight has no scorer: " << pair.first.as<std::string>());
-    
+
   for(auto&& pair: config["scorers"])
     UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
 }
@@ -135,7 +135,7 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
   while(fweights >> name >> weight) {
     if(name.back() == '=')
       name.pop_back();
-    LOG(info) << " > " << name << "= " << weight; 
+    LOG(info) << " > " << name << "= " << weight;
     config["weights"][name] = weight;
     i++;
   }
@@ -211,7 +211,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   cmdline_options.add(general);
   cmdline_options.add(search);
   cmdline_options.add(configuration);
-  
+
   po::variables_map vm_;
   try {
     po::store(po::command_line_parser(argc,argv)
@@ -231,10 +231,10 @@ void Config::AddOptions(size_t argc, char** argv) {
     std::cerr << cmdline_options << std::endl;
     exit(0);
   }
-  
+
   if(configPath.size())
     config_ = YAML::Load(InputFileStream(configPath));
-   
+
   // Simple overwrites
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
@@ -249,7 +249,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("relative-paths", bool);
 
   // @TODO: Apply complex overwrites
-  
+
   if(Has("load-weights")) {
     LoadWeights(config_, Get<std::string>("load-weights"));
   }
@@ -257,7 +257,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   if(modelPaths.size()) {
     OverwriteModels(config_, modelPaths);
   }
-  
+
   if(sourceVocabPaths.size()) {
     OverwriteSourceVocabs(config_, sourceVocabPaths);
   }
@@ -265,11 +265,11 @@ void Config::AddOptions(size_t argc, char** argv) {
   if(targetVocabPath.size()) {
     OverwriteTargetVocab(config_, targetVocabPath);
   }
-  
+
   if(Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
   Validate(config_);
-  
+
   if(vm_["dump-config"].as<bool>()) {
     YAML::Emitter emit;
     OutputRec(config_, emit);

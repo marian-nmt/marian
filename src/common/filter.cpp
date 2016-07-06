@@ -15,15 +15,14 @@
 
 Filter::Filter(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}
 
-Filter::Filter(const std::string& path, const size_t numFirstWords)
+Filter::Filter(const Vocab& vocab, const std::string& path, const size_t numFirstWords)
   : numFirstWords_(numFirstWords),
-    mapper_(ParseAlignmentFile(path)) {}
+    mapper_(ParseAlignmentFile(vocab, path)) {}
 
-std::vector<Words> Filter::ParseAlignmentFile(const std::string& path) {
+std::vector<Words> Filter::ParseAlignmentFile(const Vocab& vocab, const std::string& path) {
   std::vector<Words> mapper;
   std::fstream filterFile(path);
   std::string line;
-  Vocab& trgVocab = God::GetTargetVocab();
   while (std::getline(filterFile, line)) {
     Trim(line);
     if (line.size() == 0) {
@@ -34,7 +33,7 @@ std::vector<Words> Filter::ParseAlignmentFile(const std::string& path) {
     Split(line, tokens);
     Words words;
     for (auto& token : tokens) {
-      words.push_back(trgVocab[token]);
+      words.push_back(vocab[token]);
     }
 
     mapper.push_back(words);

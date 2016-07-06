@@ -5,7 +5,7 @@
 
 #include "exception.h"
 #include "scorer.h"
-#include "encoder_decoder.h"
+#include "encoder_decoder/encoder_decoder_loader.h"
 #include "ape_penalty.h"
 
 #ifdef KENLM
@@ -27,12 +27,12 @@ class LoaderFactory {
                             const YAML::Node& config) {
       UTIL_THROW_IF2(!config["type"],
                      "Missing scorer type in config file");
-      
+
       auto type = config["type"].as<std::string>();
       IF_MATCH_RETURN(type, "Nematus", EncoderDecoderLoader);
       IF_MATCH_RETURN(type, "nematus", EncoderDecoderLoader);
       IF_MATCH_RETURN(type, "NEMATUS", EncoderDecoderLoader);
-      
+
       IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
       IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
       IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
