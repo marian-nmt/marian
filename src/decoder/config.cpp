@@ -185,7 +185,7 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
      "Normalize scores by translation length after decoding")
-    ("softmax-filter,f", po::value<std::vector<std::string>>()->multitoken(),
+    ("softmax-filter,f", po::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(0), ""),
      "Filter final softmax: path to file with alignment [N first words]")
     ("allow-unk,u", po::value<bool>()->zero_tokens()->default_value(false),
      "Allow generation of UNK")
