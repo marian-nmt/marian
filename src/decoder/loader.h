@@ -19,7 +19,7 @@ class Loader {
     bool Has(const std::string& key) {
       return config_[key];
     }
-    
+
     template <typename T>
     T Get(const std::string& key) {
       return config_[key].as<T>();
@@ -30,7 +30,7 @@ class Loader {
     const std::string& GetName() {
       return name_;
     }
-    
+
   protected:
     const std::string name_;
     const YAML::Node config_;

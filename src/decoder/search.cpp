@@ -1,10 +1,25 @@
 #include "search.h"
 
+#include <memory>
+#include <chrono>
+#include <vector>
+#include <boost/iterator/permutation_iterator.hpp>
+
+#include "decoder/god.h"
+#include "decoder/sentence.h"
+#include "decoder/history.h"
+#include "encoder_decoder/encoder_decoder.h"
+#include "common/filter.h"
+
+Search::Search(size_t threadId)
+  : scorers_(God::GetScorers(threadId)),
+    filterIndices_(scorers_[0]->GetVocabSize()) {}
+
 size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
-  std::vector<size_t> filterIds;
+  Words filterIds;
   filterIds = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < filterIds.size(); ++i) {
-    filterMap_[filterIds[i]] = i;
+    filterIndices_[filterIds[i]] = i;
   }
   for(size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIds);
@@ -150,7 +165,7 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
     size_t wordIndex = bestKeys[i] % Probs.Cols();
 
     if (filter) {
-      wordIndex = filterMap_[wordIndex];
+      wordIndex = filterIndices_[wordIndex];
     }
 
     size_t hypIndex  = bestKeys[i] / Probs.Cols();
@@ -183,7 +198,6 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 }
 
 void Search::CleanUp() {
-  filterMap_.clear();
   for(auto&& scorer : scorers_) {
     scorer->CleanUpAfterSentence();
   }
