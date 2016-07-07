@@ -44,7 +44,7 @@ def main():
     args = parse_args()
     src = args.model.split('-')[0]
     trg = args.model.split('-')[1]
-    workdir = os.path.realpath(args.workdir)
+    workdir = os.path.abspath(args.workdir)
     force = args.force
 
     print >> sys.stderr,  "Downloading {} to {}".format(args.model,
