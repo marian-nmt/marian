@@ -8,7 +8,7 @@ class History;
 class Search {
   private:
     std::vector<ScorerPtr> scorers_;
-    std::vector<Word> filterIndices_;
+    Words filterIndices_;
 
   public:
     Search(size_t threadId);

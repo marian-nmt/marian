@@ -66,15 +66,27 @@ God& God::NonStaticInit(int argc, char** argv) {
     auto filterOptions = Get<std::vector<std::string>>("softmax-filter");
     std::string alignmentFile = filterOptions[0];
     Filter* filter = nullptr;
-    if (filterOptions.size() >= 2) {
+    if (filterOptions.size() >= 3) {
       const size_t numNFirst = stoi(filterOptions[1]);
-      filter = new Filter(GetTargetVocab(), alignmentFile, numNFirst);
+      const size_t maxNumTranslation = stoi(filterOptions[2]);
+      filter = new Filter(GetSourceVocab(0),
+                          GetTargetVocab(),
+                          alignmentFile,
+                          numNFirst,
+                          maxNumTranslation);
+    } else if (filterOptions.size() == 2) {
+      const size_t numNFirst = stoi(filterOptions[1]);
+      filter = new Filter(GetSourceVocab(0),
+                          GetTargetVocab(),
+                          alignmentFile,
+                          numNFirst);
     } else {
-      filter = new Filter(GetTargetVocab(), alignmentFile);
+      filter = new Filter(GetSourceVocab(0),
+                          GetTargetVocab(),
+                          alignmentFile);
     }
     filter_.reset(filter);
   }
-
 
   return *this;
 }

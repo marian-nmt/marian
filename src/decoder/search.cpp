@@ -16,15 +16,11 @@ Search::Search(size_t threadId)
     filterIndices_(scorers_[0]->GetVocabSize()) {}
 
 size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
-  Words filterIds;
-  filterIds = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
-  for (size_t i = 0; i < filterIds.size(); ++i) {
-    filterIndices_[filterIds[i]] = i;
-  }
+  filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for(size_t i = 0; i < scorers_.size(); i++) {
-      scorers_[i]->Filter(filterIds);
+      scorers_[i]->Filter(filterIndices_);
   }
-  return filterIds.size();
+  return filterIndices_.size();
 }
 
 History Search::Decode(const Sentence& sentence)
