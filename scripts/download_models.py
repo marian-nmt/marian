@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import urllib
 import sys
 import os
 import requests
 from clint.textui import progress
+
 
 BASE_URL = "http://statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
 
@@ -14,8 +14,8 @@ def download_with_progress(path, url):
     r = requests.get(url, stream=True)
     with open(path, 'wb') as f:
         total_length = int(r.headers.get('content-length'))
-        for chunk in progress.bar(r.iter_content(chunk_size=1024),
-                                  expected_size=(total_length/1024) + 1):
+        for chunk in progress.bar(r.iter_content(chunk_size=(1024 ** 2)),
+                                  expected_size=(total_length/(1024 ** 2)) + 1):
             if chunk:
                 f.write(chunk)
                 f.flush()
@@ -35,6 +35,8 @@ def download_model(src, trg, workdir, force=False):
     download_file(src, trg, "model.npz", workdir, force)
     download_file(src, trg, "vocab.{}.json".format(src), workdir, force)
     download_file(src, trg, "vocab.{}.json".format(trg), workdir, force)
+    download_file(src, trg, "{}{}.".format(src, trg), workdir, force)
+    download_file(src, trg, "truecase-model.{}".format(src), workdir, force)
 
 
 def download_file(src, trg, name, workdir, force=False):
