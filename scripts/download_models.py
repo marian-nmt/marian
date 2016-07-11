@@ -7,8 +7,7 @@ import os
 import requests
 from clint.textui import progress
 
-
-BASE_URL = "http://statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
+BASE_URL = "http://data.statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
 
 def download_with_progress(path, url):
     r = requests.get(url, stream=True)
