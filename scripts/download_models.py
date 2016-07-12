@@ -34,7 +34,7 @@ def download_model(src, trg, workdir, force=False):
     download_file(src, trg, "model.npz", workdir, force)
     download_file(src, trg, "vocab.{}.json".format(src), workdir, force)
     download_file(src, trg, "vocab.{}.json".format(trg), workdir, force)
-    download_file(src, trg, "{}{}.".format(src, trg), workdir, force)
+    download_file(src, trg, "{}{}.bpe".format(src, trg), workdir, force)
     download_file(src, trg, "truecase-model.{}".format(src), workdir, force)
 
 
