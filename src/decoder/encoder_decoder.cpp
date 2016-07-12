@@ -1,4 +1,4 @@
-#include "encoder_decoder/encoder_decoder.h"
+#include "decoder/encoder_decoder.h"
 
 #include <vector>
 #include <yaml-cpp/yaml.h>
@@ -12,8 +12,21 @@
 #include "common/threadpool.h"
 #include "decoder/sentence.h"
 
-#include "encoder_decoder/encoder_decoder_state.h"
+mblas::Matrix& EncoderDecoderState::GetStates() {
+  return states_;
+}
 
+mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
+  return embeddings_;
+}
+
+const mblas::Matrix& EncoderDecoderState::GetStates() const {
+  return states_;
+}
+
+const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
+  return embeddings_;
+}
 
 using EDState = EncoderDecoderState;
 
@@ -89,5 +102,35 @@ Encoder& EncoderDecoder::GetEncoder() {
 
 Decoder& EncoderDecoder::GetDecoder() {
   return *decoder_;
+}
+
+
+
+EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
+                                           const YAML::Node& config)
+  : Loader(name, config) {}
+
+void EncoderDecoderLoader::Load() {
+  std::string path = Get<std::string>("path");
+  auto devices = God::Get<std::vector<size_t>>("devices");
+  ThreadPool devicePool(devices.size());
+  weights_.resize(devices.size());
+
+  size_t i = 0;
+  for(auto d : devices) {
+    devicePool.enqueue([i, d, &path, this] {
+      LOG(info) << "Loading model " << path;
+      weights_[i].reset(new Weights(path, d));
+    });
+    ++i;
+  }
+}
+
+ScorerPtr EncoderDecoderLoader::NewScorer(const size_t taskId) {
+  size_t i = taskId % weights_.size();
+  size_t d = weights_[i]->GetDevice();
+  size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
+  return ScorerPtr(new EncoderDecoder(name_, config_,
+                                      tab, *weights_[i]));
 }
 

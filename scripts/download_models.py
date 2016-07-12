@@ -2,11 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import urllib
 import sys
 import os
+import requests
+from clint.textui import progress
 
-BASE_URL = "http://statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
+BASE_URL = "http://data.statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
+
+def download_with_progress(path, url):
+    r = requests.get(url, stream=True)
+    with open(path, 'wb') as f:
+        total_length = int(r.headers.get('content-length'))
+        for chunk in progress.bar(r.iter_content(chunk_size=(1024 ** 2)),
+                                  expected_size=(total_length/(1024 ** 2)) + 1):
+            if chunk:
+                f.write(chunk)
+                f.flush()
 
 
 def parse_args():
@@ -23,6 +34,8 @@ def download_model(src, trg, workdir, force=False):
     download_file(src, trg, "model.npz", workdir, force)
     download_file(src, trg, "vocab.{}.json".format(src), workdir, force)
     download_file(src, trg, "vocab.{}.json".format(trg), workdir, force)
+    download_file(src, trg, "{}{}.bpe".format(src, trg), workdir, force)
+    download_file(src, trg, "truecase-model.{}".format(src), workdir, force)
 
 
 def download_file(src, trg, name, workdir, force=False):
@@ -30,11 +43,11 @@ def download_file(src, trg, name, workdir, force=False):
     if not os.path.exists(path):
         full_url = BASE_URL.format(src, trg, name)
         print >> sys.stderr, "Downloading: {} to {}".format(full_url, path)
-        urllib.urlretrieve(full_url, path)
+        download_with_progress(path, full_url)
     elif force:
         full_url = BASE_URL.format(src, trg, name)
         print >> sys.stderr, "Force downloading: {}".format(full_url)
-        urllib.urlretrieve(full_url, path)
+        download_with_progress(path, full_url)
     else:
         print >> sys.stderr, "File {} exists. Skipped".format(path)
 
@@ -46,6 +59,11 @@ def main():
     trg = args.model.split('-')[1]
     workdir = os.path.abspath(args.workdir)
     force = args.force
+
+    try:
+        os.makedirs(workdir)
+    except OSError:
+        pass
 
     print >> sys.stderr,  "Downloading {} to {}".format(args.model,
                                                         args.workdir)

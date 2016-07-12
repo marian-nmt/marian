@@ -1,7 +1,7 @@
 #include <chrono>
 
 #include "god.h"
-#include "encoder_decoder/encoder_decoder.h"
+#include "decoder/encoder_decoder.h"
 #include "decoder/sentence.h"
 #include "dl4mt.h"
 

@@ -8,7 +8,7 @@
 #include "decoder/god.h"
 #include "decoder/sentence.h"
 #include "decoder/history.h"
-#include "encoder_decoder/encoder_decoder.h"
+#include "decoder/encoder_decoder.h"
 #include "common/filter.h"
 
 Search::Search(size_t threadId)
