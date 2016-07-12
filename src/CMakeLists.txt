@@ -27,7 +27,7 @@ add_library(libamun OBJECT
   decoder/config.cpp
   decoder/history.cpp
   decoder/hypothesis.cpp
-  encoder_decoder/encoder_decoder.cpp
+  decoder/encoder_decoder.cpp
 )
 
 add_library(amunmt SHARED
