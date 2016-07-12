@@ -5,7 +5,7 @@
 
 #include "exception.h"
 #include "scorer.h"
-#include "encoder_decoder/encoder_decoder_loader.h"
+#include "decoder/encoder_decoder.h"
 #include "ape_penalty.h"
 
 #ifdef KENLM
