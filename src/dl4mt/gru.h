@@ -11,6 +11,7 @@ class SlowGRU {
                       const mblas::Matrix& State,
                       const mblas::Matrix& Context) const {
       using namespace mblas;
+      namespace bpp = boost::phoenix::placeholders;
       
       const size_t cols = GetStateLength();
       
@@ -27,16 +28,16 @@ class SlowGRU {
       // -----------------------------------------------------
       
       // @TODO: Organize into one kernel ---------------------
-      BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, RU_, w_.B_); // Broadcasting row-wise
-      Element(Logit(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), RU_, Temp1_);
+      BroadcastVec(bpp::_1 + bpp::_2, RU_, w_.B_); // Broadcasting row-wise
+      Element(Logit(bpp::_1 + bpp::_2), RU_, Temp1_);
       Slice(R_, RU_, 0, cols);
       Slice(U_, RU_, 1, cols);
       
-      BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, H_,    w_.Bx1_); // Broadcasting row-wise
-      BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, w_.Bx2_); // Broadcasting row-wise
+      BroadcastVec(bpp::_1 + bpp::_2, H_,    w_.Bx1_); // Broadcasting row-wise
+      BroadcastVec(bpp::_1 + bpp::_2, Temp2_, w_.Bx2_); // Broadcasting row-wise
       
-      Element(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2 * boost::phoenix::placeholders::_3), H_, R_, Temp2_);
-      Element((1.0 - boost::phoenix::placeholders::_1) * boost::phoenix::placeholders::_2 + boost::phoenix::placeholders::_1 * boost::phoenix::placeholders::_3, U_, H_, State);
+      Element(Tanh(bpp::_1 + bpp::_2 * bpp::_3), H_, R_, Temp2_);
+      Element((1.0 - bpp::_1) * bpp::_2 + bpp::_1 * bpp::_3, U_, H_, State);
       // -----------------------------------------------------
       
       Swap(NextState, U_);
