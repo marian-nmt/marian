@@ -142,6 +142,9 @@ class Decoder {
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
         {
+          const_cast<mblas::Matrix&>(w_.W1_).transposeInPlace();
+          const_cast<mblas::Matrix&>(w_.W2_).transposeInPlace();
+          const_cast<mblas::Matrix&>(w_.W3_).transposeInPlace();
           const_cast<mblas::Matrix&>(w_.W4_).transposeInPlace();
         }
           
@@ -151,21 +154,27 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
           
-          namespace bpp = boost::phoenix::placeholders;
-          
           size_t rows = State.rows();
-          auto t1 = (State * w_.W1_).rowwise() + w_.B1_;
-          auto t2 = (Embedding * w_.W2_).rowwise() + w_.B2_;
-          auto t3 = (AlignedSourceContext * w_.W3_).rowwise() + w_.B3_;
+          auto t1 = (w_.W1_ * State.transpose()).colwise() + w_.B1_.transpose();
+          auto t2 = (w_.W2_ * Embedding.transpose()).colwise() + w_.B2_.transpose();
+          auto t3 = (w_.W3_ * AlignedSourceContext.transpose()).colwise() + w_.B3_.transpose();
           auto t = (t1 + t2 + t3).unaryExpr(&tanhapprox);
           
-          if(!filtered_)
-            Probs.noalias() = (w_.W4_ * t.transpose()).colwise() + w_.B4_.transpose();
-          else
-            Probs.noalias() = (t *  FilteredW4_).rowwise() + w_.B4_;
-          
-          mblas::SoftmaxLog(Probs);
-          //Probs.transposeInPlace();
+          //if(!filtered_)
+            Probs.noalias() = ((w_.W4_ * t).colwise() + w_.B4_.transpose()).unaryExpr(&expapprox);
+            Matrix denoms = Probs.colwise().sum();
+            for(size_t i = 0; i < Probs.cols(); ++i)
+              Probs.col(i) /= denoms(i);
+            Probs = Probs.unaryExpr(&logapprox);
+          //else
+            //Probs.noalias() = (t *  FilteredW4_).rowwise() + w_.B4_;
+
+          //mblas::SoftmaxLog(Probs);
+          //auto nums = Probs.unaryExpr(&expapprox);
+          //auto denoms = nums.colwise().sum();
+          //
+          //for(size_t i = 0; i < nums.cols(); ++i)
+          //  Probs.col(i) = (nums.col(i) / denoms(i)).unaryExpr(&logapprox);
         }
     
         void Filter(const std::vector<size_t>& ids) {

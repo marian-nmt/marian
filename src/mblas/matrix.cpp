@@ -47,6 +47,7 @@ Matrix& Slice(Matrix& Out,
 
 Matrix& Softmax(Matrix& Out) {
   float sum[Out.rows()];
+  #pragma omp for schedule(dynamic, 10)
   for(int j = 0; j < Out.rows(); ++j) {
     sum[j] = 0;
     for(int i = 0; i < Out.cols(); ++i) {

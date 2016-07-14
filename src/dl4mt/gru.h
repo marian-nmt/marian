@@ -112,6 +112,7 @@ class FastGRU {
       
       size_t shift = cols * rows;
       
+      #pragma omp for schedule(dynamic, 100)
       for(int j = 0; j < cols; ++j) {
         float* colOut = out + j * rows;
         const float* colR = ruh + j * rows;

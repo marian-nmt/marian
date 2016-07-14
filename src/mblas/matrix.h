@@ -72,6 +72,7 @@ Matrix& Broadcast(Functor functor, M1& Out, const M2& In) {
 
   Matrix Temp(rows, cols);
   
+  #pragma omp for schedule(dynamic, 10)
   for(size_t j = 0; j < cols; ++j) {
     const float* colOut = Out.data() + j * rows1;
     const float* colIn = In.data() + j * rows2;
