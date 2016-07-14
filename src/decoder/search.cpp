@@ -58,7 +58,7 @@ History Search::Decode(const Sentence& sentence)
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
     for (size_t i = 0; i < scorers_.size(); i++) {
-      probs[i].Resize(beamSize, vocabSize);
+      probs[i].resize(beamSize, vocabSize);
       scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
     }
 
@@ -114,16 +114,15 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 
   Matrix& Probs = ProbsEnsemble[0];
 
-  Matrix Costs(Probs.Rows(), 1);
+  Vector Costs(Probs.cols());
   for(int i = 0; i < prevHyps.size(); ++i)
     Costs.data()[i] = prevHyps[i]->GetCost();
 
-  BroadcastVecColumn(weights[scorers_[0]->GetName()] * boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2,
-                     Probs, Costs);
+  Probs.rowwise() += Costs;
+  
   for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
-    Element(boost::phoenix::placeholders::_1 + weights[scorers_[i]->GetName()] * boost::phoenix::placeholders::_2,
-            Probs, ProbsEnsemble[i]);
-
+    Probs += weights[scorers_[i]->GetName()] * ProbsEnsemble[i];
+    
   std::vector<unsigned> keys(Probs.size());
   for(unsigned i = 0; i < keys.size(); ++i)
     keys[i] = i;
@@ -131,10 +130,8 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
   std::vector<unsigned> bestKeys(beamSize);
   std::vector<float> bestCosts(beamSize);
 
-  if(!God::Get<bool>("allow-unk")) {
-    for(size_t i = 0; i < Probs.Rows(); i++)
-      Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
-  }
+  if(!God::Get<bool>("allow-unk"))
+    Probs.row(UNK).fill(std::numeric_limits<float>::lowest());
 
   std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
                    ProbCompare(Probs.data()));
@@ -150,7 +147,7 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
     breakDowns.push_back(bestCosts);
     for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
       HostVector<float> modelCosts(beamSize);
-      auto it = boost::make_permutation_iterator(ProbsEnsemble[i].begin(), keys.begin());
+      auto it = boost::make_permutation_iterator(ProbsEnsemble[i].data(), keys.begin());
       std::copy(it, it + beamSize, modelCosts.begin());
       breakDowns.push_back(modelCosts);
     }
@@ -158,13 +155,13 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 
   bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
   for(size_t i = 0; i < beamSize; i++) {
-    size_t wordIndex = bestKeys[i] % Probs.Cols();
+    size_t wordIndex = bestKeys[i] % Probs.rows();
 
     if (filter) {
       wordIndex = filterIndices_[wordIndex];
     }
 
-    size_t hypIndex  = bestKeys[i] / Probs.Cols();
+    size_t hypIndex  = bestKeys[i] / Probs.rows();
     float cost = bestCosts[i];
 
     HypothesisPtr hyp = history.NewHypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);

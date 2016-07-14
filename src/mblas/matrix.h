@@ -4,146 +4,31 @@
 #include <iostream>
 #include <vector>
 
-#include "base_matrix.h"
-
-#define MAX_THREADS 512
-#define MAX_BLOCKS 65535
+#include <eigen3/Eigen/Dense>
 
 #include "cblas.h"
 #include "phoenix_functions.h"
 
 namespace mblas {
 
-//using namespace boost::phoenix::placeholders;
+typedef Eigen::Matrix<float,
+                      Eigen::Dynamic,
+                      Eigen::Dynamic> Matrix;
 
-template <class VecType>
-class TMatrix : public BaseMatrix {
 
-public:
-    typedef typename VecType::value_type value_type;
-    typedef typename VecType::iterator iterator;
-    typedef typename VecType::const_iterator const_iterator;
+typedef Eigen::Matrix<float, 1, Eigen::Dynamic> Vector;
 
-    TMatrix()
-    : rows_(0), cols_(0)
-    {}
-
-    TMatrix(size_t rows, size_t cols)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_)
-    {}
-
-    TMatrix(size_t rows, size_t cols, value_type val)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_, val)
-    {}
-
-    TMatrix(TMatrix&& m)
-    : rows_(m.rows_), cols_(m.cols_), data_(std::move(m.data_)) {}
-
-    TMatrix(const TMatrix& m) = delete;
-
-    value_type operator()(size_t i, size_t j) const {
-      return data_[i * cols_ + j];
-    }
-
-    void Set(size_t i, size_t j, float value)  {
-      data_[i * cols_ + j] = value;
-    }
-
-    size_t Rows() const {
-      return rows_;
-    }
-
-    size_t Cols() const {
-      return cols_;
-    }
-
-    void Resize(size_t rows, size_t cols) {
-      rows_ = rows;
-      cols_ = cols;
-      data_.resize(rows_ * cols_);
-    }
-
-    void Resize(size_t rows, size_t cols, value_type val) {
-      rows_ = rows;
-      cols_ = cols;
-      data_.resize(rows_ * cols_, val);
-    }
-
-    void Reserve(size_t rows, size_t cols) {
-      data_.reserve(rows * cols);
-    }
-
-    void Reshape(size_t rows, size_t cols) {
-      rows_ = rows;
-      cols_ = cols;
-    }
-
-    void Purge() {
-      Clear();
-      VecType temp;
-      data_.swap(temp);
-    }
-
-    void Clear() {
-      data_.clear();
-      rows_ = 0;
-      cols_ = 0;
-    }
-
-    VecType& GetVec() {
-      return data_;
-    }
-
-    const VecType& GetVec() const {
-      return data_;
-    }
-
-    value_type* data() {
-      return data_.data();
-    }
-
-    const value_type* data() const {
-      return data_.data();
-    }
-
-    iterator begin() {
-      return data_.begin();
-    }
-
-    iterator end() {
-      return data_.end();
-    }
-
-    const_iterator begin() const{
-      return data_.begin();
-    }
-
-    const_iterator end() const {
-      return data_.end();
-    }
-
-    size_t size() const {
-      return data_.size();
-    }
-
-  private:
-    size_t rows_;
-    size_t cols_;
-    VecType data_;
-};
-
-typedef std::vector<float> FVec;
-typedef std::vector<unsigned int> IVec;
-
-typedef TMatrix<FVec> Matrix;
-//typedef TMatrix<IVec> IMatrix;
+typedef Eigen::Matrix<float,
+                      Eigen::Dynamic,
+                      Eigen::Dynamic,
+                      Eigen::RowMajor> RMatrix;
 
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 5) {
-  std::cerr << m.Rows() << " " << m.Cols() << std::endl;
-  for(size_t i = 0; i < m.Rows(); ++i) {
-    for(size_t j = pos; j < m.Cols() && j < pos + l; ++j) {
-      std::cerr << m.GetVec()[i * m.Cols() + j] << " ";
+  std::cerr << m.rows() << " " << m.cols() << std::endl;
+  for(size_t i = 0; i < m.rows(); ++i) {
+    for(size_t j = pos; j < m.cols() && j < pos + l; ++j) {
+      std::cerr << m(i, j) << " ";
     }
     std::cerr << std::endl;
     if(i == 4)
@@ -153,55 +38,18 @@ void Debug(const M& m, size_t pos = 0, size_t l = 5) {
 
 template <class M>
 void Debug2(const M& m) {
-  std::cerr << m.Rows() << " " << m.Cols() << std::endl;
-  for(size_t i = 0; i < m.Rows(); ++i) {
-    for(size_t j = 0; j < m.Cols(); ++j) {
+  std::cerr << m.rows() << " " << m.cols() << std::endl;
+  for(size_t i = 0; i < m.rows(); ++i) {
+    for(size_t j = 0; j < m.cols(); ++j) {
       std::cerr << m(i, j) << " ";
     }
     std::cerr << std::endl;
   }
 }
 
-template <class VecType>
-std::ostream& operator<<(std::ostream &out, const TMatrix<VecType> &m)
-{
-  out << m.Rows() << "\t" << m.Cols() << "\t" << typeid(typename VecType::value_type).name();
-
-  return out;
-}
-
-Matrix& Swap(Matrix& Out, Matrix& In);
-
-Matrix& Mean(Matrix& Out, const Matrix& In);
-
-Matrix& Transpose(Matrix& Out, const Matrix& In);
-
-Matrix& Transpose(Matrix& Out);
-
-Matrix& Copy(Matrix& Out, const Matrix& In);
-
-Matrix& PasteRow(Matrix& Out,
-                 const Matrix& In,
-                 const size_t r = 0, const size_t c = 0);
-
-Matrix& CopyRow(Matrix& Out,
-                const Matrix& In,
-                const size_t r = 0, const size_t c = 0);
-
 typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
 typedef std::vector<RowPair> DeviceRowPairs;
-
-Matrix& Concat(Matrix& Out, const Matrix& In);
-
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPair* devPairs,
-                 size_t numPairs);
-
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPairs& pairs);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
@@ -211,55 +59,49 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim);
 
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
-
 Matrix& Softmax(Matrix& Out);
 Matrix& SoftmaxLog(Matrix& Out);
 
-template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows1 = Out.Rows();
-  size_t rows2 = In.Rows();
+template <class Functor, class M1, class M2>
+Matrix& Broadcast(Functor functor, M1& Out, const M2& In) {
+  size_t rows1 = Out.rows();
+  size_t rows2 = In.rows();
 
   size_t rows = rows1 * rows2;
-  size_t cols  = Out.Cols();
+  size_t cols  = Out.cols();
 
-  Matrix Temp(rows, cols, 1.0);
-
-  float* d_out = Temp.data();
-  const float* d_in1 = Out.data();
-  const float* d_in2 = In.data();
-
-  for(int j = 0; j < rows; ++j) {
-    float* rowOut = d_out + j * cols;
-    const float* rowIn1 = d_in1 + (j % rows1) * cols;
-    const float* rowIn2 = d_in2 + (j / rows1) * cols;
+  Matrix Temp(rows, cols);
+  
+  for(size_t j = 0; j < cols; ++j) {
+    const float* colOut = Out.data() + j * rows1;
+    const float* colIn = In.data() + j * rows2;
+    float* colT = Temp.data() + j * rows;
     
-    for(int i = 0; i < cols; ++i)
-      rowOut[i] = functor(rowIn1[i], rowIn2[i]);
+    for(size_t i = 0; i < rows; i++) {
+      size_t r1 = i % rows1;
+      size_t r2 = i / rows1;
+      colT[i] = functor(colOut[r1], colIn[r2]);
+    }
   }
   
-  Swap(Out, Temp);
+  Out.swap(Temp);
   return Out;
 }
 
 template <class Functor>
 Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  // @TODO: Make this efficient with special kernel!
-  Matrix InTemp;
-  Transpose(InTemp, In);
-
-  Transpose(Out);
-  Broadcast(functor, Out, InTemp);
-  Transpose(Out);
+  // @TODO: Make this efficient
+  Matrix InTemp =  In.transpose();
+  Matrix OutTemp = Out.transpose();
+  Broadcast(functor, OutTemp, InTemp);
+  Out = OutTemp.transpose();
   return Out;
 }
 
 template <class Functor>
 Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows  = Out.Rows();
-  size_t cols = Out.Cols();
+  size_t rows  = Out.rows();
+  size_t cols = Out.cols();
 
   float* d_out = Out.data();
   const float* d_in = In.data();
@@ -276,16 +118,16 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In) {
 
 template <class Functor>
 Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows  = Out.Rows();
-  size_t cols = Out.Cols();
+  size_t rows = Out.rows();
+  size_t cols = Out.cols();
 
   float* d_out = Out.data();
   const float* d_in = In.data();
 
-  for(int j = 0; j < rows; ++j) {
-    float* rowOut = d_out + j * cols;
-    for(int i = 0; i < cols; ++i)
-      rowOut[i] = functor(rowOut[i], d_in[i]);
+  for(int j = 0; j < cols; ++j) {
+    float* colOut = d_out + j * rows;
+    for(int i = 0; i < rows; ++i)
+      colOut[i] = functor(colOut[i], d_in[j]);
   }
   
   return Out;

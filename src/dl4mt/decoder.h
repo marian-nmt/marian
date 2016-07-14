@@ -13,21 +13,22 @@ class Decoder {
         : w_(model)
         {}
             
-        void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
+        void Lookup(mblas::Matrix& rows, const std::vector<size_t>& ids) {
           using namespace mblas;
           std::vector<size_t> tids = ids;
           for(auto&& id : tids)
-            if(id >= w_.E_.Rows())
+            if(id >= w_.E_.rows())
               id = 1;
-          Assemble(Rows, w_.E_, tids);
+          
+          Assemble(rows, w_.E_, tids);
         }
         
         size_t GetCols() {
-          return w_.E_.Cols();    
+          return w_.E_.cols();    
         }
         
         size_t GetRows() const {
-          return w_.E_.Rows();    
+          return w_.E_.rows();    
         }
         
       private:
@@ -45,17 +46,11 @@ class Decoder {
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize = 1) {
           using namespace mblas;
+          namespace bpp = boost::phoenix::placeholders;
           
-          // calculate mean of source context, rowwise
-          Mean(Temp1_, SourceContext);
-          
-          // Repeat mean batchSize times by broadcasting
-          Temp2_.Clear();
-          Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, Temp1_);
-          
-          Prod(State, Temp2_, w_.Wi_);
-          BroadcastVec(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), State, w_.Bi_);
+          Temp_ = SourceContext.colwise().mean().replicate(batchSize, 1);
+          State = Temp_ * w_.Wi_;
+          BroadcastVec(Tanh(bpp::_1 + bpp::_2), State, w_.Bi_);
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -68,8 +63,7 @@ class Decoder {
         const Weights1& w_;
         const GRU<Weights2> gru_;
         
-        mblas::Matrix Temp1_;
-        mblas::Matrix Temp2_;
+        mblas::Matrix Temp_;
     };
     
     //////////////////////////////////////////////////////////////
@@ -101,29 +95,33 @@ class Decoder {
                                      const mblas::Matrix& HiddenState,
                                      const mblas::Matrix& SourceContext) {
           using namespace mblas;  
+          namespace bpp = boost::phoenix::placeholders;
           
-          Prod(Temp1_, SourceContext, w_.U_);
-          Prod(Temp2_, HiddenState, w_.W_);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, w_.B_);
+          Temp1_ = SourceContext * w_.U_;
+          Temp2_ = HiddenState * w_.W_;
+          BroadcastVec(bpp::_1 + bpp::_2, Temp2_, w_.B_);
           
           // For batching: create an A across different sentences,
           // maybe by mapping and looping. In the and join different
           // alignment matrices into one
           // Or masking?
-          Broadcast(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), Temp1_, Temp2_);
-          Prod(A_, w_.V_, Temp1_, false, true);
-          size_t words = SourceContext.Rows();
-          // batch size, for batching, divide by numer of sentences
-          size_t batchSize = HiddenState.Rows(); 
-          A_.Reshape(batchSize, words); // due to broadcasting above
-          Element(boost::phoenix::placeholders::_1 + w_.C_(0,0), A_);
+          
+          Broadcast(Tanh(bpp::_1 + bpp::_2), Temp1_, Temp2_);
+          A_ = w_.V_ * Temp1_.transpose();
+          size_t words = SourceContext.rows();
+          size_t batchSize = HiddenState.rows(); 
+          
+          A_.resize(words, batchSize);
+          A_.transposeInPlace();
+          A_.array() += w_.C_(0, 0);
+          
           mblas::Softmax(A_);
           
-          Prod(AlignedSourceContext, A_, SourceContext);
+          AlignedSourceContext = A_ * SourceContext;
         }
         
         void GetAttention(mblas::Matrix& Attention) {
-          mblas::Copy(Attention, A_);
+          Attention = A_;
         }
       
       private:
@@ -143,7 +141,9 @@ class Decoder {
       public:
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
-        {}
+        {
+          const_cast<mblas::Matrix&>(w_.W4_).transposeInPlace();
+        }
           
         void GetProbs(mblas::Matrix& Probs,
                   const mblas::Matrix& State,
@@ -151,24 +151,21 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
           
-          Prod(T1_, State, w_.W1_);
-          Prod(T2_, Embedding, w_.W2_);
-          Prod(T3_, AlignedSourceContext, w_.W3_);
+          namespace bpp = boost::phoenix::placeholders;
           
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T1_, w_.B1_);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T2_, w_.B2_);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T3_, w_.B3_);
-      
-          Element(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2 + boost::phoenix::placeholders::_3), T1_, T2_, T3_);
+          size_t rows = State.rows();
+          auto t1 = (State * w_.W1_).rowwise() + w_.B1_;
+          auto t2 = (Embedding * w_.W2_).rowwise() + w_.B2_;
+          auto t3 = (AlignedSourceContext * w_.W3_).rowwise() + w_.B3_;
+          auto t = (t1 + t2 + t3).unaryExpr(&tanhapprox);
           
-          if(!filtered_) {
-            Prod(Probs, T1_, w_.W4_);
-            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, w_.B4_);
-          } else {
-            Prod(Probs, T1_, FilteredW4_);
-            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, FilteredB4_);
-          }
+          if(!filtered_)
+            Probs.noalias() = (w_.W4_ * t.transpose()).colwise() + w_.B4_.transpose();
+          else
+            Probs.noalias() = (t *  FilteredW4_).rowwise() + w_.B4_;
+          
           mblas::SoftmaxLog(Probs);
+          //Probs.transposeInPlace();
         }
     
         void Filter(const std::vector<size_t>& ids) {
@@ -176,15 +173,13 @@ class Decoder {
           
           using namespace mblas;
           
-          Matrix TempW4;
-          Transpose(TempW4, w_.W4_);
+          Matrix TempW4 = w_.W4_.transpose();
           Assemble(FilteredW4_, TempW4, ids);
-          Transpose(FilteredW4_);
+          FilteredW4_.transposeInPlace();
           
-          Matrix TempB4;
-          Transpose(TempB4, w_.B4_);
+          Matrix TempB4 = w_.B4_.transpose();
           Assemble(FilteredB4_, TempB4, ids);
-          Transpose(FilteredB4_);
+          FilteredB4_.transposeInPlace();
         }
        
       private:        
@@ -227,8 +222,8 @@ class Decoder {
     
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t batchSize = 1) {
-      Embedding.Clear();
-      Embedding.Resize(batchSize, embeddings_.GetCols(), 0);
+      Embedding.resize(batchSize, embeddings_.GetCols());
+      Embedding.fill(0);
     }
     
     void Lookup(mblas::Matrix& Embedding,

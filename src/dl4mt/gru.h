@@ -40,11 +40,11 @@ class SlowGRU {
       Element((1.0 - bpp::_1) * bpp::_2 + bpp::_1 * bpp::_3, U_, H_, State);
       // -----------------------------------------------------
       
-      Swap(NextState, U_);
+      NextState.swap(U_);
     }
     
     size_t GetStateLength() const {
-      return w_.U_.Rows();
+      return w_.U_.rows();
     }
     
   private:
@@ -74,26 +74,21 @@ class FastGRU {
   public:
     FastGRU(const Weights& model)
     : w_(model) {
-      using namespace mblas;
-      Transpose(WWx_, w_.W_);
-      Matrix WxT;
-      Transpose(WxT, w_.Wx_);
-      Concat(WWx_, WxT);
-      Transpose(WWx_);
+      WWx_.resize(w_.W_.rows(),
+                  w_.W_.cols() + w_.Wx_.cols());
+      WWx_ << w_.W_, w_.Wx_;
       
-      Transpose(UUx_, w_.U_);
-      Matrix UxT;
-      Transpose(UxT, w_.Ux_);
-      Concat(UUx_, UxT);
-      Transpose(UUx_);
+      UUx_.resize(w_.U_.rows(),
+                  w_.U_.cols() + w_.Ux_.cols());
+      UUx_ << w_.U_, w_.Ux_; 
     }
           
     void GetNextState(mblas::Matrix& NextState,
                       const mblas::Matrix& State,
                       const mblas::Matrix& Context) const {
       using namespace mblas;
-      Prod(RUH_, Context, WWx_);
-      Prod(Temp_, State, UUx_);
+      RUH_ = Context * WWx_;
+      Temp_ = State * UUx_;
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
           
@@ -101,19 +96,51 @@ class FastGRU {
                         const mblas::Matrix& State,
                         const mblas::Matrix& RUH,
                         const mblas::Matrix& Temp) const {
-      const size_t rows = State.Rows();
-      const size_t cols = State.Cols();
-      NextState.Resize(rows, cols);
       
-      gElementwiseOps(NextState.data(), State.data(),
-                      RUH.data(),
-                      Temp.data(),
-                      w_.B_.data(), w_.Bx1_.data(), w_.Bx2_.data(),
-                      rows, cols);
+      const size_t rows = State.rows();
+      const size_t cols = State.cols();
+      NextState.resize(rows, cols);
+      
+      float* out = NextState.data();
+      const float* state = State.data();
+      const float* ruh = RUH.data();
+      const float* t = Temp.data();
+      const float* br = w_.B_.data();
+      const float* bu = br + cols;
+      const float* bx1 = w_.Bx1_.data();
+      const float* bx2 = w_.Bx2_.data();
+      
+      size_t shift = cols * rows;
+      
+      for(int j = 0; j < cols; ++j) {
+        float* colOut = out + j * rows;
+        const float* colR = ruh + j * rows;
+        const float* colU = colR + shift;
+        const float* colH = colU + shift;
+        
+        const float* colTr = t + j * rows;
+        const float* colTu = colTr + shift;
+        const float* colTh = colTu + shift;
+        
+        const float* colState = state + j * rows;
+        
+        for(int i = 0; i < rows; ++i) {
+          float ev1 = expapprox(-(colR[i] + br[j] + colTr[i]));
+          float r = 1.0 / (1.0 + ev1);
+          
+          float ev2 = expapprox(-(colU[i] + bu[j] + colTu[i]));
+          float u = 1.0 / (1.0 + ev2);              
+    
+          float hv = colH[i] + bx1[j];
+          float t2v = colTh[i] + bx2[j];
+          hv = tanhapprox(hv + r * t2v);
+          colOut[i] = (1.0 - u) * hv + u * colState[i];
+        }
+      }
     }
     
     size_t GetStateLength() const {
-      return w_.U_.Rows();
+      return w_.U_.rows();
     }
 
     

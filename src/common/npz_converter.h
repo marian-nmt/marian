@@ -54,30 +54,41 @@ class NpzConverter {
     }
     
     mblas::Matrix operator[](const std::string& key) const {
-      mblas::Matrix matrix;
+      mblas::RMatrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
-        matrix.Resize(np.size1(), np.size2());
-        std::copy(np.data(), np.data() + np.size(), matrix.begin());
+        matrix.resize(np.size1(), np.size2());
+        std::copy(np.data(), np.data() + np.size(), matrix.data());
       }
       else {
         std::cerr << "Missing " << key << std::endl; 
       }
-      return std::move(matrix);
+      return matrix;
     }
   
     mblas::Matrix operator()(const std::string& key,
                                    bool transpose) const {
-      mblas::Matrix matrix;
+      mblas::RMatrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
-        matrix.Resize(np.size1(), np.size2());
-        std::copy(np.data(), np.data() + np.size(), matrix.begin());
+        matrix.resize(np.size1(), np.size2());
+        std::copy(np.data(), np.data() + np.size(), matrix.data());
       }
-      mblas::Transpose(matrix);
-      return std::move(matrix);
+      matrix.transposeInPlace();
+      return matrix;
+    }
+    
+    mblas::Vector asVector(const std::string& key) const {
+      mblas::Vector vector;
+      auto it = model_.find(key);
+      if(it != model_.end()) {
+        NpyMatrixWrapper np(it->second);
+        vector.resize(np.size());
+        std::copy(np.data(), np.data() + np.size(), vector.data());
+      }
+      return vector;
     }
   
   private:
