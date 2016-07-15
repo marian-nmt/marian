@@ -9,6 +9,31 @@ from clint.textui import progress
 
 BASE_URL = "http://data.statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
 
+CONFIG_TEMPLATE = """
+# Paths are relative to config file location
+relative-paths: no
+
+# performance settings
+beam-size: 12
+devices: [0]
+normalize: yes
+threads-per-device: 1
+
+# scorer configuration
+scorers:
+  F0:
+    path: {}/model.npz
+    type: Nematus
+
+# scorer weights
+weights:
+  F0: 1.0
+
+# vocabularies
+source-vocab: {}/vocab.{}.json
+target-vocab: {}/vocab.{}.json
+"""
+
 def download_with_progress(path, url):
     r = requests.get(url, stream=True)
     with open(path, 'wb') as f:
@@ -52,6 +77,15 @@ def download_file(src, trg, name, workdir, force=False):
         print >> sys.stderr, "File {} exists. Skipped".format(path)
 
 
+def create_base_config(model, model_dir):
+    src = model.split('-')[0]
+    trg = model.split('-')[1]
+    config = CONFIG_TEMPLATE.format(model_dir, model_dir, src, model_dir, trg)
+
+    with open("{}/config.yml".format(model_dir), 'w') as config_file:
+        config_file.write(config)
+
+
 def main():
     """ main """
     args = parse_args()
@@ -68,6 +102,7 @@ def main():
     print >> sys.stderr,  "Downloading {} to {}".format(args.model,
                                                         args.workdir)
     download_model(src, trg, workdir, force)
+    create_base_config(args.model, workdir)
 
 
 if __name__ == "__main__":
