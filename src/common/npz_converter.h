@@ -91,6 +91,13 @@ class NpzConverter {
       return vector;
     }
   
+    mblas::Vector asVector(size_t num) const {
+      mblas::Vector vector;
+      vector.resize(num);
+      vector.fill(0.0);
+      return vector;
+    }
+  
   private:
     cnpy::npz_t model_;
     bool destructed_;

@@ -88,56 +88,30 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       RUH_.noalias() = Context * WWx_;
       Temp_.noalias() = State * UUx_;
-      ElementwiseOps(NextState, State, RUH_, Temp_);
+      
+      size_t rows = State.rows();
+      size_t cols = State.cols();
+      
+      auto R = RUH_.block(0, 0 * cols, rows, cols);
+      auto U = RUH_.block(0, 1 * cols, rows, cols);
+      auto H = RUH_.block(0, 2 * cols, rows, cols);
+      
+      auto Tr = Temp_.block(0, 0 * cols, rows, cols);
+      auto Tu = Temp_.block(0, 1 * cols, rows, cols);
+      auto Th = Temp_.block(0, 2 * cols, rows, cols);
+      
+      auto br = w_.B_.head(cols);
+      auto bu = w_.B_.tail(cols);
+      
+      auto r = ((R + Tr).rowwise() + br).unaryExpr(&logitapprox);
+      auto u = ((U + Tu).rowwise() + bu).unaryExpr(&logitapprox);
+      
+      auto hv = H.rowwise() + w_.Bx1_;
+      auto tv = Th.rowwise() + w_.Bx2_;
+      auto h = (hv.array() + (r.array() * tv.array())).unaryExpr(&tanhapprox);
+      NextState = (1.0 - u.array()) * h + u.array() * State.array();
     }
           
-    void ElementwiseOps(mblas::Matrix& NextState,
-                        const mblas::Matrix& State,
-                        const mblas::Matrix& RUH,
-                        const mblas::Matrix& Temp) const {
-      
-      const size_t rows = State.rows();
-      const size_t cols = State.cols();
-      NextState.resize(rows, cols);
-      
-      float* out = NextState.data();
-      const float* state = State.data();
-      const float* ruh = RUH.data();
-      const float* t = Temp.data();
-      const float* br = w_.B_.data();
-      const float* bu = br + cols;
-      const float* bx1 = w_.Bx1_.data();
-      const float* bx2 = w_.Bx2_.data();
-      
-      size_t shift = cols * rows;
-      
-      for(int j = 0; j < cols; ++j) {
-        float* colOut = out + j * rows;
-        const float* colR = ruh + j * rows;
-        const float* colU = colR + shift;
-        const float* colH = colU + shift;
-        
-        const float* colTr = t + j * rows;
-        const float* colTu = colTr + shift;
-        const float* colTh = colTu + shift;
-        
-        const float* colState = state + j * rows;
-        
-        for(int i = 0; i < rows; ++i) {
-          float ev1 = expapprox(-(colR[i] + br[j] + colTr[i]));
-          float r = 1.0 / (1.0 + ev1);
-          
-          float ev2 = expapprox(-(colU[i] + bu[j] + colTu[i]));
-          float u = 1.0 / (1.0 + ev2);              
-    
-          float hv = colH[i] + bx1[j];
-          float t2v = colTh[i] + bx2[j];
-          hv = tanhapprox(hv + r * t2v);
-          colOut[i] = (1.0 - u) * hv + u * colState[i];
-        }
-      }
-    }
-    
     size_t GetStateLength() const {
       return w_.U_.rows();
     }

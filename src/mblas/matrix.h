@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+#define EIGEN_DONT_PARALLELIZE
 #include <eigen3/Eigen/Dense>
 
 #include "cblas.h"
@@ -22,6 +23,8 @@ typedef Eigen::Matrix<float,
 
 typedef Eigen::Matrix<float, 1, Eigen::Dynamic> Vector;
 typedef Eigen::Matrix<float, Eigen::Dynamic, 1> RVector;
+
+typedef Eigen::Map<Matrix> MatrixMap;
 
 //Matrix operator*(const Matrix& m1, const Matrix& m2);
                       

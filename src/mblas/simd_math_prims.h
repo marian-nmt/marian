@@ -128,6 +128,10 @@ inline float tanhapprox(float val) {
   return (e1 - e2) / (e1 + e2);
 }
 
+inline float logitapprox(float val) {
+  return 1.0 / (1.0 + expapprox(-val));
+}
+
 #ifdef __cplusplus
 }
 #endif

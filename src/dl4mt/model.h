@@ -21,11 +21,11 @@ struct Weights {
 	GRU(const NpzConverter& model, const std::vector<std::string> &keys);
     
     const mblas::Matrix W_;
-    const mblas::Matrix B_;
+    const mblas::Vector B_;
     const mblas::Matrix U_;
     const mblas::Matrix Wx_;
-    const mblas::Matrix Bx1_;
-    const mblas::Matrix Bx2_;
+    const mblas::Vector Bx1_;
+    const mblas::Vector Bx2_;
     const mblas::Matrix Ux_;
   };
     
@@ -42,11 +42,11 @@ struct Weights {
     DecGRU2(const NpzConverter& model);
           
     const mblas::Matrix W_;
-    const mblas::Matrix B_;
+    const mblas::Vector B_;
     const mblas::Matrix U_;
     const mblas::Matrix Wx_;
-    const mblas::Matrix Bx2_;
-    const mblas::Matrix Bx1_;
+    const mblas::Vector Bx2_;
+    const mblas::Vector Bx1_;
     const mblas::Matrix Ux_;
   };
   

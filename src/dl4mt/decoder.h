@@ -104,8 +104,8 @@ class Decoder {
           A_.array() += w_.C_(0, 0);
           A_.transposeInPlace();
           
-          auto nums = A_.unaryExpr(&expapprox);
-          auto denoms = nums.rowwise().sum();
+          Matrix nums = A_.unaryExpr(&expapprox);
+          Matrix denoms = nums.rowwise().sum();
           for(size_t i = 0; i < nums.rows(); ++i)
             A_.row(i) = nums.row(i) / denoms(i);
           
@@ -140,10 +140,11 @@ class Decoder {
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {          
 
-          auto t1 = (State * w_.W1_).rowwise() + w_.B1_;
-          auto t2 = (Embedding * w_.W2_).rowwise() + w_.B2_;
-          auto t3 = (AlignedSourceContext * w_.W3_).rowwise() + w_.B3_;
-          mblas::Matrix t = (t1 + t2 + t3).unaryExpr(&tanhapprox).transpose();
+          mblas::Matrix t1 = State * w_.W1_;
+          T1_.noalias() = t1.rowwise() + w_.B1_;
+          T2_.noalias() = (Embedding * w_.W2_).rowwise() + w_.B2_;
+          T3_.noalias() = (AlignedSourceContext * w_.W3_).rowwise() + w_.B3_;
+          mblas::Matrix t = (T1_ + T2_ + T3_).unaryExpr(&tanhapprox).transpose();
           
           if(!filtered_)
             Probs.noalias() = ((w_.W4_ * t).colwise() + RB4_).unaryExpr(&expapprox);
@@ -165,6 +166,9 @@ class Decoder {
        
       private:        
         const Weights& w_;
+        mblas::Matrix T1_;
+        mblas::Matrix T2_;
+        mblas::Matrix T3_;
         
         bool filtered_;
         mblas::RVector RB4_;

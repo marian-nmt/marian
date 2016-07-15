@@ -6,15 +6,13 @@ Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &ke
 
 Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &keys)
 : W_(model[keys.at(0)]),
-  B_(model(keys.at(1), true)),
+  B_(model.asVector(keys.at(1))),
   U_(model[keys.at(2)]),
   Wx_(model[keys.at(3)]),
-  Bx1_(model(keys.at(4), true)),
-  Bx2_(Bx1_.rows(), Bx1_.cols()),
+  Bx1_(model.asVector(keys.at(4))),
+  Bx2_(model.asVector(Bx1_.cols())),
   Ux_(model[keys.at(5)])
-{
-    const_cast<mblas::Matrix&>(Bx2_).fill(0.0);
-}
+{}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -25,15 +23,13 @@ Weights::DecInit::DecInit(const NpzConverter& model)
 
 Weights::DecGRU2::DecGRU2(const NpzConverter& model)
 : W_(model["decoder_Wc"]),
-  B_(model("decoder_b_nl", true)),
+  B_(model.asVector("decoder_b_nl")),
   U_(model["decoder_U_nl"]),
   Wx_(model["decoder_Wcx"]),
-  Bx2_(model("decoder_bx_nl", true)),
-  Bx1_(Bx2_.rows(), Bx2_.cols()),
+  Bx2_(model.asVector("decoder_bx_nl")),
+  Bx1_(model.asVector(Bx2_.cols())),
   Ux_(model["decoder_Ux_nl"])
-{
-    const_cast<mblas::Matrix&>(Bx1_).fill(0.0);
-}
+{}
 
 Weights::DecAttention::DecAttention(const NpzConverter& model)
 : V_(model("decoder_U_att", true)),
