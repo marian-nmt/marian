@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <iostream>
 #include "config.h"
 #include "types.h"
 #include "vocab.h"
@@ -12,7 +12,8 @@ class Weights;
   
 class God {
   public:
-        
+    virtual ~God();
+
     static God& Init(const std::string&);
     static God& Init(int argc, char** argv);
 
@@ -36,6 +37,10 @@ class God {
     static Vocab& GetSourceVocab(size_t i = 0);
     static Vocab& GetTargetVocab();
     
+    static std::istream& GetInputStream() {
+      return *Summon().inStrm;
+    }
+
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<std::string> GetScorerNames();
     static std::map<std::string, float>& GetScorerWeights();
@@ -58,5 +63,7 @@ class God {
     
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;
+
+    std::istream *inStrm;
 };
 
