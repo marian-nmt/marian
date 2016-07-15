@@ -14,6 +14,13 @@
 
 God God::instance_;
 
+God::~God()
+{
+  if (inStrm != &std::cin) {
+    delete inStrm;
+  }
+}
+
 God& God::Init(int argc, char** argv) {
   return Summon().NonStaticInit(argc, argv);
 }
@@ -60,6 +67,15 @@ God& God::NonStaticInit(int argc, char** argv) {
   for(auto&& pair : config_.Get()["scorers"]) {
     std::string name = pair.first.as<std::string>();
     loaders_.emplace(name, LoaderFactory::Create(name, pair.second));
+  }
+
+  if (config_.inputPath.empty()) {
+    std::cerr << "Using cin" << std::endl;
+    inStrm = &std::cin;
+  }
+  else {
+    std::cerr << "Using " << config_.inputPath << std::endl;
+    inStrm = new std::ifstream(config_.inputPath.c_str());
   }
 
   if (!Get<std::vector<std::string>>("softmax-filter").empty()) {

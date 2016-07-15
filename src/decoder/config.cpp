@@ -156,6 +156,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   general.add_options()
     ("config,c", po::value(&configPath),
      "Configuration file")
+	("input-file,i", po::value(&inputPath),
+	  "Take input from a file instead of stdin")
     ("model,m", po::value(&modelPaths)->multitoken(),
      "Overwrite scorer section in config file with these models. "
      "Assumes models of type Nematus and assigns model names F0, F1, ...")
