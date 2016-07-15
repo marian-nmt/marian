@@ -35,7 +35,7 @@ struct Weights {
     DecInit(const NpzConverter& model);
     
     const mblas::Matrix Wi_;
-    const mblas::Matrix Bi_;
+    const mblas::Vector Bi_;
   };
     
   struct DecGRU2 {
@@ -55,7 +55,7 @@ struct Weights {
           
     const mblas::Matrix V_;
     const mblas::Matrix W_;
-    const mblas::Matrix B_;
+    const mblas::Vector B_;
     const mblas::Matrix U_;
     const mblas::Matrix C_;
   };

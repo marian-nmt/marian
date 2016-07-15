@@ -15,14 +15,16 @@ typedef Eigen::Matrix<float,
                       Eigen::Dynamic,
                       Eigen::Dynamic> Matrix;
 
-
-typedef Eigen::Matrix<float, 1, Eigen::Dynamic> Vector;
-
 typedef Eigen::Matrix<float,
                       Eigen::Dynamic,
                       Eigen::Dynamic,
                       Eigen::RowMajor> RMatrix;
 
+typedef Eigen::Matrix<float, 1, Eigen::Dynamic> Vector;
+typedef Eigen::Matrix<float, Eigen::Dynamic, 1> RVector;
+
+//Matrix operator*(const Matrix& m1, const Matrix& m2);
+                      
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 5) {
   std::cerr << m.rows() << " " << m.cols() << std::endl;
@@ -51,9 +53,22 @@ typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
 typedef std::vector<RowPair> DeviceRowPairs;
 
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const std::vector<size_t>& indeces);
+template <class M>
+M& Assemble(M& Out, const M& In,
+            const std::vector<size_t>& indeces) {
+  RowPairs rowPairs;
+  for(size_t i = 0; i < indeces.size(); i++)
+    rowPairs.emplace_back(i, indeces[i]);
+  Out.resize(rowPairs.size(), In.cols());
+  
+  for(int j = 0; j < rowPairs.size(); ++j) {
+    size_t dstId = rowPairs[j].first;
+    size_t srcId = rowPairs[j].second;
+    Out.row(dstId) = In.row(srcId);
+  }
+  
+  return Out;
+}
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,

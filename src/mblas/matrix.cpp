@@ -3,23 +3,6 @@
 
 namespace mblas {
 
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const std::vector<size_t>& indeces) {
-  RowPairs rowPairs;
-  for(size_t i = 0; i < indeces.size(); i++)
-    rowPairs.emplace_back(i, indeces[i]);
-  Out.resize(rowPairs.size(), In.cols());
-  
-  for(int j = 0; j < rowPairs.size(); ++j) {
-    size_t dstId = rowPairs[j].first;
-    size_t srcId = rowPairs[j].second;
-    Out.row(dstId) = In.row(srcId);
-  }
-  
-  return Out;
-}
-
 void gSlice(float* out, const float* in,
             size_t n, size_t dim,
             size_t rows, size_t cols) {
@@ -31,6 +14,12 @@ void gSlice(float* out, const float* in,
         rowOut[i] = rowIn[i];
   }
 }
+
+//Matrix operator*(const Matrix& m1, const Matrix& m2) {
+//  Matrix out(m1.rows(), m2.cols());
+//  Prod(out, m1, m2);
+//  return std::move(out);
+//}
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -47,7 +36,6 @@ Matrix& Slice(Matrix& Out,
 
 Matrix& Softmax(Matrix& Out) {
   float sum[Out.rows()];
-  #pragma omp for schedule(dynamic, 10)
   for(int j = 0; j < Out.rows(); ++j) {
     sum[j] = 0;
     for(int i = 0; i < Out.cols(); ++i) {

@@ -45,12 +45,9 @@ class Decoder {
         void InitializeState(mblas::Matrix& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize = 1) {
-          using namespace mblas;
-          namespace bpp = boost::phoenix::placeholders;
-          
-          Temp_ = SourceContext.colwise().mean().replicate(batchSize, 1);
-          State = Temp_ * w_.Wi_;
-          BroadcastVec(Tanh(bpp::_1 + bpp::_2), State, w_.Bi_);
+          auto mean = SourceContext.colwise().mean();
+          auto init = mean.colwise().replicate(batchSize);
+          State = (init * w_.Wi_).rowwise() + w_.Bi_;
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -62,8 +59,6 @@ class Decoder {
       private:
         const Weights1& w_;
         const GRU<Weights2> gru_;
-        
-        mblas::Matrix Temp_;
     };
     
     //////////////////////////////////////////////////////////////
@@ -97,27 +92,24 @@ class Decoder {
           using namespace mblas;  
           namespace bpp = boost::phoenix::placeholders;
           
-          Temp1_ = SourceContext * w_.U_;
-          Temp2_ = HiddenState * w_.W_;
-          BroadcastVec(bpp::_1 + bpp::_2, Temp2_, w_.B_);
-          
-          // For batching: create an A across different sentences,
-          // maybe by mapping and looping. In the and join different
-          // alignment matrices into one
-          // Or masking?
+          Temp1_.noalias() = SourceContext * w_.U_;
+          Temp2_.noalias() = (HiddenState * w_.W_).rowwise() + w_.B_;
           
           Broadcast(Tanh(bpp::_1 + bpp::_2), Temp1_, Temp2_);
-          A_ = w_.V_ * Temp1_.transpose();
+          A_.noalias() = w_.V_ * Temp1_.transpose();
+          
           size_t words = SourceContext.rows();
           size_t batchSize = HiddenState.rows(); 
-          
           A_.resize(words, batchSize);
-          A_.transposeInPlace();
           A_.array() += w_.C_(0, 0);
+          A_.transposeInPlace();
           
-          mblas::Softmax(A_);
+          auto nums = A_.unaryExpr(&expapprox);
+          auto denoms = nums.rowwise().sum();
+          for(size_t i = 0; i < nums.rows(); ++i)
+            A_.row(i) = nums.row(i) / denoms(i);
           
-          AlignedSourceContext = A_ * SourceContext;
+          AlignedSourceContext.noalias() = A_ * SourceContext;
         }
         
         void GetAttention(mblas::Matrix& Attention) {
@@ -130,9 +122,6 @@ class Decoder {
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
-        
-        mblas::Matrix Ones_;
-        mblas::Matrix Sums_;
     };
     
     //////////////////////////////////////////////////////////////
@@ -142,65 +131,45 @@ class Decoder {
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
         {
-          const_cast<mblas::Matrix&>(w_.W1_).transposeInPlace();
-          const_cast<mblas::Matrix&>(w_.W2_).transposeInPlace();
-          const_cast<mblas::Matrix&>(w_.W3_).transposeInPlace();
           const_cast<mblas::Matrix&>(w_.W4_).transposeInPlace();
+          RB4_ = w_.B4_.transpose();
         }
           
         void GetProbs(mblas::Matrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
-          using namespace mblas;
-          
-          size_t rows = State.rows();
-          auto t1 = (w_.W1_ * State.transpose()).colwise() + w_.B1_.transpose();
-          auto t2 = (w_.W2_ * Embedding.transpose()).colwise() + w_.B2_.transpose();
-          auto t3 = (w_.W3_ * AlignedSourceContext.transpose()).colwise() + w_.B3_.transpose();
-          auto t = (t1 + t2 + t3).unaryExpr(&tanhapprox);
-          
-          //if(!filtered_)
-            Probs.noalias() = ((w_.W4_ * t).colwise() + w_.B4_.transpose()).unaryExpr(&expapprox);
-            Matrix denoms = Probs.colwise().sum();
-            for(size_t i = 0; i < Probs.cols(); ++i)
-              Probs.col(i) /= denoms(i);
-            Probs = Probs.unaryExpr(&logapprox);
-          //else
-            //Probs.noalias() = (t *  FilteredW4_).rowwise() + w_.B4_;
+                  const mblas::Matrix& AlignedSourceContext) {          
 
-          //mblas::SoftmaxLog(Probs);
-          //auto nums = Probs.unaryExpr(&expapprox);
-          //auto denoms = nums.colwise().sum();
-          //
-          //for(size_t i = 0; i < nums.cols(); ++i)
-          //  Probs.col(i) = (nums.col(i) / denoms(i)).unaryExpr(&logapprox);
+          auto t1 = (State * w_.W1_).rowwise() + w_.B1_;
+          auto t2 = (Embedding * w_.W2_).rowwise() + w_.B2_;
+          auto t3 = (AlignedSourceContext * w_.W3_).rowwise() + w_.B3_;
+          mblas::Matrix t = (t1 + t2 + t3).unaryExpr(&tanhapprox).transpose();
+          
+          if(!filtered_)
+            Probs.noalias() = ((w_.W4_ * t).colwise() + RB4_).unaryExpr(&expapprox);
+          else
+            Probs.noalias() = ((FilteredW4_ * t).colwise() + FilteredB4_).unaryExpr(&expapprox);
+
+          mblas::Matrix denoms = Probs.colwise().sum();
+          for(size_t i = 0; i < Probs.cols(); ++i)
+            Probs.col(i) /= denoms(i);
+          Probs = Probs.unaryExpr(&logapprox);
         }
     
         void Filter(const std::vector<size_t>& ids) {
           filtered_ = true;
-          
           using namespace mblas;
-          
-          Matrix TempW4 = w_.W4_.transpose();
-          Assemble(FilteredW4_, TempW4, ids);
-          FilteredW4_.transposeInPlace();
-          
-          Matrix TempB4 = w_.B4_.transpose();
-          Assemble(FilteredB4_, TempB4, ids);
-          FilteredB4_.transposeInPlace();
+          Assemble(FilteredW4_, w_.W4_, ids);
+          Assemble(FilteredB4_, RB4_, ids);
         }
        
       private:        
         const Weights& w_;
         
         bool filtered_;
+        mblas::RVector RB4_;
         mblas::Matrix FilteredW4_;
-        mblas::Matrix FilteredB4_;
-        
-        mblas::Matrix T1_;
-        mblas::Matrix T2_;
-        mblas::Matrix T3_;
+        mblas::RVector FilteredB4_;
     };
     
   public:

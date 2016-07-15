@@ -20,7 +20,7 @@ Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &key
 
 Weights::DecInit::DecInit(const NpzConverter& model)
 : Wi_(model["ff_state_W"]),
-  Bi_(model("ff_state_b", true))
+  Bi_(model.asVector("ff_state_b"))
 {}
 
 Weights::DecGRU2::DecGRU2(const NpzConverter& model)
@@ -38,7 +38,7 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
 Weights::DecAttention::DecAttention(const NpzConverter& model)
 : V_(model("decoder_U_att", true)),
 W_(model["decoder_W_comb_att"]),
-B_(model("decoder_b_att", true)),
+B_(model.asVector("decoder_b_att")),
 U_(model["decoder_Wc_att"]),
 C_(model["decoder_c_tt"]) // scalar?
 {}
