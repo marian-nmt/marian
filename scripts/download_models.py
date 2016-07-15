@@ -11,7 +11,7 @@ BASE_URL = "http://data.statmt.org/rsennrich/wmt16_systems/{}-{}/{}"
 
 CONFIG_TEMPLATE = """
 # Paths are relative to config file location
-relative-paths: no
+relative-paths: yes
 
 # performance settings
 beam-size: 12
@@ -22,7 +22,7 @@ threads-per-device: 1
 # scorer configuration
 scorers:
   F0:
-    path: {}/model.npz
+    path: ./model.npz
     type: Nematus
 
 # scorer weights
@@ -30,8 +30,8 @@ weights:
   F0: 1.0
 
 # vocabularies
-source-vocab: {}/vocab.{}.json
-target-vocab: {}/vocab.{}.json
+source-vocab: ./vocab.{}.json
+target-vocab: ./vocab.{}.json
 """
 
 def download_with_progress(path, url):
@@ -80,7 +80,7 @@ def download_file(src, trg, name, workdir, force=False):
 def create_base_config(model, model_dir):
     src = model.split('-')[0]
     trg = model.split('-')[1]
-    config = CONFIG_TEMPLATE.format(model_dir, model_dir, src, model_dir, trg)
+    config = CONFIG_TEMPLATE.format(src, trg)
 
     with open("{}/config.yml".format(model_dir), 'w') as config_file:
         config_file.write(config)
