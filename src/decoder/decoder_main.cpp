@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
   std::vector<std::future<History>> results;
 
   LOG(info) << "Reading input";
-  while(std::getline(std::cin, in)) {
+  while(std::getline(God::GetInputStream(), in)) {
 
     results.emplace_back(
       pool.enqueue(

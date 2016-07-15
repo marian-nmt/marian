@@ -86,6 +86,16 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/file_stream.h</locationURI>
 		</link>
 		<link>
+			<name>common/filter.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/filter.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/filter.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/filter.h</locationURI>
+		</link>
+		<link>
 			<name>common/logging.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.h</locationURI>
@@ -274,11 +284,6 @@
 			<name>dl4mt/encoder.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/encoder.h</locationURI>
-		</link>
-		<link>
-			<name>dl4mt/gru.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt/gru.cpp</locationURI>
 		</link>
 		<link>
 			<name>dl4mt/gru.h</name>
