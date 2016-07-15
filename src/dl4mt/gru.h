@@ -4,7 +4,7 @@
 template <class Weights>
 class GRU {
   public:
-    FastGRU(const Weights& model)
+    GRU(const Weights& model)
     : w_(model) {
       WWx_.resize(w_.W_.rows(),
                   w_.W_.cols() + w_.Wx_.cols());
