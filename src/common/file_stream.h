@@ -21,6 +21,11 @@ class InputFileStream {
       istream_.push(ifstream_);
     }
     
+    InputFileStream(std::istream& strm)
+    {
+      istream_.push(strm);
+    }
+    
     operator std::istream& () {
       return istream_;
     }

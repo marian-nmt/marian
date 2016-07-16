@@ -14,7 +14,7 @@
 
 namespace mblas {
 
-//using namespace boost::phoenix::placeholders;
+namespace bpp = boost::phoenix::placeholders;
 
 template <class VecType>
 class TMatrix : public BaseMatrix {
@@ -204,6 +204,10 @@ Matrix& CopyRows(Matrix& Out,
                  const RowPairs& pairs);
 
 Matrix& Assemble(Matrix& Out,
+                 const Matrix& In,
+                 const std::vector<size_t>& indeces);
+
+Matrix& AssembleCols(Matrix& Out,
                  const Matrix& In,
                  const std::vector<size_t>& indeces);
 

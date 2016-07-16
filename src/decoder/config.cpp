@@ -24,7 +24,8 @@ YAML::Node& Config::Get() {
 
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
-  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab"};
+  std::set<std::string> paths =
+    {"path", "paths", "source-vocab", "target-vocab", "input-file"};
 
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
@@ -147,6 +148,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   po::options_description general("General options");
 
   std::string configPath;
+  std::string inputPath;
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
@@ -157,7 +159,7 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("config,c", po::value(&configPath),
      "Configuration file")
 	("input-file,i", po::value(&inputPath),
-	  "Take input from a file instead of stdin")
+	 "Take input from a file instead of stdin")
     ("model,m", po::value(&modelPaths)->multitoken(),
      "Overwrite scorer section in config file with these models. "
      "Assumes models of type Nematus and assigns model names F0, F1, ...")
@@ -247,9 +249,10 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("threads-openblas", size_t);
   SET_OPTION("devices", std::vector<size_t>);
   SET_OPTION("show-weights", bool);
-  SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION("relative-paths", bool);
-
+  SET_OPTION_NONDEFAULT("load-weights", std::string);
+  SET_OPTION_NONDEFAULT("input-file", std::string);
+  
   // @TODO: Apply complex overwrites
 
   if(Has("load-weights")) {

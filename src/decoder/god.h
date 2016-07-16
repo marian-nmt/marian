@@ -7,14 +7,13 @@
 #include "loader.h"
 #include "scorer.h"
 #include "logging.h"
+#include "file_stream.h"
 
 class Weights;
 class Filter;
 
 class God {
   public:
-    virtual ~God();
-
     static God& Init(const std::string&);
     static God& Init(int argc, char** argv);
 
@@ -38,9 +37,7 @@ class God {
     static Vocab& GetSourceVocab(size_t i = 0);
     static Vocab& GetTargetVocab();
 
-    static std::istream& GetInputStream() {
-      return *Summon().inStrm;
-    }
+    static std::istream& GetInputStream();
 
     static Filter& GetFilter();
 
@@ -69,6 +66,6 @@ class God {
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;
 
-    std::istream *inStrm;
+    std::unique_ptr<InputFileStream> inputStream_;
 };
 

@@ -52,10 +52,10 @@ class Decoder {
           // Repeat mean batchSize times by broadcasting
           Temp2_.Clear();
           Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, Temp1_);
+          BroadcastVec(bpp::_1 + bpp::_2, Temp2_, Temp1_);
           
           Prod(State, Temp2_, w_.Wi_);
-          BroadcastVec(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), State, w_.Bi_);
+          BroadcastVec(Tanh(bpp::_1 + bpp::_2), State, w_.Bi_);
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -104,19 +104,19 @@ class Decoder {
           
           Prod(Temp1_, SourceContext, w_.U_);
           Prod(Temp2_, HiddenState, w_.W_);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, w_.B_);
+          BroadcastVec(bpp::_1 + bpp::_2, Temp2_, w_.B_);
           
           // For batching: create an A across different sentences,
           // maybe by mapping and looping. In the and join different
           // alignment matrices into one
           // Or masking?
-          Broadcast(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), Temp1_, Temp2_);
+          Broadcast(Tanh(bpp::_1 + bpp::_2), Temp1_, Temp2_);
           Prod(A_, w_.V_, Temp1_, false, true);
           size_t words = SourceContext.Rows();
           // batch size, for batching, divide by numer of sentences
           size_t batchSize = HiddenState.Rows(); 
           A_.Reshape(batchSize, words); // due to broadcasting above
-          Element(boost::phoenix::placeholders::_1 + w_.C_(0,0), A_);
+          Element(bpp::_1 + w_.C_(0,0), A_);
           mblas::Softmax(A_);
           
           Prod(AlignedSourceContext, A_, SourceContext);
@@ -155,18 +155,18 @@ class Decoder {
           Prod(T2_, Embedding, w_.W2_);
           Prod(T3_, AlignedSourceContext, w_.W3_);
           
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T1_, w_.B1_);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T2_, w_.B2_);
-          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T3_, w_.B3_);
+          BroadcastVec(bpp::_1 + bpp::_2, T1_, w_.B1_);
+          BroadcastVec(bpp::_1 + bpp::_2, T2_, w_.B2_);
+          BroadcastVec(bpp::_1 + bpp::_2, T3_, w_.B3_);
       
-          Element(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2 + boost::phoenix::placeholders::_3), T1_, T2_, T3_);
+          Element(Tanh(bpp::_1 + bpp::_2 + bpp::_3), T1_, T2_, T3_);
           
           if(!filtered_) {
             Prod(Probs, T1_, w_.W4_);
-            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, w_.B4_);
+            BroadcastVec(bpp::_1 + bpp::_2, Probs, w_.B4_);
           } else {
             Prod(Probs, T1_, FilteredW4_);
-            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, FilteredB4_);
+            BroadcastVec(bpp::_1 + bpp::_2, Probs, FilteredB4_);
           }
           mblas::SoftmaxLog(Probs);
         }
@@ -175,16 +175,8 @@ class Decoder {
           filtered_ = true;
           
           using namespace mblas;
-          
-          Matrix TempW4;
-          Transpose(TempW4, w_.W4_);
-          Assemble(FilteredW4_, TempW4, ids);
-          Transpose(FilteredW4_);
-          
-          Matrix TempB4;
-          Transpose(TempB4, w_.B4_);
-          Assemble(FilteredB4_, TempB4, ids);
-          Transpose(FilteredB4_);
+          AssembleCols(FilteredW4_, w_.W4_, ids);
+          AssembleCols(FilteredB4_, w_.B4_, ids);
         }
        
       private:        

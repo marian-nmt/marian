@@ -128,6 +128,23 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
+Matrix& AssembleCols(Matrix& Out,
+                 const Matrix& In,
+                 const std::vector<size_t>& indeces) {
+  Out.Resize(In.Rows(), indeces.size());
+  
+  size_t colsSrc = In.Cols();
+  size_t colsDst = Out.Cols();
+  for(size_t i = 0; i < Out.Rows(); ++i) {
+    for(size_t j = 0; j < indeces.size(); ++j) {
+      size_t src = indeces[j];
+      size_t dst = j;  
+      Out.data()[i * colsDst + dst] = In.data()[i * colsSrc + src]; 
+    }
+  }
+  return Out;
+}
+
 void gSlice(float* out, const float* in,
             size_t n, size_t dim,
             size_t rows, size_t cols) {

@@ -7,12 +7,9 @@
 
 class Config {
   private:
-
     YAML::Node config_;
 
   public:
-    std::string inputPath;
-
     bool Has(const std::string& key);
 
     YAML::Node Get(const std::string& key) {

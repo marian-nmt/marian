@@ -14,13 +14,6 @@
 
 God God::instance_;
 
-God::~God()
-{
-  if (inStrm != &std::cin) {
-    delete inStrm;
-  }
-}
-
 God& God::Init(int argc, char** argv) {
   return Summon().NonStaticInit(argc, argv);
 }
@@ -69,18 +62,10 @@ God& God::NonStaticInit(int argc, char** argv) {
     loaders_.emplace(name, LoaderFactory::Create(name, pair.second));
   }
 
-  if (config_.inputPath.empty()) {
-    std::cerr << "Using cin" << std::endl;
-    inStrm = &std::cin;
-  }
-  else {
-    std::cerr << "Using " << config_.inputPath << std::endl;
-    inStrm = new std::ifstream(config_.inputPath.c_str());
-  }
-
   if (!Get<std::vector<std::string>>("softmax-filter").empty()) {
     auto filterOptions = Get<std::vector<std::string>>("softmax-filter");
     std::string alignmentFile = filterOptions[0];
+    LOG(info) << "Reading target softmax filter file from " << alignmentFile;
     Filter* filter = nullptr;
     if (filterOptions.size() >= 3) {
       const size_t numNFirst = stoi(filterOptions[1]);
@@ -104,6 +89,15 @@ God& God::NonStaticInit(int argc, char** argv) {
     filter_.reset(filter);
   }
 
+  if (Has("input-file")) {
+    LOG(info) << "Reading from " << Get<std::string>("input-file");
+    inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));
+  }
+  else {
+    LOG(info) << "Reading from stdin";
+    inputStream_.reset(new InputFileStream(std::cin));
+  }
+
   return *this;
 }
 
@@ -119,26 +113,30 @@ Filter& God::GetFilter() {
   return *(Summon().filter_);
 }
 
-  std::vector<ScorerPtr> God::GetScorers(size_t taskId) {
-    std::vector<ScorerPtr> scorers;
-    for(auto&& loader : Summon().loaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(taskId));
-    return scorers;
-  }
+std::istream& God::GetInputStream() {
+  return *Summon().inputStream_;
+}
 
-  std::vector<std::string> God::GetScorerNames() {
-    std::vector<std::string> scorerNames;
-    for(auto&& name : Summon().loaders_ | boost::adaptors::map_keys)
-      scorerNames.push_back(name);
-    return scorerNames;
-  }
+std::vector<ScorerPtr> God::GetScorers(size_t taskId) {
+  std::vector<ScorerPtr> scorers;
+  for(auto&& loader : Summon().loaders_ | boost::adaptors::map_values)
+    scorers.emplace_back(loader->NewScorer(taskId));
+  return scorers;
+}
 
-  std::map<std::string, float>& God::GetScorerWeights() {
-    return Summon().weights_;
-  }
+std::vector<std::string> God::GetScorerNames() {
+  std::vector<std::string> scorerNames;
+  for(auto&& name : Summon().loaders_ | boost::adaptors::map_keys)
+    scorerNames.push_back(name);
+  return scorerNames;
+}
 
-  // clean up cuda vectors before cuda context goes out of scope
-  void God::CleanUp() {
-    for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
-      loader.reset(nullptr);
-  }
+std::map<std::string, float>& God::GetScorerWeights() {
+  return Summon().weights_;
+}
+
+// clean up cuda vectors before cuda context goes out of scope
+void God::CleanUp() {
+  for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
+    loader.reset(nullptr);
+}
