@@ -43,8 +43,6 @@ extern "C"
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
-  Eigen::initParallel();
-  
   boost::timer::cpu_timer timer;
 
   std::string in;

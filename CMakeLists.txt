@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
-SET(CMAKE_CXX_FLAGS " -std=c++11 -g -fPIC -Ofast -funroll-loops -Wno-unused-result -Wno-deprecated")
+SET(CMAKE_CXX_FLAGS " -std=c++11 -fPIC -Ofast -funroll-loops -Wno-unused-result -Wno-deprecated")
 #SET(CMAKE_CXX_FLAGS " -std=c++11 -fPIC -fopenmp -g -Og -DDEBUG -Bdynamic -lprofiler -ltcmalloc_and_profiler -funroll-loops -Wno-unused-result -Wno-deprecated")
 # execute this before profiling: export LD_PRELOAD=/usr/lib/libtcmalloc_and_profiler.so
 
@@ -20,9 +20,6 @@ if(Boost_FOUND)
 else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
-
-find_package(Eigen3 REQUIRED)
-include_directories(EIGEN3_INCLUDE_DIR)
 
 find_package(OpenBLAS)
 if(OPENBLAS_FOUND)

@@ -16,10 +16,11 @@ class Encoder {
         {}
           
         void Lookup(mblas::Matrix& Row, size_t i) {
-          if(i < w_.E_.rows())
-            Row = w_.E_.row(i);
+          using namespace mblas;
+          if(i < w_.E_.Rows())
+            CopyRow(Row, w_.E_, i);
           else
-            Row = w_.E_.row(1);
+            CopyRow(Row, w_.E_, 1); // UNK
         }
       
       private:
@@ -34,7 +35,8 @@ class Encoder {
         : gru_(model) {}
         
         void InitializeState(size_t batchSize = 1) {
-          State_ = Eigen::ArrayXXf::Zero(batchSize, gru_.GetStateLength());
+          State_.Clear();
+          State_.Resize(batchSize, gru_.GetStateLength(), 0.0);
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -54,11 +56,9 @@ class Encoder {
             GetNextState(State_, State_, *it++);
             
             if(invert)
-			  Context.block(n - i - 1, gru_.GetStateLength(),
-							1, gru_.GetStateLength()) = State_;
+              mblas::PasteRow(Context, State_, n - i - 1, gru_.GetStateLength());
             else
-			  Context.block(i, 0,
-							1, gru_.GetStateLength()) = State_;
+              mblas::PasteRow(Context, State_, i, 0);
             ++i;
           }
         }

@@ -40,11 +40,11 @@ class SlowGRU {
       Element((1.0 - bpp::_1) * bpp::_2 + bpp::_1 * bpp::_3, U_, H_, State);
       // -----------------------------------------------------
       
-      NextState.swap(U_);
+      Swap(NextState, U_);
     }
     
     size_t GetStateLength() const {
-      return w_.U_.rows();
+      return w_.U_.Rows();
     }
     
   private:
@@ -74,46 +74,46 @@ class FastGRU {
   public:
     FastGRU(const Weights& model)
     : w_(model) {
-      WWx_.resize(w_.W_.rows(),
-                  w_.W_.cols() + w_.Wx_.cols());
-      WWx_ << w_.W_, w_.Wx_;
+      using namespace mblas;
+      Transpose(WWx_, w_.W_);
+      Matrix WxT;
+      Transpose(WxT, w_.Wx_);
+      Concat(WWx_, WxT);
+      Transpose(WWx_);
       
-      UUx_.resize(w_.U_.rows(),
-                  w_.U_.cols() + w_.Ux_.cols());
-      UUx_ << w_.U_, w_.Ux_; 
+      Transpose(UUx_, w_.U_);
+      Matrix UxT;
+      Transpose(UxT, w_.Ux_);
+      Concat(UUx_, UxT);
+      Transpose(UUx_);
     }
           
     void GetNextState(mblas::Matrix& NextState,
                       const mblas::Matrix& State,
                       const mblas::Matrix& Context) const {
-      RUH_.noalias() = Context * WWx_;
-      Temp_.noalias() = State * UUx_;
-      
-      size_t rows = State.rows();
-      size_t cols = State.cols();
-      
-      auto R = RUH_.block(0, 0 * cols, rows, cols);
-      auto U = RUH_.block(0, 1 * cols, rows, cols);
-      auto H = RUH_.block(0, 2 * cols, rows, cols);
-      
-      auto Tr = Temp_.block(0, 0 * cols, rows, cols);
-      auto Tu = Temp_.block(0, 1 * cols, rows, cols);
-      auto Th = Temp_.block(0, 2 * cols, rows, cols);
-      
-      auto br = w_.B_.head(cols);
-      auto bu = w_.B_.tail(cols);
-      
-      auto r = ((R + Tr).rowwise() + br).unaryExpr(&logitapprox);
-      auto u = ((U + Tu).rowwise() + bu).unaryExpr(&logitapprox);
-      
-      auto hv = H.rowwise() + w_.Bx1_;
-      auto tv = Th.rowwise() + w_.Bx2_;
-      auto h = (hv.array() + (r.array() * tv.array())).unaryExpr(&tanhapprox);
-      NextState = (1.0 - u.array()) * h + u.array() * State.array();
+      using namespace mblas;
+      Prod(RUH_, Context, WWx_);
+      Prod(Temp_, State, UUx_);
+      ElementwiseOps(NextState, State, RUH_, Temp_);
     }
           
+    void ElementwiseOps(mblas::Matrix& NextState,
+                        const mblas::Matrix& State,
+                        const mblas::Matrix& RUH,
+                        const mblas::Matrix& Temp) const {
+      const size_t rows = State.Rows();
+      const size_t cols = State.Cols();
+      NextState.Resize(rows, cols);
+      
+      gElementwiseOps(NextState.data(), State.data(),
+                      RUH.data(),
+                      Temp.data(),
+                      w_.B_.data(), w_.Bx1_.data(), w_.Bx2_.data(),
+                      rows, cols);
+    }
+    
     size_t GetStateLength() const {
-      return w_.U_.rows();
+      return w_.U_.Rows();
     }
 
     

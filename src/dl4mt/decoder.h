@@ -13,22 +13,21 @@ class Decoder {
         : w_(model)
         {}
             
-        void Lookup(mblas::Matrix& rows, const std::vector<size_t>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
           using namespace mblas;
           std::vector<size_t> tids = ids;
           for(auto&& id : tids)
-            if(id >= w_.E_.rows())
+            if(id >= w_.E_.Rows())
               id = 1;
-          
-          Assemble(rows, w_.E_, tids);
+          Assemble(Rows, w_.E_, tids);
         }
         
         size_t GetCols() {
-          return w_.E_.cols();    
+          return w_.E_.Cols();    
         }
         
         size_t GetRows() const {
-          return w_.E_.rows();    
+          return w_.E_.Rows();    
         }
         
       private:
@@ -45,9 +44,18 @@ class Decoder {
         void InitializeState(mblas::Matrix& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize = 1) {
-          auto mean = SourceContext.colwise().mean();
-          auto init = mean.colwise().replicate(batchSize);
-          State = (init * w_.Wi_).rowwise() + w_.Bi_;
+          using namespace mblas;
+          
+          // calculate mean of source context, rowwise
+          Mean(Temp1_, SourceContext);
+          
+          // Repeat mean batchSize times by broadcasting
+          Temp2_.Clear();
+          Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, Temp1_);
+          
+          Prod(State, Temp2_, w_.Wi_);
+          BroadcastVec(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), State, w_.Bi_);
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -59,6 +67,9 @@ class Decoder {
       private:
         const Weights1& w_;
         const GRU<Weights2> gru_;
+        
+        mblas::Matrix Temp1_;
+        mblas::Matrix Temp2_;
     };
     
     //////////////////////////////////////////////////////////////
@@ -90,30 +101,29 @@ class Decoder {
                                      const mblas::Matrix& HiddenState,
                                      const mblas::Matrix& SourceContext) {
           using namespace mblas;  
-          namespace bpp = boost::phoenix::placeholders;
           
-          Temp1_.noalias() = SourceContext * w_.U_;
-          Temp2_.noalias() = (HiddenState * w_.W_).rowwise() + w_.B_;
+          Prod(Temp1_, SourceContext, w_.U_);
+          Prod(Temp2_, HiddenState, w_.W_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Temp2_, w_.B_);
           
-          Broadcast(Tanh(bpp::_1 + bpp::_2), Temp1_, Temp2_);
-          A_.noalias() = w_.V_ * Temp1_.transpose();
+          // For batching: create an A across different sentences,
+          // maybe by mapping and looping. In the and join different
+          // alignment matrices into one
+          // Or masking?
+          Broadcast(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2), Temp1_, Temp2_);
+          Prod(A_, w_.V_, Temp1_, false, true);
+          size_t words = SourceContext.Rows();
+          // batch size, for batching, divide by numer of sentences
+          size_t batchSize = HiddenState.Rows(); 
+          A_.Reshape(batchSize, words); // due to broadcasting above
+          Element(boost::phoenix::placeholders::_1 + w_.C_(0,0), A_);
+          mblas::Softmax(A_);
           
-          size_t words = SourceContext.rows();
-          size_t batchSize = HiddenState.rows(); 
-          A_.resize(words, batchSize);
-          A_.array() += w_.C_(0, 0);
-          A_.transposeInPlace();
-          
-          Matrix nums = A_.unaryExpr(&expapprox);
-          Matrix denoms = nums.rowwise().sum();
-          for(size_t i = 0; i < nums.rows(); ++i)
-            A_.row(i) = nums.row(i) / denoms(i);
-          
-          AlignedSourceContext.noalias() = A_ * SourceContext;
+          Prod(AlignedSourceContext, A_, SourceContext);
         }
         
         void GetAttention(mblas::Matrix& Attention) {
-          Attention = A_;
+          mblas::Copy(Attention, A_);
         }
       
       private:
@@ -122,6 +132,9 @@ class Decoder {
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
+        
+        mblas::Matrix Ones_;
+        mblas::Matrix Sums_;
     };
     
     //////////////////////////////////////////////////////////////
@@ -130,50 +143,60 @@ class Decoder {
       public:
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
-        {
-          const_cast<mblas::Matrix&>(w_.W4_).transposeInPlace();
-          RB4_ = w_.B4_.transpose();
-        }
+        {}
           
         void GetProbs(mblas::Matrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {          
-
-          mblas::Matrix t1 = State * w_.W1_;
-          T1_.noalias() = t1.rowwise() + w_.B1_;
-          T2_.noalias() = (Embedding * w_.W2_).rowwise() + w_.B2_;
-          T3_.noalias() = (AlignedSourceContext * w_.W3_).rowwise() + w_.B3_;
-          mblas::Matrix t = (T1_ + T2_ + T3_).unaryExpr(&tanhapprox).transpose();
+                  const mblas::Matrix& AlignedSourceContext) {
+          using namespace mblas;
           
-          if(!filtered_)
-            Probs.noalias() = ((w_.W4_ * t).colwise() + RB4_).unaryExpr(&expapprox);
-          else
-            Probs.noalias() = ((FilteredW4_ * t).colwise() + FilteredB4_).unaryExpr(&expapprox);
-
-          mblas::Matrix denoms = Probs.colwise().sum();
-          for(size_t i = 0; i < Probs.cols(); ++i)
-            Probs.col(i) /= denoms(i);
-          Probs = Probs.unaryExpr(&logapprox);
+          Prod(T1_, State, w_.W1_);
+          Prod(T2_, Embedding, w_.W2_);
+          Prod(T3_, AlignedSourceContext, w_.W3_);
+          
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T1_, w_.B1_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T2_, w_.B2_);
+          BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, T3_, w_.B3_);
+      
+          Element(Tanh(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2 + boost::phoenix::placeholders::_3), T1_, T2_, T3_);
+          
+          if(!filtered_) {
+            Prod(Probs, T1_, w_.W4_);
+            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, w_.B4_);
+          } else {
+            Prod(Probs, T1_, FilteredW4_);
+            BroadcastVec(boost::phoenix::placeholders::_1 + boost::phoenix::placeholders::_2, Probs, FilteredB4_);
+          }
+          mblas::SoftmaxLog(Probs);
         }
     
         void Filter(const std::vector<size_t>& ids) {
           filtered_ = true;
+          
           using namespace mblas;
-          Assemble(FilteredW4_, w_.W4_, ids);
-          Assemble(FilteredB4_, RB4_, ids);
+          
+          Matrix TempW4;
+          Transpose(TempW4, w_.W4_);
+          Assemble(FilteredW4_, TempW4, ids);
+          Transpose(FilteredW4_);
+          
+          Matrix TempB4;
+          Transpose(TempB4, w_.B4_);
+          Assemble(FilteredB4_, TempB4, ids);
+          Transpose(FilteredB4_);
         }
        
       private:        
         const Weights& w_;
+        
+        bool filtered_;
+        mblas::Matrix FilteredW4_;
+        mblas::Matrix FilteredB4_;
+        
         mblas::Matrix T1_;
         mblas::Matrix T2_;
         mblas::Matrix T3_;
-        
-        bool filtered_;
-        mblas::RVector RB4_;
-        mblas::Matrix FilteredW4_;
-        mblas::RVector FilteredB4_;
     };
     
   public:
@@ -204,8 +227,8 @@ class Decoder {
     
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t batchSize = 1) {
-      Embedding.resize(batchSize, embeddings_.GetCols());
-      Embedding.fill(0);
+      Embedding.Clear();
+      Embedding.Resize(batchSize, embeddings_.GetCols(), 0);
     }
     
     void Lookup(mblas::Matrix& Embedding,
