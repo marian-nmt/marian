@@ -34,3 +34,4 @@
 .*.sw*
 
 build
+scripts/docker
