@@ -43,8 +43,6 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t taskCounter = 0;
 
-  size_t threadOpenBLAS = God::Get<size_t>("threads-openblas");
-
   size_t threadCount = God::Get<size_t>("threads");
   LOG(info) << "Setting number of threads to " << threadCount;
   ThreadPool pool(threadCount);
