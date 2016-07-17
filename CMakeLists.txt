@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
-SET(CMAKE_CXX_FLAGS_RELEASE " -std=c++14 -march=native -fPIC -Ofast -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated")
+SET(CMAKE_CXX_FLAGS_RELEASE " -std=c++14 -m64 -flto -march=native -fPIC -Ofast -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated")
 SET(CMAKE_CXX_FLAGS_DEBUG " -std=c++14 -fPIC -g -Og")
-SET(CMAKE_CXX_FLAGS_PROFILE " -std=c++14 -march=native -fPIC -g -lprofiler -DPROFILER_MODE -ltcmalloc_and_profiler -Ofast -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated")
+
 # execute this before profiling: export LD_PRELOAD=/usr/lib/libtcmalloc_and_profiler.so
+SET(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -lprofiler -DPROFILER_MODE -ltcmalloc_and_profiler")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING
