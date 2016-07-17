@@ -125,10 +125,6 @@ inline float sinapprox(float val) {
 
 //p = remez(tanh(x), [|1,3,5,7,9|], [-3,3], 1, 1e-6, [0,1e-6]);
 
-inline float sgn(float val) {
-    return (0.f < val) - (val < 0.f);
-}
-
 inline float tanhapprox(float val) {
   val = std::min(val, 3.0f);
   val = std::max(val, -3.0f);
@@ -139,10 +135,6 @@ inline float tanhapprox(float val) {
              (-4.899443078e-3 + val2 *
               1.910515343e-4))));
   return out;
-          
-  //float e1 = expapprox(val);
-  //float e2 = 1 / e1;
-  //return (e1 - e2) / (e1 + e2);
 }
 
 #ifdef __cplusplus

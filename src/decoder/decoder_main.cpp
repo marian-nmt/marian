@@ -14,6 +14,10 @@
 #include "printer.h"
 #include "sentence.h"
 
+#ifdef PROFILER_MODE
+#include <gperftools/profiler.h>
+#endif
+
 History TranslationTask(const std::string& in, size_t taskCounter) {
   #ifdef __APPLE__
     static boost::thread_specific_ptr<Search> s_search;
@@ -48,6 +52,10 @@ int main(int argc, char* argv[]) {
   ThreadPool pool(threadCount);
   std::vector<std::future<History>> results;
 
+#ifdef PROFILER_MODE
+  ProfilerStart("amun_profile.log");
+#endif
+  
   LOG(info) << "Reading input";
   while(std::getline(God::GetInputStream(), in)) {
 
@@ -64,6 +72,10 @@ int main(int argc, char* argv[]) {
   for(auto&& result : results)
     Printer(result.get(), lineCounter++, std::cout);
 
+#ifdef PROFILER_MODE
+  ProfilerStop();
+#endif
+    
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
 

@@ -6,9 +6,6 @@
 
 #include "base_matrix.h"
 
-#define MAX_THREADS 512
-#define MAX_BLOCKS 65535
-
 #include "phoenix_functions.h"
 
 namespace mblas {
