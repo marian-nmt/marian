@@ -3,7 +3,7 @@
 #include "mblas/matrix.h"
 #include "dl4mt/model.h"
 #include "dl4mt/gru.h"
- 
+
 class Decoder {
   private:
     template <class Weights>

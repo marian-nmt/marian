@@ -173,8 +173,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Implicitly sets minimal number of threads to number of devices.")
     ("threads", po::value<size_t>()->default_value(1),
      "Number of threads")
-    ("threads-openblas", po::value<size_t>()->default_value(1),
-     "Number of threads for OpenBLAS operations")
+    //("threads-openblas", po::value<size_t>()->default_value(1),
+    // "Number of threads for OpenBLAS operations")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -246,7 +246,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("allow-unk", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads", size_t);
-  SET_OPTION("threads-openblas", size_t);
+  //SET_OPTION("threads-openblas", size_t);
   SET_OPTION("devices", std::vector<size_t>);
   SET_OPTION("show-weights", bool);
   SET_OPTION("relative-paths", bool);

@@ -9,7 +9,6 @@
 #define MAX_THREADS 512
 #define MAX_BLOCKS 65535
 
-#include "cblas.h"
 #include "phoenix_functions.h"
 
 namespace mblas {

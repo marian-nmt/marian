@@ -28,6 +28,7 @@ SOFTWARE.
 #define SIMD_MATH_PRIMS_H
 
 #include<math.h>
+#include <iostream>
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,10 +123,26 @@ inline float sinapprox(float val) {
               2.147840177713078446686267852783203125e-6f))));
 }
 
+//p = remez(tanh(x), [|1,3,5,7,9|], [-3,3], 1, 1e-6, [0,1e-6]);
+
+inline float sgn(float val) {
+    return (0.f < val) - (val < 0.f);
+}
+
 inline float tanhapprox(float val) {
-  float e1 = expapprox(val);
-  float e2 = expapprox(-val);
-  return (e1 - e2) / (e1 + e2);
+  val = std::min(val, 3.0f);
+  val = std::max(val, -3.0f);
+  float val2 = val * val;
+  float out = val * (0.9745461938f + val2 *
+           (-0.252262168 + val2 *
+            (4.873306892e-2 + val2 *
+             (-4.899443078e-3 + val2 *
+              1.910515343e-4))));
+  return out;
+          
+  //float e1 = expapprox(val);
+  //float e2 = 1 / e1;
+  //return (e1 - e2) / (e1 + e2);
 }
 
 #ifdef __cplusplus
