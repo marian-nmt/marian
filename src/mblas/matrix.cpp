@@ -25,7 +25,9 @@ Matrix& Mean(Matrix& Out, const Matrix& In) {
   
   for(size_t i = 0; i < m; ++i)
     for(size_t j = 0; j < n; ++j)
-      Out.data()[j] += In.data()[i * n + j] / m;
+      Out.data()[j] += In.data()[i * n + j] ;
+  for(size_t j = 0; j < n; ++j)
+    Out.data()[j] /= m;
 
   return Out;
 }
