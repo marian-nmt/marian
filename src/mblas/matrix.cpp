@@ -1,5 +1,6 @@
 #include "matrix.h"
 #include "simd_math_prims.h"
+
 #include "blaze/Math.h"
 
 namespace mblas {
@@ -20,15 +21,15 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
 Matrix& Mean(Matrix& Out, const Matrix& In) {
   size_t m = In.Rows();
   size_t n = In.Cols();
-  
   Out.Resize(1, n, 0.f);
-  
-  for(size_t i = 0; i < m; ++i)
+  if(m > 0)
+    for(size_t j = 0; j < n; ++j)
+      Out.data()[j] = In.data()[j] ;
+  for(size_t i = 1; i < m; ++i)
     for(size_t j = 0; j < n; ++j)
       Out.data()[j] += In.data()[i * n + j] ;
   for(size_t j = 0; j < n; ++j)
     Out.data()[j] /= m;
-
   return Out;
 }
 

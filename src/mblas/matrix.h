@@ -135,15 +135,13 @@ typedef TMatrix<FVec> Matrix;
 //typedef TMatrix<IVec> IMatrix;
 
 template <class M>
-void Debug(const M& m, size_t pos = 0, size_t l = 5) {
+void Debug(const M& m, size_t maxRows = 5, size_t maxCols = 5) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
-  for(size_t i = 0; i < m.Rows(); ++i) {
-    for(size_t j = pos; j < m.Cols() && j < pos + l; ++j) {
+  for(size_t i = 0; i < m.Rows() && i < maxRows; ++i) {
+    for(size_t j = 0; j < m.Cols() && j < maxCols; ++j) {
       std::cerr << m.GetVec()[i * m.Cols() + j] << " ";
     }
     std::cerr << std::endl;
-    if(i == 4)
-      break;
   }
 }
 
