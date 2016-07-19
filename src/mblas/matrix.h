@@ -4,104 +4,66 @@
 #include <iostream>
 #include <vector>
 
-#include "base_matrix.h"
-
+#include <blaze/Math.h>
 #include "phoenix_functions.h"
 
 namespace mblas {
 
 namespace bpp = boost::phoenix::placeholders;
 
-template <class VecType>
-class TMatrix : public BaseMatrix {
-
-public:
-    typedef typename VecType::value_type value_type;
-    typedef typename VecType::iterator iterator;
-    typedef typename VecType::const_iterator const_iterator;
-
-    TMatrix()
-    : rows_(0), cols_(0)
-    {}
-
-    TMatrix(size_t rows, size_t cols)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_)
-    {}
-
-    TMatrix(size_t rows, size_t cols, value_type val)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_, val)
-    {}
-
-    TMatrix(TMatrix&& m)
-    : rows_(m.rows_), cols_(m.cols_), data_(std::move(m.data_)) {}
-
-    TMatrix(const TMatrix& m) = delete;
-
-    value_type operator()(size_t i, size_t j) const {
-      return data_[i * cols_ + j];
+template <typename T, bool SO = blaze::rowMajor>
+class BlazeMatrix : public blaze::CustomMatrix<T, blaze::unaligned,
+                                             blaze::unpadded,
+                                             blaze::rowMajor> {
+  public:
+    typedef T value_type;
+    typedef typename std::vector<value_type>::iterator iterator;
+    typedef typename std::vector<value_type>::const_iterator const_iterator;
+    typedef blaze::CustomMatrix<value_type,
+                                blaze::unaligned,
+                                blaze::unpadded,
+                                SO> BlazeBase;
+    
+    BlazeMatrix() {}
+    
+    BlazeMatrix(size_t rows, size_t columns, value_type val = 0)
+     : data_(rows * columns, val) {
+       BlazeBase temp(data_.data(), rows, columns);
+       std::swap(temp, *(BlazeBase*)this);
+    }
+  
+    template <class MT>
+    BlazeMatrix(const MT& rhs)
+     : data_(rhs.rows() * rhs.columns()) {
+       BlazeBase temp(data_.data(), rhs.rows(), rhs.columns());
+       temp = rhs;
+       std::swap(temp, *(BlazeBase*)this);
     }
 
-    void Set(size_t i, size_t j, float value)  {
-      data_[i * cols_ + j] = value;
+    void resize(size_t rows, size_t columns) {
+       data_.resize(rows * columns);
+       BlazeBase temp(data_.data(), rows, columns);
+       std::swap(temp, *(BlazeBase*)this);
     }
-
-    size_t Rows() const {
-      return rows_;
+        
+    BlazeMatrix<T, SO>& operator=(const value_type& val) {
+      *(BlazeBase*)this = val;
+      return *this;
     }
-
-    size_t Cols() const {
-      return cols_;
+  
+    template <class MT>
+    BlazeMatrix<T, SO>& operator=(const MT& rhs) {
+      resize(rhs.rows(), rhs.columns());
+      BlazeBase temp(data_.data(), rhs.rows(), rhs.columns());
+      temp = rhs;
+      std::swap(temp, *(BlazeBase*)this);
+      return *this;
     }
-
-    void Resize(size_t rows, size_t cols) {
-      rows_ = rows;
-      cols_ = cols;
-      data_.resize(rows_ * cols_);
+    
+    operator BlazeBase&() {
+      return *(BlazeBase*)this;
     }
-
-    void Resize(size_t rows, size_t cols, value_type val) {
-      rows_ = rows;
-      cols_ = cols;
-      data_.resize(rows_ * cols_, val);
-    }
-
-    void Reserve(size_t rows, size_t cols) {
-      data_.reserve(rows * cols);
-    }
-
-    void Reshape(size_t rows, size_t cols) {
-      rows_ = rows;
-      cols_ = cols;
-    }
-
-    void Purge() {
-      Clear();
-      VecType temp;
-      data_.swap(temp);
-    }
-
-    void Clear() {
-      data_.clear();
-      rows_ = 0;
-      cols_ = 0;
-    }
-
-    VecType& GetVec() {
-      return data_;
-    }
-
-    const VecType& GetVec() const {
-      return data_;
-    }
-
-    value_type* data() {
-      return data_.data();
-    }
-
-    const value_type* data() const {
-      return data_.data();
-    }
-
+    
     iterator begin() {
       return data_.begin();
     }
@@ -121,18 +83,53 @@ public:
     size_t size() const {
       return data_.size();
     }
+    
+    size_t Rows() const {
+      return BlazeBase::rows();
+    }
 
+    size_t Cols() const {
+      return BlazeBase::columns();
+    }
+
+    void Clear() {
+      BlazeBase temp;
+      std::swap(temp, *(BlazeBase*)this);
+      data_.clear();
+    }
+    
+    void Resize(size_t r, size_t c) {
+      resize(r, c);
+    }
+  
+    void Resize(size_t r, size_t c, value_type val) {
+      resize(r, c);
+      std::fill(data_.begin(), data_.end(), val);
+    }
+    
+    void Reshape(size_t r, size_t c) {
+      assert(r * c == size());
+      resize(r, c);
+    }
+    
+    std::vector<value_type>& GetVec() {
+      return data_;
+    }
+    
+    const std::vector<value_type>& GetVec() const {
+      return data_;
+    }
+    
+    void swap(BlazeMatrix<T, SO>& rhs) {
+      std::swap(data_, rhs.data_);
+      std::swap(static_cast<BlazeBase&>(*this), static_cast<BlazeBase&>(rhs));
+    }
+  
   private:
-    size_t rows_;
-    size_t cols_;
-    VecType data_;
+    std::vector<value_type> data_;                                       
 };
 
-typedef std::vector<float> FVec;
-typedef std::vector<unsigned int> IVec;
-
-typedef TMatrix<FVec> Matrix;
-//typedef TMatrix<IVec> IMatrix;
+typedef BlazeMatrix<float, blaze::rowMajor> Matrix;
 
 template <class M>
 void Debug(const M& m, size_t maxRows = 5, size_t maxCols = 5) {
@@ -154,14 +151,6 @@ void Debug2(const M& m) {
     }
     std::cerr << std::endl;
   }
-}
-
-template <class VecType>
-std::ostream& operator<<(std::ostream &out, const TMatrix<VecType> &m)
-{
-  out << m.Rows() << "\t" << m.Cols() << "\t" << typeid(typename VecType::value_type).name();
-
-  return out;
 }
 
 Matrix& Swap(Matrix& Out, Matrix& In);

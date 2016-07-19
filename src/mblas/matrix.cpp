@@ -6,15 +6,7 @@
 namespace mblas {
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
-  size_t iRows = In.Rows();
-  size_t iCols = In.Cols();
-  size_t oRows = Out.Rows();
-  size_t oCols = Out.Cols();
-
-  Out.Reshape(iRows, iCols);
-  In.Reshape(oRows, oCols);
-
-  In.GetVec().swap(Out.GetVec());
+  Out.swap(In);
   return Out;
 }
 

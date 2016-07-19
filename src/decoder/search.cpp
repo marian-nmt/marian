@@ -133,7 +133,7 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 
   if(!God::Get<bool>("allow-unk")) {
     for(size_t i = 0; i < Probs.Rows(); i++)
-      Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
+      Probs(i, UNK) = std::numeric_limits<float>::lowest();
   }
 
   std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),

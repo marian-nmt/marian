@@ -98,8 +98,7 @@ inline float logapprox(float val) {
 }
 
 inline float tanhapprox(float x) {
-  x = std::min(x, 4.97f);
-  x = std::max(x, -4.97f);
+  x = std::max(std::min(x, 4.97f), -4.97f);
   float x2 = x * x;
   float a = x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2)));
   float b = 135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f));
