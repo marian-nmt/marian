@@ -131,6 +131,8 @@ class BlazeMatrix : public blaze::CustomMatrix<T, blaze::unaligned,
 
 typedef BlazeMatrix<float, blaze::rowMajor> Matrix;
 
+typedef blaze::DynamicMatrix<float, blaze::rowMajor> DynMatrix;
+
 template <class M>
 void Debug(const M& m, size_t maxRows = 5, size_t maxCols = 5) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;

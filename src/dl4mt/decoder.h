@@ -166,12 +166,13 @@ class Decoder {
       
           Element(Tanh(bpp::_1 + bpp::_2 + bpp::_3), T1_, T2_, T3_);
           
+          DynMatrix T1 = T1_;
           if(!filtered_) {
-            Probs = T1_ * blazeW4_;
+            Probs = T1 * blazeW4_;
             //Prod(Probs, T1_, w_.W4_);
             BroadcastVec(bpp::_1 + bpp::_2, Probs, w_.B4_);
           } else {
-            Prod(Probs, T1_, FilteredW4_);
+            Probs = T1 * FilteredW4_;
             BroadcastVec(bpp::_1 + bpp::_2, Probs, FilteredB4_);
           }
           mblas::SoftmaxLog(Probs);
