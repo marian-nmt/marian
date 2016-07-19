@@ -142,7 +142,12 @@ class Decoder {
     class Softmax {
       public:
         Softmax(const Weights& model)
-        : w_(model), filtered_(false)
+        : w_(model),
+        blazeW1_(w_.W1_),
+        blazeW2_(w_.W2_),
+        blazeW3_(w_.W3_),
+        blazeW4_(w_.W4_),
+        filtered_(false)
         {}
           
         void GetProbs(mblas::Matrix& Probs,
@@ -151,9 +156,9 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
           
-          Prod(T1_, State, w_.W1_);
-          Prod(T2_, Embedding, w_.W2_);
-          Prod(T3_, AlignedSourceContext, w_.W3_);
+          T1_ = State * blazeW1_;
+          T2_ = Embedding * blazeW2_;
+          T3_ = AlignedSourceContext * blazeW3_;
           
           BroadcastVec(bpp::_1 + bpp::_2, T1_, w_.B1_);
           BroadcastVec(bpp::_1 + bpp::_2, T2_, w_.B2_);
@@ -162,7 +167,8 @@ class Decoder {
           Element(Tanh(bpp::_1 + bpp::_2 + bpp::_3), T1_, T2_, T3_);
           
           if(!filtered_) {
-            Prod(Probs, T1_, w_.W4_);
+            Probs = T1_ * blazeW4_;
+            //Prod(Probs, T1_, w_.W4_);
             BroadcastVec(bpp::_1 + bpp::_2, Probs, w_.B4_);
           } else {
             Prod(Probs, T1_, FilteredW4_);
@@ -181,6 +187,11 @@ class Decoder {
        
       private:        
         const Weights& w_;
+        
+        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW1_;
+        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW2_;
+        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW3_;
+        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW4_;
         
         bool filtered_;
         mblas::Matrix FilteredW4_;

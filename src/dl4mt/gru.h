@@ -86,14 +86,16 @@ class FastGRU {
       Transpose(UxT, w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
+      
+      blazeWWx_ = WWx_;
+      blazeUUx_ = UUx_;
     }
           
     void GetNextState(mblas::Matrix& NextState,
                       const mblas::Matrix& State,
                       const mblas::Matrix& Context) const {
-      using namespace mblas;
-      Prod(RUH_, Context, WWx_);
-      Prod(Temp_, State, UUx_);
+      RUH_ = Context * blazeWWx_;
+      Temp_ = State * blazeUUx_;
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
           
@@ -121,9 +123,11 @@ class FastGRU {
     // Model matrices
     const Weights& w_;
         
-    // reused to avoid allocation    
+    // reused to avoid allocation
     mutable mblas::Matrix WWx_;
     mutable mblas::Matrix UUx_;
+    mutable blaze::DynamicMatrix<float, blaze::rowMajor> blazeWWx_;
+    mutable blaze::DynamicMatrix<float, blaze::rowMajor> blazeUUx_;
     
     mutable mblas::Matrix RUH_;
     mutable mblas::Matrix Temp_;

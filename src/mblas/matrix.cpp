@@ -167,80 +167,52 @@ Matrix& Slice(Matrix& Out,
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
-  
-  using namespace blaze;
-  using blaze::CustomMatrix;
-  using blaze::aligned;
-  using blaze::unaligned;
-  using blaze::padded;
-  using blaze::rowMajor;
-  using blaze::columnMajor;
-  
-  //if(transA && transB) {
-  //  C.Resize(A.Cols(), B.Rows());
-  //  CustomMatrix<float, unaligned, unpadded, rowMajor> blazeA(const_cast<float*>(B.data()), B.Rows(), B.Cols());
-  //  CustomMatrix<float, unaligned, unpadded, rowMajor> blazeB(const_cast<float*>(A.data()), A.Rows(), A.Cols());
-  //  CustomMatrix<float, unaligned, unpadded, columnMajor> blazeC(C.data(), blazeA.rows(), blazeB.columns());
-  //  blazeC = blazeA * blazeB;
-  //  return C;
-  //}
-  //if(transA && !transB) {
-  //  C.Resize(A.Rows(), B.Rows());
-  //  CustomMatrix<float, unaligned, unpadded, rowMajor> blazeA(const_cast<float*>(B.data()), B.Rows(), B.Cols());
-  //  CustomMatrix<float, unaligned, unpadded, columnMajor> blazeB(const_cast<float*>(A.data()), A.Cols(), A.Rows());
-  //  CustomMatrix<float, unaligned, unpadded, columnMajor> blazeC(C.data(), blazeA.rows(), blazeB.columns());
-  //  blazeC = blazeA * blazeB;
-  //  return C;
-  //}
-  if(!transA && transB) {
-    C.Resize(A.Rows(), B.Rows());
-    CustomMatrix<float, unaligned, unpadded, rowMajor> blazeA(const_cast<float*>(B.data()), B.Rows(), B.Cols());
-    CustomMatrix<float, unaligned, unpadded, columnMajor> blazeB(const_cast<float*>(A.data()), A.Cols(), A.Rows());
-    CustomMatrix<float, unaligned, unpadded, columnMajor> blazeC(C.data(), blazeA.rows(), blazeB.columns());
-    blazeC = blazeA * blazeB;
-    return C;
+  if(transA && transB) {
+    C.Resize(A.Cols(), B.Rows());
+    C = trans(A) * trans(B);    
   }
-  else if(!transA && !transB) {
-    C.Resize(A.Rows(), B.Cols());
-    CustomMatrix<float, unaligned, unpadded, columnMajor> blazeA(const_cast<float*>(B.data()), B.Cols(), B.Rows());
-    CustomMatrix<float, unaligned, unpadded, columnMajor> blazeB(const_cast<float*>(A.data()), A.Cols(), A.Rows());
-    CustomMatrix<float, unaligned, unpadded, columnMajor> blazeC(C.data(), blazeA.rows(), blazeB.columns());
-    blazeC = blazeA * blazeB;
-    return C;
+  else if(transA) {
+    C.Resize(A.Cols(), B.Cols());
+    C = trans(A) * B;    
+  }
+  else if(transB) {
+    C.Resize(A.Rows(), B.Rows());
+    C = A * trans(B);    
   }
   else {
-    std::cerr << "Not implemented!" << std::endl;
-    exit(1);
+    C.Resize(A.Rows(), B.Cols());
+    C = A * B;
   }
+  return C;
   
-  //Matrix::value_type alpha = 1.0;
-  //Matrix::value_type beta = 0.0;
-  //
-  //size_t m = A.Rows();
-  //size_t k = A.Cols();
-  //if(transA)
-  //  std::swap(m, k);
-  //
-  //size_t l = B.Rows();
-  //size_t n = B.Cols();
-  //if(transB)
-  //  std::swap(l, n);
-  //
-  //size_t lda = A.Cols();
-  //size_t ldb = B.Cols();
-  //size_t ldc = B.Cols();
-  //
-  //if(transB)
-  //  ldc = B.Rows();
-  //
-  //C.Resize(m, n);
-  //
-  //auto opA = transA ? CblasTrans : CblasNoTrans;
-  //auto opB = transB ? CblasTrans : CblasNoTrans;
-  //
-  //cblas_sgemm(CblasColMajor, opB, opA,
-  //            n, m, k, alpha, B.data(), ldb, A.data(), lda, beta, C.data(), ldc);
-  //return C;
+  ////Matrix::value_type alpha = 1.0;
+  ////Matrix::value_type beta = 0.0;
+  ////
+  ////size_t m = A.Rows();
+  ////size_t k = A.Cols();
+  ////if(transA)
+  ////  std::swap(m, k);
+  ////
+  ////size_t l = B.Rows();
+  ////size_t n = B.Cols();
+  ////if(transB)
+  ////  std::swap(l, n);
+  ////
+  ////size_t lda = A.Cols();
+  ////size_t ldb = B.Cols();
+  ////size_t ldc = B.Cols();
+  ////
+  ////if(transB)
+  ////  ldc = B.Rows();
+  ////
+  ////C.Resize(m, n);
+  ////
+  ////auto opA = transA ? CblasTrans : CblasNoTrans;
+  ////auto opB = transB ? CblasTrans : CblasNoTrans;
+  ////
+  ////cblas_sgemm(CblasColMajor, opB, opA,
+  ////            n, m, k, alpha, B.data(), ldb, A.data(), lda, beta, C.data(), ldc);
+  ////return C;
 }
 
 void gSoftMax(float* d, size_t rows, size_t cols) {
