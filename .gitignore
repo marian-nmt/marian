@@ -30,8 +30,9 @@
 *.out
 *.app
 
-# Temporaty files created by editors
+# Temporary files created by editors
 .*.sw*
+*~
 
 build
 scripts/docker
