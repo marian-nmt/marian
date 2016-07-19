@@ -97,44 +97,13 @@ inline float logapprox(float val) {
     + (addcst + 0.69314718055995f*exp);
 }
 
-/* Correct only in [-pi, pi]
-   Absolute error bounded by 5e-5
-   Continuous error */
-inline float cosapprox(float val) {
-  float val2 = val*val;
-  return
-    0.999959766864776611328125f + val2 *
-    (-0.4997930824756622314453125f + val2 *
-     (4.1496001183986663818359375e-2f + val2 *
-      (-1.33926304988563060760498046875e-3f + val2 *
-       1.8791708498611114919185638427734375e-5f)));
-}
-
-/* Correct only in [-pi, pi]
-   Absolute error bounded by 6e-6
-   Continuous error */
-inline float sinapprox(float val) {
-  float val2 = val*val;
-  return
-    val * (0.99997937679290771484375f + val2 *
-           (-0.166624367237091064453125f + val2 *
-            (8.30897875130176544189453125e-3f + val2 *
-             (-1.92649182281456887722015380859375e-4f + val2 *
-              2.147840177713078446686267852783203125e-6f))));
-}
-
-//p = remez(tanh(x), [|1,3,5,7,9|], [-3,3], 1, 1e-6, [0,1e-6]);
-
-inline float tanhapprox(float val) {
-  val = std::min(val, 3.0f);
-  val = std::max(val, -3.0f);
-  float val2 = val * val;
-  float out = val * (0.9745461938f + val2 *
-           (-0.252262168 + val2 *
-            (4.873306892e-2 + val2 *
-             (-4.899443078e-3 + val2 *
-              1.910515343e-4))));
-  return out;
+inline float tanhapprox(float x) {
+  x = std::min(x, 4.97f);
+  x = std::max(x, -4.97f);
+  float x2 = x * x;
+  float a = x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2)));
+  float b = 135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f));
+  return a / b;
 }
 
 #ifdef __cplusplus
