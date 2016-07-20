@@ -17,17 +17,17 @@ class Decoder {
           using namespace mblas;
           std::vector<size_t> tids = ids;
           for(auto&& id : tids)
-            if(id >= w_.E_.Rows())
+            if(id >= w_.E_.rows())
               id = 1;
-          Assemble(Rows, w_.E_, tids);
+          Rows = Assemble<byRow, Matrix>(w_.E_, tids);
         }
         
         size_t GetCols() {
-          return w_.E_.Cols();    
+          return w_.E_.columns();    
         }
         
         size_t GetRows() const {
-          return w_.E_.Rows();    
+          return w_.E_.rows();    
         }
         
       private:
@@ -46,16 +46,17 @@ class Decoder {
                              const size_t batchSize = 1) {
           using namespace mblas;
           
-          // calculate mean of source context, rowwise
-          Mean(Temp1_, SourceContext);
-          
+          // Calculate mean of source context, rowwise
           // Repeat mean batchSize times by broadcasting
-          Temp2_.Clear();
-          Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
-          BroadcastVec(bpp::_1 + bpp::_2, Temp2_, Temp1_);
+          Temp1_ = Mean<byRow, Matrix>(SourceContext);
+          Temp2_.resize(batchSize, SourceContext.columns());
+          Temp2_ = 0.0f;
+          AddBiasVector<byRow>(Temp2_, Temp1_);
           
-          Prod(State, Temp2_, w_.Wi_);
-          BroadcastVec(Tanh(bpp::_1 + bpp::_2), State, w_.Bi_);
+          State = Temp2_ * w_.Wi_;
+          AddBiasVector<byRow>(State, w_.Bi_);
+          
+          State = blaze::forEach(State, Tanh());
         }
         
         void GetNextState(mblas::Matrix& NextState,
@@ -102,28 +103,31 @@ class Decoder {
                                      const mblas::Matrix& SourceContext) {
           using namespace mblas;  
           
-          Prod(Temp1_, SourceContext, w_.U_);
-          Prod(Temp2_, HiddenState, w_.W_);
-          BroadcastVec(bpp::_1 + bpp::_2, Temp2_, w_.B_);
+          Temp1_ = SourceContext * w_.U_;
+          Temp2_ = HiddenState * w_.W_;
+          AddBiasVector<byRow>(Temp2_, w_.B_);
           
           // For batching: create an A across different sentences,
           // maybe by mapping and looping. In the and join different
           // alignment matrices into one
           // Or masking?
-          Broadcast(Tanh(bpp::_1 + bpp::_2), Temp1_, Temp2_);
-          Prod(A_, w_.V_, Temp1_, false, true);
-          size_t words = SourceContext.Rows();
-          // batch size, for batching, divide by numer of sentences
-          size_t batchSize = HiddenState.Rows(); 
-          A_.Reshape(batchSize, words); // due to broadcasting above
-          Element(bpp::_1 + w_.C_(0,0), A_);
-          mblas::Softmax(A_);
+          Temp1_ = Broadcast<Matrix>(Tanh(), Temp1_, Temp2_);
           
-          Prod(AlignedSourceContext, A_, SourceContext);
+          A_ = w_.V_ * trans(Temp1_);
+          size_t words = SourceContext.rows();
+          // batch size, for batching, divide by numer of sentences
+          size_t batchSize = HiddenState.rows(); 
+          A_.resize(batchSize, words); // due to broadcasting above
+          
+          float bias = w_.C_(0,0);
+          blaze::forEach(A_, [=](float x) { return x + bias; });
+          
+          mblas::Softmax(A_);
+          AlignedSourceContext = A_ * SourceContext;
         }
         
         void GetAttention(mblas::Matrix& Attention) {
-          mblas::Copy(Attention, A_);
+          Attention = A_;
         }
       
       private:
@@ -132,9 +136,6 @@ class Decoder {
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
-        
-        mblas::Matrix Ones_;
-        mblas::Matrix Sums_;
     };
     
     //////////////////////////////////////////////////////////////
@@ -143,64 +144,54 @@ class Decoder {
       public:
         Softmax(const Weights& model)
         : w_(model),
-        blazeW1_(w_.W1_),
-        blazeW2_(w_.W2_),
-        blazeW3_(w_.W3_),
-        blazeW4_(w_.W4_),
         filtered_(false)
         {}
           
-        void GetProbs(mblas::Matrix& Probs,
+        void GetProbs(mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
           
-          T1_ = State * blazeW1_;
-          T2_ = Embedding * blazeW2_;
-          T3_ = AlignedSourceContext * blazeW3_;
+          T1_ = State * w_.W1_;
+          T2_ = Embedding * w_.W2_;
+          T3_ = AlignedSourceContext * w_.W3_;
           
-          BroadcastVec(bpp::_1 + bpp::_2, T1_, w_.B1_);
-          BroadcastVec(bpp::_1 + bpp::_2, T2_, w_.B2_);
-          BroadcastVec(bpp::_1 + bpp::_2, T3_, w_.B3_);
+          AddBiasVector<byRow>(T1_, w_.B1_);
+          AddBiasVector<byRow>(T2_, w_.B2_);
+          AddBiasVector<byRow>(T3_, w_.B3_);
       
-          Element(Tanh(bpp::_1 + bpp::_2 + bpp::_3), T1_, T2_, T3_);
-          
-          DynMatrix T1 = T1_;
+          auto t = blaze::forEach(T1_ + T2_ + T3_, Tanh());
+      
           if(!filtered_) {
-            Probs = T1 * blazeW4_;
-            //Prod(Probs, T1_, w_.W4_);
-            BroadcastVec(bpp::_1 + bpp::_2, Probs, w_.B4_);
+            Probs_ = t * w_.W4_;
+            AddBiasVector<byRow>(Probs_, w_.B4_);
           } else {
-            Probs = T1 * FilteredW4_;
-            BroadcastVec(bpp::_1 + bpp::_2, Probs, FilteredB4_);
+            Probs_ = t * FilteredW4_;
+            AddBiasVector<byRow>(Probs_, FilteredB4_);
           }
-          mblas::SoftmaxLog(Probs);
+          mblas::Softmax(Probs_);
+          Probs = blaze::forEach(Probs_, Log());
         }
     
         void Filter(const std::vector<size_t>& ids) {
           filtered_ = true;
-          
           using namespace mblas;
-          AssembleCols(FilteredW4_, w_.W4_, ids);
-          AssembleCols(FilteredB4_, w_.B4_, ids);
+          FilteredW4_ = Assemble<byColumn, Matrix>(w_.W4_, ids);
+          FilteredB4_ = Assemble<byColumn, Matrix>(w_.B4_, ids);
         }
        
       private:        
         const Weights& w_;
-        
-        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW1_;
-        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW2_;
-        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW3_;
-        blaze::DynamicMatrix<float, blaze::rowMajor> blazeW4_;
-        
         bool filtered_;
+        
         mblas::Matrix FilteredW4_;
         mblas::Matrix FilteredB4_;
         
         mblas::Matrix T1_;
         mblas::Matrix T2_;
         mblas::Matrix T3_;
+        mblas::Matrix Probs_;
     };
     
   public:
@@ -213,7 +204,7 @@ class Decoder {
     {}
     
     void MakeStep(mblas::Matrix& NextState,
-                  mblas::Matrix& Probs,
+                  mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext) {
@@ -231,8 +222,8 @@ class Decoder {
     
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t batchSize = 1) {
-      Embedding.Clear();
-      Embedding.Resize(batchSize, embeddings_.GetCols(), 0);
+      Embedding.resize(batchSize, embeddings_.GetCols());
+      Embedding = 0.0f;
     }
     
     void Lookup(mblas::Matrix& Embedding,
@@ -273,7 +264,7 @@ class Decoder {
     }
     
     
-    void GetProbs(mblas::Matrix& Probs,
+    void GetProbs(mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {

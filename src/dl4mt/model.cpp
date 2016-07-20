@@ -12,9 +12,11 @@ Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &key
   U_(model[keys.at(2)]),
   Wx_(model[keys.at(3)]),
   Bx1_(model(keys.at(4), true)),
-  Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0),
+  Bx2_(Bx1_.rows(), Bx1_.columns()),
   Ux_(model[keys.at(5)])
-{ }
+{
+    const_cast<mblas::Matrix&>(Bx2_) = 0.0f;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -29,9 +31,11 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
   U_(model["decoder_U_nl"]),
   Wx_(model["decoder_Wcx"]),
   Bx2_(model("decoder_bx_nl", true)),
-  Bx1_(Bx2_.Rows(), Bx2_.Cols(), 0.0),
+  Bx1_(Bx2_.rows(), Bx2_.columns()),
   Ux_(model["decoder_Ux_nl"])
-{}
+{
+    const_cast<mblas::Matrix&>(Bx1_) = 0.0f;    
+}
 
 Weights::DecAttention::DecAttention(const NpzConverter& model)
 : V_(model("decoder_U_att", true)),

@@ -19,7 +19,7 @@ class Search {
 
     void BestHyps(Beam& bestHyps,
                   const Beam& prevHyps,
-                  std::vector<mblas::Matrix>& ProbsEnsemble,
+                  Probs& ProbsEnsemble,
                   const size_t beamSize,
                   History& history);
 

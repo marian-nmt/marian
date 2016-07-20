@@ -49,9 +49,9 @@ class ApePenalty : public Scorer {
     virtual void Score(const State& in,
                        Prob& prob,
                        State& out) {
-      size_t cols = prob.Cols();
+      size_t cols = prob.columns();
       costs_.resize(cols, -1.0);
-      for(size_t i = 0; i < prob.Rows(); ++i)
+      for(size_t i = 0; i < prob.rows(); ++i)
         std::copy(costs_.begin(), costs_.begin() + cols, prob.begin() + i * cols);
     }
 
