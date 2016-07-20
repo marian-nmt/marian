@@ -10,6 +10,8 @@
 namespace mblas {
 
 typedef blaze::DynamicMatrix<float, blaze::rowMajor> Matrix;
+typedef blaze::DynamicVector<float, blaze::rowVector> Vector;
+typedef blaze::DynamicVector<float, blaze::columnVector> ColumnVector;
 
 template <typename T, bool SO = blaze::rowMajor>
 class BlazeMatrix : public blaze::CustomMatrix<T, blaze::unaligned,
@@ -133,6 +135,21 @@ MT& AddBiasVector(MT& m, const VT& b) {
 }
 
 //Matrix& Swap(Matrix& Out, Matrix& In);
+
+template <class MT>
+MT& Reshape(MT& m, size_t rows, size_t cols) {
+  assert(rows * cols == m.rows() * m.columns());
+  MT temp(rows, cols);
+  for(size_t i = 0; i < m.rows(); ++i) {
+    for(size_t j = 0; j < m.columns(); ++j) {
+      size_t k = i * m.columns() + j;
+      size_t i2 = k / cols;
+      size_t j2 = k % cols;
+      temp(i2, j2) = m(i, j); 
+    }
+  }
+  temp.swap(m);
+}
 
 template <bool byRow, class MT, class MT1>
 MT Mean(const MT1& in) {

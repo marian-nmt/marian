@@ -80,7 +80,6 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   EDState& edOut = out.get<EDState>();
 
   edOut.GetStates() = mblas::Assemble<mblas::byRow, mblas::Matrix>(edIn.GetStates(), beamStateIds);
-  
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 

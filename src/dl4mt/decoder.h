@@ -96,7 +96,9 @@ class Decoder {
       public:
         Attention(const Weights& model)
         : w_(model)
-        {  }
+        {
+          V_ = blaze::trans(blaze::row(w_.V_, 0));  
+        }
           
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const mblas::Matrix& HiddenState,
@@ -113,11 +115,12 @@ class Decoder {
           // Or masking?
           Temp1_ = Broadcast<Matrix>(Tanh(), Temp1_, Temp2_);
           
-          A_ = w_.V_ * trans(Temp1_);
+          A_.resize(Temp1_.rows(), 1);
+          blaze::column(A_, 0) = Temp1_ * V_;
           size_t words = SourceContext.rows();
           // batch size, for batching, divide by numer of sentences
-          size_t batchSize = HiddenState.rows(); 
-          A_.resize(batchSize, words); // due to broadcasting above
+          size_t batchSize = HiddenState.rows();
+          Reshape(A_, batchSize, words); // due to broadcasting above
           
           float bias = w_.C_(0,0);
           blaze::forEach(A_, [=](float x) { return x + bias; });
@@ -136,6 +139,7 @@ class Decoder {
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
+        mblas::ColumnVector V_;
     };
     
     //////////////////////////////////////////////////////////////

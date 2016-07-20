@@ -117,12 +117,12 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
   Prob Costs(Probs.rows(), 1);
   for(int i = 0; i < prevHyps.size(); ++i)
     Costs.data()[i] = prevHyps[i]->GetCost();
-
+    
   Probs *= weights[scorers_[0]->GetName()];
   AddBiasVector<byColumn>(Probs, Costs);
   for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
     Probs += weights[scorers_[i]->GetName()] * ProbsEnsemble[i];
-    
+  
   std::vector<unsigned> keys(Probs.size());
   for(unsigned i = 0; i < keys.size(); ++i)
     keys[i] = i;
@@ -132,7 +132,7 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 
   if(!God::Get<bool>("allow-unk"))
     blaze::column(Probs, UNK) = std::numeric_limits<float>::lowest();
-
+  
   std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
                    ProbCompare(Probs.data()));
 
