@@ -38,6 +38,11 @@ class NpzConverter {
     };
   
   public:
+    
+    typedef blaze::CustomMatrix<float, blaze::unaligned,
+      blaze::unpadded, blaze::rowMajor> BlazeWrapper;
+        
+    
     NpzConverter(const std::string& file)
       : model_(cnpy::npz_load(file)),
         destructed_(false) {
@@ -58,8 +63,7 @@ class NpzConverter {
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
-        matrix.Resize(np.size1(), np.size2());
-        std::copy(np.data(), np.data() + np.size(), matrix.begin());
+        matrix = BlazeWrapper(np.data(), np.size1(), np.size2());
       }
       else {
         std::cerr << "Missing " << key << std::endl; 
@@ -73,11 +77,9 @@ class NpzConverter {
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
-        matrix.Resize(np.size1(), np.size2());
-        std::copy(np.data(), np.data() + np.size(), matrix.begin());
+        matrix = BlazeWrapper(np.data(), np.size1(), np.size2());
       }
-      mblas::Transpose(matrix);
-      return std::move(matrix);
+      return blaze::trans(matrix);
     }
   
   private:

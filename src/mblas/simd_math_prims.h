@@ -97,6 +97,10 @@ inline float logapprox(float val) {
     + (addcst + 0.69314718055995f*exp);
 }
 
+inline float logitapprox(float x) {
+  return 1.0f / (1.0f + expapprox(-x));
+}
+
 inline float tanhapprox(float x) {
   x = std::max(std::min(x, 4.97f), -4.97f);
   float x2 = x * x;
@@ -104,6 +108,7 @@ inline float tanhapprox(float x) {
   float b = 135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f));
   return a / b;
 }
+
 
 #ifdef __cplusplus
 }

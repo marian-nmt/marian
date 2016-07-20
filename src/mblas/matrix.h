@@ -9,7 +9,9 @@
 
 namespace mblas {
 
-namespace bpp = boost::phoenix::placeholders;
+typedef blaze::DynamicMatrix<float, blaze::rowMajor> Matrix;
+typedef blaze::DynamicVector<float, blaze::rowVector> Vector;
+typedef blaze::DynamicVector<float, blaze::columnVector> ColumnVector;
 
 template <typename T, bool SO = blaze::rowMajor>
 class BlazeMatrix : public blaze::CustomMatrix<T, blaze::unaligned,
@@ -84,42 +86,6 @@ class BlazeMatrix : public blaze::CustomMatrix<T, blaze::unaligned,
       return data_.size();
     }
     
-    size_t Rows() const {
-      return BlazeBase::rows();
-    }
-
-    size_t Cols() const {
-      return BlazeBase::columns();
-    }
-
-    void Clear() {
-      BlazeBase temp;
-      std::swap(temp, *(BlazeBase*)this);
-      data_.clear();
-    }
-    
-    void Resize(size_t r, size_t c) {
-      resize(r, c);
-    }
-  
-    void Resize(size_t r, size_t c, value_type val) {
-      resize(r, c);
-      std::fill(data_.begin(), data_.end(), val);
-    }
-    
-    void Reshape(size_t r, size_t c) {
-      assert(r * c == size());
-      resize(r, c);
-    }
-    
-    std::vector<value_type>& GetVec() {
-      return data_;
-    }
-    
-    const std::vector<value_type>& GetVec() const {
-      return data_;
-    }
-    
     void swap(BlazeMatrix<T, SO>& rhs) {
       std::swap(data_, rhs.data_);
       std::swap(static_cast<BlazeBase&>(*this), static_cast<BlazeBase&>(rhs));
@@ -129,16 +95,14 @@ class BlazeMatrix : public blaze::CustomMatrix<T, blaze::unaligned,
     std::vector<value_type> data_;                                       
 };
 
-typedef BlazeMatrix<float, blaze::rowMajor> Matrix;
-
-typedef blaze::DynamicMatrix<float, blaze::rowMajor> DynMatrix;
+typedef BlazeMatrix<float, blaze::rowMajor> ArrayMatrix;
 
 template <class M>
 void Debug(const M& m, size_t maxRows = 5, size_t maxCols = 5) {
-  std::cerr << m.Rows() << " " << m.Cols() << std::endl;
-  for(size_t i = 0; i < m.Rows() && i < maxRows; ++i) {
-    for(size_t j = 0; j < m.Cols() && j < maxCols; ++j) {
-      std::cerr << m.GetVec()[i * m.Cols() + j] << " ";
+  std::cerr << m.rows() << " " << m.columns() << std::endl;
+  for(size_t i = 0; i < m.rows() && i < maxRows; ++i) {
+    for(size_t j = 0; j < m.columns() && j < maxCols; ++j) {
+      std::cerr << m(i, j) << " ";
     }
     std::cerr << std::endl;
   }
@@ -146,172 +110,160 @@ void Debug(const M& m, size_t maxRows = 5, size_t maxCols = 5) {
 
 template <class M>
 void Debug2(const M& m) {
-  std::cerr << m.Rows() << " " << m.Cols() << std::endl;
-  for(size_t i = 0; i < m.Rows(); ++i) {
-    for(size_t j = 0; j < m.Cols(); ++j) {
+  std::cerr << m.rows() << " " << m.columns() << std::endl;
+  for(size_t i = 0; i < m.rows(); ++i) {
+    for(size_t j = 0; j < m.columns(); ++j) {
       std::cerr << m(i, j) << " ";
     }
     std::cerr << std::endl;
   }
 }
 
-Matrix& Swap(Matrix& Out, Matrix& In);
+template <bool byRow, class MT, class VT>
+MT& AddBiasVector(MT& m, const VT& b) {
+  if(byRow) {
+    for(size_t i = 0; i < m.rows(); ++i)
+      // @TODO: replace this with row vector
+      blaze::row(m, i) += blaze::row(b, 0);
+  }
+  else {
+    for(size_t i = 0; i < m.columns(); ++i)
+      // @TODO: replace this with row vector
+      blaze::column(m, i) += blaze::column(b, 0);    
+  }
+  return m;
+}
 
-Matrix& Mean(Matrix& Out, const Matrix& In);
+//Matrix& Swap(Matrix& Out, Matrix& In);
 
-Matrix& Transpose(Matrix& Out, const Matrix& In);
+template <class MT>
+MT& Reshape(MT& m, size_t rows, size_t cols) {
+  assert(rows * cols == m.rows() * m.columns());
+  MT temp(rows, cols);
+  for(size_t i = 0; i < m.rows(); ++i) {
+    for(size_t j = 0; j < m.columns(); ++j) {
+      size_t k = i * m.columns() + j;
+      size_t i2 = k / cols;
+      size_t j2 = k % cols;
+      temp(i2, j2) = m(i, j); 
+    }
+  }
+  temp.swap(m);
+}
 
-Matrix& Transpose(Matrix& Out);
-
-Matrix& Copy(Matrix& Out, const Matrix& In);
-
-Matrix& PasteRow(Matrix& Out,
-                 const Matrix& In,
-                 const size_t r = 0, const size_t c = 0);
-
-Matrix& CopyRow(Matrix& Out,
-                const Matrix& In,
-                const size_t r = 0, const size_t c = 0);
+template <bool byRow, class MT, class MT1>
+MT Mean(const MT1& in) {
+  MT out;
+  if(byRow) {
+    size_t rows = in.rows();
+    size_t cols = in.columns();
+    out.resize(1, cols);
+    blaze::row(out, 0) = blaze::row(in, 0);
+    for(size_t i = 1; i < rows; ++i)
+      blaze::row(out, 0) += blaze::row(in, i);
+    out *= 1.0f / rows; 
+  }
+  else {
+    size_t rows = in.rows();
+    size_t cols = in.columns();
+    out.resize(rows, 1);
+    blaze::column(out, 0) = blaze::column(in, 0);
+    for(size_t i = 1; i < cols; ++i)
+      blaze::column(out, 0) += blaze::column(in, i);
+    out *= 1.0f / cols; 
+  }
+  return std::move(out);
+}
 
 typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
 typedef std::vector<RowPair> DeviceRowPairs;
 
-Matrix& Concat(Matrix& Out, const Matrix& In);
+const bool byRow = true;
+const bool byColumn = false;
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPair* devPairs,
-                 size_t numPairs);
-
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPairs& pairs);
-
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const std::vector<size_t>& indeces);
-
-Matrix& AssembleCols(Matrix& Out,
-                 const Matrix& In,
-                 const std::vector<size_t>& indeces);
-
-Matrix& Slice(Matrix& Out,
-              const Matrix& In,
-              size_t n, size_t dim);
-
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
-
-Matrix& Softmax(Matrix& Out);
-Matrix& SoftmaxLog(Matrix& Out);
-
-template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows1 = Out.Rows();
-  size_t rows2 = In.Rows();
-
-  size_t rows = rows1 * rows2;
-  size_t cols  = Out.Cols();
-
-  Matrix Temp(rows, cols, 1.0);
-
-  float* d_out = Temp.data();
-  const float* d_in1 = Out.data();
-  const float* d_in2 = In.data();
-
-  for(int j = 0; j < rows; ++j) {
-    float* rowOut = d_out + j * cols;
-    const float* rowIn1 = d_in1 + (j % rows1) * cols;
-    const float* rowIn2 = d_in2 + (j / rows1) * cols;
-    
-    for(int i = 0; i < cols; ++i)
-      rowOut[i] = functor(rowIn1[i], rowIn2[i]);
+template <bool byRow, class MT, class MT1, class MT2>
+MT Concat(const MT1& m1, const MT2& m2) {
+  MT out = m1;
+  if(byRow) {
+    assert(m1.columns() == m2.columns());
+    size_t rows1 = m1.rows();
+    size_t rows2 = m2.rows();
+    size_t rows = rows1 + rows2;
+    size_t cols = m1.columns();
+    out.resize(rows, cols);
+    for(size_t i = 0; i < rows2; ++i)
+      blaze::row(out, rows1 + i) = blaze::row(m2, i);
   }
-  
-  Swap(Out, Temp);
-  return Out;
+  else {
+    assert(m1.rows() == m2.rows());
+    size_t cols1 = m1.columns();
+    size_t cols2 = m2.columns();
+    size_t cols = cols1 + cols2;
+    size_t rows = m1.rows();
+    out.resize(rows, cols);
+    for(size_t i = 0; i < cols2; ++i)
+      blaze::column(out, cols1 + i) = blaze::column(m2, i);
+  }
+  return std::move(out);
 }
 
-template <class Functor>
-Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  // @TODO: Make this efficient with special kernel!
-  Matrix InTemp;
-  Transpose(InTemp, In);
-
-  Transpose(Out);
-  Broadcast(functor, Out, InTemp);
-  Transpose(Out);
-  return Out;
+template <bool byRow, class MT, class MT1>
+MT Assemble(const MT1& in,
+            const std::vector<size_t>& indeces) {
+  MT out;
+  if(byRow) {
+    size_t rows = indeces.size();
+    size_t cols = in.columns();
+    out.resize(rows, cols);
+    for(size_t i = 0; i < rows; ++i)
+      blaze::row(out, i) = blaze::row(in, indeces[i]);
+  }
+  else {
+    size_t rows = in.rows();
+    size_t cols = indeces.size();
+    out.resize(rows, cols);
+    for(size_t i = 0; i < cols; ++i)
+      blaze::column(out, i) = blaze::column(in, indeces[i]);  
+  }
+  return std::move(out);
 }
 
-template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows  = Out.Rows();
-  size_t cols = Out.Cols();
-
-  float* d_out = Out.data();
-  const float* d_in = In.data();
-
-  for(int j = 0; j < cols; ++j) {    
-    for(int i = 0; i < rows; ++i) {
-      float* rowOut = d_out + i * cols + j;
-      const float* rowIn  = d_in + i;
-      *rowOut = functor(*rowOut, *rowIn);      
+template <class MT>
+MT& Softmax(MT& Out) {
+  size_t rows = Out.rows();
+  size_t cols = Out.columns();
+  float sum[rows];
+  for(int j = 0; j < rows; ++j) {
+    sum[j] = 0;
+    for(int i = 0; i < cols; ++i) {
+      Out(j, i) = expapprox(Out(j, i));
+      sum[j] += Out(j, i);
+    }
+    for(int i = 0; i < cols; ++i) {
+      Out(j, i) /= sum[j];
     }
   }
-  return Out;
 }
 
-template <class Functor>
-Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows  = Out.Rows();
-  size_t cols = Out.Cols();
+template <class MT, class Functor, class MT1, class MT2>
+MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
+  size_t rows1 = m1.rows();
+  size_t rows2 = m2.rows();
 
-  float* d_out = Out.data();
-  const float* d_in = In.data();
+  size_t rows = rows1 * rows2;
+  size_t cols = m1.columns();
 
+  MT out(rows, cols);
   for(int j = 0; j < rows; ++j) {
-    float* rowOut = d_out + j * cols;
-    for(int i = 0; i < cols; ++i)
-      rowOut[i] = functor(rowOut[i], d_in[i]);
+    size_t r1 = j % rows1;
+    size_t r2 = j / rows1;
+    
+    blaze::row(out, j) =
+      blaze::forEach(blaze::row(m1, r1) + blaze::row(m2, r2),
+                     functor);
   }
-  
-  return Out;
-}
-
-template <class Functor>
-Matrix& Element(Functor functor, Matrix& Out) {
-  float* d_out = Out.data();
-  for(int i = 0; i < Out.size(); ++i)
-    d_out[i] = functor(d_out[i]);
-  return Out;
-}
-
-template <class Functor>
-Matrix& Element(Functor functor,
-                Matrix& Out, const Matrix& In) {
-  float* d_out = Out.data();
-  const float* d_in = In.data();
-
-  for(int i = 0; i < Out.size(); ++i)
-    d_out[i] = functor(d_out[i], d_in[i]);
-
-  return Out;
-}
-
-template <class Functor>
-Matrix& Element(Functor functor,
-                Matrix& Out, const Matrix& In1, const Matrix& In2) {
-  
-  float* d_out = Out.data();
-  const float* d_in1 = In1.data();
-  const float* d_in2 = In2.data();
-  
-  for(int i = 0; i < Out.size(); ++i)
-    d_out[i] = functor(d_out[i], d_in1[i], d_in2[i]);
-
-  return Out;
+  return std::move(out);
 }
 
 }

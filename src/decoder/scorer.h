@@ -25,7 +25,7 @@ class State {
 
 typedef std::unique_ptr<State> StatePtr;
 typedef std::vector<StatePtr> States;
-typedef mblas::Matrix Prob;
+typedef mblas::ArrayMatrix Prob;
 typedef std::vector<Prob> Probs;
 
 class Scorer {

@@ -2,136 +2,75 @@
 #include "mblas/matrix.h"
 
 template <class Weights>
-class SlowGRU {
+class GRU {
   public:
-    SlowGRU(const Weights& model)
-    : w_(model) {}
-          
-    void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
-                      const mblas::Matrix& Context) const {
-      using namespace mblas;
-      namespace bpp = boost::phoenix::placeholders;
-      
-      const size_t cols = GetStateLength();
-      
-      // @TODO: Optimization
-      // @TODO: Launch streams to perform GEMMs in parallel
-      // @TODO: Join matrices and perform single GEMM --------
-      Prod(RU_, Context, w_.W_);
-      Prod(H_,  Context, w_.Wx_);
-      // -----------------------------------------------------
-      
-      // @TODO: Join matrices and perform single GEMM --------
-      Prod(Temp1_, State, w_.U_);
-      Prod(Temp2_, State, w_.Ux_);        
-      // -----------------------------------------------------
-      
-      // @TODO: Organize into one kernel ---------------------
-      BroadcastVec(bpp::_1 + bpp::_2, RU_, w_.B_); // Broadcasting row-wise
-      Element(Logit(bpp::_1 + bpp::_2), RU_, Temp1_);
-      Slice(R_, RU_, 0, cols);
-      Slice(U_, RU_, 1, cols);
-      
-      BroadcastVec(bpp::_1 + bpp::_2, H_,    w_.Bx1_); // Broadcasting row-wise
-      BroadcastVec(bpp::_1 + bpp::_2, Temp2_, w_.Bx2_); // Broadcasting row-wise
-      
-      Element(Tanh(bpp::_1 + bpp::_2 * bpp::_3), H_, R_, Temp2_);
-      Element((1.0 - bpp::_1) * bpp::_2 + bpp::_1 * bpp::_3, U_, H_, State);
-      // -----------------------------------------------------
-      
-      Swap(NextState, U_);
-    }
-    
-    size_t GetStateLength() const {
-      return w_.U_.Rows();
-    }
-    
-  private:
-    // Model matrices
-    const Weights& w_;
-    
-    // reused to avoid allocation
-    mutable mblas::Matrix RU_;
-    mutable mblas::Matrix R_;
-    mutable mblas::Matrix U_;
-    mutable mblas::Matrix H_;
-    mutable mblas::Matrix Temp1_;
-    mutable mblas::Matrix Temp2_;
-};
-
-void gElementwiseOps(float* out,
-                    const float* state,
-                    const float* ruh,
-                    const float* t,
-                    const float* b,
-                    const float* bx1,
-                    const float* bx2,
-                    size_t rows, size_t cols);
-
-template <class Weights>
-class FastGRU {
-  public:
-    FastGRU(const Weights& model)
+    GRU(const Weights& model)
     : w_(model) {
       using namespace mblas;
-      Transpose(WWx_, w_.W_);
-      Matrix WxT;
-      Transpose(WxT, w_.Wx_);
-      Concat(WWx_, WxT);
-      Transpose(WWx_);
-      
-      Transpose(UUx_, w_.U_);
-      Matrix UxT;
-      Transpose(UxT, w_.Ux_);
-      Concat(UUx_, UxT);
-      Transpose(UUx_);
-      
-      blazeWWx_ = WWx_;
-      blazeUUx_ = UUx_;
+      WWx_ = Concat<byColumn, Matrix>(w_.W_, w_.Wx_);
+      UUx_ = Concat<byColumn, Matrix>(w_.U_, w_.Ux_);
     }
           
     void GetNextState(mblas::Matrix& NextState,
                       const mblas::Matrix& State,
                       const mblas::Matrix& Context) const {
-      RUH_ = Context * blazeWWx_;
-      Temp_ = State * blazeUUx_;
-      ElementwiseOps(NextState, State, RUH_, Temp_);
+      RUH_ = Context * WWx_;
+      Temp_ = State * UUx_;
+      
+      // @TODO: once broadcasting is available
+      // implement this using blaze idioms
+      ElementwiseOps(NextState, State);
     }
           
     void ElementwiseOps(mblas::Matrix& NextState,
-                        const mblas::Matrix& State,
-                        const mblas::Matrix& RUH,
-                        const mblas::Matrix& Temp) const {
-      const size_t rows = State.Rows();
-      const size_t cols = State.Cols();
-      NextState.Resize(rows, cols);
+                        const mblas::Matrix& State) const {
       
-      gElementwiseOps(NextState.data(), State.data(),
-                      RUH.data(),
-                      Temp.data(),
-                      w_.B_.data(), w_.Bx1_.data(), w_.Bx2_.data(),
-                      rows, cols);
+      using namespace mblas;
+      using namespace blaze;
+      
+      const size_t rowNo = State.rows();
+      const size_t colNo = State.columns();
+      NextState.resize(rowNo, colNo);
+      
+      for(int j = 0; j < rowNo; ++j) {
+        auto rowOut = row(NextState, j);
+        auto rowState = row(State, j);
+        
+        auto rowRuh = row(RUH_, j);
+        auto rowT   = row(Temp_, j);
+        
+        auto rowH   = subvector(rowRuh, 2 * colNo, colNo);
+        auto rowT2  = subvector(rowT, 2 * colNo, colNo);
+        
+        for(int i = 0; i < colNo; ++i) {
+          float ev1 = expapprox(-(rowRuh[i] + w_.B_(0, i) + rowT[i]));
+          float r = 1.0 / (1.0 + ev1);
+          
+          int k = i + colNo;
+          float ev2 = expapprox(-(rowRuh[k] + w_.B_(0, k) + rowT[k]));
+          float u = 1.0 / (1.0 + ev2);              
+    
+          float hv = rowH[i] + w_.Bx1_(0, i);
+          float t2v = rowT2[i] + w_.Bx2_(0, i);
+          hv = tanhapprox(hv + r * t2v);
+          rowOut[i] = (1.0 - u) * hv + u * rowState[i];
+        }
+      }
+      
     }
     
     size_t GetStateLength() const {
-      return w_.U_.Rows();
+      return w_.U_.rows();
     }
 
     
   private:
     // Model matrices
-    const Weights& w_;
-        
-    // reused to avoid allocation
+    const Weights& w_;    
     mutable mblas::Matrix WWx_;
     mutable mblas::Matrix UUx_;
-    mutable blaze::DynamicMatrix<float, blaze::rowMajor> blazeWWx_;
-    mutable blaze::DynamicMatrix<float, blaze::rowMajor> blazeUUx_;
     
+    // reused to avoid allocation
     mutable mblas::Matrix RUH_;
     mutable mblas::Matrix Temp_;
 };
-
-template<class T>
-using GRU = FastGRU<T>;
