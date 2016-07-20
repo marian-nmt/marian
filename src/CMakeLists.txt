@@ -1,8 +1,8 @@
 include_directories(.)
-include_directories(3rd_party)
+include_directories(3rd-party)
 
 add_library(libcommon OBJECT
-  3rd_party/cnpy/cnpy.cpp
+  3rd-party/cnpy/cnpy.cpp
   common/utils.cpp
   common/exception.cpp
   common/filter.cpp
@@ -52,4 +52,4 @@ foreach(exec amun amunmt experimental)
 endforeach(exec)
 
 add_subdirectory(bpe)
-add_subdirectory(3rd_party)
+add_subdirectory(3rd-party)
