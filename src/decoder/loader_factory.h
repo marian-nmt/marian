@@ -3,10 +3,11 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "exception.h"
-#include "scorer.h"
+#include "common/exception.h"
+
+#include "decoder/ape_penalty.h"
 #include "decoder/encoder_decoder.h"
-#include "ape_penalty.h"
+#include "decoder/scorer.h"
 
 #ifdef KENLM
 #include "language_model.h"

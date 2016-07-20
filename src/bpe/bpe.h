@@ -11,7 +11,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "utf8.h"
+#include "common/utf8.h"
 
 template<class T>
 inline void hash_combine(std::size_t & seed, const T & v)
@@ -215,11 +215,11 @@ class BPE {
 //  public:
 //    BPE(const std::string& sep = "@@ ")
 //     : sep_(sep) {}
-//    
+//
 //    std::string split(const std::string& line) {
 //      return line;
 //    }
-//    
+//
 //    std::string unsplit(const std::string& line) {
 //      std::string joined = line;
 //      size_t pos = joined.find(sep_);
@@ -229,11 +229,11 @@ class BPE {
 //      }
 //      return joined;
 //    }
-//    
+//
 //    operator bool() const {
 //      return false;
 //    }
-//    
+//
 //  private:
 //    std::string sep_;
 //};

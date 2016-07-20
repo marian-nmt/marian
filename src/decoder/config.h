@@ -3,7 +3,7 @@
 #include <yaml-cpp/yaml.h>
 #include <boost/program_options.hpp>
 
-#include "logging.h"
+#include "common/logging.h"
 
 class Config {
   private:

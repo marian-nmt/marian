@@ -4,13 +4,14 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "god.h"
-#include "config.h"
-#include "scorer.h"
-#include "threadpool.h"
-#include "file_stream.h"
-#include "loader_factory.h"
+#include "common/file_stream.h"
 #include "common/filter.h"
+#include "common/threadpool.h"
+
+#include "decoder/config.h"
+#include "decoder/god.h"
+#include "decoder/loader_factory.h"
+#include "decoder/scorer.h"
 
 God God::instance_;
 

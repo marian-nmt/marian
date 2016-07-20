@@ -1,17 +1,17 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
-#include <boost/timer/timer.hpp>
 #include <boost/thread/tss.hpp>
 #include <boost/python.hpp>
 
-#include "god.h"
-#include "logging.h"
-#include "search.h"
-#include "printer.h"
-#include "sentence.h"
+#include "common/logging.h"
 
-extern "C" 
+#include "decoder/god.h"
+#include "decoder/search.h"
+#include "decoder/printer.h"
+#include "decoder/sentence.h"
+
+extern "C"
 {
   void openblas_set_num_threads(int num_threads);
 }

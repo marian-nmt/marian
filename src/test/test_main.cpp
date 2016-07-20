@@ -1,9 +1,9 @@
 #include <chrono>
 
-#include "god.h"
+#include "decoder/god.h"
 #include "decoder/encoder_decoder.h"
 #include "decoder/sentence.h"
-#include "dl4mt.h"
+#include "dl4mt/dl4mt.h"
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);

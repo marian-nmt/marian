@@ -7,12 +7,13 @@
 #include <boost/thread/tss.hpp>
 #endif
 
-#include "god.h"
-#include "logging.h"
-#include "search.h"
-#include "threadpool.h"
-#include "printer.h"
-#include "sentence.h"
+#include "common/logging.h"
+#include "common/threadpool.h"
+
+#include "decoder/god.h"
+#include "decoder/printer.h"
+#include "decoder/search.h"
+#include "decoder/sentence.h"
 
 #ifdef PROFILER_MODE
 #include <gperftools/profiler.h>
@@ -55,7 +56,7 @@ int main(int argc, char* argv[]) {
 #ifdef PROFILER_MODE
   ProfilerStart("amun_profile.log");
 #endif
-  
+
   LOG(info) << "Reading input";
   while(std::getline(God::GetInputStream(), in)) {
 
@@ -75,7 +76,7 @@ int main(int argc, char* argv[]) {
 #ifdef PROFILER_MODE
   ProfilerStop();
 #endif
-    
+
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
 

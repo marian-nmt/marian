@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <tuple>
-#include "types.h"
+#include "common/types.h"
 
 class Hypothesis;
 
@@ -18,7 +18,7 @@ class Hypothesis {
        word_(0),
        cost_(0.0)
     {}
-    
+
     Hypothesis(const std::tuple<HypothesisPtr, size_t, size_t, float>& tuple)
       : prevHyp_(std::get<0>(tuple)),
         word_(std::get<1>(tuple)),
@@ -41,17 +41,17 @@ class Hypothesis {
     float GetCost() const {
       return cost_;
     }
-    
+
     std::vector<float>& GetCostBreakdown() {
       return costBreakdown_;
     }
-    
+
  private:
     const HypothesisPtr prevHyp_;
     const size_t prevIndex_;
     const size_t word_;
     const float cost_;
-    
+
     std::vector<float> costBreakdown_;
 };
 

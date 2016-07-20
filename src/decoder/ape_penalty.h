@@ -2,11 +2,13 @@
 
 #include <vector>
 
-#include "types.h"
-#include "file_stream.h"
-#include "scorer.h"
-#include "matrix.h"
+#include "common/file_stream.h"
+#include "common/types.h"
+
+#include "decoder/scorer.h"
 #include "decoder/sentence.h"
+
+#include "mblas/matrix.h"
 
 typedef std::vector<Word> SrcTrgMap;
 typedef std::vector<float> Penalties;

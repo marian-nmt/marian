@@ -1,15 +1,8 @@
-
 include_directories(.)
-include_directories(dl4mt)
-include_directories(common)
-include_directories(decoder)
-include_directories(mblas)
-
-include_directories(yaml-cpp)
-add_subdirectory(yaml-cpp)
+include_directories(3rd_party)
 
 add_library(libcommon OBJECT
-  cnpy/cnpy.cpp
+  3rd_party/cnpy/cnpy.cpp
   common/utils.cpp
   common/exception.cpp
   common/filter.cpp
@@ -59,3 +52,4 @@ foreach(exec amun amunmt experimental)
 endforeach(exec)
 
 add_subdirectory(bpe)
+add_subdirectory(3rd_party)

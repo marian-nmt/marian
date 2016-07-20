@@ -4,22 +4,23 @@
 #include <map>
 #include <string>
 
+#include "common/npz_converter.h"
+
 #include "mblas/matrix.h"
-#include "npz_converter.h"
 
 struct Weights {
-  
+
   //////////////////////////////////////////////////////////////////////////////
-  
+
   struct Embeddings {
     Embeddings(const NpzConverter& model, const std::string &key);
-    
+
     const mblas::Matrix E_;
   };
-  
+
   struct GRU {
 	GRU(const NpzConverter& model, const std::vector<std::string> &keys);
-    
+
     const mblas::Matrix W_;
     const mblas::Matrix B_;
     const mblas::Matrix U_;
@@ -28,19 +29,19 @@ struct Weights {
     const mblas::Matrix Bx2_;
     const mblas::Matrix Ux_;
   };
-    
+
   //////////////////////////////////////////////////////////////////////////////
-  
+
   struct DecInit {
     DecInit(const NpzConverter& model);
-    
+
     const mblas::Matrix Wi_;
     const mblas::Matrix Bi_;
   };
-    
+
   struct DecGRU2 {
     DecGRU2(const NpzConverter& model);
-          
+
     const mblas::Matrix W_;
     const mblas::Matrix B_;
     const mblas::Matrix U_;
@@ -49,17 +50,17 @@ struct Weights {
     const mblas::Matrix Bx1_;
     const mblas::Matrix Ux_;
   };
-  
+
   struct DecAttention {
     DecAttention(const NpzConverter& model);
-          
+
     const mblas::Matrix V_;
     const mblas::Matrix W_;
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix C_;
   };
-  
+
   struct DecSoftmax {
     DecSoftmax(const NpzConverter& model);
 
@@ -72,19 +73,19 @@ struct Weights {
     const mblas::Matrix W4_;
     const mblas::Matrix B4_;
   };
-  
+
   //////////////////////////////////////////////////////////////////////////////
 
   Weights(const std::string& npzFile, size_t device = 0)
   : Weights(NpzConverter(npzFile), device)
   {}
-  
+
   Weights(const NpzConverter& model, size_t device = 0);
-  
+
   size_t GetDevice() {
     return device_;
   }
-  
+
   const Embeddings encEmbeddings_;
   const Embeddings decEmbeddings_;
   const GRU encForwardGRU_;
@@ -94,7 +95,7 @@ struct Weights {
   const DecGRU2 decGru2_;
   const DecAttention decAttention_;
   const DecSoftmax decSoftmax_;
-  
+
   const size_t device_;
 };
 

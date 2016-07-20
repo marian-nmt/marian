@@ -1,13 +1,15 @@
 #pragma once
 
 #include <iostream>
-#include "config.h"
-#include "types.h"
-#include "vocab.h"
-#include "loader.h"
-#include "scorer.h"
-#include "logging.h"
-#include "file_stream.h"
+
+#include "common/types.h"
+#include "common/vocab.h"
+#include "common/logging.h"
+#include "common/file_stream.h"
+
+#include "decoder/config.h"
+#include "decoder/loader.h"
+#include "decoder/scorer.h"
 
 class Weights;
 class Filter;

@@ -4,7 +4,7 @@
 
 #include "decoder/hypothesis.h"
 #include "decoder/config.h"
-#include "matrix.h"
+#include "mblas/matrix.h"
 
 class Sentence;
 

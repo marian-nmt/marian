@@ -1,6 +1,7 @@
-#include "sentence.h"
-#include "god.h"
-#include "utils.h"
+#include "decoder/sentence.h"
+
+#include "common/utils.h"
+#include "decoder/god.h"
 
 Sentence::Sentence(size_t lineNo, const std::string& line)
 : lineNo_(lineNo), line_(line)

@@ -3,14 +3,16 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "matrix.h"
-#include "decoder/scorer.h"
-#include "decoder/loader.h"
-#include "dl4mt.h"
-#include "decoder/god.h"
-
 #include "common/threadpool.h"
+
+#include "dl4mt/dl4mt.h"
+
+#include "decoder/god.h"
+#include "decoder/loader.h"
+#include "decoder/scorer.h"
 #include "decoder/sentence.h"
+
+#include "mblas/matrix.h"
 
 mblas::Matrix& EncoderDecoderState::GetStates() {
   return states_;

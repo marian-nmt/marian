@@ -3,13 +3,14 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "matrix.h"
-#include "decoder/scorer.h"
-#include "decoder/loader.h"
-#include "dl4mt.h"
-#include "decoder/god.h"
-
 #include "common/threadpool.h"
+
+#include "decoder/god.h"
+#include "decoder/loader.h"
+#include "decoder/scorer.h"
+#include "dl4mt/dl4mt.h"
+
+#include "mblas/matrix.h"
 
 class Encoder;
 class Decoder;
