@@ -153,6 +153,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
+  std::string bpePath;
 
   std::vector<size_t> devices;
 
@@ -180,6 +181,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
      "Load scorer weights from this file")
+    ("bpe", po::value(&bpePath)->default_value(""),
+     "Overwrite source vocab section in config file with vocab file.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
   ;
@@ -253,6 +256,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("relative-paths", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION_NONDEFAULT("input-file", std::string);
+  SET_OPTION_NONDEFAULT("bpe", std::string);
 
   // @TODO: Apply complex overwrites
 

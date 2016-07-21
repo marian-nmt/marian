@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "bpe/bpe.h"
+#include "common/processor/bpe.h"
 
 #include "common/utf8.h"
 
@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
 {
   if (argc < 1) {
     std::cout << "No BPE codes. Exit." << std::endl;
+    exit(1);
   }
   BPE bpe(argv[1]);
   std::string line;

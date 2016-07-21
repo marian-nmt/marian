@@ -6,6 +6,7 @@
 #include "common/vocab.h"
 #include "common/logging.h"
 #include "common/file_stream.h"
+#include "common/processor/processor.h"
 
 #include "decoder/config.h"
 #include "decoder/loader.h"
@@ -13,6 +14,7 @@
 
 class Weights;
 class Filter;
+class BPE;
 
 class God {
   public:
@@ -42,6 +44,8 @@ class God {
     static std::istream& GetInputStream();
 
     static Filter& GetFilter();
+    static std::vector<std::string> Preprocess(const std::vector<std::string>& input);
+    static std::vector<std::string> Postprocess(const std::vector<std::string>& input);
 
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<std::string> GetScorerNames();
@@ -61,6 +65,7 @@ class God {
     std::unique_ptr<Vocab> targetVocab_;
 
     std::unique_ptr<Filter> filter_;
+    std::vector<std::unique_ptr<Processor>> processors_;
 
     std::map<std::string, LoaderPtr> loaders_;
     std::map<std::string, float> weights_;

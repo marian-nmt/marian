@@ -43,24 +43,21 @@ class Vocab {
         words.push_back(EOS);
       return words;
     }
-    
+
     Words operator()(const std::string& line, bool addEOS = true) const {
       std::vector<std::string> lineTokens;
       Split(line, lineTokens, " ");
       return (*this)(lineTokens, addEOS);
     }
 
-    std::string operator()(const Words& sentence, bool ignoreEOS = true) const {
-      std::stringstream line;
+    std::vector<std::string> operator()(const Words& sentence, bool ignoreEOS = true) const {
+      std::vector<std::string> decoded;
       for(size_t i = 0; i < sentence.size(); ++i) {
         if(sentence[i] != EOS || !ignoreEOS) {
-          if(i > 0) {
-            line << " ";
-          }
-          line << (*this)[sentence[i]];
+          decoded.push_back((*this)[sentence[i]]);
         }
       }
-      return line.str();
+      return decoded;
     }
 
 

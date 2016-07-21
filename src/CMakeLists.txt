@@ -6,6 +6,7 @@ add_library(libcommon OBJECT
   common/utils.cpp
   common/exception.cpp
   common/filter.cpp
+  common/processor/bpe.cpp
   mblas/matrix.cpp
   mblas/phoenix_functions.cpp
   dl4mt/encoder.cpp
@@ -45,10 +46,15 @@ add_executable(
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
-foreach(exec amun amunmt experimental)
+add_executable(
+  bpe
+  bpe/bpe_main.cpp
+  $<TARGET_OBJECTS:libcommon>
+)
+
+foreach(exec amun amunmt bpe experimental)
   target_link_libraries(${exec} ${EXT_LIBS})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
 
-add_subdirectory(bpe)
 add_subdirectory(3rd-party)

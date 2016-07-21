@@ -2,11 +2,12 @@
 
 #include "god.h"
 #include "decoder/history.h"
+#include "common/utils.h"
 
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
   //std::cerr << history << std::endl;
-  std::string best = God::GetTargetVocab()(history.Top().first);
+  std::string best = Join(God::Postprocess(God::GetTargetVocab()(history.Top().first)));
   LOG(progress) << "Best translation: " << best;
 
   if(God::Get<bool>("n-best")) {
@@ -14,7 +15,7 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
     NBestList nbl = history.NBest(God::Get<size_t>("beam-size"));
     for(size_t i = 0; i < nbl.size(); ++i) {
       auto& r = nbl[i];
-      out << lineNo << " ||| " << God::GetTargetVocab()(r.first) << " |||";
+      out << lineNo << " ||| " << Join(God::Postprocess(God::GetTargetVocab()(r.first))) << " |||";
       for(size_t j = 0; j < r.second->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << r.second->GetCostBreakdown()[j];
       }

@@ -4,6 +4,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "common/processor/bpe.h"
 #include "common/file_stream.h"
 #include "common/filter.h"
 #include "common/threadpool.h"
@@ -99,6 +100,11 @@ God& God::NonStaticInit(int argc, char** argv) {
     inputStream_.reset(new InputFileStream(std::cin));
   }
 
+  if (Get<std::string>("bpe") != "") {
+    LOG(info) << "Using BPE from: " << Get<std::string>("bpe");
+    processors_.emplace_back(new BPE(Get<std::string>("bpe")));
+  }
+
   return *this;
 }
 
@@ -141,3 +147,21 @@ void God::CleanUp() {
   for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
     loader.reset(nullptr);
 }
+
+std::vector<std::string> God::Preprocess(const std::vector<std::string>& input) {
+  std::vector<std::string> processed = input;
+  for (const auto& processor : Summon().processors_) {
+    processed = processor->Preprocess(processed);
+  }
+  return processed;
+}
+
+std::vector<std::string> God::Postprocess(const std::vector<std::string>& input) {
+  std::vector<std::string> processed = input;
+  for (auto processor = Summon().processors_.rbegin(); processor != Summon().processors_.rend(); ++processor) {
+    processed = (*processor)->Postprocess(processed);
+  }
+  return processed;
+}
+
+
