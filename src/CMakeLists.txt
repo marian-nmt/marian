@@ -6,6 +6,7 @@ add_library(libcommon OBJECT
   common/utils.cpp
   common/exception.cpp
   common/filter.cpp
+  common/vocab.cpp
   common/processor/bpe.cpp
   mblas/matrix.cpp
   mblas/phoenix_functions.cpp

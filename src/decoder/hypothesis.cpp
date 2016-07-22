@@ -1,5 +1,7 @@
-#include "hypothesis.h"
-#include "god.h"
+#include "decoder/hypothesis.h"
+
+#include "decoder/god.h"
+#include "common/vocab.h"
 
 std::ostream& operator<<(std::ostream &out, const Hypothesis &obj)
 {

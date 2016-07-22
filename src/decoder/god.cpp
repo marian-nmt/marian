@@ -7,7 +7,9 @@
 #include "common/processor/bpe.h"
 #include "common/file_stream.h"
 #include "common/filter.h"
+#include "common/processor/processor.h"
 #include "common/threadpool.h"
+#include "common/vocab.h"
 
 #include "decoder/config.h"
 #include "decoder/god.h"

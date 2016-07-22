@@ -1,12 +1,12 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
+#include <memory>
+#include <map>
 
 #include "common/types.h"
-#include "common/vocab.h"
 #include "common/logging.h"
-#include "common/file_stream.h"
-#include "common/processor/processor.h"
 
 #include "decoder/config.h"
 #include "decoder/loader.h"
@@ -15,6 +15,9 @@
 class Weights;
 class Filter;
 class BPE;
+class Vocab;
+class InputFileStream;
+class Processor;
 
 class God {
   public:

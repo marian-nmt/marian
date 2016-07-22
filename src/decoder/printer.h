@@ -1,8 +1,11 @@
 #pragma once
 
-#include "god.h"
-#include "decoder/history.h"
 #include "common/utils.h"
+#include "common/vocab.h"
+
+#include "decoder/god.h"
+#include "decoder/history.h"
+#include "common/logging.h"
 
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
