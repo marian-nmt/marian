@@ -36,3 +36,5 @@
 
 build
 scripts/docker
+amunmt-distribution.tar.gz
+tests/wmt16/*/*
