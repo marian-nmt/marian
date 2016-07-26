@@ -8,3 +8,6 @@ mkdir build
 cd build
 cmake ..
 make
+
+cd ..
+tar zvcf amunmt-distribution.tar.gz build/bin/* scripts/download_models.py tests/wmt16/Makefile tests/wmt16/extract_segs.py
