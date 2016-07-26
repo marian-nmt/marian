@@ -26,7 +26,7 @@ YAML::Node& Config::Get() {
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
   std::set<std::string> paths =
-    {"path", "paths", "source-vocab", "target-vocab", "input-file"};
+    {"path", "paths", "source-vocab", "target-vocab", "input-file", "bpe"};
 
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
@@ -65,12 +65,17 @@ void OverwriteModels(YAML::Node& config, std::vector<std::string>& modelPaths) {
   }
 }
 
-void OverwriteSourceVocabs(YAML::Node& config, std::vector<std::string>& sourceVocabPaths) {
-    config["source-vocab"] = sourceVocabPaths;
+void OverwriteSourceVocabs(YAML::Node& config, const std::vector<std::string>& sourceVocabPaths) {
+  config["source-vocab"] = sourceVocabPaths;
 }
 
-void OverwriteTargetVocab(YAML::Node& config, std::string& targetVocabPath) {
-    config["target-vocab"] = targetVocabPath;
+void OverwriteTargetVocab(YAML::Node& config, const std::string& targetVocabPath) {
+  config["target-vocab"] = targetVocabPath;
+}
+
+void OverwriteBPE(YAML::Node& config, const std::string& bpePath) {
+  std::cerr << "BPE: PATH:" << bpePath << std::endl;
+  config["bpe"] = bpePath;
 }
 
 void Validate(const YAML::Node& config) {
@@ -91,7 +96,8 @@ void Validate(const YAML::Node& config) {
                    "Weight has no scorer: " << pair.first.as<std::string>());
 
   for(auto&& pair: config["scorers"])
-    UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
+    UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]),
+                   "Scorer has no weight: " << pair.first.as<std::string>());
 }
 
 
@@ -181,7 +187,7 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
      "Load scorer weights from this file")
-    ("bpe", po::value(&bpePath)->default_value(""),
+    ("bpe", po::value(&bpePath)->default_value(std::string()),
      "Overwrite source vocab section in config file with vocab file.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
@@ -256,7 +262,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("relative-paths", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION_NONDEFAULT("input-file", std::string);
-  SET_OPTION_NONDEFAULT("bpe", std::string);
+  SET_OPTION("bpe", std::string);
 
   // @TODO: Apply complex overwrites
 
@@ -274,6 +280,10 @@ void Config::AddOptions(size_t argc, char** argv) {
 
   if(targetVocabPath.size()) {
     OverwriteTargetVocab(config_, targetVocabPath);
+  }
+
+  if(bpePath.size()) {
+    OverwriteBPE(config_, bpePath);
   }
 
   if(Get<bool>("relative-paths"))

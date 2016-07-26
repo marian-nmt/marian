@@ -29,6 +29,8 @@ scorers:
 weights:
   F0: 1.0
 
+bpe: ./{}{}.bpe
+
 # vocabularies
 source-vocab: ./vocab.{}.json
 target-vocab: ./vocab.{}.json
@@ -80,7 +82,7 @@ def download_file(src, trg, name, workdir, force=False):
 def create_base_config(model, model_dir):
     src = model.split('-')[0]
     trg = model.split('-')[1]
-    config = CONFIG_TEMPLATE.format(src, trg)
+    config = CONFIG_TEMPLATE.format(src, trg, src, trg)
 
     with open("{}/config.yml".format(model_dir), 'w') as config_file:
         config_file.write(config)
