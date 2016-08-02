@@ -18,8 +18,8 @@ class Rescorer {
     const std::string& featureName)
       : model_(model),
         nbest_(nBest),
-        encoder_(new Encoder(*model)),
-        decoder_(new Decoder(*model)),
+        encoder_(new Encoder(*model, 1)),
+        decoder_(new Decoder(*model, 1)),
         featureName_(featureName) {
   }
 
@@ -66,7 +66,7 @@ class Rescorer {
         }
 
         decoder_->Lookup(Embedding_, w);
-        
+
         mblas::Swap(State_, PrevState_);
         mblas::Swap(Embedding_, PrevEmbedding_);
         ++lengthIndex;

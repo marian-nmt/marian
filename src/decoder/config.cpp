@@ -25,7 +25,7 @@ YAML::Node& Config::Get() {
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
   std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab"};
-  
+
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
       std::string nodePath = node.as<std::string>();
@@ -48,18 +48,27 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
           ProcessPaths(sub.second, configPath, paths.count(key) > 0);
         }
         break;
-    } 
+    }
   }
 }
 
 void OverwriteModels(YAML::Node& config, std::vector<std::string>& modelPaths) {
-  for(size_t i = 0; i < modelPaths.size(); ++i) {
-    std::stringstream name;
-    name << "F" << i;
-    config["scorers"][name.str()]["type"] = "Nematus";
-    config["scorers"][name.str()]["path"] = modelPaths[i];
-    if(!config["weights"][name.str()])
-      config["weights"][name.str()] = 1;
+  for (size_t i = 0; i < modelPaths.size(); ++i) {
+    if (config["encoders"].as<int>() == 1) {
+      std::stringstream name;
+      name << "F" << i;
+      config["scorers"][name.str()]["type"] = "Nematus";
+      config["scorers"][name.str()]["path"] = modelPaths[i];
+      if(!config["weights"][name.str()])
+        config["weights"][name.str()] = 1;
+    } else {
+      std::stringstream name;
+      name << "F" << i;
+      config["scorers"][name.str()]["type"] = "MultiEncoder";
+      config["scorers"][name.str()]["path"] = modelPaths[i];
+      if(!config["weights"][name.str()])
+        config["weights"][name.str()] = 1;
+    }
   }
 }
 
@@ -74,20 +83,20 @@ void OverwriteTargetVocab(YAML::Node& config, std::string& targetVocabPath) {
 void Validate(const YAML::Node& config) {
   UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
                  "No scorers given in config file");
-  
+
   UTIL_THROW_IF2(!config["source-vocab"],
                  "No source-vocab given in config file");
-  
+
   UTIL_THROW_IF2(!config["target-vocab"],
                  "No target-vocab given in config file");
-  
+
   UTIL_THROW_IF2(config["weights"].size() != config["scorers"].size(),
                 "Different number of models and weights in config file");
-  
+
   for(auto&& pair: config["weights"])
     UTIL_THROW_IF2(!(config["scorers"][pair.first.as<std::string>()]),
                    "Weight has no scorer: " << pair.first.as<std::string>());
-    
+
   for(auto&& pair: config["scorers"])
     UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
 }
@@ -135,7 +144,7 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
   while(fweights >> name >> weight) {
     if(name.back() == '=')
       name.pop_back();
-    LOG(info) << " > " << name << "= " << weight; 
+    LOG(info) << " > " << name << "= " << weight;
     config["weights"][name] = weight;
     i++;
   }
@@ -150,9 +159,10 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
-  
+  size_t numEncoders = 1;
+
   std::vector<size_t> devices;
-  
+
   general.add_options()
     ("config,c", po::value(&configPath),
      "Configuration file")
@@ -175,6 +185,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
      "Load scorer weights from this file")
+    ("encoders", po::value(&numEncoders)->default_value(1),
+     "Number of encoders in multi-encoder model")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
   ;
@@ -190,7 +202,7 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
      "Output n-best list with n = beam-size")
   ;
-  
+
   po::options_description configuration("Configuration meta options");
   configuration.add_options()
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -209,7 +221,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   cmdline_options.add(general);
   cmdline_options.add(search);
   cmdline_options.add(configuration);
-  
+
   po::variables_map vm_;
   try {
     po::store(po::command_line_parser(argc,argv)
@@ -229,10 +241,10 @@ void Config::AddOptions(size_t argc, char** argv) {
     std::cerr << cmdline_options << std::endl;
     exit(0);
   }
-  
+
   if(configPath.size())
     config_ = YAML::Load(InputFileStream(configPath));
-   
+
   // Simple overwrites
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
@@ -241,11 +253,12 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("threads-per-device", size_t);
   SET_OPTION("devices", std::vector<size_t>);
   SET_OPTION("show-weights", bool);
+  SET_OPTION("encoders", size_t);
   SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION("relative-paths", bool);
 
   // @TODO: Apply complex overwrites
-  
+
   if(Has("load-weights")) {
     LoadWeights(config_, Get<std::string>("load-weights"));
   }
@@ -253,7 +266,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   if(modelPaths.size()) {
     OverwriteModels(config_, modelPaths);
   }
-  
+
   if(sourceVocabPaths.size()) {
     OverwriteSourceVocabs(config_, sourceVocabPaths);
   }
@@ -261,11 +274,11 @@ void Config::AddOptions(size_t argc, char** argv) {
   if(targetVocabPath.size()) {
     OverwriteTargetVocab(config_, targetVocabPath);
   }
-  
+
   if(Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
   Validate(config_);
-  
+
   if(vm_["dump-config"].as<bool>()) {
     YAML::Emitter emit;
     OutputRec(config_, emit);

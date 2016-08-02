@@ -1,5 +1,6 @@
 #include "matrix.h"
 
+
 namespace mblas {
 
 CublasHandler CublasHandler::instance_;
@@ -51,6 +52,13 @@ Matrix& Transpose(Matrix& Out) {
   Matrix Temp;
   Transpose(Temp, Out);
   Swap(Out, Temp);
+  return Out;
+}
+
+Matrix& ConcatRows(Matrix& Out, const Matrix& In) {
+  size_t oldSize = Out.size();
+  Out.Resize(1, In.Cols() + Out.Cols());
+  lib::copy(In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
 

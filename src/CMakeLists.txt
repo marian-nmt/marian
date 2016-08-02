@@ -30,22 +30,24 @@ cuda_add_executable(
   decoder/sentence.cu
   mblas/matrix.cu
   dl4mt/gru.cu
+  dl4mt/model.cu
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
-cuda_add_executable(
-  rescorer
-  rescorer/rescorer_main.cu
-  mblas/matrix.cu
-  dl4mt/gru.cu
-  $<TARGET_OBJECTS:librescorer>
-  $<TARGET_OBJECTS:libcommon>
-  $<TARGET_OBJECTS:libyaml-cpp>
-)
+# cuda_add_executable(
+  # rescorer
+  # rescorer/rescorer_main.cu
+  # mblas/matrix.cu
+  # dl4mt/gru.cu
+  # dl4mt/model.cu
+  # $<TARGET_OBJECTS:librescorer>
+  # $<TARGET_OBJECTS:libcommon>
+  # $<TARGET_OBJECTS:libyaml-cpp>
+# )
 
-foreach(exec amun rescorer)
+foreach(exec amun )
   target_link_libraries(${exec} ${EXT_LIBS} cuda)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

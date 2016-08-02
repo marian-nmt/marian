@@ -5,8 +5,9 @@
 
 #include "exception.h"
 #include "scorer.h"
-#include "encoder_decoder.h"
+// #include "encoder_decoder.h"
 #include "ape_penalty.h"
+#include "multi_encoder.h"
 
 #ifdef KENLM
 #include "language_model.h"
@@ -27,15 +28,20 @@ class LoaderFactory {
                             const YAML::Node& config) {
       UTIL_THROW_IF2(!config["type"],
                      "Missing scorer type in config file");
-      
+
       auto type = config["type"].as<std::string>();
-      IF_MATCH_RETURN(type, "Nematus", EncoderDecoderLoader);
-      IF_MATCH_RETURN(type, "nematus", EncoderDecoderLoader);
-      IF_MATCH_RETURN(type, "NEMATUS", EncoderDecoderLoader);
-      
-      IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
-      IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
-      IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
+      // IF_MATCH_RETURN(type, "Nematus", EncoderDecoderLoader);
+      // IF_MATCH_RETURN(type, "nematus", EncoderDecoderLoader);
+      // IF_MATCH_RETURN(type, "NEMATUS", EncoderDecoderLoader);
+
+      // IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
+      // IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
+      // IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
+
+
+      IF_MATCH_RETURN(type, "MultiEncoder", MultiEncoderLoader);
+      IF_MATCH_RETURN(type, "multiencoder", MultiEncoderLoader);
+      IF_MATCH_RETURN(type, "MULTIENCODER", MultiEncoderLoader);
 #ifdef KENLM
       IF_MATCH_RETURN(type, "KenLM", KenLMLoader)
       IF_MATCH_RETURN(type, "kenlm", KenLMLoader)

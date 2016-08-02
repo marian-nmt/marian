@@ -12,7 +12,7 @@
 #include <thrust/functional.h>
 
 //#include "nervana_c_api.h"
-  
+
 
 #include "thrust_functions.h"
 
@@ -215,6 +215,8 @@ Matrix& CopyRow(Matrix& Out,
 typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
 typedef thrust::device_vector<RowPair> DeviceRowPairs;
+
+Matrix& ConcatRows(Matrix& Out, const Matrix& In);
 
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
@@ -447,11 +449,11 @@ Matrix& Element(Functor functor,
 template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In1, const Matrix& In2) {
-  
+
   float* d_out = Out.data();
   const float* d_in1 = In1.data();
   const float* d_in2 = In2.data();
-  
+
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   gElement<<<blocks, threads>>>(functor, d_out, d_in1, d_in2,
