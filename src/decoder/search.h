@@ -36,17 +36,14 @@ class Search {
       States nextStates(scorers_.size());
       Probs probs(scorers_.size());
 
-      LOG(info) << "PRE init";
       for(size_t i = 0; i < scorers_.size(); i++) {
         scorers_[i]->SetSource(sentence);
-      LOG(info) << "SET";
 
         states[i].reset(scorers_[i]->NewState());
         nextStates[i].reset(scorers_[i]->NewState());
 
         scorers_[i]->BeginSentenceState(*states[i]);
       }
-      LOG(info) << "POST init";
 
       const size_t maxLength = sentence.GetWords().size() * 3;
       do {

@@ -45,7 +45,7 @@ class Decoder {
                              const size_t batchSize = 1) {
           using namespace mblas;
 
-          ConcatenatedSourceContext_.Resize(0, 1);
+          ConcatenatedSourceContext_.Resize(1, 0);
           for (const auto& sourceContext : SourceContexts) {
             Mean(Temp1_, sourceContext);
             mblas::ConcatRows(ConcatenatedSourceContext_, Temp1_);
@@ -162,30 +162,21 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          Prod(/*h_[0],*/ T1_, State, w_.W1_);
           Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
           Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+          Prod(/*h_[0],*/ T1_, State, w_.W1_);
 
-          std::cerr << "BBBBBBBBBBBBBBBBB" << std::endl;
           BroadcastVec(_1 + _2, T1_, w_.B1_ /*,s_[0]*/);
-          std::cerr << "BBBBBBBBBBBBBBBBB" << std::endl;
           BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
-          std::cerr << "BBBBBBBBBBBBBBBBB" << std::endl;
           BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
-          std::cerr << "BBBBBBBBBBBBBBBBB" << std::endl;
 
           //cudaDeviceSynchronize();
 
-          std::cerr << "CCCCCCCCCCCCCCCCC" << std::endl;
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
-          std::cerr << "CCCCCCCCCCCCCCCCC" << std::endl;
 
           Prod(Probs, T1_, w_.W4_);
-          std::cerr << "CCCCCCCCCCCCCCCCC" << std::endl;
           BroadcastVec(_1 + _2, Probs, w_.B4_);
-          std::cerr << "CCCCCCCCCCCCCCCCC" << std::endl;
           mblas::Softmax(Probs);
-          std::cerr << "CCCCCCCCCCCCCCCCC" << std::endl;
           Element(Log(_1), Probs);
         }
 
@@ -227,18 +218,17 @@ class Decoder {
                   const std::vector<mblas::Matrix>& SourceContexts) {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContexts_, HiddenState_, SourceContexts);
-      AlignedSourceContext_.Resize(0, 1);
-      std::cerr << "BEFORE MERGING" << std::endl;
+      AlignedSourceContext_.Resize(0, State.Rows());
+
       for (auto& sourceContext : AlignedSourceContexts_) {
-        std::cerr << " >>: " <<  sourceContext.Rows() << " x " << sourceContext.Cols() << std::endl;
-        mblas::ConcatRows(AlignedSourceContext_, sourceContext);
+        mblas::Transpose(sourceContext);
+        mblas::Concat(AlignedSourceContext_, sourceContext);
       }
-      std::cerr << "AFTER MERGING" << AlignedSourceContext_.Rows()
-                << " x " << AlignedSourceContext_.Cols() << std::endl;
+
+      mblas::Transpose(AlignedSourceContext_);
+
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      std::cerr << "NEXT STATE DONE" << std::endl;
       GetProbs(Probs, NextState, Embeddings, AlignedSourceContext_);
-      std::cerr << "GET PROBS DONE" << std::endl;
     }
 
     void EmptyState(mblas::Matrix& State,

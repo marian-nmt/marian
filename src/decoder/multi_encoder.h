@@ -69,19 +69,14 @@ class MultiEncoder : public Scorer {
 
     virtual void BeginSentenceState(State& state) {
       EDState& edState = state.get<EDState>();
-      std::cerr << "BEIGN STATE START" << std::endl;
       decoder_->EmptyState(edState.GetStates(), SourceContexts_, 1);
-      std::cerr << "FINISH STATE START" << std::endl;
       decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
     }
 
     virtual void SetSource(const Sentence& source) {
-      std::cerr << "Setting source\n";
       for (size_t i = 0; i < encoders_.size(); ++i) {
-        std::cerr << "INFO: " << SourceContexts_.size() << " " << source.GetWords(i).size() << std::endl;
         encoders_[i]->GetContext(source.GetWords(i),
                                  SourceContexts_[i]);
-        std::cerr << "SIZE: " << SourceContexts_[i].Cols() << " " << SourceContexts_[i].Rows() << std::endl;
       }
     }
 
