@@ -97,6 +97,6 @@ class Encoder {
 
   private:
     Embeddings<Weights::EncEmbeddings> embeddings_;
-    RNN<Weights::EncForwardGRU> forwardRnn_;
-    RNN<Weights::EncBackwardGRU> backwardRnn_;
+    RNN<Weights::EncoderGRU> forwardRnn_;
+    RNN<Weights::EncoderGRU> backwardRnn_;
 };

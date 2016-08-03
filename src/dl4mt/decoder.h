@@ -14,12 +14,11 @@ class Decoder {
         {}
 
         void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
-          using namespace mblas;
           std::vector<size_t> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_.Rows())
               id = 1;
-          Assemble(Rows, w_.E_, tids);
+          mblas::Assemble(Rows, w_.E_, tids);
         }
 
         size_t GetCols() {
@@ -43,18 +42,12 @@ class Decoder {
         void InitializeState(mblas::Matrix& State,
                              const std::vector<mblas::Matrix>& SourceContexts,
                              const size_t batchSize = 1) {
-          using namespace mblas;
-
-          ConcatenatedSourceContext_.Resize(1, 0);
-          for (const auto& sourceContext : SourceContexts) {
-            Mean(Temp1_, sourceContext);
-            mblas::ConcatRows(ConcatenatedSourceContext_, Temp1_);
-          }
+          ConcatenateSourceContexts(SourceContexts);
           Temp2_.Clear();
           Temp2_.Resize(batchSize, ConcatenatedSourceContext_.Cols(), 0.0);
-          BroadcastVec(_1 + _2, Temp2_, Temp1_);
-          Prod(State, Temp2_, w_.Wi_);
-          BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
+          mblas::BroadcastVec(mblas::_1 + mblas::_2, Temp2_, Temp1_);
+          mblas::Prod(State, Temp2_, w_.Wi_);
+          mblas::BroadcastVec(Tanh(mblas::_1 + mblas::_2), State, w_.Bi_);
         }
 
         void GetNextState(mblas::Matrix& NextState,
@@ -64,6 +57,13 @@ class Decoder {
         }
 
       private:
+        void ConcatenateSourceContexts(const std::vector<mblas::Matrix>& SourceContexts) {
+          ConcatenatedSourceContext_.Resize(1, 0);
+          for (const auto& sourceContext : SourceContexts) {
+            mblas::Mean(Temp1_, sourceContext);
+            mblas::ConcatRows(ConcatenatedSourceContext_, Temp1_);
+          }
+        }
         const Weights1& w_;
         const GRU<Weights2> gru_;
 
@@ -218,15 +218,6 @@ class Decoder {
                   const std::vector<mblas::Matrix>& SourceContexts) {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContexts_, HiddenState_, SourceContexts);
-      AlignedSourceContext_.Resize(0, State.Rows());
-
-      for (auto& sourceContext : AlignedSourceContexts_) {
-        mblas::Transpose(sourceContext);
-        mblas::Concat(AlignedSourceContext_, sourceContext);
-      }
-
-      mblas::Transpose(AlignedSourceContext_);
-
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       GetProbs(Probs, NextState, Embeddings, AlignedSourceContext_);
     }
@@ -276,6 +267,14 @@ class Decoder {
                                               HiddenState,
                                               SourceContext[i]);
       }
+
+      AlignedSourceContext_.Resize(0, HiddenState.Rows());
+
+      for (auto& sourceContext : AlignedSourceContexts_) {
+        mblas::Transpose(sourceContext);
+        mblas::Concat(AlignedSourceContext_, sourceContext);
+      }
+      mblas::Transpose(AlignedSourceContext_);
     }
 
     void GetNextState(mblas::Matrix& State,

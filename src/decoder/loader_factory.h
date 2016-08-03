@@ -34,9 +34,9 @@ class LoaderFactory {
       // IF_MATCH_RETURN(type, "nematus", EncoderDecoderLoader);
       // IF_MATCH_RETURN(type, "NEMATUS", EncoderDecoderLoader);
 
-      // IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
-      // IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
-      // IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
+      IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
+      IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
+      IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
 
 
       IF_MATCH_RETURN(type, "MultiEncoder", MultiEncoderLoader);

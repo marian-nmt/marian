@@ -39,10 +39,8 @@ class MultiEncoder : public Scorer {
     typedef MultiEncoderState EDState;
 
   public:
-    MultiEncoder(const std::string& name,
-                   const YAML::Node& config,
-                   size_t numEncoders,
-                   const Weights& model)
+    MultiEncoder(const std::string& name, const YAML::Node& config, size_t numEncoders,
+                 const Weights& model)
       : Scorer(name, config, 0),
         model_(model),
         SourceContexts_(numEncoders),
@@ -52,9 +50,7 @@ class MultiEncoder : public Scorer {
       }
     }
 
-    virtual void Score(const State& in,
-                       Prob& prob,
-                       State& out) {
+    virtual void Score(const State& in, Prob& prob, State& out) {
       const EDState& edIn = in.get<EDState>();
       EDState& edOut = out.get<EDState>();
 
@@ -143,7 +139,6 @@ class MultiEncoderLoader : public Loader {
       size_t d = weights_[i]->GetDevice();
       cudaSetDevice(d);
       size_t numEncoders = God::Get<size_t>("encoders");
-      std::cerr << "NUM ENCODERS: " << numEncoders << std::endl;
       return ScorerPtr(new MultiEncoder(name_, config_,
                                           numEncoders, *weights_[i]));
     }

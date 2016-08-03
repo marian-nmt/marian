@@ -21,35 +21,15 @@ struct Weights {
     const TMatrix E_;
   };
 
-  struct EncForwardGRU {
-    EncForwardGRU(const NpzConverter& model, size_t index=0)
-    : W_(model[ENC_NAME("encoder", "_W", index)]),
-      B_(model(ENC_NAME("encoder", "_b", index), true)),
-      U_(model[ENC_NAME("encoder", "_U", index)]),
-      Wx_(model[ENC_NAME("encoder", "_Wx", index)]),
-      Bx1_(model(ENC_NAME("encoder", "_bx", index), true)),
+  struct EncoderGRU {
+    EncoderGRU(const std::string prefix, const NpzConverter& model, size_t index=0)
+    : W_(model[ENC_NAME(prefix, "_W", index)]),
+      B_(model(ENC_NAME(prefix, "_b", index), true)),
+      U_(model[ENC_NAME(prefix, "_U", index)]),
+      Wx_(model[ENC_NAME(prefix, "_Wx", index)]),
+      Bx1_(model(ENC_NAME(prefix, "_bx", index), true)),
       Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0),
-      Ux_(model[ENC_NAME("encoder", "_Ux", index)])
-    {}
-
-    const TMatrix W_;
-    const TMatrix B_;
-    const TMatrix U_;
-    const TMatrix Wx_;
-    const TMatrix Bx1_;
-    const TMatrix Bx2_;
-    const TMatrix Ux_;
-  };
-
-  struct EncBackwardGRU {
-    EncBackwardGRU(const NpzConverter& model, size_t index=0)
-    : W_(model[ENC_NAME("encoder_r", "_W", index)]),
-      B_(model(ENC_NAME("encoder_r", "_b", index), true)),
-      U_(model[ENC_NAME("encoder_r", "_U", index)]),
-      Wx_(model[ENC_NAME("encoder_r", "_Wx", index)]),
-      Bx1_(model(ENC_NAME("encoder_r", "_bx", index), true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0),
-      Ux_(model[ENC_NAME("encoder_r", "_Ux", index)])
+      Ux_(model[ENC_NAME(prefix, "_Ux", index)])
     {}
 
     const TMatrix W_;
@@ -172,8 +152,8 @@ struct Weights {
       device_(device) {
     for (size_t i = 0; i < numEncoders; ++i) {
       encEmbeddings_.emplace_back(new EncEmbeddings(model, i));
-      encForwardGRU_.emplace_back(new EncForwardGRU(model, i));
-      encBackwardGRU_.emplace_back(new EncBackwardGRU(model, i));
+      encForwardGRU_.emplace_back(new EncoderGRU("encoder", model, i));
+      encBackwardGRU_.emplace_back(new EncoderGRU("encoder_r", model, i));
       decAlignment_.emplace_back(new DecAlignment(model, i));
     }
   }
@@ -184,8 +164,8 @@ struct Weights {
   }
 
   std::vector<EncEmbeddings*> encEmbeddings_;
-  std::vector<EncForwardGRU*> encForwardGRU_;
-  std::vector<EncBackwardGRU*> encBackwardGRU_;
+  std::vector<EncoderGRU*> encForwardGRU_;
+  std::vector<EncoderGRU*> encBackwardGRU_;
   const DecEmbeddings decEmbeddings_;
   const DecInit decInit_;
   const DecGRU1 decGru1_;
