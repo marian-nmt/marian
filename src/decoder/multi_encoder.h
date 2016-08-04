@@ -71,8 +71,7 @@ class MultiEncoder : public Scorer {
 
     virtual void SetSource(const Sentence& source) {
       for (size_t i = 0; i < encoders_.size(); ++i) {
-        encoders_[i]->GetContext(source.GetWords(i),
-                                 SourceContexts_[i]);
+        encoders_[i]->GetContext(source.GetWords(i), SourceContexts_[i]);
       }
     }
 

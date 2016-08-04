@@ -3,6 +3,7 @@
 #include "mblas/matrix.h"
 #include "dl4mt/model.h"
 #include "dl4mt/gru.h"
+#include <iostream>
 
 class Decoder {
   private:
@@ -45,7 +46,8 @@ class Decoder {
           ConcatenateSourceContexts(SourceContexts);
           Temp2_.Clear();
           Temp2_.Resize(batchSize, ConcatenatedSourceContext_.Cols(), 0.0);
-          mblas::BroadcastVec(mblas::_1 + mblas::_2, Temp2_, Temp1_);
+          // mblas::BroadcastVec(mblas::_1 + mblas::_2, Temp2_, Temp1_);
+          mblas::BroadcastVec(mblas::_1 + mblas::_2, Temp2_, ConcatenatedSourceContext_);
           mblas::Prod(State, Temp2_, w_.Wi_);
           mblas::BroadcastVec(Tanh(mblas::_1 + mblas::_2), State, w_.Bi_);
         }
