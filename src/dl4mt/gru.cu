@@ -23,16 +23,16 @@ __global__ void gElementwiseOps(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float ev1 = expapprox(-(rowRuh[i] + b[i] + rowT[i]));
+          float ev1 = expf(-(rowRuh[i] + b[i] + rowT[i]));
           float r = 1.0 / (1.0 + ev1);
           
           int k = i + cols;
-          float ev2 = expapprox(-(rowRuh[k] + b[k] + rowT[k]));
+          float ev2 = expf(-(rowRuh[k] + b[k] + rowT[k]));
           float u = 1.0 / (1.0 + ev2);              
 
           float hv = rowH[i] + bx1[i];
           float t2v = rowT2[i] + bx2[i];
-          hv = tanhapprox(hv + r * t2v);
+          hv = tanhf(hv + r * t2v);
           rowOut[i] = (1.0 - u) * hv + u * rowState[i];
         }
       }
