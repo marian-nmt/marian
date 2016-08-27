@@ -1,10 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <functional>
-#include <vector>
-#include <cmath>
-
 #include <cudnn.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
@@ -36,7 +31,7 @@ struct Handles {
   }
 };
 
-Handles handles;
+const Handles handles;
 
 typedef std::vector<int> Shape;
 
@@ -63,12 +58,16 @@ class TensorImpl {
     TensorImpl(const Shape& shape, value_type value = 0)
     : shape_(shape), tno_(tensorCounter++)
     {
+      
       // @TODO: 
       UTIL_THROW_IF2(shape_.size() != 2,
                      "For now, only 2D Tensors, will be fixed later.");
       
       UTIL_THROW_IF2(shape_.size() < 1 || shape_.size() > 4,
                      "Wrong number of dimensions: " << shape_.size());
+
+      std::cerr << "Allocating : " << shape[0] << " " << shape[1] << std::endl;
+
       int size = std::accumulate(shape_.begin(), shape_.end(),
                                  1, std::multiplies<int>());
       data_.resize(size, value);
@@ -152,10 +151,15 @@ class Tensor {
     typedef TensorImpl<Float>::value_type value_type;
     
     Tensor() {}
+    Tensor(Shape shape, value_type value = 0) {
+      allocate(shape, value);
+    }
+    
     ~Tensor() {}
     
     void allocate(Shape shape, value_type value = 0) {
-      pimpl_.reset(new TensorImpl<Float>(shape, value));
+      if(!pimpl_)
+        pimpl_.reset(new TensorImpl<Float>(shape, value));
     }
     
     value_type operator[](size_t i) const {
@@ -210,186 +214,5 @@ class Tensor {
       return pimpl_ != nullptr;
     }
 };
-
-Tensor uniform(Tensor t, Float a=-0.1, Float b=0.1) {
-  std::vector<Float> r(t.size());
-  for(int i = 0; i < r.size(); i++)
-    r[i] = (Float(rand() % 2000) - 1000.0)/10000.0;
-  thrust::copy(r.begin(), r.end(), t.begin());
-  return t;
-};
-
-using namespace thrust::placeholders;
-#define MAX_THREADS 512
-#define MAX_BLOCKS 65535
-
-template <class Functor>
-__global__ void gElement(Functor functor, Float* out,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      Float* rowOut = out + j * cols;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i]);;
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         Float* out, const Float* in,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      Float* rowOut = out + j * cols;
-      const Float* rowIn = in + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn[i]);;
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         Float* out, const Float* in1, const Float* in2,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      Float* rowOut = out + j * cols;
-      const Float* rowIn1 = in1 + j * cols;
-      const Float* rowIn2 = in2 + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i]);
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         Float* out, const Float* in1,
-                         const Float* in2, const Float* in3,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      Float* rowOut = out + j * cols;
-      const Float* rowIn1 = in1 + j * cols;
-      const Float* rowIn2 = in2 + j * cols;
-      const Float* rowIn3 = in3 + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i], rowIn3[i]);
-      }
-    }
-  }
-}
-
-// @TODO add broadcasting
-
-template <class Functor>
-void Element(Functor functor, Tensor Out) {
-  Float* d_out = Out.data();
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.shape()[0]);
-  int threads = std::min(MAX_THREADS, (int)Out.shape()[1]);
-  gElement<<<blocks, threads>>>(functor, d_out,
-                                Out.shape()[0], Out.shape()[1]);
-  cudaStreamSynchronize(0);
-}
-
-template <class Functor>
-void Element(Functor functor,
-             Tensor Out, const Tensor In) {
-  Float* d_out = Out.data();
-  const Float* d_in = In.data();
-
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.shape()[0]);
-  int threads = std::min(MAX_THREADS, (int)Out.shape()[1]);
-  gElement<<<blocks, threads>>>(functor, d_out, d_in,
-                                Out.shape()[0], Out.shape()[1]);
-  cudaStreamSynchronize(0);
-}
-
-template <class Functor>
-void Element(Functor functor,
-             Tensor Out, const Tensor In1, const Tensor In2) {
-  
-  Float* d_out = Out.data();
-  const Float* d_in1 = In1.data();
-  const Float* d_in2 = In2.data();
-  
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.shape()[0]);
-  int threads = std::min(MAX_THREADS, (int)Out.shape()[1]);
-  gElement<<<blocks, threads>>>(functor, d_out, d_in1, d_in2,
-                                Out.shape()[0], Out.shape()[1]);
-  cudaStreamSynchronize(0);
-}
-
-template <class Functor>
-void Element(Functor functor,
-             Tensor Out, const Tensor In1,
-             const Tensor In2, const Tensor In3) {
-  
-  Float* d_out = Out.data();
-  const Float* d_in1 = In1.data();
-  const Float* d_in2 = In2.data();
-  const Float* d_in3 = In3.data();
-  
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.shape()[0]);
-  int threads = std::min(MAX_THREADS, (int)Out.shape()[1]);
-  gElement<<<blocks, threads>>>(functor, d_out, d_in1, d_in2, d_in3,
-                                Out.shape()[0], Out.shape()[1]);
-  cudaStreamSynchronize(0);
-}
-
-Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
-             bool transA, bool transB, Float beta) {
-  Float alpha = 1.0;
-
-  size_t m = A.shape()[0];
-  size_t k = A.shape()[1];
-  if(transA)
-    std::swap(m, k);
-  
-  size_t l = B.shape()[0];
-  size_t n = B.shape()[1];
-  if(transB)
-    std::swap(l, n);
-  
-  size_t lda = A.shape()[1];
-  size_t ldb = B.shape()[1];
-  size_t ldc = B.shape()[1];
-  
-  if(transB)
-    ldc = B.shape()[0];
-  
-  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
-  
-  cublasSgemm(handle, opB, opA,
-              n, m, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
-  return C;
-}
-
-Tensor Prod(Tensor C, const Tensor A, const Tensor B,
-             bool transA, bool transB, Float beta = 0) {
-
-  return Prod(handles.cublasHandle, C, A, B, transA, transB, beta);
-}
 
 }

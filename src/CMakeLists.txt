@@ -8,6 +8,8 @@ add_library(libcommon OBJECT
 cuda_add_executable(
   marian
   test.cu
+  expressions.cu
+  tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
 

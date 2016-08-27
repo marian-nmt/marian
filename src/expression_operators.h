@@ -7,8 +7,8 @@
 namespace marian {
 
 template <typename ...Args>
-inline Expr data(Args ...args) {
-  return Expr(new DataNode(args...));
+inline Expr input(Args ...args) {
+  return Expr(new InputNode(args...));
 }
 
 template <typename ...Args>
@@ -76,30 +76,31 @@ inline Expr dot(Expr a, Expr b) {
 
 /******************************************************/
 
-Expr broadcast(Shape shape, Expr a) {
-  if(a.val().shape() == shape) {
+Expr broadcast(Shape bShape, Expr a) {
+  const Shape& aShape = a.node()->shape();
+  if(aShape == bShape) {
     return a;
   }
   else {
-    size_t dimsA = a.val().shape().size();
-    size_t dimsB = shape.size();
+    size_t dimsA = aShape.size();
+    size_t dimsB = bShape.size();
     UTIL_THROW_IF2(dimsA != dimsB,
                    "Tensor and shape have different number of dimensions");
     for(size_t i = 0; i < dimsA; ++i) {
-      int dimA = a.val().shape()[i];
-      int dimB = shape[i];
+      int dimA = aShape[i];
+      int dimB = bShape[i];
       bool broadcastable = (dimA == dimB || dimA == 1);
       UTIL_THROW_IF2(!broadcastable,
                      "Cannot broadcast tensor dimension "
                      << dimA << " to " << dimB);
-      if(dimA == 1 && dimB > 1) {
+      if(dimA == 1 && dimB != 1) {
         std::cerr << "Broadcasting dim " << i << " from " << dimA << " to " << dimB << std::endl;
         if(i == 0) {
-          Expr one = ones(keywords::shape={shape[0], 1});
+          Expr one = ones(keywords::shape={bShape[0], 1});
           a = dot(one, a);
         }
         else if(i == 1) {
-          Expr one = ones(keywords::shape={1, shape[1]});
+          Expr one = ones(keywords::shape={1, bShape[1]});
           a = dot(a, one);
         }
         else {
@@ -120,20 +121,23 @@ inline Expr sum(Expr a, Args ...args) {
   Keywords params(args...);
   int ax = params.Get<int>(axis, whatevs);
   
+  ChainPtr n = a.node();
   if(ax == 0) {
-    auto lshape = [&a]() -> Shape {
-      int rows = a.val().shape()[0];
+    auto lshape = [n]() -> Shape {
+      int rows = n->val().shape()[0];
       return {1, rows};
     };
-    Expr one = ones(lazy_shape=lshape);
+    Expr one = ones(shape={1, n->shape()[0]},
+                    lazy_shape=lshape);
     return dot(one, a);        
   }
   else if(ax == 1) {
-    auto lshape = [&a]() -> Shape {
-      int cols = a.val().shape()[1]; 
+    auto lshape = [n]() -> Shape {
+      int cols = n->val().shape()[1]; 
       return {cols, 1};
     };
-    Expr one = ones(lazy_shape=lshape);
+    Expr one = ones(shape={n->shape()[1], 1},
+                    lazy_shape=lshape);
     return dot(a, one);          
   }
   else if(ax == 2) {
@@ -159,16 +163,17 @@ inline Expr mean(Expr a, Args ...args) {
   Keywords params(args...);
   size_t ax = params.Get<int>(axis, whatevs);
 
+  ChainPtr n = a.node();
   switch (ax) {
     case 0:
       return sum(a, axis=0) / constant(shape={1, 1},
-                                       lazy_value=[&a]() -> Float {
-                                         return a.val().shape()[0];
+                                       lazy_value=[n]() -> Float {
+                                         return n->val().shape()[0];
                                        });
     case 1:
       return sum(a, axis=1) / constant(shape={1, 1},
-                                       lazy_value=[&a]() -> Float {
-                                         return a.val().shape()[1];
+                                       lazy_value=[n]() -> Float {
+                                         return n->val().shape()[1];
                                        });
     case 2:
       UTIL_THROW2("Not implemented");
@@ -176,8 +181,8 @@ inline Expr mean(Expr a, Args ...args) {
       UTIL_THROW2("Not implemented");
     default:
       return sum(a) / constant(shape={1, 1},
-                               lazy_value=[&a]() -> Float {
-                                 return a.val().size();
+                               lazy_value=[n]() -> Float {
+                                 return n->val().size();
                                });
   }
 }

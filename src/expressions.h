@@ -1,52 +1,28 @@
 #pragma once
 
+#include "definitions.h"
+#include "graph.h"
+
 namespace marian {
 
 class Expr {
   public:
-    Expr(Chainable<Tensor>* chainable) : pimpl_(chainable) {}
+    Expr(Chainable<Tensor>* chainable);
+    Expr(Float v);
     
-    Tensor val() {
-      return pimpl_->val();
+    Expr operator=(Tensor t) {
+      pimpl_->setVal(t);
+      return *this;
     }
     
-    Tensor grad() {
-        return pimpl_->grad();
-    }
+    Tensor val();
+    Tensor grad();
     
-    ChainPtr pimpl() {
-        return pimpl_;
-    }
+    void forward(size_t batchSize);
+    void backward();
     
-    void forward() {
-      UTIL_THROW_IF2(pimpl_.get() != stack.back(),
-                     "Trying to call forward on non-root of computation graph");
-      
-      std::cerr << "a" << std::endl;
-      for(auto&& v : stack)
-        v->allocate();
-      
-      std::cerr << "f" << std::endl;
-      for(auto&& v : stack)
-        v->forward();    
-    }
-    
-    void backward() {
-      UTIL_THROW_IF2(pimpl_.get() != stack.back(),
-                    "Trying to call backward on non-root of computation graph");
-      
-      for(auto&& v : stack)
-        v->set_zero_adjoint();
-    
-      typedef ChainableStack::reverse_iterator It;
-      pimpl_->init_dependent();
-      for(It it = stack.rbegin(); it != stack.rend(); ++it)
-        (*it)->backward();
-    }
-    
-    operator ChainPtr() {
-      return pimpl_;
-    }
+    ChainPtr node();
+    operator ChainPtr();
     
   private:
     ChainPtr pimpl_; 

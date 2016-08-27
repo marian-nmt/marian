@@ -11,29 +11,19 @@ namespace thrust
   {
     namespace functional
     {
-    
-      // Ugly hacks, but it seems this is neccessary. 
-      __host__ __device__
-      float expf2(float x) {
-        float clip = 16;
-        if(x > clip)
-          x = clip;
-        if(x < -clip)
-          x = -clip;
-        return expf(x);
-      }
       
-      __host__ __device__
-      float logf2(float x) {
-        if(x < 10e-10)
-          x = 10e-10;
-        return logf(x);
-      }
-    
       template<typename T>
       struct unary_exp : public thrust::unary_function<T,T> {
         __host__ __device__
-        T operator()(const T &x) const { return expf2(x); }
+        T operator()(const T &x) const {
+            float x2 = x;
+            float clip = 16;
+            if(x2 > clip)
+              x2 = clip;
+            if(x2 < -clip)
+              x2 = -clip;
+            return expf(x2);
+          }
       };
       
       template<typename Eval>
@@ -46,7 +36,12 @@ namespace thrust
       template<typename T>
       struct unary_log : public thrust::unary_function<T,T> {
         __host__ __device__
-        T operator()(const T &x) const { return logf2(x); }
+        T operator()(const T &x) const {
+          float x2 = x;
+          if(x2 < 10e-10)
+            x2 = 10e-10;
+          return logf(x2);
+        }
       };
       
       template<typename Eval>
@@ -59,7 +54,15 @@ namespace thrust
       template<typename T>
       struct unary_sigma : public thrust::unary_function<T,T> {
         __host__ __device__
-        T operator()(const T &x) const { return 1.0 / (1.0 + expf2(-x)); }
+        T operator()(const T &x) const {
+          float x2 = x;
+          float clip = 16;
+          if(x2 > clip)
+            x2 = clip;
+          if(x2 < -clip)
+            x2 = -clip;           
+          return 1.0 / (1.0 + expf(-x2));
+        }
       };
       
       template<typename Eval>

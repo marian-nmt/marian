@@ -1,16 +1,26 @@
 #pragma once
 
-#include "graph.h"
 #include "expressions.h"
-//#include "expression_operators.h"
+#include "graph.h"
+#include "tensor_operators.h"
 
 namespace marian {
 
-struct DataNode : public Node {
+struct InputNode : public Node {
   template <typename ...Args>
-  DataNode(Args ...args)
-  : Node(args...) { }
+  InputNode(Args ...args)
+  : Node(args...) {
+    UTIL_THROW_IF2(!Has(keywords::shape) &&
+                   !Has(keywords::lazy_shape),
+                   "Data items require shape information");
+  }
   
+  virtual void setVal(Tensor t)  {
+    val_ = t;
+    shape_ = t.shape();
+    //@todo, shape checking
+  };
+
   void forward() {}
   void backward() {}
 };
@@ -18,7 +28,11 @@ struct DataNode : public Node {
 struct ConstantNode : public Node {
   template <typename ...Args>
   ConstantNode(Args ...args)
-  : Node(args...) { }
+  : Node(args...) {
+    UTIL_THROW_IF2(!Has(keywords::shape) &&
+                   !Has(keywords::lazy_shape),
+                   "Constant items require shape information");
+  }
   
   void forward() {}
   void backward() {}
@@ -29,12 +43,16 @@ struct ParamNode : public Node {
   ParamNode(Args ...args)
   : Node(args...),
     init_(Get<std::function<void(Tensor)>>(keywords::init, [](Tensor){ }))
-  { }
+  {
+    UTIL_THROW_IF2(!Has(keywords::shape) &&
+                   !Has(keywords::lazy_shape),
+                   "Param items require shape information");
+  } 
   
   void forward() {}
   void backward() {}
   
-  virtual void allocate() {
+  virtual void allocate(size_t batchSize) {
     val_.allocate(shape_);
     init_(val_);
   }
@@ -86,9 +104,7 @@ struct TanhNodeOp : public UnaryNodeOp {
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   LogNodeOp(Args ...args)
-  : UnaryNodeOp(args...) {
-    std::cerr << "log" << std::endl;
-  }
+  : UnaryNodeOp(args...) {}
   
   void forward() {
     Element(_1 = Log(_2), val_, a_->val());
@@ -145,13 +161,15 @@ struct BinaryNodeOp : public Node {
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   DotNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-  : BinaryNodeOp(a, b, args...) { }
+  : BinaryNodeOp(a, b,
+                 keywords::shape=newShape(a,b),
+                 args...) { }
   
-  Shape shape(ChainPtr a, ChainPtr b) {
-    UTIL_THROW_IF2(a->val().shape()[1] != b->val().shape()[0],
+  Shape newShape(ChainPtr a, ChainPtr b) {
+    Shape shape1 = a->shape();
+    Shape shape2 = b->shape();
+    UTIL_THROW_IF2(shape1[1] != shape2[0],
                    "matrix product requires dimensions to match");
-    Shape shape1 = a->val().shape();
-    Shape shape2 = b->val().shape();
     shape1[1] = shape2[1];
     return shape1;
   }
@@ -177,23 +195,26 @@ Expr broadcast(Shape shape, Expr a);
 struct BroadcastingNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   BroadcastingNodeOp(Expr a, Expr b, Args ...args)
-  : BinaryNodeOp(broadcast(shape(a ,b), a),
-                       broadcast(shape(a ,b), b),
-                       args...) {}
+  : BinaryNodeOp(broadcast(newShape(a ,b), a),
+                 broadcast(newShape(a ,b), b),
+                 keywords::shape=newShape(a, b),
+                 args...) {}
   
-  static Shape shape(ChainPtr a, ChainPtr b) {
-    size_t dimsA = a->val().shape().size();
-    size_t dimsB = b->val().shape().size();
+  static Shape newShape(ChainPtr a, ChainPtr b) {
+    size_t dimsA = a->shape().size();
+    size_t dimsB = b->shape().size();
     UTIL_THROW_IF2(dimsA != dimsB,
                    "Tensors have different numbers of dimensions");
     Shape shape(dimsA);
     for(size_t i = 0; i < dimsA; ++i) {
-      int dimA = a->val().shape()[i];
-      int dimB = b->val().shape()[i];
+      int dimA = a->shape()[i];
+      int dimB = b->shape()[i];
       bool broadcastable = (dimA == dimB || dimA == 1 || dimB == 1);
       UTIL_THROW_IF2(!broadcastable, "Different dimensions in elementwise "
                      << "operation cannot be broadcasted: " << dimA << " != " << dimB);
       shape[i] = std::max(dimA, dimB);
+      if(dimA == whatevs || dimB == whatevs)
+        shape[i] = whatevs;
     }
     return shape;
   }
