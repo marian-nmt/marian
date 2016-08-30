@@ -74,4 +74,7 @@ An example configuration:
     # vocabularies
     source-vocab: vocab.en.yml.gz
     target-vocab: vocab.de.yml.gz
-    
+
+## Example usage
+   
+  * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](wiki/AmuNMT-for-Automatic-Post-Editing)
