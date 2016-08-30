@@ -11,7 +11,7 @@ We aim at keeping compatibility with Nematus (at least as long as there is no tr
 ## Requirements:
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * Boost 1.5
- * CUDA 7.5
+ * CUDA 7.5 (8.0 recommended)
 
 ## Optional
  * KenLM for n-gram language models (https://github.com/kpu/kenlm, current master)
@@ -29,10 +29,12 @@ Or with KenLM support:
     cmake .. -DKENLM=path/to/kenlm
 
 
-On Ubuntu 16.04, you currently need g++4.9 to compile and cuda-7.5, this also requires a custom boost build compiled with g++4.9 instead of the standard g++5.3. The binaries are not compatible. g++5 support will probably arrive with cuda-8.0.
+On Ubuntu 16.04, you currently need g++4.9 to compile and cuda-7.5, this also requires a custom boost build compiled with g++4.9 instead of the standard g++5.3. The binaries are not compatible. 
 
     CUDA_BIN_PATH=/usr/local/cuda-7.5 BOOST_ROOT=/path/to/custom/boost cmake .. \
     -DCMAKE_CXX_COMPILER=g++-4.9 -DCUDA_HOST_COMPILER=/usr/bin/g++-4.9
+
+With cuda-8.0 (RC) it is possible to use g++5 (but not g++6) which makes most of the above tricks obsolete. 
 
 ## Vocabulary files
 Vocabulary files (and all other config files) in AmuNMT are by default YAML files. AmuNMT also reads gzipped yml.gz files. 
