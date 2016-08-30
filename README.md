@@ -77,4 +77,4 @@ An example configuration:
 
 ## Example usage
    
-  * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](wiki/AmuNMT-for-Automatic-Post-Editing)
+  * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)
