@@ -11,6 +11,12 @@
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 
+#ifdef __APPLE__
+#include <boost/thread/tss.hpp>
+#include <boost/pool/object_pool.hpp>
+#include <boost/shared_ptr.hpp>
+#endif
+
 //#include "nervana_c_api.h"
   
 
@@ -142,40 +148,37 @@ typedef thrust::device_vector<float> FVec;
 typedef thrust::device_vector<unsigned int> IVec;
 
 class CublasHandler {
-  public:
+public:
 
-    ~CublasHandler() {
-      if(handle_ != nullptr) {
-        cublasDestroy(*handle_);
-        delete handle_;
-        handle_ = nullptr;
-      }
+  static cublasHandle_t GetHandle() {
+#ifdef __APPLE__
+    cublasHandle_t *handle = handle_.get();
+    if (handle == nullptr) {
+  	  handle = new cublasHandle_t;
+  	  handle_.reset(handle);
     }
-
-    static cublasHandle_t GetHandle() {
-      if(instance_.handle_ == nullptr) {
-        instance_.CreateHandle();
-      }
-      return *instance_.handle_;
+    return *handle;
+#else
+    if(handle_ == nullptr) {
+		assert(handle_ == nullptr);
+		handle_ = new cublasHandle_t;
+		cublasCreate(handle_);
     }
+    return *handle_;
+#endif
+  }
 
-    static void StaticHandle() {
-      instance_.CreateHandle();
-    }
+private:
+  ~CublasHandler()
+  {
+	// not called. Leaking handles
+  }
 
-  private:
-
-    void CreateHandle() {
-      if(handle_ != nullptr) {
-        cublasDestroy(*handle_);
-        delete handle_;
-      }
-      handle_ = new cublasHandle_t;
-      cublasCreate(handle_);
-    }
-
-    static thread_local cublasHandle_t* handle_;
-    static CublasHandler instance_;
+#ifdef __APPLE__
+  static boost::thread_specific_ptr<cublasHandle_t> handle_;
+#else
+  static thread_local cublasHandle_t* handle_;
+#endif
 };
 
 typedef TMatrix<FVec> Matrix;

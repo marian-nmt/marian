@@ -10,7 +10,7 @@ SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 include_directories(${amunmt_SOURCE_DIR})
 find_package(CUDA REQUIRED)
 
-find_package(Boost COMPONENTS system filesystem program_options timer iostreams)
+find_package(Boost COMPONENTS system filesystem program_options timer iostreams thread)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})

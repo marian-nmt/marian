@@ -2,8 +2,11 @@
 
 namespace mblas {
 
-CublasHandler CublasHandler::instance_;
+#ifdef __APPLE__
+boost::thread_specific_ptr<cublasHandle_t> CublasHandler::handle_;
+#else
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
+#endif
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   size_t iRows = In.Rows();
