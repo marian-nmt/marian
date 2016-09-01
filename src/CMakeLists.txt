@@ -27,6 +27,7 @@ cuda_add_executable(
   amun
   decoder/decoder_main.cu
   decoder/god.cu
+  decoder/search.cu
   decoder/sentence.cu
   mblas/matrix.cu
   dl4mt/gru.cu
