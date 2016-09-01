@@ -79,6 +79,13 @@ size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
+Prob *EncoderDecoder::CreateMatrix()
+{
+	Prob *ret = new Prob();
+	return ret;
+}
+
+
 ////////////////////////////////////////////
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)

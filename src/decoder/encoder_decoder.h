@@ -51,6 +51,8 @@ class EncoderDecoder : public Scorer {
     
     size_t GetVocabSize() const;
 
+    virtual Prob *CreateMatrix();
+
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;

@@ -31,13 +31,15 @@ History Search::Decode(const Sentence& sentence) {
 	nextStates[i].reset(scorers_[i]->NewState());
 
 	scorers_[i]->BeginSentenceState(*states[i]);
+
+	probs[i] = scorers_[i]->CreateMatrix();
   }
 
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
 	for(size_t i = 0; i < scorers_.size(); i++) {
-	  probs[i].Resize(beamSize, vocabSize);
-	  scorers_[i]->Score(*states[i], probs[i], *nextStates[i]);
+	  probs[i]->Resize(beamSize, vocabSize);
+	  scorers_[i]->Score(*states[i], *probs[i], *nextStates[i]);
 	}
 
 	// Looking at attention vectors
@@ -67,19 +69,21 @@ History Search::Decode(const Sentence& sentence) {
   LOG(progress) << "Line " << sentence.GetLine()
 	<< ": Search took " << timer.format(3, "%ws");
 
-  for(auto&& scorer : scorers_)
+  for(auto&& scorer : scorers_) {
 	scorer->CleanUpAfterSentence();
+  }
+
   return history;
 }
 
 void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
-			  std::vector<mblas::Matrix>& ProbsEnsemble,
+			  Probs& ProbsEnsemble,
 			  const size_t beamSize) {
   using namespace mblas;
 
   auto& weights = God::GetScorerWeights();
 
-  Matrix& Probs = ProbsEnsemble[0];
+  Matrix& Probs = *ProbsEnsemble[0];
 
   Matrix Costs(Probs.Rows(), 1);
   HostVector<float> vCosts;
@@ -91,7 +95,7 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 					 Probs, Costs);
   for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
 	Element(_1 + weights[scorers_[i]->GetName()] * _2,
-			Probs, ProbsEnsemble[i]);
+			Probs, *ProbsEnsemble[i]);
 
   DeviceVector<unsigned> keys(Probs.size());
   HostVector<unsigned> bestKeys(beamSize);
@@ -132,7 +136,7 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 	breakDowns.push_back(bestCosts);
 	for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
 	  HostVector<float> modelCosts(beamSize);
-	  auto it = iteralgo::make_permutation_iterator(ProbsEnsemble[i].begin(), keys.begin());
+	  auto it = iteralgo::make_permutation_iterator(ProbsEnsemble[i]->begin(), keys.begin());
 	  algo::copy(it, it + beamSize, modelCosts.begin());
 	  breakDowns.push_back(modelCosts);
 	}

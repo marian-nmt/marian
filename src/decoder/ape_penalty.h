@@ -68,6 +68,11 @@ class ApePenalty : public Scorer {
       UTIL_THROW2("Not correctly implemented");
     }
     
+    virtual Prob *CreateMatrix()
+    {
+        UTIL_THROW2("Not correctly implemented");
+    }
+
   private:
     std::vector<float> costs_;
 };

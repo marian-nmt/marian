@@ -24,7 +24,7 @@ class State {
 typedef std::unique_ptr<State> StatePtr;
 typedef std::vector<StatePtr> States;
 typedef mblas::Matrix Prob;
-typedef std::vector<Prob> Probs;
+typedef std::vector<Prob*> Probs;
 
 class Scorer {
   public:
@@ -56,6 +56,8 @@ class Scorer {
       return name_;
     }
     
+    virtual Prob *CreateMatrix() = 0;
+
   protected:
     const std::string& name_;
     const YAML::Node& config_;
