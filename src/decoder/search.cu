@@ -69,8 +69,12 @@ History Search::Decode(const Sentence& sentence) {
   LOG(progress) << "Line " << sentence.GetLine()
 	<< ": Search took " << timer.format(3, "%ws");
 
-  for(auto&& scorer : scorers_) {
-	scorer->CleanUpAfterSentence();
+  for(size_t i = 0; i < scorers_.size(); i++) {
+	  ScorerPtr &scorer = scorers_[i];
+	  scorer->CleanUpAfterSentence();
+
+	  Prob *prob = probs[i];
+	  delete prob;
   }
 
   return history;
