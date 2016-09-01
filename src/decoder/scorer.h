@@ -5,6 +5,7 @@
 #include "hypothesis.h"
 #include "sentence.h"
 #include "matrix.h"
+#include "yaml-cpp/node/node.h"
 
 class State {
   public:

@@ -6,6 +6,7 @@
 #include "file_stream.h"
 #include "scorer.h"
 #include "matrix.h"
+#include "loader.h"
 
 typedef std::vector<Word> SrcTrgMap;
 typedef std::vector<float> Penalties; 
@@ -24,92 +25,41 @@ class ApePenalty : public Scorer {
                const YAML::Node& config,
                size_t tab,
                const SrcTrgMap& srcTrgMap,
-               const Penalties& penalties)
-    : Scorer(name, config, tab), srcTrgMap_(srcTrgMap),
-      penalties_(penalties)
-    { }
+               const Penalties& penalties);
     
     // @TODO: make this work on GPU
-    virtual void SetSource(const Sentence& source) {
-      const Words& words = source.GetWords(tab_);
-      
-      costs_.clear();
-      costs_.resize(penalties_.size());
-      algo::copy(penalties_.begin(), penalties_.end(), costs_.begin());
-      
-      for(auto&& s : words) {
-        Word t = srcTrgMap_[s];
-        if(t != UNK && t < costs_.size())
-          costs_[t] = 0.0;
-      }
-    }
+    virtual void SetSource(const Sentence& source);
     
     // @TODO: make this work on GPU
     virtual void Score(const State& in,
                        Prob& prob,
-                       State& out) {
-      size_t cols = prob.Cols();
-      costs_.resize(cols, -1.0);
-      for(size_t i = 0; i < prob.Rows(); ++i)
-        algo::copy(costs_.begin(), costs_.begin() + cols, prob.begin() + i * cols);
-    }
+                       State& out);
     
-    virtual State* NewState() {
-      return new ApePenaltyState(); 
-    }
+    virtual State* NewState();
     
-    virtual void BeginSentenceState(State& state) { }
+    virtual void BeginSentenceState(State& state);
     
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
-                                   State& out) { }
+                                   State& out);
     
-    virtual size_t GetVocabSize() const {
-      UTIL_THROW2("Not correctly implemented");
-    }
+    virtual size_t GetVocabSize() const;
     
-    virtual Prob *CreateMatrix()
-    {
-        UTIL_THROW2("Not correctly implemented");
-    }
+    virtual Prob *CreateMatrix();
 
   private:
     std::vector<float> costs_;
 };
 
+/////////////////////////////////////////////////////
 class ApePenaltyLoader : public Loader {
   public:
     ApePenaltyLoader(const std::string& name,
-                     const YAML::Node& config)
-     : Loader(name, config) {}
+                     const YAML::Node& config);
   
-    virtual void Load() {
-      size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-      const Vocab& svcb = God::GetSourceVocab(tab);
-      const Vocab& tvcb = God::GetTargetVocab();
-      
-      srcTrgMap_.resize(svcb.size(), UNK);
-      for(Word s = 0; s < svcb.size(); ++s)
-        srcTrgMap_[s] = tvcb[svcb[s]];
-      
-      penalties_.resize(tvcb.size(), -1.0);
-        
-      if(Has("path")) {
-        LOG(info) << "Loading APE penalties from " << Get<std::string>("path");
-        YAML::Node penalties = YAML::Load(InputFileStream(Get<std::string>("path")));
-        for(auto&& pair : penalties) {
-          std::string entry = pair.first.as<std::string>();
-          float penalty = pair.second.as<float>();
-          penalties_[tvcb[entry]] = -penalty;
-        }
-      }
-    }
+    virtual void Load();
   
-    virtual ScorerPtr NewScorer(size_t taskId) {
-      size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-      return ScorerPtr(new ApePenalty(name_, config_, tab,
-                                      srcTrgMap_, penalties_));
-    }
+    virtual ScorerPtr NewScorer(size_t taskId);
     
   private:
     SrcTrgMap srcTrgMap_;
