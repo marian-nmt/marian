@@ -26,6 +26,7 @@ add_library(libamun OBJECT
 cuda_add_executable(
   amun
   decoder/decoder_main.cu
+  decoder/encoder_decoder.cu
   decoder/god.cu
   decoder/search.cu
   decoder/sentence.cu
