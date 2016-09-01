@@ -32,8 +32,8 @@ class ApePenalty : public Scorer {
     
     // @TODO: make this work on GPU
     virtual void Score(const State& in,
-                       Prob& prob,
-                       State& out);
+    		mblas::BaseMatrix& prob,
+    		State& out);
     
     virtual State* NewState();
     

@@ -34,8 +34,8 @@ class EncoderDecoder : public Scorer {
                    const Weights& model);
     
     virtual void Score(const State& in,
-                       Prob& prob,
-                       State& out);
+    		mblas::BaseMatrix& prob,
+    		State& out);
     
     virtual State* NewState();
     

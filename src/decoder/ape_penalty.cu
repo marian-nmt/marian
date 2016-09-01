@@ -28,12 +28,13 @@ void ApePenalty::SetSource(const Sentence& source) {
 
 // @TODO: make this work on GPU
 void ApePenalty::Score(const State& in,
-				   Prob& prob,
-				   State& out) {
-  size_t cols = prob.Cols();
+		mblas::BaseMatrix& prob,
+		State& out) {
+  Prob &probCast = static_cast<Prob&>(prob);
+  size_t cols = probCast.Cols();
   costs_.resize(cols, -1.0);
   for(size_t i = 0; i < prob.Rows(); ++i)
-	algo::copy(costs_.begin(), costs_.begin() + cols, prob.begin() + i * cols);
+	algo::copy(costs_.begin(), costs_.begin() + cols, probCast.begin() + i * cols);
 }
 
 State* ApePenalty::NewState() {

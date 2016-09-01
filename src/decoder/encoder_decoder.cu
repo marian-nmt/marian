@@ -28,12 +28,13 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
 {}
 
 void EncoderDecoder::Score(const State& in,
-                   Prob& prob,
-                   State& out) {
+		mblas::BaseMatrix& prob,
+		State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  decoder_->MakeStep(edOut.GetStates(), prob,
+  Prob &probCast = static_cast<Prob&>(prob);
+  decoder_->MakeStep(edOut.GetStates(), probCast,
                     edIn.GetStates(), edIn.GetEmbeddings(),
                     SourceContext_);
 }
