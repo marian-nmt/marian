@@ -29,6 +29,7 @@ cuda_add_executable(
   decoder/decoder_main.cu
   decoder/encoder_decoder.cu
   decoder/god.cu
+  #decoder/language_model.cu
   decoder/search.cu
   decoder/sentence.cu
   mblas/matrix.cu
