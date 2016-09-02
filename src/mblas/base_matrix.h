@@ -8,7 +8,7 @@ typedef std::vector<BaseMatrix*> BaseMatrices;
 
 class BaseMatrix {
   public:
-    //virtual ~BaseMatrix() {}
+    virtual ~BaseMatrix() {}
     
     virtual size_t Rows() const = 0;
     virtual size_t Cols() const = 0;
