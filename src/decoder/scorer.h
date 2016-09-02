@@ -28,8 +28,7 @@ typedef std::vector<StatePtr> States;
 class Scorer {
   public:
     Scorer(const std::string& name,
-           const YAML::Node& config, size_t tab)
-    : name_(name), config_(config), tab_(tab) {} 
+           const YAML::Node& config, size_t tab);
     
     virtual ~Scorer() {}
     
