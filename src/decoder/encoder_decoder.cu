@@ -1,6 +1,6 @@
 #include "encoder_decoder.h"
-#include "matrix.h"
-#include "god.h"
+#include "gpu/mblas/matrix.h"
+#include "common/god.h"
 
 mblas::Matrix& EncoderDecoderState::GetStates() {
   return states_;

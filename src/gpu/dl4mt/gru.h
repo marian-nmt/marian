@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mblas/matrix.h"
+#include "../mblas/matrix.h"
 
 template <class Weights>
 class SlowGRU {

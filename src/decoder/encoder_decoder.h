@@ -5,7 +5,7 @@
 
 #include "scorer.h"
 #include "loader.h"
-#include "dl4mt.h"
+#include "gpu/dl4mt/dl4mt.h"
 
 #include "threadpool.h"
 

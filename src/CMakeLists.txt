@@ -38,8 +38,8 @@ cuda_add_executable(
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
-  mblas/matrix.cu
-  dl4mt/gru.cu
+  gpu/mblas/matrix.cu
+  gpu/dl4mt/gru.cu
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>

@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 
-#include "mblas/matrix.h"
+#include "../mblas/matrix.h"
 #include "gpu/npz_converter.h"
 
 struct Weights {

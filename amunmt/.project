@@ -51,11 +51,6 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>mblas</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/mblas</locationURI>
-		</link>
-		<link>
 			<name>yaml-cpp</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -209,6 +204,16 @@
 			<name>common/vocab.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/vocab.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>gpu/mblas</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
 			<name>gpu/npz_converter.cu</name>
@@ -579,6 +584,51 @@
 			<name>yaml-cpp/yaml.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/yaml-cpp/yaml.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt/decoder.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/decoder.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt/dl4mt.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/dl4mt.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt/encoder.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/encoder.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt/gru.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/gru.cu</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt/gru.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/gru.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/dl4mt/model.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/model.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/mblas/matrix.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/mblas/matrix.cu</locationURI>
+		</link>
+		<link>
+			<name>gpu/mblas/matrix.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/mblas/matrix.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/mblas/thrust_functions.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/mblas/thrust_functions.h</locationURI>
 		</link>
 		<link>
 			<name>yaml-cpp/contrib/anchordict.h</name>

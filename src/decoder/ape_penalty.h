@@ -5,7 +5,7 @@
 #include "types.h"
 #include "file_stream.h"
 #include "scorer.h"
-#include "matrix.h"
+#include "gpu/mblas/matrix.h"
 #include "loader.h"
 
 typedef std::vector<Word> SrcTrgMap;
