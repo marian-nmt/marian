@@ -33,7 +33,7 @@
 		<link>
 			<name>common</name>
 			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common</locationURI>
 		</link>
 		<link>
 			<name>decoder</name>
@@ -41,14 +41,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/decoder</locationURI>
 		</link>
 		<link>
-			<name>dl4mt</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt</locationURI>
-		</link>
-		<link>
 			<name>gpu</name>
 			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu</locationURI>
 		</link>
 		<link>
 			<name>yaml-cpp</name>
@@ -69,166 +64,6 @@
 			<name>cnpy/cnpy.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/cnpy/cnpy.h</locationURI>
-		</link>
-		<link>
-			<name>common/base_matrix.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/base_matrix.h</locationURI>
-		</link>
-		<link>
-			<name>common/config.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/config.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/config.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/config.h</locationURI>
-		</link>
-		<link>
-			<name>common/decoder_main.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/decoder_main.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/exception.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/exception.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/exception.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/exception.h</locationURI>
-		</link>
-		<link>
-			<name>common/file_stream.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/file_stream.h</locationURI>
-		</link>
-		<link>
-			<name>common/god.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/god.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/god.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/god.h</locationURI>
-		</link>
-		<link>
-			<name>common/history.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/history.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/history.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/history.h</locationURI>
-		</link>
-		<link>
-			<name>common/hypothesis.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/hypothesis.h</locationURI>
-		</link>
-		<link>
-			<name>common/logging.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/logging.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.h</locationURI>
-		</link>
-		<link>
-			<name>common/scorer.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/scorer.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/scorer.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/scorer.h</locationURI>
-		</link>
-		<link>
-			<name>common/search.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/search.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/search.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/search.h</locationURI>
-		</link>
-		<link>
-			<name>common/sentence.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/sentence.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/sentence.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/sentence.h</locationURI>
-		</link>
-		<link>
-			<name>common/threadpool.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/threadpool.h</locationURI>
-		</link>
-		<link>
-			<name>common/types.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/types.h</locationURI>
-		</link>
-		<link>
-			<name>common/utf8.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/utf8.h</locationURI>
-		</link>
-		<link>
-			<name>common/utils.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/utils.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/utils.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/utils.h</locationURI>
-		</link>
-		<link>
-			<name>common/vocab.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/vocab.cpp</locationURI>
-		</link>
-		<link>
-			<name>common/vocab.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/vocab.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
-			<name>gpu/mblas</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
-			<name>gpu/npz_converter.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/npz_converter.cu</locationURI>
-		</link>
-		<link>
-			<name>gpu/npz_converter.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/npz_converter.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/types-gpu.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/types-gpu.h</locationURI>
 		</link>
 		<link>
 			<name>yaml-cpp/CMakeLists.txt</name>
@@ -584,51 +419,6 @@
 			<name>yaml-cpp/yaml.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/yaml-cpp/yaml.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt/decoder.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/decoder.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt/dl4mt.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/dl4mt.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt/encoder.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/encoder.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt/gru.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/gru.cu</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt/gru.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/gru.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/dl4mt/model.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/dl4mt/model.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/mblas/matrix.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/mblas/matrix.cu</locationURI>
-		</link>
-		<link>
-			<name>gpu/mblas/matrix.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/mblas/matrix.h</locationURI>
-		</link>
-		<link>
-			<name>gpu/mblas/thrust_functions.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/mblas/thrust_functions.h</locationURI>
 		</link>
 		<link>
 			<name>yaml-cpp/contrib/anchordict.h</name>
