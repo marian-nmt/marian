@@ -21,7 +21,7 @@
   
 
 #include "thrust_functions.h"
-#include "decoder/god.h"
+#include "common/god.h"
 #include "gpu/types-gpu.h"
 
 namespace lib = thrust;

@@ -81,6 +81,21 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/base_matrix.h</locationURI>
 		</link>
 		<link>
+			<name>common/config.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/config.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/config.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/config.h</locationURI>
+		</link>
+		<link>
+			<name>common/decoder_main.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/decoder_main.cpp</locationURI>
+		</link>
+		<link>
 			<name>common/exception.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/exception.cpp</locationURI>
@@ -96,6 +111,31 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/file_stream.h</locationURI>
 		</link>
 		<link>
+			<name>common/god.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/god.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/god.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/god.h</locationURI>
+		</link>
+		<link>
+			<name>common/history.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/history.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/history.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/history.h</locationURI>
+		</link>
+		<link>
+			<name>common/hypothesis.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/hypothesis.h</locationURI>
+		</link>
+		<link>
 			<name>common/logging.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.cpp</locationURI>
@@ -104,6 +144,36 @@
 			<name>common/logging.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.h</locationURI>
+		</link>
+		<link>
+			<name>common/scorer.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/scorer.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/scorer.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/scorer.h</locationURI>
+		</link>
+		<link>
+			<name>common/search.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/search.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/search.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/search.h</locationURI>
+		</link>
+		<link>
+			<name>common/sentence.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/sentence.cpp</locationURI>
+		</link>
+		<link>
+			<name>common/sentence.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/sentence.h</locationURI>
 		</link>
 		<link>
 			<name>common/threadpool.h</name>

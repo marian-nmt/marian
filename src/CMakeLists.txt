@@ -22,22 +22,22 @@ add_library(libcommon OBJECT
 #)
 
 add_library(libamun OBJECT
-  decoder/config.cpp
+  common/config.cpp
 #  decoder/kenlm.cpp
 )
 
 cuda_add_executable(
   amun
   decoder/ape_penalty.cu
-  decoder/decoder_main.cpp
+  common/decoder_main.cpp
   decoder/encoder_decoder.cu
-  decoder/god.cpp
-  decoder/history.cpp
+  common/god.cpp
+  common/history.cpp
   #decoder/language_model.cu
   decoder/loader_factory.cu
-  decoder/scorer.cpp
-  decoder/search.cpp
-  decoder/sentence.cpp
+  common/scorer.cpp
+  common/search.cpp
+  common/sentence.cpp
   mblas/matrix.cu
   dl4mt/gru.cu
   $<TARGET_OBJECTS:libamun>
