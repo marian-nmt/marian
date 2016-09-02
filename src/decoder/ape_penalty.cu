@@ -51,7 +51,7 @@ size_t ApePenalty::GetVocabSize() const {
   UTIL_THROW2("Not correctly implemented");
 }
 
-Prob *ApePenalty::CreateMatrix()
+mblas::BaseMatrix *ApePenalty::CreateMatrix()
 {
 	UTIL_THROW2("Not correctly implemented");
 }

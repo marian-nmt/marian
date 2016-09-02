@@ -45,7 +45,7 @@ class ApePenalty : public Scorer {
     
     virtual size_t GetVocabSize() const;
     
-    virtual Prob *CreateMatrix();
+    virtual mblas::BaseMatrix *CreateMatrix();
 
   private:
     std::vector<float> costs_;

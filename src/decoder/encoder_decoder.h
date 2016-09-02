@@ -51,7 +51,7 @@ class EncoderDecoder : public Scorer {
     
     size_t GetVocabSize() const;
 
-    virtual Prob *CreateMatrix();
+    virtual mblas::BaseMatrix *CreateMatrix();
 
   private:
     const Weights& model_;

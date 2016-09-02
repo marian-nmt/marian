@@ -57,7 +57,7 @@ class Scorer {
       return name_;
     }
     
-    virtual Prob *CreateMatrix() = 0;
+    virtual mblas::BaseMatrix *CreateMatrix() = 0;
 
   protected:
     const std::string& name_;

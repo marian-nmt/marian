@@ -80,7 +80,7 @@ size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-Prob *EncoderDecoder::CreateMatrix()
+mblas::BaseMatrix *EncoderDecoder::CreateMatrix()
 {
 	Prob *ret = new Prob();
 	return ret;
