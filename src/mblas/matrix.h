@@ -138,6 +138,13 @@ class TMatrix : public BaseMatrix {
       return data_.size();
     }
 
+    virtual void BestHyps(Beam& bestHyps, const Beam& prevHyps,
+    		mblas::BaseMatrices& ProbsEnsemble,
+    		const size_t beamSize) const
+    {
+
+    }
+
   private:
     size_t rows_;
     size_t cols_;
