@@ -1,5 +1,5 @@
 #pragma once
-
+#include <memory>
 #include <iostream>
 #include "config.h"
 #include "types.h"

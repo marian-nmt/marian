@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 class Hypothesis;
 typedef std::shared_ptr<Hypothesis> HypothesisPtr;

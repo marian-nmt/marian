@@ -1,5 +1,5 @@
 #pragma once
-
+#include <memory>
 #include "types.h"
 
 class Hypothesis;

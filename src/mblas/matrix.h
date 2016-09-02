@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <memory>
 
 #include "base_matrix.h"
 
@@ -14,7 +15,6 @@
 #ifdef __APPLE__
 #include <boost/thread/tss.hpp>
 #include <boost/pool/object_pool.hpp>
-#include <boost/shared_ptr.hpp>
 #endif
 
 //#include "nervana_c_api.h"
