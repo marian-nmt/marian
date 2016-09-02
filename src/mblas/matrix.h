@@ -22,7 +22,7 @@
 
 #include "thrust_functions.h"
 #include "decoder/god.h"
-#include "common/types-gpu.h"
+#include "gpu/types-gpu.h"
 
 namespace lib = thrust;
 namespace iterlib = thrust;

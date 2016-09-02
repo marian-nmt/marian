@@ -12,9 +12,9 @@ add_library(libcommon OBJECT
   cnpy/cnpy.cpp
   common/exception.cpp
   common/logging.cpp
-  common/npz_converter.cu
   common/vocab.cpp
   common/utils.cpp
+  gpu/npz_converter.cu
 )
 
 #add_library(librescorer OBJECT

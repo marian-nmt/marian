@@ -4,7 +4,7 @@
 #include <string>
 
 #include "mblas/matrix.h"
-#include "npz_converter.h"
+#include "gpu/npz_converter.h"
 
 struct Weights {
   

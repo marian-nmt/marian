@@ -46,6 +46,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/dl4mt</locationURI>
 		</link>
 		<link>
+			<name>gpu</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>mblas</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/mblas</locationURI>
@@ -96,24 +101,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.h</locationURI>
 		</link>
 		<link>
-			<name>common/npz_converter.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/npz_converter.cu</locationURI>
-		</link>
-		<link>
-			<name>common/npz_converter.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/npz_converter.h</locationURI>
-		</link>
-		<link>
 			<name>common/threadpool.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/threadpool.h</locationURI>
-		</link>
-		<link>
-			<name>common/types-gpu.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/types-gpu.h</locationURI>
 		</link>
 		<link>
 			<name>common/types.h</name>
@@ -144,6 +134,21 @@
 			<name>common/vocab.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/vocab.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/npz_converter.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/npz_converter.cu</locationURI>
+		</link>
+		<link>
+			<name>gpu/npz_converter.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/npz_converter.h</locationURI>
+		</link>
+		<link>
+			<name>gpu/types-gpu.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/types-gpu.h</locationURI>
 		</link>
 		<link>
 			<name>yaml-cpp/CMakeLists.txt</name>
