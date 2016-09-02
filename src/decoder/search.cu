@@ -1,7 +1,6 @@
 #include <boost/timer/timer.hpp>
 #include "search.h"
-#include "types-gpu.h"
-#include "matrix.h"
+#include "mblas/base_matrix.h"
 
 Search::Search(size_t threadId)
 : scorers_(God::GetScorers(threadId)) {}
@@ -54,7 +53,11 @@ History Search::Decode(const Sentence& sentence) {
 	//mblas::debug1(A, 0, sentence.GetWords().size());
 
 	Beam hyps;
-	BestHyps(hyps, prevHyps, probs, beamSize);
+
+	assert(probs.size());
+	const mblas::BaseMatrix &firstMatrix = *probs[0];
+
+	firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, scorers_);
 	history.Add(hyps, history.size() == maxLength);
 
 	Beam survivors;
@@ -90,105 +93,4 @@ History Search::Decode(const Sentence& sentence) {
   return history;
 }
 
-void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
-		mblas::BaseMatrices& ProbsEnsemble,
-		const size_t beamSize) const
-{
-  using namespace mblas;
 
-  auto& weights = God::GetScorerWeights();
-
-  Matrix& Probs = static_cast<Matrix&>(*ProbsEnsemble[0]);
-
-  Matrix Costs(Probs.Rows(), 1);
-  HostVector<float> vCosts;
-  for(auto& h : prevHyps)
-	vCosts.push_back(h->GetCost());
-  algo::copy(vCosts.begin(), vCosts.end(), Costs.begin());
-
-  BroadcastVecColumn(weights[scorers_[0]->GetName()] * _1 + _2,
-					 Probs, Costs);
-  for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-	  Matrix &currProbs = static_cast<Matrix&>(*ProbsEnsemble[i]);
-
-	  Element(_1 + weights[scorers_[i]->GetName()] * _2,
-			Probs, currProbs);
-  }
-
-  DeviceVector<unsigned> keys(Probs.size());
-  HostVector<unsigned> bestKeys(beamSize);
-  HostVector<float> bestCosts(beamSize);
-
-  // @TODO: make this more efficient
-  if(!God::Get<bool>("allow-unk")) {
-	for(size_t i = 0; i < Probs.Rows(); i++)
-	  Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
-  }
-
-  // @TODO: Here we need to have a partial sort
-  if(beamSize < 10) {
-	for(size_t i = 0; i < beamSize; ++i) {
-	  DeviceVector<float>::iterator iter =
-		algo::max_element(Probs.begin(), Probs.end());
-	  bestKeys[i] = iter - Probs.begin();
-	  bestCosts[i] = *iter;
-	  *iter = std::numeric_limits<float>::lowest();
-	}
-	algo::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
-  }
-  else {
-	// these two function do not have equivalents in
-	// in the standard library or boost, keeping thrust
-	// namespace for now
-	thrust::sequence(keys.begin(), keys.end());
-	thrust::sort_by_key(Probs.begin(), Probs.end(),
-						keys.begin(), algo::greater<float>());
-
-	algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
-	algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
-  }
-
-  std::vector<HostVector<float>> breakDowns;
-  bool doBreakdown = God::Get<bool>("n-best");
-  if(doBreakdown) {
-	breakDowns.push_back(bestCosts);
-	for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-	  HostVector<float> modelCosts(beamSize);
-	  Matrix &currProbs = static_cast<Matrix&>(*ProbsEnsemble[i]);
-
-	  auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
-	  algo::copy(it, it + beamSize, modelCosts.begin());
-	  breakDowns.push_back(modelCosts);
-	}
-  }
-
-  for(size_t i = 0; i < beamSize; i++) {
-	size_t wordIndex = bestKeys[i] % Probs.Cols();
-	size_t hypIndex  = bestKeys[i] / Probs.Cols();
-	float cost = bestCosts[i];
-
-	HypothesisPtr hyp(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
-
-	if(doBreakdown) {
-	  hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
-	  float sum = 0;
-	  for(size_t j = 0; j < ProbsEnsemble.size(); ++j) {
-		if(j == 0)
-		  hyp->GetCostBreakdown()[0] = breakDowns[0][i];
-		else {
-		  float cost = 0;
-		  if(j < ProbsEnsemble.size()) {
-			if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
-			  const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
-			cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
-		  }
-		  sum += weights[scorers_[j]->GetName()] * cost;
-		  hyp->GetCostBreakdown()[j] = cost;
-		}
-	  }
-	  hyp->GetCostBreakdown()[0] -= sum;
-	  hyp->GetCostBreakdown()[0] /= weights[scorers_[0]->GetName()];
-	}
-	bestHyps.push_back(hyp);
-  }
-}
