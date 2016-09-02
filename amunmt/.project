@@ -101,6 +101,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/threadpool.h</locationURI>
 		</link>
 		<link>
+			<name>common/types-gpu.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/types-gpu.h</locationURI>
+		</link>
+		<link>
 			<name>common/types.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/types.h</locationURI>

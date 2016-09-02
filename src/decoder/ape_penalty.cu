@@ -1,6 +1,7 @@
 #include "ape_penalty.h"
 #include "god.h"
 #include "common/vocab.h"
+#include "common/types-gpu.h"
 
 ApePenalty::ApePenalty(const std::string& name,
 		   const YAML::Node& config,
