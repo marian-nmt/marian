@@ -28,7 +28,7 @@ cuda_add_executable(
   decoder/ape_penalty.cu
   decoder/decoder_main.cu
   decoder/encoder_decoder.cu
-  decoder/god.cu
+  decoder/god.cpp
   #decoder/language_model.cu
   decoder/loader_factory.cu
   decoder/scorer.cpp
