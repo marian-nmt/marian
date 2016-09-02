@@ -96,11 +96,6 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/npz_converter.h</locationURI>
 		</link>
 		<link>
-			<name>common/states.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/common/states.h</locationURI>
-		</link>
-		<link>
 			<name>common/threadpool.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/threadpool.h</locationURI>
