@@ -86,9 +86,19 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/file_stream.h</locationURI>
 		</link>
 		<link>
+			<name>common/logging.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.cpp</locationURI>
+		</link>
+		<link>
 			<name>common/logging.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/logging.h</locationURI>
+		</link>
+		<link>
+			<name>common/npz_converter.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/npz_converter.cu</locationURI>
 		</link>
 		<link>
 			<name>common/npz_converter.h</name>
@@ -124,6 +134,11 @@
 			<name>common/utils.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/utils.h</locationURI>
+		</link>
+		<link>
+			<name>common/vocab.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/vocab.cpp</locationURI>
 		</link>
 		<link>
 			<name>common/vocab.h</name>

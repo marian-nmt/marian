@@ -10,8 +10,11 @@ add_subdirectory(yaml-cpp)
 
 add_library(libcommon OBJECT
   cnpy/cnpy.cpp
-  common/utils.cpp
   common/exception.cpp
+  common/logging.cpp
+  common/npz_converter.cu
+  common/vocab.cpp
+  common/utils.cpp
 )
 
 #add_library(librescorer OBJECT
@@ -29,6 +32,7 @@ cuda_add_executable(
   decoder/decoder_main.cu
   decoder/encoder_decoder.cu
   decoder/god.cpp
+  decoder/history.cpp
   #decoder/language_model.cu
   decoder/loader_factory.cu
   decoder/scorer.cpp
