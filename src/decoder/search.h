@@ -18,5 +18,5 @@ class Search {
 
     void BestHyps(Beam& bestHyps, const Beam& prevHyps,
                   Probs& ProbsEnsemble,
-                  const size_t beamSize);
+                  const size_t beamSize) const;
 };

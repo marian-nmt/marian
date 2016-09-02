@@ -90,7 +90,8 @@ History Search::Decode(const Sentence& sentence) {
 
 void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 			  Probs& ProbsEnsemble,
-			  const size_t beamSize) {
+			  const size_t beamSize) const
+{
   using namespace mblas;
 
   auto& weights = God::GetScorerWeights();
