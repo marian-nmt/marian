@@ -1,6 +1,7 @@
 #include <boost/timer/timer.hpp>
 #include "search.h"
 #include "types-gpu.h"
+#include "matrix.h"
 
 Search::Search(size_t threadId)
 : scorers_(God::GetScorers(threadId)) {}

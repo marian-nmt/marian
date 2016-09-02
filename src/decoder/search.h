@@ -5,7 +5,6 @@
 #include "god.h"
 #include "sentence.h"
 #include "history.h"
-#include "encoder_decoder.h"
 
 class Search {
   private:

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <boost/timer/timer.hpp>
-
+#include <boost/thread/tss.hpp>
 #include "god.h"
 #include "logging.h"
 #include "search.h"
