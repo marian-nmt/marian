@@ -34,7 +34,9 @@ cuda_add_executable(
   common/god.cpp
   common/history.cpp
   #decoder/language_model.cu
+  decoder/loader.cpp
   decoder/loader_factory.cu
+  decoder/printer.cpp
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
