@@ -30,6 +30,7 @@ cuda_add_executable(
   decoder/encoder_decoder.cu
   decoder/god.cu
   #decoder/language_model.cu
+  decoder/loader_factory.cu
   decoder/scorer.cpp
   decoder/search.cu
   decoder/sentence.cpp
