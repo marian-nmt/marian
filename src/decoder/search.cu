@@ -22,7 +22,7 @@ History Search::Decode(const Sentence& sentence) {
 
   States states(scorers_.size());
   States nextStates(scorers_.size());
-  Probs probs(scorers_.size());
+  mblas::BaseMatrices probs(scorers_.size());
 
   for(size_t i = 0; i < scorers_.size(); i++) {
 	Scorer &scorer = *scorers_[i];
@@ -40,7 +40,7 @@ History Search::Decode(const Sentence& sentence) {
   do {
 	for(size_t i = 0; i < scorers_.size(); i++) {
 		Scorer &scorer = *scorers_[i];
-		Prob &prob = *probs[i];
+		mblas::BaseMatrix &prob = *probs[i];
 
 		prob.Resize(beamSize, vocabSize);
 		scorer.Score(*states[i], prob, *nextStates[i]);
@@ -81,7 +81,7 @@ History Search::Decode(const Sentence& sentence) {
 	  Scorer &scorer = *scorers_[i];
 	  scorer.CleanUpAfterSentence();
 
-	  Prob *prob = probs[i];
+	  mblas::BaseMatrix *prob = probs[i];
 	  delete prob;
   }
 
@@ -89,14 +89,14 @@ History Search::Decode(const Sentence& sentence) {
 }
 
 void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
-			  Probs& ProbsEnsemble,
-			  const size_t beamSize) const
+		mblas::BaseMatrices& ProbsEnsemble,
+		const size_t beamSize) const
 {
   using namespace mblas;
 
   auto& weights = God::GetScorerWeights();
 
-  Matrix& Probs = *ProbsEnsemble[0];
+  Matrix& Probs = static_cast<Matrix&>(*ProbsEnsemble[0]);
 
   Matrix Costs(Probs.Rows(), 1);
   HostVector<float> vCosts;
@@ -106,9 +106,12 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 
   BroadcastVecColumn(weights[scorers_[0]->GetName()] * _1 + _2,
 					 Probs, Costs);
-  for(size_t i = 1; i < ProbsEnsemble.size(); ++i)
-	Element(_1 + weights[scorers_[i]->GetName()] * _2,
-			Probs, *ProbsEnsemble[i]);
+  for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+	  Matrix &currProbs = static_cast<Matrix&>(*ProbsEnsemble[i]);
+
+	  Element(_1 + weights[scorers_[i]->GetName()] * _2,
+			Probs, currProbs);
+  }
 
   DeviceVector<unsigned> keys(Probs.size());
   HostVector<unsigned> bestKeys(beamSize);
@@ -149,7 +152,9 @@ void Search::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 	breakDowns.push_back(bestCosts);
 	for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
 	  HostVector<float> modelCosts(beamSize);
-	  auto it = iteralgo::make_permutation_iterator(ProbsEnsemble[i]->begin(), keys.begin());
+	  Matrix &currProbs = static_cast<Matrix&>(*ProbsEnsemble[i]);
+
+	  auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
 	  algo::copy(it, it + beamSize, modelCosts.begin());
 	  breakDowns.push_back(modelCosts);
 	}

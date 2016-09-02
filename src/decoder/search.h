@@ -17,6 +17,6 @@ class Search {
     History Decode(const Sentence& sentence);
 
     void BestHyps(Beam& bestHyps, const Beam& prevHyps,
-                  Probs& ProbsEnsemble,
-                  const size_t beamSize) const;
+    		mblas::BaseMatrices& ProbsEnsemble,
+    		const size_t beamSize) const;
 };
