@@ -3,11 +3,11 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "scorer.h"
-#include "loader.h"
+#include "common/scorer.h"
+#include "common/loader.h"
 #include "gpu/dl4mt/dl4mt.h"
 
-#include "threadpool.h"
+#include "common/threadpool.h"
 
 class EncoderDecoderState : public State {
   public:

@@ -1,11 +1,6 @@
 
 include_directories(.)
-include_directories(dl4mt)
-include_directories(common)
-include_directories(decoder)
-include_directories(mblas)
 
-include_directories(yaml-cpp)
 add_subdirectory(yaml-cpp)
 
 add_library(libcommon OBJECT

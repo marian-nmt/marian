@@ -11,7 +11,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "utf8.h"
+#include "common/utf8.h"
 
 template<class T>
 inline void hash_combine(std::size_t & seed, const T & v)

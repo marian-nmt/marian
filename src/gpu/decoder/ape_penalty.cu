@@ -1,5 +1,5 @@
 #include "ape_penalty.h"
-#include "god.h"
+#include "common/god.h"
 #include "common/vocab.h"
 #include "gpu/types-gpu.h"
 
