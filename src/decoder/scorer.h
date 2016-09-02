@@ -4,7 +4,7 @@
 
 #include "hypothesis.h"
 #include "sentence.h"
-#include "matrix.h"
+#include "base_matrix.h"
 #include "yaml-cpp/node/node.h"
 
 class State {
@@ -24,8 +24,6 @@ class State {
 
 typedef std::unique_ptr<State> StatePtr;
 typedef std::vector<StatePtr> States;
-typedef mblas::Matrix Prob;
-typedef std::vector<Prob*> Probs;
 
 class Scorer {
   public:

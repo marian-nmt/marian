@@ -30,7 +30,7 @@ void ApePenalty::SetSource(const Sentence& source) {
 void ApePenalty::Score(const State& in,
 		mblas::BaseMatrix& prob,
 		State& out) {
-  Prob &probCast = static_cast<Prob&>(prob);
+  mblas::Prob &probCast = static_cast<mblas::Prob&>(prob);
   size_t cols = probCast.Cols();
   costs_.resize(cols, -1.0);
   for(size_t i = 0; i < prob.Rows(); ++i)

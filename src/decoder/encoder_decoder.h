@@ -3,7 +3,6 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "matrix.h"
 #include "scorer.h"
 #include "loader.h"
 #include "dl4mt.h"

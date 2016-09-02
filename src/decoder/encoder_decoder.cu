@@ -1,4 +1,5 @@
 #include "encoder_decoder.h"
+#include "matrix.h"
 #include "god.h"
 
 mblas::Matrix& EncoderDecoderState::GetStates() {
@@ -33,7 +34,7 @@ void EncoderDecoder::Score(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  Prob &probCast = static_cast<Prob&>(prob);
+  mblas::Prob &probCast = static_cast<mblas::Prob&>(prob);
   decoder_->MakeStep(edOut.GetStates(), probCast,
                     edIn.GetStates(), edIn.GetEmbeddings(),
                     SourceContext_);
@@ -82,7 +83,7 @@ size_t EncoderDecoder::GetVocabSize() const {
 
 mblas::BaseMatrix *EncoderDecoder::CreateMatrix()
 {
-	Prob *ret = new Prob();
+	mblas::Prob *ret = new mblas::Prob();
 	return ret;
 }
 
