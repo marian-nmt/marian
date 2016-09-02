@@ -32,7 +32,7 @@ cuda_add_executable(
   #decoder/language_model.cu
   decoder/scorer.cpp
   decoder/search.cu
-  decoder/sentence.cu
+  decoder/sentence.cpp
   mblas/matrix.cu
   dl4mt/gru.cu
   $<TARGET_OBJECTS:libamun>
