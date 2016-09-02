@@ -5,7 +5,7 @@
 
 #include "hypothesis.h"
 #include "sentence.h"
-#include "base_matrix.h"
+#include "common/base_matrix.h"
 #include "yaml-cpp/node/node.h"
 
 class State {

@@ -1,6 +1,6 @@
 #include <boost/timer/timer.hpp>
 #include "search.h"
-#include "mblas/base_matrix.h"
+#include "common/base_matrix.h"
 
 Search::Search(size_t threadId)
 : scorers_(God::GetScorers(threadId)) {}

@@ -76,6 +76,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/cnpy/cnpy.h</locationURI>
 		</link>
 		<link>
+			<name>common/base_matrix.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/common/base_matrix.h</locationURI>
+		</link>
+		<link>
 			<name>common/exception.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/common/exception.cpp</locationURI>
