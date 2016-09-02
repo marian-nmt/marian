@@ -28,9 +28,9 @@ add_library(libamun OBJECT
 
 cuda_add_executable(
   amun
-  decoder/ape_penalty.cu
+  gpu/decoder/ape_penalty.cu
   common/decoder_main.cpp
-  decoder/encoder_decoder.cu
+  gpu/decoder/encoder_decoder.cu
   common/god.cpp
   common/history.cpp
   #decoder/language_model.cu

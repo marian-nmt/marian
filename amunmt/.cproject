@@ -67,7 +67,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.2055199520" name="kenlm.h" rcbsApplicability="disable" resourcePath="decoder/kenlm.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>

@@ -36,11 +36,6 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common</locationURI>
 		</link>
 		<link>
-			<name>decoder</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/decoder</locationURI>
-		</link>
-		<link>
 			<name>gpu</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/gpu</locationURI>

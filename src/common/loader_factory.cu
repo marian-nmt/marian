@@ -1,10 +1,10 @@
 #include "loader_factory.h"
 #include "scorer.h"
-#include "encoder_decoder.h"
-#include "ape_penalty.h"
+#include "gpu/decoder/encoder_decoder.h"
+#include "gpu/decoder/ape_penalty.h"
 
 #ifdef KENLM
-#include "language_model.h"
+#include "gpu/decoder/language_model.h"
 #endif
 
 LoaderPtr LoaderFactory::Create(const std::string& name,
