@@ -25,21 +25,25 @@ History Search::Decode(const Sentence& sentence) {
   Probs probs(scorers_.size());
 
   for(size_t i = 0; i < scorers_.size(); i++) {
-	scorers_[i]->SetSource(sentence);
+	Scorer &scorer = *scorers_[i];
+	scorer.SetSource(sentence);
 
-	states[i].reset(scorers_[i]->NewState());
-	nextStates[i].reset(scorers_[i]->NewState());
+	states[i].reset(scorer.NewState());
+	nextStates[i].reset(scorer.NewState());
 
-	scorers_[i]->BeginSentenceState(*states[i]);
+	scorer.BeginSentenceState(*states[i]);
 
-	probs[i] = scorers_[i]->CreateMatrix();
+	probs[i] = scorer.CreateMatrix();
   }
 
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
 	for(size_t i = 0; i < scorers_.size(); i++) {
-	  probs[i]->Resize(beamSize, vocabSize);
-	  scorers_[i]->Score(*states[i], *probs[i], *nextStates[i]);
+		Scorer &scorer = *scorers_[i];
+		Prob &prob = *probs[i];
+
+		prob.Resize(beamSize, vocabSize);
+		scorer.Score(*states[i], prob, *nextStates[i]);
 	}
 
 	// Looking at attention vectors
@@ -52,15 +56,19 @@ History Search::Decode(const Sentence& sentence) {
 	history.Add(hyps, history.size() == maxLength);
 
 	Beam survivors;
-	for(auto h : hyps)
-	  if(h->GetWord() != EOS)
+	for(auto h : hyps) {
+	  if(h->GetWord() != EOS) {
 		survivors.push_back(h);
+	  }
+	}
 	beamSize = survivors.size();
-	if(beamSize == 0)
+	if(beamSize == 0) {
 	  break;
+	}
 
-	for(size_t i = 0; i < scorers_.size(); i++)
+	for(size_t i = 0; i < scorers_.size(); i++) {
 	  scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+	}
 
 	prevHyps.swap(survivors);
 
@@ -70,8 +78,8 @@ History Search::Decode(const Sentence& sentence) {
 	<< ": Search took " << timer.format(3, "%ws");
 
   for(size_t i = 0; i < scorers_.size(); i++) {
-	  ScorerPtr &scorer = scorers_[i];
-	  scorer->CleanUpAfterSentence();
+	  Scorer &scorer = *scorers_[i];
+	  scorer.CleanUpAfterSentence();
 
 	  Prob *prob = probs[i];
 	  delete prob;
