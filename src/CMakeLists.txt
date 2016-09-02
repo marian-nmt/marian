@@ -36,7 +36,7 @@ cuda_add_executable(
   #decoder/language_model.cu
   decoder/loader_factory.cu
   decoder/scorer.cpp
-  decoder/search.cu
+  decoder/search.cpp
   decoder/sentence.cpp
   mblas/matrix.cu
   dl4mt/gru.cu
