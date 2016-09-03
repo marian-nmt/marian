@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
-SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -pthread -funroll-loops -Wno-unused-result -Wno-deprecated")
+SET(CMAKE_CXX_FLAGS " -std=c++14 -g -O3 -pthread -funroll-loops -Wno-unused-result -Wno-deprecated")
 LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
 add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)

@@ -1,5 +1,6 @@
 
 include_directories(.)
+include_directories(cpu)
 
 add_subdirectory(yaml-cpp)
 
@@ -37,6 +38,9 @@ cuda_add_executable(
   common/sentence.cpp
   gpu/mblas/matrix.cu
   gpu/dl4mt/gru.cu
+  cpu/mblas/matrix.cpp
+  cpu/mblas/phoenix_functions.cpp
+  cpu/dl4mt/encoder.cpp
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>

@@ -36,6 +36,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/common</locationURI>
 		</link>
 		<link>
+			<name>cpu</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/cpu</locationURI>
+		</link>
+		<link>
 			<name>gpu</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/gpu</locationURI>
