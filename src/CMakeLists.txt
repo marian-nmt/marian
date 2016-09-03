@@ -1,6 +1,5 @@
 
 include_directories(.)
-include_directories(cpu)
 
 add_subdirectory(yaml-cpp)
 

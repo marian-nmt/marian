@@ -1,7 +1,7 @@
 #include "matrix.h"
 #include "simd_math_prims.h"
 
-#include "../blaze/Math.h"
+#include "blaze/Math.h"
 
 namespace mblas {
 

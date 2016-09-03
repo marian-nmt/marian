@@ -6,7 +6,7 @@
 
 #include "../npz_converter.h"
 
-#include "mblas/matrix.h"
+#include "../mblas/matrix.h"
 
 struct Weights {
 

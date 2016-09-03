@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include "../blaze/Math.h"
+#include "blaze/Math.h"
 #include "phoenix_functions.h"
 
 namespace mblas {
