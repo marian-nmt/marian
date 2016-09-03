@@ -1,8 +1,8 @@
 #pragma once
 
-#include "mblas/matrix.h"
-#include "dl4mt/model.h"
-#include "dl4mt/gru.h"
+#include "../mblas/matrix.h"
+#include "model.h"
+#include "gru.h"
 
 class Decoder {
   private:

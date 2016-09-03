@@ -35,11 +35,16 @@ cuda_add_executable(
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
+
   gpu/mblas/matrix.cu
   gpu/dl4mt/gru.cu
+
   cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
   cpu/dl4mt/encoder.cpp
+  cpu/dl4mt/model.cpp
+  #cpu/decoder/encoder_decoder.cpp
+  
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
