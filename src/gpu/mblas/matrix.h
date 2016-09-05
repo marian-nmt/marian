@@ -294,7 +294,6 @@ typedef TMatrix<FVec> Matrix;
 typedef TMatrix<IVec> IMatrix;
 
 typedef mblas::Matrix Prob;
-typedef std::vector<Prob*> Probs;
 
 template <class M>
 void debug1(const M& m, size_t pos = 0, size_t l = 5) {
