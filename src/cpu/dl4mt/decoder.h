@@ -199,81 +199,48 @@ class Decoder {
     };
     
   public:
-    Decoder(const Weights& model)
-    : embeddings_(model.decEmbeddings_),
-      rnn1_(model.decInit_, model.decGru1_),
-      rnn2_(model.decGru2_),
-	  attention_(model.decAttention_),
-      softmax_(model.decSoftmax_)
-    {}
+    Decoder(const Weights& model);
     
     void MakeStep(mblas::Matrix& NextState,
                   mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
-                  const mblas::Matrix& SourceContext) {
-      GetHiddenState(HiddenState_, State, Embeddings);
-      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
-      GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      GetProbs(Probs, NextState, Embeddings, AlignedSourceContext_);
-    }
+                  const mblas::Matrix& SourceContext);
     
     void EmptyState(mblas::Matrix& State,
                     const mblas::Matrix& SourceContext,
-                    size_t batchSize = 1) {
-      rnn1_.InitializeState(State, SourceContext, batchSize);
-    }
+                    size_t batchSize = 1);
     
     void EmptyEmbedding(mblas::Matrix& Embedding,
-                        size_t batchSize = 1) {
-      Embedding.resize(batchSize, embeddings_.GetCols());
-      Embedding = 0.0f;
-    }
+                        size_t batchSize = 1);
     
     void Lookup(mblas::Matrix& Embedding,
-                const std::vector<size_t>& w) {
-      embeddings_.Lookup(Embedding, w);
-    }
+                const std::vector<size_t>& w);
     
-    void Filter(const std::vector<size_t>& ids) {
-      softmax_.Filter(ids);
-    }
+    void Filter(const std::vector<size_t>& ids);
       
-    void GetAttention(mblas::Matrix& attention) {
-    	attention_.GetAttention(attention);
-    }
+    void GetAttention(mblas::Matrix& attention);
     
-    size_t GetVocabSize() const {
-      return embeddings_.GetRows();
-    }
+    size_t GetVocabSize() const;
     
   private:
     
     void GetHiddenState(mblas::Matrix& HiddenState,
                         const mblas::Matrix& PrevState,
-                        const mblas::Matrix& Embedding) {
-      rnn1_.GetNextState(HiddenState, PrevState, Embedding);
-    }
+                        const mblas::Matrix& Embedding);
     
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                  const mblas::Matrix& HiddenState,
-                                 const mblas::Matrix& SourceContext) {
-    	attention_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext);
-    }
+                                 const mblas::Matrix& SourceContext);
     
     void GetNextState(mblas::Matrix& State,
                       const mblas::Matrix& HiddenState,
-                      const mblas::Matrix& AlignedSourceContext) {
-      rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
-    }
-    
+                      const mblas::Matrix& AlignedSourceContext);
     
     void GetProbs(mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
-      softmax_.GetProbs(Probs, State, Embedding, AlignedSourceContext);
-    }
+                  const mblas::Matrix& AlignedSourceContext);
     
   private:
     mblas::Matrix HiddenState_;
