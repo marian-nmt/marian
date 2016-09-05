@@ -34,7 +34,7 @@ void EncoderDecoder::Score(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  mblas::Prob &probCast = static_cast<mblas::Prob&>(prob);
+  mblas::Matrix &probCast = static_cast<mblas::Matrix&>(prob);
   decoder_->MakeStep(edOut.GetStates(), probCast,
                     edIn.GetStates(), edIn.GetEmbeddings(),
                     SourceContext_);
@@ -83,7 +83,7 @@ size_t EncoderDecoder::GetVocabSize() const {
 
 mblas::BaseMatrix *EncoderDecoder::CreateMatrix()
 {
-	mblas::Prob *ret = new mblas::Prob();
+	mblas::Matrix *ret = new mblas::Matrix();
 	return ret;
 }
 

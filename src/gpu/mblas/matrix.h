@@ -293,8 +293,6 @@ private:
 typedef TMatrix<FVec> Matrix;
 typedef TMatrix<IVec> IMatrix;
 
-typedef mblas::Matrix Prob;
-
 template <class M>
 void debug1(const M& m, size_t pos = 0, size_t l = 5) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
