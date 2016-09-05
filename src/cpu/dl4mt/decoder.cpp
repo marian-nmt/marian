@@ -27,6 +27,37 @@ size_t Decoder::Embeddings<Weights>::GetRows() const {
 }
 
 //////////////////////////////////////////////////////////////
+template <class Weights1, class Weights2>
+Decoder::RNNHidden<Weights1, Weights2>::RNNHidden(const Weights1& initModel, const Weights2& gruModel)
+: w_(initModel), gru_(gruModel) {}
+
+template <class Weights1, class Weights2>
+void Decoder::RNNHidden<Weights1, Weights2>::InitializeState(mblas::Matrix& State,
+                     const mblas::Matrix& SourceContext,
+                     const size_t batchSize ) {
+  using namespace mblas;
+
+  // Calculate mean of source context, rowwise
+  // Repeat mean batchSize times by broadcasting
+  Temp1_ = Mean<byRow, Matrix>(SourceContext);
+  Temp2_.resize(batchSize, SourceContext.columns());
+  Temp2_ = 0.0f;
+  AddBiasVector<byRow>(Temp2_, Temp1_);
+
+  State = Temp2_ * w_.Wi_;
+  AddBiasVector<byRow>(State, w_.Bi_);
+
+  State = blaze::forEach(State, Tanh());
+}
+
+template <class Weights1, class Weights2>
+void Decoder::RNNHidden<Weights1, Weights2>::GetNextState(mblas::Matrix& NextState,
+                  const mblas::Matrix& State,
+                  const mblas::Matrix& Context) {
+  gru_.GetNextState(NextState, State, Context);
+}
+
+//////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////
 Decoder::Decoder(const Weights& model)
