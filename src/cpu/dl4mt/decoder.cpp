@@ -58,6 +58,16 @@ void Decoder::RNNHidden<Weights1, Weights2>::GetNextState(mblas::Matrix& NextSta
 }
 
 //////////////////////////////////////////////////////////////
+template <class Weights>
+Decoder::RNNFinal<Weights>::RNNFinal(const Weights& model)
+: gru_(model) {}
+
+template <class Weights>
+void Decoder::RNNFinal<Weights>::GetNextState(mblas::Matrix& NextState,
+                  const mblas::Matrix& State,
+                  const mblas::Matrix& Context) {
+  gru_.GetNextState(NextState, State, Context);
+}
 
 //////////////////////////////////////////////////////////////
 Decoder::Decoder(const Weights& model)

@@ -47,15 +47,11 @@ class Decoder {
     template <class Weights>
     class RNNFinal {
       public:
-        RNNFinal(const Weights& model)
-        : gru_(model) {}          
+        RNNFinal(const Weights& model);
         
         void GetNextState(mblas::Matrix& NextState,
                           const mblas::Matrix& State,
-                          const mblas::Matrix& Context) {
-          gru_.GetNextState(NextState, State, Context);
-        }
-        
+                          const mblas::Matrix& Context);
       private:
         const GRU<Weights> gru_;
     };
