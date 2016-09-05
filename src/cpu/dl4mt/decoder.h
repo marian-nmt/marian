@@ -81,44 +81,14 @@ class Decoder {
     template <class Weights>
     class Softmax {
       public:
-        Softmax(const Weights& model)
-        : w_(model),
-        filtered_(false)
-        {}
+        Softmax(const Weights& model);
           
         void GetProbs(mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
-          using namespace mblas;
-          
-          T1_ = State * w_.W1_;
-          T2_ = Embedding * w_.W2_;
-          T3_ = AlignedSourceContext * w_.W3_;
-          
-          AddBiasVector<byRow>(T1_, w_.B1_);
-          AddBiasVector<byRow>(T2_, w_.B2_);
-          AddBiasVector<byRow>(T3_, w_.B3_);
-      
-          auto t = blaze::forEach(T1_ + T2_ + T3_, Tanh());
-      
-          if(!filtered_) {
-            Probs_ = t * w_.W4_;
-            AddBiasVector<byRow>(Probs_, w_.B4_);
-          } else {
-            Probs_ = t * FilteredW4_;
-            AddBiasVector<byRow>(Probs_, FilteredB4_);
-          }
-          mblas::Softmax(Probs_);
-          Probs = blaze::forEach(Probs_, Log());
-        }
+                  const mblas::Matrix& AlignedSourceContext);
     
-        void Filter(const std::vector<size_t>& ids) {
-          filtered_ = true;
-          using namespace mblas;
-          FilteredW4_ = Assemble<byColumn, Matrix>(w_.W4_, ids);
-          FilteredB4_ = Assemble<byColumn, Matrix>(w_.B4_, ids);
-        }
+        void Filter(const std::vector<size_t>& ids);
        
       private:        
         const Weights& w_;
