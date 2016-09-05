@@ -1,5 +1,34 @@
 #include "decoder.h"
 
+//////////////////////////////////////////////////////////////
+template<class Weights>
+Decoder::Embeddings<Weights>::Embeddings(const Weights& model)
+: w_(model)
+{}
+
+template<class Weights>
+void Decoder::Embeddings<Weights>::Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
+  using namespace mblas;
+  std::vector<size_t> tids = ids;
+  for(auto&& id : tids)
+	if(id >= w_.E_.rows())
+	  id = 1;
+  Rows = Assemble<byRow, Matrix>(w_.E_, tids);
+}
+
+template<class Weights>
+size_t Decoder::Embeddings<Weights>::GetCols() {
+  return w_.E_.columns();
+}
+
+template<class Weights>
+size_t Decoder::Embeddings<Weights>::GetRows() const {
+  return w_.E_.rows();
+}
+
+//////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////
 Decoder::Decoder(const Weights& model)
 : embeddings_(model.decEmbeddings_),
   rnn1_(model.decInit_, model.decGru1_),

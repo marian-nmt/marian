@@ -9,27 +9,14 @@ class Decoder {
     template <class Weights>
     class Embeddings {
       public:
-        Embeddings(const Weights& model)
-        : w_(model)
-        {}
+        Embeddings(const Weights& model);
             
-        void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
-          using namespace mblas;
-          std::vector<size_t> tids = ids;
-          for(auto&& id : tids)
-            if(id >= w_.E_.rows())
-              id = 1;
-          Rows = Assemble<byRow, Matrix>(w_.E_, tids);
-        }
+        void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids);
         
-        size_t GetCols() {
-          return w_.E_.columns();    
-        }
-        
-        size_t GetRows() const {
-          return w_.E_.rows();    
-        }
-        
+        size_t GetCols();
+
+        size_t GetRows() const;
+
       private:
         const Weights& w_;
     };
