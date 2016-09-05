@@ -60,45 +60,14 @@ class Decoder {
     template <class Weights>
     class Attention {
       public:
-        Attention(const Weights& model)
-        : w_(model)
-        {
-          V_ = blaze::trans(blaze::row(w_.V_, 0));  
-        }
+        Attention(const Weights& model);
           
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const mblas::Matrix& HiddenState,
-                                     const mblas::Matrix& SourceContext) {
-          using namespace mblas;  
-          
-          Temp1_ = SourceContext * w_.U_;
-          Temp2_ = HiddenState * w_.W_;
-          AddBiasVector<byRow>(Temp2_, w_.B_);
-          
-          // For batching: create an A across different sentences,
-          // maybe by mapping and looping. In the and join different
-          // alignment matrices into one
-          // Or masking?
-          Temp1_ = Broadcast<Matrix>(Tanh(), Temp1_, Temp2_);
-          
-          A_.resize(Temp1_.rows(), 1);
-          blaze::column(A_, 0) = Temp1_ * V_;
-          size_t words = SourceContext.rows();
-          // batch size, for batching, divide by numer of sentences
-          size_t batchSize = HiddenState.rows();
-          Reshape(A_, batchSize, words); // due to broadcasting above
-          
-          float bias = w_.C_(0,0);
-          blaze::forEach(A_, [=](float x) { return x + bias; });
-          
-          mblas::Softmax(A_);
-          AlignedSourceContext = A_ * SourceContext;
-        }
+                                     const mblas::Matrix& SourceContext);
         
-        void GetAttention(mblas::Matrix& Attention) {
-          Attention = A_;
-        }
-      
+        void GetAttention(mblas::Matrix& Attention);
+
       private:
         const Weights& w_;
         
