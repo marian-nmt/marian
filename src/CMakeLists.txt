@@ -26,6 +26,7 @@ cuda_add_executable(
   common/god.cpp
   common/history.cpp
   common/loader.cpp
+  common/loader_factory.cpp
   common/loader_factory.cu
   common/printer.cpp
   common/scorer.cpp

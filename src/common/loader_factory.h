@@ -16,8 +16,20 @@ do { \
 } while(0)
 
 class LoaderFactory {
+  protected:
+    static LoaderPtr CreateGPU(const std::string& name,
+                            const YAML::Node& config);
+
+    static LoaderPtr CreateCPU(const std::string& name,
+                            const YAML::Node& config);
+
   public:
     static LoaderPtr Create(const std::string& name,
-                            const YAML::Node& config);
+                            const YAML::Node& config)
+    {
+    	CreateGPU(name, config);
+    	//CreateCPU(name, config);
+    }
+
 };
 

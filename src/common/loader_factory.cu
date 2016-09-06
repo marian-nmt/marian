@@ -7,7 +7,7 @@
 #include "gpu/decoder/language_model.h"
 #endif
 
-LoaderPtr LoaderFactory::Create(const std::string& name,
+LoaderPtr LoaderFactory::CreateGPU(const std::string& name,
 						const YAML::Node& config) {
   UTIL_THROW_IF2(!config["type"],
 				 "Missing scorer type in config file");
@@ -20,6 +20,7 @@ LoaderPtr LoaderFactory::Create(const std::string& name,
   IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
   IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
   IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
+
 #ifdef KENLM
   IF_MATCH_RETURN(type, "KenLM", KenLMLoader)
   IF_MATCH_RETURN(type, "kenlm", KenLMLoader)
