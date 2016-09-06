@@ -4,6 +4,9 @@
 #include "model.h"
 #include "gru.h"
  
+namespace CPU
+{
+
 class Encoder {
   private:
 
@@ -91,3 +94,7 @@ class Encoder {
     RNN<Weights::GRU> forwardRnn_;
     RNN<Weights::GRU> backwardRnn_;
 };
+
+}
+
+

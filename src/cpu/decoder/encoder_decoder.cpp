@@ -14,6 +14,9 @@
 
 #include "mblas/matrix.h"
 
+namespace CPU
+{
+
 mblas::Matrix& EncoderDecoderState::GetStates() {
   return states_;
 }
@@ -133,5 +136,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[i]));
+}
+
 }
 

@@ -3,6 +3,9 @@
 #include "cnpy/cnpy.h"
 #include "mblas/matrix.h"
 
+namespace CPU
+{
+
 class NpzConverter {
   private:
     class NpyMatrixWrapper {
@@ -86,3 +89,6 @@ class NpzConverter {
     cnpy::npz_t model_;
     bool destructed_;
 };
+
+}
+

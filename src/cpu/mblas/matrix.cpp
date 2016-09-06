@@ -3,6 +3,9 @@
 
 #include "blaze/Math.h"
 
+namespace CPU
+{
+
 namespace mblas {
 
 //Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
@@ -38,3 +41,6 @@ namespace mblas {
 //}
 
 }
+
+}
+

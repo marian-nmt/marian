@@ -12,9 +12,12 @@
 
 #include "../mblas/matrix.h"
 
+class Sentence;
+
+namespace CPU
+{
 class Encoder;
 class Decoder;
-class Sentence;
 
 class EncoderDecoderState : public State {
   public:
@@ -83,3 +86,7 @@ class EncoderDecoderLoader : public Loader {
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
 };
+
+}
+
+

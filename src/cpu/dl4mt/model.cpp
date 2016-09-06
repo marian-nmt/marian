@@ -2,6 +2,9 @@
 
 using namespace std;
 
+namespace CPU
+{
+
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
 : E_(model[key])
 {}
@@ -72,3 +75,6 @@ device_(device)
 {
 	//cerr << *this << endl;
 }
+
+}
+

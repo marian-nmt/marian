@@ -4,6 +4,9 @@
 #include "model.h"
 #include "gru.h"
 
+namespace CPU
+{
+
 class Decoder {
   private:
     template <class Weights>
@@ -157,3 +160,6 @@ class Decoder {
     Attention<Weights::DecAttention> attention_;
     Softmax<Weights::DecSoftmax> softmax_;
 };
+
+}
+

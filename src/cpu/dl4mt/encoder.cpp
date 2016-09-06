@@ -2,6 +2,9 @@
 
 using namespace std;
 
+namespace CPU
+{
+
 void Encoder::GetContext(const std::vector<size_t>& words,
 				mblas::Matrix& context) {
   std::vector<mblas::Matrix> embeddedWords;
@@ -22,3 +25,6 @@ void Encoder::GetContext(const std::vector<size_t>& words,
 						  embeddedWords.crend(),
 						  context, true);
 }
+
+}
+

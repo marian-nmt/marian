@@ -8,6 +8,9 @@
 
 #include "../mblas/matrix.h"
 
+namespace CPU
+{
+
 struct Weights {
 
   //////////////////////////////////////////////////////////////////////////////
@@ -180,5 +183,7 @@ inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
 	//Debug2(obj.encEmbeddings_.E_);
 
 	return out;
+}
+
 }
 

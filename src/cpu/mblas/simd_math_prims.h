@@ -34,6 +34,9 @@ SOFTWARE.
 extern "C" {
 #endif
 
+namespace CPU
+{
+
 /* Workaround a lack of optimization in gcc */
 const float exp_cst1 = 2139095040.f;
 const float exp_cst2 = 0.f;
@@ -115,3 +118,6 @@ inline float tanhapprox(float x) {
 #endif
 
 #endif
+
+}
+

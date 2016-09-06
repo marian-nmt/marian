@@ -1,5 +1,8 @@
 #include "decoder.h"
 
+namespace CPU
+{
+
 //////////////////////////////////////////////////////////////
 template<class Weights>
 Decoder::Embeddings<Weights>::Embeddings(const Weights& model)
@@ -230,3 +233,7 @@ void Decoder::GetProbs(mblas::ArrayMatrix& Probs,
               const mblas::Matrix& AlignedSourceContext) {
   softmax_.GetProbs(Probs, State, Embedding, AlignedSourceContext);
 }
+
+}
+
+

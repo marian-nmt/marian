@@ -7,6 +7,9 @@
 #include "blaze/Math.h"
 #include "phoenix_functions.h"
 
+namespace CPU
+{
+
 namespace mblas {
 
 typedef blaze::DynamicMatrix<float, blaze::rowMajor> Matrix;
@@ -267,3 +270,6 @@ MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
 }
 
 }
+
+}
+
