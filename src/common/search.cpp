@@ -23,7 +23,7 @@ History Search::Decode(const Sentence& sentence) {
 
   States states(scorers_.size());
   States nextStates(scorers_.size());
-  mblas::BaseMatrices probs(scorers_.size());
+  BaseMatrices probs(scorers_.size());
 
   for(size_t i = 0; i < scorers_.size(); i++) {
 	Scorer &scorer = *scorers_[i];
@@ -41,7 +41,7 @@ History Search::Decode(const Sentence& sentence) {
   do {
 	for(size_t i = 0; i < scorers_.size(); i++) {
 		Scorer &scorer = *scorers_[i];
-		mblas::BaseMatrix &prob = *probs[i];
+		BaseMatrix &prob = *probs[i];
 
 		prob.Resize(beamSize, vocabSize);
 		scorer.Score(*states[i], prob, *nextStates[i]);
@@ -55,7 +55,7 @@ History Search::Decode(const Sentence& sentence) {
 	Beam hyps;
 
 	assert(probs.size());
-	const mblas::BaseMatrix &firstMatrix = *probs[0];
+	const BaseMatrix &firstMatrix = *probs[0];
 
 	firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, history, scorers_, filterIndices_);
 	history.Add(hyps, history.size() == maxLength);
@@ -86,7 +86,7 @@ History Search::Decode(const Sentence& sentence) {
 	  Scorer &scorer = *scorers_[i];
 	  scorer.CleanUpAfterSentence();
 
-	  mblas::BaseMatrix *prob = probs[i];
+	  BaseMatrix *prob = probs[i];
 	  delete prob;
   }
 

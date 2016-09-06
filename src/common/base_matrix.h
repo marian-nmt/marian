@@ -12,8 +12,7 @@ typedef std::shared_ptr<Scorer> ScorerPtr;
 
 class History;
 
-namespace mblas {
-
+///////////////////////////////////////////////////////////////////
 class BaseMatrix;
 typedef std::vector<BaseMatrix*> BaseMatrices;
 
@@ -27,7 +26,7 @@ public:
 
     virtual void BestHyps(Beam& bestHyps,
     		const Beam& prevHyps,
-    		mblas::BaseMatrices& ProbsEnsemble,
+    		BaseMatrices& ProbsEnsemble,
     		const size_t beamSize,
     		History& history,
     		const std::vector<ScorerPtr> &scorers,
@@ -35,5 +34,4 @@ public:
 
 };
 
-}
 

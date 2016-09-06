@@ -33,7 +33,7 @@ class EncoderDecoder : public Scorer {
                    const Weights& model);
     
     virtual void Score(const State& in,
-    		mblas::BaseMatrix& prob,
+    		BaseMatrix& prob,
     		State& out);
     
     virtual State* NewState();
@@ -50,7 +50,7 @@ class EncoderDecoder : public Scorer {
     
     size_t GetVocabSize() const;
 
-    virtual mblas::BaseMatrix *CreateMatrix();
+    virtual BaseMatrix *CreateMatrix();
 
   private:
     const Weights& model_;

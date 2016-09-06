@@ -34,7 +34,7 @@ class Scorer {
     virtual ~Scorer() {}
     
     virtual void Score(const State& in,
-                       mblas::BaseMatrix& prob,
+                       BaseMatrix& prob,
                        State& out) = 0;
     
     virtual void BeginSentenceState(State& state) = 0;
@@ -55,7 +55,7 @@ class Scorer {
       return name_;
     }
     
-    virtual mblas::BaseMatrix *CreateMatrix() = 0;
+    virtual BaseMatrix *CreateMatrix() = 0;
 
   protected:
     const std::string& name_;

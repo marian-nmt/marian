@@ -32,7 +32,7 @@ class ApePenalty : public Scorer {
     
     // @TODO: make this work on GPU
     virtual void Score(const State& in,
-    		mblas::BaseMatrix& prob,
+    		BaseMatrix& prob,
     		State& out);
     
     virtual State* NewState();
@@ -45,7 +45,7 @@ class ApePenalty : public Scorer {
     
     virtual size_t GetVocabSize() const;
     
-    virtual mblas::BaseMatrix *CreateMatrix();
+    virtual BaseMatrix *CreateMatrix();
 
   private:
     std::vector<float> costs_;

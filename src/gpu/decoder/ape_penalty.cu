@@ -29,7 +29,7 @@ void ApePenalty::SetSource(const Sentence& source) {
 
 // @TODO: make this work on GPU
 void ApePenalty::Score(const State& in,
-		mblas::BaseMatrix& prob,
+		BaseMatrix& prob,
 		State& out) {
   mblas::Matrix &probCast = static_cast<mblas::Matrix&>(prob);
   size_t cols = probCast.Cols();
@@ -52,7 +52,7 @@ size_t ApePenalty::GetVocabSize() const {
   UTIL_THROW2("Not correctly implemented");
 }
 
-mblas::BaseMatrix *ApePenalty::CreateMatrix()
+BaseMatrix *ApePenalty::CreateMatrix()
 {
 	UTIL_THROW2("Not correctly implemented");
 }

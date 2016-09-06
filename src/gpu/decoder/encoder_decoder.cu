@@ -29,7 +29,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
 {}
 
 void EncoderDecoder::Score(const State& in,
-		mblas::BaseMatrix& prob,
+		BaseMatrix& prob,
 		State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
@@ -81,7 +81,7 @@ size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-mblas::BaseMatrix *EncoderDecoder::CreateMatrix()
+BaseMatrix *EncoderDecoder::CreateMatrix()
 {
 	mblas::Matrix *ret = new mblas::Matrix();
 	return ret;
