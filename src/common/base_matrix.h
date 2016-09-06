@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include "common/types.h"
 
 class Hypothesis;
 typedef std::shared_ptr<Hypothesis> HypothesisPtr;
@@ -8,6 +9,8 @@ typedef std::vector<HypothesisPtr> Beam;
 
 class Scorer;
 typedef std::shared_ptr<Scorer> ScorerPtr;
+
+class History;
 
 namespace mblas {
 
@@ -26,7 +29,9 @@ public:
     		const Beam& prevHyps,
     		mblas::BaseMatrices& ProbsEnsemble,
     		const size_t beamSize,
-    		const std::vector<ScorerPtr> &scorers) const = 0;
+    		History& history,
+    		const std::vector<ScorerPtr> &scorers,
+    		const Words &filterIndices) const = 0;
 
 };
 

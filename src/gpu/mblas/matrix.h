@@ -144,7 +144,9 @@ class TMatrix : public BaseMatrix {
     		const Beam& prevHyps,
     		mblas::BaseMatrices& ProbsEnsemble,
     		const size_t beamSize,
-    		const std::vector<ScorerPtr> &scorers) const
+    		History& history,
+			const std::vector<ScorerPtr> &scorers,
+			const Words &filterIndices) const
     {
 	  using namespace mblas;
 	  typedef TMatrix<VecType> M;

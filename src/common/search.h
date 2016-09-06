@@ -9,7 +9,8 @@
 class Search {
   private:
     std::vector<ScorerPtr> scorers_;
-  
+    Words filterIndices_;
+
   public:
     Search(size_t threadId);
     

@@ -57,7 +57,7 @@ History Search::Decode(const Sentence& sentence) {
 	assert(probs.size());
 	const mblas::BaseMatrix &firstMatrix = *probs[0];
 
-	firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, scorers_);
+	firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, history, scorers_, filterIndices_);
 	history.Add(hyps, history.size() == maxLength);
 
 	Beam survivors;
