@@ -42,8 +42,8 @@ cuda_add_executable(
   cpu/mblas/phoenix_functions.cpp
   cpu/dl4mt/decoder.cpp
   cpu/dl4mt/encoder.cpp
-  #cpu/dl4mt/gru.cpp
-  #cpu/dl4mt/model.cpp
+  cpu/dl4mt/gru.cpp
+  cpu/dl4mt/model.cpp
   #cpu/decoder/encoder_decoder.cpp
 
   #decoder/language_model.cu
