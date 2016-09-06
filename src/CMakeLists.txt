@@ -39,8 +39,8 @@ cuda_add_executable(
   gpu/npz_converter.cu
 
   cpu/mblas/matrix.cpp
-  #cpu/mblas/phoenix_functions.cpp
-  #cpu/dl4mt/decoder.cpp
+  cpu/mblas/phoenix_functions.cpp
+  cpu/dl4mt/decoder.cpp
   #cpu/dl4mt/encoder.cpp
   #cpu/dl4mt/gru.cpp
   #cpu/dl4mt/model.cpp

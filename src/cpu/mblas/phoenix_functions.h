@@ -1,5 +1,6 @@
 #pragma once
 
+namespace CPU {
 namespace mblas
 {
 /* Workaround a lack of optimization in gcc */
@@ -104,4 +105,7 @@ namespace mblas
       return tanhapprox(val);  
     }
   };
+
 }
+}
+
