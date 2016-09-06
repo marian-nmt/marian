@@ -7,12 +7,30 @@
 #include "gpu/decoder/language_model.h"
 #endif
 
-LoaderPtr LoaderFactory::CreateGPU(const std::string& name,
+LoaderPtr LoaderFactory::Create(const std::string& name,
+						const YAML::Node& config)
+{
+	Loader *loader;
+	loader = CreateGPU(name, config);
+	if (loader) {
+		return LoaderPtr(loader);
+	}
+
+	loader = CreateCPU(name, config);
+	if (loader) {
+			return LoaderPtr(loader);
+	}
+
+	std::string type = config["type"].as<std::string>();
+	UTIL_THROW2("Unknown scorer in config file: " << type);
+}
+
+Loader *LoaderFactory::CreateGPU(const std::string& name,
 						const YAML::Node& config) {
   UTIL_THROW_IF2(!config["type"],
 				 "Missing scorer type in config file");
 
-  auto type = config["type"].as<std::string>();
+  std::string type = config["type"].as<std::string>();
   IF_MATCH_RETURN(type, "Nematus", EncoderDecoderLoader);
   IF_MATCH_RETURN(type, "nematus", EncoderDecoderLoader);
   IF_MATCH_RETURN(type, "NEMATUS", EncoderDecoderLoader);
@@ -26,5 +44,6 @@ LoaderPtr LoaderFactory::CreateGPU(const std::string& name,
   IF_MATCH_RETURN(type, "kenlm", KenLMLoader)
   IF_MATCH_RETURN(type, "KENLM", KenLMLoader)
 #endif
-  UTIL_THROW2("Unknown scorer in config file: " << type);
+
+  return NULL;
 }
