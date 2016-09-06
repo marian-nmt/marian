@@ -42,8 +42,8 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
                                const Weights& model)
   : Scorer(name, config, tab),
     model_(model),
-    encoder_(new Encoder(model_)),
-    decoder_(new Decoder(model_))
+    encoder_(new CPU::Encoder(model_)),
+    decoder_(new CPU::Decoder(model_))
 {}
 
 void EncoderDecoder::Score(const State& in,

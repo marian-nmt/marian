@@ -65,14 +65,14 @@ class EncoderDecoder : public Scorer {
 
     void Filter(const std::vector<size_t>& filterIds);
 
-    Encoder& GetEncoder();
+    CPU::Encoder& GetEncoder();
 
-    Decoder& GetDecoder();
+    CPU::Decoder& GetDecoder();
 
   private:
     const Weights& model_;
-    std::unique_ptr<Encoder> encoder_;
-    std::unique_ptr<Decoder> decoder_;
+    std::unique_ptr<CPU::Encoder> encoder_;
+    std::unique_ptr<CPU::Decoder> decoder_;
 
     mblas::Matrix SourceContext_;
 };

@@ -18,7 +18,7 @@ LoaderPtr LoaderFactory::Create(const std::string& name,
 
 	loader = CreateCPU(name, config);
 	if (loader) {
-			return LoaderPtr(loader);
+		return LoaderPtr(loader);
 	}
 
 	std::string type = config["type"].as<std::string>();
