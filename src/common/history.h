@@ -1,7 +1,6 @@
 #pragma once
 
 #include <queue>
-#include <boost/pool/object_pool.hpp>
 
 #include "god.h"
 #include "hypothesis.h"
@@ -20,14 +19,8 @@ class History {
   
   public:
     History()
-    :pool_(new boost::object_pool<Hypothesis>()),
-     normalize_(God::Get<bool>("normalize"))
+    :normalize_(God::Get<bool>("normalize"))
     {}
-
-    template <class ...Args>
-    Hypothesis* NewHypothesis(Args&& ...args) {
-      return pool_->construct(std::make_tuple(args...));
-    }
 
     void Add(const Beam& beam, bool last = false) {
       if(beam.back()->GetPrevHyp() != nullptr) {
@@ -72,8 +65,6 @@ class History {
     }
     
   private:
-    std::shared_ptr<boost::object_pool<Hypothesis>> pool_;
-
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;  

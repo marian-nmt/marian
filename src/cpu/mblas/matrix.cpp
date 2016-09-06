@@ -93,7 +93,8 @@ void ArrayMatrix::BestHyps(Beam& bestHyps, const Beam& prevHyps,
 	size_t hypIndex  = bestKeys[i] / Probs.columns();
 	float cost = bestCosts[i];
 
-	HypothesisPtr hyp = history.NewHypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);
+	//Hypothesis *hh = history.NewHypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost);
+	HypothesisPtr hyp(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
 
 	if(doBreakdown) {
 	  hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
