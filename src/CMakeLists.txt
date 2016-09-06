@@ -5,11 +5,6 @@ add_subdirectory(yaml-cpp)
 
 add_library(libcommon OBJECT
   cnpy/cnpy.cpp
-  common/exception.cpp
-  common/logging.cpp
-  common/vocab.cpp
-  common/utils.cpp
-  gpu/npz_converter.cu
 )
 
 #add_library(librescorer OBJECT
@@ -17,18 +12,19 @@ add_library(libcommon OBJECT
 #)
 
 add_library(libamun OBJECT
-  common/config.cpp
 #  decoder/kenlm.cpp
 )
 
 cuda_add_executable(
   amun
-  gpu/decoder/ape_penalty.cu
+  common/config.cpp
   common/decoder_main.cpp
-  gpu/decoder/encoder_decoder.cu
+  common/exception.cpp
+  common/logging.cpp
+  common/vocab.cpp
+  common/utils.cpp
   common/god.cpp
   common/history.cpp
-  #decoder/language_model.cu
   common/loader.cpp
   common/loader_factory.cu
   common/printer.cpp
@@ -36,8 +32,11 @@ cuda_add_executable(
   common/search.cpp
   common/sentence.cpp
 
+  gpu/decoder/ape_penalty.cu
+  gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix.cu
   gpu/dl4mt/gru.cu
+  gpu/npz_converter.cu
 
   cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
@@ -46,6 +45,8 @@ cuda_add_executable(
   cpu/dl4mt/gru.cpp
   cpu/dl4mt/model.cpp
   #cpu/decoder/encoder_decoder.cpp
+
+  #decoder/language_model.cu
   
   $<TARGET_OBJECTS:libamun>
   $<TARGET_OBJECTS:libcommon>
