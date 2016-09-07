@@ -25,8 +25,8 @@ class Encoder {
             Row = blaze::submatrix(w_.E_, 1, 0, 1, len); // UNK
         }
       
-      private:
         const Weights& w_;
+      private:
     };
     
     /////////////////////////////////////////////////////////////////

@@ -1,5 +1,7 @@
 #include "encoder.h"
 
+using namespace std;
+
 Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
   forwardRnn_(model.encForwardGRU_),
@@ -15,6 +17,7 @@ void Encoder::GetContext(const std::vector<size_t>& words,
 	embeddedWords.emplace_back();
 	embeddings_.Lookup(embeddedWords.back(), w);
   }
+  cerr << embeddings_.w_.E_.Debug() << endl;
 
   forwardRnn_.GetContext(embeddedWords.cbegin(),
 						 embeddedWords.cend(),

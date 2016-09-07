@@ -21,8 +21,8 @@ class Encoder {
             CopyRow(Row, w_.E_, 1); // UNK
         }
       
-      private:
         const Weights& w_;
+      private:
     };
     
     template <class Weights>
