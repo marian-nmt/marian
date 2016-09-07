@@ -145,6 +145,14 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////
+template <class M>
+std::string Debug(const M& m)
+{
+  std::stringstream strm;
+  strm << m.rows() << "x" << m.columns();
+  return strm.str();
+}
+
 template <bool byRow, class MT, class VT>
 MT& AddBiasVector(MT& m, const VT& b) {
   if(byRow) {

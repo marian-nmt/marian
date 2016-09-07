@@ -21,7 +21,7 @@ using EDState = EncoderDecoderState;
 ////////////////////////////////////////////////
 std::string EncoderDecoderState::Debug() const
 {
-	//return states_.Debug();
+	return CPU::mblas::Debug(states_);
 }
 
 CPU::mblas::Matrix& EncoderDecoderState::GetStates() {
