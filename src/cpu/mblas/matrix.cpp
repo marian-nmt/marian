@@ -8,6 +8,8 @@
 
 #include "blaze/Math.h"
 
+using namespace std;
+
 namespace CPU {
 
 namespace mblas {
@@ -83,6 +85,7 @@ void ArrayMatrix::BestHyps(Beam& bestHyps, const Beam& prevHyps,
   }
 
   bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+  //cerr << "beamSize=" << beamSize << endl;
   for(size_t i = 0; i < beamSize; i++) {
 	size_t wordIndex = bestKeys[i] % Probs.columns();
 

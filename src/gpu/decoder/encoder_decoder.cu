@@ -1,6 +1,9 @@
+#include <iostream>
 #include "encoder_decoder.h"
 #include "gpu/mblas/matrix.h"
 #include "common/god.h"
+
+using namespace std;
 
 mblas::Matrix& EncoderDecoderState::GetStates() {
   return states_;
@@ -51,6 +54,7 @@ void EncoderDecoder::BeginSentenceState(State& state) {
 }
 
 void EncoderDecoder::SetSource(const Sentence& source) {
+  //cerr << "SetSource" << endl;
   encoder_->GetContext(source.GetWords(tab_),
                        SourceContext_);
 }

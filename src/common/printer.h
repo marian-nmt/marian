@@ -10,17 +10,22 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
     
   if(God::Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = God::GetScorerNames();
-    NBestList nbl = history.NBest(God::Get<size_t>("beam-size"));
+    const NBestList &nbl = history.NBest(God::Get<size_t>("beam-size"));
     for(size_t i = 0; i < nbl.size(); ++i) {
-      auto& r = nbl[i];
-      out << lineNo << " ||| " << God::GetTargetVocab()(r.first) << " |||";
-      for(size_t j = 0; j < r.second->GetCostBreakdown().size(); ++j) {
-        out << " " << scorerNames[j] << "= " << r.second->GetCostBreakdown()[j];
+      const Result& result = nbl[i];
+      const Words &words = result.first;
+      const HypothesisPtr &hypo = result.second;
+
+      out << lineNo << " ||| " << God::GetTargetVocab()(words) << " |||";
+      for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
+        out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
-      if(God::Get<bool>("normalize"))
-        out << " ||| " << r.second->GetCost() / r.first.size() << std::endl;
-      else
-        out << " ||| " << r.second->GetCost() << std::endl;
+      if(God::Get<bool>("normalize")) {
+        out << " ||| " << hypo->GetCost() / words.size() << std::endl;
+      }
+      else {
+        out << " ||| " << hypo->GetCost() << std::endl;
+      }
     }
   }
   else {
