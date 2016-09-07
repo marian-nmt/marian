@@ -21,17 +21,19 @@ class Decoder;
 
 class EncoderDecoderState : public State {
   public:
-    mblas::Matrix& GetStates();
+    virtual std::string Debug() const;
 
-    mblas::Matrix& GetEmbeddings();
+    CPU::mblas::Matrix& GetStates();
 
-    const mblas::Matrix& GetStates() const;
+	CPU::mblas::Matrix& GetEmbeddings();
 
-    const mblas::Matrix& GetEmbeddings() const;
+    const CPU::mblas::Matrix& GetStates() const;
+
+    const CPU::mblas::Matrix& GetEmbeddings() const;
 
   private:
-    mblas::Matrix states_;
-    mblas::Matrix embeddings_;
+    CPU::mblas::Matrix states_;
+    CPU::mblas::Matrix embeddings_;
 };
 
 ////////////////////////////////////////////////

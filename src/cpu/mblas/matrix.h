@@ -145,28 +145,6 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////
-template <class M>
-void Debug(const M& m, size_t maxRows = 5, size_t maxCols = 5) {
-  std::cerr << m.rows() << " " << m.columns() << std::endl;
-  for(size_t i = 0; i < m.rows() && i < maxRows; ++i) {
-    for(size_t j = 0; j < m.columns() && j < maxCols; ++j) {
-      std::cerr << m(i, j) << " ";
-    }
-    std::cerr << std::endl;
-  }
-}
-
-template <class M>
-void Debug2(const M& m) {
-  std::cerr << m.rows() << " " << m.columns() << std::endl;
-  for(size_t i = 0; i < m.rows(); ++i) {
-    for(size_t j = 0; j < m.columns(); ++j) {
-      std::cerr << m(i, j) << " ";
-    }
-    std::cerr << std::endl;
-  }
-}
-
 template <bool byRow, class MT, class VT>
 MT& AddBiasVector(MT& m, const VT& b) {
   if(byRow) {

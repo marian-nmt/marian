@@ -19,19 +19,24 @@ namespace CPU {
 using EDState = EncoderDecoderState;
 
 ////////////////////////////////////////////////
-mblas::Matrix& EncoderDecoderState::GetStates() {
+std::string EncoderDecoderState::Debug() const
+{
+	//return states_.Debug();
+}
+
+CPU::mblas::Matrix& EncoderDecoderState::GetStates() {
   return states_;
 }
 
-mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
+CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
   return embeddings_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetStates() const {
+const CPU::mblas::Matrix& EncoderDecoderState::GetStates() const {
   return states_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
+const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 
@@ -52,7 +57,7 @@ void EncoderDecoder::Score(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  mblas::ArrayMatrix& probCast = static_cast<mblas::ArrayMatrix&>(prob);
+  CPU::mblas::ArrayMatrix& probCast = static_cast<mblas::ArrayMatrix&>(prob);
   decoder_->MakeStep(edOut.GetStates(), probCast,
                      edIn.GetStates(), edIn.GetEmbeddings(),
                      SourceContext_);

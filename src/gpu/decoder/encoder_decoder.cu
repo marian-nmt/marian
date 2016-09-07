@@ -5,6 +5,12 @@
 
 using namespace std;
 
+////////////////////////////////////////////
+std::string EncoderDecoderState::Debug() const
+{
+	return states_.Debug();
+}
+
 mblas::Matrix& EncoderDecoderState::GetStates() {
   return states_;
 }

@@ -11,6 +11,8 @@
 
 class EncoderDecoderState : public State {
   public:
+    virtual std::string Debug() const;
+
     mblas::Matrix& GetStates();
     mblas::Matrix& GetEmbeddings();
     const mblas::Matrix& GetStates() const;

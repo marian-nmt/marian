@@ -12,7 +12,11 @@ typedef std::vector<Word> SrcTrgMap;
 typedef std::vector<float> Penalties; 
 
 class ApePenaltyState : public State {
-  // Dummy, this scorer is stateless
+	  // Dummy, this scorer is stateless
+public:
+  virtual std::string Debug() const
+  { return "ApePenaltyState"; }
+
 };
 
 class ApePenalty : public Scorer {

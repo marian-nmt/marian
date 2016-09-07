@@ -21,6 +21,9 @@ class State {
     const T& get() const {
       return static_cast<const T&>(*this);;
     }
+
+    virtual std::string Debug() const = 0;
+
 };
 
 typedef std::unique_ptr<State> StatePtr;
