@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <memory>
+#include <sstream>
 
 #include "common/base_matrix.h"
 
@@ -90,6 +91,13 @@ class TMatrix : public BaseMatrix {
     void Reshape(size_t rows, size_t cols) {
       rows_ = rows;
       cols_ = cols;
+    }
+
+    virtual std::string Debug() const
+    {
+    	std::stringstream strm;
+    	strm << "(" << Rows() << "x" << Cols() << ")";
+    	return strm.str();
     }
 
     void Purge() {

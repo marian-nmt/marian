@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <sstream>
 
 #include <blaze/Math.h>
 #include "phoenix_functions.h"
@@ -59,6 +60,13 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
        data_.resize(rows * columns);
        BlazeBase temp(data_.data(), rows, columns);
        std::swap(temp, *(BlazeBase*)this);
+    }
+
+    virtual std::string Debug() const
+    {
+    	std::stringstream strm;
+    	strm << "(" << Rows() << "x" << Cols() << ")";
+    	return strm.str();
     }
         
     BlazeMatrix<T, SO>& operator=(const value_type& val) {

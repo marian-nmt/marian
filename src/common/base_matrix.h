@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <memory>
 #include "common/types.h"
@@ -31,6 +32,7 @@ public:
     		History& history,
     		const std::vector<ScorerPtr> &scorers,
     		const Words &filterIndices) const = 0;
+    virtual std::string Debug() const = 0;
 
 };
 

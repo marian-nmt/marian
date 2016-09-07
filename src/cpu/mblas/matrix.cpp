@@ -120,6 +120,7 @@ void ArrayMatrix::BestHyps(Beam& bestHyps, const Beam& prevHyps,
   }
 }
 
+
 }
 }
 
