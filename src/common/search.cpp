@@ -2,6 +2,8 @@
 #include "search.h"
 #include "common/base_matrix.h"
 
+using namespace std;
+
 Search::Search(size_t threadId)
 : scorers_(God::GetScorers(threadId)) {}
 
@@ -42,9 +44,12 @@ History Search::Decode(const Sentence& sentence) {
 	for(size_t i = 0; i < scorers_.size(); i++) {
 		Scorer &scorer = *scorers_[i];
 		BaseMatrix &prob = *probs[i];
+		State &state = *states[i];
+		State &nextState = *nextStates[i];
 
 		prob.Resize(beamSize, vocabSize);
-		scorer.Score(*states[i], prob, *nextStates[i]);
+		scorer.Score(state, prob, nextState);
+		cerr << "i=" << i << " " << nextState.Debug() << endl;
 	}
 
 	// Looking at attention vectors
