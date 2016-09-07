@@ -71,32 +71,14 @@ class Encoder {
     };
     
   public:
-    Encoder(const Weights& model)
-    : embeddings_(model.encEmbeddings_),
-      forwardRnn_(model.encForwardGRU_),
-      backwardRnn_(model.encBackwardGRU_)
-    {}
+    Encoder(const Weights& model);
     
     void GetContext(const std::vector<size_t>& words,
-                    mblas::Matrix& Context) {
-      std::vector<mblas::Matrix> embeddedWords;
-      
-      Context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
-      for(auto& w : words) {
-        embeddedWords.emplace_back();
-        embeddings_.Lookup(embeddedWords.back(), w);
-      }
-      
-      forwardRnn_.GetContext(embeddedWords.cbegin(),
-                             embeddedWords.cend(),
-                             Context, false);
-      backwardRnn_.GetContext(embeddedWords.crbegin(),
-                              embeddedWords.crend(),
-                              Context, true);
-    }
+                    mblas::Matrix& Context);
     
   private:
     Embeddings<Weights::EncEmbeddings> embeddings_;
     RNN<Weights::EncForwardGRU> forwardRnn_;
     RNN<Weights::EncBackwardGRU> backwardRnn_;
 };
+

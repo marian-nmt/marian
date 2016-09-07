@@ -36,6 +36,7 @@ cuda_add_executable(
   gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix.cu
+  gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
 
