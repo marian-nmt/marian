@@ -21,6 +21,8 @@ class Decoder;
 
 class EncoderDecoderState : public State {
   public:
+	EncoderDecoderState();
+
     virtual std::string Debug() const;
 
     CPU::mblas::Matrix& GetStates();

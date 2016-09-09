@@ -87,6 +87,11 @@ History Search::Decode(const Sentence& sentence) {
   LOG(progress) << "Line " << sentence.GetLine()
 	<< ": Search took " << timer.format(3, "%ws");
 
+  const State &state = *states[0];
+  const State &nextState = *nextStates[0];
+  cerr << "state=" << state.Debug() << endl;
+  cerr << "nextState=" << nextState.Debug() << endl;
+
   for(size_t i = 0; i < scorers_.size(); i++) {
 	  Scorer &scorer = *scorers_[i];
 	  scorer.CleanUpAfterSentence();

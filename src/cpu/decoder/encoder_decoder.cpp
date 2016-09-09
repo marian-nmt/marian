@@ -14,11 +14,18 @@
 
 #include "../mblas/matrix.h"
 
+using namespace std;
+
 namespace CPU {
 
 using EDState = EncoderDecoderState;
 
 ////////////////////////////////////////////////
+EncoderDecoderState::EncoderDecoderState()
+{
+	cerr << "create EncoderDecoderState" << endl;
+}
+
 std::string EncoderDecoderState::Debug() const
 {
 	return CPU::mblas::Debug(states_);
