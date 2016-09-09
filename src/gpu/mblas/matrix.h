@@ -97,9 +97,18 @@ class TMatrix : public BaseMatrix {
 
     virtual std::string Debug() const
     {
-    	std::stringstream strm;
-    	strm << "(" << Rows() << "x" << Cols() << ")";
-    	return strm.str();
+	  std::stringstream strm;
+	  strm << Rows() << "x" << Cols() << ":"; // ":\n";
+	  for (size_t row = 0; row < Rows(); ++row) {
+		  float rowSum = 0;
+		  for (size_t col = 0; col < Cols(); ++col) {
+			  //strm << (*this)(row, col) << " ";
+			  rowSum += (*this)(row, col);
+		  }
+		  //strm << std::endl;
+		  strm << rowSum << " ";
+	  }
+	  return strm.str();
     }
 
     void Purge() {

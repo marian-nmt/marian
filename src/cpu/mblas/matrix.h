@@ -149,7 +149,16 @@ template <class M>
 std::string Debug(const M& m)
 {
   std::stringstream strm;
-  strm << m.rows() << "x" << m.columns();
+  strm << m.rows() << "x" << m.columns() << ":"; // ":\n";
+  for (size_t row = 0; row < m.rows(); ++row) {
+	  float rowSum = 0;
+	  for (size_t col = 0; col < m.columns(); ++col) {
+		  //strm << m(row, col) << " ";
+		  rowSum += m(row, col);
+	  }
+	  //strm << std::endl;
+	  strm << rowSum << " ";
+  }
   return strm.str();
 }
 

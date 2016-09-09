@@ -41,6 +41,8 @@ History Search::Decode(const Sentence& sentence) {
 
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
+	cerr << "history.size()=" << history.size() << endl;
+
 	for(size_t i = 0; i < scorers_.size(); i++) {
 		Scorer &scorer = *scorers_[i];
 		BaseMatrix &prob = *probs[i];
@@ -50,6 +52,8 @@ History Search::Decode(const Sentence& sentence) {
 		prob.Resize(beamSize, vocabSize);
 		scorer.Score(state, prob, nextState);
 		//cerr << "i=" << i << " " << nextState.Debug() << endl;
+		  cerr << "state=" << state.Debug() << endl;
+		  cerr << "nextState=" << nextState.Debug() << endl;
 	}
 
 	// Looking at attention vectors

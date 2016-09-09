@@ -23,7 +23,7 @@ using EDState = EncoderDecoderState;
 ////////////////////////////////////////////////
 EncoderDecoderState::EncoderDecoderState()
 {
-	cerr << "create EncoderDecoderState" << endl;
+	//cerr << "create EncoderDecoderState" << endl;
 }
 
 std::string EncoderDecoderState::Debug() const
