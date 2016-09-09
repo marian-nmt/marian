@@ -6,6 +6,8 @@
 #include "../mblas/matrix.h"
 #include "gpu/npz_converter.h"
 
+namespace GPU {
+
 struct Weights {
   
   //////////////////////////////////////////////////////////////////////////////
@@ -189,3 +191,6 @@ struct Weights {
   
   const size_t device_;
 };
+
+}
+

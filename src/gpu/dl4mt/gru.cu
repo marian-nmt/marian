@@ -1,5 +1,7 @@
 #include "gru.h"
 
+namespace GPU {
+
 __global__ void gElementwiseOps(float* out,
                                 const float* state,
                                 const float* ruh,
@@ -39,3 +41,6 @@ __global__ void gElementwiseOps(float* out,
     }
   }
 }
+
+}
+

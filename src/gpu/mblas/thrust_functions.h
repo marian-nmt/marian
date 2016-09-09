@@ -5,6 +5,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 
+
 namespace thrust
 {
   namespace detail

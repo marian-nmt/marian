@@ -3,6 +3,8 @@
 #include "common/vocab.h"
 #include "gpu/types-gpu.h"
 
+namespace GPU {
+
 ApePenalty::ApePenalty(const std::string& name,
 		   const YAML::Node& config,
 		   size_t tab,
@@ -89,5 +91,7 @@ ScorerPtr ApePenaltyLoader::NewScorer(size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new ApePenalty(name_, config_, tab,
                                   srcTrgMap_, penalties_));
+}
+
 }
 

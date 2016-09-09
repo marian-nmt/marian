@@ -4,6 +4,8 @@
 #include "model.h"
 #include "gru.h"
  
+namespace GPU {
+
 class Decoder {
   private:
     template <class Weights>
@@ -280,3 +282,6 @@ class Decoder {
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
 };
+
+}
+

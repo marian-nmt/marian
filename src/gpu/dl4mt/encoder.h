@@ -4,6 +4,8 @@
 #include "model.h"
 #include "gru.h"
  
+namespace GPU {
+
 class Encoder {
   private:
     template <class Weights>
@@ -81,4 +83,6 @@ class Encoder {
     RNN<Weights::EncForwardGRU> forwardRnn_;
     RNN<Weights::EncBackwardGRU> backwardRnn_;
 };
+
+}
 

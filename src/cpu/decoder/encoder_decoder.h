@@ -32,6 +32,8 @@ class EncoderDecoderState : public State {
     const CPU::mblas::Matrix& GetEmbeddings() const;
 
   private:
+    //EncoderDecoderState();
+
     CPU::mblas::Matrix states_;
     CPU::mblas::Matrix embeddings_;
 };

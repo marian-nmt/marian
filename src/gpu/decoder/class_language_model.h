@@ -4,6 +4,8 @@
 
 #include "language_model.h"
 
+namespace GPU {
+
 class ClassLanguageModel : public LanguageModel {
   private:
     typedef LanguageModelState LMState;
@@ -57,3 +59,5 @@ class ClassLanguageModel : public LanguageModel {
   private:
     std::vector<std::vector<Word>> classes_;
 };
+
+}

@@ -1,5 +1,7 @@
 #include "matrix.h"
 
+namespace GPU {
+
 namespace mblas {
 
 #ifdef __APPLE__
@@ -283,3 +285,6 @@ Matrix& Softmax(Matrix& Out) {
 }
 
 }
+
+}
+

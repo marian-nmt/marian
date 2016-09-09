@@ -5,6 +5,8 @@
 
 using namespace std;
 
+namespace GPU {
+
 ////////////////////////////////////////////
 std::string EncoderDecoderState::Debug() const
 {
@@ -127,5 +129,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[i]));
+}
+
 }
 

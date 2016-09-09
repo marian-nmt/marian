@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace GPU {
+
 Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
   forwardRnn_(model.encForwardGRU_),
@@ -25,5 +27,7 @@ void Encoder::GetContext(const std::vector<size_t>& words,
   backwardRnn_.GetContext(embeddedWords.crbegin(),
 						  embeddedWords.crend(),
 						  Context, true);
+}
+
 }
 

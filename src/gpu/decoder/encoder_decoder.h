@@ -9,6 +9,8 @@
 
 #include "common/threadpool.h"
 
+namespace GPU {
+
 class EncoderDecoderState : public State {
   public:
     virtual std::string Debug() const;
@@ -75,3 +77,6 @@ class EncoderDecoderLoader : public Loader {
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
 };
+
+}
+

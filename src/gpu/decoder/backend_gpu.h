@@ -2,6 +2,8 @@
 
 #include "matrix.h"
 
+namespace GPU {
+
 class BackendGPU /* : public Backend */ {
   public:
     template <typename T> 
@@ -52,3 +54,6 @@ class BackendGPU /* : public Backend */ {
       thrust::copy(begin, end, out);
     }
 };
+
+}
+

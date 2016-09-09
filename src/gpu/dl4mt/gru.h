@@ -2,6 +2,8 @@
 
 #include "../mblas/matrix.h"
 
+namespace GPU {
+
 template <class Weights>
 class SlowGRU {
   public:
@@ -146,3 +148,6 @@ class FastGRU {
 
 template<class T>
 using GRU = FastGRU<T>;
+
+}
+

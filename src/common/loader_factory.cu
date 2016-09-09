@@ -31,18 +31,18 @@ Loader *LoaderFactory::CreateGPU(const std::string& name,
 				 "Missing scorer type in config file");
 
   std::string type = config["type"].as<std::string>();
-  IF_MATCH_RETURN(type, "Nematus", EncoderDecoderLoader);
-  IF_MATCH_RETURN(type, "nematus", EncoderDecoderLoader);
-  IF_MATCH_RETURN(type, "NEMATUS", EncoderDecoderLoader);
+  IF_MATCH_RETURN(type, "Nematus", GPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(type, "nematus", GPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(type, "NEMATUS", GPU::EncoderDecoderLoader);
 
-  IF_MATCH_RETURN(type, "Ape", ApePenaltyLoader);
-  IF_MATCH_RETURN(type, "ape", ApePenaltyLoader);
-  IF_MATCH_RETURN(type, "APE", ApePenaltyLoader);
+  IF_MATCH_RETURN(type, "Ape", GPU::ApePenaltyLoader);
+  IF_MATCH_RETURN(type, "ape", GPU::ApePenaltyLoader);
+  IF_MATCH_RETURN(type, "APE", GPU::ApePenaltyLoader);
 
 #ifdef KENLM
-  IF_MATCH_RETURN(type, "KenLM", KenLMLoader)
-  IF_MATCH_RETURN(type, "kenlm", KenLMLoader)
-  IF_MATCH_RETURN(type, "KENLM", KenLMLoader)
+  IF_MATCH_RETURN(type, "KenLM", GPU::KenLMLoader)
+  IF_MATCH_RETURN(type, "kenlm", GPU::KenLMLoader)
+  IF_MATCH_RETURN(type, "KENLM", GPU::KenLMLoader)
 #endif
 
   return NULL;

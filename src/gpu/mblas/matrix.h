@@ -28,6 +28,8 @@
 namespace lib = thrust;
 namespace iterlib = thrust;
 
+namespace GPU {
+
 namespace mblas {
 
 using namespace thrust::placeholders;
@@ -583,3 +585,5 @@ Matrix& Element(Functor functor,
 }
 
 }
+}
+

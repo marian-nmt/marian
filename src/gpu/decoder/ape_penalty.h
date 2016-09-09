@@ -8,6 +8,8 @@
 #include "gpu/mblas/matrix.h"
 #include "common/loader.h"
 
+namespace GPU {
+
 typedef std::vector<Word> SrcTrgMap;
 typedef std::vector<float> Penalties; 
 
@@ -69,3 +71,6 @@ class ApePenaltyLoader : public Loader {
     SrcTrgMap srcTrgMap_;
     Penalties penalties_; 
 };
+
+}
+
