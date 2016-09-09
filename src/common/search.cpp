@@ -19,7 +19,6 @@ History Search::Decode(const Sentence& sentence) {
   // separate History objects.
 
   History history;
-
   Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
   history.Add(prevHyps);
 
@@ -41,7 +40,7 @@ History Search::Decode(const Sentence& sentence) {
 
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
-	cerr << "history.size()=" << history.size() << endl;
+    //cerr << "history.size()=" << history.size() << endl;
 
 	for(size_t i = 0; i < scorers_.size(); i++) {
 		Scorer &scorer = *scorers_[i];
@@ -52,8 +51,8 @@ History Search::Decode(const Sentence& sentence) {
 		prob.Resize(beamSize, vocabSize);
 		scorer.Score(state, prob, nextState);
 		//cerr << "i=" << i << " " << nextState.Debug() << endl;
-		  cerr << "state=" << state.Debug() << endl;
-		  cerr << "nextState=" << nextState.Debug() << endl;
+		cerr << "hist=" << history.size() << " state=" << state.Debug() << endl;
+		  //cerr << "nextState=" << nextState.Debug() << endl;
 	}
 
 	// Looking at attention vectors
