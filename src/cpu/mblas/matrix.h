@@ -180,7 +180,7 @@ MT& AddBiasVector(MT& m, const VT& b) {
 //Matrix& Swap(Matrix& Out, Matrix& In);
 
 template <class MT>
-MT& Reshape(MT& m, size_t rows, size_t cols) {
+void Reshape(MT& m, size_t rows, size_t cols) {
   assert(rows * cols == m.rows() * m.columns());
   MT temp(rows, cols);
   for(size_t i = 0; i < m.rows(); ++i) {
