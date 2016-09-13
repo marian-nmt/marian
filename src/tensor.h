@@ -4,6 +4,7 @@
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
+#include <numeric>
 
 #include "definitions.h"
 #include "exception.h"
