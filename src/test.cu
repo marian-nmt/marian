@@ -53,6 +53,17 @@ int main(int argc, char** argv) {
   //                    validation_freq=100,
   //                    verbose=1, epochs=3, early_stopping=10);
   //opt.run();
+
+  Expr x2 = input(shape={whatevs, 2}, name="X2");
+  Expr y2 = input(shape={whatevs, 2}, name="Y2");
   
+  Expr w2 = param(shape={2, 1}, name="W02");
+  Expr b2 = param(shape={1, 1}, name="b02");
+
+  Expr n52 = dot(x2, w2);
+  Expr n62 = n52 + b2;
+  Expr lr2 = softmax(n62, axis=1, name="pred2");
+  cerr << "lr=" << lr2.Debug() << endl;
+
   return 0;
 }
