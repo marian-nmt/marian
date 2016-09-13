@@ -50,6 +50,9 @@ int main(int argc, char** argv) {
 
   Tensor tx({4, 2}, 1);
   Tensor ty({4, 1}, 1);
+  cerr << "tx=" << tx.Debug() << endl;
+  cerr << "ty=" << ty.Debug() << endl;
+
   tx.Load("../examples/xor/train.txt");
   ty.Load("../examples/xor/label.txt");
 
