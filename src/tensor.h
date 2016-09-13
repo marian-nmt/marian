@@ -40,6 +40,7 @@ typedef std::vector<int> Shape;
 inline std::string Debug(const Shape &shape)
 {
 	std::stringstream strm;
+	strm << shape[0];
 	assert(shape.size());
 	for (size_t i = 1; i < shape.size(); ++i) {
 		strm << "x" << shape[i];
