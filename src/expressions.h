@@ -24,6 +24,8 @@ class Expr {
     ChainPtr node();
     operator ChainPtr();
     
+    std::string Debug() const;
+
   private:
     ChainPtr pimpl_; 
 };

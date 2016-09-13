@@ -14,13 +14,17 @@ int main(int argc, char** argv) {
   Expr w = param(shape={784, 10}, name="W0");
   Expr b = param(shape={1, 10}, name="b0");
   
-  Expr lr = softmax(dot(x, w) + b, axis=1, name="pred");
+  Expr n5 = dot(x, w);
+  Expr n6 = n5 + b;
+  Expr lr = softmax(n6, axis=1, name="pred");
+  cerr << "lr=" << lr.Debug() << endl;
+
   Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
   
   Tensor tx({500, 784}, 1);
   Tensor ty({500, 10}, 1);
-  cerr << "tx=" << tx.Debug();
-  cerr << "ty=" << ty.Debug();
+  cerr << "tx=" << tx.Debug() << endl;
+  cerr << "ty=" << ty.Debug() << endl;
 
   x = tx;
   y = ty;

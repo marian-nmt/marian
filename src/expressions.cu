@@ -1,5 +1,8 @@
+#include <sstream>
 #include "expressions.h"
 #include "graph_operators.h"
+
+using namespace std;
 
 namespace marian {
 
@@ -48,6 +51,15 @@ void Expr::backward() {
 
 Expr::operator ChainPtr() {
   return pimpl_;
+}
+
+std::string Expr::Debug() const
+{
+	stringstream strm;
+	//const Chainable<Tensor> &ct = *pimpl_;
+	const Shape &shape = pimpl_->shape();
+	strm << marian::Debug(shape);
+	return strm.str();
 }
     
 }
