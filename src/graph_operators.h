@@ -118,9 +118,15 @@ struct LogNodeOp : public UnaryNodeOp {
 
 struct ExpNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  ExpNodeOp(Args ...args)
-  : UnaryNodeOp(args...) { }
+    ExpNodeOp(ChainPtr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a),
+                  args...) { }
   
+  Shape newShape(ChainPtr a) {
+    Shape shape = a->shape();
+    return shape;
+  }
+
   void forward() {
     Element(_1 = Exp(_2), val_, a_->val());
   }
