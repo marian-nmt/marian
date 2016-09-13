@@ -152,10 +152,8 @@ class TensorImpl {
       thrust::fill(data_.begin(), data_.end(), value);
     }
 
-    void set(value_type value, size_t x, size_t y) {
-    	assert(shape().size() == 2);
-    	size_t sizeRow = sizeof(Float) * shape()[1];
-    	data_[x + sizeRow * y] = value;
+    void set(const std::vector<Float> &values) {
+    	thrust::copy(values.begin(), values.end(), data_.begin());
     }
 
     std::string Debug() const
