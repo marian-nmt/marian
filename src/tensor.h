@@ -240,6 +240,8 @@ class Tensor {
     	return pimpl_->Debug();
     }
 
+    void Load(const std::string &path);
+
 };
 
 }

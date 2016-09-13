@@ -56,11 +56,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.1233477758" name="tensor.cu" rcbsApplicability="disable" resourcePath="tensor.cu" toolsToInvoke="nvcc.compiler.base.1979453423.1456105605">
-						<tool id="nvcc.compiler.base.1979453423.1456105605" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.1770712140" name="tensor.cu" rcbsApplicability="disable" resourcePath="tensor.cu" toolsToInvoke="nvcc.compiler.base.1979453423.1452902875">
+						<tool id="nvcc.compiler.base.1979453423.1452902875" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="tensor.cu" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
