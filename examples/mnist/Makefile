@@ -2,9 +2,12 @@
 
 all: download
 
-download: train-images-idx3-ubyte.gz train-labels-idx1-ubyte.gz t10k-images-idx3-ubyte.gz t10k-labels-idx3-ubyte.gz
+download: train-images-idx3-ubyte train-labels-idx1-ubyte t10k-images-idx3-ubyte t10k-labels-idx1-ubyte
 
-%.gz:
+%-ubyte: %-ubyte.gz
+	gzip -d < $^ > $@
+
+%-ubyte.gz:
 	wget http://yann.lecun.com/exdb/mnist/$*.gz -O $@
 
 clean:
