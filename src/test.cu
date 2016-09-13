@@ -1,6 +1,8 @@
 
 #include "marian.h"
 
+using namespace std;
+
 int main(int argc, char** argv) {
 
   using namespace marian;
@@ -17,7 +19,9 @@ int main(int argc, char** argv) {
   
   Tensor tx({500, 784}, 1);
   Tensor ty({500, 10}, 1);
-  
+  cerr << "tx=" << tx.Debug();
+  cerr << "ty=" << ty.Debug();
+
   x = tx;
   y = ty;
 
