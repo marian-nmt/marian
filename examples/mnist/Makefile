@@ -8,7 +8,7 @@ download: train-images-idx3-ubyte train-labels-idx1-ubyte t10k-images-idx3-ubyte
 	gzip -d < $^ > $@
 
 %-ubyte.gz:
-	wget http://yann.lecun.com/exdb/mnist/$*.gz -O $@
+	wget http://yann.lecun.com/exdb/mnist/$*-ubyte.gz -O $@
 
 clean:
-	rm -f *.gz
+	rm -f *.gz *-ubyte
