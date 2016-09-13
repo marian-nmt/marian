@@ -50,8 +50,8 @@ int main(int argc, char** argv) {
 
   Tensor tx({4, 2}, 1);
   Tensor ty({4, 1}, 1);
-  tx.Load("/Users/hieu/workspace/experiment/issues/marian/1st/train.txt");
-  ty.Load("/Users/hieu/workspace/experiment/issues/marian/1st/label.txt");
+  tx.Load("../examples/xor/train.txt");
+  ty.Load("../examples/xor/label.txt");
 
 
   //hook0(graph);
