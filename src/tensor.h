@@ -5,6 +5,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 #include <numeric>
+#include <sstream>
 
 #include "definitions.h"
 #include "exception.h"
@@ -139,6 +140,17 @@ class TensorImpl {
     void set(value_type value) {
       thrust::fill(data_.begin(), data_.end(), value);
     }
+
+    std::string Debug() const
+    {
+    	std::stringstream strm;
+    	assert(shape_.size());
+    	strm << "shape=" << shape_[0];
+    	for (size_t i = 1; i < shape_.size(); ++i) {
+    		strm << "x" << shape_[i];
+    	}
+    	return strm.str();
+    }
 };
 
 template <typename Type>
@@ -214,6 +226,12 @@ class Tensor {
     operator bool() {
       return pimpl_ != nullptr;
     }
+
+    std::string Debug() const
+    {
+    	return pimpl_->Debug();
+    }
+
 };
 
 }
