@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
   y = ty;
 
   graph.forward(500);
+  graph.backward();
   //std::cerr << graph["pred"].val()[0] << std::endl;
   
   
