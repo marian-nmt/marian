@@ -245,6 +245,7 @@ class Tensor {
     }
 
     void Load(const std::string &path);
+    void Load(const std::vector<float> &values);
 
 };
 

@@ -81,7 +81,12 @@ void Tensor::Load(const std::string &path)
   }
   strm.close();
 
+  Load(hostData);
+}
 
+void Tensor::Load(const std::vector<float> &values)
+{
+	pimpl_->set(values);
 }
 
 }
