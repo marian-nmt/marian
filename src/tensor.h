@@ -37,6 +37,16 @@ const Handles handles;
 
 typedef std::vector<int> Shape;
 
+inline std::string Debug(const Shape &shape)
+{
+	std::stringstream strm;
+	assert(shape.size());
+	for (size_t i = 1; i < shape.size(); ++i) {
+		strm << "x" << shape[i];
+	}
+	return strm.str();
+}
+
 template<class Float>
 class TensorImpl {
   private:
@@ -145,10 +155,7 @@ class TensorImpl {
     {
     	std::stringstream strm;
     	assert(shape_.size());
-    	strm << "shape=" << shape_[0];
-    	for (size_t i = 1; i < shape_.size(); ++i) {
-    		strm << "x" << shape_[i];
-    	}
+    	strm << "shape=" << marian::Debug(shape_);
     	return strm.str();
     }
 };
