@@ -5,8 +5,8 @@
 #include <functional>
 
 namespace marian {
-  typedef float Float;  
-  typedef std::vector<int> Shape;
+  typedef float Float;
+  typedef std::vector<size_t> Shape;
   const int whatevs{-1};
 }
 
