@@ -67,9 +67,9 @@ void Tensor::Load(const std::string &path)
   while ( getline (strm, line) )
   {
 	cerr << line << '\n';
-	vector<float> toks = Tokenize<float>(line);
+	vector<Float> toks = Tokenize<Float>(line);
 	for (size_t i = 0; i < toks.size(); ++i) {
-		//(*this)[lineNum][i] = toks[i];
+		pimpl_->set(toks[i], lineNum, i);
 	}
 
 	++lineNum;

@@ -152,6 +152,12 @@ class TensorImpl {
       thrust::fill(data_.begin(), data_.end(), value);
     }
 
+    void set(value_type value, size_t x, size_t y) {
+    	assert(shape().size() == 2);
+    	size_t sizeRow = sizeof(Float) * shape()[1];
+    	data_[x + sizeRow * y] = value;
+    }
+
     std::string Debug() const
     {
     	std::stringstream strm;
