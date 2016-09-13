@@ -153,7 +153,11 @@ class TensorImpl {
     }
 
     void set(const std::vector<Float> &values) {
-    	thrust::copy(values.begin(), values.end(), data_.begin());
+	  size_t totSize = std::accumulate(shape().begin(), shape().end(),
+			  1, std::multiplies<int>());
+	  std::cerr << "totSize=" << totSize << " " << values.size() << std::endl;
+	  assert(totSize == values.size());
+	  thrust::copy(values.begin(), values.end(), data_.begin());
     }
 
     std::string Debug() const
