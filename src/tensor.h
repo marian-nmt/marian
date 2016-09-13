@@ -5,6 +5,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 #include <numeric>
+#include <sstream>
 
 #include "definitions.h"
 #include "exception.h"
@@ -35,6 +36,17 @@ struct Handles {
 const Handles handles;
 
 typedef std::vector<int> Shape;
+
+inline std::string Debug(const Shape &shape)
+{
+	std::stringstream strm;
+	strm << shape[0];
+	assert(shape.size());
+	for (size_t i = 1; i < shape.size(); ++i) {
+		strm << "x" << shape[i];
+	}
+	return strm.str();
+}
 
 template<class Float>
 class TensorImpl {
@@ -139,6 +151,14 @@ class TensorImpl {
     void set(value_type value) {
       thrust::fill(data_.begin(), data_.end(), value);
     }
+
+    std::string Debug() const
+    {
+    	std::stringstream strm;
+    	assert(shape_.size());
+    	strm << "shape=" << marian::Debug(shape_);
+    	return strm.str();
+    }
 };
 
 template <typename Type>
@@ -214,6 +234,12 @@ class Tensor {
     operator bool() {
       return pimpl_ != nullptr;
     }
+
+    std::string Debug() const
+    {
+    	return pimpl_->Debug();
+    }
+
 };
 
 }

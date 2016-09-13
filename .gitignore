@@ -36,3 +36,6 @@
 
 # CMake files
 build
+
+# Examples
+examples/*/*.gz

@@ -1,28 +1,35 @@
 
 #include "marian.h"
 
+using namespace std;
+
 int main(int argc, char** argv) {
 
   using namespace marian;
   using namespace keywords;
   
-  auto x = input(shape={whatevs, 784}, name="X");
-  auto y = input(shape={whatevs, 10}, name="Y");
+  Expr x = input(shape={whatevs, 784}, name="X");
+  Expr y = input(shape={whatevs, 10}, name="Y");
   
-  auto w = param(shape={784, 10}, name="W0");
-  auto b = param(shape={1, 10}, name="b0");
+  Expr w = param(shape={784, 10}, name="W0");
+  Expr b = param(shape={1, 10}, name="b0");
   
   auto scores = dot(x, w) + b;
   auto lr = softmax(scores, axis=1, name="pred");
   auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
+  cerr << "lr=" << lr.Debug() << endl;
+
   
   Tensor tx({500, 784}, 1);
   Tensor ty({500, 10}, 1);
-  
+  cerr << "tx=" << tx.Debug() << endl;
+  cerr << "ty=" << ty.Debug() << endl;
+
   x = tx;
   y = ty;
 
   graph.forward(500);
+
   std::cerr << "Result: ";
   for (auto val : scores.val().shape()) {
     std::cerr << val << " ";
@@ -38,6 +45,8 @@ int main(int argc, char** argv) {
     std::cerr << val << " ";
   }
   std::cerr << std::endl;
+
+  graph.backward();
   
   //std::cerr << graph["pred"].val()[0] << std::endl;
   

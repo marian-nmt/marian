@@ -24,6 +24,7 @@ Exporting some paths for CuDNN may be required (put it, for example, in your `.b
 Compilation with `cmake > 3.5`:
 
     mkdir build
+    cd build
     cmake ..
     make -j
 

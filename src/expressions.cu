@@ -1,5 +1,8 @@
+#include <sstream>
 #include "expressions.h"
 #include "graph_operators.h"
+
+using namespace std;
 
 namespace marian {
 
@@ -22,13 +25,12 @@ ChainPtr Expr::node() {
 void Expr::forward(size_t batchSize) {
   UTIL_THROW_IF2(pimpl_.get() != Chainable<Tensor>::stack.back(),
                  "Trying to call forward on non-root of computation graph");
+  std::cerr << "forward:" << std::endl;
   
-  std::cerr << "a" << std::endl;
   for(auto&& v : Chainable<Tensor>::stack) {
     v->allocate(batchSize);
   }
   
-  std::cerr << "f" << std::endl;
   for(auto&& v : Chainable<Tensor>::stack)
     v->forward();    
 }
@@ -36,6 +38,7 @@ void Expr::forward(size_t batchSize) {
 void Expr::backward() {
   UTIL_THROW_IF2(pimpl_.get() != Chainable<Tensor>::stack.back(),
                 "Trying to call backward on non-root of computation graph");
+  std::cerr << "backward:" << std::endl;
   
   for(auto&& v : Chainable<Tensor>::stack)
     v->set_zero_adjoint();
@@ -48,6 +51,15 @@ void Expr::backward() {
 
 Expr::operator ChainPtr() {
   return pimpl_;
+}
+
+std::string Expr::Debug() const
+{
+	stringstream strm;
+	//const Chainable<Tensor> &ct = *pimpl_;
+	const Shape &shape = pimpl_->shape();
+	strm << marian::Debug(shape);
+	return strm.str();
 }
     
 }
