@@ -240,6 +240,13 @@ class Tensor {
     	return pimpl_->Debug();
     }
 
+    void Print() const {
+      for (int i = 0; i < size(); ++i) {
+        std::cerr << (*this)[i] << " ";
+      }
+      std::cerr << std::endl;
+    }
+
 };
 
 }

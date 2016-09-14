@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
   Expr b = param(shape={1, 10}, name="b0");
   
   auto scores = dot(x, w) + b;
-  auto lr = softmax(scores, axis=1, name="pred");
+  auto lr = softmax_fast(scores, axis=1, name="pred");
   auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
   cerr << "lr=" << lr.Debug() << endl;
 
@@ -40,12 +40,14 @@ int main(int argc, char** argv) {
     std::cerr << val << " ";
   }
   std::cerr << std::endl;
+  lr.val().Print();
   std::cerr << "Log-likelihood: ";
   for (auto val : graph.val().shape()) {
     std::cerr << val << " ";
   }
   std::cerr << std::endl;
-
+  graph.val().Print();
+  
   graph.backward();
   
   //std::cerr << graph["pred"].val()[0] << std::endl;
