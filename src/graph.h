@@ -19,11 +19,11 @@ struct Chainable {
     virtual const Shape& shape() = 0;
     virtual DataType &val() = 0;
     virtual DataType grad() = 0;
-    virtual void setVal(Tensor t) {
+    virtual void setVal(DataType t) {
       UTIL_THROW2("Tensors can only be assigned to input nodes"); 
     };
     
-    typedef std::vector<Chainable<Tensor>*> ChainableStack;
+    typedef std::vector<Chainable<DataType>*> ChainableStack;
     static ChainableStack stack;
 };
 
