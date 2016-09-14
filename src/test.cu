@@ -22,11 +22,10 @@ int main(int argc, char** argv) {
   Expr b = param(shape={1, LABEL_SIZE}, name="b0");
   
   auto scores = dot(x, w) + b;
-  auto lr = softmax_fast(scores, axis=1, name="pred");
+  auto lr = softmax(scores, axis=1, name="pred");
   auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
   cerr << "lr=" << lr.Debug() << endl;
 
-#if 0
   int numofdata;
   vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
   vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
@@ -41,34 +40,16 @@ int main(int argc, char** argv) {
 
   cerr << "tx=" << tx.Debug() << endl;
   cerr << "ty=" << ty.Debug() << endl;
-#else
-  Tensor tx({500, 784}, 1);
-  Tensor ty({500, 10}, 1);
-#endif
 
   x = tx;
   y = ty;
 
   graph.forward(500);
 
-  std::cerr << "Result: ";
-  for (auto val : scores.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  std::cerr << "Result: ";
-  for (auto val : lr.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  lr.val().Print();
-  std::cerr << "Log-likelihood: ";
-  for (auto val : graph.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  graph.val().Print();
-  
+  std::cerr << "scores: " << Debug(scores.val().shape()) << endl;
+  std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
+  std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
+
   graph.backward();
   
   //std::cerr << graph["pred"].val()[0] << std::endl;

@@ -48,6 +48,13 @@ inline std::string Debug(const Shape &shape)
 	return strm.str();
 }
 
+inline size_t GetTotalSize(const Shape &shape)
+{
+	size_t ret = std::accumulate(shape.begin(), shape.end(),
+			  1, std::multiplies<int>());
+	return ret;
+}
+
 template<class Float>
 class TensorImpl {
   private:
@@ -81,8 +88,7 @@ class TensorImpl {
 
       std::cerr << "Allocating : " << shape[0] << " " << shape[1] << std::endl;
 
-      int size = std::accumulate(shape_.begin(), shape_.end(),
-                                 1, std::multiplies<int>());
+      int size = GetTotalSize(shape_);
       data_.resize(size, value);
       cudnnCreateTensorDescriptor(&desc_);
       switch (shape_.size()) {
@@ -153,8 +159,7 @@ class TensorImpl {
     }
 
     void set(const std::vector<Float> &values) {
-	  size_t totSize = std::accumulate(shape().begin(), shape().end(),
-			  1, std::multiplies<int>());
+	  size_t totSize = GetTotalSize(shape());
 	  std::cerr << "tensor size=" << totSize << " vector size=" << values.size() << std::endl;
 	  assert(totSize == values.size());
 	  thrust::copy(values.begin(), values.end(), data_.begin());
@@ -164,7 +169,14 @@ class TensorImpl {
     {
     	std::stringstream strm;
     	assert(shape_.size());
-    	strm << "shape=" << marian::Debug(shape_);
+    	strm << "shape=" << marian::Debug(shape_) << std::endl;
+
+    	// values
+    	/*
+    	size_t totSize = GetTotalSize(shape());
+    	std::vector<Float> values(totSize);
+		thrust::copy(data_.begin(), data_.end(), values.begin());
+		*/
     	return strm.str();
     }
 };
