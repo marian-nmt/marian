@@ -15,8 +15,8 @@ def softmax(x):
 
 def baseline_model(pixels_count, classes_count):
     model = Sequential()
-    # model.add(Dense(pixels_count, input_dim=pixels_count, init='normal', activation='relu'))
-    model.add(Dense(classes_count, input_dim=pixels_count, init='normal', activation='softmax'))
+    model.add(Dense(100, input_dim=pixels_count, init='normal', activation='tanh'))
+    model.add(Dense(classes_count, input_dim=100, init='normal', activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
@@ -62,30 +62,11 @@ if __name__ == "__main__":
     # weights_ones = np.ones((pixels_count, classes_count))
     # print weights_ones.shape
 
-    weights, bias = model.get_weights()
-    print weights.shape
-    print bias.shape
-    print bias
-
-    ### We calculate lr using softmax!
-
-    dot_out = np.dot(X_train, weights)
-    print "dot_out shape: ", dot_out.shape
-    # print dot_out[:10]
-    
-    add_out = np.add(bias, dot_out)
-    print "add_out shape: ", add_out.shape
-    # print add_out[:10]
-    
-    # lr = np.around(softmax(add_out), decimals = 6)
-    lr = softmax(add_out)
-    print "lr shape: ", lr.shape
-    # print lr[:10]
-    # print np.count_nonzero(lr)i
-
+    weights1, bias1, weights2, bias2 = model.get_weights()
     ### Save model to npz files
-    if not os.path.exists("test_model"):
-        os.makedirs("test_model")
-    np.savez("test_model/model", weights = weights, bias = bias)
+    if not os.path.exists("test_model_multi"):
+        os.makedirs("test_model_multi")
+    # np.savez("test_model_multi/model", *model)
+    np.savez("test_model_multi/model", weights1 = weights1, bias1 = bias1, weights2 = weights2, bias2 = bias2)
 
-    print "Model saved! Check test_model directory"
+    print "Model saved! Check test_model_multi directory"
