@@ -178,12 +178,12 @@ class Tensor {
       return pimpl_->begin();
     }
 
-    auto end() -> decltype( pimpl_->begin() ) {
-      return pimpl_->begin();
+    auto end() -> decltype( pimpl_->end() ) {
+      return pimpl_->end();
     }
 
-    auto end() const -> decltype( pimpl_->begin() ) {
-      return pimpl_->begin();
+    auto end() const -> decltype( pimpl_->end() ) {
+      return pimpl_->end();
     }
 
     const Shape& shape() const {
