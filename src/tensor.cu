@@ -80,12 +80,12 @@ void Tensor::Load(const std::string &path)
   }
   strm.close();
 
-  Load(hostData);
+  Load(hostData.begin(), hostData.begin());
 }
 
-void Tensor::Load(const std::vector<float> &values)
+void Tensor::Load(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end)
 {
-	pimpl_->set(values);
+	pimpl_->set(begin, end);
 }
 
 }
