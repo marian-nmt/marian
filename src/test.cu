@@ -21,10 +21,14 @@ int main(int argc, char** argv) {
   Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
   Expr b = param(shape={1, LABEL_SIZE}, name="b0");
   
-  auto scores = dot(x, w) + b;
-  auto lr = softmax_fast(scores, axis=1, name="pred");
-  auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
-  cerr << "lr=" << lr.Debug() << endl;
+  auto z = dot(x, w) + b;
+  auto pred = softmax(z);
+  //auto decision = argmax(pred, axis=1);
+  
+  auto cost = -mean(sum(y * log(pred), axis=1),
+                    axis=0);
+  
+  cerr << "pred=" << pred.Debug() << endl;
 
 #if 0
   int numofdata;
@@ -49,27 +53,27 @@ int main(int argc, char** argv) {
   x = tx;
   y = ty;
 
-  graph.forward(500);
+  cost.forward(500);
 
   std::cerr << "Result: ";
-  for (auto val : scores.val().shape()) {
+  for (auto val : pred.val().shape()) {
     std::cerr << val << " ";
   }
   std::cerr << std::endl;
   std::cerr << "Result: ";
-  for (auto val : lr.val().shape()) {
+  for (auto val : pred.val().shape()) {
     std::cerr << val << " ";
   }
   std::cerr << std::endl;
-  lr.val().Print();
+  pred.val().Print();
   std::cerr << "Log-likelihood: ";
-  for (auto val : graph.val().shape()) {
+  for (auto val : cost.val().shape()) {
     std::cerr << val << " ";
   }
   std::cerr << std::endl;
-  graph.val().Print();
+  cost.val().Print();
   
-  graph.backward();
+  cost.backward();
   
   //std::cerr << graph["pred"].val()[0] << std::endl;
   

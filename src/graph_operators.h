@@ -101,6 +101,39 @@ struct TanhNodeOp : public UnaryNodeOp {
   }
 };
 
+struct ArgmaxOp : public UnaryNodeOp {
+  template <typename ...Args>
+  ArgmaxOp(ChainPtr a, Args ...args)
+  : UnaryNodeOp(a, keywords::shape=newShape(a, -1), args...),
+    axis_(-1) { }
+  
+  Shape newShape(ChainPtr a, int axis) {
+    Shape shape1 = a->shape();
+    UTIL_THROW_IF2(shape1.size() > 2,
+                   "Tensors with more than 2 dimensions not supported yet");
+    if(axis == 0) {
+      shape1[0] = 1;
+    }
+    else if(axis == 1) {
+      shape1[1] = 1;
+    }
+    else {
+      shape1 = {1, 1};
+    }
+    return shape1;
+  }
+  
+  void forward() {
+    //val_ = Argmax(a_->val(), axis_);
+  }
+  
+  void backward() {}
+  
+  private:
+    int axis_;
+};
+
+
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(ChainPtr a, Args ...args)
