@@ -46,7 +46,7 @@ std::vector<float> ReadImages(const std::string& full_path, int& number_of_image
   return _dataset;
 }
 
-std::vector<int> ReadLabels(const std::string& full_path) {
+std::vector<float> ReadLabels(const std::string& full_path) {
   std::ifstream file(full_path);
 
   if (! file.is_open())
@@ -62,9 +62,11 @@ std::vector<int> ReadLabels(const std::string& full_path) {
   int number_of_labels = 0;
   file.read((char *)&number_of_labels, sizeof(number_of_labels)), number_of_labels = reverseInt(number_of_labels);
 
-  std::vector<int> _dataset(number_of_labels);
+  std::vector<float> _dataset(number_of_labels);
   for (int i = 0; i < number_of_labels; i++) {
-    file.read((char*)&_dataset[i], 1);
+	int label;
+    file.read((char*)&label, 1);
+    _dataset[i] = label;
   }
 
   return _dataset;
