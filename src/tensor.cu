@@ -59,23 +59,34 @@ inline std::vector<T> Tokenize( const std::string &input
 
 void Tensor::Load(const std::string &path)
 {
+  size_t totSize = std::accumulate(pimpl_->shape().begin(), pimpl_->shape().end(),
+		  1, std::multiplies<int>());
+  cerr << "totSize=" << totSize << endl;
+  std::vector<float> hostData(totSize);
+
   fstream strm;
   strm.open(path.c_str());
 
-  size_t lineNum = 0;
   string line;
+  size_t ind = 0;
   while ( getline (strm, line) )
   {
 	cerr << line << '\n';
 	vector<Float> toks = Tokenize<Float>(line);
 	for (size_t i = 0; i < toks.size(); ++i) {
-		pimpl_->set(toks[i], lineNum, i);
+		hostData[ind] = toks[i];
 	}
 
-	++lineNum;
+	++ind;
   }
   strm.close();
 
+  Load(hostData);
+}
+
+void Tensor::Load(const std::vector<float> &values)
+{
+	pimpl_->set(values);
 }
 
 }

@@ -86,6 +86,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/marian.h</locationURI>
 		</link>
 		<link>
+			<name>mnist.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/mnist.h</locationURI>
+		</link>
+		<link>
 			<name>tensor.cu</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/tensor.cu</locationURI>

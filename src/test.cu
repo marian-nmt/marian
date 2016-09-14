@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace keywords;
   
-  /*
+
   Expr x = input(shape={whatevs, 784}, name="X");
   Expr y = input(shape={whatevs, 10}, name="Y");
   
@@ -27,6 +27,13 @@ int main(int argc, char** argv) {
   
   Tensor tx({500, 784}, 1);
   Tensor ty({500, 10}, 1);
+
+  int numImg, imgSize;
+  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg, imgSize);
+  vector<int> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");
+  tx.Load(images);
+  //ty.Load(labels);
+
   cerr << "tx=" << tx.Debug() << endl;
   cerr << "ty=" << ty.Debug() << endl;
 
@@ -54,8 +61,10 @@ int main(int argc, char** argv) {
   graph.backward();
   
   //std::cerr << graph["pred"].val()[0] << std::endl;
-  */
   
+
+   // XOR
+  /*
   Expr x = input(shape={whatevs, 2}, name="X");
   Expr y = input(shape={whatevs, 2}, name="Y");
 
@@ -76,6 +85,7 @@ int main(int argc, char** argv) {
 
   tx.Load("../examples/xor/train.txt");
   ty.Load("../examples/xor/label.txt");
+  */
 
 #if 0  
   hook0(graph);
