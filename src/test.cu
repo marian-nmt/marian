@@ -5,32 +5,35 @@
 using namespace std;
 
 int main(int argc, char** argv) {
-  /*auto images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte");*/
-  /*auto labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");*/
-  /*std::cerr << images.size() << " " << images[0].size() << std::endl;*/
+  /*int numImg = 0;*/
+  /*auto images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg);*/
+  /*auto labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numImg);*/
 
   using namespace marian;
   using namespace keywords;
   
+  const size_t IMAGE_SIZE = 784;
+  const size_t LABEL_SIZE = 10;
 
-  Expr x = input(shape={whatevs, 784}, name="X");
-  Expr y = input(shape={whatevs, 10}, name="Y");
+  Expr x = input(shape={whatevs, IMAGE_SIZE}, name="X");
+  Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
   
-  Expr w = param(shape={784, 10}, name="W0");
-  Expr b = param(shape={1, 10}, name="b0");
+  Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
+  Expr b = param(shape={1, LABEL_SIZE}, name="b0");
   
   auto scores = dot(x, w) + b;
   auto lr = softmax(scores, axis=1, name="pred");
   auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
   cerr << "lr=" << lr.Debug() << endl;
 
-  int numImg, imgSize;
-  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg, imgSize);
-  vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");
+  int numofdata;
+  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
+  vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
   cerr << "images=" << images.size() << " labels=" << labels.size() << endl;
+  cerr << "numofdata=" << numofdata << endl;
 
-  Tensor tx({numImg, 784}, 1);
-  Tensor ty({numImg, 10}, 1);
+  Tensor tx({numofdata, IMAGE_SIZE}, 1);
+  Tensor ty({numofdata, LABEL_SIZE}, 1);
 
   tx.Load(images);
   ty.Load(labels);
