@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
   int numImg, imgSize;
   vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg, imgSize);
   vector<int> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");
+  cerr << "images=" << images.size() << " labels=" << labels.size() << endl;
   tx.Load(images);
   //ty.Load(labels);
 
