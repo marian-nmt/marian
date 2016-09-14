@@ -142,13 +142,8 @@ struct ArgmaxOp : public UnaryNodeOp {
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a),
+    : UnaryNodeOp(a, keywords::shape=a->shape(),
                   args...) { }
-    
-  Shape newShape(ChainPtr a) {
-    Shape shape = a->shape();
-    return shape;
-  }
 
   void forward() {
     // B = softmax(A).

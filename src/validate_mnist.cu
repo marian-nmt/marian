@@ -8,7 +8,7 @@ using namespace keywords;
 
 int main(int argc, char** argv) {
   
-  cudaSetDevice(1);
+  cudaSetDevice(0);
   
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
@@ -55,14 +55,18 @@ int main(int argc, char** argv) {
   y = yt << testLabels;
   
   graph.forward(BATCH_SIZE);
-  for(size_t i = 0; i < 1000; ++i) {    
-    graph.backward();
   
-    auto update_rule = _1 -= 0.1 * _2;
-    Element(update_rule, w.val(), w.grad());
-    Element(update_rule, b.val(), b.grad());
+  for (size_t j = 0; j < 10; ++j) {
+    for(size_t i = 0; i < 60; ++i) {    
+      graph.backward();
     
-    graph.forward(BATCH_SIZE);
+      auto update_rule = _1 -= 0.1 * _2;
+      Element(update_rule, w.val(), w.grad());
+      Element(update_rule, b.val(), b.grad());
+      
+      graph.forward(BATCH_SIZE);
+    }
+    std::cerr << "Epoch: " << j << std::endl;
   }
   
   auto results = predict.val();
