@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace keywords;
   
+  const size_t BATCH_SIZE = 500;
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
 
@@ -20,62 +21,62 @@ int main(int argc, char** argv) {
   
   Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
   Expr b = param(shape={1, LABEL_SIZE}, name="b0");
-  
-  auto z = dot(x, w) + b;
-  auto pred = softmax(z);
-  //auto decision = argmax(pred, axis=1);
-  
-  auto cost = -mean(sum(y * log(pred), axis=1),
-                    axis=0);
-  
-  cerr << "pred=" << pred.Debug() << endl;
+    
+  Expr z = dot(x, w) + b;
+  Expr lr = softmax(z, axis=1, name="pred");
+  Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
+  //cerr << "x=" << Debug(lr.val().shape()) << endl;
 
-#if 0
   int numofdata;
-  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
-  vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
+  //vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
+  //vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
+  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/train-images-idx3-ubyte", numofdata, IMAGE_SIZE);
+  vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/train-labels-idx1-ubyte", numofdata, LABEL_SIZE);
   cerr << "images=" << images.size() << " labels=" << labels.size() << endl;
   cerr << "numofdata=" << numofdata << endl;
 
-  Tensor tx({numofdata, IMAGE_SIZE}, 1);
-  Tensor ty({numofdata, LABEL_SIZE}, 1);
+  size_t startInd = 0;
+  size_t startIndData = 0;
+  while (startInd < numofdata) {
+	  size_t batchSize = (startInd + BATCH_SIZE < numofdata) ? BATCH_SIZE : numofdata - startInd;
+	  cerr << "startInd=" << startInd
+			  << " startIndData=" << startIndData
+			  << " batchSize=" << batchSize << endl;
 
-  tx.Load(images);
-  ty.Load(labels);
+	  Tensor tx({numofdata, IMAGE_SIZE}, 1);
+	  Tensor ty({numofdata, LABEL_SIZE}, 1);
 
-  cerr << "tx=" << tx.Debug() << endl;
-  cerr << "ty=" << ty.Debug() << endl;
-#else
-  Tensor tx({500, 784}, 1);
-  Tensor ty({500, 10}, 1);
-#endif
+	  tx.Load(images.begin() + startIndData, images.begin() + startIndData + batchSize * IMAGE_SIZE);
+	  ty.Load(labels.begin() + startInd, labels.begin() + startInd + batchSize);
 
-  x = tx;
-  y = ty;
+	  //cerr << "tx=" << Debug(tx.shape()) << endl;
+	  //cerr << "ty=" << Debug(ty.shape()) << endl;
 
-  cost.forward(500);
+	  x = tx;
+	  y = ty;
 
-  std::cerr << "Result: ";
-  for (auto val : pred.val().shape()) {
-    std::cerr << val << " ";
+	  cerr << "x=" << Debug(x.val().shape()) << endl;
+	  cerr << "y=" << Debug(y.val().shape()) << endl;
+
+
+	  graph.forward(batchSize);
+
+	  cerr << "w=" << Debug(w.val().shape()) << endl;
+	  cerr << "b=" << Debug(b.val().shape()) << endl;
+	  std::cerr << "z: " << Debug(z.val().shape()) << endl;
+	  std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
+	  std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
+
+	  //std::cerr << "scores=" << scores.val().Debug() << endl;
+	  //std::cerr << "lr=" << lr.val().Debug() << endl;
+
+	  graph.backward();
+
+	  //std::cerr << graph["pred"].val()[0] << std::endl;
+
+	  startInd += batchSize;
+	  startIndData += batchSize * IMAGE_SIZE;
   }
-  std::cerr << std::endl;
-  std::cerr << "Result: ";
-  for (auto val : pred.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  pred.val().Print();
-  std::cerr << "Log-likelihood: ";
-  for (auto val : cost.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  cost.val().Print();
-  
-  cost.backward();
-  
-  //std::cerr << graph["pred"].val()[0] << std::endl;
   
 
    // XOR

@@ -14,7 +14,7 @@ struct InputNode : public Node {
                    !Has(keywords::lazy_shape),
                    "Data items require shape information");
   }
-  
+
   virtual void setVal(Tensor t)  {
     val_ = t;
     shape_ = t.shape();
@@ -33,7 +33,7 @@ struct ConstantNode : public Node {
                    !Has(keywords::lazy_shape),
                    "Constant items require shape information");
   }
-  
+
   void forward() {}
   void backward() {}
 };
@@ -47,23 +47,23 @@ struct ParamNode : public Node {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
                    "Param items require shape information");
-  } 
-  
+  }
+
   void forward() {}
   void backward() {}
-  
+
   virtual void allocate(size_t batchSize) {
     val_.allocate(shape_);
     init_(val_);
   }
-  
+
   private:
     std::function<void(Tensor)> init_;
 };
 
 struct UnaryNodeOp : public Node {
     ChainPtr a_;
-    
+
     template <typename ...Args>
     UnaryNodeOp(ChainPtr a, Args ...args)
     : Node(args...), a_(a) {}
@@ -73,15 +73,15 @@ struct SigmoidNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   SigmoidNodeOp(Args ...args)
   : UnaryNodeOp(args...) {  }
-  
+
   void forward() {
     Element(_1 = Sigma(_2),
             val_, a_->val());
   }
-  
+
   void backward() {
-    Element(_1 += _2 * Sigma(_3) * (1 - Sigma(_3)),
-            a_->grad(), adj_, a_->val());
+    Element(_1 += _2 * _3 * (1 - _3),
+            a_->grad(), adj_, val_);
   }
 };
 
@@ -89,15 +89,15 @@ struct TanhNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   TanhNodeOp(Args ...args)
   : UnaryNodeOp(args...) { }
-  
+
   void forward() {
     Element(_1 = Tanh(_2),
             val_, a_->val());
   }
-  
+
   void backward() {
-    Element(_1 += _2 * (1 - Tanh(_3) * Tanh(_3)),
-            a_->grad(), adj_, a_->val());
+    Element(_1 += _2 * (1 - _3 * _3),
+            a_->grad(), adj_, val_);
   }
 };
 
@@ -139,7 +139,6 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     SoftmaxNodeOp(ChainPtr a, Args ...args)
     : UnaryNodeOp(a, keywords::shape=newShape(a),
                   args...) { }
-  
   Shape newShape(ChainPtr a) {
     Shape shape = a->shape();
     return shape;
@@ -150,11 +149,16 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     val_ = a_->val();
     Softmax(&val_);
   }
-  
+
   void backward() {
-    // TODO
-    Element(_1 += _2 * Exp(_3),
-            a_->grad(), adj_, a_->val());
+    // For each row, the Jacobian times vector is given by:
+    // J * dy = p .* (dy - avg*1)
+    // where avg = p'*dy and p is the softmax output (probabilities).
+    Tensor result = adj_;
+    SubtractMean(&result, val_);
+    // beta set to 1.0 in gemm, C = alpha * dot(A,B) + beta * C
+    // to sum gradients from different graph parts.
+    Prod(a_->grad(), adj_, result, false, false, 1.0);
   }
 };
 
@@ -162,11 +166,11 @@ struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   LogNodeOp(Args ...args)
   : UnaryNodeOp(args...) {}
-  
+
   void forward() {
     Element(_1 = Log(_2), val_, a_->val());
   }
-  
+
   void backward() {
     Element(_1 += _2 * 1.f / _3,
             a_->grad(), adj_, a_->val());
@@ -178,7 +182,7 @@ struct ExpNodeOp : public UnaryNodeOp {
     ExpNodeOp(ChainPtr a, Args ...args)
     : UnaryNodeOp(a, keywords::shape=newShape(a),
                   args...) { }
-  
+
   Shape newShape(ChainPtr a) {
     Shape shape = a->shape();
     return shape;
@@ -187,7 +191,7 @@ struct ExpNodeOp : public UnaryNodeOp {
   void forward() {
     Element(_1 = Exp(_2), val_, a_->val());
   }
-  
+
   void backward() {
     Element(_1 += _2 * Exp(_3),
             a_->grad(), adj_, a_->val());
@@ -198,11 +202,11 @@ struct NegNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   NegNodeOp(Args ...args)
   : UnaryNodeOp(args...) { }
-    
+
   void forward() {
     Element(_1 = -_2, val_, a_->val());
   }
-  
+
   void backward() {
     Element(_1 += -_2, a_->grad(), adj_);
   }
@@ -227,7 +231,7 @@ struct DotNodeOp : public BinaryNodeOp {
   : BinaryNodeOp(a, b,
                  keywords::shape=newShape(a,b),
                  args...) { }
-  
+
   Shape newShape(ChainPtr a, ChainPtr b) {
     Shape shape1 = a->shape();
     Shape shape2 = b->shape();
@@ -236,12 +240,12 @@ struct DotNodeOp : public BinaryNodeOp {
     shape1[1] = shape2[1];
     return shape1;
   }
-  
+
   void forward() {
     // C = A*B
     Prod(val_, a_->val(), b_->val(), false, false);
   }
-  
+
   void backward() {
     // D is the adjoint, the matrix of derivatives
     // df/dA += D*B.T

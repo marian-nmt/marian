@@ -17,7 +17,7 @@ struct Chainable {
     virtual void allocate(size_t) = 0;
     
     virtual const Shape& shape() = 0;
-    virtual DataType val() = 0;
+    virtual DataType &val() = 0;
     virtual DataType grad() = 0;
     virtual void setVal(DataType t) {
       UTIL_THROW2("Tensors can only be assigned to input nodes"); 
@@ -82,7 +82,7 @@ class Node : public Chainable<Tensor>,
       }
     }
     
-    virtual Tensor val()  {
+    virtual Tensor &val()  {
       UTIL_THROW_IF2(!val_, "Tensor has not been allocated");
       return val_;
     };
