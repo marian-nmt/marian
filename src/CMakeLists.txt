@@ -10,6 +10,7 @@ cuda_add_executable(
   test.cu
   expressions.cu
   tensor_operators.cu
+  tensor.cu
   $<TARGET_OBJECTS:libcommon>
 )
 

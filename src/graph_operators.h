@@ -101,6 +101,30 @@ struct TanhNodeOp : public UnaryNodeOp {
   }
 };
 
+struct SoftmaxNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+    SoftmaxNodeOp(ChainPtr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a),
+                  args...) { }
+  
+  Shape newShape(ChainPtr a) {
+    Shape shape = a->shape();
+    return shape;
+  }
+
+  void forward() {
+    // B = softmax(A).
+    val_ = a_->val();
+    Softmax(&val_);
+  }
+  
+  void backward() {
+    // TODO
+    Element(_1 += _2 * Exp(_3),
+            a_->grad(), adj_, a_->val());
+  }
+};
+
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   LogNodeOp(Args ...args)

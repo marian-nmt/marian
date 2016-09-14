@@ -152,6 +152,14 @@ class TensorImpl {
       thrust::fill(data_.begin(), data_.end(), value);
     }
 
+    void set(const std::vector<Float> &values) {
+	  size_t totSize = std::accumulate(shape().begin(), shape().end(),
+			  1, std::multiplies<int>());
+	  std::cerr << "tensor size=" << totSize << " vector size=" << values.size() << std::endl;
+	  assert(totSize == values.size());
+	  thrust::copy(values.begin(), values.end(), data_.begin());
+    }
+
     std::string Debug() const
     {
     	std::stringstream strm;
@@ -239,6 +247,16 @@ class Tensor {
     {
     	return pimpl_->Debug();
     }
+
+    void Print() const {
+      for (int i = 0; i < size(); ++i) {
+        std::cerr << (*this)[i] << " ";
+      }
+      std::cerr << std::endl;
+    }
+
+    void Load(const std::string &path);
+    void Load(const std::vector<float> &values);
 
 };
 

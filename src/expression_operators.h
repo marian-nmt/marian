@@ -171,6 +171,13 @@ inline Expr softmax(Expr a, Args ...args) {
   return e / sum(e, args...);
 }
 
+template <typename ...Args>
+inline Expr softmax_fast(Expr a, Args ...args) {
+  Expr e = Expr(new SoftmaxNodeOp(a, args...));
+  return e;
+}
+
+
 // inefficient
 template <typename ...Args>
 inline Expr mean(Expr a, Args ...args) {
