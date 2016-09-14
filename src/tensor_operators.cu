@@ -130,7 +130,11 @@ Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 Tensor Prod(Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta) {
 
-  return Prod(handles.cublasHandle, C, A, B, transA, transB, beta);
+  cublasHandle_t cublasHandle;
+  cublasCreate(&cublasHandle);  
+  Tensor temp = Prod(cublasHandle, C, A, B, transA, transB, beta);
+  cublasDestroy(cublasHandle);
+  return temp;
 }
 
 }
