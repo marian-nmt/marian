@@ -5,9 +5,9 @@
 using namespace std;
 
 int main(int argc, char** argv) {
-  /*auto images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte");*/
-  /*auto labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");*/
-  /*std::cerr << images.size() << " " << images[0].size() << std::endl;*/
+  /*int numImg = 0;*/
+  /*auto images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg);*/
+  /*auto labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numImg);*/
 
   using namespace marian;
   using namespace keywords;
