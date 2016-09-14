@@ -176,8 +176,13 @@ class TensorImpl {
     	std::vector<Float> values(totSize);
 		thrust::copy(data_.begin(), data_.end(), values.begin());
 
-		for (size_t i = 0; i < totSize; ++i) {
-			strm << values[i] << " ";
+		size_t ind = 0;
+		for (size_t i = 0; i < shape()[0]; ++i) {
+			for (size_t j = 0; j < shape()[1]; ++j) {
+				strm << values[ind] << " ";
+				++ind;
+			}
+			strm << std::endl;
 		}
     	return strm.str();
     }

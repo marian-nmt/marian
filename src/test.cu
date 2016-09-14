@@ -21,8 +21,8 @@ int main(int argc, char** argv) {
   Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
   Expr b = param(shape={1, LABEL_SIZE}, name="b0");
   
-  Expr scores = dot(x, w) + b;
-  Expr lr = softmax(scores, axis=1, name="pred");
+  Expr z = dot(x, w) + b;
+  Expr lr = softmax(z, axis=1, name="pred");
   Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
   //cerr << "lr=" << Debug(lr.val().shape()) << endl;
 
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 
   graph.forward(500);
 
-  std::cerr << "scores: " << Debug(scores.val().shape()) << endl;
+  std::cerr << "z: " << Debug(z.val().shape()) << endl;
   std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
   std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
 
