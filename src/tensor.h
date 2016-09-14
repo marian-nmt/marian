@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cudnn.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
@@ -13,27 +12,27 @@
 
 namespace marian {
 
-struct Handles {
-  cudnnHandle_t cudnnHandle;
-  cublasHandle_t cublasHandle;
-
-  cudnnOpTensorDescriptor_t add;
-
-  Handles() {
-    cudnnCreate(&cudnnHandle);
-    cublasCreate(&cublasHandle);
-    cudnnCreateOpTensorDescriptor(&add);
-    cudnnSetOpTensorDescriptor(add, CUDNN_OP_TENSOR_ADD, CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN);
-  }
-
-  ~Handles() {
-    cudnnDestroy(cudnnHandle);
-    cublasDestroy(cublasHandle);
-    cudnnDestroyOpTensorDescriptor(add);
-  }
-};
-
-const Handles handles;
+//struct Handles {
+//  //cudnnHandle_t cudnnHandle;
+//  //cublasHandle_t cublasHandle;
+//
+//  //cudnnOpTensorDescriptor_t add;
+//
+//  Handles() {
+//    cudnnCreate(&cudnnHandle);
+//    cublasCreate(&cublasHandle);
+//    cudnnCreateOpTensorDescriptor(&add);
+//    cudnnSetOpTensorDescriptor(add, CUDNN_OP_TENSOR_ADD, CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN);
+//  }
+//
+//  ~Handles() {
+//    cudnnDestroy(cudnnHandle);
+//    cublasDestroy(cublasHandle);
+//    cudnnDestroyOpTensorDescriptor(add);
+//  }
+//};
+//
+//const Handles handles;
 
 // typedef std::vector<int> Shape;
 
@@ -60,17 +59,17 @@ class TensorImpl {
   private:
     Shape shape_;
     thrust::device_vector<Float> data_;
-    cudnnTensorDescriptor_t desc_;
+    //cudnnTensorDescriptor_t desc_;
     size_t tno_;
     static size_t tensorCounter;
 
-    cudnnDataType_t dataType() {
-      switch(sizeof(Float)) {
-        case 2: return CUDNN_DATA_HALF;
-        case 8: return CUDNN_DATA_DOUBLE;
-        default: return CUDNN_DATA_FLOAT;
-      }
-    }
+    //cudnnDataType_t dataType() {
+    //  switch(sizeof(Float)) {
+    //    case 2: return CUDNN_DATA_HALF;
+    //    case 8: return CUDNN_DATA_DOUBLE;
+    //    default: return CUDNN_DATA_FLOAT;
+    //  }
+    //}
 
   public:
     typedef Float value_type;
@@ -90,28 +89,28 @@ class TensorImpl {
 
       int size = GetTotalSize(shape_);
       data_.resize(size, value);
-      cudnnCreateTensorDescriptor(&desc_);
-      switch (shape_.size()) {
-        case 1:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], 1, 1, 1); break;
-        case 2:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], shape_[1], 1, 1); break;
-        case 3:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], shape_[1], shape_[2], 1); break;
-        case 4:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], shape_[1], shape_[2], shape_[3]); break;
-      }
+      //cudnnCreateTensorDescriptor(&desc_);
+      //switch (shape_.size()) {
+      //  case 1:
+      //    cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
+      //                               shape_[0], 1, 1, 1); break;
+      //  case 2:
+      //    cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
+      //                               shape_[0], shape_[1], 1, 1); break;
+      //  case 3:
+      //    cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
+      //                               shape_[0], shape_[1], shape_[2], 1); break;
+      //  case 4:
+      //    cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
+      //                               shape_[0], shape_[1], shape_[2], shape_[3]); break;
+      //}
     }
 
     TensorImpl(const TensorImpl&) = delete;
     TensorImpl(TensorImpl&&) = delete;
 
     ~TensorImpl() {
-      cudnnDestroyTensorDescriptor(desc_);
+      //cudnnDestroyTensorDescriptor(desc_);
     }
 
    value_type operator[](size_t i) const {
@@ -146,9 +145,9 @@ class TensorImpl {
       return thrust::raw_pointer_cast(data_.data());
     }
 
-    cudnnTensorDescriptor_t desc() const {
-      return desc_;
-    }
+    //cudnnTensorDescriptor_t desc() const {
+    //  return desc_;
+    //}
 
     size_t id() const {
       return tno_;
@@ -246,9 +245,9 @@ class Tensor {
       return pimpl_->shape();
     }
 
-    cudnnTensorDescriptor_t desc() const {
-      return pimpl_->desc();
-    }
+    //cudnnTensorDescriptor_t desc() const {
+    //  return pimpl_->desc();
+    //}
 
     void set(value_type value) {
       pimpl_->set(value);

@@ -7,13 +7,16 @@ using namespace marian;
 using namespace keywords;
 
 int main(int argc, char** argv) {
+  
+  cudaSetDevice(0);
+  
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
   int numofdata;
 
   std::cerr << "Loading test set...";
   std::vector<float> testImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
-  std::vector<float>testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
+  std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
   std::cerr << "\tDone." << std::endl;
 
   std::cerr << "Loading model params...";
@@ -27,11 +30,11 @@ int main(int argc, char** argv) {
   Shape bShape;
   converter.Load("bias", bData, bShape);
 
-  auto initW = [&wData](Tensor t) {
+  auto initW = [wData](Tensor t) {
     thrust::copy(wData.begin(), wData.end(), t.begin());
   };
 
-  auto initB = [&bData](Tensor t) {
+  auto initB = [bData](Tensor t) {
     thrust::copy(bData.begin(), bData.end(), t.begin());
   };
 
@@ -39,24 +42,35 @@ int main(int argc, char** argv) {
 
 
   Expr x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-
+  Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
+  
   Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0", init=initW);
   Expr b = param(shape={1, LABEL_SIZE}, name="b0", init=initB);
 
   std::cerr << "Building model...";
-  auto scores = dot(x, w) + b;
-  auto predict = softmax(scores, axis=1, name="pred");
+  auto predict = softmax(dot(x, w) + b,
+                         axis=1, name="pred");
+  auto graph = -mean(sum(y * log(predict), axis=1),
+                     axis=0, name="cost");
+  
   std::cerr << "\tDone." << std::endl;
 
   Tensor xt({numofdata, IMAGE_SIZE});
   xt.Load(testImages);
-
-  predict.forward(numofdata);
-
+  
+  Tensor yt({numofdata, LABEL_SIZE});
+  yt.Load(testLabels);
+  
+  x = xt;
+  y = yt;
+  
+  graph.forward(numofdata);
   auto results = predict.val();
+  graph.backward();
+  
+  std::cerr << b.grad().Debug() << std::endl;
 
   size_t acc = 0;
-
   for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
     size_t correct = 0;
     size_t predicted = 0;
@@ -65,11 +79,11 @@ int main(int argc, char** argv) {
       if (results[i + j] > results[i + predicted]) predicted = j;
     }
     acc += (correct == predicted);
-    std::cerr << "corect: " << correct << " | " << predicted <<  "(";
-    for (size_t j = 0; j < LABEL_SIZE; ++j) {
-      std::cerr << results[i+j] << " ";
-    }
-    std::cerr << std::endl;
+    //std::cerr << "corect: " << correct << " | " << predicted <<  "(";
+    //for (size_t j = 0; j < LABEL_SIZE; ++j) {
+    //  std::cerr << results[i+j] << " ";
+    //}
+    //std::cerr << std::endl;
   }
   std::cerr << "ACC: " << float(acc)/numofdata << std::endl;
 
