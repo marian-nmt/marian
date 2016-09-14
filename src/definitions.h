@@ -6,12 +6,12 @@
 
 namespace marian {
   typedef float Float;
-  typedef std::vector<size_t> Shape;
+  typedef std::vector<int> Shape;
   const int whatevs{-1};
 }
 
 #include "keywords.h"
-#include "tensor.h"
+// #include "tensor.h"
 
 namespace marian {
   class Tensor;

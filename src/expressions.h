@@ -9,25 +9,25 @@ class Expr {
   public:
     Expr(Chainable<Tensor>* chainable);
     Expr(Float v);
-    
+
     Expr operator=(Tensor t) {
       pimpl_->setVal(t);
       return *this;
     }
-    
-    Tensor &val();
+
+    Tensor val();
     Tensor grad();
-    
+
     void forward(size_t batchSize);
     void backward();
-    
+
     ChainPtr node();
     operator ChainPtr();
-    
+
     std::string Debug() const;
 
   private:
-    ChainPtr pimpl_; 
+    ChainPtr pimpl_;
 };
 
 }

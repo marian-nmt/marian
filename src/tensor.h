@@ -35,7 +35,7 @@ struct Handles {
 
 const Handles handles;
 
-typedef std::vector<int> Shape;
+// typedef std::vector<int> Shape;
 
 inline std::string Debug(const Shape &shape)
 {
@@ -199,13 +199,13 @@ class Tensor {
     typedef TensorImpl<Float>::value_type value_type;
 
     Tensor() {}
-    Tensor(Shape shape, value_type value = 0) {
+    Tensor(const Shape& shape, value_type value = 0) {
       allocate(shape, value);
     }
 
     ~Tensor() {}
 
-    void allocate(Shape shape, value_type value = 0) {
+    void allocate(const Shape& shape, value_type value = 0) {
       if(!pimpl_)
         pimpl_.reset(new TensorImpl<Float>(shape, value));
     }
@@ -275,6 +275,7 @@ class Tensor {
     }
 
     void Load(const std::string &path);
+    void Load(const std::vector<float>& data);
     void Load(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
 
 };
