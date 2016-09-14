@@ -11,8 +11,6 @@ namespace mnist {
 
 typedef unsigned char uchar;
 
-const size_t IMAGE_SIZE = 784;
-const size_t LABEL_SIZE = 10;
 
 const size_t IMAGE_MAGIC_NUMBER = 2051;
 const size_t LABEL_MAGIC_NUMBER = 2049;
@@ -23,7 +21,7 @@ auto reverseInt = [](int i) {
   return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
 };
 
-std::vector<float> ReadImages(const std::string& full_path, int& number_of_images) {
+std::vector<float> ReadImages(const std::string& full_path, int& number_of_images, int imgSize) {
   std::ifstream file(full_path);
 
   if (! file.is_open())
@@ -42,9 +40,9 @@ std::vector<float> ReadImages(const std::string& full_path, int& number_of_image
   file.read((char *)&n_rows, sizeof(n_rows)), n_rows = reverseInt(n_rows);
   file.read((char *)&n_cols, sizeof(n_cols)), n_cols = reverseInt(n_cols);
 
-  assert(n_rows * n_cols == IMAGE_SIZE);
+  assert(n_rows * n_cols == imgSize);
 
-  int n = number_of_images * IMAGE_SIZE;
+  int n = number_of_images * imgSize;
   std::vector<float> _dataset(n);
 
   for (int i = 0; i < n; i++) {
@@ -55,7 +53,7 @@ std::vector<float> ReadImages(const std::string& full_path, int& number_of_image
   return _dataset;
 }
 
-std::vector<float> ReadLabels(const std::string& full_path, int& number_of_labels) {
+std::vector<float> ReadLabels(const std::string& full_path, int& number_of_labels, int label_size) {
   std::ifstream file(full_path);
 
   if (! file.is_open())
@@ -70,7 +68,7 @@ std::vector<float> ReadLabels(const std::string& full_path, int& number_of_label
 
   file.read((char *)&number_of_labels, sizeof(number_of_labels)), number_of_labels = reverseInt(number_of_labels);
 
-  int n = number_of_labels * LABEL_SIZE;
+  int n = number_of_labels * label_size;
   std::vector<float> _dataset(n, 0.0f);
 
   for (int i = 0; i < number_of_labels; i++) {
