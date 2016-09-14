@@ -10,7 +10,7 @@ Expr::Expr(Chainable<Tensor>* chainable) : pimpl_(chainable) {}
 Expr::Expr(Float v) : pimpl_(new ConstantNode(keywords::value=v,
                                               keywords::shape={1,1})) {}
 
-Tensor &Expr::val() {
+Tensor Expr::val() {
   return pimpl_->val();
 }
 
