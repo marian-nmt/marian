@@ -21,10 +21,10 @@ int main(int argc, char** argv) {
   Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
   Expr b = param(shape={1, LABEL_SIZE}, name="b0");
   
-  auto scores = dot(x, w) + b;
-  auto lr = softmax(scores, axis=1, name="pred");
-  auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
-  cerr << "lr=" << lr.Debug() << endl;
+  Expr scores = dot(x, w) + b;
+  Expr lr = softmax(scores, axis=1, name="pred");
+  Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
+  cerr << "lr=" << Debug(lr.val().shape()) << endl;
 
   int numofdata;
   vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
   tx.Load(images);
   ty.Load(labels);
 
-  cerr << "tx=" << tx.Debug() << endl;
-  cerr << "ty=" << ty.Debug() << endl;
+  cerr << "tx=" << Debug(tx.shape()) << endl;
+  cerr << "ty=" << Debug(ty.shape()) << endl;
 
   x = tx;
   y = ty;
@@ -49,6 +49,8 @@ int main(int argc, char** argv) {
   std::cerr << "scores: " << Debug(scores.val().shape()) << endl;
   std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
   std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
+
+  std::cerr << "scores=" << scores.val().Debug() << endl;
 
   graph.backward();
   

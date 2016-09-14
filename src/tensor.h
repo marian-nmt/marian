@@ -172,11 +172,13 @@ class TensorImpl {
     	strm << "shape=" << marian::Debug(shape_) << std::endl;
 
     	// values
-    	/*
     	size_t totSize = GetTotalSize(shape());
     	std::vector<Float> values(totSize);
 		thrust::copy(data_.begin(), data_.end(), values.begin());
-		*/
+
+		for (size_t i = 0; i < totSize; ++i) {
+			strm << values[i] << " ";
+		}
     	return strm.str();
     }
 };
