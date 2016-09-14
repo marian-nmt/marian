@@ -46,21 +46,9 @@ int main(int argc, char** argv) {
 
   graph.forward(500);
 
-  std::cerr << "Result: ";
-  for (auto val : scores.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  std::cerr << "Result: ";
-  for (auto val : lr.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
-  std::cerr << "Log-likelihood: ";
-  for (auto val : graph.val().shape()) {
-    std::cerr << val << " ";
-  }
-  std::cerr << std::endl;
+  std::cerr << "scores: " << Debug(scores.val().shape()) << endl;
+  std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
+  std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
 
   graph.backward();
   
