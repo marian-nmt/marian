@@ -1,13 +1,18 @@
 
 #include "marian.h"
+#include "mnist.h"
 
 using namespace std;
 
 int main(int argc, char** argv) {
+  /*int numImg = 0;*/
+  /*auto images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg);*/
+  /*auto labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numImg);*/
 
   using namespace marian;
   using namespace keywords;
   
+
   Expr x = input(shape={whatevs, 784}, name="X");
   Expr y = input(shape={whatevs, 10}, name="Y");
   
@@ -22,8 +27,17 @@ int main(int argc, char** argv) {
   
   Tensor tx({500, 784}, 1);
   Tensor ty({500, 10}, 1);
+
+#if 0
+  int numImg, imgSize;
+  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg, imgSize);
+  vector<int> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");
+  tx.Load(images);
+  //ty.Load(labels);
+
   cerr << "tx=" << tx.Debug() << endl;
   cerr << "ty=" << ty.Debug() << endl;
+#endif
 
   x = tx;
   y = ty;
@@ -52,6 +66,31 @@ int main(int argc, char** argv) {
   
   //std::cerr << graph["pred"].val()[0] << std::endl;
   
+
+   // XOR
+  /*
+  Expr x = input(shape={whatevs, 2}, name="X");
+  Expr y = input(shape={whatevs, 2}, name="Y");
+
+  Expr w = param(shape={2, 1}, name="W0");
+  Expr b = param(shape={1, 1}, name="b0");
+
+  Expr n5 = dot(x, w);
+  Expr n6 = n5 + b;
+  Expr lr = softmax(n6, axis=1, name="pred");
+  cerr << "lr=" << lr.Debug() << endl;
+
+  Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
+
+  Tensor tx({4, 2}, 1);
+  Tensor ty({4, 1}, 1);
+  cerr << "tx=" << tx.Debug() << endl;
+  cerr << "ty=" << ty.Debug() << endl;
+
+  tx.Load("../examples/xor/train.txt");
+  ty.Load("../examples/xor/label.txt");
+  */
+
 #if 0  
   hook0(graph);
   graph.autodiff();
