@@ -158,11 +158,11 @@ class TensorImpl {
       thrust::fill(data_.begin(), data_.end(), value);
     }
 
-    void set(const std::vector<Float> &values) {
+    void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end) {
 	  size_t totSize = GetTotalSize(shape());
-	  std::cerr << "tensor size=" << totSize << " vector size=" << values.size() << std::endl;
-	  assert(totSize == values.size());
-	  thrust::copy(values.begin(), values.end(), data_.begin());
+	  //std::cerr << "tensor size=" << totSize << " vector size=" << values.size() << std::endl;
+	  //assert(totSize == values.size());
+	  thrust::copy(begin, end, data_.begin());
     }
 
     std::string Debug() const
@@ -275,7 +275,7 @@ class Tensor {
     }
 
     void Load(const std::string &path);
-    void Load(const std::vector<float> &values);
+    void Load(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
 
 };
 

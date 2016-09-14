@@ -15,7 +15,7 @@ class Expr {
       return *this;
     }
     
-    Tensor val();
+    Tensor &val();
     Tensor grad();
     
     void forward(size_t batchSize);
