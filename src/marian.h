@@ -5,4 +5,5 @@
 #include "graph_operators.h"
 #include "expressions.h"
 #include "expression_operators.h"
+#include "param_initializers.h"
 

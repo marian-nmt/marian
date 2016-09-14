@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cudnn.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
@@ -12,30 +11,6 @@
 #include "thrust_functions.h"
 
 namespace marian {
-
-struct Handles {
-  cudnnHandle_t cudnnHandle;
-  cublasHandle_t cublasHandle;
-
-  cudnnOpTensorDescriptor_t add;
-
-  Handles() {
-    cudnnCreate(&cudnnHandle);
-    cublasCreate(&cublasHandle);
-    cudnnCreateOpTensorDescriptor(&add);
-    cudnnSetOpTensorDescriptor(add, CUDNN_OP_TENSOR_ADD, CUDNN_DATA_FLOAT, CUDNN_NOT_PROPAGATE_NAN);
-  }
-
-  ~Handles() {
-    cudnnDestroy(cudnnHandle);
-    cublasDestroy(cublasHandle);
-    cudnnDestroyOpTensorDescriptor(add);
-  }
-};
-
-const Handles handles;
-
-// typedef std::vector<int> Shape;
 
 inline std::string Debug(const Shape &shape)
 {
@@ -60,17 +35,8 @@ class TensorImpl {
   private:
     Shape shape_;
     thrust::device_vector<Float> data_;
-    cudnnTensorDescriptor_t desc_;
     size_t tno_;
     static size_t tensorCounter;
-
-    cudnnDataType_t dataType() {
-      switch(sizeof(Float)) {
-        case 2: return CUDNN_DATA_HALF;
-        case 8: return CUDNN_DATA_DOUBLE;
-        default: return CUDNN_DATA_FLOAT;
-      }
-    }
 
   public:
     typedef Float value_type;
@@ -90,29 +56,10 @@ class TensorImpl {
 
       int size = GetTotalSize(shape_);
       data_.resize(size, value);
-      cudnnCreateTensorDescriptor(&desc_);
-      switch (shape_.size()) {
-        case 1:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], 1, 1, 1); break;
-        case 2:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], shape_[1], 1, 1); break;
-        case 3:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], shape_[1], shape_[2], 1); break;
-        case 4:
-          cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, dataType(),
-                                     shape_[0], shape_[1], shape_[2], shape_[3]); break;
-      }
     }
 
     TensorImpl(const TensorImpl&) = delete;
     TensorImpl(TensorImpl&&) = delete;
-
-    ~TensorImpl() {
-      cudnnDestroyTensorDescriptor(desc_);
-    }
 
    value_type operator[](size_t i) const {
       return data_[i];
@@ -146,10 +93,6 @@ class TensorImpl {
       return thrust::raw_pointer_cast(data_.data());
     }
 
-    cudnnTensorDescriptor_t desc() const {
-      return desc_;
-    }
-
     size_t id() const {
       return tno_;
     }
@@ -159,12 +102,13 @@ class TensorImpl {
     }
 
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end) {
-	  size_t totSize = GetTotalSize(shape());
-	  //std::cerr << "tensor size=" << totSize << " vector size=" << values.size() << std::endl;
-	  //assert(totSize == values.size());
 	  thrust::copy(begin, end, data_.begin());
     }
 
+    void get(std::vector<float>::iterator out) {
+	  thrust::copy(data_.begin(), data_.end(), out);      
+    }
+    
     std::string Debug() const
     {
     	std::stringstream strm;
@@ -246,10 +190,6 @@ class Tensor {
       return pimpl_->shape();
     }
 
-    cudnnTensorDescriptor_t desc() const {
-      return pimpl_->desc();
-    }
-
     void set(value_type value) {
       pimpl_->set(value);
     }
@@ -274,10 +214,21 @@ class Tensor {
       std::cerr << std::endl;
     }
 
-    void Load(const std::string &path);
-    void Load(const std::vector<float>& data);
-    void Load(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
+    //void Load(const std::string &path);
+    void set(const std::vector<float>& data);
+    void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
 
+    void get(std::vector<float>::iterator out) const {
+      pimpl_->get(out);
+    }
+    
+    void get(std::vector<float> &vout) const {
+      pimpl_->get(vout.begin());
+    }
 };
+
+Tensor& operator<<(Tensor& t, const std::vector<float> &vec);
+
+std::vector<float>& operator<<(std::vector<float> &vec, const Tensor& t);
 
 }
