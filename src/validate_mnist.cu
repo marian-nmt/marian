@@ -31,11 +31,11 @@ int main(int argc, char** argv) {
   converter.Load("bias", bData, bShape);
 
   auto initW = [wData](Tensor t) {
-    t.set(wData.begin(), wData.end());
+    t.set(wData);
   };
 
   auto initB = [bData](Tensor t) {
-    t.set(bData.begin(), bData.end());
+    t.set(bData);
   };
 
   std::cerr << "\tDone." << std::endl;
@@ -56,20 +56,17 @@ int main(int argc, char** argv) {
   std::cerr << "Done." << std::endl;
 
   Tensor xt({numofdata, IMAGE_SIZE});
-  xt.set(testImages);
-  
   Tensor yt({numofdata, LABEL_SIZE});
-  yt.set(testLabels);
   
-  x = xt;
-  y = yt;
+  x = xt << testImages;
+  y = yt << testLabels;
   
   graph.forward(numofdata);
   auto results = predict.val();
   graph.backward();
   
   std::vector<float> resultsv(results.size());
-  results.get(resultsv);
+  resultsv << results;
   
   std::cerr << b.grad().Debug() << std::endl;
 

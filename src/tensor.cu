@@ -15,5 +15,16 @@ void Tensor::set(const std::vector<float>::const_iterator &begin, const std::vec
 	pimpl_->set(begin, end);
 }
 
+Tensor& operator<<(Tensor& t, const std::vector<float> &vec) {
+  t.set(vec);
+  return t;
+}
+
+std::vector<float>& operator<<(std::vector<float> &vec, const Tensor& t) {
+  t.get(vec);
+  return vec;
+}
+
+
 }
 

@@ -218,13 +218,17 @@ class Tensor {
     void set(const std::vector<float>& data);
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
 
-    void get(std::vector<float>::iterator out) {
+    void get(std::vector<float>::iterator out) const {
       pimpl_->get(out);
     }
     
-    void get(std::vector<float> &vout) {
+    void get(std::vector<float> &vout) const {
       pimpl_->get(vout.begin());
     }
 };
+
+Tensor& operator<<(Tensor& t, const std::vector<float> &vec);
+
+std::vector<float>& operator<<(std::vector<float> &vec, const Tensor& t);
 
 }
