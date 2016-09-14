@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 	  std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
 
 	  //std::cerr << "scores=" << scores.val().Debug() << endl;
-	  std::cerr << "lr=" << lr.val().Debug() << endl;
+	  //std::cerr << "lr=" << lr.val().Debug() << endl;
 
 	  graph.backward();
 
