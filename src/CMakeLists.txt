@@ -6,32 +6,38 @@ add_library(libcommon OBJECT
   exception.cpp
 )
 
+cuda_add_library(common_cuda 
+  expressions.cu 
+  test.cu
+  tensor.cu	
+  tensor_operators.cu
+)
+
+target_link_libraries(common_cuda)
+
 cuda_add_executable(
   marian
-  expressions.cu
-  test.cu
-  tensor.cu
   tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
+
+target_link_libraries(marian common_cuda)
 
 cuda_add_executable(
   train_mnist
-  expressions.cu
   train_mnist.cu
-  tensor.cu
-  tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
 
+target_link_libraries(train_mnist common_cuda)
+
 cuda_add_executable(
   validate_mnist
-  expressions.cu
   validate_mnist.cu
-  tensor.cu
-  tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
+
+target_link_libraries(validate_mnist common_cuda)
 
 foreach(exec marian train_mnist validate_mnist)
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn)
