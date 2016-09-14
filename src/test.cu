@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   Expr scores = dot(x, w) + b;
   Expr lr = softmax(scores, axis=1, name="pred");
   Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
-  cerr << "lr=" << Debug(lr.val().shape()) << endl;
+  //cerr << "lr=" << Debug(lr.val().shape()) << endl;
 
   int numofdata;
   vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
@@ -50,7 +50,8 @@ int main(int argc, char** argv) {
   std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
   std::cerr << "Log-likelihood: " << Debug(graph.val().shape()) << endl ;
 
-  std::cerr << "scores=" << scores.val().Debug() << endl;
+  //std::cerr << "scores=" << scores.val().Debug() << endl;
+  std::cerr << "lr=" << lr.val().Debug() << endl;
 
   graph.backward();
   
