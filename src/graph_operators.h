@@ -119,9 +119,12 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
   }
   
   void backward() {
-    // TODO
-    Element(_1 += _2 * Exp(_3),
-            a_->grad(), adj_, a_->val());
+    // For each row, the Jacobian times vector is given by:
+    // J * dy = p .* (dy - avg*1)
+    // where avg = p'*dy and p is the softmax output (probabilities).
+    Tensor result = adj_;
+    SubtractMean(&result, val_);
+    Prod(a_->grad(), adj_, result, false, false);
   }
 };
 
