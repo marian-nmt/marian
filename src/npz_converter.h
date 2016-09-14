@@ -53,13 +53,18 @@ class NpzConverter {
       destructed_ = true;
     }
 
-    void Load(const std::string& key, marian::Tensor& tensor) const {
+    void Load(const std::string& key, std::vector<float>& data, marian::Shape& shape) const {
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
-        tensor.allocate({(int)np.size1(), (int)np.size2()});
-        std::vector<float> data(np.data(), np.data() + np.size());
-        tensor.Load(data);
+        data.clear();
+        data.resize(np.size());
+        std::copy(np.data(), np.data() + np.size(), data.begin());
+
+        shape.clear();
+        shape.push_back(np.size1());
+        shape.push_back(np.size2());
+
       }
       else {
         std::cerr << "Missing " << key << std::endl;
