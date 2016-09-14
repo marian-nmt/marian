@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
   Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
   
   Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
+  // Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0", init=randreal);
   Expr b = param(shape={1, LABEL_SIZE}, name="b0");
     
   Expr z = dot(x, w) + b;
