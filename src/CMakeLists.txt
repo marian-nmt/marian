@@ -4,7 +4,6 @@ include_directories(.)
 add_library(libcommon OBJECT
   cnpy/cnpy.cpp
   exception.cpp
-  #npz_converter.cpp
 )
 
 cuda_add_executable(
