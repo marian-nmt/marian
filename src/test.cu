@@ -24,16 +24,16 @@ int main(int argc, char** argv) {
   auto graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
   cerr << "lr=" << lr.Debug() << endl;
 
-  
-  Tensor tx({500, 784}, 1);
-  Tensor ty({500, 10}, 1);
-
   int numImg, imgSize;
   vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg, imgSize);
   vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte");
   cerr << "images=" << images.size() << " labels=" << labels.size() << endl;
+
+  Tensor tx({numImg, 784}, 1);
+  Tensor ty({numImg, 10}, 1);
+
   tx.Load(images);
-  //ty.Load(labels);
+  ty.Load(labels);
 
   cerr << "tx=" << tx.Debug() << endl;
   cerr << "ty=" << ty.Debug() << endl;
