@@ -111,7 +111,7 @@ class TensorImpl {
    value_type operator[](size_t i) const {
       return data_[i];
     }
-   
+      
     auto begin() -> decltype( data_.begin() ) {
       return data_.begin();
     }
