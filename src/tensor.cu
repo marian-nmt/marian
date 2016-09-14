@@ -59,8 +59,7 @@ inline std::vector<T> Tokenize( const std::string &input
 
 void Tensor::Load(const std::string &path)
 {
-  size_t totSize = std::accumulate(pimpl_->shape().begin(), pimpl_->shape().end(),
-		  1, std::multiplies<int>());
+  size_t totSize = GetTotalSize(pimpl_->shape());
   cerr << "totSize=" << totSize << endl;
   std::vector<float> hostData(totSize);
 
