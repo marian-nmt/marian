@@ -8,7 +8,7 @@ using namespace keywords;
 
 int main(int argc, char** argv) {
   
-  cudaSetDevice(0);
+  cudaSetDevice(1);
   
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
@@ -30,18 +30,22 @@ int main(int argc, char** argv) {
   std::cerr << "Done." << std::endl;
 
   std::cerr << "Building model...";
-  auto x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-  auto y = input(shape={whatevs, LABEL_SIZE}, name="Y");
   
-  auto w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0",
+  auto x = input(shape={whatevs, IMAGE_SIZE});
+  auto y = input(shape={whatevs, LABEL_SIZE});
+  
+  auto w = param(shape={IMAGE_SIZE, LABEL_SIZE},
                  init=[wData](Tensor t) { t.set(wData); });
-  auto b = param(shape={1, LABEL_SIZE}, name="b0",
-                 init=[bData](Tensor t) {t.set(bData); });
+  auto b = param(shape={1, LABEL_SIZE},
+                 init=[bData](Tensor t) { t.set(bData); });
 
-  auto predict = softmax(dot(x, w) + b,
-                         axis=1, name="pred");
-  auto graph = -mean(sum(y * log(predict), axis=1),
-                     axis=0, name="cost");
+  auto zd = dot(x, w);
+  auto z = zd + b;
+  auto predict = softmax(z, axis=1);
+  auto logp = log(predict);
+  auto cost = sum(y * logp, axis=1);
+  auto graph = -mean(cost, axis=0);
+  
   std::cerr << "Done." << std::endl;
 
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
@@ -51,14 +55,20 @@ int main(int argc, char** argv) {
   y = yt << testLabels;
   
   graph.forward(BATCH_SIZE);
-  graph.backward();
+  for(size_t i = 0; i < 1000; ++i) {    
+    graph.backward();
+  
+    auto update_rule = _1 -= 0.1 * _2;
+    Element(update_rule, w.val(), w.grad());
+    Element(update_rule, b.val(), b.grad());
+    
+    graph.forward(BATCH_SIZE);
+  }
   
   auto results = predict.val();
   std::vector<float> resultsv(results.size());
   resultsv << results;
   
-  std::cerr << b.grad().Debug() << std::endl;
-
   size_t acc = 0;
   for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
     size_t correct = 0;
@@ -69,7 +79,7 @@ int main(int argc, char** argv) {
     }
     acc += (correct == predicted);
   }
-  std::cerr << "Accuracy: " << float(acc)/BATCH_SIZE << std::endl;
+  std::cerr << "Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
 
   return 0;
 }

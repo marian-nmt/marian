@@ -42,7 +42,8 @@ struct ParamNode : public Node {
   template <typename ...Args>
   ParamNode(Args ...args)
   : Node(args...),
-    init_(Get<std::function<void(Tensor)>>(keywords::init, [](Tensor){ }))
+    init_(Get<std::function<void(Tensor)>>(keywords::init, [](Tensor){ })),
+    initialized_(false)
   {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
@@ -51,14 +52,18 @@ struct ParamNode : public Node {
 
   void forward() {}
   void backward() {}
-
+  
   virtual void allocate(size_t batchSize) {
     val_.allocate(shape_);
-    init_(val_);
+    if(!initialized_) {
+      init_(val_);
+      initialized_ = true;
+    }
   }
 
   private:
     std::function<void(Tensor)> init_;
+    bool initialized_;
 };
 
 struct UnaryNodeOp : public Node {
@@ -139,6 +144,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     SoftmaxNodeOp(ChainPtr a, Args ...args)
     : UnaryNodeOp(a, keywords::shape=newShape(a),
                   args...) { }
+    
   Shape newShape(ChainPtr a) {
     Shape shape = a->shape();
     return shape;
@@ -164,8 +170,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
 
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  LogNodeOp(Args ...args)
-  : UnaryNodeOp(args...) {}
+  LogNodeOp(ChainPtr a, Args ...args)
+  : UnaryNodeOp(a, keywords::shape=a->shape(), args...) {}
 
   void forward() {
     Element(_1 = Log(_2), val_, a_->val());
@@ -180,13 +186,8 @@ struct LogNodeOp : public UnaryNodeOp {
 struct ExpNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     ExpNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a),
+    : UnaryNodeOp(a, keywords::shape=a->shape(),
                   args...) { }
-
-  Shape newShape(ChainPtr a) {
-    Shape shape = a->shape();
-    return shape;
-  }
 
   void forward() {
     Element(_1 = Exp(_2), val_, a_->val());
