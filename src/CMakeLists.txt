@@ -5,7 +5,6 @@ cuda_add_library(marian_lib
   cnpy/cnpy.cpp
   exception.cpp
   expressions.cu 
-  test.cu
   tensor.cu	
   tensor_operators.cu
 )
@@ -14,7 +13,7 @@ target_link_libraries(marian_lib)
 
 cuda_add_executable(
   marian
-  tensor_operators.cu
+  test.cu
 )
 
 target_link_libraries(marian marian_lib)
