@@ -31,21 +31,21 @@ int main(int argc, char** argv) {
   converter.Load("bias", bData, bShape);
 
   auto initW = [wData](Tensor t) {
-    thrust::copy(wData.begin(), wData.end(), t.begin());
+    t.set(wData.begin(), wData.end());
   };
 
   auto initB = [bData](Tensor t) {
-    thrust::copy(bData.begin(), bData.end(), t.begin());
+    t.set(bData.begin(), bData.end());
   };
 
   std::cerr << "\tDone." << std::endl;
 
 
-  Expr x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-  Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
+  auto x = input(shape={whatevs, IMAGE_SIZE}, name="X");
+  auto y = input(shape={whatevs, LABEL_SIZE}, name="Y");
   
-  Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0", init=initW);
-  Expr b = param(shape={1, LABEL_SIZE}, name="b0", init=initB);
+  auto w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0", init=initW);
+  auto b = param(shape={1, LABEL_SIZE}, name="b0", init=initB);
 
   std::cerr << "Building model...";
   auto predict = softmax(dot(x, w) + b,
@@ -53,13 +53,13 @@ int main(int argc, char** argv) {
   auto graph = -mean(sum(y * log(predict), axis=1),
                      axis=0, name="cost");
   
-  std::cerr << "\tDone." << std::endl;
+  std::cerr << "Done." << std::endl;
 
   Tensor xt({numofdata, IMAGE_SIZE});
-  xt.Load(testImages);
+  xt.set(testImages);
   
   Tensor yt({numofdata, LABEL_SIZE});
-  yt.Load(testLabels);
+  yt.set(testLabels);
   
   x = xt;
   y = yt;
@@ -67,6 +67,9 @@ int main(int argc, char** argv) {
   graph.forward(numofdata);
   auto results = predict.val();
   graph.backward();
+  
+  std::vector<float> resultsv(results.size());
+  results.get(resultsv);
   
   std::cerr << b.grad().Debug() << std::endl;
 
@@ -76,14 +79,14 @@ int main(int argc, char** argv) {
     size_t predicted = 0;
     for (size_t j = 0; j < LABEL_SIZE; ++j) {
       if (testLabels[i+j]) correct = j;
-      if (results[i + j] > results[i + predicted]) predicted = j;
+      if (resultsv[i + j] > resultsv[i + predicted]) predicted = j;
     }
     acc += (correct == predicted);
-    //std::cerr << "corect: " << correct << " | " << predicted <<  "(";
+    //std::cerr << correct << " | " << predicted <<  " ( ";
     //for (size_t j = 0; j < LABEL_SIZE; ++j) {
-    //  std::cerr << results[i+j] << " ";
+    //  std::cerr << resultsv[i+j] << " ";
     //}
-    //std::cerr << std::endl;
+    //std::cerr << ")" << std::endl;
   }
   std::cerr << "ACC: " << float(acc)/numofdata << std::endl;
 
