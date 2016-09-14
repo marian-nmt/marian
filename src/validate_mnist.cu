@@ -27,9 +27,9 @@ int main(int argc, char** argv) {
   Shape wShape, bShape;
   converter.Load("weights", wData, wShape);
   converter.Load("bias", bData, bShape);
-
   std::cerr << "Done." << std::endl;
 
+  std::cerr << "Building model...";
   auto x = input(shape={whatevs, IMAGE_SIZE}, name="X");
   auto y = input(shape={whatevs, LABEL_SIZE}, name="Y");
   
@@ -38,7 +38,6 @@ int main(int argc, char** argv) {
   auto b = param(shape={1, LABEL_SIZE}, name="b0",
                  init=[bData](Tensor t) {t.set(bData); });
 
-  std::cerr << "Building model...";
   auto predict = softmax(dot(x, w) + b,
                          axis=1, name="pred");
   auto graph = -mean(sum(y * log(predict), axis=1),
@@ -69,11 +68,6 @@ int main(int argc, char** argv) {
       if (resultsv[i + j] > resultsv[i + predicted]) predicted = j;
     }
     acc += (correct == predicted);
-    //std::cerr << correct << " | " << predicted <<  " ( ";
-    //for (size_t j = 0; j < LABEL_SIZE; ++j) {
-    //  std::cerr << resultsv[i+j] << " ";
-    //}
-    //std::cerr << ")" << std::endl;
   }
   std::cerr << "Accuracy: " << float(acc)/BATCH_SIZE << std::endl;
 
