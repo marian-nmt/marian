@@ -2,34 +2,35 @@
 include_directories(.)
 
 add_library(libcommon OBJECT
-  exception.cpp
   cnpy/cnpy.cpp
+  exception.cpp
+  #npz_converter.cpp
 )
 
 cuda_add_executable(
   marian
-  test.cu
   expressions.cu
-  tensor_operators.cu
+  test.cu
   tensor.cu
+  tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
 
 cuda_add_executable(
   train_mnist
-  train_mnist.cu
   expressions.cu
-  tensor_operators.cu
+  train_mnist.cu
   tensor.cu
+  tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
 
 cuda_add_executable(
   validate_mnist
-  validate_mnist.cu
   expressions.cu
-  tensor_operators.cu
+  validate_mnist.cu
   tensor.cu
+  tensor_operators.cu
   $<TARGET_OBJECTS:libcommon>
 )
 
