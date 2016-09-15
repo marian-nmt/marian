@@ -9,7 +9,7 @@ using namespace keywords;
 
 int main(int argc, char** argv) {
   
-  cudaSetDevice(0);
+  cudaSetDevice(1);
   
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
@@ -20,7 +20,6 @@ int main(int argc, char** argv) {
   std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", BATCH_SIZE, LABEL_SIZE);
   std::cerr << "Done." << std::endl;
 
-  
   std::cerr << "Loading model params...";
   NpzConverter converter("../scripts/test_model_single/model.npz");
 
@@ -36,11 +35,11 @@ int main(int argc, char** argv) {
   auto y = input(shape={whatevs, LABEL_SIZE});
   
   auto w = param(shape={IMAGE_SIZE, LABEL_SIZE},
-                 init=[wData](Tensor t) { t.set(wData); });
+                 init=from_vector(wData));
   auto b = param(shape={1, LABEL_SIZE},
-                 init=[bData](Tensor t) { t.set(bData); });
+                 init=from_vector(bData));
 
-  auto probs = softmax(dot(x, w) + b, axis=1);
+  auto probs = softmax_fast(dot(x, w) + b, axis=1);
   auto cost = -mean(sum(y * log(probs), axis=1), axis=0);
   
   std::cerr << "Done." << std::endl;

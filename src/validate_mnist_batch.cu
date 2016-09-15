@@ -21,22 +21,42 @@ int main(int argc, char** argv) {
   std::cerr << "\tDone." << std::endl;
 
   std::cerr << "Loading model params...";
+<<<<<<< HEAD
   NpzConverter converter("../scripts/test_model_single/model.npz");
+=======
+  NpzConverter converter("../scripts/test_model_multi/model.npz");
+>>>>>>> eba5b462257a9949fd124378c53e9bf7b357b1d3
 
-  std::vector<float> wData;
-  Shape wShape;
-  converter.Load("weights", wData, wShape);
+  std::vector<float> wData1;
+  Shape wShape1;
+  converter.Load("weights1", wData1, wShape1);
+  
+  std::vector<float> bData1;
+  Shape bShape1;
+  converter.Load("bias1", bData1, bShape1);
+  
+  std::vector<float> wData2;
+  Shape wShape2;
+  converter.Load("weights2", wData2, wShape2);
+  
+  std::vector<float> bData2;
+  Shape bShape2;
+  converter.Load("bias2", bData2, bShape2);
 
-  std::vector<float> bData;
-  Shape bShape;
-  converter.Load("bias", bData, bShape);
-
-  auto initW = [wData](Tensor t) {
-    t.set(wData);
+  auto initW1 = [wData1](Tensor t) {
+    t.set(wData1);
   };
 
-  auto initB = [bData](Tensor t) {
-    t.set(bData);
+  auto initB1 = [bData1](Tensor t) {
+    t.set(bData1);
+  };
+  
+  auto initW2 = [wData2](Tensor t) {
+    t.set(wData2);
+  };
+
+  auto initB2 = [bData2](Tensor t) {
+    t.set(bData2);
   };
 
   std::cerr << "\tDone." << std::endl;
@@ -45,11 +65,15 @@ int main(int argc, char** argv) {
   auto x = input(shape={whatevs, IMAGE_SIZE}, name="X");
   auto y = input(shape={whatevs, LABEL_SIZE}, name="Y");
 
-  auto w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0", init=initW);
-  auto b = param(shape={1, LABEL_SIZE}, name="b0", init=initB);
+  auto w1 = param(shape={IMAGE_SIZE, 100}, name="W0", init=initW1);
+  auto b1 = param(shape={1, 100}, name="b0", init=initB1);
+  auto w2 = param(shape={100, LABEL_SIZE}, name="W1", init=initW2);
+  auto b2 = param(shape={1, LABEL_SIZE}, name="b1", init=initB2);
 
   std::cerr << "Building model...";
-  auto predict = softmax(dot(x, w) + b, axis=1, name="pred");
+  auto layer1 = tanh(dot(x, w1) + b1);
+  auto layer2 = softmax(dot(layer1, w2) + b2, axis=1, name="layer2");
+  auto predict = layer2;
 
   std::cerr << "Done." << std::endl;
 
@@ -77,6 +101,7 @@ int main(int argc, char** argv) {
         if (testLabels[startId * LABEL_SIZE + i + j]) correct = j;
         if (results[i + j] > results[i + predicted]) predicted = j;
       }
+      /*std::cerr << "CORRECT: " << correct << " PREDICTED: " << predicted << std::endl;*/
       acc += (correct == predicted);
     }
 

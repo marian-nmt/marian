@@ -153,20 +153,6 @@ inline Expr sum(Expr a, Args ...args) {
 template <typename ...Args>
 inline Expr softmax(Expr a, Args ...args) {
   Expr e = exp(a);
-#if 0
-  ChainPtr n = a.node();
-  auto print_shape = [n]() -> Shape {
-    std::cerr << "Shape: ";
-    for (auto val : n->val().shape()) {
-      std::cerr << val << " ";
-    }
-    std::cerr << std::endl;
-    return {1,1};
-  };
-  using namespace keywords;
-  Expr one = ones(shape={1, 1}, lazy_shape=print_shape);
-#endif
-  
   return e / sum(e, args...);
 }
 

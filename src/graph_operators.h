@@ -162,11 +162,10 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     // For each row, the Jacobian times vector is given by:
     // J * dy = p .* (dy - avg*1)
     // where avg = p'*dy and p is the softmax output (probabilities).
-    Tensor result = adj_;
+    Tensor result(adj_.shape());
+    thrust::copy(adj_.begin(), adj_.end(), result.begin());
     SubtractMean(&result, val_);
-    // beta set to 1.0 in gemm, C = alpha * dot(A,B) + beta * C
-    // to sum gradients from different graph parts.
-    Prod(a_->grad(), adj_, result, false, false, 1.0);
+    Element(_1 += _2 *  _3, a_->grad(), val_, result);
   }
 };
 
