@@ -11,7 +11,7 @@ Installation
 
 Requirements:
 
-* g++ with C++14
+* g++ with C++11
 * CUDA and CuDNN
 
 Exporting some paths for CuDNN may be required (put it, for example, in your `.bashrc` file):
