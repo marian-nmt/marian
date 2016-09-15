@@ -132,15 +132,21 @@ struct ArgmaxOp : public UnaryNodeOp {
   
   void forward() {
     //val_ = Argmax(a_->val(), axis_);
+    UTIL_THROW2("Not implemented");    
   }
   
-  void backward() {}
+  void backward() {
+    UTIL_THROW2("Not implemented");    
+  }
   
   private:
     int axis_;
 };
 
-
+// @TODO, make this numerically safe(r):
+// softmax(X) = softmax_safe(X - max(X, axis=1))
+// Probably best to do this directly in Softmax
+// function. 
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(ChainPtr a, Args ...args)

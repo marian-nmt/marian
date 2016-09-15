@@ -52,8 +52,6 @@ class TensorImpl {
       UTIL_THROW_IF2(shape_.size() < 1 || shape_.size() > 4,
                      "Wrong number of dimensions: " << shape_.size());
 
-      std::cerr << "Allocating : " << shape[0] << " " << shape[1] << std::endl;
-
       int size = GetTotalSize(shape_);
       data_.resize(size, value);
     }
