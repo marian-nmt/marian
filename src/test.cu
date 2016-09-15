@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   //Expr b = param(shape={1, 2}, name="b0");
 
   std::cerr << "Building model...";
-  auto predict = softmax(dot(x, w),
+  auto predict = softmax_fast(dot(x, w),
                          axis=1, name="pred");
   auto graph = -mean(sum(y * log(predict), axis=1),
                      axis=0, name="cost");
