@@ -22,7 +22,7 @@ void ones(Tensor t) {
 void randreal(Tensor t) {
   std::random_device device;
   std::default_random_engine engine(device());
-  std::uniform_real_distribution<> dist(0, 0.01);
+  std::uniform_real_distribution<> dist(0, 0.1);
   auto gen = std::bind(dist, engine);
 
   std::vector<float> vals(t.size());
