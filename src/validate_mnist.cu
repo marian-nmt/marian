@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
                  init=[bData](Tensor t) { t.set(bData); });
 
   auto probs = softmax(dot(x, w) + b, axis=1);
-  auto graph = -mean(sum(y * log(probs), axis=1), axis=0);
+  auto cost = -mean(sum(y * log(probs), axis=1), axis=0);
   
   std::cerr << "Done." << std::endl;
 
@@ -51,50 +51,49 @@ int main(int argc, char** argv) {
   x = xt << testImages;
   y = yt << testLabels;
   
-  graph.forward(BATCH_SIZE);
-  auto results = probs.val();
-  std::vector<float> resultsv(results.size());
-  resultsv << results;
+  cost.forward(BATCH_SIZE);
+ 
+  std::vector<float> results;
+  results << probs.val();
   
   size_t acc = 0;
   for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
     size_t correct = 0;
-    size_t probsed = 0;
+    size_t proposed = 0;
     for (size_t j = 0; j < LABEL_SIZE; ++j) {
       if (testLabels[i+j]) correct = j;
-      if (resultsv[i + j] > resultsv[i + probsed]) probsed = j;
+      if (results[i + j] > results[i + proposed]) proposed = j;
     }
-    acc += (correct == probsed);
+    acc += (correct == proposed);
   }
-  std::cerr << "Cost: " << graph.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
+  std::cerr << "Cost: " << cost.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
 
   float eta = 0.1;
   for (size_t j = 0; j < 10; ++j) {
     for(size_t i = 0; i < 60; ++i) {    
-      graph.backward();
+      cost.backward();
     
       auto update_rule = _1 -= eta * _2;
       Element(update_rule, w.val(), w.grad());
       Element(update_rule, b.val(), b.grad());
       
-      graph.forward(BATCH_SIZE);
+      cost.forward(BATCH_SIZE);
     }
     std::cerr << "Epoch: " << j << std::endl;
-    auto results = probs.val();
-    std::vector<float> resultsv(results.size());
-    resultsv << results;
+    std::vector<float> results;
+    results << probs.val();
     
     size_t acc = 0;
     for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
       size_t correct = 0;
-      size_t probsed = 0;
+      size_t proposed = 0;
       for (size_t j = 0; j < LABEL_SIZE; ++j) {
         if (testLabels[i+j]) correct = j;
-        if (resultsv[i + j] > resultsv[i + probsed]) probsed = j;
+        if (results[i + j] > results[i + proposed]) proposed = j;
       }
-      acc += (correct == probsed);
+      acc += (correct == proposed);
     }
-    std::cerr << "Cost: " << graph.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
+    std::cerr << "Cost: " << cost.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
   }
   return 0;
 }

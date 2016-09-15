@@ -76,9 +76,9 @@ struct UnaryNodeOp : public Node {
     a_(a) {}
 };
 
-struct SigmoidNodeOp : public UnaryNodeOp {
+struct LogitNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  SigmoidNodeOp(Args ...args)
+  LogitNodeOp(Args ...args)
   : UnaryNodeOp(args...) {  }
 
   void forward() {

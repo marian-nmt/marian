@@ -32,8 +32,8 @@ inline Expr zeroes(Args ...args) {
 
 /*********************************************************/
 
-inline Expr sigmoid(Expr a) {
-  return Expr(new SigmoidNodeOp(a));
+inline Expr logit(Expr a) {
+  return Expr(new LogitNodeOp(a));
 }
 
 inline Expr tanh(Expr a) {
