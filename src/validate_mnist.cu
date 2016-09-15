@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
   auto b = param(shape={1, LABEL_SIZE},
                  init=from_vector(bData));
 
-  auto probs = softmax(dot(x, w) + b, axis=1);
+  auto probs = softmax_fast(dot(x, w) + b, axis=1);
   auto cost = -mean(sum(y * log(probs), axis=1), axis=0);
   
   std::cerr << "Done." << std::endl;
