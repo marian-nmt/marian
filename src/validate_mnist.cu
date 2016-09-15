@@ -6,19 +6,11 @@
 using namespace marian;
 using namespace keywords;
 
-int main(int argc, char** argv) {
-  
-  cudaSetDevice(1);
-  
-  const size_t IMAGE_SIZE = 784;
-  const size_t LABEL_SIZE = 10;
-  int BATCH_SIZE = 10000;
-  
-  std::cerr << "Loading test set...";
-  std::vector<float> testImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", BATCH_SIZE, IMAGE_SIZE);
-  std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", BATCH_SIZE, LABEL_SIZE);
-  std::cerr << "Done." << std::endl;
+const size_t IMAGE_SIZE = 784;
+const size_t LABEL_SIZE = 10;
+int BATCH_SIZE = 10000;
 
+ExpressionGraph build_graph() {
   std::cerr << "Loading model params...";
   NpzConverter converter("../scripts/test_model/model.npz");
 
@@ -31,29 +23,43 @@ int main(int argc, char** argv) {
   std::cerr << "Building model...";
   
   ExpressionGraph g;
-  auto x = g.input(shape={whatevs, IMAGE_SIZE}, name="X");
-  auto y = g.input(shape={whatevs, LABEL_SIZE});
+  auto x = named(g.input(shape={whatevs, IMAGE_SIZE}), "x");
+  auto y = named(g.input(shape={whatevs, LABEL_SIZE}), "y");
   
-  auto w = g.param(shape={IMAGE_SIZE, LABEL_SIZE},
-                   init=from_vector(wData));
-  auto b = g.param(shape={1, LABEL_SIZE},
-                   init=from_vector(bData));
+  auto w = named(g.param(shape={IMAGE_SIZE, LABEL_SIZE},
+                         init=from_vector(wData)), "w");
+  
+  auto b = named(g.param(shape={1, LABEL_SIZE},
+                         init=from_vector(bData)), "b");
 
-  auto probs = softmax(dot(x, w) + b, axis=1);
-  auto cost = -mean(sum(y * log(probs), axis=1), axis=0);
+  auto probs = named(softmax(dot(x, w) + b, axis=1), "probs");
+  auto cost = named(-mean(sum(y * log(probs), axis=1), axis=0), "cost");
   
   std::cerr << "Done." << std::endl;
+  return g;
+}
 
+int main(int argc, char** argv) {
+  
+  cudaSetDevice(0);
+    
+  std::cerr << "Loading test set...";
+  std::vector<float> testImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", BATCH_SIZE, IMAGE_SIZE);
+  std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", BATCH_SIZE, LABEL_SIZE);
+  std::cerr << "Done." << std::endl;
+
+  ExpressionGraph g = build_graph();
+  
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});
   
-  x = xt << testImages;
-  y = yt << testLabels;
+  g["x"] = (xt << testImages);
+  g["y"] = (yt << testLabels);
   
   g.forward(BATCH_SIZE);
  
   std::vector<float> results;
-  results << probs.val();
+  results << g["probs"].val();
   
   size_t acc = 0;
   for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
@@ -65,7 +71,7 @@ int main(int argc, char** argv) {
     }
     acc += (correct == proposed);
   }
-  std::cerr << "Cost: " << cost.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
+  std::cerr << "Cost: " << g["cost"].val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
   
   float eta = 0.1;
   for (size_t j = 0; j < 10; ++j) {
@@ -73,14 +79,14 @@ int main(int argc, char** argv) {
       g.backward();
     
       auto update_rule = _1 -= eta * _2;
-      Element(update_rule, w.val(), w.grad());
-      Element(update_rule, b.val(), b.grad());
+      for(auto param : g.params()) 
+        Element(update_rule, param.val(), param.grad());
       
       g.forward(BATCH_SIZE);
     }
     std::cerr << "Epoch: " << j << std::endl;
     std::vector<float> results;
-    results << probs.val();
+    results << g["probs"].val();
     
     size_t acc = 0;
     for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
@@ -92,7 +98,7 @@ int main(int argc, char** argv) {
       }
       acc += (correct == proposed);
     }
-    std::cerr << "Cost: " << cost.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
+    std::cerr << "Cost: " << g["cost"].val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
   }
   return 0;
 }

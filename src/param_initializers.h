@@ -43,7 +43,7 @@ std::function<void(Tensor)> uniform(float a = 0.0, float b = 0.1) {
 }
 
 std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
-  return [&v](Tensor t) {
+  return [v](Tensor t) {
     t << v;
   };
 }

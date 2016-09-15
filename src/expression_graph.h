@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "definitions.h"
 #include "chainable.h"
 #include "node_operators.h"
@@ -65,7 +67,9 @@ class ExpressionGraph {
     
     template <typename ...Args>
     inline Expr param(Args ...args) {
-      return Expr(this, new ParamNode(args...));
+      Expr e(this, new ParamNode(args...));
+      params_.emplace_back(e);
+      return e;
     }
     
     template <typename ...Args>
@@ -89,8 +93,28 @@ class ExpressionGraph {
       return stack_;
     }
     
+    Expr& operator[](const std::string& name) {
+      auto it = named_.find(name);
+      UTIL_THROW_IF2(it == named_.end(), "No such named node in graph: " << name);
+      return it->second;  
+    }
+
+    bool has_node(const std::string& name) const {
+      return named_.count(name) > 0;
+    }
+    
+    void add_named_node(Expr e, const std::string& name) {
+      named_.emplace(name, e);
+    }
+    
+    std::vector<Expr>& params() {
+      return params_;
+    }
+    
   private:
     ChainableStackPtr stack_;
+    std::map<std::string, Expr> named_;
+    std::vector<Expr> params_;
 };
 
 }

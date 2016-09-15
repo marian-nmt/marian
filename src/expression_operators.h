@@ -4,6 +4,8 @@
 
 namespace marian {
 
+Expr named(Expr a, const std::string& name);
+
 Expr logit(Expr a);
 
 Expr tanh(Expr a);

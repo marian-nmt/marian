@@ -4,6 +4,11 @@
 
 namespace marian {
 
+Expr named(Expr a, const std::string& name) {
+  a.graph()->add_named_node(a, name);
+  return a;
+}
+
 Expr logit(Expr a) {
   return Expr(a.graph(), new LogitNodeOp(a));
 }
@@ -25,6 +30,25 @@ Expr operator-(Expr a) {
 };
 
 /*********************************************************/
+
+static Shape newShape(ChainPtr a, ChainPtr b) {
+  size_t dimsA = a->shape().size();
+  size_t dimsB = b->shape().size();
+  UTIL_THROW_IF2(dimsA != dimsB,
+                 "Tensors have different numbers of dimensions");
+  Shape shape(dimsA);
+  for(size_t i = 0; i < dimsA; ++i) {
+    int dimA = a->shape()[i];
+    int dimB = b->shape()[i];
+    bool broadcastable = (dimA == dimB || dimA == 1 || dimB == 1);
+    UTIL_THROW_IF2(!broadcastable, "Different dimensions in elementwise "
+                   << "operation cannot be broadcasted: " << dimA << " != " << dimB);
+    shape[i] = std::max(dimA, dimB);
+    if(dimA == whatevs || dimB == whatevs)
+      shape[i] = whatevs;
+  }
+  return shape;
+}
 
 Expr broadcast(Shape bShape, Expr a) {
   const Shape& aShape = a.node()->shape();
@@ -61,30 +85,11 @@ Expr broadcast(Shape bShape, Expr a) {
   }
 }
 
-static Shape newShape(ChainPtr a, ChainPtr b) {
-  size_t dimsA = a->shape().size();
-  size_t dimsB = b->shape().size();
-  UTIL_THROW_IF2(dimsA != dimsB,
-                 "Tensors have different numbers of dimensions");
-  Shape shape(dimsA);
-  for(size_t i = 0; i < dimsA; ++i) {
-    int dimA = a->shape()[i];
-    int dimB = b->shape()[i];
-    bool broadcastable = (dimA == dimB || dimA == 1 || dimB == 1);
-    UTIL_THROW_IF2(!broadcastable, "Different dimensions in elementwise "
-                   << "operation cannot be broadcasted: " << dimA << " != " << dimB);
-    shape[i] = std::max(dimA, dimB);
-    if(dimA == whatevs || dimB == whatevs)
-      shape[i] = whatevs;
-  }
-  return shape;
-}
-
 Expr operator+(Expr a, Expr b) {
   Shape shape = newShape(a, b);
   Expr cast_a = broadcast(shape, a);
   Expr cast_b = broadcast(shape, b);
-  return Expr(a.graph(), new PlusNodeOp(a, b));
+  return Expr(a.graph(), new PlusNodeOp(cast_a, cast_b));
 }
 
 Expr operator-(Expr a, Expr b) {
@@ -109,13 +114,7 @@ Expr operator/(Expr a, Expr b) {
 }
 
 Expr dot(Expr a, Expr b) {
-  Shape shape = newShape(a, b);
-  Expr cast_a = broadcast(shape, a);
-  Expr cast_b = broadcast(shape, b);
-  return Expr(a.graph(), new DotNodeOp(cast_a, cast_b));
+  return Expr(a.graph(), new DotNodeOp(a, b));
 }
-
-/******************************************************/
-
 
 }

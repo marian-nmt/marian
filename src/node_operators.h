@@ -194,8 +194,7 @@ struct BinaryNodeOp : public Node {
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   DotNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-  : BinaryNodeOp(
-                 a, b,
+  : BinaryNodeOp(a, b,
                  keywords::shape=newShape(a, b),
                  args...) { }
 
@@ -223,35 +222,6 @@ struct DotNodeOp : public BinaryNodeOp {
     Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
   }
 };
-
-//struct BroadcastingNodeOp : public BinaryNodeOp {
-//  template <typename ...Args>
-//  BroadcastingNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-//  : BinaryNodeOp(broadcast(newShape(a ,b), a),
-//                 broadcast(newShape(a ,b), b),
-//                 keywords::shape=newShape(a, b),
-//                 args...) {}
-//  
-//  static Shape newShape(ChainPtr a, ChainPtr b) {
-//    size_t dimsA = a->shape().size();
-//    size_t dimsB = b->shape().size();
-//    UTIL_THROW_IF2(dimsA != dimsB,
-//                   "Tensors have different numbers of dimensions");
-//    Shape shape(dimsA);
-//    for(size_t i = 0; i < dimsA; ++i) {
-//      int dimA = a->shape()[i];
-//      int dimB = b->shape()[i];
-//      bool broadcastable = (dimA == dimB || dimA == 1 || dimB == 1);
-//      UTIL_THROW_IF2(!broadcastable, "Different dimensions in elementwise "
-//                     << "operation cannot be broadcasted: " << dimA << " != " << dimB);
-//      shape[i] = std::max(dimA, dimB);
-//      if(dimA == whatevs || dimB == whatevs)
-//        shape[i] = whatevs;
-//    }
-//    return shape;
-//  }
-//};
-
 
 struct PlusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
