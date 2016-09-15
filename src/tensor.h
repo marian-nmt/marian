@@ -221,6 +221,7 @@ class Tensor {
     }
     
     void get(std::vector<float> &vout) const {
+      vout.resize(size());
       pimpl_->get(vout.begin());
     }
 };
