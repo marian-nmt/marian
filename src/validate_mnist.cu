@@ -2,6 +2,7 @@
 #include "marian.h"
 #include "mnist.h"
 #include "npz_converter.h"
+#include "param_initializers.h"
 
 using namespace marian;
 using namespace keywords;
@@ -12,80 +13,88 @@ int main(int argc, char** argv) {
   
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
-  int numofdata;
-
+  int BATCH_SIZE = 10000;
+  
   std::cerr << "Loading test set...";
-  std::vector<float> testImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
-  std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
-  std::cerr << "\tDone." << std::endl;
+  std::vector<float> testImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", BATCH_SIZE, IMAGE_SIZE);
+  std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", BATCH_SIZE, LABEL_SIZE);
+  std::cerr << "Done." << std::endl;
 
+  
   std::cerr << "Loading model params...";
   NpzConverter converter("../scripts/test_model/model.npz");
 
-  std::vector<float> wData;
-  Shape wShape;
+  std::vector<float> wData, bData;
+  Shape wShape, bShape;
   converter.Load("weights", wData, wShape);
-
-  std::vector<float> bData;
-  Shape bShape;
   converter.Load("bias", bData, bShape);
-
-  auto initW = [wData](Tensor t) {
-    thrust::copy(wData.begin(), wData.end(), t.begin());
-  };
-
-  auto initB = [bData](Tensor t) {
-    thrust::copy(bData.begin(), bData.end(), t.begin());
-  };
-
-  std::cerr << "\tDone." << std::endl;
-
-
-  Expr x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-  Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
-  
-  Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0", init=initW);
-  Expr b = param(shape={1, LABEL_SIZE}, name="b0", init=initB);
+  std::cerr << "Done." << std::endl;
 
   std::cerr << "Building model...";
-  auto predict = softmax(dot(x, w) + b,
-                         axis=1, name="pred");
-  auto graph = -mean(sum(y * log(predict), axis=1),
-                     axis=0, name="cost");
   
-  std::cerr << "\tDone." << std::endl;
+  auto x = input(shape={whatevs, IMAGE_SIZE});
+  auto y = input(shape={whatevs, LABEL_SIZE});
+  
+  auto w = param(shape={IMAGE_SIZE, LABEL_SIZE},
+                 init=[wData](Tensor t) { t.set(wData); });
+  auto b = param(shape={1, LABEL_SIZE},
+                 init=[bData](Tensor t) { t.set(bData); });
 
-  Tensor xt({numofdata, IMAGE_SIZE});
-  xt.Load(testImages);
+  auto probs = softmax(dot(x, w) + b, axis=1);
+  auto graph = -mean(sum(y * log(probs), axis=1), axis=0);
   
-  Tensor yt({numofdata, LABEL_SIZE});
-  yt.Load(testLabels);
-  
-  x = xt;
-  y = yt;
-  
-  graph.forward(numofdata);
-  auto results = predict.val();
-  graph.backward();
-  
-  std::cerr << b.grad().Debug() << std::endl;
+  std::cerr << "Done." << std::endl;
 
+  Tensor xt({BATCH_SIZE, IMAGE_SIZE});
+  Tensor yt({BATCH_SIZE, LABEL_SIZE});
+  
+  x = xt << testImages;
+  y = yt << testLabels;
+  
+  graph.forward(BATCH_SIZE);
+  auto results = probs.val();
+  std::vector<float> resultsv(results.size());
+  resultsv << results;
+  
   size_t acc = 0;
   for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
     size_t correct = 0;
-    size_t predicted = 0;
+    size_t probsed = 0;
     for (size_t j = 0; j < LABEL_SIZE; ++j) {
       if (testLabels[i+j]) correct = j;
-      if (results[i + j] > results[i + predicted]) predicted = j;
+      if (resultsv[i + j] > resultsv[i + probsed]) probsed = j;
     }
-    acc += (correct == predicted);
-    //std::cerr << "corect: " << correct << " | " << predicted <<  "(";
-    //for (size_t j = 0; j < LABEL_SIZE; ++j) {
-    //  std::cerr << results[i+j] << " ";
-    //}
-    //std::cerr << std::endl;
+    acc += (correct == probsed);
   }
-  std::cerr << "ACC: " << float(acc)/numofdata << std::endl;
+  std::cerr << "Cost: " << graph.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
 
+  float eta = 0.1;
+  for (size_t j = 0; j < 10; ++j) {
+    for(size_t i = 0; i < 60; ++i) {    
+      graph.backward();
+    
+      auto update_rule = _1 -= eta * _2;
+      Element(update_rule, w.val(), w.grad());
+      Element(update_rule, b.val(), b.grad());
+      
+      graph.forward(BATCH_SIZE);
+    }
+    std::cerr << "Epoch: " << j << std::endl;
+    auto results = probs.val();
+    std::vector<float> resultsv(results.size());
+    resultsv << results;
+    
+    size_t acc = 0;
+    for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
+      size_t correct = 0;
+      size_t probsed = 0;
+      for (size_t j = 0; j < LABEL_SIZE; ++j) {
+        if (testLabels[i+j]) correct = j;
+        if (resultsv[i + j] > resultsv[i + probsed]) probsed = j;
+      }
+      acc += (correct == probsed);
+    }
+    std::cerr << "Cost: " << graph.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
+  }
   return 0;
 }

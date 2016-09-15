@@ -60,8 +60,8 @@ class SGD {
       std::vector<float> y(yData_.begin() + startId * numClasses_,
                            yData_.begin() + endId * numClasses_);
 
-      xt.Load(x);
-      yt.Load(y);
+      xt.set(x);
+      yt.set(y);
     }
 
     void UpdateModel() {

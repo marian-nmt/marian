@@ -94,7 +94,6 @@ Expr broadcast(Shape bShape, Expr a) {
                      "Cannot broadcast tensor dimension "
                      << dimA << " to " << dimB);
       if(dimA == 1 && dimB != 1) {
-        std::cerr << "Broadcasting dim " << i << " from " << dimA << " to " << dimB << std::endl;
         if(i == 0) {
           Expr one = ones(keywords::shape={bShape[0], 1});
           a = dot(one, a);

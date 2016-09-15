@@ -24,22 +24,17 @@ ChainPtr Expr::node() {
   
 void Expr::forward(size_t batchSize) {
   UTIL_THROW_IF2(pimpl_.get() != Chainable<Tensor>::stack.back(),
-                 "Trying to call forward on non-root of computation graph");
-  std::cerr << "forward:" << std::endl;
-  
+                 "Trying to call forward on non-root of computation graph");  
   for(auto&& v : Chainable<Tensor>::stack) {
     v->allocate(batchSize);
   }
-  
   for(auto&& v : Chainable<Tensor>::stack)
     v->forward();    
 }
 
 void Expr::backward() {
   UTIL_THROW_IF2(pimpl_.get() != Chainable<Tensor>::stack.back(),
-                "Trying to call backward on non-root of computation graph");
-  std::cerr << "backward:" << std::endl;
-  
+                "Trying to call backward on non-root of computation graph");  
   for(auto&& v : Chainable<Tensor>::stack)
     v->set_zero_adjoint();
 
@@ -56,7 +51,6 @@ Expr::operator ChainPtr() {
 std::string Expr::Debug() const
 {
 	stringstream strm;
-	//const Chainable<Tensor> &ct = *pimpl_;
 	const Shape &shape = pimpl_->shape();
 	strm << marian::Debug(shape);
 	return strm.str();

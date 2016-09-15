@@ -42,7 +42,8 @@ struct ParamNode : public Node {
   template <typename ...Args>
   ParamNode(Args ...args)
   : Node(args...),
-    init_(Get<std::function<void(Tensor)>>(keywords::init, [](Tensor){ }))
+    init_(Get<std::function<void(Tensor)>>(keywords::init, [](Tensor){ })),
+    initialized_(false)
   {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
@@ -51,14 +52,18 @@ struct ParamNode : public Node {
 
   void forward() {}
   void backward() {}
-
+  
   virtual void allocate(size_t batchSize) {
     val_.allocate(shape_);
-    init_(val_);
+    if(!initialized_) {
+      init_(val_);
+      initialized_ = true;
+    }
   }
 
   private:
     std::function<void(Tensor)> init_;
+    bool initialized_;
 };
 
 struct UnaryNodeOp : public Node {
@@ -66,7 +71,9 @@ struct UnaryNodeOp : public Node {
 
     template <typename ...Args>
     UnaryNodeOp(ChainPtr a, Args ...args)
-    : Node(args...), a_(a) {}
+    : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
+           args...),
+    a_(a) {}
 };
 
 struct SigmoidNodeOp : public UnaryNodeOp {
@@ -125,24 +132,25 @@ struct ArgmaxOp : public UnaryNodeOp {
   
   void forward() {
     //val_ = Argmax(a_->val(), axis_);
+    UTIL_THROW2("Not implemented");    
   }
   
-  void backward() {}
+  void backward() {
+    UTIL_THROW2("Not implemented");    
+  }
   
   private:
     int axis_;
 };
 
-
+// @TODO, make this numerically safe(r):
+// softmax(X) = softmax_safe(X - max(X, axis=1))
+// Probably best to do this directly in Softmax
+// function. 
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a),
-                  args...) { }
-  Shape newShape(ChainPtr a) {
-    Shape shape = a->shape();
-    return shape;
-  }
+    : UnaryNodeOp(a, args...) { }
 
   void forward() {
     // B = softmax(A).
@@ -164,8 +172,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
 
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  LogNodeOp(Args ...args)
-  : UnaryNodeOp(args...) {}
+  LogNodeOp(ChainPtr a, Args ...args)
+  : UnaryNodeOp(a, args...) {}
 
   void forward() {
     Element(_1 = Log(_2), val_, a_->val());
@@ -180,13 +188,7 @@ struct LogNodeOp : public UnaryNodeOp {
 struct ExpNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     ExpNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a),
-                  args...) { }
-
-  Shape newShape(ChainPtr a) {
-    Shape shape = a->shape();
-    return shape;
-  }
+    : UnaryNodeOp(a, args...) { }
 
   void forward() {
     Element(_1 = Exp(_2), val_, a_->val());
