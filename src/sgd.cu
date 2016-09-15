@@ -1,5 +1,9 @@
+#include <algorithm>
+#include <vector>
 #include "sgd.h"
 #include "thrust_functions.h"
+
+using namespace std;
 
 namespace marian {
 SGD::SGD(Expr& cost_func, Expr& inX, Expr& inY,
@@ -22,9 +26,13 @@ SGD::SGD(Expr& cost_func, Expr& inX, Expr& inY,
 
 void SGD::Run()
 {
+  std::srand ( unsigned ( std::time(0) ) );
+
   size_t numExamples = xData_.size()/ numFeatures_;
   Tensor xt({(int)batchSize_, (int)numExamples}, 0.0f);
   Tensor yt({(int)batchSize_, (int)numClasses_}, 0.0f);
+
+  vector<size_t> shuffle = CreateShuffle(numExamples);
 
   for (size_t numEpoch = 0; numEpoch < epochs_; ++numEpoch) {
     std::cerr << "Starting epoch #" << numEpoch << std::endl;
@@ -32,7 +40,7 @@ void SGD::Run()
     size_t endId = startId + batchSize_;
 
     while (endId < numExamples) {
-      PrepareBatch(startId, endId, xt, yt);
+      PrepareBatch(startId, batchSize_, shuffle, xt, yt);
       *inX_ = xt;
       *inY_ = yt;
 
@@ -47,11 +55,55 @@ void SGD::Run()
   }
 }
 
-void SGD::PrepareBatch(size_t startId, size_t endId, Tensor& xt, Tensor& yt) {
+std::vector<size_t> SGD::CreateShuffle(size_t numExamples) const {
+  vector<size_t> ret(numExamples);
+  std::iota(ret.begin(), ret.end(), 1);
+  std::random_shuffle ( ret.begin(), ret.end() );
+
+  for (size_t i = 0; i < ret.size(); ++i) {
+	  cerr << ret[i] << " ";
+  }
+
+  return ret;
+}
+
+void SGD::PrepareBatch(
+		size_t startId,
+		size_t batchSize,
+		const std::vector<size_t> &shuffle,
+		Tensor& xt,
+		Tensor& yt) {
+  /*
   std::vector<float> x(xData_.begin() + startId * numFeatures_,
                        xData_.begin() + endId * numFeatures_);
   std::vector<float> y(yData_.begin() + startId * numClasses_,
                        yData_.begin() + endId * numClasses_);
+  */
+  std::vector<float> x(batchSize * numFeatures_);
+  std::vector<float> y(batchSize * numClasses_);
+
+  std::vector<float>::iterator startXIter = x.begin();
+  std::vector<float>::iterator startYIter = y.begin();
+
+  size_t endId = startId + batchSize;
+  for (size_t i = startId; i < endId; ++i) {
+    size_t startXDataId = i * numFeatures_;
+    size_t startYDataId = i * numClasses_;
+
+    size_t endXDataId = startXDataId + batchSize * numFeatures_;
+    size_t endYDataId = startYDataId + batchSize * numClasses_;
+
+    std::copy(xData_.begin() + startXDataId,
+        xData_.begin() + endXDataId,
+        startXIter);
+
+    std::copy(yData_.begin() + startYDataId,
+        yData_.begin() + endYDataId,
+        startYIter);
+
+    startXIter += batchSize * numFeatures_;
+    startYIter += batchSize * numClasses_;
+  }
 
   xt.set(x);
   yt.set(y);

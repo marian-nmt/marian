@@ -19,10 +19,6 @@ class SGD {
 
     void Run();
 
-    void PrepareBatch(size_t startId, size_t endId, Tensor& xt, Tensor& yt);
-
-    void UpdateModel();
-
   private:
     std::shared_ptr<Expr> cost_function_;
     std::shared_ptr<Expr> inX_;
@@ -35,6 +31,16 @@ class SGD {
     const size_t numClasses_;
     const size_t epochs_;
     const size_t batchSize_;
+
+    std::vector<size_t> CreateShuffle(size_t numExamples) const;
+    void PrepareBatch(
+    		size_t startId,
+    		size_t batchSize,
+    		const std::vector<size_t> &shuffle,
+    		Tensor& xt,
+    		Tensor& yt);
+
+    void UpdateModel();
 };
 
 } // namespace marian
