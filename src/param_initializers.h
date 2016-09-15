@@ -18,7 +18,7 @@ void ones(Tensor t) {
 }
 
 template <class Distribution>
-void distribution(Tensor t, float a=0.0, float b=0.1) {
+void distribution(Tensor t, float a, float b) {
   std::random_device device;
   std::default_random_engine engine(device());
   Distribution dist(a, b);

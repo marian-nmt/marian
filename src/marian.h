@@ -1,9 +1,7 @@
 #pragma once
 
 #include "definitions.h"
-#include "graph.h"
-#include "graph_operators.h"
-#include "expressions.h"
-#include "expression_operators.h"
+#include "expression_graph.h"
 #include "param_initializers.h"
+#include "expression_operators.h"
 

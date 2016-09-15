@@ -1,7 +1,6 @@
 #pragma once
 
-#include "expressions.h"
-#include "graph.h"
+#include "node.h"
 #include "tensor_operators.h"
 
 namespace marian {
@@ -108,49 +107,14 @@ struct TanhNodeOp : public UnaryNodeOp {
   }
 };
 
-struct ArgmaxOp : public UnaryNodeOp {
-  template <typename ...Args>
-  ArgmaxOp(ChainPtr a, Args ...args)
-  : UnaryNodeOp(a, keywords::shape=newShape(a, -1), args...),
-    axis_(-1) { }
-  
-  Shape newShape(ChainPtr a, int axis) {
-    Shape shape1 = a->shape();
-    UTIL_THROW_IF2(shape1.size() > 2,
-                   "Tensors with more than 2 dimensions not supported yet");
-    if(axis == 0) {
-      shape1[0] = 1;
-    }
-    else if(axis == 1) {
-      shape1[1] = 1;
-    }
-    else {
-      shape1 = {1, 1};
-    }
-    return shape1;
-  }
-  
-  void forward() {
-    //val_ = Argmax(a_->val(), axis_);
-    UTIL_THROW2("Not implemented");    
-  }
-  
-  void backward() {
-    UTIL_THROW2("Not implemented");    
-  }
-  
-  private:
-    int axis_;
-};
-
 // @TODO, make this numerically safe(r):
 // softmax(X) = softmax_safe(X - max(X, axis=1))
 // Probably best to do this directly in Softmax
 // function. 
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-    SoftmaxNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, args...) { }
+    SoftmaxNodeOp(Args ...args)
+    : UnaryNodeOp(args...) { }
 
   void forward() {
     // B = softmax(A).
@@ -172,8 +136,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
 
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  LogNodeOp(ChainPtr a, Args ...args)
-  : UnaryNodeOp(a, args...) {}
+  LogNodeOp(Args ...args)
+  : UnaryNodeOp(args...) {}
 
   void forward() {
     Element(_1 = Log(_2), val_, a_->val());
@@ -187,8 +151,8 @@ struct LogNodeOp : public UnaryNodeOp {
 
 struct ExpNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-    ExpNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, args...) { }
+    ExpNodeOp(Args ...args)
+    : UnaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = Exp(_2), val_, a_->val());
@@ -230,8 +194,9 @@ struct BinaryNodeOp : public Node {
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   DotNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-  : BinaryNodeOp(a, b,
-                 keywords::shape=newShape(a,b),
+  : BinaryNodeOp(
+                 a, b,
+                 keywords::shape=newShape(a, b),
                  args...) { }
 
   Shape newShape(ChainPtr a, ChainPtr b) {
@@ -259,41 +224,40 @@ struct DotNodeOp : public BinaryNodeOp {
   }
 };
 
-Expr broadcast(Shape shape, Expr a);
+//struct BroadcastingNodeOp : public BinaryNodeOp {
+//  template <typename ...Args>
+//  BroadcastingNodeOp(ChainPtr a, ChainPtr b, Args ...args)
+//  : BinaryNodeOp(broadcast(newShape(a ,b), a),
+//                 broadcast(newShape(a ,b), b),
+//                 keywords::shape=newShape(a, b),
+//                 args...) {}
+//  
+//  static Shape newShape(ChainPtr a, ChainPtr b) {
+//    size_t dimsA = a->shape().size();
+//    size_t dimsB = b->shape().size();
+//    UTIL_THROW_IF2(dimsA != dimsB,
+//                   "Tensors have different numbers of dimensions");
+//    Shape shape(dimsA);
+//    for(size_t i = 0; i < dimsA; ++i) {
+//      int dimA = a->shape()[i];
+//      int dimB = b->shape()[i];
+//      bool broadcastable = (dimA == dimB || dimA == 1 || dimB == 1);
+//      UTIL_THROW_IF2(!broadcastable, "Different dimensions in elementwise "
+//                     << "operation cannot be broadcasted: " << dimA << " != " << dimB);
+//      shape[i] = std::max(dimA, dimB);
+//      if(dimA == whatevs || dimB == whatevs)
+//        shape[i] = whatevs;
+//    }
+//    return shape;
+//  }
+//};
 
-struct BroadcastingNodeOp : public BinaryNodeOp {
+
+struct PlusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  BroadcastingNodeOp(Expr a, Expr b, Args ...args)
-  : BinaryNodeOp(broadcast(newShape(a ,b), a),
-                 broadcast(newShape(a ,b), b),
-                 keywords::shape=newShape(a, b),
-                 args...) {}
-  
-  static Shape newShape(ChainPtr a, ChainPtr b) {
-    size_t dimsA = a->shape().size();
-    size_t dimsB = b->shape().size();
-    UTIL_THROW_IF2(dimsA != dimsB,
-                   "Tensors have different numbers of dimensions");
-    Shape shape(dimsA);
-    for(size_t i = 0; i < dimsA; ++i) {
-      int dimA = a->shape()[i];
-      int dimB = b->shape()[i];
-      bool broadcastable = (dimA == dimB || dimA == 1 || dimB == 1);
-      UTIL_THROW_IF2(!broadcastable, "Different dimensions in elementwise "
-                     << "operation cannot be broadcasted: " << dimA << " != " << dimB);
-      shape[i] = std::max(dimA, dimB);
-      if(dimA == whatevs || dimB == whatevs)
-        shape[i] = whatevs;
-    }
-    return shape;
-  }
-};
-
-
-struct PlusNodeOp : public BroadcastingNodeOp {
-  template <typename ...Args>
-  PlusNodeOp(Args ...args) : BroadcastingNodeOp(args...) { }
-  
+  PlusNodeOp(ChainPtr a, ChainPtr b, Args ...args)
+    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+    
   void forward() {
     Element(_1 = _2 + _3,
             val_, a_->val(), b_->val());
@@ -307,10 +271,11 @@ struct PlusNodeOp : public BroadcastingNodeOp {
   }
 };
 
-struct MinusNodeOp : public BroadcastingNodeOp {
+struct MinusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  MinusNodeOp(Args ...args) : BroadcastingNodeOp(args...) { }
-  
+  MinusNodeOp(ChainPtr a, ChainPtr b, Args ...args)
+    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+    
   void forward() {
     Element(_1 = _2 - _3,
             val_, a_->val(), b_->val());
@@ -324,10 +289,11 @@ struct MinusNodeOp : public BroadcastingNodeOp {
   }
 };
 
-struct MultNodeOp : public BroadcastingNodeOp {
+struct MultNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  MultNodeOp(Args ...args) : BroadcastingNodeOp(args...) { }
-  
+  MultNodeOp(ChainPtr a, ChainPtr b, Args ...args)
+    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+    
   void forward() {
     Element(_1 = _2 * _3,
             val_, a_->val(), b_->val());
@@ -341,9 +307,10 @@ struct MultNodeOp : public BroadcastingNodeOp {
   }
 };
 
-struct DivNodeOp : public BroadcastingNodeOp {
+struct DivNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  DivNodeOp(Args ...args) : BroadcastingNodeOp(args...) { }
+  DivNodeOp(ChainPtr a, ChainPtr b, Args ...args)
+    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
     
   void forward() {
     Element(_1 = _2 / _3,

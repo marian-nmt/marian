@@ -2,7 +2,6 @@
 #include "marian.h"
 #include "mnist.h"
 #include "npz_converter.h"
-#include "param_initializers.h"
 
 using namespace marian;
 using namespace keywords;
@@ -31,13 +30,14 @@ int main(int argc, char** argv) {
 
   std::cerr << "Building model...";
   
-  auto x = input(shape={whatevs, IMAGE_SIZE});
-  auto y = input(shape={whatevs, LABEL_SIZE});
+  ExpressionGraph g;
+  auto x = g.input(shape={whatevs, IMAGE_SIZE}, name="X");
+  auto y = g.input(shape={whatevs, LABEL_SIZE});
   
-  auto w = param(shape={IMAGE_SIZE, LABEL_SIZE},
-                 init=from_vector(wData));
-  auto b = param(shape={1, LABEL_SIZE},
-                 init=from_vector(bData));
+  auto w = g.param(shape={IMAGE_SIZE, LABEL_SIZE},
+                   init=from_vector(wData));
+  auto b = g.param(shape={1, LABEL_SIZE},
+                   init=from_vector(bData));
 
   auto probs = softmax(dot(x, w) + b, axis=1);
   auto cost = -mean(sum(y * log(probs), axis=1), axis=0);
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
   x = xt << testImages;
   y = yt << testLabels;
   
-  cost.forward(BATCH_SIZE);
+  g.forward(BATCH_SIZE);
  
   std::vector<float> results;
   results << probs.val();
@@ -66,17 +66,17 @@ int main(int argc, char** argv) {
     acc += (correct == proposed);
   }
   std::cerr << "Cost: " << cost.val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
-
+  
   float eta = 0.1;
   for (size_t j = 0; j < 10; ++j) {
     for(size_t i = 0; i < 60; ++i) {    
-      cost.backward();
+      g.backward();
     
       auto update_rule = _1 -= eta * _2;
       Element(update_rule, w.val(), w.grad());
       Element(update_rule, b.val(), b.grad());
       
-      cost.forward(BATCH_SIZE);
+      g.forward(BATCH_SIZE);
     }
     std::cerr << "Epoch: " << j << std::endl;
     std::vector<float> results;
