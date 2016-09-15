@@ -30,11 +30,12 @@ class SGD {
     std::vector<float>& yData_;
     const size_t numClasses_;
     const size_t epochs_;
-    const size_t batchSize_;
+    const size_t maxBatchSize_;
 
     std::vector<size_t> CreateShuffle(size_t numExamples) const;
     void PrepareBatch(
     		size_t startId,
+    		size_t endId,
     		size_t batchSize,
     		const std::vector<size_t> &shuffle,
     		Tensor& xt,

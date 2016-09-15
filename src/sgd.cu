@@ -21,7 +21,7 @@ SGD::SGD(Expr& cost_func, Expr& inX, Expr& inY,
   yData_(yData),
   numClasses_(numClasses),
   epochs_(epochs),
-  batchSize_(batchSize)
+  maxBatchSize_(batchSize)
 {}
 
 void SGD::Run()
@@ -29,28 +29,28 @@ void SGD::Run()
   std::srand ( unsigned ( std::time(0) ) );
 
   size_t numExamples = xData_.size()/ numFeatures_;
-  Tensor xt({(int)batchSize_, (int)numExamples}, 0.0f);
-  Tensor yt({(int)batchSize_, (int)numClasses_}, 0.0f);
+  Tensor xt({(int)maxBatchSize_, (int)numExamples}, 0.0f);
+  Tensor yt({(int)maxBatchSize_, (int)numClasses_}, 0.0f);
 
   vector<size_t> shuffle = CreateShuffle(numExamples);
 
   for (size_t numEpoch = 0; numEpoch < epochs_; ++numEpoch) {
     std::cerr << "Starting epoch #" << numEpoch << std::endl;
     size_t startId = 0;
-    size_t endId = startId + batchSize_;
+    size_t endId = startId + maxBatchSize_;
 
     while (endId < numExamples) {
-      PrepareBatch(startId, batchSize_, shuffle, xt, yt);
+      PrepareBatch(startId, endId, maxBatchSize_, shuffle, xt, yt);
       *inX_ = xt;
       *inY_ = yt;
 
-      cost_function_->forward(batchSize_);
+      cost_function_->forward(maxBatchSize_);
       cost_function_->backward();
 
       UpdateModel();
 
-      startId += batchSize_;
-      endId += batchSize_;
+      startId += maxBatchSize_;
+      endId += maxBatchSize_;
     }
   }
 }
@@ -69,23 +69,23 @@ std::vector<size_t> SGD::CreateShuffle(size_t numExamples) const {
 
 void SGD::PrepareBatch(
 		size_t startId,
+		size_t endId,
 		size_t batchSize,
 		const std::vector<size_t> &shuffle,
 		Tensor& xt,
 		Tensor& yt) {
-  /*
+
   std::vector<float> x(xData_.begin() + startId * numFeatures_,
                        xData_.begin() + endId * numFeatures_);
   std::vector<float> y(yData_.begin() + startId * numClasses_,
                        yData_.begin() + endId * numClasses_);
-  */
+  /*
   std::vector<float> x(batchSize * numFeatures_);
   std::vector<float> y(batchSize * numClasses_);
 
   std::vector<float>::iterator startXIter = x.begin();
   std::vector<float>::iterator startYIter = y.begin();
 
-  size_t endId = startId + batchSize;
   for (size_t i = startId; i < endId; ++i) {
     size_t startXDataId = i * numFeatures_;
     size_t startYDataId = i * numClasses_;
@@ -104,7 +104,7 @@ void SGD::PrepareBatch(
     startXIter += batchSize * numFeatures_;
     startYIter += batchSize * numClasses_;
   }
-
+  */
   xt.set(x);
   yt.set(y);
 }
