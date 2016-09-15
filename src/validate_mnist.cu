@@ -2,6 +2,7 @@
 #include "marian.h"
 #include "mnist.h"
 #include "npz_converter.h"
+#include "param_initializers.h"
 
 using namespace marian;
 using namespace keywords;
@@ -39,12 +40,8 @@ int main(int argc, char** argv) {
   auto b = param(shape={1, LABEL_SIZE},
                  init=[bData](Tensor t) { t.set(bData); });
 
-  auto zd = dot(x, w);
-  auto z = zd + b;
-  auto predict = softmax(z, axis=1);
-  auto logp = log(predict);
-  auto cost = sum(y * logp, axis=1);
-  auto graph = -mean(cost, axis=0);
+  auto predict = softmax(dot(x, w) + b, axis=1);
+  auto graph = -mean(sum(y * log(predict), axis=1), axis=0);
   
   std::cerr << "Done." << std::endl;
 
@@ -56,34 +53,33 @@ int main(int argc, char** argv) {
   
   graph.forward(BATCH_SIZE);
   
-  for (size_t j = 0; j < 10; ++j) {
+  float eta = 0.1;
+  for (size_t j = 0; j < 100; ++j) {
     for(size_t i = 0; i < 60; ++i) {    
       graph.backward();
     
-      auto update_rule = _1 -= 0.1 * _2;
+      auto update_rule = _1 -= eta * _2;
       Element(update_rule, w.val(), w.grad());
       Element(update_rule, b.val(), b.grad());
       
       graph.forward(BATCH_SIZE);
     }
     std::cerr << "Epoch: " << j << std::endl;
-  }
-  
-  auto results = predict.val();
-  std::vector<float> resultsv(results.size());
-  resultsv << results;
-  
-  size_t acc = 0;
-  for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
-    size_t correct = 0;
-    size_t predicted = 0;
-    for (size_t j = 0; j < LABEL_SIZE; ++j) {
-      if (testLabels[i+j]) correct = j;
-      if (resultsv[i + j] > resultsv[i + predicted]) predicted = j;
+    auto results = predict.val();
+    std::vector<float> resultsv(results.size());
+    resultsv << results;
+    
+    size_t acc = 0;
+    for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
+      size_t correct = 0;
+      size_t predicted = 0;
+      for (size_t j = 0; j < LABEL_SIZE; ++j) {
+        if (testLabels[i+j]) correct = j;
+        if (resultsv[i + j] > resultsv[i + predicted]) predicted = j;
+      }
+      acc += (correct == predicted);
     }
-    acc += (correct == predicted);
+    std::cerr << "Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
   }
-  std::cerr << "Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
-
   return 0;
 }

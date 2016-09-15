@@ -71,7 +71,9 @@ struct UnaryNodeOp : public Node {
 
     template <typename ...Args>
     UnaryNodeOp(ChainPtr a, Args ...args)
-    : Node(args...), a_(a) {}
+    : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
+           args...),
+    a_(a) {}
 };
 
 struct SigmoidNodeOp : public UnaryNodeOp {
@@ -142,8 +144,7 @@ struct ArgmaxOp : public UnaryNodeOp {
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=a->shape(),
-                  args...) { }
+    : UnaryNodeOp(a, args...) { }
 
   void forward() {
     // B = softmax(A).
@@ -166,7 +167,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   LogNodeOp(ChainPtr a, Args ...args)
-  : UnaryNodeOp(a, keywords::shape=a->shape(), args...) {}
+  : UnaryNodeOp(a, args...) {}
 
   void forward() {
     Element(_1 = Log(_2), val_, a_->val());
@@ -181,8 +182,7 @@ struct LogNodeOp : public UnaryNodeOp {
 struct ExpNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     ExpNodeOp(ChainPtr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=a->shape(),
-                  args...) { }
+    : UnaryNodeOp(a, args...) { }
 
   void forward() {
     Element(_1 = Exp(_2), val_, a_->val());
