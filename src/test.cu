@@ -5,117 +5,91 @@
 int main(int argc, char** argv) {
   cudaSetDevice(0);
 
-  /*int numImg = 0;*/
-  /*auto images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numImg);*/
-  /*auto labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numImg);*/
-
-#if 1
   using namespace marian;
   using namespace keywords;
 
-  Expr x = input(shape={1, 2});
-  Expr y = input(shape={1, 2});
-  
-  Expr w = param(shape={2, 2}, name="W0");
-  //Expr b = param(shape={1, 2}, name="b0");
+  int input_size = 10;
+  int output_size = 2;
+  int batch_size = 25;
+  int hidden_size = 5;
+  int num_inputs = 8;
 
-  std::cerr << "Building model...";
-  auto predict = softmax_fast(dot(x, w),
-                         axis=1, name="pred");
-  auto graph = -mean(sum(y * log(predict), axis=1),
-                     axis=0, name="cost");
-  
-  Tensor x1t({1, 2});
-  std::vector<float> xv = { 0.6, 0.1 }; 
-  thrust::copy(xv.begin(), xv.end(), x1t.begin());
-  
-  Tensor x2t({1, 2});
-  std::vector<float> yv = { 0, 1 }; 
-  thrust::copy(yv.begin(), yv.end(), x2t.begin());
-  
-  x = x1t;
-  y = x2t;
-  
-  graph.forward(1);
-  graph.backward();
-  
-  std::cerr << graph.val().Debug() << std::endl;
-  std::cerr << w.grad().Debug() << std::endl;
-  //std::cerr << b.grad().Debug() << std::endl;
-#else
+  std::vector<Expr*> X(num_inputs);
+  std::vector<Expr*> Y(num_inputs);
+  std::vector<Expr*> H(num_inputs);
 
-  
-  using namespace marian;
-  using namespace keywords;
-  using namespace std;
-  
-  const size_t BATCH_SIZE = 500;
-  const size_t IMAGE_SIZE = 784;
-  const size_t LABEL_SIZE = 10;
-
-  Expr x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-  Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
-  
-  Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
-  Expr b = param(shape={1, LABEL_SIZE}, name="b0");
-    
-  Expr z = dot(x, w) + b;
-  Expr lr = softmax(z, axis=1, name="pred");
-  Expr graph = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
-  //cerr << "x=" << Debug(lr.val().shape()) << endl;
-
-  int numofdata;
-  //vector<float> images = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
-  //vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
-  vector<float> images = datasets::mnist::ReadImages("../examples/mnist/train-images-idx3-ubyte", numofdata, IMAGE_SIZE);
-  vector<float> labels = datasets::mnist::ReadLabels("../examples/mnist/train-labels-idx1-ubyte", numofdata, LABEL_SIZE);
-  cerr << "images=" << images.size() << " labels=" << labels.size() << endl;
-  cerr << "numofdata=" << numofdata << endl;
-
-  size_t startInd = 0;
-  size_t startIndData = 0;
-  while (startInd < numofdata) {
-	  size_t batchSize = (startInd + BATCH_SIZE < numofdata) ? BATCH_SIZE : numofdata - startInd;
-	  cerr << "startInd=" << startInd
-			  << " startIndData=" << startIndData
-			  << " batchSize=" << batchSize << endl;
-
-	  Tensor tx({numofdata, IMAGE_SIZE}, 1);
-	  Tensor ty({numofdata, LABEL_SIZE}, 1);
-
-	  tx.set(images.begin() + startIndData, images.begin() + startIndData + batchSize * IMAGE_SIZE);
-	  ty.set(labels.begin() + startInd, labels.begin() + startInd + batchSize);
-
-	  //cerr << "tx=" << Debug(tx.shape()) << endl;
-	  //cerr << "ty=" << Debug(ty.shape()) << endl;
-
-	  x = tx;
-	  y = ty;
-
-	  cerr << "x=" << Debug(x.val().shape()) << endl;
-	  cerr << "y=" << Debug(y.val().shape()) << endl;
-
-
-	  graph.forward(batchSize);
-
-	  cerr << "w=" << Debug(w.val().shape()) << endl;
-	  cerr << "b=" << Debug(b.val().shape()) << endl;
-	  std::cerr << "z: " << Debug(z.val().shape()) << endl;
-	  std::cerr << "lr: " << Debug(lr.val().shape()) << endl;
-	  std::cerr << "Log-likelihood: " << graph.val().Debug() << endl ;
-
-	  //std::cerr << "scores=" << scores.val().Debug() << endl;
-	  //std::cerr << "lr=" << lr.val().Debug() << endl;
-
-	  graph.backward();
-          std::cerr << w.grad().Debug() << std::endl;
-
-	  //std::cerr << graph["pred"].val()[0] << std::endl;
-
-	  startInd += batchSize;
-	  startIndData += batchSize * IMAGE_SIZE;
+  for (int t = 0; t < num_inputs; ++t) {
+    X[t] = new Expr(input(shape={batch_size, input_size}));
+    Y[t] = new Expr(input(shape={batch_size, output_size}));
   }
-#endif
+
+  Expr Wxh = param(shape={input_size, hidden_size}, init=uniform(), name="Wxh");
+  Expr Whh = param(shape={hidden_size, hidden_size}, init=uniform(), name="Whh");
+  Expr bh = param(shape={1, hidden_size}, init=uniform(), name="bh");
+  Expr h0 = param(shape={1, hidden_size}, init=uniform(), name="h0");
+
+  std::cerr << "Building RNN..." << std::endl;
+  H[0] = new Expr(tanh(dot(*X[0], Wxh) + dot(h0, Whh) + bh));
+  for (int t = 1; t < num_inputs; ++t) {
+    H[t] = new Expr(tanh(dot(*X[t], Wxh) + dot(*H[t-1], Whh) + bh));
+  }
+
+  Expr Why = param(shape={hidden_size, output_size}, init=uniform(), name="Why");
+  Expr by = param(shape={1, output_size}, init=uniform(), name="by");
+
+  std::cerr << "Building output layer..." << std::endl;
+  std::vector<Expr*> Yp(num_inputs);
+
+  Expr* cross_entropy = NULL;
+  for (int t = 0; t < num_inputs; ++t) {
+    Yp[t] = new Expr(softmax_fast(dot(*H[t], Why) + by, name="pred"));
+    if (!cross_entropy) {
+      cross_entropy = new Expr(sum(*Y[t] * log(*Yp[t]), axis=1));
+    } else {
+      *cross_entropy = *cross_entropy + sum(*Y[t] * log(*Yp[t]), axis=1);
+    }
+  }
+  auto graph = -mean(*cross_entropy, axis=0, name="cost");
+
+  for (int t = 0; t < num_inputs; ++t) {
+    Tensor Xt({batch_size, input_size});
+    Tensor Yt({batch_size, output_size});
+
+    float max = 1.;
+    std::vector<float> values(batch_size * input_size);
+    std::vector<float> classes(batch_size * output_size, 0.0);
+    int k = 0;
+    int l = 0;
+    for (int i = 0; i < batch_size; ++i) {
+      for (int j = 0; j < input_size; ++j, ++k) {
+         values[k] = max * (2.0*static_cast<float>(rand()) / RAND_MAX - 1.0);
+      }
+      int gold = output_size * static_cast<float>(rand()) / RAND_MAX;
+      classes[l + gold] = 1.0;
+      l += output_size;
+    }
+
+    thrust::copy(values.begin(), values.end(), Xt.begin());
+    thrust::copy(classes.begin(), classes.end(), Yt.begin());
+
+    *X[t] = Xt;
+    *Y[t] = Yt;
+  }
+
+  graph.forward(batch_size);
+  graph.backward();
+
+  std::cerr << graph.val().Debug() << std::endl;
+
+  std::cerr << X[0]->val().Debug() << std::endl;
+  std::cerr << Y[0]->val().Debug() << std::endl;
+
+  std::cerr << Whh.grad().Debug() << std::endl;
+  std::cerr << bh.grad().Debug() << std::endl;
+  std::cerr << Why.grad().Debug() << std::endl;
+  std::cerr << by.grad().Debug() << std::endl;
+  std::cerr << Wxh.grad().Debug() << std::endl;
+  std::cerr << h0.grad().Debug() << std::endl;
 
   return 0;
 }
