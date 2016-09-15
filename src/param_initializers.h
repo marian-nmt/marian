@@ -18,7 +18,7 @@ void ones(Tensor t) {
 }
 
 template <class Distribution>
-void distribution(Tensor t, float a=0.0, float b=0.1) {
+void distribution(Tensor t, float a, float b) {
   std::random_device device;
   std::default_random_engine engine(device());
   Distribution dist(a, b);
@@ -43,7 +43,7 @@ std::function<void(Tensor)> uniform(float a = 0.0, float b = 0.1) {
 }
 
 std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
-  return [&v](Tensor t) {
+  return [v](Tensor t) {
     t << v;
   };
 }

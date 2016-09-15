@@ -2,35 +2,9 @@
 
 #include "keywords.h"
 #include "tensor.h"
+#include "chainable.h"
 
 namespace marian {
-
-template <class DataType>
-struct Chainable {
-    Chainable() { }
-    virtual ~Chainable() { }
-    virtual void forward() { }
-    virtual void backward() { }
-    virtual void init_dependent() { }
-    virtual void set_zero_adjoint() { }
-
-    virtual void allocate(size_t) = 0;
-    
-    virtual const Shape& shape() = 0;
-    virtual DataType &val() = 0;
-    virtual DataType grad() = 0;
-    virtual void setVal(DataType t) {
-      UTIL_THROW2("Tensors can only be assigned to input nodes"); 
-    };
-    
-    typedef std::vector<Chainable<DataType>*> ChainableStack;
-    static ChainableStack stack;
-};
-
-template <class DataType>
-typename Chainable<DataType>::ChainableStack Chainable<DataType>::stack;
-
-typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
 
 class Node : public Chainable<Tensor>,
              public keywords::Keywords {
@@ -40,9 +14,7 @@ class Node : public Chainable<Tensor>,
      : Keywords(args...),
        shape_(Get<Shape>(keywords::shape, {1, 1})),
        name_(Get<std::string>(keywords::name, "none"))
-    {
-      stack.push_back(this);
-    }
+    { }
     
     virtual ~Node() {};
     
