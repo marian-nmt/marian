@@ -1,3 +1,4 @@
+#include <ctime>
 #include <algorithm>
 #include <vector>
 #include "sgd.h"
@@ -32,7 +33,8 @@ void SGD::Run()
   Tensor xt({(int)maxBatchSize_, (int)numExamples}, 0.0f);
   Tensor yt({(int)maxBatchSize_, (int)numClasses_}, 0.0f);
 
-  vector<size_t> shuffle = CreateShuffle(numExamples);
+  //vector<size_t> shuffle = CreateShuffle(numExamples);
+  vector<size_t> shuffle;
 
   for (size_t numEpoch = 0; numEpoch < epochs_; ++numEpoch) {
     std::cerr << "Starting epoch #" << numEpoch << std::endl;

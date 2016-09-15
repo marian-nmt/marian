@@ -20,9 +20,9 @@ class SGD {
     void Run();
 
   private:
-    std::shared_ptr<Expr> cost_function_;
-    std::shared_ptr<Expr> inX_;
-    std::shared_ptr<Expr> inY_;
+    Expr *cost_function_;
+    Expr *inX_;
+    Expr *inY_;
     std::vector<Expr*> params_;
     const float eta_;
     std::vector<float>& xData_;
