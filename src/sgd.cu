@@ -33,8 +33,8 @@ void SGD::Run()
   Tensor xt({(int)maxBatchSize_, (int)numExamples}, 0.0f);
   Tensor yt({(int)maxBatchSize_, (int)numClasses_}, 0.0f);
 
-  //vector<size_t> shuffle = CreateShuffle(numExamples);
-  vector<size_t> shuffle;
+  vector<size_t> shuffle = CreateShuffle(numExamples);
+  //vector<size_t> shuffle;
 
   for (size_t numEpoch = 0; numEpoch < epochs_; ++numEpoch) {
     std::cerr << "Starting epoch #" << numEpoch << std::endl;
@@ -59,13 +59,14 @@ void SGD::Run()
 
 std::vector<size_t> SGD::CreateShuffle(size_t numExamples) const {
   vector<size_t> ret(numExamples);
-  std::iota(ret.begin(), ret.end(), 1);
+  std::iota(ret.begin(), ret.end(), 0);
   std::random_shuffle ( ret.begin(), ret.end() );
-
+  /*
+  cerr << "shuffled" << endl;
   for (size_t i = 0; i < ret.size(); ++i) {
-	  cerr << ret[i] << " ";
+    cerr << ret[i] << " ";
   }
-
+  */
   return ret;
 }
 
@@ -76,37 +77,57 @@ void SGD::PrepareBatch(
 		const std::vector<size_t> &shuffle,
 		Tensor& xt,
 		Tensor& yt) {
-
+  /*
   std::vector<float> x(xData_.begin() + startId * numFeatures_,
                        xData_.begin() + endId * numFeatures_);
   std::vector<float> y(yData_.begin() + startId * numClasses_,
                        yData_.begin() + endId * numClasses_);
-  /*
+  */
   std::vector<float> x(batchSize * numFeatures_);
   std::vector<float> y(batchSize * numClasses_);
-
-  std::vector<float>::iterator startXIter = x.begin();
-  std::vector<float>::iterator startYIter = y.begin();
-
+  
+  /*
+  cerr << "startId=" << startId
+       << " " << endId
+       << " " << batchSize
+       << endl;
+  cerr << "numExamples=" << shuffle.size() << endl;
+  cerr << "numFeatures_=" << numFeatures_ << " " << numClasses_ << endl;
+  cerr << "sizes=" << x.size() 
+       << " " << y.size() 
+       << " " << xData_.size()
+       << " " << yData_.size()
+       << endl;
+  */
+  size_t startXId = 0;
+  size_t startYId = 0;
+  
   for (size_t i = startId; i < endId; ++i) {
-    size_t startXDataId = i * numFeatures_;
-    size_t startYDataId = i * numClasses_;
+    size_t ind = shuffle[i];
+    size_t startXDataId = ind * numFeatures_;
+    size_t startYDataId = ind * numClasses_;
 
-    size_t endXDataId = startXDataId + batchSize * numFeatures_;
-    size_t endYDataId = startYDataId + batchSize * numClasses_;
-
+    size_t endXDataId = startXDataId + numFeatures_;
+    size_t endYDataId = startYDataId + numClasses_;
+    /*
+    cerr << "i=" << i
+    	 << " " << ind
+    	 << " " << startXDataId << "-" << endXDataId
+	 << " " << startYDataId << "-" << endYDataId
+	 << endl;
+    */
     std::copy(xData_.begin() + startXDataId,
         xData_.begin() + endXDataId,
-        startXIter);
+        x.begin() + startXId);
 
     std::copy(yData_.begin() + startYDataId,
         yData_.begin() + endYDataId,
-        startYIter);
+        y.begin() + startYId);
 
-    startXIter += batchSize * numFeatures_;
-    startYIter += batchSize * numClasses_;
+    startXId += numFeatures_;
+    startYId += numClasses_;
   }
-  */
+  
   xt.set(x);
   yt.set(y);
 }
