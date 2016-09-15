@@ -56,11 +56,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.924444438" name="train_mnist.cu" rcbsApplicability="disable" resourcePath="src/train_mnist.cu" toolsToInvoke="nvcc.compiler.base.1979453423.2078504098">
-						<tool id="nvcc.compiler.base.1979453423.2078504098" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.843925199" name="validate_mnist_batch.cu" rcbsApplicability="disable" resourcePath="src/validate_mnist_batch.cu" toolsToInvoke="nvcc.compiler.base.1979453423.378728796">
+						<tool id="nvcc.compiler.base.1979453423.378728796" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="src/train_mnist.cu|src/validate_mnist.cu|src/npz_converter.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/validate_mnist_batch.cu|src/train_mnist.cu|src/validate_mnist.cu|src/npz_converter.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

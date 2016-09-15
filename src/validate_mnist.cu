@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
   std::cerr << "Done." << std::endl;
 
   std::cerr << "Loading model params...";
-  NpzConverter converter("../scripts/test_model/model.npz");
+  NpzConverter converter("../scripts/test_model_single/model.npz");
 
   std::vector<float> wData, bData;
   Shape wShape, bShape;
