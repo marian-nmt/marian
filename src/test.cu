@@ -3,7 +3,51 @@
 #include "mnist.h"
 #include "vocab.h"
 
+#include "tensor_operators.h"
+
+using namespace std;
+
+///////////////////////////////////////////////////////
+string output(const std::vector<float> &vec)
+{
+  stringstream strm;
+  for (size_t i = 0; i < vec.size(); ++i) {
+  strm << vec[i] << " ";
+  }
+  return strm.str();
+}
+
+void testArgMax()
+{
+  using namespace std;
+  using namespace marian;
+
+  std::vector<float> hVec({29,19,  49,39,  79,99,  79,39});
+        cerr << "hVec =" << output(hVec) << endl;
+
+  thrust::device_vector<float> dVec(8);
+  thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
+  float *data = thrust::raw_pointer_cast(dVec.data());
+
+  thrust::device_vector<float> dLabel(4);
+  float *labelPtr = thrust::raw_pointer_cast(dLabel.data());
+
+  gArgMax<<<4, 1, sizeof(float)>>>(labelPtr, data, 4, 2);
+
+  std::vector<float> hVec2(8);
+  thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
+  cerr << "hVec2=" << output(hVec2) << endl;
+
+  std::vector<float> hLabel(4);
+  thrust::copy(dLabel.begin(), dLabel.end(), hLabel.begin());
+  cerr << "hLabel=" << output(hLabel) << endl;
+
+  exit(0);
+}
+
+///////////////////////////////////////////////////////
 int main(int argc, char** argv) {
+  //testArgMax();
 
   using namespace std;
   using namespace marian;

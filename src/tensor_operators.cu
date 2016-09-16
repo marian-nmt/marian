@@ -1,5 +1,7 @@
 #include "tensor_operators.h"
 
+using namespace std;
+
 namespace marian {
 
 __global__ void gSubtractMean(float* out, float* weights,
@@ -53,6 +55,7 @@ void SubtractMean(Tensor* Out, Tensor &Weights) {
   cudaStreamSynchronize(0);
 }
 
+///////////////////////////////////////////////////////
 __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -97,6 +100,35 @@ void Softmax(Tensor* Out) {
   gSoftMax<<<blocks, threads, shared>>>(Out->data(), m, k);
   cudaStreamSynchronize(0);
 }
+///////////////////////////////////////////////////////
+__global__ void gArgMax(float *out, const float *data, size_t rows, size_t cols) {
+  size_t row = blockIdx.x;
+    size_t startInd = row * cols;
+    float maxScore = -99999;
+    size_t maxInd;
+    for (size_t col = 0; col < cols; ++col) {
+      size_t ind = startInd + col;
+      float score = data[ind];
+      if (score > maxScore) {
+        maxScore = score;
+        maxInd = col;
+      }
+    }
+    out[row] = maxInd;
+}
+
+void Argmax(Tensor* Out, const Tensor* In) {
+  size_t m = In->shape()[0];
+  size_t k = In->shape()[1];
+
+  int blocks = m; //std::min(MAX_BLOCKS, (int) m);
+  int threads = k; //std::min(MAX_THREADS, (int) k);
+  //int shared = sizeof(float) * threads * 2;
+  gArgMax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
+  cudaStreamSynchronize(0);
+}
+
+///////////////////////////////////////////////////////
 
 Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta) {
