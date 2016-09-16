@@ -67,6 +67,8 @@ class Node : public Chainable<Tensor>,
     virtual const Shape& shape() {
       return shape_;    
     }
+
+    const std::string &name() const { return name_; }
     
   protected:
     Shape shape_;
