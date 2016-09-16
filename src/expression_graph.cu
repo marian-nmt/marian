@@ -39,12 +39,25 @@ std::string Expr::Debug() const
 }
 
 ///////////////////////////////////////////////////////
+#include "tensor_operators.h"
+
+void temp()
+{
+	std::vector<float> hVec({1,2,  4,3,  7,9,  7,3});
+	thrust::device_vector<float> dVec(8);
+	thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
+	float *data = hVec.data();
+	gSoftMax<<<2, 4>>>(data, 2, 4);
+
+}
+
 ExpressionGraph::ExpressionGraph(int cudaDevice)
 : stack_(new ChainableStack)
 {
   std::srand (time(NULL));
   cudaSetDevice(0);
 
+  temp();
 }
 
 }
