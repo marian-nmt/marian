@@ -4,7 +4,6 @@
 #include "vocab.h"
 
 int main(int argc, char** argv) {
-  cudaSetDevice(0);
 
   using namespace std;
   using namespace marian;
@@ -22,7 +21,7 @@ int main(int argc, char** argv) {
   std::vector<Expr> Y;
   std::vector<Expr> H;
 
-  ExpressionGraph g;
+  ExpressionGraph g(0);
 
   for (int t = 0; t < num_inputs; ++t) {
     X.emplace_back(g.input(shape={batch_size, input_size}));

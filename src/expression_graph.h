@@ -38,9 +38,7 @@ class Expr {
 
 class ExpressionGraph {
   public:
-    ExpressionGraph()
-    : stack_(new ChainableStack)
-    {}
+    ExpressionGraph(int cudaDevice);
     
     void forward(size_t batchSize) {
       for(auto&& v : *stack_) {
@@ -54,10 +52,10 @@ class ExpressionGraph {
       std::stringstream ss;
       ss << "digraph ExpressionGraph {" << std::endl;
       ss << "rankdir=BT" << std::endl;
-      
       typedef typename ChainableStack::reverse_iterator It;
-      for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
+      for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
         ss << (*it)->graphviz();
+      }
       ss << "}" << std::endl;
       return ss.str();
     }

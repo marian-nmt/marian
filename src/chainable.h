@@ -18,7 +18,7 @@ struct Chainable {
 
     virtual void allocate(size_t) = 0;
     virtual std::string graphviz() = 0;
-
+    virtual const std::string &name() const = 0;
     
     virtual const Shape& shape() = 0;
     virtual DataType &val() = 0;

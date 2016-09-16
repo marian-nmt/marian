@@ -37,5 +37,14 @@ std::string Expr::Debug() const
 	strm << marian::Debug(shape);
 	return strm.str();
 }
-    
+
+///////////////////////////////////////////////////////
+ExpressionGraph::ExpressionGraph(int cudaDevice)
+: stack_(new ChainableStack)
+{
+  std::srand (time(NULL));
+  cudaSetDevice(0);
+
+}
+
 }

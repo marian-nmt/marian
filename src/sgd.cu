@@ -23,8 +23,6 @@ SGD::SGD(ExpressionGraph& g, float eta,
 
 void SGD::Run()
 {
-  std::srand ( unsigned ( std::time(0) ) );
-
   size_t numExamples = xData_.size()/ numFeatures_;
   Tensor xt({(int)maxBatchSize_, (int)numExamples}, 0.0f);
   Tensor yt({(int)maxBatchSize_, (int)numClasses_}, 0.0f);

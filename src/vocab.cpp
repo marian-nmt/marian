@@ -1,3 +1,4 @@
+#include <limits>
 #include "vocab.h"
 
 using namespace std;
@@ -23,7 +24,6 @@ inline std::vector<std::string> Tokenize(const std::string& str,
 
   return tokens;
 }
-////////////////////////////////////////////////////////
 
 size_t Vocab::GetOrCreate(const std::string &word)
 {
@@ -37,6 +37,12 @@ size_t Vocab::GetOrCreate(const std::string &word)
 		id = iter->second;
 	}
 	return id;
+}
+
+size_t Vocab::Get(const std::string &word) const
+{
+	Coll::const_iterator iter = coll_.find(word);
+	return iter->second;
 }
 
 std::vector<size_t> Vocab::ProcessSentence(const std::string &sentence)

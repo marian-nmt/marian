@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace keywords;
 
-  ExpressionGraph g;
+  ExpressionGraph g(0);
   
   Expr x = named(g.input(shape={whatevs, IMAGE_SIZE}), "x");
   Expr y = named(g.input(shape={whatevs, LABEL_SIZE}), "y");
