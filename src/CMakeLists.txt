@@ -4,10 +4,12 @@ include_directories(.)
 cuda_add_library(marian_lib 
   cnpy/cnpy.cpp
   exception.cpp
-  expressions.cu 
+  expression_graph.cu 
   sgd.cu
-  tensor.cu	
+  tensor.cu
   tensor_operators.cu
+  expression_operators.cu
+  vocab.cpp
 )
 
 target_link_libraries(marian_lib)

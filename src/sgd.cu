@@ -7,15 +7,11 @@
 using namespace std;
 
 namespace marian {
-SGD::SGD(Expr& cost_func, Expr& inX, Expr& inY,
-    const std::vector<Expr*> params, float eta,
+SGD::SGD(ExpressionGraph& g, float eta,
     std::vector<float>& xData, size_t numFeatures,
     std::vector<float>& yData, size_t numClasses,
     size_t epochs, size_t batchSize)
-: cost_function_(&cost_func),
-  inX_(&inX),
-  inY_(&inY),
-  params_(params),
+: graph_(g),
   eta_(eta),
   xData_(xData),
   numFeatures_(numFeatures),
@@ -45,11 +41,11 @@ void SGD::Run()
       size_t endId = startId + batchSize;
 
       PrepareBatch(startId, endId, batchSize, shuffle, xt, yt);
-      *inX_ = xt;
-      *inY_ = yt;
+      graph_["x"] = xt;
+      graph_["y"] = yt;
 
-      cost_function_->forward(maxBatchSize_);
-      cost_function_->backward();
+      graph_.forward(maxBatchSize_);
+      graph_.backward();
 
       UpdateModel();
 
@@ -136,9 +132,9 @@ void SGD::PrepareBatch(
 }
 
 void SGD::UpdateModel() {
-  for (auto& param : params_) {
+  for (auto& param : graph_.params()) {
     using namespace thrust::placeholders;
-    Element(_1 = _1 - eta_ * _2, param->val(), param->grad());
+    Element(_1 -= eta_ * _2, param.val(), param.grad());
   }
 }
 
