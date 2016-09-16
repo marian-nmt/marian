@@ -7,8 +7,7 @@
 using namespace marian;
 using namespace keywords;
 
-ExpressionGraph build_graph(int cuda_device,
-                            int source_vocabulary_size,
+ExpressionGraph build_graph(int source_vocabulary_size,
                             int target_vocabulary_size,
                             int embedding_size,
                             int hidden_size,
@@ -21,7 +20,7 @@ ExpressionGraph build_graph(int cuda_device,
   int num_inputs = num_source_tokens;
   int num_outputs = num_target_tokens;
 
-  ExpressionGraph g(cuda_device);
+  ExpressionGraph g;
   std::vector<Expr> X, Y, H, S;
 
   // We're including the stop symbol here.
@@ -83,10 +82,10 @@ ExpressionGraph build_graph(int cuda_device,
 
   // Softmax layer and cost function.
   std::vector<Expr> Yp;
-  Yp.emplace_back(named(softmax_fast(dot(h0_d, Why) + by), "pred"));
+  Yp.emplace_back(named(softmax(dot(h0_d, Why) + by), "pred"));
   Expr cross_entropy = sum(Y[0] * log(Yp[0]), axis=1);
   for (int t = 1; t <= num_outputs; ++t) {
-    Yp.emplace_back(named(softmax_fast(dot(S[t-1], Why) + by), "pred"));
+    Yp.emplace_back(named(softmax(dot(S[t-1], Why) + by), "pred"));
     cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
   }
   auto cost = named(-mean(cross_entropy, axis=0), "cost");
@@ -153,8 +152,7 @@ int main(int argc, char** argv) {
   // Build the encoder-decoder computation graph.
   int embedding_size = 50;
   int hidden_size = 100;
-  ExpressionGraph g = build_graph(0, // cuda device.
-                                  source_vocab.Size(),
+  ExpressionGraph g = build_graph(source_vocab.Size(),
                                   target_vocab.Size(),
                                   embedding_size,
                                   hidden_size,
@@ -253,7 +251,6 @@ int main(int argc, char** argv) {
     ss << "Y" << t;
     g[ss.str()] = Yt;
   }
-  
 #endif
 
   std::cerr << "Printing the computation graph..." << std::endl;

@@ -1,8 +1,6 @@
 #include <sstream>
 #include "expression_graph.h"
 
-using namespace std;
-
 namespace marian {
 
 Expr::Expr(ExpressionGraphPtr g, Chainable<Tensor>* chainable)
@@ -32,19 +30,10 @@ Expr::operator ChainPtr() {
 
 std::string Expr::Debug() const
 {
-	stringstream strm;
+	std::stringstream strm;
 	const Shape &shape = pimpl_->shape();
 	strm << marian::Debug(shape);
 	return strm.str();
-}
-
-///////////////////////////////////////////////////////
-ExpressionGraph::ExpressionGraph(int cudaDevice)
-: stack_(new ChainableStack)
-{
-  std::srand (time(NULL));
-  cudaSetDevice(0);
-
 }
 
 }

@@ -10,7 +10,7 @@ const size_t IMAGE_SIZE = 784;
 const size_t LABEL_SIZE = 10;
 int BATCH_SIZE = 10000;
 
-ExpressionGraph build_graph(int cudaDevice) {
+ExpressionGraph build_graph() {
   std::cerr << "Loading model params...";
   NpzConverter converter("../scripts/test_model_single/model.npz");
 
@@ -22,7 +22,7 @@ ExpressionGraph build_graph(int cudaDevice) {
 
   std::cerr << "Building model...";
   
-  ExpressionGraph g(cudaDevice);
+  ExpressionGraph g;
   auto x = named(g.input(shape={whatevs, IMAGE_SIZE}), "x");
   auto y = named(g.input(shape={whatevs, LABEL_SIZE}), "y");
   
@@ -32,7 +32,7 @@ ExpressionGraph build_graph(int cudaDevice) {
                          init=from_vector(bData)), "b");
 
   auto probs = named(
-    softmax_fast(dot(x, w) + b), //, axis=1),
+    softmax(dot(x, w) + b), //, axis=1),
     "probs"
   );
   
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
   std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", BATCH_SIZE, LABEL_SIZE);
   std::cerr << "Done." << std::endl;
 
-  ExpressionGraph g = build_graph(0);
+  ExpressionGraph g = build_graph();
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});

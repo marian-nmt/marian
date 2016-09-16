@@ -85,6 +85,19 @@ namespace thrust
         return compose(unary_operator<unary_tanh>(), _1);
       }
       
+      template<typename T>
+      struct unary_sqrt : public thrust::unary_function<T,T> {
+        __host__ __device__
+        T operator()(const T &x) const { return sqrtf(x); }
+      };
+      
+      template<typename Eval>
+      __host__ __device__
+      actor<composite<unary_operator<unary_sqrt>, actor<Eval>>>
+      Sqrt(const actor<Eval> &_1) {
+        return compose(unary_operator<unary_sqrt>(), _1);
+      }
+      
       template<typename T1, typename T2>
       __host__ __device__
       actor<composite<binary_operator<thrust::maximum>, actor<T1>, actor<T2>>>

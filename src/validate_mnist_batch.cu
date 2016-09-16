@@ -56,8 +56,7 @@ int main(int argc, char** argv) {
 
   std::cerr << "\tDone." << std::endl;
 
-
-  ExpressionGraph g(0);
+  ExpressionGraph g;
 
   auto x = g.input(shape={whatevs, IMAGE_SIZE}, name="X");
   auto y = g.input(shape={whatevs, LABEL_SIZE}, name="Y");
@@ -69,7 +68,7 @@ int main(int argc, char** argv) {
 
   std::cerr << "Building model...";
   auto layer1 = tanh(dot(x, w1) + b1);
-  auto layer2 = softmax(dot(layer1, w2) + b2, axis=1, name="layer2");
+  auto layer2 = softmax(dot(layer1, w2) + b2);
   auto predict = layer2;
 
   std::cerr << "Done." << std::endl;

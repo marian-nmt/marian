@@ -1,8 +1,6 @@
 #include <fstream>
 #include "tensor.h"
 
-using namespace std;
-
 namespace marian {
 
 void Tensor::set(const std::vector<float>& data)

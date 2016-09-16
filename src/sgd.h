@@ -1,43 +1,51 @@
 #pragma once
 
-#include <memory>
-#include <iostream>
-
-#include "expression_graph.h"
-#include "thrust_functions.h"
+#include <map>
+#include <boost/any.hpp>
 #include "tensor_operators.h"
 
 namespace marian {
 
-class SGD {
+class Sgd {
   public:
-    SGD(ExpressionGraph& g, float eta,
-        std::vector<float>& xData, size_t numFeatures,
-        std::vector<float>& yData, size_t numClasses,
-        size_t epochs, size_t batchSize);
-
-    void Run();
-
+    Sgd(float eta=0.1) : eta_(eta) {}
+    
+    void operator()(ExpressionGraph& graph, int batchSize) {
+      graph.backprop(batchSize);
+      
+      for(auto& param : graph.params())
+        Element(_1 -= eta_ * _2,
+                param.val(), param.grad());
+    }
+    
   private:
-    ExpressionGraph& graph_;
-    const float eta_;
-    std::vector<float>& xData_;
-    const size_t numFeatures_;
-    std::vector<float>& yData_;
-    const size_t numClasses_;
-    const size_t epochs_;
-    const size_t maxBatchSize_;
-
-    std::vector<size_t> CreateShuffle(size_t numExamples) const;
-    void PrepareBatch(
-    		size_t startId,
-    		size_t endId,
-    		size_t batchSize,
-    		const std::vector<size_t> &shuffle,
-    		Tensor& xt,
-    		Tensor& yt);
-
-    void UpdateModel();
+    float eta_;
 };
 
-} // namespace marian
+class Adagrad {
+  public:
+    Adagrad(float eta=0.1) : eta_(eta) {}
+    
+    void operator()(ExpressionGraph& graph, int batchSize) {
+      float fudgeFactor = 1e-6;
+      graph.backprop(batchSize);
+      
+      if(history_.size() < graph.params().size())
+        for(auto& param : graph.params())
+          history_.emplace_back(Tensor(param.grad().shape(), 0));
+      
+      auto it = history_.begin();
+      for(auto& param : graph.params()) {    
+        Element(_1 += _2 * _2, *it, param.grad());
+        Element(_1 -= eta_ / (fudgeFactor + Sqrt(_2)) * _3,
+                param.val(), *it, param.grad());
+        it++;
+      }
+    }
+    
+  private:
+    float eta_;
+    std::vector<Tensor> history_;
+};
+
+}

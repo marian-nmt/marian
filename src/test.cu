@@ -3,7 +3,51 @@
 #include "mnist.h"
 #include "vocab.h"
 
+#include "tensor_operators.h"
+
+using namespace std;
+
+///////////////////////////////////////////////////////
+string output(const std::vector<float> &vec)
+{
+  stringstream strm;
+  for (size_t i = 0; i < vec.size(); ++i) {
+  strm << vec[i] << " ";
+  }
+  return strm.str();
+}
+
+void testArgMax()
+{
+  using namespace std;
+  using namespace marian;
+
+  std::vector<float> hVec({29,19,  49,39,  79,99,  79,39});
+        cerr << "hVec =" << output(hVec) << endl;
+
+  thrust::device_vector<float> dVec(8);
+  thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
+  float *data = thrust::raw_pointer_cast(dVec.data());
+
+  thrust::device_vector<float> dLabel(4);
+  float *labelPtr = thrust::raw_pointer_cast(dLabel.data());
+
+  gArgMax<<<4, 1, sizeof(float)>>>(labelPtr, data, 4, 2);
+
+  std::vector<float> hVec2(8);
+  thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
+  cerr << "hVec2=" << output(hVec2) << endl;
+
+  std::vector<float> hLabel(4);
+  thrust::copy(dLabel.begin(), dLabel.end(), hLabel.begin());
+  cerr << "hLabel=" << output(hLabel) << endl;
+
+  exit(0);
+}
+
+///////////////////////////////////////////////////////
 int main(int argc, char** argv) {
+  //testArgMax();
 
   using namespace std;
   using namespace marian;
@@ -21,7 +65,7 @@ int main(int argc, char** argv) {
   std::vector<Expr> Y;
   std::vector<Expr> H;
 
-  ExpressionGraph g(0);
+  ExpressionGraph g;
 
   for (int t = 0; t < num_inputs; ++t) {
     X.emplace_back(g.input(shape={batch_size, input_size}));
@@ -39,10 +83,9 @@ int main(int argc, char** argv) {
 
   string sourceLine, targetLine;
   while (getline(sourceFile, sourceLine)) {
-	  getline(targetFile, targetLine);
-
-	  std::vector<size_t> sourceIds = sourceVocab.ProcessSentence(sourceLine);
-	  std::vector<size_t> targetIds = sourceVocab.ProcessSentence(targetLine);
+    getline(targetFile, targetLine);
+    std::vector<size_t> sourceIds = sourceVocab.ProcessSentence(sourceLine);
+    std::vector<size_t> targetIds = sourceVocab.ProcessSentence(targetLine);
   }
 
   std::cerr << "Building RNN..." << std::endl;
@@ -57,10 +100,10 @@ int main(int argc, char** argv) {
   std::cerr << "Building output layer..." << std::endl;
   std::vector<Expr> Yp;
 
-  Yp.emplace_back(softmax_fast(dot(H[0], Why) + by));
+  Yp.emplace_back(softmax(dot(H[0], Why) + by));
   Expr cross_entropy = sum(Y[0] * log(Yp[0]), axis=1);
   for (int t = 1; t < num_inputs; ++t) {
-    Yp.emplace_back(softmax_fast(dot(H[t], Why) + by));
+    Yp.emplace_back(softmax(dot(H[t], Why) + by));
     cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
   }
   auto graph = -mean(cross_entropy, axis=0, name="cost");
