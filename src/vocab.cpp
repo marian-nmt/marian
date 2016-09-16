@@ -1,3 +1,4 @@
+#include <limits>
 #include "vocab.h"
 
 using namespace std;
