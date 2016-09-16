@@ -55,7 +55,7 @@ void temp()
   using namespace std;
   using namespace marian;
 
-	std::vector<float> hVec({1,2,  4,3,  7,9,  7,3});
+	std::vector<float> hVec({29,19,  49,39,  79,99,  79,39});
         cerr << "hVec =" << output(hVec) << endl;
 
 	thrust::device_vector<float> dVec(8);
@@ -63,7 +63,7 @@ void temp()
 	float *data = thrust::raw_pointer_cast(dVec.data());
 
 	//gArgMax<<<10, 20, sizeof(float)>>>(data, 4, 2);
-	gArgMax2<<<10, 20, sizeof(float)>>>(data, 4, 2);
+	gArgMax2<<<4, 1, sizeof(float)>>>(data, 4, 2);
 
 	std::vector<float> hVec2(8);
 	thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
