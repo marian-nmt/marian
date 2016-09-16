@@ -47,7 +47,7 @@ void testArgMax()
 
 ///////////////////////////////////////////////////////
 int main(int argc, char** argv) {
-  testArgMax();
+  //testArgMax();
 
   using namespace std;
   using namespace marian;
