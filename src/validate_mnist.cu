@@ -2,7 +2,7 @@
 #include "marian.h"
 #include "mnist.h"
 #include "npz_converter.h"
-#include "sgd.h"
+#include "optimizers.h"
 
 using namespace marian;
 using namespace keywords;

@@ -1,17 +1,15 @@
 
 #include "marian.h"
 #include "mnist.h"
-#include "sgd.h"
-
-using namespace std;
+#include "optimizers.h"
 
 int main(int argc, char** argv) {
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
   int numofdata;
 
-  vector<float> trainImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
-  vector<float> trainLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
+  std::vector<float> trainImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", numofdata, IMAGE_SIZE);
+  std::vector<float> trainLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", numofdata, LABEL_SIZE);
 
   using namespace marian;
   using namespace keywords;
@@ -27,7 +25,7 @@ int main(int argc, char** argv) {
   auto scores = dot(x, w) + b;
   auto lr = softmax(scores);
   auto cost = named(-mean(sum(y * log(lr), axis=1), axis=0), "cost");
-  cerr << "lr=" << lr.Debug() << endl;
+  std::cerr << "lr=" << lr.Debug() << std::endl;
 
   Adagrad opt;
   opt(g, 300);
