@@ -72,12 +72,12 @@ inline Expr sum(Expr a, Args ...args) {
 
 // inefficient
 template <typename ...Args>
-Expr softmax(Expr a, Args ...args) {
+Expr softmax_slow(Expr a, Args ...args) {
   Expr e = exp(a);
   return e / sum(e, args...);
 }
 
-Expr softmax_fast(Expr a);
+Expr softmax(Expr a);
 
 // inefficient
 template <typename ...Args>

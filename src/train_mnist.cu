@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   Expr b = named(g.param(shape={1, LABEL_SIZE}), "b");
 
   auto scores = dot(x, w) + b;
-  auto lr = softmax_fast(scores);
+  auto lr = softmax(scores);
   auto cost = named(-mean(sum(y * log(lr), axis=1), axis=0), "cost");
   cerr << "lr=" << lr.Debug() << endl;
 

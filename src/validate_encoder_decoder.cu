@@ -80,10 +80,10 @@ ExpressionGraph build_graph() {
 
   // Softmax layer and cost function.
   std::vector<Expr> Yp;
-  Yp.emplace_back(named(softmax_fast(dot(h0_d, Why) + by), "pred"));
+  Yp.emplace_back(named(softmax(dot(h0_d, Why) + by), "pred"));
   Expr cross_entropy = sum(Y[0] * log(Yp[0]), axis=1);
   for (int t = 1; t <= num_outputs; ++t) {
-    Yp.emplace_back(named(softmax_fast(dot(S[t-1], Why) + by), "pred"));
+    Yp.emplace_back(named(softmax(dot(S[t-1], Why) + by), "pred"));
     cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
   }
   auto cost = named(-mean(cross_entropy, axis=0), "cost");

@@ -14,7 +14,8 @@ class Sgd {
       graph.backprop(batchSize);
       
       for(auto& param : graph.params())
-        Element(_1 -= eta_ * _2, param.val(), param.grad());
+        Element(_1 -= eta_ * _2,
+                param.val(), param.grad());
     }
     
   private:
@@ -36,7 +37,8 @@ class Adagrad {
       auto it = history_.begin();
       for(auto& param : graph.params()) {    
         Element(_1 += _2 * _2, *it, param.grad());
-        Element(_1 -= eta_ / (fudgeFactor + Sqrt(_2)) * _3, param.val(), *it, param.grad());
+        Element(_1 -= eta_ / (fudgeFactor + Sqrt(_2)) * _3,
+                param.val(), *it, param.grad());
         it++;
       }
     }

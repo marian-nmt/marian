@@ -29,7 +29,7 @@ Expr operator-(Expr a) {
   return Expr(a.graph(), new NegNodeOp(a));
 };
 
-Expr softmax_fast(Expr a) {
+Expr softmax(Expr a) {
   return Expr(a.graph(), new SoftmaxNodeOp(a));
 }
 

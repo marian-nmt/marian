@@ -100,10 +100,10 @@ int main(int argc, char** argv) {
   std::cerr << "Building output layer..." << std::endl;
   std::vector<Expr> Yp;
 
-  Yp.emplace_back(softmax_fast(dot(H[0], Why) + by));
+  Yp.emplace_back(softmax(dot(H[0], Why) + by));
   Expr cross_entropy = sum(Y[0] * log(Yp[0]), axis=1);
   for (int t = 1; t < num_inputs; ++t) {
-    Yp.emplace_back(softmax_fast(dot(H[t], Why) + by));
+    Yp.emplace_back(softmax(dot(H[t], Why) + by));
     cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
   }
   auto graph = -mean(cross_entropy, axis=0, name="cost");
