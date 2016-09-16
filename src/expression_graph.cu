@@ -47,8 +47,16 @@ void temp()
 	thrust::device_vector<float> dVec(8);
 	thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
 	float *data = hVec.data();
+
 	gSoftMax<<<2, 4>>>(data, 2, 4);
 
+	std::vector<float> hVec2(8);
+	thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
+	cerr << "hVec2=";
+	for (size_t i = 0; i < hVec.size(); ++i) {
+		cerr << hVec2[i] << " ";
+	}
+	cerr << endl;
 }
 
 ExpressionGraph::ExpressionGraph(int cudaDevice)
