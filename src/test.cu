@@ -17,7 +17,7 @@ string output(const std::vector<float> &vec)
   return strm.str();
 }
 
-void temp()
+void testArgMax()
 {
   using namespace std;
   using namespace marian;
@@ -47,7 +47,7 @@ void temp()
 
 ///////////////////////////////////////////////////////
 int main(int argc, char** argv) {
-  temp();
+  testArgMax();
 
   using namespace std;
   using namespace marian;
