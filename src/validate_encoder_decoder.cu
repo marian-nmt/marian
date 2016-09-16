@@ -7,16 +7,19 @@
 using namespace marian;
 using namespace keywords;
 
-const int input_size = 10;
-const int output_size = 15;
-const int embedding_size = 8;
-const int hidden_size = 5;
-const int batch_size = 25;
-const int num_inputs = 8;
-const int num_outputs = 6;
-
-ExpressionGraph build_graph(int cuda_device) {
+ExpressionGraph build_graph(int cuda_device,
+                            int source_vocabulary_size,
+                            int target_vocabulary_size,
+                            int embedding_size,
+                            int hidden_size,
+                            int num_source_tokens,
+                            int num_target_tokens) {
   std::cerr << "Building computation graph..." << std::endl;
+
+  int input_size = source_vocabulary_size;
+  int output_size = target_vocabulary_size;
+  int num_inputs = num_source_tokens;
+  int num_outputs = num_target_tokens;
 
   ExpressionGraph g(cuda_device);
   std::vector<Expr> X, Y, H, S;
@@ -25,14 +28,14 @@ ExpressionGraph build_graph(int cuda_device) {
   for (int t = 0; t <= num_inputs; ++t) {
     std::stringstream ss;
     ss << "X" << t;
-    X.emplace_back(named(g.input(shape={batch_size, input_size}), ss.str()));
+    X.emplace_back(named(g.input(shape={whatevs, input_size}), ss.str()));
   }
 
   // We're including the stop symbol here.
   for (int t = 0; t <= num_outputs; ++t) {
     std::stringstream ss;
     ss << "Y" << t;
-    Y.emplace_back(named(g.input(shape={batch_size, output_size}), ss.str()));
+    Y.emplace_back(named(g.input(shape={whatevs, output_size}), ss.str()));
   }
 
   // Source embeddings.
@@ -96,30 +99,125 @@ ExpressionGraph build_graph(int cuda_device) {
 int main(int argc, char** argv) {
 #if 1
   std::cerr << "Loading the data... ";
-  Vocab sourceVocab, targetVocab;
+  Vocab source_vocab, target_vocab;
 
   // read parallel corpus from file
-  std::fstream sourceFile("../examples/mt/dev/newstest2013.de");
-  std::fstream targetFile("../examples/mt/dev/newstest2013.en");
+  std::fstream source_file("../examples/mt/dev/newstest2013.de");
+  std::fstream target_file("../examples/mt/dev/newstest2013.en");
 
+  // Right now we're only reading the first few sentence pairs, and defining
+  // that as the step size.
+  int batch_size = 64;
+  int num_source_tokens = -1;
+  int num_target_tokens = -1;
   std::vector<std::vector<size_t> > source_sentences, target_sentences;
-  std::string sourceLine, targetLine;
-  while (getline(sourceFile, sourceLine)) {
-    getline(targetFile, targetLine);
-    std::vector<size_t> sourceIds = sourceVocab.ProcessSentence(sourceLine);
-    std::vector<size_t> targetIds = targetVocab.ProcessSentence(targetLine);
-    source_sentences.push_back(sourceIds);
-    target_sentences.push_back(targetIds);
+  std::string source_line, target_line;
+  while (getline(source_file, source_line)) {
+    getline(target_file, target_line);
+    std::vector<size_t> source_ids = source_vocab.ProcessSentence(source_line);
+    source_ids.push_back(source_vocab.GetEOS()); // Append EOS token.
+    std::vector<size_t> target_ids = target_vocab.ProcessSentence(target_line);
+    target_ids.push_back(target_vocab.GetEOS()); // Append EOS token.
+    source_sentences.push_back(source_ids);
+    target_sentences.push_back(target_ids);
+    if (num_source_tokens < 0 || source_ids.size() > num_source_tokens) {
+      num_source_tokens = source_ids.size();
+    }
+    if (num_target_tokens < 0 || target_ids.size() > num_target_tokens) {
+      num_target_tokens = target_ids.size();
+    }
+    if (source_sentences.size() == batch_size) break;
   }
   std::cerr << "Done." << std::endl;
   std::cerr << source_sentences.size()
             << " sentence pairs read." << std::endl;
-  std::cerr << "Source vocabulary size: " << sourceVocab.Size() << std::endl;
-  std::cerr << "Target vocabulary size: " << targetVocab.Size() << std::endl;
-#endif
+  std::cerr << "Source vocabulary size: " << source_vocab.Size() << std::endl;
+  std::cerr << "Target vocabulary size: " << target_vocab.Size() << std::endl;
+  std::cerr << "Max source tokens: " << num_source_tokens << std::endl;
+  std::cerr << "Max target tokens: " << num_target_tokens << std::endl;
+
+  // Padding the source and target sentences.
+  for (auto &sentence : source_sentences) {
+    for (int i = sentence.size(); i < num_source_tokens; ++i) {
+      sentence.push_back(source_vocab.GetPAD());
+    }
+  }
+  for (auto &sentence : target_sentences) {
+    for (int i = sentence.size(); i < num_target_tokens; ++i) {
+      sentence.push_back(target_vocab.GetPAD());
+    }
+  }
+
+  std::cerr << "Building the encoder-decoder computation graph..." << std::endl;
 
   // Build the encoder-decoder computation graph.
-  ExpressionGraph g = build_graph(0);
+  int embedding_size = 50;
+  int hidden_size = 100;
+  ExpressionGraph g = build_graph(0, // cuda device.
+                                  source_vocab.Size(),
+                                  target_vocab.Size(),
+                                  embedding_size,
+                                  hidden_size,
+                                  num_source_tokens-1,
+                                  num_target_tokens-1);
+
+  std::cerr << "Attaching the data to the computation graph..." << std::endl;
+
+  // Convert the data to dense one-hot vectors.
+  // TODO: make the graph handle sparse indices with a proper lookup layer.
+  for (int t = 0; t < num_source_tokens; ++t) {
+    Tensor Xt({batch_size, static_cast<int>(source_vocab.Size())});
+    std::vector<float> values(batch_size * source_vocab.Size(), 0.0);
+    int k = 0;
+    for (int i = 0; i < batch_size; ++i) {
+      values[k + source_sentences[i][t]] = 1.0;
+      k += source_vocab.Size();
+    }
+    thrust::copy(values.begin(), values.end(), Xt.begin());
+    // Attach this slice to the graph.
+    std::stringstream ss;
+    ss << "X" << t;
+    g[ss.str()] = Xt;
+  }
+
+  for (int t = 0; t < num_target_tokens; ++t) {
+    Tensor Yt({batch_size, static_cast<int>(target_vocab.Size())});
+    std::vector<float> values(batch_size * target_vocab.Size(), 0.0);
+    int k = 0;
+    for (int i = 0; i < batch_size; ++i) {
+      values[k + target_sentences[i][t]] = 1.0;
+      k += target_vocab.Size();
+    }
+    thrust::copy(values.begin(), values.end(), Yt.begin());
+    // Attach this slice to the graph.
+    std::stringstream ss;
+    ss << "Y" << t;
+    g[ss.str()] = Yt;
+  }
+
+#else
+
+  int source_vocabulary_size = 10;
+  int target_vocabulary_size = 15;
+  int embedding_size = 8;
+  int hidden_size = 5;
+  int batch_size = 25;
+  int num_source_tokens = 8;
+  int num_target_tokens = 6;
+
+  // Build the encoder-decoder computation graph.
+  ExpressionGraph g = build_graph(0, // cuda device.
+                                  source_vocabulary_size,
+                                  target_vocabulary_size,
+                                  embedding_size,
+                                  hidden_size,
+                                  num_source_tokens,
+                                  num_target_tokens);
+
+  int input_size = source_vocabulary_size;
+  int output_size = target_vocabulary_size;
+  int num_inputs = num_source_tokens;
+  int num_outputs = num_target_tokens;
 
   // Generate input data (include the stop symbol).
   for (int t = 0; t <= num_inputs; ++t) {
@@ -155,6 +253,8 @@ int main(int argc, char** argv) {
     ss << "Y" << t;
     g[ss.str()] = Yt;
   }
+  
+#endif
 
   std::cerr << "Printing the computation graph..." << std::endl;
   std::cout << g.graphviz() << std::endl;
@@ -167,6 +267,7 @@ int main(int argc, char** argv) {
 
   std::cerr << g["cost"].val().Debug() << std::endl;
 
+#if 0
   std::cerr << g["X0"].val().Debug() << std::endl;
   std::cerr << g["Y0"].val().Debug() << std::endl;
   std::cerr << g["Whh"].grad().Debug() << std::endl;
@@ -175,6 +276,7 @@ int main(int argc, char** argv) {
   std::cerr << g["by"].grad().Debug() << std::endl;
   std::cerr << g["Wxh"].grad().Debug() << std::endl;
   std::cerr << g["h0"].grad().Debug() << std::endl;
+#endif
 
   return 0;
 }
