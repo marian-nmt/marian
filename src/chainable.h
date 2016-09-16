@@ -17,6 +17,8 @@ struct Chainable {
     virtual void set_zero_adjoint() { }
 
     virtual void allocate(size_t) = 0;
+    virtual std::string graphviz() = 0;
+
     
     virtual const Shape& shape() = 0;
     virtual DataType &val() = 0;
