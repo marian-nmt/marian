@@ -15,10 +15,10 @@ const int batch_size = 25;
 const int num_inputs = 8;
 const int num_outputs = 6;
 
-ExpressionGraph build_graph(int cuda_device) {
+ExpressionGraph build_graph() {
   std::cerr << "Building computation graph..." << std::endl;
 
-  ExpressionGraph g(cuda_device);
+  ExpressionGraph g;
   std::vector<Expr> X, Y, H, S;
 
   // We're including the stop symbol here.
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
 #endif
 
   // Build the encoder-decoder computation graph.
-  ExpressionGraph g = build_graph(0);
+  ExpressionGraph g = build_graph();
 
   // Generate input data (include the stop symbol).
   for (int t = 0; t <= num_inputs; ++t) {

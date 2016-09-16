@@ -39,11 +39,12 @@ std::string Expr::Debug() const
 }
 
 ///////////////////////////////////////////////////////
-ExpressionGraph::ExpressionGraph(int cudaDevice)
-: stack_(new ChainableStack)
-{
-  std::srand (time(NULL));
-  cudaSetDevice(0);
-}
+//ExpressionGraph::ExpressionGraph(int cudaDevice)
+//: stack_(new ChainableStack)
+//{
+//  std::srand (time(NULL));
+//  cudaSetDevice(0);
+//
+//}
 
 }

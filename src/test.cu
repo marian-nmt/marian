@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
   std::vector<Expr> Y;
   std::vector<Expr> H;
 
-  ExpressionGraph g(0);
+  ExpressionGraph g;
 
   for (int t = 0; t < num_inputs; ++t) {
     X.emplace_back(g.input(shape={batch_size, input_size}));
@@ -83,10 +83,9 @@ int main(int argc, char** argv) {
 
   string sourceLine, targetLine;
   while (getline(sourceFile, sourceLine)) {
-	  getline(targetFile, targetLine);
-
-	  std::vector<size_t> sourceIds = sourceVocab.ProcessSentence(sourceLine);
-	  std::vector<size_t> targetIds = sourceVocab.ProcessSentence(targetLine);
+    getline(targetFile, targetLine);
+    std::vector<size_t> sourceIds = sourceVocab.ProcessSentence(sourceLine);
+    std::vector<size_t> targetIds = sourceVocab.ProcessSentence(targetLine);
   }
 
   std::cerr << "Building RNN..." << std::endl;
