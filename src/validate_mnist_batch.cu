@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 
   std::cerr << "Building model...";
   auto layer1 = tanh(dot(x, w1) + b1);
-  auto layer2 = softmax(dot(layer1, w2) + b2, axis=1, name="layer2");
+  auto layer2 = softmax(dot(layer1, w2) + b2);
   auto predict = layer2;
 
   std::cerr << "Done." << std::endl;

@@ -29,3 +29,6 @@ Compilation with `cmake > 3.5`:
     cmake ..
     make -j
 
+To compile API documentation using Doxygen, first cd to the build directory, and then:
+
+    make doc

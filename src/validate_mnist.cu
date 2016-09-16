@@ -32,7 +32,7 @@ ExpressionGraph build_graph() {
                          init=from_vector(bData)), "b");
 
   auto probs = named(
-    softmax_fast(dot(x, w) + b), //, axis=1),
+    softmax(dot(x, w) + b), //, axis=1),
     "probs"
   );
   

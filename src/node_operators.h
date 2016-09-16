@@ -163,6 +163,13 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     // For each row, the Jacobian times vector is given by:
     // J * dy = p .* (dy - avg*1)
     // where avg = p'*dy and p is the softmax output (probabilities).
+    //
+    // For more information, see sec. 2.5 of the following reference:
+    // André F. T. Martins and Ramon Astudillo.
+    // "From Softmax to Sparsemax: A Sparse Model of Attention and Multi-Label
+    // Classification." ICML 2016.
+    // http://jmlr.org/proceedings/papers/v48/martins16.pdf
+
     Tensor result(adj_.shape());
     thrust::copy(adj_.begin(), adj_.end(), result.begin());
     SubtractMean(&result, val_);
