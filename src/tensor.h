@@ -34,7 +34,7 @@ namespace marian {
  *
  * @param shape Shape of Tensor.
  *
- * @return 
+ * @return String of shape.
  */
 inline std::string Debug(const Shape &shape)
 {
@@ -52,7 +52,7 @@ inline std::string Debug(const Shape &shape)
  *
  * @param shape Shape of Tensor.
  *
- * @return 
+ * @return Size of Tensor vector.
  */
 inline size_t GetTotalSize(const Shape &shape)
 {
@@ -62,14 +62,14 @@ inline size_t GetTotalSize(const Shape &shape)
 }
 
 /**
- * @brief Class that manages the Tensor on the GPU. 
+ * @brief This class manages the Tensor on the GPU. 
  *
  * @tparam Float Data type.
  */
 template<class Float>
 class TensorImpl {
   private:
-    Shape shape_; /*!< Dimens of Tensor */
+    Shape shape_; /*!< Dimenions of Tensor */
     thrust::device_vector<Float> data_; /*< Vector of data that Tensor is managing on GPU. */
     size_t tno_; /*< Tensor number */
     static size_t tensorCounter; /*< Static counter of created Tensors */
@@ -102,7 +102,7 @@ class TensorImpl {
     TensorImpl(TensorImpl&&) = delete;
 
     /**
-     * @brief Get value of vector specified with index.
+     * @brief Get the i-th element of Tensor vector.
      *
      * @param i Index.
      *
@@ -259,7 +259,7 @@ class Tensor {
     Tensor() {}
 
     /**
-     * @brief Constructor that allocates needed memory.
+     * @brief Constructor that allocates memory.
      *
      * @param shape Shape of Tensor. 
      * @param value Value to fill Tensor's vector with.
@@ -274,7 +274,7 @@ class Tensor {
     ~Tensor() {}
 
     /**
-     * @brief Allocate memory if Tensor doesn't exist on GPU.
+     * @brief Allocate memory if Tensor doesn't exist on GPU. Otherwise, do nothing.
      *
      * @param shape Shape of Tensor.
      * @param value Value to fill Tensor's vector with.
@@ -285,7 +285,7 @@ class Tensor {
     }
 
     /**
-     * @brief Get value of GPU Tensor in specified index (const).
+     * @brief Get i-th element of GPU Tensor vector (const).
      *
      * @param i Index.
      *
@@ -298,7 +298,7 @@ class Tensor {
     /**
      * @brief Get size of GPU Tensor's vector.
      *
-     * @return 
+     * @return Size of Tensor vector.
      */
     size_t size() const {
       return pimpl_->size();
@@ -386,7 +386,7 @@ class Tensor {
     }
 
     /**
-     * @brief Check if Tensor exists (is filled with data).
+     * @brief Check if Tensor is allocated.
      *
      * @return True or False
      */
@@ -423,7 +423,7 @@ class Tensor {
      */
     void set(const std::vector<float>& data);
     /**
-     * @brief Set GPU Tensor's veector to values of specified vector.
+     * @brief Fill GPU Tensor's vector using values from the specified vector.
      *
      * @param begin Begin iterator of vector being copied.
      * @param end End iterator of vector being copied.
