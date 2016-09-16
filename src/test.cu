@@ -5,28 +5,59 @@
 
 #include "tensor_operators.h"
 
+using namespace std;
+
 ///////////////////////////////////////////////////////
+__global__ void gArgMax(float* arr, size_t rows, size_t cols) {
+  for (size_t row = 0; row < rows; ++row) {
+    size_t startInd = row * cols;
+    float maxScore = -99999;
+    size_t maxInd = -1;
+    for (size_t col = 0; col < cols; ++col) {
+      size_t ind = startInd + col;
+      float score = arr[ind];
+      if (score > maxScore) {
+        maxScore = score;
+        maxInd = col;
+      }
+    }
+    arr[startInd] = maxInd;
+  }
+}
+
+string output(const std::vector<float> &vec)
+{
+  stringstream strm;
+  for (size_t i = 0; i < vec.size(); ++i) {
+  strm << vec[i] << " ";
+  }
+  return strm.str();
+}
+
 void temp()
 {
+  using namespace std;
+  using namespace marian;
+
 	std::vector<float> hVec({1,2,  4,3,  7,9,  7,3});
+        cerr << "hVec =" << output(hVec) << endl;
+
 	thrust::device_vector<float> dVec(8);
 	thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
 	float *data = thrust::raw_pointer_cast(dVec.data());
 
-	gSoftMax<<<4, 2, sizeof(float)>>>(data, 4, 2);
+	gArgMax<<<10, 20, sizeof(float)>>>(data, 4, 2);
 
 	std::vector<float> hVec2(8);
 	thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
-	cerr << "hVec2=";
-	for (size_t i = 0; i < hVec.size(); ++i) {
-		cerr << hVec2[i] << " ";
-	}
-	cerr << endl;
+	cerr << "hVec2=" << output(hVec2) << endl;
+
 	exit(0);
 }
 
 ///////////////////////////////////////////////////////
 int main(int argc, char** argv) {
+  temp();
 
   using namespace std;
   using namespace marian;
