@@ -72,10 +72,10 @@ int main(int argc, char** argv) {
     Y.emplace_back(g.input(shape={batch_size, output_size}));
   }
 
-  Expr Wxh = g.param(shape={input_size, hidden_size}, init=uniform(), name="Wxh");
-  Expr Whh = g.param(shape={hidden_size, hidden_size}, init=uniform(), name="Whh");
-  Expr bh = g.param(shape={1, hidden_size}, init=uniform(), name="bh");
-  Expr h0 = g.param(shape={1, hidden_size}, init=uniform(), name="h0");
+  Expr Wxh = g.param(shape={input_size, hidden_size}, name="Wxh");
+  Expr Whh = g.param(shape={hidden_size, hidden_size}, name="Whh");
+  Expr bh = g.param(shape={1, hidden_size}, name="bh");
+  Expr h0 = g.param(shape={1, hidden_size}, name="h0");
 
   // read parallel corpus from file
   std::fstream sourceFile("../examples/mt/dev/newstest2013.de");
@@ -94,8 +94,8 @@ int main(int argc, char** argv) {
     H.emplace_back(tanh(dot(X[t], Wxh) + dot(H[t-1], Whh) + bh));
   }
 
-  Expr Why = g.param(shape={hidden_size, output_size}, init=uniform(), name="Why");
-  Expr by = g.param(shape={1, output_size}, init=uniform(), name="by");
+  Expr Why = g.param(shape={hidden_size, output_size}, name="Why");
+  Expr by = g.param(shape={1, output_size}, name="by");
 
   std::cerr << "Building output layer..." << std::endl;
   std::vector<Expr> Yp;

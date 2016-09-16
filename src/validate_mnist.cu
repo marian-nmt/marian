@@ -2,6 +2,7 @@
 #include "marian.h"
 #include "mnist.h"
 #include "npz_converter.h"
+#include "sgd.h"
 
 using namespace marian;
 using namespace keywords;
@@ -26,13 +27,23 @@ ExpressionGraph build_graph() {
   auto x = named(g.input(shape={whatevs, IMAGE_SIZE}), "x");
   auto y = named(g.input(shape={whatevs, LABEL_SIZE}), "y");
   
-  auto w = named(g.param(shape={IMAGE_SIZE, LABEL_SIZE},
-                         init=from_vector(wData)), "w");
-  auto b = named(g.param(shape={1, LABEL_SIZE},
-                         init=from_vector(bData)), "b");
+  //auto w = named(g.param(shape={IMAGE_SIZE, LABEL_SIZE},
+  //                       init=from_vector(wData)), "w");
+  //auto b = named(g.param(shape={1, LABEL_SIZE},
+  //                       init=from_vector(bData)), "b");
+  auto w1 = named(g.param(shape={IMAGE_SIZE, 100},
+                         init=uniform()), "w1");
+  auto b1 = named(g.param(shape={1, 100},
+                         init=uniform()), "b1");
+  auto w2 = named(g.param(shape={100, LABEL_SIZE},
+                         init=uniform()), "w2");
+  auto b2 = named(g.param(shape={1, LABEL_SIZE},
+                         init=uniform()), "b2");
 
+                         
+  auto lr = tanh(dot(x, w1) + b1);
   auto probs = named(
-    softmax(dot(x, w) + b), //, axis=1),
+    softmax(dot(lr, w2) + b2), //, axis=1),
     "probs"
   );
   
@@ -60,10 +71,16 @@ int main(int argc, char** argv) {
   g["x"] = (xt << testImages);
   g["y"] = (yt << testLabels);
   
-  std::cout << g.graphviz() << std::endl;
+  Adam opt;
+  for(size_t j = 0; j < 10; ++j) {
+    for(size_t i = 0; i < 60; ++i) {
+      opt(g, BATCH_SIZE);
+    }
+    std::cerr << g["cost"].val()[0] << std::endl;
+  }
   
-  g.forward(BATCH_SIZE);
- 
+  //std::cout << g.graphviz() << std::endl;
+  
   std::vector<float> results;
   results << g["probs"].val();
   
@@ -78,33 +95,5 @@ int main(int argc, char** argv) {
     acc += (correct == proposed);
   }
   std::cerr << "Cost: " << g["cost"].val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
-  
-  float eta = 0.1;
-  for (size_t j = 0; j < 10; ++j) {
-    for(size_t i = 0; i < 60; ++i) {    
-      g.backward();
-    
-      auto update_rule = _1 -= eta * _2;
-      for(auto param : g.params()) 
-        Element(update_rule, param.val(), param.grad());
-      
-      g.forward(BATCH_SIZE);
-    }
-    std::cerr << "Epoch: " << j << std::endl;
-    std::vector<float> results;
-    results << g["probs"].val();
-    
-    size_t acc = 0;
-    for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
-      size_t correct = 0;
-      size_t proposed = 0;
-      for (size_t j = 0; j < LABEL_SIZE; ++j) {
-        if (testLabels[i+j]) correct = j;
-        if (results[i + j] > results[i + proposed]) proposed = j;
-      }
-      acc += (correct == proposed);
-    }
-    std::cerr << "Cost: " << g["cost"].val()[0] <<  " - Accuracy: " << float(acc) / BATCH_SIZE << std::endl;
-  }
   return 0;
 }
