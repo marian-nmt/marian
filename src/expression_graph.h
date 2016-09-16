@@ -38,9 +38,7 @@ class Expr {
 
 class ExpressionGraph {
   public:
-    ExpressionGraph()
-    : stack_(new ChainableStack)
-    {}
+    ExpressionGraph(int cudaDevice);
     
     void forward(size_t batchSize) {
       for(auto&& v : *stack_) {

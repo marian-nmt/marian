@@ -7,9 +7,7 @@ using namespace marian;
 using namespace keywords;
 
 int main(int argc, char** argv) {
-  
-  cudaSetDevice(0);
-  
+
   const size_t IMAGE_SIZE = 784;
   const size_t LABEL_SIZE = 10;
   const size_t BATCH_SIZE = 24;
@@ -59,7 +57,7 @@ int main(int argc, char** argv) {
   std::cerr << "\tDone." << std::endl;
 
 
-  ExpressionGraph g;
+  ExpressionGraph g(0);
 
   auto x = g.input(shape={whatevs, IMAGE_SIZE}, name="X");
   auto y = g.input(shape={whatevs, LABEL_SIZE}, name="Y");

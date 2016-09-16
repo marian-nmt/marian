@@ -24,6 +24,21 @@ inline std::vector<std::string> Tokenize(const std::string& str,
   return tokens;
 }
 ////////////////////////////////////////////////////////
+size_t Vocab::GetUNK() const
+{
+	return std::numeric_limits<size_t>::max();
+}
+
+size_t Vocab::GetPad() const
+{
+	return std::numeric_limits<size_t>::max() - 1;
+}
+
+size_t Vocab::GetEOS() const
+{
+	return std::numeric_limits<size_t>::max() - 2;
+}
+
 
 size_t Vocab::GetOrCreate(const std::string &word)
 {
