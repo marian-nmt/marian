@@ -42,7 +42,7 @@ size_t Vocab::GetOrCreate(const std::string &word)
 std::vector<size_t> Vocab::ProcessSentence(const std::string &sentence)
 {
 	vector<string> toks = Tokenize(sentence);
-	vector<size_t> ret;
+	vector<size_t> ret(toks.size());
 
 	for (size_t i = 0; i < toks.size(); ++i) {
 		size_t id = GetOrCreate(toks[i]);
