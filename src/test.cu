@@ -75,6 +75,8 @@ int main(int argc, char** argv) {
     Y[t] = Yt;
   }
 
+  std::cout << g.graphviz() << std::endl;
+  
   g.forward(batch_size);
   g.backward();
 
