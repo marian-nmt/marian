@@ -34,11 +34,16 @@ cuda_add_executable(
   validate_mnist_batch
   validate_mnist_batch.cu
 )
+cuda_add_executable(
+  validate_encoder_decoder
+  validate_encoder_decoder.cu
+)
 
 target_link_libraries(validate_mnist marian_lib)
 target_link_libraries(validate_mnist_batch marian_lib)
+target_link_libraries(validate_encoder_decoder marian_lib)
 
-foreach(exec marian train_mnist validate_mnist validate_mnist_batch )
+foreach(exec marian train_mnist validate_mnist validate_mnist_batch validate_encoder_decoder)
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
