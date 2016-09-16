@@ -16,22 +16,24 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace keywords;
 
-  Expr x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-  Expr y = input(shape={whatevs, LABEL_SIZE}, name="Y");
+  ExpressionGraph g;
+  
+  Expr x = named(g.input(shape={whatevs, IMAGE_SIZE}), "x");
+  Expr y = named(g.input(shape={whatevs, LABEL_SIZE}), "y");
 
-  Expr w = param(shape={IMAGE_SIZE, LABEL_SIZE}, name="W0");
-  Expr b = param(shape={1, LABEL_SIZE}, name="b0");
+  Expr w = named(g.param(shape={IMAGE_SIZE, LABEL_SIZE}), "w");
+  Expr b = named(g.param(shape={1, LABEL_SIZE}), "b");
 
   std::vector<Expr*> params;
   params.push_back(&w);
   params.push_back(&b);
 
   auto scores = dot(x, w) + b;
-  auto lr = softmax_fast(scores, axis=1, name="pred");
-  auto cost = -mean(sum(y * log(lr), axis=1), axis=0, name="cost");
+  auto lr = softmax_fast(scores);
+  auto cost = named(-mean(sum(y * log(lr), axis=1), axis=0), "cost");
   cerr << "lr=" << lr.Debug() << endl;
 
-  SGD opt(cost, x, y, params, 0.9, trainImages, IMAGE_SIZE, trainLabels, LABEL_SIZE, 3, 24);
+  SGD opt(g, 0.9, trainImages, IMAGE_SIZE, trainLabels, LABEL_SIZE, 3, 24);
   opt.Run();
   return 0;
 }

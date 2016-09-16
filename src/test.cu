@@ -14,42 +14,41 @@ int main(int argc, char** argv) {
   int hidden_size = 5;
   int num_inputs = 8;
 
-  std::vector<Expr*> X(num_inputs);
-  std::vector<Expr*> Y(num_inputs);
-  std::vector<Expr*> H(num_inputs);
+  std::vector<Expr> X;
+  std::vector<Expr> Y;
+  std::vector<Expr> H;
+
+  ExpressionGraph g;
 
   for (int t = 0; t < num_inputs; ++t) {
-    X[t] = new Expr(input(shape={batch_size, input_size}));
-    Y[t] = new Expr(input(shape={batch_size, output_size}));
+    X.emplace_back(g.input(shape={batch_size, input_size}));
+    Y.emplace_back(g.input(shape={batch_size, output_size}));
   }
 
-  Expr Wxh = param(shape={input_size, hidden_size}, init=uniform(), name="Wxh");
-  Expr Whh = param(shape={hidden_size, hidden_size}, init=uniform(), name="Whh");
-  Expr bh = param(shape={1, hidden_size}, init=uniform(), name="bh");
-  Expr h0 = param(shape={1, hidden_size}, init=uniform(), name="h0");
+  Expr Wxh = g.param(shape={input_size, hidden_size}, init=uniform(), name="Wxh");
+  Expr Whh = g.param(shape={hidden_size, hidden_size}, init=uniform(), name="Whh");
+  Expr bh = g.param(shape={1, hidden_size}, init=uniform(), name="bh");
+  Expr h0 = g.param(shape={1, hidden_size}, init=uniform(), name="h0");
 
   std::cerr << "Building RNN..." << std::endl;
-  H[0] = new Expr(tanh(dot(*X[0], Wxh) + dot(h0, Whh) + bh));
+  H.emplace_back(tanh(dot(X[0], Wxh) + dot(h0, Whh) + bh));
   for (int t = 1; t < num_inputs; ++t) {
-    H[t] = new Expr(tanh(dot(*X[t], Wxh) + dot(*H[t-1], Whh) + bh));
+    H.emplace_back(tanh(dot(X[t], Wxh) + dot(H[t-1], Whh) + bh));
   }
 
-  Expr Why = param(shape={hidden_size, output_size}, init=uniform(), name="Why");
-  Expr by = param(shape={1, output_size}, init=uniform(), name="by");
+  Expr Why = g.param(shape={hidden_size, output_size}, init=uniform(), name="Why");
+  Expr by = g.param(shape={1, output_size}, init=uniform(), name="by");
 
   std::cerr << "Building output layer..." << std::endl;
-  std::vector<Expr*> Yp(num_inputs);
+  std::vector<Expr> Yp;
 
-  Expr* cross_entropy = NULL;
-  for (int t = 0; t < num_inputs; ++t) {
-    Yp[t] = new Expr(softmax_fast(dot(*H[t], Why) + by, name="pred"));
-    if (!cross_entropy) {
-      cross_entropy = new Expr(sum(*Y[t] * log(*Yp[t]), axis=1));
-    } else {
-      *cross_entropy = *cross_entropy + sum(*Y[t] * log(*Yp[t]), axis=1);
-    }
+  Yp.emplace_back(softmax_fast(dot(H[0], Why) + by));
+  Expr cross_entropy = sum(Y[0] * log(Yp[0]), axis=1);
+  for (int t = 1; t < num_inputs; ++t) {
+    Yp.emplace_back(softmax_fast(dot(H[t], Why) + by));
+    cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
   }
-  auto graph = -mean(*cross_entropy, axis=0, name="cost");
+  auto graph = -mean(cross_entropy, axis=0, name="cost");
 
   for (int t = 0; t < num_inputs; ++t) {
     Tensor Xt({batch_size, input_size});
@@ -72,17 +71,17 @@ int main(int argc, char** argv) {
     thrust::copy(values.begin(), values.end(), Xt.begin());
     thrust::copy(classes.begin(), classes.end(), Yt.begin());
 
-    *X[t] = Xt;
-    *Y[t] = Yt;
+    X[t] = Xt;
+    Y[t] = Yt;
   }
 
-  graph.forward(batch_size);
-  graph.backward();
+  g.forward(batch_size);
+  g.backward();
 
   std::cerr << graph.val().Debug() << std::endl;
 
-  std::cerr << X[0]->val().Debug() << std::endl;
-  std::cerr << Y[0]->val().Debug() << std::endl;
+  std::cerr << X[0].val().Debug() << std::endl;
+  std::cerr << Y[0].val().Debug() << std::endl;
 
   std::cerr << Whh.grad().Debug() << std::endl;
   std::cerr << bh.grad().Debug() << std::endl;

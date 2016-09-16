@@ -59,13 +59,15 @@ int main(int argc, char** argv) {
   std::cerr << "\tDone." << std::endl;
 
 
-  auto x = input(shape={whatevs, IMAGE_SIZE}, name="X");
-  auto y = input(shape={whatevs, LABEL_SIZE}, name="Y");
+  ExpressionGraph g;
 
-  auto w1 = param(shape={IMAGE_SIZE, 100}, name="W0", init=initW1);
-  auto b1 = param(shape={1, 100}, name="b0", init=initB1);
-  auto w2 = param(shape={100, LABEL_SIZE}, name="W1", init=initW2);
-  auto b2 = param(shape={1, LABEL_SIZE}, name="b1", init=initB2);
+  auto x = g.input(shape={whatevs, IMAGE_SIZE}, name="X");
+  auto y = g.input(shape={whatevs, LABEL_SIZE}, name="Y");
+
+  auto w1 = g.param(shape={IMAGE_SIZE, 100}, name="W0", init=initW1);
+  auto b1 = g.param(shape={1, 100}, name="b0", init=initB1);
+  auto w2 = g.param(shape={100, LABEL_SIZE}, name="W1", init=initW2);
+  auto b2 = g.param(shape={1, LABEL_SIZE}, name="b1", init=initB2);
 
   std::cerr << "Building model...";
   auto layer1 = tanh(dot(x, w1) + b1);
@@ -86,7 +88,7 @@ int main(int argc, char** argv) {
     xt << tmp;
     x = xt;
 
-    predict.forward(BATCH_SIZE);
+    g.forward(BATCH_SIZE);
 
     std::vector<float> results(LABEL_SIZE * BATCH_SIZE);
     results << predict.val();
@@ -113,7 +115,7 @@ int main(int argc, char** argv) {
       xt << tmp;
       x = xt;
 
-      predict.forward(endId - startId);
+      g.forward(endId - startId);
 
       std::vector<float> results(LABEL_SIZE * BATCH_SIZE);
       results << predict.val();

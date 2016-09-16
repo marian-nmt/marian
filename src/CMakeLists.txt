@@ -5,6 +5,7 @@ cuda_add_library(marian_lib
   cnpy/cnpy.cpp
   exception.cpp
   expression_graph.cu 
+  sgd.cu
   tensor.cu
   tensor_operators.cu
   expression_operators.cu

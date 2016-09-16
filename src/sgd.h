@@ -3,7 +3,7 @@
 #include <memory>
 #include <iostream>
 
-#include "expressions.h"
+#include "expression_graph.h"
 #include "thrust_functions.h"
 #include "tensor_operators.h"
 
@@ -11,8 +11,7 @@ namespace marian {
 
 class SGD {
   public:
-    SGD(Expr& cost_func, Expr& inX, Expr& inY,
-        const std::vector<Expr*> params, float eta,
+    SGD(ExpressionGraph& g, float eta,
         std::vector<float>& xData, size_t numFeatures,
         std::vector<float>& yData, size_t numClasses,
         size_t epochs, size_t batchSize);
@@ -20,10 +19,7 @@ class SGD {
     void Run();
 
   private:
-    Expr *cost_function_;
-    Expr *inX_;
-    Expr *inY_;
-    std::vector<Expr*> params_;
+    ExpressionGraph& graph_;
     const float eta_;
     std::vector<float>& xData_;
     const size_t numFeatures_;
