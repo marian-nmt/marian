@@ -9,6 +9,7 @@ cuda_add_library(marian_lib
   tensor.cu
   tensor_operators.cu
   expression_operators.cu
+  vocab.cpp
 )
 
 target_link_libraries(marian_lib)
