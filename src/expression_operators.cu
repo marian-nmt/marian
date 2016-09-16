@@ -33,6 +33,10 @@ Expr softmax(Expr a) {
   return Expr(a.graph(), new SoftmaxNodeOp(a));
 }
 
+Expr argmax(Expr a) {
+  return Expr(a.graph(), new ArgmaxNodeOp(a));
+}
+
 /*********************************************************/
 
 static Shape newShape(ChainPtr a, ChainPtr b) {

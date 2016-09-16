@@ -79,6 +79,8 @@ Expr softmax_slow(Expr a, Args ...args) {
 
 Expr softmax(Expr a);
 
+Expr argmax(Expr a);
+
 // inefficient
 template <typename ...Args>
 inline Expr mean(Expr a, Args ...args) {
