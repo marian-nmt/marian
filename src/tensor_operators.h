@@ -151,6 +151,10 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols);
 
 void Softmax(Tensor* Out);
 
+__global__ void gArgMax(float *out, const float *data, size_t rows, size_t cols);
+
+void Argmax(Tensor* Out, const Tensor* In);
+
 Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta);
 
