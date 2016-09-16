@@ -47,7 +47,7 @@ ExpressionGraph build_graph() {
 
 int main(int argc, char** argv) {
   
-  cudaSetDevice(1);
+  cudaSetDevice(0);
     
   std::cerr << "Loading test set...";
   std::vector<float> testImages = datasets::mnist::ReadImages("../examples/mnist/t10k-images-idx3-ubyte", BATCH_SIZE, IMAGE_SIZE);
@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
   
   g["x"] = (xt << testImages);
   g["y"] = (yt << testLabels);
+  
+  std::cout << g.graphviz() << std::endl;
   
   g.forward(BATCH_SIZE);
  
