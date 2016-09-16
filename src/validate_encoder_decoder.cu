@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   int num_inputs = 8;
   int num_outputs = 6;
 
-  ExpressionGraph g(0);
+  ExpressionGraph g;
   std::vector<Expr*> X(num_inputs+1); // For the stop symbol.
   std::vector<Expr*> Y(num_outputs);
   std::vector<Expr*> H(num_inputs+1); // For the stop symbol.

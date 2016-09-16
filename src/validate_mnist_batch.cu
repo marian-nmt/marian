@@ -56,8 +56,7 @@ int main(int argc, char** argv) {
 
   std::cerr << "\tDone." << std::endl;
 
-
-  ExpressionGraph g(0);
+  ExpressionGraph g;
 
   auto x = g.input(shape={whatevs, IMAGE_SIZE}, name="X");
   auto y = g.input(shape={whatevs, LABEL_SIZE}, name="Y");

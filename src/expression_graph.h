@@ -38,14 +38,29 @@ class Expr {
 
 class ExpressionGraph {
   public:
-    ExpressionGraph(int cudaDevice);
+    ExpressionGraph() : stack_(new ChainableStack) {}
     
-    void forward(size_t batchSize) {
+    void backprop(int batchSize) {
+      forward(batchSize);
+      backward();
+    }
+    
+    void forward(int batchSize) {
       for(auto&& v : *stack_) {
         v->allocate(batchSize);
       }
       for(auto&& v : *stack_)
         v->forward();    
+    }
+    
+    void backward() {
+      for(auto&& v : *stack_)
+        v->set_zero_adjoint();
+    
+      typedef typename ChainableStack::reverse_iterator It;
+      stack_->back()->init_dependent();
+      for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
+        (*it)->backward();
     }
     
     std::string graphviz() {
@@ -60,19 +75,13 @@ class ExpressionGraph {
       return ss.str();
     }
     
-    void backward() {
-      for(auto&& v : *stack_)
-        v->set_zero_adjoint();
-    
-      typedef typename ChainableStack::reverse_iterator It;
-      stack_->back()->init_dependent();
-      for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
-        (*it)->backward();
-    }
+    /*********************************************************/
     
     template <typename ...Args>
     inline Expr input(Args ...args) {
-      return Expr(this, new InputNode(args...));
+      Expr e(this, new InputNode(args...));
+      inputs_.emplace_back(e);
+      return e;
     }
     
     template <typename ...Args>
@@ -117,14 +126,20 @@ class ExpressionGraph {
       named_.emplace(name, e);
     }
     
+    std::vector<Expr>& inputs() {
+      return inputs_;
+    }
+    
     std::vector<Expr>& params() {
       return params_;
     }
     
   private:
     ChainableStackPtr stack_;
+    
     std::map<std::string, Expr> named_;
     std::vector<Expr> params_;
+    std::vector<Expr> inputs_;
 };
 
 }
