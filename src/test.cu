@@ -1,12 +1,16 @@
-
+#include <fstream>
 #include "marian.h"
 #include "mnist.h"
+#include "vocab.h"
 
 int main(int argc, char** argv) {
   cudaSetDevice(0);
 
+  using namespace std;
   using namespace marian;
   using namespace keywords;
+
+  Vocab sourceVocab, targetVocab;
 
   int input_size = 10;
   int output_size = 2;
@@ -29,6 +33,18 @@ int main(int argc, char** argv) {
   Expr Whh = g.param(shape={hidden_size, hidden_size}, init=uniform(), name="Whh");
   Expr bh = g.param(shape={1, hidden_size}, init=uniform(), name="bh");
   Expr h0 = g.param(shape={1, hidden_size}, init=uniform(), name="h0");
+
+  // read parallel corpus from file
+  std::fstream sourceFile("../examples/mt/dev/newstest2013.de");
+  std::fstream targetFile("../examples/mt/dev/newstest2013.en");
+
+  string sourceLine, targetLine;
+  while (getline(sourceFile, sourceLine)) {
+	  getline(targetFile, targetLine);
+
+	  std::vector<size_t> sourceIds = sourceVocab.ProcessSentence(sourceLine);
+	  std::vector<size_t> targetIds = sourceVocab.ProcessSentence(targetLine);
+  }
 
   std::cerr << "Building RNN..." << std::endl;
   H.emplace_back(tanh(dot(X[0], Wxh) + dot(h0, Whh) + bh));
