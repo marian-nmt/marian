@@ -8,22 +8,6 @@
 using namespace std;
 
 ///////////////////////////////////////////////////////
-__global__ void gArgMax(float *out, const float *data, size_t rows, size_t cols) {
-	size_t row = blockIdx.x;
-    size_t startInd = row * cols;
-    float maxScore = -99999;
-    size_t maxInd = -1;
-    for (size_t col = 0; col < cols; ++col) {
-      size_t ind = startInd + col;
-      float score = data[ind];
-      if (score > maxScore) {
-        maxScore = score;
-        maxInd = col;
-      }
-    }
-    out[row] = maxInd;
-}
-
 string output(const std::vector<float> &vec)
 {
   stringstream strm;
@@ -38,27 +22,27 @@ void temp()
   using namespace std;
   using namespace marian;
 
-	std::vector<float> hVec({29,19,  49,39,  79,99,  79,39});
+  std::vector<float> hVec({29,19,  49,39,  79,99,  79,39});
         cerr << "hVec =" << output(hVec) << endl;
 
-	thrust::device_vector<float> dVec(8);
-	thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
-	float *data = thrust::raw_pointer_cast(dVec.data());
+  thrust::device_vector<float> dVec(8);
+  thrust::copy(hVec.begin(), hVec.end(), dVec.begin());
+  float *data = thrust::raw_pointer_cast(dVec.data());
 
   thrust::device_vector<float> dLabel(4);
   float *labelPtr = thrust::raw_pointer_cast(dLabel.data());
 
-	gArgMax<<<4, 1, sizeof(float)>>>(labelPtr, data, 4, 2);
+  gArgMax<<<4, 1, sizeof(float)>>>(labelPtr, data, 4, 2);
 
-	std::vector<float> hVec2(8);
-	thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
-	cerr << "hVec2=" << output(hVec2) << endl;
+  std::vector<float> hVec2(8);
+  thrust::copy(dVec.begin(), dVec.end(), hVec2.begin());
+  cerr << "hVec2=" << output(hVec2) << endl;
 
   std::vector<float> hLabel(4);
   thrust::copy(dLabel.begin(), dLabel.end(), hLabel.begin());
   cerr << "hLabel=" << output(hLabel) << endl;
 
-	exit(0);
+  exit(0);
 }
 
 ///////////////////////////////////////////////////////
