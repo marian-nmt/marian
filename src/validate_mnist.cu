@@ -27,23 +27,14 @@ ExpressionGraph build_graph() {
   auto x = named(g.input(shape={whatevs, IMAGE_SIZE}), "x");
   auto y = named(g.input(shape={whatevs, LABEL_SIZE}), "y");
   
-  //auto w = named(g.param(shape={IMAGE_SIZE, LABEL_SIZE},
-  //                       init=from_vector(wData)), "w");
-  //auto b = named(g.param(shape={1, LABEL_SIZE},
-  //                       init=from_vector(bData)), "b");
-  auto w1 = named(g.param(shape={IMAGE_SIZE, 100},
-                         init=uniform()), "w1");
-  auto b1 = named(g.param(shape={1, 100},
-                         init=uniform()), "b1");
-  auto w2 = named(g.param(shape={100, LABEL_SIZE},
-                         init=uniform()), "w2");
-  auto b2 = named(g.param(shape={1, LABEL_SIZE},
-                         init=uniform()), "b2");
-
+  auto w = named(g.param(shape={IMAGE_SIZE, LABEL_SIZE},
+                         init=from_vector(wData)), "w");
+  auto b = named(g.param(shape={1, LABEL_SIZE},
+                         init=from_vector(bData)), "b");
+  
                          
-  auto lr = tanh(dot(x, w1) + b1);
   auto probs = named(
-    softmax(dot(lr, w2) + b2), //, axis=1),
+    softmax(dot(x, w) + b),
     "probs"
   );
   
@@ -72,7 +63,7 @@ int main(int argc, char** argv) {
   g["y"] = (yt << testLabels);
   
   Adam opt;
-  for(size_t j = 0; j < 10; ++j) {
+  for(size_t j = 0; j < 20; ++j) {
     for(size_t i = 0; i < 60; ++i) {
       opt(g, BATCH_SIZE);
     }

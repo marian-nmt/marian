@@ -8,7 +8,7 @@ namespace marian {
 
 class Sgd {
   public:
-    Sgd(float eta=0.01) : eta_(eta) {}
+    Sgd(float eta=0.001) : eta_(eta) {}
     
     void operator()(ExpressionGraph& graph, int batchSize) {
       graph.backprop(batchSize);
@@ -25,7 +25,7 @@ class Sgd {
 // @TODO: Add serialization for historic gradients and parameters
 class Adagrad {
   public:
-    Adagrad(float eta=0.01, float eps=10e-8)
+    Adagrad(float eta=0.001, float eps=10e-8)
     : eta_(eta), eps_(eps) {}
     
     void operator()(ExpressionGraph& graph, int batchSize) {
@@ -37,10 +37,11 @@ class Adagrad {
       
       auto gtIt = gt_.begin();
       for(auto& param : graph.params()) {    
-        Element(_1 += _2 * _2, *gtIt, param.grad());
+        Element(_1 += _2 * _2,
+                *gtIt, param.grad());
         Element(_1 -= eta_ / (Sqrt(_2) + eps_) * _3,
                 param.val(), *gtIt, param.grad());
-        it++;
+        gtIt++;
       }
     }
     
@@ -51,9 +52,10 @@ class Adagrad {
 };
 
 // @TODO: Add serialization for historic gradients and parameters
+// https://arxiv.org/pdf/1412.6980v8.pdf
 class Adam {
   public:
-    Adam(float eta=0.01, float beta1=0.999, float beta2=0.999, float eps=10e-8)
+    Adam(float eta=0.001, float beta1=0.999, float beta2=0.999, float eps=10e-8)
     : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0) {}
     
     void operator()(ExpressionGraph& graph, int batchSize) {
