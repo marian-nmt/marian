@@ -4,6 +4,14 @@ using namespace std;
 
 namespace marian {
 
+// @TODO: handle this better, maybe per thread?
+static cublasHandle_t create_handle() {
+  cublasHandle_t cublasHandle;
+  cublasCreate(&cublasHandle);
+  return cublasHandle;
+}
+cublasHandle_t cublasHandle = create_handle();
+
 __global__ void gSubtractMean(float* out, float* weights,
                               size_t rows, size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -212,10 +220,7 @@ Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 Tensor Prod(Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta) {
 
-  cublasHandle_t cublasHandle;
-  cublasCreate(&cublasHandle);  
   Tensor temp = Prod(cublasHandle, C, A, B, transA, transB, beta);
-  cublasDestroy(cublasHandle);
   return temp;
 }
 
