@@ -3,6 +3,7 @@
 import sys
 import os
 import numpy as np
+import time
 from keras.datasets import mnist
 from keras.utils import np_utils
 from keras.models import Sequential
@@ -15,7 +16,11 @@ def softmax(x):
 
 def baseline_model(pixels_count, classes_count):
     model = Sequential()
-    model.add(Dense(100, input_dim=pixels_count, init='normal', activation='tanh'))
+    model.add(Dense(2000, input_dim=pixels_count, init='normal', activation='tanh'))
+    model.add(Dense(2000, init='normal', activation='tanh'))
+    model.add(Dense(2000, init='normal', activation='tanh'))
+    model.add(Dense(2000, init='normal', activation='tanh'))
+    model.add(Dense(2000, init='normal', activation='tanh'))
     model.add(Dense(classes_count, input_dim=100, init='normal', activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
@@ -52,21 +57,24 @@ if __name__ == "__main__":
     # Build the model
     model = baseline_model(pixels_count, classes_count)
     # Fit the model
-    model.fit(X_train, y_train, validation_data=(X_test, y_test), nb_epoch=10, batch_size=200, verbose=2)
+    
+    start = time.time();
+    model.fit(X_train, y_train, nb_epoch=10, batch_size=200, verbose=2)
+    print "Time elapsed", time.time() - start, "s"
     # Final evaluation of the model
     scores = model.evaluate(X_test, y_test, verbose=0)
-    print("Baseline Error: %.2f%%" % (100-scores[1]*100))
+    print("Accuracy: %.2f%%" % (scores[1] * 100))
 
     ### Weight and bias matrixes - we extract them from the model
     
     # weights_ones = np.ones((pixels_count, classes_count))
     # print weights_ones.shape
 
-    weights1, bias1, weights2, bias2 = model.get_weights()
+    #weights1, bias1, weights2, bias2 = model.get_weights()
     ### Save model to npz files
-    if not os.path.exists("test_model_multi"):
-        os.makedirs("test_model_multi")
+    #if not os.path.exists("test_model_multi"):
+    #    os.makedirs("test_model_multi")
     # np.savez("test_model_multi/model", *model)
-    np.savez("test_model_multi/model", weights1 = weights1, bias1 = bias1, weights2 = weights2, bias2 = bias2)
+    #np.savez("test_model_multi/model", weights1 = weights1, bias1 = bias1, weights2 = weights2, bias2 = bias2)
 
-    print "Model saved! Check test_model_multi directory"
+    #print "Model saved! Check test_model_multi directory"
