@@ -43,13 +43,13 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 
   // Source RNN parameters.
   Expr Wxh = named(g.param(shape={embedding_size, hidden_size},
-                   init=uniform()), "Wxh");
+                   init=uniform(-0.1, 0.1)), "Wxh");
   Expr Whh = named(g.param(shape={hidden_size, hidden_size},
-                   init=uniform()), "Whh");
+                   init=uniform(-0.1, 0.1)), "Whh");
   Expr bh = named(g.param(shape={1, hidden_size},
-                  init=uniform()), "bh");
+                  init=uniform(-0.1, 0.1)), "bh");
   Expr h0 = named(g.param(shape={1, hidden_size},
-                  init=uniform()), "h0");
+                  init=uniform(-0.1, 0.1)), "h0");
 
   std::cerr << "Building encoder RNN..." << std::endl;
   H.emplace_back(tanh(dot(dot(X[0], E), Wxh) + dot(h0, Whh) + bh));
@@ -59,11 +59,11 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 
   // Target RNN parameters.
   Expr Wxh_d = named(g.param(shape={output_size, hidden_size},
-                     init=uniform()), "Wxh_d");
+                     init=uniform(-0.1, 0.1)), "Wxh_d");
   Expr Whh_d = named(g.param(shape={hidden_size, hidden_size},
-                     init=uniform()), "Whh_d");
+                     init=uniform(-0.1, 0.1)), "Whh_d");
   Expr bh_d = named(g.param(shape={1, hidden_size},
-                    init=uniform()), "bh_d");
+                    init=uniform(-0.1, 0.1)), "bh_d");
 
   std::cerr << "Building decoder RNN..." << std::endl;
   auto h0_d = H[num_inputs];
@@ -74,9 +74,9 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 
   // Output linear layer before softmax.
   Expr Why = named(g.param(shape={hidden_size, output_size},
-                           init=uniform()), "Why");
+                           init=uniform(-0.1, 0.1)), "Why");
   Expr by = named(g.param(shape={1, output_size},
-                          init=uniform()), "by");
+                          init=uniform(-0.1, 0.1)), "by");
 
   std::cerr << "Building output layer..." << std::endl;
 

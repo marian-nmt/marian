@@ -9,6 +9,9 @@
 
 namespace marian {
 
+// Use a constant seed for deterministic behaviour.
+std::default_random_engine engine(42);
+
 void zeros(Tensor t) {
   t.set(0.f);
 }
@@ -19,8 +22,8 @@ void ones(Tensor t) {
 
 template <class Distribution>
 void distribution(Tensor t, float a, float b) {
-  std::random_device device;
-  std::default_random_engine engine(device());
+  //std::random_device device;
+  //std::default_random_engine engine(device());
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
 
