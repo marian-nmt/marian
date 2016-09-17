@@ -62,15 +62,13 @@ int main(int argc, char** argv) {
   g["x"] = (xt << testImages);
   g["y"] = (yt << testLabels);
   
-  Adam opt;
+  Adagrad opt;
   for(size_t j = 0; j < 20; ++j) {
     for(size_t i = 0; i < 60; ++i) {
       opt(g, BATCH_SIZE);
     }
     std::cerr << g["cost"].val()[0] << std::endl;
   }
-  
-  //std::cout << g.graphviz() << std::endl;
   
   std::vector<float> results;
   results << g["probs"].val();
@@ -80,8 +78,10 @@ int main(int argc, char** argv) {
     size_t correct = 0;
     size_t proposed = 0;
     for (size_t j = 0; j < LABEL_SIZE; ++j) {
-      if (testLabels[i+j]) correct = j;
-      if (results[i + j] > results[i + proposed]) proposed = j;
+      if (testLabels[i+j])
+        correct = j;
+      if (results[i + j] > results[i + proposed])
+        proposed = j;
     }
     acc += (correct == proposed);
   }

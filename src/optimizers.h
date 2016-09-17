@@ -6,9 +6,15 @@
 
 namespace marian {
 
+// @TODO: modify computation graph to group all paramters in single matrix object.
+// This will allow to perform a single large SGD update per batch. Currently there
+// are as many updates as different paramters.
+
+// @TODO: Implement Element(...) with multiple functors for compacting of calls.
+
 class Sgd {
   public:
-    Sgd(float eta=0.001) : eta_(eta) {}
+    Sgd(float eta=0.01) : eta_(eta) {}
     
     void operator()(ExpressionGraph& graph, int batchSize) {
       graph.backprop(batchSize);
@@ -25,7 +31,7 @@ class Sgd {
 // @TODO: Add serialization for historic gradients and parameters
 class Adagrad {
   public:
-    Adagrad(float eta=0.001, float eps=10e-8)
+    Adagrad(float eta=0.01, float eps=10e-8)
     : eta_(eta), eps_(eps) {}
     
     void operator()(ExpressionGraph& graph, int batchSize) {

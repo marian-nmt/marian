@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
   auto cost = named(-mean(sum(y * log(lr), axis=1), axis=0), "cost");
   std::cerr << "lr=" << lr.Debug() << std::endl;
 
-  Adagrad opt;
+  Adam opt;
   opt(g, 300);
   
   return 0;
