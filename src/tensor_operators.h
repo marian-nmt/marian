@@ -147,6 +147,10 @@ __global__ void gSubtractMean(float* out, float* weights,
 
 void SubtractMean(Tensor* Out, Tensor &Weights);
 
+__global__ void gSubtractMax(float* out, size_t rows, size_t cols);
+
+void SubtractMax(Tensor* Out);
+
 __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols);
 
 void Softmax(Tensor* Out);
