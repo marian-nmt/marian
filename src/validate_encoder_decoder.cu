@@ -1,4 +1,3 @@
-
 #include "marian.h"
 #include "mnist.h"
 #include "vocab.h"
@@ -43,13 +42,13 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 
   // Source RNN parameters.
   Expr Wxh = named(g.param(shape={embedding_size, hidden_size},
-                   init=uniform()), "Wxh");
+                   init=uniform(-0.1, 0.1)), "Wxh");
   Expr Whh = named(g.param(shape={hidden_size, hidden_size},
-                   init=uniform()), "Whh");
+                   init=uniform(-0.1, 0.1)), "Whh");
   Expr bh = named(g.param(shape={1, hidden_size},
-                  init=uniform()), "bh");
+                  init=uniform(-0.1, 0.1)), "bh");
   Expr h0 = named(g.param(shape={1, hidden_size},
-                  init=uniform()), "h0");
+                  init=uniform(-0.1, 0.1)), "h0");
 
   std::cerr << "Building encoder RNN..." << std::endl;
   H.emplace_back(tanh(dot(dot(X[0], E), Wxh) + dot(h0, Whh) + bh));
@@ -59,11 +58,11 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 
   // Target RNN parameters.
   Expr Wxh_d = named(g.param(shape={output_size, hidden_size},
-                     init=uniform()), "Wxh_d");
+                     init=uniform(-0.1, 0.1)), "Wxh_d");
   Expr Whh_d = named(g.param(shape={hidden_size, hidden_size},
-                     init=uniform()), "Whh_d");
+                     init=uniform(-0.1, 0.1)), "Whh_d");
   Expr bh_d = named(g.param(shape={1, hidden_size},
-                    init=uniform()), "bh_d");
+                    init=uniform(-0.1, 0.1)), "bh_d");
 
   std::cerr << "Building decoder RNN..." << std::endl;
   auto h0_d = H[num_inputs];
@@ -74,9 +73,9 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 
   // Output linear layer before softmax.
   Expr Why = named(g.param(shape={hidden_size, output_size},
-                           init=uniform()), "Why");
+                           init=uniform(-0.1, 0.1)), "Why");
   Expr by = named(g.param(shape={1, output_size},
-                          init=uniform()), "by");
+                          init=uniform(-0.1, 0.1)), "by");
 
   std::cerr << "Building output layer..." << std::endl;
 
@@ -96,7 +95,6 @@ ExpressionGraph build_graph(int source_vocabulary_size,
 }
 
 int main(int argc, char** argv) {
-#if 1
   std::cerr << "Loading the data... ";
   Vocab source_vocab, target_vocab;
 
@@ -192,66 +190,6 @@ int main(int argc, char** argv) {
     ss << "Y" << t;
     g[ss.str()] = Yt;
   }
-
-#else
-
-  int source_vocabulary_size = 10;
-  int target_vocabulary_size = 15;
-  int embedding_size = 8;
-  int hidden_size = 5;
-  int batch_size = 25;
-  int num_source_tokens = 8;
-  int num_target_tokens = 6;
-
-  // Build the encoder-decoder computation graph.
-  ExpressionGraph g = build_graph(0, // cuda device.
-                                  source_vocabulary_size,
-                                  target_vocabulary_size,
-                                  embedding_size,
-                                  hidden_size,
-                                  num_source_tokens,
-                                  num_target_tokens);
-
-  int input_size = source_vocabulary_size;
-  int output_size = target_vocabulary_size;
-  int num_inputs = num_source_tokens;
-  int num_outputs = num_target_tokens;
-
-  // Generate input data (include the stop symbol).
-  for (int t = 0; t <= num_inputs; ++t) {
-    Tensor Xt({batch_size, input_size});
-    float max = 1.;
-    std::vector<float> values(batch_size * input_size);
-    std::vector<float> classes(batch_size * output_size, 0.0);
-    int k = 0;
-    for (int i = 0; i < batch_size; ++i) {
-      for (int j = 0; j < input_size; ++j, ++k) {
-         values[k] = max * (2.0*static_cast<float>(rand()) / RAND_MAX - 1.0);
-      }
-    }
-    thrust::copy(values.begin(), values.end(), Xt.begin());
-    std::stringstream ss;
-    ss << "X" << t;
-    g[ss.str()] = Xt;
-  }
-
-  // Generate output data (include the stop symbol).
-  for (int t = 0; t <= num_outputs; ++t) {
-    Tensor Yt({batch_size, output_size});
-
-    std::vector<float> classes(batch_size * output_size, 0.0);
-    int l = 0;
-    for (int i = 0; i < batch_size; ++i) {
-      int gold = output_size * static_cast<float>(rand()) / RAND_MAX;
-      classes[l + gold] = 1.0;
-      l += output_size;
-    }
-    thrust::copy(classes.begin(), classes.end(), Yt.begin());
-    std::stringstream ss;
-    ss << "Y" << t;
-    g[ss.str()] = Yt;
-  }
-#endif
 
   std::cerr << "Printing the computation graph..." << std::endl;
   std::cout << g.graphviz() << std::endl;

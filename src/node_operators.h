@@ -156,6 +156,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
   void forward() {
     // B = softmax(A).
     val_ = a_->val();
+    SubtractMax(&val_); // Safe version of softmax.
     Softmax(&val_);
   }
 
