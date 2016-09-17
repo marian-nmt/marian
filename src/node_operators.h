@@ -144,10 +144,6 @@ struct TanhNodeOp : public UnaryNodeOp {
 
 };
 
-// @TODO, make this numerically safe(r):
-// softmax(X) = softmax_safe(X - max(X, axis=1))
-// Probably best to do this directly in Softmax
-// function. 
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(Args ...args)
@@ -156,7 +152,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
   void forward() {
     // B = softmax(A).
     val_ = a_->val();
-    SubtractMax(&val_); // Safe version of softmax.
+    // Safe version of softmax.
     Softmax(&val_);
   }
 

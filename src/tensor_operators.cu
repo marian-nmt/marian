@@ -155,6 +155,9 @@ void Softmax(Tensor* Out) {
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
+  // Subtract the max rowwise for numerical stability (safe softmax).
+  gSubtractMax<<<blocks, threads, shared>>>(Out->data(), m, k);
+  cudaStreamSynchronize(0);
   gSoftMax<<<blocks, threads, shared>>>(Out->data(), m, k);
   cudaStreamSynchronize(0);
 }
