@@ -34,6 +34,7 @@ struct Chainable {
     virtual ~Chainable() { }
     virtual void forward() { }
     virtual void backward() { }
+    virtual void check() { }
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }
 

@@ -133,4 +133,6 @@ inline Expr mean(Expr a, Args ...args) {
   }
 }
 
+ Expr cross_entropy(Expr a, Expr b);
+
 }

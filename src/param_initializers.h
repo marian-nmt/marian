@@ -54,13 +54,13 @@ void distribution(Tensor t, float a, float b) {
   t << vals;
 }
 
-std::function<void(Tensor)> normal(float mean = 0.0, float std = 0.1) {
+std::function<void(Tensor)> normal(float mean = 0.0, float std = 0.05) {
   return [mean, std](Tensor t) {
     distribution<std::normal_distribution<float>>(t, mean, std);
   }; 
 }
 
-std::function<void(Tensor)> uniform(float a = 0.0, float b = 0.1) {
+std::function<void(Tensor)> uniform(float a = 0.0, float b = 0.05) {
   return [a, b](Tensor t) {
     distribution<std::uniform_real_distribution<float>>(t, a, b);
   };  
