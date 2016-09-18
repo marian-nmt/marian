@@ -157,6 +157,9 @@ void Softmax(Tensor* Out) {
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
+  // Subtract the max rowwise for numerical stability (safe softmax).
+  gSubtractMax<<<blocks, threads, shared>>>(Out->data(), m, k);
+  cudaStreamSynchronize(0);
   gSoftMax<<<blocks, threads, shared>>>(Out->data(), m, k);
   cudaStreamSynchronize(0);
 }
@@ -225,6 +228,50 @@ Tensor Prod(Tensor C, const Tensor A, const Tensor B,
 
   Tensor temp = Prod(cublasHandle, C, A, B, transA, transB, beta);
   return temp;
+}
+
+Tensor SumRowwise(cublasHandle_t handle, const Tensor A, Tensor result) {
+  size_t rows = A.shape()[0];
+  size_t cols = A.shape()[1];
+  thrust::device_vector<float> d_ones(cols, 1.f);
+  Float alpha = 1.f;
+  Float beta  = 0.f;
+  cublasSgemv(handle, CUBLAS_OP_T, cols, rows, &alpha,
+              A.data(), cols,
+              thrust::raw_pointer_cast(d_ones.data()), 1, &beta,
+              result.data(), 1);
+  return result;
+}
+
+Tensor SumRowwise(const Tensor A, Tensor result) {
+  Tensor temp = SumRowwise(cublasHandle, A, result);
+  return temp;
+}
+
+// @TODO: replace this by something else when broadcast elementwise operations
+// are ready.
+__global__ void gScaleRowwise(Float* out, const Float* scalingFactors,
+                              size_t rows, size_t cols) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      Float* rowOut = out + j * cols;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) rowOut[i] *= scalingFactors[j];
+      }
+    }
+  }
+}
+
+void ScaleRowwise(Tensor Out, const Tensor ScalingFactors) {
+  Float* d_out = Out.data();
+  const Float* d_in = ScalingFactors.data();
+  int blocks  = std::min(MAX_BLOCKS, (int)Out.shape()[0]);
+  int threads = std::min(MAX_THREADS, (int)Out.shape()[1]);
+  gScaleRowwise<<<blocks, threads>>>(d_out, d_in,
+                                     Out.shape()[0], Out.shape()[1]);
+  cudaStreamSynchronize(0);
 }
 
 }

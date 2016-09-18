@@ -125,4 +125,8 @@ Expr dot(Expr a, Expr b) {
   return Expr(a.graph(), new DotNodeOp(a, b));
 }
 
+Expr cross_entropy(Expr a, Expr b) {
+  return Expr(a.graph(), new CrossEntropyNodeOp(a, b));
+}
+
 }
