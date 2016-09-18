@@ -30,7 +30,10 @@
 
 namespace marian {
 
+// Forward declaration of ExpressionGraph class; this enables it to be used in the following typedef of ExpressionGraphPtr
 class ExpressionGraph;
+
+/** @brief A pointer to an expression graph. */
 typedef ExpressionGraph* ExpressionGraphPtr;
 
 class Expr {
@@ -175,38 +178,85 @@ class ExpressionGraph {
     }
     
     /*********************************************************/
-        
+
+    /**
+     * @brief Returns a pointer to the list of items contained in this graph.
+     *
+     * The items in the list will be in the order they were created.
+     *
+     * @return a pointer to the list of items contained in this graph
+     */
     ChainableStackPtr stack() {
       return stack_;
     }
-    
+
+    /**
+     * @brief Returns the first item in the list with the specified name, if such an item exists.
+     *
+     * If no item with the specified name is found in the graph, this method throws an exception.
+     *
+     * @param name Name of the desired expression node
+     *
+     * @return the first item in the list with the specified name, if such an item exists
+     */
     Expr& operator[](const std::string& name) {
       auto it = named_.find(name);
       UTIL_THROW_IF2(it == named_.end(), "No such named node in graph: " << name);
       return it->second;  
     }
 
+    /**
+     * @brief Determines whether the graph contains a node with a specified name.
+     *
+     * @param name Name of the desired expression node
+     *
+     * @return <code>true</code> if the graph contains a node with a specified name,
+     *         <code>false</code> otherwise
+     */
     bool has_node(const std::string& name) const {
       return named_.count(name) > 0;
     }
-    
+
+    /**
+     * @brief Inserts an expression node with a specified name into the expression graph.
+     *
+     * @param e an expression node
+     * @param name name of the expression node
+     *
+     * @return the expression node that was added to the expression graph
+     */
     void add_named_node(Expr e, const std::string& name) {
       named_.emplace(name, e);
     }
-    
+
+    /**
+     * @brief Gets the list of all input nodes of this expression graph
+     *
+     * @return the list of all input nodes of this expression graph
+     */
     std::vector<Expr>& inputs() {
       return inputs_;
     }
-    
+
+    /**
+     * @brief Gets the list of all parameter nodes of this expression graph
+     *
+     * @return the list of all parameter nodes of this expression graph
+     */
     std::vector<Expr>& params() {
       return params_;
     }
     
   private:
     ChainableStackPtr stack_;
-    
+
+    /** @brief Maps from name to expression node. */
     std::map<std::string, Expr> named_;
+
+    /** @brief List of all parameter nodes of this expression graph. */
     std::vector<Expr> params_;
+
+    /** @brief List of all input nodes of this expression graph. */
     std::vector<Expr> inputs_;
 };
 
