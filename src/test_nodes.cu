@@ -34,6 +34,9 @@ int main(int argc, char** argv)
   inputExpr = inputTensor;
   Expr softMaxExpr = softmax(inputExpr);
 
+  Tensor softMaxGrad = softMaxExpr.grad();
+  std::cerr << "softMaxGrad=" << softMaxGrad.Debug() << std::endl;
+
   g.forward(batch_size);
   g.backward();
 
