@@ -40,18 +40,19 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
     biases.emplace_back(
       g.param(shape={1, out},
             init=normal()));
-
   }
-  
-  auto probs = named(
-    softmax(dot(layers.back(), weights.back()) + biases.back()),
-    "probs"
-  );
-  
-  auto cost = -mean(sum(y * log(probs), axis=1), axis=0);
+
+  auto scores = named(dot(layers.back(), weights.back()) + biases.back(),
+                      "scores");
+
+  auto cost = mean(cross_entropy(scores, y), axis=0);
+  //auto cost = mean(-sum(y * log(softmax(scores)), axis=1), axis=0);
   auto costreg = named(
     cost, "cost"
   );
+
+  // If we uncomment the line below, this will just horribly diverge.
+  // auto dummy_probs = named(softmax(scores), "dummy_probs");
 
   std::cerr << timer.format(5, "%ws") << std::endl;
   return g;
@@ -142,7 +143,7 @@ int main(int argc, char** argv) {
     g.forward(BATCH_SIZE);
     
     std::vector<float> bResults;
-    bResults << g["probs"].val();
+    bResults << g["scores"].val();
     results.insert(results.end(), bResults.begin(), bResults.end());
   }
   
