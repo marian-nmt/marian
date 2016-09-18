@@ -99,7 +99,7 @@ class ExpressionGraph {
     /*********************************************************/
 
     /**
-     * Constructs a new node representing an input in an expression graph.
+     * @brief Constructs a new node representing an input in an expression graph.
      *
      * This method records the input node in a list of input nodes,
      *    but does not attach the new input node to any existing expression graph.
@@ -116,7 +116,7 @@ class ExpressionGraph {
     }
 
     /**
-     * Constructs a new node representing a parameter in an expression graph.
+     * @brief Constructs a new node representing a parameter in an expression graph.
      *
      * This method records the parameter node in a list of parameter nodes,
      *    but does not attach the new parameter node to any existing expression graph.
@@ -133,7 +133,7 @@ class ExpressionGraph {
     }
 
     /**
-     * Constructs a new node representing a constant in an expression graph.
+     * @brief Constructs a new node representing a constant in an expression graph.
      *
      * This method does not attach the new constant node to any existing expression graph.
      *
@@ -147,7 +147,7 @@ class ExpressionGraph {
     }
 
     /**
-     * Constructs a new node representing a constant (with value 1) in an expression graph.
+     * @brief Constructs a new node representing a constant (with value 1) in an expression graph.
      *
      * This method does not attach the new constant node to any existing expression graph.
      *
@@ -161,7 +161,7 @@ class ExpressionGraph {
     }
 
     /**
-     * Constructs a new node representing a constant (with value 0) in an expression graph.
+     * @brief Constructs a new node representing a constant (with value 0) in an expression graph.
      *
      * This method does not attach the new constant node to any existing expression graph.
      *
