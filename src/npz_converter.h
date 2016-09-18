@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "tensor.h"
+#include "tensor.h" //XXX Marcin, is this include actually needed? It appears to not be used.
 
 /**
  * Loads model data stored in a npz file,
