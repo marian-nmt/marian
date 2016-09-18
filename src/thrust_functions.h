@@ -16,13 +16,7 @@ namespace thrust
       struct unary_exp : public thrust::unary_function<T,T> {
         __host__ __device__
         T operator()(const T &x) const {
-            float x2 = x;
-            float clip = 16;
-            if(x2 > clip)
-              x2 = clip;
-            if(x2 < -clip)
-              x2 = -clip;
-            return expf(x2);
+            return expf(x);
           }
       };
       
@@ -37,10 +31,7 @@ namespace thrust
       struct unary_log : public thrust::unary_function<T,T> {
         __host__ __device__
         T operator()(const T &x) const {
-          float x2 = x;
-          if(x2 < 10e-10)
-            x2 = 10e-10;
-          return logf(x2);
+          return logf(x);
         }
       };
       
@@ -55,13 +46,7 @@ namespace thrust
       struct unary_sigma : public thrust::unary_function<T,T> {
         __host__ __device__
         T operator()(const T &x) const {
-          float x2 = x;
-          float clip = 16;
-          if(x2 > clip)
-            x2 = clip;
-          if(x2 < -clip)
-            x2 = -clip;           
-          return 1.0 / (1.0 + expf(-x2));
+          return 1.0 / (1.0 + expf(-x));
         }
       };
       
