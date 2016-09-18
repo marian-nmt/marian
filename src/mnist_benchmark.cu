@@ -40,7 +40,6 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
     biases.emplace_back(
       g.param(shape={1, out},
             init=normal()));
-
   }
   
   auto probs = named(

@@ -142,20 +142,11 @@ void Element(Functor functor,
   cudaStreamSynchronize(0);
 }
 
-__global__ void gSubtractMean(float* out, float* weights,
-                              size_t rows, size_t cols);
-
-void SubtractMean(Tensor* Out, Tensor &Weights);
-
-__global__ void gSubtractMax(float* out, size_t rows, size_t cols);
-
 void SubtractMax(Tensor* Out);
-
-__global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols);
 
 void Softmax(Tensor* Out);
 
-__global__ void gArgMax(float *out, const float *data, size_t rows, size_t cols);
+void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 
 void Argmax(Tensor* Out, const Tensor* In);
 
