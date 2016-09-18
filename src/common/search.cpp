@@ -51,7 +51,7 @@ History Search::Decode(const Sentence& sentence) {
 		prob.Resize(beamSize, vocabSize);
 		scorer.Score(state, prob, nextState);
 		//cerr << "i=" << i << " " << nextState.Debug() << endl;
-		cerr << "hist=" << history.size() << " state=" << state.Debug() << endl;
+		//cerr << "hist=" << history.size() << " state=" << state.Debug() << endl;
 		  //cerr << "nextState=" << nextState.Debug() << endl;
 	}
 
