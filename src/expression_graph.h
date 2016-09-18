@@ -97,31 +97,78 @@ class ExpressionGraph {
     }
     
     /*********************************************************/
-    
+
+    /**
+     * Constructs a new node representing an input in an expression graph.
+     *
+     * This method records the input node in a list of input nodes,
+     *    but does not attach the new input node to any existing expression graph.
+     *
+     * @param args           XXX Marcin, what are args here?
+     *
+     * @return a newly constructed input node
+     */
     template <typename ...Args>
     inline Expr input(Args ...args) {
       Expr e(this, new InputNode(args...));
       inputs_.emplace_back(e);
       return e;
     }
-    
+
+    /**
+     * Constructs a new node representing a parameter in an expression graph.
+     *
+     * This method records the parameter node in a list of parameter nodes,
+     *    but does not attach the new parameter node to any existing expression graph.
+     *
+     * @param args           XXX Marcin, what are args here?
+     *
+     * @return a newly constructed parameter node
+     */
     template <typename ...Args>
     inline Expr param(Args ...args) {
       Expr e(this, new ParamNode(args...));
       params_.emplace_back(e);
       return e;
     }
-    
+
+    /**
+     * Constructs a new node representing a constant in an expression graph.
+     *
+     * This method does not attach the new constant node to any existing expression graph.
+     *
+     * @param args           XXX Marcin, what are args here?
+     *
+     * @return a newly constructed constant node
+     */
     template <typename ...Args>
     inline Expr constant(Args ...args) {
       return Expr(this, new ConstantNode(args...));
     }
-    
+
+    /**
+     * Constructs a new node representing a constant (with value 1) in an expression graph.
+     *
+     * This method does not attach the new constant node to any existing expression graph.
+     *
+     * @param args           XXX Marcin, what are args here?
+     *
+     * @return a newly constructed constant node
+     */
     template <typename ...Args>
     inline Expr ones(Args ...args) {
       return Expr(this, new ConstantNode(keywords::value=1, args...));
     }
-    
+
+    /**
+     * Constructs a new node representing a constant (with value 0) in an expression graph.
+     *
+     * This method does not attach the new constant node to any existing expression graph.
+     *
+     * @param args           XXX Marcin, what are args here?
+     *
+     * @return a newly constructed constant node
+     */
     template <typename ...Args>
     inline Expr zeroes(Args ...args) {
       return Expr(this, new ConstantNode(keywords::value=0, args...));
