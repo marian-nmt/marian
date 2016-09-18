@@ -25,8 +25,9 @@
 #include "tensor.h" //XXX Marcin, is this include actually needed? It appears to not be used.
 
 /**
- * Loads model data stored in a npz file,
- *   enabling it to later be stored in standard Marian data structures.
+ * @brief Loads model data stored in a npz file.
+ *
+ * Use of this class enables such data to later be stored in standard Marian data structures.
  *
  * Note: this class makes use of the 3rd-party class <code>npy</code>.
  */

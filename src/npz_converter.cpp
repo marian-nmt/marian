@@ -38,6 +38,7 @@ void NpzConverter::Destruct() {
   destructed_ = true;
 }
 
+/** TODO: Marcin, what does this function do? Why isn't it a method? */
 mblas::Matrix NpzConverter::operator[](const std::string& key) const {
   typedef blaze::CustomMatrix<float, blaze::unaligned,
     blaze::unpadded, blaze::rowMajor> BlazeWrapper;
