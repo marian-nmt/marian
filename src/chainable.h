@@ -49,6 +49,12 @@ struct Chainable {
     };
 };
 
+// XXX Marcin, is ChainableStack the most appropriate name?
+//     AFAIK, this is never used as a FILO data structure.
+//     If so, perhaps "Tape" or "ChainLinks" or "ChainableList" might be more apropos?
+//
+//     Naumann (2012) uses "tape" to refer to this data structure.
+//     -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
 typedef std::vector<Chainable<Tensor>*> ChainableStack;
 typedef std::shared_ptr<ChainableStack> ChainableStackPtr;    
 typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
