@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
     Yp.emplace_back(softmax(dot(H[t], Why) + by));
     cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
   }
-  auto graph = -mean(cross_entropy, axis=0, name="cost");
+  Expr graph = -mean(cross_entropy, axis=0, name="cost");
 
   for (int t = 0; t < num_inputs; ++t) {
     Tensor Xt({batch_size, input_size});
