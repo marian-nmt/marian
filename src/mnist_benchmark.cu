@@ -51,6 +51,9 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
     cost, "cost"
   );
 
+  // If we uncomment the line below, this will just horribly diverge.
+  // auto dummy_probs = named(softmax(scores), "dummy_probs");
+
   std::cerr << timer.format(5, "%ws") << std::endl;
   return g;
 }
