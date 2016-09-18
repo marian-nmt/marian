@@ -12,20 +12,22 @@ static cublasHandle_t create_handle() {
 }
 cublasHandle_t cublasHandle = create_handle();
 
-__global__ void gSubtractMean(float* out, float* weights,
-                              size_t rows, size_t cols) {
+__global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
+                             const int rows, const int cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
-      float* sp = out + j * cols;
-      float* w = weights + j * cols;
+      
+      float* gradRow = grad + j * cols;
+      const float* adjRow = adj + j * cols;
+      const float* valRow = val + j * cols;
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          _sum[threadIdx.x] += w[id] * sp[id];
+          _sum[threadIdx.x] += valRow[id] * adjRow[id];
         }
       }
       __syncthreads();
@@ -41,25 +43,25 @@ __global__ void gSubtractMean(float* out, float* weights,
       for(int tid = 0; tid < cols; tid += blockDim.x){
         int id = tid + threadIdx.x;
         if(id < cols)
-          sp[id] -= _sum[0];
+          gradRow[id] += valRow[id] * (adjRow[id] - _sum[0]);
       }
     }
   }
 }
 
-void SubtractMean(Tensor* Out, Tensor &Weights) {
-  // Out and Weights are both m-by-k matrices, passed as input.
-  // A weighted average of each row of Out (according to the weights
-  // specified in Weights) is computed and subtracted from Out.
-  // Out is both input and output.
-  size_t m = Out->shape()[0];
-  size_t k = Out->shape()[1];
+void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+  // grad and val are both m-by-k matrices, passed as input.
+  // A weighted average of each row of grad (according to the weights
+  // specified in val) is computed and subtracted from Out.
+  // adj is multiplied for each element to get backward step in autodiff
+  int m = grad.shape()[0];
+  int k = grad.shape()[1];
 
-  int blocks = std::min(MAX_BLOCKS, (int) m);
-  int threads = std::min(MAX_THREADS, (int) k);
+  int blocks = std::min(MAX_BLOCKS, m);
+  int threads = std::min(MAX_THREADS, k);
   int shared = sizeof(float) * threads * 2;
-  gSubtractMean<<<blocks, threads, shared>>>(Out->data(), Weights.data(),
-                                             m, k);
+  gSoftmaxGrad<<<blocks, threads, shared>>>(grad.data(), adj.data(), val.data(),
+                                            m, k);
   cudaStreamSynchronize(0);
 }
 
@@ -161,8 +163,9 @@ void Softmax(Tensor* Out) {
   gSoftMax<<<blocks, threads, shared>>>(Out->data(), m, k);
   cudaStreamSynchronize(0);
 }
+
 ///////////////////////////////////////////////////////
-__global__ void gArgMax(float *out, const float *data, size_t rows, size_t cols) {
+__global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols) {
   size_t row = blockIdx.x;
     size_t startInd = row * cols;
     float maxScore = -99999;
@@ -185,7 +188,7 @@ void Argmax(Tensor* Out, const Tensor* In) {
   int blocks = m; //std::min(MAX_BLOCKS, (int) m);
   int threads = k; //std::min(MAX_THREADS, (int) k);
   //int shared = sizeof(float) * threads * 2;
-  gArgMax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
+  gArgmax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
   cudaStreamSynchronize(0);
 }
 

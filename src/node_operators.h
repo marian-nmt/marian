@@ -92,8 +92,7 @@ struct UnaryNodeOp : public Node {
     template <typename ...Args>
     UnaryNodeOp(ChainPtr a, Args ...args)
     : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
-           args...),
-    a_(a) {}
+           args...), a_(a) {}
 };
 
 struct LogitNodeOp : public UnaryNodeOp {
@@ -111,6 +110,10 @@ struct LogitNodeOp : public UnaryNodeOp {
             a_->grad(), adj_, val_);
   }
 
+  void check() {
+    
+  }
+  
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=\"logit\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
@@ -167,10 +170,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     // Classification." ICML 2016.
     // http://jmlr.org/proceedings/papers/v48/martins16.pdf
 
-    Tensor result(adj_.shape());
-    thrust::copy(adj_.begin(), adj_.end(), result.begin());
-    SubtractMean(&result, val_);
-    Element(_1 += _2 *  _3, a_->grad(), val_, result);
+    SoftmaxGrad(a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {
@@ -179,7 +179,6 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
-
 };
 
 struct ArgmaxNodeOp : public UnaryNodeOp {
