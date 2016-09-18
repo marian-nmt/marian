@@ -165,4 +165,13 @@ Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 Tensor Prod(Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta = 0);
 
+Tensor SumRowwise(cublasHandle_t handle, const Tensor A, Tensor result);
+
+Tensor SumRowwise(const Tensor A, Tensor result);
+
+__global__ void gScaleRowwise(Float* out, const Float* scalingFactors,
+                              size_t rows, size_t cols);
+
+void ScaleRowwise(Tensor Out, const Tensor ScalingFactors);
+
 }
