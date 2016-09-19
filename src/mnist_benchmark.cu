@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
+#include <cstdio>
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
@@ -36,9 +37,9 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
     }
     
     weights.emplace_back(
-      g.param(shape={in, out}, init=uniform()));
+      named(g.param(shape={in, out}, init=uniform()), "W" + std::to_string(i)));
     biases.emplace_back(
-      g.param(shape={1, out}, init=zeros));
+      named(g.param(shape={1, out}, init=zeros), "b" + std::to_string(i)));
   }
 
   auto scores = named(dot(layers.back(), weights.back()) + biases.back(),
@@ -114,6 +115,7 @@ int main(int argc, char** argv) {
   std::cerr << "Done." << std::endl;
 
   ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, LABEL_SIZE});
+  std::cout << g.graphviz() << std::endl;
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});

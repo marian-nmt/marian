@@ -46,7 +46,7 @@ struct InputNode : public Node {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"parallelogram\", label=\"input\", style=\"filled\", fillcolor=\"lawngreen\"]" << std::endl << std::endl;
+    ss << "\"" << this << "\" [shape=\"circle\", label=" << label("input") << ", style=\"filled\", fillcolor=\"lawngreen\"]" << std::endl << std::endl;
     return ss.str();
   };
 
@@ -66,7 +66,7 @@ struct ConstantNode : public Node {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"diamond\", label=\"const\"]" << std::endl << std::endl;
+    ss << "\"" << this << "\" [shape=\"diamond\", label=" << label("const") << "]" << std::endl << std::endl;
     return ss.str();
   };
 
@@ -97,7 +97,9 @@ struct ParamNode : public Node {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"hexagon\", label=\"param\", style=\"filled\", fillcolor=\"orangered\"]" << std::endl << std::endl;
+    ss << "\"" << this << "\" [shape=\"hexagon\", label=" << label("param")
+      << ", style=\"filled\", fillcolor=\"orangered\"]"
+      << std::endl << std::endl;
     return ss.str();
   };
 
@@ -137,7 +139,8 @@ struct LogitNodeOp : public UnaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"logit\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("logit")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -161,7 +164,8 @@ struct TanhNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"tanh\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("tanh")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -174,24 +178,26 @@ struct ReLUNodeOp : public UnaryNodeOp {
   : UnaryNodeOp(args...) { }
 
   void forward() {
-    Element(_1 = Max(0.0f * _2, _2), // @TODO: fix 0 * _2
+    Element(_1 = ReLU(_2),
             val_, a_->val());
   }
 
   void backward() {
-    Element(_1 += _2 * (_3 > 0.0f),
-            a_->grad(), adj_, val_);
+    Element(_1 += _2 * ReLUback(_3),
+            a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"ReLU\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("ReLU")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
 
 };
 
+// @TODO: slow and probably buggy
 struct DropoutNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   DropoutNodeOp(Args ...args)
@@ -199,6 +205,8 @@ struct DropoutNodeOp : public UnaryNodeOp {
     p_(0.5), seed_(time(0)) { }
 
   void forward() {
+    //Element(_1 = Bernoulli(p_, (size_t)this) * _2,
+    //        val_, a_->val())
     Dropout(val_, a_->val(), p_, seed_++);
   }
 
@@ -209,7 +217,8 @@ struct DropoutNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"Dropout(" << p_ << ")\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("dropout")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -248,7 +257,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"softmax\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("softmax")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -276,7 +286,8 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"argmax\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("argmax") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -299,7 +310,8 @@ struct LogNodeOp : public UnaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"log\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("log") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -322,7 +334,8 @@ struct ExpNodeOp : public UnaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"exp\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("exp")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -344,7 +357,8 @@ struct NegNodeOp : public UnaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"-\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("-") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -397,7 +411,8 @@ struct DotNodeOp : public BinaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"×\", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("×")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -424,7 +439,8 @@ struct PlusNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"+\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("+")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -451,7 +467,8 @@ struct MinusNodeOp : public BinaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"-\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("-")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -478,7 +495,8 @@ struct MultNodeOp : public BinaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"•\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("•")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -505,7 +523,8 @@ struct DivNodeOp : public BinaryNodeOp {
   
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"÷\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("÷")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -570,8 +589,9 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"cross_entropy\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x-ent")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };

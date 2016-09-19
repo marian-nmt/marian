@@ -113,6 +113,32 @@ namespace thrust
                        make_actor(_2));
       }
       
+      template<typename T>
+      struct unary_relu : public thrust::unary_function<T,T> {
+        __host__ __device__
+        T operator()(const T &x) const { return x > 0.0f ? x : 0.0f; }
+      };
+      
+      template<typename Eval>
+      __host__ __device__
+      actor<composite<unary_operator<unary_relu>, actor<Eval>>>
+      ReLU(const actor<Eval> &_1) {
+        return compose(unary_operator<unary_relu>(), _1);
+      }
+
+      template<typename T>
+      struct unary_reluback : public thrust::unary_function<T,T> {
+        __host__ __device__
+        T operator()(const T &x) const { return x > 0.0f ? 1.0f : 0.0f; }
+      };
+      
+      template<typename Eval>
+      __host__ __device__
+      actor<composite<unary_operator<unary_reluback>, actor<Eval>>>
+      ReLUback(const actor<Eval> &_1) {
+        return compose(unary_operator<unary_reluback>(), _1);
+      }
+      
     }
   }
 }

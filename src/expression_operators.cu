@@ -25,6 +25,7 @@
 namespace marian {
 
 Expr named(Expr a, const std::string& name) {
+  a.node()->set_name(name);
   a.graph()->add_named_node(a, name);
   return a;
 }

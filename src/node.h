@@ -89,7 +89,21 @@ class Node : public Chainable<Tensor>,
       return shape_;    
     }
 
+    void set_name(const std::string& name) {
+      name_ = name;
+    }
+    
     const std::string &name() const { return name_; }
+    
+    virtual const std::string label(const std::string& type) {
+      std::stringstream label;
+      label << "<" << type;
+      if(name_ != "none") {
+        label << "<br/>" << "\"" << name_ << "\"";
+      }
+      label << ">";
+      return label.str();
+    }
     
   protected:
     Shape shape_;
