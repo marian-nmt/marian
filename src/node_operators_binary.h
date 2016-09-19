@@ -13,7 +13,17 @@ struct BinaryNodeOp : public Node {
    : Node(args...), a_(a), b_(b) {}
 
   void backward_numeric() {
-    backward();
+	using namespace std;
+	cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric" << endl;
+	cerr << "BEFORE:" << endl;
+	cerr << "a_->grad()=" << a_->grad().Debug() << endl;
+	cerr << "b_->grad()=" << b_->grad().Debug() << endl;
+	cerr << "adj_=" << adj_.Debug() << endl;
+	backward();
+	cerr << "AFTER:" << endl;
+	cerr << "a_->grad()=" << a_->grad().Debug() << endl;
+	cerr << "b_->grad()=" << b_->grad().Debug() << endl;
+	cerr << "adj_=" << adj_.Debug() << endl;
   }
 
 };

@@ -405,17 +405,12 @@ class Tensor {
      */
     std::string Debug() const
     {
-    	return pimpl_->Debug();
-    }
-
-    /**
-     * @brief Print Tensor data on CPU (?) (const). 
-     */
-    void Print() const {
-      for (int i = 0; i < size(); ++i) {
-        std::cerr << (*this)[i] << " ";
-      }
-      std::cerr << std::endl;
+    	if (!pimpl_) {
+    		return "Not yet set";
+    	}
+    	else {
+    		return pimpl_->Debug();
+    	}
     }
 
     //void Load(const std::string &path);
