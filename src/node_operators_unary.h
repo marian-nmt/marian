@@ -13,12 +13,8 @@ struct UnaryNodeOp : public Node {
 
     void backward_numeric() {
       using namespace std;
-  	cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric" << endl;
-      cerr << "BEFORE:" << endl;
-      cerr << "a_->grad()=" << a_->grad().Debug() << endl;
-      cerr << "adj_=" << adj_.Debug() << endl;
       backward();
-      cerr << "AFTER:" << endl;
+      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric" << endl;
       cerr << "a_->grad()=" << a_->grad().Debug() << endl;
       cerr << "adj_=" << adj_.Debug() << endl;
     }
