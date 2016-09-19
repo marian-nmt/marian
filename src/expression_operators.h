@@ -53,10 +53,6 @@ Expr operator/(Expr a, Expr b);
 
 Expr dot(Expr a, Expr b);
 
-/******************************************************/
-
-Expr broadcast(Shape bShape, Expr a);
-
 /*********************************************************/
 
 // inefficient
