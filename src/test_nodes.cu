@@ -5,6 +5,15 @@
 #include "keywords.h"
 #include "definitions.h"
 
+
+float Rand()
+{
+	float LO = -10;
+	float HI = +20;
+	float r3 = LO + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(HI-LO)));
+	return r3;
+}
+
 int main(int argc, char** argv)
 {
   using namespace std;
@@ -27,16 +36,12 @@ int main(int argc, char** argv)
   Expr cost = mean(ceExpr, axis=0);
 
   // create data
-  random_device rnd_device;
-  mt19937 mersenne_engine(rnd_device());
-  uniform_real_distribution<float> dist(-1, 1);
-  auto gen = std::bind(dist, mersenne_engine);
-
+  srand(0);
   std::vector<float> values(batch_size * input_size);
-  generate(begin(values), end(values), gen);
+  generate(begin(values), end(values), Rand);
 
   std::vector<float> labels(batch_size * input_size);
-  generate(begin(labels), end(labels), gen);
+  generate(begin(labels), end(labels), Rand);
 
   Tensor inTensor({batch_size, input_size});
   thrust::copy(values.begin(), values.end(), inTensor.begin());
