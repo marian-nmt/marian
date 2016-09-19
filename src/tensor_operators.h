@@ -163,6 +163,8 @@ void Element(Functor functor,
   cudaStreamSynchronize(0);
 }
 
+void Dropout(Tensor Out, Tensor in, float p, int seed);
+
 void SubtractMax(Tensor* Out);
 
 void Softmax(Tensor* Out);

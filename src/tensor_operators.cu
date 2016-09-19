@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <curand_kernel.h>
+
 #include "tensor_operators.h"
 
 using namespace std;
@@ -32,6 +34,48 @@ static cublasHandle_t create_handle() {
   return cublasHandle;
 }
 cublasHandle_t cublasHandle = create_handle();
+
+__global__ void gDropout(float* out, const float* in,
+                         int seed, const float p, int rows, int cols) {
+  
+  int shift = blockIdx.x * cols + threadIdx.x;
+  curandState state;
+  curand_init(seed, shift, 0, &state);
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      Float* rowOut = out + j * cols;
+      const Float* rowIn = in + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          //int offset = i;
+          float dropout = (curand_uniform(&state) >= p);
+          rowOut[i] = dropout * rowIn[i];
+        }
+      }
+    }
+  }
+}
+
+// Slow!!!
+void Dropout(Tensor out, Tensor in, float p, int seed) {
+  int m = in.shape()[0];
+  int n = in.shape()[1];
+  
+  curandGenerator_t prng;
+  curandCreateGenerator(&prng, CURAND_RNG_PSEUDO_XORWOW);
+  curandSetPseudoRandomGeneratorSeed(prng, (unsigned long long) seed);
+  curandGenerateUniform(prng, out.data(), m * n);
+  Element(_1 = (_1 > p), out);
+  Element(_1 = _1 * _2, out, in);
+  //int blocks = std::min(MAX_BLOCKS, m);
+  //int threads = std::min(MAX_THREADS, k);
+  //gDropout<<<blocks, threads>>>(out.data(), in.data(), seed, p, m, k);
+  //cudaStreamSynchronize(0);  
+}
+
 
 __global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
                              const int rows, const int cols) {

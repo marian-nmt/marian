@@ -31,6 +31,10 @@ Expr logit(Expr a);
 
 Expr tanh(Expr a);
 
+Expr relu(Expr a);
+
+Expr dropout(Expr a);
+
 Expr log(Expr a);
 
 Expr exp(Expr a);

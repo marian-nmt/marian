@@ -168,6 +168,58 @@ struct TanhNodeOp : public UnaryNodeOp {
 
 };
 
+struct ReLUNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  ReLUNodeOp(Args ...args)
+  : UnaryNodeOp(args...) { }
+
+  void forward() {
+    Element(_1 = Max(0.0f * _2, _2), // @TODO: fix 0 * _2
+            val_, a_->val());
+  }
+
+  void backward() {
+    Element(_1 += _2 * (_3 > 0.0f),
+            a_->grad(), adj_, val_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=\"ReLU\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+struct DropoutNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  DropoutNodeOp(Args ...args)
+  : UnaryNodeOp(args...),
+    p_(0.5), seed_(time(0)) { }
+
+  void forward() {
+    Dropout(val_, a_->val(), p_, seed_++);
+  }
+
+  void backward() {
+    Element(_1 += _2 * (_3 != 0.0f), // transform non-zero to 1 
+            a_->grad(), adj_, val_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=\"Dropout(" << p_ << ")\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+  private:
+    float p_;
+    int seed_;
+};
+
+
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
     SoftmaxNodeOp(Args ...args)
