@@ -106,7 +106,7 @@ struct LogitNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * _3 * (1 - _3),
+    Element(_1 += _2 * _3 * (1.0f - _3),
             a_->grad(), adj_, val_);
   }
 
@@ -134,7 +134,7 @@ struct TanhNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * (1 - _3 * _3),
+    Element(_1 += _2 * (1.0f - (_3 * _3)),
             a_->grad(), adj_, val_);
   }
 
@@ -220,7 +220,7 @@ struct LogNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * 1.f / _3,
+    Element(_1 += _2 * (1.f / _3),
             a_->grad(), adj_, a_->val());
   }
   
@@ -316,7 +316,7 @@ struct DotNodeOp : public BinaryNodeOp {
     // D is the adjoint, the matrix of derivatives
     // df/dA += D*B.T
     // df/dB += A.T*D
-    // beta set to 1.0 in gemm, C = alpha * dot(A,B) + beta * C
+    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
     Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
     Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);

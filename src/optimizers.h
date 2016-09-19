@@ -5,12 +5,10 @@
 #include "tensor_operators.h"
 
 namespace marian {
-
+  
 // @TODO: modify computation graph to group all paramters in single matrix object.
 // This will allow to perform a single large SGD update per batch. Currently there
-// are as many updates as different paramters.
-
-// @TODO: Implement Element(...) with multiple functors for compacting of calls.
+// are as many updates as different parameters.
 
 class Sgd {
   public:
@@ -57,6 +55,7 @@ class Adagrad {
     std::vector<Tensor> gt_;
 };
 
+
 // @TODO: Add serialization for historic gradients and parameters
 // https://arxiv.org/pdf/1412.6980v8.pdf
 class Adam {
@@ -73,18 +72,19 @@ class Adam {
           vt_.emplace_back(Tensor(param.grad().shape(), 0));
         }
       }
-            
+         
       t_++;      
       float denom1 = 1 - pow(beta1_, t_);
       float denom2 = 1 - pow(beta2_, t_);
       
       auto mtIt = mt_.begin();
       auto vtIt = vt_.begin();
+      
       for(auto& param : graph.params()) {
-        Element(_1 = beta1_ * _2 + (1 - beta1_) * _3,
-                *mtIt, *mtIt, param.grad());
-        Element(_1 = beta2_ * _2 + (1 - beta2_) * _3 * _3,
-                *vtIt, *vtIt, param.grad());
+        Element(_1 = beta1_ * _1 + (1 - beta1_) * _2,
+                *mtIt, param.grad());
+        Element(_1 = beta2_ * _1 + (1 - beta2_) * _2 * _2,
+                *vtIt, param.grad());
         Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
                 param.val(), *mtIt, *vtIt);
         mtIt++; vtIt++;
