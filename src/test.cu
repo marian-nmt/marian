@@ -82,15 +82,15 @@ int main(int argc, char** argv) {
   int hidden_size = 5;
   int num_inputs = 8;
 
-  std::vector<Expr> X;
-  std::vector<Expr> Y;
-  std::vector<Expr> H;
+  std::vector<Expr> inExpr;
+  std::vector<Expr> outExpr;
+  std::vector<Expr> hiddenExpr;
 
   ExpressionGraph g;
 
   for (int t = 0; t < num_inputs; ++t) {
-    X.emplace_back(g.input(shape={batch_size, input_size}));
-    Y.emplace_back(g.input(shape={batch_size, output_size}));
+    inExpr.emplace_back(g.input(shape={batch_size, input_size}));
+    outExpr.emplace_back(g.input(shape={batch_size, output_size}));
   }
 
   Expr Wxh = g.param(shape={input_size, hidden_size}, name="Wxh");
@@ -110,9 +110,9 @@ int main(int argc, char** argv) {
   }
 
   std::cerr << "Building RNN..." << std::endl;
-  H.emplace_back(tanh(dot(X[0], Wxh) + dot(h0, Whh) + bh));
+  hiddenExpr.emplace_back(tanh(dot(inExpr[0], Wxh) + dot(h0, Whh) + bh));
   for (int t = 1; t < num_inputs; ++t) {
-    H.emplace_back(tanh(dot(X[t], Wxh) + dot(H[t-1], Whh) + bh));
+    hiddenExpr.emplace_back(tanh(dot(inExpr[t], Wxh) + dot(hiddenExpr[t-1], Whh) + bh));
   }
 
   Expr Why = g.param(shape={hidden_size, output_size}, name="Why");
@@ -121,11 +121,11 @@ int main(int argc, char** argv) {
   std::cerr << "Building output layer..." << std::endl;
   std::vector<Expr> Yp;
 
-  Yp.emplace_back(softmax(dot(H[0], Why) + by));
-  Expr cross_entropy = sum(Y[0] * log(Yp[0]), axis=1);
+  Yp.emplace_back(softmax(dot(hiddenExpr[0], Why) + by));
+  Expr cross_entropy = sum(outExpr[0] * log(Yp[0]), axis=1);
   for (int t = 1; t < num_inputs; ++t) {
-    Yp.emplace_back(softmax(dot(H[t], Why) + by));
-    cross_entropy = cross_entropy + sum(Y[t] * log(Yp[t]), axis=1);
+    Yp.emplace_back(softmax(dot(hiddenExpr[t], Why) + by));
+    cross_entropy = cross_entropy + sum(outExpr[t] * log(Yp[t]), axis=1);
   }
   Expr graph = -mean(cross_entropy, axis=0, name="cost");
 
@@ -150,8 +150,8 @@ int main(int argc, char** argv) {
     thrust::copy(values.begin(), values.end(), Xt.begin());
     thrust::copy(classes.begin(), classes.end(), Yt.begin());
 
-    X[t] = Xt;
-    Y[t] = Yt;
+    inExpr[t] = Xt;
+    outExpr[t] = Yt;
   }
 
   std::cout << g.graphviz() << std::endl;
@@ -161,15 +161,15 @@ int main(int argc, char** argv) {
 
   std::cerr << graph.val().Debug() << std::endl;
 
-  std::cerr << X[0].val().Debug() << std::endl;
-  std::cerr << Y[0].val().Debug() << std::endl;
+  std::cerr << "inExpr[0]=" << inExpr[0].val().Debug() << std::endl;
+  std::cerr << "outExpr[0]=" << outExpr[0].val().Debug() << std::endl;
 
-  std::cerr << Whh.grad().Debug() << std::endl;
-  std::cerr << bh.grad().Debug() << std::endl;
-  std::cerr << Why.grad().Debug() << std::endl;
-  std::cerr << by.grad().Debug() << std::endl;
-  std::cerr << Wxh.grad().Debug() << std::endl;
-  std::cerr << h0.grad().Debug() << std::endl;
+  std::cerr << "Whh.grad=" 	<< Whh.grad().Debug() << std::endl;
+  std::cerr << "bh.grad=" 	<< bh.grad().Debug() << std::endl;
+  std::cerr << "Why.grad=" 	<< Why.grad().Debug() << std::endl;
+  std::cerr << "by.grad=" 	<< by.grad().Debug() << std::endl;
+  std::cerr << "Wxh.grad=" 	<< Wxh.grad().Debug() << std::endl;
+  std::cerr << "h0.grad=" 	<< h0.grad().Debug() << std::endl;
 
   return 0;
 }

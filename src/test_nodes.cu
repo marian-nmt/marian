@@ -12,39 +12,49 @@ int main(int argc, char** argv)
   using namespace keywords;
 
   int input_size = 10;
+  int output_size = 10;
   int batch_size = 25;
 
   // define graph
   ExpressionGraph g;
-  Expr inputExpr = g.input(shape={batch_size, input_size});
+  Expr inExpr = g.input(shape={batch_size, input_size});
+  Expr labelExpr = g.input(shape={batch_size, output_size});
 
   // create data
   random_device rnd_device;
   mt19937 mersenne_engine(rnd_device());
-  uniform_real_distribution<float> dist(1, 52);
+  uniform_real_distribution<float> dist(-1, 1);
   auto gen = std::bind(dist, mersenne_engine);
 
   std::vector<float> values(batch_size * input_size);
   generate(begin(values), end(values), gen);
 
+  std::vector<float> labels(batch_size * input_size);
+  generate(begin(labels), end(labels), gen);
 
-  Tensor inputTensor({batch_size, input_size});
-  thrust::copy(values.begin(), values.end(), inputTensor.begin());
+  Tensor inTensor({batch_size, input_size});
+  thrust::copy(values.begin(), values.end(), inTensor.begin());
 
-  inputExpr = inputTensor;
-  Expr softMaxExpr = softmax(inputExpr);
+  Tensor labelTensor({batch_size, input_size});
+  thrust::copy(labels.begin(), labels.end(), labelTensor.begin());
+
+  inExpr = inTensor;
+  labelExpr = labelTensor;
+
+  //Expr outExpr = softmax(inExpr);
+  Expr outExpr = tanh(inExpr);
 
   g.forward(batch_size);
   g.backward();
 
   std::cout << g.graphviz() << std::endl;
 
-  std::cerr << "inputTensor=" << inputTensor.Debug() << std::endl;
+  std::cerr << "inTensor=" << inTensor.Debug() << std::endl;
 
-  Tensor softMaxTensor = softMaxExpr.val();
-  std::cerr << "softMaxTensor=" << softMaxTensor.Debug() << std::endl;
+  Tensor outTensor = outExpr.val();
+  std::cerr << "outTensor=" << outTensor.Debug() << std::endl;
 
-  Tensor softMaxGrad = softMaxExpr.grad();
-  std::cerr << "softMaxGrad=" << softMaxGrad.Debug() << std::endl;
+  Tensor outGrad = outExpr.grad();
+  std::cerr << "outGrad=" << outGrad.Debug() << std::endl;
 
 }
