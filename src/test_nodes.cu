@@ -54,7 +54,8 @@ int main(int argc, char** argv)
 
   // train
   g.forward(batch_size);
-  g.backward();
+  //g.backward();
+  g.backward_numeric();
 
   std::cout << g.graphviz() << std::endl;
 
@@ -66,11 +67,5 @@ int main(int argc, char** argv)
   Tensor outGrad = outExpr.grad();
   std::cerr << "outGrad=" << outGrad.Debug() << std::endl;
 
-
-  Tensor costTensor = cost.val();
-  std::cerr << "costTensor=" << costTensor.Debug() << std::endl;
-
-  Tensor costGrad = cost.grad();
-  std::cerr << "costGrad=" << costGrad.Debug() << std::endl;
 
 }

@@ -114,6 +114,10 @@ struct UnaryNodeOp : public Node {
     UnaryNodeOp(ChainPtr a, Args ...args)
     : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
            args...), a_(a) {}
+
+    void backward_numeric() {
+  	  backward();
+    }
 };
 
 struct LogitNodeOp : public UnaryNodeOp {
@@ -289,7 +293,7 @@ struct NegNodeOp : public UnaryNodeOp {
   void backward() {
     Element(_1 += -_2, a_->grad(), adj_);
   }
-  
+
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=\"-\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
@@ -308,6 +312,11 @@ struct BinaryNodeOp : public Node {
   template <typename ...Args>
   BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
    : Node(args...), a_(a), b_(b) {}
+
+  void backward_numeric() {
+	  backward();
+  }
+
 };
 
 /*** Matrix Product ***/
@@ -450,7 +459,7 @@ struct DivNodeOp : public BinaryNodeOp {
     Element(_1 -= _2 * _3 / (_4 * _4),
             b_->grad(), adj_, a_->val(), b_->val());
   }
-  
+
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=\"÷\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
@@ -519,7 +528,8 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=\"cross_entropy\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
+    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
 
