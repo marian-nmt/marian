@@ -33,7 +33,8 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
       layers.emplace_back(x);
     }
     else {
-      layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
+      layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
+      //layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
     }
     
     weights.emplace_back(
@@ -114,7 +115,7 @@ int main(int argc, char** argv) {
   std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", testRows, LABEL_SIZE);
   std::cerr << "Done." << std::endl;
 
-  ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, LABEL_SIZE});
+  ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, 2048, 2048, 2048, LABEL_SIZE});
   std::cout << g.graphviz() << std::endl;
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});

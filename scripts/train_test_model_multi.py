@@ -53,9 +53,12 @@ def baseline_model(pixels_count, classes_count):
 #    model.add(Dropout(0.2, input_shape=(pixels_count,)))
     model.add(Dense(2048, input_dim=pixels_count, init='uniform', activation='relu'))
 #    model.add(Dense(2048, init='uniform', activation='relu'))
-    model.add(Dropout(0.5))
+#    model.add(Dropout(0.5))
     model.add(Dense(2048, init='uniform', activation='relu'))
-    model.add(Dropout(0.5))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+#    model.add(Dropout(0.5))
     model.add(Dense(classes_count, init='uniform', activation='softmax'))
 
     opt = Adam(lr=0.0002);
