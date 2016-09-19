@@ -20,6 +20,12 @@ int main(int argc, char** argv)
   Expr inExpr = g.input(shape={batch_size, input_size});
   Expr labelExpr = g.input(shape={batch_size, output_size});
 
+  //Expr outExpr = softmax(inExpr);
+  //Expr outExpr = tanh(inExpr);
+  Expr outExpr = - inExpr;
+  Expr ceExpr = cross_entropy(outExpr, labelExpr);
+  Expr cost = mean(ceExpr, axis=0);
+
   // create data
   random_device rnd_device;
   mt19937 mersenne_engine(rnd_device());
@@ -41,9 +47,7 @@ int main(int argc, char** argv)
   inExpr = inTensor;
   labelExpr = labelTensor;
 
-  //Expr outExpr = softmax(inExpr);
-  Expr outExpr = tanh(inExpr);
-
+  // train
   g.forward(batch_size);
   g.backward();
 
@@ -56,5 +60,12 @@ int main(int argc, char** argv)
 
   Tensor outGrad = outExpr.grad();
   std::cerr << "outGrad=" << outGrad.Debug() << std::endl;
+
+
+  Tensor costTensor = cost.val();
+  std::cerr << "costTensor=" << costTensor.Debug() << std::endl;
+
+  Tensor costGrad = cost.grad();
+  std::cerr << "costGrad=" << costGrad.Debug() << std::endl;
 
 }
