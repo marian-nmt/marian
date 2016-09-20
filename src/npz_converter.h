@@ -165,9 +165,7 @@ class NpzConverter {
         data.resize(np.size());
         std::copy(np.data(), np.data() + np.size(), data.begin());
 
-        shape.clear();
-        shape.push_back(np.size1());
-        shape.push_back(np.size2());
+        shape = { (int)np.size1(), (int)np.size2() };
 
       }
       else {

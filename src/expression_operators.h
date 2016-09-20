@@ -33,7 +33,10 @@ Expr tanh(Expr a);
 
 Expr relu(Expr a);
 
-Expr dropout(Expr a);
+template <typename ...Args>
+Expr dropout(Expr a, Args ...args) {
+  return Expr(a.graph(), new DropoutNodeOp(a, args...));
+}
 
 Expr log(Expr a);
 

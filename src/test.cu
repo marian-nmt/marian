@@ -26,62 +26,27 @@
 #include "mnist.h"
 #include "vocab.h"
 #include "tensor_operators.h"
+#include "curand.h"
 
 using namespace marian;
 using namespace keywords;
 
-template <class Functor>
-__global__ void tgElement(Functor functor, TensorView t, int rows, int cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int i = bid + blockIdx.x;
-    if(i < rows) {
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int j = tid + threadIdx.x;
-        if(j < cols)
-          t(i, j) = functor(i, j);
-      }
-    }
-  }
-}
-
-template <class Functor>
-void tElement(Functor functor, Tensor t) {
-
-  
-  int m = t.shape()[0];
-  int n = t.shape()[1];
-  
-  int blocks  = std::min(MAX_BLOCKS, m);
-  int threads = std::min(MAX_THREADS, n);
-  tgElement<<<blocks, threads>>>(functor, TensorView(t), m, n);
-  cudaStreamSynchronize(0);
-}
-
 int main(int argc, char** argv) {
-  ExpressionGraph g;
-
-  //Tensor a({1000, 1000}, 3);
-  //Tensor b({1, 1}, 2);
-  //
-  //TensorView ta(a);
-  //TensorView tb(b);
-  //
-  //boost::timer::cpu_timer timer;
-  //
-  //
-  //auto f = _1 + _2;
-  //auto pp1 = [=] __device__ (int i, int j) mutable -> float {
-  //  return f(ta(i, j), tb(i, j));  
-  //};
-  //
-  //auto pp2 = [=] __device__ (int i, int j) mutable -> float {
-  //  return f(pp1(i, j), tb(i, j));  
-  //};
-  //
-  //for(int i = 0; i < 1000; ++i)
-  //  tElement(pp2, a);  
-
+  
+  Tensor a({1000, 1000}, 3);
+  Tensor b({1000, 1000});
+  Bernoulli dropout(0.2, b.shape());
+  
+  auto f = [] __device__ (float& r,
+                          float a,
+                          float b)  {
+    return r = a * b;
+  };
     
-//  std::cerr << timer.format(5, "%ws") << std::endl;
+  boost::timer::cpu_timer timer;
+  for(int i = 0; i < 1000; ++i)
+    Element(f, b, a, a);
+  
+  std::cerr << timer.format(5, "%ws") << std::endl;
   return 0;
 }

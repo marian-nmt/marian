@@ -50,15 +50,15 @@ from keras.optimizers import Adam, SGD
 
 def baseline_model(pixels_count, classes_count):
     model = Sequential()
-#    model.add(Dropout(0.2, input_shape=(pixels_count,)))
-    model.add(Dense(2048, input_dim=pixels_count, init='uniform', activation='relu'))
+    model.add(Dropout(0.2, input_shape=(pixels_count,)))
+    model.add(Dense(2048, input_dim=pixels_count, init='uniform', activation='tanh'))
 #    model.add(Dense(2048, init='uniform', activation='relu'))
-#    model.add(Dropout(0.5))
-    model.add(Dense(2048, init='uniform', activation='relu'))
-    model.add(Dense(2048, init='uniform', activation='relu'))
-    model.add(Dense(2048, init='uniform', activation='relu'))
-    model.add(Dense(2048, init='uniform', activation='relu'))
-#    model.add(Dropout(0.5))
+    model.add(Dropout(0.5))
+#    model.add(Dense(2048, init='uniform', activation='relu'))
+#    model.add(Dense(2048, init='uniform', activation='relu'))
+#    model.add(Dense(2048, init='uniform', activation='relu'))
+    model.add(Dense(2048, init='uniform', activation='tanh'))
+    model.add(Dropout(0.5))
     model.add(Dense(classes_count, init='uniform', activation='softmax'))
 
     opt = Adam(lr=0.0002);
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     # Fit the model
     
     start = time.time();
-    model.fit(X_train, y_train, nb_epoch=10, batch_size=200, verbose=2, shuffle=True)
+    model.fit(X_train, y_train, nb_epoch=20, batch_size=200, verbose=2, shuffle=True)
 
     print "Time elapsed", time.time() - start, "s"
     # Final evaluation of the model

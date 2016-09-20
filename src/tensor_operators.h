@@ -29,54 +29,9 @@ using namespace thrust::placeholders;
 #define MAX_THREADS 512
 #define MAX_BLOCKS 65535
 
-class TensorView {
-  private:
-    float* data_;
-    int rows_;
-    int cols_;
-  
-  public:
-    TensorView(Tensor t)
-    : data_(t.data()), rows_(t.shape()[0]), cols_(t.shape()[1]) {}
-    
-    __device__ float& operator()(int i, int j) {
-      if(rows_ != 1 && cols_ != 1)
-        return data_[i * cols_ + j];
-      if(rows_ != 1 && cols_ == 1)
-        return data_[i];
-      if(rows_ == 1 && cols_ != 1)
-        return data_[j];
-      return data_[0];
-    }
-    
-    __device__ int rows() {
-      return rows_;
-    }
-    
-    __device__ int cols() {
-      return cols_;
-    }
-};
-
-//template <class Functor>
-//__global__ void gElement(Functor functor) {
-//  int rows = out.rows();
-//  int cols = out.cols();
-//  for(int bid = 0; bid < rows; bid += gridDim.x) {
-//    int i = bid + blockIdx.x;
-//    if(i < rows) {
-//      for(int tid = 0; tid < cols; tid += blockDim.x) {
-//        int j = tid + threadIdx.x;
-//        if(j < cols)
-//          functor(i, j);
-//      }
-//    }
-//  }
-//}
-
-template <class Functor>
+template <class Functor, class T>
 __global__ void gElement(Functor functor,
-                         TensorView out) {
+                         T out) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -91,23 +46,22 @@ __global__ void gElement(Functor functor,
   }
 }
 
-template <class Functor>
-void Element(Functor functor,
-              Tensor out) {
+template <class Functor, class T>
+void Element(Functor functor, T out) {
 
   int m = out.shape()[0];
   int n = out.shape()[1];
   
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, TensorView(out));
+  gElement<<<blocks, threads>>>(functor, out.gpu());
   cudaStreamSynchronize(0);
 }
 
 
-template <class Functor>
+template <class Functor, class T1, class T2>
 __global__ void gElement(Functor functor,
-                         TensorView out, TensorView in) {
+                         T1 out, T2 in) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -122,22 +76,22 @@ __global__ void gElement(Functor functor,
   }
 }
 
-template <class Functor>
+template <class Functor, class T1, class T2>
 void Element(Functor functor,
-              Tensor out, Tensor in) {
+             T1 out, T2 in) {
 
   int m = out.shape()[0];
   int n = out.shape()[1];
   
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, TensorView(out), TensorView(in));
+  gElement<<<blocks, threads>>>(functor, out.gpu(), in.gpu());
   cudaStreamSynchronize(0);
 }
 
-template <class Functor>
+template <class Functor, class T1, class T2, class T3>
 __global__ void gElement(Functor functor,
-                         TensorView out, TensorView in1, TensorView in2) {
+                         T1 out, T2 in1, T3 in2) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -152,23 +106,23 @@ __global__ void gElement(Functor functor,
   }
 }
 
-template <class Functor>
+template <class Functor, class T1, class T2, class T3>
 void Element(Functor functor,
-              Tensor out, Tensor in1, Tensor in2) {
+             T1 out, T2 in1, T3 in2) {
 
   int m = out.shape()[0];
   int n = out.shape()[1];
   
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, TensorView(out),
-                                TensorView(in1), TensorView(in2));
+  gElement<<<blocks, threads>>>(functor, out.gpu(),
+                                in1.gpu(), in2.gpu());
   cudaStreamSynchronize(0);
 }
 
-template <class Functor>
+template <class Functor, class T1, class T2, class T3, class T4>
 __global__ void gElement(Functor functor,
-                         TensorView out, TensorView in1, TensorView in2, TensorView in3) {
+                         T1 out, T2 in1, T3 in2, T4 in3) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -183,21 +137,19 @@ __global__ void gElement(Functor functor,
   }
 }
 
-template <class Functor>
-void Element(Functor functor, Tensor out,
-             Tensor in1, Tensor in2, Tensor in3) {
+template <class Functor, class T1, class T2, class T3, class T4>
+void Element(Functor functor,
+             T1 out, T2 in1, T3 in2, T4 in3) {
 
   int m = out.shape()[0];
   int n = out.shape()[1];
   
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, TensorView(out),
-                                TensorView(in1), TensorView(in2), TensorView(in3));
+  gElement<<<blocks, threads>>>(functor, out.gpu(),
+                                in1.gpu(), in2.gpu(), in3.gpu());
   cudaStreamSynchronize(0);
 }
-
-void Dropout(Tensor Out, Tensor in, float p, int seed);
 
 void SubtractMax(Tensor* Out);
 

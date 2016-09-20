@@ -1,5 +1,6 @@
 #include "node.h"
 #include "tensor_operators.h"
+#include "dropout.h"
 
 namespace marian {
 
@@ -107,22 +108,40 @@ struct ReLUNodeOp : public UnaryNodeOp {
 
 };
 
-// @TODO: slow and probably buggy
+// Scaling droput
 struct DropoutNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   DropoutNodeOp(Args ...args)
   : UnaryNodeOp(args...),
-    p_(0.5), seed_(time(0)) { }
+    p_(Get<float>(keywords::value, 0.5)) {}
 
-  void forward() {
-    //Element(_1 = Bernoulli(p_, (size_t)this) * _2,
-    //        val_, a_->val())
-    Dropout(val_, a_->val(), p_, seed_++);
+  ~DropoutNodeOp() {
+    if(bernoulli)
+      bernoulli->FreeStates(states_);
   }
-
-  void backward() {
-    Element(_1 += _2 * (_3 != 0.0f), // transform non-zero to 1
-            a_->grad(), adj_, val_);
+  
+  void inference() {
+    Element(_1 = _2, val_, a_->val());
+  }
+  
+  void forward() {
+    if(!bernoulli) {
+      bernoulli.reset(new Bernoulli(p_, val_.shape()));
+      bernoulli->InitStates(states_);
+    }
+    
+    if(!mask_)
+      mask_.allocate(val_.shape());
+    
+    auto f = [] __device__ (float& mask, float drop) {
+      return mask = drop;
+    };  
+    Element(f, mask_, *bernoulli);
+    Element(_1 = _2 * _3, val_, mask_, a_->val());
+  }
+  
+  void backward() {    
+    Element(_1 += _2 * _3, a_->grad(), adj_, mask_);
   }
 
   virtual std::string graphviz() {
@@ -135,7 +154,9 @@ struct DropoutNodeOp : public UnaryNodeOp {
 
   private:
     float p_;
-    int seed_;
+    curandState* states_;
+    std::shared_ptr<Bernoulli> bernoulli;
+    Tensor mask_;
 };
 
 

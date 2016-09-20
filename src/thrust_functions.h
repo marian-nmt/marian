@@ -138,7 +138,6 @@ namespace thrust
       ReLUback(const actor<Eval> &_1) {
         return compose(unary_operator<unary_reluback>(), _1);
       }
-      
     }
   }
 }

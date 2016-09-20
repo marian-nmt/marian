@@ -42,10 +42,6 @@ Expr relu(Expr a) {
   return Expr(a.graph(), new ReLUNodeOp(a));
 }
 
-Expr dropout(Expr a) {
-  return Expr(a.graph(), new DropoutNodeOp(a));
-}
-
 Expr log(Expr a) {
   return Expr(a.graph(), new LogNodeOp(a));
 };

@@ -157,6 +157,7 @@ class TensorImpl {
      *
      * @return Shape of Tensor
      */
+	__host__ __device__
     const Shape& shape() const {
         return shape_;
     }
@@ -269,6 +270,7 @@ class Tensor {
     Tensor() {}
 
     /**
+
      * @brief Constructor that allocates memory.
      *
      * @param shape Shape of Tensor. 
@@ -331,7 +333,7 @@ class Tensor {
     const value_type* data() const {
       return pimpl_->data();
     }
-
+	
    /**
     * @brief Get begin iterator of GPU Tensor's vector.
     *
@@ -373,6 +375,7 @@ class Tensor {
      *
      * @return Tensor's shape.
      */
+	__host__ __device__
     const Shape& shape() const {
       return pimpl_->shape();
     }
@@ -436,7 +439,8 @@ class Tensor {
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
 
     void incr(Float incr) {
-    	pimpl_->incr(incr);
+    	pimpl_->incr(incr)
+;
     }
 
     /**
@@ -457,6 +461,39 @@ class Tensor {
       vout.resize(size());
       pimpl_->get(vout.begin());
     }
+
+	class TensorView {
+	  private:
+		float* data_;
+		int rows_;
+		int cols_;
+	  
+	  public:
+		TensorView(Tensor t)
+		: data_(t.data()), rows_(t.shape()[0]), cols_(t.shape()[1]) {}
+		
+		__device__ float& operator()(int i, int j) {
+		  if(rows_ != 1 && cols_ != 1)
+			return data_[i * cols_ + j];
+		  if(rows_ != 1 && cols_ == 1)
+			return data_[i];
+		  if(rows_ == 1 && cols_ != 1)
+			return data_[j];
+		  return data_[0];
+		}
+		
+		__device__ int rows() {
+		  return rows_;
+		}
+		
+		__device__ int cols() {
+		  return cols_;
+		}
+	};
+	
+	TensorView gpu() {
+	  return TensorView(*this);
+	}
 };
 
 /**

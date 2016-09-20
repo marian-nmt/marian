@@ -68,6 +68,15 @@ class ExpressionGraph {
 
     /** @brief Constructs a new expression graph */
     ExpressionGraph() : stack_(new ChainableStack) {}
+
+    void inference(int batchSize) {
+      for(auto&& v : *stack_) {
+        v->allocate(batchSize);
+      }
+      for(auto&& v : *stack_)
+        v->inference();    
+    }
+
   
     /**
      * @brief Performs backpropogation on this expression graph.

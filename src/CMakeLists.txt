@@ -8,6 +8,7 @@ cuda_add_library(marian_lib
   tensor.cu
   tensor_operators.cu
   expression_operators.cu
+  dropout.cu
   vocab.cpp
 )
 

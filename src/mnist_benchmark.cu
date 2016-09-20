@@ -6,7 +6,6 @@
 
 #include "marian.h"
 #include "mnist.h"
-#include "npz_converter.h"
 #include "optimizers.h"
 
 using namespace marian;
@@ -30,11 +29,11 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
     int out = dims[i+1];
       
     if(i == 0) {
-      layers.emplace_back(x);
+      layers.emplace_back(dropout(x, value=0.2));
     }
     else {
-      layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
-      //layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
+      //layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
+      layers.emplace_back(dropout(relu(dot(layers.back(), weights.back()) + biases.back()), value=0.5));
     }
     
     weights.emplace_back(
@@ -115,8 +114,8 @@ int main(int argc, char** argv) {
   std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", testRows, LABEL_SIZE);
   std::cerr << "Done." << std::endl;
 
-  ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, 2048, 2048, 2048, LABEL_SIZE});
-  std::cout << g.graphviz() << std::endl;
+  ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, LABEL_SIZE});
+  //std::cout << g.graphviz() << std::endl;
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});
@@ -167,7 +166,7 @@ int main(int argc, char** argv) {
     g["x"] = xt;
     g["y"] = yt;
     
-    g.forward(BATCH_SIZE);
+    g.inference(BATCH_SIZE);
     
     std::vector<float> bResults;
     bResults << g["scores"].val();

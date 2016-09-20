@@ -32,6 +32,7 @@ template <class DataType>
 struct Chainable {
     Chainable() { }
     virtual ~Chainable() { }
+    virtual void inference() { forward(); }
     virtual void forward() { }
     virtual void backward() { }
     virtual void backward_numeric(Float delta) { }
