@@ -133,9 +133,7 @@ int main(int argc, char** argv) {
   while (getline(source_file, source_line)) {
     getline(target_file, target_line);
     std::vector<size_t> source_ids = source_vocab.ProcessSentence(source_line);
-    source_ids.push_back(source_vocab.GetEOS()); // Append EOS token.
     std::vector<size_t> target_ids = target_vocab.ProcessSentence(target_line);
-    target_ids.push_back(target_vocab.GetEOS()); // Append EOS token.
     source_sentences.push_back(source_ids);
     target_sentences.push_back(target_ids);
     if (num_source_tokens < 0 || source_ids.size() > num_source_tokens) {

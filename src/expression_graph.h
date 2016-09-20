@@ -127,6 +127,19 @@ class ExpressionGraph {
         (*it)->backward();
     }
 
+    void backward_numeric(Float delta) {
+      for(auto&& v : *stack_)
+        v->set_zero_adjoint();
+
+      typedef typename ChainableStack::reverse_iterator It;
+      stack_->back()->init_dependent();
+      for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
+    	  Chainable<Tensor> *chainable = *it;
+    	  //chainable->backward();
+    	  chainable->backward_numeric(delta);
+      }
+    }
+
     /**
      * @brief Returns a string representing this expression graph in <code>graphviz</code> notation.
      *

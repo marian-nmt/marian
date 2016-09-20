@@ -75,6 +75,7 @@ std::vector<size_t> Vocab::ProcessSentence(const std::string &sentence)
 		size_t id = GetOrCreate(toks[i]);
 		ret[i] = id;
 	}
+  ret.push_back(GetEOS()); // Append EOS token.
 
 	return ret;
 }

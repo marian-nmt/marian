@@ -207,6 +207,12 @@ class TensorImpl {
 	  thrust::copy(begin, end, data_.begin());
     }
 
+    void incr(Float incr) {
+    	for (size_t i = 0; i < data_.size(); ++i) {
+    		data_[i] += incr;
+    	}
+    }
+
     /**
      * @brief Copy Tensor's vector from GPU to vector variable on CPU.
      *
@@ -405,17 +411,12 @@ class Tensor {
      */
     std::string Debug() const
     {
-    	return pimpl_->Debug();
-    }
-
-    /**
-     * @brief Print Tensor data on CPU (?) (const). 
-     */
-    void Print() const {
-      for (int i = 0; i < size(); ++i) {
-        std::cerr << (*this)[i] << " ";
-      }
-      std::cerr << std::endl;
+    	if (!pimpl_) {
+    		return "Not yet set";
+    	}
+    	else {
+    		return pimpl_->Debug();
+    	}
     }
 
     //void Load(const std::string &path);
@@ -433,6 +434,10 @@ class Tensor {
      * @param end End iterator of vector being copied.
      */
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
+
+    void incr(Float incr) {
+    	pimpl_->incr(incr);
+    }
 
     /**
      * @brief Copy Tensor's vector from GPU to vector variable on CPU (const).
