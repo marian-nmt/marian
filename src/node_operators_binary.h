@@ -12,7 +12,7 @@ struct BinaryNodeOp : public Node {
    : Node(args...), a_(a), b_(b) {}
 
 
-  void backward_numeric(Float delta) {
+  void backward_debug(Float delta) {
 	  using namespace std;
 
 	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
