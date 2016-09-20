@@ -33,8 +33,8 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
       layers.emplace_back(x);
     }
     else {
-      layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
-      //layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
+      //layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
+      layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
     }
     
     weights.emplace_back(

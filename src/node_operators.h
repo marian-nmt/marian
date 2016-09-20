@@ -454,11 +454,14 @@ struct ReLUPlusNodeOp : public BinaryNodeOp {
     : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
     
   void forward() {
+    // v = f(g(a, b))
     Element(_1 = ReLU(_2 + _3),
             val_, a_->val(), b_->val());
   }
   
   void backward() {
+    // df/da = adj * f'(g(a, b)) : dg/da * df/dg 
+    // df/db = adj * f'(g(a, b)) : dg/db * df/dg 
     Element(_1 += _2 * ReLUback(_3 + _4),
             a_->grad(), adj_, a_->val(), b_->val());
     Element(_1 += _2 * ReLUback(_3 + _4),
