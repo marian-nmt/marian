@@ -174,7 +174,7 @@ class Node : public Chainable<Tensor>,
 
   	  thrust::copy(grad.begin(), grad.end(), origGrad.begin());
   	  for (size_t i = 0; i < totSize; ++i) {
-  		  diff[i] = (diffGrad[i] - numericalGrad[i]) / delta;
+  		  diff[i] = (diffGrad[i] - numericalGrad[i]) ;
   	  }
   	  output("diff", diff);
 
@@ -190,7 +190,7 @@ class Node : public Chainable<Tensor>,
 
     void output(const std::string &title, const std::vector<float> &vec)
     {
-  	  std::cerr << title << " " << vec.size() << ":";
+  	  std::cerr << title << "(" << vec.size() << "): ";
   	  for (size_t i = 0; i < vec.size(); ++i) {
   		  std::cerr << vec[i] << " ";
   	  }

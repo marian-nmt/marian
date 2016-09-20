@@ -16,72 +16,14 @@ struct UnaryNodeOp : public Node {
 
       cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
 
-	  Tensor input = a_->val();
-	  size_t totSize = GetTotalSize(input.shape());
-
-	  std::vector<float> preCalcGrad(totSize);
-	  thrust::copy(a_->grad().begin(), a_->grad().end(), preCalcGrad.begin());
-	  output("preCalcGrad", preCalcGrad);
+	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
+	  //output("preCalcGradA", preCalcGradA);
 
 	  // use df/dx to calc grad
 	  backward();
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 
-	  std::vector<float> diffGrad(totSize);
-	  thrust::copy(a_->grad().begin(), a_->grad().end(), diffGrad.begin());
-	  output("diffGrad", diffGrad);
-
-	  // reset grad
-	  thrust::copy(preCalcGrad.begin(), preCalcGrad.end(), a_->grad().begin());
-	  //cerr << "reset a_->grad()=" << a_->grad().Debug() << endl;
-
-	  // START CALC of numerical gradient
-	  // new values
-	  input.incr(delta);
-
-	  forward();
-	  //cerr << "input=" << input.Debug() << endl;
-	  //cerr << "val_=" << val_.Debug() << endl;
-
-	  std::vector<float> newVal(totSize);
-	  thrust::copy(val_.begin(), val_.end(), newVal.begin());
-	  //output("newVal", newVal);
-
-	  // old values
-	  input.incr(-delta);
-
-	  forward();
-	  //cerr << "input=" << input.Debug() << endl;
-	  //cerr << "val_=" << val_.Debug() << endl;
-
-	  std::vector<float> origVal(totSize);
-	  thrust::copy(val_.begin(), val_.end(), origVal.begin());
-	  //output("origVal", origVal);
-
-	  // calc gradient
-	  //cerr << "adj_=" << adj_.Debug() << endl;
-	  std::vector<float> adjVec(totSize);
-	  thrust::copy(adj_.begin(), adj_.end(), adjVec.begin());
-
-	  std::vector<float> numericalGrad(totSize);
-	  for (size_t i = 0; i < totSize; ++i) {
-		  numericalGrad[i] = preCalcGrad[i] + (adjVec[i] * (newVal[i] - origVal[i]) / delta);
-	  }
-	  output("numericalGrad", numericalGrad);
-	  //cerr << "numeric a_->grad()=" << a_->grad().Debug() << endl;
-
-	  // set grad results
-	  thrust::copy(numericalGrad.begin(), numericalGrad.end(), a_->grad().begin());
-
-	  // print out diff between diffGrad and numericalGrad
-	  std::vector<float> origGrad(totSize);
-	  std::vector<float> diff(totSize);
-
-	  thrust::copy(a_->grad().begin(), a_->grad().end(), origGrad.begin());
-	  for (size_t i = 0; i < totSize; ++i) {
-		  diff[i] = (diffGrad[i] - numericalGrad[i]) / delta;
-	  }
-	  output("diff", diff);
+	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
     }
 
 };
