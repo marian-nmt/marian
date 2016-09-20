@@ -10,6 +10,22 @@ struct UnaryNodeOp : public Node {
     UnaryNodeOp(ChainPtr a, Args ...args)
     : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
            args...), a_(a) {}
+
+    void backward_numeric(Float delta) {
+      using namespace std;
+
+      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
+
+	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
+	  //output("preCalcGradA", preCalcGradA);
+
+	  // use df/dx to calc grad
+	  backward();
+	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+
+	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+    }
+
 };
 
 struct LogitNodeOp : public UnaryNodeOp {

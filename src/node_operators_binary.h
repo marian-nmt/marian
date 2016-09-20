@@ -10,6 +10,33 @@ struct BinaryNodeOp : public Node {
   template <typename ...Args>
   BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
    : Node(args...), a_(a), b_(b) {}
+
+
+  void backward_numeric(Float delta) {
+	  using namespace std;
+
+	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
+
+	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
+	  //output("preCalcGradA", preCalcGradA);
+
+	  std::vector<float> preCalcGradB = StoreTensorInVec(b_->grad());
+	  //output("preCalcGradB", preCalcGradB);
+
+	  // use df/dx to calc grad
+	  backward();
+	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+
+	  cerr << "TENSOR A:" << endl;
+	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+	  cerr << "TENSOR B:" << endl;
+	  calc_numeric_grad(delta, b_->val(), b_->grad(), preCalcGradB);
+
+	  // redo proper grad
+	  backward();
+  }
+
+
 };
 
 /*** Matrix Product ***/

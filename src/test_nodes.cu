@@ -30,8 +30,8 @@ int main(int argc, char** argv)
   Expr labelExpr = g.input(shape={batch_size, output_size});
 
   //Expr outExpr = softmax(inExpr);
-  //Expr outExpr = tanh(inExpr);
-  Expr outExpr = - inExpr;
+  Expr outExpr = tanh(inExpr);
+  //Expr outExpr = - inExpr;
   Expr ceExpr = cross_entropy(outExpr, labelExpr);
   Expr cost = mean(ceExpr, axis=0);
 
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
   // train
   g.forward(batch_size);
   //g.backward();
-  g.backward_numeric(0.01);
+  g.backward_numeric(0.00001);
 
   std::cout << g.graphviz() << std::endl;
 
