@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <chrono>
+#include <iomanip>
+#include <cstdio>
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
@@ -31,30 +33,27 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
       layers.emplace_back(x);
     }
     else {
-      layers.emplace_back(tanh(dot(layers.back(), weights.back())) + biases.back());
+      layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
+      //layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
     }
     
     weights.emplace_back(
-      g.param(shape={in, out},
-            init=normal()));
+      named(g.param(shape={in, out}, init=uniform()), "W" + std::to_string(i)));
     biases.emplace_back(
-      g.param(shape={1, out},
-            init=normal()));
+      named(g.param(shape={1, out}, init=zeros), "b" + std::to_string(i)));
   }
 
-  Expr scores = named(dot(layers.back(), weights.back()) + biases.back(),
+  auto scores = named(dot(layers.back(), weights.back()) + biases.back(),
                       "scores");
-
-  Expr cost = mean(cross_entropy(scores, y), axis=0);
+  
+  auto cost = mean(cross_entropy(scores, y), axis=0);
   //auto cost = mean(-sum(y * log(softmax(scores)), axis=1), axis=0);
-  Expr costreg = named(
+  auto costreg = named(
     cost, "cost"
   );
 
   // If we uncomment the line below, this will just horribly diverge.
   // auto dummy_probs = named(softmax(scores), "dummy_probs");
-
-  std::cout << g.graphviz() << std::endl;
 
   std::cerr << timer.format(5, "%ws") << std::endl;
   return g;
@@ -84,7 +83,25 @@ void shuffle(std::vector<float>& x, std::vector<float>& y, size_t dimx, size_t d
   
 }
 
+float accuracy(const std::vector<float> pred, const std::vector<float> labels) {
+  size_t acc = 0;
+  for (size_t i = 0; i < labels.size(); i += LABEL_SIZE) {
+    size_t correct = 0;
+    size_t proposed = 0;
+    for (size_t j = 0; j < LABEL_SIZE; ++j) {
+      if (labels[i + j])
+        correct = j;
+      if (pred[i + j] > pred[i + proposed])
+        proposed = j;
+    }
+    acc += (correct == proposed);
+  }
+  return float(acc) / (labels.size() / LABEL_SIZE);
+}
+
 int main(int argc, char** argv) {
+
+  std::cerr << std::setprecision(4) << std::fixed;
 
   int trainRows, testRows;
   
@@ -98,18 +115,19 @@ int main(int argc, char** argv) {
   std::vector<float> testLabels = datasets::mnist::ReadLabels("../examples/mnist/t10k-labels-idx1-ubyte", testRows, LABEL_SIZE);
   std::cerr << "Done." << std::endl;
 
-  ExpressionGraph g = build_graph({IMAGE_SIZE, 2000, 2000, 2000, 2000, 2000, LABEL_SIZE});
+  ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, 2048, 2048, 2048, LABEL_SIZE});
+  std::cout << g.graphviz() << std::endl;
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});
-
   
   boost::timer::cpu_timer total;
-  Adam opt;
+  Adam opt(0.0002);
   for(int i = 1; i <= 10; ++i) {
     boost::timer::cpu_timer timer;
     shuffle(trainImages, trainLabels, IMAGE_SIZE, LABEL_SIZE);
     float cost = 0;
+    float acc = 0;
     for(int j = 0; j < trainRows / BATCH_SIZE; j++) {
       size_t xBatch = IMAGE_SIZE * BATCH_SIZE;
       auto xbegin = trainImages.begin() + j * xBatch;
@@ -119,19 +137,26 @@ int main(int argc, char** argv) {
       size_t yBatch = LABEL_SIZE * BATCH_SIZE;
       auto ybegin = trainLabels.begin() + j * yBatch;
       auto yend = ybegin + yBatch;
-      yt.set(ybegin, yend);
+      std::vector<float> ytv(ybegin, yend);
+      yt.set(ytv);
       
       g["x"] = xt;
       g["y"] = yt;
       
       opt(g, BATCH_SIZE);
-      cost += g["cost"].val()[0];
+        
+      cost += (g["cost"].val()[0] * BATCH_SIZE) / trainRows;
+      
+      std::vector<float> bResults;
+      bResults << g["scores"].val();
+      
+      acc += (accuracy(bResults, ytv) * BATCH_SIZE) / trainRows;
     }
-    std::cerr << "Epoch: " << i << " - Cost: " << cost / trainRows * BATCH_SIZE << " - " << timer.format(3, "%ws") << std::endl;
+    std::cerr << "Epoch: " << i << " - Cost: " << cost << " - Accuracy: " << acc << " - " << timer.format(3, "%ws") << std::endl;
   }
   std::cerr << "Total: " << total.format(3, "%ws") << std::endl;
 
-  std::vector<float> results;  
+  std::vector<float> results;
   for(int j = 0; j < testRows / BATCH_SIZE; j++) {
     size_t xBatch = IMAGE_SIZE * BATCH_SIZE;
     auto xbegin = testImages.begin() + j * xBatch;
@@ -149,19 +174,7 @@ int main(int argc, char** argv) {
     results.insert(results.end(), bResults.begin(), bResults.end());
   }
   
-  size_t acc = 0;
-  for (size_t i = 0; i < testLabels.size(); i += LABEL_SIZE) {
-    size_t correct = 0;
-    size_t proposed = 0;
-    for (size_t j = 0; j < LABEL_SIZE; ++j) {
-      if (testLabels[i + j])
-        correct = j;
-      if (results[i + j] > results[i + proposed])
-        proposed = j;
-    }
-    acc += (correct == proposed);
-  }
-  std::cerr << "Accuracy: " << float(acc) / testRows << std::endl;
+  std::cerr << "Accuracy: " << accuracy(results, testLabels) << std::endl;
   
   return 0;
 }

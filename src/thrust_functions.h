@@ -37,13 +37,7 @@ namespace thrust
       struct unary_exp : public thrust::unary_function<T,T> {
         __host__ __device__
         T operator()(const T &x) const {
-            float x2 = x;
-            float clip = 16;
-            if(x2 > clip)
-              x2 = clip;
-            if(x2 < -clip)
-              x2 = -clip;
-            return expf(x2);
+            return expf(x);
           }
       };
       
@@ -58,10 +52,7 @@ namespace thrust
       struct unary_log : public thrust::unary_function<T,T> {
         __host__ __device__
         T operator()(const T &x) const {
-          float x2 = x;
-          if(x2 < 10e-10)
-            x2 = 10e-10;
-          return logf(x2);
+          return logf(x);
         }
       };
       
@@ -76,13 +67,7 @@ namespace thrust
       struct unary_sigma : public thrust::unary_function<T,T> {
         __host__ __device__
         T operator()(const T &x) const {
-          float x2 = x;
-          float clip = 16;
-          if(x2 > clip)
-            x2 = clip;
-          if(x2 < -clip)
-            x2 = -clip;           
-          return 1.0 / (1.0 + expf(-x2));
+          return 1.0 / (1.0 + expf(-x));
         }
       };
       
@@ -127,6 +112,33 @@ namespace thrust
                        make_actor(_1),
                        make_actor(_2));
       }
+      
+      template<typename T>
+      struct unary_relu : public thrust::unary_function<T,T> {
+        __host__ __device__
+        T operator()(const T &x) const { return x > 0.0f ? x : 0.0f; }
+      };
+      
+      template<typename Eval>
+      __host__ __device__
+      actor<composite<unary_operator<unary_relu>, actor<Eval>>>
+      ReLU(const actor<Eval> &_1) {
+        return compose(unary_operator<unary_relu>(), _1);
+      }
+
+      template<typename T>
+      struct unary_reluback : public thrust::unary_function<T,T> {
+        __host__ __device__
+        T operator()(const T &x) const { return x > 0.0f ? 1.0f : 0.0f; }
+      };
+      
+      template<typename Eval>
+      __host__ __device__
+      actor<composite<unary_operator<unary_reluback>, actor<Eval>>>
+      ReLUback(const actor<Eval> &_1) {
+        return compose(unary_operator<unary_reluback>(), _1);
+      }
+      
     }
   }
 }

@@ -31,6 +31,10 @@ Expr logit(Expr a);
 
 Expr tanh(Expr a);
 
+Expr relu(Expr a);
+
+Expr dropout(Expr a);
+
 Expr log(Expr a);
 
 Expr exp(Expr a);
@@ -49,9 +53,8 @@ Expr operator/(Expr a, Expr b);
 
 Expr dot(Expr a, Expr b);
 
-/******************************************************/
+Expr reluplus(Expr a, Expr b);
 
-Expr broadcast(Shape bShape, Expr a);
 
 /*********************************************************/
 

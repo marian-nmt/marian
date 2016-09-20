@@ -45,7 +45,7 @@ target_link_libraries(validate_encoder_decoder marian_lib)
 target_link_libraries(test_nodes marian_lib)
 
 foreach(exec marian mnist_benchmark validate_mnist_batch validate_encoder_decoder test_nodes)
-  target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn)
+  target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)

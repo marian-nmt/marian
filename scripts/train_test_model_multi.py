@@ -4,25 +4,65 @@ import sys
 import os
 import numpy as np
 import time
+import theano
+
+np.set_printoptions(threshold=np.inf, linewidth=np.inf, suppress=True)
+np.random.seed(42)
+
 from keras.datasets import mnist
 from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
+from keras import backend as K
+from keras.optimizers import Adam, SGD
 
-def softmax(x):
-    return np.exp(x) / np.sum(np.exp(x), axis=1)[:, None]
+#class Adam2(SGD):
+#    def get_gradients(self, loss, params):
+#       print "lalala"
+#       grads = K.gradients(loss, params)
+#       if hasattr(self, 'clipnorm') and self.clipnorm > 0:
+#           norm = K.sqrt(sum([K.sum(K.square(g)) for g in grads]))
+#           grads = [clip_norm(g, self.clipnorm, norm) for g in grads]
+#       if hasattr(self, 'clipvalue') and self.clipvalue > 0:
+#           grads = [K.clip(g, -self.clipvalue, self.clipvalue) for g in grads]
+#       grads = [theano.printing.Print('Gradient')(g) for g in grads]
+#       return grads
+#
+#
+#X = 123456789
+#Y = 362436069
+#Z = 521288629
+#W = 88675123
+#
+#def xorshift():
+#    global X, Y, Z, W
+#    t = (X ^ (X << 11)) % 1000
+#    X = Y
+#    Y = Z
+#    Z = W
+#    W = (W ^ (W >> 19) ^ t ^ (t >> 8)) % 1000
+#    return 0.1 * ((W % 1000)/1000.0) - 0.05
 
+#def xorshift_init(shape, name=None):
+#    init = np.array([xorshift() for i in range(shape[0] * shape[1])]).reshape(shape)
+#    return K.variable(init, name=name)
 
 def baseline_model(pixels_count, classes_count):
     model = Sequential()
-    model.add(Dense(2000, input_dim=pixels_count, init='normal', activation='tanh'))
-    model.add(Dense(2000, init='normal', activation='tanh'))
-    model.add(Dense(2000, init='normal', activation='tanh'))
-    model.add(Dense(2000, init='normal', activation='tanh'))
-    model.add(Dense(2000, init='normal', activation='tanh'))
-    model.add(Dense(classes_count, input_dim=100, init='normal', activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+#    model.add(Dropout(0.2, input_shape=(pixels_count,)))
+    model.add(Dense(2048, input_dim=pixels_count, init='uniform', activation='relu'))
+#    model.add(Dense(2048, init='uniform', activation='relu'))
+#    model.add(Dropout(0.5))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+    model.add(Dense(2048, init='uniform', activation='relu'))
+#    model.add(Dropout(0.5))
+    model.add(Dense(classes_count, init='uniform', activation='softmax'))
+
+    opt = Adam(lr=0.0002);
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
     return model
 
 
@@ -41,8 +81,8 @@ if __name__ == "__main__":
 
     ### Normalize data to (0, 1)
 
-    X_train = X_train / 255
-    X_test = X_test / 255
+    X_train = X_train / 255.0
+    X_test = X_test / 255.0
 
     ### Change classes to one hot encoding matrixes
 
@@ -56,10 +96,14 @@ if __name__ == "__main__":
 
     # Build the model
     model = baseline_model(pixels_count, classes_count)
+    
+    #for layer in model.layers:
+    #    print layer.get_weights() 
     # Fit the model
     
     start = time.time();
-    model.fit(X_train, y_train, nb_epoch=10, batch_size=200, verbose=2)
+    model.fit(X_train, y_train, nb_epoch=10, batch_size=200, verbose=2, shuffle=True)
+
     print "Time elapsed", time.time() - start, "s"
     # Final evaluation of the model
     scores = model.evaluate(X_test, y_test, verbose=0)
