@@ -11,7 +11,7 @@ struct UnaryNodeOp : public Node {
     : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
            args...), a_(a) {}
 
-    void backward_numeric(Float delta) {
+    void backward_debug(Float delta) {
       using namespace std;
 
       cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
