@@ -35,7 +35,7 @@ struct Chainable {
     virtual void inference() { forward(); }
     virtual void forward() { }
     virtual void backward() { }
-    virtual void backward_numeric(Float delta) { }
+    virtual void backward_debug(Float delta) { }
 
     virtual void check() { }
     virtual void init_dependent() { }

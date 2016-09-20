@@ -136,7 +136,7 @@ class ExpressionGraph {
         (*it)->backward();
     }
 
-    void backward_numeric(Float delta) {
+    void backward_debug(Float delta) {
       for(auto&& v : *stack_)
         v->set_zero_adjoint();
 
@@ -145,7 +145,7 @@ class ExpressionGraph {
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
     	  Chainable<Tensor> *chainable = *it;
     	  //chainable->backward();
-    	  chainable->backward_numeric(delta);
+    	  chainable->backward_debug(delta);
       }
     }
 
