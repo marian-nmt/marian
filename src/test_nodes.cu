@@ -55,7 +55,7 @@ int main(int argc, char** argv)
   // train
   g.forward(batch_size);
   //g.backward();
-  g.backward_numeric();
+  g.backward_numeric(0.01);
 
   std::cout << g.graphviz() << std::endl;
 

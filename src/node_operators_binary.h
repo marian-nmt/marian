@@ -12,13 +12,15 @@ struct BinaryNodeOp : public Node {
   BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
    : Node(args...), a_(a), b_(b) {}
 
-  void backward_numeric() {
+  void backward_numeric(Float delta) {
 	using namespace std;
 	backward();
+	/*
 	cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric" << endl;
 	cerr << "a_->grad()=" << a_->grad().Debug() << endl;
 	cerr << "b_->grad()=" << b_->grad().Debug() << endl;
 	cerr << "adj_=" << adj_.Debug() << endl;
+	*/
   }
 
 };
