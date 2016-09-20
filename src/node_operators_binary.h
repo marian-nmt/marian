@@ -3,7 +3,6 @@
 
 namespace marian {
 
-
 struct BinaryNodeOp : public Node {
   ChainPtr a_;
   ChainPtr b_;
@@ -11,18 +10,6 @@ struct BinaryNodeOp : public Node {
   template <typename ...Args>
   BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
    : Node(args...), a_(a), b_(b) {}
-
-  void backward_numeric(Float delta) {
-	using namespace std;
-	backward();
-	/*
-	cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric" << endl;
-	cerr << "a_->grad()=" << a_->grad().Debug() << endl;
-	cerr << "b_->grad()=" << b_->grad().Debug() << endl;
-	cerr << "adj_=" << adj_.Debug() << endl;
-	*/
-  }
-
 };
 
 /*** Matrix Product ***/
@@ -52,7 +39,7 @@ struct DotNodeOp : public BinaryNodeOp {
     // D is the adjoint, the matrix of derivatives
     // df/dA += D*B.T
     // df/dB += A.T*D
-    // beta set to 1.0 in gemm, C = alpha * dot(A,B) + beta * C
+    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
     Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
     Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
@@ -60,7 +47,8 @@ struct DotNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"×\", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("×")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -87,7 +75,36 @@ struct PlusNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"+\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("+")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
+    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+struct ReLUPlusNodeOp : public BinaryNodeOp {
+  template <typename ...Args>
+  ReLUPlusNodeOp(ChainPtr a, ChainPtr b, Args ...args)
+    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+
+  void forward() {
+    Element(_1 = ReLU(_2 + _3),
+            val_, a_->val(), b_->val());
+  }
+
+  void backward() {
+    Element(_1 += _2 * ReLUback(_3 + _4),
+            a_->grad(), adj_, a_->val(), b_->val());
+    Element(_1 += _2 * ReLUback(_3 + _4),
+            b_->grad(), adj_, a_->val(), b_->val());
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("ReLU<br/>+")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -114,7 +131,8 @@ struct MinusNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"-\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("-")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -141,7 +159,8 @@ struct MultNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"•\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("•")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -168,7 +187,8 @@ struct DivNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"÷\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("÷")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
@@ -233,8 +253,9 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"cross_entropy\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x-ent")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -243,6 +264,7 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
   Tensor probs_;
 
 };
+
 
 }
 

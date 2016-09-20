@@ -10,89 +10,6 @@ struct UnaryNodeOp : public Node {
     UnaryNodeOp(ChainPtr a, Args ...args)
     : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
            args...), a_(a) {}
-
-    void backward_numeric(Float delta) {
-      using namespace std;
-
-      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
-
-	  Tensor input = a_->val();
-	  size_t totSize = GetTotalSize(input.shape());
-
-	  std::vector<float> preCalcGrad(totSize);
-	  thrust::copy(a_->grad().begin(), a_->grad().end(), preCalcGrad.begin());
-	  output("preCalcGrad", preCalcGrad);
-
-	  // use df/dx to calc grad
-	  backward();
-	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
-
-	  std::vector<float> diffGrad(totSize);
-	  thrust::copy(a_->grad().begin(), a_->grad().end(), diffGrad.begin());
-	  output("diffGrad", diffGrad);
-
-	  // reset grad
-	  thrust::copy(preCalcGrad.begin(), preCalcGrad.end(), a_->grad().begin());
-	  //cerr << "reset a_->grad()=" << a_->grad().Debug() << endl;
-
-	  // START CALC of numerical gradient
-	  // new values
-	  input.incr(delta);
-
-	  forward();
-	  //cerr << "input=" << input.Debug() << endl;
-	  //cerr << "val_=" << val_.Debug() << endl;
-
-	  std::vector<float> newVal(totSize);
-	  thrust::copy(val_.begin(), val_.end(), newVal.begin());
-	  //output("newVal", newVal);
-
-	  // old values
-	  input.incr(-delta);
-
-	  forward();
-	  //cerr << "input=" << input.Debug() << endl;
-	  //cerr << "val_=" << val_.Debug() << endl;
-
-	  std::vector<float> origVal(totSize);
-	  thrust::copy(val_.begin(), val_.end(), origVal.begin());
-	  //output("origVal", origVal);
-
-	  // calc gradient
-	  //cerr << "adj_=" << adj_.Debug() << endl;
-	  std::vector<float> adjVec(totSize);
-	  thrust::copy(adj_.begin(), adj_.end(), adjVec.begin());
-
-	  std::vector<float> numericalGrad(totSize);
-	  for (size_t i = 0; i < totSize; ++i) {
-		  numericalGrad[i] = preCalcGrad[i] + (adjVec[i] * (newVal[i] - origVal[i]) / delta);
-	  }
-	  output("numericalGrad", numericalGrad);
-	  //cerr << "numeric a_->grad()=" << a_->grad().Debug() << endl;
-
-	  // set grad results
-	  thrust::copy(numericalGrad.begin(), numericalGrad.end(), a_->grad().begin());
-
-	  // print out diff between diffGrad and numericalGrad
-	  std::vector<float> origGrad(totSize);
-	  std::vector<float> diff(totSize);
-
-	  thrust::copy(a_->grad().begin(), a_->grad().end(), origGrad.begin());
-	  for (size_t i = 0; i < totSize; ++i) {
-		  diff[i] = (diffGrad[i] - numericalGrad[i]) / delta;
-	  }
-	  output("diff", diff);
-    }
-
-    void output(const std::string &title, const std::vector<float> &vec)
-    {
-  	  std::cerr << title << " " << vec.size() << ":";
-  	  for (size_t i = 0; i < vec.size(); ++i) {
-  		  std::cerr << vec[i] << " ";
-  	  }
-  	  std::cerr << std::endl;
-    }
-
 };
 
 struct LogitNodeOp : public UnaryNodeOp {
@@ -106,7 +23,7 @@ struct LogitNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * _3 * (1 - _3),
+    Element(_1 += _2 * _3 * (1.0f - _3),
             a_->grad(), adj_, val_);
   }
 
@@ -116,7 +33,8 @@ struct LogitNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"logit\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("logit")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -134,18 +52,76 @@ struct TanhNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * (1 - _3 * _3),
+    Element(_1 += _2 * (1.0f - (_3 * _3)),
             a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"tanh\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("tanh")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
 
 };
+
+struct ReLUNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  ReLUNodeOp(Args ...args)
+  : UnaryNodeOp(args...) { }
+
+  void forward() {
+    Element(_1 = ReLU(_2),
+            val_, a_->val());
+  }
+
+  void backward() {
+    Element(_1 += _2 * ReLUback(_3),
+            a_->grad(), adj_, a_->val());
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("ReLU")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+// @TODO: slow and probably buggy
+struct DropoutNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  DropoutNodeOp(Args ...args)
+  : UnaryNodeOp(args...),
+    p_(0.5), seed_(time(0)) { }
+
+  void forward() {
+    //Element(_1 = Bernoulli(p_, (size_t)this) * _2,
+    //        val_, a_->val())
+    Dropout(val_, a_->val(), p_, seed_++);
+  }
+
+  void backward() {
+    Element(_1 += _2 * (_3 != 0.0f), // transform non-zero to 1
+            a_->grad(), adj_, val_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("dropout")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+  private:
+    float p_;
+    int seed_;
+};
+
 
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
@@ -175,7 +151,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"softmax\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("softmax")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -203,7 +180,8 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"argmax\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("argmax") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -220,13 +198,14 @@ struct LogNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * 1.f / _3,
+    Element(_1 += _2 * (1.f / _3),
             a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"log\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("log") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -249,7 +228,8 @@ struct ExpNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"exp\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("exp")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
@@ -271,12 +251,14 @@ struct NegNodeOp : public UnaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=\"-\", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("-") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
 
 };
+
 
 }
 
