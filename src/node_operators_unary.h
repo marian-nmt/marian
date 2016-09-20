@@ -84,15 +84,6 @@ struct UnaryNodeOp : public Node {
 	  output("diff", diff);
     }
 
-    void output(const std::string &title, const std::vector<float> &vec)
-    {
-  	  std::cerr << title << " " << vec.size() << ":";
-  	  for (size_t i = 0; i < vec.size(); ++i) {
-  		  std::cerr << vec[i] << " ";
-  	  }
-  	  std::cerr << std::endl;
-    }
-
 };
 
 struct LogitNodeOp : public UnaryNodeOp {
