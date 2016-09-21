@@ -15,7 +15,7 @@ struct UnaryNodeOp : public Node {
     void backward_debug(Float delta) {
       using namespace std;
 
-      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
+      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
 
 	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
 	  //output("preCalcGradA", preCalcGradA);
@@ -132,7 +132,7 @@ struct DropoutNodeOp : public UnaryNodeOp {
     
     if(!mask_)
       mask_.allocate(val_.shape());
-    
+
     auto f = [] __device__ (float& mask, float drop) {
       return mask = drop;
     };  
@@ -205,8 +205,7 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
     // Based on the description for softmax, we have logsoftmax:
     // J * dy = dy - avg*1
     // where avg = exp(p)'*dy and p is the softmax output (probabilities).
-    CudnnLogSoftmaxGrad(a_->grad(), adj_, val_);
-    //LogSoftmaxGrad(a_->grad(), adj_, val_);
+    LogSoftmaxGrad(a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {

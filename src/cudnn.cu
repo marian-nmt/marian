@@ -11,43 +11,71 @@
 
 using namespace marian;
 
-int main() {
-    int d = 4;
+template <class F>
+void testForward(F f, size_t l,
+                 const Shape& shape,
+                 const std::string& desc) {
+    Tensor in(shape);
+    Tensor out(shape);
     
-    Tensor in({d, d});
-    Tensor out({d, d});
-    Tensor adj({d, d}, 1);
-    
-    auto f = uniform(-5, 5);
-    f(in);
-    
-    std::cerr << in.Debug() << std::endl;
-    
-    {
-        boost::timer::cpu_timer timer;
-        for(int i = 0; i < 1; ++i) {
-          Tensor grad({d, d});
-          CudnnLogSoftmax(out, in);
-          CudnnLogSoftmaxGrad(grad, adj, in);
-          std::cerr << in.Debug() << std::endl;
-          std::cerr << adj.Debug() << std::endl;
-          std::cerr << grad.Debug() << std::endl;
-        }
-        std::cerr << timer.format(5, "%ws") << std::endl;
-    }
-    
-    {
-        boost::timer::cpu_timer timer;
-        for(int i = 0; i < 1; ++i) {
-          Tensor grad({d, d});
-          CudnnLogSoftmax(out, in);
-          LogSoftmaxGrad(grad, adj, in);
-          std::cerr << in.Debug() << std::endl;
-          std::cerr << adj.Debug() << std::endl;
-          std::cerr << grad.Debug() << std::endl;
-        }
-        std::cerr << timer.format(5, "%ws") << std::endl;
-    }
+    uniform(-5, 5)(in);
 
+    std::cout << desc << ": ";
+    boost::timer::cpu_timer timer;
+    for(int i = 0; i < l; ++i) {
+      f(out, in);
+      if(i % 100 == 0)
+        std::cout << ".";
+    }
+    std::cout << timer.format(5, "%ws") << std::endl;
+}
+
+template <class F>
+void testBackward(F f, size_t l,
+                  const Shape& shape,
+                  const std::string& desc) {
+    Tensor in(shape);
+    Tensor adj(shape, 1);
+    Tensor grad(shape);
+    
+    uniform(-5, 5)(in);
+
+    std::cout << desc << ": ";
+    boost::timer::cpu_timer timer;
+    for(int i = 0; i < l; ++i) {
+      f(grad, adj, in);
+      if(i % 100 == 0)
+        std::cout << ".";
+    }
+    std::cout << timer.format(5, "%ws") << std::endl;
+}
+
+int main() {
+    int l = 1000;
+    
+    std::vector<Shape> shapes = {
+        {1000, 1000},
+        {80, 50000},
+        {50000, 80},
+    };
+    
+    for(auto& shape : shapes) {
+        std::cout << "Testing shape: " << shape[0] << "x" << shape[1] << std::endl << std::endl; 
+        
+        std::cout << "Softmax forward" << std::endl;
+        testForward(CudnnSoftmax, l, shape, "CuDNN ");
+        testForward(Softmax, l, shape, "Marian");
+        std::cout << std::endl;
+        
+        std::cout << "Softmax backward" << std::endl;
+        testBackward(CudnnSoftmaxGrad, l, shape, "CuDNN ");
+        testBackward(SoftmaxGrad, l, shape, "Marian");
+        std::cout << std::endl;
+        
+        std::cout << "Log-softmax backward" << std::endl;
+        testBackward(CudnnLogSoftmaxGrad, l, shape, "CuDNN ");
+        testBackward(LogSoftmaxGrad, l, shape, "Marian");
+        std::cout << std::endl;
+    }
     return 0;
 }

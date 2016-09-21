@@ -153,9 +153,9 @@ void Element(Functor functor,
 
 void ClipNorm(Tensor out, float threshold);
 
-void SubtractMax(Tensor* Out);
+void SubtractMax(Tensor out, Tensor in);
 
-void Softmax(Tensor* Out);
+void Softmax(Tensor out, Tensor in);
 
 void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);

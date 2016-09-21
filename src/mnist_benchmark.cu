@@ -32,7 +32,6 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
       layers.emplace_back(dropout(x, value=0.2));
     }
     else {
-      //layers.emplace_back(reluplus(dot(layers.back(), weights.back()), biases.back()));
       layers.emplace_back(dropout(relu(dot(layers.back(), weights.back()) + biases.back()), value=0.5));
     }
     
@@ -45,8 +44,7 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
   auto scores = named(dot(layers.back(), weights.back()) + biases.back(),
                       "scores");
   
-  //auto cost = mean(cross_entropy(scores, y), axis=0);
-  auto cost = mean(-sum(y * logsoftmax(scores), axis=1), axis=0);
+  auto cost = mean(cross_entropy(scores, y), axis=0);
   auto costreg = named(
     cost, "cost"
   );
