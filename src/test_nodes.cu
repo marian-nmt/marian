@@ -29,20 +29,33 @@ int main(int argc, char** argv)
   Expr inExpr = g.input(shape={batch_size, input_size});
   Expr labelExpr = g.input(shape={batch_size, output_size});
 
-  //Expr outExpr = softmax(inExpr);
-  Expr outExpr = tanh(inExpr);
-  outExpr = - outExpr;
-  outExpr = logit(outExpr);
-  outExpr = relu(outExpr);
-  outExpr = log(outExpr);
-  outExpr = exp(outExpr);
-  outExpr = softmax(outExpr);
+  Expr inExpr2 = g.input(shape={batch_size, input_size});
+  Expr inExpr3 = g.input(shape={input_size, batch_size});
 
-  Expr ceExpr = cross_entropy(outExpr, labelExpr);
+  vector<Expr> expr;
+
+  expr.emplace_back(tanh(inExpr));
+  expr.emplace_back(-expr.back());
+  expr.emplace_back(logit(expr.back()));
+  expr.emplace_back(relu(expr.back()));
+  expr.emplace_back(log(expr.back()));
+  expr.emplace_back(exp(expr.back()));
+  expr.emplace_back(softmax(expr.back()));
+
+  expr.emplace_back(inExpr + inExpr2);
+  expr.emplace_back(inExpr - inExpr2);
+  expr.emplace_back(inExpr * inExpr2);
+  expr.emplace_back(inExpr / inExpr2);
+  expr.emplace_back(reluplus(inExpr, inExpr2));
+
+  //expr.emplace_back(dot(inExpr, inExpr3));
+
+  Expr ceExpr = cross_entropy(expr.back(), labelExpr);
   Expr cost = mean(ceExpr, axis=0);
 
   // create data
-  srand(0);
+  //srand(0);
+  srand(time(NULL));
   std::vector<float> values(batch_size * input_size);
   generate(begin(values), end(values), Rand);
 
@@ -57,6 +70,19 @@ int main(int argc, char** argv)
 
   inExpr = inTensor;
   labelExpr = labelTensor;
+
+  // for binary expressions
+  std::vector<float> values2(batch_size * input_size);
+  generate(begin(values2), end(values2), Rand);
+  Tensor inTensor2({batch_size, input_size});
+  thrust::copy(values2.begin(), values2.end(), inTensor2.begin());
+
+  inExpr2 = inTensor2;
+
+  Tensor inTensor3({input_size, batch_size});
+  thrust::copy(values2.begin(), values2.end(), inTensor3.begin());
+
+  inExpr3 = inTensor3;
 
   // train
   g.forward(batch_size);
