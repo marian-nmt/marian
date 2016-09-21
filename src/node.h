@@ -112,7 +112,16 @@ class Node : public Chainable<Tensor>,
     Tensor val_;
     Tensor adj_;
 
-    void output(const std::string &title, const std::vector<float> &vec);
+    template<class ITER>
+    void output(const std::string &title, const ITER &b, const ITER &e) const
+    {
+    	std::cerr << title << ": ";
+    	for (ITER iter = b; iter != e; ++iter) {
+  		  std::cerr << *iter << " ";
+    	}
+    	std::cerr << std::endl;
+    }
+
     std::vector<float> StoreTensorInVec(Tensor tensor);
 	void calc_numeric_grad(
 			  Float delta,
