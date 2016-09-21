@@ -3,12 +3,13 @@ include_directories(.)
 
 cuda_add_library(marian_lib 
   cnpy/cnpy.cpp
+  dropout.cu
   exception.cpp
   expression_graph.cu 
+  expression_operators.cu
+  node.cu
   tensor.cu
   tensor_operators.cu
-  expression_operators.cu
-  dropout.cu
   vocab.cpp
 )
 

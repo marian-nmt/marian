@@ -59,6 +59,7 @@ int main(int argc, char** argv)
 
   std::cout << g.graphviz() << std::endl;
 
+  /*
   std::cerr << "inTensor=" << inTensor.Debug() << std::endl;
 
   Tensor outTensor = outExpr.val();
@@ -66,6 +67,6 @@ int main(int argc, char** argv)
 
   Tensor outGrad = outExpr.grad();
   std::cerr << "outGrad=" << outGrad.Debug() << std::endl;
-
+  */
 
 }
