@@ -158,6 +158,10 @@ void SubtractMax(Tensor* Out);
 void Softmax(Tensor* Out);
 
 void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
+void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
+
+void CudnnSoftmax(Tensor out, Tensor in);
+void CudnnLogSoftmax(Tensor out, Tensor in);
 
 void Argmax(Tensor* Out, const Tensor* In);
 

@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
   
   boost::timer::cpu_timer total;
   Adam opt(0.0002);
-  for(int i = 1; i <= 30; ++i) {
+  for(int i = 1; i <= 50; ++i) {
     boost::timer::cpu_timer timer;
     shuffle(trainImages, trainLabels, IMAGE_SIZE, LABEL_SIZE);
     float cost = 0;
