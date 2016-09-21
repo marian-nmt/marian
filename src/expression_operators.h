@@ -106,6 +106,8 @@ Expr softmax_slow(Expr a, Args ...args) {
 
 Expr softmax(Expr a);
 
+Expr logsoftmax(Expr a);
+
 Expr argmax(Expr a);
 
 // inefficient
