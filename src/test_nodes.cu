@@ -48,7 +48,7 @@ int main(int argc, char** argv)
   expr.emplace_back(relu(expr.back()));
   expr.emplace_back(log(expr.back()));
   expr.emplace_back(exp(expr.back()));
-  //expr.emplace_back(softmax(expr.back()));
+  expr.emplace_back(softmax(expr.back()));
 
   Expr ceExpr = cross_entropy(expr.back(), labelExpr);
   Expr cost = mean(ceExpr, axis=0);
