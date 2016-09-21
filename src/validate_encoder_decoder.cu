@@ -191,6 +191,7 @@ int main(int argc, char** argv) {
                                   num_source_tokens-1,
                                   num_target_tokens-1);
 
+#if 0
   std::cerr << "Attaching the data to the computation graph..." << std::endl;
 
   // Convert the data to dense one-hot vectors.
@@ -224,6 +225,7 @@ int main(int argc, char** argv) {
     ss << "Y" << t;
     g[ss.str()] = Yt;
   }
+#endif
 
   std::cerr << "Printing the computation graph..." << std::endl;
   std::cout << g.graphviz() << std::endl;
