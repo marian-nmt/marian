@@ -26,14 +26,13 @@ struct BinaryNodeOp : public Node {
 	  // use df/dx to calc grad
 	  backward();
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+	  //cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
 
 	  cerr << "TENSOR A:" << endl;
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
 	  cerr << "TENSOR B:" << endl;
 	  calc_numeric_grad(delta, b_->val(), b_->grad(), preCalcGradB);
 
-	  // redo proper grad
-	  backward();
   }
 
 

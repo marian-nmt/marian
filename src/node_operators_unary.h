@@ -22,6 +22,7 @@ struct UnaryNodeOp : public Node {
 
 	  // use df/dx to calc grad
 	  backward();
+	  //cerr << "orig a_->val()=" << a_->val().Debug() << endl;
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
@@ -284,6 +285,8 @@ struct NegNodeOp : public UnaryNodeOp {
 
   void backward() {
     Element(_1 += -_2, a_->grad(), adj_);
+
+    //std::cerr << "a_->grad=" << a_->grad().Debug() << std::endl;
   }
 
   virtual std::string graphviz() {

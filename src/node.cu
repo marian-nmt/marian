@@ -13,59 +13,67 @@ void Node::calc_numeric_grad(
   using namespace std;
 
 	  size_t inputSize = GetTotalSize(input.shape());
-	  size_t gradSize = GetTotalSize(grad.shape());
-	  size_t adjSize = GetTotalSize(adj_.shape());
 	  size_t valSize = GetTotalSize(val_.shape());
-	  assert(adjSize == valSize);
+
+	  UTIL_THROW_IF2(inputSize != GetTotalSize(grad.shape()),
+			  	  "inputSize != gradSize:" << inputSize << "!=" << GetTotalSize(grad.shape()));
+	  UTIL_THROW_IF2(valSize != GetTotalSize(adj_.shape()),
+			  	  "valSize != adjSize :" << valSize << "!=" << GetTotalSize(adj_.shape()));
 
 	  cerr << "sizes: "
 			  << Debug(input.shape())<< "=" << inputSize << " "
-			  << Debug(grad.shape()) << "=" << gradSize << " "
-			  << Debug(adj_.shape()) << "=" << adjSize << " "
 			  << Debug(val_.shape()) << "=" << valSize
 			  << endl;
 
-	  std::vector<float> diffGrad(gradSize);
-	  thrust::copy(grad.begin(), grad.end(), diffGrad.begin());
-	  cerr << "diffGrad=" << grad.Debug() << endl;
+	  //cerr << "input=" << input.Debug() << endl;
+
+	  std::vector<float> origGrad(inputSize);
+	  thrust::copy(grad.begin(), grad.end(), origGrad.begin());
+	  cerr << "origGrad=" << grad.Debug() << endl;
 	  //output("diffGrad", diffGrad);
 
-	  // reset grad
-	  thrust::copy(prevCalcGrad.begin(), prevCalcGrad.end(), grad.begin());
-	  //cerr << "reset a_->grad()=" << a_->grad().Debug() << endl;
+	  //output("prevCalcGrad", prevCalcGrad.begin(), prevCalcGrad.end());
 
+	  std::vector<float> inputVec(inputSize);
+	  thrust::copy(input.begin(), input.end(), inputVec.begin());
+	  //output("inputVec", inputVec);
 
-	  // START CALC of numerical gradient
-	  // new values
-	  input.incr(delta);
+	  std::vector<float> newVal(inputSize, 0);
 
+	  // LOOP thru each element in input & add delta
+	  for (size_t inputInd = 0; inputInd < inputSize; ++inputInd) {
+		  inputVec[inputInd] += delta;
+		  thrust::copy(inputVec.begin(), inputVec.end(), input.begin());
+
+		  forward();
+
+		  for (size_t i = 0; i < valSize; ++i) {
+			  newVal[inputInd] += val_[i];
+		  }
+
+		  inputVec[inputInd] -= delta;
+	  }
+
+	  // orig value
+	  thrust::copy(inputVec.begin(), inputVec.end(), input.begin());
 	  forward();
-	  //cerr << "input=" << input.Debug() << endl;
-	  //cerr << "val_=" << val_.Debug() << endl;
 
-	  std::vector<float> newVal(inputSize);
-	  thrust::copy(val_.begin(), val_.end(), newVal.begin());
-	  //output("newVal", newVal);
+	  Float sumValOrig = 0;
+	  for (size_t i = 0; i < valSize; ++i) {
+		  sumValOrig += val_[i];
+	  }
 
-	  // old values
-	  input.incr(-delta);
-
-	  forward();
-	  //cerr << "input=" << input.Debug() << endl;
-	  //cerr << "val_=" << val_.Debug() << endl;
-
-	  std::vector<float> origVal(valSize);
-	  thrust::copy(val_.begin(), val_.end(), origVal.begin());
-	  //output("origVal", origVal);
+	  //output("newVal", newVal.begin(), newVal.end());
 
 	  // calc gradient
 	  //cerr << "adj_=" << adj_.Debug() << endl;
-	  std::vector<float> adjVec(adjSize);
+	  std::vector<float> adjVec(valSize);
 	  thrust::copy(adj_.begin(), adj_.end(), adjVec.begin());
 
-	  std::vector<float> numericalGrad(gradSize);
+	  std::vector<float> numericalGrad(inputSize);
 	  for (size_t i = 0; i < numericalGrad.size(); ++i) {
-		  numericalGrad[i] = prevCalcGrad[i] + (adjVec[i] * (newVal[i] - origVal[i]) / delta);
+		  numericalGrad[i] = (adjVec[i] * (newVal[i] - sumValOrig) / delta);
+		  numericalGrad[i] += prevCalcGrad[i];
 	  }
 
 	  // set grad results
@@ -73,15 +81,16 @@ void Node::calc_numeric_grad(
 	  cerr << "numericalGrad=" << grad.Debug() << endl;
 	  //output("numericalGrad", numericalGrad);
 
-	  // print out diff between diffGrad and numericalGrad
-	  std::vector<float> origGrad(gradSize);
-	  std::vector<float> diff(gradSize);
+	  // print out diff between origGrad and numericalGrad
+	  std::vector<float> diff(inputSize);
 
-	  thrust::copy(grad.begin(), grad.end(), origGrad.begin());
 	  for (size_t i = 0; i < diff.size(); ++i) {
-		  diff[i] = (diffGrad[i] - numericalGrad[i]) ;
+		  diff[i] = (origGrad[i] - numericalGrad[i]) ;
 	  }
-	  output("diff", diff);
+	  output("diff", diff.begin(), diff.end());
+
+	  // put back origGrad
+	  thrust::copy(origGrad.begin(), origGrad.end(), grad.begin());
 
 }
 
@@ -91,15 +100,6 @@ std::vector<float> Node::StoreTensorInVec(Tensor tensor)
 	  std::vector<float> vec(totSize);
 	  thrust::copy(tensor.begin(), tensor.end(), vec.begin());
 	  return vec;
-}
-
-void Node::output(const std::string &title, const std::vector<float> &vec)
-{
-	  std::cerr << title << "(" << vec.size() << "): ";
-	  for (size_t i = 0; i < vec.size(); ++i) {
-		  std::cerr << vec[i] << " ";
-	  }
-	  std::cerr << std::endl;
 }
 
 
