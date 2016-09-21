@@ -26,14 +26,13 @@ struct BinaryNodeOp : public Node {
 	  // use df/dx to calc grad
 	  backward();
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+	  //cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
 
 	  cerr << "TENSOR A:" << endl;
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
 	  cerr << "TENSOR B:" << endl;
 	  calc_numeric_grad(delta, b_->val(), b_->grad(), preCalcGradB);
 
-	  // redo proper grad
-	  backward();
   }
 
 
@@ -249,11 +248,11 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     } else {
       probs_.allocate(a_->val().shape(), 0.0);
     }
-    thrust::copy(a_->val().begin(), a_->val().end(), probs_.begin());
-    Softmax(&probs_); // Safe version of softmax.
+	
+	CudnnLogSoftmax(probs_, a_->val());
 	if(!result_)
 	  result_.allocate(a_->val().shape());
-    Element(_1 = -_2 * Log(_3), result_, b_->val(), probs_);
+    Element(_1 = -_2 * _3, result_, b_->val(), probs_);
     SumRowwise(result_, val_);
   }
 
@@ -262,22 +261,19 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
   // graph. In general the backward functions can skip the computation of
   // gradients wrt input nodes.
   void backward() {
-    // For each row, the first input derivative is given by adj * (p - y),
+	// We are using logsoftmax for this and cached probs are logs. 
+    // For each row, the first input derivative is given by adj * (exp(p) - y),
     // where y is the gold label distribution (e.g. one hot vector) and
     // p is the softmax output (probabilities).
-    // The second input derivative is -adj*log(p).
-    if(!result_)
-	  result_.allocate(probs_.shape());
+    // The second input derivative is -adj*p.
 
     // Compute first input derivative.
-    Element(_1 = _2 -  _3, result_, probs_, b_->val());
-    ScaleRowwise(result_, adj_);
-    Element(_1 += _2, a_->grad(), result_);
+    Element(_1 += _2 * (Exp(_3) - _4),
+			a_->grad(), adj_, probs_, b_->val());
 
     // Compute second input derivative.
-    Element(_1 = -Log(_2), result_, probs_); // @TODO: use a cached log here.
-    ScaleRowwise(result_, adj_);
-    Element(_1 += _2, b_->grad(), result_);
+    Element(_1 -= _2 * _3, b_->grad(),
+			adj_, probs_);
   }
 
   virtual std::string graphviz() {

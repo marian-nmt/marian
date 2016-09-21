@@ -22,6 +22,8 @@
 // SOFTWARE.
 
 #include <cublas_v2.h>
+#include <cudnn.h>
+
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 #include <numeric>
@@ -77,6 +79,9 @@ class TensorImpl {
     thrust::device_vector<Float> data_; /*< Vector of data that Tensor is managing on GPU. */
     size_t tno_; /*< Tensor number */
     static size_t tensorCounter; /*< Static counter of created Tensors */
+	
+	// cuDNN stuff
+	cudnnTensorDescriptor_t cudnnDesc_;
 
   public:
     typedef Float value_type; /*< Tensor value type */
@@ -100,11 +105,20 @@ class TensorImpl {
 
       int size = GetTotalSize(shape_);
       data_.resize(size, value);
+	  
+	  cudnnCreateTensorDescriptor(&cudnnDesc_);
+	  cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
+								   shape_[0], shape_[1], 1, 1,
+								   shape_[1], 1, 1, 1);
     }
 
     TensorImpl(const TensorImpl&) = delete;
     TensorImpl(TensorImpl&&) = delete;
 
+	~TensorImpl() {
+		cudnnDestroyTensorDescriptor(cudnnDesc_);
+	}
+	
     /**
      * @brief Get the i-th element of Tensor vector.
      *
@@ -208,12 +222,6 @@ class TensorImpl {
 	  thrust::copy(begin, end, data_.begin());
     }
 
-    void incr(Float incr) {
-    	for (size_t i = 0; i < data_.size(); ++i) {
-    		data_[i] += incr;
-    	}
-    }
-
     /**
      * @brief Copy Tensor's vector from GPU to vector variable on CPU.
      *
@@ -249,6 +257,11 @@ class TensorImpl {
 		}
     	return strm.str();
     }
+	
+	cudnnTensorDescriptor_t cudnn() {
+		return cudnnDesc_;
+	}
+	
 };
 
 template <typename Type>
@@ -438,11 +451,6 @@ class Tensor {
      */
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end);
 
-    void incr(Float incr) {
-    	pimpl_->incr(incr)
-;
-    }
-
     /**
      * @brief Copy Tensor's vector from GPU to vector variable on CPU (const).
      *
@@ -493,6 +501,10 @@ class Tensor {
 	
 	TensorView gpu() {
 	  return TensorView(*this);
+	}
+	
+	cudnnTensorDescriptor_t cudnn() {
+		return pimpl_->cudnn();
 	}
 };
 
