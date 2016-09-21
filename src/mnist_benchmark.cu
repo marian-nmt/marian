@@ -113,7 +113,10 @@ int main(int argc, char** argv) {
   std::cerr << "Done." << std::endl;
 
   ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, LABEL_SIZE});
-  //std::cout << g.graphviz() << std::endl;
+  
+  std::ofstream viz("mnist_benchmark.dot");
+  viz << g.graphviz() << std::endl;
+  viz.close();
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});
