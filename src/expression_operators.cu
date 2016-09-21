@@ -58,6 +58,10 @@ Expr softmax(Expr a) {
   return Expr(a.graph(), new SoftmaxNodeOp(a));
 }
 
+Expr logsoftmax(Expr a) {
+  return Expr(a.graph(), new LogSoftmaxNodeOp(a));
+}
+
 Expr argmax(Expr a) {
   return Expr(a.graph(), new ArgmaxNodeOp(a));
 }
