@@ -34,21 +34,21 @@ int main(int argc, char** argv)
 
   vector<Expr> expr;
 
-  expr.emplace_back(tanh(inExpr));
+  expr.emplace_back(inExpr + inExpr2);
+  expr.emplace_back(inExpr - expr.back());
+  expr.emplace_back(inExpr * expr.back());
+  expr.emplace_back(inExpr / expr.back());
+  expr.emplace_back(reluplus(inExpr, expr.back()));
+
+  //expr.emplace_back(dot(inExpr, inExpr3));
+
+  expr.emplace_back(tanh(expr.back()));
   expr.emplace_back(-expr.back());
   expr.emplace_back(logit(expr.back()));
   expr.emplace_back(relu(expr.back()));
   expr.emplace_back(log(expr.back()));
   expr.emplace_back(exp(expr.back()));
-  expr.emplace_back(softmax(expr.back()));
-
-  expr.emplace_back(inExpr + inExpr2);
-  expr.emplace_back(inExpr - inExpr2);
-  expr.emplace_back(inExpr * inExpr2);
-  expr.emplace_back(inExpr / inExpr2);
-  expr.emplace_back(reluplus(inExpr, inExpr2));
-
-  //expr.emplace_back(dot(inExpr, inExpr3));
+  //expr.emplace_back(softmax(expr.back()));
 
   Expr ceExpr = cross_entropy(expr.back(), labelExpr);
   Expr cost = mean(ceExpr, axis=0);
