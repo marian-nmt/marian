@@ -20,12 +20,12 @@ void Node::calc_numeric_grad(
 	  UTIL_THROW_IF2(valSize != GetTotalSize(adj_.shape()),
 			  	  "valSize != adjSize :" << valSize << "!=" << GetTotalSize(adj_.shape()));
 
-	  cerr << "sizes: "
-			  << Debug(input.shape())<< "=" << inputSize << " "
-			  << Debug(val_.shape()) << "=" << valSize
-			  << endl;
+	  cerr	<< "inputSize=grad=" << Debug(input.shape())<< "=" << inputSize << " "
+			<< "valSize=adj_=" << Debug(val_.shape()) << "=" << valSize
+			<< endl;
 
 	  //cerr << "input=" << input.Debug() << endl;
+	  cerr << "adj_=" << adj_.Debug() << endl;
 
 	  std::vector<float> origGrad(inputSize);
 	  thrust::copy(grad.begin(), grad.end(), origGrad.begin());
@@ -44,12 +44,14 @@ void Node::calc_numeric_grad(
 	  for (size_t inputInd = 0; inputInd < inputSize; ++inputInd) {
 		  inputVec[inputInd] += delta;
 		  thrust::copy(inputVec.begin(), inputVec.end(), input.begin());
+		  //output("input", input.begin(), input.end());
 
 		  forward();
 
 		  for (size_t i = 0; i < valSize; ++i) {
 			  newVal[inputInd] += val_[i];
 		  }
+		  //output("val_", val_.begin(), val_.end());
 
 		  inputVec[inputInd] -= delta;
 	  }
@@ -58,7 +60,7 @@ void Node::calc_numeric_grad(
 	  thrust::copy(inputVec.begin(), inputVec.end(), input.begin());
 	  forward();
 
-	  Float sumValOrig = 0;
+	  float sumValOrig = 0;
 	  for (size_t i = 0; i < valSize; ++i) {
 		  sumValOrig += val_[i];
 	  }
@@ -72,9 +74,13 @@ void Node::calc_numeric_grad(
 
 	  std::vector<float> numericalGrad(inputSize);
 	  for (size_t i = 0; i < numericalGrad.size(); ++i) {
-		  numericalGrad[i] = (adjVec[i] * (newVal[i] - sumValOrig) / delta);
+		  numericalGrad[i] = (adjVec[0] * (newVal[i] - sumValOrig) / delta);
+		  // adjVec[0] should be a matrix multiplication
 		  numericalGrad[i] += prevCalcGrad[i];
 	  }
+
+	  //output("prevCalcGrad=", prevCalcGrad.begin(), prevCalcGrad.end());
+	  //output("adjVec=", adjVec.begin(), adjVec.end());
 
 	  // set grad results
 	  thrust::copy(numericalGrad.begin(), numericalGrad.end(), grad.begin());
