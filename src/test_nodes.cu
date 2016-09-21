@@ -87,7 +87,7 @@ int main(int argc, char** argv)
   // train
   g.forward(batch_size);
   //g.backward();
-  g.backward_debug(0.01);
+  g.backward_debug(0.001);
 
   std::cout << g.graphviz() << std::endl;
 
