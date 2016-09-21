@@ -129,7 +129,7 @@ class Node : public Chainable<Tensor>,
 			  Tensor grad,
 			  const std::vector<float> &prevCalcGrad
 			  );
-
+	void broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec);
 
 };
 

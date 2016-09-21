@@ -31,7 +31,13 @@ int main(int argc, char** argv)
 
   //Expr outExpr = softmax(inExpr);
   Expr outExpr = tanh(inExpr);
-  //Expr outExpr = - inExpr;
+  outExpr = - outExpr;
+  outExpr = logit(outExpr);
+  outExpr = relu(outExpr);
+  outExpr = log(outExpr);
+  outExpr = exp(outExpr);
+  outExpr = softmax(outExpr);
+
   Expr ceExpr = cross_entropy(outExpr, labelExpr);
   Expr cost = mean(ceExpr, axis=0);
 
@@ -55,7 +61,7 @@ int main(int argc, char** argv)
   // train
   g.forward(batch_size);
   //g.backward();
-  g.backward_debug(0.001);
+  g.backward_debug(0.01);
 
   std::cout << g.graphviz() << std::endl;
 

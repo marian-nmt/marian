@@ -15,7 +15,7 @@ struct UnaryNodeOp : public Node {
     void backward_debug(Float delta) {
       using namespace std;
 
-      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
+      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
 
 	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
 	  //output("preCalcGradA", preCalcGradA);

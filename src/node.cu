@@ -25,7 +25,7 @@ void Node::calc_numeric_grad(
 			<< endl;
 
 	  //cerr << "input=" << input.Debug() << endl;
-	  cerr << "adj_=" << adj_.Debug() << endl;
+	  //cerr << "adj_=" << adj_.Debug() << endl;
 
 	  std::vector<float> origGrad(inputSize);
 	  thrust::copy(grad.begin(), grad.end(), origGrad.begin());
@@ -74,8 +74,15 @@ void Node::calc_numeric_grad(
 
 	  std::vector<float> numericalGrad(inputSize);
 	  for (size_t i = 0; i < numericalGrad.size(); ++i) {
-		  numericalGrad[i] = (adjVec[0] * (newVal[i] - sumValOrig) / delta);
-		  // adjVec[0] should be a matrix multiplication
+		  numericalGrad[i] = (newVal[i] - sumValOrig) / delta;
+	  }
+
+	  broadcast(numericalGrad, adjVec);
+	  //std::cerr << "broadcast size=" << numericalGrad.size() << " " << adjVec.size() << std::endl;
+	  //output("adjVec=", adjVec.begin(), adjVec.end());
+
+	  for (size_t i = 0; i < numericalGrad.size(); ++i) {
+		  numericalGrad[i] *= adjVec[i];
 		  numericalGrad[i] += prevCalcGrad[i];
 	  }
 
@@ -88,26 +95,41 @@ void Node::calc_numeric_grad(
 	  //output("numericalGrad", numericalGrad);
 
 	  // print out diff between origGrad and numericalGrad
+	  /*
 	  std::vector<float> diff(inputSize);
-
 	  for (size_t i = 0; i < diff.size(); ++i) {
 		  diff[i] = (origGrad[i] - numericalGrad[i]) ;
 	  }
 	  output("diff", diff.begin(), diff.end());
+	  */
 
 	  // put back origGrad
 	  thrust::copy(origGrad.begin(), origGrad.end(), grad.begin());
-
 }
 
 std::vector<float> Node::StoreTensorInVec(Tensor tensor)
 {
-	  size_t totSize = GetTotalSize(tensor.shape());
-	  std::vector<float> vec(totSize);
-	  thrust::copy(tensor.begin(), tensor.end(), vec.begin());
-	  return vec;
+  size_t totSize = GetTotalSize(tensor.shape());
+  std::vector<float> vec(totSize);
+  thrust::copy(tensor.begin(), tensor.end(), vec.begin());
+  return vec;
 }
 
+void Node::broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec)
+{
+	size_t largeSize = largeVec.size();
+	size_t smallSize = smallVec.size();
+
+    UTIL_THROW_IF2(largeSize < smallSize,
+    		"largeSize < smallSize:" << largeSize << "<" << smallSize);
+    UTIL_THROW_IF2(largeSize % smallSize,
+    		"largeSize % smallSize != 0:" << largeSize << " " << smallSize);
+
+    smallVec.resize(largeSize);
+    for (size_t i = smallSize; i < largeSize; i += smallSize) {
+    	std::copy(smallVec.begin(), smallVec.begin() + smallSize, smallVec.begin() + i);
+    }
+}
 
 }
 
