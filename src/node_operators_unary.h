@@ -22,7 +22,6 @@ struct UnaryNodeOp : public Node {
 
 	  // use df/dx to calc grad
 	  backward();
-	  //cerr << "orig a_->val()=" << a_->val().Debug() << endl;
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
@@ -167,10 +166,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     : UnaryNodeOp(args...) { }
 
   void forward() {
-    // B = softmax(A).
-    thrust::copy(a_->val().begin(), a_->val().end(), val_.begin());
-    // Safe version of softmax.
-    Softmax(&val_);
+    CudnnSoftmax(val_, a_->val());
   }
 
   void backward() {
@@ -195,6 +191,33 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     return ss.str();
   };
 };
+
+struct LogSoftmaxNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+    LogSoftmaxNodeOp(Args ...args)
+    : UnaryNodeOp(args...) { }
+
+  void forward() {
+    CudnnLogSoftmax(val_, a_->val());
+  }
+
+  void backward() {
+    // Based on the description for softmax, we have logsoftmax:
+    // J * dy = dy - avg*1
+    // where avg = exp(p)'*dy and p is the softmax output (probabilities).
+    CudnnLogSoftmaxGrad(a_->grad(), adj_, val_);
+    //LogSoftmaxGrad(a_->grad(), adj_, val_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("log-softmax")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+};
+
 
 struct ArgmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
@@ -285,8 +308,6 @@ struct NegNodeOp : public UnaryNodeOp {
 
   void backward() {
     Element(_1 += -_2, a_->grad(), adj_);
-
-    //std::cerr << "a_->grad=" << a_->grad().Debug() << std::endl;
   }
 
   virtual std::string graphviz() {

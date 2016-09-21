@@ -239,10 +239,10 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     return shape1;
   }
 
-  // We're caching the softmax probabilities here because we'll need them for
+  // We're caching the logsoftmax probabilities here because we'll need them for
   // the backward computation.
   void forward() {
-    // C = -dot(B, log(softmax(A))).
+    // C = -dot(B, logsoftmax(A)).
     if (probs_) {
       probs_.set(0.0);
     } else {

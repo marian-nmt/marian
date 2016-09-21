@@ -45,8 +45,8 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
   auto scores = named(dot(layers.back(), weights.back()) + biases.back(),
                       "scores");
   
-  auto cost = mean(cross_entropy(scores, y), axis=0);
-  //auto cost = mean(-sum(y * log(softmax(scores)), axis=1), axis=0);
+  //auto cost = mean(cross_entropy(scores, y), axis=0);
+  auto cost = mean(-sum(y * logsoftmax(scores), axis=1), axis=0);
   auto costreg = named(
     cost, "cost"
   );
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
   std::cerr << "Done." << std::endl;
 
   ExpressionGraph g = build_graph({IMAGE_SIZE, 2048, 2048, LABEL_SIZE});
-  std::cout << g.graphviz() << std::endl;
+  //std::cout << g.graphviz() << std::endl;
   
   Tensor xt({BATCH_SIZE, IMAGE_SIZE});
   Tensor yt({BATCH_SIZE, LABEL_SIZE});
