@@ -95,16 +95,23 @@ void Node::calc_numeric_grad(
 	  //output("numericalGrad", numericalGrad);
 
 	  // print out diff between origGrad and numericalGrad
-	  /*
 	  std::vector<float> diff(inputSize);
-	  for (size_t i = 0; i < diff.size(); ++i) {
-		  diff[i] = (origGrad[i] - numericalGrad[i]) ;
+	  for (size_t i = 0; i < origGrad.size(); ++i) {
+		  diff[i] = origGrad[i] - numericalGrad[i];
 	  }
-	  output("diff", diff.begin(), diff.end());
-	  */
+	  cerr << "L2-norm of difference=" << L2Norm(diff) << endl << endl;
 
 	  // put back origGrad
 	  thrust::copy(origGrad.begin(), origGrad.end(), grad.begin());
+}
+
+float Node::L2Norm(const std::vector<float> &vec) const
+{
+  float ret = 0;
+  for (size_t i = 0; i < vec.size(); ++i) {
+	  ret += vec[i] * vec[i];
+  }
+  return sqrt(ret);
 }
 
 std::vector<float> Node::StoreTensorInVec(Tensor tensor)
