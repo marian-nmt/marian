@@ -20,12 +20,12 @@ void testForward(F f, size_t l,
     
     uniform(-5, 5)(in);
 
-    std::cout << desc << ": ";
+    std::cout << desc << ": " << std::flush;
     boost::timer::cpu_timer timer;
     for(int i = 0; i < l; ++i) {
       f(out, in);
       if(i % 100 == 0)
-        std::cout << ".";
+        std::cout << "." << std::flush;
     }
     std::cout << timer.format(5, "%ws") << std::endl;
 }
@@ -40,12 +40,12 @@ void testBackward(F f, size_t l,
     
     uniform(-5, 5)(in);
 
-    std::cout << desc << ": ";
+    std::cout << desc << ": " << std::flush;
     boost::timer::cpu_timer timer;
     for(int i = 0; i < l; ++i) {
       f(grad, adj, in);
       if(i % 100 == 0)
-        std::cout << ".";
+        std::cout << "." << std::flush;
     }
     std::cout << timer.format(5, "%ws") << std::endl;
 }
