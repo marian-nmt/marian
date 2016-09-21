@@ -20,6 +20,8 @@
 // SOFTWARE.
 
 #include <chrono>
+#include <iostream>
+#include <fstream>
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
@@ -46,7 +48,8 @@ ExpressionGraph build_graph(int source_vocabulary_size,
                             int num_source_tokens,
                             int num_target_tokens) {
   std::cerr << "Building computation graph..." << std::endl;
-
+  boost::timer::cpu_timer timer;
+  
   int input_size = source_vocabulary_size;
   int output_size = target_vocabulary_size;
   int num_inputs = num_source_tokens;
@@ -125,8 +128,7 @@ ExpressionGraph build_graph(int source_vocabulary_size,
   //auto cost = named(-mean(word_cost, axis=0), "cost");
   auto cost = named(mean(word_cost, axis=0), "cost");
 
-  std::cerr << "Done." << std::endl;
-
+  std::cerr << "Done in " << timer.format(5, "%ws") << std::endl;
   return g;
 }
 
@@ -226,7 +228,9 @@ int main(int argc, char** argv) {
   }
 
   std::cerr << "Printing the computation graph..." << std::endl;
-  std::cout << g.graphviz() << std::endl;
+  std::ofstream viz("encoder_decoder.dot");
+  viz << g.graphviz() << std::endl;
+  viz.close();
 
   std::cerr << "Training..." << std::endl;
 
