@@ -135,6 +135,59 @@ void SubtractMax(Tensor* Out) {
 }
 
 ///////////////////////////////////////////////////////
+
+//template <class T>
+//__global__ void gClipNorm(T t) {
+//  int rows = t.rows();
+//  int cols = t.cols();
+//  
+//  for(int bid = 0; bid < rows; bid += gridDim.x) {
+//    int i = bid + blockIdx.x;
+//    if(i < rows) {
+//      extern __shared__ float _share[];
+//      float* _sum = _share + blockDim.x;
+//      _sum[threadIdx.x] = 0.0;
+//      for(int tid = 0; tid < cols; tid += blockDim.x) {
+//        int j = tid + threadIdx.x;
+//        if(j < cols)
+//          _sum[threadIdx.x] += powf(t(i,j), 2.0f);
+//      }
+//      __syncthreads();
+//      int len = blockDim.x;
+//      while(len != 1) {
+//        __syncthreads();
+//        int skip = (len + 1) >> 1;
+//        if(threadIdx.x < (len >> 1))
+//          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+//        len = (len + 1) >> 1;
+//      }
+//      __syncthreads();
+//      float total = 0;
+//      if(j == 0) {
+//        for()
+//      }
+//      for(int tid = 0; tid < cols; tid += blockDim.x){
+//        int j = tid + threadIdx.x;
+//        if(j < cols)
+//          sp[j] /= _sum[0];
+//      }
+//    }
+//  }
+//}
+//
+//void ClipNorm(Tensor out, float threshold);
+//  size_t m = out.shape()[0];
+//  size_t k = out.shape()[1];
+//
+//  int blocks = std::min(MAX_BLOCKS, (int) m);
+//  int threads = std::min(MAX_THREADS, (int) k);
+//  int shared = sizeof(float) * threads * 2;
+//  gClipNorm<<<blocks, threads, shared>>>(out.gpu());
+//  cudaStreamSynchronize(0);
+//}
+
+
+///////////////////////////////////////////////////////
 __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;

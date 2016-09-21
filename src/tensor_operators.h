@@ -151,6 +151,8 @@ void Element(Functor functor,
   cudaStreamSynchronize(0);
 }
 
+void ClipNorm(Tensor out, float threshold);
+
 void SubtractMax(Tensor* Out);
 
 void Softmax(Tensor* Out);
@@ -168,9 +170,6 @@ Tensor Prod(Tensor C, const Tensor A, const Tensor B,
 Tensor SumRowwise(cublasHandle_t handle, const Tensor A, Tensor result);
 
 Tensor SumRowwise(const Tensor A, Tensor result);
-
-__global__ void gScaleRowwise(Float* out, const Float* scalingFactors,
-                              size_t rows, size_t cols);
 
 void ScaleRowwise(Tensor Out, const Tensor ScalingFactors);
 
