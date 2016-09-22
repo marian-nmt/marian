@@ -108,7 +108,6 @@ struct ReLUNodeOp : public UnaryNodeOp {
 
 };
 
-// Scaling droput
 struct DropoutNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   DropoutNodeOp(Args ...args)
@@ -119,28 +118,25 @@ struct DropoutNodeOp : public UnaryNodeOp {
     if(bernoulli)
       bernoulli->FreeStates(states_);
   }
-  
+
   void inference() {
     Element(_1 = _2, val_, a_->val());
   }
-  
+
   void forward() {
     if(!bernoulli) {
       bernoulli.reset(new Bernoulli(p_, val_.shape()));
       bernoulli->InitStates(states_);
     }
-    
+
     if(!mask_)
       mask_.allocate(val_.shape());
 
-    auto f = [] __device__ (float& mask, float drop) {
-      return mask = drop;
-    };  
-    Element(f, mask_, *bernoulli);
+    Dropout(mask_, *bernoulli);
     Element(_1 = _2 * _3, val_, mask_, a_->val());
   }
-  
-  void backward() {    
+
+  void backward() {
     Element(_1 += _2 * _3, a_->grad(), adj_, mask_);
   }
 
@@ -321,4 +317,3 @@ struct NegNodeOp : public UnaryNodeOp {
 
 
 }
-

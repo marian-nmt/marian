@@ -32,21 +32,23 @@ using namespace marian;
 using namespace keywords;
 
 int main(int argc, char** argv) {
-  
+
+
   Tensor a({1000, 1000}, 3);
+  Tensor mask({1000, 1000});
   Tensor b({1000, 1000});
-  Bernoulli dropout(0.2, b.shape());
-  
-  auto f = [] __device__ (float& r,
-                          float a,
-                          float b)  {
-    return r = a * b;
-  };
-    
+  Bernoulli dropout(0.2, mask.shape());
+
+  curandState* states = nullptr;
+  dropout.InitStates(states);
+
   boost::timer::cpu_timer timer;
-  for(int i = 0; i < 1000; ++i)
-    Element(f, b, a, a);
-  
+  for(int i = 0; i < 1000; ++i) {
+    Dropout(mask, dropout);
+    Element(_1 = _2 * _3, b, mask, a);
+  }
+
   std::cerr << timer.format(5, "%ws") << std::endl;
+  dropout.FreeStates(states);
   return 0;
 }
