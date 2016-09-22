@@ -3,7 +3,6 @@ include_directories(.)
 
 cuda_add_library(marian_lib 
   cnpy/cnpy.cpp
-  dropout.cu
   exception.cpp
   expression_graph.cu 
   expression_operators.cu
@@ -14,11 +13,6 @@ cuda_add_library(marian_lib
 )
 
 target_link_libraries(marian_lib)
-
-cuda_add_executable(
-  dropout_benchmark
-  dropout_benchmark.cu
-)
 
 cuda_add_executable(
   softmax_benchmark
@@ -45,14 +39,13 @@ cuda_add_executable(
   test_nodes.cu
 )
 
-target_link_libraries(dropout_benchmark marian_lib)
 target_link_libraries(softmax_benchmark marian_lib)
 target_link_libraries(mnist_benchmark marian_lib)
 target_link_libraries(validate_mnist_batch marian_lib)
 target_link_libraries(validate_encoder_decoder marian_lib)
 target_link_libraries(test_nodes marian_lib)
 
-foreach(exec dropout_benchmark mnist_benchmark softmax_benchmark validate_mnist_batch validate_encoder_decoder test_nodes )
+foreach(exec mnist_benchmark softmax_benchmark validate_mnist_batch validate_encoder_decoder test_nodes )
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
