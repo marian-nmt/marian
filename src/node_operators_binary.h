@@ -17,10 +17,12 @@ struct BinaryNodeOp : public Node {
 
 	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
 
-	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
+	  std::vector<float> preCalcGradA;
+	  preCalcGradA << a_->grad();
 	  //output("preCalcGradA", preCalcGradA);
 
-	  std::vector<float> preCalcGradB = StoreTensorInVec(b_->grad());
+	  std::vector<float> preCalcGradB;
+	  preCalcGradB << b_->grad();
 	  //output("preCalcGradB", preCalcGradB);
 
 	  // use df/dx to calc grad

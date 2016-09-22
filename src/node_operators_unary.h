@@ -17,7 +17,8 @@ struct UnaryNodeOp : public Node {
 
       cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
 
-	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
+	  std::vector<float> preCalcGradA;
+	  preCalcGradA << a_->grad();
 	  //output("preCalcGradA", preCalcGradA);
 
 	  // use df/dx to calc grad
