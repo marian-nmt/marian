@@ -45,6 +45,7 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
                       "scores");
   
   auto cost = mean(cross_entropy(scores, y), axis=0);
+  //auto cost = mean(-sum(y * logsoftmax(scores), axis=1), axis=0);
   auto costreg = named(
     cost, "cost"
   );

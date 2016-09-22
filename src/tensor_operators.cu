@@ -210,7 +210,7 @@ __global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
     if(j < rows) {
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
-      
+
       float* gradRow = grad + j * cols;
       const float* adjRow = adj + j * cols;
       const float* valRow = val + j * cols;
@@ -263,7 +263,7 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
     if(j < rows) {
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
-      
+
       float* gradRow = grad + j * cols;
       const float* adjRow = adj + j * cols;
       const float* valRow = val + j * cols;
@@ -271,7 +271,7 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          _sum[threadIdx.x] += adjRow[id]; 
+          _sum[threadIdx.x] += adjRow[id];
         }
       }
       __syncthreads();
@@ -348,22 +348,22 @@ Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
   size_t k = A.shape()[1];
   if(transA)
     std::swap(m, k);
-  
+
   size_t l = B.shape()[0];
   size_t n = B.shape()[1];
   if(transB)
     std::swap(l, n);
-  
+
   size_t lda = A.shape()[1];
   size_t ldb = B.shape()[1];
   size_t ldc = B.shape()[1];
-  
+
   if(transB)
     ldc = B.shape()[0];
-  
+
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
-  
+
   cublasSgemm(handle, opB, opA,
               n, m, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
   return C;
@@ -394,5 +394,57 @@ Tensor SumRowwise(const Tensor A, Tensor result) {
   return temp;
 }
 
+void CudnnDropoutPrepare(Tensor in, float p,
+                         cudnnDropoutDescriptor_t* dropDesc,
+                         void** space, size_t* spaceSize,
+                         void** states, size_t seed) {
+  size_t statesSize;
+  cudnnDropoutGetStatesSize(cudnnHandle, &statesSize);
+  cudnnDropoutGetReserveSpaceSize(in.cudnn(), spaceSize);
+
+  cudaMalloc((void**)states, statesSize);
+  cudaMalloc((void**)space, *spaceSize);
+
+  cudnnCreateDropoutDescriptor(dropDesc);
+  cudnnSetDropoutDescriptor(*dropDesc,
+                            cudnnHandle,
+                            p,
+                            (void*)*states,
+                            statesSize,
+                            seed);
+}
+
+void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
+                         void* space, void* states) {
+  cudnnDestroyDropoutDescriptor(dropDesc);
+  cudaFree(space);
+  cudaFree(states);
+}
+
+void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
+                  void* space, size_t spaceSize,
+                  Tensor out, Tensor in) {
+  cudnnDropoutForward(cudnnHandle,
+                      dropoutDesc,
+                      in.cudnn(),
+                      in.data(),
+                      out.cudnn(),
+                      out.data(),
+                      space,
+                      spaceSize);
+}
+
+void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
+                          void* space, size_t spaceSize,
+                          Tensor out, Tensor in) {
+  cudnnDropoutBackward(cudnnHandle,
+                      dropoutDesc,
+                      in.cudnn(),
+                      in.data(),
+                      out.cudnn(),
+                      out.data(),
+                      space,
+                      spaceSize);
+}
 
 }

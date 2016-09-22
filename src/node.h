@@ -122,7 +122,6 @@ class Node : public Chainable<Tensor>,
     	std::cerr << std::endl;
     }
 
-    std::vector<float> StoreTensorInVec(Tensor tensor);
 	void calc_numeric_grad(
 			  Float delta,
 			  Tensor input,

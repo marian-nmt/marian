@@ -51,7 +51,7 @@ void Element(Functor functor, T out) {
 
   int m = out.shape()[0];
   int n = out.shape()[1];
-  
+
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
   gElement<<<blocks, threads>>>(functor, out.gpu());
@@ -82,7 +82,7 @@ void Element(Functor functor,
 
   int m = out.shape()[0];
   int n = out.shape()[1];
-  
+
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
   gElement<<<blocks, threads>>>(functor, out.gpu(), in.gpu());
@@ -112,7 +112,7 @@ void Element(Functor functor,
 
   int m = out.shape()[0];
   int n = out.shape()[1];
-  
+
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
   gElement<<<blocks, threads>>>(functor, out.gpu(),
@@ -143,7 +143,7 @@ void Element(Functor functor,
 
   int m = out.shape()[0];
   int n = out.shape()[1];
-  
+
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
   gElement<<<blocks, threads>>>(functor, out.gpu(),
@@ -179,5 +179,22 @@ Tensor SumRowwise(cublasHandle_t handle, const Tensor A, Tensor result);
 Tensor SumRowwise(const Tensor A, Tensor result);
 
 void ScaleRowwise(Tensor Out, const Tensor ScalingFactors);
+
+void CudnnDropoutPrepare(Tensor in, float p,
+                         cudnnDropoutDescriptor_t* dropDesc,
+                         void** space, size_t* spaceSize,
+                         void** states, size_t seed);
+
+void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
+                         void* space, void* states);
+
+void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
+                  void* space, size_t spaceSize,
+                  Tensor out, Tensor in);
+
+void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
+                          void* space, size_t spaceSize,
+                          Tensor out, Tensor in);
+
 
 }
