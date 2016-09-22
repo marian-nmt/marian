@@ -45,10 +45,11 @@ class Expr {
       return *this;
     }
 
-    Tensor val();
-    Tensor grad();
+    const Tensor &val();
+    const Tensor &grad();
 
     void setVal(const Tensor &val);
+    void setGrad(const Tensor &grad);
 
     ExpressionGraphPtr graph();
     

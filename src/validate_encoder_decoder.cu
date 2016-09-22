@@ -224,9 +224,11 @@ int main(int argc, char** argv) {
       //ExpressionGraph g = graphs[b];
       ExpressionGraph g = graphs[b0];
       // Share the parameters.
+      std::cerr << j << std::endl;
       if (false && b != b0) {
         for (int i = 0; i < g.params().size(); ++i) {
           g.params()[i].setVal(graphs[b0].params()[i].val());
+          g.params()[i].setGrad(graphs[b0].params()[i].grad());
         }
       }
 

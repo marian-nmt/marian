@@ -29,7 +29,7 @@ Expr::Expr(ExpressionGraphPtr g, Chainable<Tensor>* chainable)
   graph_->stack()->push_back(chainable);    
 }
 
-Tensor Expr::val() {
+const Tensor &Expr::val() {
   return pimpl_->val();
 }
 
@@ -37,8 +37,12 @@ void Expr::setVal(const Tensor &val) {
   pimpl_->setVal(val);
 }
 
-Tensor Expr::grad() {
-    return pimpl_->grad();
+const Tensor &Expr::grad() {
+  return pimpl_->grad();
+}
+
+void Expr::setGrad(const Tensor &grad) {
+  pimpl_->setGrad(grad);
 }
 
 ChainPtr Expr::node() {

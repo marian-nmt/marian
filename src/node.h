@@ -80,7 +80,7 @@ class Node : public Chainable<Tensor>,
       return val_;
     };
     
-    virtual Tensor grad() {
+    virtual const Tensor &grad() {
       UTIL_THROW_IF2(!adj_, "Tensor has not been allocated");
       return adj_;
     };

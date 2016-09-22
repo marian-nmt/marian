@@ -92,6 +92,12 @@ struct ParamNode : public Node {
     //@todo, shape checking
   };
 
+  virtual void setGrad(Tensor t)  {
+    adj_ = t;
+    shape_ = t.shape();
+    //@todo, shape checking
+  };
+
   void forward() {}
   void backward() {}
   

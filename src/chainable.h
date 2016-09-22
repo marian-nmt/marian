@@ -49,9 +49,12 @@ struct Chainable {
     
     virtual const Shape& shape() = 0;
     virtual const DataType &val() = 0;
-    virtual DataType grad() = 0;
+    virtual const DataType &grad() = 0;
     virtual void setVal(DataType t) {
       UTIL_THROW2("Tensors can only be assigned to input and parameter nodes"); 
+    };
+    virtual void setGrad(DataType t) {
+      UTIL_THROW2("Gradients can only be assigned to parameter nodes"); 
     };
 };
 
