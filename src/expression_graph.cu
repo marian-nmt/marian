@@ -33,6 +33,10 @@ Tensor Expr::val() {
   return pimpl_->val();
 }
 
+void Expr::setVal(const Tensor &val) {
+  pimpl_->setVal(val);
+}
+
 Tensor Expr::grad() {
     return pimpl_->grad();
 }

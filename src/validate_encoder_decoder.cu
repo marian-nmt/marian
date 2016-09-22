@@ -182,73 +182,51 @@ int main(int argc, char** argv) {
   std::cerr << "Building the encoder-decoder computation graph..." << std::endl;
 
   // Build the encoder-decoder computation graph.
+  int num_training_examples = source_sentences.size();
+  int num_batches = num_training_examples / batch_size;
+  std::cerr << num_training_examples << " training examples." << std::endl;
   int embedding_size = 50;
   int hidden_size = 100;
-  ExpressionGraph g = build_graph(source_vocab.Size(),
-                                  target_vocab.Size(),
-                                  embedding_size,
-                                  hidden_size,
-                                  num_source_tokens-1,
-                                  num_target_tokens-1);
-
-#if 0
-  std::cerr << "Attaching the data to the computation graph..." << std::endl;
-
-  // Convert the data to dense one-hot vectors.
-  // TODO: make the graph handle sparse indices with a proper lookup layer.
-  for (int t = 0; t < num_source_tokens; ++t) {
-    Tensor Xt({batch_size, static_cast<int>(source_vocab.Size())});
-    std::vector<float> values(batch_size * source_vocab.Size(), 0.0);
-    int k = 0;
-    for (int i = 0; i < batch_size; ++i) {
-      values[k + source_sentences[i][t]] = 1.0;
-      k += source_vocab.Size();
-    }
-    thrust::copy(values.begin(), values.end(), Xt.begin());
-    // Attach this slice to the graph.
-    std::stringstream ss;
-    ss << "X" << t;
-    g[ss.str()] = Xt;
+  std::vector<ExpressionGraph> graphs;
+  for (int b = 0; b < num_batches; ++b) {
+    ExpressionGraph g = build_graph(source_vocab.Size(),
+                                    target_vocab.Size(),
+                                    embedding_size,
+                                    hidden_size,
+                                    num_source_tokens-1,
+                                    num_target_tokens-1);
+    graphs.push_back(g);
   }
-
-  for (int t = 0; t < num_target_tokens; ++t) {
-    Tensor Yt({batch_size, static_cast<int>(target_vocab.Size())});
-    std::vector<float> values(batch_size * target_vocab.Size(), 0.0);
-    int k = 0;
-    for (int i = 0; i < batch_size; ++i) {
-      values[k + target_sentences[i][t]] = 1.0;
-      k += target_vocab.Size();
-    }
-    thrust::copy(values.begin(), values.end(), Yt.begin());
-    // Attach this slice to the graph.
-    std::stringstream ss;
-    ss << "Y" << t;
-    g[ss.str()] = Yt;
-  }
-#endif
 
   std::cerr << "Printing the computation graph..." << std::endl;
-  std::cout << g.graphviz() << std::endl;
+  std::cout << graphs[0].graphviz() << std::endl;
 
   std::cerr << "Training..." << std::endl;
-
-  int num_training_examples = source_sentences.size();
-  std::cerr << num_training_examples << " training examples." << std::endl;
 
   boost::timer::cpu_timer total;
   Adam opt;
   int num_epochs = 20;
+  int b0 = -1;
   for(int epoch = 1; epoch <= num_epochs; ++epoch) {
     boost::timer::cpu_timer timer;
     // TODO: shuffle the batches.
     // shuffle(trainImages, trainLabels, IMAGE_SIZE, LABEL_SIZE);
     std::vector<size_t> indices;
-    int num_batches = num_training_examples / batch_size;
     random_permutation(num_batches, &indices);
     float cost = 0;
     for(int j = 0; j < num_batches; j++) {
       int b = indices[j]; // Batch index.
-      // Attaching the data to the computation graph...
+      if (b0 < 0) b0 = b;
+      //ExpressionGraph g = graphs[b];
+      ExpressionGraph g = graphs[b0];
+      // Share the parameters.
+      if (false && b != b0) {
+        for (int i = 0; i < g.params().size(); ++i) {
+          g.params()[i].setVal(graphs[b0].params()[i].val());
+        }
+      }
+
+      // Attach the data to the computation graph.
       // Convert the data to dense one-hot vectors.
       // TODO: make the graph handle sparse indices with a proper lookup layer.
       // TODO: use different sentence lengths for the batches.

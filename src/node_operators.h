@@ -41,7 +41,7 @@ struct InputNode : public Node {
     val_ = t;
     shape_ = t.shape();
     //@todo, shape checking
-  };
+  }
 
   void forward() {}
   void backward() {}
@@ -50,7 +50,7 @@ struct InputNode : public Node {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"circle\", label=" << label("input") << ", style=\"filled\", fillcolor=\"lawngreen\"]" << std::endl << std::endl;
     return ss.str();
-  };
+  }
 
 };
 
@@ -70,7 +70,7 @@ struct ConstantNode : public Node {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"diamond\", label=" << label("const") << "]" << std::endl << std::endl;
     return ss.str();
-  };
+  }
 
 };
 
@@ -85,6 +85,12 @@ struct ParamNode : public Node {
                    !Has(keywords::lazy_shape),
                    "Param items require shape information");
   }
+
+  virtual void setVal(Tensor t)  {
+    val_ = t;
+    shape_ = t.shape();
+    //@todo, shape checking
+  };
 
   void forward() {}
   void backward() {}

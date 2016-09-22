@@ -48,6 +48,8 @@ class Expr {
     Tensor val();
     Tensor grad();
 
+    void setVal(const Tensor &val);
+
     ExpressionGraphPtr graph();
     
     ChainPtr node();
