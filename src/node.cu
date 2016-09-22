@@ -114,14 +114,6 @@ float Node::L2Norm(const std::vector<float> &vec) const
   return sqrt(ret);
 }
 
-std::vector<float> Node::StoreTensorInVec(Tensor tensor)
-{
-  size_t totSize = GetTotalSize(tensor.shape());
-  std::vector<float> vec(totSize);
-  thrust::copy(tensor.begin(), tensor.end(), vec.begin());
-  return vec;
-}
-
 void Node::broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec)
 {
 	size_t largeSize = largeVec.size();
