@@ -99,18 +99,20 @@ void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
     cudaDeviceSynchronize();
 }
 
-__global__ void gSubtractMax(float* out, size_t rows, size_t cols) {
+__global__ void gSubtractMax(float* out, const float* in,
+                             size_t rows, size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if (j < rows) {
       extern __shared__ float _share[];
       float* _max = _share + blockDim.x;
-      float* sp = out + j * cols;
-      _max[threadIdx.x] = sp[threadIdx.x];
+      const float* inRow = in + j * cols;
+      float* outRow = out + j * cols;
+      _max[threadIdx.x] = inRow[threadIdx.x];
       for(int tid = 1; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if (id < cols) {
-          if (sp[id] > _max[threadIdx.x]) _max[threadIdx.x] = sp[id];
+          if (in[id] > _max[threadIdx.x]) _max[threadIdx.x] = inRow[id];
         }
       }
       __syncthreads();
@@ -129,23 +131,24 @@ __global__ void gSubtractMax(float* out, size_t rows, size_t cols) {
       for(int tid = 0; tid < cols; tid += blockDim.x){
         int id = tid + threadIdx.x;
         if(id < cols)
-          sp[id] -= _max[0];
+          outRow[id] = inRow[id] - _max[0];
       }
     }
   }
 }
 
-void SubtractMax(Tensor* Out) {
+void SubtractMax(Tensor out, Tensor in) {
   // Out is a m-by-k matrix, passed as input.
   // The max element of each row of Out is computed and subtracted from Out.
   // Out is both input and output.
-  size_t m = Out->shape()[0];
-  size_t k = Out->shape()[1];
+  size_t m = out.shape()[0];
+  size_t k = out.shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
-  gSubtractMax<<<blocks, threads, shared>>>(Out->data(), m, k);
+  gSubtractMax<<<blocks, threads, shared>>>(out.data(),
+                                            in.data(), m, k);
   cudaStreamSynchronize(0);
 }
 
@@ -183,17 +186,18 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
   }
 }
 
-void Softmax(Tensor* Out) {
-  size_t m = Out->shape()[0];
-  size_t k = Out->shape()[1];
+void Softmax(Tensor out, Tensor in) {
+  size_t m = out.shape()[0];
+  size_t k = out.shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
   // Subtract the max rowwise for numerical stability (safe softmax).
-  gSubtractMax<<<blocks, threads, shared>>>(Out->data(), m, k);
+  gSubtractMax<<<blocks, threads, shared>>>(out.data(),
+                                            in.data(), m, k);
   cudaStreamSynchronize(0);
-  gSoftMax<<<blocks, threads, shared>>>(Out->data(), m, k);
+  gSoftMax<<<blocks, threads, shared>>>(out.data(), m, k);
   cudaStreamSynchronize(0);
 }
 
@@ -267,7 +271,7 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          _sum[threadIdx.x] += expf(valRow[id]) * adjRow[id]; // exp because we chached logsoftmax
+          _sum[threadIdx.x] += adjRow[id]; 
         }
       }
       __syncthreads();
@@ -283,7 +287,7 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
       for(int tid = 0; tid < cols; tid += blockDim.x){
         int id = tid + threadIdx.x;
         if(id < cols)
-          gradRow[id] += adjRow[id] - _sum[0];
+          gradRow[id] += adjRow[id] - (expf(valRow[id]) * _sum[0]);
       }
     }
   }

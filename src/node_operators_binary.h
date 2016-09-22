@@ -15,7 +15,7 @@ struct BinaryNodeOp : public Node {
   void backward_debug(Float delta) {
 	  using namespace std;
 
-	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
+	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
 
 	  std::vector<float> preCalcGradA = StoreTensorInVec(a_->grad());
 	  //output("preCalcGradA", preCalcGradA);
@@ -73,7 +73,7 @@ struct DotNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("×")
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("•")
       << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
@@ -185,7 +185,7 @@ struct MultNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("•")
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x")
       << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
