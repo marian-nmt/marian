@@ -20,8 +20,8 @@ int main(int argc, char** argv)
   using namespace marian;
   using namespace keywords;
 
-  int input_size = 10;
-  int output_size = 10;
+  int input_size = 30;
+  int output_size = 30;
   int batch_size = 25;
 
   // define graph
@@ -57,8 +57,8 @@ int main(int argc, char** argv)
   std::cout << g.graphviz() << std::endl;
 
   // create data
-  //srand(0);
-  srand(time(NULL));
+  srand(0);
+  //srand(time(NULL));
   std::vector<float> values(batch_size * input_size);
   generate(begin(values), end(values), Rand);
 
