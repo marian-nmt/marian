@@ -30,7 +30,6 @@ int main(int argc, char** argv)
   Expr labelExpr = g.input(shape={batch_size, output_size});
 
   Expr inExpr2 = g.input(shape={batch_size, input_size});
-  Expr inExpr3 = g.input(shape={input_size, batch_size});
 
   vector<Expr> expr;
 
@@ -48,10 +47,14 @@ int main(int argc, char** argv)
   expr.emplace_back(relu(expr.back()));
   expr.emplace_back(log(expr.back()));
   expr.emplace_back(exp(expr.back()));
+  expr.emplace_back(dropout(expr.back()));
+  //expr.emplace_back(softmax_slow(expr.back()));
   expr.emplace_back(softmax(expr.back()));
 
   Expr ceExpr = cross_entropy(expr.back(), labelExpr);
   Expr cost = mean(ceExpr, axis=0);
+
+  std::cout << g.graphviz() << std::endl;
 
   // create data
   //srand(0);
@@ -79,17 +82,10 @@ int main(int argc, char** argv)
 
   inExpr2 = inTensor2;
 
-  Tensor inTensor3({input_size, batch_size});
-  thrust::copy(values2.begin(), values2.end(), inTensor3.begin());
-
-  inExpr3 = inTensor3;
-
   // train
   g.forward(batch_size);
   //g.backward();
   g.backward_debug(0.001);
-
-  std::cout << g.graphviz() << std::endl;
 
   /*
   std::cerr << "inTensor=" << inTensor.Debug() << std::endl;
