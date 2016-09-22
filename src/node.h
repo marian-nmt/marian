@@ -75,7 +75,7 @@ class Node : public Chainable<Tensor>,
       }
     }
     
-    virtual Tensor &val()  {
+    virtual const Tensor &val()  {
       UTIL_THROW_IF2(!val_, "Tensor has not been allocated");
       return val_;
     };

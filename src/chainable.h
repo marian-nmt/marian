@@ -48,10 +48,10 @@ struct Chainable {
     virtual const std::string label(const std::string& type) = 0;
     
     virtual const Shape& shape() = 0;
-    virtual DataType &val() = 0;
+    virtual const DataType &val() = 0;
     virtual DataType grad() = 0;
     virtual void setVal(DataType t) {
-      UTIL_THROW2("Tensors can only be assigned to input nodes"); 
+      UTIL_THROW2("Tensors can only be assigned to input and parameter nodes"); 
     };
 };
 
