@@ -416,7 +416,7 @@ class Tensor {
      *
      * @return True or False
      */
-    operator bool() {
+    operator bool() const {
       return pimpl_ != nullptr;
     }
 

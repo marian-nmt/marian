@@ -16,15 +16,20 @@ struct UnaryNodeOp : public Node {
 
       cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
 
-	  std::vector<float> preCalcGradA;
+	  std::vector<float> preCalcGradA, diffGradA, numericalGradA;
 	  preCalcGradA << a_->grad();
 	  //output("preCalcGradA", preCalcGradA);
 
 	  // use df/dx to calc grad
 	  backward();
+	  diffGradA << a_->grad();
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 
+	  //a_->grad().set(preCalcGradA);
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+	  numericalGradA << a_->grad();
+
+	  a_->grad().set(diffGradA);
     }
 
 };
