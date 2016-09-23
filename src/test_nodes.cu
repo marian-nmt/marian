@@ -20,8 +20,8 @@ int main(int argc, char** argv)
   using namespace marian;
   using namespace keywords;
 
-  int input_size = 300;
-  int output_size = 300;
+  int input_size = 30;
+  int output_size = 30;
   int batch_size = 25;
 
   // define graph

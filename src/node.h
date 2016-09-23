@@ -132,6 +132,7 @@ class Node : public Chainable<Tensor>,
 			  Tensor input,
 			  Tensor grad
 			  );
+	void broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec);
 
     void outputL2Norm(const std::string &str, const std::vector<float> &x, const std::vector<float> &y) const;
     float L2Norm(const std::vector<float> &vec) const;
