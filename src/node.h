@@ -126,7 +126,7 @@ class Node : public Chainable<Tensor>,
     	}
     	std::cerr << std::endl;
     }
-    void outputL2Norm(const std::vector<float> &x, const std::vector<float> &y) const;
+    void outputL2Norm(const std::string &str, const std::vector<float> &x, const std::vector<float> &y) const;
 
 	void calc_numeric_grad(
 			  Float delta,

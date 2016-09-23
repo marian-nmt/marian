@@ -44,7 +44,7 @@ struct BinaryNodeOp : public Node {
 	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
 
 	  numericalGradA << a_->grad();
-	  outputL2Norm(diffGradA, numericalGradA);
+	  outputL2Norm("TENSOR A", diffGradA, numericalGradA);
 
 
 	  cerr << "TENSOR B:" << endl;
@@ -55,7 +55,7 @@ struct BinaryNodeOp : public Node {
 	  cerr << "numerical b_->grad()=" << b_->grad().Debug() << endl;
 
 	  numericalGradB << b_->grad();
-	  outputL2Norm(diffGradB, numericalGradB);
+	  outputL2Norm("TENSOR B", diffGradB, numericalGradB);
 
 	  // reset to diff grad
 	  a_->grad().set(diffGradA);

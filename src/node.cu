@@ -107,7 +107,7 @@ void Node::broadcast(const std::vector<float> &largeVec, std::vector<float> &sma
     }
 }
 
-void Node::outputL2Norm(const std::vector<float> &x, const std::vector<float> &y) const
+void Node::outputL2Norm(const std::string &str, const std::vector<float> &x, const std::vector<float> &y) const
 {
   using namespace std;
   // print out diff between diffGradA and numericalGrad
@@ -120,7 +120,7 @@ void Node::outputL2Norm(const std::vector<float> &x, const std::vector<float> &y
   for (size_t i = 0; i < x.size(); ++i) {
 	  diff[i] = x[i] - y[i];
   }
-  cerr << "L2-norm of difference=" << L2Norm(diff) << endl << endl;
+  cerr << "L2-norm of difference " << typeid(*this).name() << ":" << str << "=" << L2Norm(diff) << endl << endl;
 }
 
 float Node::L2Norm(const std::vector<float> &vec) const

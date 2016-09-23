@@ -32,7 +32,7 @@ struct UnaryNodeOp : public Node {
 
 	  numericalGradA << a_->grad();
 
-	  outputL2Norm(diffGradA, numericalGradA);
+	  outputL2Norm("", diffGradA, numericalGradA);
 
 	  // reset to diff grad
 	  a_->grad().set(diffGradA);
