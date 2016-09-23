@@ -487,6 +487,12 @@ class Tensor {
       pimpl_->get(vout.begin());
     }
 
+    void incr(size_t ind, value_type delta) {
+      value_type *d = data();
+      gIncr<<<1,1>>>(d, ind, delta);
+      cudaDeviceSynchronize();
+    }
+
     value_type sum() {
       float *d_a;
       const unsigned int bytes = sizeof(value_type);
