@@ -210,7 +210,6 @@ class TensorImpl {
      */
     void set(value_type value) {
       thrust::fill(data_.begin(), data_.end(), value);
-      cudaDeviceSynchronize();
     }
 
     /**
@@ -221,7 +220,6 @@ class TensorImpl {
      */
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end) {
 	  thrust::copy(begin, end, data_.begin());
-	  cudaDeviceSynchronize();
     }
 
     /**
@@ -229,9 +227,8 @@ class TensorImpl {
      *
      * @param out Vector to copy data to.
      */
-    void get(std::vector<float>::iterator out) {
+    void get(std::vector<float>::iterator out) const {
 	  thrust::copy(data_.begin(), data_.end(), out);      
-	  cudaDeviceSynchronize();
     }
     
     /**
