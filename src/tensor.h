@@ -264,6 +264,23 @@ class TensorImpl {
 	
 };
 
+///////////////////////////////////////////////////////////////////
+__global__
+inline void gIncr(float *d, size_t ind, float delta) {
+  d[ind] += delta;
+}
+
+
+__global__
+inline void gSum(float *d, size_t size, float &total) {
+  total = 0;
+  for (size_t i = 0; i < size; ++i) {
+    total += d[i];
+  }
+}
+
+///////////////////////////////////////////////////////////////////
+
 template <typename Type>
 size_t TensorImpl<Type>::tensorCounter = 0;
 
@@ -468,6 +485,30 @@ class Tensor {
     void get(std::vector<float> &vout) const {
       vout.resize(size());
       pimpl_->get(vout.begin());
+    }
+
+    value_type sum() {
+      float *d_a;
+      const unsigned int bytes = sizeof(value_type);
+      cudaMalloc((value_type**)&d_a, bytes);
+
+      value_type *d = data();
+      gSum<<<1,1>>>(d, size(), *d_a);
+      cudaDeviceSynchronize();
+
+      value_type h_a;
+      cudaMemcpy(&h_a, d_a, bytes, cudaMemcpyDeviceToHost);
+      cudaFree(d_a);
+
+      return h_a;
+    }
+
+    void sum(Tensor &out, size_t ind) {
+      float *d_a = out.data() + ind;
+
+      value_type *d = data();
+      gSum<<<1,1>>>(d, size(), *d_a);
+      cudaDeviceSynchronize();
     }
 
 	class TensorView {

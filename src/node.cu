@@ -37,7 +37,7 @@ void Node::calc_numeric_grad(
   inputVec << input;
   //output("inputVec", inputVec);
 
-  std::vector<float> newVal(inputSize, 0);
+  Tensor newValTensor(input.shape());
 
   // LOOP thru each element in input & add delta
   for (size_t inputInd = 0; inputInd < inputSize; ++inputInd) {
@@ -47,22 +47,20 @@ void Node::calc_numeric_grad(
 
 	  forward();
 
-	  for (size_t i = 0; i < valSize; ++i) {
-		  newVal[inputInd] += val_[i];
-	  }
-	  //output("val_", val_.begin(), val_.end());
+	  val_.sum(newValTensor, inputInd);
 
 	  inputVec[inputInd] -= delta;
   }
+
+  std::vector<float> newVal;
+  newVal << newValTensor;
+  cudaDeviceSynchronize();
 
   // orig value
   input << inputVec;
   forward();
 
-  float sumValOrig = 0;
-  for (size_t i = 0; i < valSize; ++i) {
-	  sumValOrig += val_[i];
-  }
+  float sumValOrig = val_.sum();
 
   //output("newVal", newVal.begin(), newVal.end());
 
