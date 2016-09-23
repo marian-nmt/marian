@@ -26,15 +26,15 @@ void Node::calc_numeric_grad(
   //cerr << "input=" << input.Debug() << endl;
   //cerr << "adj_=" << adj_.Debug() << endl;
 
-  std::vector<float> prevCalcGrad(inputSize);
-  thrust::copy(grad.begin(), grad.end(), prevCalcGrad.begin());
+  std::vector<float> prevCalcGrad;
+  prevCalcGrad << grad;
   //cerr << "origGrad=" << grad.Debug() << endl;
   //output("diffGrad", diffGrad);
 
   //output("prevCalcGrad", prevCalcGrad.begin(), prevCalcGrad.end());
 
-  std::vector<float> inputVec(inputSize);
-  thrust::copy(input.begin(), input.end(), inputVec.begin());
+  std::vector<float> inputVec;
+  inputVec << input;
   //output("inputVec", inputVec);
 
   std::vector<float> newVal(inputSize, 0);
@@ -42,7 +42,7 @@ void Node::calc_numeric_grad(
   // LOOP thru each element in input & add delta
   for (size_t inputInd = 0; inputInd < inputSize; ++inputInd) {
 	  inputVec[inputInd] += delta;
-	  thrust::copy(inputVec.begin(), inputVec.end(), input.begin());
+	  input << inputVec;
 	  //output("input", input.begin(), input.end());
 
 	  forward();
@@ -56,7 +56,7 @@ void Node::calc_numeric_grad(
   }
 
   // orig value
-  thrust::copy(inputVec.begin(), inputVec.end(), input.begin());
+  input << inputVec;
   forward();
 
   float sumValOrig = 0;
@@ -68,8 +68,8 @@ void Node::calc_numeric_grad(
 
   // calc gradient
   //cerr << "adj_=" << adj_.Debug() << endl;
-  std::vector<float> adjVec(valSize);
-  thrust::copy(adj_.begin(), adj_.end(), adjVec.begin());
+  std::vector<float> adjVec;
+  adjVec << adj_;
 
   std::vector<float> numericalGrad(inputSize);
   for (size_t i = 0; i < numericalGrad.size(); ++i) {
@@ -89,7 +89,7 @@ void Node::calc_numeric_grad(
   //output("adjVec=", adjVec.begin(), adjVec.end());
 
   // set grad results
-  thrust::copy(numericalGrad.begin(), numericalGrad.end(), grad.begin());
+  grad << numericalGrad;
   //output("numericalGrad", numericalGrad);
 }
 
