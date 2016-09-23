@@ -44,18 +44,21 @@ void Node::calc_numeric_grad(
 	  forward();
 
 	  val_.sum(newValTensor, inputInd);
+	  //cudaDeviceSynchronize();
 
 	  input.incr(inputInd, -delta);
   }
 
   std::vector<float> newVal;
   newVal << newValTensor;
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
 
   // orig value
   forward();
 
   float sumValOrig = val_.sum();
+  //float sumValOrig = thrust::reduce(val_.begin(), val_.end(), (float) 0.0f, thrust::plus<float>());
+  //cudaDeviceSynchronize();
 
   //output("newVal", newVal.begin(), newVal.end());
 
@@ -66,22 +69,6 @@ void Node::calc_numeric_grad(
   Tensor gradTensor(input.shape());
   Element(_1 = (_2 - sumValOrig) / delta, gradTensor, newValTensor);
   Element(_1 = _2 * _3 + _4, grad, adj_, gradTensor, prevGradTensor);
-}
-
-void Node::broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec)
-{
-	size_t largeSize = largeVec.size();
-	size_t smallSize = smallVec.size();
-
-    UTIL_THROW_IF2(largeSize < smallSize,
-    		"largeSize < smallSize:" << largeSize << "<" << smallSize);
-    UTIL_THROW_IF2(largeSize % smallSize,
-    		"largeSize % smallSize != 0:" << largeSize << " " << smallSize);
-
-    smallVec.resize(largeSize);
-    for (size_t i = smallSize; i < largeSize; i += smallSize) {
-    	std::copy(smallVec.begin(), smallVec.begin() + smallSize, smallVec.begin() + i);
-    }
 }
 
 void Node::outputL2Norm(const std::string &str, const std::vector<float> &x, const std::vector<float> &y) const
