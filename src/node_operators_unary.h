@@ -22,13 +22,19 @@ struct UnaryNodeOp : public Node {
 
 	  // use df/dx to calc grad
 	  backward();
+	  cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 	  diffGradA << a_->grad();
-	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 
-	  //a_->grad().set(preCalcGradA);
+	  a_->grad().set(preCalcGradA);
+
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
+
 	  numericalGradA << a_->grad();
 
+	  outputL2Norm(diffGradA, numericalGradA);
+
+	  // reset to diff grad
 	  a_->grad().set(diffGradA);
     }
 

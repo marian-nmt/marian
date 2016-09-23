@@ -17,23 +17,39 @@ struct BinaryNodeOp : public Node {
 
 	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
 
-	  std::vector<float> preCalcGradA;
+	  std::vector<float> preCalcGradA, diffGradA, numericalGradA;
 	  preCalcGradA << a_->grad();
 	  //output("preCalcGradA", preCalcGradA);
 
-	  std::vector<float> preCalcGradB;
+	  std::vector<float> preCalcGradB, diffGradB, numericalGradB;
 	  preCalcGradB << b_->grad();
 	  //output("preCalcGradB", preCalcGradB);
 
 	  // use df/dx to calc grad
 	  backward();
+	  cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+	  cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
+
+	  diffGradA << a_->grad();
+	  diffGradB << b_->grad();
+
 	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
 	  //cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
 
 	  cerr << "TENSOR A:" << endl;
 	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
+
+	  numericalGradA << a_->grad();
+	  outputL2Norm(diffGradA, numericalGradA);
+
+
 	  cerr << "TENSOR B:" << endl;
 	  calc_numeric_grad(delta, b_->val(), b_->grad(), preCalcGradB);
+	  cerr << "numerical b_->grad()=" << b_->grad().Debug() << endl;
+
+	  numericalGradB << b_->grad();
+	  outputL2Norm(diffGradB, numericalGradB);
 
   }
 
