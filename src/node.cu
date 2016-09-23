@@ -1,4 +1,5 @@
 #include "node.h"
+#include "tensor_operators.h"
 
 namespace marian {
 
@@ -59,30 +60,12 @@ void Node::calc_numeric_grad(
   //output("newVal", newVal.begin(), newVal.end());
 
   // calc gradient
-  //cerr << "adj_=" << adj_.Debug() << endl;
-  std::vector<float> adjVec;
-  adjVec << adj_;
+  Tensor prevGradTensor(input.shape());
+  thrust::copy(grad.begin(), grad.end(), prevGradTensor.begin());
 
-  std::vector<float> numericalGrad(inputSize);
-  for (size_t i = 0; i < numericalGrad.size(); ++i) {
-	  numericalGrad[i] = (newVal[i] - sumValOrig) / delta;
-  }
-
-  broadcast(numericalGrad, adjVec);
-  //std::cerr << "broadcast size=" << numericalGrad.size() << " " << adjVec.size() << std::endl;
-  //output("adjVec=", adjVec.begin(), adjVec.end());
-
-  for (size_t i = 0; i < numericalGrad.size(); ++i) {
-	  numericalGrad[i] *= adjVec[i];
-	  numericalGrad[i] += prevCalcGrad[i];
-  }
-
-  //output("prevCalcGrad=", prevCalcGrad.begin(), prevCalcGrad.end());
-  //output("adjVec=", adjVec.begin(), adjVec.end());
-
-  // set grad results
-  grad << numericalGrad;
-  //output("numericalGrad", numericalGrad);
+  Tensor gradTensor(input.shape());
+  Element(_1 = (_2 - sumValOrig) / delta, gradTensor, newValTensor);
+  Element(_1 = _2 * _3 + _4, grad, adj_, gradTensor, prevGradTensor);
 }
 
 void Node::broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec)
