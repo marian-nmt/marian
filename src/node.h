@@ -131,8 +131,7 @@ class Node : public Chainable<Tensor>,
 	void calc_numeric_grad(
 			  Float delta,
 			  Tensor input,
-			  Tensor grad,
-			  const std::vector<float> &prevCalcGrad
+			  Tensor grad
 			  );
 	void broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec);
 	float L2Norm(const std::vector<float> &vec) const;

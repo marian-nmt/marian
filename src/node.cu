@@ -6,8 +6,7 @@ namespace marian {
 void Node::calc_numeric_grad(
 		  Float delta,
 		  Tensor input,
-		  Tensor grad,
-		  const std::vector<float> &prevCalcGrad
+		  Tensor grad
 		  )
 {
   using namespace std;
@@ -27,8 +26,8 @@ void Node::calc_numeric_grad(
   //cerr << "input=" << input.Debug() << endl;
   //cerr << "adj_=" << adj_.Debug() << endl;
 
-  std::vector<float> origGrad(inputSize);
-  thrust::copy(grad.begin(), grad.end(), origGrad.begin());
+  std::vector<float> prevCalcGrad(inputSize);
+  thrust::copy(grad.begin(), grad.end(), prevCalcGrad.begin());
   //cerr << "origGrad=" << grad.Debug() << endl;
   //output("diffGrad", diffGrad);
 

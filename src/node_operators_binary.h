@@ -40,7 +40,7 @@ struct BinaryNodeOp : public Node {
 	  a_->grad().set(preCalcGradA);
 	  b_->grad().set(preCalcGradB);
 
-	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+	  calc_numeric_grad(delta, a_->val(), a_->grad());
 	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
 
 	  numericalGradA << a_->grad();
@@ -51,7 +51,7 @@ struct BinaryNodeOp : public Node {
 	  a_->grad().set(preCalcGradA);
 	  b_->grad().set(preCalcGradB);
 
-	  calc_numeric_grad(delta, b_->val(), b_->grad(), preCalcGradB);
+	  calc_numeric_grad(delta, b_->val(), b_->grad());
 	  cerr << "numerical b_->grad()=" << b_->grad().Debug() << endl;
 
 	  numericalGradB << b_->grad();

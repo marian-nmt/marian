@@ -27,7 +27,7 @@ struct UnaryNodeOp : public Node {
 
 	  a_->grad().set(preCalcGradA);
 
-	  calc_numeric_grad(delta, a_->val(), a_->grad(), preCalcGradA);
+	  calc_numeric_grad(delta, a_->val(), a_->grad());
 	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
 
 	  numericalGradA << a_->grad();
