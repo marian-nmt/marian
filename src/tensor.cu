@@ -24,6 +24,23 @@
 
 namespace marian {
 
+///////////////////////////////////////////////////////////////////
+__global__
+void gIncr(float *d, size_t ind, float delta) {
+  d[ind] += delta;
+}
+
+
+__global__
+void gSum(float *d, size_t size, float &total) {
+  total = 0;
+  for (size_t i = 0; i < size; ++i) {
+    total += d[i];
+  }
+}
+
+///////////////////////////////////////////////////////////////////
+
 void Tensor::set(const std::vector<float>& data)
 {
 	pimpl_->set(data.begin(), data.end());
@@ -44,6 +61,35 @@ std::vector<float>& operator<<(std::vector<float> &vec, const Tensor& t) {
   return vec;
 }
 
+void Tensor::incr(size_t ind, Tensor::value_type delta) {
+  value_type *d = data();
+  gIncr<<<1,1>>>(d, ind, delta);
+  cudaDeviceSynchronize();
+}
+
+Tensor::value_type Tensor::sum() {
+  float *d_a;
+  const unsigned int bytes = sizeof(value_type);
+  cudaMalloc((value_type**)&d_a, bytes);
+
+  value_type *d = data();
+  gSum<<<1,1>>>(d, size(), *d_a);
+  cudaDeviceSynchronize();
+
+  value_type h_a;
+  cudaMemcpy(&h_a, d_a, bytes, cudaMemcpyDeviceToHost);
+  cudaFree(d_a);
+
+  return h_a;
+}
+
+void Tensor::sum(Tensor &out, size_t ind) {
+  float *d_a = out.data() + ind;
+
+  value_type *d = data();
+  gSum<<<1,1>>>(d, size(), *d_a);
+  cudaDeviceSynchronize();
+}
 
 }
 
