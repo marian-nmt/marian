@@ -36,7 +36,7 @@
 namespace marian {
 
 /**
- * @brief Debug shape by printing it. 
+ * @brief Debug shape by printing it.
  *
  * @param shape Shape of Tensor.
  *
@@ -54,7 +54,7 @@ inline std::string Debug(const Shape &shape)
 }
 
 /**
- * @brief Calculate the vector size based on Tensor shape. 
+ * @brief Calculate the vector size based on Tensor shape.
  *
  * @param shape Shape of Tensor.
  *
@@ -68,7 +68,7 @@ inline size_t GetTotalSize(const Shape &shape)
 }
 
 /**
- * @brief This class manages the Tensor on the GPU. 
+ * @brief This class manages the Tensor on the GPU.
  *
  * @tparam Float Data type.
  */
@@ -79,7 +79,7 @@ class TensorImpl {
     thrust::device_vector<Float> data_; /*< Vector of data that Tensor is managing on GPU. */
     size_t tno_; /*< Tensor number */
     static size_t tensorCounter; /*< Static counter of created Tensors */
-	
+
 	// cuDNN stuff
 	cudnnTensorDescriptor_t cudnnDesc_;
 
@@ -105,7 +105,7 @@ class TensorImpl {
 
       int size = GetTotalSize(shape_);
       data_.resize(size, value);
-	  
+
 	  cudnnCreateTensorDescriptor(&cudnnDesc_);
 	  cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
 								   shape_[0], shape_[1], 1, 1,
@@ -118,7 +118,7 @@ class TensorImpl {
 	~TensorImpl() {
 		cudnnDestroyTensorDescriptor(cudnnDesc_);
 	}
-	
+
     /**
      * @brief Get the i-th element of Tensor vector.
      *
@@ -228,9 +228,9 @@ class TensorImpl {
      * @param out Vector to copy data to.
      */
     void get(std::vector<float>::iterator out) {
-	  thrust::copy(data_.begin(), data_.end(), out);      
+	  thrust::copy(data_.begin(), data_.end(), out);
     }
-    
+
     /**
      * @brief Debug function.
      *
@@ -257,11 +257,11 @@ class TensorImpl {
 		}
     	return strm.str();
     }
-	
+
 	cudnnTensorDescriptor_t cudnn() {
 		return cudnnDesc_;
 	}
-	
+
 };
 
 template <typename Type>
@@ -286,7 +286,7 @@ class Tensor {
 
      * @brief Constructor that allocates memory.
      *
-     * @param shape Shape of Tensor. 
+     * @param shape Shape of Tensor.
      * @param value Value to fill Tensor's vector with.
      */
     Tensor(const Shape& shape, value_type value = 0) {
@@ -305,7 +305,7 @@ class Tensor {
      * @param value Value to fill Tensor's vector with.
      */
     void allocate(const Shape& shape, value_type value = 0) {
-      if(!pimpl_)
+      if(!pimpl_ or pimpl_->shape() != shape)
         pimpl_.reset(new TensorImpl<Float>(shape, value));
     }
 
@@ -317,6 +317,7 @@ class Tensor {
      * @return Value of specified element of Tensor.
      */
     value_type operator[](size_t i) const {
+	  UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return (*pimpl_)[i];
     }
 
@@ -326,6 +327,7 @@ class Tensor {
      * @return Size of Tensor vector.
      */
     size_t size() const {
+	  UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->size();
     }
 
@@ -335,7 +337,8 @@ class Tensor {
      * @return Pointer to GPU Tensor's data.
      */
     value_type* data() {
-      return pimpl_->data();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->data();
     }
 
     /**
@@ -344,16 +347,18 @@ class Tensor {
      * @return Pointer to GPU Tensor's data.
      */
     const value_type* data() const {
-      return pimpl_->data();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->data();
     }
-	
+
    /**
     * @brief Get begin iterator of GPU Tensor's vector.
     *
     * @return Vector begin iterator.
     */
     auto begin() -> decltype( pimpl_->begin() ) {
-      return pimpl_->begin();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->begin();
     }
 
    /**
@@ -362,7 +367,8 @@ class Tensor {
     * @return Vector begin iterator (const)
     */
     auto begin() const -> decltype( pimpl_->begin() ) {
-      return pimpl_->begin();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->begin();
     }
 
    /**
@@ -371,7 +377,8 @@ class Tensor {
     * @return Vector end iterator
     */
     auto end() -> decltype( pimpl_->end() ) {
-      return pimpl_->end();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->end();
     }
 
    /**
@@ -380,7 +387,8 @@ class Tensor {
     * @return Vector end iterator (const)
     */
     auto end() const -> decltype( pimpl_->end() ) {
-      return pimpl_->end();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->end();
     }
 
     /**
@@ -388,9 +396,9 @@ class Tensor {
      *
      * @return Tensor's shape.
      */
-	__host__ __device__
-    const Shape& shape() const {
-      return pimpl_->shape();
+	const Shape& shape() const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->shape();
     }
 
     /**
@@ -399,7 +407,8 @@ class Tensor {
      * @param value Value to fill Tensor with.
      */
     void set(value_type value) {
-      pimpl_->set(value);
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  pimpl_->set(value);
     }
 
     /**
@@ -408,7 +417,8 @@ class Tensor {
      * @return Tensor id.
      */
     size_t id() const {
-      return pimpl_->id();
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  return pimpl_->id();
     }
 
     /**
@@ -436,7 +446,7 @@ class Tensor {
     }
 
     //void Load(const std::string &path);
-    
+
     /**
      * @brief Set GPU Tensor's vector to values of specified vector.
      *
@@ -457,16 +467,18 @@ class Tensor {
      * @param out Vector iterator used in copying.
      */
     void get(std::vector<float>::iterator out) const {
-      pimpl_->get(out);
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  pimpl_->get(out);
     }
-    
+
     /**
      * @brief Copy Tensor's vector from GPU to vector variable on CPU.
      *
      * @param out Vector to copy data to.
      */
     void get(std::vector<float> &vout) const {
-      vout.resize(size());
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
+	  vout.resize(size());
       pimpl_->get(vout.begin());
     }
 
@@ -475,11 +487,11 @@ class Tensor {
 		float* data_;
 		int rows_;
 		int cols_;
-	  
+
 	  public:
 		TensorView(Tensor t)
 		: data_(t.data()), rows_(t.shape()[0]), cols_(t.shape()[1]) {}
-		
+
 		__device__ float& operator()(int i, int j) {
 		  if(rows_ != 1 && cols_ != 1)
 			return data_[i * cols_ + j];
@@ -489,20 +501,20 @@ class Tensor {
 			return data_[j];
 		  return data_[0];
 		}
-		
+
 		__device__ int rows() {
 		  return rows_;
 		}
-		
+
 		__device__ int cols() {
 		  return cols_;
 		}
 	};
-	
+
 	TensorView gpu() {
 	  return TensorView(*this);
 	}
-	
+
 	cudnnTensorDescriptor_t cudnn() {
 		return pimpl_->cudnn();
 	}

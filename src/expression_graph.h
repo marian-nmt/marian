@@ -27,6 +27,7 @@
 #include "chainable.h"
 #include "node_operators.h"
 #include "tensor.h"
+#include "batch_generator.h"
 
 namespace marian {
 
@@ -39,7 +40,7 @@ typedef ExpressionGraph* ExpressionGraphPtr;
 class Expr {
   public:
     Expr(ExpressionGraphPtr g, Chainable<Tensor>* chainable);
-    
+
     Expr operator=(Tensor t) {
       pimpl_->setVal(t);
       return *this;
@@ -51,7 +52,7 @@ class Expr {
     void setVal(const Tensor &val);
 
     ExpressionGraphPtr graph();
-    
+
     ChainPtr node();
     operator ChainPtr();
 
@@ -71,15 +72,32 @@ class ExpressionGraph {
     /** @brief Constructs a new expression graph */
     ExpressionGraph() : stack_(new ChainableStack) {}
 
-    void inference(int batchSize) {
-      for(auto&& v : *stack_) {
-        v->allocate(batchSize);
+    void setInputs(const Batch& batch) {
+      auto& bInputs = batch.inputs();
+      auto& gInputs = this->inputs();
+
+      UTIL_THROW_IF2(bInputs.size() != gInputs.size(),
+                     "Number of batch inputs does not correspond to number of input nodes");
+
+      for(int i = 0; i < gInputs.size(); ++i) {
+        if(!gInputs[i].val()) {
+          std::cerr << "Creating tensor" << std::endl;
+          gInputs[i].setVal(Tensor(bInputs[i].shape()));
+        }
+        gInputs[i].val().set(bInputs[i].begin(), bInputs[i].end());
       }
-      for(auto&& v : *stack_)
-        v->inference();    
     }
 
-  
+    void inference(const Batch& batch) {
+      setInputs(batch);
+      for(auto&& v : *stack_) {
+        v->allocate(batch.dim());
+      }
+      for(auto&& v : *stack_)
+        v->inference();
+    }
+
+
     /**
      * @brief Performs backpropogation on this expression graph.
      *
@@ -88,32 +106,33 @@ class ExpressionGraph {
      *
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
-    void backprop(int batchSize) {
-      forward(batchSize);
+    void backprop(const Batch& batch) {
+      setInputs(batch);
+      forward(batch.dim());
       backward();
     }
-  
+
     /**
      * @brief Perform the forward pass of algorithmic differentiation (AD) on this graph.
      *
      * This pass traverses the nodes of this graph in the order they were created;
      *    as each node is traversed, its <code>allocate()</code> method is called.
-     * 
+     *
      * Once allocation is complete for all nodes, this pass again traverses the nodes, in creation order;
      *    as each node is traversed, its <code>forward()</code> method is called.
      *
-     * After this method has successfully completed, 
+     * After this method has successfully completed,
      *    it is guaranteed that all node allocation has been completed,
      *    and that all forward pass computations have been performed.
      *
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
-    void forward(int batchSize) {
+    void forward(size_t batchSize) {
       for(auto&& v : *stack_) {
         v->allocate(batchSize);
       }
       for(auto&& v : *stack_)
-        v->forward();    
+        v->forward();
     }
 
     /**
@@ -131,7 +150,7 @@ class ExpressionGraph {
     void backward() {
       for(auto&& v : *stack_)
         v->set_zero_adjoint();
-    
+
       typedef typename ChainableStack::reverse_iterator It;
       stack_->back()->init_dependent();
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
@@ -169,7 +188,7 @@ class ExpressionGraph {
       ss << "}" << std::endl;
       return ss.str();
     }
-    
+
     /*********************************************************/
 
     /**
@@ -247,7 +266,7 @@ class ExpressionGraph {
     inline Expr zeroes(Args ...args) {
       return Expr(this, new ConstantNode(keywords::value=0, args...));
     }
-    
+
     /*********************************************************/
 
     /**
@@ -273,7 +292,7 @@ class ExpressionGraph {
     Expr& operator[](const std::string& name) {
       auto it = named_.find(name);
       UTIL_THROW_IF2(it == named_.end(), "No such named node in graph: " << name);
-      return it->second;  
+      return it->second;
     }
 
     /**
@@ -317,7 +336,7 @@ class ExpressionGraph {
     std::vector<Expr>& params() {
       return params_;
     }
-    
+
   private:
 
     /** @brief Pointer to the list of nodes */

@@ -26,11 +26,13 @@ namespace marian {
 
 void Tensor::set(const std::vector<float>& data)
 {
+	UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
 	pimpl_->set(data.begin(), data.end());
 }
 
 void Tensor::set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end)
 {
+	UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
 	pimpl_->set(begin, end);
 }
 
@@ -46,4 +48,3 @@ std::vector<float>& operator<<(std::vector<float> &vec, const Tensor& t) {
 
 
 }
-

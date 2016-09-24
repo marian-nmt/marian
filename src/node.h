@@ -34,16 +34,21 @@ class Node : public Chainable<Tensor>,
     Node(Args ...args)
      : Keywords(args...),
        shape_(Get<Shape>(keywords::shape, {1, 1})),
+       givenShape_(shape_),
        name_(Get<std::string>(keywords::name, "none"))
     { }
-    
+
     virtual ~Node() {};
-    
+
     virtual void allocate(size_t batchSize) {
-      for(auto&& d : shape_) {
-        if(d == whatevs)
-            d = batchSize;
+      auto it1 = shape_.begin();
+      auto it2 = givenShape_.begin();
+      while(it1 != shape_.end()) {
+        if(*it2 == whatevs)
+          *it1 = batchSize;
+        it1++; it2++;
       }
+
       if(Has(keywords::lazy_shape)) {
         auto defaultShape = [this]() -> Shape { return shape_; };
         shape_ = Get<std::function<Shape()>>(keywords::lazy_shape, defaultShape)();
@@ -56,7 +61,7 @@ class Node : public Chainable<Tensor>,
       else
         val_.allocate(shape_);
     }
-    
+
     virtual void init_dependent() {
       if(adj_) {
         adj_.set(1);
@@ -65,7 +70,7 @@ class Node : public Chainable<Tensor>,
         adj_.allocate(shape_, 1);
       }
     }
-    
+
     virtual void set_zero_adjoint() {
       if(adj_) {
         adj_.set(0);
@@ -74,27 +79,25 @@ class Node : public Chainable<Tensor>,
         adj_.allocate(shape_, 0);
       }
     }
-    
+
     virtual const Tensor &val()  {
-      UTIL_THROW_IF2(!val_, "Tensor has not been allocated");
       return val_;
     };
-    
+
     virtual Tensor grad() {
-      UTIL_THROW_IF2(!adj_, "Tensor has not been allocated");
       return adj_;
     };
-    
+
     virtual const Shape& shape() {
-      return shape_;    
+      return shape_;
     }
 
     void set_name(const std::string& name) {
       name_ = name;
     }
-    
+
     const std::string &name() const { return name_; }
-    
+
     virtual const std::string label(const std::string& type) {
       std::stringstream label;
       label << "<" << type;
@@ -104,11 +107,12 @@ class Node : public Chainable<Tensor>,
       label << ">";
       return label.str();
     }
-    
+
   protected:
     Shape shape_;
+    const Shape givenShape_;
     std::string name_;
-    
+
     Tensor val_;
     Tensor adj_;
 
