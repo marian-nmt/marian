@@ -150,7 +150,7 @@ class BatchGenerator {
     }
 
   public:
-    BatchGenerator(DataSet &&data,
+    BatchGenerator(DataSet& data,
                    size_t batchSize=100,
                    size_t maxiBatchSize=1000)
     : data_(std::move(data)),

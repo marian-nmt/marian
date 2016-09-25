@@ -11,17 +11,8 @@ namespace marian {
 // This will allow to perform a single large SGD update per batch. Currently there
 // are as many updates as different parameters.
 
-class Optimizer : public std::enable_shared_from_this<Optimizer> {
-  private:
-    std::shared_ptr<Optimizer> this_;
-
+class Optimizer {
   public:
-    Optimizer() : this_(this) {}
-
-    std::shared_ptr<Optimizer> getPtr() {
-      return shared_from_this();
-    }
-
     virtual void operator()(ExpressionGraph&, BatchPtr) = 0;
 };
 
