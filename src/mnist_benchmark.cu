@@ -57,23 +57,28 @@ int main(int argc, char** argv) {
   viz << g.graphviz() << std::endl;
   viz.close();
 
-  boost::timer::cpu_timer total;
 
-  MnistDataSet mnist(
-    "../examples/mnist/train-images-idx3-ubyte",
-    "../examples/mnist/train-labels-idx1-ubyte");
+  const int BATCH_SIZE = 200;
+
+  BatchGenerator<MnistDataSet> bg(
+    {
+      "../examples/mnist/train-images-idx3-ubyte",
+      "../examples/mnist/train-labels-idx1-ubyte"
+    }, BATCH_SIZE);
 
   Adam opt(0.0002);
-  const int BATCH_SIZE = 200;
   for(int epoch = 1; epoch <= 50; ++epoch) {
-    BatchGenerator<MnistDataSet> bg(mnist, BATCH_SIZE);
+    boost::timer::cpu_timer total;
+    bg.prepare();
+
     float cost = 0;
     while(bg) {
-      auto& batch = bg.next();
+      BatchPtr batch = bg.next();
       opt(g, batch);
-      cost += g["cost"].val()[0] / batch.dim();
+      cost += g["cost"].val()[0] / batch->dim();
     }
     std::cerr << epoch << " cost: " << cost << std::endl;
+    std::cerr << "Total: " << total.format(3, "%ws") << std::endl;
   }
 
   //TrainingIterator<MnistIterator> trainSet(
@@ -88,7 +93,7 @@ int main(int argc, char** argv) {
   //
   // trainSet.run();
   //
-  //std::cerr << "Total: " << total.format(3, "%ws") << std::endl;
+  //
   //
   //TestingIterator<MnistIterator> testSet(
   //  MnistIterator("../examples/mnist/t10k-images-idx3-ubyte",

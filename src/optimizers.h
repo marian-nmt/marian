@@ -14,8 +14,8 @@ class Sgd {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
-    void operator()(ExpressionGraph& graph, const Batch& batch) {
-      graph.backprop(batch);
+    void operator()(ExpressionGraph& graph, BatchPtr batch) {
+      graph.backprop(*batch);
 
       for(auto& param : graph.params())
         Element(_1 -= eta_ * _2,
@@ -32,8 +32,8 @@ class Adagrad {
     Adagrad(float eta=0.01, float eps=1e-8)
     : eta_(eta), eps_(eps) {}
 
-    void operator()(ExpressionGraph& graph, const Batch& batch) {
-      graph.backprop(batch);
+    void operator()(ExpressionGraph& graph, BatchPtr batch) {
+      graph.backprop(*batch);
 
       if(gt_.size() < graph.params().size())
         for(auto& param : graph.params())
@@ -63,8 +63,8 @@ class Adam {
     Adam(float eta=0.001, float beta1=0.9, float beta2=0.999, float eps=1e-8)
     : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0) {}
 
-    void operator()(ExpressionGraph& graph, const Batch& batch) {
-      graph.backprop(batch);
+    void operator()(ExpressionGraph& graph, BatchPtr batch) {
+      graph.backprop(*batch);
 
       if(mt_.size() < graph.params().size()) {
         for(auto& param : graph.params()) {

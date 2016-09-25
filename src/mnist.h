@@ -55,7 +55,7 @@ class MnistDataSet {
                      "Features do not match labels");
 
       for(int i = 0; i < features.size(); ++i)
-        examples_.push_back({ features[i], labels[i] });
+        examples_.emplace_back(new Example({ features[i], labels[i] }));
     }
 
     iterator begin() const {
@@ -79,7 +79,7 @@ class MnistDataSet {
       return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
     }
 
-    std::vector<std::vector<float>> ReadImages(const std::string& full_path) {
+    std::vector<DataPtr> ReadImages(const std::string& full_path) {
       std::ifstream file(full_path);
       UTIL_THROW_IF2(!file.is_open(),
                      "Cannot open file `" + full_path + "`!");
@@ -103,19 +103,19 @@ class MnistDataSet {
       n_cols = reverseInt(n_cols);
 
       int imgSize = n_rows * n_cols;
-      std::vector<std::vector<float>> _dataset(number_of_images,
-                                               std::vector<float>(imgSize, 0));
+      std::vector<DataPtr> _dataset(number_of_images);
       for(int i = 0; i < number_of_images; ++i) {
+        _dataset[i].reset(new Data(imgSize, 0));
         for (int j = 0; j < imgSize; j++) {
           unsigned char pixel = 0;
           file.read((char*)&pixel, sizeof(pixel));
-          _dataset[i][j] = pixel / 255.0f;
+          (*_dataset[i])[j] = pixel / 255.0f;
         }
       }
       return _dataset;
     }
 
-    std::vector<std::vector<float>> ReadLabels(const std::string& full_path) {
+    std::vector<DataPtr> ReadLabels(const std::string& full_path) {
       std::ifstream file(full_path);
 
       if (! file.is_open())
@@ -132,13 +132,12 @@ class MnistDataSet {
       file.read((char *)&number_of_labels, sizeof(number_of_labels));
       number_of_labels = reverseInt(number_of_labels);
 
-      std::vector<std::vector<float>> _dataset(number_of_labels,
-                                  std::vector<float>(10, 0.0f));
-
+      std::vector<DataPtr> _dataset(number_of_labels);
       for (int i = 0; i < number_of_labels; i++) {
+        _dataset[i].reset(new Data(10, 0.0f));
         unsigned char label;
         file.read((char*)&label, 1);
-        _dataset[i][(int)(label)] = 1.0f;
+        (*_dataset[i])[(int)(label)] = 1.0f;
       }
 
       return _dataset;

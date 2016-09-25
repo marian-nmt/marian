@@ -80,10 +80,8 @@ class ExpressionGraph {
                      "Number of batch inputs does not correspond to number of input nodes");
 
       for(int i = 0; i < gInputs.size(); ++i) {
-        if(!gInputs[i].val()) {
-          std::cerr << "Creating tensor" << std::endl;
+        if(!gInputs[i].val())
           gInputs[i].setVal(Tensor(bInputs[i].shape()));
-        }
         gInputs[i].val().set(bInputs[i].begin(), bInputs[i].end());
       }
     }

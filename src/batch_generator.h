@@ -3,16 +3,22 @@
 #include <deque>
 #include <queue>
 
+#include <boost/timer/timer.hpp>
+
 namespace marian {
 
 typedef std::vector<float> Data;
-typedef std::vector<Data> Example;
-typedef std::vector<Example> Examples;
+typedef std::shared_ptr<Data> DataPtr;
+
+typedef std::vector<DataPtr> Example;
+typedef std::shared_ptr<Example> ExamplePtr;
+
+typedef std::vector<ExamplePtr> Examples;
 
 class Input {
   private:
     Shape shape_;
-    Data data_;
+    DataPtr data_;
 
   public:
     typedef Data::iterator iterator;
@@ -20,22 +26,22 @@ class Input {
 
     Input(const Shape& shape)
     : shape_(shape),
-      data_(shape_.totalSize(), 0.0f) {}
+      data_(new Data(shape_.totalSize(), 0.0f)) {}
 
     Data::iterator begin() {
-      return data_.begin();
+      return data_->begin();
     }
 
     Data::iterator end() {
-      return data_.end();
+      return data_->end();
     }
 
     Data::const_iterator begin() const {
-      return data_.cbegin();
+      return data_->cbegin();
     }
 
     Data::const_iterator end() const {
-      return data_.cend();
+      return data_->cend();
     }
 
     Shape shape() const {
@@ -43,7 +49,7 @@ class Input {
     }
 
     size_t size() const {
-      return data_.size();
+      return data_->size();
     }
 };
 
@@ -73,6 +79,8 @@ class Batch {
     }
 };
 
+typedef std::shared_ptr<Batch> BatchPtr;
+
 template <class DataSet>
 class BatchGenerator {
   private:
@@ -82,15 +90,15 @@ class BatchGenerator {
     size_t batchSize_;
     size_t maxiBatchSize_;
 
-    std::deque<Batch> bufferedBatches_;
-    Batch currentBatch_;
+    std::deque<BatchPtr> bufferedBatches_;
+    BatchPtr currentBatch_;
 
     void fillBatches() {
-      auto cmp = [](const Example& a, const Example& b) {
-        return a[0].size() < b[0].size();
+      auto cmp = [](const ExamplePtr& a, const ExamplePtr& b) {
+        return (*a)[0]->size() < (*b)[0]->size();
       };
 
-      std::priority_queue<Example, Examples, decltype(cmp)> maxiBatch(cmp);
+      std::priority_queue<ExamplePtr, Examples, decltype(cmp)> maxiBatch(cmp);
 
       while(current_ != data_.end() && maxiBatch.size() < maxiBatchSize_) {
         maxiBatch.push(*current_);
@@ -108,33 +116,34 @@ class BatchGenerator {
       }
       if(!batchVector.empty())
         bufferedBatches_.push_back(toBatch(batchVector));
+      //std::cerr << "Total: " << total.format(5, "%ws") << std::endl;
     }
 
-    Batch toBatch(const Examples& batchVector) {
+    BatchPtr toBatch(const Examples& batchVector) {
       int batchSize = batchVector.size();
 
       std::vector<int> maxDims;
-      for(auto&& ex : batchVector) {
-        if(maxDims.size() < ex.size())
-          maxDims.resize(ex.size(), 0);
-        for(int i = 0; i < ex.size(); ++i) {
-          if(ex[i].size() > maxDims[i])
-          maxDims[i] = ex[i].size();
+      for(auto& ex : batchVector) {
+        if(maxDims.size() < ex->size())
+          maxDims.resize(ex->size(), 0);
+        for(int i = 0; i < ex->size(); ++i) {
+          if((*ex)[i]->size() > maxDims[i])
+          maxDims[i] = (*ex)[i]->size();
         }
       }
 
-      Batch batch;
+      BatchPtr batch(new Batch());
       std::vector<Input::iterator> iterators;
       for(auto& m : maxDims) {
-        batch.push_back(Shape({batchSize, m}));
-        iterators.push_back(batch.inputs().back().begin());
+        batch->push_back(Shape({batchSize, m}));
+        iterators.push_back(batch->inputs().back().begin());
       }
 
       for(auto& ex : batchVector) {
-        for(int i = 0; i < ex.size(); ++i) {
-          Data d = ex[i];
-          d.resize(maxDims[i], 0.0f);
-          iterators[i] = std::copy(d.begin(), d.end(), iterators[i]);
+        for(int i = 0; i < ex->size(); ++i) {
+          DataPtr d = (*ex)[i];
+          d->resize(maxDims[i], 0.0f);
+          iterators[i] = std::copy(d->begin(), d->end(), iterators[i]);
         }
       }
       return batch;
@@ -147,16 +156,13 @@ class BatchGenerator {
     : data_(data), current_(data_.begin()),
       batchSize_(batchSize),
       maxiBatchSize_(maxiBatchSize) {
-
-      data_.shuffle();
-      fillBatches();
     }
 
     operator bool() const {
       return !bufferedBatches_.empty();
     }
 
-    Batch& next() {
+    BatchPtr next() {
       UTIL_THROW_IF2(bufferedBatches_.empty(),
                      "No batches to fetch");
       currentBatch_ = bufferedBatches_.front();
@@ -168,9 +174,12 @@ class BatchGenerator {
       return currentBatch_;
     }
 
-    void shuffle() {
+    void prepare() {
+      //boost::timer::cpu_timer total;
       data_.shuffle();
+      //std::cerr << "shuffle: " << total.format(5, "%ws") << std::endl;
       current_ = data_.begin();
+      fillBatches();
     }
 };
 
