@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <boost/any.hpp>
 #include "tensor_operators.h"
 
@@ -10,7 +11,21 @@ namespace marian {
 // This will allow to perform a single large SGD update per batch. Currently there
 // are as many updates as different parameters.
 
-class Sgd {
+class Optimizer : public std::enable_shared_from_this<Optimizer> {
+  private:
+    std::shared_ptr<Optimizer> this_;
+
+  public:
+    Optimizer() : this_(this) {}
+
+    std::shared_ptr<Optimizer> getPtr() {
+      return shared_from_this();
+    }
+
+    virtual void operator()(ExpressionGraph&, BatchPtr) = 0;
+};
+
+class Sgd : public Optimizer {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
@@ -27,7 +42,7 @@ class Sgd {
 };
 
 // @TODO: Add serialization for historic gradients and parameters
-class Adagrad {
+class Adagrad : public Optimizer {
   public:
     Adagrad(float eta=0.01, float eps=1e-8)
     : eta_(eta), eps_(eps) {}
@@ -58,7 +73,7 @@ class Adagrad {
 
 // @TODO: Add serialization for historic gradients and parameters
 // https://arxiv.org/pdf/1412.6980v8.pdf
-class Adam {
+class Adam : public Optimizer {
   public:
     Adam(float eta=0.001, float beta1=0.9, float beta2=0.999, float eps=1e-8)
     : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0) {}

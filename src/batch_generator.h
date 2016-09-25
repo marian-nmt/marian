@@ -150,12 +150,13 @@ class BatchGenerator {
     }
 
   public:
-    BatchGenerator(DataSet data,
+    BatchGenerator(DataSet &&data,
                    size_t batchSize=100,
                    size_t maxiBatchSize=1000)
-    : data_(data), current_(data_.begin()),
+    : data_(std::move(data)),
       batchSize_(batchSize),
       maxiBatchSize_(maxiBatchSize) {
+      current_ = data_.begin();
     }
 
     operator bool() const {

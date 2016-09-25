@@ -50,6 +50,52 @@ ExpressionGraph build_graph(const std::vector<int>& dims) {
   return g;
 };
 
+template <class DataSet>
+class Trainer {
+  private:
+    ExpressionGraph& g_;
+    std::shared_ptr<BatchGenerator<DataSet>> bg_;
+    std::shared_ptr<Optimizer> opt_;
+    size_t epochs_;
+
+  public:
+    Trainer(ExpressionGraph& g,
+            DataSet &&dataset,
+            Optimizer&& opt,
+            size_t batchSize,
+            size_t epochs)
+    : g_(g),
+      bg_(new BatchGenerator<DataSet>(std::move(dataset), batchSize)),
+      opt_(opt.getPtr()),
+      epochs_(epochs) {
+      run();
+    }
+
+    void run() {
+      boost::timer::cpu_timer trainTimer;
+      for(int epoch = 1; epoch <= epochs_; ++epoch) {
+        boost::timer::cpu_timer epochTimer;
+        bg_->prepare();
+
+        float cost = 0;
+        float totalExamples = 0;
+        while(bg_) {
+          BatchPtr batch = bg_->next();
+          (*opt_)(g_, batch);
+          cost += g_["cost"].val()[0] * batch->dim();
+          totalExamples += batch->dim();
+        }
+        cost = cost / totalExamples;
+
+        std::cerr << "Epoch: " << std::setw(std::to_string(epochs_).size())
+          << epoch << "/" << epochs_
+          << " - Cost: " << std::fixed << std::setprecision(4) << cost
+          << " - Time: " << epochTimer.format(3, "%ws")
+          << " - " << trainTimer.format(3, "%ws") << std::endl;
+      }
+    }
+};
+
 int main(int argc, char** argv) {
   ExpressionGraph g = build_graph({784, 2048, 2048, 10});
 
@@ -57,53 +103,11 @@ int main(int argc, char** argv) {
   viz << g.graphviz() << std::endl;
   viz.close();
 
-
-  const int BATCH_SIZE = 200;
-
-  BatchGenerator<MnistDataSet> bg(
-    {
-      "../examples/mnist/train-images-idx3-ubyte",
-      "../examples/mnist/train-labels-idx1-ubyte"
-    }, BATCH_SIZE);
-
-  Adam opt(0.0002);
-  for(int epoch = 1; epoch <= 50; ++epoch) {
-    boost::timer::cpu_timer total;
-    bg.prepare();
-
-    float cost = 0;
-    while(bg) {
-      BatchPtr batch = bg.next();
-      opt(g, batch);
-      cost += g["cost"].val()[0] / batch->dim();
-    }
-    std::cerr << epoch << " cost: " << cost << std::endl;
-    std::cerr << "Total: " << total.format(3, "%ws") << std::endl;
-  }
-
-  //TrainingIterator<MnistIterator> trainSet(
-  //  MnistIterator("../examples/mnist/train-images-idx3-ubyte",
-  //                "../examples/mnist/train-labels-idx1-ubyte"),
-  //  graph=g,
-  //  sgd=Adam(0.0002),
-  //  batch_size=BATCH_SIZE,
-  //  maxi_batch_size=10000,
-  //  epochs=50,
-  //  shuffle=true);
-  //
-  // trainSet.run();
-  //
-  //
-  //
-  //TestingIterator<MnistIterator> testSet(
-  //  MnistIterator("../examples/mnist/t10k-images-idx3-ubyte",
-  //                "../examples/mnist/t10k-labels-idx1-ubyte"),
-  //  graph=g,
-  //  batch_size=BATCH_SIZE,
-  //  metric=accuracy);
-  //
-  //while(testSet)
-  //  testSet++;
+  Trainer<MnistDataSet>(
+    g,
+    {"../examples/mnist/train-images-idx3-ubyte",
+    "../examples/mnist/train-labels-idx1-ubyte"},
+    Adam(0.0002), 200, 50);
 
   return 0;
 }
