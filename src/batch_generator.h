@@ -11,52 +11,6 @@ namespace marian {
 
 namespace data {
 
-typedef std::vector<float> Data;
-typedef std::shared_ptr<Data> DataPtr;
-
-typedef std::vector<DataPtr> Example;
-typedef std::shared_ptr<Example> ExamplePtr;
-
-typedef std::vector<ExamplePtr> Examples;
-
-class Input {
-  private:
-    Shape shape_;
-    DataPtr data_;
-
-  public:
-    typedef Data::iterator iterator;
-    typedef Data::const_iterator const_iterator;
-
-    Input(const Shape& shape)
-    : shape_(shape),
-      data_(new Data(shape_.totalSize(), 0.0f)) {}
-
-    Data::iterator begin() {
-      return data_->begin();
-    }
-
-    Data::iterator end() {
-      return data_->end();
-    }
-
-    Data::const_iterator begin() const {
-      return data_->cbegin();
-    }
-
-    Data::const_iterator end() const {
-      return data_->cend();
-    }
-
-    Shape shape() const {
-      return shape_;
-    }
-
-    size_t size() const {
-      return data_->size();
-    }
-};
-
 class Batch {
   private:
     std::vector<Input> inputs_;
@@ -158,9 +112,8 @@ class BatchGenerator {
                    size_t maxiBatchSize=1000)
     : data_(data),
       batchSize_(batchSize),
-      maxiBatchSize_(maxiBatchSize) {
-      current_ = data_->begin();
-    }
+      maxiBatchSize_(maxiBatchSize),
+      current_(data_->begin()) { }
 
     operator bool() const {
       return !bufferedBatches_.empty();

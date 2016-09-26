@@ -26,23 +26,63 @@
 namespace marian {
 namespace data {
 
-class ExampleIterator {
+typedef std::vector<float> Data;
+typedef std::shared_ptr<Data> DataPtr;
+
+typedef std::vector<DataPtr> Example;
+typedef std::shared_ptr<Example> ExamplePtr;
+
+typedef std::vector<ExamplePtr> Examples;
+
+class Input {
   private:
-    Example example_;
+    Shape shape_;
+    DataPtr data_;
 
-  ExampleIterator& operator++() {
-    return *this
-  };
+  public:
+    typedef Data::iterator iterator;
+    typedef Data::const_iterator const_iterator;
 
-  Example& operator*() {
-    return example_;
-  }
+    Input(const Shape& shape)
+    : shape_(shape),
+      data_(new Data(shape_.totalSize(), 0.0f)) {}
+
+    Data::iterator begin() {
+      return data_->begin();
+    }
+
+    Data::iterator end() {
+      return data_->end();
+    }
+
+    Data::const_iterator begin() const {
+      return data_->cbegin();
+    }
+
+    Data::const_iterator end() const {
+      return data_->cend();
+    }
+
+    Shape shape() const {
+      return shape_;
+    }
+
+    size_t size() const {
+      return data_->size();
+    }
 };
 
+typedef Examples::const_iterator ExampleIterator;
+
 class DataBase {
-  virtual ExampleIterator begin() const = 0;
-  virtual ExampleIterator end() const = 0;
-  virtual void shuffle() = 0;
+  public:
+    virtual ExampleIterator begin() const = 0;
+    virtual ExampleIterator end() const = 0;
+    virtual void shuffle() = 0;
+
+    virtual int dim(size_t i) {
+      return (*begin())->at(i)->size();
+    }
 };
 
 typedef std::shared_ptr<DataBase> DataBasePtr;

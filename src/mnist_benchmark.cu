@@ -10,7 +10,7 @@
 #include "batch_generator.h"
 #include "optimizers.h"
 #include "trainer.h"
-#include "models/mlp.h"
+#include "models/feedforward.h"
 
 using namespace marian;
 using namespace keywords;
@@ -19,20 +19,26 @@ using namespace models;
 
 int main(int argc, char** argv) {
 
-  auto mlp = FeedforwardClassifier({784, 2048, 2048, 10});
-  mlp.graphviz("mnist_benchmark.dot");
+  auto trainSet =
+    DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
+                   "../examples/mnist/train-labels-idx1-ubyte");
 
-  /*****************************************************/
+  auto ff =
+    FeedforwardClassifier({
+      trainSet->dim(0), 2048, 2048, trainSet->dim(1)
+    });
 
-  auto train = DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
-                              "../examples/mnist/train-labels-idx1-ubyte");
+  ff.graphviz("mnist_benchmark.dot");
 
-  Train(mlp, train,
-        optimizer=Optimizer<Adam>(0.0002),
-        batch_size=200,
-        max_epochs=50);
-
-  mlp.dump("mnist.mrn");
+  //auto trainer =
+  //  Run<Trainer>(ff, trainSet,
+  //               optimizer=Optimizer<Adam>(0.0002),
+  //               batch_size=200,
+  //               max_epochs=50);
+  //
+  //trainer->run();
+  //
+  //ff.dump("mnist.mrn");
 
   return 0;
 }

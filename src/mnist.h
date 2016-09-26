@@ -34,7 +34,7 @@
 namespace marian {
 namespace data {
 
-class MNIST : public DataInterface<MNIST> {
+class MNIST : public DataBase {
   private:
     const int IMAGE_MAGIC_NUMBER;
     const int LABEL_MAGIC_NUMBER;
@@ -42,7 +42,7 @@ class MNIST : public DataInterface<MNIST> {
     Examples examples_;
 
   public:
-    typedef Examples::const_iterator iterator;
+
 
     MNIST(const std::string& featuresPath,
           const std::string& labelsPath)
@@ -59,12 +59,12 @@ class MNIST : public DataInterface<MNIST> {
         examples_.emplace_back(new Example({ features[i], labels[i] }));
     }
 
-    iterator begin() const {
-      return examples_.begin();
+    ExampleIterator begin() const {
+      return ExampleIterator(examples_.begin());
     }
 
-    iterator end() const {
-      return examples_.end();
+    ExampleIterator end() const {
+      return ExampleIterator(examples_.end());
     }
 
     void shuffle() {

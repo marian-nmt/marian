@@ -73,7 +73,7 @@ class ExpressionGraph {
     /** @brief Constructs a new expression graph */
     ExpressionGraph() : stack_(new ChainableStack) {}
 
-    void setInputs(const Batch& batch) {
+    void setInputs(const data::Batch& batch) {
       auto& bInputs = batch.inputs();
       auto& gInputs = this->inputs();
 
@@ -87,7 +87,7 @@ class ExpressionGraph {
       }
     }
 
-    void inference(const Batch& batch) {
+    void inference(const data::Batch& batch) {
       setInputs(batch);
       for(auto&& v : *stack_) {
         v->allocate(batch.dim());
@@ -105,7 +105,7 @@ class ExpressionGraph {
      *
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
-    void backprop(const Batch& batch) {
+    void backprop(const data::Batch& batch) {
       setInputs(batch);
       forward(batch.dim());
       backward();
