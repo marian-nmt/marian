@@ -5,7 +5,11 @@
 
 #include <boost/timer/timer.hpp>
 
+#include "dataset.h"
+
 namespace marian {
+
+namespace data {
 
 typedef std::vector<float> Data;
 typedef std::shared_ptr<Data> DataPtr;
@@ -81,11 +85,10 @@ class Batch {
 
 typedef std::shared_ptr<Batch> BatchPtr;
 
-template <class DataSet>
 class BatchGenerator {
   private:
-    DataSet data_;
-    typename DataSet::iterator current_;
+    DataBasePtr data_;
+    ExampleIterator current_;
 
     size_t batchSize_;
     size_t maxiBatchSize_;
@@ -100,7 +103,7 @@ class BatchGenerator {
 
       std::priority_queue<ExamplePtr, Examples, decltype(cmp)> maxiBatch(cmp);
 
-      while(current_ != data_.end() && maxiBatch.size() < maxiBatchSize_) {
+      while(current_ != data_->end() && maxiBatch.size() < maxiBatchSize_) {
         maxiBatch.push(*current_);
         current_++;
       }
@@ -150,13 +153,13 @@ class BatchGenerator {
     }
 
   public:
-    BatchGenerator(DataSet& data,
+    BatchGenerator(DataBasePtr data,
                    size_t batchSize=100,
                    size_t maxiBatchSize=1000)
-    : data_(std::move(data)),
+    : data_(data),
       batchSize_(batchSize),
       maxiBatchSize_(maxiBatchSize) {
-      current_ = data_.begin();
+      current_ = data_->begin();
     }
 
     operator bool() const {
@@ -177,11 +180,13 @@ class BatchGenerator {
 
     void prepare() {
       //boost::timer::cpu_timer total;
-      data_.shuffle();
+      data_->shuffle();
       //std::cerr << "shuffle: " << total.format(5, "%ws") << std::endl;
-      current_ = data_.begin();
+      current_ = data_->begin();
       fillBatches();
     }
 };
+
+}
 
 }

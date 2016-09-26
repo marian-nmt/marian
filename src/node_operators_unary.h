@@ -112,7 +112,7 @@ struct DropoutNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   DropoutNodeOp(Args ...args)
   : UnaryNodeOp(args...),
-    allocated_(false), p_(Get<float>(keywords::value, 0.5)) {}
+    allocated_(false), p_(Get(keywords::value, 0.5)) {}
 
   ~DropoutNodeOp() {
     if(allocated_)

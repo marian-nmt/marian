@@ -28,12 +28,13 @@
 #include <cassert>
 #include <algorithm>
 
+#include "dataset.h"
 #include "batch_generator.h"
 
 namespace marian {
 namespace data {
 
-class MnistDataSet {
+class MNIST : public DataInterface<MNIST> {
   private:
     const int IMAGE_MAGIC_NUMBER;
     const int LABEL_MAGIC_NUMBER;
@@ -43,8 +44,8 @@ class MnistDataSet {
   public:
     typedef Examples::const_iterator iterator;
 
-    MnistDataSet(const std::string& featuresPath,
-                const std::string& labelsPath)
+    MNIST(const std::string& featuresPath,
+          const std::string& labelsPath)
     : IMAGE_MAGIC_NUMBER(2051),
       LABEL_MAGIC_NUMBER(2049)
     {

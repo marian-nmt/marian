@@ -11,12 +11,14 @@ namespace marian {
 // This will allow to perform a single large SGD update per batch. Currently there
 // are as many updates as different parameters.
 
-class Optimizer {
+class OptimizerBase {
   public:
     virtual void operator()(ExpressionGraph&, BatchPtr) = 0;
 };
 
-class Sgd : public Optimizer {
+typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
+
+class Sgd : public OptimizerBase {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
@@ -33,7 +35,7 @@ class Sgd : public Optimizer {
 };
 
 // @TODO: Add serialization for historic gradients and parameters
-class Adagrad : public Optimizer {
+class Adagrad : public OptimizerBase {
   public:
     Adagrad(float eta=0.01, float eps=1e-8)
     : eta_(eta), eps_(eps) {}
@@ -64,7 +66,7 @@ class Adagrad : public Optimizer {
 
 // @TODO: Add serialization for historic gradients and parameters
 // https://arxiv.org/pdf/1412.6980v8.pdf
-class Adam : public Optimizer {
+class Adam : public OptimizerBase {
   public:
     Adam(float eta=0.001, float beta1=0.9, float beta2=0.999, float eps=1e-8)
     : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0) {}
@@ -106,5 +108,10 @@ class Adam : public Optimizer {
     std::vector<Tensor> mt_;
     std::vector<Tensor> vt_;
 };
+
+template <class Algorithm, typename ...Args>
+OptimizerBasePtr Optimizer(Args ...args) {
+  return OptimizerBasePtr(new Algorithm(args...));
+}
 
 }

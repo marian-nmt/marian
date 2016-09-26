@@ -24,6 +24,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <memory>
 
 namespace marian {
   const size_t SHAPE_SIZE = 2;
@@ -82,6 +83,8 @@ namespace marian {
 
 namespace marian {
   class Tensor;
+  class OptimizerBase;
+  typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
 
   namespace keywords {
     KEY(axis, int)
@@ -91,6 +94,10 @@ namespace marian {
     KEY(lazy_shape, std::function<Shape()>)
     KEY(lazy_value, std::function<float()>)
     KEY(init, std::function<void(Tensor)>)
+
+    KEY(optimizer, OptimizerBasePtr)
+    KEY(batch_size, int)
+    KEY(max_epochs, int)
   }
 
 }

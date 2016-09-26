@@ -66,8 +66,8 @@ template <typename ...Args>
 inline Expr sum(Expr a, Args ...args) {
   using namespace keywords;
   Keywords params(args...);
-  int ax = params.Get<int>(axis, whatevs);
-  
+  int ax = params.Get(axis, whatevs);
+
   ChainPtr n = a.node();
   if(ax == 0) {
     auto lshape = [n]() -> Shape {
@@ -76,17 +76,17 @@ inline Expr sum(Expr a, Args ...args) {
     };
     Expr one = a.graph()->ones(shape={1, n->shape()[0]},
                     lazy_shape=lshape);
-    return dot(one, a);        
+    return dot(one, a);
   }
   else if(ax == 1) {
     auto lshape = [n]() -> Shape {
-      int cols = n->val().shape()[1]; 
+      int cols = n->val().shape()[1];
       //std::cerr << "Shape will be " << cols << " by 1." << std::endl;
       return {cols, 1};
     };
     Expr one = a.graph()->ones(shape={n->shape()[1], 1},
                         lazy_shape=lshape);
-    return dot(a, one);          
+    return dot(a, one);
   }
   else if(ax == 2) {
     UTIL_THROW2("Not implemented");
@@ -115,7 +115,7 @@ template <typename ...Args>
 inline Expr mean(Expr a, Args ...args) {
   using namespace keywords;
   Keywords params(args...);
-  size_t ax = params.Get<int>(axis, whatevs);
+  size_t ax = params.Get(axis, whatevs);
 
   ChainPtr n = a.node();
   switch (ax) {

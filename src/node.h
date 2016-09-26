@@ -33,9 +33,9 @@ class Node : public Chainable<Tensor>,
     template <typename ...Args>
     Node(Args ...args)
      : Keywords(args...),
-       shape_(Get<Shape>(keywords::shape, {1, 1})),
+       shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
-       name_(Get<std::string>(keywords::name, "none"))
+       name_(Get(keywords::name, "none"))
     { }
 
     virtual ~Node() {};
@@ -51,13 +51,13 @@ class Node : public Chainable<Tensor>,
 
       if(Has(keywords::lazy_shape)) {
         auto defaultShape = [this]() -> Shape { return shape_; };
-        shape_ = Get<std::function<Shape()>>(keywords::lazy_shape, defaultShape)();
+        shape_ = Get(keywords::lazy_shape, defaultShape)();
       }
       if(Has(keywords::lazy_value))
-        val_.allocate(shape_, Get<std::function<float()>>(
+        val_.allocate(shape_, Get(
           keywords::lazy_value, []()->Float{return 0.f;})());
       else if(Has(keywords::value))
-        val_.allocate(shape_, Get<Float>(keywords::value, 0));
+        val_.allocate(shape_, Get(keywords::value, 0));
       else
         val_.allocate(shape_);
     }
@@ -81,10 +81,12 @@ class Node : public Chainable<Tensor>,
     }
 
     virtual const Tensor &val()  {
+      //UTIL_THROW_IF2(!val_, "Tensor has not been allocated");
       return val_;
     };
 
     virtual Tensor grad() {
+      //UTIL_THROW_IF2(!adj_, "Tensor has not been allocated");
       return adj_;
     };
 

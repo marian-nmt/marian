@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 #include <map>
+#include <fstream>
 
 #include "definitions.h"
 #include "chainable.h"
@@ -185,6 +186,16 @@ class ExpressionGraph {
       }
       ss << "}" << std::endl;
       return ss.str();
+    }
+
+    void graphviz(const std::string& filename) {
+      std::ofstream dot(filename);
+      dot << graphviz();
+      dot.close();
+    }
+
+    void dump(const std::string& filename) {
+      std::cerr << "Saving not yet implemented" << std::endl;
     }
 
     /*********************************************************/
