@@ -26,22 +26,22 @@ namespace marian {
 
 Expr::Expr(ExpressionGraphPtr g, Chainable<Tensor>* chainable)
   : graph_(g), pimpl_(chainable) {
-  graph_->stack()->push_back(chainable);    
+  graph_->stack()->push_back(chainable);
 }
 
-const Tensor &Expr::val() {
+Tensor Expr::val() {
   return pimpl_->val();
 }
 
-void Expr::setVal(const Tensor &val) {
+void Expr::setVal(Tensor val) {
   pimpl_->setVal(val);
 }
 
-const Tensor &Expr::grad() {
+Tensor Expr::grad() {
   return pimpl_->grad();
 }
 
-void Expr::setGrad(const Tensor &grad) {
+void Expr::setGrad(Tensor grad) {
   pimpl_->setGrad(grad);
 }
 
@@ -52,7 +52,7 @@ ChainPtr Expr::node() {
 ExpressionGraphPtr Expr::graph() {
     return graph_;
 }
-  
+
 Expr::operator ChainPtr() {
   return pimpl_;
 }

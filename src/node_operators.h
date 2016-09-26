@@ -45,7 +45,7 @@ struct InputNode : public Node {
 
   void forward() {}
   void backward() {}
-  
+
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"circle\", label=" << label("input") << ", style=\"filled\", fillcolor=\"lawngreen\"]" << std::endl << std::endl;
@@ -78,7 +78,7 @@ struct ParamNode : public Node {
   template <typename ...Args>
   ParamNode(Args ...args)
   : Node(args...),
-    init_(Get<std::function<void(Tensor)>>(keywords::init, [](Tensor){ })),
+    init_(Get(keywords::init, [](Tensor){ })),
     initialized_(false)
   {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
@@ -100,7 +100,7 @@ struct ParamNode : public Node {
 
   void forward() {}
   void backward() {}
-  
+
   virtual void allocate(size_t batchSize) {
     val_.allocate(shape_);
     if(!initialized_) {
@@ -117,7 +117,7 @@ struct ParamNode : public Node {
     return ss.str();
   };
 
-  
+
   private:
     std::function<void(Tensor)> init_;
     bool initialized_;

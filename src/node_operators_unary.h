@@ -123,7 +123,7 @@ struct DropoutNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   DropoutNodeOp(Args ...args)
   : UnaryNodeOp(args...),
-    allocated_(false), p_(Get<float>(keywords::value, 0.5)) {}
+    allocated_(false), p_(Get(keywords::value, 0.5)) {}
 
   ~DropoutNodeOp() {
     if(allocated_)
@@ -234,7 +234,7 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 
   void forward() {
     // B = softmax(A).
-    Argmax(&val_, &a_->val());
+    //Argmax(&val_, &a_->val());
   }
 
   void backward() {

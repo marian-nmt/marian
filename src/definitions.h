@@ -24,42 +24,58 @@
 #include <vector>
 #include <string>
 #include <functional>
-
-#define SHAPE_SIZE 2
+#include <memory>
 
 namespace marian {
+  const size_t SHAPE_SIZE = 2;
+
   typedef float Float;
   const int whatevs{-1};
-  
+
   // POD for shape
   class Shape {
     private:
       int shape_[SHAPE_SIZE];
-      
+
     public:
       Shape() : shape_{1, 1} { }
-      
+
       Shape(std::initializer_list<int> il) {
        std::copy(il.begin(), il.end(), begin());
       }
-    
+
       int& operator[](int i) {
         return shape_[i];
       }
-      
+
       const int& operator[](int i) const {
         return shape_[i];
       }
-      
+
       size_t size() const {
         return SHAPE_SIZE;
       }
-      
+
+      size_t totalSize() const {
+        size_t s = 1;
+        for(int i = 0; i < size(); ++i)
+          s *= shape_[i];
+        return s;
+      }
+
       int* begin() { return shape_; }
       int* end() { return shape_ + SHAPE_SIZE; }
 
       const int* begin() const { return shape_; }
       const int* end() const { return shape_+ SHAPE_SIZE; }
+
+      bool operator==(const Shape& other) const {
+        return std::equal(begin(), end(), other.begin());
+      }
+
+      bool operator!=(const Shape& other) const {
+        return !(*this == other);
+      }
   };
 }
 
@@ -67,6 +83,8 @@ namespace marian {
 
 namespace marian {
   class Tensor;
+  class OptimizerBase;
+  typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
 
   namespace keywords {
     KEY(axis, int)
@@ -76,6 +94,10 @@ namespace marian {
     KEY(lazy_shape, std::function<Shape()>)
     KEY(lazy_value, std::function<float()>)
     KEY(init, std::function<void(Tensor)>)
+
+    KEY(optimizer, OptimizerBasePtr)
+    KEY(batch_size, int)
+    KEY(max_epochs, int)
   }
 
 }

@@ -36,7 +36,7 @@
 namespace marian {
 
 /**
- * @brief Debug shape by printing it. 
+ * @brief Debug shape by printing it.
  *
  * @param shape Shape of Tensor.
  *
@@ -44,17 +44,17 @@ namespace marian {
  */
 inline std::string Debug(const Shape &shape)
 {
-	std::stringstream strm;
-	strm << shape[0];
-	assert(shape.size());
-	for (size_t i = 1; i < shape.size(); ++i) {
-		strm << "x" << shape[i];
-	}
-	return strm.str();
+    std::stringstream strm;
+    strm << shape[0];
+    assert(shape.size());
+    for (size_t i = 1; i < shape.size(); ++i) {
+        strm << "x" << shape[i];
+    }
+    return strm.str();
 }
 
 /**
- * @brief Calculate the vector size based on Tensor shape. 
+ * @brief Calculate the vector size based on Tensor shape.
  *
  * @param shape Shape of Tensor.
  *
@@ -62,13 +62,13 @@ inline std::string Debug(const Shape &shape)
  */
 inline size_t GetTotalSize(const Shape &shape)
 {
-	size_t ret = std::accumulate(shape.begin(), shape.end(),
-			  1, std::multiplies<int>());
-	return ret;
+    size_t ret = std::accumulate(shape.begin(), shape.end(),
+              1, std::multiplies<int>());
+    return ret;
 }
 
 /**
- * @brief This class manages the Tensor on the GPU. 
+ * @brief This class manages the Tensor on the GPU.
  *
  * @tparam Float Data type.
  */
@@ -79,9 +79,9 @@ class TensorImpl {
     thrust::device_vector<Float> data_; /*< Vector of data that Tensor is managing on GPU. */
     size_t tno_; /*< Tensor number */
     static size_t tensorCounter; /*< Static counter of created Tensors */
-	
-	// cuDNN stuff
-	cudnnTensorDescriptor_t cudnnDesc_;
+
+    // cuDNN stuff
+    cudnnTensorDescriptor_t cudnnDesc_;
 
   public:
     typedef Float value_type; /*< Tensor value type */
@@ -105,20 +105,20 @@ class TensorImpl {
 
       int size = GetTotalSize(shape_);
       data_.resize(size, value);
-	  
-	  cudnnCreateTensorDescriptor(&cudnnDesc_);
-	  cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
-								   shape_[0], shape_[1], 1, 1,
-								   shape_[1], 1, 1, 1);
+
+      cudnnCreateTensorDescriptor(&cudnnDesc_);
+      cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
+                                   shape_[0], shape_[1], 1, 1,
+                                   shape_[1], 1, 1, 1);
     }
 
     TensorImpl(const TensorImpl&) = delete;
     TensorImpl(TensorImpl&&) = delete;
 
-	~TensorImpl() {
-		cudnnDestroyTensorDescriptor(cudnnDesc_);
-	}
-	
+    ~TensorImpl() {
+        cudnnDestroyTensorDescriptor(cudnnDesc_);
+    }
+
     /**
      * @brief Get the i-th element of Tensor vector.
      *
@@ -171,7 +171,7 @@ class TensorImpl {
      *
      * @return Shape of Tensor
      */
-	__host__ __device__
+    __host__ __device__
     const Shape& shape() const {
         return shape_;
     }
@@ -219,7 +219,7 @@ class TensorImpl {
      * @param end End iterator of a vector.
      */
     void set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end) {
-	  thrust::copy(begin, end, data_.begin());
+      thrust::copy(begin, end, data_.begin());
     }
 
     /**
@@ -228,9 +228,9 @@ class TensorImpl {
      * @param out Vector to copy data to.
      */
     void get(std::vector<float>::iterator out) const {
-	  thrust::copy(data_.begin(), data_.end(), out);      
+      thrust::copy(data_.begin(), data_.end(), out);
     }
-    
+
     /**
      * @brief Debug function.
      *
@@ -238,30 +238,30 @@ class TensorImpl {
      */
     std::string Debug() const
     {
-    	std::stringstream strm;
-    	assert(shape_.size());
-    	strm << "shape=" << marian::Debug(shape_) << std::endl;
+        std::stringstream strm;
+        assert(shape_.size());
+        strm << "shape=" << marian::Debug(shape_) << std::endl;
 
-    	// values
-    	size_t totSize = GetTotalSize(shape());
-    	std::vector<Float> values(totSize);
-		thrust::copy(data_.begin(), data_.end(), values.begin());
+        // values
+        size_t totSize = GetTotalSize(shape());
+        std::vector<Float> values(totSize);
+        thrust::copy(data_.begin(), data_.end(), values.begin());
 
-		size_t ind = 0;
-		for (size_t i = 0; i < shape()[0]; ++i) {
-			for (size_t j = 0; j < shape()[1]; ++j) {
-				strm << values[ind] << " ";
-				++ind;
-			}
-			strm << std::endl;
-		}
-    	return strm.str();
+        size_t ind = 0;
+        for (size_t i = 0; i < shape()[0]; ++i) {
+            for (size_t j = 0; j < shape()[1]; ++j) {
+                strm << values[ind] << " ";
+                ++ind;
+            }
+            strm << std::endl;
+        }
+        return strm.str();
     }
-	
-	cudnnTensorDescriptor_t cudnn() {
-		return cudnnDesc_;
-	}
-	
+
+    cudnnTensorDescriptor_t cudnn() {
+        return cudnnDesc_;
+    }
+
 };
 
 
@@ -289,7 +289,7 @@ class Tensor {
 
      * @brief Constructor that allocates memory.
      *
-     * @param shape Shape of Tensor. 
+     * @param shape Shape of Tensor.
      * @param value Value to fill Tensor's vector with.
      */
     Tensor(const Shape& shape, value_type value = 0) {
@@ -308,7 +308,7 @@ class Tensor {
      * @param value Value to fill Tensor's vector with.
      */
     void allocate(const Shape& shape, value_type value = 0) {
-      if(!pimpl_)
+      if(!pimpl_ or pimpl_->shape() != shape)
         pimpl_.reset(new TensorImpl<Float>(shape, value));
     }
 
@@ -320,6 +320,7 @@ class Tensor {
      * @return Value of specified element of Tensor.
      */
     value_type operator[](size_t i) const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return (*pimpl_)[i];
     }
 
@@ -329,6 +330,7 @@ class Tensor {
      * @return Size of Tensor vector.
      */
     size_t size() const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->size();
     }
 
@@ -338,6 +340,7 @@ class Tensor {
      * @return Pointer to GPU Tensor's data.
      */
     value_type* data() {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->data();
     }
 
@@ -347,15 +350,17 @@ class Tensor {
      * @return Pointer to GPU Tensor's data.
      */
     const value_type* data() const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->data();
     }
-	
+
    /**
     * @brief Get begin iterator of GPU Tensor's vector.
     *
     * @return Vector begin iterator.
     */
     auto begin() -> decltype( pimpl_->begin() ) {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->begin();
     }
 
@@ -365,6 +370,7 @@ class Tensor {
     * @return Vector begin iterator (const)
     */
     auto begin() const -> decltype( pimpl_->begin() ) {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->begin();
     }
 
@@ -374,6 +380,7 @@ class Tensor {
     * @return Vector end iterator
     */
     auto end() -> decltype( pimpl_->end() ) {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->end();
     }
 
@@ -383,6 +390,7 @@ class Tensor {
     * @return Vector end iterator (const)
     */
     auto end() const -> decltype( pimpl_->end() ) {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->end();
     }
 
@@ -391,8 +399,8 @@ class Tensor {
      *
      * @return Tensor's shape.
      */
-	__host__ __device__
     const Shape& shape() const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->shape();
     }
 
@@ -402,6 +410,7 @@ class Tensor {
      * @param value Value to fill Tensor with.
      */
     void set(value_type value) {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       pimpl_->set(value);
     }
 
@@ -411,6 +420,7 @@ class Tensor {
      * @return Tensor id.
      */
     size_t id() const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       return pimpl_->id();
     }
 
@@ -430,16 +440,16 @@ class Tensor {
      */
     std::string Debug() const
     {
-    	if (!pimpl_) {
-    		return "Not yet set";
-    	}
-    	else {
-    		return pimpl_->Debug();
-    	}
+        if (!pimpl_) {
+            return "Not yet set";
+        }
+        else {
+            return pimpl_->Debug();
+        }
     }
 
     //void Load(const std::string &path);
-    
+
     /**
      * @brief Set GPU Tensor's vector to values of specified vector.
      *
@@ -460,15 +470,17 @@ class Tensor {
      * @param out Vector iterator used in copying.
      */
     void get(std::vector<float>::iterator out) const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       pimpl_->get(out);
     }
-    
+
     /**
      * @brief Copy Tensor's vector from GPU to vector variable on CPU.
      *
      * @param out Vector to copy data to.
      */
     void get(std::vector<float> &vout) const {
+      UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
       vout.resize(size());
       pimpl_->get(vout.begin());
     }
@@ -479,42 +491,42 @@ class Tensor {
 
     void sum(Tensor &out, size_t ind);
 
-	class TensorView {
-	  private:
-		float* data_;
-		int rows_;
-		int cols_;
-	  
-	  public:
-		TensorView(Tensor t)
-		: data_(t.data()), rows_(t.shape()[0]), cols_(t.shape()[1]) {}
-		
-		__device__ float& operator()(int i, int j) {
-		  if(rows_ != 1 && cols_ != 1)
-			return data_[i * cols_ + j];
-		  if(rows_ != 1 && cols_ == 1)
-			return data_[i];
-		  if(rows_ == 1 && cols_ != 1)
-			return data_[j];
-		  return data_[0];
-		}
-		
-		__device__ int rows() {
-		  return rows_;
-		}
-		
-		__device__ int cols() {
-		  return cols_;
-		}
-	};
-	
-	TensorView gpu() {
-	  return TensorView(*this);
-	}
-	
-	cudnnTensorDescriptor_t cudnn() {
-		return pimpl_->cudnn();
-	}
+    class TensorView {
+      private:
+        float* data_;
+        int rows_;
+        int cols_;
+
+      public:
+        TensorView(Tensor t)
+        : data_(t.data()), rows_(t.shape()[0]), cols_(t.shape()[1]) {}
+
+        __device__ float& operator()(int i, int j) {
+          if(rows_ != 1 && cols_ != 1)
+            return data_[i * cols_ + j];
+          if(rows_ != 1 && cols_ == 1)
+            return data_[i];
+          if(rows_ == 1 && cols_ != 1)
+            return data_[j];
+          return data_[0];
+        }
+
+        __device__ int rows() {
+          return rows_;
+        }
+
+        __device__ int cols() {
+          return cols_;
+        }
+    };
+
+    TensorView gpu() {
+      return TensorView(*this);
+    }
+
+    cudnnTensorDescriptor_t cudnn() {
+        return pimpl_->cudnn();
+    }
 };
 
 /**

@@ -43,11 +43,13 @@ void gSum(float *d, size_t size, float &total) {
 
 void Tensor::set(const std::vector<float>& data)
 {
+	UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
 	pimpl_->set(data.begin(), data.end());
 }
 
 void Tensor::set(const std::vector<float>::const_iterator &begin, const std::vector<float>::const_iterator &end)
 {
+	UTIL_THROW_IF2(!pimpl_, "Tensor has not been allocated");
 	pimpl_->set(begin, end);
 }
 
@@ -92,4 +94,3 @@ void Tensor::sum(Tensor &out, size_t ind) {
 }
 
 }
-
