@@ -46,12 +46,12 @@ struct Chainable {
     virtual void set_name(const std::string&) = 0;
     virtual const std::string &name() const = 0;
     virtual const std::string label(const std::string& type) = 0;
-    
+
     virtual const Shape& shape() = 0;
-    virtual const DataType &val() = 0;
+    virtual const DataType val() = 0;
     virtual DataType grad() = 0;
     virtual void setVal(DataType t) {
-      UTIL_THROW2("Tensors can only be assigned to input and parameter nodes"); 
+      UTIL_THROW2("Tensors can only be assigned to input and parameter nodes");
     };
 };
 
@@ -62,7 +62,7 @@ struct Chainable {
 //     Naumann (2012) uses "tape" to refer to this data structure.
 //     -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
 typedef std::vector<Chainable<Tensor>*> ChainableStack;
-typedef std::shared_ptr<ChainableStack> ChainableStackPtr;    
+typedef std::shared_ptr<ChainableStack> ChainableStackPtr;
 typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
 
 

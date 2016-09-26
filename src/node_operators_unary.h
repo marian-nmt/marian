@@ -223,7 +223,7 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 
   void forward() {
     // B = softmax(A).
-    Argmax(&val_, &a_->val());
+    //Argmax(&val_, &a_->val());
   }
 
   void backward() {

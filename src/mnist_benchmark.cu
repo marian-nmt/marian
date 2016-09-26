@@ -22,23 +22,31 @@ int main(int argc, char** argv) {
   auto trainSet =
     DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
                    "../examples/mnist/train-labels-idx1-ubyte");
-
+    
   auto ff =
     FeedforwardClassifier({
       trainSet->dim(0), 2048, 2048, trainSet->dim(1)
     });
 
-  ff.graphviz("mnist_benchmark.dot");
+  ff->graphviz("mnist_benchmark.dot");
 
-  //auto trainer =
-  //  Run<Trainer>(ff, trainSet,
-  //               optimizer=Optimizer<Adam>(0.0002),
-  //               batch_size=200,
-  //               max_epochs=50);
-  //
-  //trainer->run();
-  //
-  //ff.dump("mnist.mrn");
+  auto trainer =
+    Run<Trainer>(ff, trainSet,
+                 optimizer=Optimizer<Adam>(0.0002),
+                 batch_size=200,
+                 max_epochs=50);
+  trainer->run();
+
+  auto testSet =
+    DataSet<MNIST>("../examples/mnist/t10k-images-idx3-ubyte",
+                   "../examples/mnist/t10k-labels-idx1-ubyte");
+
+  auto validator =
+    Run<Validator>(ff, testSet,
+                   batch_size=200);
+  validator->run();
+
+  ff->dump("mnist.mrn");
 
   return 0;
 }

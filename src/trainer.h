@@ -22,17 +22,17 @@ typedef std::shared_ptr<RunBase> RunBasePtr;
 class Trainer : public RunBase,
                 public keywords::Keywords {
   private:
-    ExpressionGraph& graph_;
+    ExpressionGraphPtr graph_;
     data::DataBasePtr dataset_;
 
   public:
     template <typename ...Args>
-    Trainer(ExpressionGraph& graph,
+    Trainer(ExpressionGraphPtr graph,
             data::DataBasePtr dataset,
             Args... args)
      : Keywords(args...),
        graph_(graph),
-       dataset_(dataset_)
+       dataset_(dataset)
     {}
 
     void run() {
@@ -55,7 +55,7 @@ class Trainer : public RunBase,
           while(bg) {
             BatchPtr batch = bg.next();
             (*opt)(graph_, batch);
-            cost += graph_["cost"].val()[0] * batch->dim();
+            cost += (*graph_)["cost"].val()[0] * batch->dim();
             totalExamples += batch->dim();
             update++;
           }
@@ -70,8 +70,66 @@ class Trainer : public RunBase,
     }
 };
 
+class Validator : public RunBase,
+                public keywords::Keywords {
+  private:
+    ExpressionGraphPtr graph_;
+    data::DataBasePtr dataset_;
+
+    float correct(const std::vector<float> pred, const std::vector<float> labels) {
+      size_t acc = 0;
+      for (size_t i = 0; i < labels.size(); i += 10) {
+        size_t correct = 0;
+        size_t proposed = 0;
+        for (size_t j = 0; j < 10; ++j) {
+          if (labels[i + j])
+            correct = j;
+          if (pred[i + j] > pred[i + proposed])
+            proposed = j;
+        }
+        acc += (correct == proposed);
+      }
+      return (float)acc;
+    }
+
+  public:
+    template <typename ...Args>
+    Validator(ExpressionGraphPtr graph,
+              data::DataBasePtr dataset,
+              Args... args)
+     : Keywords(args...),
+       graph_(graph),
+       dataset_(dataset)
+    {}
+
+    void run() {
+        using namespace data;
+        using namespace keywords;
+
+        auto batchSize = Get(batch_size, 200);
+        BatchGenerator bg(dataset_, batchSize);
+
+        size_t update = 0;
+        bg.prepare();
+
+        float total = 0;
+        float cor = 0;
+        while(bg) {
+            BatchPtr batch = bg.next();
+            graph_->inference(batch);
+            std::vector<float> scores;
+            scores << (*graph_)["scores"].val();
+
+            cor += correct(scores, batch->inputs()[1].data());
+            total += batch->dim();
+            update++;
+        }
+        std::cerr << "Accuracy: " << cor / total << std::endl;
+    }
+};
+
 template <class Process, typename ...Args>
-RunBasePtr Run(Args ...args) {
+RunBasePtr Run(Args&& ...args) {
   return RunBasePtr(new Process(args...));
 }
 

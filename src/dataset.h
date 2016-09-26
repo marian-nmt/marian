@@ -63,6 +63,10 @@ class Input {
       return data_->cend();
     }
 
+    Data& data() {
+      return *data_;
+    }
+
     Shape shape() const {
       return shape_;
     }
@@ -88,7 +92,7 @@ class DataBase {
 typedef std::shared_ptr<DataBase> DataBasePtr;
 
 template <class Set, typename ...Args>
-DataBasePtr DataSet(Args ...args) {
+DataBasePtr DataSet(Args&& ...args) {
   return DataBasePtr(new Set(args...));
 }
 

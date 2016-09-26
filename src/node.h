@@ -80,7 +80,7 @@ class Node : public Chainable<Tensor>,
       }
     }
 
-    virtual const Tensor &val()  {
+    virtual const Tensor val()  {
       //UTIL_THROW_IF2(!val_, "Tensor has not been allocated");
       return val_;
     };
@@ -134,6 +134,7 @@ class Node : public Chainable<Tensor>,
 			  Tensor grad,
 			  const std::vector<float> &prevCalcGrad
 			  );
+
 	void broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec);
 	float L2Norm(const std::vector<float> &vec) const;
 

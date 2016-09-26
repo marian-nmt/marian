@@ -5,7 +5,7 @@
 namespace marian {
 namespace models {
 
-ExpressionGraph FeedforwardClassifier(const std::vector<int>& dims) {
+ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   using namespace keywords;
   std::cerr << "Building Multi-layer Feedforward network" << std::endl;
   std::cerr << "\tLayer dimensions:";
@@ -14,9 +14,9 @@ ExpressionGraph FeedforwardClassifier(const std::vector<int>& dims) {
   std::cerr << std::endl;
   boost::timer::cpu_timer timer;
 
-  ExpressionGraph g;
-  auto x = named(g.input(shape={whatevs, dims.front()}), "x");
-  auto y = named(g.input(shape={whatevs, dims.back()}), "y");
+  ExpressionGraphPtr g(new ExpressionGraph());
+  auto x = named(g->input(shape={whatevs, dims.front()}), "x");
+  auto y = named(g->input(shape={whatevs, dims.back()}), "y");
 
   std::vector<Expr> layers, weights, biases;
   for(int i = 0; i < dims.size()-1; ++i) {
@@ -30,9 +30,9 @@ ExpressionGraph FeedforwardClassifier(const std::vector<int>& dims) {
                                   value=0.5));
 
     weights.emplace_back(
-      named(g.param(shape={in, out}, init=uniform()), "W" + std::to_string(i)));
+      named(g->param(shape={in, out}, init=uniform()), "W" + std::to_string(i)));
     biases.emplace_back(
-      named(g.param(shape={1, out}, init=zeros), "b" + std::to_string(i)));
+      named(g->param(shape={1, out}, init=zeros), "b" + std::to_string(i)));
   }
 
   auto scores = named(dot(layers.back(), weights.back()) + biases.back(),
