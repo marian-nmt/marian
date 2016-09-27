@@ -7,8 +7,6 @@
 
 #include "marian.h"
 #include "mnist.h"
-#include "batch_generator.h"
-#include "optimizers.h"
 #include "trainer.h"
 #include "models/feedforward.h"
 
@@ -22,7 +20,10 @@ int main(int argc, char** argv) {
   auto trainSet =
     DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
                    "../examples/mnist/train-labels-idx1-ubyte");
-    
+  auto validSet =
+    DataSet<MNIST>("../examples/mnist/t10k-images-idx3-ubyte",
+                   "../examples/mnist/t10k-labels-idx1-ubyte");
+
   auto ff =
     FeedforwardClassifier({
       trainSet->dim(0), 2048, 2048, trainSet->dim(1)
@@ -30,21 +31,17 @@ int main(int argc, char** argv) {
 
   ff->graphviz("mnist_benchmark.dot");
 
+  auto validator =
+    Run<Validator>(ff, validSet,
+                   batch_size=200);
+
   auto trainer =
     Run<Trainer>(ff, trainSet,
                  optimizer=Optimizer<Adam>(0.0002),
+                 valid=validator,
                  batch_size=200,
                  max_epochs=50);
   trainer->run();
-
-  auto testSet =
-    DataSet<MNIST>("../examples/mnist/t10k-images-idx3-ubyte",
-                   "../examples/mnist/t10k-labels-idx1-ubyte");
-
-  auto validator =
-    Run<Validator>(ff, testSet,
-                   batch_size=200);
-  validator->run();
 
   ff->dump("mnist.mrn");
 

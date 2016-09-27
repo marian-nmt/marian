@@ -45,6 +45,8 @@ class Trainer : public RunBase,
         auto maxEpochs = Get(max_epochs, 50);
         BatchGenerator bg(dataset_, batchSize);
 
+        auto validator = Get(valid, RunBasePtr());
+
         size_t update = 0;
         for(int epoch = 1; epoch <= maxEpochs; ++epoch) {
           boost::timer::cpu_timer epochTimer;
@@ -54,7 +56,7 @@ class Trainer : public RunBase,
           float totalExamples = 0;
           while(bg) {
             BatchPtr batch = bg.next();
-            (*opt)(graph_, batch);
+            opt->update(graph_, batch);
             cost += (*graph_)["cost"].val()[0] * batch->dim();
             totalExamples += batch->dim();
             update++;
@@ -66,6 +68,9 @@ class Trainer : public RunBase,
             << " - Cost: " << std::fixed << std::setprecision(4) << cost
             << " - Time: " << epochTimer.format(2, "%ws")
             << " - " << trainTimer.format(0, "%ws") << std::endl;
+
+          if(validator)
+            validator->run();
         }
     }
 };

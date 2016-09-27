@@ -83,8 +83,12 @@ namespace marian {
 
 namespace marian {
   class Tensor;
+
   class OptimizerBase;
   typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
+
+  class RunBase;
+  typedef std::shared_ptr<RunBase> RunBasePtr;
 
   namespace keywords {
     KEY(axis, int)
@@ -98,6 +102,7 @@ namespace marian {
     KEY(optimizer, OptimizerBasePtr)
     KEY(batch_size, int)
     KEY(max_epochs, int)
+    KEY(valid, RunBasePtr)
   }
 
 }
