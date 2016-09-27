@@ -5,6 +5,11 @@
 namespace marian {
 namespace models {
 
+/**
+ * @brief Constructs an expression graph representing a feed-forward classifier.
+ *
+ * @return an expression graph representing a feed-forward classifier
+ */
 ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   using namespace keywords;
   std::cerr << "Building Multi-layer Feedforward network" << std::endl;
