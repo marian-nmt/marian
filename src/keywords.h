@@ -36,14 +36,14 @@ namespace keywords {
     public:
       typedef Value value_type;
 
-      Keyword(const std::string& name, Value value)
-      : name_(name), value_(value) {}
+      Keyword(Value value)
+      : value_(value) {}
 
-      Keyword(const std::string& name)
-      : name_(name), value_() {}
+      Keyword()
+      : value_() {}
 
       Keyword<key, Value> operator=(Value value) const {
-        return Keyword<key, Value>(name_, value);
+        return Keyword<key, Value>(value);
       }
 
       const Value& operator()() const {
@@ -55,7 +55,6 @@ namespace keywords {
       }
 
     private:
-      const std::string name_;
       const Value value_;
   };
 
@@ -159,7 +158,7 @@ namespace keywords {
 
 #define KEY(name, value_type) \
 typedef const Keyword<COMPILE_TIME_CRC32_STR(#name),value_type> name ## _k; \
-name ## _k name(#name);
+name ## _k name;
 
 }
 

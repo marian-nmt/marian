@@ -4,7 +4,7 @@
 #include "expression_graph.h"
 #include "keywords.h"
 #include "definitions.h"
-
+#include "batch_generator.h"
 
 float Rand()
 {
@@ -19,6 +19,7 @@ int main(int argc, char** argv)
   using namespace std;
   using namespace marian;
   using namespace keywords;
+  using namespace data;
 
   int input_size = 30;
   int output_size = 30;
@@ -58,32 +59,22 @@ int main(int argc, char** argv)
 
   // create data
   srand(0);
-  //srand(time(NULL));
-  std::vector<float> values(batch_size * input_size);
-  generate(begin(values), end(values), Rand);
 
-  std::vector<float> labels(batch_size * input_size);
+  BatchPtr batch(new data::Batch());
+
+  Input values1({batch_size, input_size});
+  Input labels({batch_size, input_size});
+  Input values2({batch_size, input_size});
+
+  generate(begin(values1), end(values1), Rand);
   generate(begin(labels), end(labels), Rand);
-
-  Tensor inTensor({batch_size, input_size});
-  thrust::copy(values.begin(), values.end(), inTensor.begin());
-
-  Tensor labelTensor({batch_size, input_size});
-  thrust::copy(labels.begin(), labels.end(), labelTensor.begin());
-
-  inExpr = inTensor;
-  labelExpr = labelTensor;
-
-  // for binary expressions
-  std::vector<float> values2(batch_size * input_size);
   generate(begin(values2), end(values2), Rand);
-  Tensor inTensor2({batch_size, input_size});
-  thrust::copy(values2.begin(), values2.end(), inTensor2.begin());
 
-  inExpr2 = inTensor2;
+  batch->push_back(values1);
+  batch->push_back(labels);
+  batch->push_back(values2);
 
-  // train
-  g.forward(batch_size);
+  g.forward(batch);
   //g.backward();
   g.backward_debug(0.001);
 

@@ -90,16 +90,6 @@ class ExpressionGraph {
       }
     }
 
-    void inference(data::BatchPtr batch) {
-      setInputs(batch);
-      for(auto&& v : *stack_) {
-        v->allocate(batch->dim());
-      }
-      for(auto&& v : *stack_)
-        v->inference();
-    }
-
-
     /**
      * @brief Performs backpropogation on this expression graph.
      *
@@ -109,8 +99,7 @@ class ExpressionGraph {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
     void backprop(data::BatchPtr batch) {
-      setInputs(batch);
-      forward(batch->dim());
+      forward(batch);
       backward();
     }
 
@@ -129,13 +118,26 @@ class ExpressionGraph {
      *
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
-    void forward(size_t batchSize) {
-      for(auto&& v : *stack_) {
-        v->allocate(batchSize);
-      }
+    void forward(data::BatchPtr batch) {
+      for(auto&& v : *stack_)
+        v->allocate(batch->dim());
+
+      setInputs(batch);
+
       for(auto&& v : *stack_)
         v->forward();
     }
+
+    void inference(data::BatchPtr batch) {
+      for(auto&& v : *stack_)
+        v->allocate(batch->dim());
+
+      setInputs(batch);
+
+      for(auto&& v : *stack_)
+        v->inference();
+    }
+
 
     /**
      * @brief Perform the backward pass of algorithmic differentiation (AD) on this graph.
