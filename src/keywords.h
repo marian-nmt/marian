@@ -31,6 +31,26 @@
 namespace marian {
 namespace keywords {
 
+  /**
+   * @brief Represents a named keyword capable of storing a single value.
+   *
+   * This class is used to emulate <a href="https://en.wikipedia.org/wiki/Named_parameter">keyword arguments to functions</a>, 
+   *    such as those <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">found in Python</code>.
+   *
+   * It is expected that users of this class will not explicitly create instances of this class.
+   *
+   * Rather, it is expected that users will use the #KEY(name, value_type) macro.
+   *
+   * For example, the invocation <code>KEY(batch_size, int)</code> will construct a new instance of this class 
+   *   called <code>batch_size</code> whose <code>value_type</code> is <code>int</code>.
+   *
+   * Now assume a function called <code>foo()</code> that requires a single Keyword as its parameter.
+   *
+   * <code>foo(batch_size=200)</code>
+   *
+   * This code fragment causes an invocation of this class's operator= method, 
+   *   which returns a new instance of the Keyword class. This new instance will have a value of 200.
+   */
   template <unsigned key, typename Value>
   class Keyword {
     public:
@@ -156,6 +176,20 @@ namespace keywords {
 
   };
 
+/** 
+ * \def KEY(name, value_type)
+ * 
+ * @brief Defines a preprocessor macro that can be used to construct an appropriately templated instance of the <code>Keyword</code> class.
+ *
+ * @param name       This preprocessor argument specifies the variable name of constructed keyword instance 
+ * @param value_type This preprocessor argument specifies the type of the value to be stored in the keyword instance
+ *
+ * For example, the invocation <code>KEY(axis, int)</code> is equivalent to the following:
+ *
+ *     Keyword<23423, int> axis;
+ *
+ * Where 23423 is the hypothetical hash code returned at compile time by COMPILE_TIME_CRC32_STR("axis")
+ */
 #define KEY(name, value_type) \
 typedef const Keyword<COMPILE_TIME_CRC32_STR(#name),value_type> name ## _k; \
 name ## _k name;

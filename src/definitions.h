@@ -154,7 +154,8 @@ namespace marian {
 
   // Define a set of keywords.
   //
-  // Each 
+  // Each invocation of the <code>KEY()</code> macro below
+  //    will result in the creation of an instance of the <code>Keyword</code> class.
   namespace keywords {
     KEY(axis, int)
     KEY(name, std::string)
