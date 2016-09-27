@@ -16,6 +16,7 @@ LoaderPtr LoaderFactory::Create(const std::string& name,
 		return LoaderPtr(loader);
 	}
 
+
 	loader = CreateCPU(name, config);
 	if (loader) {
 		return LoaderPtr(loader);
