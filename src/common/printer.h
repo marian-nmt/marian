@@ -7,15 +7,20 @@ template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
   std::string best = God::GetTargetVocab()(history.Top().first);
   LOG(progress) << "Best translation: " << best;
-    
+
   if(God::Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = God::GetScorerNames();
     const NBestList &nbl = history.NBest(God::Get<size_t>("beam-size"));
+    if(God::Get<bool>("wipo")) {
+      out << "OUT: " << nbl.size() << std::endl;
+    }
     for(size_t i = 0; i < nbl.size(); ++i) {
       const Result& result = nbl[i];
       const Words &words = result.first;
       const HypothesisPtr &hypo = result.second;
 
+      if(God::Get<bool>("wipo"))
+        out << "OUT: ";
       out << lineNo << " ||| " << God::GetTargetVocab()(words) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];

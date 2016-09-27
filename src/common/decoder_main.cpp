@@ -27,41 +27,51 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
     search.reset(new Search(taskCounter));
   }
 #endif
-  
-  return search->Decode(Sentence(taskCounter, in));  
+
+  return search->Decode(Sentence(taskCounter, in));
 }
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
+  std::setvbuf(stdout, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
-  
+
   std::string in;
   std::size_t taskCounter = 0;
-  
+
   size_t threadCount = God::Get<size_t>("threads-per-device")
                        * God::Get<std::vector<size_t>>("devices").size();
-  LOG(info) << "Setting number of threads to " << threadCount;
-  ThreadPool pool(threadCount);
-  std::vector<std::future<History>> results;
-  
-  LOG(info) << "Reading input";
-  while(std::getline(God::GetInputStream(), in)) {
-    
-    results.emplace_back(
-      pool.enqueue(
-        [=]{ return TranslationTask(in, taskCounter); }
-      )
-    );
-    
-    taskCounter++;
-  }
-  
-  size_t lineCounter = 0;
-  for(auto&& result : results)
-    Printer(result.get(), lineCounter++, std::cout);
 
+  if(God::Get<bool>("wipo")) {
+    LOG(info) << "Reading input";
+    while(std::getline(God::GetInputStream(), in)) {
+      History result = TranslationTask(in, taskCounter);
+      Printer(result, taskCounter++, std::cout);
+    }
+  }
+  else {
+    LOG(info) << "Setting number of threads to " << threadCount;
+    ThreadPool pool(threadCount);
+    LOG(info) << "Reading input";
+    std::vector<std::future<History>> results;
+
+    while(std::getline(God::GetInputStream(), in)) {
+
+      results.emplace_back(
+        pool.enqueue(
+          [=]{ return TranslationTask(in, taskCounter); }
+        )
+      );
+
+      taskCounter++;
+    }
+
+    size_t lineCounter = 0;
+    for(auto&& result : results)
+      Printer(result.get(), lineCounter++, std::cout);
+  }
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
-  
+
   return 0;
 }
