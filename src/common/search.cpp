@@ -91,7 +91,7 @@ History Search::Decode(const Sentence& sentence) {
 	<< ": Search took " << timer.format(3, "%ws");
 
   const State &nextState = *nextStates[0];
-  cerr << "last=" << nextState.Debug() << endl;
+  //cerr << "last=" << nextState.Debug() << endl;
 
   for(size_t i = 0; i < scorers_.size(); i++) {
 	  Scorer &scorer = *scorers_[i];
