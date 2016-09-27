@@ -6,11 +6,11 @@ SET(CMAKE_CXX_FLAGS " -std=c++14 -m64 -flto -march=native -fPIC -g -O3 -Ofast -f
 
 include_directories(${amunmt_SOURCE_DIR})
 find_package(CUDA)
-set(CUDA_FOUND FALSE)
+
 if(CUDA_FOUND)
     LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
     add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
-SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
+    SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 else(CUDA_FOUND)
     add_definitions(-DNO_CUDA)
     message("Cannot find CUDA libraries. Compiling without them." )
