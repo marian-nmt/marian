@@ -26,6 +26,9 @@
 
 #include "exception.h"
 
+/**
+ * @brief Parent namespace for the Marian project
+ */ 
 namespace marian {
 
 template <class DataType>
@@ -63,11 +66,20 @@ struct Chainable {
 // XXX Marcin, is ChainableStack the most appropriate name?
 //     AFAIK, this is never used as a FILO data structure.
 //     If so, perhaps "Tape" or "ChainLinks" or "ChainableList" might be more apropos?
-//
-//     Naumann (2012) uses "tape" to refer to this data structure.
-//     -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
+/**
+ * @brief Defines a convenience type to represent an ordered collection items.
+ *
+ * Conceptually, the items in this collection are pointers to nodes in an expression graph.
+ *
+ * Naumann (2012) uses "tape" to refer to this data structure.
+ * -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
+ */
 typedef std::vector<Chainable<Tensor>*> ChainableStack;
+
+/** @brief Defines a convenience type to represent a shared pointer to a ChainableStack. */
 typedef std::shared_ptr<ChainableStack> ChainableStackPtr;
+
+/** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
 typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
 
 

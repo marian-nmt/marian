@@ -152,10 +152,12 @@ namespace marian {
   class RunBase;
   typedef std::shared_ptr<RunBase> RunBasePtr;
 
-  // Define a set of keywords.
-  //
-  // Each invocation of the <code>KEY()</code> macro below
-  //    will result in the creation of an instance of the <code>Keyword</code> class.
+  /** 
+   * @brief Defines a set of keywords.
+   *
+   * Each invocation of the KEY(name, value_type) macro
+   *    will result in the creation of an instance of the Keyword class.
+   */
   namespace keywords {
     KEY(axis, int)
     KEY(name, std::string)

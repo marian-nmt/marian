@@ -112,10 +112,22 @@ class DataBase {
     /** @brief Returns an iterator pointing to the end of this object's underlying data. */
     virtual ExampleIterator end() const = 0;
     
-    // TODO: Marcin, what does this do?
+    /** @brief Randomly shuffles the elements of this object's underlying data. */
     virtual void shuffle() = 0;
 
-    // TODO: Marcin, what does this do?
+    /** 
+     * @brief Returns the size of the <em>i</em>-th dimension of the data.
+     *
+     * When an individual data point from this DataSet is used in the construction of an ExpressionGraph,
+     *   the value returned by this method can be interpreted as the size of the <em>i</em>-th input to the graph.
+     *
+     * For example, given a DataBase of MNIST data points.
+     * Each such data point contains 784 values (representing the pixel values for each of 784 pixels),
+     * and a label consisting of one of 10 labels.
+     * If the labels are interpreted as a one-hot vector of length 10,
+     * then dim(0) would return 784,
+     * and dim(1) would return 10.
+     */
     virtual int dim(size_t i) {
       return (*begin())->at(i)->size();
     }
