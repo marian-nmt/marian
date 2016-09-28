@@ -35,7 +35,7 @@ namespace keywords {
    * @brief Represents a named keyword capable of storing a single value.
    *
    * This class is used to emulate <a href="https://en.wikipedia.org/wiki/Named_parameter">keyword arguments to functions</a>, 
-   *    such as those <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">found in Python</code>.
+   *    such as those <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">found in Python</a>.
    *
    * It is expected that users of this class will not explicitly create instances of this class.
    *
@@ -56,20 +56,47 @@ namespace keywords {
     public:
       typedef Value value_type;
 
+      /** 
+       * @brief Constructs a <code>Keyword</code> which will store the specified value. 
+       *
+       * @arg value The value to store in this object
+       */
       Keyword(Value value)
       : value_(value) {}
 
+      /** 
+       * @brief Constructs a <code>Keyword</code> with no specified value. 
+       *
+       * The value stored in the resulting object will be constructed using that Value's default constructor.
+       */
       Keyword()
       : value_() {}
 
+      /**
+       * @brief Constructs and returns a new <code>Keyword</code> object containing the specified value.
+       *
+       * Note: despite the conventional semantics of operator=, this method <em>does not modify</em> the current object.
+       *
+       * @return  a new <code>Keyword</code> object containing the specified value
+       */
       Keyword<key, Value> operator=(Value value) const {
         return Keyword<key, Value>(value);
       }
 
+      /**
+       * @brief Gets a const reference to the value stored in this object.
+       *
+       * @return a const reference to the value stored in this object
+       */
       const Value& operator()() const {
         return value_;
       }
 
+      /**
+       * @brief Gets the hashed integer identifier associated with this object.
+       *
+       * @return the hashed integer identifier associated with this object
+       */ 
       unsigned id() const {
         return key;
       }

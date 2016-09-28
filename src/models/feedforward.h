@@ -8,7 +8,9 @@ namespace models {
 /**
  * @brief Constructs an expression graph representing a feed-forward classifier.
  *
- * @return an expression graph representing a feed-forward classifier
+ * @param dims
+ *
+ * @return a shared pointer to the newly constructed expression graph
  */
 ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   using namespace keywords;
