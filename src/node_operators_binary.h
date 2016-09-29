@@ -1,3 +1,5 @@
+#pragma once
+
 #include "node.h"
 #include "tensor_operators.h"
 
@@ -19,7 +21,11 @@ struct BinaryNodeOp : public Node {
 			|| b->skipped_training()
 			|| keywords::Get(keywords::no_training, false, args...),
 		  args...), a_(a), b_(b)
-  { }
+  {
+	remove_children_from_top_nodes();
+  }
+
+  void remove_children_from_top_nodes();
 
   void backward_debug(Float delta) {
 	  using namespace std;

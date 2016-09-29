@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 #include <map>
+#include <unordered_set>
 #include <fstream>
 
 #include "definitions.h"
@@ -156,27 +157,42 @@ class ExpressionGraph {
      *    and that all backward pass computations have been performed.
      */
     void backward() {
+      UTIL_THROW_IF2(topNodes_.size() > 1,
+        "There are more than one top most node for backward step");
+
       for(auto&& v : *tape_)
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
       typedef typename ChainableTape::reverse_iterator It;
-      tape_->back()->init_dependent(); // @TODO keep track of top nodes and set all of them
-      for(It it = tape_->rbegin(); it != tape_->rend(); ++it)
+      It it = tape_->rbegin();
+      while(topNodes_.count(*it) == 0 && it != tape_->rend())
+        it++;
+      (*it)->init_dependent();
+      while(it != tape_->rend()) {
         if(!(*it)->skipped_training())
           (*it)->backward();
+        it++;
+      }
     }
 
     void backward_debug(Float delta) {
+      UTIL_THROW_IF2(topNodes_.size() > 1,
+        "There are more than one top most node for backward step");
+
       for(auto&& v : *tape_)
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
       typedef typename ChainableTape::reverse_iterator It;
-      tape_->back()->init_dependent();
-      for(It it = tape_->rbegin(); it != tape_->rend(); ++it) {
+      It it = tape_->rbegin();
+      while(topNodes_.count(*it) == 0 && it != tape_->rend())
+        it++;
+      (*it)->init_dependent();
+      while(it != tape_->rend()) {
         if(!(*it)->skipped_training())
-    	  (*it)->backward_debug(delta);
+          (*it)->backward_debug(delta);
+        it++;
       }
     }
 
@@ -290,17 +306,6 @@ class ExpressionGraph {
     /*********************************************************/
 
     /**
-     * @brief Returns a pointer to the list of items contained in this graph.
-     *
-     * The items in the list will be in the order they were created.
-     *
-     * @return a pointer to the list of items contained in this graph
-     */
-    ChainableTapePtr tape() {
-      return tape_;
-    }
-
-    /**
      * @brief Returns the first item in the list with the specified name, if such an item exists.
      *
      * If no item with the specified name is found in the graph, this method throws an exception.
@@ -313,6 +318,24 @@ class ExpressionGraph {
       auto it = named_.find(name);
       UTIL_THROW_IF2(it == named_.end(), "No such named node in graph: " << name);
       return it->second;
+    }
+
+    /**
+     * @brief Gets the list of all input nodes of this expression graph
+     *
+     * @return the list of all input nodes of this expression graph
+     */
+    std::vector<Expr>& inputs() {
+      return inputs_;
+    }
+
+    /**
+     * @brief Gets the list of all parameter nodes of this expression graph
+     *
+     * @return the list of all parameter nodes of this expression graph
+     */
+    std::vector<Expr>& params() {
+      return params_;
     }
 
     /**
@@ -340,21 +363,24 @@ class ExpressionGraph {
     }
 
     /**
-     * @brief Gets the list of all input nodes of this expression graph
+     * @brief Returns a pointer to the list of items contained in this graph.
      *
-     * @return the list of all input nodes of this expression graph
+     * The items in the list will be in the order they were created.
+     *
+     * @return a pointer to the list of items contained in this graph
      */
-    std::vector<Expr>& inputs() {
-      return inputs_;
+    ChainableTapePtr tape() {
+      return tape_;
     }
 
-    /**
-     * @brief Gets the list of all parameter nodes of this expression graph
-     *
-     * @return the list of all parameter nodes of this expression graph
-     */
-    std::vector<Expr>& params() {
-      return params_;
+    void add(ChainPtr node) {
+      tape_->push_back(node);
+      if(!node->skipped_training())
+        topNodes_.insert(node);
+    }
+
+    void remove_top_node(ChainPtr node) {
+      topNodes_.erase(node);
     }
 
   private:
@@ -370,6 +396,9 @@ class ExpressionGraph {
 
     /** @brief List of all input nodes of this expression graph. */
     std::vector<Expr> inputs_;
+
+    /** @brief Contains all nodes with regard to which we want to calculate derivatives */
+    std::unordered_set<ChainPtr> topNodes_;
 };
 
 }

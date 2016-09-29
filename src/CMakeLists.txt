@@ -7,6 +7,8 @@ cuda_add_library(marian_lib
   expression_graph.cu 
   expression_operators.cu
   node.cu
+  node_operators_unary.cu
+  node_operators_binary.cu
   tensor.cu
   tensor_operators.cu
   vocab.cpp

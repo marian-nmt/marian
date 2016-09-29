@@ -21,6 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <memory>
+
 #include "keywords.h"
 #include "tensor.h"
 #include "chainable.h"
@@ -31,7 +33,8 @@ class ExpressionGraph;
 typedef ExpressionGraph* ExpressionGraphPtr;
 
 class Node : public Chainable<Tensor>,
-             public keywords::Keywords {
+             public keywords::Keywords,
+             public std::enable_shared_from_this<Node> {
   public:
     template <typename ...Args>
     Node(ExpressionGraphPtr graph, Args ...args)
@@ -52,7 +55,9 @@ class Node : public Chainable<Tensor>,
 
     virtual void skip_inference() { skipInference_ = true; }
     virtual bool skipped_inference() { return skipInference_; }
-    virtual void skip_training() { skipTraining_ = true; }
+
+    virtual void skip_training();
+
     virtual bool skipped_training() { return skipTraining_; }
 
     virtual void allocate(size_t batchSize) {

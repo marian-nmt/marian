@@ -1,3 +1,5 @@
+#pragma once
+
 #include "node.h"
 #include "tensor_operators.h"
 
@@ -14,7 +16,11 @@ struct UnaryNodeOp : public Node {
            keywords::no_training=a->skipped_training() || keywords::Get(keywords::no_training, false, args...),
            args...),
         a_(a)
-    {}
+    {
+        remove_children_from_top_nodes();
+    }
+
+    void remove_children_from_top_nodes();
 
     void backward_debug(Float delta) {
       using namespace std;
