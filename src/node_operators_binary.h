@@ -9,9 +9,14 @@ struct BinaryNodeOp : public Node {
 
   template <typename ...Args>
   BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-   : Node(args...), a_(a), b_(b),
-     skipInference_(a->skipInference_ || b->skipInference_),
-     skipTraining_(a->skipTraining_ || b->skipTraining_) { }
+   : Node(keywords::no_inference=a->skipped_inference()
+			|| b->skipped_inference()
+			|| Get(keywords::no_inference, false),
+          keywords::no_training=a->skipped_training()
+			|| b->skipped_training()
+			|| Get(keywords::no_training, false),
+		  args...), a_(a), b_(b)
+  { }
 
   void backward_debug(Float delta) {
 	  using namespace std;

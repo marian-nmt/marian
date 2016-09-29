@@ -36,8 +36,8 @@ class Node : public Chainable<Tensor>,
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
        name_(Get(keywords::name, "none")),
-       skipInference_(false),
-       skipTraining_(false),
+       skipInference_(Get(keywords::no_inference, false)),
+       skipTraining_(Get(keywords::no_training, false))
     { }
 
     virtual ~Node() {};

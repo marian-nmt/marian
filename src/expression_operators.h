@@ -25,6 +25,10 @@
 
 namespace marian {
 
+Expr training(Expr a);
+
+Expr inference(Expr a);
+
 Expr named(Expr a, const std::string& name);
 
 Expr logit(Expr a);

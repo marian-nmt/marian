@@ -120,26 +120,26 @@ class ExpressionGraph {
      */
     void forward(data::BatchPtr batch) {
       for(auto&& v : *stack_)
-        if(!v->skippedTraining())
+        if(!v->skipped_training())
           v->allocate(batch->dim());
 
       setInputs(batch);
 
       for(auto&& v : *stack_)
-        if(!v->skippedTraining())
+        if(!v->skipped_training())
           v->forward();
     }
 
     void inference(data::BatchPtr batch) {
       for(auto&& v : *stack_)
-        if(!v->skippedInference())
+        if(!v->skipped_inference())
           v->allocate(batch->dim());
 
       // @TODO create setInputsInference !
       setInputs(batch);
 
       for(auto&& v : *stack_)
-        if(!v->skippedInference())
+        if(!v->skipped_inference())
           v->inference();
     }
 
@@ -158,25 +158,25 @@ class ExpressionGraph {
      */
     void backward() {
       for(auto&& v : *stack_)
-        if(!v->skippedTraining())
+        if(!v->skipped_training())
           v->set_zero_adjoint();
 
       typedef typename ChainableStack::reverse_iterator It;
       stack_->back()->init_dependent(); // @TODO keep track of top nodes and set all of them
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
-        if(!(*it)->skippedTraining())
+        if(!(*it)->skipped_training())
           (*it)->backward();
     }
 
     void backward_debug(Float delta) {
       for(auto&& v : *stack_)
-        if(!v->skippedTraining())
+        if(!v->skipped_training())
           v->set_zero_adjoint();
 
       typedef typename ChainableStack::reverse_iterator It;
       stack_->back()->init_dependent();
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
-        if(!(*it)->skippedTraining()) {
+        if(!(*it)->skipped_training()) {
     	  Chainable<Tensor> *chainable = *it;
     	  //chainable->backward();
     	  chainable->backward_debug(delta);
