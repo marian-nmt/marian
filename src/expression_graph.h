@@ -39,6 +39,7 @@ class ExpressionGraph;
 /** @brief A pointer to an expression graph. */
 typedef ExpressionGraph* ExpressionGraphPtr;
 
+/** @brief An expression within an expression graph. */
 class Expr {
   public:
     Expr(ChainPtr chainable);
