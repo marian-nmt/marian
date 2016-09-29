@@ -29,6 +29,13 @@ Expr training(Expr a);
 
 Expr inference(Expr a);
 
+/** 
+ * @brief Associates a name with an Expr object and adds that object to the associated ExpressionGraph.
+ *
+ * @param a An expression object
+ *
+ * @return the provided Expr, after it has been named and added to the graph
+ */
 Expr named(Expr a, const std::string& name);
 
 Expr logit(Expr a);

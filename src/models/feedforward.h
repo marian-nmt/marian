@@ -28,7 +28,12 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   // Construct a shared pointer to an empty expression graph
   auto g = New<ExpressionGraph>();
 
+  // Construct an Expr object to represent the input layer: g->input(...)
+  // Assign this newly created object the name "x" and add it to the expression graph: named(..., "x")
+  // And assign the resulting named Expr object to the C++ variable x
   auto x = named(g->input(shape={whatevs, dims.front()}), "x");
+  
+  // Likewise, create a named Expr object called "y" for the output layer
   auto y = named(g->input(shape={whatevs, dims.back()}), "y");
 
   std::vector<Expr> layers, weights, biases;
@@ -49,9 +54,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   }
 
   auto linear = dot(layers.back(), weights.back()) + biases.back();
-
   auto cost = named(mean(training(cross_entropy(linear, y)), axis=0), "cost");
-
   auto scores = named(inference(softmax(linear)), "scores");
 
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
