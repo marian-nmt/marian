@@ -1,11 +1,12 @@
 #pragma once
 
-#include "god.h"
+#include "common/god.h"
 #include "common/history.h"
+#include "common/utils.h"
 
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
-  std::string best = God::GetTargetVocab()(history.Top().first);
+  std::string best = Join(God::Postprocess(God::GetTargetVocab()(history.Top().first)));
   LOG(progress) << "Best translation: " << best;
 
   if(God::Get<bool>("n-best")) {
@@ -21,7 +22,7 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
 
       if(God::Get<bool>("wipo"))
         out << "OUT: ";
-      out << lineNo << " ||| " << God::GetTargetVocab()(words) << " |||";
+      out << lineNo << " ||| " << Join(God::Postprocess(God::GetTargetVocab()(words))) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }

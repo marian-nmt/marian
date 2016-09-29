@@ -10,6 +10,7 @@
 #include "threadpool.h"
 #include "file_stream.h"
 #include "loader_factory.h"
+#include "common/processor/bpe.h"
 
 God God::instance_;
 
@@ -33,18 +34,18 @@ God& God::NonStaticInit(int argc, char** argv) {
 
   config_.AddOptions(argc, argv);
   config_.LogOptions();
-  
+
   if(Get("source-vocab").IsSequence()) {
     for(auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab"))
       sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
   }
   else {
-    sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));    
+    sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));
   }
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
   weights_ = Get<std::map<std::string, float>>("weights");
-    
+
   if(Get<bool>("show-weights")) {
     LOG(info) << "Outputting weights and exiting";
     for(auto && pair : weights_) {
@@ -52,12 +53,12 @@ God& God::NonStaticInit(int argc, char** argv) {
     }
     exit(0);
   }
-  
+
   for(auto&& pair : config_.Get()["scorers"]) {
     std::string name = pair.first.as<std::string>();
     loaders_.emplace(name, LoaderFactory::Create(name, pair.second));
   }
-  
+
   if (config_.inputPath.empty()) {
     std::cerr << "Using cin" << std::endl;
     inStrm = &std::cin;
@@ -65,6 +66,11 @@ God& God::NonStaticInit(int argc, char** argv) {
   else {
     std::cerr << "Using " << config_.inputPath << std::endl;
     inStrm = new std::ifstream(config_.inputPath.c_str());
+  }
+
+  if (Get<std::string>("bpe") != "") {
+    LOG(info) << "Using BPE from: " << Get<std::string>("bpe");
+    processors_.emplace_back(new BPE(Get<std::string>("bpe")));
   }
 
   return *this;
@@ -96,6 +102,21 @@ std::map<std::string, float>& God::GetScorerWeights() {
   return Summon().weights_;
 }
 
+std::vector<std::string> God::Preprocess(const std::vector<std::string>& input) {
+  std::vector<std::string> processed = input;
+  for (const auto& processor : Summon().processors_) {
+    processed = processor->Preprocess(processed);
+  }
+  return processed;
+}
+
+std::vector<std::string> God::Postprocess(const std::vector<std::string>& input) {
+  std::vector<std::string> processed = input;
+  for (auto processor = Summon().processors_.rbegin(); processor != Summon().processors_.rend(); ++processor) {
+    processed = (*processor)->Postprocess(processed);
+  }
+  return processed;
+}
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
   for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
