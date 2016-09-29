@@ -9,7 +9,11 @@ struct UnaryNodeOp : public Node {
     template <typename ...Args>
     UnaryNodeOp(ChainPtr a, Args ...args)
     : Node(keywords::shape=a->shape(), //@TODO: Check keywords?
-           args...), a_(a) {}
+           args...),
+        a_(a),
+        skipInference_(a->skipInference_),
+        skipTraining_(a->skipTraining_),
+    {}
 
     void backward_debug(Float delta) {
       using namespace std;

@@ -37,6 +37,11 @@ struct Chainable {
     virtual void backward() { }
     virtual void backward_debug(Float delta) { }
 
+    virtual void skip_inference() = 0;
+    virtual bool skipped_inference() = 0;
+    virtual void skip_training() = 0;
+    virtual bool skipped_training() = 0;
+
     virtual void check() { }
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }
