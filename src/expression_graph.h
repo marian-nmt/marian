@@ -71,7 +71,7 @@ class ExpressionGraph {
   public:
 
     /** @brief Constructs a new expression graph */
-    ExpressionGraph() : stack_(new ChainableStack) {}
+    ExpressionGraph() : stack_(new ChainableTape) {}
 
     ExpressionGraph(const ExpressionGraph&) = delete;
 
@@ -160,7 +160,7 @@ class ExpressionGraph {
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
-      typedef typename ChainableStack::reverse_iterator It;
+      typedef typename ChainableTape::reverse_iterator It;
       stack_->back()->init_dependent(); // @TODO keep track of top nodes and set all of them
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
         if(!(*it)->skipped_training())
@@ -172,7 +172,7 @@ class ExpressionGraph {
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
-      typedef typename ChainableStack::reverse_iterator It;
+      typedef typename ChainableTape::reverse_iterator It;
       stack_->back()->init_dependent();
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
         if(!(*it)->skipped_training())
@@ -191,7 +191,7 @@ class ExpressionGraph {
       std::stringstream ss;
       ss << "digraph ExpressionGraph {" << std::endl;
       ss << "rankdir=BT" << std::endl;
-      typedef typename ChainableStack::reverse_iterator It;
+      typedef typename ChainableTape::reverse_iterator It;
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
         ss << (*it)->graphviz();
       }
@@ -296,7 +296,7 @@ class ExpressionGraph {
      *
      * @return a pointer to the list of items contained in this graph
      */
-    ChainableStackPtr stack() {
+    ChainableTapePtr stack() {
       return stack_;
     }
 
@@ -360,7 +360,7 @@ class ExpressionGraph {
   private:
 
     /** @brief Pointer to the list of nodes */
-    ChainableStackPtr stack_;
+    ChainableTapePtr stack_;
 
     /** @brief Maps from name to expression node. */
     std::map<std::string, Expr> named_;

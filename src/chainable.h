@@ -112,9 +112,6 @@ struct Chainable {
 /** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
 typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
 
-// XXX Marcin, is ChainableStack the most appropriate name?
-//     AFAIK, this is never used as a FILO data structure.
-//     If so, perhaps "Tape" or "ChainLinks" or "ChainableList" might be more apropos?
 /**
  * @brief Defines a convenience type to represent an ordered collection items.
  *
@@ -123,9 +120,9 @@ typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
  * Naumann (2012) uses "tape" to refer to this data structure.
  * -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
  */
-typedef std::vector<ChainPtr> ChainableStack;
+typedef std::vector<ChainPtr> ChainableTape;
 
-/** @brief Defines a convenience type to represent a shared pointer to a ChainableStack. */
-typedef std::shared_ptr<ChainableStack> ChainableStackPtr;
+/** @brief Defines a convenience type to represent a shared pointer to a ChainableTape. */
+typedef std::shared_ptr<ChainableTape> ChainableTapePtr;
 
 }
