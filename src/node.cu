@@ -1,7 +1,13 @@
 #include "node.h"
 #include "tensor_operators.h"
+#include "expression_graph.h"
 
 namespace marian {
+
+void Node::skip_training() {
+  skipTraining_ = true;
+  graph_->remove_top_node(shared_from_this());
+}
 
 // GPU
 void Node::calc_numeric_grad(
@@ -206,4 +212,3 @@ void Node::broadcast(const std::vector<float> &largeVec, std::vector<float> &sma
 }
 
 }
-

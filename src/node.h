@@ -21,18 +21,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <memory>
+
 #include "keywords.h"
 #include "tensor.h"
 #include "chainable.h"
 
 namespace marian {
 
+class ExpressionGraph;
+typedef ExpressionGraph* ExpressionGraphPtr;
+
 class Node : public Chainable<Tensor>,
-             public keywords::Keywords {
+             public keywords::Keywords,
+             public std::enable_shared_from_this<Node> {
   public:
     template <typename ...Args>
-    Node(Args ...args)
+    Node(ExpressionGraphPtr graph, Args ...args)
      : Keywords(args...),
+       graph_(graph),
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
        name_(Get(keywords::name, "none")),
@@ -42,9 +49,15 @@ class Node : public Chainable<Tensor>,
 
     virtual ~Node() {};
 
+    virtual ExpressionGraphPtr graph() {
+      return graph_;
+    }
+
     virtual void skip_inference() { skipInference_ = true; }
     virtual bool skipped_inference() { return skipInference_; }
-    virtual void skip_training() { skipTraining_ = true; }
+
+    virtual void skip_training();
+
     virtual bool skipped_training() { return skipTraining_; }
 
     virtual void allocate(size_t batchSize) {
@@ -117,6 +130,7 @@ class Node : public Chainable<Tensor>,
     }
 
   protected:
+    ExpressionGraphPtr graph_;
     Shape shape_;
     const Shape givenShape_;
     std::string name_;
