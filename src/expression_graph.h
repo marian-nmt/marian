@@ -37,9 +37,8 @@ namespace marian {
 class ExpressionGraph;
 
 /** @brief A pointer to an expression graph. */
-typedef ExpressionGraph* ExpressionGraphPtr;
+typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
-/** @brief An expression within an expression graph. */
 class Expr {
   public:
     Expr(ChainPtr chainable);
@@ -66,16 +65,28 @@ class Expr {
     ChainPtr pimpl_;
 };
 
+template <class T, typename ...Args>
+std::shared_ptr<T> New(Args&& ... args) {
+  return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
 /**
  * @brief Represents a computation graph of expressions, over which algorithmic differentiation may be performed.
  */
-class ExpressionGraph {
-  public:
-
-    /** @brief Constructs a new expression graph */
+class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
+  private:
+    /** @brief Constructs a new expression graph
+     * Constructor is private to force use of New<ExpressionGraph>()
+    */
     ExpressionGraph() : tape_(new ChainableTape) {}
 
+    // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
+    ExpressionGraph(ExpressionGraph&&) = delete;
+
+    friend ExpressionGraphPtr New<ExpressionGraph>();
+
+  public:
 
     void setInputs(data::BatchPtr batch) {
       auto& bInputs = batch->inputs();
@@ -153,7 +164,7 @@ class ExpressionGraph {
      *
      * Once this has been performed for all nodes, this pass again traverses the nodes, again in reverse creation order;
      *    as each node is traversed, its <code>backward()</code> method is called.
-     *
+     *https://www.facebook.com/
      * After this method has successfully completed,
      *    and that all backward pass computations have been performed.
      */
@@ -240,7 +251,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr input(Args ...args) {
-      Expr e(ChainPtr(new InputNode(this, args...)));
+      Expr e(ChainPtr(new InputNode(shared_from_this(), args...)));
       inputs_.emplace_back(e);
       return e;
     }
@@ -257,7 +268,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr param(Args ...args) {
-      Expr e(ChainPtr(new ParamNode(this, args...)));
+      Expr e(ChainPtr(new ParamNode(shared_from_this(), args...)));
       params_.emplace_back(e);
       return e;
     }
@@ -273,7 +284,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr constant(Args ...args) {
-      return Expr(ChainPtr(new ConstantNode(this, args...)));
+      return Expr(ChainPtr(new ConstantNode(shared_from_this(), args...)));
     }
 
     /**
@@ -287,7 +298,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr ones(Args ...args) {
-      return Expr(ChainPtr(new ConstantNode(this, keywords::value=1, args...)));
+      return Expr(ChainPtr(new ConstantNode(shared_from_this(), keywords::value=1, args...)));
     }
 
     /**
@@ -301,7 +312,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr zeroes(Args ...args) {
-      return Expr(ChainPtr(new ConstantNode(this, keywords::value=0, args...)));
+      return Expr(ChainPtr(new ConstantNode(shared_from_this(), keywords::value=0, args...)));
     }
 
     /*********************************************************/

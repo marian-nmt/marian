@@ -26,7 +26,8 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   boost::timer::cpu_timer timer;
 
   // Construct a shared pointer to an empty expression graph
-  ExpressionGraphPtr g(new ExpressionGraph());
+  auto g = New<ExpressionGraph>();
+
   auto x = named(g->input(shape={whatevs, dims.front()}), "x");
   auto y = named(g->input(shape={whatevs, dims.back()}), "y");
 
@@ -52,7 +53,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   auto cost = named(mean(training(cross_entropy(linear, y)), axis=0), "cost");
 
   auto scores = named(inference(softmax(linear)), "scores");
-  
+
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
   return g;
 };

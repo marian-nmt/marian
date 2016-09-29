@@ -32,7 +32,7 @@
 namespace marian {
 
 class ExpressionGraph;
-typedef ExpressionGraph* ExpressionGraphPtr;
+typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
 /**
  * @brief Abstraction of an element in a computation graph for which a derivative can be calculated.
