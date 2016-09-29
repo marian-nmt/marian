@@ -50,7 +50,9 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   auto linear = dot(layers.back(), weights.back()) + biases.back();
   auto scores = named(inference(softmax(linear)), "scores");
 
-  // @TODO: throw exception of more than one final node
+  // @TODO: throw exception if more than one final training node
+  // and keep track of training nodes, as we need to initialize
+  // adjoints correctly.
   auto cost = named(mean(training(cross_entropy(linear, y)), axis=0), "cost");
 
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
