@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "bpe.h"
+#include "common/processor/bpe.h"
 
 #include "common/utf8.h"
 

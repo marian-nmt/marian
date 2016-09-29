@@ -1,4 +1,4 @@
-add_executable(bpe bpe_main.cpp)
+add_executable(bpe bpe_main.cpp ../common/processor/bpe.cpp ../common/utils.cpp)
 target_link_libraries(bpe ${EXT_LIBS})
 
 set_target_properties(bpe
