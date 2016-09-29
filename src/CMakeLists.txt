@@ -29,6 +29,7 @@ cuda_add_executable(
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
+  common/processor/bpe.cpp
   cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
   cpu/dl4mt/decoder.cpp
@@ -63,6 +64,7 @@ add_executable(
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
+  common/processor/bpe.cpp
   cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
   cpu/dl4mt/decoder.cpp

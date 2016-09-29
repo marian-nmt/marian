@@ -24,12 +24,14 @@ YAML::Node& Config::Get() {
 
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
-  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab"};
+  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab", "bpe"};
 
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
       std::string nodePath = node.as<std::string>();
-      node = canonical(path{nodePath}, configPath).string();
+      if (nodePath.size()) {
+        node = canonical(path{nodePath}, configPath).string();
+      }
     }
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node)
@@ -69,6 +71,10 @@ void OverwriteSourceVocabs(YAML::Node& config, std::vector<std::string>& sourceV
 
 void OverwriteTargetVocab(YAML::Node& config, std::string& targetVocabPath) {
     config["target-vocab"] = targetVocabPath;
+}
+
+void OverwriteBPE(YAML::Node& config, std::string& bpePath) {
+    config["bpe"] = bpePath;
 }
 
 void Validate(const YAML::Node& config) {
@@ -150,6 +156,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
+  std::string bpePath;
 
   std::vector<size_t> devices;
 
@@ -165,6 +172,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Overwrite source vocab section in config file with vocab file.")
     ("target-vocab,t", po::value(&targetVocabPath),
      "Overwrite target vocab section in config file with vocab file.")
+    ("bpe", po::value(&bpePath)->default_value(""),
+     "Overwrite bpe section in config with bpe code file.")
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
      "e.g. set to 0 1 to use gpu0 and gpu1. "
@@ -243,6 +252,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("wipo", bool);
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
+  SET_OPTION("bpe", std::string);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads-per-device", size_t);
   SET_OPTION("devices", std::vector<size_t>);
@@ -266,6 +276,10 @@ void Config::AddOptions(size_t argc, char** argv) {
 
   if(targetVocabPath.size()) {
     OverwriteTargetVocab(config_, targetVocabPath);
+  }
+
+  if(bpePath.size()) {
+    OverwriteBPE(config_, bpePath);
   }
 
   if(Get<bool>("relative-paths"))

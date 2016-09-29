@@ -47,8 +47,8 @@ class God {
     static std::vector<std::string> GetScorerNames();
     static std::map<std::string, float>& GetScorerWeights();
 
-    std::vector<std::string> Preprocess(const std::vector<std::string>& input);
-    std::vector<std::string> Postprocess(const std::vector<std::string>& input);
+    static std::vector<std::string> Preprocess(const std::vector<std::string>& input);
+    static std::vector<std::string> Postprocess(const std::vector<std::string>& input);
 
     static void CleanUp();
 

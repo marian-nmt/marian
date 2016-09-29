@@ -3,6 +3,7 @@
 #include "common/god.h"
 #include "common/history.h"
 #include "common/utils.h"
+#include "common/vocab.h"
 
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
