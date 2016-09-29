@@ -8,13 +8,16 @@ struct BinaryNodeOp : public Node {
   ChainPtr b_;
 
   template <typename ...Args>
-  BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-   : Node(keywords::no_inference=a->skipped_inference()
+  BinaryNodeOp(ExpressionGraphPtr graph,
+			   ChainPtr a, ChainPtr b, Args ...args)
+   : Node(graph,
+		  keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
+		  keywords::no_inference=a->skipped_inference()
 			|| b->skipped_inference()
-			|| Get(keywords::no_inference, false),
+			|| keywords::Get(keywords::no_inference, false, args...),
           keywords::no_training=a->skipped_training()
 			|| b->skipped_training()
-			|| Get(keywords::no_training, false),
+			|| keywords::Get(keywords::no_training, false, args...),
 		  args...), a_(a), b_(b)
   { }
 
@@ -75,8 +78,8 @@ struct BinaryNodeOp : public Node {
 
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  DotNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-  : BinaryNodeOp(a, b,
+  DotNodeOp(ExpressionGraphPtr graph, ChainPtr a, ChainPtr b, Args ...args)
+  : BinaryNodeOp(graph, a, b,
                  keywords::shape=newShape(a, b),
                  args...) { }
 
@@ -117,8 +120,8 @@ struct DotNodeOp : public BinaryNodeOp {
 
 struct PlusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  PlusNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+  PlusNodeOp(Args ...args)
+    : BinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 + _3,
@@ -145,8 +148,8 @@ struct PlusNodeOp : public BinaryNodeOp {
 
 struct ReLUPlusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  ReLUPlusNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+  ReLUPlusNodeOp(Args ...args)
+    : BinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = ReLU(_2 + _3),
@@ -173,8 +176,8 @@ struct ReLUPlusNodeOp : public BinaryNodeOp {
 
 struct MinusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  MinusNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+  MinusNodeOp(Args ...args)
+    : BinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 - _3,
@@ -201,8 +204,8 @@ struct MinusNodeOp : public BinaryNodeOp {
 
 struct MultNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  MultNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+  MultNodeOp(Args ...args)
+    : BinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 * _3,
@@ -229,8 +232,8 @@ struct MultNodeOp : public BinaryNodeOp {
 
 struct DivNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  DivNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-    : BinaryNodeOp(a, b, keywords::shape=a->shape(), args...) { }
+  DivNodeOp(Args ...args)
+    : BinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 / _3,
@@ -258,8 +261,9 @@ struct DivNodeOp : public BinaryNodeOp {
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-    CrossEntropyNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-    : BinaryNodeOp(a, b,
+    CrossEntropyNodeOp(ExpressionGraphPtr graph,
+					   ChainPtr a, ChainPtr b, Args ...args)
+    : BinaryNodeOp(graph, a, b,
                    keywords::shape=newShape(a, b),
                    args...) { }
 

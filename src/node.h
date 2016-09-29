@@ -27,12 +27,16 @@
 
 namespace marian {
 
+class ExpressionGraph;
+typedef ExpressionGraph* ExpressionGraphPtr;
+
 class Node : public Chainable<Tensor>,
              public keywords::Keywords {
   public:
     template <typename ...Args>
-    Node(Args ...args)
+    Node(ExpressionGraphPtr graph, Args ...args)
      : Keywords(args...),
+       graph_(graph),
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
        name_(Get(keywords::name, "none")),
@@ -41,6 +45,10 @@ class Node : public Chainable<Tensor>,
     { }
 
     virtual ~Node() {};
+
+    virtual ExpressionGraphPtr graph() {
+      return graph_;
+    }
 
     virtual void skip_inference() { skipInference_ = true; }
     virtual bool skipped_inference() { return skipInference_; }
@@ -117,6 +125,7 @@ class Node : public Chainable<Tensor>,
     }
 
   protected:
+    ExpressionGraphPtr graph_;
     Shape shape_;
     const Shape givenShape_;
     std::string name_;

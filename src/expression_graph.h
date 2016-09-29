@@ -40,7 +40,7 @@ typedef ExpressionGraph* ExpressionGraphPtr;
 
 class Expr {
   public:
-    Expr(ExpressionGraphPtr g, Chainable<Tensor>* chainable);
+    Expr(Chainable<Tensor>* chainable);
 
     Expr operator=(Tensor t) {
       pimpl_->setVal(t);
@@ -61,7 +61,6 @@ class Expr {
     std::string Debug() const;
 
   private:
-    ExpressionGraphPtr graph_;
     ChainPtr pimpl_;
 };
 
@@ -177,9 +176,9 @@ class ExpressionGraph {
       stack_->back()->init_dependent();
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
         if(!(*it)->skipped_training()) {
-    	  Chainable<Tensor> *chainable = *it;
+    	  //Chainable<Tensor> *chainable = *it;
     	  //chainable->backward();
-    	  chainable->backward_debug(delta);
+    	  (*it)->backward_debug(delta);
         }
       }
     }
@@ -227,7 +226,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr input(Args ...args) {
-      Expr e(this, new InputNode(args...));
+      Expr e(new InputNode(this, args...));
       inputs_.emplace_back(e);
       return e;
     }
@@ -244,7 +243,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr param(Args ...args) {
-      Expr e(this, new ParamNode(args...));
+      Expr e(new ParamNode(this, args...));
       params_.emplace_back(e);
       return e;
     }
@@ -260,7 +259,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr constant(Args ...args) {
-      return Expr(this, new ConstantNode(args...));
+      return Expr(new ConstantNode(this, args...));
     }
 
     /**
@@ -274,7 +273,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr ones(Args ...args) {
-      return Expr(this, new ConstantNode(keywords::value=1, args...));
+      return Expr(new ConstantNode(this, keywords::value=1, args...));
     }
 
     /**
@@ -288,7 +287,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr zeroes(Args ...args) {
-      return Expr(this, new ConstantNode(keywords::value=0, args...));
+      return Expr(new ConstantNode(this, keywords::value=0, args...));
     }
 
     /*********************************************************/
