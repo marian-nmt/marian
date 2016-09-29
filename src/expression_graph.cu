@@ -24,7 +24,7 @@
 
 namespace marian {
 
-Expr::Expr(Chainable<Tensor>* chainable)
+Expr::Expr(ChainPtr chainable)
   : pimpl_(chainable) {
   graph()->stack()->push_back(chainable);
 }

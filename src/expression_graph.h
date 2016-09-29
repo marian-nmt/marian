@@ -40,7 +40,7 @@ typedef ExpressionGraph* ExpressionGraphPtr;
 
 class Expr {
   public:
-    Expr(Chainable<Tensor>* chainable);
+    Expr(ChainPtr chainable);
 
     Expr operator=(Tensor t) {
       pimpl_->setVal(t);
@@ -175,11 +175,8 @@ class ExpressionGraph {
       typedef typename ChainableStack::reverse_iterator It;
       stack_->back()->init_dependent();
       for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
-        if(!(*it)->skipped_training()) {
-    	  //Chainable<Tensor> *chainable = *it;
-    	  //chainable->backward();
+        if(!(*it)->skipped_training())
     	  (*it)->backward_debug(delta);
-        }
       }
     }
 
@@ -226,7 +223,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr input(Args ...args) {
-      Expr e(new InputNode(this, args...));
+      Expr e(ChainPtr(new InputNode(this, args...)));
       inputs_.emplace_back(e);
       return e;
     }
@@ -243,7 +240,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr param(Args ...args) {
-      Expr e(new ParamNode(this, args...));
+      Expr e(ChainPtr(new ParamNode(this, args...)));
       params_.emplace_back(e);
       return e;
     }
@@ -259,7 +256,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr constant(Args ...args) {
-      return Expr(new ConstantNode(this, args...));
+      return Expr(ChainPtr(new ConstantNode(this, args...)));
     }
 
     /**
@@ -273,7 +270,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr ones(Args ...args) {
-      return Expr(new ConstantNode(this, keywords::value=1, args...));
+      return Expr(ChainPtr(new ConstantNode(this, keywords::value=1, args...)));
     }
 
     /**
@@ -287,7 +284,7 @@ class ExpressionGraph {
      */
     template <typename ...Args>
     inline Expr zeroes(Args ...args) {
-      return Expr(new ConstantNode(this, keywords::value=0, args...));
+      return Expr(ChainPtr(new ConstantNode(this, keywords::value=0, args...)));
     }
 
     /*********************************************************/

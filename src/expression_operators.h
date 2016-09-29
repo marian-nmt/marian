@@ -39,7 +39,7 @@ Expr relu(Expr a);
 
 template <typename ...Args>
 Expr dropout(Expr a, Args ...args) {
-  return Expr(new DropoutNodeOp(a.graph(), a, args...));
+  return Expr(ChainPtr(new DropoutNodeOp(a.graph(), a, args...)));
 }
 
 Expr log(Expr a);
