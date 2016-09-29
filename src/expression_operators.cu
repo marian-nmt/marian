@@ -34,7 +34,7 @@ Expr inference(Expr a) {
   return a;
 }
 
-Expr named(Expr a, const std::string& name) {
+Expr name(Expr a, const std::string& name) {
   a.node()->set_name(name);
   a.graph()->add_named_node(a, name);
   return a;

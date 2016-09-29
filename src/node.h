@@ -42,7 +42,7 @@ class Node : public Chainable<Tensor>,
        graph_(graph),
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
-       name_(Get(keywords::name, "none")),
+       name_("none"),
        skipInference_(Get(keywords::no_inference, false)),
        skipTraining_(Get(keywords::no_training, false))
     { }
