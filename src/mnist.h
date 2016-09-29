@@ -34,6 +34,7 @@
 namespace marian {
 namespace data {
 
+/** @brief DataBase capable of reading <a href="http://yann.lecun.com/exdb/mnist/">MNIST</a> data. */
 class MNIST : public DataBase {
   private:
     const int IMAGE_MAGIC_NUMBER;
@@ -44,6 +45,12 @@ class MNIST : public DataBase {
   public:
 
 
+    /**
+     * @brief Constructs a DataBase using <a href="http://yann.lecun.com/exdb/mnist/">MNIST</a> data.
+     *
+     * @param featuresPath Path to file containing <a href="http://yann.lecun.com/exdb/mnist/">MNIST</a> feature values
+     * @param labelsPath   Path to file containing <a href="http://yann.lecun.com/exdb/mnist/">MNIST</a> labels
+     */
     MNIST(const std::string& featuresPath,
           const std::string& labelsPath)
     : IMAGE_MAGIC_NUMBER(2051),

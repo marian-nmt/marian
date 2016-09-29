@@ -26,14 +26,54 @@
 
 #include "exception.h"
 
+/**
+ * @brief Parent namespace for the Marian project
+ */ 
 namespace marian {
 
+/** 
+ * @brief Abstraction of an element in a computation graph for which a derivative can be calculated.
+ *
+ * The name of this class comes from the fact that 
+ *     this element is <a href="https://en.wikipedia.org/wiki/Function_composition">composable</a> (aka chainable) 
+ *     in the context of the <a href="https://en.wikipedia.org/wiki/Chain_rule">chain rule of calculus</a>.
+ *
+ * Given that context, in the documentation for this class, the following notation is used:
+ * - Given an expression graph of composed functions, 
+ *   \f$y\f$ refers to the final value resulting from evaluating the entire graph
+ * - \f$w_i\f$ refers to the partial result of evaluating the expression subgraph rooted at the <em>i</em>-th Chainable element
+ * - \f$\bar{w}_i\f$ refers to the <a href="https://en.wikipedia.org/wiki/Automatic_differentiation#Reverse_accumulation">adjoint</a> of \f$w_i\f$,
+ *   where \f$\bar{w}_i\f$ is defined as the partial derivative of \f$y\f$ with respect to \f$w_i\f$, 
+ *   or formally \f$\bar{w}_i = \frac{\partial y}{\partial w_i}\f$
+ */
 template <class DataType>
 struct Chainable {
     Chainable() { }
     virtual ~Chainable() { }
     virtual void inference() { forward(); }
+    
+    /** 
+     * @brief In the context of 
+     *    <a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">reverse mode</a>
+     *    <a href="https://en.wikipedia.org/wiki/Automatic_differentiation">algorithmic differentiation</a> over an expression graph, 
+     *    performs forward calculation
+     *    for the expression subgraph rooted at this element (aka Chainable element \f$i\f$).
+     *
+     * If this Chainable object represents the result of the <em>i</em>-th function in an expression graph,
+     * then formally, this method calculates \f$w_i\f$.
+     */ 
     virtual void forward() { }
+
+    /** 
+     * @brief In the context of 
+     *    <a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">reverse mode</a>
+     *    <a href="https://en.wikipedia.org/wiki/Automatic_differentiation">algorithmic differentiation</a> over an expression graph, 
+     *    performs <a href="https://en.wikipedia.org/wiki/Automatic_differentiation#Reverse_accumulation">reverse accumulation</a> 
+     *    for the expression subgraph rooted at this element (aka Chainable element \f$i\f$).
+     *
+     * If this Chainable object represents the result of the <em>i</em>-th function in an expression graph,
+     * then formally, this method calculates \f$\bar{w}_i = \frac{\partial y}{\partial w_i}\f$.
+     */ 
     virtual void backward() { }
     virtual void backward_debug(Float delta) { }
 
@@ -68,11 +108,20 @@ struct Chainable {
 // XXX Marcin, is ChainableStack the most appropriate name?
 //     AFAIK, this is never used as a FILO data structure.
 //     If so, perhaps "Tape" or "ChainLinks" or "ChainableList" might be more apropos?
-//
-//     Naumann (2012) uses "tape" to refer to this data structure.
-//     -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
+/**
+ * @brief Defines a convenience type to represent an ordered collection items.
+ *
+ * Conceptually, the items in this collection are pointers to nodes in an expression graph.
+ *
+ * Naumann (2012) uses "tape" to refer to this data structure.
+ * -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
+ */
 typedef std::vector<Chainable<Tensor>*> ChainableStack;
+
+/** @brief Defines a convenience type to represent a shared pointer to a ChainableStack. */
 typedef std::shared_ptr<ChainableStack> ChainableStackPtr;
+
+/** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
 typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
 
 

@@ -3,8 +3,19 @@
 #include "expression_graph.h"
 
 namespace marian {
+
+/**
+ * @brief Namespace for code related to managing models in Marian
+ */
 namespace models {
 
+/**
+ * @brief Constructs an expression graph representing a feed-forward classifier.
+ *
+ * @param dims number of nodes in each layer of the feed-forward classifier
+ *
+ * @return a shared pointer to the newly constructed expression graph
+ */
 ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   using namespace keywords;
   std::cerr << "Building Multi-layer Feedforward network" << std::endl;
@@ -14,6 +25,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   std::cerr << std::endl;
   boost::timer::cpu_timer timer;
 
+  // Construct a shared pointer to an empty expression graph
   ExpressionGraphPtr g(new ExpressionGraph());
   auto x = named(g->input(shape={whatevs, dims.front()}), "x");
   auto y = named(g->input(shape={whatevs, dims.back()}), "y");
