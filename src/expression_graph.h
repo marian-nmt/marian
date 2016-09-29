@@ -71,7 +71,7 @@ class ExpressionGraph {
   public:
 
     /** @brief Constructs a new expression graph */
-    ExpressionGraph() : stack_(new ChainableTape) {}
+    ExpressionGraph() : tape_(new ChainableTape) {}
 
     ExpressionGraph(const ExpressionGraph&) = delete;
 
@@ -118,26 +118,26 @@ class ExpressionGraph {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
     void forward(data::BatchPtr batch) {
-      for(auto&& v : *stack_)
+      for(auto&& v : *tape_)
         if(!v->skipped_training())
           v->allocate(batch->dim());
 
       setInputs(batch);
 
-      for(auto&& v : *stack_)
+      for(auto&& v : *tape_)
         if(!v->skipped_training())
           v->forward();
     }
 
     void inference(data::BatchPtr batch) {
-      for(auto&& v : *stack_)
+      for(auto&& v : *tape_)
         if(!v->skipped_inference())
           v->allocate(batch->dim());
 
       // @TODO create setInputsInference !
       setInputs(batch);
 
-      for(auto&& v : *stack_)
+      for(auto&& v : *tape_)
         if(!v->skipped_inference())
           v->inference();
     }
@@ -156,25 +156,25 @@ class ExpressionGraph {
      *    and that all backward pass computations have been performed.
      */
     void backward() {
-      for(auto&& v : *stack_)
+      for(auto&& v : *tape_)
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
       typedef typename ChainableTape::reverse_iterator It;
-      stack_->back()->init_dependent(); // @TODO keep track of top nodes and set all of them
-      for(It it = stack_->rbegin(); it != stack_->rend(); ++it)
+      tape_->back()->init_dependent(); // @TODO keep track of top nodes and set all of them
+      for(It it = tape_->rbegin(); it != tape_->rend(); ++it)
         if(!(*it)->skipped_training())
           (*it)->backward();
     }
 
     void backward_debug(Float delta) {
-      for(auto&& v : *stack_)
+      for(auto&& v : *tape_)
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
       typedef typename ChainableTape::reverse_iterator It;
-      stack_->back()->init_dependent();
-      for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
+      tape_->back()->init_dependent();
+      for(It it = tape_->rbegin(); it != tape_->rend(); ++it) {
         if(!(*it)->skipped_training())
     	  (*it)->backward_debug(delta);
       }
@@ -192,7 +192,7 @@ class ExpressionGraph {
       ss << "digraph ExpressionGraph {" << std::endl;
       ss << "rankdir=BT" << std::endl;
       typedef typename ChainableTape::reverse_iterator It;
-      for(It it = stack_->rbegin(); it != stack_->rend(); ++it) {
+      for(It it = tape_->rbegin(); it != tape_->rend(); ++it) {
         ss << (*it)->graphviz();
       }
       ss << "}" << std::endl;
@@ -296,8 +296,8 @@ class ExpressionGraph {
      *
      * @return a pointer to the list of items contained in this graph
      */
-    ChainableTapePtr stack() {
-      return stack_;
+    ChainableTapePtr tape() {
+      return tape_;
     }
 
     /**
@@ -360,7 +360,7 @@ class ExpressionGraph {
   private:
 
     /** @brief Pointer to the list of nodes */
-    ChainableTapePtr stack_;
+    ChainableTapePtr tape_;
 
     /** @brief Maps from name to expression node. */
     std::map<std::string, Expr> named_;
