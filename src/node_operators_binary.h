@@ -9,8 +9,14 @@ struct BinaryNodeOp : public Node {
 
   template <typename ...Args>
   BinaryNodeOp(ChainPtr a, ChainPtr b, Args ...args)
-   : Node(args...), a_(a), b_(b) {}
-
+   : Node(keywords::no_inference=a->skipped_inference()
+			|| b->skipped_inference()
+			|| Get(keywords::no_inference, false),
+          keywords::no_training=a->skipped_training()
+			|| b->skipped_training()
+			|| Get(keywords::no_training, false),
+		  args...), a_(a), b_(b)
+  { }
 
   void backward_debug(Float delta) {
 	  using namespace std;
@@ -275,7 +281,7 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     } else {
       probs_.allocate(a_->val().shape(), 0.0);
     }
-	
+
 	CudnnLogSoftmax(probs_, a_->val());
 	if(!result_)
 	  result_.allocate(a_->val().shape());
@@ -288,7 +294,7 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
   // graph. In general the backward functions can skip the computation of
   // gradients wrt input nodes.
   void backward() {
-	// We are using logsoftmax for this and cached probs are logs. 
+	// We are using logsoftmax for this and cached probs are logs.
     // For each row, the first input derivative is given by adj * (exp(p) - y),
     // where y is the gold label distribution (e.g. one hot vector) and
     // p is the softmax output (probabilities).
@@ -319,4 +325,3 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
 
 
 }
-

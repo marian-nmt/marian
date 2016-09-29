@@ -35,10 +35,17 @@ class Node : public Chainable<Tensor>,
      : Keywords(args...),
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
-       name_(Get(keywords::name, "none"))
+       name_(Get(keywords::name, "none")),
+       skipInference_(Get(keywords::no_inference, false)),
+       skipTraining_(Get(keywords::no_training, false))
     { }
 
     virtual ~Node() {};
+
+    virtual void skip_inference() { skipInference_ = true; }
+    virtual bool skipped_inference() { return skipInference_; }
+    virtual void skip_training() { skipTraining_ = true; }
+    virtual bool skipped_training() { return skipTraining_; }
 
     virtual void allocate(size_t batchSize) {
       auto it1 = shape_.begin();
@@ -116,6 +123,9 @@ class Node : public Chainable<Tensor>,
 
     Tensor val_;
     Tensor adj_;
+
+    bool skipInference_;
+    bool skipTraining_;
 
     template<class ITER>
     void output(const std::string &title, const ITER &b, const ITER &e) const

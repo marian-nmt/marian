@@ -162,6 +162,8 @@ namespace marian {
     KEY(axis, int)
     KEY(name, std::string)
     KEY(shape, Shape)
+    KEY(no_inference, bool)
+    KEY(no_training, bool)
     KEY(value, float)
     KEY(lazy_shape, std::function<Shape()>)
     KEY(lazy_value, std::function<float()>)

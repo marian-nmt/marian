@@ -24,6 +24,16 @@
 
 namespace marian {
 
+Expr training(Expr a) {
+  a.node()->skip_inference();
+  return a;
+}
+
+Expr inference(Expr a) {
+  a.node()->skip_training();
+  return a;
+}
+
 Expr named(Expr a, const std::string& name) {
   a.node()->set_name(name);
   a.graph()->add_named_node(a, name);

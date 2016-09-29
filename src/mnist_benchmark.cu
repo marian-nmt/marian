@@ -31,17 +31,17 @@ int main(int argc, char** argv) {
 
   ff->graphviz("mnist_benchmark.dot");
 
-  auto validator =
-    Run<Validator>(ff, validSet,
-                   batch_size=200);
-
   auto trainer =
     Run<Trainer>(ff, trainSet,
                  optimizer=Optimizer<Adam>(0.0002),
-                 valid=validator,
                  batch_size=200,
                  max_epochs=50);
   trainer->run();
+
+  auto validator =
+    Run<Validator>(ff, validSet,
+                   batch_size=200);
+  validator->run();
 
   ff->dump("mnist.mrn");
 
