@@ -9,8 +9,8 @@ struct UnaryNodeOp : public Node {
     Expr a_;
 
     template <typename ...Args>
-    UnaryNodeOp(ExpressionGraphPtr graph, Expr a, Args ...args)
-    : Node(graph,
+    UnaryNodeOp(Expr a, Args ...args)
+    : Node(a->graph(),
            keywords::shape=a->shape(), //@TODO: Check keywords?
            keywords::no_inference=a->skipped_inference() || keywords::Get(keywords::no_inference, false, args...),
            keywords::no_training=a->skipped_training() || keywords::Get(keywords::no_training, false, args...),
@@ -242,8 +242,8 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 
 struct ArgmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  ArgmaxNodeOp(ExpressionGraphPtr graph, Expr a, Args ...args)
-    : UnaryNodeOp(graph, a, keywords::shape=newShape(a), args...) { }
+  ArgmaxNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
 
   void forward() {
     // B = softmax(A).

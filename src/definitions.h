@@ -27,6 +27,12 @@
 #include <memory>
 
 namespace marian {
+  /** @brief Creates shared_ptr of any type, passes all arguments to any available constructor */
+  template <class T, typename ...Args>
+  std::shared_ptr<T> New(Args&& ... args) {
+    return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
+  }
+
   const size_t SHAPE_SIZE = 2;
 
   typedef float Float;

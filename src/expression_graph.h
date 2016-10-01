@@ -40,11 +40,6 @@ class ExpressionGraph;
 typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
 template <class T, typename ...Args>
-std::shared_ptr<T> New(Args&& ... args) {
-  return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-template <class T, typename ...Args>
 Expr Expression(Args&& ... args);
 
 /**

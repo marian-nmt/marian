@@ -10,9 +10,8 @@ struct BinaryNodeOp : public Node {
   Expr b_;
 
   template <typename ...Args>
-  BinaryNodeOp(ExpressionGraphPtr graph,
-			   Expr a, Expr b, Args ...args)
-   : Node(graph,
+  BinaryNodeOp(Expr a, Expr b, Args ...args)
+   : Node(a->graph(),
 		  keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
 		  keywords::no_inference=a->skipped_inference()
 			|| b->skipped_inference()
@@ -86,8 +85,8 @@ struct BinaryNodeOp : public Node {
 
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  DotNodeOp(ExpressionGraphPtr graph, Expr a, Expr b, Args ...args)
-  : BinaryNodeOp(graph, a, b,
+  DotNodeOp(Expr a, Expr b, Args ...args)
+  : BinaryNodeOp(a, b,
                  keywords::shape=newShape(a, b),
                  args...) { }
 
@@ -269,9 +268,8 @@ struct DivNodeOp : public BinaryNodeOp {
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-    CrossEntropyNodeOp(ExpressionGraphPtr graph,
-					   Expr a, Expr b, Args ...args)
-    : BinaryNodeOp(graph, a, b,
+    CrossEntropyNodeOp(Expr a, Expr b, Args ...args)
+    : BinaryNodeOp(a, b,
                    keywords::shape=newShape(a, b),
                    args...) { }
 

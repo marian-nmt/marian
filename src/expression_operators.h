@@ -46,7 +46,7 @@ Expr relu(Expr a);
 
 template <typename ...Args>
 Expr dropout(Expr a, Args ...args) {
-  return Expression<DropoutNodeOp>(a->graph(), a, args...);
+  return Expression<DropoutNodeOp>(a, args...);
 }
 
 Expr log(Expr a);

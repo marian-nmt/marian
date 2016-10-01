@@ -41,69 +41,69 @@ Expr name(Expr a, const std::string& name) {
 }
 
 Expr logit(Expr a) {
-  return Expression<LogitNodeOp>(a->graph(), a);
+  return Expression<LogitNodeOp>(a);
 }
 
 Expr tanh(Expr a) {
-  return Expression<TanhNodeOp>(a->graph(), a);
+  return Expression<TanhNodeOp>(a);
 }
 
 Expr relu(Expr a) {
-  return Expression<ReLUNodeOp>(a->graph(), a);
+  return Expression<ReLUNodeOp>(a);
 }
 
 Expr log(Expr a) {
-  return Expression<LogNodeOp>(a->graph(), a);
+  return Expression<LogNodeOp>(a);
 };
 
 Expr exp(Expr a) {
-  return Expression<ExpNodeOp>(a->graph(), a);
+  return Expression<ExpNodeOp>(a);
 };
 
 Expr operator-(Expr a) {
-  return Expression<NegNodeOp>(a->graph(), a);
+  return Expression<NegNodeOp>(a);
 };
 
 Expr softmax(Expr a) {
-  return Expression<SoftmaxNodeOp>(a->graph(), a);
+  return Expression<SoftmaxNodeOp>(a);
 }
 
 Expr logsoftmax(Expr a) {
-  return Expression<LogSoftmaxNodeOp>(a->graph(), a);
+  return Expression<LogSoftmaxNodeOp>(a);
 }
 
 Expr argmax(Expr a) {
-  return Expression<ArgmaxNodeOp>(a->graph(), a);
+  return Expression<ArgmaxNodeOp>(a);
 }
 
 /*********************************************************/
 
 Expr operator+(Expr a, Expr b) {
-  return Expression<PlusNodeOp>(a->graph(), a, b);
+  return Expression<PlusNodeOp>(a, b);
 }
 
 Expr operator-(Expr a, Expr b) {
-  return Expression<MinusNodeOp>(a->graph(), a, b);
+  return Expression<MinusNodeOp>(a, b);
 }
 
 Expr operator*(Expr a, Expr b) {
-  return Expression<MultNodeOp>(a->graph(), a, b);
+  return Expression<MultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, Expr b) {
-  return Expression<DivNodeOp>(a->graph(), a, b);
+  return Expression<DivNodeOp>(a, b);
 }
 
 Expr dot(Expr a, Expr b) {
-  return Expression<DotNodeOp>(a->graph(), a, b);
+  return Expression<DotNodeOp>(a, b);
 }
 
 Expr reluplus(Expr a, Expr b) {
-  return Expression<ReLUPlusNodeOp>(a->graph(), a, b);
+  return Expression<ReLUPlusNodeOp>(a, b);
 }
 
 Expr cross_entropy(Expr a, Expr b) {
-  return Expression<CrossEntropyNodeOp>(a->graph(), a, b);
+  return Expression<CrossEntropyNodeOp>(a, b);
 }
 
 }
