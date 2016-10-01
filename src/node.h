@@ -45,9 +45,9 @@ class Node : public Chainable<Tensor>,
        name_("none"),
        skipInference_(Get(keywords::no_inference, false)),
        skipTraining_(Get(keywords::no_training, false))
-    { }
+    {}
 
-    virtual ~Node() {};
+    virtual ~Node() {}
 
     virtual ExpressionGraphPtr graph() {
       return graph_;
@@ -100,7 +100,7 @@ class Node : public Chainable<Tensor>,
       }
     }
 
-    virtual const Tensor val()  {
+    virtual Tensor val()  {
       return val_;
     };
 

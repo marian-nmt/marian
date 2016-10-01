@@ -37,6 +37,8 @@ struct InputNode : public Node {
                    "Data items require shape information");
   }
 
+  ~InputNode() {}
+
   virtual void setVal(Tensor t)  {
     val_ = t;
     shape_ = t.shape();
@@ -62,6 +64,8 @@ struct ConstantNode : public Node {
                    !Has(keywords::lazy_shape),
                    "Constant items require shape information");
   }
+
+  ~ConstantNode() {}
 
   void forward() {}
   void backward() {}
@@ -91,6 +95,8 @@ struct ParamNode : public Node {
     shape_ = t.shape();
     //@todo, shape checking
   };
+
+  ~ParamNode() {}
 
   virtual void setGrad(Tensor t)  {
     adj_ = t;

@@ -6,12 +6,12 @@
 namespace marian {
 
 struct BinaryNodeOp : public Node {
-  ChainPtr a_;
-  ChainPtr b_;
+  Expr a_;
+  Expr b_;
 
   template <typename ...Args>
   BinaryNodeOp(ExpressionGraphPtr graph,
-			   ChainPtr a, ChainPtr b, Args ...args)
+			   Expr a, Expr b, Args ...args)
    : Node(graph,
 		  keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
 		  keywords::no_inference=a->skipped_inference()
@@ -24,6 +24,8 @@ struct BinaryNodeOp : public Node {
   {
 	remove_children_from_top_nodes();
   }
+
+  ~BinaryNodeOp() {}
 
   void remove_children_from_top_nodes();
 
@@ -84,12 +86,12 @@ struct BinaryNodeOp : public Node {
 
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
-  DotNodeOp(ExpressionGraphPtr graph, ChainPtr a, ChainPtr b, Args ...args)
+  DotNodeOp(ExpressionGraphPtr graph, Expr a, Expr b, Args ...args)
   : BinaryNodeOp(graph, a, b,
                  keywords::shape=newShape(a, b),
                  args...) { }
 
-  Shape newShape(ChainPtr a, ChainPtr b) {
+  Shape newShape(Expr a, Expr b) {
     Shape shape1 = a->shape();
     Shape shape2 = b->shape();
     UTIL_THROW_IF2(shape1[1] != shape2[0],
@@ -268,12 +270,12 @@ struct DivNodeOp : public BinaryNodeOp {
 struct CrossEntropyNodeOp : public BinaryNodeOp {
   template <typename ...Args>
     CrossEntropyNodeOp(ExpressionGraphPtr graph,
-					   ChainPtr a, ChainPtr b, Args ...args)
+					   Expr a, Expr b, Args ...args)
     : BinaryNodeOp(graph, a, b,
                    keywords::shape=newShape(a, b),
                    args...) { }
 
-  Shape newShape(ChainPtr a, ChainPtr b) {
+  Shape newShape(Expr a, Expr b) {
     Shape shape1 = a->shape();
     Shape shape2 = b->shape();
     UTIL_THROW_IF2(shape1[0] != shape2[0] || shape1[1] != shape2[1],

@@ -46,7 +46,7 @@ Expr relu(Expr a);
 
 template <typename ...Args>
 Expr dropout(Expr a, Args ...args) {
-  return Expr(ChainPtr(new DropoutNodeOp(a.graph(), a, args...)));
+  return Expression<DropoutNodeOp>(a->graph(), a, args...);
 }
 
 Expr log(Expr a);
@@ -79,23 +79,22 @@ inline Expr sum(Expr a, Args ...args) {
   Keywords params(args...);
   int ax = params.Get(axis, whatevs);
 
-  ChainPtr n = a.node();
   if(ax == 0) {
-    auto lshape = [n]() -> Shape {
-      int rows = n->val().shape()[0];
+    auto lshape = [a]() -> Shape {
+      int rows = a->val().shape()[0];
       return {1, rows};
     };
-    Expr one = a.graph()->ones(shape={1, n->shape()[0]},
+    Expr one = a->graph()->ones(shape={1, a->shape()[0]},
                     lazy_shape=lshape);
     return dot(one, a);
   }
   else if(ax == 1) {
-    auto lshape = [n]() -> Shape {
-      int cols = n->val().shape()[1];
+    auto lshape = [a]() -> Shape {
+      int cols = a->val().shape()[1];
       //std::cerr << "Shape will be " << cols << " by 1." << std::endl;
       return {cols, 1};
     };
-    Expr one = a.graph()->ones(shape={n->shape()[1], 1},
+    Expr one = a->graph()->ones(shape={a->shape()[1], 1},
                         lazy_shape=lshape);
     return dot(a, one);
   }
@@ -106,13 +105,6 @@ inline Expr sum(Expr a, Args ...args) {
     UTIL_THROW2("Not implemented");
   }
   return sum(sum(a, axis=0), axis=1);
-}
-
-// inefficient
-template <typename ...Args>
-Expr softmax_slow(Expr a, Args ...args) {
-  Expr e = exp(a);
-  return e / sum(e, args...);
 }
 
 Expr softmax(Expr a);
@@ -128,26 +120,25 @@ inline Expr mean(Expr a, Args ...args) {
   Keywords params(args...);
   size_t ax = params.Get(axis, whatevs);
 
-  ChainPtr n = a.node();
   switch (ax) {
     case 0:
-      return sum(a, axis=0) / a.graph()->constant(shape={1, 1},
-                                       lazy_value=[n]() -> Float {
-                                         return n->val().shape()[0];
+      return sum(a, axis=0) / a->graph()->constant(shape={1, 1},
+                                       lazy_value=[a]() -> Float {
+                                         return a->val().shape()[0];
                                        });
     case 1:
-      return sum(a, axis=1) / a.graph()->constant(shape={1, 1},
-                                       lazy_value=[n]() -> Float {
-                                         return n->val().shape()[1];
+      return sum(a, axis=1) / a->graph()->constant(shape={1, 1},
+                                       lazy_value=[a]() -> Float {
+                                         return a->val().shape()[1];
                                        });
     case 2:
       UTIL_THROW2("Not implemented");
     case 3:
       UTIL_THROW2("Not implemented");
     default:
-      return sum(a) / a.graph()->constant(shape={1, 1},
-                               lazy_value=[n]() -> Float {
-                                 return n->val().size();
+      return sum(a) / a->graph()->constant(shape={1, 1},
+                               lazy_value=[a]() -> Float {
+                                 return a->val().size();
                                });
   }
 }

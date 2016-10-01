@@ -6,10 +6,10 @@
 namespace marian {
 
 struct UnaryNodeOp : public Node {
-    ChainPtr a_;
+    Expr a_;
 
     template <typename ...Args>
-    UnaryNodeOp(ExpressionGraphPtr graph, ChainPtr a, Args ...args)
+    UnaryNodeOp(ExpressionGraphPtr graph, Expr a, Args ...args)
     : Node(graph,
            keywords::shape=a->shape(), //@TODO: Check keywords?
            keywords::no_inference=a->skipped_inference() || keywords::Get(keywords::no_inference, false, args...),
@@ -19,6 +19,8 @@ struct UnaryNodeOp : public Node {
     {
         remove_children_from_top_nodes();
     }
+
+    ~UnaryNodeOp() {}
 
     void remove_children_from_top_nodes();
 
@@ -240,7 +242,7 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 
 struct ArgmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  ArgmaxNodeOp(ExpressionGraphPtr graph, ChainPtr a, Args ...args)
+  ArgmaxNodeOp(ExpressionGraphPtr graph, Expr a, Args ...args)
     : UnaryNodeOp(graph, a, keywords::shape=newShape(a), args...) { }
 
   void forward() {
@@ -251,7 +253,7 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
   void backward() {
   }
 
-  Shape newShape(ChainPtr a) {
+  Shape newShape(Expr a) {
     Shape shape = a->shape();
     shape[1] = 1;
     return shape;

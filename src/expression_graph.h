@@ -39,36 +39,13 @@ class ExpressionGraph;
 /** @brief A pointer to an expression graph. */
 typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
-class Expr {
-  public:
-    Expr(ChainPtr chainable);
-
-    Expr operator=(Tensor t) {
-      pimpl_->setVal(t);
-      return *this;
-    }
-
-    Tensor val();
-    Tensor grad();
-
-    void setVal(Tensor val);
-    void setGrad(Tensor grad);
-
-    ExpressionGraphPtr graph();
-
-    ChainPtr node();
-    operator ChainPtr();
-
-    std::string Debug() const;
-
-  private:
-    ChainPtr pimpl_;
-};
-
 template <class T, typename ...Args>
 std::shared_ptr<T> New(Args&& ... args) {
   return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
 }
+
+template <class T, typename ...Args>
+Expr Expression(Args&& ... args);
 
 /**
  * @brief Represents a computation graph of expressions, over which algorithmic differentiation may be performed.
@@ -78,7 +55,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Constructs a new expression graph
      * Constructor is private to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph() : tape_(new ChainableTape) {}
+    ExpressionGraph() {}
 
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
@@ -96,9 +73,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
                      "Number of batch inputs does not correspond to number of input nodes");
 
       for(int i = 0; i < gInputs.size(); ++i) {
-        if(!gInputs[i].val())
-          gInputs[i].setVal(Tensor(bInputs[i].shape()));
-        gInputs[i].val().set(bInputs[i].begin(), bInputs[i].end());
+        if(!gInputs[i]->val())
+          gInputs[i]->setVal(Tensor(bInputs[i].shape()));
+        gInputs[i]->val().set(bInputs[i].begin(), bInputs[i].end());
       }
     }
 
@@ -131,26 +108,26 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
     void forward(data::BatchPtr batch) {
-      for(auto&& v : *tape_)
+      for(auto&& v : tape_)
         if(!v->skipped_training())
           v->allocate(batch->dim());
 
       setInputs(batch);
 
-      for(auto&& v : *tape_)
+      for(auto&& v : tape_)
         if(!v->skipped_training())
           v->forward();
     }
 
     void inference(data::BatchPtr batch) {
-      for(auto&& v : *tape_)
+      for(auto&& v : tape_)
         if(!v->skipped_inference())
           v->allocate(batch->dim());
 
       // @TODO create setInputsInference !
       setInputs(batch);
 
-      for(auto&& v : *tape_)
+      for(auto&& v : tape_)
         if(!v->skipped_inference())
           v->inference();
     }
@@ -172,16 +149,16 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
-      for(auto&& v : *tape_)
+      for(auto&& v : tape_)
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
-      typedef typename ChainableTape::reverse_iterator It;
-      It it = tape_->rbegin();
-      while(topNodes_.count(*it) == 0 && it != tape_->rend())
+      typedef typename Tape::reverse_iterator It;
+      It it = tape_.rbegin();
+      while(topNodes_.count(*it) == 0 && it != tape_.rend())
         it++;
       (*it)->init_dependent();
-      while(it != tape_->rend()) {
+      while(it != tape_.rend()) {
         if(!(*it)->skipped_training())
           (*it)->backward();
         it++;
@@ -192,16 +169,16 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
-      for(auto&& v : *tape_)
+      for(auto&& v : tape_)
         if(!v->skipped_training())
           v->set_zero_adjoint();
 
-      typedef typename ChainableTape::reverse_iterator It;
-      It it = tape_->rbegin();
-      while(topNodes_.count(*it) == 0 && it != tape_->rend())
+      typedef typename Tape::reverse_iterator It;
+      It it = tape_.rbegin();
+      while(topNodes_.count(*it) == 0 && it != tape_.rend())
         it++;
       (*it)->init_dependent();
-      while(it != tape_->rend()) {
+      while(it != tape_.rend()) {
         if(!(*it)->skipped_training())
           (*it)->backward_debug(delta);
         it++;
@@ -219,8 +196,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       std::stringstream ss;
       ss << "digraph ExpressionGraph {" << std::endl;
       ss << "rankdir=BT" << std::endl;
-      typedef typename ChainableTape::reverse_iterator It;
-      for(It it = tape_->rbegin(); it != tape_->rend(); ++it) {
+      typedef typename Tape::reverse_iterator It;
+      for(It it = tape_.rbegin(); it != tape_.rend(); ++it) {
         ss << (*it)->graphviz();
       }
       ss << "}" << std::endl;
@@ -251,7 +228,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr input(Args ...args) {
-      Expr e(ChainPtr(new InputNode(shared_from_this(), args...)));
+      auto e = Expression<InputNode>(shared_from_this(), args...);
       inputs_.emplace_back(e);
       return e;
     }
@@ -268,7 +245,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr param(Args ...args) {
-      Expr e(ChainPtr(new ParamNode(shared_from_this(), args...)));
+      auto e = Expression<ParamNode>(shared_from_this(), args...);
       params_.emplace_back(e);
       return e;
     }
@@ -284,7 +261,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr constant(Args ...args) {
-      return Expr(ChainPtr(new ConstantNode(shared_from_this(), args...)));
+      return Expression<ConstantNode>(shared_from_this(), args...);
     }
 
     /**
@@ -298,7 +275,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr ones(Args ...args) {
-      return Expr(ChainPtr(new ConstantNode(shared_from_this(), keywords::value=1, args...)));
+      return Expression<ConstantNode>(shared_from_this(), keywords::value=1, args...);
     }
 
     /**
@@ -312,7 +289,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr zeroes(Args ...args) {
-      return Expr(ChainPtr(new ConstantNode(shared_from_this(), keywords::value=0, args...)));
+      return Expression<ConstantNode>(shared_from_this(), keywords::value=0, args...);
     }
 
     /*********************************************************/
@@ -381,24 +358,21 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @return a pointer to the list of items contained in this graph
      */
-    ChainableTapePtr tape() {
-      return tape_;
-    }
 
-    void add(ChainPtr node) {
-      tape_->push_back(node);
+    void add(Expr node) {
+      tape_.push_back(node);
       if(!node->skipped_training())
         topNodes_.insert(node);
     }
 
-    void remove_top_node(ChainPtr node) {
+    void remove_top_node(Expr node) {
       topNodes_.erase(node);
     }
 
   private:
 
     /** @brief Pointer to the list of nodes */
-    ChainableTapePtr tape_;
+    Tape tape_;
 
     /** @brief Maps from name to expression node. */
     std::map<std::string, Expr> named_;
@@ -410,7 +384,15 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::vector<Expr> inputs_;
 
     /** @brief Contains all nodes with regard to which we want to calculate derivatives */
-    std::unordered_set<ChainPtr> topNodes_;
+    std::unordered_set<Expr> topNodes_;
 };
+
+template <class T, typename ...Args>
+Expr Expression(Args&& ... args) {
+  auto e = Expr(new T(std::forward<Args>(args)...));
+  e->graph()->add(e);
+  return e;
+}
+
 
 }

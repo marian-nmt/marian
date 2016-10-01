@@ -52,7 +52,8 @@ typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 template <class DataType>
 struct Chainable {
     Chainable() { }
-    virtual ~Chainable() { }
+    virtual ~Chainable() {};
+
     virtual void inference() { forward(); }
 
     /**
@@ -77,6 +78,7 @@ struct Chainable {
      * If this Chainable object represents the result of the <em>i</em>-th function in an expression graph,
      * then formally, this method calculates \f$\bar{w}_i = \frac{\partial y}{\partial w_i}\f$.
      */
+
     virtual void backward() { }
     virtual void backward_debug(Float delta) { }
 
@@ -98,7 +100,7 @@ struct Chainable {
     virtual ExpressionGraphPtr graph() = 0;
     virtual const Shape& shape() = 0;
 
-    virtual const DataType val() = 0;
+    virtual DataType val() = 0;
     virtual DataType grad() = 0;
 
     virtual void setVal(DataType t) {
@@ -110,7 +112,7 @@ struct Chainable {
 };
 
 /** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
-typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
+typedef std::shared_ptr<Chainable<Tensor>> Expr;
 
 /**
  * @brief Defines a convenience type to represent an ordered collection items.
@@ -120,9 +122,6 @@ typedef std::shared_ptr<Chainable<Tensor>> ChainPtr;
  * Naumann (2012) uses "tape" to refer to this data structure.
  * -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
  */
-typedef std::vector<ChainPtr> ChainableTape;
-
-/** @brief Defines a convenience type to represent a shared pointer to a ChainableTape. */
-typedef std::shared_ptr<ChainableTape> ChainableTapePtr;
+typedef std::vector<Expr> Tape;
 
 }
