@@ -33,14 +33,59 @@
 
 namespace marian {
 
-// Forward declaration of ExpressionGraph class; this enables it to be used in the following typedef of ExpressionGraphPtr
-class ExpressionGraph;
-
-/** @brief A pointer to an expression graph. */
-typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
-
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args);
+
+class TensorAllocator {
+  private:
+    const float OVERHEAD = 0.2f;
+
+    thrust::device_vector<float> data_;
+    std::vector<Tensor> allocatedTensors_;
+
+    void reset(Tensor t, float* start) {
+      t->reset(start);
+    }
+
+    void resetTensors() {
+      float* start = data_.data();
+      for(auto t : allocatedTensors_) {
+        reset(t, start);
+        start += t->size();
+      }
+    }
+
+    void checkSpace(Shape shape) {
+      float* start = data_.data();
+      if(!tensors_.empty())
+        start = tensors.back().data();
+
+      size_t available = data_.data() + data_.size() - start;
+      if(shape.size() > available) {
+        allocate(data_.size() - available + shape.size());
+      }
+    }
+
+  public:
+    void allocate(size_t elements) {
+      data_.reserve(elements * (1.0f + OVERHEAD));
+      data_.resize(elements * (1.0f + OVERHEAD));
+      resetTensors();
+    }
+
+    template <class Args...>
+    Tensor create(Shape shape, Args&&... args) {
+      checkSpace(shape);
+
+      float* start = data_.data();
+      if(!tensors_.empty())
+        start = tensors.back().data();
+
+      Tensor tensor(start, shape, std::forward(args)...);
+      tensors_.push_back(tensor);
+      return tensor;
+    }
+};
 
 /**
  * @brief Represents a computation graph of expressions, over which algorithmic differentiation may be performed.
@@ -80,7 +125,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * Backpropogation is implemented by performing first the forward pass
      *    and then the backward pass of algorithmic differentiation (AD) on the nodes of the graph.
      *
-     * @param batchSize       XXX Marcin, could you provide a description of this param?
+     * @param batch A batch of training data
      */
     void backprop(data::BatchPtr batch) {
       forward(batch);
@@ -346,14 +391,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       named_.emplace(name, e);
     }
 
-    /**
-     * @brief Returns a pointer to the list of items contained in this graph.
-     *
-     * The items in the list will be in the order they were created.
-     *
-     * @return a pointer to the list of items contained in this graph
-     */
-
     void add(Expr node) {
       tape_.push_back(node);
       if(!node->skipped_training())
@@ -366,7 +403,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
   private:
 
-    /** @brief Pointer to the list of nodes */
+    /** @brief The full list of nodes */
     Tape tape_;
 
     /** @brief Maps from name to expression node. */
@@ -382,12 +419,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::unordered_set<Expr> topNodes_;
 };
 
+/** @brief A pointer to an expression graph. */
+typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
+
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args) {
   auto e = Expr(new T(std::forward<Args>(args)...));
   e->graph()->add(e);
   return e;
 }
-
 
 }
