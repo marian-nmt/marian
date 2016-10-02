@@ -8,7 +8,7 @@ Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-
 
 We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed. 
 
-## Recommended:
+## Recommended for GPU version:
 Tested on Ubuntu 14.04 LTS
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * GCC/G++ 4.9
@@ -20,6 +20,11 @@ Tested on Ubuntu 16.04 LTS
  * GCC/G++ 5.4
  * Boost 1.61
  * CUDA 8.0
+
+## Recommended for CPU version:
+Will automatically be compiled if CUDA cannot be detected by CMAKE. Tested on different machines and distributions:
+ * CMake 3.5.1
+ * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions. 
 
 ## Compilation
 The project is a standard Cmake out-of-source build:
