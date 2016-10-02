@@ -21,8 +21,10 @@ Tested on Ubuntu 16.04 LTS
  * Boost 1.61
  * CUDA 8.0
 
+Also compiles the CPU version. 
+
 ## Recommended for CPU version:
-Will automatically be compiled if CUDA cannot be detected by CMAKE. Tested on different machines and distributions:
+The CPU-only version will automatically be compiled if CUDA cannot be detected by CMAKE. Tested on different machines and distributions:
  * CMake 3.5.1
  * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions. 
 
