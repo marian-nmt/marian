@@ -27,12 +27,18 @@
 #include <memory>
 
 namespace marian {
+  /** @brief Creates shared_ptr of any type, passes all arguments to any available constructor */
+  template <class T, typename ...Args>
+  std::shared_ptr<T> New(Args&& ... args) {
+    return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
+  }
+
   const size_t SHAPE_SIZE = 2;
 
   typedef float Float;
-  
+
   /** @brief A placeholder that represents the size of a dimension, the actual value of which is to be specified at some later point.
-   * 
+   *
    * For example, in certain cases the value of one dimension in a Shape object may be used to represent batch size.
    * In such a case, the value of batch size may not be known when the Shape object is constructed.
    * In that case, this placeholder would be used to specify that the batch size value will be defined at some later point.
@@ -50,10 +56,10 @@ namespace marian {
       int shape_[SHAPE_SIZE];
 
     public:
-    
+
       /**
        * @brief Constructs a default shape.
-       * 
+       *
        * This default shape has two dimensions.
        * The size of each dimension is 1.
        */
@@ -61,25 +67,25 @@ namespace marian {
 
       /**
        * @brief Constructs a shape.
-       * 
+       *
        * @param i A list of integers representing the size of each dimension.
        */
       Shape(std::initializer_list<int> il) {
        std::copy(il.begin(), il.end(), begin());
       }
 
-      /** 
+      /**
        * @brief Gets a reference to the int representing the size of the <code>i</code>th dimension represented by this object.
-       * 
+       *
        * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
        */
       int& operator[](int i) {
         return shape_[i];
       }
 
-      /** 
+      /**
        * @brief Gets the size of the <code>i</code>th dimension represented by this object.
-       * 
+       *
        * @return the size of the <code>i</code>th dimension represented by this object
        */
       const int& operator[](int i) const {
@@ -88,9 +94,9 @@ namespace marian {
 
 	  /**
 	   * @brief Gets the number of dimensions represented by this object
-	   * 
+	   *
 	   * @return the number of dimensions represented by this object
-	   */ 
+	   */
       size_t size() const {
         return SHAPE_SIZE;
       }
@@ -117,11 +123,11 @@ namespace marian {
 
       /** @brief Gets a const pointer to an int that specifies the size of the first dimension represented by this object */
       const int* begin() const { return shape_; }
-      
-      /** @brief Gets a const pointer to an int that specifies the size of the last dimension represented by this object */      
+
+      /** @brief Gets a const pointer to an int that specifies the size of the last dimension represented by this object */
       const int* end() const { return shape_+ SHAPE_SIZE; }
 
-      /** 
+      /**
        * @brief Tests this object for equality against another <code>Shape</code> object.
        *
        * @return <code>true</code> if the size of each dimension in this object
@@ -132,7 +138,7 @@ namespace marian {
         return std::equal(begin(), end(), other.begin());
       }
 
-      /** 
+      /**
        * @brief Tests this object for inequality against another <code>Shape</code> object.
        */
       bool operator!=(const Shape& other) const {
@@ -152,7 +158,7 @@ namespace marian {
   class RunBase;
   typedef std::shared_ptr<RunBase> RunBasePtr;
 
-  /** 
+  /**
    * @brief Defines a set of keywords.
    *
    * Each invocation of the KEY(name, value_type) macro
@@ -160,7 +166,7 @@ namespace marian {
    */
   namespace keywords {
     KEY(axis, int)
-    KEY(name, std::string)
+    //KEY(name, std::string)
     KEY(shape, Shape)
     KEY(no_inference, bool)
     KEY(no_training, bool)

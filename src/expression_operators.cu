@@ -25,85 +25,85 @@
 namespace marian {
 
 Expr training(Expr a) {
-  a.node()->skip_inference();
+  a->skip_inference();
   return a;
 }
 
 Expr inference(Expr a) {
-  a.node()->skip_training();
+  a->skip_training();
   return a;
 }
 
-Expr named(Expr a, const std::string& name) {
-  a.node()->set_name(name);
-  a.graph()->add_named_node(a, name);
+Expr name(Expr a, const std::string& name) {
+  a->set_name(name);
+  a->graph()->add_named_node(a, name);
   return a;
 }
 
 Expr logit(Expr a) {
-  return Expr(ChainPtr(new LogitNodeOp(a.graph(), a)));
+  return Expression<LogitNodeOp>(a);
 }
 
 Expr tanh(Expr a) {
-  return Expr(ChainPtr(new TanhNodeOp(a.graph(), a)));
+  return Expression<TanhNodeOp>(a);
 }
 
 Expr relu(Expr a) {
-  return Expr(ChainPtr(new ReLUNodeOp(a.graph(), a)));
+  return Expression<ReLUNodeOp>(a);
 }
 
 Expr log(Expr a) {
-  return Expr(ChainPtr(new LogNodeOp(a.graph(), a)));
+  return Expression<LogNodeOp>(a);
 };
 
 Expr exp(Expr a) {
-  return Expr(ChainPtr(new ExpNodeOp(a.graph(), a)));
+  return Expression<ExpNodeOp>(a);
 };
 
 Expr operator-(Expr a) {
-  return Expr(ChainPtr(new NegNodeOp(a.graph(), a)));
+  return Expression<NegNodeOp>(a);
 };
 
 Expr softmax(Expr a) {
-  return Expr(ChainPtr(new SoftmaxNodeOp(a.graph(), a)));
+  return Expression<SoftmaxNodeOp>(a);
 }
 
 Expr logsoftmax(Expr a) {
-  return Expr(ChainPtr(new LogSoftmaxNodeOp(a.graph(), a)));
+  return Expression<LogSoftmaxNodeOp>(a);
 }
 
 Expr argmax(Expr a) {
-  return Expr(ChainPtr(new ArgmaxNodeOp(a.graph(), a)));
+  return Expression<ArgmaxNodeOp>(a);
 }
 
 /*********************************************************/
 
 Expr operator+(Expr a, Expr b) {
-  return Expr(ChainPtr(new PlusNodeOp(a.graph(), a, b)));
+  return Expression<PlusNodeOp>(a, b);
 }
 
 Expr operator-(Expr a, Expr b) {
-  return Expr(ChainPtr(new MinusNodeOp(a.graph(), a, b)));
+  return Expression<MinusNodeOp>(a, b);
 }
 
 Expr operator*(Expr a, Expr b) {
-  return Expr(ChainPtr(new MultNodeOp(a.graph(), a, b)));
+  return Expression<MultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, Expr b) {
-  return Expr(ChainPtr(new DivNodeOp(a.graph(), a, b)));
+  return Expression<DivNodeOp>(a, b);
 }
 
 Expr dot(Expr a, Expr b) {
-  return Expr(ChainPtr(new DotNodeOp(a.graph(), a, b)));
+  return Expression<DotNodeOp>(a, b);
 }
 
 Expr reluplus(Expr a, Expr b) {
-  return Expr(ChainPtr(new ReLUPlusNodeOp(a.graph(), a, b)));
+  return Expression<ReLUPlusNodeOp>(a, b);
 }
 
 Expr cross_entropy(Expr a, Expr b) {
-  return Expr(ChainPtr(new CrossEntropyNodeOp(a.graph(), a, b)));
+  return Expression<CrossEntropyNodeOp>(a, b);
 }
 
 }

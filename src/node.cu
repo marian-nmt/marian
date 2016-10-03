@@ -10,12 +10,7 @@ void Node::skip_training() {
 }
 
 // GPU
-void Node::calc_numeric_grad(
-		  Float delta,
-		  Tensor input,
-		  Tensor grad
-		  )
-{
+void Node::calc_numeric_grad(Float delta, Tensor input, Tensor grad) {
   using namespace std;
 
   size_t inputSize = GetTotalSize(input.shape());

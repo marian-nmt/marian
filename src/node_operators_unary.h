@@ -6,11 +6,11 @@
 namespace marian {
 
 struct UnaryNodeOp : public Node {
-    ChainPtr a_;
+    Expr a_;
 
     template <typename ...Args>
-    UnaryNodeOp(ExpressionGraphPtr graph, ChainPtr a, Args ...args)
-    : Node(graph,
+    UnaryNodeOp(Expr a, Args ...args)
+    : Node(a->graph(),
            keywords::shape=a->shape(), //@TODO: Check keywords?
            keywords::no_inference=a->skipped_inference() || keywords::Get(keywords::no_inference, false, args...),
            keywords::no_training=a->skipped_training() || keywords::Get(keywords::no_training, false, args...),
@@ -19,6 +19,8 @@ struct UnaryNodeOp : public Node {
     {
         remove_children_from_top_nodes();
     }
+
+    ~UnaryNodeOp() {}
 
     void remove_children_from_top_nodes();
 
@@ -247,8 +249,8 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 
 struct ArgmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  ArgmaxNodeOp(ExpressionGraphPtr graph, ChainPtr a, Args ...args)
-    : UnaryNodeOp(graph, a, keywords::shape=newShape(a), args...) { }
+  ArgmaxNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
 
   void forward() {
     // B = softmax(A).
@@ -258,7 +260,7 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
   void backward() {
   }
 
-  Shape newShape(ChainPtr a) {
+  Shape newShape(Expr a) {
     Shape shape = a->shape();
     shape[1] = 1;
     return shape;

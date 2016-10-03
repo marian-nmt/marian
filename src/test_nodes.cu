@@ -26,11 +26,11 @@ int main(int argc, char** argv)
   int batch_size = 25;
 
   // define graph
-  ExpressionGraph g;
-  Expr inExpr = g.input(shape={batch_size, input_size});
-  Expr labelExpr = g.input(shape={batch_size, output_size});
+  auto g = New<ExpressionGraph>();
+  Expr inExpr = g->input(shape={batch_size, input_size});
+  Expr labelExpr = g->input(shape={batch_size, output_size});
 
-  Expr inExpr2 = g.input(shape={batch_size, input_size});
+  Expr inExpr2 = g->input(shape={batch_size, input_size});
 
   vector<Expr> expr;
 
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
   Expr ceExpr = cross_entropy(expr.back(), labelExpr);
   Expr cost = mean(ceExpr, axis=0);
 
-  std::cout << g.graphviz() << std::endl;
+  std::cout << g->graphviz() << std::endl;
 
   // create data
   srand(0);
@@ -74,9 +74,9 @@ int main(int argc, char** argv)
   batch->push_back(labels);
   batch->push_back(values2);
 
-  g.forward(batch);
+  g->forward(batch);
   //g.backward();
-  g.backward_debug(0.001);
+  g->backward_debug(0.001);
 
   /*
   std::cerr << "inTensor=" << inTensor.Debug() << std::endl;

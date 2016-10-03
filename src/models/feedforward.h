@@ -26,15 +26,12 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   boost::timer::cpu_timer timer;
 
   // Construct a shared pointer to an empty expression graph
-  ExpressionGraphPtr g(new ExpressionGraph());
-  
-  // Construct an Expr object to represent the input layer: g->input(...)
-  // Assign this newly created object the name "x" and add it to the expression graph: named(..., "x")
-  // And assign the resulting named Expr object to the C++ variable x
-  auto x = named(g->input(shape={whatevs, dims.front()}), "x");
-  
-  // Likewise, create a named Expr object called "y" for the output layer
-  auto y = named(g->input(shape={whatevs, dims.back()}), "y");
+  auto g = New<ExpressionGraph>();
+
+  auto x = name(g->input(shape={whatevs, dims.front()}),
+                "x");
+  auto y = name(g->input(shape={whatevs, dims.back()}),
+                "y");
 
   std::vector<Expr> layers, weights, biases;
   for(int i = 0; i < dims.size()-1; ++i) {
@@ -48,18 +45,20 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
                                   value=0.5));
 
     weights.emplace_back(
-      named(g->param(shape={in, out}, init=uniform()), "W" + std::to_string(i)));
+      name(g->param(shape={in, out}, init=uniform()),
+           "W" + std::to_string(i)));
     biases.emplace_back(
-      named(g->param(shape={1, out}, init=zeros), "b" + std::to_string(i)));
+      name(g->param(shape={1, out}, init=zeros),
+           "b" + std::to_string(i)));
   }
 
   auto linear = dot(layers.back(), weights.back()) + biases.back();
-  auto scores = named(inference(softmax(linear)), "scores");
 
-  // @TODO: throw exception if more than one final training node
-  // and keep track of training nodes, as we need to initialize
-  // adjoints correctly.
-  auto cost = named(mean(training(cross_entropy(linear, y)), axis=0), "cost");
+  auto cost = name(mean(training(cross_entropy(linear, y)), axis=0),
+                   "cost");
+
+  auto scores = name(inference(softmax(linear)),
+                     "scores");
 
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
   return g;

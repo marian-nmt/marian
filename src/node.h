@@ -30,7 +30,7 @@
 namespace marian {
 
 class ExpressionGraph;
-typedef ExpressionGraph* ExpressionGraphPtr;
+typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
 class Node : public Chainable<Tensor>,
              public keywords::Keywords,
@@ -42,12 +42,12 @@ class Node : public Chainable<Tensor>,
        graph_(graph),
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
-       name_(Get(keywords::name, "none")),
+       name_("none"),
        skipInference_(Get(keywords::no_inference, false)),
        skipTraining_(Get(keywords::no_training, false))
-    { }
+    {}
 
-    virtual ~Node() {};
+    virtual ~Node() {}
 
     virtual ExpressionGraphPtr graph() {
       return graph_;
@@ -100,7 +100,7 @@ class Node : public Chainable<Tensor>,
       }
     }
 
-    virtual const Tensor val()  {
+    virtual Tensor val()  {
       return val_;
     };
 

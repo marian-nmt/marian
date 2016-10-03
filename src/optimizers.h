@@ -27,7 +27,7 @@ class Sgd : public OptimizerBase {
 
       for(auto& param : graph->params())
         Element(_1 -= eta_ * _2,
-                param.val(), param.grad());
+                param->val(), param->grad());
     }
 
   private:
@@ -45,14 +45,14 @@ class Adagrad : public OptimizerBase {
 
       if(gt_.size() < graph->params().size())
         for(auto& param : graph->params())
-          gt_.emplace_back(Tensor(param.grad().shape(), 0));
+          gt_.emplace_back(Tensor(param->grad().shape(), 0));
 
       auto gtIt = gt_.begin();
       for(auto& param : graph->params()) {
         Element(_1 += (_2 * _2),
-                *gtIt, param.grad());
+                *gtIt, param->grad());
         Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-                param.val(), *gtIt, param.grad());
+                param->val(), *gtIt, param->grad());
         gtIt++;
       }
     }
@@ -76,8 +76,8 @@ class Adam : public OptimizerBase {
 
       if(mt_.size() < graph->params().size()) {
         for(auto& param : graph->params()) {
-          mt_.emplace_back(Tensor(param.grad().shape(), 0));
-          vt_.emplace_back(Tensor(param.grad().shape(), 0));
+          mt_.emplace_back(Tensor(param->grad().shape(), 0));
+          vt_.emplace_back(Tensor(param->grad().shape(), 0));
         }
       }
 
@@ -90,11 +90,11 @@ class Adam : public OptimizerBase {
 
       for(auto& param : graph->params()) {
         Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-                *mtIt, param.grad());
+                *mtIt, param->grad());
         Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-                *vtIt, param.grad());
+                *vtIt, param->grad());
         Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-                param.val(), *mtIt, *vtIt);
+                param->val(), *mtIt, *vtIt);
         mtIt++; vtIt++;
       }
     }

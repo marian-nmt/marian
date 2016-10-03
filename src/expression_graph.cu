@@ -24,45 +24,6 @@
 
 namespace marian {
 
-Expr::Expr(ChainPtr chainable)
-  : pimpl_(chainable) {
-  graph()->add(chainable);
-}
 
-Tensor Expr::val() {
-  return pimpl_->val();
-}
-
-void Expr::setVal(Tensor val) {
-  pimpl_->setVal(val);
-}
-
-Tensor Expr::grad() {
-  return pimpl_->grad();
-}
-
-void Expr::setGrad(Tensor grad) {
-  pimpl_->setGrad(grad);
-}
-
-ChainPtr Expr::node() {
-    return pimpl_;
-}
-
-ExpressionGraphPtr Expr::graph() {
-    return pimpl_->graph();
-}
-
-Expr::operator ChainPtr() {
-  return pimpl_;
-}
-
-std::string Expr::Debug() const
-{
-	std::stringstream strm;
-	const Shape &shape = pimpl_->shape();
-	strm << marian::Debug(shape);
-	return strm.str();
-}
 
 }
