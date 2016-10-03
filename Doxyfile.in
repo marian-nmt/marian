@@ -672,7 +672,7 @@ LAYOUT_FILE            =
 # search path. Do not use file names with spaces, bibtex cannot handle them. See
 # also \cite for info how to create references.
 
-CITE_BIB_FILES         =
+CITE_BIB_FILES         = @CMAKE_CURRENT_SOURCE_DIR@/doc/references.bib
 
 #---------------------------------------------------------------------------
 # Configuration options related to warning and progress messages
@@ -1676,7 +1676,7 @@ LATEX_SOURCE_CODE      = NO
 # The default value is: plain.
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
-LATEX_BIB_STYLE        = plain
+LATEX_BIB_STYLE        = plainnat
 
 #---------------------------------------------------------------------------
 # Configuration options related to the RTF output
