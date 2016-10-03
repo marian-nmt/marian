@@ -130,6 +130,13 @@ struct ReLUNodeOp : public UnaryNodeOp {
 
 };
 
+/** 
+ * @brief Represents a <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a> node 
+ *        in an expression graph.
+ * 
+ * @see \cite dropout
+ * @see \cite cudnn
+ */
 struct DropoutNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   DropoutNodeOp(Args ...args)
