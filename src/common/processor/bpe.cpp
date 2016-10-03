@@ -28,6 +28,9 @@ std::vector<std::string> BPE::Postprocess(const std::vector<std::string> input) 
   return debped;
 }
 
+BPE::BPE()
+  : sep_("@@") {}
+
 BPE::BPE(std::ifstream&& file, const std::string sep)
   : sep_(sep) {
   std::string inputLine;

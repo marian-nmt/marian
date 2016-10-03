@@ -7,10 +7,10 @@
 #include "common/logging.h"
 #include "common/scorer.h"
 #include "common/types.h"
+#include "common/processor/processor.h"
 
 class Weights;
 class Vocab;
-class Processor;
 
 class God {
   public:
@@ -47,7 +47,7 @@ class God {
     static std::vector<std::string> GetScorerNames();
     static std::map<std::string, float>& GetScorerWeights();
 
-    static std::vector<std::string> Preprocess(const std::vector<std::string>& input);
+    static std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input);
     static std::vector<std::string> Postprocess(const std::vector<std::string>& input);
 
     static void CleanUp();
@@ -63,7 +63,8 @@ class God {
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;
 
-    std::vector<std::unique_ptr<Processor>> processors_;
+    std::vector<std::vector<PreprocessorPtr>> preprocessors_;
+    std::vector<PostprocessorPtr> postprocessors_;
 
     std::map<std::string, LoaderPtr> loaders_;
     std::map<std::string, float> weights_;
