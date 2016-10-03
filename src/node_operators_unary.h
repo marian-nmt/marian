@@ -107,6 +107,21 @@ struct TanhNodeOp : public UnaryNodeOp {
 
 };
 
+/**
+ * Represents a <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified linear</a> node
+ *        in an expression graph.
+ *
+ * This node implements the <a href="https://en.wikipedia.org/wiki/Activation_function">activation function</a>
+ *        \f$f(x) = \max(0, x)\f$ and its derivative:
+ * 
+ \f[
+ f^\prime(x) = 
+  \begin{cases} 
+   0 & \text{if } x \leq 0 \\
+   1 & \text{if } x > 0
+  \end{cases}
+\f]
+ */
 struct ReLUNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   ReLUNodeOp(Args ...args)

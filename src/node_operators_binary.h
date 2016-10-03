@@ -81,8 +81,11 @@ struct BinaryNodeOp : public Node {
 
 };
 
-/*** Matrix Product ***/
-
+/** 
+ * @brief Represents a node in an expression graph capable of performing 
+ *        <a href="https://en.wikipedia.org/wiki/Matrix_multiplication#Matrix_product_.28two_matrices.29">matrix
+ *        multiplication</a> of two input matrices.
+ */
 struct DotNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   DotNodeOp(Expr a, Expr b, Args ...args)
