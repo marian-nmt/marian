@@ -2,7 +2,7 @@
 #include <string>
 #include "common/processor/bpe.h"
 
-#include "common/utf8.h"
+#include "utf8/utf8.h"
 
 int main(int argc, char *argv[])
 {

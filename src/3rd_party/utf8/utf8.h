@@ -1,14 +1,3 @@
-/*!
-  ## Character encoding
-
-  In PSI toolkit UTF8 is uniformly used. All the textual data is
-  assumed to be encoded in UTF8.
-
-  Technically, std::string is simply used to store UTF8 strings. To handle
-  UTF8, a small external library was incorporated into the project,
-  see: http://utfcpp.sourceforge.net/
-*/
-
 // Copyright 2006 Nemanja Trifunovic
 
 /*
