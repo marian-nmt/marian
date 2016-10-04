@@ -76,10 +76,13 @@ int main(int argc, char** argv) {
   auto result  = dot(hidden, weight2);
   auto labels  = name(g->input(shape={4, 1}),                  "y");
 
+  name(result, "result");
+//  auto cost    = name(training(mean(sum((result - labels) * (result - labels), axis=1), axis=0)), "cost");
 
-  auto cost    = name(training(mean(sum((result - labels) * (result - labels), axis=1), axis=0)), "cost");
+  auto cost    = name(mean(training((result - labels) * (result - labels))), "cost");
 
-  auto scores  = name(inference(softmax(result)), "scores");
+  auto smax = name(softmax(result), "softmax");
+  auto scores  = name(inference(smax), "scores");
 
   g->graphviz("xor.dot");
 
@@ -91,7 +94,7 @@ int main(int argc, char** argv) {
     Run<Trainer>(g, trainSet,
                  optimizer=Optimizer<Adam>(0.0002),
                  batch_size=4,
-                 max_epochs=350);
+                 max_epochs=35000);
   trainer->run();
 
   auto validator =
@@ -99,7 +102,12 @@ int main(int argc, char** argv) {
                    batch_size=4);
   validator->run();
 
+  std::cerr << "W1:\t" << weight1->val().Debug() << std::endl << std::endl;
+  std::cerr << "B1:\t" << biasWeight1->val().Debug() << std::endl << std::endl;
+  std::cerr << "W2:\t" << weight2->val().Debug() << std::endl << std::endl;
 
+  std::cerr << "\"result\":\t" << result->val().Debug() << std::endl << std::endl;
+  std::cerr << "\"softmax\":\t" << smax->val().Debug() << std::endl << std::endl;
 
   return 0;
 }
