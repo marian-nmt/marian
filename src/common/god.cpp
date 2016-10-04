@@ -10,6 +10,7 @@
 #include "common/threadpool.h"
 #include "common/file_stream.h"
 #include "common/processor/bpe.h"
+#include "common/utils.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
@@ -70,9 +71,27 @@ God& God::NonStaticInit(int argc, char** argv) {
     inStrm = new std::ifstream(config_.inputPath.c_str());
   }
 
-  if (Get<std::string>("bpe") != "") {
-    LOG(info) << "Using BPE from: " << Get<std::string>("bpe");
-    processors_.emplace_back(new BPE(Get<std::string>("bpe")));
+  if (Has("bpe")) {
+    if(Get("bpe").IsSequence()) {
+      size_t i = 0;
+      for(auto bpePath : Get<std::vector<std::string>>("bpe")) {
+        LOG(info) << "using bpe: " << bpePath;
+        preprocessors_.push_back(std::vector<PreprocessorPtr>());
+        preprocessors_[i++].emplace_back(new BPE(bpePath));
+      }
+    }
+    else {
+      LOG(info) << "using bpe: " << Get<std::string>("bpe");
+        preprocessors_.push_back(std::vector<PreprocessorPtr>());
+      if (Get<std::string>("bpe") != "") {
+        preprocessors_[0].emplace_back(new BPE(Get<std::string>("bpe")));
+      }
+    }
+  }
+
+  if (Get<bool>("debpe")) {
+    LOG(info) << "De-BPE output";
+    postprocessors_.emplace_back(new BPE());
   }
 
   return *this;
@@ -104,18 +123,20 @@ std::map<std::string, float>& God::GetScorerWeights() {
   return Summon().weights_;
 }
 
-std::vector<std::string> God::Preprocess(const std::vector<std::string>& input) {
+std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) {
   std::vector<std::string> processed = input;
-  for (const auto& processor : Summon().processors_) {
-    processed = processor->Preprocess(processed);
+  if (Summon().preprocessors_.size() >= i + 1) {
+    for (const auto& processor : Summon().preprocessors_[i]) {
+      processed = processor->Preprocess(processed);
+    }
   }
   return processed;
 }
 
 std::vector<std::string> God::Postprocess(const std::vector<std::string>& input) {
   std::vector<std::string> processed = input;
-  for (auto processor = Summon().processors_.rbegin(); processor != Summon().processors_.rend(); ++processor) {
-    processed = (*processor)->Postprocess(processed);
+  for (const auto& processor : Summon().postprocessors_) {
+    processed = processor->Postprocess(processed);
   }
   return processed;
 }

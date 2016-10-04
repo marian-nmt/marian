@@ -73,8 +73,8 @@ void OverwriteTargetVocab(YAML::Node& config, std::string& targetVocabPath) {
     config["target-vocab"] = targetVocabPath;
 }
 
-void OverwriteBPE(YAML::Node& config, std::string& bpePath) {
-    config["bpe"] = bpePath;
+void OverwriteBPE(YAML::Node& config, std::vector<std::string>& bpePaths) {
+    config["bpe"] = bpePaths;
 }
 
 void Validate(const YAML::Node& config) {
@@ -156,7 +156,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
-  std::string bpePath;
+  std::vector<std::string> bpePaths;
+  bool debpe;
 
   std::vector<size_t> devices;
 
@@ -172,7 +173,9 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Overwrite source vocab section in config file with vocab file.")
     ("target-vocab,t", po::value(&targetVocabPath),
      "Overwrite target vocab section in config file with vocab file.")
-    ("bpe", po::value(&bpePath)->default_value(""),
+    ("bpe", po::value(&bpePaths)->multitoken(),
+     "Overwrite bpe section in config with bpe code file.")
+    ("debpe", po::value(&debpe)->zero_tokens()->default_value(false),
      "Overwrite bpe section in config with bpe code file.")
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
@@ -252,7 +255,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("wipo", bool);
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
-  SET_OPTION("bpe", std::string);
+  SET_OPTION("debpe", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads-per-device", size_t);
   SET_OPTION("devices", std::vector<size_t>);
@@ -278,8 +281,8 @@ void Config::AddOptions(size_t argc, char** argv) {
     OverwriteTargetVocab(config_, targetVocabPath);
   }
 
-  if(bpePath.size()) {
-    OverwriteBPE(config_, bpePath);
+  if(bpePaths.size()) {
+    OverwriteBPE(config_, bpePaths);
   }
 
   if(Get<bool>("relative-paths"))

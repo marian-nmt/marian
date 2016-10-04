@@ -1,11 +1,10 @@
 
 include_directories(.)
+include_directories(3rd_party)
 
-add_subdirectory(yaml-cpp)
+add_subdirectory(3rd_party)
 
-add_library(libcommon OBJECT
-  cnpy/cnpy.cpp
-)
+
 
 #add_library(librescorer OBJECT
 #  rescorer/nbest.cpp

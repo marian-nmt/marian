@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "common/utf8.h"
+#include "utf8/utf8.h"
 #include "common/utils.h"
 
 
@@ -27,6 +27,9 @@ std::vector<std::string> BPE::Postprocess(const std::vector<std::string> input) 
   }
   return debped;
 }
+
+BPE::BPE()
+  : sep_("@@") {}
 
 BPE::BPE(std::ifstream&& file, const std::string sep)
   : sep_(sep) {

@@ -34,6 +34,7 @@ class BPE : public Processor {
   using BPEPair = std::pair<std::string, std::string>;
 
   public:
+    BPE();
     BPE(std::ifstream&& file, const std::string sep = "@@");
 
     BPE(const std::string& path, const std::string sep = "@@");
@@ -49,9 +50,9 @@ class BPE : public Processor {
     std::vector<std::string> Preprocess(const std::vector<std::string> input);
     std::vector<std::string> Postprocess(const std::vector<std::string> input);
 
-
+    virtual ~BPE() {}
   private:
-    static std::set<BPEPair> GetPairs(const std::vector<std::string>& word);
+    std::set<BPEPair> GetPairs(const std::vector<std::string>& word);
 
     const BPEPair* FindBestBigram(const std::set<BPEPair>& pairs);
 
@@ -64,4 +65,6 @@ class BPE : public Processor {
     std::unordered_map<BPEPair, size_t> bpeCodes_;
     const std::string sep_;
     std::unordered_map<std::string, std::vector<std::string>> cache_;
+
+
 };
