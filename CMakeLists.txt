@@ -25,7 +25,7 @@ else(CUDA_FOUND)
 endif(CUDA_FOUND)
 endif(NOCUDA)
 
-find_package(Boost COMPONENTS system filesystem program_options timer iostreams thread python)
+find_package(Boost COMPONENTS system filesystem program_options timer iostreams python thread)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
