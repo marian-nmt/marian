@@ -359,7 +359,7 @@ We present the words-per-second ratio for our NMT models using AmunNMT and Neman
 
 The CPU-bound execution of Nemantus reaches 47 words per second while the GPU-bound achieved 270 words per second. 
 
-In similar settings, the CPU-bound AmuNMT is 2.5 faster than Nematus, but still nearly four times slower than Moses. However, the GPU-executed version 1.5 time faster than Nemantus and is almost as fast as Moses, achieving 409 words per second. The similar translation speed will allow us to replace a Moses-based SMT system with an AmunNMT-based NMT system in a production environment without severely affecting translation throughput. 
+In similar settings, the CPU-bound AmuNMT is 2.5 times faster than Nematus, but still nearly four times slower than Moses. However, the GPU-executed version 1.5 time faster than Nemantus and is almost as fast as Moses, achieving 409 words per second. The similar translation speed will allow us to replace a Moses-based SMT system with an AmunNMT-based NMT system in a production environment without severely affecting translation throughput. 
 
 AmuNMT can parallelize to multiple GPUs present in one machine by processing one sentence per GPU. Translation speed increases almost linearly to 1,200 words per second with four GPUs. 
 %TODO - what does this mean? - The response time per sentence is actually much lower for AmuNMT than for Moses when we note that translations are executed serially, not in parallel as in Moses. 
