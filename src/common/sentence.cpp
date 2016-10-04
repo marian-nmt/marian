@@ -14,9 +14,6 @@ Sentence::Sentence(size_t lineNo, const std::string& line)
     Trim(tab);
     Split(tab, lineTokens, " ");
     auto processed = God::Preprocess(i, lineTokens);
-    std::cerr << "TAB: " << i << std::endl;
-    for (auto& word: processed) std::cerr << word << " ";
-    std::cerr << std::endl;
     words_.push_back(God::GetSourceVocab(i++)(processed));
   }
 }
