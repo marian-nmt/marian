@@ -62,14 +62,14 @@
 \begin{document}
  \maketitle
 \begin{abstract}
-In this paper we provide the perhaps largest so far comparison of translation quality for Phrase-based SMT and neural machine translation across 30 translation directions. For ten directions we include hierarchical machine translation. Experiments are performed for the recently published United Nations Parallel Corpus v1.0 and its large six-way sentence-aligned subcorpus. 
+In this paper we provide the largest published comparison of translation quality for phrase-based SMT and neural machine translation (MT) across 30 translation directions. For ten directions we also include hierarchical phrase-based MT. Experiments are performed for the recently published United Nations Parallel Corpus v1.0 and its large six-way sentence-aligned subcorpus. 
 In the second part of the paper we investigate aspects of translation speed, introducing AmuNMT, our efficient neural machine translation decoder. We demonstrate that current neural machine translation could already be used for in-production systems when comparing words-per-second ratios.
 
 \end{abstract}
 
 \section{Introduction}
 
-In this paper we provide the perhaps largest so far comparison of Phrase-based SMT and neural machine translation across fifteen language pairs and thirty translation directions. For ten translation directions we include hierarchical machine translation. \newcite{ZIEMSKI16.1195} recently published the United Nations Parallel Corpus v1.0. It contains a subcorpus of ca.~11M sentences fully aligned across six languages (Arabic, Chinese, English, French, Russian, and Spanish) and official development and test sets, which makes this an ideal resource for experiments across multiple language pairs. It is also a compelling use case for in-domain translation with large bilingual in-house resources. We provide BLEU scores for the entire translation matrix for all official languages from the fully aligned subcorpus. 
+We compare the performance of phrase-based SMT, hierarchical phrase-based, and neural machine translation across fifteen language pairs and thirty translation directions. \newcite{ZIEMSKI16.1195} recently published the United Nations Parallel Corpus v1.0. It contains a subcorpus of ca.~11M sentences fully aligned across six languages (Arabic, Chinese, English, French, Russian, and Spanish) and official development and test sets, which makes this an ideal resource for experiments across multiple language pairs. It is also a compelling use case for in-domain translation with large bilingual in-house resources. We provide BLEU scores for the entire translation matrix for all official languages from the fully aligned subcorpus. 
 
 We also introduce AmuNMT\footnote{\url{https://github.com/emjotde/amunmt}}, our efficient neural machine translation decoder and demonstrate that the current set-up could already be used instead of Moses in terms of translation speed when a single GPU per machine is available. Multiple GPUs would surpass the speed of the proposed in-production Moses configuration by far. 
 
@@ -77,7 +77,7 @@ We also introduce AmuNMT\footnote{\url{https://github.com/emjotde/amunmt}}, our 
 
 \subsection{The UN corpus}
 
-The United Nations Parallel Corpus v1.0 \cite{ZIEMSKI16.1195} consists of manually translated UN documents from the last 25 years (1990 to 2014) for the six official UN languages, Arabic, Chinese, English, French, Russian, and Spanish. Apart from the pairwise aligned documents, a fully aligned subcorpus for the six official UN languages is distributed. This subcorpus consists of sentences that are consistently aligned across all languages with the English primary documents. Statistics for the data are provided below:
+The United Nations Parallel Corpus v1.0 \cite{ZIEMSKI16.1195} consists of human translated UN documents from the last 25 years (1990 to 2014) for the six official UN languages, Arabic, Chinese, English, French, Russian, and Spanish. Apart from the pairwise aligned documents, a fully aligned subcorpus for the six official UN languages is distributed. This subcorpus consists of sentences that are consistently aligned across all languages with the English primary documents. Statistics for the data are provided below:
 
 \begin{table}[h]
 \centering \setlength{\arrayrulewidth}{1pt}
@@ -260,15 +260,15 @@ Training the NMT system for another eight days always improves the performance o
 To summarize the first part of this work: choosing NMT over PB-SMT seem like a good bet with results that reach from comparable to far superior in terms of BLEU. In the future we would like to verify these results with  human evaluation.
 
 \section{Efficient decoding with AmuNMT}
-AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a pure-C++ neural MT toolkit. In its current state, it consists of an efficient beam-search decoder for models produced with Nematus \cite{DBLP:conf/wmt/SennrichHB16,DBLP:journals/corr/BahdanauCB14}. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
+AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a ground up neural MT toolkit implementation, developed in C++. It currently consists of an efficient beam-search inference engine for models produced with Nematus \cite{DBLP:conf/wmt/SennrichHB16,DBLP:journals/corr/BahdanauCB14}. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
 
 \begin{itemize}
  \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations) and sentence-wise threads (different sentences are decoded in different threads);
  \item Multi-GPU support for sentence-wise translation per GPU;
  \item Full compatibility with NMT models trained with Nematus \cite{DBLP:conf/wmt/SennrichHB16};
  \item Ensembling of similar models;
- \item Ensembling of models with the same output vocabulary but different inputs. With a setup like this we won the automatic post-editing shared task at WMT2016 \cite{DBLP:journals/corr/Junczys-Dowmunt16}.
- \item YAML vocabularies and configuration files;
+ \item Ensembling of models with the same output vocabulary but different inputs. A similar configuration was used in the winning automatic post-editing shared task at WMT2016 \cite{DBLP:journals/corr/Junczys-Dowmunt16}.
+ \item YAML vocabularies and configuration files; % TODO is this a big deal?
  \item Integrated segmentation into subword units and de-segmentation \cite{DBLP:journals/corr/SennrichHB15};
  \item A clean and documented C++ code-base.
 \end{itemize}
@@ -347,31 +347,37 @@ Google TPU},
 
 \subsection{Beam size vs. Speed and Quality}
 
-Apart from fixed model parameters like vocabulary size, beam size is the variable factor that influences decoding speed the most. In Figure~\ref{beam} we plot the influence of beam size on decoding speed (as words per second) and translation quality (in BLEU). Experiments were performed for the English-French model with AmuNMT, but any model would have reached similar results. The English part of the UN test set consists or ca. 120.000 tokens, the whole test sets was translated for each experiment. It seems that beam sizes beyond 5-7 do not result in significant improvements. The quality for a beam size of 5 is only 0.1 BLEU below the maximum, but decoding speed is significantly greater. We therefore choose a beam-size of 5 for our next experiments.  
+Beam size has a large influence on decoding speed. In Figure~\ref{beam} we plot the influence of beam size on decoding speed (as words per second) and translation quality (in BLEU) for the English-French model. The English part of the UN test set consists or ca. 120.000 tokens, the whole test sets was translated for each experiment. As can be seen, beam sizes beyond 5-7 do not result in significant improvements as the quality for a beam size of 5 is only 0.1 BLEU below the maximum. However, decoding speed is significantly slower. We therefore choose a beam-size of 5 for our next experiments.  
 
-\subsection{Comparison to Moses and Nematus}
+\subsection{Comparison of AmunNMT to Moses and Nematus}
 
-In Figure~\ref{speedgoogle} we report speed in terms of words per second as provided by \newcite{google}. While the models from \newcite{google} are a lot more complex that our own, we treat the reported figures as a reference of deployment-ready performance for NMT. 
+In Figure~\ref{speedgoogle} we report speed in terms of words per second as provided by \newcite{google}. Although the models of \newcite{google} are more complex that our own, we treat the reported figures as a reference of deployment-ready performance for NMT. 
 
-We present the words-per-second ratio for our models in Figure~\ref{speedamun}, evaluated on the same neural model as in the previous section. The Moses setup reaches 455 words per second using 16 threads on a Intel Xeon E5-2620 2.40GHz server with the search parameters described in Section~\ref{pbmtbaselines}. These parameters have been tuned towards a reasonable speed vs. quality trade-off and have now been used for years in production \cite{junczys_mtsummit_2013}. 
+We ran our experiments on an Intel Xeon E5-2620 2.40GHz server with four NVIDIA GeForce GTX 1080 GPUs. The phrase-based parameters are described in Section~\ref{pbmtbaselines} which is guided by best practises to achieving reasonable speed vs. quality trade-off \cite{junczys_mtsummit_2013}. The neural MT model are as described in the previous section.
 
-We further compare translation speed with Nematus, its CPU and single-GPU version. For the CPU version we use 16 threads, translating one sentence per thread. We restrict the number of OpenBLAS threads to 1 per main Nematus thread, restricting the total number of threads to 16. For the GPU version we use 5 processes to maximize GPU saturation. The CPU version reaches 47 words per second, the GPU version ca. 270. 
+We present the words-per-second ratio for our NMT models using AmunNMT and Nemantus, executed on the CPU and GPU, Figure~\ref{speedamun}. For the CPU version we use 16 threads, translating one sentence per thread. We restrict the number of OpenBLAS threads to 1 per main Nematus thread, restricting the total number of threads to 16. For the GPU version we use 5 processes to maximize GPU saturation. As a baseline, the phrase-based model reaches 455 words per second using 16 threads.
 
-In similar settings, AmuNMT surpasses the translation speed of Nematus with a single GPU by a factor of 1.5. The CPU version of AmuNMT is 2.5 faster than Nematus, but still nearly four times slower than Moses. The GPU version of AmuNMT is nearly as fast as Moses and could integrate seamlessly in a in-production setting. The response time per sentence is actually much lower for AmuNMT than for Moses when we note that translations are executed serially, not in parallel as in Moses. AmuNMT can parallelize to multiple GPUs present in one machine by processing one sentence per GPU. Translation speed improves to 1,200 words per second for four GPUs. 
-AmuNMT has a start-up time of less than 10 seconds, while Nematus may need several minutes until the first translation can be produced. The model used in AmuNMT is an exact implementation of the Nematus model, no quantization or compression methods have been applied so far. 
+The CPU-bound execution of Nemantus reaches 47 words per second while the GPU-bound achieved 270 words per second. 
 
-The size of a NMT model with the chosen parameters is roughly 300 MB, which means about 24 models could be loaded onto a single GPU with 8GB of RAM. Hardly any overhead is required during translation. With multiple GPUs, access could be parallelized and optimally scheduled in a query-based server setting. 
+In similar settings, the CPU-bound AmuNMT is 2.5 faster than Nematus, but still nearly four times slower than Moses. However, the GPU-executed version 1.5 time faster than Nemantus and is almost as fast as Moses, achieving 409 words per second. The similar translation speed will allow us to replace a Moses-based SMT system with an AmunNMT-based NMT system in a production environment without severely affecting translation throughput. 
+
+AmuNMT can parallelize to multiple GPUs present in one machine by processing one sentence per GPU. Translation speed increases almost linearly to 1,200 words per second with four GPUs. 
+%TODO - what does this mean? - The response time per sentence is actually much lower for AmuNMT than for Moses when we note that translations are executed serially, not in parallel as in Moses. 
+
+AmuNMT has a start-up time of less than 10 seconds, while Nematus may need several minutes until the first translation can be produced. Nevertheless, the model used in AmuNMT is an exact implementation of the Nematus model that produces identical or near identical results, without the need for further optimizations such as quantization or compression. 
+
+The size of the NMT model with the chosen parameters is approximately 300 MB, which means about 24 models could be loaded onto a single GPU with 8GB of RAM. Hardly any overhead is required during translation. With multiple GPUs, access could be parallelized and optimally scheduled in a query-based server setting. 
 
 
 \section{Conclusions}
 
-We evaluated the performance of neural machine translation on all thirty translation directions of the United Nations Parallel Corpus v1.0. We showed that for nearly all translation directions NMT is either on par or surpasses phrase-based SMT. There seems to be no risk in potential quality loss due to switching to NMT. For some language pairs, gains are very substantial in terms of BLEU. These include all pairs that have Chinese as a source or target language. Very respectable gains can also be observed for Arabic. For other language pairs there is generally an improvement. 
+We evaluated the performance of neural machine translation on all thirty translation directions of the United Nations Parallel Corpus v1.0. We showed that for nearly all translation directions NMT is either on par with or surpasses phrase-based SMT. There seems to be no risk in potential quality loss due to switching to NMT. For some language pairs, the gains are substantial, as measured by BLEU. These include all pairs that have Chinese as a source or target language. Very respectable gains can also be observed for Arabic. For other language pairs there is generally at least some improvement. 
 
 Although NMT systems are known to generalize better than phrase-based systems, it was unclear how they perform in a purely in-domain setting which is of interest for any larger organization with significant resources of their own data, such as the UN or other governmental bodies. This work currently lacks human evaluation which we would like to supply in future versions. 
 
-We introduced our efficient neural machine translation beam-search decoder AmuNMT and demonstrated that high-quality and high-performance neural machine translation can be achieved on commodity hardware; the GTX 1080 GPUs are actually high-end gamer-GPUs from the consumer market. A single GPU matches the performance of 16x CPU threads of server-grade Intel Xeon CPUs. Multiple GPUs can be installed in a single machine. Access to specialized hardware like Google's Tensor Processing Units seems unnecessary when planning to switch to neural machine translation using lower-parametrized models. 
+We introduced our efficient neural machine translation beam-search decoder, AmuNMT, and demonstrated that high-quality and high-performance neural machine translation can be achieved on commodity hardware; the GPUs we tested on are widely available to the general public for gaming PCs and graphics workstations. A single GPU outperforms 16 CPU threads of a server-grade Intel Xeon CPUs. We can take advantage of multiple GPUs to increase translation speed even further. Access to specialized hardware like Google's Tensor Processing Units seems unnecessary when planning to switch to neural machine translation using lower-parametrized models. 
 
-Even the performance of the pure-CPU version of AmuNMT allows to set-up demo systems and might be a viable solution for low-throughput settings. Training, however, requires a GPU. Still, one might start with one GPU for training and reuse the multi-core CPU machines on which Moses has been running  for first deployment. For future work, we plan to further improve the performance of AmuNMT, especially for CPU-only settings.
+Even the performance of the CPU-only version of AmuNMT allows to set-up demo systems and can be a viable solution for low-throughput settings. Training, however, requires a GPU. Still, one might start with one GPU for training and reuse the multi-core CPU machines on which Moses has been running  for first deployment. For future work, we plan to further improve the performance of AmuNMT, especially for CPU-only settings.
 
 \section*{Disclaimer}
 This is a draft version describing on-going work. Missing figures will be supplied at a later point. Content, results, and conclusions may change with new experiments. 
@@ -380,6 +386,7 @@ This is a draft version describing on-going work. Missing figures will be suppli
 
 This project has received funding from the European Union's Horizon 2020 research and innovation
 programme under grant agreement 688139 (SUMMA).
+
 
 \bibliography{un}
 \bibliographystyle{acl2016}
