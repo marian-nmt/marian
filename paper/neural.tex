@@ -260,7 +260,7 @@ Training the NMT system for another eight days always improves the performance o
 To summarize the first part of this work: choosing NMT over PB-SMT seem like a good bet with results that reach from comparable to far superior in terms of BLEU. In the future we would like to verify these results with  human evaluation.
 
 \section{Efficient decoding with AmuNMT}
-AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a ground up neural MT toolkit implementation, developed in C++. It currently consists of an efficient beam-search inference engine for models produced with Nematus \cite{DBLP:conf/wmt/SennrichHB16,DBLP:journals/corr/BahdanauCB14}. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
+AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a ground-up neural MT toolkit implementation, developed in C++. It currently consist of an efficient beam-search inference engine for models trained with Nematus \cite{DBLP:conf/wmt/SennrichHB16,DBLP:journals/corr/BahdanauCB14}. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
 
 \begin{itemize}
  \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations) and sentence-wise threads (different sentences are decoded in different threads);
