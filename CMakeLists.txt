@@ -1,12 +1,20 @@
 cmake_minimum_required(VERSION 3.5.1)
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
+
 SET(CMAKE_CXX_FLAGS " -std=c++14 -m64 -flto -march=native -fPIC -g -O3 -Ofast -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
 
 include_directories(${amunmt_SOURCE_DIR})
-find_package(CUDA)
 
+set(NOCUDA OFF CACHE BOOL "Compile without CUDA")
+
+if(NOCUDA)
+    message("-- Forcing compilation without CUDA.")
+    add_definitions(-DNO_CUDA)
+else(NOCUDA)
+find_package(CUDA)
 if(CUDA_FOUND)
     LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
     add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
@@ -15,14 +23,24 @@ else(CUDA_FOUND)
     add_definitions(-DNO_CUDA)
     message("Cannot find CUDA libraries. Compiling without them." )
 endif(CUDA_FOUND)
+endif(NOCUDA)
 
-find_package(Boost COMPONENTS system filesystem program_options timer iostreams thread)
+find_package(Boost COMPONENTS system filesystem program_options timer iostreams thread python)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
 else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
+
+find_package(PythonLibs 2.7 REQUIRED)
+if(PYTHONLIBS_FOUND)
+	message("-- Found Python" )
+	include_directories(${PYTHON_INCLUDE_DIRS})
+	set(EXT_LIBS ${EXT_LIBS} ${PYTHON_LIBRARIES})
+else(PYTHONLIBS_FOUND)
+	message(SEND_ERROR "Cannot find python libraries. Terminating." )
+endif(PYTHONLIBS_FOUND)
 
 find_package (BZip2)
 if (BZIP2_FOUND)
