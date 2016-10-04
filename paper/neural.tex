@@ -368,9 +368,6 @@ The size of the NMT model with the chosen parameters is approximately 300 MB, wh
 
 \subsection{Low-latency translation}
 
-Until now we evaluated bulk-throughput which corresponds to a high translation load in settings with long documents that need to be translated continuously. Translation speed was averaged across whole documents and multiple cores. However, there are settings where the latency for single sentence may be more important, one example would be predictive translation \cite{Knowles}. Many other settings will be located between these extremes --- low-latency translation and bulk-translation --- as for example CAT systems, another instance of interactive translation. 
-To compare per-sentence-latency we translate our test set with all tools in a serial fashion, using at most one cpu-thread or process, we do not optimize for GPU-saturation. We then average time over the number of sentences and report seconds per sentence, lower figures are better.
-
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}
@@ -378,10 +375,10 @@ To compare per-sentence-latency we translate our test set with all tools in a se
     ybar,
     width=0.48\textwidth,
     ymajorgrids,
-    height=0.25\textheight,
+    height=0.3\textheight,
 	bar width=15pt,
    enlargelimits=0.15,
-    %ylabel={Words per second},
+    ylabel={Latency -- seconds per sentence},
     xtick={1 ,2 ,3, 4 ,5},
     xticklabels={
     Moses CPU,
@@ -392,11 +389,18 @@ To compare per-sentence-latency we translate our test set with all tools in a se
     },
     %xmin=0.75, xmax=5.25,
     x tick label style={rotate=45,anchor=east, yshift=-0.2cm},
+    y tick label style={
+        /pgf/number format/.cd,
+            fixed,
+            fixed zerofill,
+            precision=1,
+        /tikz/.cd
+    },
     ]
 \addplot+[ybar, oorange, nodes near coords, text=black] plot coordinates {
 (1, 0.71)
-(2, 0)
-(3, 0)
+(2, 8.54)
+(3, 0.61)
 (4, 2.88)
 (5, 0.14)
 };
@@ -405,6 +409,9 @@ To compare per-sentence-latency we translate our test set with all tools in a se
 \end{tikzpicture}
 \caption{Translation latency measured in seconds per sentence, NMT systems were run with a beam size of 5. Translations were executed serially.}\label{latency}
 \end{figure}
+
+Until now we evaluated bulk-throughput which corresponds to a high translation load in settings with long documents that need to be translated continuously. Translation speed was averaged across whole documents and multiple cores. However, there are settings where the latency for single sentence may be more important, one example would be predictive translation \cite{Knowles}. Many other settings will be located between these extremes --- low-latency translation and bulk-translation --- as for example CAT systems, another instance of interactive translation. 
+To compare per-sentence-latency we translate our test set with all tools in a serial fashion, using at most one CPU thread or process, we do not optimize for GPU-saturation. We then average time over the number of sentences and report seconds per sentence, lower figures are better. Figure~\ref{latency} compares per-sentence latency. Here AmuNMT GPU compares very favourably against all other solutions with a 5 times smaller latency than Moses and a more than 4 times smaller latency that Nematus. Latency between the CPU-only variants shows the same ratios as bulk-translation in the previous section.
 
 \section{Conclusions}
 
@@ -417,7 +424,7 @@ We introduced our efficient neural machine translation beam-search decoder, AmuN
 Even the performance of the CPU-only version of AmuNMT allows to set-up demo systems and can be a viable solution for low-throughput settings. Training, however, requires a GPU. Still, one might start with one GPU for training and reuse the CPU machines on which Moses has been running  for first deployment. For future work, we plan to further improve the performance of AmuNMT, especially for CPU-only settings.
 
 \section*{Disclaimer}
-This is a draft version describing on-going work. Missing figures will be supplied at a later point. Content, results, and conclusions may change with new experiments. 
+This is a draft version describing on-going work. Missing figures will be supplied at a later point. Content, results, and conclusions may change. 
 
 \section*{Acknowledgments}
 
