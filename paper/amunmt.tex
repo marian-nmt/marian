@@ -1,5 +1,5 @@
 \documentclass[11pt]{article}
-\usepackage{acl2016}
+\usepackage{iwslt15}
 \usepackage{times}
 \usepackage{url}
 \usepackage{latexsym}
@@ -23,29 +23,13 @@
 
 \pgfplotsset{try min ticks=6}
 
-\makeatletter
-\def\BState{\State\hskip-\ALG@thistlm}
-\makeatother
-
-\makeatletter
-\newcommand{\algmargin}{\the\ALG@thistlm}
-\makeatother
-\newlength{\whilewidth}
-\settowidth{\whilewidth}{\algorithmicwhile\ }
-\algdef{SE}[parWHILE]{parWhile}{EndparWhile}[1]
-  {\parbox[t]{\dimexpr\linewidth-\algmargin}{%
-     \hangindent\whilewidth\strut\algorithmicwhile\ #1\ \algorithmicdo\strut}}{\algorithmicend\ \algorithmicwhile}%
-\algnewcommand{\parState}[1]{\State%
-  \parbox[t]{\dimexpr\linewidth-\algmargin}{\strut #1\strut}}
-
-  \definecolor{bblue}{HTML}{4F81BD}
+\definecolor{bblue}{HTML}{4F81BD}
 \definecolor{rred}{HTML}{C0504D}
 \definecolor{ggreen}{HTML}{9BBB59}
 \definecolor{ppurple}{HTML}{9F4C7C}
 \definecolor{oorange}{HTML}{F08000}
   
-\aclfinalcopy % Uncomment this line for the final submission
-%\def\aclpaperid{***} %  Enter the acl Paper ID here
+\emergencystretch 3em
 
 
 \title{Is Neural Machine Translation Ready for Deployment? \\ A Case Study on 30 Translation Directions}
@@ -69,7 +53,7 @@ In the second part of the paper we investigate aspects of translation speed, int
 
 \section{Introduction}
 
-We compare the performance of phrase-based SMT, hierarchical phrase-based, and neural machine translation (NMT) across fifteen language pairs and thirty translation directions. \newcite{ZIEMSKI16.1195} recently published the United Nations Parallel Corpus v1.0. It contains a subcorpus of ca.~11M sentences fully aligned across six languages (Arabic, Chinese, English, French, Russian, and Spanish) and official development and test sets, which makes this an ideal resource for experiments across multiple language pairs. It is also a compelling use case for in-domain translation with large bilingual in-house resources. We provide BLEU scores for the entire translation matrix for all official languages from the fully aligned subcorpus. 
+We compare the performance of phrase-based SMT, hierarchical phrase-based, and neural machine translation (NMT) across fifteen language pairs and thirty translation directions. \cite{ZIEMSKI16.1195} recently published the United Nations Parallel Corpus v1.0. It contains a subcorpus of ca.~11M sentences fully aligned across six languages (Arabic, Chinese, English, French, Russian, and Spanish) and official development and test sets, which makes this an ideal resource for experiments across multiple language pairs. It is also a compelling use case for in-domain translation with large bilingual in-house resources. We provide BLEU scores for the entire translation matrix for all official languages from the fully aligned subcorpus. 
 
 We also introduce AmuNMT\footnote{\url{https://github.com/emjotde/amunmt}}, our efficient neural machine translation decoder and demonstrate that the current set-up could already be used instead of Moses in terms of translation speed when a single GPU per machine is available. Multiple GPUs would surpass the speed of the proposed in-production Moses configuration by far. 
 
@@ -95,7 +79,7 @@ Both sets comprise 4,000 sentences that are 1-1 alignments across all official l
 
 \subsection{Preprocessing}
 
-Sentences longer than 100 words were discarded. We lowercased the training data as it was done in \newcite{ZIEMSKI16.1195}; the data was tokenized with the Moses tokenizer. For Chinese segmentation we used Jieba\footnote{\url{https://github.com/fxsjy/jieba}} before applying the Moses tokenizer. 
+Sentences longer than 100 words were discarded. We lowercased the training data as it was done in \cite{ZIEMSKI16.1195}; the data was tokenized with the Moses tokenizer. For Chinese segmentation we used Jieba\footnote{\url{https://github.com/fxsjy/jieba}} before applying the Moses tokenizer. 
 
 \subsection{Subword units}
 
@@ -103,7 +87,7 @@ To avoid the large-vocabulary problem in NMT models \cite{44929}, we use byte-pa
 
 \section{Phrase-based SMT baselines}
 \label{pbmtbaselines}
-In \newcite{ZIEMSKI16.1195}, we provided baseline BLEU scores for Moses \cite{Koehn:2007:MOS:1557769.1557821} configurations that were trained on the 6-way subcorpus. We repeat the system description here:
+In \cite{ZIEMSKI16.1195}, we provided baseline BLEU scores for Moses \cite{Koehn:2007:MOS:1557769.1557821} configurations that were trained on the 6-way subcorpus. We repeat the system description here:
 
 To speed up the word alignment procedure, we split the training corpora into four equally sized parts that are aligned with MGIZA++ \cite{Gao:2008:PIW:1622110.1622119}, running 5 iterations of Model 1 and the HMM model on each part.\footnote{We confirmed that there seemed to be no quality loss due to splitting and limiting the iterations to simpler alignment models.}
 We use a 5-gram language model trained from the target parallel data, with 3-grams or higher order being pruned if they occur only once. Apart from the default configuration with a lexical reordering model, we add a 5-gram operation sequence model \cite{conf/acl/DurraniFSHK13} (all n-grams pruned if they occur only once) and a 9-gram word-class language model with word-classes produced by word2vec \cite{journals/corr/abs-1301-3781} (3-grams and 4-grams are pruned if they occur only once, 5-grams and 6-grams if they occur only twice, etc.), both trained using KenLM \cite{Heafield-estimate}.  To reduce the phrase-table size, we apply significance pruning \cite{Johnson07improvingtranslation} and use the compact phrase-table and reordering data structures \cite{junczys_mtm_2012}.
@@ -154,11 +138,9 @@ We clip the gradient norm to 1.0 \cite{DBLP:conf/icml/PascanuMB13}.
 Models were trained with Adadelta \cite{DBLP:journals/corr/abs-1212-5701}, reshuffling the training corpus between epochs.
 The models have been trained model for 1.2M iterations (one iteration corresponds to one mini-batch), saving every $30,000$ iterations. On our NVidia GTX 1080 this corresponds to roughly 4 epochs and 8 days of training time. Models with English as there source or target data were trained for another 1.2M iterations (another 2 epochs, 8 days) to test the influence of increased training time. For ensembling/averaging, we chose the last four model checkpoints.
 
-% \subsection{Model ensembling vs. averaging}
-% About Adam vs. Adadelta. 
-
 \section{Phrase-based vs. NMT -- full matrix}
-In Figure~\ref{pbsmtnmt1} we present the results for all thirty language pairs in the United Nations parallel corpus for the officially included test set. Here we compare with NMT models that were trained for 4 epochs or 1.2M iterations. With the exception of fr-es and ru-en the neural system is always comparable or better than the phrase-based system. The differences where NMT is worse are very small. Especially in cases where Chinese is one of the languages in a language pair, the improvement of NMT over PB-SMT is dramatic with between 7 and 9 BLEU points. This seems to confirm the large gains reported for Chinese-English by \newcite{google}. However, it also seems to suggest that this is a property of the language pair, not so much of their set-up. We also see large improvements for translations out of and into Arabic. It should be noted here, that no special preprocessing has been applied for Arabic. It is interesting to observe that improvements are present also in the case of the highest scoring translation directions, en-es and es-en.
+In Figure~\ref{pbsmtnmt1} we present the results for all thirty language pairs in the United Nations parallel corpus for the officially included test set. Here we compare with NMT models that were trained for 4 epochs or 1.2M iterations. With the exception of fr-es and ru-en the neural system is always comparable or better than the phrase-based system. The differences where NMT is worse are very small. Especially in cases where Chinese is one of the languages in a language pair, the improvement of NMT over PB-SMT is dramatic with between 7 and 9 BLEU points. 
+We also see large improvements for translations out of and into Arabic. It should be noted here, that no special preprocessing has been applied for Arabic. It is interesting to observe that improvements are present also in the case of the highest scoring translation directions, en-es and es-en.
 
 \section{Phrase-based vs. Hiero vs. NMT -- language pairs with English}
 
@@ -203,12 +185,16 @@ The particularly impressive results for any translation direction involving Chin
 
 \begin{figure*}[t]
 \centering
+\begin{subfigure}[t]{0.43\textwidth}
  \begin{tikzpicture}
 \begin{axis}[
-enlargelimits=0.15,
-scale only axis,
+enlargelimits=0.1,
+width=\textwidth,
+height=0.35\textheight,
 xlabel=Beam size,
 ytick pos=left,
+ymin=50, ymax=600,
+xmin=1, xmax=20,
 ylabel=Words per second (Wps)]
 \addplot[bblue,mark=o,thick] plot coordinates {
 ( 1, 561.5) %18.9 - 17
@@ -221,6 +207,8 @@ ylabel=Words per second (Wps)]
 ( 8, 296.3)
 (10, 280.2)
 (12, 275.1)
+(15, 244.4)
+(20, 239.0)
 };\label{words}
 \end{axis}
 \begin{axis}[
@@ -232,12 +220,15 @@ y tick label style={
             precision=1,
         /tikz/.cd
     },
-enlargelimits=0.15,
-scale only axis,
-axis y line*=right,ylabel=Bleu]
+enlargelimits=0.1,
+width=\textwidth,
+height=0.35\textheight,
+ymin=48, ymax=50,
+xmin=1, xmax=20,
+axis y line*=right]
 \addlegendimage{/pgfplots/refstyle=words}\addlegendentry{Wps}
 \addplot[rred,mark=*,thick] plot coordinates {
-( 1, 47.99) 
+( 1, 47.99)
 ( 2, 49.27)
 ( 3, 49.52) 
 ( 4, 49.59)
@@ -247,15 +238,64 @@ axis y line*=right,ylabel=Bleu]
 ( 8, 49.83)
 (10, 49.77)
 (12, 49.78)
+(15, 49.83)
+(20, 49.85)
 }; \addlegendentry{Bleu}
 \end{axis}
 \end{tikzpicture}
+\end{subfigure}\hspace{10mm}%
+\begin{subfigure}[t]{0.43\textwidth}
+ \begin{tikzpicture}
+\begin{axis}[
+enlargelimits=0.1,
+width=\textwidth,
+height=0.35\textheight,
+xlabel=Beam size,
+ytick pos=left,
+ymin=50, ymax=600]
+\addplot[bblue,mark=o,thick] plot coordinates {
+(20, 239.0)
+(30, 210.5)
+(40, 197.8)
+(50, 176.4)
+(70, 140.7)
+(100, 113.3)
+(200, 63.5)
+};\label{words}
+\end{axis}
+\begin{axis}[
+legend style={at={(0.95,0.5)},anchor=east},
+y tick label style={
+        /pgf/number format/.cd,
+            fixed,
+            fixed zerofill,
+            precision=1,
+        /tikz/.cd
+    },
+enlargelimits=0.1,
+width=\textwidth,
+ymin=48, ymax=50,
+height=0.35\textheight,
+axis y line*=right,ylabel=Bleu]
+\addlegendimage{/pgfplots/refstyle=words}\addlegendentry{Wps}
+\addplot[rred,mark=*,thick] plot coordinates {
+(20, 49.85)
+(30, 49.85)
+(40, 49.86)
+(50, 49.90)
+(70, 49.90)
+(100, 49.89)
+(200, 49.90)
+}; \addlegendentry{Bleu}
+\end{axis}
+\end{tikzpicture}
+\end{subfigure}
 \caption{Beam size versus speed and quality for a single English-French model. Speed was evaluated with AmuNMT on a single GPU.}\label{beam}
 \end{figure*}
 
 Figure \ref{pbsmtnmt2} summarizes the results. As expected, Hiero outperforms PB-SMT by a significant margin for Chinese-English and English-Chinese, but does not even reach half the improvement of the NMT systems. For the other languages pairs we see mixed results; for French-English and Russian-English, where results for PB-SMT and NMT were very close, Hiero is actually the best system (TODO: Missing results here for the 2.4M iterations).
 
-Training the NMT system for another eight days always improves the performance of the NMT system, but gains are rather small between 0.4 and 0.7 BLEU. We did not observe any improvements beyond 2M iterations. It seems that stopping training after 8-10 days might be a viable heuristic with little loss in terms of BLEU. 
+Training the NMT system for another eight days always improves the performance of the NMT system, but gains are rather small between 0.4 and 0.7 BLEU. We did not observe any improvements beyond 2M iterations. For our setting, it seems that stopping training after 8-10 days is a viable heuristic with little loss in terms of BLEU. Training with other corpus sizes, architectures, and sets of hyperparameters may behave differently.
 
 To summarize the first part of this work: choosing NMT over PB-SMT seem like a good bet with results that reach from comparable to far superior in terms of BLEU. In the future we would like to verify these results with  human evaluation.
 
@@ -267,7 +307,7 @@ AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a ground-up neural MT
  \item Multi-GPU support for sentence-wise translation per GPU;
  \item Full compatibility with NMT models trained with Nematus \cite{DBLP:conf/wmt/SennrichHB16};
  \item Ensembling of similar models;
- \item Ensembling of models with the same output vocabulary but different inputs. A similar configuration was used in the winning automatic post-editing shared task at WMT2016 \cite{DBLP:journals/corr/Junczys-Dowmunt16}.
+ \item Ensembling of models with the same output vocabulary but different inputs. A similar configuration was used in the winning system for the automatic post-editing shared task at WMT2016 \cite{DBLP:journals/corr/Junczys-Dowmunt16}.
  \item YAML vocabularies and configuration files; % TODO is this a big deal?
  \item Integrated segmentation into subword units and de-segmentation \cite{DBLP:journals/corr/SennrichHB15};
  \item A clean and documented C++ code-base.
@@ -301,7 +341,7 @@ Google TPU},
 };
 \end{axis}
 \end{tikzpicture}
-\caption{Words per second for Google NMT system reported by \newcite{google}. We only give this as an example for a production-ready system.}\label{speedgoogle}
+\caption{Words per second for Google NMT system reported by \cite{google}. We only give this as an example for a production-ready system.}\label{speedgoogle}
 \end{subfigure}\hspace{4mm}
 \begin{subfigure}[t]{0.6\textwidth}
 \begin{tikzpicture}
@@ -349,9 +389,11 @@ Google TPU},
 
 Beam size has a large impact on decoding speed. In Figure~\ref{beam} we plot the influence of beam size on decoding speed (as words per second) and translation quality (in BLEU) for the English-French model. The English part of the UN test set consists or ca. 120.000 tokens, the whole test sets was translated for each experiment. As can be seen, beam sizes beyond 5-7 do not result in significant improvements as the quality for a beam size of 5 is only 0.1 BLEU below the maximum. However, decoding speed is significantly slower. We therefore choose a beam-size of 5 for our experiments.  
 
-\subsection{Comparison of AmunNMT to Moses and Nematus}
+%\subsection{Checkpoint ensembling vs. averaging}
 
-In Figure~\ref{speedgoogle} we report speed in terms of words per second as provided by \newcite{google}. Although the models of \newcite{google} are more complex that our own, we treat the reported figures as a reference of deployment-ready performance for NMT. 
+\subsection{AmunNMT vs. Moses and Nematus}
+
+In Figure~\ref{speedgoogle} we report speed in terms of words per second as provided by \cite{google}. Although the models of \cite{google} are more complex that our own, we treat the reported figures as a reference of deployment-ready performance for NMT. 
 
 We ran our experiments on an Intel Xeon E5-2620 2.40GHz server with four NVIDIA GeForce GTX 1080 GPUs. The phrase-based parameters are described in Section~\ref{pbmtbaselines} which is guided by best practises to achieving reasonable speed vs. quality trade-off \cite{junczys_mtsummit_2013}. The neural MT models are as described in the previous section.
 
@@ -375,7 +417,7 @@ The size of the NMT model with the chosen parameters is approximately 300 MB, wh
     ybar,
     width=0.48\textwidth,
     ymajorgrids,
-    height=0.3\textheight,
+    height=0.28\textheight,
 	bar width=15pt,
    enlargelimits=0.15,
     ylabel={Latency -- seconds per sentence},
@@ -425,17 +467,13 @@ We introduced our efficient neural machine translation beam-search decoder, AmuN
 
 Even the performance of the CPU-only version of AmuNMT allows to set-up demo systems and can be a viable solution for low-throughput settings. Training, however, requires a GPU. Still, one might start with one GPU for training and reuse the CPU machines on which Moses has been running  for first deployment. For future work, we plan to further improve the performance of AmuNMT, especially for CPU-only settings.
 
-\section*{Disclaimer}
-This is a draft version describing on-going work. Missing figures will be supplied at a later point. Content, results, and conclusions may change. 
-
-\section*{Acknowledgments}
-
-This project has received funding from the European Union's Horizon 2020 research and innovation
-programme under grant agreement 688139 (SUMMA).
+%\section{Acknowledgments}
+%This project has received funding from the European Union's Horizon 2020 research and innovation
+%programme under grant agreement 688139 (SUMMA).
 
 
 \bibliography{un}
-\bibliographystyle{acl2016}
+\bibliographystyle{IEEEtran}
 
 
 \end{document}
