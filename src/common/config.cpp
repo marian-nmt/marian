@@ -99,16 +99,13 @@ void Validate(const YAML::Node& config) {
 }
 
 void OverwriteMode(YAML::Node& config, const std::string& mode) {
-  std::cerr << "PRE LOADING |" << mode << "|" << std::endl;
   std::stringstream sMode;
   for (auto& c: mode) {
     sMode << (char)toupper(c);
   }
-  std::cerr << "UPPER: " << sMode.str() << std::endl;
   config["mode"] = sMode.str();
   UTIL_THROW_IF2(config["mode"].as<std::string>() != "CPU" && config["mode"].as<std::string>() != "GPU",
                  "Unknown mode (allowed only CPU or GPU): " << config["mode"].as<std::string>());
-  std::cerr << "POST LOADING " << mode << std::endl;
 }
 
 
@@ -195,7 +192,7 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("bpe", po::value(&bpePaths)->multitoken(),
      "Overwrite bpe section in config with bpe code file.")
     ("debpe", po::value(&debpe)->zero_tokens()->default_value(false),
-     "Overwrite bpe section in config with bpe code file.")
+     "If true, perform deBPE on output.")
     ("mode", po::value(&mode),
      "Choose mode: CPU or GPU. If CUDA is unavailable, the CPU is the only option.")
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
