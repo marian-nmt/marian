@@ -148,7 +148,7 @@ ybar=0pt,
 
 \section{Neural translation systems}
 
-The neural machine translation system is an attentional encoder-decoder \cite{DBLP:journals/corr/BahdanauCB14}, which has been trained with Nematus.
+The neural machine translation system is an attentional encoder-decoder \cite{DBLP:journals/corr/BahdanauCB14}, which has been trained with Nematus  \cite{DBLP:conf/wmt/SennrichHB16}.
 We used mini-batches of size 40, a maximum sentence length of 100, word embeddings of size 500, and hidden layers of size 1024.
 We clip the gradient norm to 1.0 \cite{DBLP:conf/icml/PascanuMB13}.
 Models were trained with Adadelta \cite{DBLP:journals/corr/abs-1212-5701}, reshuffling the training corpus between epochs.
@@ -260,7 +260,7 @@ Training the NMT system for another eight days always improves the performance o
 To summarize the first part of this work: choosing NMT over PB-SMT seem like a good bet with results that reach from comparable to far superior in terms of BLEU. In the future we would like to verify these results with  human evaluation.
 
 \section{Efficient decoding with AmuNMT}
-AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a ground-up neural MT toolkit implementation, developed in C++. It currently consist of an efficient beam-search inference engine for models trained with Nematus \cite{DBLP:conf/wmt/SennrichHB16,DBLP:journals/corr/BahdanauCB14}. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
+AmuNMT\footnote{\url{http://github.com/emjotde/amunmt}} is a ground-up neural MT toolkit implementation, developed in C++. It currently consist of an efficient beam-search inference engine for models trained with Nematus. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
 
 \begin{itemize}
  \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations) and sentence-wise threads (different sentences are decoded in different threads);
@@ -347,7 +347,7 @@ Google TPU},
 
 \subsection{Beam size vs. Speed and Quality}
 
-Beam size has a large impact on decoding speed. In Figure~\ref{beam} we plot the influence of beam size on decoding speed (as words per second) and translation quality (in BLEU) for the English-French model. The English part of the UN test set consists or ca. 120.000 tokens, the whole test sets was translated for each experiment. As can be seen, beam sizes beyond 5-7 do not result in significant improvements as the quality for a beam size of 5 is only 0.1 BLEU below the maximum. However, decoding speed is significantly slower. We therefore choose a beam-size of 5 for our next experiments.  
+Beam size has a large impact on decoding speed. In Figure~\ref{beam} we plot the influence of beam size on decoding speed (as words per second) and translation quality (in BLEU) for the English-French model. The English part of the UN test set consists or ca. 120.000 tokens, the whole test sets was translated for each experiment. As can be seen, beam sizes beyond 5-7 do not result in significant improvements as the quality for a beam size of 5 is only 0.1 BLEU below the maximum. However, decoding speed is significantly slower. We therefore choose a beam-size of 5 for our experiments.  
 
 \subsection{Comparison of AmunNMT to Moses and Nematus}
 
