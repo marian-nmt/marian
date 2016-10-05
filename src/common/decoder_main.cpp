@@ -3,12 +3,13 @@
 #include <string>
 #include <boost/timer/timer.hpp>
 #include <boost/thread/tss.hpp>
-#include "god.h"
-#include "logging.h"
-#include "search.h"
-#include "threadpool.h"
-#include "printer.h"
-#include "sentence.h"
+
+#include "common/god.h"
+#include "common/logging.h"
+#include "common/search.h"
+#include "common/threadpool.h"
+#include "common/printer.h"
+#include "common/sentence.h"
 
 History TranslationTask(const std::string& in, size_t taskCounter) {
 #ifdef __APPLE__
@@ -33,26 +34,34 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
+  LOG(info) << "Initialization... DONE";
   std::setvbuf(stdout, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
 
   std::string in;
   std::size_t taskCounter = 0;
 
-  size_t threadCount = God::Get<size_t>("threads-per-device")
-                       * God::Get<std::vector<size_t>>("devices").size();
+  size_t threadCount;
+  if (God::Get<std::string>("mode") == "GPU") {
+    threadCount= God::Get<size_t>("threads-per-device")
+                 * God::Get<std::vector<size_t>>("devices").size();
+  } else {
+    threadCount = God::Get<size_t>("threads");
+  }
 
-  if(God::Get<bool>("wipo")) {
+  LOG(info) << "threadCount set to " << threadCount;
+
+  if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
-    while(std::getline(God::GetInputStream(), in)) {
+    while (std::getline(God::GetInputStream(), in)) {
       History result = TranslationTask(in, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
-  }
-  else {
+  } else {
     LOG(info) << "Setting number of threads to " << threadCount;
     ThreadPool pool(threadCount);
     LOG(info) << "Reading input";
+
     std::vector<std::future<History>> results;
 
     while(std::getline(God::GetInputStream(), in)) {
@@ -67,7 +76,7 @@ int main(int argc, char* argv[]) {
     }
 
     size_t lineCounter = 0;
-    for(auto&& result : results)
+    for (auto&& result : results)
       Printer(result.get(), lineCounter++, std::cout);
   }
   LOG(info) << "Total time: " << timer.format();

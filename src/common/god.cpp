@@ -67,9 +67,10 @@ God& God::NonStaticInit(int argc, char** argv) {
     exit(0);
   }
 
+  LOG(info) << "Loading scorers...";
   for(auto&& pair : config_.Get()["scorers"]) {
     std::string name = pair.first.as<std::string>();
-    loaders_.emplace(name, LoaderFactory::Create(name, pair.second));
+    loaders_.emplace(name, LoaderFactory::Create(name, pair.second, config_.Get()["mode"].as<std::string>()));
   }
 
   if (config_.inputPath.empty()) {

@@ -18,14 +18,22 @@ do { \
 class LoaderFactory {
   public:
     static LoaderPtr Create(const std::string& name,
-                            const YAML::Node& config);
+                            const YAML::Node& config,
+                            const std::string& mode);
 
   protected:
-    static Loader *CreateGPU(const std::string& name,
-                            const YAML::Node& config);
 
     static Loader *CreateCPU(const std::string& name,
                             const YAML::Node& config);
+
+    static Loader *CreateGPU(const std::string& name,
+                            const YAML::Node& config);
+
+#ifdef CUDA
+    static const bool HAS_GPU_SUPPORT = true;
+#else
+    static const bool HAS_GPU_SUPPORT = false;
+#endif
 
 };
 

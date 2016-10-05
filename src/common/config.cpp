@@ -98,6 +98,19 @@ void Validate(const YAML::Node& config) {
     UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
 }
 
+void OverwriteMode(YAML::Node& config, const std::string& mode) {
+  std::cerr << "PRE LOADING |" << mode << "|" << std::endl;
+  std::stringstream sMode;
+  for (auto& c: mode) {
+    sMode << (char)toupper(c);
+  }
+  std::cerr << "UPPER: " << sMode.str() << std::endl;
+  config["mode"] = sMode.str();
+  UTIL_THROW_IF2(config["mode"].as<std::string>() != "CPU" && config["mode"].as<std::string>() != "GPU",
+                 "Unknown mode (allowed only CPU or GPU): " << config["mode"].as<std::string>());
+  std::cerr << "POST LOADING " << mode << std::endl;
+}
+
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {
   std::set<std::string> flow = { "devices" };
@@ -157,6 +170,12 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
   std::vector<std::string> bpePaths;
+  std::string mode;
+#ifdef CUDA
+  const std::string defaultMode = "GPU";
+#else
+  const std::string defaultMode = "CPU";
+#endif
   bool debpe;
 
   std::vector<size_t> devices;
@@ -177,12 +196,16 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Overwrite bpe section in config with bpe code file.")
     ("debpe", po::value(&debpe)->zero_tokens()->default_value(false),
      "Overwrite bpe section in config with bpe code file.")
+    ("mode", po::value(&mode),
+     "Choose mode: CPU or GPU. If CUDA is unavailable, the CPU is the only option.")
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
      "e.g. set to 0 1 to use gpu0 and gpu1. "
      "Implicitly sets minimal number of threads to number of devices.")
     ("threads-per-device", po::value<size_t>()->default_value(1),
      "Number of threads per device, total thread count equals threads x devices")
+    ("threads", po::value<size_t>()->default_value(1),
+     "Number of threads on the CPU.")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -265,28 +288,35 @@ void Config::AddOptions(size_t argc, char** argv) {
 
   // @TODO: Apply complex overwrites
 
-  if(Has("load-weights")) {
+  if (Has("load-weights")) {
     LoadWeights(config_, Get<std::string>("load-weights"));
   }
 
-  if(modelPaths.size()) {
+  if (modelPaths.size()) {
     OverwriteModels(config_, modelPaths);
   }
 
-  if(sourceVocabPaths.size()) {
+  if (sourceVocabPaths.size()) {
     OverwriteSourceVocabs(config_, sourceVocabPaths);
   }
 
-  if(targetVocabPath.size()) {
+  if (targetVocabPath.size()) {
     OverwriteTargetVocab(config_, targetVocabPath);
   }
 
-  if(bpePaths.size()) {
+  if (bpePaths.size()) {
     OverwriteBPE(config_, bpePaths);
   }
 
-  if(Get<bool>("relative-paths"))
+  if (mode.size()) {
+    OverwriteMode(config_, mode);
+  } else if (!config_["mode"]) {
+    OverwriteMode(config_, defaultMode);
+  }
+
+  if (Get<bool>("relative-paths"))
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
+
   Validate(config_);
 
   if(vm_["dump-config"].as<bool>()) {

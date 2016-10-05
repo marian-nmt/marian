@@ -18,7 +18,6 @@ add_library(libcommon OBJECT
   common/god.cpp
   common/history.cpp
   common/loader.cpp
-  common/loader_factory.cpp
   common/logging.cpp
   common/printer.cpp
   common/scorer.cpp
@@ -31,16 +30,19 @@ add_library(libcommon OBJECT
 
 if(CUDA_FOUND)
 
+set_source_files_properties( common/loader_factory.cpp
+  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+
 cuda_add_executable(
   amun
   common/decoder_main.cpp
-  common/loader_factory.cu
   gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/mblas/matrix.cu
   gpu/npz_converter.cu
+  common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
@@ -49,13 +51,13 @@ cuda_add_executable(
 
 cuda_add_library(amunmt SHARED
   python/amunmt.cpp
-  common/loader_factory.cu
   gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
+  common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
@@ -67,6 +69,7 @@ else(CUDA_FOUND)
 add_executable(
   amun
   common/decoder_main.cpp
+  common/loader_factory.cpp
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libcommon>
@@ -74,6 +77,7 @@ add_executable(
 )
 add_library(amunmt SHARED
   python/amunmt.cpp
+  common/loader_factory.cpp
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libcommon>

@@ -18,6 +18,9 @@ beam-size: 12
 devices: [0]
 normalize: yes
 threads-per-device: 1
+threads: 8
+
+mode: CPU
 
 # scorer configuration
 scorers:
@@ -30,6 +33,7 @@ weights:
   F0: 1.0
 
 bpe: ./{}{}.bpe
+debpe: yes
 
 # vocabularies
 source-vocab: ./vocab.{}.json
