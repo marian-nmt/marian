@@ -88,15 +88,17 @@ An example configuration:
 
 ## BPE Support
 
-AmuNMT has integrated support for BPE encoding. There are two option `bpe` and `debpe`. The `bpe` option gets a path to a file with codes. To turn on deBPE on ouput, set `debpe` to `yes`.e.g.
+AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/subword-nmt). There are two option `bpe` and `debpe`. The `bpe` option receives a path to a file with BPE codes (here `bpe.codes`). To turn on desegmentation on the ouput, set `debpe` to `true`, e.g.
 
     bpe: bpe.codes
-    debpe: yes
+    debpe: true
 
 ## CPU|GPU Mode
-Even if you compile amuNMT with CUDA, you can run anum on CPU. To switch it, set the `mode` to `CPU`:
+To choose between GPU and CPU mode, set `mode` in the config file to `CPU`:
 
     mode: CPU
+
+or provide the corresponding switch on the command line: `--mode CPU`
 
 ## Example usage
 
