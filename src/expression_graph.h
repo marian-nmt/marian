@@ -384,7 +384,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args) {
-  auto e = Expr(new T(std::forward<Args>(args)...));
+  auto e = Expr( (Chainable<Tensor>*) new T(std::forward<Args>(args)...));
   e->graph()->add(e);
   return e;
 }
