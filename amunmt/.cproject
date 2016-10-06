@@ -29,6 +29,7 @@
 								<option id="nvcc.compiler.pic.1161561942" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="nvcc.compiler.include.paths.1969488368" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/src"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/src/3rd_party&quot;"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/src/common"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/src/mblas"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/src/dl4mt"/>
@@ -69,9 +70,6 @@
 					</folderInfo>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1621792310" name="kenlm.h" rcbsApplicability="disable" resourcePath="gpu/decoder/kenlm.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1858744094" name="language_model.h" rcbsApplicability="disable" resourcePath="gpu/decoder/language_model.h" toolsToInvoke=""/>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1977829692" name="language_model.cu" rcbsApplicability="disable" resourcePath="gpu/decoder/language_model.cu" toolsToInvoke="nvcc.compiler.base.366234936.691663527">
-						<tool id="nvcc.compiler.base.366234936.691663527" name="NVCC Compiler" superClass="nvcc.compiler.base.366234936"/>
-					</fileInfo>
 					<sourceEntries>
 						<entry excluding="gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
