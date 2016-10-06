@@ -278,6 +278,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("debpe", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("threads-per-device", size_t);
+  SET_OPTION("threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
   SET_OPTION("show-weights", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);
