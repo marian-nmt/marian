@@ -11,12 +11,12 @@
 class State {
   public:
     virtual ~State() {}
-    
+
     template <class T>
     T& get() {
       return static_cast<T&>(*this);
     }
-    
+
     template <class T>
     const T& get() const {
       return static_cast<const T&>(*this);;
@@ -33,31 +33,33 @@ class Scorer {
   public:
     Scorer(const std::string& name,
            const YAML::Node& config, size_t tab);
-    
+
     virtual ~Scorer() {}
-    
+
     virtual void Score(const State& in,
                        BaseMatrix& prob,
                        State& out) = 0;
-    
+
     virtual void BeginSentenceState(State& state) = 0;
-    
+
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
                                    State& out) = 0;
-    
+
     virtual void SetSource(const Sentence& source) = 0;
-    
+
+    virtual void Filter(const std::vector<size_t>&) = 0;
+
     virtual State* NewState() = 0;
-    
+
     virtual size_t GetVocabSize() const = 0;
-    
+
     virtual void CleanUpAfterSentence() {}
-    
+
     virtual const std::string& GetName() const {
       return name_;
     }
-    
+
     virtual BaseMatrix *CreateMatrix() = 0;
 
   protected:
@@ -70,10 +72,10 @@ class SourceIndependentScorer : public Scorer {
   public:
     SourceIndependentScorer(const std::string& name,
                             const YAML::Node& config, size_t)
-    : Scorer(name, config, 0) {} 
-    
+    : Scorer(name, config, 0) {}
+
     virtual ~SourceIndependentScorer() {}
-    
+
     virtual void SetSource(const Sentence& source) {}
 };
 

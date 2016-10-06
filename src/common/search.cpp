@@ -1,5 +1,6 @@
 #include <boost/timer/timer.hpp>
 #include "search.h"
+#include "common/filter.h"
 #include "common/base_matrix.h"
 
 using namespace std;
@@ -7,12 +8,19 @@ using namespace std;
 Search::Search(size_t threadId)
 : scorers_(God::GetScorers(threadId)) {}
 
+size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
+  filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
+  for(size_t i = 0; i < scorers_.size(); i++) {
+      scorers_[i]->Filter(filterIndices_);
+  }
+  return filterIndices_.size();
+}
+
 History Search::Decode(const Sentence& sentence) {
   boost::timer::cpu_timer timer;
 
   size_t beamSize = God::Get<size_t>("beam-size");
   bool normalize = God::Get<bool>("normalize");
-  size_t vocabSize = scorers_[0]->GetVocabSize();
 
   // @TODO Future: in order to do batch sentence decoding
   // it should be enough to keep track of hypotheses in
@@ -25,6 +33,13 @@ History Search::Decode(const Sentence& sentence) {
   States states(scorers_.size());
   States nextStates(scorers_.size());
   BaseMatrices probs(scorers_.size());
+
+  size_t vocabSize = scorers_[0]->GetVocabSize();
+
+  bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+  if(filter) {
+    vocabSize = MakeFilter(sentence.GetWords(), vocabSize);
+  }
 
   for(size_t i = 0; i < scorers_.size(); i++) {
 	Scorer &scorer = *scorers_[i];
@@ -40,8 +55,6 @@ History Search::Decode(const Sentence& sentence) {
 
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
-    //cerr << "history.size()=" << history.size() << endl;
-
 	for(size_t i = 0; i < scorers_.size(); i++) {
 		Scorer &scorer = *scorers_[i];
 		BaseMatrix &prob = *probs[i];
@@ -50,9 +63,6 @@ History Search::Decode(const Sentence& sentence) {
 
 		prob.Resize(beamSize, vocabSize);
 		scorer.Score(state, prob, nextState);
-		//cerr << "i=" << i << " " << nextState.Debug() << endl;
-		//cerr << "hist=" << history.size() << " state=" << state.Debug() << endl;
-		  //cerr << "nextState=" << nextState.Debug() << endl;
 	}
 
 	// Looking at attention vectors
@@ -61,8 +71,6 @@ History Search::Decode(const Sentence& sentence) {
 	//mblas::debug1(A, 0, sentence.GetWords().size());
 
 	Beam hyps;
-
-	assert(probs.size());
 	const BaseMatrix &firstMatrix = *probs[0];
 
 	firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, history, scorers_, filterIndices_);
@@ -103,5 +111,3 @@ History Search::Decode(const Sentence& sentence) {
 
   return history;
 }
-
-

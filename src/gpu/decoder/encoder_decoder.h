@@ -19,7 +19,7 @@ class EncoderDecoderState : public State {
     mblas::Matrix& GetEmbeddings();
     const mblas::Matrix& GetStates() const;
     const mblas::Matrix& GetEmbeddings() const;
-    
+
   private:
     mblas::Matrix states_;
     mblas::Matrix embeddings_;
@@ -29,30 +29,34 @@ class EncoderDecoderState : public State {
 class EncoderDecoder : public Scorer {
   private:
     typedef EncoderDecoderState EDState;
-    
+
   public:
     EncoderDecoder(const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
                    const Weights& model);
-    
+
     virtual void Score(const State& in,
     		BaseMatrix& prob,
     		State& out);
-    
+
     virtual State* NewState();
-    
+
     virtual void BeginSentenceState(State& state);
 
     virtual void SetSource(const Sentence& source);
-    
+
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
                                    State& out);
-    
+
     void GetAttention(mblas::Matrix& Attention);
-    
+
     size_t GetVocabSize() const;
+
+    void Filter(const std::vector<size_t>& filterIds) {
+      decoder_->Filter(filterIds);
+    }
 
     virtual BaseMatrix *CreateMatrix();
 
@@ -60,7 +64,7 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    
+
     mblas::Matrix SourceContext_;
 };
 
@@ -73,10 +77,9 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load();
 
     virtual ScorerPtr NewScorer(size_t taskId);
-    
+
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
 };
 
 }
-

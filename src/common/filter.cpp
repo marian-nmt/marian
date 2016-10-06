@@ -9,7 +9,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "decoder/god.h"
+#include "common/god.h"
 #include "common/vocab.h"
 #include "common/utils.h"
 #include "common/types.h"

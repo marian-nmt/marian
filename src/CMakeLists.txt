@@ -15,6 +15,7 @@ add_library(cpumode OBJECT
 add_library(libcommon OBJECT
   common/config.cpp
   common/exception.cpp
+  common/filter.cpp
   common/god.cpp
   common/history.cpp
   common/loader.cpp
