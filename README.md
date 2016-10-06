@@ -3,7 +3,7 @@
 
 [![Join the chat at https://gitter.im/emjotde/amunmt](https://badges.gitter.im/emjotde/amunmt.svg)](https://gitter.im/emjotde/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-based scripts from
+A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
 We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed.
@@ -98,7 +98,7 @@ To choose between GPU and CPU mode, set `mode` in the config file to `CPU`:
 
     mode: CPU
 
-or provide the corresponding switch on the command line: `--mode CPU`
+or provide the corresponding switch on the command line: `--mode CPU`. GPU mode is the default if CUDA is available otherwise the CPU mode is chosen.
 
 ## Example usage
 
