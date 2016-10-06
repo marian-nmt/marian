@@ -3,10 +3,10 @@
 
 [![Join the chat at https://gitter.im/emjotde/amunmt](https://badges.gitter.im/emjotde/amunmt.svg)](https://gitter.im/emjotde/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-based scripts from 
+A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
-We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed. 
+We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed.
 
 If you this, please cite:
 
@@ -25,12 +25,12 @@ Tested on Ubuntu 16.04 LTS
  * Boost 1.61
  * CUDA 8.0
 
-Also compiles the CPU version. 
+Also compiles the CPU version.
 
 ## Recommended for CPU version:
 The CPU-only version will automatically be compiled if CUDA cannot be detected by CMAKE. Tested on different machines and distributions:
  * CMake 3.5.1
- * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions. 
+ * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions.
 
 ## Compilation
 The project is a standard Cmake out-of-source build:
@@ -40,15 +40,20 @@ The project is a standard Cmake out-of-source build:
     cmake ..
     make -j
 
+If you want to compile only CPU version on a machine with CUDA, add `-DNOCUDA=ON`  flag:
+
+    cmake -DNOCUDA=ON ..
+
 ## Vocabulary files
-Vocabulary files (and all other config files) in AmuNMT are by default YAML files. AmuNMT also reads gzipped yml.gz files. 
+Vocabulary files (and all other config files) in AmuNMT are by default YAML files. AmuNMT also reads gzipped yml.gz files.
 
 * Vocabulary files from models trained with Nematus can be used directly as JSON is a proper subset of YAML.
-* Vocabularies for models trained with DL4MT (*.pkl extension) need to be converted to JSON/YAML with either of the two scripts below:
-```    
+* Vocabularies for models trained with DL4MT (\*.pkl extension) need to be converted to JSON/YAML with either of the two scripts below:
+```
 python scripts/pkl2json.py vocab.en.pkl > vocab.json
 python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
-``` 
+```
+
 
 ## Running AmuNMT
 
@@ -66,21 +71,33 @@ An example configuration:
     devices: [0]
     normalize: yes
     threads-per-device: 1
-    
+
     # scorer configuration
-    scorers: 
+    scorers:
       F0:
-        path: model.en-de.npz 
+        path: model.en-de.npz
         type: Nematus
 
     # scorer weights
-    weights: 
+    weights:
       F0: 1.0
-  
+
     # vocabularies
     source-vocab: vocab.en.yml.gz
     target-vocab: vocab.de.yml.gz
 
+## BPE Support
+
+AmuNMT has integrated support for BPE encoding. There are two option `bpe` and `debpe`. The `bpe` option gets a path to a file with codes. To turn on deBPE on ouput, set `debpe` to `yes`.e.g.
+
+    bpe: bpe.codes
+    debpe: yes
+
+## CPU|GPU Mode
+Even if you compile amuNMT with CUDA, you can run anum on CPU. To switch it, set the `mode` to `CPU`:
+
+    mode: CPU
+
 ## Example usage
-   
+
   * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)

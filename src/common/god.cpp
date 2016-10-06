@@ -24,6 +24,16 @@ God::~God()
   }
 }
 
+God& God::Init(const std::string& options) {
+  std::vector<std::string> args = boost::program_options::split_unix(options);
+  int argc = args.size() + 1;
+  char* argv[argc];
+  argv[0] = const_cast<char*>("bogus");
+  for(int i = 1; i < argc; i++)
+    argv[i] = const_cast<char*>(args[i-1].c_str());
+  return Init(argc, argv);
+}
+
 God& God::Init(int argc, char** argv) {
   return Summon().NonStaticInit(argc, argv);
 }
@@ -57,9 +67,10 @@ God& God::NonStaticInit(int argc, char** argv) {
     exit(0);
   }
 
+  LOG(info) << "Loading scorers...";
   for(auto&& pair : config_.Get()["scorers"]) {
     std::string name = pair.first.as<std::string>();
-    loaders_.emplace(name, LoaderFactory::Create(name, pair.second));
+    loaders_.emplace(name, LoaderFactory::Create(name, pair.second, config_.Get()["mode"].as<std::string>()));
   }
 
   if (config_.inputPath.empty()) {
