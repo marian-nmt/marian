@@ -18,6 +18,9 @@
 \usepackage{enumitem}
 \setlist{noitemsep}
 
+%\usetikzlibrary{external}
+%\tikzexternalize[optimize=false]
+
 \pgfplotsset{compat=newest}
 \usepgfplotslibrary{groupplots}
 
@@ -252,6 +255,7 @@ width=\textwidth,
 height=0.35\textheight,
 xlabel=Beam size,
 ytick pos=left,
+xmin=20, xmax=500,
 ymin=50, ymax=600]
 \addplot[bblue,mark=o,thick] plot coordinates {
 (20, 239.0)
@@ -261,6 +265,7 @@ ymin=50, ymax=600]
 (70, 140.7)
 (100, 113.3)
 (200, 63.5)
+(500, 26.5)
 };\label{words}
 \end{axis}
 \begin{axis}[
@@ -274,6 +279,7 @@ y tick label style={
     },
 enlargelimits=0.1,
 width=\textwidth,
+xmin=20, xmax=500,
 ymin=48, ymax=50,
 height=0.35\textheight,
 axis y line*=right,ylabel=Bleu]
@@ -286,6 +292,7 @@ axis y line*=right,ylabel=Bleu]
 (70, 49.90)
 (100, 49.89)
 (200, 49.90)
+(500, 49.84)
 }; \addlegendentry{Bleu}
 \end{axis}
 \end{tikzpicture}
@@ -472,7 +479,7 @@ Even the performance of the CPU-only version of AmuNMT allows to set-up demo sys
 %programme under grant agreement 688139 (SUMMA).
 
 
-\bibliography{un}
+\bibliography{references}
 \bibliographystyle{IEEEtran}
 
 
