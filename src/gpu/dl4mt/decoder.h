@@ -192,8 +192,16 @@ class Decoder {
           LOG(progress) << "Filtering vocab to " << ids.size() << " items";
           filtered_ = true;
           using namespace mblas;
-          //FilteredW4_ = Assemble<byColumn, Matrix>(w_.W4_, ids);
-          //FilteredB4_ = Assemble<byColumn, Matrix>(w_.B4_, ids);
+
+          Matrix TempW4, TempB4;
+          Transpose(TempW4, w_.W4_);
+          Transpose(TempB4, w_.B4_);
+
+          Assemble(FilteredW4_, TempW4, ids);
+          Assemble(FilteredB4_, TempB4, ids);
+
+          Transpose(FilteredW4_);
+          Transpose(FilteredB4_);
         }
 
       private:
