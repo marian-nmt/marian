@@ -43,7 +43,7 @@
 \textsuperscript{1}Faculty of Mathematics and Computer Science, Adam Mickiewicz University in Pozna\'{n}\\
 \textsuperscript{2}School of Informatics, University of Edinburgh \\
 \textsuperscript{3}Moses Machine Translation CIC\\
-{\tt \normalsize junczys@amu.edu\pgfplotsset{try min ticks=3}.pl t.dwojak@amu.edu.pl}\\
+{\tt \normalsize \{junczys,t.dwojak\}@amu.edu.pl} \;
 {\tt \normalsize hieu@hoang.co.uk }}
 
 \date{}
@@ -187,7 +187,7 @@ nodes near coords={\pgfmathprintnumber[fixed zerofill, precision=1]{\pgfplotspoi
 \caption{For all language pairs involving English, we experimented also with hierarchal machine translation and more training iterations for the neural models. NMT 1.2M means 1.2 million iterations with a batch size of 40, training time ca. 8 days. NMT 2.4 means 2.4 million iterations accordingly. (Some results in preparation.)}\label{pbsmtnmt2}
 \end{figure*}
 
-The impressive results for any translation direction involving Chinese motived us to experiment with hierarchical phrase-based machine translation (Hiero) in Moses as well. Hiero has been confirmed to outperform phrase-based SMT for the Chinese-English language pair. We decided to expand our experiment with all language pairs that include English, as these are the main translation directions the UN are working with. For these ten translation directions we created a hierarchical PB-SMT system with the same preprocessing settings as the PB-SMT system. We also continued training of our neural systems for another four epochs or 1.2M iterations (2.4M in total) which increased training time to 16 days in total per neural system. 
+The impressive results for any translation direction involving Chinese motivated us to experiment with hierarchical phrase-based machine translation (Hiero) as implemented in Moses . Hiero has been confirmed to outperform phrase-based SMT for the Chinese-English language pair. We decided to expand our experiment with all language pairs that include English as these are the main translation directions the UN are working with. For these ten translation directions we created a hierarchical PB-SMT system with the same preprocessing settings as the shallow PB-SMT system. To test the effects of prolonged training time, we also continued training of our neural systems for another four epochs or 1.2M iterations (2.4M in total) which increased training time to 16 days in total per neural system. 
 
 
 \begin{figure*}[t]
@@ -263,19 +263,18 @@ axis y line*=right]
 Figure \ref{pbsmtnmt2} summarizes the results. As expected, Hiero outperforms PB-SMT by a significant margin for Chinese-English and English-Chinese, but does not reach half the improvement of the NMT systems. For other languages pairs we see mixed results; for French-English and Russian-English, where results for PB-SMT and NMT are close, Hiero is the best system. 
 
 Training the NMT system for another eight days improves the performance, but gains are rather small, between 0.4 and 0.7 BLEU. We did not observe any improvements beyond 2M iterations. For our setting, it seems that stopping training after 8-10 days is a viable heuristic with little loss in terms of BLEU. Training with other corpus sizes, architectures, and sets of hyper-parameters may behave differently.
-
-%It seems choosing NMT over PB-SMT is a good bet as results reach from comparable to far superior in terms of BLEU. 
+% It seems choosing NMT over PB-SMT is a good bet as results reach from comparable to far superior in terms of BLEU. 
 
 \section{Efficient decoding with AmuNMT}
 AmuNMT is a ground-up neural MT toolkit implementation, developed in C++. It currently consist of an efficient beam-search inference engine for models trained with Nematus. We focused mainly on efficiency and usability. Features of the AmuNMT decoder include:
 
 \begin{itemize}
- \item Multi-GPU support;
-  \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations) and sentence-wise threads (different sentences are decoded in different threads);
+ \item Multi-GPU, multi-CPU and mixed GPU/CPU mode with sentence-wise threads (different sentences are decoded in different threads);
+  \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations);
  \item Compatibility with Nematus \cite{DBLP:conf/wmt/SennrichHB16};
  \item Ensembling of multiple models;
  \item Vocabulary selection in the output layer \cite{DBLP:conf/acl/JeanCMB15,DBLP:conf/acl/MiWI16};
- \item Integrated segmentation into subword units \cite{DBLP:journals/corr/SennrichHB15} and de-segmentation;
+ \item Integrated segmentation into subword units \cite{DBLP:journals/corr/SennrichHB15}.
  %\item A clean and documented C++ code-base.
 \end{itemize}
 
@@ -344,6 +343,7 @@ Google TPU},
 (5, 265.3)
 (6, 409.4) 
 (7, 490.1)
+% 533.7
 (8, 1252.3) 
 (9, 1510.2)
 };
@@ -452,7 +452,7 @@ Until now, we have evaluated translation speed as the time it takes to translate
 However, there are use-cases where the latency for a single sentence may be important, for example predictive translation \cite{Knowles}. 
 To compare per-sentence latency, we translate our test set with all tools serially, using at most one CPU thread or process. We do not aim at full GPU saturation as this would not improve latency. We then average time over the number of sentences and report milliseconds per sentence in Figure~\ref{latency}, lower values are better. Here AmuNMT GPU compares very favourably against all other solutions with a 10 times lower latency than Moses and a more than 8 times lower latency than Nematus. Latency between the CPU-only variants shows similar ratios as for bulk-translation. 
 
-\section{Conclusions}
+\section{Conclusions and future work}
 
 Although NMT systems are known to generalize better than phrase-based systems for out-of-domain data, it was unclear how they perform in a purely in-domain setting which is of interest for any organization with significant resources of their own data, such as the UN or other governmental bodies.
 
@@ -462,7 +462,7 @@ We introduced our efficient neural machine translation beam-search decoder, AmuN
 
 Even the performance of the CPU-only version of AmuNMT allows to set-up demo systems and can be a viable solution for low-throughput settings. Training, however, requires a GPU. Still, one might start with one GPU for training and reuse the CPU machines on which Moses has been running  for first deployment. For future work, we plan to further improve the performance of AmuNMT, especially for CPU-only settings.
 
-An easy way to improve translation speed has not been covered in this paper: reduction of model parameters. A reduction of the hidden state size by half could improve performance 4-fold. Determining the influence on translation quality would require more experiments.
+We haven't covered architecture-related questions. Reducing the hidden state size by half could improve performance 4-fold. Determining the influence on translation quality would require more experiments.
 
 \section{Acknowledgments}
 This project has received funding from the European Union's Horizon 2020 research and innovation
