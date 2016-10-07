@@ -1,12 +1,15 @@
+#include "common/search.h"
+
 #include <boost/timer/timer.hpp>
-#include "search.h"
+
+#include "common/god.h"
 #include "common/filter.h"
 #include "common/base_matrix.h"
 
 using namespace std;
 
 Search::Search(size_t threadId)
-: scorers_(God::GetScorers(threadId)) {}
+  : scorers_(God::GetScorers(threadId)) {}
 
 size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
   filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);

@@ -85,7 +85,7 @@ struct Weights {
   Weights(const NpzConverter& model, size_t device = 0);
 
   size_t GetDevice() {
-    return device_;
+    return 0;
   }
 
   const Embeddings encEmbeddings_;
@@ -97,8 +97,6 @@ struct Weights {
   const DecGRU2 decGru2_;
   const DecAttention decAttention_;
   const DecSoftmax decSoftmax_;
-
-  const size_t device_;
 };
 
 inline std::ostream& operator<<(std::ostream &out, const Weights::Embeddings &obj)

@@ -34,6 +34,81 @@ God& God::Init(int argc, char** argv) {
   return Summon().NonStaticInit(argc, argv);
 }
 
+void God::LoadScorers() {
+  LOG(info) << "Loading scorers...";
+#ifdef CUDA
+  size_t gpuThreads = God::Get<size_t>("gpu-threads");
+  auto devices = God::Get<std::vector<size_t>>("devices");
+  if (gpuThreads > 0 && devices.size() > 0) {
+    for (auto&& pair : config_.Get()["scorers"]) {
+      std::string name = pair.first.as<std::string>();
+      gpuLoaders_.emplace(name, LoaderFactory::Create(name, pair.second, "GPU"));
+    }
+  }
+#endif
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  if (cpuThreads) {
+    for (auto&& pair : config_.Get()["scorers"]) {
+      std::string name = pair.first.as<std::string>();
+      cpuLoaders_.emplace(name, LoaderFactory::Create(name, pair.second, "CPU"));
+    }
+  }
+}
+
+void God::LoadFiltering() {
+  if (!Get<std::vector<std::string>>("softmax-filter").empty()) {
+    auto filterOptions = Get<std::vector<std::string>>("softmax-filter");
+    std::string alignmentFile = filterOptions[0];
+    LOG(info) << "Reading target softmax filter file from " << alignmentFile;
+    Filter* filter = nullptr;
+    if (filterOptions.size() >= 3) {
+      const size_t numNFirst = stoi(filterOptions[1]);
+      const size_t maxNumTranslation = stoi(filterOptions[2]);
+      filter = new Filter(GetSourceVocab(0),
+                          GetTargetVocab(),
+                          alignmentFile,
+                          numNFirst,
+                          maxNumTranslation);
+    } else if (filterOptions.size() == 2) {
+      const size_t numNFirst = stoi(filterOptions[1]);
+      filter = new Filter(GetSourceVocab(0),
+                          GetTargetVocab(),
+                          alignmentFile,
+                          numNFirst);
+    } else {
+      filter = new Filter(GetSourceVocab(0),
+                          GetTargetVocab(),
+                          alignmentFile);
+    }
+    filter_.reset(filter);
+  }
+}
+
+void God::LoadPrePostProcessing() {
+  if (Has("bpe")) {
+    if(Get("bpe").IsSequence()) {
+      size_t i = 0;
+      for(auto bpePath : Get<std::vector<std::string>>("bpe")) {
+        LOG(info) << "using bpe: " << bpePath;
+        preprocessors_.push_back(std::vector<PreprocessorPtr>());
+        preprocessors_[i++].emplace_back(new BPE(bpePath));
+      }
+    }
+    else {
+      LOG(info) << "using bpe: " << Get<std::string>("bpe");
+        preprocessors_.push_back(std::vector<PreprocessorPtr>());
+      if (Get<std::string>("bpe") != "") {
+        preprocessors_[0].emplace_back(new BPE(Get<std::string>("bpe")));
+      }
+    }
+  }
+
+  if (Get<bool>("debpe")) {
+    LOG(info) << "De-BPE output";
+    postprocessors_.emplace_back(new BPE());
+  }
+}
+
 God& God::NonStaticInit(int argc, char** argv) {
   info_ = spdlog::stderr_logger_mt("info");
   info_->set_pattern("[%c] (%L) %v");
@@ -63,38 +138,8 @@ God& God::NonStaticInit(int argc, char** argv) {
     exit(0);
   }
 
-  LOG(info) << "Loading scorers...";
-  for(auto&& pair : config_.Get()["scorers"]) {
-    std::string name = pair.first.as<std::string>();
-    loaders_.emplace(name, LoaderFactory::Create(name, pair.second, config_.Get()["mode"].as<std::string>()));
-  }
-
-  if (!Get<std::vector<std::string>>("softmax-filter").empty()) {
-    auto filterOptions = Get<std::vector<std::string>>("softmax-filter");
-    std::string alignmentFile = filterOptions[0];
-    LOG(info) << "Reading target softmax filter file from " << alignmentFile;
-    Filter* filter = nullptr;
-    if (filterOptions.size() >= 3) {
-      const size_t numNFirst = stoi(filterOptions[1]);
-      const size_t maxNumTranslation = stoi(filterOptions[2]);
-      filter = new Filter(GetSourceVocab(0),
-                          GetTargetVocab(),
-                          alignmentFile,
-                          numNFirst,
-                          maxNumTranslation);
-    } else if (filterOptions.size() == 2) {
-      const size_t numNFirst = stoi(filterOptions[1]);
-      filter = new Filter(GetSourceVocab(0),
-                          GetTargetVocab(),
-                          alignmentFile,
-                          numNFirst);
-    } else {
-      filter = new Filter(GetSourceVocab(0),
-                          GetTargetVocab(),
-                          alignmentFile);
-    }
-    filter_.reset(filter);
-  }
+  LoadScorers();
+  LoadFiltering();
 
   if (Has("input-file")) {
     LOG(info) << "Reading from " << Get<std::string>("input-file");
@@ -105,28 +150,7 @@ God& God::NonStaticInit(int argc, char** argv) {
     inputStream_.reset(new InputFileStream(std::cin));
   }
 
-  if (Has("bpe")) {
-    if(Get("bpe").IsSequence()) {
-      size_t i = 0;
-      for(auto bpePath : Get<std::vector<std::string>>("bpe")) {
-        LOG(info) << "using bpe: " << bpePath;
-        preprocessors_.push_back(std::vector<PreprocessorPtr>());
-        preprocessors_[i++].emplace_back(new BPE(bpePath));
-      }
-    }
-    else {
-      LOG(info) << "using bpe: " << Get<std::string>("bpe");
-        preprocessors_.push_back(std::vector<PreprocessorPtr>());
-      if (Get<std::string>("bpe") != "") {
-        preprocessors_[0].emplace_back(new BPE(Get<std::string>("bpe")));
-      }
-    }
-  }
-
-  if (Get<bool>("debpe")) {
-    LOG(info) << "De-BPE output";
-    postprocessors_.emplace_back(new BPE());
-  }
+  LoadPrePostProcessing();
 
   return *this;
 }
@@ -147,16 +171,24 @@ std::istream& God::GetInputStream() {
   return *Summon().inputStream_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t taskId) {
+std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   std::vector<ScorerPtr> scorers;
-  for(auto&& loader : Summon().loaders_ | boost::adaptors::map_values)
-    scorers.emplace_back(loader->NewScorer(taskId));
+
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+
+  if (threadId < cpuThreads) {
+    for (auto&& loader : Summon().cpuLoaders_ | boost::adaptors::map_values)
+      scorers.emplace_back(loader->NewScorer(threadId));
+  } else {
+    for (auto&& loader : Summon().gpuLoaders_ | boost::adaptors::map_values)
+      scorers.emplace_back(loader->NewScorer(threadId - cpuThreads));
+  }
   return scorers;
 }
 
 std::vector<std::string> God::GetScorerNames() {
   std::vector<std::string> scorerNames;
-  for(auto&& name : Summon().loaders_ | boost::adaptors::map_keys)
+  for(auto&& name : Summon().cpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
   return scorerNames;
 }
@@ -184,6 +216,10 @@ std::vector<std::string> God::Postprocess(const std::vector<std::string>& input)
 }
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
-  for(auto& loader : Summon().loaders_ | boost::adaptors::map_values)
+  for (auto& loader : Summon().cpuLoaders_ | boost::adaptors::map_values) {
      loader.reset(nullptr);
+  }
+  for (auto& loader : Summon().gpuLoaders_ | boost::adaptors::map_values) {
+     loader.reset(nullptr);
+  }
 }

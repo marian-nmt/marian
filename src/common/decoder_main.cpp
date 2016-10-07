@@ -34,22 +34,24 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
-  LOG(info) << "Initialization... DONE";
   std::setvbuf(stdout, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
 
   std::string in;
   std::size_t taskCounter = 0;
 
-  size_t threadCount;
-  if (God::Get<std::string>("mode") == "GPU") {
-    threadCount= God::Get<size_t>("threads-per-device")
-                 * God::Get<std::vector<size_t>>("devices").size();
-  } else {
-    threadCount = God::Get<size_t>("threads");
-  }
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  LOG(info) << "Setting cpuThreadCount to " << cpuThreads;
 
-  LOG(info) << "threadCount set to " << threadCount;
+  size_t totalThreads = cpuThreads;
+#ifdef CUDA
+  size_t gpuThreads = God::Get<size_t>("gpu-threads");
+  auto devices = God::Get<std::vector<size_t>>("devices");
+  LOG(info) << "Setting gpuThreadCount to " << gpuThreads;
+  totalThreads += gpuThreads * devices.size();
+#endif
+
+  LOG(info) << "Total number of threads: " << totalThreads;
 
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
@@ -58,8 +60,7 @@ int main(int argc, char* argv[]) {
       Printer(result, taskCounter++, std::cout);
     }
   } else {
-    LOG(info) << "Setting number of threads to " << threadCount;
-    ThreadPool pool(threadCount);
+    ThreadPool pool(totalThreads);
     LOG(info) << "Reading input";
 
     std::vector<std::future<History>> results;

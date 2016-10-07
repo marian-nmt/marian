@@ -59,6 +59,10 @@ class God {
   private:
     God& NonStaticInit(int argc, char** argv);
 
+    void LoadScorers();
+    void LoadFiltering();
+    void LoadPrePostProcessing();
+
     static God instance_;
     Config config_;
 
@@ -70,7 +74,8 @@ class God {
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;
 
-    std::map<std::string, LoaderPtr> loaders_;
+    std::map<std::string, LoaderPtr> cpuLoaders_;
+    std::map<std::string, LoaderPtr> gpuLoaders_;
     std::map<std::string, float> weights_;
 
     std::shared_ptr<spdlog::logger> info_;
