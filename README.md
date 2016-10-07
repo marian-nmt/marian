@@ -8,7 +8,7 @@ Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-
 
 We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed.
 
-If you this, please cite:
+If you use this, please cite:
 
 Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Translation Ready for Deployment? A Case Study on 30 Translation Directions (https://arxiv.org/abs/1610.01108)
 
