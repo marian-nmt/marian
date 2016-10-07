@@ -93,16 +93,14 @@ AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/su
     bpe: bpe.codes
     debpe: true
 
-## Using CPU/GPU
-Amunmt can use CPUs or GPUs (or both) to translate. 
+## Using GPU/CPU threads
+AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. 
 
     cpu-threads: 8
     gpu-threads: 2
-    devices: [0,1 , 2]
+    devices: [0, 1]
 
-The setting above uses 8 threads to translate on CPU and 6 (3 GPU times 2 threads) to translate on GPUs.
-
-The `gpu-threads` and `devices` options are available only with CUDA compilation.
+The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception.
 
 ## Example usage
 
