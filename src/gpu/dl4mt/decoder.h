@@ -175,13 +175,32 @@ class Decoder {
 
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
-          Prod(Probs, T1_, w_.W4_);
-          BroadcastVec(_1 + _2, Probs, w_.B4_);
+          if(!filtered_) {
+            Prod(Probs, T1_, w_.W4_);
+            BroadcastVec(_1 + _2, Probs, w_.B4_);
+          } else {
+            Prod(Probs, T1_, FilteredW4_);
+            BroadcastVec(_1 + _2, Probs, FilteredB4_);
+          }
+
+          // @TODO logsoftmax!
           mblas::Softmax(Probs);
           Element(Log(_1), Probs);
         }
 
         void Filter(const std::vector<size_t>& ids) {
+          filtered_ = true;
+          using namespace mblas;
+
+          Matrix TempW4, TempB4;
+          Transpose(TempW4, w_.W4_);
+          Transpose(TempB4, w_.B4_);
+
+          Assemble(FilteredW4_, TempW4, ids);
+          Assemble(FilteredB4_, TempB4, ids);
+
+          Transpose(FilteredW4_);
+          Transpose(FilteredB4_);
         }
 
       private:
@@ -191,8 +210,8 @@ class Decoder {
         cudaStream_t s_[3];
 
         bool filtered_;
-        mblas::Matrix FilteredWo_;
-        mblas::Matrix FilteredWoB_;
+        mblas::Matrix FilteredW4_;
+        mblas::Matrix FilteredB4_;
 
         mblas::Matrix T1_;
         mblas::Matrix T2_;
@@ -238,7 +257,7 @@ class Decoder {
     }
 
     void Filter(const std::vector<size_t>& ids) {
-      // @TODO
+      softmax_.Filter(ids);
     }
 
     void GetAttention(mblas::Matrix& Attention) {

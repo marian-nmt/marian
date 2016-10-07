@@ -11,6 +11,8 @@
 
 class Weights;
 class Vocab;
+class Filter;
+class InputFileStream;
 
 class God {
   public:
@@ -39,9 +41,9 @@ class God {
     static Vocab& GetSourceVocab(size_t i = 0);
     static Vocab& GetTargetVocab();
 
-    static std::istream& GetInputStream() {
-      return *Summon().inStrm;
-    }
+    static std::istream& GetInputStream();
+
+    static Filter& GetFilter();
 
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<std::string> GetScorerNames();
@@ -63,6 +65,8 @@ class God {
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;
 
+    std::unique_ptr<Filter> filter_;
+
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;
 
@@ -72,6 +76,5 @@ class God {
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;
 
-    std::istream *inStrm;
+    std::unique_ptr<InputFileStream> inputStream_;
 };
-

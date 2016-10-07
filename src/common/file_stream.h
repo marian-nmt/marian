@@ -15,26 +15,31 @@ class InputFileStream {
     {
       UTIL_THROW_IF2(!boost::filesystem::exists(file_),
                      "File " << file << " does not exist");
-      
+
       if(file_.extension() == ".gz")
         istream_.push(boost::iostreams::gzip_decompressor());
       istream_.push(ifstream_);
     }
-    
+
+    InputFileStream(std::istream& strm)
+    {
+      istream_.push(strm);
+    }
+
     operator std::istream& () {
       return istream_;
     }
-    
+
     operator bool () {
       return (bool)istream_;
     }
-    
+
     template <typename T>
     friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
       stream.istream_ >> t;
       return stream;
     }
-    
+
   private:
     boost::filesystem::path file_;
     boost::filesystem::ifstream ifstream_;

@@ -19,7 +19,7 @@
 #endif
 
 //#include "nervana_c_api.h"
-  
+
 
 #include "thrust_functions.h"
 #include "common/god.h"
@@ -236,8 +236,15 @@ class TMatrix : public BaseMatrix {
 		}
 	  }
 
+
+      bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+
 	  for(size_t i = 0; i < beamSize; i++) {
 		size_t wordIndex = bestKeys[i] % Probs.Cols();
+        if (filter) {
+    	  wordIndex = filterIndices[wordIndex];
+    	}
+
 		size_t hypIndex  = bestKeys[i] / Probs.Cols();
 		float cost = bestCosts[i];
 
@@ -315,7 +322,7 @@ typedef TMatrix<FVec> Matrix;
 typedef TMatrix<IVec> IMatrix;
 
 template <class M>
-void debug1(const M& m, size_t pos = 0, size_t l = 5) {
+void Debug(const M& m, size_t pos = 0, size_t l = 5) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
   for(size_t i = 0; i < m.Rows(); ++i) {
     for(size_t j = pos; j < m.Cols() && j < pos + l; ++j) {
@@ -580,11 +587,11 @@ Matrix& Element(Functor functor,
 template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In1, const Matrix& In2) {
-  
+
   float* d_out = Out.data();
   const float* d_in1 = In1.data();
   const float* d_in2 = In2.data();
-  
+
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   gElement<<<blocks, threads>>>(functor, d_out, d_in1, d_in2,
@@ -595,4 +602,3 @@ Matrix& Element(Functor functor,
 
 }
 }
-
