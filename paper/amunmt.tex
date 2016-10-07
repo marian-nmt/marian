@@ -90,11 +90,11 @@ To avoid the large-vocabulary problem in NMT models \cite{44929}, we use byte-pa
 
 \section{Phrase-based SMT baselines}
 \label{pbmtbaselines}
-In \cite{ZIEMSKI16.1195}, we provided baseline BLEU scores for Moses \cite{Koehn:2007:MOS:1557769.1557821} configurations that were trained on the 6-way subcorpus. We repeat the system description here:
+\cite{ZIEMSKI16.1195} provided baseline BLEU scores for Moses \cite{Koehn:2007:MOS:1557769.1557821} configurations that were trained on the 6-way subcorpus. Their configurations were the following:
 
-To speed up the word alignment procedure, we split the training corpora into four equally sized parts that are aligned with MGIZA++ \cite{Gao:2008:PIW:1622110.1622119}, running 5 iterations of Model 1 and the HMM model on each part.\footnote{We confirmed that there seemed to be no quality loss due to splitting and limiting the iterations to simpler alignment models.}
-We use a 5-gram language model trained from the target parallel data, with 3-grams or higher order being pruned if they occur only once. Apart from the default configuration with a lexical reordering model, we add a 5-gram operation sequence model \cite{conf/acl/DurraniFSHK13} (all n-grams pruned if they occur only once) and a 9-gram word-class language model with word-classes produced by word2vec \cite{journals/corr/abs-1301-3781} (3-grams and 4-grams are pruned if they occur only once, 5-grams and 6-grams if they occur only twice, etc.), both trained using KenLM \cite{Heafield-estimate}.  To reduce the phrase-table size, we apply significance pruning \cite{Johnson07improvingtranslation} and use the compact phrase-table and reordering data structures \cite{junczys_mtm_2012}.
-During decoding, we use the cube-pruning algorithm with stack size and cube-pruning pop limits of 1,000. This configuration is the actual setting used at the United Nations for in-house translation systems.
+The training corpora were split into four equally sized parts that were aligned with MGIZA++ \cite{gao-vogel:2008:SETQANLP}, running 5 iterations of Model 1 and the HMM model on each part.
+A 5-gram language model was trained from the target parallel data, with 3-grams or higher order being pruned if they occured only once. Apart from the default configuration with a lexical reordering model, a 5-gram operation sequence model \cite{conf/acl/DurraniFSHK13} (all n-grams pruned if they occur only once) and a 9-gram word-class language model with word-classes produced by word2vec \cite{journals/corr/abs-1301-3781} (3-grams and 4-grams are pruned if they occur only once, 5-grams and 6-grams if they occur only twice, etc.) were added, both trained with KenLM \cite{Heafield-estimate}. Significance pruning \cite{DBLP:conf/emnlp/JohnsonMFK07} was applied to the phrase-table and the compact phrase-table and reordering data structures \cite{junczys_mtm_2012} were used.
+During decoding with cube-pruning algorithm, stack size and cube-pruning pop limits of 1,000 were chose. This configuration resembles the in-house translation systems deployed at the United Nations.
 
 \begin{figure*}[p]
 \centering
@@ -139,11 +139,13 @@ The neural machine translation system is an attentional encoder-decoder \cite{DB
 We used mini-batches of size 40, a maximum sentence length of 100, word embeddings of size 500, and hidden layers of size 1024.
 We clip the gradient norm to 1.0 \cite{DBLP:conf/icml/PascanuMB13}.
 Models were trained with Adadelta \cite{DBLP:journals/corr/abs-1212-5701}, reshuffling the training corpus between epochs.
-The models have been trained model for 1.2M iterations (one iteration corresponds to one mini-batch), saving every $30,000$ iterations. On our NVidia GTX 1080 this corresponds to roughly 4 epochs and 8 days of training time. Models with English as their source or target data were trained for another 1.2M iterations (another 2 epochs, 8 days) to test the influence of increased training time. For ensembling/averaging, we chose the last four model checkpoints.
+The models have been trained model for 1.2M iterations (one iteration corresponds to one mini-batch), saving every $30,000$ iterations. On our NVidia GTX 1080 this corresponds to roughly 4 epochs and 8 days of training time. Models with English as their source or target data were later trained for another 1.2M iterations (another 2 epochs, 8 days). For ensembling, we chose the last four model checkpoints.
 
 \section{Phrase-based vs. NMT -- full matrix}
-In Figure~\ref{pbsmtnmt1} we present the results for all thirty language pairs in the United Nations parallel corpus for the officially included test set. Here we compare with NMT models that were trained for 4 epochs or 1.2M iterations. With the exception of fr-es and ru-en the neural system is always comparable or better than the phrase-based system. The differences where NMT is worse are very small. Especially in cases where Chinese is one of the languages in a language pair, the improvement of NMT over PB-SMT is dramatic with between 7 and 9 BLEU points. 
-We also see large improvements for translations out of and into Arabic. It should be noted here, that no special preprocessing has been applied for Arabic. It is interesting to observe that improvements are present also in the case of the highest scoring translation directions, en-es and es-en.
+In Figure~\ref{pbsmtnmt1} we present the results for all thirty language pairs in the United Nations parallel corpus for the officially included test set. BLEU results are case-insensitive, tokenized with the Moses tokenizer. For Chinese we applied Jieba for segmentation. BPE-subwords were concatenated. 
+
+Here we compare with NMT models that were trained for 4 epochs or 1.2M iterations. With the exception of fr-es and ru-en the neural system is always comparable or better than the phrase-based system. The differences where NMT is worse are very small. Especially in cases where Chinese is one of the languages in a language pair, the improvement of NMT over PB-SMT is dramatic with between 7 and 9 BLEU points. 
+We also see large improvements for translations out of and into Arabic. No special preprocessing has been applied for Arabic. Improvements are also present in the case of the highest scoring translation directions, en-es and es-en.
 
 \section{Phrase-based vs. Hiero vs. NMT -- language pairs with English}
 
@@ -269,8 +271,7 @@ AmuNMT is a ground-up neural MT toolkit implementation, developed in C++. It cur
  \item Multi-GPU support;
   \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations) and sentence-wise threads (different sentences are decoded in different threads);
  \item Compatibility with Nematus \cite{DBLP:conf/wmt/SennrichHB16};
- \item Ensembling of similar models;
- \item Ensembling of models with the same output vocabulary but different inputs \cite{DBLP:journals/corr/Junczys-Dowmunt16}.
+ \item Ensembling of multiple models;
  \item Vocabulary selection in the output layer \cite{DBLP:conf/acl/JeanCMB15,DBLP:conf/acl/MiWI16};
  \item Integrated segmentation into subword units \cite{DBLP:journals/corr/SennrichHB15} and de-segmentation;
  %\item A clean and documented C++ code-base.
@@ -461,9 +462,9 @@ Even the performance of the CPU-only version of AmuNMT allows to set-up demo sys
 
 An easy way to improve translation speed has not been covered in this paper: reduction of model parameters. A reduction of the hidden state size by half could improve performance by a factor of 4. The influence on translation quality would require more experiments.
 
-%\section{Acknowledgments}
-%This project has received funding from the European Union's Horizon 2020 research and innovation
-%programme under grant agreement 688139 (SUMMA).
+\section{Acknowledgments}
+This project has received funding from the European Union's Horizon 2020 research and innovation
+programme under grant agreement 688139 (SUMMA).
 
 
 \bibliography{references}
