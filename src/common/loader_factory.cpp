@@ -24,7 +24,7 @@ LoaderPtr LoaderFactory::Create(
     if (loader) {
       return LoaderPtr(loader);
     } else {
-      LOG(info) << "No GPU scorer type. Loading CPU";
+      LOG(info) << "No GPU scorer type. Switching to CPU";
     }
   }
 

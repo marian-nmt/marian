@@ -36,7 +36,7 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
   Bx1_(Bx2_.rows(), Bx2_.columns()),
   Ux_(model["decoder_Ux_nl"])
 {
-    const_cast<mblas::Matrix&>(Bx1_) = 0.0f;    
+    const_cast<mblas::Matrix&>(Bx1_) = 0.0f;
 }
 
 Weights::DecAttention::DecAttention(const NpzConverter& model)
@@ -60,7 +60,7 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 
 //////////////////////////////////////////////////////////////////////////////
 
-Weights::Weights(const NpzConverter& model, size_t device)
+Weights::Weights(const NpzConverter& model, size_t)
 : encEmbeddings_(model, "Wemb"),
 encForwardGRU_(model, {"encoder_W", "encoder_b", "encoder_U", "encoder_Wx", "encoder_bx", "encoder_Ux"}),
 encBackwardGRU_(model, {"encoder_r_W", "encoder_r_b", "encoder_r_U", "encoder_r_Wx", "encoder_r_bx", "encoder_r_Ux"}),
@@ -69,8 +69,7 @@ decInit_(model),
 decGru1_(model, {"decoder_W", "decoder_b", "decoder_U", "decoder_Wx", "decoder_bx", "decoder_Ux"}),
 decGru2_(model),
 decAttention_(model),
-decSoftmax_(model),
-device_(device)
+decSoftmax_(model)
 {
 	//cerr << *this << endl;
 }
