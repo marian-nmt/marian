@@ -3,7 +3,7 @@
 
 [![Join the chat at https://gitter.im/emjotde/amunmt](https://badges.gitter.im/emjotde/amunmt.svg)](https://gitter.im/emjotde/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-A C++ decoder for Neural Machine Translation (NMT) models trained with Theano-based scripts from
+A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
 We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed.
@@ -88,15 +88,17 @@ An example configuration:
 
 ## BPE Support
 
-AmuNMT has integrated support for BPE encoding. There are two option `bpe` and `debpe`. The `bpe` option gets a path to a file with codes. To turn on deBPE on ouput, set `debpe` to `yes`.e.g.
+AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/subword-nmt). There are two option `bpe` and `debpe`. The `bpe` option receives a path to a file with BPE codes (here `bpe.codes`). To turn on desegmentation on the ouput, set `debpe` to `true`, e.g.
 
     bpe: bpe.codes
-    debpe: yes
+    debpe: true
 
 ## CPU|GPU Mode
-Even if you compile amuNMT with CUDA, you can run anum on CPU. To switch it, set the `mode` to `CPU`:
+To choose between GPU and CPU mode, set `mode` in the config file to `CPU`:
 
     mode: CPU
+
+or provide the corresponding switch on the command line: `--mode CPU`. GPU mode is the default if CUDA is available otherwise the CPU mode is chosen.
 
 ## Example usage
 
