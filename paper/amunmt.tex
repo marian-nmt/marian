@@ -452,9 +452,9 @@ To compare per-sentence latency, we translate our test set with all tools serial
 
 \section{Conclusions}
 
-We evaluated the performance of neural machine translation on all thirty translation directions of the United Nations Parallel Corpus v1.0. We showed that for nearly all translation directions NMT is either on par with or surpasses phrase-based SMT. For some language pairs, the gains in BLEU are substantial. These include all pairs that have Chinese as a source or target language. Very respectable gains can also be observed for Arabic. For other language pairs there is generally some improvement.  In the future we would like to verify these results with human evaluation.
-
 Although NMT systems are known to generalize better than phrase-based systems for out-of-domain data, it was unclear how they perform in a purely in-domain setting which is of interest for any organization with significant resources of their own data, such as the UN or other governmental bodies.
+
+We evaluated the performance of neural machine translation on all thirty translation directions of the United Nations Parallel Corpus v1.0. We showed that for nearly all translation directions NMT is either on par with or surpasses phrase-based SMT. For some language pairs, the gains in BLEU are substantial. These include all pairs that have Chinese as a source or target language. Very respectable gains can also be observed for Arabic. For other language pairs there is generally some improvement.  In the future we would like to verify these results with human evaluation.
 
 We introduced our efficient neural machine translation beam-search decoder, AmuNMT, and demonstrated that high-quality and high-performance neural machine translation can be achieved on commodity hardware; the GPUs we tested on are available to the general public for gaming PCs and graphics workstations. A single GPU matches the performance of 16 CPU threads on server-grade Intel Xeon CPUs. We can take advantage of multiple GPUs to increase translation speed even further. Access to specialized hardware like Google's Tensor Processing Units seems unnecessary when planning to switch to neural machine translation with lower-parametrized models. 
 
@@ -462,9 +462,9 @@ Even the performance of the CPU-only version of AmuNMT allows to set-up demo sys
 
 An easy way to improve translation speed has not been covered in this paper: reduction of model parameters. A reduction of the hidden state size by half could improve performance by a factor of 4. The influence on translation quality would require more experiments.
 
-\section{Acknowledgments}
-This project has received funding from the European Union's Horizon 2020 research and innovation
-programme under grant agreement 688139 (SUMMA).
+%\section{Acknowledgments}
+%This project has received funding from the European Union's Horizon 2020 research and innovation
+%programme under grant agreement 688139 (SUMMA).
 
 
 \bibliography{references}
