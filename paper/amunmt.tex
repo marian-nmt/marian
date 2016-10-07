@@ -14,7 +14,6 @@
 \usepackage{subcaption}
 \usepackage{textcomp}
 
-
 \usepackage{tikz}
 \usepackage{pgfplots}
 \usepackage{enumitem}
@@ -28,8 +27,6 @@
 
 \pgfplotsset{try min ticks=6}
 
-%\setlength{\belowcaptionskip}{-10pt}
-
 \definecolor{bblue}{HTML}{4F81BD}
 \definecolor{rred}{HTML}{C0504D}
 \definecolor{ggreen}{HTML}{9BBB59}
@@ -37,7 +34,6 @@
 \definecolor{oorange}{HTML}{F08000}
   
 \emergencystretch 3em
-
 
 \title{Is Neural Machine Translation Ready for Deployment? \\ A Case Study on 30 Translation Directions}
 
@@ -395,8 +391,8 @@ We present the words-per-second ratio for our NMT models using AmunNMT and Nemat
 
 The CPU-bound execution of Nematus reaches 47 words per second while the GPU-bound achieved 270 words per second. In similar settings, CPU-bound AmuNMT is three times faster than Nematus CPU, but three times slower than Moses. With vocabulary selection we can nearly double the speed of AmuNMT CPU. The GPU-executed version of AmuNMT is 1.5 time faster than Nematus and is almost as fast as Moses, achieving 409 words per second, with vocabulary selection we surpass the speed of Moses. The similar translation speed would allow us to replace a Moses-based SMT system with an AmunNMT-based NMT system in a production environment without severely affecting translation throughput. 
 
-AmuNMT can parallelize to multiple GPUs present in one machine by processing one sentence per GPU. Translation speed increases to 1,200 words per second with four GPUs, to 1,510 with vocabulary selection. 
-AmuNMT has a start-up time of less than 10 seconds, while Nematus may need several minutes until the first translation can be produced. Nevertheless, the model used in AmuNMT is an exact implementation of the Nematus model that produces identical results.
+AmuNMT can parallelize to multiple GPUs processing one sentence per GPU. Translation speed increases to 1,200 words per second with four GPUs, to 1,510 with vocabulary selection. 
+AmuNMT has a start-up time of less than 10 seconds, while Nematus may need several minutes until the first translation can be produced. Nevertheless, the model used in AmuNMT is an exact implementation of the Nematus model.
 
 The size of the NMT model with the chosen parameters is approximately 300 MB, which means about 24 models could be loaded onto a single GPU with 8GB of RAM. Hardly any overhead is required during translation. With multiple GPUs, access could be parallelized and optimally scheduled in a query-based server setting. 
 
@@ -450,8 +446,8 @@ The size of the NMT model with the chosen parameters is approximately 300 MB, wh
 
 Until now, we have evaluated translation speed as the time it takes to translate a large test set using a large number of cores on a powerful server. This bulk-throughput measure is useful for judging the performance of the MT system for batch translation of large number of documents.
  
-However, there are use-cases where the latency for a single sentence may be important, for example, interactive or predictive translation \cite{Knowles}. 
-To compare per-sentence latency we translate our test set with all tools in a serial fashion, using at most one CPU thread or process. We do not aim at full GPU saturation as this would not improve latency. We then average time over the number of sentences and report milliseconds per sentence in Figure~\ref{latency}, lower values are better. Here AmuNMT GPU compares very favourably against all other solutions with a 10 times lower latency than Moses and a more than 8 times lower latency than Nematus. Latency between the CPU-only variants shows similar ratios as for bulk-translation. %(TODO: evaluate latency with multiple CPU-threads per sentence.)
+However, there are use-cases where the latency for a single sentence may be important, for example predictive translation \cite{Knowles}. 
+To compare per-sentence latency, we translate our test set with all tools serially, using at most one CPU thread or process. We do not aim at full GPU saturation as this would not improve latency. We then average time over the number of sentences and report milliseconds per sentence in Figure~\ref{latency}, lower values are better. Here AmuNMT GPU compares very favourably against all other solutions with a 10 times lower latency than Moses and a more than 8 times lower latency than Nematus. Latency between the CPU-only variants shows similar ratios as for bulk-translation. 
 
 \section{Conclusions}
 
