@@ -175,9 +175,6 @@ class Decoder {
 
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
-          mblas::Softmax(Probs);
-          Element(Log(_1), Probs);
-
           if(!filtered_) {
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
@@ -186,10 +183,12 @@ class Decoder {
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
 
+          // @TODO logsoftmax!
+          mblas::Softmax(Probs);
+          Element(Log(_1), Probs);
         }
 
         void Filter(const std::vector<size_t>& ids) {
-          LOG(progress) << "Filtering vocab to " << ids.size() << " items";
           filtered_ = true;
           using namespace mblas;
 

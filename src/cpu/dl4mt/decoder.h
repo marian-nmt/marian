@@ -187,7 +187,6 @@ class Decoder {
         }
 
         void Filter(const std::vector<size_t>& ids) {
-          LOG(progress) << "Filtering vocab to " << ids.size() << " items";
           filtered_ = true;
           using namespace mblas;
           FilteredW4_ = Assemble<byColumn, Matrix>(w_.W4_, ids);
