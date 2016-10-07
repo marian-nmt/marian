@@ -70,7 +70,7 @@ An example configuration:
     beam-size: 12
     devices: [0]
     normalize: yes
-    threads-per-device: 1
+    gpu-threads: 1
 
     # scorer configuration
     scorers:
@@ -93,12 +93,16 @@ AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/su
     bpe: bpe.codes
     debpe: true
 
-## CPU|GPU Mode
-To choose between GPU and CPU mode, set `mode` in the config file to `CPU`:
+## Using CPU/GPU
+Amunmt can use CPUs or GPUs (or both) to translate. 
 
-    mode: CPU
+    cpu-threads: 8
+    gpu-threads: 2
+    devices: [0,1 , 2]
 
-or provide the corresponding switch on the command line: `--mode CPU`. GPU mode is the default if CUDA is available otherwise the CPU mode is chosen.
+The setting above uses 8 threads to translate on CPU and 6 (3 GPU times 2 threads) to translate on GPUs.
+
+The `gpu-threads` and `devices` options are available only with CUDA compilation.
 
 ## Example usage
 
