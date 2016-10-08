@@ -18,12 +18,10 @@
 #include <boost/pool/object_pool.hpp>
 #endif
 
-//#include "nervana_c_api.h"
-
-
 #include "thrust_functions.h"
 #include "common/god.h"
 #include "gpu/types-gpu.h"
+#include "gpu/nth_element.h"
 
 namespace lib = thrust;
 namespace iterlib = thrust;
@@ -33,6 +31,18 @@ namespace GPU {
 namespace mblas {
 
 using namespace thrust::placeholders;
+
+struct ProbCompare {
+  ProbCompare(const float* data) : data_(data) {}
+
+  __host__ __device__
+  bool operator()(const unsigned a, const unsigned b) {
+    return data_[a] > data_[b];
+  }
+
+  const float* data_;
+};
+
 
 template <class VecType>
 class TMatrix : public BaseMatrix {
@@ -199,6 +209,17 @@ class TMatrix : public BaseMatrix {
 		  Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
 	  }
 
+      /*
+      thrust::sequence(keys.begin(), keys.end());
+      thrust::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
+                          ProbCompare(Probs.data()));
+
+      for(int i = 0; i < beamSize; ++i) {
+        bestKeys[i] = keys[i];
+        // solve this better
+        bestCosts[i] = Probs.GetVec()[keys[i]];
+      }*/
+
 	  // @TODO: Here we need to have a partial sort
 	  if(beamSize < 10) {
 		for(size_t i = 0; i < beamSize; ++i) {
@@ -221,6 +242,7 @@ class TMatrix : public BaseMatrix {
 		algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
 		algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
 	  }
+
 
 	  std::vector<HostVector<float>> breakDowns;
 	  bool doBreakdown = God::Get<bool>("n-best");
