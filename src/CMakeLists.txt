@@ -65,6 +65,17 @@ cuda_add_library(amunmt SHARED
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
+#cuda_add_executable(
+#  nth
+#  gpu/nth_benchmark.cu
+#  gpu/mblas/matrix.cu
+#  $<TARGET_OBJECTS:libcommon>
+#  $<TARGET_OBJECTS:libcnpy>
+#  $<TARGET_OBJECTS:cpumode>
+#  $<TARGET_OBJECTS:libyaml-cpp>
+#)
+
+
 else(CUDA_FOUND)
 
 add_executable(
