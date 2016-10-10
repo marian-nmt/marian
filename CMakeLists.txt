@@ -8,12 +8,12 @@ SET(CMAKE_CXX_FLAGS " -std=c++14 -m64 -flto -march=native -fPIC -g -O3 -Ofast -f
 
 include_directories(${amunmt_SOURCE_DIR})
 
-set(NOCUDA OFF CACHE BOOL "Compile without CUDA")
+set(CUDA ON CACHE BOOL "Compile without CUDA")
 
-if(NOCUDA)
+if(NOT CUDA)
     message("-- Forcing compilation without CUDA.")
     add_definitions(-DNO_CUDA)
-else(NOCUDA)
+else(NOT CUDA)
 find_package(CUDA)
 if(CUDA_FOUND)
     LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
@@ -24,7 +24,7 @@ else(CUDA_FOUND)
     add_definitions(-DNO_CUDA)
     message("Cannot find CUDA libraries. Compiling without them." )
 endif(CUDA_FOUND)
-endif(NOCUDA)
+endif(NOT CUDA)
 
 find_package(Boost COMPONENTS system filesystem program_options timer iostreams python thread)
 if(Boost_FOUND)
