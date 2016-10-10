@@ -1,7 +1,11 @@
 #include <iostream>
+
+#include "common/god.h"
+
 #include "encoder_decoder.h"
 #include "gpu/mblas/matrix.h"
-#include "common/god.h"
+#include "gpu/dl4mt/dl4mt.h"
+#include "gpu/decoder/encoder_decoder_state.h"
 
 using namespace std;
 
@@ -36,7 +40,8 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
                size_t tab,
                const Weights& model)
 : Scorer(name, config, tab), model_(model),
-  encoder_(new Encoder(model_)), decoder_(new Decoder(model_))
+  encoder_(new Encoder(model_)), decoder_(new Decoder(model_)),
+  SourceContext_(new mblas::Matrix())
 {}
 
 void EncoderDecoder::Score(const State& in,
@@ -47,8 +52,8 @@ void EncoderDecoder::Score(const State& in,
 
   mblas::Matrix &probCast = static_cast<mblas::Matrix&>(prob);
   decoder_->MakeStep(edOut.GetStates(), probCast,
-                    edIn.GetStates(), edIn.GetEmbeddings(),
-                    SourceContext_);
+                     edIn.GetStates(), edIn.GetEmbeddings(),
+                     *SourceContext_);
 }
 
 State* EncoderDecoder::NewState() {
@@ -57,14 +62,14 @@ State* EncoderDecoder::NewState() {
 
 void EncoderDecoder::BeginSentenceState(State& state) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), SourceContext_, 1);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, 1);
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
 }
 
 void EncoderDecoder::SetSource(const Sentence& source) {
   //cerr << "SetSource" << endl;
   encoder_->GetContext(source.GetWords(tab_),
-                       SourceContext_);
+                       *SourceContext_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
@@ -89,16 +94,25 @@ void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
   decoder_->GetAttention(Attention);
 }
 
+mblas::Matrix& EncoderDecoder::GetAttention() {
+  return decoder_->GetAttention();
+}
+
 size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-BaseMatrix *EncoderDecoder::CreateMatrix()
-{
-	mblas::Matrix *ret = new mblas::Matrix();
-	return ret;
+void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
+  decoder_->Filter(filterIds);
 }
 
+BaseMatrix *EncoderDecoder::CreateMatrix()
+{
+  mblas::Matrix *ret = new mblas::Matrix();
+  return ret;
+}
+
+EncoderDecoder::~EncoderDecoder() {}
 
 ////////////////////////////////////////////
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,

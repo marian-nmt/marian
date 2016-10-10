@@ -1,14 +1,35 @@
 #pragma once
 
+#include <vector>
+
 #include "common/god.h"
 #include "common/history.h"
 #include "common/utils.h"
 #include "common/vocab.h"
+#include "common/soft_alignment.h"
 
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
   std::string best = Join(God::Postprocess(God::GetTargetVocab()(history.Top().first)));
   LOG(progress) << "Best translation: " << best;
+
+  // if (God::Get<bool>("return-alignment")) {
+    // auto last = history.Top().second;
+    // std::vector<SoftAlignment> aligns;
+    // while (last->GetPrevHyp().get() != nullptr) {
+      // aligns.push_back(*(last->GetAlignment(0)));
+      // last = last->GetPrevHyp();
+    // }
+    // std::stringstream ss;
+    // for (auto it = aligns.rbegin(); it != aligns.rend(); ++it) {
+      // ss << "(";
+      // for (auto sIt = it->begin(); sIt != it->end(); ++sIt) {
+        // ss << *sIt << " ";
+      // }
+      // ss << ") | ";
+    // }
+    // LOG(progress) << "ALIGN: " << ss.str();
+  // }
 
   if(God::Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = God::GetScorerNames();
