@@ -87,6 +87,7 @@ add_executable(
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+
 add_library(amunmt SHARED
   python/amunmt.cpp
   common/loader_factory.cpp
@@ -108,5 +109,4 @@ foreach(exec amun amunmt)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
 
-add_subdirectory(bpe)
 add_subdirectory(3rd_party)
