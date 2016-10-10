@@ -4,7 +4,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn CXX)
 
-SET(CMAKE_CXX_FLAGS " -std=c++14 -m64 -flto -march=native -fPIC -g -O3 -Ofast -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
+set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -m64 -flto -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -flto -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
 include_directories(${amunmt_SOURCE_DIR})
 
@@ -13,7 +15,7 @@ option(CUDA "Select to compile CUDA support by default if available" ON)
 if(CUDA)
   find_package(CUDA)
   if(CUDA_FOUND)
-    LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
+    LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
     add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
     add_definitions(-DCUDA)
     SET(CUDA_PROPAGATE_HOST_FLAGS OFF)

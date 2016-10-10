@@ -12,15 +12,17 @@ void Split(const std::string& line, std::vector<std::string>& pieces, const std:
   std::string token;
   while ((pos = line.find(del, begin)) != std::string::npos) {
     if (pos > begin) {
-      token = line.substr(begin, pos-begin);
-      pieces.push_back(token);
+      token = line.substr(begin, pos - begin);
+      if(token.size() > 0)
+        pieces.push_back(token);
     }
     begin = pos + del.size();
   }
   if (pos > begin) {
-    token = line.substr(begin, pos-begin);
+    token = line.substr(begin, pos - begin);
   }
-  pieces.push_back(token);
+  if(token.size() > 0)
+    pieces.push_back(token);
 }
 
 std::string Join(const std::vector<std::string>& words, const std::string del) {
