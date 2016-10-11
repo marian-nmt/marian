@@ -48,6 +48,7 @@ my @COMMANDS = (
     "OMP_NUM_THREADS=$THREADS $BINDIR/fast_align -vdor -i $CORPUS > $ALN_T2S"
 );
 
+my @PIDS;
 for my $c (@COMMANDS) {
     if($PARALLEL) {
         my $pid = fork();
@@ -56,6 +57,7 @@ for my $c (@COMMANDS) {
             exit(0);
         }
         else {
+            push(@PIDS, $pid);
             print "Forked process $pid\n";
         }
     }
@@ -63,7 +65,9 @@ for my $c (@COMMANDS) {
         execute($c);
     }
 }
-wait() if($PARALLEL);
+if($PARALLEL) {
+    waitpid($_, 0) foreach(@PIDS);
+}
 
 execute("$BINDIR/atools -c grow-diag-final -i $ALN_S2T -j $ALN_T2S > $ALN_GDF");
 execute("$BINDIR/extract_lex $TRG $SRC $ALN_GDF $OUTPUT.s2t $OUTPUT.t2s");
