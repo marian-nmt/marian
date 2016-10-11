@@ -33,7 +33,6 @@ weights:
   F0: 1.0
 
 bpe: ./{}{}.bpe
-debpe: yes
 
 # vocabularies
 source-vocab: ./vocab.{}.json

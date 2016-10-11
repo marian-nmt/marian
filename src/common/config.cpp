@@ -174,8 +174,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Overwrite target vocab section in config file with vocab file.")
     ("bpe", po::value(&bpePaths)->multitoken(),
      "Overwrite bpe section in config with bpe code file.")
-    ("debpe", po::value(&debpe)->zero_tokens()->default_value(false),
-     "If true, perform deBPE on output.")
+    ("no-debpe", po::value(&debpe)->zero_tokens()->default_value(false),
+     "Providing bpe is on, turn off deBPE of the output.")
 #ifdef CUDA
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
@@ -258,7 +258,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("return-alignment", bool);
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
-  SET_OPTION("debpe", bool);
+  SET_OPTION("no-debpe", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("cpu-threads", size_t);
 #ifdef CUDA
