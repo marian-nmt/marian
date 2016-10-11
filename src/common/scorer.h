@@ -3,8 +3,8 @@
 #include <vector>
 #include <memory>
 
-#include "hypothesis.h"
-#include "sentence.h"
+#include "common/hypothesis.h"
+#include "common/sentence.h"
 #include "common/base_matrix.h"
 #include "yaml-cpp/node/node.h"
 
@@ -76,7 +76,7 @@ class SourceIndependentScorer : public Scorer {
 
     virtual ~SourceIndependentScorer() {}
 
-    virtual void SetSource(const Sentence& source) {}
+    virtual void SetSource(const Sentence&) {}
 };
 
 typedef std::shared_ptr<Scorer> ScorerPtr;

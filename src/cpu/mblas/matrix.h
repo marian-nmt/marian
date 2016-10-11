@@ -29,15 +29,15 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
                                 blaze::unaligned,
                                 blaze::unpadded,
                                 SO> BlazeBase;
-    
+
     BlazeMatrix() {}
-    
+
     BlazeMatrix(size_t rows, size_t columns, value_type val = 0)
      : data_(rows * columns, val) {
        BlazeBase temp(data_.data(), rows, columns);
        std::swap(temp, *(BlazeBase*)this);
     }
-  
+
     template <class MT>
     BlazeMatrix(const MT& rhs)
      : data_(rhs.rows() * rhs.columns()) {
@@ -68,12 +68,12 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     	strm << "(" << Rows() << "x" << Cols() << ")";
     	return strm.str();
     }
-        
+
     BlazeMatrix<T, SO>& operator=(const value_type& val) {
       *(BlazeBase*)this = val;
       return *this;
     }
-  
+
     template <class MT>
     BlazeMatrix<T, SO>& operator=(const MT& rhs) {
       Resize(rhs.rows(), rhs.columns());
@@ -82,11 +82,11 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
       std::swap(temp, *(BlazeBase*)this);
       return *this;
     }
-    
+
     operator BlazeBase&() {
       return *(BlazeBase*)this;
     }
-    
+
     iterator begin() {
       return data_.begin();
     }
@@ -106,41 +106,41 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     size_t size() const {
       return data_.size();
     }
-    
+
     void swap(BlazeMatrix<T, SO>& rhs) {
       std::swap(data_, rhs.data_);
       std::swap(static_cast<BlazeBase&>(*this), static_cast<BlazeBase&>(rhs));
     }
-  
 
   private:
-    std::vector<value_type> data_;                                       
+    std::vector<value_type> data_;
 };
 
 ////////////////////////////////////////////////////////////////////////
 class ArrayMatrix : public BlazeMatrix<float, blaze::rowMajor>
 {
 	typedef BlazeMatrix<float, blaze::rowMajor> Parent;
-public:
-	ArrayMatrix()
-	:Parent()
-	{}
+  public:
+    ArrayMatrix()
+      :Parent()
+    {}
 
-	ArrayMatrix(size_t rows, size_t columns, value_type val = 0)
-     : Parent(rows, columns, val)
-	{}
+    ArrayMatrix(size_t rows, size_t columns, value_type val = 0)
+      : Parent(rows, columns, val)
+    {}
 
-    template <class MT>
-    ArrayMatrix(const MT& rhs)
-     :Parent(rhs)
-	{}
+      template <class MT>
+      ArrayMatrix(const MT& rhs)
+      :Parent(rhs)
+    {}
 
-	virtual void BestHyps(Beam& bestHyps, const Beam& prevHyps,
-			BaseMatrices& ProbsEnsemble,
-			const size_t beamSize,
-			History& history,
-			const std::vector<ScorerPtr> &scorers,
-			const Words &filterIndices) const;
+    virtual void BestHyps(Beam& bestHyps, const Beam& prevHyps,
+        BaseMatrices& ProbsEnsemble,
+        const size_t beamSize,
+        History& history,
+        const std::vector<ScorerPtr> &scorers,
+        const Words &filterIndices,
+        bool returnAlignment) const;
 
 };
 
@@ -172,7 +172,7 @@ MT& AddBiasVector(MT& m, const VT& b) {
   else {
     for(size_t i = 0; i < m.columns(); ++i)
       // @TODO: replace this with row vector
-      blaze::column(m, i) += blaze::column(b, 0);    
+      blaze::column(m, i) += blaze::column(b, 0);
   }
   return m;
 }
@@ -188,7 +188,7 @@ void Reshape(MT& m, size_t rows, size_t cols) {
       size_t k = i * m.columns() + j;
       size_t i2 = k / cols;
       size_t j2 = k % cols;
-      temp(i2, j2) = m(i, j); 
+      temp(i2, j2) = m(i, j);
     }
   }
   temp.swap(m);
@@ -204,7 +204,7 @@ MT Mean(const MT1& in) {
     blaze::row(out, 0) = blaze::row(in, 0);
     for(size_t i = 1; i < rows; ++i)
       blaze::row(out, 0) += blaze::row(in, i);
-    out *= 1.0f / rows; 
+    out *= 1.0f / rows;
   }
   else {
     size_t rows = in.rows();
@@ -213,7 +213,7 @@ MT Mean(const MT1& in) {
     blaze::column(out, 0) = blaze::column(in, 0);
     for(size_t i = 1; i < cols; ++i)
       blaze::column(out, 0) += blaze::column(in, i);
-    out *= 1.0f / cols; 
+    out *= 1.0f / cols;
   }
   return std::move(out);
 }
@@ -267,7 +267,7 @@ MT Assemble(const MT1& in,
     size_t cols = indeces.size();
     out.resize(rows, cols);
     for(size_t i = 0; i < cols; ++i)
-      blaze::column(out, i) = blaze::column(in, indeces[i]);  
+      blaze::column(out, i) = blaze::column(in, indeces[i]);
   }
   return std::move(out);
 }
@@ -277,9 +277,9 @@ void Softmax(MT& Out) {
   size_t rows = Out.rows();
   size_t cols = Out.columns();
   float sum[rows];
-  for(int j = 0; j < rows; ++j) {
+  for (int j = 0; j < rows; ++j) {
     sum[j] = 0;
-    for(int i = 0; i < cols; ++i) {
+    for (int i = 0; i < cols; ++i) {
       Out(j, i) = expapprox(Out(j, i));
       sum[j] += Out(j, i);
     }
@@ -298,10 +298,10 @@ MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
   size_t cols = m1.columns();
 
   MT out(rows, cols);
-  for(int j = 0; j < rows; ++j) {
+  for (int j = 0; j < rows; ++j) {
     size_t r1 = j % rows1;
     size_t r2 = j / rows1;
-    
+
     blaze::row(out, j) =
       blaze::forEach(blaze::row(m1, r1) + blaze::row(m2, r2),
                      functor);

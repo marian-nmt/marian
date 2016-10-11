@@ -5,25 +5,22 @@
 
 #include "common/scorer.h"
 #include "common/loader.h"
-#include "gpu/dl4mt/dl4mt.h"
 
 #include "common/threadpool.h"
+#include <thrust/device_vector.h>
 
 namespace GPU {
 
-class EncoderDecoderState : public State {
-  public:
-    virtual std::string Debug() const;
+class EncoderDecoderState;
+class Encoder;
+class Decoder;
+class Weights;
 
-    mblas::Matrix& GetStates();
-    mblas::Matrix& GetEmbeddings();
-    const mblas::Matrix& GetStates() const;
-    const mblas::Matrix& GetEmbeddings() const;
-
-  private:
-    mblas::Matrix states_;
-    mblas::Matrix embeddings_;
-};
+namespace mblas {
+  template <class VecType>
+  class TMatrix;
+  typedef TMatrix<thrust::device_vector<float>> Matrix;
+}
 
 ////////////////////////////////////////////
 class EncoderDecoder : public Scorer {
@@ -37,8 +34,8 @@ class EncoderDecoder : public Scorer {
                    const Weights& model);
 
     virtual void Score(const State& in,
-    		BaseMatrix& prob,
-    		State& out);
+                       BaseMatrix& prob,
+                       State& out);
 
     virtual State* NewState();
 
@@ -52,20 +49,22 @@ class EncoderDecoder : public Scorer {
 
     void GetAttention(mblas::Matrix& Attention);
 
+    mblas::Matrix& GetAttention();
+
     size_t GetVocabSize() const;
 
-    void Filter(const std::vector<size_t>& filterIds) {
-      decoder_->Filter(filterIds);
-    }
+    void Filter(const std::vector<size_t>& filterIds);
 
     virtual BaseMatrix *CreateMatrix();
+
+    virtual ~EncoderDecoder();
 
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
 
-    mblas::Matrix SourceContext_;
+    std::unique_ptr<mblas::Matrix> SourceContext_;
 };
 
 ////////////////////////////////////////////

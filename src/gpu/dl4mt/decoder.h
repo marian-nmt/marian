@@ -129,6 +129,10 @@ class Decoder {
           mblas::Copy(Attention, A_);
         }
 
+        mblas::Matrix& GetAttention() {
+          return A_;
+        }
+
       private:
         const Weights& w_;
 
@@ -266,6 +270,10 @@ class Decoder {
 
     size_t GetVocabSize() const {
       return embeddings_.GetRows();
+    }
+
+    mblas::Matrix& GetAttention() {
+      return alignment_.GetAttention();
     }
 
   private:

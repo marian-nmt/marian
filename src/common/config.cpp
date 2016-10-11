@@ -195,6 +195,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Load scorer weights from this file")
     ("wipo", po::value<bool>()->zero_tokens()->default_value(false),
      "Use WIPO specific n-best-list format and non-buffering single-threading")
+    ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
+     "If true, return alignment.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
   ;
@@ -253,6 +255,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
   SET_OPTION("wipo", bool);
+  SET_OPTION("return-alignment", bool);
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
   SET_OPTION("debpe", bool);

@@ -20,6 +20,11 @@
 
 #include "thrust_functions.h"
 #include "common/god.h"
+#include "common/exception.h"
+#include "common/hypothesis.h"
+#include "common/soft_alignment.h"
+
+#include "gpu/decoder/encoder_decoder.h"
 #include "gpu/types-gpu.h"
 #include "gpu/nth_element.h"
 
@@ -27,7 +32,6 @@ namespace lib = thrust;
 namespace iterlib = thrust;
 
 namespace GPU {
-
 namespace mblas {
 
 using namespace thrust::placeholders;
@@ -107,18 +111,18 @@ class TMatrix : public BaseMatrix {
 
     virtual std::string Debug() const
     {
-	  std::stringstream strm;
-	  strm << Rows() << "x" << Cols() << ":"; // ":\n";
-	  for (size_t row = 0; row < Rows(); ++row) {
-		  float rowSum = 0;
-		  for (size_t col = 0; col < Cols(); ++col) {
-			  //strm << (*this)(row, col) << " ";
-			  rowSum += (*this)(row, col);
-		  }
-		  //strm << std::endl;
-		  strm << rowSum << " ";
-	  }
-	  return strm.str();
+      std::stringstream strm;
+      strm << Rows() << "x" << Cols() << ":"; // ":\n";
+      for (size_t row = 0; row < Rows(); ++row) {
+        float rowSum = 0;
+        for (size_t col = 0; col < Cols(); ++col) {
+          //strm << (*this)(row, col) << " ";
+          rowSum += (*this)(row, col);
+        }
+        //strm << std::endl;
+        strm << rowSum << " ";
+      }
+      return strm.str();
     }
 
     void Purge() {
@@ -136,6 +140,7 @@ class TMatrix : public BaseMatrix {
     VecType& GetVec() {
       return data_;
     }
+
 
     const VecType& GetVec() const {
       return data_;
@@ -170,12 +175,13 @@ class TMatrix : public BaseMatrix {
     }
 
     virtual void BestHyps(Beam& bestHyps,
-    		const Beam& prevHyps,
-    		BaseMatrices& ProbsEnsemble,
-    		const size_t beamSize,
-    		History& history,
+      const Beam& prevHyps,
+      BaseMatrices& ProbsEnsemble,
+      const size_t beamSize,
+      History& history,
 			const std::vector<ScorerPtr> &scorers,
-			const Words &filterIndices) const
+			const Words &filterIndices,
+      bool returnAlignment) const
     {
 	  using namespace mblas;
 	  typedef TMatrix<VecType> M;
@@ -204,98 +210,114 @@ class TMatrix : public BaseMatrix {
 	  HostVector<float> bestCosts(beamSize);
 
 	  // @TODO: make this more efficient
-	  if(!God::Get<bool>("allow-unk")) {
-		for(size_t i = 0; i < Probs.Rows(); i++)
-		  Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
-	  }
+	  if (!God::Get<bool>("allow-unk")) {
+        for(size_t i = 0; i < Probs.Rows(); i++)
+            Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
+        }
 
-      /*
-      thrust::sequence(keys.begin(), keys.end());
-      thrust::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
-                          ProbCompare(Probs.data()));
+        /*
+        thrust::sequence(keys.begin(), keys.end());
+        thrust::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
+                            ProbCompare(Probs.data()));
 
-      for(int i = 0; i < beamSize; ++i) {
-        bestKeys[i] = keys[i];
-        // solve this better
-        bestCosts[i] = Probs.GetVec()[keys[i]];
-      }*/
+        for(int i = 0; i < beamSize; ++i) {
+            bestKeys[i] = keys[i];
+            // solve this better
+            bestCosts[i] = Probs.GetVec()[keys[i]];
+        }*/
 
-	  // @TODO: Here we need to have a partial sort
-	  if(beamSize < 10) {
-		for(size_t i = 0; i < beamSize; ++i) {
-		  DeviceVector<float>::iterator iter =
-			algo::max_element(Probs.begin(), Probs.end());
-		  bestKeys[i] = iter - Probs.begin();
-		  bestCosts[i] = *iter;
-		  *iter = std::numeric_limits<float>::lowest();
-		}
-		algo::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
+        // @TODO: Here we need to have a partial sort
+        if (beamSize < 10) {
+        for (size_t i = 0; i < beamSize; ++i) {
+            DeviceVector<float>::iterator iter =
+            algo::max_element(Probs.begin(), Probs.end());
+            bestKeys[i] = iter - Probs.begin();
+            bestCosts[i] = *iter;
+            *iter = std::numeric_limits<float>::lowest();
+        }
+        algo::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
 	  }
 	  else {
-		// these two function do not have equivalents in
-		// in the standard library or boost, keeping thrust
-		// namespace for now
-		thrust::sequence(keys.begin(), keys.end());
-		thrust::sort_by_key(Probs.begin(), Probs.end(),
-							keys.begin(), algo::greater<float>());
+        // these two function do not have equivalents in
+        // in the standard library or boost, keeping thrust
+        // namespace for now
+        thrust::sequence(keys.begin(), keys.end());
+        thrust::sort_by_key(Probs.begin(), Probs.end(),
+                            keys.begin(), algo::greater<float>());
 
-		algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
-		algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
+        algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
+        algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
 	  }
 
 
 	  std::vector<HostVector<float>> breakDowns;
 	  bool doBreakdown = God::Get<bool>("n-best");
-	  if(doBreakdown) {
-		breakDowns.push_back(bestCosts);
-		for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-		  HostVector<float> modelCosts(beamSize);
-		  M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
+	  if (doBreakdown) {
+        breakDowns.push_back(bestCosts);
+        for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+            HostVector<float> modelCosts(beamSize);
+            M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
 
-		  auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
-		  algo::copy(it, it + beamSize, modelCosts.begin());
-		  breakDowns.push_back(modelCosts);
-		}
+            auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
+            algo::copy(it, it + beamSize, modelCosts.begin());
+            breakDowns.push_back(modelCosts);
+        }
 	  }
 
 
-      bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+    bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
 
-	  for(size_t i = 0; i < beamSize; i++) {
-		size_t wordIndex = bestKeys[i] % Probs.Cols();
-        if (filter) {
-    	  wordIndex = filterIndices[wordIndex];
-    	}
-
-		size_t hypIndex  = bestKeys[i] / Probs.Cols();
-		float cost = bestCosts[i];
-
-		HypothesisPtr hyp(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
-
-		if(doBreakdown) {
-		  hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
-		  float sum = 0;
-		  for(size_t j = 0; j < ProbsEnsemble.size(); ++j) {
-			if(j == 0)
-			  hyp->GetCostBreakdown()[0] = breakDowns[0][i];
-			else {
-			  float cost = 0;
-			  if(j < ProbsEnsemble.size()) {
-				if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
-				  const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
-				cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
-			  }
-			  sum += weights[scorers[j]->GetName()] * cost;
-			  hyp->GetCostBreakdown()[j] = cost;
-			}
-		  }
-		  hyp->GetCostBreakdown()[0] -= sum;
-		  hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
-		}
-		bestHyps.push_back(hyp);
-	  }
-
+    for (size_t i = 0; i < beamSize; i++) {
+    size_t wordIndex = bestKeys[i] % Probs.Cols();
+    if (filter) {
+      wordIndex = filterIndices[wordIndex];
     }
+
+    size_t hypIndex  = bestKeys[i] / Probs.Cols();
+    float cost = bestCosts[i];
+
+    HypothesisPtr hyp;
+    if (returnAlignment) {
+      std::vector<SoftAlignmentPtr> alignments;
+      for (auto& scorer : scorers) {
+        if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
+          auto& attention = encdec->GetAttention();
+          size_t attLength = attention.Cols();
+
+          alignments.emplace_back(new SoftAlignment(attention.begin() + hypIndex * attLength,
+                                                    attention.begin() + (hypIndex + 1) * attLength));
+      } else {
+        UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+      }
+    }
+      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost, alignments));
+    } else {
+      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
+    }
+
+    if(doBreakdown) {
+    hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
+    float sum = 0;
+    for (size_t j = 0; j < ProbsEnsemble.size(); ++j) {
+        if (j == 0)
+        hyp->GetCostBreakdown()[0] = breakDowns[0][i];
+        else {
+        float cost = 0;
+        if (j < ProbsEnsemble.size()) {
+            if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
+            const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
+            cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+        }
+        sum += weights[scorers[j]->GetName()] * cost;
+        hyp->GetCostBreakdown()[j] = cost;
+        }
+    }
+    hyp->GetCostBreakdown()[0] -= sum;
+    hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
+    }
+    bestHyps.push_back(hyp);
+    }
+  }
 
   private:
     size_t rows_;
