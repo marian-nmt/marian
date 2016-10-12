@@ -23,7 +23,7 @@ class InputFileStream {
 
     InputFileStream(std::istream& strm)
     {
-      istream_.push(strm);
+      istream_.push(strm, 0);
     }
 
     operator std::istream& () {

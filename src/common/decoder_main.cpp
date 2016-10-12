@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
-    while (std::getline(std::cin, in)) {
+    while (std::getline(God::GetInputStream(), in)) {
       History result = TranslationTask(in, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
