@@ -24,7 +24,7 @@ YAML::Node& Config::Get() {
 
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
-  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab", "bpe"};
+  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab", "bpe", "softmax-filter"};
 
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
@@ -34,8 +34,10 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
       }
     }
     if(node.Type() == YAML::NodeType::Sequence) {
-      for(auto&& sub : node)
+      for(auto&& sub : node) {
         ProcessPaths(sub, configPath, true);
+        break;
+      }
     }
   }
   else {

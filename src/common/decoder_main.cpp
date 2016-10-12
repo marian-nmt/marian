@@ -36,6 +36,7 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
   std::setvbuf(stdout, NULL, _IONBF, 0);
+  std::setvbuf(stdin, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
 
   std::string in;
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]) {
 
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
-    while (std::getline(God::GetInputStream(), in)) {
+    while (std::getline(std::cin, in)) {
       History result = TranslationTask(in, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
