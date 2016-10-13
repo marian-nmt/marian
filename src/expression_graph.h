@@ -36,57 +36,6 @@ namespace marian {
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args);
 
-class TensorAllocator {
-  private:
-    const float OVERHEAD = 0.2f;
-
-    thrust::device_vector<float> data_;
-    std::vector<Tensor> allocatedTensors_;
-
-    void reset(Tensor t, float* start) {
-      t->reset(start);
-    }
-
-    void resetTensors() {
-      float* start = data_.data();
-      for(auto t : allocatedTensors_) {
-        reset(t, start);
-        start += t->size();
-      }
-    }
-
-    void checkSpace(Shape shape) {
-      float* start = data_.data();
-      if(!tensors_.empty())
-        start = tensors.back().data();
-
-      size_t available = data_.data() + data_.size() - start;
-      if(shape.size() > available) {
-        allocate(data_.size() - available + shape.size());
-      }
-    }
-
-  public:
-    void allocate(size_t elements) {
-      data_.reserve(elements * (1.0f + OVERHEAD));
-      data_.resize(elements * (1.0f + OVERHEAD));
-      resetTensors();
-    }
-
-    template <class Args...>
-    Tensor create(Shape shape, Args&&... args) {
-      checkSpace(shape);
-
-      float* start = data_.data();
-      if(!tensors_.empty())
-        start = tensors.back().data();
-
-      Tensor tensor(start, shape, std::forward(args)...);
-      tensors_.push_back(tensor);
-      return tensor;
-    }
-};
-
 /**
  * @brief Represents a computation graph of expressions, over which algorithmic differentiation may be performed.
  */

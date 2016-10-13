@@ -21,7 +21,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "tensor.h"
+#include <cublas_v2.h>
+#include <thrust/functional.h>
+
+#include "tensors/tensor_gpu.h"
 
 namespace marian {
 

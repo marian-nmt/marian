@@ -74,6 +74,10 @@ namespace marian {
        std::copy(il.begin(), il.end(), begin());
       }
 
+      Shape(const Shape& shape) {
+       std::copy(shape.begin(), shape.end(), begin());
+      }
+
       /**
        * @brief Gets a reference to the int representing the size of the <code>i</code>th dimension represented by this object.
        *
@@ -108,7 +112,7 @@ namespace marian {
        *
        * @return the total number of elements in a tensor of this shape
        */
-      size_t totalSize() const {
+      size_t elements() const {
         size_t s = 1;
         for(int i = 0; i < size(); ++i)
           s *= shape_[i];
@@ -150,7 +154,8 @@ namespace marian {
 #include "keywords.h"
 
 namespace marian {
-  class Tensor;
+  class TensorBase;
+  typedef std::shared_ptr<TensorBase> Tensor;
 
   class OptimizerBase;
   typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
