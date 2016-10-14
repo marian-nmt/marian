@@ -65,13 +65,15 @@ Matrix& Transpose(Matrix& Out) {
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
   Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
-  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin(), In.end(), Out.begin() + oldSize);
+  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
+               In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
-  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin(), In.end(), Out.begin());
+  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
+               In.begin(), In.end(), Out.begin());
   return Out;
 }
 
@@ -79,7 +81,8 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r, const size_t c) {
   size_t start = r * Out.Cols() + c;
-  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin(), In.end(), Out.begin() + start);
+  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
+               In.begin(), In.end(), Out.begin() + start);
   return Out;
 }
 
@@ -90,7 +93,8 @@ Matrix& CopyRow(Matrix& Out,
   Out.Resize(1, length);
   size_t start = r * In.Cols() + c;
   size_t end   = start + length;
-  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin() + start, In.begin() + end, Out.begin());
+  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
+               In.begin() + start, In.begin() + end, Out.begin());
   return Out;
 }
 
@@ -124,7 +128,6 @@ Matrix& CopyRows(Matrix& Out,
   int threads = std::min(MAX_THREADS, (int)In.Cols());
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);;
   gCopyRows<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, In.Cols(), devPairs, numPairs);
-  /* cudaStreamSynchronize(Matrix::GetStream()); */
   return Out;
 }
 
@@ -177,7 +180,6 @@ Matrix& Slice(Matrix& Out,
   int threads = std::min(MAX_THREADS, (int)dim);
   int blocks = std::min(MAX_BLOCKS, (int)In.Rows());
   gSlice<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, n, dim, In.Rows(), In.Cols());
-  /* cudaStreamSynchronize(Matrix::GetStream()); */
   return Out;
 }
 
@@ -185,31 +187,6 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
-
-  //size_t m = A.Rows();
-  //size_t k = A.Cols();
-  ////if(transA)
-  ////  std::swap(m, k);
-  //
-  //size_t l = B.Rows();
-  //size_t n = B.Cols();
-  ////if(transB)
-  ////  std::swap(l, n);
-  //
-  //C.Resize(m, n);
-  //
-  //size_t lda = A.Cols();
-  //size_t ldb = B.Cols();
-  //size_t ldc = C.Cols();
-  //
-  //nervana_sgemm(const_cast<float*>(A.data()),
-  //              const_cast<float*>(B.data()),
-  //              C.data(),
-  //              transA, transB,
-  //              m, n, k,
-  //              lda, ldb, ldc,
-  //              alpha, beta,
-  //              0, false, false, 0);
 
   size_t m = A.Rows();
   size_t k = A.Cols();
@@ -240,39 +217,45 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
-
- return Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
+  return Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
 }
 
 __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
+  for (int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
-    if(j < rows) {
+    if (j < rows) {
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
       float* sp = softMaxP + j * cols;
       _sum[threadIdx.x] = 0.0;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id < cols) {
+        if (id < cols) {
           sp[id] = __expf(sp[id]);
           _sum[threadIdx.x] += sp[id];
         }
       }
+
       __syncthreads();
+
       int len = blockDim.x;
-      while(len != 1) {
+      while (len != 1) {
         __syncthreads();
+
         int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
+        if (threadIdx.x < (len >> 1)) {
           _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        }
         len = (len + 1) >> 1;
       }
+
       __syncthreads();
-      for(int tid = 0; tid < cols; tid += blockDim.x){
+
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id < cols)
+        if (id < cols) {
           sp[id] /= _sum[0];
+        }
       }
     }
   }
@@ -283,11 +266,58 @@ Matrix& Softmax(Matrix& Out) {
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   int shared = sizeof(float) * threads * 2;
   gSoftMax<<<blocks, threads, shared, Matrix::GetStream()>>>(Out.data(), Out.Rows(), Out.Cols());
-  /* cudaStreamSynchronize(Matrix::GetStream()); */
   return Out;
 }
 
+__global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
+  for (int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if (j < rows) {
+      extern __shared__ float _share[];
+      float* _sum = _share + blockDim.x;
+      float* sp = softMaxP + j * cols;
+      _sum[threadIdx.x] = 0.0;
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if (id < cols) {
+          sp[id] = __expf(sp[id]);
+          _sum[threadIdx.x] += sp[id];
+        }
+      }
+
+      __syncthreads();
+
+      int len = blockDim.x;
+      while (len != 1) {
+        __syncthreads();
+
+        int skip = (len + 1) >> 1;
+        if (threadIdx.x < (len >> 1)) {
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+
+      __syncthreads();
+
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if (id < cols) {
+          sp[id] = __logf(sp[id]/_sum[0]);
+        }
+      }
+    }
+  }
 }
 
+Matrix& LogSoftmax(Matrix& Out) {
+  int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
+  int threads = std::min(MAX_THREADS, (int)Out.Cols());
+  int shared = sizeof(float) * threads * 2;
+  gLogSoftMax<<<blocks, threads, shared, Matrix::GetStream()>>>(Out.data(), Out.Rows(), Out.Cols());
+  return Out;
 }
+
+}  // namespace mblas
+}  // namespace GPU
 
