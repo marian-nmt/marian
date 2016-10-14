@@ -8,6 +8,9 @@ namespace mblas {
 boost::thread_specific_ptr<cublasHandle_t> CublasHandler::handle_;
 #else
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
+
+template <class VecType>
+thread_local cudaStream_t* TMatrix<VecType>::stream_ = nullptr;
 #endif
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
@@ -62,13 +65,13 @@ Matrix& Transpose(Matrix& Out) {
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
   Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
-  lib::copy(In.begin(), In.end(), Out.begin() + oldSize);
+  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
-  lib::copy(In.begin(), In.end(), Out.begin());
+  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin(), In.end(), Out.begin());
   return Out;
 }
 
@@ -76,7 +79,7 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r, const size_t c) {
   size_t start = r * Out.Cols() + c;
-  lib::copy(In.begin(), In.end(), Out.begin() + start);
+  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin(), In.end(), Out.begin() + start);
   return Out;
 }
 
@@ -87,7 +90,7 @@ Matrix& CopyRow(Matrix& Out,
   Out.Resize(1, length);
   size_t start = r * In.Cols() + c;
   size_t end   = start + length;
-  lib::copy(In.begin() + start, In.begin() + end, Out.begin());
+  lib::copy(thrust::cuda::par.on(Matrix::GetStream()), In.begin() + start, In.begin() + end, Out.begin());
   return Out;
 }
 
@@ -120,8 +123,8 @@ Matrix& CopyRows(Matrix& Out,
 
   int threads = std::min(MAX_THREADS, (int)In.Cols());
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);;
-  gCopyRows<<<blocks, threads>>>(d_out, d_in, In.Cols(), devPairs, numPairs);
-  cudaStreamSynchronize(0);
+  gCopyRows<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, In.Cols(), devPairs, numPairs);
+  /* cudaStreamSynchronize(Matrix::GetStream()); */
   return Out;
 }
 
@@ -173,8 +176,8 @@ Matrix& Slice(Matrix& Out,
 
   int threads = std::min(MAX_THREADS, (int)dim);
   int blocks = std::min(MAX_BLOCKS, (int)In.Rows());
-  gSlice<<<blocks, threads>>>(d_out, d_in, n, dim, In.Rows(), In.Cols());
-  cudaStreamSynchronize(0);
+  gSlice<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, n, dim, In.Rows(), In.Cols());
+  /* cudaStreamSynchronize(Matrix::GetStream()); */
   return Out;
 }
 
@@ -279,8 +282,8 @@ Matrix& Softmax(Matrix& Out) {
   int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   int shared = sizeof(float) * threads * 2;
-  gSoftMax<<<blocks, threads, shared>>>(Out.data(), Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
+  gSoftMax<<<blocks, threads, shared, Matrix::GetStream()>>>(Out.data(), Out.Rows(), Out.Cols());
+  /* cudaStreamSynchronize(Matrix::GetStream()); */
   return Out;
 }
 
