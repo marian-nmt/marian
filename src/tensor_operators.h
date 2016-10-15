@@ -83,12 +83,15 @@ template <class Functor, class T1, class T2>
 void Element(Functor functor,
              T1 out, T2 in) {
 
-  int m = out.shape()[0];
-  int n = out.shape()[1];
+  auto inGpu = std::static_pointer_cast<TensorGPU>(in);
+  auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+
+  int m = outGpu->shape()[0];
+  int n = outGpu->shape()[1];
 
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, out.gpu(), in.gpu());
+  gElement<<<blocks, threads>>>(functor, *outGpu, *inGpu);
   cudaStreamSynchronize(0);
 }
 
@@ -113,13 +116,16 @@ template <class Functor, class T1, class T2, class T3>
 void Element(Functor functor,
              T1 out, T2 in1, T3 in2) {
 
-  int m = out.shape()[0];
-  int n = out.shape()[1];
+  auto in1Gpu = std::static_pointer_cast<TensorGPU>(in1);
+  auto in2Gpu = std::static_pointer_cast<TensorGPU>(in2);
+  auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+
+  int m = out->shape()[0];
+  int n = out->shape()[1];
 
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, out.gpu(),
-                                in1.gpu(), in2.gpu());
+  gElement<<<blocks, threads>>>(functor, *outGpu, *in1Gpu, *in2Gpu);
   cudaStreamSynchronize(0);
 }
 
@@ -144,13 +150,18 @@ template <class Functor, class T1, class T2, class T3, class T4>
 void Element(Functor functor,
              T1 out, T2 in1, T3 in2, T4 in3) {
 
-  int m = out.shape()[0];
-  int n = out.shape()[1];
+  auto in1Gpu = std::static_pointer_cast<TensorGPU>(in1);
+  auto in2Gpu = std::static_pointer_cast<TensorGPU>(in2);
+  auto in3Gpu = std::static_pointer_cast<TensorGPU>(in3);
+  auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+
+  int m = outGpu->shape()[0];
+  int n = outGpu->shape()[1];
 
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, out.gpu(),
-                                in1.gpu(), in2.gpu(), in3.gpu());
+  gElement<<<blocks, threads>>>(functor, *outGpu,
+                                *in1Gpu, *in2Gpu, *in3Gpu);
   cudaStreamSynchronize(0);
 }
 

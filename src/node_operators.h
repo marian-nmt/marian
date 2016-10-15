@@ -41,7 +41,7 @@ struct InputNode : public Node {
 
   virtual void setVal(Tensor t)  {
     val_ = t;
-    shape_ = t.shape();
+    shape_ = t->shape();
     //@todo, shape checking
   }
 
@@ -92,7 +92,7 @@ struct ParamNode : public Node {
 
   virtual void setVal(Tensor t)  {
     val_ = t;
-    shape_ = t.shape();
+    shape_ = t->shape();
     //@todo, shape checking
   };
 
@@ -100,20 +100,14 @@ struct ParamNode : public Node {
 
   virtual void setGrad(Tensor t)  {
     adj_ = t;
-    shape_ = t.shape();
+    shape_ = t->shape();
     //@todo, shape checking
   };
 
   void forward() {}
   void backward() {}
 
-  virtual void allocate(size_t batchSize) {
-    val_.allocate(shape_);
-    if(!initialized_) {
-      init_(val_);
-      initialized_ = true;
-    }
-  }
+  virtual void allocate(size_t batchSize);
 
   virtual std::string graphviz() {
     std::stringstream ss;

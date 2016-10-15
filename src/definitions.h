@@ -25,6 +25,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <cuda.h>
 
 namespace marian {
   /** @brief Creates shared_ptr of any type, passes all arguments to any available constructor */
@@ -83,6 +84,7 @@ namespace marian {
        *
        * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
        */
+      __device__ __host__
       int& operator[](int i) {
         return shape_[i];
       }

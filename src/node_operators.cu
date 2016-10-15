@@ -1,5 +1,3 @@
-#pragma once
-
 // This file is part of the Marian toolkit.
 // Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
 //
@@ -21,53 +19,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <memory>
-
-#include "definitions.h"
+#include "node_operators.h"
+#include "expression_graph.h"
 
 namespace marian {
 
-class TensorBase {
-  public:
-    TensorBase(float* data, Shape shape)
-    : data_(data), shape_(shape)
-    { }
-
-    virtual ~TensorBase() {}
-
-    virtual void reset(float* data) {
-      data_ = data;
+  void ParamNode::allocate(size_t batchSize) {
+    // @TODO params
+    val_ = graph()->tensor(shape_);
+    if(!initialized_) {
+      init_(val_);
+      initialized_ = true;
     }
+  }
 
-    virtual float* data() {
-      return data_;
-    }
-
-    virtual Shape& shape() {
-      return shape_;
-    }
-
-    virtual size_t size() {
-      return shape_.elements();
-    }
-
-    virtual float get(size_t) = 0;
-    virtual void set(size_t, float) = 0;
-
-    virtual void set(float) = 0;
-
-    virtual void get(std::vector<float> &v) = 0;
-    virtual void set(const std::vector<float> &v) = 0;
-
-  protected:
-    float* data_;
-    Shape shape_;
-};
-
-typedef std::shared_ptr<TensorBase> Tensor;
-
-Tensor& operator<<(Tensor& t, const std::vector<float>& v);
-
-Tensor& operator>>(Tensor& t, std::vector<float>& v);
 
 }

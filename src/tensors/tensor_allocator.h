@@ -30,6 +30,7 @@ namespace marian {
 
 class TensorAllocatorBase {
   public:
+    virtual ~TensorAllocatorBase() {};
     virtual void allocate(size_t elements) = 0;
     virtual void clear() = 0;
     virtual Tensor tensor(Shape shape) = 0;
@@ -71,6 +72,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     }
 
   public:
+
     void allocate(size_t elements) {
       device_.reserve(elements * (1.0f + OVERHEAD));
       resetTensors();

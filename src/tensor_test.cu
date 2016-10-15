@@ -1,12 +1,12 @@
 #include <iostream>
 
 #include "tensors/tensor_allocator.h"
-#include "tensors/tensor_cpu.h"
+#include "tensors/tensor_gpu.h"
 
 using namespace marian;
 
 int main() {
-  TensorAllocator params = newTensorAllocator<DeviceCPU>();
+  TensorAllocator params = newTensorAllocator<DeviceGPU>();
   params->allocate(1000);
   std::vector<Tensor> tensors;
   for (int i = 0; i < 20; ++i) {

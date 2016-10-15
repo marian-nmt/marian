@@ -44,8 +44,10 @@ class Adagrad : public OptimizerBase {
       graph->backprop(batch);
 
       if(gt_.size() < graph->params().size())
-        for(auto& param : graph->params())
-          gt_.emplace_back(Tensor(param->grad().shape(), 0));
+        for(auto& param : graph->params()) {
+          gt_.emplace_back(graph->tensor(param->grad()->shape()));
+          gt_.back()->set(0);
+        }
 
       auto gtIt = gt_.begin();
       for(auto& param : graph->params()) {
@@ -76,8 +78,10 @@ class Adam : public OptimizerBase {
 
       if(mt_.size() < graph->params().size()) {
         for(auto& param : graph->params()) {
-          mt_.emplace_back(Tensor(param->grad().shape(), 0));
-          vt_.emplace_back(Tensor(param->grad().shape(), 0));
+          mt_.emplace_back(graph->tensor(param->grad()->shape()));
+          mt_.back()->set(0);
+          vt_.emplace_back(graph->tensor(param->grad()->shape()));
+          vt_.back()->set(0);
         }
       }
 

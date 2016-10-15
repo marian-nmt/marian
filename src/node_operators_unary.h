@@ -1,7 +1,9 @@
 #pragma once
 
 #include "node.h"
+#include "tensors/tensor.h"
 #include "tensor_operators.h"
+#include "thrust_functions.h"
 
 namespace marian {
 
@@ -25,30 +27,30 @@ struct UnaryNodeOp : public Node {
     void remove_children_from_top_nodes();
 
     void backward_debug(Float delta) {
-      using namespace std;
-
-      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
-
-	  std::vector<float> preCalcGradA, diffGradA, numericalGradA;
-	  preCalcGradA << a_->grad();
-	  //output("preCalcGradA", preCalcGradA);
-
-	  // use df/dx to calc grad
-	  backward();
-	  cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
-	  diffGradA << a_->grad();
-
-	  a_->grad().set(preCalcGradA);
-
-	  calc_numeric_grad(delta, a_->val(), a_->grad());
-	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
-
-	  numericalGradA << a_->grad();
-
-	  outputL2Norm("", diffGradA, numericalGradA);
-
-	  // reset to diff grad
-	  a_->grad().set(diffGradA);
+        using namespace std;
+        //
+        //cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
+        //
+        //std::vector<float> preCalcGradA, diffGradA, numericalGradA;
+        //a_->grad() >> preCalcGradA ;
+        ////output("preCalcGradA", preCalcGradA);
+        //
+        //// use df/dx to calc grad
+        //backward();
+        //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+        //a_->grad() >> diffGradA;
+        //
+        //a_->grad()->set(preCalcGradA);
+        //
+        //calc_numeric_grad(delta, a_->val(), a_->grad());
+        ////cerr << "numerical a_->grad()=" << a_->grad()->Debug() << endl;
+        //
+        //a_->grad() >> numericalGradA;
+        //
+        //outputL2Norm("", diffGradA, numericalGradA);
+        //
+        //// reset to diff grad
+        //a_->grad()->set(diffGradA);
     }
 
 };

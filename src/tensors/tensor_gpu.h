@@ -21,9 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <thrust/device_vector.h>
+#include <cuda.h>
 #include <cudnn.h>
+#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
 
+#include "exception.h"
 #include "definitions.h"
 #include "tensors/tensor.h"
 
@@ -47,8 +50,31 @@ class TensorGPU : public TensorBase {
       cudnnDestroyTensorDescriptor(cudnnDesc_);
     }
 
+    __device__
+    inline float& operator()(size_t i, size_t j) {
+      int rows = shape_[0];
+      int cols = shape_[1];
+      if(rows != 1 && cols != 1)
+        return data_[i * cols + j];
+      if(rows != 1 && cols == 1)
+        return data_[i];
+      if(rows == 1 && cols != 1)
+        return data_[j];
+      return data_[0];
+    }
+
+    __device__
+    size_t rows() {
+      return shape_[0];
+    }
+
+    __device__
+    size_t cols() {
+      return shape_[1];
+    }
+
     float get(size_t i) {
-      return *thrust::device_pointer_cast(data_ + i);
+      return *thrust::device_pointer_cast(data_ + i );
     }
 
     void set(size_t i, float value) {
@@ -72,29 +98,48 @@ class TensorGPU : public TensorBase {
                    thrust::device_pointer_cast(data_));
     }
 
-    cudnnTensorDescriptor_t cudnn() {
+    cudnnTensorDescriptor_t& cudnn() {
       return cudnnDesc_;
     }
 };
 
 class DeviceGPU {
   private:
-    thrust::device_vector<float> data_;
+    float* data_;
+    size_t size_;
 
   public:
+    DeviceGPU()
+    : data_(0), size_(0) {}
+
+    ~DeviceGPU() {
+      if(data_)
+        cudaFree(data_);
+    }
+
     typedef TensorGPU tensor_type;
 
     void reserve(size_t size) {
-      data_.reserve(size);
-      data_.resize(size);
+      UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
+      float *temp;
+      cudaMalloc(&temp, size * sizeof(float));
+
+      if(data_) {
+        cudaMemcpy(temp, data_, size_* sizeof(float),
+                   cudaMemcpyDeviceToDevice);
+        cudaFree(data_);
+      }
+
+      data_ = temp;
+      size_ = size;
     }
 
     float* data() {
-      return thrust::raw_pointer_cast(data_.data());
+      return data_;
     }
 
     size_t capacity() {
-      return data_.size();
+      return size_;
     }
 };
 

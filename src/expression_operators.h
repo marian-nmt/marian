@@ -81,7 +81,7 @@ inline Expr sum(Expr a, Args ...args) {
 
   if(ax == 0) {
     auto lshape = [a]() -> Shape {
-      int rows = a->val().shape()[0];
+      int rows = a->val()->shape()[0];
       return {1, rows};
     };
     Expr one = a->graph()->ones(shape={1, a->shape()[0]},
@@ -90,7 +90,7 @@ inline Expr sum(Expr a, Args ...args) {
   }
   else if(ax == 1) {
     auto lshape = [a]() -> Shape {
-      int cols = a->val().shape()[1];
+      int cols = a->val()->shape()[1];
       //std::cerr << "Shape will be " << cols << " by 1." << std::endl;
       return {cols, 1};
     };
@@ -124,12 +124,12 @@ inline Expr mean(Expr a, Args ...args) {
     case 0:
       return sum(a, axis=0) / a->graph()->constant(shape={1, 1},
                                        lazy_value=[a]() -> Float {
-                                         return a->val().shape()[0];
+                                         return a->val()->shape()[0];
                                        });
     case 1:
       return sum(a, axis=1) / a->graph()->constant(shape={1, 1},
                                        lazy_value=[a]() -> Float {
-                                         return a->val().shape()[1];
+                                         return a->val()->shape()[1];
                                        });
     case 2:
       UTIL_THROW2("Not implemented");
@@ -137,8 +137,8 @@ inline Expr mean(Expr a, Args ...args) {
       UTIL_THROW2("Not implemented");
     default:
       return sum(a) / a->graph()->constant(shape={1, 1},
-                               lazy_value=[a]() -> Float {
-                                 return a->val().size();
+                               lazy_value=[a]() {
+                                 return a->val()->size();
                                });
   }
 }

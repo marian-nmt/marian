@@ -4,13 +4,14 @@ include_directories(3rd_party)
 
 cuda_add_library(marian_lib
 #  3rd_party/cnpy/cnpy.cpp
-#  3rd_party/exception.cpp
-#  expression_graph.cu
-#  expression_operators.cu
-#  node.cu
-#  node_operators_unary.cu
-#  node_operators_binary.cu
-  tensors/tensor.cpp
+  3rd_party/exception.cpp
+  expression_graph.cu
+  expression_operators.cu
+  node.cu
+  node_operators.cu
+  node_operators_unary.cu
+  node_operators_binary.cu
+  tensors/tensor.cu
   tensor_operators.cu
 #  vocab.cpp
 )
@@ -27,10 +28,10 @@ cuda_add_executable(
   tensor_test.cu
 )
 
-#cuda_add_executable(
-#  mnist_benchmark
-#  mnist_benchmark.cu
-#)
+cuda_add_executable(
+  mnist_benchmark
+  mnist_benchmark.cu
+)
 
 #cuda_add_executable(
 #  validate_encoder_decoder
@@ -43,8 +44,8 @@ cuda_add_executable(
 #)
 
 target_link_libraries(softmax_benchmark marian_lib)
-#target_link_libraries(tensor_test marian_lib)
-#target_link_libraries(mnist_benchmark marian_lib)
+target_link_libraries(tensor_test marian_lib)
+target_link_libraries(mnist_benchmark marian_lib)
 #target_link_libraries(validate_encoder_decoder marian_lib)
 #target_link_libraries(test_nodes marian_lib)
 
@@ -54,7 +55,7 @@ target_link_libraries(softmax_benchmark marian_lib)
 #  set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 #endforeach(exec)
 
-foreach(exec tensor_test softmax_benchmark)
+foreach(exec mnist_benchmark tensor_test softmax_benchmark)
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

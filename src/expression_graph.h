@@ -28,8 +28,9 @@
 #include "definitions.h"
 #include "chainable.h"
 #include "node_operators.h"
-#include "tensor.h"
 #include "batch_generator.h"
+#include "tensors/tensor_allocator.h"
+#include "tensors/tensor_gpu.h"
 
 namespace marian {
 
@@ -44,7 +45,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Constructs a new expression graph
      * Constructor is private to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph() {}
+    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) {}
 
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
@@ -63,8 +64,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       for(int i = 0; i < gInputs.size(); ++i) {
         if(!gInputs[i]->val())
-          gInputs[i]->setVal(Tensor(bInputs[i].shape()));
-        gInputs[i]->val().set(bInputs[i].begin(), bInputs[i].end());
+          gInputs[i]->val() = tensor(bInputs[i].shape());
+        gInputs[i]->val()->set(bInputs[i].data());
       }
     }
 
@@ -350,6 +351,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       topNodes_.erase(node);
     }
 
+    template <class ...Args>
+    Tensor tensor(Args&&... args) {
+      return tensors_->tensor(args...);
+    }
+
   private:
 
     /** @brief The full list of nodes */
@@ -366,6 +372,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     /** @brief Contains all nodes with regard to which we want to calculate derivatives */
     std::unordered_set<Expr> topNodes_;
+
+    TensorAllocator parameters_;
+    TensorAllocator tensors_;
 };
 
 /** @brief A pointer to an expression graph. */

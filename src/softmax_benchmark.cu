@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <cudnn.h>
+#include <unistd.h>
 
 #include <boost/timer/timer.hpp>
 
