@@ -380,29 +380,56 @@ Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 }
 
 Tensor Prod(Tensor C, const Tensor A, const Tensor B,
-             bool transA, bool transB, Float beta) {
+            bool transA, bool transB, Float beta) {
 
   Tensor temp = Prod(cublasHandle, C, A, B, transA, transB, beta);
   return temp;
 }
 
-Tensor SumRowwise(cublasHandle_t handle, const Tensor A, Tensor result) {
-  size_t rows = A->shape()[0];
-  size_t cols = A->shape()[1];
-  thrust::device_vector<float> d_ones(cols, 1.f);
-  Float alpha = 1.f;
-  Float beta  = 0.f;
-  cublasSgemv(handle, CUBLAS_OP_T, cols, rows, &alpha,
-              A->data(), cols,
-              thrust::raw_pointer_cast(d_ones.data()), 1, &beta,
-              result->data(), 1);
-  return result;
+Tensor Sum(Tensor out, const Tensor in, int axis, bool mean) {
+  int rows = in->shape()[0];
+  int cols = in->shape()[1];
+  if(axis == 0) {
+    float scale = 1.f;
+    if(mean)
+      scale = 1.f / rows;
+    thrust::device_vector<float> d_ones(rows, scale);
+    Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
+                              {1, rows}));
+    Prod(out, ones, in, false, false);
+  }
+  else if(axis == 1) {
+    float scale = 1.f;
+    if(mean)
+      scale = 1.f / cols;
+    thrust::device_vector<float> d_ones(cols, scale);
+    Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
+                              {cols, 1}));
+    Prod(out, in, ones, false, false);
+  }
+  else {
+    float scale1 = 1.f;
+    float scale2 = 1.f;
+    if(mean) {
+      scale1 = 1.f / rows;
+      scale2 = 1.f / cols;
+    }
+    thrust::device_vector<float> d_ones1(rows, scale1);
+    Tensor ones1(new TensorGPU(thrust::raw_pointer_cast(d_ones1.data()),
+                               {1, rows}));
+    thrust::device_vector<float> d_ones2(cols, scale2);
+    Tensor ones2(new TensorGPU(thrust::raw_pointer_cast(d_ones2.data()),
+                               {cols, 1}));
+    thrust::device_vector<float> d_temp(cols, 0.f);
+    Tensor temp(new TensorGPU(thrust::raw_pointer_cast(d_temp.data()),
+                               {1, cols}));
+
+    Prod(temp, ones1, in, false, false);
+    Prod(out, temp, ones2, false, false);
+  }
+  return out;
 }
 
-Tensor SumRowwise(const Tensor A, Tensor result) {
-  Tensor temp = SumRowwise(cublasHandle, A, result);
-  return temp;
-}
 
 void CudnnDropoutPrepare(Tensor in, float p,
                          cudnnDropoutDescriptor_t* dropDesc,

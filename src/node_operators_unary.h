@@ -190,7 +190,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     : UnaryNodeOp(args...) { }
 
   void forward() {
-    CudnnSoftmax(val_, a_->val());
+    Softmax(val_, a_->val());
   }
 
   void backward() {
@@ -271,6 +271,69 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
   };
 
 };
+
+struct SumNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  SumNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+
+  void forward() {
+    Sum(val_, a_->val(), Get(keywords::axis, -1));
+  }
+
+  void backward() {
+
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a, Args ...args) {
+    Shape shape = a->shape();
+    shape[1] = 1;
+    return shape;
+  }
+
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("sum") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+struct MeanNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  MeanNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+
+  void forward() {
+    Sum(val_, a_->val(), Get(keywords::axis, -1), true);
+  }
+
+  void backward() {
+
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a, Args ...args) {
+    Shape shape = a->shape();
+    shape[1] = 1;
+    return shape;
+  }
+
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("mean") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
 
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>

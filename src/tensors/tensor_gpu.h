@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <sstream>
 #include <cuda.h>
 #include <cudnn.h>
 #include <thrust/device_ptr.h>
@@ -100,6 +101,27 @@ class TensorGPU : public TensorBase {
 
     cudnnTensorDescriptor_t& cudnn() {
       return cudnnDesc_;
+    }
+
+    std::string debug() {
+      std::stringstream strm;
+      assert(shape_.size());
+      strm << "shape=" << shape_[0] << "x" << shape_[1] << std::endl;
+
+      // values
+      size_t totSize = shape_.elements();
+      std::vector<Float> values(totSize);
+      get(values);
+
+      size_t ind = 0;
+      for (size_t i = 0; i < shape()[0]; ++i) {
+          for (size_t j = 0; j < shape()[1]; ++j) {
+              strm << values[ind] << " ";
+              ++ind;
+          }
+          strm << std::endl;
+      }
+      return strm.str();
     }
 };
 

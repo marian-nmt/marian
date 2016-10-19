@@ -59,6 +59,8 @@ class TensorBase {
     virtual void get(std::vector<float> &v) = 0;
     virtual void set(const std::vector<float> &v) = 0;
 
+    virtual std::string debug() = 0;
+
   protected:
     float* data_;
     Shape shape_;

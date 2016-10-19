@@ -45,7 +45,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Constructs a new expression graph
      * Constructor is private to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) {}
+    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) {
+      //tensors_->allocate(100000000);
+    }
 
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;

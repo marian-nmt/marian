@@ -13,13 +13,13 @@ namespace marian {
     // C = -dot(B, logsoftmax(A)).
     if(!probs_)
       probs_ = graph_->tensor(a_->val()->shape());
-    probs_->set(0.0f);
+    //probs_->set(0.0f);
 
     CudnnLogSoftmax(probs_, a_->val());
     if(!result_)
       result_ = graph_->tensor(a_->val()->shape());
     Element(_1 = -_2 * _3, result_, b_->val(), probs_);
-    SumRowwise(result_, val_);
+    Sum(result_, val_, 1);
   }
 
 

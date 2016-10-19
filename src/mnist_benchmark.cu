@@ -20,16 +20,17 @@ int main(int argc, char** argv) {
   auto trainSet =
     DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
                    "../examples/mnist/train-labels-idx1-ubyte");
+
   auto validSet =
     DataSet<MNIST>("../examples/mnist/t10k-images-idx3-ubyte",
                    "../examples/mnist/t10k-labels-idx1-ubyte");
 
   auto ff =
     FeedforwardClassifier({
-      trainSet->dim(0), 2048, 2048, trainSet->dim(1)
+      validSet->dim(0), validSet->dim(1)
     });
 
-  ff->graphviz("mnist_benchmark.dot");
+  //ff->graphviz("mnist_benchmark.dot");
 
   auto trainer =
     Run<Trainer>(ff, trainSet,
@@ -43,7 +44,6 @@ int main(int argc, char** argv) {
                    batch_size=200);
   validator->run();
 
-  ff->dump("mnist.mrn");
 
   return 0;
 }

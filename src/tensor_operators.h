@@ -34,7 +34,7 @@ using namespace thrust::placeholders;
 
 template <class Functor, class T>
 __global__ void gElement(Functor functor,
-                         T out) {
+                         T& out) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -57,14 +57,14 @@ void Element(Functor functor, T out) {
 
   int blocks  = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, n);
-  gElement<<<blocks, threads>>>(functor, out.gpu());
+  gElement<<<blocks, threads>>>(functor, *out);
   cudaStreamSynchronize(0);
 }
 
 
 template <class Functor, class T1, class T2>
 __global__ void gElement(Functor functor,
-                         T1 out, T2 in) {
+                         T1& out, T2& in) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -97,7 +97,7 @@ void Element(Functor functor,
 
 template <class Functor, class T1, class T2, class T3>
 __global__ void gElement(Functor functor,
-                         T1 out, T2 in1, T3 in2) {
+                         T1& out, T2& in1, T3& in2) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -131,7 +131,7 @@ void Element(Functor functor,
 
 template <class Functor, class T1, class T2, class T3, class T4>
 __global__ void gElement(Functor functor,
-                         T1 out, T2 in1, T3 in2, T4 in3) {
+                         T1& out, T2& in1, T3& in2, T4& in3) {
   int rows = out.rows();
   int cols = out.cols();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -190,7 +190,7 @@ Tensor Prod(Tensor C, const Tensor A, const Tensor B,
 
 Tensor SumRowwise(cublasHandle_t handle, const Tensor A, Tensor result);
 
-Tensor SumRowwise(const Tensor A, Tensor result);
+Tensor Sum(Tensor out, const Tensor in, int axis=-1, bool mean=false);
 
 void ScaleRowwise(Tensor Out, const Tensor ScalingFactors);
 

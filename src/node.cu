@@ -18,20 +18,9 @@ void Node::allocate(size_t batchSize) {
     it1++; it2++;
   }
 
-  if(Has(keywords::lazy_shape)) {
-    auto defaultShape = [this]() -> Shape { return shape_; };
-    shape_ = Get(keywords::lazy_shape, defaultShape)();
-  }
-  if(Has(keywords::lazy_value)) {
-    val_ = graph_->tensor(shape_);
-    val_->set(Get(keywords::lazy_value, []() { return 0.f; })());
-  }
-  else if(Has(keywords::value)) {
-    val_ = graph_->tensor(shape_);
+  val_ = graph_->tensor(shape_);
+  if(Has(keywords::value))
     val_->set(Get(keywords::value, 0));
-  }
-  else
-    val_ = graph_->tensor(shape_);
 }
 
 void Node::init_dependent() {

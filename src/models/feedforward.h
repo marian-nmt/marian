@@ -39,10 +39,9 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
     int out = dims[i+1];
 
     if(i == 0)
-      layers.emplace_back(dropout(x, value=0.2));
+      layers.emplace_back(x);
     else
-      layers.emplace_back(dropout(relu(dot(layers.back(), weights.back()) + biases.back()),
-                                  value=0.5));
+      layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
 
     weights.emplace_back(
       name(g->param(shape={in, out}, init=uniform()),
