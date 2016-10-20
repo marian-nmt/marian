@@ -46,7 +46,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * Constructor is private to force use of New<ExpressionGraph>()
     */
     ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) {
-      //tensors_->allocate(100000000);
+      tensors_->allocate(100000000);
     }
 
     // delete copy and move constructors
@@ -66,7 +66,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       for(int i = 0; i < gInputs.size(); ++i) {
         if(!gInputs[i]->val())
-          gInputs[i]->val() = tensor(bInputs[i].shape());
+          tensor(gInputs[i]->val(), bInputs[i].shape());
         gInputs[i]->val()->set(bInputs[i].data());
       }
     }
@@ -354,8 +354,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     template <class ...Args>
-    Tensor tensor(Args&&... args) {
-      return tensors_->tensor(args...);
+    void tensor(Tensor& t, Args&&... args) {
+      tensors_->allocate(t, args...);
     }
 
   private:

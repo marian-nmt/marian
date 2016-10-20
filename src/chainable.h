@@ -100,15 +100,8 @@ struct Chainable {
     virtual ExpressionGraphPtr graph() = 0;
     virtual const Shape& shape() = 0;
 
-    virtual DataType val() = 0;
-    virtual DataType grad() = 0;
-
-    virtual void setVal(DataType t) {
-      UTIL_THROW2("Tensors can only be assigned to input and parameter nodes");
-    };
-    virtual void setGrad(DataType t) {
-      UTIL_THROW2("Gradients can only be assigned to parameter nodes");
-    };
+    virtual DataType& val() = 0;
+    virtual DataType& grad() = 0;
 };
 
 /** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */

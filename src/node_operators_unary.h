@@ -70,10 +70,6 @@ struct LogitNodeOp : public UnaryNodeOp {
             a_->grad(), adj_, val_);
   }
 
-  void check() {
-
-  }
-
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=" << label("logit")
@@ -275,23 +271,31 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 struct SumNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   SumNodeOp(Expr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
 
   void forward() {
     Sum(val_, a_->val(), Get(keywords::axis, -1));
   }
 
   void backward() {
-
+    SumBackward(a_->grad(), adj_, Get(keywords::axis, -1));
   }
 
-  template <class ...Args>
-  Shape newShape(Expr a, Args ...args) {
+  Shape newShape(Expr a) {
+    int ax = Get(keywords::axis, -1);
     Shape shape = a->shape();
-    shape[1] = 1;
+    if(ax == 0) {
+      shape[0] = 1;
+    }
+    else if(ax == 1) {
+      shape[1] = 1;
+    }
+    else {
+      shape[0] = 1;
+      shape[1] = 1;
+    }
     return shape;
   }
-
 
   virtual std::string graphviz() {
     std::stringstream ss;
@@ -306,23 +310,31 @@ struct SumNodeOp : public UnaryNodeOp {
 struct MeanNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   MeanNodeOp(Expr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
 
   void forward() {
     Sum(val_, a_->val(), Get(keywords::axis, -1), true);
   }
 
   void backward() {
-
+    SumBackward(a_->grad(), adj_, Get(keywords::axis, -1), true);
   }
 
-  template <class ...Args>
-  Shape newShape(Expr a, Args ...args) {
+  Shape newShape(Expr a) {
+    int ax = Get(keywords::axis, -1);
     Shape shape = a->shape();
-    shape[1] = 1;
+    if(ax == 0) {
+      shape[0] = 1;
+    }
+    else if(ax == 1) {
+      shape[1] = 1;
+    }
+    else {
+      shape[0] = 1;
+      shape[1] = 1;
+    }
     return shape;
   }
-
 
   virtual std::string graphviz() {
     std::stringstream ss;
@@ -341,6 +353,7 @@ struct LogNodeOp : public UnaryNodeOp {
   : UnaryNodeOp(args...) {}
 
   void forward() {
+    std::cerr << val_.get() << " <-> " << a_->val().get() << std::endl;
     Element(_1 = Log(_2), val_, a_->val());
   }
 

@@ -131,9 +131,10 @@ class BatchGenerator {
       return currentBatch_;
     }
 
-    void prepare() {
+    void prepare(bool shuffle=true) {
       //boost::timer::cpu_timer total;
-      data_->shuffle();
+      if(shuffle)
+        data_->shuffle();
       //std::cerr << "shuffle: " << total.format(5, "%ws") << std::endl;
       current_ = data_->begin();
       fillBatches();

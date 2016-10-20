@@ -33,23 +33,12 @@
 
 namespace marian {
 
-class TensorGPU : public TensorBase {
-  private:
-    // cuDNN stuff
-    cudnnTensorDescriptor_t cudnnDesc_;
+struct Access {
+    float* data_;
+    Shape shape_;
 
-  public:
-    TensorGPU(float* data, Shape shape)
-    : TensorBase(data, shape) {
-      cudnnCreateTensorDescriptor(&cudnnDesc_);
-      cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
-                                   shape_[0], shape_[1], 1, 1,
-                                   shape_[1], 1, 1, 1);
-    }
-
-    ~TensorGPU() {
-      cudnnDestroyTensorDescriptor(cudnnDesc_);
-    }
+    Access(float* data, const Shape& shape)
+    : data_(data), shape_(shape) {}
 
     __device__
     inline float& operator()(size_t i, size_t j) {
@@ -64,43 +53,76 @@ class TensorGPU : public TensorBase {
       return data_[0];
     }
 
-    __device__
-    size_t rows() {
-      return shape_[0];
+    __device__ __host__
+    float* data() {
+      return data_;
     }
 
-    __device__
-    size_t cols() {
-      return shape_[1];
+    __device__ __host__
+    Shape& shape() {
+      return shape_;
     }
+
+    Access* toDevice() {
+      Access* ptr;
+      cudaMalloc(&ptr, sizeof(Access));
+      cudaMemcpy(ptr, this, sizeof(Access), cudaMemcpyHostToDevice);
+      return ptr;
+    }
+};
+
+class TensorGPU : public TensorBase {
+  private:
+    // cuDNN stuff
+    cudnnTensorDescriptor_t cudnnDesc_;
+    Access* access_;
+
+  public:
+    TensorGPU(float* data, Shape shape)
+    : TensorBase(data, shape),
+      access_(Access(data, shape).toDevice()) {
+      cudnnCreateTensorDescriptor(&cudnnDesc_);
+      cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
+                                   shape_[0], shape_[1], 1, 1,
+                                   shape_[1], 1, 1, 1);
+    }
+
+    ~TensorGPU() {
+      cudnnDestroyTensorDescriptor(cudnnDesc_);
+      cudaFree(access_);
+    }
+
 
     float get(size_t i) {
-      return *thrust::device_pointer_cast(data_ + i );
+      return *thrust::device_ptr<float>(data_ + i);
     }
 
     void set(size_t i, float value) {
-      *thrust::device_pointer_cast(data_ + i) = value;
+      *thrust::device_ptr<float>(data_ + i) = value;
     }
 
     void get(std::vector<float> &v) {
       v.resize(size());
-      thrust::copy(thrust::device_pointer_cast(data_),
-                   thrust::device_pointer_cast(data_ + size()),
-                   v.begin());
+      thrust::copy(thrust::device_ptr<float>(data_),
+                   thrust::device_ptr<float>(data_ + size()), v.begin());
     }
 
     void set(float value) {
-      thrust::fill(thrust::device_pointer_cast(data_),
-                   thrust::device_pointer_cast(data_ + size()), value);
+      thrust::fill(thrust::device_ptr<float>(data_),
+                   thrust::device_ptr<float>(data_ + size()), value);
     }
 
     void set(const std::vector<float> &v) {
       thrust::copy(v.begin(), v.end(),
-                   thrust::device_pointer_cast(data_));
+                   thrust::device_ptr<float>(data_));
     }
 
     cudnnTensorDescriptor_t& cudnn() {
       return cudnnDesc_;
+    }
+
+    Access* access() {
+      return access_;
     }
 
     std::string debug() {

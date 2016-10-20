@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
   auto ff =
     FeedforwardClassifier({
-      validSet->dim(0), validSet->dim(1)
+      validSet->dim(0), 2048, 2048, validSet->dim(1)
     });
 
   //ff->graphviz("mnist_benchmark.dot");

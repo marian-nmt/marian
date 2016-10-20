@@ -28,8 +28,41 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   // Construct a shared pointer to an empty expression graph
   auto g = New<ExpressionGraph>();
 
+  // Construct an input node called "x" and add it to the expression graph.
+  //
+  // For each observed data point, this input will hold a vector of values describing that data point.
+  // dims.front() specifies the size of this vector
+  //
+  // For example, in the MNIST task, for any given image in the training set,
+  //     "x" would hold a vector of pixel values for that image.
+  //
+  // Because calculating over one observed data point at a time can be inefficient,
+  //     it is customary to operate over a batch of observed data points at once.
+  //
+  // At this point, we do not know the batch size:
+  // whatevs therefore serves as a placeholder for the batch size, which will be specified later
+  //
+  // Once the batch size is known, "x" will represent a matrix with dimensions [batch_size, dims.front()].
+  // Each row of this matrix will correspond with the observed data vector for one observed data point.
   auto x = name(g->input(shape={whatevs, dims.front()}),
                 "x");
+
+  // Construct an input node called "y" and add it to the expression graph.
+  //
+  // For each observed data point, this input will hold the ground truth label for that data point.
+  // dims.back() specifies the size of this vector
+  //
+  // For example, in the MNIST task, for any given image in the training set,
+  //     "y" might hold one-hot vector representing which digit (0-9) is shown in that image
+  //
+  // Because calculating over one observed data point at a time can be inefficient,
+  //     it is customary to operate over a batch of observed data points at once.
+  //
+  // At this point, we do not know the batch size:
+  // whatevs therefore serves as a placeholder for the batch size, which will be specified later
+  //
+  // Once the batch size is known, "y" will represent a matrix with dimensions [batch_size, dims.front()].
+  // Each row of this matrix will correspond with the ground truth data vector for one observed data point.
   auto y = name(g->input(shape={whatevs, dims.back()}),
                 "y");
 
@@ -38,24 +71,42 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
     int in = dims[i];
     int out = dims[i+1];
 
-    if(i == 0)
-      layers.emplace_back(x);
-    else
-      layers.emplace_back(relu(dot(layers.back(), weights.back()) + biases.back()));
+    if(i == 0) {
+      // Create a dropout node as the parent of x,
+      //   and place that dropout node as the value of layers[0]
+      layers.emplace_back(dropout(x, value=0.2));
+    } else {
+      // Multiply the matrix in layers[i-1] by the matrix in weights[i-1]
+      // Take the result, and perform matrix addition on biases[i-1].
+      // Wrap the result in rectified linear activation function,
+      // and finally wrap that in a dropout node
+      layers.emplace_back(dropout(relu(dot(layers.back(), weights.back()) + biases.back()),
+                                  value=0.5));
+    }
 
+    // Construct a weight node for the outgoing connections from layer i
     weights.emplace_back(
       name(g->param(shape={in, out}, init=uniform()),
            "W" + std::to_string(i)));
+
+    // Construct a bias node. By definition, a bias node stores the value 1.
+    //    Therefore, we don't actually store the 1.
+    //    Instead, the bias node object stores the weights on the connections
+    //      that are outgoing from the bias node.
+    //    These weights are initialized to zero
     biases.emplace_back(
       name(g->param(shape={1, out}, init=zeros),
            "b" + std::to_string(i)));
   }
 
+  // Perform matrix multiplication and addition for the last layer
   auto linear = dot(layers.back(), weights.back()) + biases.back();
 
+  // Define a top-level node for training
   auto cost = name(mean(training(cross_entropy(linear, y)), axis=0),
                    "cost");
 
+  // Define a top-level node for inference
   auto scores = name(inference(softmax(linear)),
                      "scores");
 

@@ -39,10 +39,10 @@ static cudnnHandle_t create_handle_dnn() {
 cublasHandle_t cublasHandle = create_handle();
 cudnnHandle_t cudnnHandle = create_handle_dnn();
 
-void CudnnSoftmax(Tensor out, Tensor in) {
+void CudnnSoftmax(Tensor& out, Tensor& in) {
     float alpha = 1, beta = 0;
-    auto inGpu = std::static_pointer_cast<TensorGPU>(in);
-    auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+    auto inGpu = static_cast<TensorGPU*>(in.get());
+    auto outGpu = static_cast<TensorGPU*>(out.get());
     cudnnSoftmaxForward(cudnnHandle,
                         CUDNN_SOFTMAX_ACCURATE,
                         CUDNN_SOFTMAX_MODE_CHANNEL,
@@ -55,10 +55,10 @@ void CudnnSoftmax(Tensor out, Tensor in) {
     cudaDeviceSynchronize();
 }
 
-void CudnnLogSoftmax(Tensor out, Tensor in) {
+void CudnnLogSoftmax(Tensor& out, Tensor& in) {
     float alpha = 1, beta = 0;
-    auto inGpu = std::static_pointer_cast<TensorGPU>(in);
-    auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+    auto inGpu = static_cast<TensorGPU*>(in.get());
+    auto outGpu = static_cast<TensorGPU*>(out.get());
     cudnnSoftmaxForward(cudnnHandle,
                         CUDNN_SOFTMAX_LOG,
                         CUDNN_SOFTMAX_MODE_CHANNEL,
@@ -71,11 +71,11 @@ void CudnnLogSoftmax(Tensor out, Tensor in) {
     cudaDeviceSynchronize();
 }
 
-void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+void CudnnSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
     float alpha = 1, beta = 0;
-    auto valGpu = std::static_pointer_cast<TensorGPU>(val);
-    auto adjGpu = std::static_pointer_cast<TensorGPU>(adj);
-    auto gradGpu = std::static_pointer_cast<TensorGPU>(grad);
+    auto valGpu = static_cast<TensorGPU*>(val.get());
+    auto adjGpu = static_cast<TensorGPU*>(adj.get());
+    auto gradGpu = static_cast<TensorGPU*>(grad.get());
     cudnnSoftmaxBackward(cudnnHandle,
                         CUDNN_SOFTMAX_ACCURATE,
                         CUDNN_SOFTMAX_MODE_CHANNEL,
@@ -90,11 +90,11 @@ void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
     cudaDeviceSynchronize();
 }
 
-void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+void CudnnLogSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
     float alpha = 1, beta = 0;
-    auto valGpu = std::static_pointer_cast<TensorGPU>(val);
-    auto adjGpu = std::static_pointer_cast<TensorGPU>(adj);
-    auto gradGpu = std::static_pointer_cast<TensorGPU>(grad);
+    auto valGpu = static_cast<TensorGPU*>(val.get());
+    auto adjGpu = static_cast<TensorGPU*>(adj.get());
+    auto gradGpu = static_cast<TensorGPU*>(grad.get());
     cudnnSoftmaxBackward(cudnnHandle,
                         CUDNN_SOFTMAX_LOG,
                         CUDNN_SOFTMAX_MODE_CHANNEL,
@@ -147,7 +147,7 @@ __global__ void gSubtractMax(float* out, const float* in,
   }
 }
 
-void SubtractMax(Tensor out, Tensor in) {
+void SubtractMax(Tensor& out, Tensor& in) {
   // Out is a m-by-k matrix, passed as input.
   // The max element of each row of Out is computed and subtracted from Out.
   // Out is both input and output.
@@ -196,7 +196,7 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
   }
 }
 
-void Softmax(Tensor out, Tensor in) {
+void Softmax(Tensor& out, Tensor& in) {
   size_t m = out->shape()[0];
   size_t k = out->shape()[1];
 
@@ -250,7 +250,7 @@ __global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
   }
 }
 
-void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+void SoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -303,7 +303,7 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
   }
 }
 
-void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+void LogSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -350,7 +350,7 @@ __global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols)
 
 ///////////////////////////////////////////////////////
 
-Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
+void Prod(cublasHandle_t handle, Tensor& C, const Tensor& A, const Tensor& B,
              bool transA, bool transB, Float beta) {
   Float alpha = 1.0;
 
@@ -376,23 +376,23 @@ Tensor Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 
   cublasSgemm(handle, opB, opA,
               n, m, k, &alpha, B->data(), ldb, A->data(), lda, &beta, C->data(), ldc);
-  return C;
 }
 
-Tensor Prod(Tensor C, const Tensor A, const Tensor B,
+void Prod(Tensor& C, const Tensor& A, const Tensor& B,
             bool transA, bool transB, Float beta) {
 
-  Tensor temp = Prod(cublasHandle, C, A, B, transA, transB, beta);
-  return temp;
+  Prod(cublasHandle, C, A, B, transA, transB, beta);
 }
 
-Tensor Sum(Tensor out, const Tensor in, int axis, bool mean) {
+void Sum(Tensor& out, const Tensor& in, int axis, bool mean) {
   int rows = in->shape()[0];
   int cols = in->shape()[1];
+
   if(axis == 0) {
     float scale = 1.f;
     if(mean)
       scale = 1.f / rows;
+
     thrust::device_vector<float> d_ones(rows, scale);
     Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
                               {1, rows}));
@@ -402,6 +402,7 @@ Tensor Sum(Tensor out, const Tensor in, int axis, bool mean) {
     float scale = 1.f;
     if(mean)
       scale = 1.f / cols;
+
     thrust::device_vector<float> d_ones(cols, scale);
     Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
                               {cols, 1}));
@@ -427,17 +428,62 @@ Tensor Sum(Tensor out, const Tensor in, int axis, bool mean) {
     Prod(temp, ones1, in, false, false);
     Prod(out, temp, ones2, false, false);
   }
-  return out;
+}
+
+void SumBackward(Tensor& out, const Tensor& in, int axis, bool mean) {
+  int rows = out->shape()[0];
+  int cols = out->shape()[1];
+
+  if(axis == 0) {
+    float scale = 1.f;
+    if(mean)
+      scale = 1.f / rows;
+
+    thrust::device_vector<float> d_ones(rows, scale);
+    Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
+                              {rows, 1}));
+    Prod(out, ones, in, false, false);
+  }
+  else if(axis == 1) {
+    float scale = 1.f;
+    if(mean)
+      scale = 1.f / cols;
+
+    thrust::device_vector<float> d_ones(cols, scale);
+    Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
+                              {1, cols}));
+    Prod(out, in, ones, false, false);
+  }
+  else {
+    float scale1 = 1.f;
+    float scale2 = 1.f;
+    if(mean) {
+      scale1 = 1.f / rows;
+      scale2 = 1.f / cols;
+    }
+    thrust::device_vector<float> d_ones1(rows, scale1);
+    Tensor ones1(new TensorGPU(thrust::raw_pointer_cast(d_ones1.data()),
+                               {rows, 1}));
+    thrust::device_vector<float> d_ones2(cols, scale2);
+    Tensor ones2(new TensorGPU(thrust::raw_pointer_cast(d_ones2.data()),
+                               {1, cols}));
+    thrust::device_vector<float> d_temp(rows, 0.f);
+    Tensor temp(new TensorGPU(thrust::raw_pointer_cast(d_temp.data()),
+                               {rows, 1}));
+
+    Prod(temp, ones1, in, false, false);
+    Prod(out, temp, ones2, false, false);
+  }
 }
 
 
-void CudnnDropoutPrepare(Tensor in, float p,
+void CudnnDropoutPrepare(Tensor& in, float p,
                          cudnnDropoutDescriptor_t* dropDesc,
                          void** space, size_t* spaceSize,
                          void** states, size_t seed) {
   size_t statesSize;
   cudnnDropoutGetStatesSize(cudnnHandle, &statesSize);
-  auto inGpu = std::static_pointer_cast<TensorGPU>(in);
+  auto inGpu = static_cast<TensorGPU*>(in.get());
   cudnnDropoutGetReserveSpaceSize(inGpu->cudnn(), spaceSize);
 
   cudaMalloc((void**)states, statesSize);
@@ -461,9 +507,9 @@ void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
 
 void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
                   void* space, size_t spaceSize,
-                  Tensor out, Tensor in) {
-  auto inGpu = std::static_pointer_cast<TensorGPU>(in);
-  auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+                  Tensor& out, Tensor& in) {
+  auto inGpu = static_cast<TensorGPU*>(in.get());
+  auto outGpu = static_cast<TensorGPU*>(out.get());
   cudnnDropoutForward(cudnnHandle,
                       dropoutDesc,
                       inGpu->cudnn(),
@@ -476,9 +522,9 @@ void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
 
 void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
                           void* space, size_t spaceSize,
-                          Tensor out, Tensor in) {
-  auto inGpu = std::static_pointer_cast<TensorGPU>(in);
-  auto outGpu = std::static_pointer_cast<TensorGPU>(out);
+                          Tensor& out, Tensor& in) {
+  auto inGpu = static_cast<TensorGPU*>(in.get());
+  auto outGpu = static_cast<TensorGPU*>(out.get());
   cudnnDropoutBackward(cudnnHandle,
                       dropoutDesc,
                       inGpu->cudnn(),

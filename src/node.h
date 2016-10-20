@@ -67,11 +67,11 @@ class Node : public Chainable<Tensor>,
 
     virtual void set_zero_adjoint();
 
-    virtual Tensor val()  {
+    virtual Tensor& val()  {
       return val_;
     };
 
-    virtual Tensor grad() {
+    virtual Tensor& grad() {
       return adj_;
     };
 

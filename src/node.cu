@@ -18,20 +18,22 @@ void Node::allocate(size_t batchSize) {
     it1++; it2++;
   }
 
-  val_ = graph_->tensor(shape_);
+  graph_->tensor(val_, shape_);
+
   if(Has(keywords::value))
     val_->set(Get(keywords::value, 0));
 }
 
 void Node::init_dependent() {
   if(!adj_)
-    adj_ = graph_->tensor(shape_);
+    graph_->tensor(adj_, shape_);
   adj_->set(1);
 }
 
 void Node::set_zero_adjoint() {
-  if(!adj_)
-    adj_ = graph_->tensor(shape_);
+  if(!adj_) {
+    graph_->tensor(adj_, shape_);
+  }
   adj_->set(0);
 }
 

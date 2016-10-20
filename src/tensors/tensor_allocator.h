@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <map>
+#include <set>
 
 #include "definitions.h"
 #include "tensors/tensor.h"
@@ -31,10 +31,11 @@ namespace marian {
 class TensorAllocatorBase {
   public:
     virtual ~TensorAllocatorBase() {};
-    virtual void allocate(size_t elements) = 0;
+    virtual void allocate(size_t) = 0;
     virtual void clear() = 0;
-    virtual Tensor tensor(Shape shape) = 0;
-    virtual Tensor asTensor() = 0;
+    //virtual Tensor& create() = 0;
+    virtual void allocate(Tensor&, Shape) = 0;
+    //virtual Tensor& asTensor() = 0;
     virtual size_t capacity() = 0;
     virtual size_t size() = 0;
 };
@@ -42,31 +43,33 @@ class TensorAllocatorBase {
 template <class Device>
 class TensorAllocatorDerived : public TensorAllocatorBase {
   private:
-    const float OVERHEAD = 0.2f;
+    const float OVERHEAD = 0.f;
 
     Device device_;
-    std::vector<Tensor> tensors_;
+    std::vector<Tensor*> allocated_;
+    std::vector<Tensor> created_;
 
-    void reset(Tensor t, float* start) {
+    void reset(Tensor& t, float* start) {
       t->reset(start);
     }
 
-    void resetTensors() {
+    void resetAllocated() {
       float* start = device_.data();
-      for(auto t : tensors_) {
-        reset(t, start);
-        start += t->size();
+      for(auto t : allocated_) {
+        reset(*t, start);
+        start += (*t)->size();
       }
     }
 
     void checkSpace(Shape shape) {
       float* start = device_.data();
-      if(!tensors_.empty())
-        start = tensors_.back()->data() + tensors_.back()->size();
+      if(!allocated_.empty())
+        start = (*allocated_.back())->data() + (*allocated_.back())->size();
 
       size_t available = device_.data() + device_.capacity() - start;
-      //std::cerr << "Available: " << available << std::endl;
+      //std::cerr << "Available: " << available << " - " << shape.elements() << std::endl;
       if(shape.elements() > available) {
+        //std::cerr << "Allocating" << std::endl;
         allocate(device_.capacity() - available + shape.elements());
       }
     }
@@ -75,29 +78,30 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
 
     void allocate(size_t elements) {
       device_.reserve(elements * (1.0f + OVERHEAD));
-      resetTensors();
+      resetAllocated();
     }
 
     void clear() {
-      tensors_.clear();
+      allocated_.clear();
     }
 
-    Tensor tensor(Shape shape) {
+    void allocate(Tensor &t, Shape shape) {
       checkSpace(shape);
 
       float* start = device_.data();
-      if(!tensors_.empty())
-        start = tensors_.back()->data() + tensors_.back()->size();
+      if(!allocated_.empty())
+        start = (*allocated_.back())->data() + (*allocated_.back())->size();
 
-      Tensor tensor(new typename Device::tensor_type(start, shape));
-      tensors_.push_back(tensor);
-      return tensor;
+      if(!t || t->shape() != shape) {
+        t.reset(new typename Device::tensor_type(start, shape));
+        allocated_.push_back(&t);
+      }
     }
 
-    Tensor asTensor() {
-      float* start = device_.data();
-      return Tensor(new typename Device::tensor_type(start, {1, (int)size()}));
-    }
+    //Tensor asTensor() {
+    //  float* start = device_.data();
+    //  return Tensor(new typename Device::tensor_type(start, {1, (int)size()}));
+    //}
 
     size_t capacity() {
       return device_.capacity();
@@ -106,8 +110,8 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     size_t size() {
       float* start = device_.data();
       float* end = start;
-      if(!tensors_.empty())
-        end = tensors_.back()->data() + tensors_.back()->size();
+      if(!allocated_.empty())
+        end = (*allocated_.back())->data() + (*allocated_.back())->size();
 
       return end - start;
     }

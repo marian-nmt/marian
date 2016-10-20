@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 #include <memory>
+#include <iostream>
 
 #include "definitions.h"
 
@@ -33,7 +34,9 @@ class TensorBase {
     : data_(data), shape_(shape)
     { }
 
-    virtual ~TensorBase() {}
+    virtual ~TensorBase() {
+      //std::cerr << "Yahoo!" << std::endl;
+    }
 
     virtual void reset(float* data) {
       data_ = data;
@@ -66,7 +69,7 @@ class TensorBase {
     Shape shape_;
 };
 
-typedef std::shared_ptr<TensorBase> Tensor;
+typedef std::unique_ptr<TensorBase> Tensor;
 
 Tensor& operator<<(Tensor& t, const std::vector<float>& v);
 

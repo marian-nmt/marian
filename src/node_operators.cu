@@ -26,7 +26,7 @@ namespace marian {
 
   void ParamNode::allocate(size_t batchSize) {
     // @TODO params
-    val_ = graph()->tensor(shape_);
+    graph()->tensor(val_, shape_);
     if(!initialized_) {
       init_(val_);
       initialized_ = true;
