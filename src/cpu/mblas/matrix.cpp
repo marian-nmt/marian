@@ -3,7 +3,6 @@
 #include "cpu/mblas/simd_math_prims.h"
 #include "common/god.h"
 #include "common/hypothesis.h"
-#include "common/history.h"
 #include "common/soft_alignment.h"
 #include "common/exception.h"
 #include "gpu/types-gpu.h"
@@ -34,7 +33,6 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
     const Beam& prevHyps,
 		BaseMatrices& ProbsEnsemble,
 		const size_t beamSize,
-		History& history,
 		const std::vector<ScorerPtr> &scorers,
 		const Words &filterIndices,
     bool returnAlignment) const

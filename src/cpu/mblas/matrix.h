@@ -137,7 +137,6 @@ class ArrayMatrix : public BlazeMatrix<float, blaze::rowMajor>
     virtual void BestHyps(Beam& bestHyps, const Beam& prevHyps,
         BaseMatrices& ProbsEnsemble,
         const size_t beamSize,
-        History& history,
         const std::vector<ScorerPtr> &scorers,
         const Words &filterIndices,
         bool returnAlignment) const;
