@@ -78,7 +78,7 @@ History Search::Decode(const Sentence& sentence) {
 
     bool returnAlignment = God::Get<bool>("return-alignment");
 
-    firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, history, scorers_, filterIndices_, returnAlignment);
+    firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, scorers_, filterIndices_, returnAlignment);
     history.Add(hyps, history.size() == maxLength);
 
     Beam survivors;

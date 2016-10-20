@@ -11,8 +11,6 @@ typedef std::vector<HypothesisPtr> Beam;
 class Scorer;
 typedef std::shared_ptr<Scorer> ScorerPtr;
 
-class History;
-
 ///////////////////////////////////////////////////////////////////
 class BaseMatrix;
 typedef std::vector<BaseMatrix*> BaseMatrices;
@@ -29,7 +27,6 @@ class BaseMatrix {
         const Beam& prevHyps,
         BaseMatrices& ProbsEnsemble,
         const size_t beamSize,
-        History& history,
         const std::vector<ScorerPtr> &scorers,
         const Words &filterIndices,
         bool returnAlignment=false) const = 0;
