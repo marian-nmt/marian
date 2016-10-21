@@ -220,14 +220,17 @@ class Decoder {
     {}
 
     void MakeStep(mblas::Matrix& NextState,
-                  mblas::ArrayMatrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext) {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      GetProbs(Probs, NextState, Embeddings, AlignedSourceContext_);
+      GetProbs(NextState, Embeddings, AlignedSourceContext_);
+    }
+
+    BaseMatrix& GetProbs() {
+      return Probs_;
     }
 
     void EmptyState(mblas::Matrix& State,
@@ -285,16 +288,16 @@ class Decoder {
     }
 
 
-    void GetProbs(mblas::ArrayMatrix& Probs,
-                  const mblas::Matrix& State,
+    void GetProbs(const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
-      softmax_.GetProbs(Probs, State, Embedding, AlignedSourceContext);
+      softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
     }
 
   private:
     mblas::Matrix HiddenState_;
     mblas::Matrix AlignedSourceContext_;
+    mblas::ArrayMatrix Probs_;
 
     Embeddings<Weights::Embeddings> embeddings_;
     RNNHidden<Weights::DecInit, Weights::GRU> rnn1_;

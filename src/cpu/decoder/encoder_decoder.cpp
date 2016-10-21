@@ -58,16 +58,12 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Score(const State& in,
-		BaseMatrix& prob,
-		State& out) {
+void EncoderDecoder::Score(const State& in, State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  CPU::mblas::ArrayMatrix& probCast = static_cast<mblas::ArrayMatrix&>(prob);
-  decoder_->MakeStep(edOut.GetStates(), probCast,
-                     edIn.GetStates(), edIn.GetEmbeddings(),
-                     SourceContext_);
+  decoder_->MakeStep(edOut.GetStates(), edIn.GetStates(),
+                     edIn.GetEmbeddings(), SourceContext_);
 }
 
 State* EncoderDecoder::NewState() {
@@ -126,10 +122,8 @@ Decoder& EncoderDecoder::GetDecoder() {
   return *decoder_;
 }
 
-BaseMatrix *EncoderDecoder::CreateMatrix()
-{
-	mblas::ArrayMatrix *ret = new mblas::ArrayMatrix();
-	return ret;
+BaseMatrix& EncoderDecoder::GetProbs() {
+  return decoder_->GetProbs();
 }
 
 

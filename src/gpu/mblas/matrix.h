@@ -173,7 +173,6 @@ class TMatrix : public BaseMatrix {
 
     virtual void BestHyps(Beam& bestHyps,
         const Beam& prevHyps,
-        BaseMatrices& ProbsEnsemble,
         const size_t beamSize,
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
@@ -183,7 +182,7 @@ class TMatrix : public BaseMatrix {
 
       auto& weights = God::GetScorerWeights();
 
-      M& Probs = static_cast<M&>(*ProbsEnsemble[0]);
+      M& Probs = static_cast<M&>(scorers[0]->GetProbs());
 
       Costs.reserve(Probs.Rows());
       HostVector<float> vCosts;
@@ -194,11 +193,11 @@ class TMatrix : public BaseMatrix {
 
       BroadcastVecColumn(weights[scorers[0]->GetName()] * _1 + _2,
                         Probs, Costs);
-      for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-        M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
+      for (size_t i = 1; i < scorers.size(); ++i) {
+        M &currProbs = static_cast<M&>(scorers[i]->GetProbs());
 
         Element(_1 + weights[scorers[i]->GetName()] * _2,
-          Probs, currProbs);
+                Probs, currProbs);
       }
 
       keys.resize(Probs.size());
@@ -244,13 +243,13 @@ class TMatrix : public BaseMatrix {
       bool doBreakdown = God::Get<bool>("n-best");
       if (doBreakdown) {
           breakDowns.push_back(bestCosts);
-          for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+          for (size_t i = 1; i < scorers.size(); ++i) {
               HostVector<float> modelCosts(beamSize);
-              M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
+              M &currProbs = static_cast<M&>(scorers[i]->GetProbs());
 
               auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
               algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
-                        it, it + beamSize, modelCosts.begin());
+                         it, it + beamSize, modelCosts.begin());
               breakDowns.push_back(modelCosts);
           }
       }
@@ -286,16 +285,16 @@ class TMatrix : public BaseMatrix {
         }
 
         if(doBreakdown) {
-        hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
-        float sum = 0;
-        for (size_t j = 0; j < ProbsEnsemble.size(); ++j) {
+          hyp->GetCostBreakdown().resize(scorers.size());
+          float sum = 0;
+          for (size_t j = 0; j < scorers.size(); ++j) {
             if (j == 0)
             hyp->GetCostBreakdown()[0] = breakDowns[0][i];
             else {
             float cost = 0;
-            if (j < ProbsEnsemble.size()) {
-                if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
-                const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
+            if (j < scorers.size()) {
+                if(prevHyps[hypIndex]->GetCostBreakdown().size() < scorers.size())
+                const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(scorers.size(), 0.0);
                 cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
             }
             sum += weights[scorers[j]->GetName()] * cost;
