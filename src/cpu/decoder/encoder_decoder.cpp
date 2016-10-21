@@ -1,18 +1,20 @@
-#include "encoder_decoder.h"
+#include "cpu/decoder/encoder_decoder.h"
+#include "cpu/decoder/encoder_decoder_loader.h"
 
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
 #include "common/threadpool.h"
 
-#include "../dl4mt/dl4mt.h"
+#include "cpu/dl4mt/dl4mt.h"
 
 #include "common/god.h"
 #include "common/loader.h"
 #include "common/scorer.h"
 #include "common/sentence.h"
 
-#include "../mblas/matrix.h"
+#include "cpu/mblas/matrix.h"
+#include "cpu/decoder/best_hyps.h"
 
 using namespace std;
 
@@ -143,6 +145,10 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const size_t) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[0]));
+}
+
+BestHypsType EncoderDecoderLoader::GetBestHyps() {
+  return CPU::BestHyps;
 }
 
 }

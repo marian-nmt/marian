@@ -2,6 +2,7 @@
 #include "common/god.h"
 #include "common/vocab.h"
 #include "gpu/types-gpu.h"
+#include "gpu/decoder/best_hyps.h"
 
 namespace GPU {
 
@@ -88,6 +89,10 @@ ScorerPtr ApePenaltyLoader::NewScorer(size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new ApePenalty(name_, config_, tab,
                                   srcTrgMap_, penalties_));
+}
+
+BestHypsType ApePenaltyLoader::GetBestHyps() {
+  return GPU::BestHyps();
 }
 
 }

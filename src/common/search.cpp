@@ -3,15 +3,19 @@
 #include <boost/timer/timer.hpp>
 
 #include "common/god.h"
+#include "common/history.h"
 #include "common/filter.h"
 #include "common/base_matrix.h"
 
 using namespace std;
 
 Search::Search(size_t threadId)
-  : scorers_(God::GetScorers(threadId)) {}
+  : scorers_(God::GetScorers(threadId)),
+    BestHyps_(God::GetBestHyps(threadId)) {
+}
 
-size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
+
+size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
   filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
@@ -68,7 +72,7 @@ History Search::Decode(const Sentence& sentence) {
 
     bool returnAlignment = God::Get<bool>("return-alignment");
 
-    scorers_[0]->GetProbs().BestHyps(hyps, prevHyps, beamSize, scorers_, filterIndices_,
+    BestHyps_(hyps, prevHyps, beamSize, scorers_, filterIndices_,
                                      returnAlignment);
     history.Add(hyps, history.size() == maxLength);
 
