@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -11,10 +12,6 @@ typedef std::vector<HypothesisPtr> Beam;
 class Scorer;
 typedef std::shared_ptr<Scorer> ScorerPtr;
 
-///////////////////////////////////////////////////////////////////
-class BaseMatrix;
-typedef std::vector<BaseMatrix*> BaseMatrices;
-
 class BaseMatrix {
   public:
     virtual ~BaseMatrix() {}
@@ -25,7 +22,6 @@ class BaseMatrix {
 
     virtual void BestHyps(Beam& bestHyps,
         const Beam& prevHyps,
-        BaseMatrices& ProbsEnsemble,
         const size_t beamSize,
         const std::vector<ScorerPtr> &scorers,
         const Words &filterIndices,

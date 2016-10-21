@@ -51,7 +51,7 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const State& in, BaseMatrix& prob, State& out);
+    virtual void Score(const State& in, State& out);
 
     virtual State* NewState();
 
@@ -68,7 +68,7 @@ class EncoderDecoder : public Scorer {
 
     size_t GetVocabSize() const;
 
-    BaseMatrix *CreateMatrix();
+    BaseMatrix& GetProbs();
 
     void Filter(const std::vector<size_t>& filterIds);
 

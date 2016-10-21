@@ -39,20 +39,20 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
                const YAML::Node& config,
                size_t tab,
                const Weights& model)
-: Scorer(name, config, tab), model_(model),
-  encoder_(new Encoder(model_)), decoder_(new Decoder(model_)),
-  SourceContext_(new mblas::Matrix())
+  : Scorer(name, config, tab),
+    model_(model),
+    encoder_(new Encoder(model_)),
+    decoder_(new Decoder(model_)),
+    SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const State& in,
-		BaseMatrix& prob,
-		State& out) {
+void EncoderDecoder::Score(const State& in,State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  mblas::Matrix &probCast = static_cast<mblas::Matrix&>(prob);
-  decoder_->MakeStep(edOut.GetStates(), probCast,
-                     edIn.GetStates(), edIn.GetEmbeddings(),
+  decoder_->MakeStep(edOut.GetStates(),
+                     edIn.GetStates(),
+                     edIn.GetEmbeddings(),
                      *SourceContext_);
 }
 
@@ -67,9 +67,7 @@ void EncoderDecoder::BeginSentenceState(State& state) {
 }
 
 void EncoderDecoder::SetSource(const Sentence& source) {
-  //cerr << "SetSource" << endl;
-  encoder_->GetContext(source.GetWords(tab_),
-                       *SourceContext_);
+  encoder_->GetContext(source.GetWords(tab_), *SourceContext_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
@@ -94,6 +92,10 @@ void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
   decoder_->GetAttention(Attention);
 }
 
+BaseMatrix& EncoderDecoder::GetProbs() {
+  return decoder_->GetProbs();
+}
+
 mblas::Matrix& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
@@ -104,12 +106,6 @@ size_t EncoderDecoder::GetVocabSize() const {
 
 void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
-}
-
-BaseMatrix *EncoderDecoder::CreateMatrix()
-{
-  mblas::Matrix *ret = new mblas::Matrix();
-  return ret;
 }
 
 EncoderDecoder::~EncoderDecoder() {}

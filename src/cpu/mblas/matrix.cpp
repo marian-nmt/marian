@@ -31,7 +31,6 @@ struct ProbCompare {
 /////////////////////////////////////////////////////////////////////
 void ArrayMatrix::BestHyps(Beam& bestHyps,
     const Beam& prevHyps,
-		BaseMatrices& ProbsEnsemble,
 		const size_t beamSize,
 		const std::vector<ScorerPtr> &scorers,
 		const Words &filterIndices,
@@ -41,7 +40,7 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
 
   auto& weights = God::GetScorerWeights();
 
-  mblas::ArrayMatrix& Probs = static_cast<mblas::ArrayMatrix&>(*ProbsEnsemble[0]);
+  mblas::ArrayMatrix& Probs = static_cast<mblas::ArrayMatrix&>(scorers[0]->GetProbs());
 
   mblas::ArrayMatrix Costs(Probs.rows(), 1);
   for (size_t i = 0; i < prevHyps.size(); ++i) {
@@ -51,8 +50,8 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
   Probs *= weights[scorers[0]->GetName()];
   AddBiasVector<byColumn>(Probs, Costs);
 
-  for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-	  mblas::ArrayMatrix &currProb = static_cast<mblas::ArrayMatrix&>(*ProbsEnsemble[i]);
+  for (size_t i = 1; i < scorers.size(); ++i) {
+	  mblas::ArrayMatrix &currProb = static_cast<mblas::ArrayMatrix&>(scorers[i]->GetProbs());
 
 	  Probs += weights[scorers[i]->GetName()] * currProb;
   }
@@ -73,7 +72,7 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
   std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
 		           ProbCompare(Probs.data()));
 
-  for (int i = 0; i < beamSize; ++i) {
+  for (size_t i = 0; i < beamSize; ++i) {
     bestKeys[i] = keys[i];
     bestCosts[i] = Probs.data()[keys[i]];
   }
@@ -82,9 +81,9 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
   bool doBreakdown = God::Get<bool>("n-best");
   if (doBreakdown) {
     breakDowns.push_back(bestCosts);
-    for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+    for (auto& scorer : scorers) {
       HostVector<float> modelCosts(beamSize);
-      mblas::ArrayMatrix &currProb = static_cast<mblas::ArrayMatrix&>(*ProbsEnsemble[i]);
+      mblas::ArrayMatrix &currProb = static_cast<mblas::ArrayMatrix&>(scorer->GetProbs());
 
       auto it = boost::make_permutation_iterator(currProb.begin(), keys.begin());
       std::copy(it, it + beamSize, modelCosts.begin());
@@ -110,8 +109,8 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
       for (auto& scorer : scorers) {
         if (CPU::EncoderDecoder* encdec = dynamic_cast<CPU::EncoderDecoder*>(scorer.get())) {
           auto& attention = encdec->GetAttention();
-          size_t attLength = attention.columns();
-          alignments.emplace_back(new SoftAlignment(attention.begin(hypIndex), attention.end(hypIndex)));
+          alignments.emplace_back(new SoftAlignment(attention.begin(hypIndex),
+                                                    attention.end(hypIndex)));
         } else {
           UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
         }
@@ -123,21 +122,21 @@ void ArrayMatrix::BestHyps(Beam& bestHyps,
     }
 
     if (doBreakdown) {
-      hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
+      hyp->GetCostBreakdown().resize(scorers.size());
       float sum = 0;
-      for(size_t j = 0; j < ProbsEnsemble.size(); ++j) {
-      if (j == 0) {
-        hyp->GetCostBreakdown()[0] = breakDowns[0][i];
-      } else {
-        float cost = 0;
-        if (j < ProbsEnsemble.size()) {
-          if (prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
-            const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
-          cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+      for(size_t j = 0; j < scorers.size(); ++j) {
+        if (j == 0) {
+          hyp->GetCostBreakdown()[0] = breakDowns[0][i];
+        } else {
+          float cost = 0;
+          if (j < scorers.size()) {
+            if (prevHyps[hypIndex]->GetCostBreakdown().size() < scorers.size())
+              const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(scorers.size(), 0.0);
+            cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+          }
+          sum += weights[scorers[j]->GetName()] * cost;
+          hyp->GetCostBreakdown()[j] = cost;
         }
-        sum += weights[scorers[j]->GetName()] * cost;
-        hyp->GetCostBreakdown()[j] = cost;
-      }
       }
       hyp->GetCostBreakdown()[0] -= sum;
       hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];

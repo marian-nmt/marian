@@ -175,9 +175,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
+            Probs.Resize(T1_.Rows(), w_.W4_.Cols());
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
+            Probs.Resize(T1_.Rows(), FilteredW4_.Cols());
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
@@ -224,14 +226,17 @@ class Decoder {
     {}
 
     void MakeStep(mblas::Matrix& NextState,
-                  mblas::Matrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext) {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      GetProbs(Probs, NextState, Embeddings, AlignedSourceContext_);
+      GetProbs(NextState, Embeddings, AlignedSourceContext_);
+    }
+
+    mblas::Matrix& GetProbs() {
+      return Probs_;
     }
 
     void EmptyState(mblas::Matrix& State,
@@ -289,16 +294,16 @@ class Decoder {
     }
 
 
-    void GetProbs(mblas::Matrix& Probs,
-                  const mblas::Matrix& State,
+    void GetProbs(const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
-      softmax_.GetProbs(Probs, State, Embedding, AlignedSourceContext);
+      softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
     }
 
   private:
     mblas::Matrix HiddenState_;
     mblas::Matrix AlignedSourceContext_;
+    mblas::Matrix Probs_;
 
     Embeddings<Weights::DecEmbeddings> embeddings_;
     RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
