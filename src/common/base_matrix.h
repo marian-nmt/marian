@@ -20,12 +20,5 @@ class BaseMatrix {
     virtual size_t Cols() const = 0;
     virtual void Resize(size_t rows, size_t cols) = 0;
 
-    virtual void BestHyps(Beam& bestHyps,
-        const Beam& prevHyps,
-        const size_t beamSize,
-        const std::vector<ScorerPtr> &scorers,
-        const Words &filterIndices,
-        bool returnAlignment=false) const = 0;
-
     virtual std::string Debug() const = 0;
 };

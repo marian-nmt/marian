@@ -6,6 +6,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
+#include "gpu/decoder/best_hyps.h"
 
 using namespace std;
 
@@ -139,6 +140,10 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[i]));
+}
+
+BestHypsType EncoderDecoderLoader::GetBestHyps() {
+  return GPU::BestHyps();
 }
 
 }

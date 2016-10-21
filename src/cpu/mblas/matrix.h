@@ -129,16 +129,10 @@ class ArrayMatrix : public BlazeMatrix<float, blaze::rowMajor>
       : Parent(rows, columns, val)
     {}
 
-      template <class MT>
-      ArrayMatrix(const MT& rhs)
-      :Parent(rhs)
+    template <class MT>
+    ArrayMatrix(const MT& rhs)
+      : Parent(rhs)
     {}
-
-    virtual void BestHyps(Beam& bestHyps, const Beam& prevHyps,
-        const size_t beamSize,
-        const std::vector<ScorerPtr> &scorers,
-        const Words &filterIndices,
-        bool returnAlignment) const;
 
 };
 

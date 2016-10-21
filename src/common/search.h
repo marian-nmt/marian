@@ -4,7 +4,9 @@
 
 #include "common/scorer.h"
 #include "common/sentence.h"
-#include "common/history.h"
+#include "common/base_best_hyps.h"
+
+class History;
 
 class Search {
   public:
@@ -12,7 +14,8 @@ class Search {
     History Decode(const Sentence& sentence);
 
   private:
-    size_t MakeFilter(const Words& srcWords, const size_t vocabSize);
+    size_t MakeFilter(const Words& srcWords, size_t vocabSize);
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
+    BestHypsType BestHyps_;
 };

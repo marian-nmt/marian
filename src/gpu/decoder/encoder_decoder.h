@@ -5,6 +5,7 @@
 
 #include "common/scorer.h"
 #include "common/loader.h"
+#include "common/base_best_hyps.h"
 
 #include "common/threadpool.h"
 #include <thrust/device_vector.h>
@@ -73,6 +74,7 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load();
 
     virtual ScorerPtr NewScorer(size_t taskId);
+    virtual BestHypsType GetBestHyps();
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
