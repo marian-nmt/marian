@@ -662,5 +662,9 @@ Matrix& Element(Functor functor,
   return Out;
 }
 
+
+void SetColumn(Matrix& In, int noColumn, float value);
+  
+
 }  // namespace mblas
 }  // namespace GPU
