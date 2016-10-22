@@ -9,21 +9,56 @@
 
 namespace GPU {
 
-// struct ProbCompare {
-  // ProbCompare(const float* data) : data_(data) {}
-
-  // __host__ __device__
-  // bool operator()(const unsigned a, const unsigned b) {
-    // return data_[a] > data_[b];
-  // }
-
-  // const float* data_;
-// };
-
 class BestHyps {
   public:
     void DisAllowUNK(mblas::Matrix& Prob) {
       SetColumn(Prob, UNK, std::numeric_limits<float>::lowest());
+    }
+
+    void FindBests(size_t beamSize, mblas::Matrix& Probs,
+                   thrust::host_vector<float>& outCosts,
+                   thrust::host_vector<unsigned>& outKeys) {
+      if (beamSize < 10) {
+        for (size_t i = 0; i < beamSize; ++i) {
+          DeviceVector<float>::iterator iter =
+          thrust::max_element(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                              Probs.begin(), Probs.end());
+          outKeys[i] = iter - Probs.begin();
+          outCosts[i] = *iter;
+          *iter = std::numeric_limits<float>::lowest();
+        }
+        algo::copy(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                  outKeys.begin(), outKeys.end(), keys.begin());
+      } else {
+        thrust::sequence(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                         keys.begin(), keys.end());
+        thrust::sort_by_key(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                            Probs.begin(), Probs.end(),
+                            keys.begin(), algo::greater<float>());
+
+        thrust::copy_n(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                       keys.begin(), beamSize, outKeys.begin());
+        thrust::copy_n(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                       Probs.begin(), beamSize, outCosts.begin());
+      }
+    }
+
+    std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
+                                                size_t hypIndex) {
+      std::vector<SoftAlignmentPtr> alignments;
+      for (auto& scorer : scorers) {
+        if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
+          auto& attention = encdec->GetAttention();
+          size_t attLength = attention.Cols();
+
+          alignments.emplace_back(new SoftAlignment(
+                attention.begin() + hypIndex * attLength,
+                attention.begin() + (hypIndex + 1) * attLength));
+        } else {
+          UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+        }
+      }
+      return alignments;
     }
 
     void operator()(Beam& bestHyps,
@@ -44,7 +79,7 @@ class BestHyps {
           vCosts.push_back(h->GetCost());
         }
         thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
-                  vCosts.begin(), vCosts.end(), Costs.begin());
+                     vCosts.begin(), vCosts.end(), Costs.begin());
 
         BroadcastVecColumn(weights[scorers[0]->GetName()] * _1 + _2,
                           Probs, Costs);
@@ -55,42 +90,15 @@ class BestHyps {
                   Probs, currProbs);
         }
 
-        keys.resize(Probs.size());
-        thrust::host_vector<unsigned> bestKeys(beamSize);
-        thrust::host_vector<float> bestCosts(beamSize);
-
         if (!God::Get<bool>("allow-unk")) {
           DisAllowUNK(Probs);
         }
 
-        // @TODO: Here we need to have a partial sort
-        if (beamSize < 10) {
-          for (size_t i = 0; i < beamSize; ++i) {
-            DeviceVector<float>::iterator iter =
-            thrust::max_element(thrust::cuda::par.on(Matrix::GetStream()),
-                                Probs.begin(), Probs.end());
-            bestKeys[i] = iter - Probs.begin();
-            bestCosts[i] = *iter;
-            *iter = std::numeric_limits<float>::lowest();
-          }
-          algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
-                    bestKeys.begin(), bestKeys.end(), keys.begin());
-        }
-        else {
-            // these two function do not have equivalents in
-            // in the standard library or boost, keeping thrust
-            // namespace for now
-            thrust::sequence(thrust::cuda::par.on(Matrix::GetStream()),
-                            keys.begin(), keys.end());
-            thrust::sort_by_key(thrust::cuda::par.on(Matrix::GetStream()), Probs.begin(), Probs.end(),
-                                keys.begin(), algo::greater<float>());
+        keys.resize(Probs.size());
+        thrust::host_vector<float> bestCosts(beamSize);
+        thrust::host_vector<unsigned> bestKeys(beamSize);
 
-            thrust::copy_n(thrust::cuda::par.on(Matrix::GetStream()),
-                        keys.begin(), beamSize, bestKeys.begin());
-            thrust::copy_n(thrust::cuda::par.on(Matrix::GetStream()),
-                        Probs.begin(), beamSize, bestCosts.begin());
-        }
-
+        FindBests(beamSize, Probs, bestCosts, bestKeys);
 
         std::vector<HostVector<float>> breakDowns;
         bool doBreakdown = God::Get<bool>("n-best");
@@ -102,7 +110,7 @@ class BestHyps {
 
                 auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
                 algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
-                            it, it + beamSize, modelCosts.begin());
+                           it, it + beamSize, modelCosts.begin());
                 breakDowns.push_back(modelCosts);
             }
         }
@@ -120,19 +128,8 @@ class BestHyps {
 
           HypothesisPtr hyp;
           if (returnAlignment) {
-            std::vector<SoftAlignmentPtr> alignments;
-            for (auto& scorer : scorers) {
-              if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
-                auto& attention = encdec->GetAttention();
-                size_t attLength = attention.Cols();
-
-                alignments.emplace_back(new SoftAlignment(attention.begin() + hypIndex * attLength,
-                                                          attention.begin() + (hypIndex + 1) * attLength));
-              } else {
-                UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
-              }
-            }
-            hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost, alignments));
+            hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
+                                     GetAlignments(scorers, hypIndex)));
           } else {
             hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
           }
@@ -142,20 +139,20 @@ class BestHyps {
             float sum = 0;
             for (size_t j = 0; j < scorers.size(); ++j) {
               if (j == 0)
-              hyp->GetCostBreakdown()[0] = breakDowns[0][i];
+                hyp->GetCostBreakdown()[0] = breakDowns[0][i];
               else {
-              float cost = 0;
-              if (j < scorers.size()) {
-                  if(prevHyps[hypIndex]->GetCostBreakdown().size() < scorers.size())
-                  const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(scorers.size(), 0.0);
-                  cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+                float cost = 0;
+                if (j < scorers.size()) {
+                    if (prevHyps[hypIndex]->GetCostBreakdown().size() < scorers.size())
+                      const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(scorers.size(), 0.0f);
+                    cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+                }
+                sum += weights[scorers[j]->GetName()] * cost;
+                hyp->GetCostBreakdown()[j] = cost;
               }
-              sum += weights[scorers[j]->GetName()] * cost;
-              hyp->GetCostBreakdown()[j] = cost;
-              }
-          }
-          hyp->GetCostBreakdown()[0] -= sum;
-          hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
+            }
+            hyp->GetCostBreakdown()[0] -= sum;
+            hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
         }
         bestHyps.push_back(hyp);
       }
