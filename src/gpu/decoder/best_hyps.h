@@ -9,19 +9,23 @@
 
 namespace GPU {
 
-struct ProbCompare {
-  ProbCompare(const float* data) : data_(data) {}
+// struct ProbCompare {
+  // ProbCompare(const float* data) : data_(data) {}
 
-  __host__ __device__
-  bool operator()(const unsigned a, const unsigned b) {
-    return data_[a] > data_[b];
-  }
+  // __host__ __device__
+  // bool operator()(const unsigned a, const unsigned b) {
+    // return data_[a] > data_[b];
+  // }
 
-  const float* data_;
-};
+  // const float* data_;
+// };
 
 class BestHyps {
   public:
+    void DisAllowUNK(mblas::Matrix& Prob) {
+      SetColumn(Prob, UNK, std::numeric_limits<float>::lowest());
+    }
+
     void operator()(Beam& bestHyps,
           const Beam& prevHyps,
           const size_t beamSize,
@@ -55,10 +59,8 @@ class BestHyps {
         thrust::host_vector<unsigned> bestKeys(beamSize);
         thrust::host_vector<float> bestCosts(beamSize);
 
-        // @TODO: make this more efficient
         if (!God::Get<bool>("allow-unk")) {
-          for (size_t i = 0; i < Probs.Rows(); i++)
-            Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
+          DisAllowUNK(Probs);
         }
 
         // @TODO: Here we need to have a partial sort
