@@ -87,12 +87,13 @@ class BestHyps {
       if (doBreakdown) {
           breakDowns.push_back(bestCosts);
           for (size_t i = 1; i < scorers.size(); ++i) {
-            HostVector<float> modelCosts(beamSize);
+            std::vector<float> modelCosts(beamSize);
             mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-            auto it = thrust::make_permutation_iterator(currProbs.begin(), keys.begin());
-            algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
-                        it, it + beamSize, modelCosts.begin());
+            nthElement_.getValueByKey(modelCosts, currProbs.data());
+            // auto it = thrust::make_permutation_iterator(currProbs.begin(), keys.begin());
+            // algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
+                        // it, it + beamSize, modelCosts.begin());
             breakDowns.push_back(modelCosts);
           }
       }

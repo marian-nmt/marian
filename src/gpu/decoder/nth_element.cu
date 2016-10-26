@@ -65,6 +65,14 @@ __global__ void gSet(float* d_in, int* d_idx, int* index) {
   d_in[*index] = -3.40282e+38f;
 }
 
+__global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n) {
+  int tid = threadIdx.x  + blockDim.x * blockIdx.x;
+  if (tid < n) {
+    int index = indeces[tid];
+    d_out[tid] = d_in[index];
+  }
+}
+
 NthElement::NthElement(size_t maxBeamSize, cudaStream_t& stream)
     : stream_(stream) {
   HANDLE_ERROR( cudaMalloc((void**)&d_ind, BLOCK_SIZE * sizeof(int)) );
@@ -76,6 +84,8 @@ NthElement::NthElement(size_t maxBeamSize, cudaStream_t& stream)
 
   cudaHostAlloc((void**) &h_res, maxBeamSize * sizeof(float), cudaHostAllocDefault);
   cudaHostAlloc((void**) &h_res_idx, maxBeamSize * sizeof(int), cudaHostAllocDefault);
+
+  HANDLE_ERROR( cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)) );
 }
 
 void NthElement::getNBestList(float* d_in, size_t N, size_t n,
@@ -108,9 +118,17 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
   for (size_t i = 0; i < n; ++i) {
     outKeys[i] = h_res_idx[i];
     outValues[i] = h_res[i];
-    /* std::cerr << outKeys[i] << ": " << outValues[i] << "\t"; */
   }
-  /* std::cerr << std::endl; */
+
+  lastN = n;
+}
+
+void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
+  gGetValueByKey<<<1, lastN, 0, stream_>>>(d_in, d_breakdown, h_res_idx, lastN);
+  HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
+                                cudaMemcpyDeviceToHost, stream_) );
+  cudaStreamSynchronize(stream_);
+
 }
 
 }  // namespace GPU

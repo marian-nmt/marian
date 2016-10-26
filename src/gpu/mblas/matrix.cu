@@ -309,23 +309,24 @@ Matrix& LogSoftmax(Matrix& Out) {
   return Out;
 }
 
-__global__ void gSetColumn(float* d_in, int n_columns, int n_rows, int noColumn, float value) { 
-  int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x; 
-  int index = noColumn + rowNumber * n_columns; 
+__global__ void gSetColumn(float* d_in, int n_columns, int n_rows, int noColumn, float value) {
+  int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
+  int index = noColumn + rowNumber * n_columns;
 
-  if (index < n_columns * n_rows) { 
+  if (index < n_columns * n_rows) {
     d_in[index] = value;
-  } 
-} 
+  }
+}
 
 void SetColumn(Matrix& In, int noColumn, float value) {
   int nColumns = In.Cols();
   int nRows = In.Rows();
   int nBlocks = nRows / 512 + (nRows % 512 == 0) ?  0 : 1;
-  int nThreads = std::min(512, nRows); 
+  int nThreads = std::min(512, nRows);
   gSetColumn<<<nBlocks, nThreads, 0, mblas::Matrix::GetStream()>>>(In.data(), nColumns, nRows,
-                                                                   noColumn, value); 
+                                                                   noColumn, value);
 }
+
 }  // namespace mblas
 }  // namespace GPU
 
