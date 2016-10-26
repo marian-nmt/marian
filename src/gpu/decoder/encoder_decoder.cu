@@ -44,6 +44,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(model_)),
+    indeces_(God::Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {}
 
@@ -83,9 +84,12 @@ void EncoderDecoder::AssembleBeamState(const State& in,
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
+  indeces_.resize(beamStateIds.size());
+  thrust::host_vector<size_t> tmp = beamStateIds;
+  thrust::copy_n(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                  tmp.begin(), beamStateIds.size(), indeces_.begin());
 
-  mblas::Assemble(edOut.GetStates(),
-                  edIn.GetStates(), beamStateIds);
+  mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indeces_);
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 

@@ -99,12 +99,12 @@ Matrix& CopyRow(Matrix& Out,
 }
 
 __global__ void gCopyRows(float* out, const float* in, size_t cols,
-                          const RowPair* devPairs, size_t numPairs) {
+                          const size_t* targetRowIdx, size_t numPairs) {
   for(int bid = 0; bid < numPairs; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < numPairs) {
-      size_t dstId = devPairs[j].first;
-      size_t srcId = devPairs[j].second;
+      size_t dstId = j;
+      size_t srcId = targetRowIdx[j];
 
       float* rowOut = out + dstId * cols;
       const float* rowIn = in + srcId * cols;
@@ -120,33 +120,23 @@ __global__ void gCopyRows(float* out, const float* in, size_t cols,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const RowPair* devPairs,
+                 const size_t* dev,
                  size_t numPairs) {
   float* d_out = Out.data();
   const float* d_in = In.data();
 
   int threads = std::min(MAX_THREADS, (int)In.Cols());
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);;
-  gCopyRows<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, In.Cols(), devPairs, numPairs);
+  gCopyRows<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, In.Cols(), dev, numPairs);
   return Out;
 }
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPairs& pairs) {
-  thrust::device_vector<RowPair> devPairs = pairs;
-  CopyRows(Out, In, thrust::raw_pointer_cast(devPairs.data()), devPairs.size());
-  return Out;
-}
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const std::vector<size_t>& indeces) {
-  RowPairs rowPairs;
-  for(size_t i = 0; i < indeces.size(); i++)
-    rowPairs.emplace_back(i, indeces[i]);
-  Out.Resize(rowPairs.size(), In.Cols());
-  CopyRows(Out, In, rowPairs);
+                 const thrust::device_vector<size_t>& indeces) {
+  Out.Resize(indeces.size(), In.Cols());
+  CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }
 
