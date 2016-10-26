@@ -61,6 +61,7 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
+    thrust::device_vector<size_t> indeces_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
 };

@@ -17,11 +17,14 @@ class Decoder {
 
         void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
           using namespace mblas;
-          std::vector<size_t> tids = ids;
+          thrust::host_vector<size_t> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_.Rows())
               id = 1;
-          Assemble(Rows, w_.E_, tids);
+          indeces_.resize(tids.size());
+          thrust::copy_n(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+                          tids.begin(), tids.size(), indeces_.begin());
+          Assemble(Rows, w_.E_, indeces_);
         }
 
         size_t GetCols() {
@@ -34,6 +37,7 @@ class Decoder {
 
       private:
         const Weights& w_;
+        thrust::device_vector<size_t> indeces_;
     };
 
     template <class Weights1, class Weights2>
