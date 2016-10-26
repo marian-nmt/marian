@@ -1,4 +1,5 @@
 #include "gpu/decoder/nth_element.h"
+#include <iostream>
 
 
 namespace GPU {
@@ -43,7 +44,7 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int in_size) 
   __syncthreads();
 
   for (int s = (blockDim.x >> 1); s > 0; s >>= 1) {
-    if (tid < s) {
+    if (tid < s && tid + s < in_size) {
       if (sdata[tid + s] > sdata[tid]) {
         sdata[tid] = sdata[tid + s];
         indices[tid] = indices[tid + s];
@@ -82,7 +83,8 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
                               std::vector<float>& outValues) {
   if (n == 0) return;
 
-  const int N_BLOCKS = (N / (2 * BLOCK_SIZE)) + 1;
+  const int N_BLOCKS = (N / (2 * BLOCK_SIZE)) + (N % (2 * BLOCK_SIZE) != 0);
+  /* std::cerr << "N: " << N << "\t beam-size: " << n << std::endl; */
   /* std::cerr << "#BLOCKS: " << N_BLOCKS << std::endl; */
   /* cudaStreamSynchronize(stream_); */
 
