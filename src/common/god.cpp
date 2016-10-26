@@ -199,6 +199,8 @@ std::vector<std::string> God::GetScorerNames() {
   std::vector<std::string> scorerNames;
   for(auto&& name : Summon().cpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
+  for(auto&& name : Summon().gpuLoaders_ | boost::adaptors::map_keys)
+    scorerNames.push_back(name);
   return scorerNames;
 }
 

@@ -16,11 +16,11 @@ class NthElement {
                       std::vector<unsigned>& outKeys,
                       std::vector<float>& outValues);
 
+    void getValueByKey(std::vector<float>& out, float* d_in);
     /* cudaFree(d_in); */
     /* cudaFree(d_out); */
 
-    /* free(h_in); */
-    /* free(h_out); */
+
 
   private:
     const int BLOCK_SIZE = 512;
@@ -34,6 +34,9 @@ class NthElement {
 
     int   *h_res_idx;
     float *h_res;
+
+    float  *d_breakdown;
+    size_t lastN;
 };
 
 
