@@ -40,11 +40,11 @@ endif(Boost_FOUND)
 
 find_package(PythonLibs 2.7 REQUIRED)
 if(PYTHONLIBS_FOUND)
-	message("-- Found Python" )
-	include_directories(${PYTHON_INCLUDE_DIRS})
-	set(EXT_LIBS ${EXT_LIBS} ${PYTHON_LIBRARIES})
+  message("-- Found Python" )
+  include_directories(${PYTHON_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${PYTHON_LIBRARIES})
 else(PYTHONLIBS_FOUND)
-	message(SEND_ERROR "Cannot find python libraries. Terminating." )
+  message(SEND_ERROR "Cannot find python libraries. Terminating." )
 endif(PYTHONLIBS_FOUND)
 
 find_package (BZip2)
@@ -65,5 +65,21 @@ if (LIBLZMA_FOUND)
   set(EXT_LIBS ${EXT_LIBS} ${LIBLZMA_LIBRARIES})
 endif (LIBLZMA_FOUND)
 
-include_directories($amunmt_SOURCE_DIR}/src)
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+  FIND_PACKAGE(Git)
+  IF(GIT_FOUND)
+    EXECUTE_PROCESS(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE "AMUNMT_BUILD_VERSION"
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    MESSAGE( STATUS "Git version: ${AMUNMT_BUILD_VERSION}" )
+  ELSE(GIT_FOUND)
+    SET(AMUNMT_BUILD_VERSION 0)
+  ENDIF(GIT_FOUND)
+add_definitions(-DAMUNMT_BUILD_VERSION=${AMUNMT_BUILD_VERSION})
+ENDIF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+
+include_directories(${amunmt_SOURCE_DIR}/src)
 add_subdirectory(src)
