@@ -323,7 +323,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows = rows1 * rows2;
   size_t cols  = Out.Cols();
 
-  Matrix Temp(rows, cols, 1.0);
+  Matrix Temp(rows, cols, 1.0f);
 
   float* d_out = Temp.data();
   const float* d_in1 = Out.data();

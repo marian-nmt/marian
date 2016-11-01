@@ -22,7 +22,6 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int in_size) 
   int i = blockIdx.x * (blockDim.x * 2) + tid;
 
   sdata[tid] = -3.40282e+38f;
-  __syncthreads();
 
   if (i >= in_size) return;
 
@@ -61,7 +60,6 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int in_size) 
 
 __global__ void gSet(float* d_in, int* d_idx, int* index) {
   *index = d_idx[*index];
-  // d_in[*index] = std::numeric_limits<float>::lowest();
   d_in[*index] = -3.40282e+38f;
 }
 
