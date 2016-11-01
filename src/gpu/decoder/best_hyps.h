@@ -2,7 +2,7 @@
 
 #include "common/scorer.h"
 #include "gpu/mblas/matrix.h"
-#include "gpu/decoder/nth_element.h"
+#include "gpu/mblas/nth_element.h"
 
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>

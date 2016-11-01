@@ -27,8 +27,6 @@
 
 #include "gpu/decoder/encoder_decoder.h"
 #include "gpu/types-gpu.h"
-#include "gpu/nth_element.h"
-
 
 namespace GPU {
 namespace mblas {

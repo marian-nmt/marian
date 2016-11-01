@@ -39,10 +39,10 @@ cuda_add_executable(
   common/decoder_main.cpp
   gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
-  gpu/decoder/nth_element.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/mblas/matrix.cu
+  gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
@@ -55,8 +55,8 @@ cuda_add_library(amunmt SHARED
   python/amunmt.cpp
   gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
-  gpu/decoder/nth_element.cu
   gpu/mblas/matrix.cu
+  gpu/mblas/nth_element.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
