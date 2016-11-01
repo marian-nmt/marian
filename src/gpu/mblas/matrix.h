@@ -354,17 +354,18 @@ Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
 template <class Functor>
 __global__ void gBroadcastVecColumn(Functor functor,
                                     float* out, const float* in, size_t rows, size_t cols) {
-  for(int bid = 0; bid < cols; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < cols) {
-      for(int tid = 0; tid < rows; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < rows) {
-          float* rowOut = out + i * cols + j;
-          const float* rowIn  = in + i;
-          *rowOut = functor(*rowOut, *rowIn);
-        }
-      }
+  extern __shared__ float sdata[];
+  if (threadIdx.x < rows) {
+      sdata[threadIdx.x] = in[threadIdx.x];
+  }
+  __syncthreads();
+
+  int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
+  if (noColumn < cols) {
+    int index = noColumn;
+    for (int noRow = 0; noRow < rows; ++noRow) {
+        out[index] = functor(out[index], sdata[noRow]);
+        index += cols;
     }
   }
 }
@@ -377,22 +378,9 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const thrust::device_ve
   float* d_out = Out.data();
   const float* d_in = thrust::raw_pointer_cast(In.data());
 
-  int blocks  = std::min(MAX_BLOCKS, (int)cols);
-  int threads = std::min(MAX_THREADS, (int)rows);
-  gBroadcastVecColumn<<<blocks, threads, 0, Matrix::GetStream()>>>(functor, d_out, d_in, rows, cols);
-  return Out;
-}
-template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows  = Out.Rows();
-  size_t cols = Out.Cols();
-
-  float* d_out = Out.data();
-  const float* d_in = In.data();
-
-  int blocks  = std::min(MAX_BLOCKS, (int)cols);
-  int threads = std::min(MAX_THREADS, (int)rows);
-  gBroadcastVecColumn<<<blocks, threads, 0, Matrix::GetStream()>>>(functor, d_out, d_in, rows, cols);
+  int threads = std::min(MAX_THREADS, (int)cols);
+  int blocks  = cols / threads  + (cols % threads != 0);
+  gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), Matrix::GetStream()>>>(functor, d_out, d_in, rows, cols);
   return Out;
 }
 
