@@ -1,7 +1,8 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix.h"
+#include "mblas/matrix_functions.h"
+#include <thrust/execution_policy.h>
 
 namespace GPU {
 

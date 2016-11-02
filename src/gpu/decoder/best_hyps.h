@@ -1,8 +1,11 @@
 #pragma once
 
 #include "common/scorer.h"
-#include "gpu/mblas/matrix.h"
+#include "common/exception.h"
+#include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/nth_element.h"
+
+#include "gpu/decoder/encoder_decoder.h"
 
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>

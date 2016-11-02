@@ -1,7 +1,6 @@
-#include "matrix.h"
+#include "gpu/mblas/matrix_functions.h"
 
 namespace GPU {
-
 namespace mblas {
 
 #ifdef __APPLE__

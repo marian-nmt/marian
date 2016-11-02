@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mblas/matrix.h"
+#include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
 
