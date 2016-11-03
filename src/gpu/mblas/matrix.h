@@ -62,20 +62,25 @@ class TMatrix : public BaseMatrix {
     }
 
     void Resize(size_t rows, size_t cols) {
+      if (cols * rows > data_.size()) {
+        // std::cerr << "NEW: " << rows << " x " << cols << "\t";
+        // std::cerr << "OLD: " << rows_ << " x " << cols_ << "\t";
+        data_.resize(rows * cols);
+        // std::cerr << "DONE " << std::endl;
+      }
       rows_ = rows;
       cols_ = cols;
-      data_.resize(rows_ * cols_);
     }
 
-    void Resize(size_t rows, size_t cols, value_type val) {
-      rows_ = rows;
-      cols_ = cols;
-      data_.resize(rows_ * cols_, val);
-    }
+    // void Resize(size_t rows, size_t cols, value_type val) {
+      // rows_ = rows;
+      // cols_ = cols;
+      // data_.resize(rows_ * cols_, val);
+    // }
 
-    void Reserve(size_t rows, size_t cols) {
-      data_.reserve(rows * cols);
-    }
+    // void Reserve(size_t rows, size_t cols) {
+      // data_.reserve(rows * cols);
+    // }
 
     void Reshape(size_t rows, size_t cols) {
       rows_ = rows;
@@ -129,7 +134,8 @@ class TMatrix : public BaseMatrix {
     }
 
     iterator end() {
-      return data_.end();
+      return data_.begin() + size();
+      // return data_.end();
     }
 
     const_iterator begin() const{
@@ -137,11 +143,13 @@ class TMatrix : public BaseMatrix {
     }
 
     const_iterator end() const {
-      return data_.end();
+      return data_.begin() + size();
+      // return data_.end();
     }
 
     size_t size() const {
-      return data_.size();
+      // return data_.size();
+      return cols_ * rows_;
     }
 
   static cudaStream_t& GetStream() {

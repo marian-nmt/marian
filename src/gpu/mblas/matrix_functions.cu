@@ -29,7 +29,8 @@ Matrix& Mean(Matrix& Out, const Matrix& In) {
   size_t m = In.Rows();
   size_t n = In.Cols();
 
-  Out.Resize(1, n, 0.f);
+  Out.Resize(1, n);
+  Fill(Out, 0.0f);
   Matrix Ones(1, m, 1.f);
 
   float alpha = 1.0 / m;
@@ -324,6 +325,20 @@ void SetColumn(Matrix& In, int noColumn, float value) {
   int nThreads = std::min(512, nRows);
   gSetColumn<<<nBlocks, nThreads, 0, mblas::Matrix::GetStream()>>>(In.data(), nColumns, nRows,
                                                                    noColumn, value);
+}
+
+__global__ void gFill(float* d_in, int size, float val) {
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+  if (index < size) {
+    d_in[index] = val;
+  }
+}
+
+void Fill(Matrix& In, float value) {
+  size_t size = In.size();
+  int nThreads = std::min(512, (int)size);
+  int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
+  gFill<<<nBlocks, nThreads, 0, Matrix::GetStream()>>>(In.data(), size, value);
 }
 
 }  // namespace mblas

@@ -16,8 +16,8 @@ void Encoder::GetContext(const std::vector<size_t>& words,
 
   Context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
   for(auto& w : words) {
-	embeddedWords.emplace_back();
-	embeddings_.Lookup(embeddedWords.back(), w);
+    embeddedWords.emplace_back();
+    embeddings_.Lookup(embeddedWords.back(), w);
   }
   //cerr << "embeddings_=" << embeddings_.w_.E_.Debug() << endl;
 

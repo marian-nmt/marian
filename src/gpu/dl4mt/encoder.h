@@ -23,8 +23,8 @@ class Encoder {
             CopyRow(Row, w_.E_, 1); // UNK
         }
 
-        const Weights& w_;
       private:
+        const Weights& w_;
     };
 
     template <class Weights>
@@ -34,8 +34,8 @@ class Encoder {
         : gru_(model) {}
 
         void InitializeState(size_t batchSize = 1) {
-          State_.Clear();
-          State_.Resize(batchSize, gru_.GetStateLength(), 0.0);
+          State_.Resize(batchSize, gru_.GetStateLength());
+          mblas::Fill(State_, 0.0f);
         }
 
         void GetNextState(mblas::Matrix& NextState,
@@ -45,8 +45,7 @@ class Encoder {
         }
 
         template <class It>
-        void GetContext(It it, It end, 
-                        mblas::Matrix& Context, bool invert) {
+        void GetContext(It it, It end, mblas::Matrix& Context, bool invert) {
           InitializeState();
 
           size_t n = std::distance(it, end);
