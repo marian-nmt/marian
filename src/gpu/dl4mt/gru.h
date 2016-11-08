@@ -101,7 +101,7 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      const size_t cols = GetStateLength();
+      // const size_t cols = GetStateLength();
       Prod(RUH_, Context, WWx_);
       Prod(Temp_, State, UUx_);
       ElementwiseOps(NextState, State, RUH_, Temp_);
@@ -118,12 +118,12 @@ class FastGRU {
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
-      gElementwiseOps<<<blocks, threads, 0, mblas::Matrix::GetStream()>>>(NextState.data(), State.data(),
+      gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>(NextState.data(), State.data(),
                                           RUH.data(),
                                           Temp.data(),
                                           w_.B_.data(), w_.Bx1_.data(), w_.Bx2_.data(),
                                           rows, cols);
-      // cudaStreamSynchronize(mblas::Matrix::GetStream());
+      // cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream());
     }
 
     size_t GetStateLength() const {

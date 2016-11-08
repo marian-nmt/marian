@@ -62,7 +62,7 @@ class NpzConverter {
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
-        thrust::copy(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+        thrust::copy(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
                   np.data(), np.data() + np.size(), matrix.begin());
       }
       else {
@@ -78,7 +78,7 @@ class NpzConverter {
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
-        thrust::copy(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+        thrust::copy(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
                   np.data(), np.data() + np.size(), matrix.begin());
       }
       mblas::Transpose(matrix);

@@ -22,7 +22,7 @@ class Decoder {
             if(id >= w_.E_.Rows())
               id = 1;
           indeces_.resize(tids.size());
-          thrust::copy_n(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+          thrust::copy_n(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
                           tids.begin(), tids.size(), indeces_.begin());
           Assemble(Rows, w_.E_, indeces_);
         }

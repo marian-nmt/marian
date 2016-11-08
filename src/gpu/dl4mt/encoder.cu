@@ -10,25 +10,23 @@ Encoder::Encoder(const Weights& model)
   backwardRnn_(model.encBackwardGRU_)
 {}
 
-void Encoder::GetContext(const std::vector<size_t>& words,
-				mblas::Matrix& Context) {
-  thread_local static std::vector<mblas::Matrix> embeddedWords;
-
-  Context.Resize(words.size(), forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
+void Encoder::GetContext(const std::vector<size_t>& words, mblas::Matrix& Context) {
+  Context.Resize(words.size(), forwardRnn_.GetStateLength()
+                               + backwardRnn_.GetStateLength());
   for (size_t i = 0; i < words.size(); ++i) {
-    if (i >= embeddedWords.size()) {
-      embeddedWords.emplace_back();
+    if (i >= embeddedWords_.size()) {
+      embeddedWords_.emplace_back();
     }
-    embeddings_.Lookup(embeddedWords[i], words[i]);
+    embeddings_.Lookup(embeddedWords_[i], words[i]);
   }
-  //cerr << "embeddings_=" << embeddings_.w_.E_.Debug() << endl;
 
-  forwardRnn_.GetContext(embeddedWords.cbegin(),
-						 embeddedWords.cbegin() + words.size(),
-						 Context, false);
-  backwardRnn_.GetContext(embeddedWords.crend() - words.size(),
-						  embeddedWords.crend(),
-						  Context, true);
+  forwardRnn_.GetContext(embeddedWords_.cbegin(),
+                         embeddedWords_.cbegin() + words.size(),
+                         Context, false);
+
+  backwardRnn_.GetContext(embeddedWords_.crend() - words.size(),
+                          embeddedWords_.crend(),
+                          Context, true);
 }
 
 }

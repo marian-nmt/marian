@@ -20,8 +20,6 @@ class NthElement {
     /* cudaFree(d_in); */
     /* cudaFree(d_out); */
 
-
-
   private:
     const int BLOCK_SIZE = 512;
     cudaStream_t& stream_;

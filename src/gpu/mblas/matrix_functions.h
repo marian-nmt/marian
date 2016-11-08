@@ -11,45 +11,10 @@
 
 #include "gpu/mblas/thrust_functions.h"
 #include "gpu/mblas/matrix.h"
+#include "gpu/mblas/handles.h"
 
 namespace GPU {
 namespace mblas {
-
-class CublasHandler {
-  public:
-    static cublasHandle_t GetHandle() {
-#ifdef __APPLE__
-      cublasHandle_t *handle = handle_.get();
-      if (handle == nullptr) {
-        handle = new cublasHandle_t;
-        handle_.reset(handle);
-      }
-      return *handle;
-#else
-      if(handle_ == nullptr) {
-      assert(handle_ == nullptr);
-      handle_ = new cublasHandle_t;
-      cublasCreate(handle_);
-      cublasSetStream(*handle_, Matrix::GetStream());
-      }
-      return *handle_;
-#endif
-    }
-
-  private:
-    ~CublasHandler() {
-      cublasDestroy(*handle_);
-      if (handle_) {
-        delete handle_;
-      }
-    }
-
-#ifdef __APPLE__
-    static boost::thread_specific_ptr<cublasHandle_t> handle_;
-#else
-    static thread_local cublasHandle_t* handle_;
-#endif
-};
 
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 5) {
@@ -86,20 +51,12 @@ Matrix& CopyRow(Matrix& Out,
                 const size_t r = 0,
                 const size_t c = 0);
 
-typedef std::pair<size_t, size_t> RowPair;
-typedef std::vector<RowPair> RowPairs;
-typedef thrust::device_vector<RowPair> DeviceRowPairs;
-
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const RowPair* devPairs,
+                 const size_t* devPairs,
                  size_t numPairs);
-
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPairs& pairs);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
@@ -110,7 +67,7 @@ Matrix& Slice(Matrix& Out,
               size_t n, size_t dim);
 
 Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
+             bool transA=false, bool transB=false);
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
@@ -158,8 +115,10 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
 
   int blocks  = std::min(MAX_BLOCKS, (int)rows);
   int threads = std::min(MAX_THREADS, (int)cols);
-  gBroadcast<<<blocks, threads, 0, Matrix::GetStream()>>>(functor, d_out, d_in1, d_in2,
-                                                          rows, rows1, cols);
+
+  gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (functor, d_out, d_in1, d_in2, rows, rows1, cols);
+
   Swap(Out, Temp);
   return Out;
 }
@@ -205,7 +164,10 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const thrust::device_ve
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + (cols % threads != 0);
-  gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), Matrix::GetStream()>>>(functor, d_out, d_in, rows, cols);
+
+  gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), CudaStreamHandler::GetStream()>>>
+    (functor, d_out, d_in, rows, cols);
+
   return Out;
 }
 
@@ -233,8 +195,11 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + (cols % threads != 0);
-  stream = Matrix::GetStream();
-  gBroadcastVec<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, rows, cols);
+  stream = CudaStreamHandler::GetStream();
+
+  gBroadcastVec<<<blocks, threads, 0, stream>>>
+    (functor, d_out, d_in, rows, cols);
+
   return Out;
 }
 
@@ -298,8 +263,11 @@ Matrix& Element(Functor functor, Matrix& Out) {
   float* d_out = Out.data();
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  cudaStream_t& stream = Matrix::GetStream();
-  gElement<<<blocks, threads, 0, stream>>>(functor, d_out, Out.Rows(), Out.Cols());
+  cudaStream_t& stream = CudaStreamHandler::GetStream();
+
+  gElement<<<blocks, threads, 0, stream>>>
+    (functor, d_out, Out.Rows(), Out.Cols());
+
   return Out;
 }
 
@@ -311,8 +279,11 @@ Matrix& Element(Functor functor,
 
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  cudaStream_t& stream = Matrix::GetStream();
-  gElement<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, Out.Rows(), Out.Cols());
+  cudaStream_t& stream = CudaStreamHandler::GetStream();
+
+  gElement<<<blocks, threads, 0, stream>>>
+    (functor, d_out, d_in, Out.Rows(), Out.Cols());
+
   return Out;
 }
 
@@ -326,9 +297,11 @@ Matrix& Element(Functor functor,
 
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  cudaStream_t& stream = Matrix::GetStream();
-  gElement<<<blocks, threads, 0, stream>>>(functor, d_out, d_in1, d_in2,
-                                Out.Rows(), Out.Cols());
+  cudaStream_t& stream = CudaStreamHandler::GetStream();
+
+  gElement<<<blocks, threads, 0, stream>>>
+    (functor, d_out, d_in1, d_in2, Out.Rows(), Out.Cols());
+
   return Out;
 }
 

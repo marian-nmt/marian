@@ -81,6 +81,9 @@ class Encoder {
     Embeddings<Weights::EncEmbeddings> embeddings_;
     RNN<Weights::EncForwardGRU> forwardRnn_;
     RNN<Weights::EncBackwardGRU> backwardRnn_;
+
+    // reusing memory
+    std::vector<mblas::Matrix> embeddedWords_;
 };
 
 }

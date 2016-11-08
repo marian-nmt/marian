@@ -16,7 +16,7 @@ namespace GPU {
 class BestHyps {
   public:
     BestHyps()
-      : nthElement_(God::Get<size_t>("beam-size"), mblas::Matrix::GetStream()),
+      : nthElement_(God::Get<size_t>("beam-size"), mblas::CudaStreamHandler::GetStream()),
         keys(God::Get<size_t>("beam-size")),
         Costs(God::Get<size_t>("beam-size")),
         weights_(God::GetScorerWeights())
@@ -65,7 +65,7 @@ class BestHyps {
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
       }
-      thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
+      thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
                    vCosts.begin(), vCosts.end(), Costs.begin());
 
       BroadcastVecColumn(weights_[scorers[0]->GetName()] * _1 + _2, Probs, Costs);
@@ -95,7 +95,7 @@ class BestHyps {
 
             nthElement_.getValueByKey(modelCosts, currProbs.data());
             // auto it = thrust::make_permutation_iterator(currProbs.begin(), keys.begin());
-            // algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
+            // algo::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
                         // it, it + beamSize, modelCosts.begin());
             breakDowns.push_back(modelCosts);
           }

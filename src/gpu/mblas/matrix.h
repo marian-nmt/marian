@@ -63,24 +63,11 @@ class TMatrix : public BaseMatrix {
 
     void Resize(size_t rows, size_t cols) {
       if (cols * rows > data_.size()) {
-        // std::cerr << "NEW: " << rows << " x " << cols << "\t";
-        // std::cerr << "OLD: " << rows_ << " x " << cols_ << "\t";
         data_.resize(rows * cols);
-        // std::cerr << "DONE " << std::endl;
       }
       rows_ = rows;
       cols_ = cols;
     }
-
-    // void Resize(size_t rows, size_t cols, value_type val) {
-      // rows_ = rows;
-      // cols_ = cols;
-      // data_.resize(rows_ * cols_, val);
-    // }
-
-    // void Reserve(size_t rows, size_t cols) {
-      // data_.reserve(rows * cols);
-    // }
 
     void Reshape(size_t rows, size_t cols) {
       rows_ = rows;
@@ -152,21 +139,10 @@ class TMatrix : public BaseMatrix {
       return cols_ * rows_;
     }
 
-  static cudaStream_t& GetStream() {
-    if (stream_ == nullptr) {
-      assert(stream_ == nullptr);
-      stream_ = new cudaStream_t;
-      // cudaStreamCreateWithFlags(stream_, cudaStreamNonBlocking);
-      cudaStreamCreate(stream_);
-    }
-    return *stream_;
-  }
-
   private:
     size_t rows_;
     size_t cols_;
     VecType data_;
-    static thread_local cudaStream_t* stream_;
 };
 
 typedef TMatrix<DeviceVector<float>> Matrix;

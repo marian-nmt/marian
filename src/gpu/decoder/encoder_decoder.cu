@@ -86,7 +86,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   EDState& edOut = out.get<EDState>();
   indeces_.resize(beamStateIds.size());
   thrust::host_vector<size_t> tmp = beamStateIds;
-  thrust::copy_n(thrust::cuda::par.on(mblas::Matrix::GetStream()),
+  thrust::copy_n(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
                   tmp.begin(), beamStateIds.size(), indeces_.begin());
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indeces_);
