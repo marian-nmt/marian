@@ -5,9 +5,6 @@
 
 #include "common/base_matrix.h"
 
-
-#include <thrust/device_vector.h>
-
 #ifdef __APPLE__
 #include <boost/thread/tss.hpp>
 #include <boost/pool/object_pool.hpp>

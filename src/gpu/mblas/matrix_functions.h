@@ -29,6 +29,16 @@ void Debug(const M& m, size_t pos = 0, size_t l = 5) {
   }
 }
 
+template<class IteratorT1, class IteratorT2>
+void copy(IteratorT1 inBegin, IteratorT1 inEnd, IteratorT2 outBegin) {
+  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()), inBegin, inEnd, outBegin);
+}
+
+template<class IteratorT1, class IteratorT2>
+void copy_n(IteratorT1 inBegin, size_t size, IteratorT2 outBegin) {
+  thrust::copy_n(thrust::cuda::par.on(CudaStreamHandler::GetStream()), inBegin, size, outBegin);
+}
+
 void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
@@ -60,7 +70,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const thrust::device_vector<size_t>& indeces);
+                 const DeviceVector<size_t>& indeces);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -155,7 +165,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const thrust::device_vector<float>& In) {
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<float>& In) {
   size_t rows  = Out.Rows();
   size_t cols = Out.Cols();
 

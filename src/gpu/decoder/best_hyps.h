@@ -7,10 +7,6 @@
 
 #include "gpu/decoder/encoder_decoder.h"
 
-#include <thrust/device_vector.h>
-#include <thrust/functional.h>
-#include <thrust/execution_policy.h>
-
 namespace GPU {
 
 class BestHyps {
@@ -65,8 +61,7 @@ class BestHyps {
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
       }
-      thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
-                   vCosts.begin(), vCosts.end(), Costs.begin());
+      mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
       BroadcastVecColumn(weights_[scorers[0]->GetName()] * _1 + _2, Probs, Costs);
 
@@ -94,9 +89,6 @@ class BestHyps {
             mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
             nthElement_.getValueByKey(modelCosts, currProbs.data());
-            // auto it = thrust::make_permutation_iterator(currProbs.begin(), keys.begin());
-            // algo::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
-                        // it, it + beamSize, modelCosts.begin());
             breakDowns.push_back(modelCosts);
           }
       }
@@ -146,8 +138,8 @@ class BestHyps {
 
   private:
     NthElement nthElement_;
-    thrust::device_vector<unsigned> keys;
-    thrust::device_vector<float> Costs;
+    DeviceVector<unsigned> keys;
+    DeviceVector<float> Costs;
     std::map<std::string, float>& weights_;
 };
 

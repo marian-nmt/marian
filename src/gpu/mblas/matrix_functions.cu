@@ -65,15 +65,13 @@ Matrix& Transpose(Matrix& Out) {
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
   Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
-  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
-               In.begin(), In.end(), Out.begin() + oldSize);
+  mblas::copy(In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
-  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
-               In.begin(), In.end(), Out.begin());
+  mblas::copy(In.begin(), In.end(), Out.begin());
   return Out;
 }
 
@@ -81,8 +79,7 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r, const size_t c) {
   size_t start = r * Out.Cols() + c;
-  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
-               In.begin(), In.end(), Out.begin() + start);
+  mblas::copy(In.begin(), In.end(), Out.begin() + start);
   return Out;
 }
 
@@ -93,8 +90,7 @@ Matrix& CopyRow(Matrix& Out,
   Out.Resize(1, length);
   size_t start = r * In.Cols() + c;
   size_t end   = start + length;
-  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()),
-               In.begin() + start, In.begin() + end, Out.begin());
+  mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
   return Out;
 }
 
@@ -137,7 +133,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const thrust::device_vector<size_t>& indeces) {
+                 const DeviceVector<size_t>& indeces) {
   Out.Resize(indeces.size(), In.Cols());
   CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;

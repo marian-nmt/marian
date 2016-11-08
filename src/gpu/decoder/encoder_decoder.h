@@ -6,9 +6,9 @@
 #include "common/scorer.h"
 #include "common/loader.h"
 #include "common/base_best_hyps.h"
-
 #include "common/threadpool.h"
-#include <thrust/device_vector.h>
+#include "gpu/types-gpu.h"
+
 
 namespace GPU {
 
@@ -20,7 +20,7 @@ class Weights;
 namespace mblas {
   template <class VecType>
   class TMatrix;
-  typedef TMatrix<thrust::device_vector<float>> Matrix;
+  typedef TMatrix<DeviceVector<float>> Matrix;
 }
 
 ////////////////////////////////////////////
@@ -61,7 +61,7 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    thrust::device_vector<size_t> indeces_;
+    DeviceVector<size_t> indeces_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
 };

@@ -22,8 +22,7 @@ class Decoder {
             if(id >= w_.E_.Rows())
               id = 1;
           indeces_.resize(tids.size());
-          thrust::copy_n(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
-                          tids.begin(), tids.size(), indeces_.begin());
+          mblas::copy_n(tids.begin(), tids.size(), indeces_.begin());
           Assemble(Rows, w_.E_, indeces_);
         }
 
@@ -37,7 +36,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        thrust::device_vector<size_t> indeces_;
+        DeviceVector<size_t> indeces_;
     };
 
     template <class Weights1, class Weights2>

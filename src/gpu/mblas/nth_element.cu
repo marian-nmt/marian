@@ -94,13 +94,20 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
   const int N_BLOCKS = (N / (2 * BLOCK_SIZE)) + (N % (2 * BLOCK_SIZE) != 0);
 
   for (size_t i = 0; i < n; ++i) {
-    gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>(d_out, d_ind, d_in, N);
-    gMaxElement<<<1, (512 / 2), (512 /2 ) * sizeof(float), stream_>>>(d_res + i, d_res_idx + i, d_out, N_BLOCKS);
-    gSet<<<1, 1, 0, stream_>>>(d_in, d_ind, d_res_idx + i);
+    gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+      (d_out, d_ind, d_in, N);
+
+    gMaxElement<<<1, 256, 256 * sizeof(float), stream_>>>
+      (d_res + i, d_res_idx + i, d_out, N_BLOCKS);
+
+    gSet<<<1, 1, 0, stream_>>>
+      (d_in, d_ind, d_res_idx + i);
   }
 
-  HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, n * sizeof(float), cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, n * sizeof(int), cudaMemcpyDeviceToHost, stream_) );
+  HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, n * sizeof(float),
+                                cudaMemcpyDeviceToHost, stream_) );
+  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, n * sizeof(int),
+                                cudaMemcpyDeviceToHost, stream_) );
 
   cudaStreamSynchronize(stream_);
 
@@ -113,11 +120,12 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
 }
 
 void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
-  gGetValueByKey<<<1, lastN, 0, stream_>>>(d_in, d_breakdown, h_res_idx, lastN);
+  gGetValueByKey<<<1, lastN, 0, stream_>>>
+    (d_in, d_breakdown, h_res_idx, lastN);
+
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
   cudaStreamSynchronize(stream_);
-
 }
 
 }  // namespace GPU
