@@ -106,6 +106,10 @@ void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
   decoder_->GetAttention(Attention);
 }
 
+mblas::Matrix& EncoderDecoder::GetAttention() {
+  return decoder_->GetAttention();
+}
+
 size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }

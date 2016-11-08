@@ -64,6 +64,7 @@ class EncoderDecoder : public Scorer {
                                    State& out);
 
     void GetAttention(mblas::Matrix& Attention);
+    mblas::Matrix& GetAttention();
 
     size_t GetVocabSize() const;
 

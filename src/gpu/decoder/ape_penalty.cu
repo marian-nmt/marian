@@ -10,9 +10,9 @@ ApePenalty::ApePenalty(const std::string& name,
 		   size_t tab,
 		   const SrcTrgMap& srcTrgMap,
 		   const Penalties& penalties)
-: Scorer(name, config, tab), srcTrgMap_(srcTrgMap),
-  penalties_(penalties)
-{ }
+  : Scorer(name, config, tab), srcTrgMap_(srcTrgMap),
+    penalties_(penalties)
+{}
 
 // @TODO: make this work on GPU
 void ApePenalty::SetSource(const Sentence& source) {

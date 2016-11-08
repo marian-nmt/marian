@@ -4,6 +4,13 @@
 #include "file_stream.h"
 #include "exception.h"
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+#ifndef AMUNMT_BUILD_VERSION
+#define AMUNMT_BUILD_VERSION 000000
+#endif
+
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
   config_[key] = vm_[key].as<type>(); \
@@ -24,7 +31,7 @@ YAML::Node& Config::Get() {
 
 void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, bool isPath) {
   using namespace boost::filesystem;
-  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab", "bpe"};
+  std::set<std::string> paths = {"path", "paths", "source-vocab", "target-vocab", "bpe", "softmax-filter"};
 
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
@@ -34,8 +41,10 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
       }
     }
     if(node.Type() == YAML::NodeType::Sequence) {
-      for(auto&& sub : node)
+      for(auto&& sub : node) {
         ProcessPaths(sub, configPath, true);
+        break;
+      }
     }
   }
   else {
@@ -174,8 +183,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Overwrite target vocab section in config file with vocab file.")
     ("bpe", po::value(&bpePaths)->multitoken(),
      "Overwrite bpe section in config with bpe code file.")
-    ("debpe", po::value(&debpe)->zero_tokens()->default_value(false),
-     "If true, perform deBPE on output.")
+    ("no-debpe", po::value(&debpe)->zero_tokens()->default_value(false),
+     "Providing bpe is on, turn off deBPE of the output.")
 #ifdef CUDA
     ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
@@ -195,6 +204,10 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Load scorer weights from this file")
     ("wipo", po::value<bool>()->zero_tokens()->default_value(false),
      "Use WIPO specific n-best-list format and non-buffering single-threading")
+    ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
+     "If true, return alignment.")
+    ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
+     "Print version.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
   ;
@@ -246,6 +259,11 @@ void Config::AddOptions(size_t argc, char** argv) {
     exit(0);
   }
 
+  if (vm_["version"].as<bool>()) {
+    std::cerr << TOSTRING(AMUNMT_BUILD_VERSION) << std::endl;
+    exit(0);
+  }
+
   if(configPath.size())
     config_ = YAML::Load(InputFileStream(configPath));
 
@@ -253,9 +271,10 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("n-best", bool);
   SET_OPTION("normalize", bool);
   SET_OPTION("wipo", bool);
+  SET_OPTION("return-alignment", bool);
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
-  SET_OPTION("debpe", bool);
+  SET_OPTION("no-debpe", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("cpu-threads", size_t);
 #ifdef CUDA

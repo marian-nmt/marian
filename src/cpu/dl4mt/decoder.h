@@ -140,6 +140,10 @@ class Decoder {
           Attention = A_;
         }
 
+        mblas::Matrix& GetAttention() {
+          return A_;
+        }
+
       private:
         const Weights& w_;
 
@@ -250,6 +254,10 @@ class Decoder {
 
     void GetAttention(mblas::Matrix& attention) {
     	attention_.GetAttention(attention);
+    }
+
+    mblas::Matrix& GetAttention() {
+      return attention_.GetAttention();
     }
 
     size_t GetVocabSize() const {

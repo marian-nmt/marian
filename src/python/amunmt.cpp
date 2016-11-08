@@ -11,6 +11,7 @@
 #include "common/search.h"
 #include "common/printer.h"
 #include "common/sentence.h"
+#include "common/exception.h"
 
 History TranslationTask(const std::string& in, size_t taskCounter) {
   #ifdef __APPLE__
@@ -39,10 +40,21 @@ void init(const std::string& options) {
 }
 
 boost::python::list translate(boost::python::list& in) {
-  size_t threadCount = God::Get<size_t>("threads");
-  LOG(info) << "Setting number of threads to " << threadCount;
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
-  ThreadPool pool(threadCount);
+  size_t totalThreads = cpuThreads;
+#ifdef CUDA
+  size_t gpuThreads = God::Get<size_t>("gpu-threads");
+  auto devices = God::Get<std::vector<size_t>>("devices");
+  LOG(info) << "Setting GPU thread count to " << gpuThreads;
+  totalThreads += gpuThreads * devices.size();
+#endif
+
+  LOG(info) << "Total number of threads: " << totalThreads;
+  UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+
+  ThreadPool pool(totalThreads);
   std::vector<std::future<History>> results;
 
   boost::python::list output;

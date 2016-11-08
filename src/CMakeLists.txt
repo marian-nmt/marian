@@ -65,6 +65,17 @@ cuda_add_library(amunmt SHARED
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
+#cuda_add_executable(
+#  nth
+#  gpu/nth_benchmark.cu
+#  gpu/mblas/matrix.cu
+#  $<TARGET_OBJECTS:libcommon>
+#  $<TARGET_OBJECTS:libcnpy>
+#  $<TARGET_OBJECTS:cpumode>
+#  $<TARGET_OBJECTS:libyaml-cpp>
+#)
+
+
 else(CUDA_FOUND)
 
 add_executable(
@@ -76,6 +87,7 @@ add_executable(
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+
 add_library(amunmt SHARED
   python/amunmt.cpp
   common/loader_factory.cpp
@@ -97,5 +109,4 @@ foreach(exec amun amunmt)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
 
-add_subdirectory(bpe)
 add_subdirectory(3rd_party)

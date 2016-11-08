@@ -129,6 +129,10 @@ class Decoder {
           mblas::Copy(Attention, A_);
         }
 
+        mblas::Matrix& GetAttention() {
+          return A_;
+        }
+
       private:
         const Weights& w_;
 
@@ -150,11 +154,8 @@ class Decoder {
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
         {
-          //for(int i = 0; i < 3; ++i) {
-          //  cudaStreamCreate(&s_[i]);
-          //  cublasCreate(&h_[i]);
-          //  cublasSetStream(h_[i], s_[i]);
-          //}
+          mblas::Transpose(TempW4, w_.W4_);
+          mblas::Transpose(TempB4, w_.B4_);
         }
 
         void GetProbs(mblas::Matrix& Probs,
@@ -171,8 +172,6 @@ class Decoder {
           BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
           BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
 
-          //cudaDeviceSynchronize();
-
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
@@ -183,18 +182,12 @@ class Decoder {
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
 
-          // @TODO logsoftmax!
-          mblas::Softmax(Probs);
-          Element(Log(_1), Probs);
+          mblas::LogSoftmax(Probs);
         }
 
         void Filter(const std::vector<size_t>& ids) {
           filtered_ = true;
           using namespace mblas;
-
-          Matrix TempW4, TempB4;
-          Transpose(TempW4, w_.W4_);
-          Transpose(TempB4, w_.B4_);
 
           Assemble(FilteredW4_, TempW4, ids);
           Assemble(FilteredB4_, TempB4, ids);
@@ -216,6 +209,9 @@ class Decoder {
         mblas::Matrix T1_;
         mblas::Matrix T2_;
         mblas::Matrix T3_;
+
+        mblas::Matrix TempW4;
+        mblas::Matrix TempB4;
     };
 
   public:
@@ -266,6 +262,10 @@ class Decoder {
 
     size_t GetVocabSize() const {
       return embeddings_.GetRows();
+    }
+
+    mblas::Matrix& GetAttention() {
+      return alignment_.GetAttention();
     }
 
   private:

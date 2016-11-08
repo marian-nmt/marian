@@ -103,7 +103,7 @@ void God::LoadPrePostProcessing() {
     }
   }
 
-  if (Get<bool>("debpe")) {
+  if (Has("bpe") && !Get<bool>("no-debpe")) {
     LOG(info) << "De-BPE output";
     postprocessors_.emplace_back(new BPE());
   }
