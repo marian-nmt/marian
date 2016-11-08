@@ -292,11 +292,11 @@ AmuNMT is a ground-up neural MT toolkit implementation, developed in C++. It cur
     enlargelimits=0.1,
     ylabel={Words per second},
     xtick={1 ,2 ,3 },
-    xticklabels={Google CPU x88,
+    xticklabels={Google CPU-88,
 Google GPU T-K80,
 Google TPU},
     xmin=0.75, xmax=3.25,
-    ymin=50, ymax=1550,
+    ymin=50, ymax=1750,
     x tick label style={rotate=45,anchor=east, yshift=-0.2cm},
     ]
 \addplot+[ybar, ppurple, nodes near coords, text=black] plot coordinates {
@@ -331,7 +331,7 @@ Google TPU},
     AmuNMT* GPU-4,
     },
     xmin=0.75, xmax=9.25,
-    ymin=50, ymax=1550,
+    ymin=50, ymax=1750,
     x tick label style={rotate=45,anchor=east, yshift=-0.2cm},
     ]
 \addplot+[ybar, oorange, nodes near coords={\pgfmathprintnumber[fixed zerofill, fixed, precision=1]{\pgfplotspointmeta}}, text=black] plot coordinates {
@@ -342,10 +342,10 @@ Google TPU},
 (4, 140.9) 
 (5, 265.3)
 (6, 409.4) 
-(7, 490.1)
+(7, 526.6)
 % 533.7
-(8, 1252.3) 
-(9, 1510.2)
+(8, 1384.9) 
+(9, 1681.6)
 };
 %100 100 502.4
 \end{axis}
@@ -394,7 +394,7 @@ We present the words-per-second ratio for our NMT models using AmuNMT and Nematu
 
 The CPU-bound execution of Nematus reaches 47 words per second while the GPU-bound achieved 270 words per second. In similar settings, CPU-bound AmuNMT is three times faster than Nematus CPU, but three times slower than Moses. With vocabulary selection we can nearly double the speed of AmuNMT CPU. The GPU-executed version of AmuNMT is 1.5 time faster than Nematus and is almost as fast as Moses, achieving 409 words per second, with vocabulary selection we surpass the speed of Moses. The similar translation speed would allow us to replace a Moses-based SMT system with an AmuNMT-based NMT system in a production environment without severely affecting translation throughput. 
 
-AmuNMT can parallelize to multiple GPUs processing one sentence per GPU. Translation speed increases to 1,200 words per second with four GPUs, to 1,510 with vocabulary selection. 
+AmuNMT can parallelize to multiple GPUs processing one sentence per GPU. Translation speed increases to 1,385 words per second with four GPUs, to 1,682 with vocabulary selection. 
 AmuNMT has a start-up time of less than 10 seconds, while Nematus may need several minutes until the first translation can be produced. Nevertheless, the model used in AmuNMT is an exact implementation of the Nematus model.
 
 The size of the NMT model with the chosen parameters is approximately 300 MB, which means about 24 models could be loaded onto a single GPU with 8GB of RAM. Hardly any overhead is required during translation. With multiple GPUs, access could be parallelized and optimally scheduled in a query-based server setting. 
