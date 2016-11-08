@@ -2,6 +2,7 @@
 #include "common/god.h"
 #include "common/vocab.h"
 #include "gpu/types-gpu.h"
+#include "gpu/decoder/best_hyps.h"
 
 namespace GPU {
 
@@ -30,14 +31,12 @@ void ApePenalty::SetSource(const Sentence& source) {
 }
 
 // @TODO: make this work on GPU
-void ApePenalty::Score(const State& in,
-		BaseMatrix& prob,
-		State& out) {
-  mblas::Matrix &probCast = static_cast<mblas::Matrix&>(prob);
-  size_t cols = probCast.Cols();
+void ApePenalty::Score(const State& in, State& out) {
+  size_t cols = Probs_.Cols();
   costs_.resize(cols, -1.0);
-  for(size_t i = 0; i < prob.Rows(); ++i)
-	algo::copy(costs_.begin(), costs_.begin() + cols, probCast.begin() + i * cols);
+  for(size_t i = 0; i < Probs_.Rows(); ++i) {
+    algo::copy(costs_.begin(), costs_.begin() + cols, Probs_.begin() + i * cols);
+  }
 }
 
 State* ApePenalty::NewState() {
@@ -54,9 +53,8 @@ size_t ApePenalty::GetVocabSize() const {
   UTIL_THROW2("Not correctly implemented");
 }
 
-BaseMatrix *ApePenalty::CreateMatrix()
-{
-	UTIL_THROW2("Not correctly implemented");
+BaseMatrix& ApePenalty::GetProbs() {
+  return Probs_;
 }
 
 /////////////////////////////////////////////////////
@@ -91,6 +89,10 @@ ScorerPtr ApePenaltyLoader::NewScorer(size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new ApePenalty(name_, config_, tab,
                                   srcTrgMap_, penalties_));
+}
+
+BestHypsType ApePenaltyLoader::GetBestHyps() {
+  return GPU::BestHyps();
 }
 
 }

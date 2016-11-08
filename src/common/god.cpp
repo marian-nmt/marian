@@ -186,9 +186,20 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   return scorers;
 }
 
+BestHypsType God::GetBestHyps(size_t threadId) {
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  if (threadId < cpuThreads) {
+    return Summon().cpuLoaders_.begin()->second->GetBestHyps();
+  } else {
+    return Summon().gpuLoaders_.begin()->second->GetBestHyps();
+  }
+}
+
 std::vector<std::string> God::GetScorerNames() {
   std::vector<std::string> scorerNames;
   for(auto&& name : Summon().cpuLoaders_ | boost::adaptors::map_keys)
+    scorerNames.push_back(name);
+  for(auto&& name : Summon().gpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
   return scorerNames;
 }

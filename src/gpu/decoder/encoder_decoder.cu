@@ -3,9 +3,10 @@
 #include "common/god.h"
 
 #include "encoder_decoder.h"
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/matrix_functions.h"
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
+#include "gpu/decoder/best_hyps.h"
 
 using namespace std;
 
@@ -39,20 +40,21 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
                const YAML::Node& config,
                size_t tab,
                const Weights& model)
-: Scorer(name, config, tab), model_(model),
-  encoder_(new Encoder(model_)), decoder_(new Decoder(model_)),
-  SourceContext_(new mblas::Matrix())
+  : Scorer(name, config, tab),
+    model_(model),
+    encoder_(new Encoder(model_)),
+    decoder_(new Decoder(model_)),
+    indeces_(God::Get<size_t>("beam-size")),
+    SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const State& in,
-		BaseMatrix& prob,
-		State& out) {
+void EncoderDecoder::Score(const State& in,State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  mblas::Matrix &probCast = static_cast<mblas::Matrix&>(prob);
-  decoder_->MakeStep(edOut.GetStates(), probCast,
-                     edIn.GetStates(), edIn.GetEmbeddings(),
+  decoder_->MakeStep(edOut.GetStates(),
+                     edIn.GetStates(),
+                     edIn.GetEmbeddings(),
                      *SourceContext_);
 }
 
@@ -67,9 +69,7 @@ void EncoderDecoder::BeginSentenceState(State& state) {
 }
 
 void EncoderDecoder::SetSource(const Sentence& source) {
-  //cerr << "SetSource" << endl;
-  encoder_->GetContext(source.GetWords(tab_),
-                       *SourceContext_);
+  encoder_->GetContext(source.GetWords(tab_), *SourceContext_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
@@ -84,14 +84,20 @@ void EncoderDecoder::AssembleBeamState(const State& in,
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
+  indeces_.resize(beamStateIds.size());
+  thrust::host_vector<size_t> tmp = beamStateIds;
+  mblas::copy_n(tmp.begin(), beamStateIds.size(), indeces_.begin());
 
-  mblas::Assemble(edOut.GetStates(),
-                  edIn.GetStates(), beamStateIds);
+  mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indeces_);
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
   decoder_->GetAttention(Attention);
+}
+
+BaseMatrix& EncoderDecoder::GetProbs() {
+  return decoder_->GetProbs();
 }
 
 mblas::Matrix& EncoderDecoder::GetAttention() {
@@ -104,12 +110,6 @@ size_t EncoderDecoder::GetVocabSize() const {
 
 void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
-}
-
-BaseMatrix *EncoderDecoder::CreateMatrix()
-{
-  mblas::Matrix *ret = new mblas::Matrix();
-  return ret;
 }
 
 EncoderDecoder::~EncoderDecoder() {}
@@ -143,6 +143,10 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[i]));
+}
+
+BestHypsType EncoderDecoderLoader::GetBestHyps() {
+  return GPU::BestHyps();
 }
 
 }

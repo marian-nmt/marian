@@ -51,7 +51,7 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const State& in, BaseMatrix& prob, State& out);
+    virtual void Score(const State& in, State& out);
 
     virtual State* NewState();
 
@@ -68,7 +68,7 @@ class EncoderDecoder : public Scorer {
 
     size_t GetVocabSize() const;
 
-    BaseMatrix *CreateMatrix();
+    BaseMatrix& GetProbs();
 
     void Filter(const std::vector<size_t>& filterIds);
 
@@ -82,20 +82,6 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<CPU::Decoder> decoder_;
 
     mblas::Matrix SourceContext_;
-};
-
-////////////////////////////////////////////////
-class EncoderDecoderLoader : public Loader {
-  public:
-    EncoderDecoderLoader(const std::string name,
-                         const YAML::Node& config);
-
-    virtual void Load();
-
-    virtual ScorerPtr NewScorer(const size_t taskId);
-
-  private:
-    std::vector<std::unique_ptr<Weights>> weights_;
 };
 
 }

@@ -1,16 +1,15 @@
-#include "matrix.h"
+#include "gpu/mblas/matrix_functions.h"
+
+#include "gpu/mblas/handles.h"
 
 namespace GPU {
-
 namespace mblas {
 
 #ifdef __APPLE__
 boost::thread_specific_ptr<cublasHandle_t> CublasHandler::handle_;
 #else
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
-
-template <class VecType>
-thread_local cudaStream_t* TMatrix<VecType>::stream_ = nullptr;
+thread_local CudaStreamHandler* CudaStreamHandler::instance_ = nullptr;;
 #endif
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
@@ -30,7 +29,8 @@ Matrix& Mean(Matrix& Out, const Matrix& In) {
   size_t m = In.Rows();
   size_t n = In.Cols();
 
-  Out.Resize(1, n, 0.f);
+  Out.Resize(1, n);
+  Fill(Out, 0.0f);
   Matrix Ones(1, m, 1.f);
 
   float alpha = 1.0 / m;
@@ -65,15 +65,13 @@ Matrix& Transpose(Matrix& Out) {
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
   Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
-  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
-               In.begin(), In.end(), Out.begin() + oldSize);
+  mblas::copy(In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
-  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
-               In.begin(), In.end(), Out.begin());
+  mblas::copy(In.begin(), In.end(), Out.begin());
   return Out;
 }
 
@@ -81,8 +79,7 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r, const size_t c) {
   size_t start = r * Out.Cols() + c;
-  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
-               In.begin(), In.end(), Out.begin() + start);
+  mblas::copy(In.begin(), In.end(), Out.begin() + start);
   return Out;
 }
 
@@ -93,18 +90,17 @@ Matrix& CopyRow(Matrix& Out,
   Out.Resize(1, length);
   size_t start = r * In.Cols() + c;
   size_t end   = start + length;
-  thrust::copy(thrust::cuda::par.on(Matrix::GetStream()),
-               In.begin() + start, In.begin() + end, Out.begin());
+  mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
   return Out;
 }
 
 __global__ void gCopyRows(float* out, const float* in, size_t cols,
-                          const RowPair* devPairs, size_t numPairs) {
+                          const size_t* targetRowIdx, size_t numPairs) {
   for(int bid = 0; bid < numPairs; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < numPairs) {
-      size_t dstId = devPairs[j].first;
-      size_t srcId = devPairs[j].second;
+      size_t dstId = j;
+      size_t srcId = targetRowIdx[j];
 
       float* rowOut = out + dstId * cols;
       const float* rowIn = in + srcId * cols;
@@ -120,33 +116,26 @@ __global__ void gCopyRows(float* out, const float* in, size_t cols,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const RowPair* devPairs,
+                 const size_t* dev,
                  size_t numPairs) {
   float* d_out = Out.data();
   const float* d_in = In.data();
 
   int threads = std::min(MAX_THREADS, (int)In.Cols());
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);;
-  gCopyRows<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, In.Cols(), devPairs, numPairs);
+
+  gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (d_out, d_in, In.Cols(), dev, numPairs);
+
   return Out;
 }
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const RowPairs& pairs) {
-  thrust::device_vector<RowPair> devPairs = pairs;
-  CopyRows(Out, In, thrust::raw_pointer_cast(devPairs.data()), devPairs.size());
-  return Out;
-}
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const std::vector<size_t>& indeces) {
-  RowPairs rowPairs;
-  for(size_t i = 0; i < indeces.size(); i++)
-    rowPairs.emplace_back(i, indeces[i]);
-  Out.Resize(rowPairs.size(), In.Cols());
-  CopyRows(Out, In, rowPairs);
+                 const DeviceVector<size_t>& indeces) {
+  Out.Resize(indeces.size(), In.Cols());
+  CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }
 
@@ -179,7 +168,9 @@ Matrix& Slice(Matrix& Out,
 
   int threads = std::min(MAX_THREADS, (int)dim);
   int blocks = std::min(MAX_BLOCKS, (int)In.Rows());
-  gSlice<<<blocks, threads, 0, Matrix::GetStream()>>>(d_out, d_in, n, dim, In.Rows(), In.Cols());
+
+  gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (d_out, d_in, n, dim, In.Rows(), In.Cols());
   return Out;
 }
 
@@ -265,7 +256,9 @@ Matrix& Softmax(Matrix& Out) {
   int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   int shared = sizeof(float) * threads * 2;
-  gSoftMax<<<blocks, threads, shared, Matrix::GetStream()>>>(Out.data(), Out.Rows(), Out.Cols());
+
+  gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
+    (Out.data(), Out.Rows(), Out.Cols());
   return Out;
 }
 
@@ -284,8 +277,6 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
           _sum[threadIdx.x] += sp[id];
         }
       }
-
-      __syncthreads();
 
       int len = blockDim.x;
       while (len != 1) {
@@ -310,12 +301,51 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
   }
 }
 
+
 Matrix& LogSoftmax(Matrix& Out) {
   int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   int shared = sizeof(float) * threads * 2;
-  gLogSoftMax<<<blocks, threads, shared, Matrix::GetStream()>>>(Out.data(), Out.Rows(), Out.Cols());
+
+  gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
+    (Out.data(), Out.Rows(), Out.Cols());
+
   return Out;
+}
+
+__global__ void gSetColumn(float* d_in, int n_columns, int n_rows, int noColumn, float value) {
+  int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
+  int index = noColumn + rowNumber * n_columns;
+
+  if (index < n_columns * n_rows) {
+    d_in[index] = value;
+  }
+}
+
+void SetColumn(Matrix& In, int noColumn, float value) {
+  int nColumns = In.Cols();
+  int nRows = In.Rows();
+  int nBlocks = nRows / 512 + (nRows % 512 == 0) ?  0 : 1;
+  int nThreads = std::min(512, nRows);
+
+  gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
+    (In.data(), nColumns, nRows, noColumn, value);
+}
+
+__global__ void gFill(float* d_in, int size, float val) {
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+  if (index < size) {
+    d_in[index] = val;
+  }
+}
+
+void Fill(Matrix& In, float value) {
+  size_t size = In.size();
+  int nThreads = std::min(512, (int)size);
+  int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
+
+  gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (In.data(), size, value);
 }
 
 }  // namespace mblas
