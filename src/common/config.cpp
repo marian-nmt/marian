@@ -4,6 +4,13 @@
 #include "file_stream.h"
 #include "exception.h"
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+#ifndef AMUNMT_BUILD_VERSION
+#define AMUNMT_BUILD_VERSION 000000
+#endif
+
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
   config_[key] = vm_[key].as<type>(); \
@@ -199,6 +206,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Use WIPO specific n-best-list format and non-buffering single-threading")
     ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return alignment.")
+    ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
+     "Print version.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
   ;
@@ -247,6 +256,11 @@ void Config::AddOptions(size_t argc, char** argv) {
   if (vm_["help"].as<bool>()) {
     std::cerr << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
     std::cerr << cmdline_options << std::endl;
+    exit(0);
+  }
+
+  if (vm_["version"].as<bool>()) {
+    std::cerr << TOSTRING(AMUNMT_BUILD_VERSION) << std::endl;
     exit(0);
   }
 

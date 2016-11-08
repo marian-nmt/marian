@@ -12,6 +12,7 @@
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
+#include <thrust/execution_policy.h>
 
 #ifdef __APPLE__
 #include <boost/thread/tss.hpp>
@@ -28,8 +29,6 @@
 #include "gpu/types-gpu.h"
 #include "gpu/nth_element.h"
 
-namespace lib = thrust;
-namespace iterlib = thrust;
 
 namespace GPU {
 namespace mblas {
@@ -112,14 +111,12 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug() const
     {
       std::stringstream strm;
-      strm << Rows() << "x" << Cols() << ":"; // ":\n";
+      strm << Rows() << "x" << Cols() << ":";
       for (size_t row = 0; row < Rows(); ++row) {
         float rowSum = 0;
         for (size_t col = 0; col < Cols(); ++col) {
-          //strm << (*this)(row, col) << " ";
           rowSum += (*this)(row, col);
         }
-        //strm << std::endl;
         strm << rowSum << " ";
       }
       return strm.str();
@@ -175,190 +172,199 @@ class TMatrix : public BaseMatrix {
     }
 
     virtual void BestHyps(Beam& bestHyps,
-      const Beam& prevHyps,
-      BaseMatrices& ProbsEnsemble,
-      const size_t beamSize,
-      History& history,
-			const std::vector<ScorerPtr> &scorers,
-			const Words &filterIndices,
-      bool returnAlignment) const
-    {
-	  using namespace mblas;
-	  typedef TMatrix<VecType> M;
+        const Beam& prevHyps,
+        BaseMatrices& ProbsEnsemble,
+        const size_t beamSize,
+        History& history,
+        const std::vector<ScorerPtr>& scorers,
+        const Words& filterIndices,
+        bool returnAlignment) const {
+      using namespace mblas;
+      typedef TMatrix<VecType> M;
 
-	  auto& weights = God::GetScorerWeights();
+      auto& weights = God::GetScorerWeights();
 
-	  M& Probs = static_cast<M&>(*ProbsEnsemble[0]);
+      M& Probs = static_cast<M&>(*ProbsEnsemble[0]);
 
-	  M Costs(Probs.Rows(), 1);
-	  HostVector<float> vCosts;
-	  for(auto& h : prevHyps)
-		vCosts.push_back(h->GetCost());
-	  algo::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+      Costs.reserve(Probs.Rows());
+      HostVector<float> vCosts;
+      for (auto& h : prevHyps)
+        vCosts.push_back(h->GetCost());
+      algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
+                vCosts.begin(), vCosts.end(), Costs.begin());
 
-	  BroadcastVecColumn(weights[scorers[0]->GetName()] * _1 + _2,
-						 Probs, Costs);
-	  for(size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-		  M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
+      BroadcastVecColumn(weights[scorers[0]->GetName()] * _1 + _2,
+                        Probs, Costs);
+      for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+        M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
 
-		  Element(_1 + weights[scorers[i]->GetName()] * _2,
-				Probs, currProbs);
-	  }
-
-	  DeviceVector<unsigned> keys(Probs.size());
-	  HostVector<unsigned> bestKeys(beamSize);
-	  HostVector<float> bestCosts(beamSize);
-
-	  // @TODO: make this more efficient
-	  if (!God::Get<bool>("allow-unk")) {
-        for(size_t i = 0; i < Probs.Rows(); i++)
-            Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
-        }
-
-        /*
-        thrust::sequence(keys.begin(), keys.end());
-        thrust::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
-                            ProbCompare(Probs.data()));
-
-        for(int i = 0; i < beamSize; ++i) {
-            bestKeys[i] = keys[i];
-            // solve this better
-            bestCosts[i] = Probs.GetVec()[keys[i]];
-        }*/
-
-        // @TODO: Here we need to have a partial sort
-        if (beamSize < 10) {
-        for (size_t i = 0; i < beamSize; ++i) {
-            DeviceVector<float>::iterator iter =
-            algo::max_element(Probs.begin(), Probs.end());
-            bestKeys[i] = iter - Probs.begin();
-            bestCosts[i] = *iter;
-            *iter = std::numeric_limits<float>::lowest();
-        }
-        algo::copy(bestKeys.begin(), bestKeys.end(), keys.begin());
-	  }
-	  else {
-        // these two function do not have equivalents in
-        // in the standard library or boost, keeping thrust
-        // namespace for now
-        thrust::sequence(keys.begin(), keys.end());
-        thrust::sort_by_key(Probs.begin(), Probs.end(),
-                            keys.begin(), algo::greater<float>());
-
-        algo::copy_n(keys.begin(), beamSize, bestKeys.begin());
-        algo::copy_n(Probs.begin(), beamSize, bestCosts.begin());
-	  }
-
-
-	  std::vector<HostVector<float>> breakDowns;
-	  bool doBreakdown = God::Get<bool>("n-best");
-	  if (doBreakdown) {
-        breakDowns.push_back(bestCosts);
-        for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
-            HostVector<float> modelCosts(beamSize);
-            M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
-
-            auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
-            algo::copy(it, it + beamSize, modelCosts.begin());
-            breakDowns.push_back(modelCosts);
-        }
-	  }
-
-
-    bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
-
-    for (size_t i = 0; i < beamSize; i++) {
-    size_t wordIndex = bestKeys[i] % Probs.Cols();
-    if (filter) {
-      wordIndex = filterIndices[wordIndex];
-    }
-
-    size_t hypIndex  = bestKeys[i] / Probs.Cols();
-    float cost = bestCosts[i];
-
-    HypothesisPtr hyp;
-    if (returnAlignment) {
-      std::vector<SoftAlignmentPtr> alignments;
-      for (auto& scorer : scorers) {
-        if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
-          auto& attention = encdec->GetAttention();
-          size_t attLength = attention.Cols();
-
-          alignments.emplace_back(new SoftAlignment(attention.begin() + hypIndex * attLength,
-                                                    attention.begin() + (hypIndex + 1) * attLength));
-      } else {
-        UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+        Element(_1 + weights[scorers[i]->GetName()] * _2,
+          Probs, currProbs);
       }
-    }
-      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost, alignments));
-    } else {
-      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
-    }
 
-    if(doBreakdown) {
-    hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
-    float sum = 0;
-    for (size_t j = 0; j < ProbsEnsemble.size(); ++j) {
-        if (j == 0)
-        hyp->GetCostBreakdown()[0] = breakDowns[0][i];
-        else {
-        float cost = 0;
-        if (j < ProbsEnsemble.size()) {
-            if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
-            const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
-            cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+      keys.resize(Probs.size());
+      thrust::host_vector<unsigned> bestKeys(beamSize);
+      thrust::host_vector<float> bestCosts(beamSize);
+
+      // @TODO: make this more efficient
+      if (!God::Get<bool>("allow-unk")) {
+        for (size_t i = 0; i < Probs.Rows(); i++)
+          Probs.Set(i, UNK, std::numeric_limits<float>::lowest());
+      }
+
+      // @TODO: Here we need to have a partial sort
+      if (beamSize < 10) {
+        for (size_t i = 0; i < beamSize; ++i) {
+          DeviceVector<float>::iterator iter =
+          algo::max_element(thrust::cuda::par.on(Matrix::GetStream()),
+                            Probs.begin(), Probs.end());
+          bestKeys[i] = iter - Probs.begin();
+          bestCosts[i] = *iter;
+          *iter = std::numeric_limits<float>::lowest();
         }
-        sum += weights[scorers[j]->GetName()] * cost;
-        hyp->GetCostBreakdown()[j] = cost;
+        algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
+                  bestKeys.begin(), bestKeys.end(), keys.begin());
+      }
+      else {
+          // these two function do not have equivalents in
+          // in the standard library or boost, keeping thrust
+          // namespace for now
+          thrust::sequence(thrust::cuda::par.on(Matrix::GetStream()),
+                          keys.begin(), keys.end());
+          thrust::sort_by_key(thrust::cuda::par.on(Matrix::GetStream()), Probs.begin(), Probs.end(),
+                              keys.begin(), algo::greater<float>());
+
+          thrust::copy_n(thrust::cuda::par.on(Matrix::GetStream()),
+                      keys.begin(), beamSize, bestKeys.begin());
+          thrust::copy_n(thrust::cuda::par.on(Matrix::GetStream()),
+                      Probs.begin(), beamSize, bestCosts.begin());
+      }
+
+
+      std::vector<HostVector<float>> breakDowns;
+      bool doBreakdown = God::Get<bool>("n-best");
+      if (doBreakdown) {
+          breakDowns.push_back(bestCosts);
+          for (size_t i = 1; i < ProbsEnsemble.size(); ++i) {
+              HostVector<float> modelCosts(beamSize);
+              M &currProbs = static_cast<M&>(*ProbsEnsemble[i]);
+
+              auto it = iteralgo::make_permutation_iterator(currProbs.begin(), keys.begin());
+              algo::copy(thrust::cuda::par.on(Matrix::GetStream()),
+                        it, it + beamSize, modelCosts.begin());
+              breakDowns.push_back(modelCosts);
+          }
+      }
+
+      bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+
+      for (size_t i = 0; i < beamSize; i++) {
+        size_t wordIndex = bestKeys[i] % Probs.Cols();
+        if (filter) {
+          wordIndex = filterIndices[wordIndex];
         }
+
+        size_t hypIndex  = bestKeys[i] / Probs.Cols();
+        float cost = bestCosts[i];
+
+        HypothesisPtr hyp;
+        if (returnAlignment) {
+          std::vector<SoftAlignmentPtr> alignments;
+          for (auto& scorer : scorers) {
+            if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
+              auto& attention = encdec->GetAttention();
+              size_t attLength = attention.Cols();
+
+              alignments.emplace_back(new SoftAlignment(attention.begin() + hypIndex * attLength,
+                                                        attention.begin() + (hypIndex + 1) * attLength));
+            } else {
+              UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+            }
+          }
+          hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost, alignments));
+        } else {
+          hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
+        }
+
+        if(doBreakdown) {
+        hyp->GetCostBreakdown().resize(ProbsEnsemble.size());
+        float sum = 0;
+        for (size_t j = 0; j < ProbsEnsemble.size(); ++j) {
+            if (j == 0)
+            hyp->GetCostBreakdown()[0] = breakDowns[0][i];
+            else {
+            float cost = 0;
+            if (j < ProbsEnsemble.size()) {
+                if(prevHyps[hypIndex]->GetCostBreakdown().size() < ProbsEnsemble.size())
+                const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(ProbsEnsemble.size(), 0.0);
+                cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
+            }
+            sum += weights[scorers[j]->GetName()] * cost;
+            hyp->GetCostBreakdown()[j] = cost;
+            }
+        }
+        hyp->GetCostBreakdown()[0] -= sum;
+        hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
+      }
+      bestHyps.push_back(hyp);
     }
-    hyp->GetCostBreakdown()[0] -= sum;
-    hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
+  }
+
+  static cudaStream_t& GetStream() {
+    if (stream_ == nullptr) {
+      assert(stream_ == nullptr);
+      stream_ = new cudaStream_t;
+      // cudaStreamsreateWithFlags(stream_, cudaStreamNonBlocking);
+      cudaStreamCreate(stream_);
     }
-    bestHyps.push_back(hyp);
-    }
+    return *stream_;
   }
 
   private:
     size_t rows_;
     size_t cols_;
     VecType data_;
+    static thread_local cudaStream_t* stream_;
+    mutable thrust::device_vector<unsigned> keys;
+    mutable thrust::device_vector<float> Costs;
 };
 
 typedef thrust::device_vector<float> FVec;
 typedef thrust::device_vector<unsigned int> IVec;
 
 class CublasHandler {
-public:
-
-  static cublasHandle_t GetHandle() {
+  public:
+    static cublasHandle_t GetHandle() {
 #ifdef __APPLE__
-    cublasHandle_t *handle = handle_.get();
-    if (handle == nullptr) {
-  	  handle = new cublasHandle_t;
-  	  handle_.reset(handle);
-    }
-    return *handle;
+      cublasHandle_t *handle = handle_.get();
+      if (handle == nullptr) {
+        handle = new cublasHandle_t;
+        handle_.reset(handle);
+      }
+      return *handle;
 #else
-    if(handle_ == nullptr) {
-		assert(handle_ == nullptr);
-		handle_ = new cublasHandle_t;
-		cublasCreate(handle_);
-    }
-    return *handle_;
+      if(handle_ == nullptr) {
+      assert(handle_ == nullptr);
+      handle_ = new cublasHandle_t;
+      cublasCreate(handle_);
+      cublasSetStream(*handle_, Matrix::GetStream());
+      }
+      return *handle_;
 #endif
-  }
+    }
 
-private:
-  ~CublasHandler()
-  {
-	// not called. Leaking handles
-  }
+  private:
+    ~CublasHandler() {
+      cublasDestroy(*handle_);
+      if (handle_) {
+        delete handle_;
+      }
+    }
 
 #ifdef __APPLE__
-  static boost::thread_specific_ptr<cublasHandle_t> handle_;
+    static boost::thread_specific_ptr<cublasHandle_t> handle_;
 #else
-  static thread_local cublasHandle_t* handle_;
+    static thread_local cublasHandle_t* handle_;
 #endif
 };
 
@@ -390,11 +396,13 @@ Matrix& Copy(Matrix& Out, const Matrix& In);
 
 Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
-                 const size_t r = 0, const size_t c = 0);
+                 const size_t r = 0,
+                 const size_t c = 0);
 
 Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
-                const size_t r = 0, const size_t c = 0);
+                const size_t r = 0,
+                const size_t c = 0);
 
 typedef std::pair<size_t, size_t> RowPair;
 typedef std::vector<RowPair> RowPairs;
@@ -427,6 +435,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 
 Matrix& Softmax(Matrix& Out);
 
+Matrix& LogSoftmax(Matrix& Out);
+
 template <class Functor>
 __global__ void gBroadcast(Functor functor,
                            float* out, const float* in1, const float* in2,
@@ -449,7 +459,7 @@ __global__ void gBroadcast(Functor functor,
 }
 
 template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows1 = Out.Rows();
   size_t rows2 = In.Rows();
 
@@ -464,21 +474,20 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t s
 
   int blocks  = std::min(MAX_BLOCKS, (int)rows);
   int threads = std::min(MAX_THREADS, (int)cols);
-  gBroadcast<<<blocks, threads, 0, stream>>>(functor, d_out, d_in1, d_in2,
-                                             rows, rows1, cols);
-  cudaStreamSynchronize(stream);
+  gBroadcast<<<blocks, threads, 0, Matrix::GetStream()>>>(functor, d_out, d_in1, d_in2,
+                                                          rows, rows1, cols);
   Swap(Out, Temp);
   return Out;
 }
 
 template <class Functor>
-Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
   // @TODO: Make this efficient with special kernel!
   Matrix InTemp;
   Transpose(InTemp, In);
 
   Transpose(Out);
-  Broadcast(functor, Out, InTemp, stream);
+  Broadcast(functor, Out, InTemp);
   Transpose(Out);
   return Out;
 }
@@ -502,7 +511,20 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const thrust::device_vector<float>& In) {
+  size_t rows  = Out.Rows();
+  size_t cols = Out.Cols();
+
+  float* d_out = Out.data();
+  const float* d_in = thrust::raw_pointer_cast(In.data());
+
+  int blocks  = std::min(MAX_BLOCKS, (int)cols);
+  int threads = std::min(MAX_THREADS, (int)rows);
+  gBroadcastVecColumn<<<blocks, threads, 0, Matrix::GetStream()>>>(functor, d_out, d_in, rows, cols);
+  return Out;
+}
+template <class Functor>
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In) {
   size_t rows  = Out.Rows();
   size_t cols = Out.Cols();
 
@@ -511,8 +533,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const Matrix& In, cudaS
 
   int blocks  = std::min(MAX_BLOCKS, (int)cols);
   int threads = std::min(MAX_THREADS, (int)rows);
-  gBroadcastVecColumn<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, rows, cols);
-  cudaStreamSynchronize(stream);
+  gBroadcastVecColumn<<<blocks, threads, 0, Matrix::GetStream()>>>(functor, d_out, d_in, rows, cols);
   return Out;
 }
 
@@ -535,7 +556,6 @@ __global__ void gBroadcastVec(Functor functor,
 
 template <class Functor>
 Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
-  //Broadcast(functor, Out, In, stream);
   size_t rows  = Out.Rows();
   size_t cols = Out.Cols();
 
@@ -544,8 +564,8 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 
   int blocks  = std::min(MAX_BLOCKS, (int)rows);
   int threads = std::min(MAX_THREADS, (int)cols);
+  stream = Matrix::GetStream();
   gBroadcastVec<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, rows, cols);
-  cudaStreamSynchronize(stream);
   return Out;
 }
 
@@ -610,8 +630,8 @@ Matrix& Element(Functor functor, Matrix& Out) {
   float* d_out = Out.data();
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  gElement<<<blocks, threads>>>(functor, d_out, Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
+  cudaStream_t& stream = Matrix::GetStream();
+  gElement<<<blocks, threads, 0, stream>>>(functor, d_out, Out.Rows(), Out.Cols());
   return Out;
 }
 
@@ -623,8 +643,8 @@ Matrix& Element(Functor functor,
 
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  gElement<<<blocks, threads>>>(functor, d_out, d_in, Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
+  cudaStream_t& stream = Matrix::GetStream();
+  gElement<<<blocks, threads, 0, stream>>>(functor, d_out, d_in, Out.Rows(), Out.Cols());
   return Out;
 }
 
@@ -638,11 +658,11 @@ Matrix& Element(Functor functor,
 
   int blocks  = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  gElement<<<blocks, threads>>>(functor, d_out, d_in1, d_in2,
+  cudaStream_t& stream = Matrix::GetStream();
+  gElement<<<blocks, threads, 0, stream>>>(functor, d_out, d_in1, d_in2,
                                 Out.Rows(), Out.Cols());
-  cudaStreamSynchronize(0);
   return Out;
 }
 
-}
-}
+}  // namespace mblas
+}  // namespace GPU
