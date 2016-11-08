@@ -6,6 +6,7 @@
 #include "gpu/mblas/matrix.h"
 
 namespace GPU {
+
 class EncoderDecoderState : public State {
   public:
     virtual std::string Debug() const;
@@ -19,4 +20,5 @@ class EncoderDecoderState : public State {
     mblas::Matrix states_;
     mblas::Matrix embeddings_;
 };
-}
+
+}  // namespace GPU
