@@ -40,6 +40,25 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int in_size) 
     indices[tid] = i;
   }
 
+  while (i + 2 * gridDim.x * blockDim.x < in_size) {
+    i += 2 * gridDim.x * blockDim.x;
+
+    float a = d_in[i];
+    if (a > sdata[tid]) {
+      sdata[tid] = a;
+      indices[tid] = i;
+    }
+
+    if (i + blockDim.x < in_size) {
+      float b = d_in[i + blockDim.x];
+      if (b > sdata[tid]) {
+        sdata[tid] = b;
+        indices[tid] = i + blockDim.x;
+      }
+    }
+  }
+  i = blockIdx.x * (blockDim.x * 2) + tid;
+
   __syncthreads();
 
   for (int s = (blockDim.x >> 1); s > 0; s >>= 1) {
@@ -93,11 +112,23 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
 
   const int N_BLOCKS = (N / (2 * BLOCK_SIZE)) + (N % (2 * BLOCK_SIZE) != 0);
 
+  /* std::cerr << "N: " << N << "\t beam-size: " << n << std::endl; */
+  /* std::cerr << "#BLOCKS: " << N_BLOCKS << std::endl; */
+  /* cudaStreamSynchronize(stream_); */
+
   for (size_t i = 0; i < n; ++i) {
     gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
       (d_out, d_ind, d_in, N);
 
-    gMaxElement<<<1, 256, 256 * sizeof(float), stream_>>>
+      /* cudaStreamSynchronize(stream_); */
+      /* float *tmp= new float[N_BLOCKS]; */
+      /* cudaMemcpy(tmp, d_out, N_BLOCKS * sizeof(float), cudaMemcpyDeviceToHost); */
+      /* for (int k = 0; k < N_BLOCKS; ++k) std::cerr << k << ": " << tmp[k] << "\t"; */
+      /* std::cerr << std::endl; */
+      /* std::cerr << "\n>>>>>>>>\n"; */
+      /* delete [] tmp; */
+
+    gMaxElement<<<1, 512, 512 * sizeof(float), stream_>>>
       (d_res + i, d_res_idx + i, d_out, N_BLOCKS);
 
     gSet<<<1, 1, 0, stream_>>>
