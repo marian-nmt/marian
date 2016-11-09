@@ -26,7 +26,19 @@ class BestHyps {
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys) {
       size_t nElements = Probs.Cols() * Probs.Rows();
-      nthElement_.getNBestList(Probs.data(), nElements, beamSize, outKeys, outCosts);
+      if (beamSize < 6) {
+        nthElement_.getNBestList(Probs.data(), nElements, beamSize, outKeys, outCosts);
+      } else {
+        keys.resize(nElements);
+        thrust::sequence(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
+                         keys.begin(), keys.end());
+        thrust::sort_by_key(thrust::cuda::par.on(mblas::CudaStreamHandler::GetStream()),
+                            Probs.begin(), Probs.end(),
+                            keys.begin(), thrust::greater<float>());
+
+        mblas::copy_n(keys.begin(), beamSize, outKeys.begin());
+        mblas::copy_n(Probs.begin(), beamSize, outCosts.begin());
+      }
     }
 
     std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
