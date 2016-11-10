@@ -229,7 +229,7 @@ struct MultNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x")
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("×")
       << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;

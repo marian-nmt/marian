@@ -17,32 +17,23 @@ using namespace models;
 
 int main(int argc, char** argv) {
 
-  auto trainSet =
-    DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
-                   "../examples/mnist/train-labels-idx1-ubyte");
+  auto g = New<ExpressionGraph>();
+  auto x = name(g->input(shape={whatevs, 784}),
+                "x");
+  auto y = name(g->input(shape={whatevs, 10}),
+                "y");
 
-  auto validSet =
-    DataSet<MNIST>("../examples/mnist/t10k-images-idx3-ubyte",
-                   "../examples/mnist/t10k-labels-idx1-ubyte");
+  auto w = name(g->param(shape={784, 10}, init=uniform()), "W");
+  auto b = name(g->param(shape={1, 10}, init=zeros), "b");
 
-  auto ff =
-    FeedforwardClassifier({
-      validSet->dim(0), 2048, 2048, validSet->dim(1)
-    });
 
-  //ff->graphviz("mnist_benchmark.dot");
+  auto cost = name(mean(sum(log(softmax(dot(x, w) + b)) * y), axis=0),
+                   "cost");
 
-  auto trainer =
-    Run<Trainer>(ff, trainSet,
-                 optimizer=Optimizer<Adam>(0.0002),
-                 batch_size=200,
-                 max_epochs=50);
-  trainer->run();
 
-  auto validator =
-    Run<Validator>(ff, validSet,
-                   batch_size=200);
-  validator->run();
+  g->graphviz("mnist_logistic.dot");
+
+
 
 
   return 0;

@@ -271,7 +271,7 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 struct SumNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   SumNodeOp(Expr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
 
   void forward() {
     Sum(val_, a_->val(), Get(keywords::axis, -1));
@@ -281,8 +281,9 @@ struct SumNodeOp : public UnaryNodeOp {
     SumBackward(a_->grad(), adj_, Get(keywords::axis, -1));
   }
 
-  Shape newShape(Expr a) {
-    int ax = Get(keywords::axis, -1);
+  template <class ...Args>
+  Shape newShape(Expr a, Args ...args) {
+    int ax = keywords::Get(keywords::axis, -1, args...);
     Shape shape = a->shape();
     if(ax == 0) {
       shape[0] = 1;
@@ -310,7 +311,7 @@ struct SumNodeOp : public UnaryNodeOp {
 struct MeanNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   MeanNodeOp(Expr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
 
   void forward() {
     Sum(val_, a_->val(), Get(keywords::axis, -1), true);
@@ -320,8 +321,9 @@ struct MeanNodeOp : public UnaryNodeOp {
     SumBackward(a_->grad(), adj_, Get(keywords::axis, -1), true);
   }
 
-  Shape newShape(Expr a) {
-    int ax = Get(keywords::axis, -1);
+  template <class ...Args>
+  Shape newShape(Expr a, Args ...args) {
+    int ax = keywords::Get(keywords::axis, -1, args...);
     Shape shape = a->shape();
     if(ax == 0) {
       shape[0] = 1;
