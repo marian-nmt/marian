@@ -2,6 +2,12 @@
 include_directories(.)
 include_directories(3rd_party)
 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/common/git_version.cpp.in"
+	       "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp" @ONLY)
+
+list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp")
+
+
 add_library(cpumode OBJECT
   cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
@@ -13,6 +19,7 @@ add_library(cpumode OBJECT
 )
 
 add_library(libcommon OBJECT
+  ${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp
   common/config.cpp
   common/exception.cpp
   common/filter.cpp
@@ -66,17 +73,6 @@ cuda_add_library(amunmt SHARED
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
-
-#cuda_add_executable(
-#  nth
-#  gpu/nth_benchmark.cu
-#  gpu/mblas/matrix.cu
-#  $<TARGET_OBJECTS:libcommon>
-#  $<TARGET_OBJECTS:libcnpy>
-#  $<TARGET_OBJECTS:cpumode>
-#  $<TARGET_OBJECTS:libyaml-cpp>
-#)
-
 
 else(CUDA_FOUND)
 

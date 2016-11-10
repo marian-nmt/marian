@@ -6,7 +6,7 @@ namespace GPU {
 
 static void HandleError(cudaError_t err, const char *file, int line ) {
   if (err != cudaSuccess) {
-    printf("%s in %s at line %d\n", cudaGetErrorString( err ), file, line);
+    std::cerr << "ERROR: " << cudaGetErrorString(err) << " in " << file << " at line " << line << std::endl;
     exit( EXIT_FAILURE );
   }
 }
@@ -82,6 +82,76 @@ __global__ void gSet(float* d_in, int* d_idx, int* index) {
   d_in[*index] = -3.40282e+38f;
 }
 
+__global__ void gMaxElementUpdate(float* d_out, int* d_ind, float* d_in, int* blockID, int dist, int in_size) {
+  extern __shared__ float sdata[];
+
+  int tid = threadIdx.x;
+  if (tid == 0) {
+    d_in[d_ind[*blockID]] = -3.40282e+38f;
+  }
+
+  __syncthreads();
+  __shared__ int indices[512];
+
+  int i = *blockID * (blockDim.x * 2) + tid;
+
+  sdata[tid] = -3.40282e+38f;
+
+  if (i >= in_size) return;
+
+  if (i + blockDim.x < in_size) {
+    float a = d_in[i];
+    float b = d_in[i+blockDim.x];
+    if (a > b) {
+      sdata[tid] = a;
+      indices[tid] = i;
+    } else {
+      sdata[tid] = b;
+      indices[tid] = i + blockDim.x;
+    }
+  } else {
+    sdata[tid] = d_in[i];
+    indices[tid] = i;
+  }
+
+  while (i + dist < in_size) {
+    i += dist;
+
+    float a = d_in[i];
+    if (a > sdata[tid]) {
+      sdata[tid] = a;
+      indices[tid] = i;
+    }
+
+    if (i + blockDim.x < in_size) {
+      float b = d_in[i + blockDim.x];
+      if (b > sdata[tid]) {
+        sdata[tid] = b;
+        indices[tid] = i + blockDim.x;
+      }
+    }
+  }
+  i = *blockID * (blockDim.x * 2) + tid;
+
+  __syncthreads();
+
+  for (int s = (blockDim.x >> 1); s > 0; s >>= 1) {
+    if (tid < s && tid + s < in_size) {
+      if (sdata[tid + s] > sdata[tid]) {
+        sdata[tid] = sdata[tid + s];
+        indices[tid] = indices[tid + s];
+      }
+    }
+    __syncthreads();
+  }
+
+  if (tid == 0) {
+    d_out[*blockID] = sdata[0];
+    int tmp = d_ind[*blockID];
+    d_ind[*blockID] = indices[0];
+    *blockID = tmp;
+  }
+}
 __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n) {
   int tid = threadIdx.x  + blockDim.x * blockIdx.x;
   if (tid < n) {
@@ -110,29 +180,25 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
                               std::vector<float>& outValues) {
   if (n == 0) return;
 
-  const int N_BLOCKS = (N / (2 * BLOCK_SIZE)) + (N % (2 * BLOCK_SIZE) != 0);
+  const int N_BLOCKS = std::min(500, int(N / (2 * BLOCK_SIZE)) + int(N % (2 * BLOCK_SIZE) != 0));
 
-  /* std::cerr << "N: " << N << "\t beam-size: " << n << std::endl; */
-  /* std::cerr << "#BLOCKS: " << N_BLOCKS << std::endl; */
-  /* cudaStreamSynchronize(stream_); */
+  gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+    (d_out, d_ind, d_in, N);
 
   for (size_t i = 0; i < n; ++i) {
-    gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-      (d_out, d_ind, d_in, N);
-
-      /* cudaStreamSynchronize(stream_); */
-      /* float *tmp= new float[N_BLOCKS]; */
-      /* cudaMemcpy(tmp, d_out, N_BLOCKS * sizeof(float), cudaMemcpyDeviceToHost); */
-      /* for (int k = 0; k < N_BLOCKS; ++k) std::cerr << k << ": " << tmp[k] << "\t"; */
-      /* std::cerr << std::endl; */
-      /* std::cerr << "\n>>>>>>>>\n"; */
-      /* delete [] tmp; */
 
     gMaxElement<<<1, 512, 512 * sizeof(float), stream_>>>
       (d_res + i, d_res_idx + i, d_out, N_BLOCKS);
 
-    gSet<<<1, 1, 0, stream_>>>
-      (d_in, d_ind, d_res_idx + i);
+      /* cudaStreamSynchronize(stream_); */
+      /* int *tmp= new int[N_BLOCKS]; */
+      /* cudaMemcpy(tmp, d_ind, N_BLOCKS * sizeof(int), cudaMemcpyDeviceToHost); */
+      /* for (int k = 0; k < N_BLOCKS; ++k) std::cerr << k << ": " << tmp[k] << "\t"; */
+      /* std::cerr << std::endl; */
+      /* delete [] tmp; */
+
+    gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+      (d_out, d_ind, d_in, d_res_idx + i, 2 * BLOCK_SIZE * N_BLOCKS, N);
   }
 
   HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, n * sizeof(float),
