@@ -115,7 +115,7 @@ class Validator : public RunBase,
         BatchGenerator bg(dataset_, batchSize);
 
         size_t update = 0;
-        bg.prepare();
+        bg.prepare(false);
 
         float total = 0;
         float cor = 0;

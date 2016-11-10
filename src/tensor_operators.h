@@ -141,7 +141,7 @@ template <class Functor, class T1, class T2, class T3, class T4>
 __global__ void gElement(Functor functor,
                          T1 out, T2 in1, T3 in2, T4 in3) {
   int rows = out->shape()[0];
-  int cols = out->shape()[0];
+  int cols = out->shape()[1];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int i = bid + blockIdx.x;

@@ -15,6 +15,7 @@ namespace marian {
       graph_->tensor(probs_, a_->val()->shape());
 
     CudnnLogSoftmax(probs_, a_->val());
+
     if(!result_)
       graph_->tensor(result_, a_->val()->shape());
     Element(_1 = -_2 * _3, result_, b_->val(), probs_);

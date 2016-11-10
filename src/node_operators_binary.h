@@ -301,15 +301,15 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
       a_->grad(), adj_, probs_, b_->val());
 
     // Compute second input derivative.
-    Element(_1 -= _2 * _3, b_->grad(),
-      adj_, probs_);
+    Element(_1 -= _2 * _3,
+      b_->grad(), adj_, probs_);
   }
 
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=" << label("x-ent")
       << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
