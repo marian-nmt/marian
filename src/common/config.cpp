@@ -1,15 +1,9 @@
 #include <set>
 
-#include "config.h"
-#include "file_stream.h"
-#include "exception.h"
-
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
-
-#ifndef AMUNMT_BUILD_VERSION
-#define AMUNMT_BUILD_VERSION 000000
-#endif
+#include "common/config.h"
+#include "common/file_stream.h"
+#include "common/exception.h"
+#include "common/git_version.h"
 
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
@@ -260,7 +254,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   }
 
   if (vm_["version"].as<bool>()) {
-    std::cerr << TOSTRING(AMUNMT_BUILD_VERSION) << std::endl;
+    std::cerr << AMUNMT_GIT_VERION << std::endl;
     exit(0);
   }
 
