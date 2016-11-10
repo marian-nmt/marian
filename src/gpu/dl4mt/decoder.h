@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mblas/matrix.h"
+#include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
 
@@ -17,11 +17,13 @@ class Decoder {
 
         void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
           using namespace mblas;
-          std::vector<size_t> tids = ids;
+          thrust::host_vector<size_t> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_.Rows())
               id = 1;
-          Assemble(Rows, w_.E_, tids);
+          indeces_.resize(tids.size());
+          mblas::copy_n(tids.begin(), tids.size(), indeces_.begin());
+          Assemble(Rows, w_.E_, indeces_);
         }
 
         size_t GetCols() {
@@ -34,6 +36,7 @@ class Decoder {
 
       private:
         const Weights& w_;
+        DeviceVector<size_t> indeces_;
     };
 
     template <class Weights1, class Weights2>
@@ -48,8 +51,8 @@ class Decoder {
           using namespace mblas;
 
           Mean(Temp1_, SourceContext);
-          Temp2_.Clear();
-          Temp2_.Resize(batchSize, SourceContext.Cols(), 0.0);
+          Temp2_.Resize(batchSize, SourceContext.Cols());
+          mblas::Fill(Temp2_,  0.0f);
           BroadcastVec(_1 + _2, Temp2_, Temp1_);
           Prod(State, Temp2_, w_.Wi_);
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
@@ -89,7 +92,8 @@ class Decoder {
     class Alignment {
       public:
         Alignment(const Weights& model)
-        : w_(model)
+        : w_(model),
+          WC_(w_.C_(0,0))
         {
           //for(int i = 0; i < 2; ++i) {
           //  cudaStreamCreate(&s_[i]);
@@ -119,7 +123,7 @@ class Decoder {
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
           A_.Reshape(rows2, rows1); // due to broadcasting above
-          Element(_1 + w_.C_(0,0), A_);
+          Element(_1 + WC_, A_);
 
           mblas::Softmax(A_);
           Prod(AlignedSourceContext, A_, SourceContext);
@@ -146,6 +150,8 @@ class Decoder {
 
         mblas::Matrix Ones_;
         mblas::Matrix Sums_;
+
+        float WC_;
     };
 
     template <class Weights>
@@ -175,9 +181,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
+            Probs.Resize(T1_.Rows(), w_.W4_.Cols());
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
+            Probs.Resize(T1_.Rows(), FilteredW4_.Cols());
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
@@ -224,14 +232,17 @@ class Decoder {
     {}
 
     void MakeStep(mblas::Matrix& NextState,
-                  mblas::Matrix& Probs,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext) {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      GetProbs(Probs, NextState, Embeddings, AlignedSourceContext_);
+      GetProbs(NextState, Embeddings, AlignedSourceContext_);
+    }
+
+    mblas::Matrix& GetProbs() {
+      return Probs_;
     }
 
     void EmptyState(mblas::Matrix& State,
@@ -244,7 +255,8 @@ class Decoder {
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t batchSize = 1) {
       Embedding.Clear();
-      Embedding.Resize(batchSize, embeddings_.GetCols(), 0);
+      Embedding.Resize(batchSize, embeddings_.GetCols());
+      mblas::Fill(Embedding, 0);
     }
 
     void Lookup(mblas::Matrix& Embedding,
@@ -289,16 +301,16 @@ class Decoder {
     }
 
 
-    void GetProbs(mblas::Matrix& Probs,
-                  const mblas::Matrix& State,
+    void GetProbs(const mblas::Matrix& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
-      softmax_.GetProbs(Probs, State, Embedding, AlignedSourceContext);
+      softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
     }
 
   private:
     mblas::Matrix HiddenState_;
     mblas::Matrix AlignedSourceContext_;
+    mblas::Matrix Probs_;
 
     Embeddings<Weights::DecEmbeddings> embeddings_;
     RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;

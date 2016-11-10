@@ -8,6 +8,7 @@
 #include "common/scorer.h"
 #include "common/types.h"
 #include "common/processor/processor.h"
+#include "common/base_best_hyps.h"
 
 class Weights;
 class Vocab;
@@ -44,6 +45,8 @@ class God {
     static std::istream& GetInputStream();
 
     static Filter& GetFilter();
+
+    static BestHypsType GetBestHyps(size_t threadId);
 
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<std::string> GetScorerNames();

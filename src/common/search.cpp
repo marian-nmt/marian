@@ -3,15 +3,19 @@
 #include <boost/timer/timer.hpp>
 
 #include "common/god.h"
+#include "common/history.h"
 #include "common/filter.h"
 #include "common/base_matrix.h"
 
 using namespace std;
 
 Search::Search(size_t threadId)
-  : scorers_(God::GetScorers(threadId)) {}
+  : scorers_(God::GetScorers(threadId)),
+    BestHyps_(God::GetBestHyps(threadId)) {
+}
 
-size_t Search::MakeFilter(const Words& srcWords, const size_t vocabSize) {
+
+size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
   filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
@@ -35,7 +39,6 @@ History Search::Decode(const Sentence& sentence) {
 
   States states(scorers_.size());
   States nextStates(scorers_.size());
-  BaseMatrices probs(scorers_.size());
 
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
@@ -52,33 +55,25 @@ History Search::Decode(const Sentence& sentence) {
     nextStates[i].reset(scorer.NewState());
 
     scorer.BeginSentenceState(*states[i]);
-
-    probs[i] = scorer.CreateMatrix();
   }
 
   const size_t maxLength = sentence.GetWords().size() * 3;
   do {
     for (size_t i = 0; i < scorers_.size(); i++) {
       Scorer &scorer = *scorers_[i];
-      BaseMatrix &prob = *probs[i];
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      prob.Resize(beamSize, vocabSize);
-      scorer.Score(state, prob, nextState);
+      // prob.Resize(beamSize, vocabSize);
+      scorer.Score(state, nextState);
     }
 
-    // Looking at attention vectors
-    // mblas::Matrix A;
-    // std::static_pointer_cast<EncoderDecoder>(scorers_[0])->GetAttention(A);
-    // mblas::debug1(A, 0, sentence.GetWords().size());
-
     Beam hyps;
-    const BaseMatrix &firstMatrix = *probs[0];
 
     bool returnAlignment = God::Get<bool>("return-alignment");
 
-    firstMatrix.BestHyps(hyps, prevHyps, probs, beamSize, history, scorers_, filterIndices_, returnAlignment);
+    BestHyps_(hyps, prevHyps, beamSize, scorers_, filterIndices_,
+                                     returnAlignment);
     history.Add(hyps, history.size() == maxLength);
 
     Beam survivors;
@@ -103,13 +98,8 @@ History Search::Decode(const Sentence& sentence) {
   LOG(progress) << "Line " << sentence.GetLine()
                 << ": Search took " << timer.format(3, "%ws");
 
-
-  for (size_t i = 0; i < scorers_.size(); i++) {
-	  Scorer &scorer = *scorers_[i];
-	  scorer.CleanUpAfterSentence();
-
-	  BaseMatrix *prob = probs[i];
-	  delete prob;
+  for (auto scorer : scorers_) {
+	  scorer->CleanUpAfterSentence();
   }
 
   return history;

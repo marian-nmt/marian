@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix.h"
+#include "mblas/matrix_functions.h"
 
 namespace GPU {
 
@@ -61,8 +61,7 @@ class NpzConverter {
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
-        thrust::copy(thrust::cuda::par.on(mblas::Matrix::GetStream()),
-                  np.data(), np.data() + np.size(), matrix.begin());
+        mblas::copy(np.data(), np.data() + np.size(), matrix.begin());
       }
       else {
         std::cerr << "Missing " << key << std::endl;
@@ -70,15 +69,13 @@ class NpzConverter {
       return std::move(matrix);
     }
 
-    mblas::Matrix operator()(const std::string& key,
-                                   bool transpose) const {
+    mblas::Matrix operator()(const std::string& key, bool transpose) const {
       mblas::Matrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
-        thrust::copy(thrust::cuda::par.on(mblas::Matrix::GetStream()),
-                  np.data(), np.data() + np.size(), matrix.begin());
+        mblas::copy(np.data(), np.data() + np.size(), matrix.begin());
       }
       mblas::Transpose(matrix);
       return std::move(matrix);

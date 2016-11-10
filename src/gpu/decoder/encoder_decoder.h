@@ -5,9 +5,10 @@
 
 #include "common/scorer.h"
 #include "common/loader.h"
-
+#include "common/base_best_hyps.h"
 #include "common/threadpool.h"
-#include <thrust/device_vector.h>
+#include "gpu/types-gpu.h"
+
 
 namespace GPU {
 
@@ -19,7 +20,7 @@ class Weights;
 namespace mblas {
   template <class VecType>
   class TMatrix;
-  typedef TMatrix<thrust::device_vector<float>> Matrix;
+  typedef TMatrix<DeviceVector<float>> Matrix;
 }
 
 ////////////////////////////////////////////
@@ -33,9 +34,7 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const State& in,
-                       BaseMatrix& prob,
-                       State& out);
+    virtual void Score(const State& in, State& out);
 
     virtual State* NewState();
 
@@ -50,12 +49,11 @@ class EncoderDecoder : public Scorer {
     void GetAttention(mblas::Matrix& Attention);
 
     mblas::Matrix& GetAttention();
+    virtual BaseMatrix& GetProbs();
 
     size_t GetVocabSize() const;
 
     void Filter(const std::vector<size_t>& filterIds);
-
-    virtual BaseMatrix *CreateMatrix();
 
     virtual ~EncoderDecoder();
 
@@ -63,6 +61,7 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
+    DeviceVector<size_t> indeces_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
 };
@@ -76,6 +75,7 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load();
 
     virtual ScorerPtr NewScorer(size_t taskId);
+    virtual BestHypsType GetBestHyps();
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
