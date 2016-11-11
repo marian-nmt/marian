@@ -43,13 +43,14 @@ class Adagrad : public OptimizerBase {
     void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
       graph->backprop(batch);
 
-      if(gt_.size() < graph->params().size())
+      if(gt_.size() < graph->params().size()) {
         for(auto& param : graph->params()) {
           gt_.emplace_back();
           graph->tensor(gt_.back(), param->grad()->shape());
           gt_.back()->set(0);
         }
-
+      }
+      
       auto gtIt = gt_.begin();
       for(auto& param : graph->params()) {
         Element(_1 += (_2 * _2),

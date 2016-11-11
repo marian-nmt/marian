@@ -21,8 +21,9 @@ void testForward(F f, size_t l,
 
     auto ta = newTensorAllocator<DeviceGPU>();
 
-    Tensor in = ta->tensor(shape);
-    Tensor out = ta->tensor(shape);
+    Tensor in, out;
+    ta->allocate(in, shape);
+    ta->allocate(out, shape);
 
     uniform(-5, 5)(in);
 
@@ -43,11 +44,11 @@ void testBackward(F f, size_t l,
 
     auto ta = newTensorAllocator<DeviceGPU>();
 
-    Tensor in = ta->tensor(shape);
-    Tensor adj = ta->tensor(shape);
+    Tensor in, adj, grad;
+    ta->allocate(in, shape);
+    ta->allocate(adj, shape);
     adj->set(1);
-
-    Tensor grad = ta->tensor(shape);
+    ta->allocate(grad, shape);
 
     uniform(-5, 5)(in);
 

@@ -63,24 +63,22 @@ struct Access {
       return shape_;
     }
 
-    Access* toDevice() {
-      Access* ptr;
-      cudaMalloc(&ptr, sizeof(Access));
-      cudaMemcpy(ptr, this, sizeof(Access), cudaMemcpyHostToDevice);
-      return ptr;
-    }
+    //Access* toDevice() {
+    //  Access* ptr;
+    //  cudaMalloc(&ptr, sizeof(Access));
+    //  cudaMemcpy(ptr, this, sizeof(Access), cudaMemcpyHostToDevice);
+    //  return ptr;
+    //}
 };
 
 class TensorGPU : public TensorBase {
   private:
     // cuDNN stuff
     cudnnTensorDescriptor_t cudnnDesc_;
-    Access* access_;
 
   public:
     TensorGPU(float* data, Shape shape)
-    : TensorBase(data, shape),
-      access_(Access(data, shape).toDevice()) {
+    : TensorBase(data, shape) {
       cudnnCreateTensorDescriptor(&cudnnDesc_);
       cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
                                    shape_[0], shape_[1], 1, 1,
@@ -89,7 +87,6 @@ class TensorGPU : public TensorBase {
 
     ~TensorGPU() {
       cudnnDestroyTensorDescriptor(cudnnDesc_);
-      cudaFree(access_);
     }
 
 
@@ -121,8 +118,8 @@ class TensorGPU : public TensorBase {
       return cudnnDesc_;
     }
 
-    Access* access() {
-      return access_;
+    Access access() {
+      return Access(data_, shape_);
     }
 
     std::string debug() {

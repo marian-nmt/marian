@@ -35,15 +35,16 @@ using namespace thrust::placeholders;
 template <class Functor, class T>
 __global__ void gElement(Functor functor,
                          T out) {
-  int rows = out->shape()[0];
-  int cols = out->shape()[1];
+  int rows = out.shape()[0];
+  int cols = out.shape()[1];
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int i = bid + blockIdx.x;
     if(i < rows) {
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int j = tid + threadIdx.x;
         if(j < cols)
-          (*out)(i, j) = functor((*out)(i, j));
+          out(i, j) = functor(out(i, j));
       }
     }
   }
@@ -68,15 +69,16 @@ void Element(Functor functor, T& out) {
 template <class Functor, class T1, class T2>
 __global__ void gElement(Functor functor,
                          T1 out, T2 in) {
-  int rows = out->shape()[0];
-  int cols = out->shape()[1];
+  int rows = out.shape()[0];
+  int cols = out.shape()[1];
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int i = bid + blockIdx.x;
     if(i < rows) {
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int j = tid + threadIdx.x;
         if(j < cols) {
-          (*out)(i, j) = functor((*out)(i, j), (*in)(i, j));
+          out(i, j) = functor(out(i, j), in(i, j));
         }
       }
     }
@@ -103,15 +105,15 @@ void Element(Functor functor,
 template <class Functor, class T1, class T2, class T3>
 __global__ void gElement(Functor functor,
                          T1 out, T2 in1, T3 in2) {
-  int rows = out->shape()[0];
-  int cols = out->shape()[1];
+  int rows = out.shape()[0];
+  int cols = out.shape()[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int i = bid + blockIdx.x;
     if(i < rows) {
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int j = tid + threadIdx.x;
         if(j < cols)
-          (*out)(i, j) = functor((*out)(i, j), (*in1)(i, j), (*in2)(i, j));
+          out(i, j) = functor(out(i, j), in1(i, j), in2(i, j));
       }
     }
   }
@@ -140,8 +142,8 @@ void Element(Functor functor,
 template <class Functor, class T1, class T2, class T3, class T4>
 __global__ void gElement(Functor functor,
                          T1 out, T2 in1, T3 in2, T4 in3) {
-  int rows = out->shape()[0];
-  int cols = out->shape()[1];
+  int rows = out.shape()[0];
+  int cols = out.shape()[1];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int i = bid + blockIdx.x;
@@ -149,7 +151,7 @@ __global__ void gElement(Functor functor,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int j = tid + threadIdx.x;
         if(j < cols)
-          (*out)(i, j) = functor((*out)(i, j), (*in1)(i, j), (*in2)(i, j), (*in3)(i, j));
+          out(i, j) = functor(out(i, j), in1(i, j), in2(i, j), in3(i, j));
       }
     }
   }
