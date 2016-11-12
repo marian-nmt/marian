@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
   auto ff =
     FeedforwardClassifier({
-      trainSet->dim(0), 2048, 2048, 2048, 2048, trainSet->dim(1)
+      trainSet->dim(0), 2048, 2048, trainSet->dim(1)
     });
 
   ff->graphviz("mnist_benchmark.dot");
