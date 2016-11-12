@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     Run<Trainer>(ff, trainSet,
                  optimizer=Optimizer<Adam>(0.0002),
                  batch_size=200,
-                 max_epochs=50);
+                 max_epochs=10);
   trainer->run();
 
   auto validator =

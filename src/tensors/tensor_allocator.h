@@ -43,33 +43,31 @@ class TensorAllocatorBase {
 template <class Device>
 class TensorAllocatorDerived : public TensorAllocatorBase {
   private:
-    const float OVERHEAD = 0.f;
+    const float OVERHEAD = 0.2f;
 
     Device device_;
-    std::vector<Tensor*> allocated_;
-    std::vector<Tensor> created_;
+    std::vector<Tensor> allocated_;
 
-    void reset(Tensor& t, float* start) {
+    void reset(Tensor t, float* start) {
       t->reset(start);
     }
 
     void resetAllocated() {
       float* start = device_.data();
       for(auto t : allocated_) {
-        reset(*t, start);
-        start += (*t)->size();
+        reset(t, start);
+        start += t->size();
       }
     }
 
     void checkSpace(Shape shape) {
       float* start = device_.data();
-      if(!allocated_.empty())
-        start = (*allocated_.back())->data() + (*allocated_.back())->size();
+      if(!allocated_.empty()) {
+        start = allocated_.back()->data() + allocated_.back()->size();
+      }
 
       size_t available = device_.data() + device_.capacity() - start;
-      //std::cerr << "Available: " << available << " - " << shape.elements() << std::endl;
       if(shape.elements() > available) {
-        //std::cerr << "Allocating" << std::endl;
         allocate(device_.capacity() - available + shape.elements());
       }
     }
@@ -86,15 +84,16 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     }
 
     void allocate(Tensor &t, Shape shape) {
-      checkSpace(shape);
-
-      float* start = device_.data();
-      if(!allocated_.empty())
-        start = (*allocated_.back())->data() + (*allocated_.back())->size();
-
       if(!t || t->shape() != shape) {
+        checkSpace(shape);
+
+        float* start = device_.data();
+        if(!allocated_.empty()) {
+          start = allocated_.back()->data() + allocated_.back()->size();
+        }
+
         t.reset(new typename Device::tensor_type(start, shape));
-        allocated_.push_back(&t);
+        allocated_.push_back(t);
       }
     }
 
@@ -111,7 +110,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
       float* start = device_.data();
       float* end = start;
       if(!allocated_.empty())
-        end = (*allocated_.back())->data() + (*allocated_.back())->size();
+        end = allocated_.back()->data() + allocated_.back()->size();
 
       return end - start;
     }

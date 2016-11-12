@@ -38,7 +38,9 @@ class Sgd : public OptimizerBase {
 class Adagrad : public OptimizerBase {
   public:
     Adagrad(float eta=0.01, float eps=1e-8)
-    : eta_(eta), eps_(eps) {}
+    : eta_(eta), eps_(eps),
+      tensors_(newTensorAllocator<DeviceGPU>())
+    {}
 
     void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
       graph->backprop(batch);
@@ -46,11 +48,11 @@ class Adagrad : public OptimizerBase {
       if(gt_.size() < graph->params().size()) {
         for(auto& param : graph->params()) {
           gt_.emplace_back();
-          graph->tensor(gt_.back(), param->grad()->shape());
+          tensors_->allocate(gt_.back(), param->grad()->shape());
           gt_.back()->set(0);
         }
       }
-      
+
       auto gtIt = gt_.begin();
       for(auto& param : graph->params()) {
         Element(_1 += (_2 * _2),
@@ -64,6 +66,7 @@ class Adagrad : public OptimizerBase {
   private:
     float eta_;
     float eps_;
+    TensorAllocator tensors_;
     std::vector<Tensor> gt_;
 };
 
@@ -73,7 +76,9 @@ class Adagrad : public OptimizerBase {
 class Adam : public OptimizerBase {
   public:
     Adam(float eta=0.001, float beta1=0.9, float beta2=0.999, float eps=1e-8)
-    : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0) {}
+    : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0),
+      tensors_(newTensorAllocator<DeviceGPU>())
+    {}
 
     void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
       graph->backprop(batch);
@@ -81,11 +86,11 @@ class Adam : public OptimizerBase {
       if(mt_.size() < graph->params().size()) {
         for(auto& param : graph->params()) {
           mt_.emplace_back();
-          graph->tensor(mt_.back(), param->grad()->shape());
+          tensors_->allocate(mt_.back(), param->grad()->shape());
           mt_.back()->set(0);
 
           vt_.emplace_back();
-          graph->tensor(vt_.back(), param->grad()->shape());
+          tensors_->allocate(vt_.back(), param->grad()->shape());
           vt_.back()->set(0);
         }
       }
@@ -114,6 +119,7 @@ class Adam : public OptimizerBase {
     float beta2_;
     float eps_;
     size_t t_;
+    TensorAllocator tensors_;
     std::vector<Tensor> mt_;
     std::vector<Tensor> vt_;
 };

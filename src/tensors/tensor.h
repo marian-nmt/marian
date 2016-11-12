@@ -34,9 +34,7 @@ class TensorBase {
     : data_(data), shape_(shape)
     { }
 
-    virtual ~TensorBase() {
-      //std::cerr << "Yahoo!" << std::endl;
-    }
+    virtual ~TensorBase() {}
 
     virtual void reset(float* data) {
       data_ = data;
@@ -69,7 +67,7 @@ class TensorBase {
     Shape shape_;
 };
 
-typedef std::unique_ptr<TensorBase> Tensor;
+typedef std::shared_ptr<TensorBase> Tensor;
 
 Tensor& operator<<(Tensor& t, const std::vector<float>& v);
 

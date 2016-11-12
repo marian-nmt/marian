@@ -53,7 +53,7 @@ namespace marian {
 
 namespace marian {
   class TensorBase;
-  typedef std::unique_ptr<TensorBase> Tensor;
+  typedef std::shared_ptr<TensorBase> Tensor;
 
   class OptimizerBase;
   typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
