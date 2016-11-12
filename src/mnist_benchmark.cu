@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
   auto ff =
     FeedforwardClassifier({
-      trainSet->dim(0), 2048, 2048, trainSet->dim(1)
+      trainSet->dim(0), 2048, 2048, 2048, 2048, trainSet->dim(1)
     });
 
   ff->graphviz("mnist_benchmark.dot");
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     Run<Trainer>(ff, trainSet,
                  optimizer=Optimizer<Adam>(0.0002),
                  batch_size=200,
-                 max_epochs=10);
+                 max_epochs=50);
   trainer->run();
 
   auto validator =

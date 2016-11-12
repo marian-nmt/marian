@@ -33,6 +33,17 @@
 
 namespace marian {
 
+#define CUDA_CHECK(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 struct Access {
     float* data_;
     Shape shape_;
@@ -91,17 +102,21 @@ class TensorGPU : public TensorBase {
 
 
     float get(size_t i) {
-      return *thrust::device_ptr<float>(data_ + i);
+      float temp;
+      CUDA_CHECK(cudaMemcpy(&temp, data_ + i, sizeof(float),
+                 cudaMemcpyDeviceToHost));
+      return temp;
     }
 
     void set(size_t i, float value) {
-      *thrust::device_ptr<float>(data_ + i) = value;
+      CUDA_CHECK(cudaMemcpy(data_ + i, &value, sizeof(float),
+                 cudaMemcpyHostToDevice));
     }
 
     void get(std::vector<float> &v) {
       v.resize(size());
-      thrust::copy(thrust::device_ptr<float>(data_),
-                   thrust::device_ptr<float>(data_ + size()), v.begin());
+      CUDA_CHECK(cudaMemcpy(v.data(), data_, size() * sizeof(float),
+                 cudaMemcpyDeviceToHost));
     }
 
     void set(float value) {
@@ -110,8 +125,8 @@ class TensorGPU : public TensorBase {
     }
 
     void set(const std::vector<float> &v) {
-      thrust::copy(v.begin(), v.end(),
-                   thrust::device_ptr<float>(data_));
+      CUDA_CHECK(cudaMemcpy(data_, v.data(), v.size() * sizeof(float),
+                 cudaMemcpyHostToDevice));
     }
 
     cudnnTensorDescriptor_t& cudnn() {
@@ -155,7 +170,7 @@ class DeviceGPU {
 
     ~DeviceGPU() {
       if(data_)
-        cudaFree(data_);
+        CUDA_CHECK(cudaFree(data_));
     }
 
     typedef TensorGPU tensor_type;
@@ -163,12 +178,12 @@ class DeviceGPU {
     void reserve(size_t size) {
       UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
       float *temp;
-      cudaMalloc(&temp, size * sizeof(float));
+      CUDA_CHECK(cudaMalloc(&temp, size * sizeof(float)));
 
       if(data_) {
-        cudaMemcpy(temp, data_, size_* sizeof(float),
-                   cudaMemcpyDeviceToDevice);
-        cudaFree(data_);
+        CUDA_CHECK(cudaMemcpy(temp, data_, size_* sizeof(float),
+                   cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaFree(data_));
       }
 
       data_ = temp;
