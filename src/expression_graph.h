@@ -196,7 +196,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * Once this has been performed for all nodes, this pass again traverses the nodes, again in reverse creation order;
      *    as each node is traversed, its <code>backward()</code> method is called.
-     *https://www.facebook.com/
      * After this method has successfully completed,
      *    and that all backward pass computations have been performed.
      */
