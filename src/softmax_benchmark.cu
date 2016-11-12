@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <time.h>
 #include <cudnn.h>
+#include <unistd.h>
 
 #include <boost/timer/timer.hpp>
 
-#include "tensor.h"
+#include "tensors/tensor_allocator.h"
+#include "tensors/tensor_gpu.h"
+
 #include "tensor_operators.h"
 #include "param_initializers.h"
 
@@ -15,9 +18,13 @@ template <class F>
 void testForward(F f, size_t l,
                  const Shape& shape,
                  const std::string& desc) {
-    Tensor in(shape);
-    Tensor out(shape);
-    
+
+    auto ta = newTensorAllocator<DeviceGPU>();
+
+    Tensor in, out;
+    ta->allocate(in, shape);
+    ta->allocate(out, shape);
+
     uniform(-5, 5)(in);
 
     std::cout << desc << ": " << std::flush;
@@ -34,10 +41,15 @@ template <class F>
 void testBackward(F f, size_t l,
                   const Shape& shape,
                   const std::string& desc) {
-    Tensor in(shape);
-    Tensor adj(shape, 1);
-    Tensor grad(shape);
-    
+
+    auto ta = newTensorAllocator<DeviceGPU>();
+
+    Tensor in, adj, grad;
+    ta->allocate(in, shape);
+    ta->allocate(adj, shape);
+    adj->set(1);
+    ta->allocate(grad, shape);
+
     uniform(-5, 5)(in);
 
     std::cout << desc << ": " << std::flush;
@@ -52,26 +64,26 @@ void testBackward(F f, size_t l,
 
 int main() {
     int l = 1000;
-    
+
     std::vector<Shape> shapes = {
         {1000, 1000},
         {80, 50000},
         {50000, 80},
     };
-    
+
     for(auto& shape : shapes) {
-        std::cout << "Testing shape: " << shape[0] << "x" << shape[1] << std::endl << std::endl; 
-        
+        std::cout << "Testing shape: " << shape[0] << "x" << shape[1] << std::endl << std::endl;
+
         std::cout << "Softmax forward" << std::endl;
         testForward(CudnnSoftmax, l, shape, "CuDNN ");
         testForward(Softmax, l, shape, "Marian");
         std::cout << std::endl;
-        
+
         std::cout << "Softmax backward" << std::endl;
         testBackward(CudnnSoftmaxGrad, l, shape, "CuDNN ");
         testBackward(SoftmaxGrad, l, shape, "Marian");
         std::cout << std::endl;
-        
+
         std::cout << "Log-softmax backward" << std::endl;
         testBackward(CudnnLogSoftmaxGrad, l, shape, "CuDNN ");
         testBackward(LogSoftmaxGrad, l, shape, "Marian");

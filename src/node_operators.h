@@ -39,12 +39,6 @@ struct InputNode : public Node {
 
   ~InputNode() {}
 
-  virtual void setVal(Tensor t)  {
-    val_ = t;
-    shape_ = t.shape();
-    //@todo, shape checking
-  }
-
   void forward() {}
   void backward() {}
 
@@ -82,7 +76,7 @@ struct ParamNode : public Node {
   template <typename ...Args>
   ParamNode(Args ...args)
   : Node(args...),
-    init_(Get(keywords::init, [](Tensor){ })),
+    init_(Get(keywords::init, [](Tensor&){ })),
     initialized_(false)
   {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
@@ -90,30 +84,12 @@ struct ParamNode : public Node {
                    "Param items require shape information");
   }
 
-  virtual void setVal(Tensor t)  {
-    val_ = t;
-    shape_ = t.shape();
-    //@todo, shape checking
-  };
-
   ~ParamNode() {}
-
-  virtual void setGrad(Tensor t)  {
-    adj_ = t;
-    shape_ = t.shape();
-    //@todo, shape checking
-  };
 
   void forward() {}
   void backward() {}
 
-  virtual void allocate(size_t batchSize) {
-    val_.allocate(shape_);
-    if(!initialized_) {
-      init_(val_);
-      initialized_ = true;
-    }
-  }
+  virtual void allocate(size_t batchSize);
 
   virtual std::string graphviz() {
     std::stringstream ss;
@@ -125,7 +101,7 @@ struct ParamNode : public Node {
 
 
   private:
-    std::function<void(Tensor)> init_;
+    std::function<void(Tensor&)> init_;
     bool initialized_;
 };
 

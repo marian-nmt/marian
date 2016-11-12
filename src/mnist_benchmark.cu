@@ -10,6 +10,10 @@
 #include "trainer.h"
 #include "models/feedforward.h"
 
+#include "tensors/tensor.h"
+#include "tensors/tensor_gpu.h"
+#include "tensors/tensor_allocator.h"
+
 using namespace marian;
 using namespace keywords;
 using namespace data;

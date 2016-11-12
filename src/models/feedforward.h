@@ -39,7 +39,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   // Because calculating over one observed data point at a time can be inefficient,
   //     it is customary to operate over a batch of observed data points at once.
   //
-  // At this point, we do not know the batch size: 
+  // At this point, we do not know the batch size:
   // whatevs therefore serves as a placeholder for the batch size, which will be specified later
   //
   // Once the batch size is known, "x" will represent a matrix with dimensions [batch_size, dims.front()].
@@ -48,7 +48,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
                 "x");
 
   // Construct an input node called "y" and add it to the expression graph.
-  // 
+  //
   // For each observed data point, this input will hold the ground truth label for that data point.
   // dims.back() specifies the size of this vector
   //
@@ -58,7 +58,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   // Because calculating over one observed data point at a time can be inefficient,
   //     it is customary to operate over a batch of observed data points at once.
   //
-  // At this point, we do not know the batch size: 
+  // At this point, we do not know the batch size:
   // whatevs therefore serves as a placeholder for the batch size, which will be specified later
   //
   // Once the batch size is known, "y" will represent a matrix with dimensions [batch_size, dims.front()].
@@ -72,7 +72,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
     int out = dims[i+1];
 
     if(i == 0) {
-      // Create a dropout node as the parent of x, 
+      // Create a dropout node as the parent of x,
       //   and place that dropout node as the value of layers[0]
       layers.emplace_back(dropout(x, value=0.2));
     } else {
@@ -88,7 +88,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
     weights.emplace_back(
       name(g->param(shape={in, out}, init=uniform()),
            "W" + std::to_string(i)));
-           
+
     // Construct a bias node. By definition, a bias node stores the value 1.
     //    Therefore, we don't actually store the 1.
     //    Instead, the bias node object stores the weights on the connections

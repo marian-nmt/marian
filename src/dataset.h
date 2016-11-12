@@ -46,8 +46,8 @@ typedef std::shared_ptr<Example> ExamplePtr;
 /** @brief Defines a convenience type to represent an ordered collection of ::ExamplePtr objects. */
 typedef std::vector<ExamplePtr> Examples;
 
-/**  
- * @brief Defines a convenience type to represent a const_iterator over the ::ExamplePtr objects 
+/**
+ * @brief Defines a convenience type to represent a const_iterator over the ::ExamplePtr objects
  *           stored in an ::Examples object.
  */
 typedef Examples::const_iterator ExampleIterator;
@@ -65,7 +65,7 @@ class Input {
     /** @brief Constructs a new Input object with the specified Shape */
     Input(const Shape& shape)
     : shape_(shape),
-      data_(new Data(shape_.totalSize(), 0.0f)) {}
+      data_(new Data(shape_.elements(), 0.0f)) {}
 
     /** @brief Gets an iterator pointing to the beginning of this object's ::Data */
     Data::iterator begin() {
@@ -105,17 +105,17 @@ class Input {
 
 class DataBase {
   public:
-   
+
     /** @brief Returns an iterator pointing to the beginning of this object's underlying data. */
     virtual ExampleIterator begin() const = 0;
 
     /** @brief Returns an iterator pointing to the end of this object's underlying data. */
     virtual ExampleIterator end() const = 0;
-    
+
     /** @brief Randomly shuffles the elements of this object's underlying data. */
     virtual void shuffle() = 0;
 
-    /** 
+    /**
      * @brief Returns the size of the <em>i</em>-th dimension of the data.
      *
      * When an individual data point from this DataSet is used in the construction of an ExpressionGraph,
@@ -136,7 +136,7 @@ class DataBase {
 /** @brief Defines a convenience type to represent a shared pointer to a DataBase object. */
 typedef std::shared_ptr<DataBase> DataBasePtr;
 
-/** 
+/**
  * @brief Convenience function to construct a new DataBase object and return a shared pointer to that object.
  *
  * The template parameters for this function specify two main pieces of information:

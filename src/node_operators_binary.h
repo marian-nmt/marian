@@ -1,6 +1,7 @@
 #pragma once
 
 #include "node.h"
+#include "thrust_functions.h"
 #include "tensor_operators.h"
 
 namespace marian {
@@ -12,16 +13,16 @@ struct BinaryNodeOp : public Node {
   template <typename ...Args>
   BinaryNodeOp(Expr a, Expr b, Args ...args)
    : Node(a->graph(),
-		  keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
-		  keywords::no_inference=a->skipped_inference()
-			|| b->skipped_inference()
-			|| keywords::Get(keywords::no_inference, false, args...),
+      keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
+      keywords::no_inference=a->skipped_inference()
+      || b->skipped_inference()
+      || keywords::Get(keywords::no_inference, false, args...),
           keywords::no_training=a->skipped_training()
-			|| b->skipped_training()
-			|| keywords::Get(keywords::no_training, false, args...),
-		  args...), a_(a), b_(b)
+      || b->skipped_training()
+      || keywords::Get(keywords::no_training, false, args...),
+      args...), a_(a), b_(b)
   {
-	remove_children_from_top_nodes();
+  remove_children_from_top_nodes();
   }
 
   ~BinaryNodeOp() {}
@@ -29,53 +30,53 @@ struct BinaryNodeOp : public Node {
   void remove_children_from_top_nodes();
 
   void backward_debug(Float delta) {
-	  using namespace std;
-
-	  cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
-
-	  std::vector<float> preCalcGradA, diffGradA, numericalGradA;
-	  preCalcGradA << a_->grad();
-	  //output("preCalcGradA", preCalcGradA);
-
-	  std::vector<float> preCalcGradB, diffGradB, numericalGradB;
-	  preCalcGradB << b_->grad();
-	  //output("preCalcGradB", preCalcGradB);
-
-	  // use df/dx to calc grad
-	  backward();
-	  cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
-	  cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
-
-	  diffGradA << a_->grad();
-	  diffGradB << b_->grad();
-
-	  //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
-	  //cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
-
-	  cerr << "TENSOR A:" << endl;
-	  a_->grad().set(preCalcGradA);
-	  b_->grad().set(preCalcGradB);
-
-	  calc_numeric_grad(delta, a_->val(), a_->grad());
-	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
-
-	  numericalGradA << a_->grad();
-	  outputL2Norm("TENSOR A", diffGradA, numericalGradA);
-
-
-	  cerr << "TENSOR B:" << endl;
-	  a_->grad().set(preCalcGradA);
-	  b_->grad().set(preCalcGradB);
-
-	  calc_numeric_grad(delta, b_->val(), b_->grad());
-	  cerr << "numerical b_->grad()=" << b_->grad().Debug() << endl;
-
-	  numericalGradB << b_->grad();
-	  outputL2Norm("TENSOR B", diffGradB, numericalGradB);
-
-	  // reset to diff grad
-	  a_->grad().set(diffGradA);
-	  b_->grad().set(diffGradB);
+    //using namespace std;
+    //
+    //cerr << "BinaryNodeOp::" << typeid(*this).name() << "::backward_debug()" << endl;
+    //
+    //std::vector<float> preCalcGradA, diffGradA, numericalGradA;
+    //preCalcGradA << a_->grad();
+    ////output("preCalcGradA", preCalcGradA);
+    //
+    //std::vector<float> preCalcGradB, diffGradB, numericalGradB;
+    //preCalcGradB << b_->grad();
+    ////output("preCalcGradB", preCalcGradB);
+    //
+    //// use df/dx to calc grad
+    //backward();
+    //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+    //cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
+    //
+    //diffGradA << a_->grad();
+    //diffGradB << b_->grad();
+    //
+    ////cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+    ////cerr << "orig b_->grad()=" << b_->grad().Debug() << endl;
+    //
+    //cerr << "TENSOR A:" << endl;
+    //a_->grad().set(preCalcGradA);
+    //b_->grad().set(preCalcGradB);
+    //
+    //calc_numeric_grad(delta, a_->val(), a_->grad());
+    //cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
+    //
+    //numericalGradA << a_->grad();
+    //outputL2Norm("TENSOR A", diffGradA, numericalGradA);
+    //
+    //
+    //cerr << "TENSOR B:" << endl;
+    //a_->grad().set(preCalcGradA);
+    //b_->grad().set(preCalcGradB);
+    //
+    //calc_numeric_grad(delta, b_->val(), b_->grad());
+    //cerr << "numerical b_->grad()=" << b_->grad().Debug() << endl;
+    //
+    //numericalGradB << b_->grad();
+    //outputL2Norm("TENSOR B", diffGradB, numericalGradB);
+    //
+    //// reset to diff grad
+    //a_->grad().set(diffGradA);
+    //b_->grad().set(diffGradB);
   }
 
 
@@ -231,7 +232,7 @@ struct MultNodeOp : public BinaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x")
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("×")
       << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
@@ -285,29 +286,14 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     return shape1;
   }
 
-  // We're caching the logsoftmax probabilities here because we'll need them for
-  // the backward computation.
-  void forward() {
-    // C = -dot(B, logsoftmax(A)).
-    if (probs_) {
-      probs_.set(0.0);
-    } else {
-      probs_.allocate(a_->val().shape(), 0.0);
-    }
-
-	CudnnLogSoftmax(probs_, a_->val());
-	if(!result_)
-	  result_.allocate(a_->val().shape());
-    Element(_1 = -_2 * _3, result_, b_->val(), probs_);
-    SumRowwise(result_, val_);
-  }
+  void forward();
 
   // @TODO: In most cases it's wasteful to compute the derivative with respect
   // to the second input which is typically an input node in the computation
   // graph. In general the backward functions can skip the computation of
   // gradients wrt input nodes.
   void backward() {
-	// We are using logsoftmax for this and cached probs are logs.
+  // We are using logsoftmax for this and cached probs are logs.
     // For each row, the first input derivative is given by adj * (exp(p) - y),
     // where y is the gold label distribution (e.g. one hot vector) and
     // p is the softmax output (probabilities).
@@ -315,18 +301,18 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
 
     // Compute first input derivative.
     Element(_1 += _2 * (Exp(_3) - _4),
-			a_->grad(), adj_, probs_, b_->val());
+      a_->grad(), adj_, probs_, b_->val());
 
     // Compute second input derivative.
-    Element(_1 -= _2 * _3, b_->grad(),
-			adj_, probs_);
+    Element(_1 -= _2 * _3,
+      b_->grad(), adj_, probs_);
   }
 
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=" << label("x-ent")
       << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };

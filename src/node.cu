@@ -9,67 +9,96 @@ void Node::skip_training() {
   graph_->remove_top_node(shared_from_this());
 }
 
+void Node::allocate(size_t batchSize) {
+  auto it1 = shape_.begin();
+  auto it2 = givenShape_.begin();
+  while(it1 != shape_.end()) {
+    if(*it2 == whatevs)
+      *it1 = batchSize;
+    it1++; it2++;
+  }
+
+  graph_->tensor(val_, shape_);
+
+  if(Has(keywords::value))
+    val_->set(Get(keywords::value, 0));
+}
+
+void Node::init_dependent() {
+  if(!adj_)
+    graph_->tensor(adj_, shape_);
+  adj_->set(1);
+}
+
+void Node::set_zero_adjoint() {
+  if(!adj_) {
+    graph_->tensor(adj_, shape_);
+  }
+  adj_->set(0);
+}
+
+
 // GPU
 void Node::calc_numeric_grad(Float delta, Tensor input, Tensor grad) {
   using namespace std;
 
-  size_t inputSize = GetTotalSize(input.shape());
-  size_t valSize = GetTotalSize(val_.shape());
-
-  UTIL_THROW_IF2(inputSize != GetTotalSize(grad.shape()),
-			  "inputSize != gradSize:" << inputSize << "!=" << GetTotalSize(grad.shape()));
-  UTIL_THROW_IF2(valSize != GetTotalSize(adj_.shape()),
-			  "valSize != adjSize :" << valSize << "!=" << GetTotalSize(adj_.shape()));
-
-  cerr	<< "inputSize=grad=" << Debug(input.shape())<< "=" << inputSize << " "
-		<< "valSize=adj_=" << Debug(val_.shape()) << "=" << valSize
-		<< endl;
-
-  //cerr << "input=" << input.Debug() << endl;
-  //cerr << "adj_=" << adj_.Debug() << endl;
-
-  std::vector<float> prevCalcGrad;
-  prevCalcGrad << grad;
-  //cerr << "origGrad=" << grad.Debug() << endl;
-  //output("diffGrad", diffGrad);
-
-  //output("prevCalcGrad", prevCalcGrad.begin(), prevCalcGrad.end());
-
-  Tensor newValTensor(input.shape());
-
-  // LOOP thru each element in input & add delta
-  for (size_t inputInd = 0; inputInd < inputSize; ++inputInd) {
-	  input.incr(inputInd, delta);
-	  //output("input", input.begin(), input.end());
-
-	  forward();
-
-	  val_.sum(newValTensor, inputInd);
-	  //cudaDeviceSynchronize();
-
-	  input.incr(inputInd, -delta);
-  }
-
-  std::vector<float> newVal;
-  newVal << newValTensor;
-  //cudaDeviceSynchronize();
-
-  // orig value
-  forward();
-
-  float sumValOrig = val_.sum();
-  //float sumValOrig = thrust::reduce(val_.begin(), val_.end(), (float) 0.0f, thrust::plus<float>());
-  //cudaDeviceSynchronize();
-
-  //output("newVal", newVal.begin(), newVal.end());
-
-  // calc gradient
-  Tensor prevGradTensor(input.shape());
-  thrust::copy(grad.begin(), grad.end(), prevGradTensor.begin());
-
-  Tensor gradTensor(input.shape());
-  Element(_1 = (_2 - sumValOrig) / delta, gradTensor, newValTensor);
-  Element(_1 = _2 * _3 + _4, grad, adj_, gradTensor, prevGradTensor);
+//  size_t inputSize = GetTotalSize(input->shape());
+//  size_t valSize = GetTotalSize(val_->shape());
+//
+//  UTIL_THROW_IF2(inputSize != GetTotalSize(grad->shape()),
+//			  "inputSize != gradSize:" << inputSize << "!=" << grad->shape()->elements());
+//  UTIL_THROW_IF2(valSize != GetTotalSize(adj_->shape()),
+//			  "valSize != adjSize :" << valSize << "!=" << adj_->shape()->elements());
+//
+//  cerr	<< "inputSize=grad=" << Debug(input->shape())<< "=" << inputSize << " "
+//		<< "valSize=adj_=" << Debug(val_->shape()) << "=" << valSize
+//		<< endl;
+//
+//  //cerr << "input=" << input.Debug() << endl;
+//  //cerr << "adj_=" << adj_.Debug() << endl;
+//
+//  std::vector<float> prevCalcGrad;
+//  prevCalcGrad << grad;
+//  //cerr << "origGrad=" << grad.Debug() << endl;
+//  //output("diffGrad", diffGrad);
+//
+//  //output("prevCalcGrad", prevCalcGrad.begin(), prevCalcGrad.end());
+//
+//  Tensor newValTensor(input.shape());
+//
+//  // LOOP thru each element in input & add delta
+//  for (size_t inputInd = 0; inputInd < inputSize; ++inputInd) {
+//	  input.incr(inputInd, delta);
+//	  //output("input", input.begin(), input.end());
+//
+//	  forward();
+//
+//	  val_.sum(newValTensor, inputInd);
+//	  //cudaDeviceSynchronize();
+//
+//	  input.incr(inputInd, -delta);
+//  }
+//
+//  std::vector<float> newVal;
+//  newVal << newValTensor;
+//  //cudaDeviceSynchronize();
+//
+//  // orig value
+//  forward();
+//
+//  float sumValOrig = val_.sum();
+//  //float sumValOrig = thrust::reduce(val_.begin(), val_.end(), (float) 0.0f, thrust::plus<float>());
+//  //cudaDeviceSynchronize();
+//
+//  //output("newVal", newVal.begin(), newVal.end());
+//
+//  // calc gradient
+//  Tensor prevGradTensor(input.shape());
+//  thrust::copy(grad.begin(), grad.end(), prevGradTensor.begin());
+//
+//  Tensor gradTensor(input.shape());
+//  Element(_1 = (_2 - sumValOrig) / delta, gradTensor, newValTensor);
+//  Element(_1 = _2 * _3 + _4, grad, adj_, gradTensor, prevGradTensor);
 }
 
 /*

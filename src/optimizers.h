@@ -38,29 +38,35 @@ class Sgd : public OptimizerBase {
 class Adagrad : public OptimizerBase {
   public:
     Adagrad(float eta=0.01, float eps=1e-8)
-    : eta_(eta), eps_(eps) {}
+    : eta_(eta), eps_(eps),
+      alloc_(newTensorAllocator<DeviceGPU>())
+    {}
 
     void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
       graph->backprop(batch);
 
-      if(gt_.size() < graph->params().size())
-        for(auto& param : graph->params())
-          gt_.emplace_back(Tensor(param->grad().shape(), 0));
-
-      auto gtIt = gt_.begin();
-      for(auto& param : graph->params()) {
-        Element(_1 += (_2 * _2),
-                *gtIt, param->grad());
-        Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-                param->val(), *gtIt, param->grad());
-        gtIt++;
+      if(!gt_) {
+        int totalSize = graph->params().totalSize();
+        alloc_->reserveExact(totalSize);
+        alloc_->allocate(gt_, {1, totalSize});
+        gt_->set(0);
       }
+
+      Tensor pVals = graph->params().vals();
+      Tensor pGrads = graph->params().grads();
+
+      ElementVec(_1 += (_2 * _2),
+                 gt_, pGrads);
+
+      ElementVec(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
+                 pVals, gt_, pGrads);
     }
 
   private:
     float eta_;
     float eps_;
-    std::vector<Tensor> gt_;
+    TensorAllocator alloc_;
+    Tensor gt_;
 };
 
 
@@ -69,34 +75,39 @@ class Adagrad : public OptimizerBase {
 class Adam : public OptimizerBase {
   public:
     Adam(float eta=0.001, float beta1=0.9, float beta2=0.999, float eps=1e-8)
-    : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0) {}
+    : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0),
+      mtAlloc_(newTensorAllocator<DeviceGPU>()),
+      vtAlloc_(newTensorAllocator<DeviceGPU>())
+    {}
 
     void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
       graph->backprop(batch);
 
-      if(mt_.size() < graph->params().size()) {
-        for(auto& param : graph->params()) {
-          mt_.emplace_back(Tensor(param->grad().shape(), 0));
-          vt_.emplace_back(Tensor(param->grad().shape(), 0));
-        }
+      if(!mt_) {
+        int totalSize = graph->params().totalSize();
+        mtAlloc_->reserveExact(totalSize);
+        mtAlloc_->allocate(mt_, {1, totalSize});
+        mt_->set(0);
+
+        vtAlloc_->reserveExact(totalSize);
+        vtAlloc_->allocate(vt_, {1, totalSize});
+        vt_->set(0);
       }
 
       t_++;
       float denom1 = 1 - pow(beta1_, t_);
       float denom2 = 1 - pow(beta2_, t_);
 
-      auto mtIt = mt_.begin();
-      auto vtIt = vt_.begin();
+      Tensor pVals = graph->params().vals();
+      Tensor pGrads = graph->params().grads();
 
-      for(auto& param : graph->params()) {
-        Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-                *mtIt, param->grad());
-        Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-                *vtIt, param->grad());
-        Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-                param->val(), *mtIt, *vtIt);
-        mtIt++; vtIt++;
-      }
+      ElementVec(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
+                 mt_, pGrads);
+      ElementVec(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
+                 vt_, pGrads);
+
+      ElementVec(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
+                 pVals, mt_, vt_);
     }
 
   private:
@@ -105,8 +116,11 @@ class Adam : public OptimizerBase {
     float beta2_;
     float eps_;
     size_t t_;
-    std::vector<Tensor> mt_;
-    std::vector<Tensor> vt_;
+
+    TensorAllocator mtAlloc_;
+    Tensor mt_;
+    TensorAllocator vtAlloc_;
+    Tensor vt_;
 };
 
 template <class Algorithm, typename ...Args>

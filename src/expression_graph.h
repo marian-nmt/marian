@@ -28,16 +28,74 @@
 #include "definitions.h"
 #include "chainable.h"
 #include "node_operators.h"
-#include "tensor.h"
 #include "batch_generator.h"
+#include "tensors/tensor_allocator.h"
+#include "tensors/tensor_gpu.h"
 
 namespace marian {
 
-// Forward declaration of ExpressionGraph class; this enables it to be used in the following typedef of ExpressionGraphPtr
-class ExpressionGraph;
+class Parameters {
+  private:
+    /** @brief List of all parameter nodes of this expression graph. */
+    std::vector<Expr> params_;
+    TensorAllocator vals_;
+    TensorAllocator grads_;
 
-/** @brief A pointer to an expression graph. */
-typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
+  public:
+    Parameters()
+      : vals_(newTensorAllocator<DeviceGPU>()),
+        grads_(newTensorAllocator<DeviceGPU>())
+    {}
+
+    auto begin() -> decltype(params_.begin()) {
+      return params_.begin();
+    }
+
+    auto end() -> decltype(params_.begin()) {
+      return params_.end();
+    }
+
+    size_t size() {
+      return params_.size();
+    }
+
+    size_t totalSize() {
+      size_t sum = 0;
+      for(auto p : params_)
+        sum += p->shape().elements();
+      return sum;
+    }
+
+    void add(Expr p) {
+      params_.push_back(p);
+    }
+
+    void allocateForward() {
+      if(vals_->capacity() == 0) {
+        vals_->reserveExact(totalSize());
+        for(auto p: params_)
+          if(!p->val())
+            vals_->allocate(p->val(), p->shape());
+      }
+    }
+
+    void allocateBackward() {
+      if(grads_->capacity() == 0) {
+        grads_->reserveExact(totalSize());
+        for(auto p: params_)
+          if(!p->grad())
+            grads_->allocate(p->grad(), p->shape());
+      }
+    }
+
+    Tensor vals() {
+      return vals_->asTensor();
+    }
+
+    Tensor grads() {
+      return grads_->asTensor();
+    }
+};
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args);
@@ -50,7 +108,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Constructs a new expression graph
      * Constructor is private to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph() {}
+    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) {}
 
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
@@ -69,8 +127,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       for(int i = 0; i < gInputs.size(); ++i) {
         if(!gInputs[i]->val())
-          gInputs[i]->setVal(Tensor(bInputs[i].shape()));
-        gInputs[i]->val().set(bInputs[i].begin(), bInputs[i].end());
+          tensor(gInputs[i]->val(), bInputs[i].shape());
+        gInputs[i]->val()->set(bInputs[i].data());
       }
     }
 
@@ -80,7 +138,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * Backpropogation is implemented by performing first the forward pass
      *    and then the backward pass of algorithmic differentiation (AD) on the nodes of the graph.
      *
-     * @param batchSize       XXX Marcin, could you provide a description of this param?
+     * @param batch A batch of training data
      */
     void backprop(data::BatchPtr batch) {
       forward(batch);
@@ -103,6 +161,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
     void forward(data::BatchPtr batch) {
+      params_.allocateForward();
+
       for(auto&& v : tape_)
         if(!v->skipped_training())
           v->allocate(batch->dim());
@@ -143,6 +203,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     void backward() {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
+
+      params_.allocateBackward();
 
       for(auto&& v : tape_)
         if(!v->skipped_training())
@@ -241,7 +303,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     template <typename ...Args>
     inline Expr param(Args ...args) {
       auto e = Expression<ParamNode>(shared_from_this(), args...);
-      params_.emplace_back(e);
+      params_.add(e);
       return e;
     }
 
@@ -318,7 +380,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @return the list of all parameter nodes of this expression graph
      */
-    std::vector<Expr>& params() {
+    Parameters& params() {
       return params_;
     }
 
@@ -346,14 +408,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       named_.emplace(name, e);
     }
 
-    /**
-     * @brief Returns a pointer to the list of items contained in this graph.
-     *
-     * The items in the list will be in the order they were created.
-     *
-     * @return a pointer to the list of items contained in this graph
-     */
-
     void add(Expr node) {
       tape_.push_back(node);
       if(!node->skipped_training())
@@ -364,23 +418,33 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       topNodes_.erase(node);
     }
 
+
+
+    template <class ...Args>
+    void tensor(Tensor& t, Args&&... args) {
+      tensors_->allocate(t, args...);
+    }
+
   private:
 
-    /** @brief Pointer to the list of nodes */
+    /** @brief The full list of nodes */
     Tape tape_;
 
     /** @brief Maps from name to expression node. */
     std::map<std::string, Expr> named_;
-
-    /** @brief List of all parameter nodes of this expression graph. */
-    std::vector<Expr> params_;
 
     /** @brief List of all input nodes of this expression graph. */
     std::vector<Expr> inputs_;
 
     /** @brief Contains all nodes with regard to which we want to calculate derivatives */
     std::unordered_set<Expr> topNodes_;
+
+    Parameters params_;
+    TensorAllocator tensors_;
 };
+
+/** @brief A pointer to an expression graph. */
+typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args) {
@@ -388,6 +452,5 @@ Expr Expression(Args&& ... args) {
   e->graph()->add(e);
   return e;
 }
-
 
 }

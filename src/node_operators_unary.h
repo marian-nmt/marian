@@ -1,7 +1,9 @@
 #pragma once
 
 #include "node.h"
+#include "tensors/tensor.h"
 #include "tensor_operators.h"
+#include "thrust_functions.h"
 
 namespace marian {
 
@@ -25,30 +27,30 @@ struct UnaryNodeOp : public Node {
     void remove_children_from_top_nodes();
 
     void backward_debug(Float delta) {
-      using namespace std;
-
-      cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
-
-	  std::vector<float> preCalcGradA, diffGradA, numericalGradA;
-	  preCalcGradA << a_->grad();
-	  //output("preCalcGradA", preCalcGradA);
-
-	  // use df/dx to calc grad
-	  backward();
-	  cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
-	  diffGradA << a_->grad();
-
-	  a_->grad().set(preCalcGradA);
-
-	  calc_numeric_grad(delta, a_->val(), a_->grad());
-	  cerr << "numerical a_->grad()=" << a_->grad().Debug() << endl;
-
-	  numericalGradA << a_->grad();
-
-	  outputL2Norm("", diffGradA, numericalGradA);
-
-	  // reset to diff grad
-	  a_->grad().set(diffGradA);
+        using namespace std;
+        //
+        //cerr << "UnaryNodeOp::" << typeid(*this).name() << "::backward_numeric()" << endl;
+        //
+        //std::vector<float> preCalcGradA, diffGradA, numericalGradA;
+        //a_->grad() >> preCalcGradA ;
+        ////output("preCalcGradA", preCalcGradA);
+        //
+        //// use df/dx to calc grad
+        //backward();
+        //cerr << "orig a_->grad()=" << a_->grad().Debug() << endl;
+        //a_->grad() >> diffGradA;
+        //
+        //a_->grad()->set(preCalcGradA);
+        //
+        //calc_numeric_grad(delta, a_->val(), a_->grad());
+        ////cerr << "numerical a_->grad()=" << a_->grad()->Debug() << endl;
+        //
+        //a_->grad() >> numericalGradA;
+        //
+        //outputL2Norm("", diffGradA, numericalGradA);
+        //
+        //// reset to diff grad
+        //a_->grad()->set(diffGradA);
     }
 
 };
@@ -66,10 +68,6 @@ struct LogitNodeOp : public UnaryNodeOp {
   void backward() {
     Element(_1 += _2 * _3 * (1.0f - _3),
             a_->grad(), adj_, val_);
-  }
-
-  void check() {
-
   }
 
   virtual std::string graphviz() {
@@ -210,7 +208,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     : UnaryNodeOp(args...) { }
 
   void forward() {
-    CudnnSoftmax(val_, a_->val());
+    Softmax(val_, a_->val());
   }
 
   void backward() {
@@ -292,12 +290,94 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 
 };
 
+struct SumNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  SumNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+
+  void forward() {
+    Sum(val_, a_->val(), Get(keywords::axis, -1));
+  }
+
+  void backward() {
+    SumBackward(a_->grad(), adj_, Get(keywords::axis, -1));
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a, Args ...args) {
+    int ax = keywords::Get(keywords::axis, -1, args...);
+    Shape shape = a->shape();
+    if(ax == 0) {
+      shape[0] = 1;
+    }
+    else if(ax == 1) {
+      shape[1] = 1;
+    }
+    else {
+      shape[0] = 1;
+      shape[1] = 1;
+    }
+    return shape;
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("sum") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+struct MeanNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  MeanNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+
+  void forward() {
+    Sum(val_, a_->val(), Get(keywords::axis, -1), true);
+  }
+
+  void backward() {
+    SumBackward(a_->grad(), adj_, Get(keywords::axis, -1), true);
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a, Args ...args) {
+    int ax = keywords::Get(keywords::axis, -1, args...);
+    Shape shape = a->shape();
+    if(ax == 0) {
+      shape[0] = 1;
+    }
+    else if(ax == 1) {
+      shape[1] = 1;
+    }
+    else {
+      shape[0] = 1;
+      shape[1] = 1;
+    }
+    return shape;
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("mean") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+
 struct LogNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   LogNodeOp(Args ...args)
   : UnaryNodeOp(args...) {}
 
   void forward() {
+    std::cerr << val_.get() << " <-> " << a_->val().get() << std::endl;
     Element(_1 = Log(_2), val_, a_->val());
   }
 

@@ -236,8 +236,7 @@ class TensorImpl {
      *
      * @return Vector in string form.
      */
-    std::string Debug() const
-    {
+    std::string Debug() const {
         std::stringstream strm;
         assert(shape_.size());
         strm << "shape=" << marian::Debug(shape_) << std::endl;
