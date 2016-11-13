@@ -476,7 +476,6 @@ void SumBackward(Tensor& out, const Tensor& in, int axis, bool mean) {
   }
 }
 
-
 void CudnnDropoutPrepare(Tensor& in, float p,
                          cudnnDropoutDescriptor_t* dropDesc,
                          void** space, size_t* spaceSize,

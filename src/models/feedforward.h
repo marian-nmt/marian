@@ -44,8 +44,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   //
   // Once the batch size is known, "x" will represent a matrix with dimensions [batch_size, dims.front()].
   // Each row of this matrix will correspond with the observed data vector for one observed data point.
-  auto x = name(g->input(shape={whatevs, dims.front()}),
-                "x");
+  auto x = name(g->input(shape={whatevs, dims.front()}), "x");
 
   // Construct an input node called "y" and add it to the expression graph.
   //
@@ -63,8 +62,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   //
   // Once the batch size is known, "y" will represent a matrix with dimensions [batch_size, dims.front()].
   // Each row of this matrix will correspond with the ground truth data vector for one observed data point.
-  auto y = name(g->input(shape={whatevs, dims.back()}),
-                "y");
+  auto y = name(g->input(shape={whatevs, dims.back()}), "y");
 
   std::vector<Expr> layers, weights, biases;
   for(int i = 0; i < dims.size()-1; ++i) {

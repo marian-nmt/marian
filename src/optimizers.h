@@ -52,14 +52,14 @@ class Adagrad : public OptimizerBase {
         gt_->set(0);
       }
 
-      Tensor pVals = graph->params().vals();
-      Tensor pGrads = graph->params().grads();
+      Tensor pv = graph->params().vals();
+      Tensor pg = graph->params().grads();
 
       ElementVec(_1 += (_2 * _2),
-                 gt_, pGrads);
+                 gt_, pg);
 
       ElementVec(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-                 pVals, gt_, pGrads);
+                 pv, gt_, pg);
     }
 
   private:
@@ -98,16 +98,16 @@ class Adam : public OptimizerBase {
       float denom1 = 1 - pow(beta1_, t_);
       float denom2 = 1 - pow(beta2_, t_);
 
-      Tensor pVals = graph->params().vals();
-      Tensor pGrads = graph->params().grads();
+      Tensor pv = graph->params().vals();
+      Tensor pg = graph->params().grads();
 
       ElementVec(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-                 mt_, pGrads);
+                 mt_, pg);
       ElementVec(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-                 vt_, pGrads);
+                 vt_, pg);
 
       ElementVec(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-                 pVals, mt_, vt_);
+                 pv, mt_, vt_);
     }
 
   private:

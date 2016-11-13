@@ -33,6 +33,11 @@ cuda_add_executable(
   mnist_benchmark.cu
 )
 
+cuda_add_executable(
+  rnn_test
+  rnn_test.cu
+)
+
 #cuda_add_executable(
 #  validate_encoder_decoder
 #  validate_encoder_decoder.cu
@@ -46,16 +51,11 @@ cuda_add_executable(
 target_link_libraries(softmax_benchmark marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(mnist_benchmark marian_lib)
+target_link_libraries(rnn_test marian_lib)
 #target_link_libraries(validate_encoder_decoder marian_lib)
 #target_link_libraries(test_nodes marian_lib)
 
-#foreach(exec mnist_benchmark softmax_benchmark test_nodes tensor_test)
-#  target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
-#  cuda_add_cublas_to_target(${exec})
-#  set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-#endforeach(exec)
-
-foreach(exec mnist_benchmark tensor_test softmax_benchmark)
+foreach(exec mnist_benchmark tensor_test softmax_benchmark rnn_test)
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
