@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   size_t maxBatchSize = God::Get<size_t>("batch-size");
+  std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
 
   if (God::Get<bool>("wipo")) {
 	/*
@@ -57,13 +58,17 @@ int main(int argc, char* argv[]) {
       Sentence *sentence = new Sentence(taskCounter, in);
       sentences->push_back(sentence);
 
-      results.emplace_back(
-        pool.enqueue(
-          [=]{ return TranslationTask(sentence, taskCounter); }
-        )
-      );
+      if (sentences->size() >= maxBatchSize) {
+        results.emplace_back(
+          pool.enqueue(
+            [=]{ return TranslationTask(sentences, taskCounter); }
+          )
+        );
 
-      taskCounter++;
+        sentences = new Sentences();;
+
+        taskCounter++;
+      }
     }
 
     size_t lineCounter = 0;
