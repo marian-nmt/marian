@@ -28,10 +28,9 @@ int main(int argc, char** argv) {
     DataSet<MNIST>("../examples/mnist/t10k-images-idx3-ubyte",
                    "../examples/mnist/t10k-labels-idx1-ubyte");
 
-  auto ff =
-    FeedforwardClassifier({
-      trainSet->dim(0), 2048, 2048, trainSet->dim(1)
-    });
+  auto ff = New<ExpressionGraph>();
+  FeedforwardClassifier(
+    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)});
 
   ff->graphviz("mnist_benchmark.dot");
 
@@ -41,6 +40,9 @@ int main(int argc, char** argv) {
                  batch_size=200,
                  max_epochs=50);
   trainer->run();
+
+  FeedforwardClassifier(
+    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)});
 
   auto validator =
     Run<Validator>(ff, validSet,

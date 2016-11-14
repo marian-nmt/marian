@@ -44,24 +44,24 @@ Expr tanh(Expr a);
 
 /**
  * Constructs a ReLUNodeOp object from the provided Expr object,
- *     wraps the <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified linear</a> node in a shared pointer, 
+ *     wraps the <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified linear</a> node in a shared pointer,
  *     adds it to the associated ExpressionGraph,
  *     and returns the shared pointer to the rectified linear node
  *
  * @arg a An expression object
- * 
+ *
  * @see <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectifier</a>
  */
 Expr relu(Expr a);
 
 /**
  * Constructs a DropoutNodeOp object from the provided Expr object,
- *     wraps the <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a> node in a shared pointer, 
+ *     wraps the <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a> node in a shared pointer,
  *     adds it to the associated ExpressionGraph,
  *     and returns the shared pointer to the dropout node
  *
  * @arg a An expression object
- * 
+ *
  * @see <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a>
  */
 template <typename ...Args>
@@ -78,12 +78,16 @@ Expr operator-(Expr a);
 /*********************************************************/
 
 Expr operator+(Expr a, Expr b);
+Expr operator+=(Expr a, Expr b);
 
 Expr operator-(Expr a, Expr b);
+Expr operator-=(Expr a, Expr b);
 
 Expr operator*(Expr a, Expr b);
+Expr operator*=(Expr a, Expr b);
 
 Expr operator/(Expr a, Expr b);
+Expr operator/=(Expr a, Expr b);
 
 Expr dot(Expr a, Expr b);
 

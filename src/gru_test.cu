@@ -28,12 +28,22 @@ struct ParametersGRU {
 Expr CellGRU(Expr input, Expr state,
              const ParametersGRU& p) {
 
-  auto z = logit(dot(input, p.Wz) + dot(state, p.Uz) + p.bz);
-  auto r = logit(dot(input, p.Wr) + dot(state, p.Ur) + p.br);
-  auto h =  tanh(dot(input, p.Wh) + dot(state, p.Uh) * r + p.bh);
+  Expr z = dot(input, p.Wz) + dot(state, p.Uz);
+  if(p.bz)
+    z += p.bz;
+  z = logit(z);
 
-  // not so great, uses lot's of memory for a constant.
-  // should be fixed when fusing ops for GRU
+  Expr r = dot(input, p.Wr) + dot(state, p.Ur);
+  if(p.br)
+    r += p.br;
+  r = logit(r);
+
+  Expr h = dot(input, p.Wh) + dot(state, p.Uh) * r;
+  if(p.bh)
+    h += p.bh;
+  h = tanh(h);
+
+  // constant 1 in (1-z)*h+z*s
   auto one = state->graph()->ones(shape=state->shape());
 
   auto output = (one - z) * h + z * state;
@@ -61,15 +71,15 @@ void construct(ExpressionGraphPtr g, size_t length) {
   ParametersGRU pGRU;
   pGRU.Uz = g->param("Uz", {dim_h, dim_h}, init=uniform());
   pGRU.Wz = g->param("Wz", {dim_i, dim_h}, init=uniform());
-  pGRU.bz = g->param("bz", {1, dim_h}, init=zeros);
+  //pGRU.bz = nullptr; // g->param("bz", {1, dim_h}, init=zeros);
 
   pGRU.Ur = g->param("Ur", {dim_h, dim_h}, init=uniform());
   pGRU.Wr = g->param("Wr", {dim_i, dim_h}, init=uniform());
-  pGRU.br = g->param("br", {1, dim_h}, init=zeros);
+  //pGRU.br = nullptr; //g->param("br", {1, dim_h}, init=zeros);
 
   pGRU.Uh = g->param("Uh", {dim_h, dim_h}, init=uniform());
   pGRU.Wh = g->param("Wh", {dim_i, dim_h}, init=uniform());
-  pGRU.bh = g->param("bh", {1, dim_h}, init=zeros);
+  //pGRU.bh = nullptr; //g->param("bh", {1, dim_h}, init=zeros);
 
   auto start = name(g->zeros(shape={whatevs, dim_h}), "s_0");
   std::vector<Expr> inputs;

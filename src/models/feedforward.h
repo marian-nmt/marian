@@ -16,7 +16,8 @@ namespace models {
  *
  * @return a shared pointer to the newly constructed expression graph
  */
-ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
+void FeedforwardClassifier(ExpressionGraphPtr g,
+                           const std::vector<int>& dims) {
   using namespace keywords;
   std::cerr << "Building Multi-layer Feedforward network" << std::endl;
   std::cerr << "\tLayer dimensions:";
@@ -26,7 +27,7 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
   boost::timer::cpu_timer timer;
 
   // Construct a shared pointer to an empty expression graph
-  auto g = New<ExpressionGraph>();
+  g->clear();
 
   // Construct an input node called "x" and add it to the expression graph.
   //
@@ -109,7 +110,6 @@ ExpressionGraphPtr FeedforwardClassifier(const std::vector<int>& dims) {
                      "scores");
 
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
-  return g;
 };
 
 }

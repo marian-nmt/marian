@@ -27,90 +27,13 @@
 
 #include "definitions.h"
 #include "chainable.h"
+#include "parameters.h"
 #include "node_operators.h"
 #include "batch_generator.h"
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
 
 namespace marian {
-
-class Parameters {
-  private:
-    /** @brief List of all parameter nodes of this expression graph. */
-    std::vector<Expr> params_;
-    std::map<std::string, Expr> named_;
-
-    TensorAllocator vals_;
-    TensorAllocator grads_;
-
-  public:
-    Parameters()
-      : vals_(newTensorAllocator<DeviceGPU>()),
-        grads_(newTensorAllocator<DeviceGPU>())
-    {}
-
-    auto begin() -> decltype(params_.begin()) {
-      return params_.begin();
-    }
-
-    auto end() -> decltype(params_.begin()) {
-      return params_.end();
-    }
-
-    Expr get(const std::string& name) {
-      auto it = named_.find(name);
-      if(it != named_.end()) {
-        return it->second;
-      }
-      else {
-        return Expr();
-      }
-    }
-
-    size_t size() {
-      return params_.size();
-    }
-
-    size_t totalSize() {
-      size_t sum = 0;
-      for(auto p : params_)
-        sum += p->shape().elements();
-      return sum;
-    }
-
-    void add(Expr p, const std::string& name) {
-      params_.push_back(p);
-      UTIL_THROW_IF2(named_.count(name),
-                     "Parameter " << name << "already exists");
-      named_[name] = p;
-    }
-
-    void allocateForward() {
-      if(vals_->capacity() == 0) {
-        vals_->reserveExact(totalSize());
-        for(auto p: params_)
-          if(!p->val())
-            vals_->allocate(p->val(), p->shape());
-      }
-    }
-
-    void allocateBackward() {
-      if(grads_->capacity() == 0) {
-        grads_->reserveExact(totalSize());
-        for(auto p: params_)
-          if(!p->grad())
-            grads_->allocate(p->grad(), p->shape());
-      }
-    }
-
-    Tensor vals() {
-      return vals_->asTensor();
-    }
-
-    Tensor grads() {
-      return grads_->asTensor();
-    }
-};
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args);
