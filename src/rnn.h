@@ -9,6 +9,27 @@
 
 namespace marian {
 
+struct ParametersTanh {
+  Expr U, W, b;
+};
+
+class Tanh {
+  public:
+    Tanh(const ParametersTanh& params)
+    : params_(params) {}
+
+    Expr apply(Expr input, Expr state) {
+      Expr output = dot(input, params_.W) + dot(state, params_.U);
+      if(params_.b)
+        output += params_.b;
+      output = tanh(output);
+      return output;
+    }
+
+  private:
+    const ParametersTanh& params_;
+};
+
 struct ParametersGRU {
   Expr Uz, Wz, bz;
   Expr Ur, Wr, br;
@@ -47,7 +68,7 @@ class GRU {
     const ParametersGRU& params_;
 };
 
-template <class Cell>
+template <class Cell = Tanh>
 class RNN {
   public:
 
