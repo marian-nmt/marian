@@ -6,61 +6,12 @@
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
-#include "mnist.h"
-#include "trainer.h"
-#include "models/feedforward.h"
-
-#include "tensors/tensor.h"
-#include "tensors/tensor_gpu.h"
-#include "tensors/tensor_allocator.h"
+#include "rnn.h"
+#include "batch_generator.h"
 
 using namespace marian;
 using namespace keywords;
 using namespace data;
-using namespace models;
-
-struct ParametersGRU {
-  Expr Uz, Wz, bz;
-  Expr Ur, Wr, br;
-  Expr Uh, Wh, bh;
-};
-
-Expr CellGRU(Expr input, Expr state,
-             const ParametersGRU& p) {
-
-  Expr z = dot(input, p.Wz) + dot(state, p.Uz);
-  if(p.bz)
-    z += p.bz;
-  z = logit(z);
-
-  Expr r = dot(input, p.Wr) + dot(state, p.Ur);
-  if(p.br)
-    r += p.br;
-  r = logit(r);
-
-  Expr h = dot(input, p.Wh) + dot(state, p.Uh) * r;
-  if(p.bh)
-    h += p.bh;
-  h = tanh(h);
-
-  // constant 1 in (1-z)*h+z*s
-  auto one = state->graph()->ones(shape=state->shape());
-
-  auto output = (one - z) * h + z * state;
-  return output;
-}
-
-std::vector<Expr> GRU(Expr start,
-                      const std::vector<Expr>& inputs,
-                      const ParametersGRU& params) {
-  std::vector<Expr> outputs;
-  auto state = start;
-  for(auto input : inputs) {
-    state = CellGRU(input, state, params);
-    outputs.push_back(state);
-  }
-  return outputs;
-}
 
 void construct(ExpressionGraphPtr g, size_t length) {
   g->clear();
@@ -89,7 +40,8 @@ void construct(ExpressionGraphPtr g, size_t length) {
     inputs.push_back(x);
   }
 
-  auto outputs = GRU(start, inputs, pGRU);
+  RNN<GRU> gru(pGRU);
+  auto outputs = gru.apply(inputs, start);
 }
 
 int main(int argc, char** argv) {
