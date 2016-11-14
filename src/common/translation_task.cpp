@@ -1,0 +1,13 @@
+#include <boost/thread/tss.hpp>
+#include "translation_task.h"
+#include "search.h"
+
+History TranslationTask(const std::string& in, size_t taskCounter) {
+  thread_local std::unique_ptr<Search> search;
+  if(!search) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    search.reset(new Search(taskCounter));
+  }
+
+  return search->Decode(Sentence(taskCounter, in));
+}

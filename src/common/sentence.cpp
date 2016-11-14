@@ -26,3 +26,20 @@ size_t Sentence::GetLine() const {
   return lineNo_;
 }
 
+/////////////////////////////////////////////////////////
+Sentences::Sentences()
+:maxLength_(0)
+{
+
+}
+
+void Sentences::push_back(const Sentence *sentence) {
+  const Words &words = sentence->GetWords(0);
+  size_t len = words.size();
+  if (len > maxLength_) {
+    maxLength_ = len;
+  }
+
+  coll_.push_back(sentence);
+}
+
