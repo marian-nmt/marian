@@ -19,23 +19,18 @@ void construct(ExpressionGraphPtr g, size_t length) {
   int dim_i = 500;
   int dim_h = 1024;
 
-  //ParametersGRU pGRU;
-  //pGRU.Uz = g->param("Uz", {dim_h, dim_h}, init=uniform());
-  //pGRU.Wz = g->param("Wz", {dim_i, dim_h}, init=uniform());
-  ////pGRU.bz = nullptr; // g->param("bz", {1, dim_h}, init=zeros);
-  //
-  //pGRU.Ur = g->param("Ur", {dim_h, dim_h}, init=uniform());
-  //pGRU.Wr = g->param("Wr", {dim_i, dim_h}, init=uniform());
-  ////pGRU.br = nullptr; //g->param("br", {1, dim_h}, init=zeros);
-  //
-  //pGRU.Uh = g->param("Uh", {dim_h, dim_h}, init=uniform());
-  //pGRU.Wh = g->param("Wh", {dim_i, dim_h}, init=uniform());
-  ////pGRU.bh = nullptr; //g->param("bh", {1, dim_h}, init=zeros);
+  ParametersGRU pGRU;
+  pGRU.Uz = g->param("Uz", {dim_h, dim_h}, init=uniform());
+  pGRU.Wz = g->param("Wz", {dim_i, dim_h}, init=uniform());
+  //pGRU.bz = nullptr; // g->param("bz", {1, dim_h}, init=zeros);
 
-  ParametersTanh pTanh;
-  pTanh.U = g->param("Uz", {dim_h, dim_h}, init=uniform());
-  pTanh.W = g->param("Wz", {dim_i, dim_h}, init=uniform());
-  pTanh.b = nullptr; // g->param("bz", {1, dim_h}, init=zeros);
+  pGRU.Ur = g->param("Ur", {dim_h, dim_h}, init=uniform());
+  pGRU.Wr = g->param("Wr", {dim_i, dim_h}, init=uniform());
+  //pGRU.br = nullptr; //g->param("br", {1, dim_h}, init=zeros);
+
+  pGRU.Uh = g->param("Uh", {dim_h, dim_h}, init=uniform());
+  pGRU.Wh = g->param("Wh", {dim_i, dim_h}, init=uniform());
+  //pGRU.bh = nullptr; //g->param("bh", {1, dim_h}, init=zeros);
 
   auto start = name(g->zeros(shape={whatevs, dim_h}), "s_0");
   std::vector<Expr> inputs;
@@ -45,11 +40,8 @@ void construct(ExpressionGraphPtr g, size_t length) {
     inputs.push_back(x);
   }
 
-  RNN<> rnn(pTanh);
-  auto outputs = rnn.apply(inputs, start);
-
-  //RNN<GRU> gru(pGRU);
-  //auto outputs = gru.apply(inputs, start);
+  RNN<GRU> gru(pGRU);
+  auto outputs = gru.apply(inputs, start);
 }
 
 int main(int argc, char** argv) {
