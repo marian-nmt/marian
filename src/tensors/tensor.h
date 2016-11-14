@@ -52,6 +52,11 @@ class TensorBase {
       return shape_.elements();
     }
 
+    virtual float scalar() {
+      UTIL_THROW_IF2(size() != 1, "Tensor is not a scalar");
+      return get(0);
+    }
+
     virtual float get(size_t) = 0;
     virtual void set(size_t, float) = 0;
 

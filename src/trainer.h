@@ -57,7 +57,7 @@ class Trainer : public RunBase,
           while(bg) {
             BatchPtr batch = bg.next();
             opt->update(graph_, batch);
-            cost += (*graph_)["cost"]->val()->get(0) * batch->dim();
+            cost += graph_->get("cost")->val()->scalar() * batch->dim();
             totalExamples += batch->dim();
             update++;
           }
@@ -123,7 +123,7 @@ class Validator : public RunBase,
             BatchPtr batch = bg.next();
             graph_->inference(batch);
             std::vector<float> scores;
-            (*graph_)["scores"]->val()->get(scores);
+            graph_->get("scores")->val()->get(scores);
 
             cor += correct(scores, batch->inputs()[1].data());
             total += batch->dim();

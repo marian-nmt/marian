@@ -38,6 +38,8 @@ class Parameters {
   private:
     /** @brief List of all parameter nodes of this expression graph. */
     std::vector<Expr> params_;
+    std::map<std::string, Expr> named_;
+
     TensorAllocator vals_;
     TensorAllocator grads_;
 
@@ -55,6 +57,16 @@ class Parameters {
       return params_.end();
     }
 
+    Expr get(const std::string& name) {
+      auto it = named_.find(name);
+      if(it != named_.end()) {
+        return it->second;
+      }
+      else {
+        return Expr();
+      }
+    }
+
     size_t size() {
       return params_.size();
     }
@@ -66,8 +78,11 @@ class Parameters {
       return sum;
     }
 
-    void add(Expr p) {
+    void add(Expr p, const std::string& name) {
       params_.push_back(p);
+      UTIL_THROW_IF2(named_.count(name),
+                     "Parameter " << name << "already exists");
+      named_[name] = p;
     }
 
     void allocateForward() {
@@ -196,6 +211,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * Once this has been performed for all nodes, this pass again traverses the nodes, again in reverse creation order;
      *    as each node is traversed, its <code>backward()</code> method is called.
+     *https://www.facebook.com/
      * After this method has successfully completed,
      *    and that all backward pass computations have been performed.
      */
@@ -300,10 +316,31 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed parameter node
      */
     template <typename ...Args>
-    inline Expr param(Args ...args) {
-      auto e = Expression<ParamNode>(shared_from_this(), args...);
-      params_.add(e);
-      return e;
+    inline Expr param(const std::string& name,
+                      Shape shape,
+                      Args ...args) {
+      // check first if parameter already exists
+      auto p = params_.get(name);
+      if(p) {
+        // if yes add to tape and return
+        add(p);
+        return p;
+      }
+
+      // if not check if name is not taken by other node
+      UTIL_THROW_IF2(get(name),
+                     "Non-parameter with name "
+                     << name
+                     << "already exists");
+
+      // create parameter node (adds to tape)
+      p = Expression<ParamNode>(shared_from_this(),
+                                keywords::shape=shape,
+                                args...);
+
+      // add to list of parameters
+      params_.add(p, name);
+      return p;
     }
 
     /**
@@ -344,7 +381,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed constant node
      */
     template <typename ...Args>
-    inline Expr zeroes(Args ...args) {
+    inline Expr zeros(Args ...args) {
       return Expression<ConstantNode>(shared_from_this(), keywords::value=0, args...);
     }
 
@@ -359,9 +396,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @return the first item in the list with the specified name, if such an item exists
      */
-    Expr& operator[](const std::string& name) {
+    Expr get(const std::string& name) {
+      auto e = params_.get(name);
+      if(e)
+        return e;
+
       auto it = named_.find(name);
-      UTIL_THROW_IF2(it == named_.end(), "No such named node in graph: " << name);
+      if(it == named_.end())
+        return Expr();
       return it->second;
     }
 
@@ -384,18 +426,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     /**
-     * @brief Determines whether the graph contains a node with a specified name.
-     *
-     * @param name Name of the desired expression node
-     *
-     * @return <code>true</code> if the graph contains a node with a specified name,
-     *         <code>false</code> otherwise
-     */
-    bool has_node(const std::string& name) const {
-      return named_.count(name) > 0;
-    }
-
-    /**
      * @brief Inserts an expression node with a specified name into the expression graph.
      *
      * @param e an expression node
@@ -404,6 +434,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return the expression node that was added to the expression graph
      */
     void add_named_node(Expr e, const std::string& name) {
+      UTIL_THROW_IF2(params_.get(name) || get(name),
+                     "Node names must be unique");
+
       named_.emplace(name, e);
     }
 
@@ -417,11 +450,18 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       topNodes_.erase(node);
     }
 
-
-
     template <class ...Args>
     void tensor(Tensor& t, Args&&... args) {
       tensors_->allocate(t, args...);
+    }
+
+    void clear() {
+      // clear everything apart from parameters
+      tape_.clear();
+      named_.clear();
+      inputs_.clear();
+      topNodes_.clear();
+      tensors_->clear();
     }
 
   private:
