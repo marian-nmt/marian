@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 
       results.emplace_back(
         pool.enqueue(
-          [=]{ return TranslationTask(in, taskCounter); }
+          [=]{ return TranslationTask(sentence, taskCounter); }
         )
       );
 
