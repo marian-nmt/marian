@@ -23,7 +23,7 @@ size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
   return filterIndices_.size();
 }
 
-History Search::Decode(const Sentence& sentence) {
+Histories Search::Decode(const Sentence& sentence) {
   boost::timer::cpu_timer timer;
 
   size_t beamSize = God::Get<size_t>("beam-size");
@@ -102,5 +102,7 @@ History Search::Decode(const Sentence& sentence) {
 	  scorer->CleanUpAfterSentence();
   }
 
-  return history;
+  Histories ret;
+  ret.push_back(history);
+  return ret;
 }

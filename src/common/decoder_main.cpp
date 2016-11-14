@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     ThreadPool pool(totalThreads);
     LOG(info) << "Reading input";
 
-    std::vector<std::future<History>> results;
+    std::vector<std::future<Histories>> results;
     Sentences *sentences = new Sentences();
 
     while(std::getline(God::GetInputStream(), in)) {
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
 
     size_t lineCounter = 0;
     for (auto&& result : results)
-      Printer(result.get(), lineCounter++, std::cout);
+      Printer(result.get()[0], lineCounter++, std::cout);
   }
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
