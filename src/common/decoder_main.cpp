@@ -71,6 +71,14 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    if (sentences->size()) {
+      results.emplace_back(
+        pool.enqueue(
+          [=]{ return TranslationTask(sentences, taskCounter); }
+        )
+      );
+    }
+
     size_t lineCounter = 0;
     for (auto&& result : results)
       Printer(result.get(), lineCounter++, std::cout);
