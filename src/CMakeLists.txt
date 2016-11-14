@@ -31,7 +31,6 @@ add_library(libcommon OBJECT
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
-  common/translation_task.cpp
   common/processor/bpe.cpp
   common/utils.cpp
   common/vocab.cpp
@@ -53,6 +52,7 @@ cuda_add_executable(
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
   common/loader_factory.cpp
+  common/translation_task.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
