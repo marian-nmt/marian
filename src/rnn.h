@@ -16,7 +16,7 @@ struct ParametersTanh {
 
 class Tanh {
   public:
-    Tanh(const ParametersTanh& params)
+    Tanh(ParametersTanh params)
     : params_(params) {}
 
     Expr apply(Expr input, Expr state) {
@@ -34,7 +34,7 @@ class Tanh {
     }
 
   private:
-    const ParametersTanh& params_;
+    ParametersTanh params_;
 };
 
 struct ParametersGRU {
@@ -46,7 +46,7 @@ struct ParametersGRU {
 
 class GRU {
   public:
-    GRU(const ParametersGRU& params)
+    GRU(ParametersGRU params)
     : params_(params) {}
 
     Expr apply(Expr input, Expr state) {
@@ -79,7 +79,7 @@ class GRU {
     }
 
   private:
-    const ParametersGRU& params_;
+    ParametersGRU params_;
 };
 
 template <class Cell = Tanh>

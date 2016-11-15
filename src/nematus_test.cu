@@ -22,7 +22,7 @@ void construct(ExpressionGraphPtr g,
   g->clear();
 
   int dimSrcVoc = 30000;
-  int dimSrcEmb = 512;
+  int dimSrcEmb = 128;
   int dimEncState = 1024;
   int dimBatch = 1;
 
@@ -76,6 +76,7 @@ void construct(ExpressionGraphPtr g,
     joinedStates.push_back(concatenate({*itFw++, *itBw++}));
 
   auto encContext = concatenate(joinedStates);
+
   //auto decStartState = mean(encContext);
 }
 
@@ -96,6 +97,8 @@ int main(int argc, char** argv) {
     // fake batch
     auto batch = generateBatch(batchSize);
     construct(g, batch);
+    //g->graphviz("nematus.dot");
+    //exit(1);
 
     g->forward();
     if(i % 100 == 0)
