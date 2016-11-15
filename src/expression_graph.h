@@ -112,6 +112,18 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           v->forward();
     }
 
+    void forward() {
+      params_.allocateForward();
+
+      for(auto&& v : tape_)
+        if(!v->skipped_training())
+          v->allocate(0);
+
+      for(auto&& v : tape_)
+        if(!v->skipped_training())
+          v->forward();
+    }
+
     void inference(data::BatchPtr batch) {
       for(auto&& v : tape_)
         if(!v->skipped_inference())

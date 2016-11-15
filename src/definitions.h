@@ -26,6 +26,8 @@
 #include <functional>
 #include <memory>
 #include <cuda.h>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 
 #include "shape.h"
 
@@ -36,8 +38,13 @@ namespace marian {
     return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
   }
 
-
   typedef float Float;
+
+  template<class T>
+  using DeviceVector = thrust::device_vector<T>;
+
+  template<class T>
+  using HostVector = thrust::host_vector<T>;
 
   /** @brief A placeholder that represents the size of a dimension, the actual value of which is to be specified at some later point.
    *

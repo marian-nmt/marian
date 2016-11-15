@@ -38,6 +38,8 @@ Expr inference(Expr a);
  */
 Expr name(Expr a, const std::string& name);
 
+Expr rows(Expr a, const DeviceVector<size_t>& indeces);
+
 Expr logit(Expr a);
 
 Expr tanh(Expr a);

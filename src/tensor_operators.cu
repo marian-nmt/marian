@@ -39,7 +39,7 @@ static cudnnHandle_t create_handle_dnn() {
 cublasHandle_t cublasHandle = create_handle();
 cudnnHandle_t cudnnHandle = create_handle_dnn();
 
-void CudnnSoftmax(Tensor& out, Tensor& in) {
+void CudnnSoftmax(Tensor out, Tensor in) {
     float alpha = 1, beta = 0;
     auto inGpu = static_cast<TensorGPU*>(in.get());
     auto outGpu = static_cast<TensorGPU*>(out.get());
@@ -55,7 +55,7 @@ void CudnnSoftmax(Tensor& out, Tensor& in) {
     cudaDeviceSynchronize();
 }
 
-void CudnnLogSoftmax(Tensor& out, Tensor& in) {
+void CudnnLogSoftmax(Tensor out, Tensor in) {
     float alpha = 1, beta = 0;
     auto inGpu = static_cast<TensorGPU*>(in.get());
     auto outGpu = static_cast<TensorGPU*>(out.get());
@@ -71,7 +71,7 @@ void CudnnLogSoftmax(Tensor& out, Tensor& in) {
     cudaDeviceSynchronize();
 }
 
-void CudnnSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
+void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
     float alpha = 1, beta = 0;
     auto valGpu = static_cast<TensorGPU*>(val.get());
     auto adjGpu = static_cast<TensorGPU*>(adj.get());
@@ -90,7 +90,7 @@ void CudnnSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
     cudaDeviceSynchronize();
 }
 
-void CudnnLogSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
+void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
     float alpha = 1, beta = 0;
     auto valGpu = static_cast<TensorGPU*>(val.get());
     auto adjGpu = static_cast<TensorGPU*>(adj.get());
@@ -147,7 +147,7 @@ __global__ void gSubtractMax(float* out, const float* in,
   }
 }
 
-void SubtractMax(Tensor& out, Tensor& in) {
+void SubtractMax(Tensor out, Tensor in) {
   // Out is a m-by-k matrix, passed as input.
   // The max element of each row of Out is computed and subtracted from Out.
   // Out is both input and output.
@@ -196,7 +196,7 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
   }
 }
 
-void Softmax(Tensor& out, Tensor& in) {
+void Softmax(Tensor out, Tensor in) {
   size_t m = out->shape()[0];
   size_t k = out->shape()[1];
 
@@ -250,7 +250,7 @@ __global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
   }
 }
 
-void SoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
+void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -303,7 +303,7 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
   }
 }
 
-void LogSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val) {
+void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -350,7 +350,7 @@ __global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols)
 
 ///////////////////////////////////////////////////////
 
-void Prod(cublasHandle_t handle, Tensor& C, const Tensor& A, const Tensor& B,
+void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta) {
   Float alpha = 1.0;
 
@@ -378,13 +378,13 @@ void Prod(cublasHandle_t handle, Tensor& C, const Tensor& A, const Tensor& B,
               n, m, k, &alpha, B->data(), ldb, A->data(), lda, &beta, C->data(), ldc);
 }
 
-void Prod(Tensor& C, const Tensor& A, const Tensor& B,
+void Prod(Tensor C, const Tensor A, const Tensor B,
             bool transA, bool transB, Float beta) {
 
   Prod(cublasHandle, C, A, B, transA, transB, beta);
 }
 
-void Sum(Tensor& out, const Tensor& in, int axis, bool mean) {
+void Sum(Tensor out, const Tensor in, int axis, bool mean) {
   int rows = in->shape()[0];
   int cols = in->shape()[1];
 
@@ -430,7 +430,7 @@ void Sum(Tensor& out, const Tensor& in, int axis, bool mean) {
   }
 }
 
-void SumBackward(Tensor& out, const Tensor& in, int axis, bool mean) {
+void SumBackward(Tensor out, const Tensor in, int axis, bool mean) {
   int rows = out->shape()[0];
   int cols = out->shape()[1];
 
@@ -476,7 +476,7 @@ void SumBackward(Tensor& out, const Tensor& in, int axis, bool mean) {
   }
 }
 
-void CudnnDropoutPrepare(Tensor& in, float p,
+void CudnnDropoutPrepare(Tensor in, float p,
                          cudnnDropoutDescriptor_t* dropDesc,
                          void** space, size_t* spaceSize,
                          void** states, size_t seed) {
@@ -506,7 +506,7 @@ void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
 
 void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
                   void* space, size_t spaceSize,
-                  Tensor& out, Tensor& in) {
+                  Tensor out, Tensor in) {
   auto inGpu = static_cast<TensorGPU*>(in.get());
   auto outGpu = static_cast<TensorGPU*>(out.get());
   cudnnDropoutForward(cudnnHandle,
@@ -521,7 +521,7 @@ void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
 
 void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
                           void* space, size_t spaceSize,
-                          Tensor& out, Tensor& in) {
+                          Tensor out, Tensor in) {
   auto inGpu = static_cast<TensorGPU*>(in.get());
   auto outGpu = static_cast<TensorGPU*>(out.get());
   cudnnDropoutBackward(cudnnHandle,
@@ -533,5 +533,73 @@ void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
                       space,
                       spaceSize);
 }
+
+__global__ void gCopyRows(float* out, const float* in, size_t cols,
+                          const size_t* sourceRowIdx, size_t rows) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      size_t dstId = j;
+      size_t srcId = sourceRowIdx[j];
+
+      float* rowOut = out + dstId * cols;
+      const float* rowIn = in + srcId * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[i] = rowIn[i];
+      }
+    }
+  }
+}
+
+void CopyRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces) {
+  size_t cols = in->shape()[1];
+  size_t rowsToCopy = indeces.size();
+
+  int threads = std::min(MAX_THREADS, (int)cols);
+  int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
+
+  gCopyRows<<<blocks, threads>>>(out->data(), in->data(), cols,
+                                 thrust::raw_pointer_cast(indeces.data()),
+                                 rowsToCopy);
+  cudaStreamSynchronize(0);
+}
+
+__global__ void gPasteRows(float* out, const float* in, size_t cols,
+                          const size_t* targetRowIdx, size_t rows) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      size_t dstId = targetRowIdx[j];
+      size_t srcId = j;
+
+      float* rowOut = out + dstId * cols;
+      const float* rowIn = in + srcId * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[i] = rowIn[i];
+      }
+    }
+  }
+}
+
+void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces) {
+  size_t cols = in->shape()[1];
+  size_t rowsToCopy = indeces.size();
+
+  int threads = std::min(MAX_THREADS, (int)cols);
+  int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
+
+  gPasteRows<<<blocks, threads>>>(out->data(), in->data(), cols,
+                                  thrust::raw_pointer_cast(indeces.data()),
+                                  rowsToCopy);
+
+  cudaStreamSynchronize(0);
+}
+
 
 }

@@ -13,53 +13,89 @@ using namespace marian;
 using namespace keywords;
 using namespace data;
 
-void construct(ExpressionGraphPtr g, size_t length) {
+typedef DeviceVector<size_t> WordBatch;
+typedef std::vector<WordBatch> SentBatch;
+
+void construct(ExpressionGraphPtr g,
+               const SentBatch& srcSentenceBatch) {
   g->clear();
 
-  int dim_i = 500;
-  int dim_h = 1024;
+  int dimSrcVoc = 30000;
+  int dimSrcEmb = 512;
+  int dimEncState = 1024;
+  int dimBatch = 1;
 
-  ParametersGRU pGRU;
-  pGRU.Uz = g->param("Uz", {dim_h, dim_h}, init=uniform());
-  pGRU.Wz = g->param("Wz", {dim_i, dim_h}, init=uniform());
-  //pGRU.bz = nullptr; // g->param("bz", {1, dim_h}, init=zeros);
+  auto Wemb = g->param("Wemb", {dimSrcVoc, dimSrcEmb}, init=uniform());
 
-  pGRU.Ur = g->param("Ur", {dim_h, dim_h}, init=uniform());
-  pGRU.Wr = g->param("Wr", {dim_i, dim_h}, init=uniform());
-  //pGRU.br = nullptr; //g->param("br", {1, dim_h}, init=zeros);
-
-  pGRU.Uh = g->param("Uh", {dim_h, dim_h}, init=uniform());
-  pGRU.Wh = g->param("Wh", {dim_i, dim_h}, init=uniform());
-  //pGRU.bh = nullptr; //g->param("bh", {1, dim_h}, init=zeros);
-
-  pGRU.dropout = 0.2;
-
-  auto start = name(g->zeros(shape={whatevs, dim_h}), "s_0");
   std::vector<Expr> inputs;
-  for(int i = 0; i < length; ++i) {
-    auto x = name(g->input(shape={whatevs, dim_i}),
-                  "x_" + std::to_string(i));
+  for(auto& srcWordBatch : srcSentenceBatch) {
+    auto x = rows(Wemb, srcWordBatch);
     inputs.push_back(x);
+    dimBatch = srcWordBatch.size();
   }
 
-  RNN<GRU> gru(pGRU);
-  auto outputs = gru.apply(inputs, start);
+  auto encoder = [=](const std::string& prefix){
+    ParametersGRU encParams;
+    encParams.Uz = g->param(prefix + "_Uz", {dimEncState, dimEncState},
+                            init=uniform());
+    encParams.Ur = g->param(prefix + "_Ur", {dimEncState, dimEncState},
+                            init=uniform());
+
+    encParams.Wz = g->param(prefix + "_Wz", {dimSrcEmb, dimEncState},
+                            init=uniform());
+    encParams.Wr = g->param(prefix + "_Wr", {dimSrcEmb, dimEncState},
+                            init=uniform());
+
+    encParams.bz = g->param(prefix + "_bz", {1, dimEncState}, init=zeros);
+    encParams.br = g->param(prefix + "_br", {1, dimEncState}, init=zeros);
+
+    encParams.Ux = g->param(prefix + "_Ux", {dimEncState, dimEncState},
+                            init=uniform());
+    encParams.Wx = g->param(prefix + "_Wx", {dimSrcEmb, dimEncState},
+                            init=uniform());
+    encParams.bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
+
+    return RNN<GRU>(encParams);
+  };
+
+  auto encStartState = g->zeros(shape={dimBatch, dimEncState});
+
+  auto encForward = encoder("encoder");
+  auto statesForward = encForward.apply(inputs.begin(), inputs.end(),
+                                        encStartState);
+
+  /*
+  auto encBackward = encoder("encoder_r");
+  auto statesBackward = encBackward.apply(inputs.rbegin(), inputs.rend(),
+                                          encStartState);
+
+  std::vector<Expr> joinedStates;
+  for(auto itFw = statesForward.begin(), auto itBw = statesBackward.rbegin();
+      itFw != statesForward.end(); itFw++, itBw++)
+    joinedStates.push_back(concatenate({*itFw, *itBw}, axis=1));
+
+  auto encoder = concatenate(joinedStates, axis=2)
+  auto decStartState = mean(encoder, axis=2);
+  */
+}
+
+SentBatch generateBatch(size_t batchSize) {
+  size_t length = rand() % 40 + 10;
+  return SentBatch(length, WordBatch(batchSize));
 }
 
 int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
 
+  size_t batchSize = 80;
+
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {
-    size_t length = rand() % 40 + 10; // random int from [10,50]
     g->clear();
-    construct(g, length);
+    auto batch = generateBatch(batchSize);
+    construct(g, batch);
 
-    BatchPtr batch(new Batch());
-    for(int j = 0; j < length; ++j)
-      batch->push_back(Input({80, 500}));
-
-    g->forward(batch);
+    g->forward();
     if(i % 100 == 0)
       std::cout << i << std::endl;
   }

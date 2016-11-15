@@ -23,6 +23,9 @@
 
 #include <cublas_v2.h>
 #include <thrust/functional.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+#include <thrust/pair.h>
 
 #include "tensors/tensor_gpu.h"
 
@@ -257,33 +260,40 @@ void Element(Functor functor,
   cudaStreamSynchronize(0);
 }
 
-void ClipNorm(Tensor& out, float threshold);
+void ClipNorm(Tensor out, float threshold);
 
-void SubtractMax(Tensor& out, Tensor& in);
+void SubtractMax(Tensor out, Tensor in);
 
-void Softmax(Tensor& out, Tensor& in);
+void Softmax(Tensor out, Tensor in);
 
-void SoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val);
-void LogSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val);
+void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
+void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 
-void CudnnSoftmax(Tensor& out, Tensor& in);
-void CudnnSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val);
+void CudnnSoftmax(Tensor out, Tensor in);
+void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 
-void CudnnLogSoftmax(Tensor& out, Tensor& in);
-void CudnnLogSoftmaxGrad(Tensor& grad, Tensor& adj, Tensor& val);
+void CudnnLogSoftmax(Tensor out, Tensor in);
+void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 
-void Argmax(Tensor& Out, const Tensor& In);
+void Argmax(Tensor Out, const Tensor In);
 
-void Prod(cublasHandle_t handle, Tensor& C, const Tensor& A, const Tensor& B,
+void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta);
 
-void Prod(Tensor& C, const Tensor& A, const Tensor& B,
+void Prod(Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta = 0);
 
-void Sum(Tensor& out, const Tensor& in, int axis=-1, bool mean=false);
-void SumBackward(Tensor& out, const Tensor& in, int axis=-1, bool mean=false);
+void Sum(Tensor out, const Tensor in, int axis=-1, bool mean=false);
+void SumBackward(Tensor out, const Tensor in, int axis=-1, bool mean=false);
 
-void CudnnDropoutPrepare(Tensor& in, float p,
+void CopyRowsByIndex(Tensor out, const Tensor in,
+                     thrust::pair<size_t, size_t>* ipair, size_t length);
+
+void CopyRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces);
+
+void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces);
+
+void CudnnDropoutPrepare(Tensor in, float p,
                          cudnnDropoutDescriptor_t* dropDesc,
                          void** space, size_t* spaceSize,
                          void** states, size_t seed);
@@ -293,11 +303,11 @@ void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
 
 void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
                   void* space, size_t spaceSize,
-                  Tensor& out, Tensor& in);
+                  Tensor out, Tensor in);
 
 void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
                           void* space, size_t spaceSize,
-                          Tensor& out, Tensor& in);
+                          Tensor out, Tensor in);
 
 
 }

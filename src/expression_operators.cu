@@ -40,6 +40,10 @@ Expr name(Expr a, const std::string& name) {
   return a;
 }
 
+Expr rows(Expr a, const DeviceVector<size_t>& indeces) {
+  return Expression<RowsNodeOp>(a, indeces);
+}
+
 Expr logit(Expr a) {
   return Expression<LogitNodeOp>(a);
 }

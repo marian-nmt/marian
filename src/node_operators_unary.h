@@ -111,10 +111,10 @@ struct TanhNodeOp : public UnaryNodeOp {
  *
  * This node implements the <a href="https://en.wikipedia.org/wiki/Activation_function">activation function</a>
  *        \f$f(x) = \max(0, x)\f$ and its derivative:
- * 
+ *
  \f[
- f^\prime(x) = 
-  \begin{cases} 
+ f^\prime(x) =
+  \begin{cases}
    0 & \text{if } x \leq 0 \\
    1 & \text{if } x > 0
   \end{cases}
@@ -145,10 +145,10 @@ struct ReLUNodeOp : public UnaryNodeOp {
 
 };
 
-/** 
- * @brief Represents a <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a> node 
+/**
+ * @brief Represents a <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a> node
  *        in an expression graph.
- * 
+ *
  * @see \cite dropout
  * @see \cite cudnn
  */
@@ -366,8 +366,7 @@ struct MeanNodeOp : public UnaryNodeOp {
       << label("mean") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
-  };
-
+  }
 };
 
 
@@ -439,8 +438,39 @@ struct NegNodeOp : public UnaryNodeOp {
       << label("-") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
-  };
+  }
+};
 
+struct RowsNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  RowsNodeOp(Expr a, const DeviceVector<size_t>& indeces, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a, indeces), args...),
+      indeces_(indeces) { }
+
+  void forward() {
+    CopyRows(val_, a_->val(), indeces_);
+  }
+
+  void backward() {
+    PasteRows(a_->grad(), adj_, indeces_);
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a, const DeviceVector<size_t>& indeces) {
+    Shape shape = a->shape();
+    shape[0] = indeces.size();
+    return shape;
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("rows") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  }
+
+  const DeviceVector<size_t> &indeces_;
 };
 
 

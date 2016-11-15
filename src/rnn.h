@@ -21,7 +21,7 @@ class Tanh {
 
     Expr apply(Expr input, Expr state) {
       using namespace keywords;
-      
+
       Expr output = dot(input, params_.W) + dot(state, params_.U);
       if(params_.b)
         output += params_.b;
@@ -40,7 +40,7 @@ class Tanh {
 struct ParametersGRU {
   Expr Uz, Wz, bz;
   Expr Ur, Wr, br;
-  Expr Uh, Wh, bh;
+  Expr Ux, Wx, bx;
   float dropout = 0;
 };
 
@@ -62,9 +62,9 @@ class GRU {
         r += params_.br;
       r = logit(r);
 
-      Expr h = dot(input, params_.Wh) + dot(state, params_.Uh) * r;
-      if(params_.bh)
-        h += params_.bh;
+      Expr h = dot(input, params_.Wx) + dot(state, params_.Ux) * r;
+      if(params_.bx)
+        h += params_.bx;
       h = tanh(h);
 
       // constant 1 in (1-z)*h+z*s
@@ -92,10 +92,17 @@ class RNN {
 
     std::vector<Expr> apply(const std::vector<Expr>& inputs,
                             const Expr initialState) {
+      return apply(inputs.begin(), inputs.end(),
+                   initialState);
+    }
+
+    template <class Iterator>
+    std::vector<Expr> apply(Iterator it, Iterator end,
+                            const Expr initialState) {
       std::vector<Expr> outputs;
       auto state = initialState;
-      for(auto input : inputs) {
-        state = cell_.apply(input, state);
+      while(it != end) {
+        state = cell_.apply(*it++, state);
         outputs.push_back(state);
       }
       return outputs;
