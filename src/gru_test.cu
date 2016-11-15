@@ -32,6 +32,8 @@ void construct(ExpressionGraphPtr g, size_t length) {
   pGRU.Wh = g->param("Wh", {dim_i, dim_h}, init=uniform());
   //pGRU.bh = nullptr; //g->param("bh", {1, dim_h}, init=zeros);
 
+  pGRU.dropout = 0.2;
+
   auto start = name(g->zeros(shape={whatevs, dim_h}), "s_0");
   std::vector<Expr> inputs;
   for(int i = 0; i < length; ++i) {

@@ -11,6 +11,7 @@ namespace marian {
 
 struct ParametersTanh {
   Expr U, W, b;
+  float dropout = 0;
 };
 
 class Tanh {
@@ -23,6 +24,10 @@ class Tanh {
       if(params_.b)
         output += params_.b;
       output = tanh(output);
+
+      if(params_.dropout > 0)
+        output = dropout(output, value=params_.dropout);
+
       return output;
     }
 
@@ -34,6 +39,7 @@ struct ParametersGRU {
   Expr Uz, Wz, bz;
   Expr Ur, Wr, br;
   Expr Uh, Wh, bh;
+  float dropout = 0;
 };
 
 class GRU {
@@ -42,6 +48,8 @@ class GRU {
     : params_(params) {}
 
     Expr apply(Expr input, Expr state) {
+      using namespace keywords;
+
       Expr z = dot(input, params_.Wz) + dot(state, params_.Uz);
       if(params_.bz)
         z += params_.bz;
@@ -58,9 +66,13 @@ class GRU {
       h = tanh(h);
 
       // constant 1 in (1-z)*h+z*s
-      auto one = state->graph()->ones(keywords::shape=state->shape());
+      auto one = state->graph()->ones(shape=state->shape());
 
       auto output = (one - z) * h + z * state;
+
+      if(params_.dropout > 0)
+        output = dropout(output, value=params_.dropout);
+
       return output;
     }
 
