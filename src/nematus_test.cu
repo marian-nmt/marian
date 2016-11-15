@@ -8,6 +8,7 @@
 #include "marian.h"
 #include "rnn.h"
 #include "batch_generator.h"
+#include "param_initializers.h"
 
 using namespace marian;
 using namespace keywords;
@@ -25,7 +26,7 @@ void construct(ExpressionGraphPtr g,
   int dimEncState = 1024;
   int dimBatch = 1;
 
-  auto Wemb = g->param("Wemb", {dimSrcVoc, dimSrcEmb}, init=uniform());
+  auto Wemb = g->param("Wemb", {dimSrcVoc, dimSrcEmb}, init=glorot_uniform);
 
   std::vector<Expr> inputs;
   for(auto& srcWordBatch : srcSentenceBatch) {
@@ -34,25 +35,25 @@ void construct(ExpressionGraphPtr g,
     dimBatch = srcWordBatch.size();
   }
 
-  auto encoder = [=](const std::string& prefix){
+  auto buildEncoderGRU = [=](const std::string& prefix){
     ParametersGRU encParams;
     encParams.Uz = g->param(prefix + "_Uz", {dimEncState, dimEncState},
-                            init=uniform());
+                            init=glorot_uniform);
     encParams.Ur = g->param(prefix + "_Ur", {dimEncState, dimEncState},
-                            init=uniform());
+                            init=glorot_uniform);
 
     encParams.Wz = g->param(prefix + "_Wz", {dimSrcEmb, dimEncState},
-                            init=uniform());
+                            init=glorot_uniform);
     encParams.Wr = g->param(prefix + "_Wr", {dimSrcEmb, dimEncState},
-                            init=uniform());
+                            init=glorot_uniform);
 
     encParams.bz = g->param(prefix + "_bz", {1, dimEncState}, init=zeros);
     encParams.br = g->param(prefix + "_br", {1, dimEncState}, init=zeros);
 
     encParams.Ux = g->param(prefix + "_Ux", {dimEncState, dimEncState},
-                            init=uniform());
+                            init=glorot_uniform);
     encParams.Wx = g->param(prefix + "_Wx", {dimSrcEmb, dimEncState},
-                            init=uniform());
+                            init=glorot_uniform);
     encParams.bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
 
     return RNN<GRU>(encParams);
@@ -60,12 +61,12 @@ void construct(ExpressionGraphPtr g,
 
   auto encStartState = g->zeros(shape={dimBatch, dimEncState});
 
-  auto encForward = encoder("encoder");
+  auto encForward = buildEncoderGRU("encoder");
   auto statesForward = encForward.apply(inputs.begin(), inputs.end(),
                                         encStartState);
 
   /*
-  auto encBackward = encoder("encoder_r");
+  auto encBackward = buildEncoderGRU("encoder_r");
   auto statesBackward = encBackward.apply(inputs.rbegin(), inputs.rend(),
                                           encStartState);
 
@@ -74,8 +75,8 @@ void construct(ExpressionGraphPtr g,
       itFw != statesForward.end(); itFw++, itBw++)
     joinedStates.push_back(concatenate({*itFw, *itBw}, axis=1));
 
-  auto encoder = concatenate(joinedStates, axis=2)
-  auto decStartState = mean(encoder, axis=2);
+  auto encContext = concatenate(joinedStates, axis=2)
+  auto decStartState = mean(encContext, axis=2);
   */
 }
 

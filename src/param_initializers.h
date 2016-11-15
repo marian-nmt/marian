@@ -47,16 +47,16 @@ float xor128() {
 // Use a constant seed for deterministic behaviour.
 std::default_random_engine engine(42);
 
-void zeros(Tensor& t) {
+void zeros(Tensor t) {
   t->set(0.f);
 }
 
-void ones(Tensor& t) {
+void ones(Tensor t) {
   t->set(1.0f);
 }
 
 template <class Distribution>
-void distribution(Tensor& t, float a, float b) {
+void distribution(Tensor t, float a, float b) {
   //std::random_device device;
   //std::default_random_engine engine(device());
   Distribution dist(a, b);
@@ -68,37 +68,37 @@ void distribution(Tensor& t, float a, float b) {
   t << vals;
 }
 
-std::function<void(Tensor&)> normal(float mean = 0.0, float std = 0.05) {
-  return [mean, std](Tensor& t) {
+std::function<void(Tensor)> normal(float mean = 0.0, float std = 0.05) {
+  return [mean, std](Tensor t) {
     distribution<std::normal_distribution<float>>(t, mean, std);
   };
 }
 
-std::function<void(Tensor&)> uniform(float a = -0.05, float b = 0.05) {
-  return [a, b](Tensor& t) {
+std::function<void(Tensor)> uniform(float a = -0.05, float b = 0.05) {
+  return [a, b](Tensor t) {
     distribution<std::uniform_real_distribution<float>>(t, a, b);
   };
 }
 
-void glorot_uniform(Tensor& t) {
+void glorot_uniform(Tensor t) {
   float b = sqrtf( 6.0f / (t->shape()[0] + t->shape()[1]) );
   distribution<std::uniform_real_distribution<float>>(t, -b, b);
 }
 
-void xorshift(Tensor& t) {
+void xorshift(Tensor t) {
   std::vector<float> vals(t->size());
   for(auto&& v : vals)
     v = xor128();
   t << vals;
 }
 
-void glorot_normal(Tensor& t) {
+void glorot_normal(Tensor t) {
   float b = sqrtf( 2.0f / (t->shape()[0] + t->shape()[1]) );
   distribution<std::uniform_real_distribution<float>>(t, -b, b);
 }
 
-std::function<void(Tensor&)> from_vector(const std::vector<float>& v) {
-  return [v](Tensor& t) {
+std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
+  return [v](Tensor t) {
     t << v;
   };
 }
