@@ -11,7 +11,7 @@ class History;
 class Search {
   public:
     Search(size_t threadId);
-    History Decode(const Sentence& sentence);
+    History Decode(const Sentences& sentences);
 
   private:
     size_t MakeFilter(const Words& srcWords, size_t vocabSize);

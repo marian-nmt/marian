@@ -23,7 +23,7 @@ size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
   return filterIndices_.size();
 }
 
-History Search::Decode(const Sentence& sentence) {
+History Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   size_t beamSize = God::Get<size_t>("beam-size");
@@ -44,12 +44,12 @@ History Search::Decode(const Sentence& sentence) {
 
   bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
-    vocabSize = MakeFilter(sentence.GetWords(), vocabSize);
+    vocabSize = MakeFilter(sentences[0].GetWords(), vocabSize);
   }
 
   for (size_t i = 0; i < scorers_.size(); i++) {
     Scorer &scorer = *scorers_[i];
-    scorer.SetSource(sentence);
+    scorer.SetSource(sentences);
 
     states[i].reset(scorer.NewState());
     nextStates[i].reset(scorer.NewState());
@@ -57,7 +57,7 @@ History Search::Decode(const Sentence& sentence) {
     scorer.BeginSentenceState(*states[i]);
   }
 
-  const size_t maxLength = sentence.GetWords().size() * 3;
+  const size_t maxLength = sentences[0].GetWords().size() * 3;
   do {
     for (size_t i = 0; i < scorers_.size(); i++) {
       Scorer &scorer = *scorers_[i];
@@ -95,7 +95,7 @@ History Search::Decode(const Sentence& sentence) {
 
   } while(history.size() <= maxLength);
 
-  LOG(progress) << "Line " << sentence.GetLine()
+  LOG(progress) << "Line " << sentences[0].GetLine()
                 << ": Search took " << timer.format(3, "%ws");
 
   for (auto scorer : scorers_) {

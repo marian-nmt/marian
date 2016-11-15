@@ -40,7 +40,7 @@ class EncoderDecoder : public Scorer {
 
     virtual void BeginSentenceState(State& state);
 
-    virtual void SetSource(const Sentence& source);
+    virtual void SetSource(const Sentences& source);
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,

@@ -30,7 +30,7 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
   }
 #endif
 
-  return search->Decode(Sentence(taskCounter, in));
+  return search->Decode({Sentence(taskCounter, in)});
 }
 
 int main(int argc, char* argv[]) {

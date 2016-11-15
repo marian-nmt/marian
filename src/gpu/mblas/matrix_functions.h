@@ -17,15 +17,15 @@ namespace GPU {
 namespace mblas {
 
 template <class M>
-void Debug(const M& m, size_t pos = 0, size_t l = 5) {
+void Debug(const M& m, size_t pos = 0, size_t l = 8) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
   for(size_t i = 0; i < m.Rows(); ++i) {
     for(size_t j = pos; j < m.Cols() && j < pos + l; ++j) {
       std::cerr << m.GetVec()[i * m.Cols() + j] << " ";
     }
     std::cerr << std::endl;
-    if(i == 4)
-      break;
+    // if(i == 4)
+      // break;
   }
 }
 
@@ -55,6 +55,7 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r = 0,
                  const size_t c = 0);
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
 
 Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,

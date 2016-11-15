@@ -5,6 +5,17 @@
 namespace GPU {
 namespace mblas {
 
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+    if (code != cudaSuccess) 
+    {
+          fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+          if (abort) exit(code);
+      }
+}
+
 #ifdef __APPLE__
 boost::thread_specific_ptr<cublasHandle_t> CublasHandler::handle_;
 #else
@@ -73,6 +84,26 @@ Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
   mblas::copy(In.begin(), In.end(), Out.begin());
   return Out;
+}
+
+__global__ void gPasteRows(float* d_out, int outRows, int outCols, const float* d_in, int inRows, int inCols, int colNo, int sparse) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < inRows * inCols) {
+    int inRow = id / inCols;
+    int inCol = id % inCols;
+    int outID = (outRows + sparse * inRow) * outCols + inCol + colNo;
+    d_out[outID] = d_in[id];
+  }
+}
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse) {
+  int nColumns = In.Cols();
+  int nRows = In.Rows();
+  int nThreads = 512;
+  int nBlocks =  (In.size() / 512) + ((In.size() % 512 == 0) ?  0 : 1);
+
+
+  gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (Out.data(), rowNo, Out.Cols(), In.data(), In.Rows(), In.Cols(), colNo, sparse);
 }
 
 Matrix& PasteRow(Matrix& Out,

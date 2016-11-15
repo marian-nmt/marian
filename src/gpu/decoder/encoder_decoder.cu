@@ -48,7 +48,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const State& in,State& out) {
+void EncoderDecoder::Score(const State& in, State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -68,8 +68,8 @@ void EncoderDecoder::BeginSentenceState(State& state) {
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
 }
 
-void EncoderDecoder::SetSource(const Sentence& source) {
-  encoder_->GetContext(source.GetWords(tab_), *SourceContext_);
+void EncoderDecoder::SetSource(const Sentences& source) {
+  encoder_->GetContext(source, tab_, *SourceContext_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
