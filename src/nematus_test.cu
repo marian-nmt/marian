@@ -65,21 +65,18 @@ void construct(ExpressionGraphPtr g,
   auto statesForward = encForward.apply(inputs.begin(), inputs.end(),
                                         encStartState);
 
-  auto encContext = concatenate(statesForward);
-
-  /*
   auto encBackward = buildEncoderGRU("encoder_r");
   auto statesBackward = encBackward.apply(inputs.rbegin(), inputs.rend(),
                                           encStartState);
 
   std::vector<Expr> joinedStates;
-  for(auto itFw = statesForward.begin(), auto itBw = statesBackward.rbegin();
-      itFw != statesForward.end(); itFw++, itBw++)
-    joinedStates.push_back(concatenate({*itFw, *itBw}, axis=1));
+  auto itFw = statesForward.begin();
+  auto itBw = statesBackward.rbegin();
+  while(itFw != statesForward.end())
+    joinedStates.push_back(concatenate({*itFw++, *itBw++}));
 
-  auto encContext = concatenate(joinedStates, axis=2)
-  auto decStartState = mean(encContext, axis=2);
-  */
+  auto encContext = concatenate(joinedStates);
+  //auto decStartState = mean(encContext);
 }
 
 SentBatch generateBatch(size_t batchSize) {
