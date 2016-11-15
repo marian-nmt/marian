@@ -5,13 +5,13 @@
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "common/base_best_hyps.h"
+#include "common/history.h"
 
-class History;
 
 class Search {
   public:
     Search(size_t threadId);
-    History Decode(const Sentences& sentences);
+    Histories Decode(const Sentences& sentences);
 
   private:
     size_t MakeFilter(const Words& srcWords, size_t vocabSize);

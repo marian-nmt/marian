@@ -60,3 +60,11 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
     out << best << std::endl;
   }
 }
+
+template <class OStream>
+void Printer(const Histories& histories, size_t lineNo, OStream& out) {
+
+  for (const History& history: histories) {
+    Printer(history, lineNo, out);
+  }
+}

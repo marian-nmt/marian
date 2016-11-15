@@ -11,27 +11,7 @@
 #include "common/printer.h"
 #include "common/sentence.h"
 #include "common/exception.h"
-
-History TranslationTask(const std::string& in, size_t taskCounter) {
-#ifdef __APPLE__
-  static boost::thread_specific_ptr<Search> s_search;
-  Search *search = s_search.get();
-
-  if(search == NULL) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search = new Search(taskCounter);
-    s_search.reset(search);
-  }
-#else
-  thread_local std::unique_ptr<Search> search;
-  if(!search) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(taskCounter));
-  }
-#endif
-
-  return search->Decode({Sentence(taskCounter, in)});
-}
+#include "common/translation_task.h"
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
@@ -56,27 +36,46 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Total number of threads: " << totalThreads;
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
+  size_t maxBatchSize = God::Get<size_t>("batch-size");
+  std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
+
   if (God::Get<bool>("wipo")) {
+	/*
     LOG(info) << "Reading input";
     while (std::getline(God::GetInputStream(), in)) {
       History result = TranslationTask(in, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
+    */
   } else {
     ThreadPool pool(totalThreads);
     LOG(info) << "Reading input";
 
-    std::vector<std::future<History>> results;
+    std::vector<std::future<Histories>> results;
+    Sentences *sentences = new Sentences();
 
     while(std::getline(God::GetInputStream(), in)) {
+      sentences->emplace_back(taskCounter, in);
 
+      if (sentences->size() >= maxBatchSize) {
+        results.emplace_back(
+          pool.enqueue(
+            [=]{ return TranslationTask(sentences, taskCounter); }
+          )
+        );
+
+        sentences = new Sentences();
+
+        taskCounter++;
+      }
+    }
+
+    if (sentences->size()) {
       results.emplace_back(
         pool.enqueue(
-          [=]{ return TranslationTask(in, taskCounter); }
+          [=]{ return TranslationTask(sentences, taskCounter); }
         )
       );
-
-      taskCounter++;
     }
 
     size_t lineCounter = 0;

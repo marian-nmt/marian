@@ -52,6 +52,7 @@ cuda_add_executable(
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
   common/loader_factory.cpp
+  common/translation_task.cpp
   $<TARGET_OBJECTS:libcommon>
   # $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
@@ -59,7 +60,7 @@ cuda_add_executable(
 )
 
 cuda_add_library(amunmt SHARED
-  python/amunmt.cpp
+  # python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu

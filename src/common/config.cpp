@@ -192,6 +192,8 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("cpu-threads", po::value<size_t>()->default_value(1),
      "Number of threads on the CPU.")
 #endif
+    ("batch-size", po::value<size_t>()->default_value(1),
+     "Number of sentences in one batch.")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -271,6 +273,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("no-debpe", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("cpu-threads", size_t);
+  SET_OPTION("batch-size", size_t);
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
