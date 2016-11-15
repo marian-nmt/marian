@@ -24,7 +24,7 @@ class Tanh {
 
       Expr output = dot(input, params_.W) + dot(state, params_.U);
       if(params_.b)
-        output += params_.b;
+        output = output + params_.b;
       output = tanh(output);
 
       if(params_.dropout > 0)
@@ -54,17 +54,17 @@ class GRU {
 
       Expr z = dot(input, params_.Wz) + dot(state, params_.Uz);
       if(params_.bz)
-        z += params_.bz;
+        z = z + params_.bz;
       z = logit(z);
 
       Expr r = dot(input, params_.Wr) + dot(state, params_.Ur);
       if(params_.br)
-        r += params_.br;
+        r = r + params_.br;
       r = logit(r);
 
       Expr h = dot(input, params_.Wx) + dot(state, params_.Ux) * r;
       if(params_.bx)
-        h += params_.bx;
+        h = h + params_.bx;
       h = tanh(h);
 
       // constant 1 in (1-z)*h+z*s

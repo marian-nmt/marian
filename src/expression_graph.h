@@ -274,6 +274,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
                                 args...);
 
       // add to list of parameters
+      p->set_name(name);
       params_.add(p, name);
       return p;
     }

@@ -86,33 +86,16 @@ Expr operator+(Expr a, Expr b) {
   return Expression<PlusNodeOp>(a, b);
 }
 
-Expr operator+=(Expr a, Expr b) {
-  return a = a + b;
-}
-
 Expr operator-(Expr a, Expr b) {
   return Expression<MinusNodeOp>(a, b);
 }
-
-Expr operator-=(Expr a, Expr b) {
-  return a = a - b;
-}
-
 
 Expr operator*(Expr a, Expr b) {
   return Expression<MultNodeOp>(a, b);
 }
 
-Expr operator*=(Expr a, Expr b) {
-  return a = a * b;
-}
-
 Expr operator/(Expr a, Expr b) {
   return Expression<DivNodeOp>(a, b);
-}
-
-Expr operator/=(Expr a, Expr b) {
-  return a = a / b;
 }
 
 Expr dot(Expr a, Expr b) {
