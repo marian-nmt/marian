@@ -80,7 +80,7 @@ void construct(ExpressionGraphPtr g,
 }
 
 SentBatch generateBatch(size_t batchSize) {
-  size_t length = 5; //rand() % 40 + 10;
+  size_t length = rand() % 40 + 10;
   return SentBatch(length, WordBatch(batchSize));
 }
 
@@ -92,11 +92,10 @@ int main(int argc, char** argv) {
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {
     g->clear();
+
+    // fake batch
     auto batch = generateBatch(batchSize);
     construct(g, batch);
-
-    g->graphviz("nematus.dot");
-    exit(0);
 
     g->forward();
     if(i % 100 == 0)
