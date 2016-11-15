@@ -20,6 +20,8 @@ class Tanh {
     : params_(params) {}
 
     Expr apply(Expr input, Expr state) {
+      using namespace keywords;
+      
       Expr output = dot(input, params_.W) + dot(state, params_.U);
       if(params_.b)
         output += params_.b;
