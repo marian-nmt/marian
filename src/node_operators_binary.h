@@ -82,8 +82,8 @@ struct BinaryNodeOp : public Node {
 
 };
 
-/** 
- * @brief Represents a node in an expression graph capable of performing 
+/**
+ * @brief Represents a node in an expression graph capable of performing
  *        <a href="https://en.wikipedia.org/wiki/Matrix_multiplication#Matrix_product_.28two_matrices.29">matrix
  *        multiplication</a> of two input matrices.
  */
@@ -320,6 +320,78 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
  protected:
   Tensor probs_;
   Tensor result_;
+};
+
+// an n-ary node
+
+struct NaryNodeOp : public Node {
+  std::vector<Expr> children_;
+
+  template <typename ...Args>
+  NaryNodeOp(const std::vector<Expr>& nodes, Args ...args)
+   : Node(nodes.back()->graph(),
+      keywords::shape=keywords::Get(keywords::shape, nodes.back()->shape(), args...),
+      keywords::no_inference=
+      std::any_of(nodes.begin(), nodes.end(),
+                  [](Expr a) { return a->skipped_inference(); })
+      || keywords::Get(keywords::no_inference, false, args...),
+      keywords::no_training=
+      std::any_of(nodes.begin(), nodes.end(),
+                  [](Expr a) { return a->skipped_training(); })
+      || keywords::Get(keywords::no_training, false, args...),
+      args...), children_(nodes)
+  {
+    remove_children_from_top_nodes();
+  }
+
+  ~NaryNodeOp() {}
+
+  void remove_children_from_top_nodes();
+
+  void backward_debug(Float delta) {}
+
+};
+
+struct ConcatenateNodeOp : public NaryNodeOp {
+  template <typename ...Args>
+  ConcatenateNodeOp(const std::vector<Expr>& nodes, Args ...args)
+    : NaryNodeOp(nodes,
+                 keywords::shape=newShape(nodes, args...),
+                 args...) { }
+
+  template <typename ...Args>
+  Shape newShape(const std::vector<Expr>& nodes, Args ...args) {
+    Shape shape = nodes.back()->shape();
+    shape[0] = 0;
+    for(auto child : nodes)
+      shape[0] += child->shape()[0];
+    return shape;
+  }
+
+  void forward() {
+    std::vector<Tensor> concatenees;
+    for(auto child : children_)
+      concatenees.push_back(child->val());
+    Concatenate(val_, concatenees);
+  }
+
+  void backward() {
+    std::vector<Tensor> deconcatenees;
+    for(auto child : children_)
+      deconcatenees.push_back(child->grad());
+    Deconcatenate(deconcatenees, adj_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("Concat")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    for(auto child : children_)
+      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
+    ss << std::endl;
+    return ss.str();
+  };
+
 };
 
 

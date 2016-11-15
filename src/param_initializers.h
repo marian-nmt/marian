@@ -99,7 +99,7 @@ void glorot_normal(Tensor t) {
 
 std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
   return [v](Tensor t) {
-    t << v;
+    t->set(v);
   };
 }
 

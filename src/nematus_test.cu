@@ -65,6 +65,8 @@ void construct(ExpressionGraphPtr g,
   auto statesForward = encForward.apply(inputs.begin(), inputs.end(),
                                         encStartState);
 
+  auto encContext = concatenate(statesForward);
+
   /*
   auto encBackward = buildEncoderGRU("encoder_r");
   auto statesBackward = encBackward.apply(inputs.rbegin(), inputs.rend(),

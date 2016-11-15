@@ -12,6 +12,7 @@ cuda_add_library(marian_lib
   node_operators_unary.cu
   node_operators_binary.cu
   tensors/tensor.cu
+  tensors/tensor_gpu.cu
   tensor_operators.cu
 #  vocab.cpp
 )

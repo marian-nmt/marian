@@ -35,6 +35,8 @@ using namespace thrust::placeholders;
 #define MAX_THREADS 512
 #define MAX_BLOCKS 65535
 
+class TensorGPU;
+
 template <class Functor>
 __global__ void gElementVec(Functor functor,
                             float* out, const float* in,
@@ -309,5 +311,10 @@ void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
                           void* space, size_t spaceSize,
                           Tensor out, Tensor in);
 
+void Transpose(Tensor out, const Tensor in);
+
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs);
+
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in);
 
 }

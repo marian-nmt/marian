@@ -22,5 +22,9 @@ namespace marian {
     Sum(val_, result_, 1);
   }
 
+  void NaryNodeOp::remove_children_from_top_nodes() {
+    for(auto child : children_)
+      graph_->remove_top_node(child);
+  }
 
 }

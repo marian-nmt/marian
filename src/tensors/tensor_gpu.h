@@ -82,6 +82,8 @@ struct Access {
     //}
 };
 
+__global__ void gFill(float* d_in, int size, float val);
+
 class TensorGPU : public TensorBase {
   private:
     // cuDNN stuff
@@ -120,8 +122,10 @@ class TensorGPU : public TensorBase {
     }
 
     void set(float value) {
-      thrust::fill(thrust::device_ptr<float>(data_),
-                   thrust::device_ptr<float>(data_ + size()), value);
+      int threads = std::min(512, (int)size());
+      int blocks = (size() / threads) + (size() % threads != 0);
+      gFill<<<blocks, threads>>>(data_, size(), value);
+      cudaStreamSynchronize(0);
     }
 
     void set(const std::vector<float> &v) {

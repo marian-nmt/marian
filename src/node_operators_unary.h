@@ -473,5 +473,33 @@ struct RowsNodeOp : public UnaryNodeOp {
   const DeviceVector<size_t> &indeces_;
 };
 
+struct TransposeNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  TransposeNodeOp(Expr a, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a), args...) { }
+
+  void forward() {
+    Transpose(val_, a_->val());
+  }
+
+  void backward() {
+    Transpose(a_->grad(), adj_);
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a) {
+    Shape shape = a->shape();
+    std::swap(shape[0], shape[1]);
+    return shape;
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("transpose") << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  }
+};
 
 }

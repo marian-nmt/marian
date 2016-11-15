@@ -93,8 +93,9 @@ Expr operator/(Expr a, Expr b);
 
 Expr dot(Expr a, Expr b);
 
-Expr reluplus(Expr a, Expr b);
+Expr transpose(Expr a);
 
+Expr concatenate(const std::vector<Expr>& concats);
 
 /*********************************************************/
 

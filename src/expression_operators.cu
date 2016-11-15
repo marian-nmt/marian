@@ -102,8 +102,12 @@ Expr dot(Expr a, Expr b) {
   return Expression<DotNodeOp>(a, b);
 }
 
-Expr reluplus(Expr a, Expr b) {
-  return Expression<ReLUPlusNodeOp>(a, b);
+Expr transpose(Expr a) {
+  return Expression<TransposeNodeOp>(a);
+}
+
+Expr concatenate(const std::vector<Expr>& concats) {
+  return Expression<ConcatenateNodeOp>(concats);
 }
 
 Expr cross_entropy(Expr a, Expr b) {

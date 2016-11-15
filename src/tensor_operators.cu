@@ -601,5 +601,36 @@ void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces)
   cudaStreamSynchronize(0);
 }
 
+void Transpose(Tensor out, const Tensor in) {
+  size_t m = in->shape()[0];
+  size_t n = in->shape()[1];
+  float alpha = 1.0;
+  float beta  = 0.0;
+
+  cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha, in->data(), n,
+              &beta, in->data(), n, out->data(), m);
+}
+
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs) {
+  size_t offset = 0;
+  for(auto in : inputs) {
+    cudaMemcpy(out->data() + offset,
+               in->data(),
+               in->size() * sizeof(float),
+               cudaMemcpyDeviceToDevice);
+    offset += in->size();
+  }
+}
+
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in) {
+  size_t offset = 0;
+  for(auto out: outputs) {
+    cudaMemcpy(out->data(),
+               in->data() + offset,
+               out->size() * sizeof(float),
+               cudaMemcpyDeviceToDevice);
+    offset += out->size();
+  }
+}
 
 }
