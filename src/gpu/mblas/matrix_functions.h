@@ -43,7 +43,7 @@ void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
 
-Matrix& Mean(Matrix& Out, const Matrix& In);
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 

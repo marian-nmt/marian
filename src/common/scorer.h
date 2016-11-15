@@ -39,7 +39,7 @@ class Scorer {
     virtual void Score(const State& in,
                        State& out) = 0;
 
-    virtual void BeginSentenceState(State& state) = 0;
+    virtual void BeginSentenceState(State& state, size_t batchSize=1) = 0;
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,

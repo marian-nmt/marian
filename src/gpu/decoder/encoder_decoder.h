@@ -38,7 +38,7 @@ class EncoderDecoder : public Scorer {
 
     virtual State* NewState();
 
-    virtual void BeginSentenceState(State& state);
+    virtual void BeginSentenceState(State& state, size_t batchSize=1);
 
     virtual void SetSource(const Sentences& source);
 
@@ -62,6 +62,7 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
     DeviceVector<size_t> indeces_;
+    DeviceVector<int> batchMapping_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
 };

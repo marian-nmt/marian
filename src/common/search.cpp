@@ -27,7 +27,7 @@ History Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   size_t beamSize = God::Get<size_t>("beam-size");
-  bool normalize = God::Get<bool>("normalize");
+  size_t batchSize = sentences.size();
 
   // @TODO Future: in order to do batch sentence decoding
   // it should be enough to keep track of hypotheses in
@@ -54,7 +54,7 @@ History Search::Decode(const Sentences& sentences) {
     states[i].reset(scorer.NewState());
     nextStates[i].reset(scorer.NewState());
 
-    scorer.BeginSentenceState(*states[i]);
+    scorer.BeginSentenceState(*states[i], batchSize);
   }
 
   const size_t maxLength = sentences[0].GetWords().size() * 3;
@@ -64,7 +64,6 @@ History Search::Decode(const Sentences& sentences) {
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      // prob.Resize(beamSize, vocabSize);
       scorer.Score(state, nextState);
     }
 

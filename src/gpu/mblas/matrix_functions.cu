@@ -36,19 +36,38 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
   return Out;
 }
 
-Matrix& Mean(Matrix& Out, const Matrix& In) {
-  size_t m = In.Rows();
-  size_t n = In.Cols();
+__global__ void gMean(float* d_out, const float* d_in, const int* mapping,
+                      int batchNum, int senLen, int stateLength) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < stateLength) {
+    float sum = 0.0f;
+    int counter = 0;
 
-  Out.Resize(1, n);
-  Fill(Out, 0.0f);
-  Matrix Ones(1, m, 1.f);
+    for (int i = 0; i < batchNum * senLen; ++i) {
+      sum += mapping[i] * d_in[i * stateLength + id];
+      counter += mapping[i];
 
-  float alpha = 1.0 / m;
-  float beta  = 0.0;
-  cublasSgemv(CublasHandler::GetHandle(), CUBLAS_OP_N, n, m, &alpha, In.data(), n,
-              Ones.data(), 1, &beta, Out.data(), 1);
-  return Out;
+      if ((i + 1) % senLen == 0) {
+        sum /= counter;
+        d_out[(i / senLen) * stateLength + id] = sum;
+        sum = 0.0f;
+        counter = 0;
+      }
+    }
+  }
+}
+
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
+  int batchNum = Out.Rows();
+  int stateLength = Out.Cols();
+  int sentenceLength = In.Rows() / batchNum;
+
+  int nThreads = 512;
+  int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
+
+  gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
+     batchNum, sentenceLength, stateLength);
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {

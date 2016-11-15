@@ -62,14 +62,14 @@ State* EncoderDecoder::NewState() {
   return new EDState();
 }
 
-void EncoderDecoder::BeginSentenceState(State& state) {
+void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, 1);
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_);
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
 void EncoderDecoder::SetSource(const Sentences& source) {
-  encoder_->GetContext(source, tab_, *SourceContext_);
+  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,

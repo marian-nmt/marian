@@ -3,6 +3,7 @@
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
+#include "gpu/types-gpu.h"
 
 namespace GPU {
 
@@ -47,13 +48,12 @@ class Decoder {
 
         void InitializeState(mblas::Matrix& State,
                              const mblas::Matrix& SourceContext,
-                             const size_t batchSize = 1) {
+                             const size_t batchSize,
+                             const DeviceVector<int>& mapping) {
           using namespace mblas;
 
-          Mean(Temp1_, SourceContext);
           Temp2_.Resize(batchSize, SourceContext.Cols());
-          mblas::Fill(Temp2_,  0.0f);
-          BroadcastVec(_1 + _2, Temp2_, Temp1_);
+          Mean(Temp2_, SourceContext, mapping);
           Prod(State, Temp2_, w_.Wi_);
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
@@ -247,13 +247,13 @@ class Decoder {
 
     void EmptyState(mblas::Matrix& State,
                     const mblas::Matrix& SourceContext,
-                    size_t batchSize = 1) {
-      rnn1_.InitializeState(State, SourceContext, batchSize);
+                    size_t batchSize,
+                    const DeviceVector<int>& batchMapping) {
+      rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
       alignment_.Init(SourceContext);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding,
-                        size_t batchSize = 1) {
+    void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
       Embedding.Clear();
       Embedding.Resize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
