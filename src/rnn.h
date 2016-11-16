@@ -6,6 +6,8 @@
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
+#include "node_operators_binary.h"
+#include "expression_graph.h"
 
 namespace marian {
 
@@ -81,6 +83,75 @@ class GRU {
   private:
     ParametersGRU params_;
 };
+
+struct ParametersGRUFast {
+  Expr U, W, b;
+  float dropout = 0;
+};
+
+struct GRUFastNodeOp : public NaryNodeOp {
+  template <typename ...Args>
+  GRUFastNodeOp(const std::vector<Expr>& nodes, Args ...args)
+    : NaryNodeOp(nodes,
+                 keywords::shape=nodes.front()->shape(),
+                 args...) { }
+
+  void forward() {
+    std::vector<Tensor> inputs;
+    inputs.reserve(children_.size());
+    for(auto child : children_)
+      inputs.push_back(child->val());
+
+    GRUFastForward(val_, inputs);
+  }
+
+  void backward() {
+    std::vector<Tensor> outputs;
+    outputs.reserve(children_.size());
+    for(auto child : children_)
+      outputs.push_back(child->grad());
+
+    GRUFastBackward(outputs, adj_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("GRUFast")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    for(auto child : children_)
+      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
+    ss << std::endl;
+    return ss.str();
+  }
+};
+
+Expr grufast(const std::vector<Expr>& nodes) {
+  return Expression<GRUFastNodeOp>(nodes);
+}
+
+class GRUFast {
+  public:
+    GRUFast(ParametersGRUFast params)
+    : params_(params) {}
+
+    Expr apply(Expr input, Expr state) {
+      using namespace keywords;
+
+      auto xW = dot(input, params_.W);
+      auto sU = dot(state, params_.U);
+
+      auto output = grufast({state, xW, sU, params_.b});
+
+      if(params_.dropout > 0)
+        output = dropout(output, value=params_.dropout);
+
+      return output;
+    }
+
+  private:
+    ParametersGRUFast params_;
+};
+
 
 template <class Cell = Tanh>
 class RNN {

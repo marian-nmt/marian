@@ -317,4 +317,8 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in);
 
+void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs);
+
+void GRUFastBackward(std::vector<Tensor>& output, const Tensor in);
+
 }

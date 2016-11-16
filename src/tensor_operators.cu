@@ -633,4 +633,61 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in) {
   }
 }
 
+__global__ void gGRUFastForward(float* out,
+                                const float* state,
+                                const float* xW,
+                                const float* sU,
+                                const float* b,
+                                size_t rows, size_t cols) {
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+
+      const float* rowState = state + j * cols;
+      const float* xWrow = xW + j * cols * 3;
+      const float* sUrow = sU + j * cols * 3;
+
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          float ev1 = expf(-(xWrow[i] + sUrow[i] + b[i]));
+          float r = 1.0f / (1.0f + ev1);
+
+          int k = i + cols;
+          float ev2 = expf(-(xWrow[k] + sUrow[k] + b[k]));
+          float z = 1.0f / (1.0f + ev2);
+
+          int l = i + 2 * cols;
+          float h = tanhf(xWrow[l] + sUrow[l] * r + b[l]);
+
+          rowOut[i] = (1.0f - z) * h + z * rowState[i];
+        }
+      }
+    }
+  }
+}
+
+void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs){
+  int rows = out->shape()[0];
+  int cols = out->shape()[1];
+
+  int blocks  = std::min(MAX_BLOCKS, rows);
+  int threads = std::min(MAX_THREADS, cols);
+
+  gGRUFastForward<<<blocks, threads>>>(
+    out->data(),
+    inputs[0]->data(),
+    inputs[1]->data(),
+    inputs[2]->data(),
+    inputs[3]->data(),
+    rows, cols);
+}
+
+void GRUFastBackward(std::vector<Tensor>& output, const Tensor in) {
+  
+}
+
 }
