@@ -92,15 +92,10 @@ class Decoder {
     class Alignment {
       public:
         Alignment(const Weights& model)
-        : w_(model),
-          WC_(w_.C_(0,0))
-        {
-          //for(int i = 0; i < 2; ++i) {
-          //  cudaStreamCreate(&s_[i]);
-          //  cublasCreate(&h_[i]);
-          //  cublasSetStream(h_[i], s_[i]);
-          //}
-        }
+          : w_(model),
+            WC_(w_.C_(0,0)),
+            dBatchMapping_(God::Get<size_t>("batch-size") * God::Get<size_t>("beam-size"), 0)
+        {}
 
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
@@ -113,6 +108,21 @@ class Decoder {
                                      const DeviceVector<int>& mapping,
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
+
+          // std::cerr << "Align" << std::endl;
+          thrust::host_vector<int> batchMapping(HiddenState.Rows());
+          // std::cerr << "Align" << std::endl;
+          size_t k = 0;
+          for (size_t i = 0; i < beamSizes.size(); ++i) {
+            for (size_t j = 0; j < beamSizes[i]; ++j) {
+              batchMapping[k] = i;
+            }
+          }
+          mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
+          // std::cerr << "COPIED " << std::endl;
+          const size_t srcSize = mapping.size() / beamSizes.size();
+
+          // std::cerr << "I src: " << srcSize << std::endl;
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
@@ -127,7 +137,7 @@ class Decoder {
           A_.Reshape(rows2, rows1); // due to broadcasting above
           Element(_1 + WC_, A_);
 
-          mblas::Softmax(A_);
+          mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
           Prod(AlignedSourceContext, A_, SourceContext);
         }
 
@@ -144,6 +154,8 @@ class Decoder {
 
         cublasHandle_t h_[2];
         cudaStream_t s_[2];
+
+        DeviceVector<int> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;

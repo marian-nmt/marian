@@ -261,7 +261,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
 }
 
-__global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
+__global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols, const int* batchID, int batchNum, const int* srcMapping, int srcNum) {
   for (int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if (j < rows) {
@@ -273,6 +273,7 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
         int id = tid + threadIdx.x;
         if (id < cols) {
           sp[id] = __expf(sp[id]);
+          sp[id] *= srcMapping[ batchID[j] * srcNum + id ];
           _sum[threadIdx.x] += sp[id];
         }
       }
@@ -302,13 +303,17 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols) {
   }
 }
 
-Matrix& Softmax(Matrix& Out) {
+Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping,size_t srcSize) {
   int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   int shared = sizeof(float) * threads * 2;
 
+  /* std::cerr << "SRC: " << srcSize << std::endl; */
+
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Out.Rows(), Out.Cols());
+    (Out.data(), Out.Rows(), Out.Cols(),
+     thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
+     thrust::raw_pointer_cast(srcMapping.data()), srcSize);
   return Out;
 }
 

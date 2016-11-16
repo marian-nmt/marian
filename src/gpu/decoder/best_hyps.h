@@ -31,16 +31,13 @@ class BestHyps {
                    const bool isFirst) {
       const size_t vocabSize = Probs.Cols();
       size_t batchBegin = 0;
-      // std::cerr << beamSizes[0] << std::endl;
       for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
         const size_t nElements = ((isFirst) ? 1: beamSizes[batchIdx]) * vocabSize;
-        // std::cerr << "N: " << nElements << std::endl;
         nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], outKeys, outCosts);
         for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
           outKeys[outKeys.size() - 1 - i] += batchBegin;
         }
         batchBegin += nElements;
-        // std::cerr << outKeys.size() << " x " << outCosts.size() << std::endl;
       }
     }
 
