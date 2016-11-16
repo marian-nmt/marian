@@ -42,6 +42,7 @@ cuda_add_executable(
 cuda_add_executable(
   nematus_test
   nematus_test.cu
+  3rd_party/cnpy/cnpy.cpp
 )
 
 #cuda_add_executable(

@@ -45,7 +45,8 @@ class Node : public Chainable<Tensor>,
        givenShape_(shape_),
        name_("none"),
        skipInference_(Get(keywords::no_inference, false)),
-       skipTraining_(Get(keywords::no_training, false))
+       skipTraining_(Get(keywords::no_training, false)),
+       markedForDebug_(false)
     {}
 
     virtual ~Node() {}
@@ -60,6 +61,13 @@ class Node : public Chainable<Tensor>,
     virtual void skip_training();
 
     virtual bool skipped_training() { return skipTraining_; }
+
+    virtual void debug(const std::string& message) {
+      debugMessage_ = message;
+      markedForDebug_ = true;
+    }
+    virtual bool marked_for_debug() { return markedForDebug_; }
+    virtual const std::string& debug_message() { return debugMessage_; }
 
     virtual void allocate(size_t batchSize);
 
@@ -106,6 +114,9 @@ class Node : public Chainable<Tensor>,
 
     bool skipInference_;
     bool skipTraining_;
+
+    bool markedForDebug_;
+    std::string debugMessage_;
 
     template<class ITER>
     void output(const std::string &title, const ITER &b, const ITER &e) const

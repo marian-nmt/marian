@@ -29,6 +29,8 @@ Expr training(Expr a);
 
 Expr inference(Expr a);
 
+Expr debug(Expr a, const std::string& message);
+
 /**
  * @brief Associates a name with an Expr object and adds that object to the associated ExpressionGraph.
  *

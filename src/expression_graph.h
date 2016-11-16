@@ -108,8 +108,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       setInputs(batch);
 
       for(auto&& v : tape_)
-        if(!v->skipped_training())
+        if(!v->skipped_training()) {
           v->forward();
+          if(v->marked_for_debug()) {
+            std::cerr << "Debug: " << v->debug_message() << std::endl;
+            std::cerr << v->val()->debug() << std::endl;
+          }
+        }
     }
 
     void forward() {
@@ -120,8 +125,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           v->allocate(0);
 
       for(auto&& v : tape_)
-        if(!v->skipped_training())
+        if(!v->skipped_training()) {
           v->forward();
+          if(v->marked_for_debug()) {
+            std::cerr << "Debug: " << v->debug_message() << std::endl;
+            std::cerr << v->val()->debug() << std::endl;
+          }
+        }
     }
 
     void inference(data::BatchPtr batch) {
@@ -133,8 +143,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       setInputs(batch);
 
       for(auto&& v : tape_)
-        if(!v->skipped_inference())
+        if(!v->skipped_inference()) {
           v->inference();
+          if(v->marked_for_debug()) {
+            std::cerr << "Debug: " << v->debug_message() << std::endl;
+            std::cerr << v->val()->debug() << std::endl;
+          }
+        }
     }
 
 

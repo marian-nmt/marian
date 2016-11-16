@@ -87,6 +87,10 @@ struct Chainable {
     virtual void skip_training() = 0;
     virtual bool skipped_training() = 0;
 
+    virtual void debug(const std::string& message) = 0;
+    virtual bool marked_for_debug() = 0;
+    virtual const std::string& debug_message() = 0;
+
     virtual void check() { }
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }

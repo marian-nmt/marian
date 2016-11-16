@@ -151,11 +151,9 @@ class TensorGPU : public TensorBase {
       std::vector<Float> values(totSize);
       get(values);
 
-      size_t ind = 0;
-      for (size_t i = 0; i < shape()[0]; ++i) {
-          for (size_t j = 0; j < shape()[1]; ++j) {
-              strm << values[ind] << " ";
-              ++ind;
+      for (size_t i = 0; i < shape()[0] && i < 5; ++i) {
+          for (size_t j = 0; j < shape()[1] && j < 5; ++j) {
+              strm << values[i * shape()[1] + j] << " ";
           }
           strm << std::endl;
       }

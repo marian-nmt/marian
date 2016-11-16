@@ -28,6 +28,7 @@
 #include <stdint.h>
 
 #include "tensors/tensor.h"
+#include "cnpy/cnpy.h"
 
 namespace marian {
 
@@ -102,5 +103,20 @@ std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
     t->set(v);
   };
 }
+
+std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
+  size_t size = 1;
+  for(int i = 0; i < np.shape.size(); ++i) {
+    size *= np.shape[i];
+  };
+
+  std::vector<float> npv(size);
+  std::copy((float*)np.data, (float*)np.data + size, npv.begin());
+
+  return [npv](Tensor t) {
+    t->set(npv);
+  };
+}
+
 
 } // namespace marian

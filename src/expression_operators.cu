@@ -34,6 +34,11 @@ Expr inference(Expr a) {
   return a;
 }
 
+Expr debug(Expr a, const std::string& message) {
+  a->debug(message);
+  return a;
+}
+
 Expr name(Expr a, const std::string& name) {
   a->set_name(name);
   a->graph()->add_named_node(a, name);

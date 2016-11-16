@@ -724,8 +724,8 @@ __global__ void gGRUFastForward(float* out,
     int j = bid + blockIdx.x;
     if(j < rows) {
       float* rowOut = out + j * cols;
-
       const float* rowState = state + j * cols;
+
       const float* xWrow = xW + j * cols * 3;
       const float* sUrow = sU + j * cols * 3;
 
@@ -758,11 +758,11 @@ void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs){
   int threads = std::min(MAX_THREADS, cols);
 
   gGRUFastForward<<<blocks, threads>>>(
-    out->data(),
-    inputs[0]->data(),
-    inputs[1]->data(),
-    inputs[2]->data(),
-    inputs[3]->data(),
+    out->data(), // output
+    inputs[0]->data(), // state
+    inputs[1]->data(), // xW
+    inputs[2]->data(), // sU
+    inputs[3]->data(), // b
     rows, cols);
 }
 
