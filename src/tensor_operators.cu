@@ -611,9 +611,11 @@ void Transpose(Tensor out, const Tensor in) {
               &beta, in->data(), n, out->data(), m);
 }
 
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
+void Concatenate0(Tensor out, const std::vector<Tensor>& inputs) {
   size_t offset = 0;
   for(auto in : inputs) {
+    UTIL_THROW_IF2(out->shape()[1] != in->shape()[1],
+                   "Second dimension must be equal");
     cudaMemcpy(out->data() + offset,
                in->data(),
                in->size() * sizeof(float),
@@ -622,15 +624,93 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
   }
 }
 
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
+__global__ void gInsertCols(float* out, const float* in,
+                            size_t rows, size_t cols,
+                            size_t cols_out, size_t cols_in,
+                            size_t offset_out, size_t offset_in) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols_out + offset_out;
+      const float* rowIn = in + j * cols_in + offset_in;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[i] = rowIn[i];
+      }
+    }
+  }
+}
+
+void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   size_t offset = 0;
-  for(auto out: outputs) {
+  int rows = out->shape()[0];
+  int cols_out = out->shape()[1];
+
+  for(auto in : inputs) {
+    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
+                   "First dimension must be equal");
+    int cols_in = in->shape()[1];
+
+    int blocks  = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols_in);
+
+    gInsertCols<<<blocks, threads>>>(
+      out->data(),
+      in->data(),
+      rows, cols_in,
+      cols_out, cols_in,
+      offset, 0);
+    offset += cols_in;
+  }
+}
+
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
+  if(ax == 1)
+    Concatenate1(out, inputs);
+  else
+    Concatenate0(out, inputs);
+}
+
+void Deconcatenate0(std::vector<Tensor>& outputs, const Tensor in) {
+  size_t offset = 0;
+  for(auto out : outputs) {
     cudaMemcpy(out->data(),
                in->data() + offset,
                out->size() * sizeof(float),
                cudaMemcpyDeviceToDevice);
     offset += out->size();
   }
+}
+
+void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
+  size_t offset = 0;
+  int rows = in->shape()[0];
+  int cols_in = in->shape()[1];
+  for(auto out : outputs) {
+    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
+                   "First dimension must be equal");
+    int cols_out = out->shape()[1];
+
+    int blocks  = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols_out);
+
+    gInsertCols<<<blocks, threads>>>(
+      out->data(),
+      in->data(),
+      rows, cols_out,
+      cols_out, cols_in,
+      0, offset);
+    offset += cols_out;
+  }
+}
+
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
+  if(ax == 1)
+    Deconcatenate1(outputs, in);
+  else
+    Deconcatenate0(outputs, in);
 }
 
 __global__ void gGRUFastForward(float* out,

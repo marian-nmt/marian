@@ -357,7 +357,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   ConcatenateNodeOp(const std::vector<Expr>& nodes, int ax, Args ...args)
     : NaryNodeOp(nodes,
                  keywords::shape=newShape(nodes, ax),
-                 args...) { }
+                 args...), ax_(ax) { }
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
@@ -372,14 +372,14 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> concatenees;
     for(auto child : children_)
       concatenees.push_back(child->val());
-    Concatenate(val_, concatenees, Get(keywords::axis, 0));
+    Concatenate(val_, concatenees, ax_);
   }
 
   void backward() {
     std::vector<Tensor> deconcatenees;
     for(auto child : children_)
       deconcatenees.push_back(child->grad());
-    Deconcatenate(deconcatenees, adj_, Get(keywords::axis, 0));
+    Deconcatenate(deconcatenees, adj_, ax_);
   }
 
   virtual std::string graphviz() {
@@ -392,6 +392,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     return ss.str();
   };
 
+  int ax_;
 };
 
 
