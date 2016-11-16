@@ -354,17 +354,17 @@ struct NaryNodeOp : public Node {
 
 struct ConcatenateNodeOp : public NaryNodeOp {
   template <typename ...Args>
-  ConcatenateNodeOp(const std::vector<Expr>& nodes, Args ...args)
+  ConcatenateNodeOp(const std::vector<Expr>& nodes, int ax, Args ...args)
     : NaryNodeOp(nodes,
-                 keywords::shape=newShape(nodes, args...),
+                 keywords::shape=newShape(nodes, ax),
                  args...) { }
 
-  template <typename ...Args>
-  Shape newShape(const std::vector<Expr>& nodes, Args ...args) {
+  Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
-    shape[0] = 0;
+    shape[ax] = 0;
     for(auto child : nodes)
-      shape[0] += child->shape()[0];
+      shape[ax] += child->shape()[ax];
+    //std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
     return shape;
   }
 
@@ -372,14 +372,14 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> concatenees;
     for(auto child : children_)
       concatenees.push_back(child->val());
-    Concatenate(val_, concatenees);
+    Concatenate(val_, concatenees, Get(keywords::axis, 0));
   }
 
   void backward() {
     std::vector<Tensor> deconcatenees;
     for(auto child : children_)
       deconcatenees.push_back(child->grad());
-    Deconcatenate(deconcatenees, adj_);
+    Deconcatenate(deconcatenees, adj_, Get(keywords::axis, 0));
   }
 
   virtual std::string graphviz() {

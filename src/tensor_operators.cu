@@ -611,7 +611,7 @@ void Transpose(Tensor out, const Tensor in) {
               &beta, in->data(), n, out->data(), m);
 }
 
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs) {
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
   size_t offset = 0;
   for(auto in : inputs) {
     cudaMemcpy(out->data() + offset,
@@ -622,7 +622,7 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs) {
   }
 }
 
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in) {
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
   size_t offset = 0;
   for(auto out: outputs) {
     cudaMemcpy(out->data(),
@@ -687,7 +687,7 @@ void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs){
 }
 
 void GRUFastBackward(std::vector<Tensor>& output, const Tensor in) {
-  
+
 }
 
 }

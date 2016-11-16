@@ -42,21 +42,21 @@ void construct(ExpressionGraphPtr g,
                             init=glorot_uniform);
     encParams.Ur = g->param(prefix + "_Ur", {dimEncState, dimEncState},
                             init=glorot_uniform);
-  
+
     encParams.Wz = g->param(prefix + "_Wz", {dimSrcEmb, dimEncState},
                             init=glorot_uniform);
     encParams.Wr = g->param(prefix + "_Wr", {dimSrcEmb, dimEncState},
                             init=glorot_uniform);
-  
+
     encParams.bz = g->param(prefix + "_bz", {1, dimEncState}, init=zeros);
     encParams.br = g->param(prefix + "_br", {1, dimEncState}, init=zeros);
-  
+
     encParams.Ux = g->param(prefix + "_Ux", {dimEncState, dimEncState},
                             init=glorot_uniform);
     encParams.Wx = g->param(prefix + "_Wx", {dimSrcEmb, dimEncState},
                             init=glorot_uniform);
     encParams.bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
-  
+
     return RNN<GRU>(encParams);
   };
 
@@ -64,12 +64,12 @@ void construct(ExpressionGraphPtr g,
     ParametersGRUFast encParams;
     encParams.U = g->param(prefix + "_U", {dimEncState, 3 * dimEncState},
                            init=glorot_uniform);
-  
+
     encParams.W = g->param(prefix + "_W", {dimSrcEmb, 3 * dimEncState},
                            init=glorot_uniform);
-  
+
     encParams.b = g->param(prefix + "_b", {1, 3 * dimEncState}, init=zeros);
-  
+
     return RNN<GRUFast>(encParams);
   };
 
@@ -91,9 +91,9 @@ void construct(ExpressionGraphPtr g,
     auto bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
 
     ParametersGRUFast encParams;
-    encParams.U = transpose(concatenate({transpose(U), transpose(Ux)}));
-    encParams.W = transpose(concatenate({transpose(W), transpose(Wx)}));
-    encParams.b = transpose(concatenate({transpose(b), transpose(bx)}));
+    encParams.U = concatenate({U, Ux}, 1);
+    encParams.W = concatenate({W, Wx}, 1);
+    encParams.b = concatenate({b, bx}, 1);
 
     return RNN<GRUFast>(encParams);
   };
@@ -113,11 +113,11 @@ void construct(ExpressionGraphPtr g,
   auto itBw = statesBackward.rbegin();
   while(itFw != statesForward.end()) {
     // add proper axes
-    joinedStates.push_back(concatenate({*itFw++, *itBw++}));
+    joinedStates.push_back(concatenate({*itFw++, *itBw++}, 1));
   }
 
   // add proper axes and make this a 3D tensor
-  auto encContext = name(concatenate(joinedStates), "context");
+  auto encContext = name(concatenate(joinedStates, 0), "context");
 
   //auto decStartState = mean(encContext);
 }

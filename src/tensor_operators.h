@@ -313,9 +313,9 @@ void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
 
 void Transpose(Tensor out, const Tensor in);
 
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs);
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in);
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
 void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs);
 

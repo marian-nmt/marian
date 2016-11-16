@@ -95,7 +95,10 @@ Expr dot(Expr a, Expr b);
 
 Expr transpose(Expr a);
 
-Expr concatenate(const std::vector<Expr>& concats);
+template <typename ...Args>
+Expr concatenate(const std::vector<Expr>& concats, Args ...args) {
+  return Expression<ConcatenateNodeOp>(concats, args...);
+}
 
 /*********************************************************/
 

@@ -106,10 +106,6 @@ Expr transpose(Expr a) {
   return Expression<TransposeNodeOp>(a);
 }
 
-Expr concatenate(const std::vector<Expr>& concats) {
-  return Expression<ConcatenateNodeOp>(concats);
-}
-
 Expr cross_entropy(Expr a, Expr b) {
   return Expression<CrossEntropyNodeOp>(a, b);
 }
