@@ -8,7 +8,7 @@
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
 
-using namespace std;
+/* using namespace std; */
 
 namespace GPU {
 
@@ -48,14 +48,16 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const State& in, State& out) {
+void EncoderDecoder::Score(const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
   decoder_->MakeStep(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
-                     *SourceContext_);
+                     *SourceContext_,
+                     batchMapping_,
+                     beamSizes);
 }
 
 State* EncoderDecoder::NewState() {

@@ -190,13 +190,6 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
     gMaxElement<<<1, 512, 512 * sizeof(float), stream_>>>
       (d_res + i, d_res_idx + i, d_out, N_BLOCKS);
 
-      /* cudaStreamSynchronize(stream_); */
-      /* int *tmp= new int[N_BLOCKS]; */
-      /* cudaMemcpy(tmp, d_ind, N_BLOCKS * sizeof(int), cudaMemcpyDeviceToHost); */
-      /* for (int k = 0; k < N_BLOCKS; ++k) std::cerr << k << ": " << tmp[k] << "\t"; */
-      /* std::cerr << std::endl; */
-      /* delete [] tmp; */
-
     gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
       (d_out, d_ind, d_in, d_res_idx + i, 2 * BLOCK_SIZE * N_BLOCKS, N);
   }
@@ -209,8 +202,8 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
   cudaStreamSynchronize(stream_);
 
   for (size_t i = 0; i < n; ++i) {
-    outKeys[i] = h_res_idx[i];
-    outValues[i] = h_res[i];
+    outKeys.push_back(h_res_idx[i]);
+    outValues.push_back(h_res[i]);
   }
 
   lastN = n;

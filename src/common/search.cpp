@@ -26,16 +26,18 @@ size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
 Histories Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  size_t beamSize = God::Get<size_t>("beam-size");
   size_t batchSize = sentences.size();
+  std::vector<size_t> beamSizes(batchSize, God::Get<size_t>("beam-size"));
 
   // @TODO Future: in order to do batch sentence decoding
   // it should be enough to keep track of hypotheses in
   // separate History objects.
 
-  History history;
+  Histories histories(batchSize);
   Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
-  history.Add(prevHyps);
+  for (auto& history : histories) {
+    history.Add(prevHyps);
+  }
 
   States states(scorers_.size());
   States nextStates(scorers_.size());
@@ -58,31 +60,35 @@ Histories Search::Decode(const Sentences& sentences) {
   }
 
   const size_t maxLength = sentences[0].GetWords().size() * 3;
-  do {
+  for (size_t len = 0; len < maxLength; ++len) {
     for (size_t i = 0; i < scorers_.size(); i++) {
       Scorer &scorer = *scorers_[i];
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(state, nextState);
+      scorer.Score(state, nextState, beamSizes);
     }
 
-    Beam hyps;
+    std::vector<Beam> beams(batchSize);
 
     bool returnAlignment = God::Get<bool>("return-alignment");
 
-    BestHyps_(hyps, prevHyps, beamSize, scorers_, filterIndices_,
-                                     returnAlignment);
-    history.Add(hyps, history.size() == maxLength);
+    BestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+    for (size_t i = 0; i < batchSize; ++i) {
+      histories[i].Add(beams[i], histories[i].size() == maxLength);
+    }
 
     Beam survivors;
-    for (auto h : hyps) {
-      if (h->GetWord() != EOS) {
-        survivors.push_back(h);
+    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
+      for (auto& h : beams[batchID]) {
+        if (h->GetWord() != EOS) {
+          survivors.push_back(h);
+        } else {
+          --beamSizes[batchID];
+        }
       }
     }
-    beamSize = survivors.size();
-    if (beamSize == 0) {
+    if (survivors.size() == 0) {
       break;
     }
 
@@ -92,7 +98,7 @@ Histories Search::Decode(const Sentences& sentences) {
 
     prevHyps.swap(survivors);
 
-  } while(history.size() <= maxLength);
+  }
 
   LOG(progress) << "Line " << sentences[0].GetLine()
                 << ": Search took " << timer.format(3, "%ws");
@@ -101,7 +107,5 @@ Histories Search::Decode(const Sentences& sentences) {
 	  scorer->CleanUpAfterSentence();
   }
 
-  Histories ret;
-  ret.push_back(history);
-  return ret;
+  return histories;
 }

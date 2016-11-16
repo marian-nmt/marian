@@ -109,7 +109,9 @@ class Decoder {
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const mblas::Matrix& HiddenState,
-                                     const mblas::Matrix& SourceContext) {
+                                     const mblas::Matrix& SourceContext,
+                                     const DeviceVector<int>& mapping,
+                                     const std::vector<size_t>& beamSizes) {
           using namespace mblas;
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
@@ -234,9 +236,11 @@ class Decoder {
     void MakeStep(mblas::Matrix& NextState,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
-                  const mblas::Matrix& SourceContext) {
+                  const mblas::Matrix& SourceContext,
+                  const DeviceVector<int>& mapping,
+                  const std::vector<size_t>& beamSizes) {
       GetHiddenState(HiddenState_, State, Embeddings);
-      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
+      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
     }
@@ -289,9 +293,12 @@ class Decoder {
     }
 
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                                 const mblas::Matrix& HiddenState,
-                                 const mblas::Matrix& SourceContext) {
-      alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext);
+                                  const mblas::Matrix& HiddenState,
+                                  const mblas::Matrix& SourceContext,
+                                  const DeviceVector<int>& mapping,
+                                  const std::vector<size_t>& beamSizes) {
+      alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
+                                         mapping, beamSizes);
     }
 
     void GetNextState(mblas::Matrix& State,
