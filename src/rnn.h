@@ -39,6 +39,8 @@ class Tanh {
     ParametersTanh params_;
 };
 
+/***************************************************************/
+
 struct ParametersGRU {
   Expr Uz, Wz, bz;
   Expr Ur, Wr, br;
@@ -84,6 +86,8 @@ class GRU {
     ParametersGRU params_;
 };
 
+/***************************************************************/
+
 struct ParametersGRUFast {
   Expr U, W, b;
   float dropout = 0;
@@ -117,7 +121,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"box\", label=" << label("GRUFast")
-      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     for(auto child : children_)
       ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
     ss << std::endl;
@@ -152,6 +156,7 @@ class GRUFast {
     ParametersGRUFast params_;
 };
 
+/***************************************************************/
 
 template <class Cell = Tanh>
 class RNN {

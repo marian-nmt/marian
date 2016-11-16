@@ -202,7 +202,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::string graphviz() {
       std::stringstream ss;
       ss << "digraph ExpressionGraph {" << std::endl;
-      ss << "rankdir=BT" << std::endl;
+      ss << "graph[splines=ortho]";
+      ss << "rankdir=LR" << std::endl;
       typedef typename Tape::reverse_iterator It;
       for(It it = tape_.rbegin(); it != tape_.rend(); ++it) {
         ss << (*it)->graphviz();

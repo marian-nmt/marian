@@ -29,8 +29,9 @@ void construct(ExpressionGraphPtr g,
   auto Wemb = g->param("Wemb", {dimSrcVoc, dimSrcEmb}, init=glorot_uniform);
 
   std::vector<Expr> inputs;
+  size_t i = 0;
   for(auto& srcWordBatch : srcSentenceBatch) {
-    auto x = rows(Wemb, srcWordBatch);
+    auto x = name(rows(Wemb, srcWordBatch), "x_" + std::to_string(i++));
     inputs.push_back(x);
     dimBatch = srcWordBatch.size();
   }
@@ -59,20 +60,45 @@ void construct(ExpressionGraphPtr g,
   //  return RNN<GRU>(encParams);
   //};
 
+  //auto buildEncoderGRU = [=](const std::string& prefix){
+  //  ParametersGRUFast encParams;
+  //  encParams.U = g->param(prefix + "_U", {dimEncState, 3 * dimEncState},
+  //                         init=glorot_uniform);
+  //
+  //  encParams.W = g->param(prefix + "_W", {dimSrcEmb, 3 * dimEncState},
+  //                         init=glorot_uniform);
+  //
+  //  encParams.b = g->param(prefix + "_b", {1, 3 * dimEncState}, init=zeros);
+  //
+  //  return RNN<GRUFast>(encParams);
+  //};
+
   auto buildEncoderGRU = [=](const std::string& prefix){
+    auto U = g->param(prefix + "_U", {dimEncState, 2 * dimEncState},
+                      init=glorot_uniform);
+
+    auto W = g->param(prefix + "_W", {dimSrcEmb, 2 * dimEncState},
+                      init=glorot_uniform);
+
+    auto b = g->param(prefix + "_b", {1, 2 * dimEncState}, init=zeros);
+
+    auto Ux = g->param(prefix + "_Ux", {dimEncState, dimEncState},
+                      init=glorot_uniform);
+
+    auto Wx = g->param(prefix + "_Wx", {dimSrcEmb, dimEncState},
+                      init=glorot_uniform);
+
+    auto bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
+
     ParametersGRUFast encParams;
-    encParams.U = g->param(prefix + "_U", {dimEncState, 3 * dimEncState},
-                            init=glorot_uniform);
-
-    encParams.W = g->param(prefix + "_W", {dimSrcEmb, 3 * dimEncState},
-                            init=glorot_uniform);
-
-    encParams.b = g->param(prefix + "_b", {1, 3 * dimEncState}, init=zeros);
+    encParams.U = transpose(concatenate({transpose(U), transpose(Ux)}));
+    encParams.W = transpose(concatenate({transpose(W), transpose(Wx)}));
+    encParams.b = transpose(concatenate({transpose(b), transpose(bx)}));
 
     return RNN<GRUFast>(encParams);
   };
 
-  auto encStartState = g->zeros(shape={dimBatch, dimEncState});
+  auto encStartState = name(g->zeros(shape={dimBatch, dimEncState}), "start");
 
   auto encForward = buildEncoderGRU("encoder");
   auto statesForward = encForward.apply(inputs.begin(), inputs.end(),
@@ -91,13 +117,13 @@ void construct(ExpressionGraphPtr g,
   }
 
   // add proper axes and make this a 3D tensor
-  auto encContext = concatenate(joinedStates);
+  auto encContext = name(concatenate(joinedStates), "context");
 
   //auto decStartState = mean(encContext);
 }
 
 SentBatch generateBatch(size_t batchSize) {
-  size_t length = rand() % 40 + 10;
+  size_t length = 5; // rand() % 40 + 10;
   return SentBatch(length, WordBatch(batchSize));
 }
 
@@ -119,7 +145,7 @@ int main(int argc, char** argv) {
     //exit(1);
 
     g->forward();
-    g->backward();
+    //g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;
   }
