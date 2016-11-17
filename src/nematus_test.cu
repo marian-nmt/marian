@@ -111,8 +111,26 @@ void construct(ExpressionGraphPtr g,
     joinedStates.push_back(concatenate({*itFw++, *itBw++}, 1));
   }
 
+  auto dec1 = buildEncoderGRU("decoder1");
+  auto states1 = dec1.apply(inputs.begin(), inputs.end(),
+                          encStartState);
+
+  auto Wi = g->param("Wi", {dimEncState, 85000},
+                     init=glorot_uniform);
+  auto bi = g->param("bi", {1, 85000},
+                     init=zeros);
+
+  Expr total;
+  for(auto h : states1) {
+    auto cost = mean(sum(softmax(dot(h, Wi) + bi), axis=1), axis=0);
+    if(total)
+      total = total + cost;
+    else
+      total = cost;
+  }
+
   // add proper axes and make this a 3D tensor
-  auto encContext = name(concatenate(joinedStates, 2), "context");
+  //auto encContext = name(concatenate(joinedStates, 2), "context");
 
   //auto decStartState = mean(encContext, axis=2);
 }
@@ -138,7 +156,7 @@ int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcinj/Badania/amunmt/test2/model.npz");
 
-  size_t batchSize = 80;
+  size_t batchSize = 40;
 
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {
@@ -150,7 +168,7 @@ int main(int argc, char** argv) {
 
     g->forward();
     //exit(0);
-    g->backward();
+    //g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;
   }
