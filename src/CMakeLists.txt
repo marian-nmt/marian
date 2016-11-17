@@ -35,8 +35,9 @@ cuda_add_executable(
 )
 
 cuda_add_executable(
-  rnn_test
-  rnn_test.cu
+  gru_test
+  gru_test.cu
+  3rd_party/cnpy/cnpy.cpp
 )
 
 cuda_add_executable(
@@ -58,12 +59,12 @@ cuda_add_executable(
 target_link_libraries(softmax_benchmark marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(mnist_benchmark marian_lib)
-target_link_libraries(rnn_test marian_lib)
+target_link_libraries(gru_test marian_lib)
 target_link_libraries(nematus_test marian_lib)
 #target_link_libraries(validate_encoder_decoder marian_lib)
 #target_link_libraries(test_nodes marian_lib)
 
-foreach(exec mnist_benchmark tensor_test softmax_benchmark rnn_test nematus_test)
+foreach(exec mnist_benchmark tensor_test softmax_benchmark gru_test nematus_test)
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

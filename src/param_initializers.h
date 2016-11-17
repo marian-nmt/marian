@@ -46,7 +46,7 @@ float xor128() {
 }
 
 // Use a constant seed for deterministic behaviour.
-std::default_random_engine engine(42);
+//std::default_random_engine engine(42);
 
 void zeros(Tensor t) {
   t->set(0.f);
@@ -56,10 +56,17 @@ void ones(Tensor t) {
   t->set(1.0f);
 }
 
+std::function<void(Tensor)> from_value(float v) {
+  return [v](Tensor t) {
+    t->set(v);
+  };
+}
+
+
 template <class Distribution>
 void distribution(Tensor t, float a, float b) {
-  //std::random_device device;
-  //std::default_random_engine engine(device());
+  std::random_device device;
+  std::default_random_engine engine(device());
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
 

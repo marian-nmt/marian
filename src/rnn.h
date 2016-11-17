@@ -110,12 +110,17 @@ struct GRUFastNodeOp : public NaryNodeOp {
   }
 
   void backward() {
+    std::vector<Tensor> inputs;
     std::vector<Tensor> outputs;
-    outputs.reserve(children_.size());
-    for(auto child : children_)
-      outputs.push_back(child->grad());
 
-    GRUFastBackward(outputs, adj_);
+    inputs.reserve(children_.size());
+    outputs.reserve(children_.size());
+    for(auto child : children_) {
+      inputs.push_back(child->val());
+      outputs.push_back(child->grad());
+    }
+
+    GRUFastBackward(outputs, inputs, adj_);
   }
 
   virtual std::string graphviz() {

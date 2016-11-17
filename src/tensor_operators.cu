@@ -729,7 +729,6 @@ __global__ void gGRUFastForward(float* out,
       const float* xWrow = xW + j * cols * 3;
       const float* sUrow = sU + j * cols * 3;
 
-
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
@@ -766,8 +765,93 @@ void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs){
     rows, cols);
 }
 
-void GRUFastBackward(std::vector<Tensor>& output, const Tensor in) {
+__global__ void gGRUFastBackward(float* outState,
+                                 float* outXW,
+                                 float* outSU,
+                                 float* outB,
+                                 const float* state,
+                                 const float* xW,
+                                 const float* sU,
+                                 const float* b,
+                                 const float* adj,
+                                 size_t rows, size_t cols) {
 
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOutState = outState + j * cols;
+      float* rowOutXW = outXW + j * cols * 3;
+      float* rowOutSU = outSU + j * cols * 3;
+
+      const float* rowState = state + j * cols;
+      const float* rowXW = xW + j * cols * 3;
+      const float* rowSU = sU + j * cols * 3;
+      const float* rowAdj = adj + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          int k = i + cols;
+          int l = i + 2 * cols;
+
+          float ev1 = expf(-(rowXW[i] + rowSU[i] + b[i]));
+          float r = 1.0f / (1.0f + ev1);
+
+          float ev2 = expf(-(rowXW[k] + rowSU[k] + b[k]));
+          float z = 1.0f / (1.0f + ev2);
+
+          float h = tanhf(rowXW[l] + rowSU[l] * r + b[l]);
+
+          float adj = rowAdj[i];
+
+          // df/ds
+          rowOutState[i] += z * adj;
+
+          float t = (1-z)*(1-h*h);
+
+          // df/d(xW_r) ...
+          float dfdxW_r = r*(1-r)*t*rowSU[l] * adj;
+          rowOutXW[i] += dfdxW_r;
+          rowOutSU[i] += dfdxW_r;
+          outB[i]     += dfdxW_r;
+
+          // df/d(xW_z) ...
+          float dfdxW_z = (1-z)*z*(rowState[i]-h) * adj;
+          rowOutXW[k] += dfdxW_z;
+          rowOutSU[k] += dfdxW_z;
+          outB[k]     += dfdxW_z;
+
+          // df/d(xW_x) ...
+          float dfdxW_x = t * adj;
+          rowOutXW[l] += dfdxW_x;
+          rowOutSU[l] += dfdxW_x * r;
+          outB[l]     += dfdxW_x;
+        }
+      }
+    }
+  }
+}
+
+void GRUFastBackward(std::vector<Tensor>& outputs,
+                     const std::vector<Tensor>& inputs,
+                     const Tensor adj) {
+  int rows = adj->shape()[0];
+  int cols = adj->shape()[1];
+
+  int blocks  = std::min(MAX_BLOCKS, rows);
+  int threads = std::min(MAX_THREADS, cols);
+
+  gGRUFastBackward<<<blocks, threads>>>(
+    outputs[0]->data(), // state - adj
+    outputs[1]->data(), // xW - adj
+    outputs[2]->data(), // sU - adj
+    outputs[3]->data(), // b - adj
+    inputs[0]->data(), // state
+    inputs[1]->data(), // xW
+    inputs[2]->data(), // sU
+    inputs[3]->data(), // b
+    adj->data(),
+    rows, cols);
 }
 
 }
