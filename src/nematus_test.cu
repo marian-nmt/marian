@@ -69,43 +69,6 @@ void construct(ExpressionGraphPtr g,
   }
 
   auto buildEncoderGRU = [=](const std::string& prefix){
-    ParametersGRU encParams;
-    encParams.Uz = g->param(prefix + "_Uz", {dimEncState, dimEncState},
-                            init=glorot_uniform);
-    encParams.Ur = g->param(prefix + "_Ur", {dimEncState, dimEncState},
-                            init=glorot_uniform);
-
-    encParams.Wz = g->param(prefix + "_Wz", {dimSrcEmb, dimEncState},
-                            init=glorot_uniform);
-    encParams.Wr = g->param(prefix + "_Wr", {dimSrcEmb, dimEncState},
-                            init=glorot_uniform);
-
-    encParams.bz = g->param(prefix + "_bz", {1, dimEncState}, init=zeros);
-    encParams.br = g->param(prefix + "_br", {1, dimEncState}, init=zeros);
-
-    encParams.Ux = g->param(prefix + "_Ux", {dimEncState, dimEncState},
-                            init=glorot_uniform);
-    encParams.Wx = g->param(prefix + "_Wx", {dimSrcEmb, dimEncState},
-                            init=glorot_uniform);
-    encParams.bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
-
-    return RNN<GRU>(encParams);
-  };
-
-  auto buildEncoderGRU2 = [=](const std::string& prefix){
-    ParametersGRUFast encParams;
-    encParams.U = g->param(prefix + "_U", {dimEncState, 3 * dimEncState},
-                           init=glorot_uniform);
-
-    encParams.W = g->param(prefix + "_W", {dimSrcEmb, 3 * dimEncState},
-                           init=glorot_uniform);
-
-    encParams.b = g->param(prefix + "_b", {1, 3 * dimEncState}, init=zeros);
-
-    return RNN<GRUFast>(encParams);
-  };
-
-  auto buildEncoderGRU3 = [=](const std::string& prefix){
     auto U = g->param(prefix + "_U", {dimEncState, 2 * dimEncState},
                       init=glorot_uniform);
 
@@ -132,11 +95,11 @@ void construct(ExpressionGraphPtr g,
 
   auto encStartState = name(g->zeros(shape={dimBatch, dimEncState}), "start");
 
-  auto encForward = buildEncoderGRU3("encoder");
+  auto encForward = buildEncoderGRU("encoder");
   auto statesForward = encForward.apply(inputs.begin(), inputs.end(),
                                         encStartState);
 
-  auto encBackward = buildEncoderGRU3("encoder_r");
+  auto encBackward = buildEncoderGRU("encoder_r");
   auto statesBackward = encBackward.apply(inputs.rbegin(), inputs.rend(),
                                           encStartState);
 
@@ -149,31 +112,33 @@ void construct(ExpressionGraphPtr g,
   }
 
   // add proper axes and make this a 3D tensor
-  auto encContext = name(concatenate(joinedStates, 0), "context");
+  auto encContext = name(concatenate(joinedStates, 2), "context");
 
-  //auto decStartState = mean(encContext);
+  //auto decStartState = mean(encContext, axis=2);
 }
 
 SentBatch generateBatch(size_t batchSize) {
-  //size_t length = 5;//rand() % 40 + 10;
+  size_t length = rand() % 40 + 10;
+  return SentBatch(length, WordBatch(batchSize));
+
   // das ist ein kleiner test . </s>
-  return SentBatch({
-    WordBatch(batchSize, 13),
-    WordBatch(batchSize, 15),
-    WordBatch(batchSize, 20),
-    WordBatch(batchSize, 8306),
-    WordBatch(batchSize, 4),
-    WordBatch(batchSize, 0)
-  });
+  //return SentBatch({
+  //  WordBatch(batchSize, 13),
+  //  WordBatch(batchSize, 15),
+  //  WordBatch(batchSize, 20),
+  //  WordBatch(batchSize, 8306),
+  //  WordBatch(batchSize, 4),
+  //  WordBatch(batchSize, 0)
+  //});
 }
 
 int main(int argc, char** argv) {
-  cudaSetDevice(2);
+  cudaSetDevice(0);
 
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcinj/Badania/amunmt/test2/model.npz");
 
-  size_t batchSize = 5;
+  size_t batchSize = 80;
 
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {
@@ -185,7 +150,7 @@ int main(int argc, char** argv) {
 
     g->forward();
     //exit(0);
-    //g->backward();
+    g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;
   }

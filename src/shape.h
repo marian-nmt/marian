@@ -33,7 +33,7 @@ namespace marian {
    * Note: this class currently is hard-coded to four dimensions.
    */
 
-  const size_t SHAPE_SIZE = 2;
+  const size_t SHAPE_SIZE = 4;
 
 
   struct Shape {
@@ -45,18 +45,19 @@ namespace marian {
        * This default shape has four dimensions.
        * The size of each dimension is 1.
        */
-      Shape() : shape_{1, 1} { }
+      Shape() : shape_{1, 1, 1, 1} { }
 
       /**
        * @brief Constructs a shape.
        *
        * @param i A list of integers representing the size of each dimension.
        */
-      Shape(std::initializer_list<int> il) {
+      Shape(std::initializer_list<int> il)
+      : Shape() {
        std::copy(il.begin(), il.end(), begin());
       }
 
-      Shape(const Shape& shape) {
+      Shape(const Shape& shape) : Shape() {
        std::copy(shape.begin(), shape.end(), begin());
       }
 
@@ -66,7 +67,7 @@ namespace marian {
        * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      int& operator[](int i) {
+      int& dim(int i) {
         return shape_[i];
       }
 
@@ -76,15 +77,62 @@ namespace marian {
        * @return the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      const int& operator[](int i) const {
+      const int& dim(int i) const {
         return shape_[i];
       }
 
-	  /**
-	   * @brief Gets the number of dimensions represented by this object
-	   *
-	   * @return the number of dimensions represented by this object
-	   */
+
+      /**
+       * @brief Gets a reference to the int representing the size of the <code>i</code>th dimension represented by this object.
+       *
+       * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
+       */
+      __host__ __device__
+      int& operator[](int i) {
+        return dim(i);
+      }
+
+      /**
+       * @brief Gets the size of the <code>i</code>th dimension represented by this object.
+       *
+       * @return the size of the <code>i</code>th dimension represented by this object
+       */
+      __host__ __device__
+      const int& operator[](int i) const {
+        return dim(i);
+      }
+
+      /**
+       * @brief Gets a reference to the int representing the size of the <code>i</code>th dimension represented by this object.
+       *
+       * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
+       */
+      __host__ __device__
+      int stride(int i) {
+        switch(i) {
+          case 0: return shape_[1];
+          case 1: return 1;
+          case 2: return shape_[0] * shape_[1];
+          case 3: return shape_[0] * shape_[1] * shape_[2];
+        }
+        return 1;
+      }
+
+      /**
+       * @brief Gets the size of the <code>i</code>th dimension represented by this object.
+       *
+       * @return the size of the <code>i</code>th dimension represented by this object
+       */
+      __host__ __device__
+      int stride(int i) const {
+        return const_cast<Shape&>(*this).stride(i);
+      }
+
+      /**
+       * @brief Gets the number of dimensions represented by this object
+       *
+       * @return the number of dimensions represented by this object
+       */
       size_t size() const {
         return SHAPE_SIZE;
       }

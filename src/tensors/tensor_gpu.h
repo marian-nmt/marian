@@ -94,8 +94,10 @@ class TensorGPU : public TensorBase {
     : TensorBase(data, shape) {
       cudnnCreateTensorDescriptor(&cudnnDesc_);
       cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
-                                   shape_[0], shape_[1], 1, 1,
-                                   shape_[1], 1, 1, 1);
+                                   shape_[0], shape_[1],
+                                   shape_[2], shape_[3],
+                                   shape_.stride(0), shape_.stride(1),
+                                   shape_.stride(2), shape_.stride(3));
     }
 
     ~TensorGPU() {
@@ -144,7 +146,10 @@ class TensorGPU : public TensorBase {
     std::string debug() {
       std::stringstream strm;
       assert(shape_.size());
-      strm << "shape=" << shape_[0] << "x" << shape_[1] << std::endl;
+      strm << "shape=" << shape_[0];
+      for(int i = 1; i < shape_.size(); ++i)
+         strm << "x" << shape_[i];
+      strm << std::endl;
 
       // values
       size_t totSize = shape_.elements();

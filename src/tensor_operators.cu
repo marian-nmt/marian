@@ -643,6 +643,8 @@ __global__ void gInsertCols(float* out, const float* in,
   }
 }
 
+// this probably does not work for tensors with more than 2
+// dimensions, verify this!
 void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   size_t offset = 0;
   int rows = out->shape()[0];
