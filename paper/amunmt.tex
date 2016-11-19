@@ -203,20 +203,25 @@ ytick pos=left,
 ymin=300, ymax=1000,
 xmin=1, xmax=50,
 ylabel=Words per second (Wps)]
-\addplot[bblue,mark=o,thick] plot coordinates {
-( 1, 925.3) %18.9 - 17
-( 2, 927.4)
+\addplot[rred,mark=o,thick] plot coordinates {
+( 1, 941.4) %18.9 - 17
+( 2, 940.0)
 ( 3, 921.0)
-( 4, 887.2)
+( 4, 928.5)
 ( 5, 829.7)
-( 6, 623.8)
-( 7, 604.7)
+( 6, 642.1)
+( 7, 609.7)
 ( 8, 595.6)
 (10, 572.2)
 (12, 531.5)
+(14, 532.7)
 (15, 341.5)
-(20, 528.9)
-(30, 463.5)
+(16, 348.5)
+(17, 572.8)
+(18, 570.1)
+(19, 565.2)
+(20, 555.6)
+(30, 485.7)
 (40, 432.8)
 (50, 361.6)
 %(100, 224.9)
@@ -238,7 +243,7 @@ ymin=48, ymax=50,
 xmin=1, xmax=50,
 axis y line*=right]
 \addlegendimage{/pgfplots/refstyle=words}\addlegendentry{Wps}
-\addplot[rred,mark=*,thick] plot coordinates {
+\addplot[bblue,mark=*,thick] plot coordinates {
 ( 1, 47.99)
 ( 2, 49.27)
 ( 3, 49.52) 
