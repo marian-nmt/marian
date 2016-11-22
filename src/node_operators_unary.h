@@ -306,16 +306,16 @@ struct SumNodeOp : public UnaryNodeOp {
   template <class ...Args>
   Shape newShape(Expr a, Args ...args) {
     int ax = keywords::Get(keywords::axis, -1, args...);
+    std::cerr << ax << std::endl;
     Shape shape = a->shape();
-    if(ax == 0) {
-      shape[0] = 1;
-    }
-    else if(ax == 1) {
-      shape[1] = 1;
+    if(ax != -1) {
+      shape[ax] = 1;
     }
     else {
       shape[0] = 1;
       shape[1] = 1;
+      shape[2] = 1;
+      shape[3] = 1;
     }
     return shape;
   }
@@ -347,15 +347,14 @@ struct MeanNodeOp : public UnaryNodeOp {
   Shape newShape(Expr a, Args ...args) {
     int ax = keywords::Get(keywords::axis, -1, args...);
     Shape shape = a->shape();
-    if(ax == 0) {
-      shape[0] = 1;
-    }
-    else if(ax == 1) {
-      shape[1] = 1;
+    if(ax != -1) {
+      shape[ax] = 1;
     }
     else {
       shape[0] = 1;
       shape[1] = 1;
+      shape[2] = 1;
+      shape[3] = 1;
     }
     return shape;
   }
@@ -376,7 +375,6 @@ struct LogNodeOp : public UnaryNodeOp {
   : UnaryNodeOp(args...) {}
 
   void forward() {
-    std::cerr << val_.get() << " <-> " << a_->val().get() << std::endl;
     Element(_1 = Log(_2), val_, a_->val());
   }
 

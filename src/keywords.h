@@ -34,21 +34,21 @@ namespace keywords {
   /**
    * @brief Represents a named keyword capable of storing a single value.
    *
-   * This class is used to emulate <a href="https://en.wikipedia.org/wiki/Named_parameter">keyword arguments to functions</a>, 
+   * This class is used to emulate <a href="https://en.wikipedia.org/wiki/Named_parameter">keyword arguments to functions</a>,
    *    such as those <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">found in Python</a>.
    *
    * It is expected that users of this class will not explicitly create instances of this class.
    *
    * Rather, it is expected that users will use the #KEY(name, value_type) macro.
    *
-   * For example, the invocation <code>KEY(batch_size, int)</code> will construct a new instance of this class 
+   * For example, the invocation <code>KEY(batch_size, int)</code> will construct a new instance of this class
    *   called <code>batch_size</code> whose <code>value_type</code> is <code>int</code>.
    *
    * Now assume a function called <code>foo()</code> that requires a single Keyword as its parameter.
    *
    * <code>foo(batch_size=200)</code>
    *
-   * This code fragment causes an invocation of this class's operator= method, 
+   * This code fragment causes an invocation of this class's operator= method,
    *   which returns a new instance of the Keyword class. This new instance will have a value of 200.
    */
   template <unsigned key, typename Value>
@@ -56,16 +56,16 @@ namespace keywords {
     public:
       typedef Value value_type;
 
-      /** 
-       * @brief Constructs a <code>Keyword</code> which will store the specified value. 
+      /**
+       * @brief Constructs a <code>Keyword</code> which will store the specified value.
        *
        * @arg value The value to store in this object
        */
       Keyword(Value value)
       : value_(value) {}
 
-      /** 
-       * @brief Constructs a <code>Keyword</code> with no specified value. 
+      /**
+       * @brief Constructs a <code>Keyword</code> with no specified value.
        *
        * The value stored in the resulting object will be constructed using that Value's default constructor.
        */
@@ -96,7 +96,7 @@ namespace keywords {
        * @brief Gets the hashed integer identifier associated with this object.
        *
        * @return the hashed integer identifier associated with this object
-       */ 
+       */
       unsigned id() const {
         return key;
       }
@@ -151,14 +151,14 @@ namespace keywords {
   typename Match::value_type Get(Match key,
                                  typename Match::value_type dflt,
                                  Args ...args) {
-      constexpr bool match = is_one_of<Match, const Args...>::value;
+      constexpr bool match = is_one_of<Match, Args...>::value;
       typename std::conditional<match, True, False>::type condition;
       return opt<Match>(condition, dflt, args...);
   }
 
   template <typename Match, typename ...Args>
   constexpr bool Has(Match key, Args ...args) {
-      return is_one_of<Match, const Args...>::value;
+      return is_one_of<Match, Args...>::value;
   }
 
   class Keywords {
@@ -203,12 +203,12 @@ namespace keywords {
 
   };
 
-/** 
+/**
  * \def KEY(name, value_type)
- * 
+ *
  * @brief Defines a preprocessor macro that can be used to construct an appropriately templated instance of the <code>Keyword</code> class.
  *
- * @param name       This preprocessor argument specifies the variable name of constructed keyword instance 
+ * @param name       This preprocessor argument specifies the variable name of constructed keyword instance
  * @param value_type This preprocessor argument specifies the type of the value to be stored in the keyword instance
  *
  * For example, the invocation <code>KEY(axis, int)</code> is equivalent to the following:

@@ -86,39 +86,12 @@ void construct(ExpressionGraphPtr g,
     auto bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
 
     ParametersGRUFast encParams;
-    encParams.U = concatenate({U, Ux}, 1);
-    encParams.W = concatenate({W, Wx}, 1);
-    encParams.b = concatenate({b, bx}, 1);
+    encParams.U = concatenate({U, Ux}, axis=1);
+    encParams.W = concatenate({W, Wx}, axis=1);
+    encParams.b = concatenate({b, bx}, axis=1);
 
     return RNN<GRUFast>(encParams);
   };
-
-  auto buildDecoderGRU = [=](){
-    std::string prefix = "decoder";
-    auto U = g->param(prefix + "_U", {dimEncState, 2 * dimEncState},
-                      init=glorot_uniform);
-
-    auto W = g->param(prefix + "_W", {dimEncState, 2 * dimEncState},
-                      init=glorot_uniform);
-
-    auto b = g->param(prefix + "_b", {1, 2 * dimEncState}, init=zeros);
-
-    auto Ux = g->param(prefix + "_Ux", {dimEncState, dimEncState},
-                      init=glorot_uniform);
-
-    auto Wx = g->param(prefix + "_Wx", {dimEncState, dimEncState},
-                       init=glorot_uniform);
-
-    auto bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
-
-    ParametersGRUFast encParams;
-    encParams.U = concatenate({U, Ux}, 1);
-    encParams.W = concatenate({W, Wx}, 1);
-    encParams.b = concatenate({b, bx}, 1);
-
-    return RNN<GRUFast>(encParams);
-  };
-
 
   auto encStartState = name(g->zeros(shape={dimBatch, dimEncState}), "start");
 
@@ -130,58 +103,33 @@ void construct(ExpressionGraphPtr g,
   auto statesBackward = encBackward.apply(inputs.rbegin(), inputs.rend(),
                                           encStartState);
 
-  //std::vector<Expr> joinedStates;
-  //auto itFw = statesForward.begin();
-  //auto itBw = statesBackward.rbegin();
-  //while(itFw != statesForward.end()) {
-  //  // add proper axes
-  //  joinedStates.push_back(concatenate({*itFw++, *itBw++}, 1));
-  //}
-  //
-  //// add proper axes and make this a 3D tensor
-  //auto encContext = name(concatenate(joinedStates, 2), "context");
-  //
-  //auto decStartState = mean(encContext, axis=2);
-
-  auto newStart = statesForward.back() + statesBackward.back();
-
-  auto dec1 = buildEncoderGRU("decoder1");
-  auto states1 = dec1.apply(inputs.begin(), inputs.end(),
-                          newStart);
-  auto dec2 = buildDecoderGRU();
-  auto states2 = dec2.apply(states1.begin(), states1.end(),
-                          newStart);
-
-  auto Wi = g->param("Wi", {dimEncState, 85000},
-                     init=glorot_uniform);
-  auto bi = g->param("bi", {1, 85000},
-                     init=zeros);
-
-  Expr total;
-  for(auto h : states2) {
-    auto cost = mean(sum(softmax(dot(h, Wi) + bi), axis=1), axis=0);
-    if(total)
-      total = total + cost;
-    else
-      total = cost;
+  std::vector<Expr> joinedStates;
+  auto itFw = statesForward.begin();
+  auto itBw = statesBackward.rbegin();
+  while(itFw != statesForward.end()) {
+    // add proper axes
+    joinedStates.push_back(concatenate({*itFw++, *itBw++}, axis=1));
   }
 
+  // add proper axes and make this a 3D tensor
+  auto encContext = debug(concatenate(joinedStates, axis=2), "context");
+  auto decStartState = debug(mean(encContext, axis=2), "decoderStart");
 
 }
 
 SentBatch generateBatch(size_t batchSize) {
-  size_t length = rand() % 40 + 10;
-  return SentBatch(length, WordBatch(batchSize));
+  //size_t length = rand() % 40 + 10;
+  //return SentBatch(length, WordBatch(batchSize));
 
-  // das ist ein kleiner test . </s>
-  //return SentBatch({
-  //  WordBatch(batchSize, 13),
-  //  WordBatch(batchSize, 15),
-  //  WordBatch(batchSize, 20),
-  //  WordBatch(batchSize, 8306),
-  //  WordBatch(batchSize, 4),
-  //  WordBatch(batchSize, 0)
-  //});
+  // das ist ein test . </s>
+  return SentBatch({
+    WordBatch(batchSize, 13),
+    WordBatch(batchSize, 15),
+    WordBatch(batchSize, 20),
+    WordBatch(batchSize, 8306),
+    WordBatch(batchSize, 4),
+    WordBatch(batchSize, 0)
+  });
 }
 
 int main(int argc, char** argv) {
@@ -190,7 +138,7 @@ int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcinj/Badania/amunmt/test2/model.npz");
 
-  size_t batchSize = 20;
+  size_t batchSize = 1;
 
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {
@@ -201,6 +149,9 @@ int main(int argc, char** argv) {
     construct(g, batch);
 
     g->forward();
+    g->graphviz("nematus.dot");
+    exit(1);
+
     g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;

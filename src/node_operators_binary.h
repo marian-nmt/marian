@@ -157,34 +157,6 @@ struct PlusNodeOp : public BinaryNodeOp {
 
 };
 
-struct ReLUPlusNodeOp : public BinaryNodeOp {
-  template <typename ...Args>
-  ReLUPlusNodeOp(Args ...args)
-    : BinaryNodeOp(args...) { }
-
-  void forward() {
-    Element(_1 = ReLU(_2 + _3),
-            val_, a_->val(), b_->val());
-  }
-
-  void backward() {
-    Element(_1 += _2 * ReLUback(_3 + _4),
-            a_->grad(), adj_, a_->val(), b_->val());
-    Element(_1 += _2 * ReLUback(_3 + _4),
-            b_->grad(), adj_, a_->val(), b_->val());
-  }
-
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("ReLU<br/>+")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
-
-};
-
 struct MinusNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   MinusNodeOp(Args ...args)
@@ -354,10 +326,10 @@ struct NaryNodeOp : public Node {
 
 struct ConcatenateNodeOp : public NaryNodeOp {
   template <typename ...Args>
-  ConcatenateNodeOp(const std::vector<Expr>& nodes, int ax, Args ...args)
+  ConcatenateNodeOp(const std::vector<Expr>& nodes, Args ...args)
     : NaryNodeOp(nodes,
-                 keywords::shape=newShape(nodes, ax),
-                 args...), ax_(ax) { }
+                 keywords::shape=newShape(nodes, keywords::Get(keywords::axis, 0, args...)),
+                 args...), ax_(keywords::Get(keywords::axis, 0, args...)) { }
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
@@ -384,7 +356,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("Concat")
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("concat")
       << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
     for(auto child : children_)
       ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;

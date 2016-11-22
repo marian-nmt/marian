@@ -385,10 +385,9 @@ void Prod(Tensor C, const Tensor A, const Tensor B,
 }
 
 void Sum(Tensor out, const Tensor in, int axis, bool mean) {
-  int rows = in->shape()[0];
-  int cols = in->shape()[1];
-
   if(axis == 0) {
+    int rows = in->shape()[0];
+    int cols = in->shape()[1];
     float scale = 1.f;
     if(mean)
       scale = 1.f / rows;
@@ -399,6 +398,9 @@ void Sum(Tensor out, const Tensor in, int axis, bool mean) {
     Prod(out, ones, in, false, false);
   }
   else if(axis == 1) {
+    int rows = in->shape()[0];
+    int cols = in->shape()[1];
+
     float scale = 1.f;
     if(mean)
       scale = 1.f / cols;
@@ -408,7 +410,26 @@ void Sum(Tensor out, const Tensor in, int axis, bool mean) {
                               {cols, 1}));
     Prod(out, in, ones, false, false);
   }
+  else if(axis == 2) {
+    int rows = in->shape()[2];
+    int cols = in->shape()[0] * in->shape()[1];
+
+    float scale = 1.f;
+    if(mean)
+      scale = 1.f / rows;
+
+    thrust::device_vector<float> d_ones(rows, scale);
+    Tensor ones(new TensorGPU(thrust::raw_pointer_cast(d_ones.data()),
+                              {1, rows}));
+
+    Tensor inTemp(new TensorGPU(in->data(), {rows, cols}));
+    Tensor outTemp(new TensorGPU(out->data(), {1, cols}));
+    Prod(outTemp, ones, inTemp, false, false);
+  }
   else {
+    int rows = in->shape()[0];
+    int cols = in->shape()[1];
+
     float scale1 = 1.f;
     float scale2 = 1.f;
     if(mean) {

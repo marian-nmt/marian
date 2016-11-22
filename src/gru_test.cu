@@ -73,9 +73,9 @@ void construct(ExpressionGraphPtr g,
     auto bx = g->param(prefix + "_bx", {1, dimEncState}, init=zeros);
 
     ParametersGRUFast encParams;
-    encParams.U = concatenate({Ur, Uz, Ux}, 1);
-    encParams.W = concatenate({Wr, Wz, Wx}, 1);
-    encParams.b = concatenate({br, bz, bx}, 1);
+    encParams.U = concatenate({Ur, Uz, Ux}, axis=1);
+    encParams.W = concatenate({Wr, Wz, Wx}, axis=1);
+    encParams.b = concatenate({br, bz, bx}, axis=1);
 
     return RNN<GRUFast>(encParams);
   };
