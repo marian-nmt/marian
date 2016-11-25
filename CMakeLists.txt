@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-project(amunn CXX)
+project(amunn C CXX)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -flto -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64 -flto -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
