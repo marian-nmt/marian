@@ -102,6 +102,11 @@ Expr concatenate(const std::vector<Expr>& concats, Args ...args) {
   return Expression<ConcatenateNodeOp>(concats, args...);
 }
 
+template <typename ...Args>
+Expr reshape(Expr a, Shape shape, Args ...args) {
+  return Expression<ReshapeNodeOp>(a, shape, args...);
+}
+
 /*********************************************************/
 
 template <typename ...Args>

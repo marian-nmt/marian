@@ -500,4 +500,35 @@ struct TransposeNodeOp : public UnaryNodeOp {
   }
 };
 
+struct ReshapeNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  ReshapeNodeOp(Expr a, Shape shape, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=shape, args...) { }
+
+  void allocate(size_t batchSize) {}
+
+  void forward() {}
+
+  void backward() {}
+
+  Tensor& val()  {
+    val_.reset(new TensorGPU(a_->val()->data(), shape()));
+    return val_;
+  };
+
+  Tensor& grad() {
+    adj_.reset(new TensorGPU(a_->grad()->data(), shape()));
+    return adj_;
+  };
+
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("reshape") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  }
+};
+
 }
