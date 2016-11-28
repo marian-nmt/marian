@@ -209,7 +209,7 @@ void construct(ExpressionGraphPtr g,
   auto statesConcat = concatenate(statesLayer1, axis=2);
 
   auto E1 = debug(reshape(dot(reshape(statesConcat, {dimBatch * trg, dimDecState}), Wa),
-                  {dimBatch, 2 * dimDecState, trg, 1}), "Reshape dot");
+                  {dimBatch, 2 * dimDecState, 1, trg}), "Reshape dot");
 
   auto E2 = debug(reshape(dot(reshape(encContext, {dimBatch * src, 2 * dimEncState}), Ua),
                   {dimBatch, 2 * dimDecState, src, 1}), "Reshape dot");

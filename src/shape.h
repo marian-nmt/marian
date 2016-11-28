@@ -38,6 +38,7 @@ namespace marian {
 
   struct Shape {
       int shape_[SHAPE_SIZE];
+      int stride_[SHAPE_SIZE];
 
       /**
        * @brief Constructs a default shape.
@@ -45,7 +46,10 @@ namespace marian {
        * This default shape has four dimensions.
        * The size of each dimension is 1.
        */
-      Shape() : shape_{1, 1, 1, 1} { }
+      Shape()
+      : shape_{1, 1, 1, 1},
+        stride_{0, 0, 0, 0}
+      { }
 
       /**
        * @brief Constructs a shape.
@@ -54,11 +58,16 @@ namespace marian {
        */
       Shape(std::initializer_list<int> il)
       : Shape() {
-       std::copy(il.begin(), il.end(), begin());
+        std::copy(il.begin(), il.end(), begin());
+        stride_[0] = shape_[0] == 1 ? 0 : shape_[0];
+        stride_[1] = shape_[1] == 1 ? 0 : 1;
+        stride_[2] = shape_[2] == 1 ? 0 : shape_[0] * shape_[1];
+        stride_[3] = shape_[3] == 1 ? 0 : shape_[0] * shape_[1] * shape_[2];
       }
 
       Shape(const Shape& shape) : Shape() {
-       std::copy(shape.begin(), shape.end(), begin());
+       std::copy(shape.shape_, shape.shape_ + SHAPE_SIZE, shape_);
+       std::copy(shape.stride_, shape.stride_ + SHAPE_SIZE, stride_);
       }
 
       /**
@@ -67,7 +76,7 @@ namespace marian {
        * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      int& dim(int i) {
+      inline int& dim(int i) {
         return shape_[i];
       }
 
@@ -77,8 +86,8 @@ namespace marian {
        * @return the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      const int& dim(int i) const {
-        return shape_[i];
+      inline const int& dim(int i) const {
+        return const_cast<Shape&>(*this).dim(i);
       }
 
 
@@ -88,7 +97,7 @@ namespace marian {
        * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      int& operator[](int i) {
+      inline int& operator[](int i) {
         return dim(i);
       }
 
@@ -98,7 +107,7 @@ namespace marian {
        * @return the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      const int& operator[](int i) const {
+      inline const int& operator[](int i) const {
         return dim(i);
       }
 
@@ -108,14 +117,8 @@ namespace marian {
        * @return a reference to the int representing the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      int stride(int i) {
-        switch(i) {
-          case 0: return shape_[1];
-          case 1: return 1;
-          case 2: return shape_[0] * shape_[1];
-          case 3: return shape_[0] * shape_[1] * shape_[2];
-        }
-        return 1;
+      inline int stride(int i) {
+        return stride_[i];
       }
 
       /**
@@ -124,7 +127,7 @@ namespace marian {
        * @return the size of the <code>i</code>th dimension represented by this object
        */
       __host__ __device__
-      int stride(int i) const {
+      inline int stride(int i) const {
         return const_cast<Shape&>(*this).stride(i);
       }
 
@@ -133,7 +136,8 @@ namespace marian {
        *
        * @return the number of dimensions represented by this object
        */
-      size_t size() const {
+      __host__ __device__
+      inline size_t size() const {
         return SHAPE_SIZE;
       }
 
@@ -144,11 +148,30 @@ namespace marian {
        *
        * @return the total number of elements in a tensor of this shape
        */
-      size_t elements() const {
-        size_t s = 1;
-        for(int i = 0; i < size(); ++i)
-          s *= shape_[i];
-        return s;
+      __host__ __device__
+      inline size_t elements() const {
+        return shape_[0] * shape_[1] * shape_[2] * shape_[3];
+      }
+
+      __host__ __device__
+      inline int index(int i, int j, int k, int l) {
+        return i * stride(0) + j * stride(1) + k * stride(2) + l * stride(3);
+      }
+
+      __host__ __device__
+      inline int index(int i, Shape shape) {
+        int RPV = shape[0] * shape[2] * shape[3];
+        int PV  = shape[2] * shape[3];
+        int V   = shape[3];
+
+        int v = i / RPV;
+        int t1 = i - v * RPV;
+        int p = t1 / PV;
+        int t2 = t1 - p * PV;
+        int r = t2 / V;
+        int c = t2 - r * V;
+
+        return index(r, c, p, v);
       }
 
       /** @brief Gets a pointer to an int that specifies the size of the first dimension represented by this object */
