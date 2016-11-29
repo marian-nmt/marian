@@ -21,10 +21,9 @@ size_t GetMaxLength(const Sentences& source, size_t tab) {
 std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
   std::vector<std::vector<size_t>> matrix(maxLen, std::vector<size_t>(source.size(), 0));
 
-  for (size_t i = 0; i < maxLen; ++i) {
-    for (size_t j = 0; j < source.size(); ++j) {
-      matrix[i][j] = source[j].GetWords(tab)[i];
-
+  for (size_t j = 0; j < source.size(); ++j) {
+    for (size_t i = 0; i < source[j].GetWords(tab).size(); ++i) {
+        matrix[i][j] = source[j].GetWords(tab)[i];
     }
   }
 
@@ -61,8 +60,8 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
                          Context, source.size(), false);
 
   backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
-                          embeddedWords_.crend(),
-                          Context, source.size(), true);
+                          embeddedWords_.crend() ,
+                          Context, source.size(), true, &dMapping);
 }
 
 }

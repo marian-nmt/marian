@@ -109,36 +109,35 @@ class Decoder {
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
 
-          // std::cerr << "Align" << std::endl;
           thrust::host_vector<int> batchMapping(HiddenState.Rows());
-          // std::cerr << "Align" << std::endl;
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
-              batchMapping[k] = i;
+              batchMapping[k++] = i;
             }
           }
-          mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
-          // std::cerr << "COPIED " << std::endl;
-          const size_t srcSize = mapping.size() / beamSizes.size();
 
-          // std::cerr << "I src: " << srcSize << std::endl;
+          mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
+          const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
-          Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
+          Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
           Prod(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
-          A_.Reshape(rows2, rows1); // due to broadcasting above
+          A_.Reshape(rows2, srcSize); // due to broadcasting above
           Element(_1 + WC_, A_);
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
-          Prod(AlignedSourceContext, A_, SourceContext);
+
+          AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
+          mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
+          // Prod(AlignedSourceContext, A_, SourceContext);
         }
 
         void GetAttention(mblas::Matrix& Attention) {

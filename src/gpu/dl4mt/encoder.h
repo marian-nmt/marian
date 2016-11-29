@@ -29,7 +29,6 @@ class Encoder {
 
           Row.Resize(words.size(), w_.E_.Cols());
           mblas::Assemble(Row, w_.E_, dKnownWords);
-          // mblas::Debug(Row);
         }
 
       private:
@@ -54,17 +53,21 @@ class Encoder {
         }
 
         template <class It>
-        void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert) {
+        void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
+                        const DeviceVector<int>* mapping=nullptr) {
           InitializeState(batchSize);
 
           size_t n = std::distance(it, end);
           size_t i = 0;
           while(it != end) {
             GetNextState(State_, State_, *it++);
-            if(invert)
-              mblas::PasteRows(Context, State_, (n - i - 1) * batchSize, gru_.GetStateLength(), n);
-            else
-              mblas::PasteRows(Context, State_, i * batchSize, 0, n);
+            if(invert) {
+              mblas::MapMatrix(State_, *mapping, n - i - 1);
+              mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
+            }
+            else {
+              mblas::PasteRows(Context, State_, i, 0, n);
+            }
             ++i;
           }
         }

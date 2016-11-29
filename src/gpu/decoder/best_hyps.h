@@ -16,8 +16,8 @@ class BestHyps {
   public:
     BestHyps()
       : nthElement_(God::Get<size_t>("beam-size"), mblas::CudaStreamHandler::GetStream()),
-        keys(God::Get<size_t>("beam-size")),
-        Costs(God::Get<size_t>("beam-size")),
+        keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
+        Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
         weights_(God::GetScorerWeights())
     {}
 
@@ -32,7 +32,7 @@ class BestHyps {
       const size_t vocabSize = Probs.Cols();
       size_t batchBegin = 0;
       for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-        const size_t nElements = ((isFirst) ? 1: beamSizes[batchIdx]) * vocabSize;
+        const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
         nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], outKeys, outCosts);
         for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
           outKeys[outKeys.size() - 1 - i] += batchBegin;
@@ -68,6 +68,7 @@ class BestHyps {
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
+
 
       HostVector<float> vCosts;
       for (auto& h : prevHyps) {
@@ -111,17 +112,13 @@ class BestHyps {
 
       bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
 
-      // std::cerr << "Creaing map";
       std::map<size_t, size_t> batchMap;
       size_t tmp = 0;
       for (size_t batchID = 0; batchID < beamSizes.size(); ++batchID) {
         for (size_t t = 0; t < beamSizes[batchID]; ++t) {
-          // std::cerr << beamSizes.size() << " " << t << " " << batchID << " " << beamSizes[batchID] << std::endl;
           batchMap[tmp++] = batchID;
         }
       }
-
-      // std::cerr << "MAPPING DONE." << std::endl;
 
       for (size_t i = 0; i < beamSizeSum; i++) {
         size_t wordIndex = bestKeys[i] % Probs.Cols();
@@ -161,8 +158,7 @@ class BestHyps {
           hyp->GetCostBreakdown()[0] /= weights_[scorers[0]->GetName()];
         }
 
-      // std::cerr << i << ": " << batchMap[i] << std::endl;
-      beams[batchMap[i]].push_back(hyp);
+        beams[batchMap[i]].push_back(hyp);
       }
     }
 

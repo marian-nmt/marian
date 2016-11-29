@@ -70,6 +70,37 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
      batchNum, sentenceLength, stateLength);
 }
 
+__global__ void gWeightedMean(float* d_out, const float* weights, const float* d_in, const int* mapping,
+                              int numRows, int numCols, int srcLen) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < numRows * numCols) {
+    int rowNo = id / numCols;
+    int batchNo = mapping[rowNo];
+    int statePos = id % numCols;
+
+    float sum = 0.0f;
+    for (int i = 0; i < srcLen; ++i) {
+      sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
+    }
+
+    d_out[id] = sum;
+  }
+}
+
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
+  int numRows = Weights.Rows();
+  int numCols = In.Cols();
+
+  Out.Resize(numRows, numCols);
+
+  int nThreads = 512;
+  int nBlocks =  (Out.size() / 512) + ((Out.size() % 512 == 0) ?  0 : 1);
+
+  gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (Out.data(), Weights.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
+     numRows, numCols, Weights.Cols());
+}
+
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
   size_t m = In.Rows();
   size_t n = In.Cols();
@@ -308,8 +339,6 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   int threads = std::min(MAX_THREADS, (int)Out.Cols());
   int shared = sizeof(float) * threads * 2;
 
-  /* std::cerr << "SRC: " << srcSize << std::endl; */
-
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (Out.data(), Out.Rows(), Out.Cols(),
      thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
@@ -401,6 +430,31 @@ void Fill(Matrix& In, float value) {
 
   gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (In.data(), size, value);
+}
+
+__global__
+void gMapMatrix(float* d_in, int numRows, int numCols, int mappingCols, const int* mapping, int i) {
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid < numRows * numCols) {
+    int batchIdx = tid / numCols;
+    d_in[tid] *= mapping[mappingCols * batchIdx + i];
+  }
+}
+
+void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
+  int batchSize = state.Rows();
+  int stateLength = state.Cols();
+  int sentenceLength = mapping.size() / batchSize;
+
+  int numThreads = std::min((int)state.size(), 512);
+  int numBlocks = (state.size() / numThreads) + 1;
+
+  float* d_in = thrust::raw_pointer_cast(state.data());
+  const int* d_mapping = thrust::raw_pointer_cast(mapping.data());
+
+  gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
+    (d_in, batchSize, stateLength, sentenceLength, d_mapping, i);
+
 }
 
 }  // namespace mblas

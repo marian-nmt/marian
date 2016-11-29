@@ -27,14 +27,14 @@ Histories Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   size_t batchSize = sentences.size();
-  std::vector<size_t> beamSizes(batchSize, God::Get<size_t>("beam-size"));
+  std::vector<size_t> beamSizes(batchSize, 1);
 
   // @TODO Future: in order to do batch sentence decoding
   // it should be enough to keep track of hypotheses in
   // separate History objects.
 
   Histories histories(batchSize);
-  Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
+  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
   for (auto& history : histories) {
     history.Add(prevHyps);
   }
@@ -49,24 +49,37 @@ Histories Search::Decode(const Sentences& sentences) {
     vocabSize = MakeFilter(sentences[0].GetWords(), vocabSize);
   }
 
-  for (size_t i = 0; i < scorers_.size(); i++) {
-    Scorer &scorer = *scorers_[i];
-    scorer.SetSource(sentences);
 
-    states[i].reset(scorer.NewState());
-    nextStates[i].reset(scorer.NewState());
 
-    scorer.BeginSentenceState(*states[i], batchSize);
+  size_t maxLength = 0;
+  for (const auto& sentence : sentences) {
+    maxLength = std::max(maxLength, sentence.GetWords().size());
   }
 
-  const size_t maxLength = sentences[0].GetWords().size() * 3;
-  for (size_t len = 0; len < maxLength; ++len) {
+  for (size_t decoderStep = 0; decoderStep < 3 * maxLength; ++decoderStep) {
+    if (decoderStep == 0) {
+      for (size_t i = 0; i < scorers_.size(); i++) {
+        Scorer &scorer = *scorers_[i];
+        scorer.SetSource(sentences);
+
+        states[i].reset(scorer.NewState());
+        nextStates[i].reset(scorer.NewState());
+
+        scorer.BeginSentenceState(*states[i], batchSize);
+      }
+    }
+
     for (size_t i = 0; i < scorers_.size(); i++) {
       Scorer &scorer = *scorers_[i];
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
       scorer.Score(state, nextState, beamSizes);
+      if (decoderStep == 0) {
+        for (auto& beamSize : beamSizes) {
+          beamSize = God::Get<size_t>("beam-size");
+        }
+      }
     }
 
     std::vector<Beam> beams(batchSize);
@@ -75,7 +88,9 @@ Histories Search::Decode(const Sentences& sentences) {
 
     BestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
     for (size_t i = 0; i < batchSize; ++i) {
-      histories[i].Add(beams[i], histories[i].size() == maxLength);
+      if (!beams[i].empty()) {
+        histories[i].Add(beams[i], histories[i].size() == 3 * sentences[i].GetWords().size());
+      }
     }
 
     Beam survivors;
