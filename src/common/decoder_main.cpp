@@ -40,13 +40,11 @@ int main(int argc, char* argv[]) {
   std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
 
   if (God::Get<bool>("wipo")) {
-	/*
     LOG(info) << "Reading input";
     while (std::getline(God::GetInputStream(), in)) {
-      History result = TranslationTask(in, taskCounter);
+      auto result = TranslationTask({Sentence(taskCounter, in)}, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
-    */
   } else {
     ThreadPool pool(totalThreads);
     LOG(info) << "Reading input";
