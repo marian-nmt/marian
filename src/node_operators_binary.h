@@ -99,7 +99,7 @@ struct DotNodeOp : public BinaryNodeOp {
     Shape shape2 = b->shape();
     UTIL_THROW_IF2(shape1[1] != shape2[0],
                    "matrix product requires dimensions to match");
-    shape1[1] = shape2[1];
+    shape1.set(1, shape2[1]);
     return shape1;
   }
 
@@ -254,7 +254,7 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     Shape shape2 = b->shape();
     UTIL_THROW_IF2(shape1[0] != shape2[0] || shape1[1] != shape2[1],
                    "cross entropy requires dimensions to match");
-    shape1[1] = 1;
+    shape1.set(1, 1);
     return shape1;
   }
 
@@ -333,9 +333,9 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
-    shape[ax] = 0;
+    shape.set(ax, 0);
     for(auto child : nodes)
-      shape[ax] += child->shape()[ax];
+      shape.set(ax, shape[ax] + child->shape()[ax]);
     //std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
     return shape;
   }
