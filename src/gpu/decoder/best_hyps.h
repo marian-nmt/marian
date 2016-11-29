@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <numeric>
 
 #include "common/scorer.h"
 #include "common/exception.h"
