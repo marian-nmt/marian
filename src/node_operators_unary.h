@@ -306,7 +306,6 @@ struct SumNodeOp : public UnaryNodeOp {
   template <class ...Args>
   Shape newShape(Expr a, Args ...args) {
     int ax = keywords::Get(keywords::axis, -1, args...);
-    std::cerr << ax << std::endl;
     Shape shape = a->shape();
     if(ax != -1) {
       shape.set(ax, 1);

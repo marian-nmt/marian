@@ -46,7 +46,17 @@ void load(ExpressionGraphPtr g, const std::string& name) {
 
     // Attention
     "decoder_W_comb_att", "decoder_b_att",
-    "decoder_Wc_att", "decoder_U_att"
+    "decoder_Wc_att", "decoder_U_att",
+    
+    // GRU layer 2 in decoder
+    "decoder_U_nl", "decoder_Wc", "decoder_b_nl",
+    "decoder_Ux_nl", "decoder_Wcx", "decoder_bx_nl",
+
+    // Read out
+    "ff_logit_lstm_W",
+    "ff_logit_lstm_b",
+    "ff_logit_W",
+    "ff_logit_b"
   };
 
   for(auto name : parameters) {
@@ -150,12 +160,16 @@ void construct(ExpressionGraphPtr g,
   outputs.push_back(emptyEmbedding);
 
   i = 0;
+  // @TODO: skip last
   for(auto& trgWordBatch : trgSentenceBatch) {
-    auto y = name(rows(Wemb_dec, trgWordBatch), "y_" + std::to_string(i++));
+    std::cerr << trgWordBatch[0] << std::endl;
+    auto y = debug(rows(Wemb_dec, trgWordBatch), "y_" + std::to_string(i++));
     outputs.push_back(y);
   }
 
-  auto decoderGRULayer1 = [=]() {
+  auto decoderGRUWithAttention = [=]() {
+    ParametersGRUWithAttention decParams;
+    
     auto U = g->param("decoder_U", {dimDecState, 2 * dimDecState},
                       init=glorot_uniform);
 
@@ -172,61 +186,70 @@ void construct(ExpressionGraphPtr g,
 
     auto bx = g->param("decoder_bx", {1, dimDecState}, init=zeros);
 
-    ParametersGRUFast encParams;
-    encParams.U = concatenate({U, Ux}, axis=1);
-    encParams.W = concatenate({W, Wx}, axis=1);
-    encParams.b = concatenate({b, bx}, axis=1);
+    decParams.U = concatenate({U, Ux}, axis=1);
+    decParams.W = concatenate({W, Wx}, axis=1);
+    decParams.b = concatenate({b, bx}, axis=1);
 
-    return RNN<GRUFast>(encParams);
+    decParams.Wa = g->param("decoder_W_comb_att", {dimDecState, 2 * dimDecState},
+                            init=glorot_uniform);
+    
+    decParams.ba = g->param("decoder_b_att", {1, 2 * dimDecState},
+                            init=zeros);
+    
+    decParams.Ua = g->param("decoder_Wc_att", {2 * dimEncState, 2 * dimDecState},
+                            init=glorot_uniform);
+    
+    decParams.va = g->param("decoder_U_att", {2 * dimDecState, 1}, // ?
+                            init=glorot_uniform);
+    
+    auto Uc = g->param("decoder_U_nl", {dimDecState, 2 * dimDecState},
+                       init=glorot_uniform);
+
+    auto Wc = g->param("decoder_Wc", {dimEncState,  2 * dimDecState},
+                       init=glorot_uniform);
+
+    auto bc = g->param("decoder_b_nl", {1, 2 * dimDecState}, init=zeros);
+
+    auto Uxc = g->param("decoder_Ux_nl", {dimDecState, dimDecState},
+                        init=glorot_uniform);
+
+    auto Wxc = g->param("decoder_Wcx", {dimEncState, dimDecState},
+                        init=glorot_uniform);
+
+    auto bxc = g->param("decoder_bx_nl", {1, dimDecState}, init=zeros);
+
+    decParams.Uc = concatenate({Uc, Uxc}, axis=1);
+    decParams.Wc = concatenate({Wc, Wxc}, axis=1);
+    decParams.bc = concatenate({debug(bc, "bc"), debug(bxc, "bxc")}, axis=1);
+
+    GRUWithAttention gruCell(decParams, encContext);
+    return RNN<GRUWithAttention>(gruCell);
   };
 
-  auto statesLayer1 = decoderGRULayer1().apply(outputs.begin(),
-                                               outputs.end(),
-                                               decState0);
+  auto decoderGRU = decoderGRUWithAttention();
+  auto decStates = decoderGRU.apply(outputs.begin(),
+                                    outputs.end() - 1, // ommit EOS
+                                    decState0);
+  
+  //auto cell = decoderGRU.getCell();
+  //auto contexts = cell.getContexts();
+  
+  auto allDecStates     = debug(concatenate(decStates, axis=2), "all states");
+  //auto allTrgEmbeddings = debug(concatenate(outputs, axis=2), "all embs");
+  //auto allContexts      = concatenate(contexts.begin(), contexts.end(), axis=2);
 
-  i = 0;
-  for(auto s : statesLayer1)
-    debug(s, "decoder state layer1 : " + std::to_string(i++));
-
-  /*** attention **********************************************************/
-
-  auto Wa = g->param("decoder_W_comb_att", {dimDecState, 2 * dimDecState},
+  auto W1 = g->param("ff_logit_lstm_W", {dimDecState, dimTrgEmb},
+                     init=glorot_uniform);
+  auto b1 = g->param("ff_logit_lstm_b", {1, dimTrgEmb},
+                     init=glorot_uniform);
+  
+  auto W4 = g->param("ff_logit_W", {dimTrgEmb, dimTrgVoc},
+                     init=glorot_uniform);
+  auto b4 = g->param("ff_logit_b", {1, dimTrgVoc},
                      init=glorot_uniform);
 
-  auto ba = g->param("decoder_b_att", {1, 2 * dimDecState},
-                     init=zeros);
-
-  auto Ua = g->param("decoder_Wc_comb_att", {2 * dimEncState, 2 * dimDecState},
-                     init=glorot_uniform);
-
-  //auto va = g->param("decoder_U_att", {1, 2 * dimDecState}, // ?
-  //                   init=glorot_uniform);
-
-
-  int src = srcSentenceBatch.size();
-  int trg = trgSentenceBatch.size();
-
-  auto statesConcat = concatenate(statesLayer1, axis=2);
-
-  auto E1 = debug(reshape(dot(reshape(statesConcat, {dimBatch * trg, dimDecState}), Wa),
-                  {dimBatch, 2 * dimDecState, 1, trg}), "Reshape dot");
-
-  auto E2 = debug(reshape(dot(reshape(encContext, {dimBatch * src, 2 * dimEncState}), Ua),
-                  {dimBatch, 2 * dimDecState, src, 1}), "Reshape dot");
-
-
-  // batch x 2*dimDec x 1 x trg
-  // batch x 2*dimDec x src x 1
-  // -> batch x 2*dimDec x src x trg
-  // temp -> (batch * src * trg) x 2*dimDec
-
-  auto temp = debug(reshape(tanh(E1 + E2 + ba), {dimBatch * src * trg, 2 * dimDecState}), "Reshape temp");
-
-  // c = dot(Va, temp^T, shape={...}) -> batch * src * trg -> batch x src x trg
-
-
-  /*** decoder layer 2 ****************************************************/
-
+  auto t = tanh(dot(reshape(allDecStates, {dimBatch * (int)decStates.size(), dimDecState}), W1) + b1);
+  auto p = debug(softmax(dot(t, W4) + b4), "softmax");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
@@ -234,7 +257,7 @@ SentBatch generateSrcBatch(size_t batchSize) {
   //return SentBatch(length, WordBatch(batchSize));
 
   // das ist ein Test . </s>
-  return SentBatch({
+  SentBatch srcBatch({
     WordBatch(batchSize, 13),
     WordBatch(batchSize, 15),
     WordBatch(batchSize, 20),
@@ -242,6 +265,13 @@ SentBatch generateSrcBatch(size_t batchSize) {
     WordBatch(batchSize, 4),
     WordBatch(batchSize, 0)
   });
+
+  if(batchSize > 2) {
+    srcBatch[0][1] = 109; // dies
+    srcBatch[0][2] = 19;  // es
+  }
+  
+  return srcBatch;
 }
 
 SentBatch generateTrgBatch(size_t batchSize) {
@@ -265,7 +295,7 @@ int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcinj/Badania/amunmt/test2/model.npz");
 
-  size_t batchSize = 1;
+  size_t batchSize = 3;
 
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {

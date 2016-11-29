@@ -250,10 +250,10 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
-void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs);
+void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs, bool final = false);
 
 void GRUFastBackward(std::vector<Tensor>& outputs,
                      const std::vector<Tensor>& inputs,
-                     const Tensor adj);
+                     const Tensor adj, bool final = false);
 
 }

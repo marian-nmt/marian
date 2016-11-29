@@ -129,10 +129,30 @@ struct DotNodeOp : public BinaryNodeOp {
 
 };
 
-struct PlusNodeOp : public BinaryNodeOp {
+struct ElementBinaryNodeOp : public BinaryNodeOp {
+  template <typename ...Args>
+  ElementBinaryNodeOp(Expr a, Expr b, Args ...args)
+   : BinaryNodeOp(a, b,
+                  keywords::shape=newShape(a, b),
+                  args...) {}
+  
+  Shape newShape(Expr a, Expr b) {
+    Shape shape1 = a->shape();
+    Shape shape2 = b->shape();
+    for(int i = 0; i < shape1.size(); ++i) {
+      UTIL_THROW_IF2(shape1[i] != shape2[i] && shape1[i] != 1 && shape2[i] != 1,
+                     "Shapes cannot be broadcasted");
+      shape1.set(i, std::max(shape1[i], shape2[i]));
+    }
+    return shape1;
+  }
+
+};
+
+struct PlusNodeOp : public ElementBinaryNodeOp {
   template <typename ...Args>
   PlusNodeOp(Args ...args)
-    : BinaryNodeOp(args...) { }
+    : ElementBinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 + _3,
@@ -157,10 +177,10 @@ struct PlusNodeOp : public BinaryNodeOp {
 
 };
 
-struct MinusNodeOp : public BinaryNodeOp {
+struct MinusNodeOp : public ElementBinaryNodeOp {
   template <typename ...Args>
   MinusNodeOp(Args ...args)
-    : BinaryNodeOp(args...) { }
+    : ElementBinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 - _3,
@@ -185,10 +205,10 @@ struct MinusNodeOp : public BinaryNodeOp {
 
 };
 
-struct MultNodeOp : public BinaryNodeOp {
+struct MultNodeOp : public ElementBinaryNodeOp {
   template <typename ...Args>
   MultNodeOp(Args ...args)
-    : BinaryNodeOp(args...) { }
+    : ElementBinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 * _3,
@@ -213,10 +233,10 @@ struct MultNodeOp : public BinaryNodeOp {
 
 };
 
-struct DivNodeOp : public BinaryNodeOp {
+struct DivNodeOp : public ElementBinaryNodeOp {
   template <typename ...Args>
   DivNodeOp(Args ...args)
-    : BinaryNodeOp(args...) { }
+    : ElementBinaryNodeOp(args...) { }
 
   void forward() {
     Element(_1 = _2 / _3,
