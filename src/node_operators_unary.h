@@ -275,7 +275,7 @@ struct ArgmaxNodeOp : public UnaryNodeOp {
 
   Shape newShape(Expr a) {
     Shape shape = a->shape();
-    shape[1] = 1;
+    shape.set(0, 1);
     return shape;
   }
 
@@ -309,13 +309,13 @@ struct SumNodeOp : public UnaryNodeOp {
     std::cerr << ax << std::endl;
     Shape shape = a->shape();
     if(ax != -1) {
-      shape[ax] = 1;
+      shape.set(ax, 1);
     }
     else {
-      shape[0] = 1;
-      shape[1] = 1;
-      shape[2] = 1;
-      shape[3] = 1;
+      shape.set(0, 1);
+      shape.set(1, 1);
+      shape.set(2, 1);
+      shape.set(3, 1);
     }
     return shape;
   }
@@ -348,13 +348,13 @@ struct MeanNodeOp : public UnaryNodeOp {
     int ax = keywords::Get(keywords::axis, -1, args...);
     Shape shape = a->shape();
     if(ax != -1) {
-      shape[ax] = 1;
+      shape.set(ax, 1);
     }
     else {
-      shape[0] = 1;
-      shape[1] = 1;
-      shape[2] = 1;
-      shape[3] = 1;
+      shape.set(0, 1);
+      shape.set(1, 1);
+      shape.set(2, 1);
+      shape.set(3, 1);
     }
     return shape;
   }
@@ -456,7 +456,7 @@ struct RowsNodeOp : public UnaryNodeOp {
   template <class ...Args>
   Shape newShape(Expr a, const DeviceVector<size_t>& indeces) {
     Shape shape = a->shape();
-    shape[0] = indeces.size();
+    shape.set(0, indeces.size());
     return shape;
   }
 
@@ -487,7 +487,9 @@ struct TransposeNodeOp : public UnaryNodeOp {
   template <class ...Args>
   Shape newShape(Expr a) {
     Shape shape = a->shape();
-    std::swap(shape[0], shape[1]);
+    int temp = shape[0];
+    shape.set(0, shape[1]);
+    shape.set(1, temp);
     return shape;
   }
 

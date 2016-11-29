@@ -52,12 +52,12 @@ void load(ExpressionGraphPtr g, const std::string& name) {
   for(auto name : parameters) {
     Shape shape;
     if(numpy[name].shape.size() == 2) {
-      shape[0] = numpy[name].shape[0];
-      shape[1] = numpy[name].shape[1];
+      shape.set(0, numpy[name].shape[0]);
+      shape.set(1, numpy[name].shape[1]);
     }
     else if(numpy[name].shape.size() == 1) {
-      shape[0] = 1;
-      shape[1] = numpy[name].shape[0];
+      shape.set(0, 1);
+      shape.set(1, numpy[name].shape[0]);
     }
 
     g->param(name, shape, init=from_numpy(numpy[name]));
@@ -193,8 +193,8 @@ void construct(ExpressionGraphPtr g,
   auto Wa = g->param("decoder_W_comb_att", {dimDecState, 2 * dimDecState},
                      init=glorot_uniform);
 
-  //auto ba = g->param("decoder_b_att", {1, 2 * dimDecState},
-  //                   init=zeros);
+  auto ba = g->param("decoder_b_att", {1, 2 * dimDecState},
+                     init=zeros);
 
   auto Ua = g->param("decoder_Wc_comb_att", {2 * dimEncState, 2 * dimDecState},
                      init=glorot_uniform);
@@ -220,7 +220,7 @@ void construct(ExpressionGraphPtr g,
   // -> batch x 2*dimDec x src x trg
   // temp -> (batch * src * trg) x 2*dimDec
 
-  //auto temp = reshape(tanh(E1 + E2 + ba), {dimBatch * src * trg, 2 * dimDec});
+  auto temp = debug(reshape(tanh(E1 + E2 + ba), {dimBatch * src * trg, 2 * dimDecState}), "Reshape temp");
 
   // c = dot(Va, temp^T, shape={...}) -> batch * src * trg -> batch x src x trg
 

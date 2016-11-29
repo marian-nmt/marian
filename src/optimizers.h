@@ -55,11 +55,11 @@ class Adagrad : public OptimizerBase {
       Tensor pv = graph->params().vals();
       Tensor pg = graph->params().grads();
 
-      ElementVec(_1 += (_2 * _2),
-                 gt_, pg);
+      Element(_1 += (_2 * _2),
+              gt_, pg);
 
-      ElementVec(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-                 pv, gt_, pg);
+      Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
+              pv, gt_, pg);
     }
 
   private:
@@ -101,13 +101,13 @@ class Adam : public OptimizerBase {
       Tensor pv = graph->params().vals();
       Tensor pg = graph->params().grads();
 
-      ElementVec(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-                 mt_, pg);
-      ElementVec(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-                 vt_, pg);
+      Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
+              mt_, pg);
+      Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
+              vt_, pg);
 
-      ElementVec(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-                 pv, mt_, vt_);
+      Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
+              pv, mt_, vt_);
     }
 
   private:

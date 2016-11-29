@@ -45,44 +45,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-struct Access {
-    float* data_;
-    Shape shape_;
-
-    Access(float* data, const Shape& shape)
-    : data_(data), shape_(shape) {}
-
-    __device__
-    inline float& operator()(size_t i, size_t j) {
-      int rows = shape_[0];
-      int cols = shape_[1];
-      if(rows != 1 && cols != 1)
-        return data_[i * cols + j];
-      if(rows != 1 && cols == 1)
-        return data_[i];
-      if(rows == 1 && cols != 1)
-        return data_[j];
-      return data_[0];
-    }
-
-    __device__ __host__
-    float* data() {
-      return data_;
-    }
-
-    __device__ __host__
-    Shape& shape() {
-      return shape_;
-    }
-
-    //Access* toDevice() {
-    //  Access* ptr;
-    //  cudaMalloc(&ptr, sizeof(Access));
-    //  cudaMemcpy(ptr, this, sizeof(Access), cudaMemcpyHostToDevice);
-    //  return ptr;
-    //}
-};
-
 __global__ void gFill(float* d_in, int size, float val);
 
 class TensorGPU : public TensorBase {
@@ -138,10 +100,6 @@ class TensorGPU : public TensorBase {
 
     cudnnTensorDescriptor_t& cudnn() {
       return cudnnDesc_;
-    }
-
-    Access access() {
-      return Access(data_, shape_);
     }
 
     std::string debug() {
