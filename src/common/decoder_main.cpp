@@ -52,28 +52,27 @@ int main(int argc, char* argv[]) {
     LOG(info) << "Reading input";
 
     std::vector<std::future<Histories>> results;
-    Sentences *sentences = new Sentences();
+    Sentences sentences;
 
     while(std::getline(God::GetInputStream(), in)) {
-      sentences->emplace_back(taskCounter, in);
+      sentences.emplace_back(taskCounter, in);
 
-      if (sentences->size() >= maxBatchSize) {
+      if (sentences.size() >= maxBatchSize) {
         results.emplace_back(
           pool.enqueue(
-            [=]{ return TranslationTask(sentences, taskCounter); }
+            [=]{ return TranslationTask(std::move(sentences), taskCounter); }
           )
         );
 
-        sentences = new Sentences();
-
+        sentences = Sentences();
         taskCounter++;
       }
     }
 
-    if (sentences->size()) {
+    if (sentences.size()) {
       results.emplace_back(
         pool.enqueue(
-          [=]{ return TranslationTask(sentences, taskCounter); }
+          [=]{ return TranslationTask(std::move(sentences), taskCounter); }
         )
       );
     }
