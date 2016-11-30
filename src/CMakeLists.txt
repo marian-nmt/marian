@@ -103,7 +103,7 @@ endif(CUDA_FOUND)
 SET(EXES "amun")
 
 if(PYTHONLIBS_FOUND)
-SET(EXES "${EXES} amunmt")
+SET(EXES ${EXES} "amunmt")
 endif(PYTHONLIBS_FOUND)
 
 foreach(exec ${EXES})

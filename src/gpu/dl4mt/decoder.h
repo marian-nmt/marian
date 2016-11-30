@@ -62,6 +62,7 @@ class Decoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Context) {
           gru_.GetNextState(NextState, State, Context);
+          Debug(NextState);
         }
 
       private:
@@ -117,7 +118,7 @@ class Decoder {
 
           Copy(Temp1_, SCU_);
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
-
+          
           Prod(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.Rows();
@@ -127,6 +128,8 @@ class Decoder {
 
           mblas::Softmax(A_);
           Prod(AlignedSourceContext, A_, SourceContext);
+          std::cerr << "Aligned Context" << std::endl;
+          Debug(AlignedSourceContext);
         }
 
         void GetAttention(mblas::Matrix& Attention) {
@@ -238,7 +241,10 @@ class Decoder {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
+      std::cerr << "decoder state" << std::endl;
+      Debug(NextState);
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
+      
     }
 
     mblas::Matrix& GetProbs() {
@@ -285,6 +291,8 @@ class Decoder {
     void GetHiddenState(mblas::Matrix& HiddenState,
                         const mblas::Matrix& PrevState,
                         const mblas::Matrix& Embedding) {
+      std::cerr << "E" << std::endl;
+      Debug(Embedding);
       rnn1_.GetNextState(HiddenState, PrevState, Embedding);
     }
 

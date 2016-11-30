@@ -103,6 +103,8 @@ class FastGRU {
 
       // const size_t cols = GetStateLength();
       Prod(RUH_, Context, WWx_);
+      std::cerr << "input x W" << std::endl;
+      Debug(RUH_);
       Prod(Temp_, State, UUx_);
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
