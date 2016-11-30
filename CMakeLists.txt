@@ -9,6 +9,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64 -flto -march=native -fun
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
+if(BUILD_STATIC)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  set(CMAKE_EXE_LINKER_FLAGS "-static")
+  set(Boost_USE_STATIC_LIBS  "TRUE")
+endif(BUILD_STATIC)
+
 include_directories(${amunmt_SOURCE_DIR})
 
 option(CUDA "Select to compile CUDA support by default if available" ON)
@@ -38,32 +44,20 @@ else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
-find_package(PythonLibs 2.7 REQUIRED)
+find_package(PythonLibs 2.7)
 if(PYTHONLIBS_FOUND)
   message("-- Found Python" )
   include_directories(${PYTHON_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${PYTHON_LIBRARIES})
 else(PYTHONLIBS_FOUND)
-  message(SEND_ERROR "Cannot find python libraries. Terminating." )
+  message("-- Cannot find python libraries. Building without bindings." )
 endif(PYTHONLIBS_FOUND)
-
-find_package (BZip2)
-if (BZIP2_FOUND)
-  include_directories(${BZIP2_INCLUDE_DIRS})
-  set(EXT_LIBS ${EXT_LIBS} ${BZIP2_LIBRARIES})
-endif (BZIP2_FOUND)
 
 find_package (ZLIB)
 if (ZLIB_FOUND)
   include_directories(${ZLIB_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
 endif (ZLIB_FOUND)
-
-find_package (LibLZMA)
-if (LIBLZMA_FOUND)
-  include_directories(${LIBLZMA_INCLUDE_DIRS})
-  set(EXT_LIBS ${EXT_LIBS} ${LIBLZMA_LIBRARIES})
-endif (LIBLZMA_FOUND)
 
 IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
   FIND_PACKAGE(Git)

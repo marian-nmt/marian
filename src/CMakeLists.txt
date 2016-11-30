@@ -58,6 +58,7 @@ cuda_add_executable(
   $<TARGET_OBJECTS:libcnpy>
 )
 
+if(PYTHONLIBS_FOUND)
 cuda_add_library(amunmt SHARED
   python/amunmt.cpp
   gpu/decoder/ape_penalty.cu
@@ -73,6 +74,7 @@ cuda_add_library(amunmt SHARED
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+endif(PYTHONLIBS_FOUND)
 
 else(CUDA_FOUND)
 
@@ -86,6 +88,7 @@ add_executable(
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
+if(PYTHONLIBS_FOUND)
 add_library(amunmt SHARED
   python/amunmt.cpp
   common/loader_factory.cpp
@@ -94,10 +97,16 @@ add_library(amunmt SHARED
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+endif(PYTHONLIBS_FOUND)
 endif(CUDA_FOUND)
 
+SET(EXES "amun")
 
-foreach(exec amun amunmt)
+if(PYTHONLIBS_FOUND)
+SET(EXES "${EXES} amunmt")
+endif(PYTHONLIBS_FOUND)
+
+foreach(exec ${EXES})
   if(CUDA_FOUND)
     target_link_libraries(${exec} ${EXT_LIBS} cuda)
     cuda_add_cublas_to_target(${exec})
