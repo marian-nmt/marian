@@ -160,24 +160,22 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n) {
   }
 }
 
-NthElement::NthElement(size_t maxBeamSize, cudaStream_t& stream)
+NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream)
     : stream_(stream) {
   HANDLE_ERROR( cudaMalloc((void**)&d_ind, BLOCK_SIZE * sizeof(int)) );
 
   HANDLE_ERROR( cudaMalloc((void**)&d_out, BLOCK_SIZE * sizeof(float)) );
 
-  HANDLE_ERROR( cudaMalloc((void**)&d_res_idx, maxBeamSize * sizeof(int)) );
-  HANDLE_ERROR( cudaMalloc((void**)&d_res, maxBeamSize * sizeof(float)) );
+  HANDLE_ERROR( cudaMalloc((void**)&d_res_idx, maxBatchSize * maxBeamSize * sizeof(int)) );
+  HANDLE_ERROR( cudaMalloc((void**)&d_res, maxBatchSize * maxBeamSize * sizeof(float)) );
 
-  cudaHostAlloc((void**) &h_res, maxBeamSize * sizeof(float), cudaHostAllocDefault);
-  cudaHostAlloc((void**) &h_res_idx, maxBeamSize * sizeof(int), cudaHostAllocDefault);
+  cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float), cudaHostAllocDefault);
+  cudaHostAlloc((void**) &h_res_idx, maxBeamSize * maxBatchSize * sizeof(int), cudaHostAllocDefault);
 
   HANDLE_ERROR( cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)) );
 }
 
-void NthElement::getNBestList(float* d_in, size_t N, size_t n,
-                              std::vector<unsigned>& outKeys,
-                              std::vector<float>& outValues) {
+void NthElement::getNBestList(float* d_in, size_t N, size_t n, size_t pos) {
   if (n == 0) return;
 
   const int N_BLOCKS = std::min(500, int(N / (2 * BLOCK_SIZE)) + int(N % (2 * BLOCK_SIZE) != 0));
@@ -188,25 +186,29 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n,
   for (size_t i = 0; i < n; ++i) {
 
     gMaxElement<<<1, 512, 512 * sizeof(float), stream_>>>
-      (d_res + i, d_res_idx + i, d_out, N_BLOCKS);
+      (d_res + pos + i, d_res_idx + pos + i, d_out, N_BLOCKS);
 
     gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-      (d_out, d_ind, d_in, d_res_idx + i, 2 * BLOCK_SIZE * N_BLOCKS, N);
+      (d_out, d_ind, d_in, d_res_idx + pos + i, 2 * BLOCK_SIZE * N_BLOCKS, N);
   }
+}
 
-  HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, n * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, n * sizeof(int),
-                                cudaMemcpyDeviceToHost, stream_) );
+void NthElement::GetPairs(size_t number,
+                    std::vector<unsigned>& outKeys,
+                    std::vector<float>& outValues) {
 
+  HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, number * sizeof(float),
+                                cudaMemcpyDeviceToHost, stream_) );
+  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
+                                cudaMemcpyDeviceToHost, stream_) );
   cudaStreamSynchronize(stream_);
 
-  for (size_t i = 0; i < n; ++i) {
+  for (size_t i = 0; i < number; ++i) {
     outKeys.push_back(h_res_idx[i]);
     outValues.push_back(h_res[i]);
   }
 
-  lastN = n;
+  lastN = number;
 }
 
 void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {

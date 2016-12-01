@@ -16,10 +16,10 @@ namespace GPU {
 class BestHyps {
   public:
     BestHyps()
-      : nthElement_(God::Get<size_t>("beam-size"), mblas::CudaStreamHandler::GetStream()),
-        keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
-        Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
-        weights_(God::GetScorerWeights())
+    : nthElement_(God::Get<size_t>("beam-size"), God::Get<size_t>("batch-size"), mblas::CudaStreamHandler::GetStream()),
+      keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
+      Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
+      weights_(God::GetScorerWeights())
     {}
 
     void DisAllowUNK(mblas::Matrix& Prob) {
@@ -32,13 +32,28 @@ class BestHyps {
                    const bool isFirst) {
       const size_t vocabSize = Probs.Cols();
       size_t batchBegin = 0;
+      size_t cumBeamSize = 0;
+
       for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
         const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
-        nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], outKeys, outCosts);
-        for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
-          outKeys[outKeys.size() - 1 - i] += batchBegin;
-        }
+        nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], cumBeamSize);
         batchBegin += nElements;
+        cumBeamSize += beamSizes[batchIdx];
+      }
+
+      nthElement_.GetPairs(cumBeamSize, outKeys, outCosts);
+
+      batchBegin = 0;
+      cumBeamSize = 0;
+      for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+        const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
+
+        for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
+          outKeys[cumBeamSize + i] += batchBegin;
+        }
+
+        batchBegin += nElements;
+        cumBeamSize += beamSizes[batchIdx];
       }
     }
 

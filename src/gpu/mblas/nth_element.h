@@ -3,22 +3,22 @@
 #include <vector>
 #include <algorithm>
 
-#include <cuda_runtime.h>
+#include <cuda.h>
 
 namespace GPU {
 
 
 class NthElement {
   public:
-    NthElement(size_t maxBeamSize, cudaStream_t& stream);
+    NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
 
-    void getNBestList(float* d_in, size_t N, size_t n,
-                      std::vector<unsigned>& outKeys,
-                      std::vector<float>& outValues);
+    void getNBestList(float* d_in, size_t N, size_t n, size_t pos=0);
+
+    void GetPairs(size_t number,
+                  std::vector<unsigned>& outKeys,
+                  std::vector<float>& outValues);
 
     void getValueByKey(std::vector<float>& out, float* d_in);
-    /* cudaFree(d_in); */
-    /* cudaFree(d_out); */
 
   private:
     const int BLOCK_SIZE = 512;
