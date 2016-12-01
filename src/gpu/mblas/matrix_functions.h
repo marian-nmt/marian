@@ -173,7 +173,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
 
   thread_local static Matrix Temp;
   Temp.Resize(rows, cols);
-  mblas::Fill(Temp, 1.0f);
+  // mblas::Fill(Temp, 1.0f);
 
   float* d_out = Temp.data();
   const float* d_in1 = Out.data();

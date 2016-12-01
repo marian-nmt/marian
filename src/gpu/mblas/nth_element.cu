@@ -61,7 +61,7 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int in_size) 
 
   __syncthreads();
 
-  for (int s = (blockDim.x >> 1); s > 0; s >>= 1) {
+  for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
     if (tid < s && tid + s < in_size) {
       if (sdata[tid + s] > sdata[tid]) {
         sdata[tid] = sdata[tid + s];
@@ -69,6 +69,48 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int in_size) 
       }
     }
     __syncthreads();
+  }
+
+  if (tid < 32 && tid + 32 < in_size) {
+    if (sdata[tid + 32] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 32];
+      indices[tid] = indices[tid + 32];
+    }
+  }
+
+  if (tid < 16 && tid + 16 < in_size) {
+    if (sdata[tid + 16] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 16];
+      indices[tid] = indices[tid + 16];
+    }
+  }
+
+  if (tid < 8 && tid + 8 < in_size) {
+    if (sdata[tid + 8] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 8];
+      indices[tid] = indices[tid + 8];
+    }
+  }
+
+  if (tid < 4 && tid + 4 < in_size) {
+    if (sdata[tid + 4] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 4];
+      indices[tid] = indices[tid + 4];
+    }
+  }
+
+  if (tid < 2 && tid + 2 < in_size) {
+    if (sdata[tid + 2] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 2];
+      indices[tid] = indices[tid + 2];
+    }
+  }
+
+  if (tid < 1 && tid + 1 < in_size) {
+    if (sdata[tid + 1] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 1];
+      indices[tid] = indices[tid + 1];
+    }
   }
 
   if (tid == 0) {
@@ -135,7 +177,7 @@ __global__ void gMaxElementUpdate(float* d_out, int* d_ind, float* d_in, int* bl
 
   __syncthreads();
 
-  for (int s = (blockDim.x >> 1); s > 0; s >>= 1) {
+  for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
     if (tid < s && tid + s < in_size) {
       if (sdata[tid + s] > sdata[tid]) {
         sdata[tid] = sdata[tid + s];
@@ -143,6 +185,48 @@ __global__ void gMaxElementUpdate(float* d_out, int* d_ind, float* d_in, int* bl
       }
     }
     __syncthreads();
+  }
+
+  if (tid < 32 && tid + 32 < in_size) {
+    if (sdata[tid + 32] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 32];
+      indices[tid] = indices[tid + 32];
+    }
+  }
+
+  if (tid < 16 && tid + 16 < in_size) {
+    if (sdata[tid + 16] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 16];
+      indices[tid] = indices[tid + 16];
+    }
+  }
+
+  if (tid < 8 && tid + 8 < in_size) {
+    if (sdata[tid + 8] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 8];
+      indices[tid] = indices[tid + 8];
+    }
+  }
+
+  if (tid < 4 && tid + 4 < in_size) {
+    if (sdata[tid + 4] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 4];
+      indices[tid] = indices[tid + 4];
+    }
+  }
+
+  if (tid < 2 && tid + 2 < in_size) {
+    if (sdata[tid + 2] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 2];
+      indices[tid] = indices[tid + 2];
+    }
+  }
+
+  if (tid < 1 && tid + 1 < in_size) {
+    if (sdata[tid + 1] > sdata[tid]) {
+      sdata[tid] = sdata[tid + 1];
+      indices[tid] = indices[tid + 1];
+    }
   }
 
   if (tid == 0) {
