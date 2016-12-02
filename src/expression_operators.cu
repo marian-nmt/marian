@@ -115,4 +115,8 @@ Expr cross_entropy(Expr a, Expr b) {
   return Expression<CrossEntropyNodeOp>(a, b);
 }
 
+Expr cross_entropy(Expr a, const DeviceVector<size_t>& picks) {
+  return Expression<CrossEntropyPickNodeOp>(a, picks);
+}
+
 }

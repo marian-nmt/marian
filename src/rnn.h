@@ -89,7 +89,7 @@ struct ParametersGRUFast {
 
 struct GRUFastNodeOp : public NaryNodeOp {
   bool final_;
-  
+
   template <typename ...Args>
   GRUFastNodeOp(const std::vector<Expr>& nodes, bool final, Args ...args)
     : NaryNodeOp(nodes,
@@ -163,10 +163,10 @@ class RNN {
     template <class Parameters>
     RNN(const Parameters& params)
     : cell_(params) {}
-    
+
     RNN(const Cell& cell)
     : cell_(cell) {}
-    
+
     std::vector<Expr> apply(const std::vector<Expr>& inputs,
                             const Expr initialState) {
       return apply(inputs.begin(), inputs.end(),
@@ -194,10 +194,10 @@ class RNN {
 struct ParametersGRUWithAttention {
   // First GRU
   Expr U, W, b;
-  
+
   // Attention
   Expr Wa, ba, Ua, va;
-  
+
   // Conditional GRU
   Expr Uc, Wc, bc;
   float dropout = 0;
@@ -212,29 +212,29 @@ class GRUWithAttention {
     Expr apply(Expr input, Expr state) {
       using namespace keywords;
 
-      auto xW = debug(dot(input, params_.W), "input x W");
+      auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
 
       auto hidden = grufast({state, xW, sU, params_.b});
-      
+
       int dimBatch = context_->shape()[0];
       int dimEncState = context_->shape()[1] / 2;
       int srcWords = context_->shape()[2];
       int dimDecState = state->shape()[1];
-      
+
       auto E1 = dot(hidden, params_.Wa);
       auto E2 = reshape(dot(reshape(context_, {dimBatch * srcWords, 2 * dimEncState}), params_.Ua),
                         {dimBatch, 2 * dimDecState, srcWords});
-      
+
       auto temp = reshape(tanh(E1 + E2 + params_.ba), {dimBatch * srcWords, 2 * dimDecState});
-      
+
       // horrible ->
-      auto e = debug(reshape(transpose(softmax(transpose(reshape(dot(temp, params_.va), {srcWords, dimBatch})))), {dimBatch, 1, srcWords}), "e_ij");
-      auto alignedSource = debug(sum(context_ * e, axis=2) / sum(e, axis=2), "Aligned Context");
+      auto e = reshape(transpose(softmax(transpose(reshape(dot(temp, params_.va), {srcWords, dimBatch})))), {dimBatch, 1, srcWords});
+      auto alignedSource = sum(context_ * e, axis=2) / sum(e, axis=2);
       // <- horrible
-      
-      auto aWc = debug(dot(alignedSource, params_.Wc), "RUH");
-      auto hUc = debug(dot(hidden, params_.Uc), "Temp");
+
+      auto aWc = dot(alignedSource, params_.Wc);
+      auto hUc = dot(hidden, params_.Uc);
       auto output = grufast({hidden, aWc, hUc, params_.bc}, true);
 
       return output;

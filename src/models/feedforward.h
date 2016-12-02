@@ -17,7 +17,8 @@ namespace models {
  * @return a shared pointer to the newly constructed expression graph
  */
 void FeedforwardClassifier(ExpressionGraphPtr g,
-                           const std::vector<int>& dims) {
+                           const std::vector<int>& dims,
+                           size_t batchSize) {
   using namespace keywords;
   std::cerr << "Building Multi-layer Feedforward network" << std::endl;
   std::cerr << "\tLayer dimensions:";
@@ -45,7 +46,7 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
   //
   // Once the batch size is known, "x" will represent a matrix with dimensions [batch_size, dims.front()].
   // Each row of this matrix will correspond with the observed data vector for one observed data point.
-  auto x = name(g->input(shape={whatevs, dims.front()}), "x");
+  auto x = name(g->input(shape={(int)batchSize, dims.front()}), "x");
 
   // Construct an input node called "y" and add it to the expression graph.
   //
@@ -63,7 +64,7 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
   //
   // Once the batch size is known, "y" will represent a matrix with dimensions [batch_size, dims.front()].
   // Each row of this matrix will correspond with the ground truth data vector for one observed data point.
-  auto y = name(g->input(shape={whatevs, dims.back()}), "y");
+  auto y = name(g->input(shape={(int)batchSize, dims.back()}), "y");
 
   std::vector<Expr> layers, weights, biases;
   for(int i = 0; i < dims.size()-1; ++i) {

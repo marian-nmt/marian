@@ -18,7 +18,12 @@ namespace marian {
 
     if(!result_)
       graph_->tensor(result_, a_->val()->shape());
+
+    // ... 0 0 1 0 0 ... | 12
+    // ... 1 0 0 0 0 ... | 10
     Element(_1 = -_2 * _3, result_, b_->val(), probs_);
+    //Pick(result, probs_, ids);
+
     Sum(val_, result_, 1);
   }
 

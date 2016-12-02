@@ -20,6 +20,7 @@ using namespace data;
 using namespace models;
 
 int main(int argc, char** argv) {
+  size_t batchSize = 200;
 
   auto trainSet =
     DataSet<MNIST>("../examples/mnist/train-images-idx3-ubyte",
@@ -30,23 +31,23 @@ int main(int argc, char** argv) {
 
   auto ff = New<ExpressionGraph>();
   FeedforwardClassifier(
-    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)});
+    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)}, batchSize);
 
   ff->graphviz("mnist_benchmark.dot");
 
   auto trainer =
     Run<Trainer>(ff, trainSet,
                  optimizer=Optimizer<Adam>(0.0002),
-                 batch_size=200,
+                 batch_size=batchSize,
                  max_epochs=50);
   trainer->run();
 
   FeedforwardClassifier(
-    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)});
+    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)}, batchSize);
 
   auto validator =
     Run<Validator>(ff, validSet,
-                   batch_size=200);
+                   batch_size=batchSize);
   validator->run();
 
   ff->dump("mnist.mrn");

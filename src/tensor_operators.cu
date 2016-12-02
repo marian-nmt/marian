@@ -784,7 +784,6 @@ void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs, bool final){
   int blocks  = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
 
-  std::cerr << "final: " << final << std::endl;
   gGRUFastForward<<<blocks, threads>>>(
     out->data(), // output
     inputs[0]->data(), // state

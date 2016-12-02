@@ -47,7 +47,7 @@ void load(ExpressionGraphPtr g, const std::string& name) {
     // Attention
     "decoder_W_comb_att", "decoder_b_att",
     "decoder_Wc_att", "decoder_U_att",
-    
+
     // GRU layer 2 in decoder
     "decoder_U_nl", "decoder_Wc", "decoder_b_nl",
     "decoder_Ux_nl", "decoder_Wcx", "decoder_bx_nl",
@@ -143,7 +143,7 @@ void construct(ExpressionGraphPtr g,
     biStates.push_back(concatenate({*itFw++, *itBw++}, axis=1));
 
   // add proper axes and make this a 3D tensor
-  auto encContext = debug(concatenate(biStates, axis=2), "concat");
+  auto encContext = name(concatenate(biStates, axis=2), "concat");
   auto meanContext = mean(encContext, axis=2);
 
   /*** decoder layer 1 ****************************************************/
@@ -151,7 +151,7 @@ void construct(ExpressionGraphPtr g,
   auto Wi = g->param("ff_state_W", {2 * dimEncState, dimDecState}, init=glorot_uniform);
   auto bi = g->param("ff_state_b", {1, dimDecState}, init=zeros);
 
-  auto decState0 = debug(tanh(dot(meanContext, Wi) + bi), "decState0");
+  auto decState0 = tanh(dot(meanContext, Wi) + bi);
 
   auto Wemb_dec = g->param("Wemb_dec", {dimTrgVoc, dimTrgEmb}, init=glorot_uniform);
 
@@ -161,15 +161,21 @@ void construct(ExpressionGraphPtr g,
 
   i = 0;
   // @TODO: skip last
+
+  std::vector<size_t> picks;
+
   for(auto& trgWordBatch : trgSentenceBatch) {
-    std::cerr << trgWordBatch[0] << std::endl;
-    auto y = debug(rows(Wemb_dec, trgWordBatch), "y_" + std::to_string(i++));
-    outputs.push_back(y);
+    for(auto w: trgWordBatch)
+      picks.push_back(w);
+    if(outputs.size() + 1 < trgSentenceBatch.size()) {
+      auto y = name(rows(Wemb_dec, trgWordBatch), "y_" + std::to_string(i++));
+      outputs.push_back(y);
+    }
   }
 
   auto decoderGRUWithAttention = [=]() {
     ParametersGRUWithAttention decParams;
-    
+
     auto U = g->param("decoder_U", {dimDecState, 2 * dimDecState},
                       init=glorot_uniform);
 
@@ -192,16 +198,16 @@ void construct(ExpressionGraphPtr g,
 
     decParams.Wa = g->param("decoder_W_comb_att", {dimDecState, 2 * dimDecState},
                             init=glorot_uniform);
-    
+
     decParams.ba = g->param("decoder_b_att", {1, 2 * dimDecState},
                             init=zeros);
-    
+
     decParams.Ua = g->param("decoder_Wc_att", {2 * dimEncState, 2 * dimDecState},
                             init=glorot_uniform);
-    
+
     decParams.va = g->param("decoder_U_att", {2 * dimDecState, 1}, // ?
                             init=glorot_uniform);
-    
+
     auto Uc = g->param("decoder_U_nl", {dimDecState, 2 * dimDecState},
                        init=glorot_uniform);
 
@@ -220,7 +226,7 @@ void construct(ExpressionGraphPtr g,
 
     decParams.Uc = concatenate({Uc, Uxc}, axis=1);
     decParams.Wc = concatenate({Wc, Wxc}, axis=1);
-    decParams.bc = concatenate({debug(bc, "bc"), debug(bxc, "bxc")}, axis=1);
+    decParams.bc = concatenate({bc, bxc}, axis=1);
 
     GRUWithAttention gruCell(decParams, encContext);
     return RNN<GRUWithAttention>(gruCell);
@@ -228,13 +234,13 @@ void construct(ExpressionGraphPtr g,
 
   auto decoderGRU = decoderGRUWithAttention();
   auto decStates = decoderGRU.apply(outputs.begin(),
-                                    outputs.end() - 1, // ommit EOS
+                                    outputs.end(),
                                     decState0);
-  
+
   //auto cell = decoderGRU.getCell();
   //auto contexts = cell.getContexts();
-  
-  auto allDecStates     = debug(concatenate(decStates, axis=2), "all states");
+
+  auto allDecStates     = concatenate(decStates, axis=2);
   //auto allTrgEmbeddings = debug(concatenate(outputs, axis=2), "all embs");
   //auto allContexts      = concatenate(contexts.begin(), contexts.end(), axis=2);
 
@@ -242,14 +248,19 @@ void construct(ExpressionGraphPtr g,
                      init=glorot_uniform);
   auto b1 = g->param("ff_logit_lstm_b", {1, dimTrgEmb},
                      init=glorot_uniform);
-  
+
   auto W4 = g->param("ff_logit_W", {dimTrgEmb, dimTrgVoc},
                      init=glorot_uniform);
   auto b4 = g->param("ff_logit_b", {1, dimTrgVoc},
                      init=glorot_uniform);
 
   auto t = tanh(dot(reshape(allDecStates, {dimBatch * (int)decStates.size(), dimDecState}), W1) + b1);
-  auto p = debug(softmax(dot(t, W4) + b4), "softmax");
+
+  DeviceVector<size_t> devicePicks(picks.size());
+  thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
+  std::cerr << devicePicks[0] << std::endl;
+
+  auto p = debug(mean(cross_entropy(dot(t, W4) + b4, devicePicks)), "softmax");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
@@ -270,7 +281,7 @@ SentBatch generateSrcBatch(size_t batchSize) {
     srcBatch[0][1] = 109; // dies
     srcBatch[0][2] = 19;  // es
   }
-  
+
   return srcBatch;
 }
 
@@ -307,9 +318,6 @@ int main(int argc, char** argv) {
     construct(g, srcBatch, trgBatch);
 
     g->forward();
-    g->graphviz("nematus.dot");
-    exit(1);
-
     g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;

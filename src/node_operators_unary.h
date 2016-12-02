@@ -532,4 +532,50 @@ struct ReshapeNodeOp : public UnaryNodeOp {
   }
 };
 
+struct CrossEntropyPickNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+    CrossEntropyPickNodeOp(Expr a,
+                           const DeviceVector<size_t>& picks,
+                           Args ...args)
+    : UnaryNodeOp(a,
+                  keywords::shape=newShape(a),
+                  args...),
+      picks_(picks) { }
+
+  Shape newShape(Expr a) {
+    Shape shape1 = a->shape();
+    shape1.set(1, 1);
+    return shape1;
+  }
+
+  void forward();
+
+  void backward() {
+    // We are using logsoftmax for this and cached probs are logs.
+    // For each row, the first input derivative is given by adj * (exp(p) - y),
+    // where y is the gold label distribution (e.g. one hot vector) and
+    // p is the softmax output (probabilities).
+    // The second input derivative is -adj*p.
+
+    // Compute first input derivative.
+    Pick(_1 += _2 * (Exp(_3) - _4),
+         a_->grad(), adj_, probs_, picks_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x-ent")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+ protected:
+  const DeviceVector<size_t> picks_;
+  Tensor probs_;
+  Tensor result_;
+};
+
+
+
 }
