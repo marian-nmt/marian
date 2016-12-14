@@ -34,9 +34,12 @@ class BestHyps {
       size_t batchBegin = 0;
       size_t cumBeamSize = 0;
 
+      // Debug(Probs);
+
       for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
         const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
-        nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], cumBeamSize);
+        nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx],
+                                 cumBeamSize);
         batchBegin += nElements;
         cumBeamSize += beamSizes[batchIdx];
       }
@@ -45,6 +48,7 @@ class BestHyps {
 
       batchBegin = 0;
       cumBeamSize = 0;
+
       for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
         const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
 
@@ -84,7 +88,6 @@ class BestHyps {
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
-
 
       HostVector<float> vCosts;
       for (auto& h : prevHyps) {

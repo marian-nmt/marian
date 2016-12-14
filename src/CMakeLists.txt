@@ -100,7 +100,7 @@ endif(CUDA_FOUND)
 
 foreach(exec amun amunmt)
   if(CUDA_FOUND)
-    target_link_libraries(${exec} ${EXT_LIBS} cuda)
+    target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn)
     cuda_add_cublas_to_target(${exec})
   else(CUDA_FOUND)
     target_link_libraries(${exec} ${EXT_LIBS})

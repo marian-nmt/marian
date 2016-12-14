@@ -15,6 +15,7 @@ namespace GPU {
 ////////////////////////////////////////////
 std::string EncoderDecoderState::Debug() const
 {
+  mblas::Debug(states_);
 	return states_.Debug();
 }
 

@@ -5,23 +5,9 @@
 namespace GPU {
 namespace mblas {
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-    if (code != cudaSuccess) 
-    {
-          fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-          if (abort) exit(code);
-      }
-}
-
-#ifdef __APPLE__
-boost::thread_specific_ptr<cublasHandle_t> CublasHandler::handle_;
-#else
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
 thread_local CudaStreamHandler* CudaStreamHandler::instance_ = nullptr;;
-#endif
+thread_local cudnnHandle_t* CuDNNHandler::handle_ = nullptr;
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   size_t iRows = In.Rows();
@@ -68,6 +54,8 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      batchNum, sentenceLength, stateLength);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 }
 
 __global__ void gWeightedMean(float* d_out, const float* weights, const float* d_in, const int* mapping,
@@ -99,6 +87,8 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), Weights.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      numRows, numCols, Weights.Cols());
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
@@ -177,9 +167,9 @@ Matrix& CopyRow(Matrix& Out,
 
 __global__ void gCopyRows(float* out, const float* in, size_t cols,
                           const size_t* targetRowIdx, size_t numPairs) {
-  for(int bid = 0; bid < numPairs; bid += gridDim.x) {
+  for (int bid = 0; bid < numPairs; bid += gridDim.x) {
     int j = bid + blockIdx.x;
-    if(j < numPairs) {
+    if (j < numPairs) {
       size_t dstId = j;
       size_t srcId = targetRowIdx[j];
 
@@ -203,11 +193,13 @@ Matrix& CopyRows(Matrix& Out,
   const float* d_in = In.data();
 
   int threads = std::min(MAX_THREADS, (int)In.Cols());
-  int blocks = std::min(MAX_BLOCKS, (int)numPairs);;
+  int blocks = std::min(MAX_BLOCKS, (int)numPairs);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (d_out, d_in, In.Cols(), dev, numPairs);
 
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
   return Out;
 }
 
@@ -252,6 +244,8 @@ Matrix& Slice(Matrix& Out,
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (d_out, d_in, n, dim, In.Rows(), In.Cols());
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
   return Out;
 }
 
@@ -293,44 +287,46 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 }
 
 __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols, const int* batchID, int batchNum, const int* srcMapping, int srcNum) {
-  for (int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if (j < rows) {
-      extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
-      float* sp = softMaxP + j * cols;
-      _sum[threadIdx.x] = 0.0;
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if (id < cols) {
-          sp[id] = __expf(sp[id]);
-          sp[id] *= srcMapping[ batchID[j] * srcNum + id ];
-          _sum[threadIdx.x] += sp[id];
-        }
-      }
+  extern __shared__ float _share[];
 
-      __syncthreads();
+  int rowIdx =  blockIdx.x;
 
-      int len = blockDim.x;
-      while (len != 1) {
-        __syncthreads();
-
-        int skip = (len + 1) >> 1;
-        if (threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-
-      __syncthreads();
-
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if (id < cols) {
-          sp[id] /= _sum[0];
-        }
+  while (rowIdx < rows) {
+    float* _sum = _share;// + blockDim.x;
+    float* row = softMaxP + rowIdx * cols;
+    _sum[threadIdx.x] = 0.0f;
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] = __expf(row[id]);
+        row[id] *= srcMapping[ batchID[rowIdx] * srcNum + id ];
+        _sum[threadIdx.x] += row[id];
       }
     }
+
+    __syncthreads();
+
+    int len = blockDim.x;
+    while (len != 1) {
+      __syncthreads();
+
+      int skip = (len + 1) >> 1;
+      if (threadIdx.x < (len >> 1)) {
+        _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+      }
+      len = (len + 1) >> 1;
+    }
+
+    __syncthreads();
+
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] /= _sum[0];
+      }
+    }
+    __syncthreads();
+    rowIdx += gridDim.x;
   }
 }
 
@@ -343,56 +339,83 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
     (Out.data(), Out.Rows(), Out.Cols(),
      thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
      thrust::raw_pointer_cast(srcMapping.data()), srcSize);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
   return Out;
 }
 
 __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
-  for (int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if (j < rows) {
-      extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
-      float* sp = softMaxP + j * cols;
-      _sum[threadIdx.x] = 0.0;
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if (id < cols) {
-          sp[id] = __expf(sp[id]);
-          _sum[threadIdx.x] += sp[id];
-        }
-      }
+  extern __shared__ float _share[];
 
-      int len = blockDim.x;
-      while (len != 1) {
-        __syncthreads();
+  int rowIdx =  blockIdx.x;
 
-        int skip = (len + 1) >> 1;
-        if (threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-
-      __syncthreads();
-
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if (id < cols) {
-          sp[id] = __logf(sp[id]/_sum[0]);
-        }
+  while (rowIdx < rows) {
+    float* _sum = _share;// + blockDim.x;
+    float* row = softMaxP + rowIdx * cols;
+    _sum[threadIdx.x] = 0.0f;
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] = __expf(row[id]);
+        _sum[threadIdx.x] += row[id];
       }
     }
+
+    int len = blockDim.x;
+    while (len != 1) {
+      __syncthreads();
+
+      int skip = (len + 1) >> 1;
+      if (threadIdx.x < (len >> 1)) {
+        _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+      }
+      len = (len + 1) >> 1;
+    }
+
+    __syncthreads();
+
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] = __logf(row[id]/_sum[0]);
+      }
+    }
+    __syncthreads();
+    rowIdx += gridDim.x;
   }
 }
 
 
 Matrix& LogSoftmax(Matrix& Out) {
-  int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
-  int threads = std::min(MAX_THREADS, (int)Out.Cols());
-  int shared = sizeof(float) * threads * 2;
+  /* int blocks = std::min(MAX_BLOCKS, (int)Out.Rows()); */
+  /* int threads = std::min(MAX_THREADS, (int)Out.Cols()); */
+  /* int shared = sizeof(float) * threads * 2; */
+  float alpha = 1, beta = 0;
 
-  gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Out.Rows(), Out.Cols());
+  static thread_local Matrix Tmp;
+  Tmp.Resize(Out.Rows(), Out.Cols());
+
+  cudnnTensorDescriptor_t cudnnDescIn;
+  cudnnCreateTensorDescriptor(&cudnnDescIn);
+  cudnnSetTensor4dDescriptor(cudnnDescIn, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                  Out.Rows(), Out.Cols(), 1, 1);
+
+  cudnnTensorDescriptor_t cudnnDescOut;
+  cudnnCreateTensorDescriptor(&cudnnDescOut);
+  cudnnSetTensor4dDescriptor(cudnnDescOut, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                  Out.Rows(), Out.Cols(), 1, 1);
+  /* gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>> */
+    /* (Out.data(), Out.Rows(), Out.Cols()); */
+  cudnnSoftmaxForward(CuDNNHandler::GetHandle(), CUDNN_SOFTMAX_LOG, CUDNN_SOFTMAX_MODE_CHANNEL,
+                      &alpha,
+                      cudnnDescIn, Out.data(),
+                      &beta,
+                      cudnnDescOut, Tmp.data());
+
+  cudnnDestroyTensorDescriptor(cudnnDescIn);
+  cudnnDestroyTensorDescriptor(cudnnDescOut);
+
+  Swap(Out, Tmp);
 
   return Out;
 }
@@ -409,11 +432,19 @@ __global__ void gSetColumn(float* d_in, int n_columns, int n_rows, int noColumn,
 void SetColumn(Matrix& In, int noColumn, float value) {
   int nColumns = In.Cols();
   int nRows = In.Rows();
-  int nBlocks = nRows / 512 + (nRows % 512 == 0) ?  0 : 1;
+  int nBlocks = nRows / 512 + ((nRows % 512 == 0) ?  0 : 1);
   int nThreads = std::min(512, nRows);
+
+  std::cerr << "rows: " << nRows
+            << "\ncols: " << nColumns
+            << "\nblocks: " << nBlocks
+            << "\nthreads: " << nThreads
+            << "\n";
 
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
     (In.data(), nColumns, nRows, noColumn, value);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 }
 
 __global__ void gFill(float* d_in, int size, float val) {
@@ -430,6 +461,8 @@ void Fill(Matrix& In, float value) {
 
   gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (In.data(), size, value);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 }
 
 __global__
@@ -454,6 +487,8 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (d_in, batchSize, stateLength, sentenceLength, d_mapping, i);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 
 }
 

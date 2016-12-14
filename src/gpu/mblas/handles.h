@@ -2,6 +2,7 @@
 
 #include <cuda.h>
 #include <cublas_v2.h>
+#include <cudnn.h>
 
 namespace GPU {
 namespace mblas {
@@ -59,12 +60,29 @@ class CublasHandler {
         delete handle_;
       }
     }
-
-#ifdef __APPLE__
-    static boost::thread_specific_ptr<cublasHandle_t> handle_;
-#else
     static thread_local cublasHandle_t* handle_;
-#endif
+};
+
+class CuDNNHandler {
+  public:
+    static cudnnHandle_t GetHandle() {
+      if(handle_ == nullptr) {
+        assert(handle_ == nullptr);
+        handle_ = new cudnnHandle_t;
+        cudnnCreate(handle_);
+        cudnnSetStream(*handle_, CudaStreamHandler::GetStream());
+      }
+      return *handle_;
+    }
+
+  private:
+    ~CuDNNHandler() {
+      cudnnDestroy(*handle_);
+      if (handle_) {
+        delete handle_;
+      }
+    }
+    static thread_local cudnnHandle_t* handle_;
 };
 
 } // namespace mblas

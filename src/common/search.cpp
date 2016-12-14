@@ -57,6 +57,9 @@ Histories Search::Decode(const Sentences& sentences) {
   }
 
   for (size_t decoderStep = 0; decoderStep < 3 * maxLength; ++decoderStep) {
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    std::cerr << "Decoder step: " << decoderStep << std::endl;
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
     if (decoderStep == 0) {
       for (size_t i = 0; i < scorers_.size(); i++) {
         Scorer &scorer = *scorers_[i];
@@ -75,6 +78,7 @@ Histories Search::Decode(const Sentences& sentences) {
       State &nextState = *nextStates[i];
 
       scorer.Score(state, nextState, beamSizes);
+
       if (decoderStep == 0) {
         for (auto& beamSize : beamSizes) {
           beamSize = God::Get<size_t>("beam-size");
@@ -82,11 +86,28 @@ Histories Search::Decode(const Sentences& sentences) {
       }
     }
 
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    std::cerr << "Decoder step: " << decoderStep << "\tSCORING" << std::endl;
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+
+
     std::vector<Beam> beams(batchSize);
 
     bool returnAlignment = God::Get<bool>("return-alignment");
 
     BestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    std::cerr << "Decoder step: " << decoderStep << "\tBEAMS" << std::endl;
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+
+    int ii = 0;
+    for (auto& beam : beams) {
+      for (auto& hyp : beam) {
+        std::cerr << ii++ << ": " << hyp->GetWord() << " " << hyp->GetCost() << " PREV: " << hyp->GetPrevStateIndex() << std::endl;
+      }
+    }
+
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
         histories[i].Add(beams[i], histories[i].size() == 3 * sentences[i].GetWords().size());
@@ -103,12 +124,24 @@ Histories Search::Decode(const Sentences& sentences) {
         }
       }
     }
+
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    std::cerr << "Decoder step: " << decoderStep << "\tSURVIVORS" << std::endl;
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    for (size_t i = 0; i < survivors.size(); ++i) {
+      std::cerr << i << ": " << survivors[i]->GetWord() << " " << survivors[i]->GetCost() << " PREV: " << survivors[i]->GetPrevStateIndex() << std::endl;
+    }
+
     if (survivors.size() == 0) {
       break;
     }
 
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+    std::cerr << "Decoder step: " << decoderStep << "\tSTATES" << std::endl;
+    std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
     for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+        states[i]->Debug();
     }
 
     prevHyps.swap(survivors);
