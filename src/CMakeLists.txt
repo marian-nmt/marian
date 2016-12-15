@@ -8,15 +8,15 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/common/git_version.cpp.in"
 list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp")
 
 
-# add_library(cpumode OBJECT
-  # cpu/mblas/matrix.cpp
-  # cpu/mblas/phoenix_functions.cpp
-  # cpu/dl4mt/decoder.cpp
-  # cpu/dl4mt/encoder.cpp
-  # cpu/dl4mt/gru.cpp
-  # cpu/dl4mt/model.cpp
-  # cpu/decoder/encoder_decoder.cpp
-# )
+add_library(cpumode OBJECT
+  cpu/mblas/matrix.cpp
+  cpu/mblas/phoenix_functions.cpp
+  cpu/dl4mt/decoder.cpp
+  cpu/dl4mt/encoder.cpp
+  cpu/dl4mt/gru.cpp
+  cpu/dl4mt/model.cpp
+  cpu/decoder/encoder_decoder.cpp
+)
 
 add_library(libcommon OBJECT
   ${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp
@@ -54,7 +54,7 @@ cuda_add_executable(
   common/loader_factory.cpp
   common/translation_task.cpp
   $<TARGET_OBJECTS:libcommon>
-  # $<TARGET_OBJECTS:cpumode>
+  $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:libcnpy>
 )
@@ -71,7 +71,7 @@ cuda_add_library(amunmt SHARED
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
-  # $<TARGET_OBJECTS:cpumode>
+  $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
@@ -91,7 +91,7 @@ add_library(amunmt SHARED
   python/amunmt.cpp
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcnpy>
-  # $<TARGET_OBJECTS:cpumode>
+  $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )

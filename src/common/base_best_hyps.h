@@ -7,5 +7,6 @@
 #include "scorer.h"
 
 
-using BestHypsType = std::function<void(std::vector<Beam>&, const Beam&, std::vector<size_t>& beamSizes,
+using BestHypsType = std::function<void(std::vector<Beam>&, const Beam&,
+                    std::vector<size_t>& beamSizes,
                     const std::vector<ScorerPtr>&, const Words&, bool)>;

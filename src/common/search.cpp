@@ -78,7 +78,7 @@ Histories Search::Decode(const Sentences& sentences) {
         beamSize = God::Get<size_t>("beam-size");
       }
     }
-    std::vector<Beam> beams(batchSize);
+    Beams beams(batchSize);
     bool returnAlignment = God::Get<bool>("return-alignment");
 
     BestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);

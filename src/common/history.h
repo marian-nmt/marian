@@ -19,7 +19,7 @@ class History {
 
   public:
     History()
-    :normalize_(God::Get<bool>("normalize"))
+      : normalize_(God::Get<bool>("normalize"))
     {}
 
     void Add(const Beam& beam, bool last = false) {

@@ -20,9 +20,9 @@ struct ProbCompare {
   const float* data_;
 };
 
-void BestHyps(Beam& bestHyps,
+void BestHyps(Beams& beams,
     const Beam& prevHyps,
-		const size_t beamSize,
+    std::vector<size_t>& beamSizes,
 		const std::vector<ScorerPtr> &scorers,
 		const Words &filterIndices,
     bool returnAlignment)
@@ -52,6 +52,8 @@ void BestHyps(Beam& bestHyps,
   for (size_t i = 0; i < keys.size(); ++i) {
     keys[i] = i;
   }
+
+  size_t beamSize = beamSizes[0];
 
   std::vector<size_t> bestKeys(beamSize);
   std::vector<float> bestCosts(beamSize);
@@ -132,7 +134,7 @@ void BestHyps(Beam& bestHyps,
       hyp->GetCostBreakdown()[0] -= sum;
       hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
     }
-    bestHyps.push_back(hyp);
+    beams[0].push_back(hyp);
   }
 
 }

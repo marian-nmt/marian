@@ -2,7 +2,7 @@
 
 #include "common/scorer.h"
 #include "common/logging.h"
-// #include "cpu/decoder/encoder_decoder_loader.h"
+#include "cpu/decoder/encoder_decoder_loader.h"
 
 #ifdef CUDA
 #include "gpu/decoder/encoder_decoder.h"
@@ -30,10 +30,10 @@ LoaderPtr LoaderFactory::Create(
   }
 
 
-	// loader = CreateCPU(name, config);
-	// if (loader) {
-		// return LoaderPtr(loader);
-	// }
+  loader = CreateCPU(name, config);
+  if (loader) {
+    return LoaderPtr(loader);
+  }
 
 	std::string type = config["type"].as<std::string>();
 	UTIL_THROW2("Unknown scorer in config file: " << type);
@@ -66,15 +66,15 @@ Loader *LoaderFactory::CreateGPU(
 #endif
 
 
-// Loader *LoaderFactory::CreateCPU(const std::string& name,
-						// const YAML::Node& config) {
-  // UTIL_THROW_IF2(!config["type"],
-				 // "Missing scorer type in config file");
-  // std::string type = config["type"].as<std::string>();
+Loader *LoaderFactory::CreateCPU(const std::string& name,
+            const YAML::Node& config) {
+  UTIL_THROW_IF2(!config["type"],
+         "Missing scorer type in config file");
+  std::string type = config["type"].as<std::string>();
 
-  // IF_MATCH_RETURN(type, "Nematus", CPU::EncoderDecoderLoader);
-  // IF_MATCH_RETURN(type, "nematus", CPU::EncoderDecoderLoader);
-  // IF_MATCH_RETURN(type, "NEMATUS", CPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(type, "Nematus", CPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(type, "nematus", CPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(type, "NEMATUS", CPU::EncoderDecoderLoader);
 
-  // return NULL;
-// }
+  return NULL;
+}
