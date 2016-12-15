@@ -7,7 +7,6 @@
 
 namespace GPU {
 
-
 class NthElement {
   public:
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
@@ -36,6 +35,5 @@ class NthElement {
     float  *d_breakdown;
     size_t lastN;
 };
-
 
 }  // namespace GPU

@@ -3,7 +3,6 @@
 #define MAX_THREADS 512
 #define MAX_BLOCKS 65535
 
-
 #include <cmath>
 #include <cublas_v2.h>
 #include <cudnn.h>
@@ -15,22 +14,11 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/handles.h"
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess)
-   {
-         fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-         if (abort) exit(code);
-      }
-}
 namespace GPU {
 namespace mblas {
 
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 8) {
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
   for(size_t i = 0; i < m.Rows(); ++i) {
     std::cerr << i << ": ";
@@ -152,8 +140,6 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in1, d_in2, rows, rows1, cols);
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
 
   Swap(Out, Temp);
   return Out;
@@ -197,8 +183,6 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()));
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
 
   Swap(Out, Temp);
   return Out;
@@ -246,18 +230,9 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<floa
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + (cols % threads != 0);
 
-  // std::cerr <<
-    // "rows: " <<  rows  <<
-    // "cols: " << cols <<
-    // "threads: " << threads <<
-    // "blocks: " << blocks <<
-    // std::endl;
-
   gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in, rows, cols);
 
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
   return Out;
 }
 
@@ -290,8 +265,6 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
   gBroadcastVec<<<blocks, threads, 0, stream>>>
     (functor, d_out, d_in, rows, cols);
 
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
   return Out;
 }
 
@@ -359,8 +332,6 @@ Matrix& Element(Functor functor, Matrix& Out) {
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, d_out, Out.Rows(), Out.Cols());
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
 
   return Out;
 }
@@ -377,8 +348,6 @@ Matrix& Element(Functor functor,
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, d_out, d_in, Out.Rows(), Out.Cols());
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
 
   return Out;
 }
@@ -397,8 +366,6 @@ Matrix& Element(Functor functor,
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, d_out, d_in1, d_in2, Out.Rows(), Out.Cols());
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
 
   return Out;
 }

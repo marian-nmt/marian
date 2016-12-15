@@ -54,8 +54,6 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      batchNum, sentenceLength, stateLength);
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
 }
 
 __global__ void gWeightedMean(float* d_out, const float* weights, const float* d_in, const int* mapping,
@@ -87,8 +85,6 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), Weights.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      numRows, numCols, Weights.Cols());
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
@@ -198,8 +194,6 @@ Matrix& CopyRows(Matrix& Out,
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (d_out, d_in, In.Cols(), dev, numPairs);
 
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
   return Out;
 }
 
@@ -244,8 +238,6 @@ Matrix& Slice(Matrix& Out,
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (d_out, d_in, n, dim, In.Rows(), In.Cols());
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
   return Out;
 }
 
@@ -339,8 +331,6 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
     (Out.data(), Out.Rows(), Out.Cols(),
      thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
      thrust::raw_pointer_cast(srcMapping.data()), srcSize);
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
   return Out;
 }
 
@@ -435,16 +425,8 @@ void SetColumn(Matrix& In, int noColumn, float value) {
   int nBlocks = nRows / 512 + ((nRows % 512 == 0) ?  0 : 1);
   int nThreads = std::min(512, nRows);
 
-  /* std::cerr << "rows: " << nRows */
-            /* << "\ncols: " << nColumns */
-            /* << "\nblocks: " << nBlocks */
-            /* << "\nthreads: " << nThreads */
-            /* << "\n"; */
-
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
     (In.data(), nColumns, nRows, noColumn, value);
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
 }
 
 __global__ void gFill(float* d_in, int size, float val) {
@@ -461,8 +443,6 @@ void Fill(Matrix& In, float value) {
 
   gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (In.data(), size, value);
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
 }
 
 __global__
@@ -487,9 +467,6 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (d_in, batchSize, stateLength, sentenceLength, d_mapping, i);
-  /* gpuErrchk( cudaPeekAtLastError() ); */
-  /* gpuErrchk( cudaDeviceSynchronize() ); */
-
 }
 
 }  // namespace mblas
