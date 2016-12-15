@@ -136,7 +136,6 @@ class Decoder {
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
           AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
-          // Debug(A_);
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
         }
 
@@ -254,8 +253,6 @@ class Decoder {
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
-
-      Debug(Probs_);
     }
 
     mblas::Matrix& GetProbs() {

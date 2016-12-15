@@ -90,9 +90,15 @@ class BestHyps {
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
 
       HostVector<float> vCosts;
+      // std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..\n";
+      // std::cerr << "COSTS:" << std::endl;
+      // std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..\n";
+      // int ii = 0;
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
+        // std::cerr <<  ii++ << " " << h->GetCost() << "\n";
       }
+      // std::cerr << std::endl;
       mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
