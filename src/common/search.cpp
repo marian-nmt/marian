@@ -15,7 +15,7 @@ Search::Search(size_t threadId)
 }
 
 
-size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
+size_t Search::MakeFilter(const std::set<Word>& srcWords, size_t vocabSize) {
   filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
@@ -54,7 +54,13 @@ Histories Search::Decode(const Sentences& sentences) {
 
   bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
-    vocabSize = MakeFilter(sentences[0].GetWords(), vocabSize);
+    std::set<Word> srcWords;
+    for (const auto& sentence : sentences) {
+      for (const auto& srcWord : sentence.GetWords()) {
+        srcWords.insert(srcWord);
+      }
+    }
+    vocabSize = MakeFilter(srcWords, vocabSize);
   }
 
   size_t maxLength = 0;

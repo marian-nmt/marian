@@ -14,7 +14,7 @@ class Search {
     Histories Decode(const Sentences& sentences);
 
   private:
-    size_t MakeFilter(const Words& srcWords, size_t vocabSize);
+    size_t MakeFilter(const std::set<Word>& srcWords, size_t vocabSize);
     void InitScorers(const Sentences& sentences, States& states, States& nextStates);
 
     std::vector<ScorerPtr> scorers_;
