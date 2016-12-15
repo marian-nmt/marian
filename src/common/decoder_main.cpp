@@ -22,6 +22,9 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t taskCounter = 0;
 
+  size_t maxBatchSize = God::Get<size_t>("batch-size");
+  std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
+
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
@@ -36,8 +39,6 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Total number of threads: " << totalThreads;
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
-  size_t maxBatchSize = God::Get<size_t>("batch-size");
-  std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
 
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
