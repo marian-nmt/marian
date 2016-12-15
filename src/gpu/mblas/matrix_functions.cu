@@ -7,7 +7,6 @@ namespace mblas {
 
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
 thread_local CudaStreamHandler* CudaStreamHandler::instance_ = nullptr;;
-thread_local cudnnHandle_t* CuDNNHandler::handle_ = nullptr;
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   size_t iRows = In.Rows();
@@ -377,35 +376,12 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
 
 
 Matrix& LogSoftmax(Matrix& Out) {
-  /* int blocks = std::min(MAX_BLOCKS, (int)Out.Rows()); */
-  /* int threads = std::min(MAX_THREADS, (int)Out.Cols()); */
-  /* int shared = sizeof(float) * threads * 2; */
-  float alpha = 1, beta = 0;
+  int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
+  int threads = std::min(MAX_THREADS, (int)Out.Cols());
+  int shared = sizeof(float) * threads * 2;
 
-  static thread_local Matrix Tmp;
-  Tmp.Resize(Out.Rows(), Out.Cols());
-
-  cudnnTensorDescriptor_t cudnnDescIn;
-  cudnnCreateTensorDescriptor(&cudnnDescIn);
-  cudnnSetTensor4dDescriptor(cudnnDescIn, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                  Out.Rows(), Out.Cols(), 1, 1);
-
-  cudnnTensorDescriptor_t cudnnDescOut;
-  cudnnCreateTensorDescriptor(&cudnnDescOut);
-  cudnnSetTensor4dDescriptor(cudnnDescOut, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                  Out.Rows(), Out.Cols(), 1, 1);
-  /* gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>> */
-    /* (Out.data(), Out.Rows(), Out.Cols()); */
-  cudnnSoftmaxForward(CuDNNHandler::GetHandle(), CUDNN_SOFTMAX_LOG, CUDNN_SOFTMAX_MODE_CHANNEL,
-                      &alpha,
-                      cudnnDescIn, Out.data(),
-                      &beta,
-                      cudnnDescOut, Tmp.data());
-
-  cudnnDestroyTensorDescriptor(cudnnDescIn);
-  cudnnDestroyTensorDescriptor(cudnnDescOut);
-
-  Swap(Out, Tmp);
+  gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>>
+    (Out.data(), Out.Rows(), Out.Cols());
 
   return Out;
 }

@@ -5,7 +5,6 @@
 
 #include <cmath>
 #include <cublas_v2.h>
-#include <cudnn.h>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 #include <iostream>
