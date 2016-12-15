@@ -15,6 +15,8 @@ class Search {
 
   private:
     size_t MakeFilter(const Words& srcWords, size_t vocabSize);
+    void InitScorers(const Sentences& sentences, States& states, States& nextStates);
+
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
     BestHypsType BestHyps_;
