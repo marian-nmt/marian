@@ -53,10 +53,10 @@ void load(ExpressionGraphPtr g, const std::string& name) {
     "decoder_Ux_nl", "decoder_Wcx", "decoder_bx_nl",
 
     // Read out
-    "ff_logit_lstm_W",
-    "ff_logit_lstm_b",
-    "ff_logit_W",
-    "ff_logit_b"
+    "ff_logit_lstm_W", "ff_logit_lstm_b",
+    "ff_logit_prev_W", "ff_logit_prev_b",
+    "ff_logit_ctx_W", "ff_logit_ctx_b",
+    "ff_logit_W", "ff_logit_b",
   };
 
   for(auto name : parameters) {
@@ -232,21 +232,38 @@ void construct(ExpressionGraphPtr g,
     return RNN<GRUWithAttention>(gruCell);
   };
 
+
   auto decoderGRU = decoderGRUWithAttention();
+
   auto decStates = decoderGRU.apply(outputs.begin(),
                                     outputs.end(),
                                     decState0);
 
-  //auto cell = decoderGRU.getCell();
-  //auto contexts = cell.getContexts();
+  auto d1 = debug(reshape(concatenate(decStates, axis=2),
+                          {dimBatch * (int)decStates.size(), dimDecState}),
+                  "Decoder States");
+  auto e2 = debug(reshape(concatenate(outputs, axis=2),
+                          {dimBatch * (int)outputs.size(), dimSrcEmb}),
+                  "Embeddings");
 
-  auto allDecStates     = concatenate(decStates, axis=2);
-  //auto allTrgEmbeddings = debug(concatenate(outputs, axis=2), "all embs");
-  //auto allContexts      = concatenate(contexts.begin(), contexts.end(), axis=2);
+  auto contexts = decoderGRU.getCell().getContexts();
+  auto c3 = debug(reshape(concatenate(contexts, axis=2),
+                         {dimBatch * (int)contexts.size(), 2*dimEncState}),
+                  "Concatenated contexts");
 
   auto W1 = g->param("ff_logit_lstm_W", {dimDecState, dimTrgEmb},
                      init=glorot_uniform);
   auto b1 = g->param("ff_logit_lstm_b", {1, dimTrgEmb},
+                     init=glorot_uniform);
+
+  auto W2 = g->param("ff_logit_prev_W", {dimTrgEmb, dimTrgEmb},
+                     init=glorot_uniform);
+  auto b2 = g->param("ff_logit_prev_b", {1, dimTrgEmb},
+                     init=glorot_uniform);
+
+  auto W3 = g->param("ff_logit_ctx_W", {2 * dimEncState, dimTrgEmb},
+                     init=glorot_uniform);
+  auto b3 = g->param("ff_logit_ctx_b", {1, dimTrgEmb},
                      init=glorot_uniform);
 
   auto W4 = g->param("ff_logit_W", {dimTrgEmb, dimTrgVoc},
@@ -254,13 +271,18 @@ void construct(ExpressionGraphPtr g,
   auto b4 = g->param("ff_logit_b", {1, dimTrgVoc},
                      init=glorot_uniform);
 
-  auto t = tanh(dot(reshape(allDecStates, {dimBatch * (int)decStates.size(), dimDecState}), W1) + b1);
+  auto b = b1 + b2 + b3;
+  auto t = tanh(dot(d1, W1) + dot(e2, W2) + dot(c3, W3) + b);
 
-  DeviceVector<size_t> devicePicks(picks.size());
-  thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
-  std::cerr << devicePicks[0] << std::endl;
+  auto s = debug(reshape(softmax(dot(t, W4) + b4),
+                         {dimBatch, dimTrgVoc, (int)outputs.size()}),
+                 "softmax");
 
-  auto p = debug(mean(cross_entropy(dot(t, W4) + b4, devicePicks)), "softmax");
+  name(s, "softmax");
+  //DeviceVector<size_t> devicePicks(picks.size());
+  //thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
+
+  //auto p = debug(mean(cross_entropy(dot(t, W4) + b4, devicePicks)), "cost");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
@@ -301,15 +323,15 @@ SentBatch generateTrgBatch(size_t batchSize) {
 }
 
 int main(int argc, char** argv) {
-  cudaSetDevice(0);
+  cudaSetDevice(3);
 
   auto g = New<ExpressionGraph>();
-  load(g, "/home/marcinj/Badania/amunmt/test2/model.npz");
+  load(g, "/home/marcin/marian/test/model.npz");
 
-  size_t batchSize = 3;
+  size_t batchSize = 1;
 
   boost::timer::cpu_timer timer;
-  for(int i = 1; i <= 1000; ++i) {
+  for(int i = 1; i <= 1; ++i) {
     g->clear();
 
     // fake batch
@@ -318,7 +340,13 @@ int main(int argc, char** argv) {
     construct(g, srcBatch, trgBatch);
 
     g->forward();
-    g->backward();
+    std::cerr << g->get("softmax")->val()->get(0 * 85000 + 21) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(1 * 85000 + 11) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(2 * 85000 + 10) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(3 * 85000 + 1078) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(4 * 85000 + 5) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(5 * 85000 + 0) << std::endl;
+    //g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;
   }

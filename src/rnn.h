@@ -185,6 +185,10 @@ class RNN {
       return outputs;
     }
 
+    Cell& getCell() {
+      return cell_;
+    }
+
   private:
     Cell cell_;
 };
@@ -231,6 +235,7 @@ class GRUWithAttention {
       // horrible ->
       auto e = reshape(transpose(softmax(transpose(reshape(dot(temp, params_.va), {srcWords, dimBatch})))), {dimBatch, 1, srcWords});
       auto alignedSource = sum(context_ * e, axis=2) / sum(e, axis=2);
+      contexts_.push_back(alignedSource);
       // <- horrible
 
       auto aWc = dot(alignedSource, params_.Wc);
@@ -240,9 +245,14 @@ class GRUWithAttention {
       return output;
     }
 
+    std::vector<Expr>& getContexts() {
+      return contexts_;
+    }
+
   private:
     ParametersGRUWithAttention params_;
     Expr context_;
+    std::vector<Expr> contexts_;
 };
 
 
