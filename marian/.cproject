@@ -29,6 +29,8 @@
 								<option id="nvcc.compiler.pic.533579278" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="nvcc.compiler.include.paths.1654919056" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/boost/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/src/3rd_party&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/src&quot;"/>
 								</option>
 								<option id="nvcc.compiler.cpp11option.1114260643" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.111060846" superClass="nvcc.compiler.input.cu"/>
@@ -60,11 +62,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.859823712" name="softmax_benchmark.cu" rcbsApplicability="disable" resourcePath="src/softmax_benchmark.cu" toolsToInvoke="nvcc.compiler.base.1979453423.1301466056">
-						<tool id="nvcc.compiler.base.1979453423.1301466056" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.2059033302" name="xor.cu" rcbsApplicability="disable" resourcePath="src/xor.cu" toolsToInvoke="nvcc.compiler.base.1979453423.223624211">
+						<tool id="nvcc.compiler.base.1979453423.223624211" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="src/softmax_benchmark.cu|src/mnist_benchmark.cu|src/validate_encoder_decoder.cu|src/test.cu|src/validate_mnist_batch.cu|src/train_mnist.cu|src/validate_mnist.cu|src/npz_converter.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/xor.cu|src/tensor_test.cu|src/rnn_test.cu|src/test_nodes.cu|src/nematus_test.cu|src/tensors/bac|src/softmax_benchmark.cu|src/mnist_benchmark.cu|src/validate_encoder_decoder.cu|src/test.cu|src/validate_mnist_batch.cu|src/train_mnist.cu|src/validate_mnist.cu|src/npz_converter.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -93,7 +95,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.77237983" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.77237983" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.release.77237983." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.seven_five.exe.release.537573056" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.ide.toolchain.seven_five.exe.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1603968154" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
