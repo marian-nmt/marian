@@ -272,13 +272,14 @@ void construct(ExpressionGraphPtr g,
   };
 
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
-  auto s = debug(logsoftmax(affine(t, W4, b4)), "softmax");
+  //auto s = debug(logsoftmax(affine(t, W4, b4)), "softmax");
+  //name(s, "softmax");
 
-  name(s, "softmax");
-  //DeviceVector<size_t> devicePicks(picks.size());
-  //thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
+  DeviceVector<size_t> devicePicks(picks.size());
+  thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
 
-  //auto p = debug(mean(cross_entropy(dot(t, W4) + b4, devicePicks)), "cost");
+  //auto p = debug(mean(cross_entropy(affine(t, W4, b4), devicePicks)), "cost");
+  auto p = mean(debug(sum(cross_entropy(affine(t, W4, b4), devicePicks), axis=2), "cost"), axis=0);
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
@@ -295,12 +296,12 @@ SentBatch generateSrcBatch(size_t batchSize) {
     WordBatch(batchSize, 0)
   });
 
-  /*
+
   if(batchSize > 2) {
     srcBatch[0][1] = 109; // dies
     srcBatch[0][2] = 19;  // es
   }
-  */
+
   return srcBatch;
 }
 
@@ -337,13 +338,8 @@ int main(int argc, char** argv) {
     construct(g, srcBatch, trgBatch);
 
     g->forward();
-    std::cerr << g->get("softmax")->val()->get(batchSize * 0 * 85000 + 21) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(batchSize * 1 * 85000 + 11) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(batchSize * 2 * 85000 + 10) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(batchSize * 3 * 85000 + 1078) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(batchSize * 4 * 85000 + 5) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(batchSize * 5 * 85000 + 0) << std::endl;
-    //g->backward();
+    g->backward();
+
     if(i % 100 == 0)
       std::cout << i << std::endl;
   }

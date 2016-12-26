@@ -111,10 +111,9 @@ Expr dot(Expr a, Expr b) {
   auto shapeA = a->shape();
   auto shapeB = b->shape();
   if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1) {
-    a = debug(a, "before reshape");
     auto ra = reshape(a, {shapeA[0] * shapeA[2] * shapeA[3], shapeA[1] , 1, 1});
-    return debug(reshape(debug(Expression<DotNodeOp>(debug(ra, "after reshape"), debug(b, "second")),"result before reshape"),
-                   {shapeA[0], shapeB[1], shapeA[2], shapeA[3]}), "result after reshape");
+    return reshape(Expression<DotNodeOp>(ra, b),
+                   {shapeA[0], shapeB[1], shapeA[2], shapeA[3]});
   }
   else {
     return Expression<DotNodeOp>(a, b);
@@ -130,7 +129,10 @@ Expr cross_entropy(Expr a, Expr b) {
 }
 
 Expr cross_entropy(Expr a, const DeviceVector<size_t>& picks) {
-  return Expression<CrossEntropyPickNodeOp>(a, picks);
+  auto sOrig = a->shape();
+  auto sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  return reshape(Expression<CrossEntropyPickNodeOp>(reshape(a, sTemp), picks),
+                 {sOrig[0], 1, sOrig[2], sOrig[3]});
 }
 
 }
