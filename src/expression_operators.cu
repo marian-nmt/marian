@@ -74,11 +74,15 @@ Expr operator-(Expr a) {
 };
 
 Expr softmax(Expr a) {
-  return Expression<SoftmaxNodeOp>(a);
+  auto sOrig = a->shape();
+  auto sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  return reshape(Expression<SoftmaxNodeOp>(reshape(a, sTemp)), sOrig);
 }
 
 Expr logsoftmax(Expr a) {
-  return Expression<LogSoftmaxNodeOp>(a);
+  auto sOrig = a->shape();
+  auto sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  return reshape(Expression<LogSoftmaxNodeOp>(reshape(a, sTemp)), sOrig);
 }
 
 Expr argmax(Expr a) {
@@ -104,7 +108,17 @@ Expr operator/(Expr a, Expr b) {
 }
 
 Expr dot(Expr a, Expr b) {
-  return Expression<DotNodeOp>(a, b);
+  auto shapeA = a->shape();
+  auto shapeB = b->shape();
+  if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1) {
+    a = debug(a, "before reshape");
+    auto ra = reshape(a, {shapeA[0] * shapeA[2] * shapeA[3], shapeA[1] , 1, 1});
+    return debug(reshape(debug(Expression<DotNodeOp>(debug(ra, "after reshape"), debug(b, "second")),"result before reshape"),
+                   {shapeA[0], shapeB[1], shapeA[2], shapeA[3]}), "result after reshape");
+  }
+  else {
+    return Expression<DotNodeOp>(a, b);
+  }
 }
 
 Expr transpose(Expr a) {

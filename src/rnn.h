@@ -211,7 +211,9 @@ class GRUWithAttention {
   public:
     GRUWithAttention(ParametersGRUWithAttention params, Expr context)
     : params_(params),
-      context_(context) {}
+      context_(context) {
+        mappedContext_ = dot(context_, params_.Ua);
+      }
 
     Expr apply(Expr input, Expr state) {
       using namespace keywords;
@@ -226,17 +228,16 @@ class GRUWithAttention {
       int srcWords = context_->shape()[2];
       int dimDecState = state->shape()[1];
 
-      auto E1 = dot(hidden, params_.Wa);
-      auto E2 = reshape(dot(reshape(context_, {dimBatch * srcWords, 2 * dimEncState}), params_.Ua),
-                        {dimBatch, 2 * dimDecState, srcWords});
+      auto mappedState = dot(hidden, params_.Wa);
 
-      auto temp = reshape(tanh(E1 + E2 + params_.ba), {dimBatch * srcWords, 2 * dimDecState});
+      auto temp = reshape(tanh(mappedState + mappedContext_ + params_.ba), {dimBatch * srcWords, 2 * dimDecState});
 
-      // horrible ->
+      // @TODO: horrible ->
       auto e = reshape(transpose(softmax(transpose(reshape(dot(temp, params_.va), {srcWords, dimBatch})))), {dimBatch, 1, srcWords});
       auto alignedSource = sum(context_ * e, axis=2) / sum(e, axis=2);
-      contexts_.push_back(alignedSource);
       // <- horrible
+      contexts_.push_back(alignedSource);
+
 
       auto aWc = dot(alignedSource, params_.Wc);
       auto hUc = dot(hidden, params_.Uc);
@@ -252,6 +253,7 @@ class GRUWithAttention {
   private:
     ParametersGRUWithAttention params_;
     Expr context_;
+    Expr mappedContext_;
     std::vector<Expr> contexts_;
 };
 

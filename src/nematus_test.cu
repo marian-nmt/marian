@@ -167,7 +167,7 @@ void construct(ExpressionGraphPtr g,
   for(auto& trgWordBatch : trgSentenceBatch) {
     for(auto w: trgWordBatch)
       picks.push_back(w);
-    if(outputs.size() + 1 < trgSentenceBatch.size()) {
+    if(outputs.size() < trgSentenceBatch.size()) {
       auto y = name(rows(Wemb_dec, trgWordBatch), "y_" + std::to_string(i++));
       outputs.push_back(y);
     }
@@ -204,6 +204,8 @@ void construct(ExpressionGraphPtr g,
 
     decParams.Ua = g->param("decoder_Wc_att", {2 * dimEncState, 2 * dimDecState},
                             init=glorot_uniform);
+    //decParams.Ua = g->param("decoder_Wc_att", {2 * dimEncState, 2 * dimDecState},
+    //                        init=diag(1));
 
     decParams.va = g->param("decoder_U_att", {2 * dimDecState, 1}, // ?
                             init=glorot_uniform);
@@ -239,17 +241,11 @@ void construct(ExpressionGraphPtr g,
                                     outputs.end(),
                                     decState0);
 
-  auto d1 = debug(reshape(concatenate(decStates, axis=2),
-                          {dimBatch * (int)decStates.size(), dimDecState}),
-                  "Decoder States");
-  auto e2 = debug(reshape(concatenate(outputs, axis=2),
-                          {dimBatch * (int)outputs.size(), dimSrcEmb}),
-                  "Embeddings");
+  auto d1 = concatenate(decStates, axis=2);
+  auto e2 = concatenate(outputs, axis=2);
 
   auto contexts = decoderGRU.getCell().getContexts();
-  auto c3 = debug(reshape(concatenate(contexts, axis=2),
-                         {dimBatch * (int)contexts.size(), 2*dimEncState}),
-                  "Concatenated contexts");
+  auto c3 = concatenate(contexts, axis=2);
 
   auto W1 = g->param("ff_logit_lstm_W", {dimDecState, dimTrgEmb},
                      init=glorot_uniform);
@@ -271,12 +267,12 @@ void construct(ExpressionGraphPtr g,
   auto b4 = g->param("ff_logit_b", {1, dimTrgVoc},
                      init=glorot_uniform);
 
-  auto b = b1 + b2 + b3;
-  auto t = tanh(dot(d1, W1) + dot(e2, W2) + dot(c3, W3) + b);
+  auto affine = [](Expr x, Expr w, Expr b) {
+    return dot(x, w) + b;
+  };
 
-  auto s = debug(reshape(softmax(dot(t, W4) + b4),
-                         {dimBatch, dimTrgVoc, (int)outputs.size()}),
-                 "softmax");
+  auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
+  auto s = debug(logsoftmax(affine(t, W4, b4)), "softmax");
 
   name(s, "softmax");
   //DeviceVector<size_t> devicePicks(picks.size());
@@ -299,11 +295,12 @@ SentBatch generateSrcBatch(size_t batchSize) {
     WordBatch(batchSize, 0)
   });
 
+  /*
   if(batchSize > 2) {
     srcBatch[0][1] = 109; // dies
     srcBatch[0][2] = 19;  // es
   }
-
+  */
   return srcBatch;
 }
 
@@ -323,12 +320,12 @@ SentBatch generateTrgBatch(size_t batchSize) {
 }
 
 int main(int argc, char** argv) {
-  cudaSetDevice(3);
+  cudaSetDevice(0);
 
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcin/marian/test/model.npz");
 
-  size_t batchSize = 1;
+  size_t batchSize = 3;
 
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1; ++i) {
@@ -340,12 +337,12 @@ int main(int argc, char** argv) {
     construct(g, srcBatch, trgBatch);
 
     g->forward();
-    std::cerr << g->get("softmax")->val()->get(0 * 85000 + 21) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(1 * 85000 + 11) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(2 * 85000 + 10) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(3 * 85000 + 1078) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(4 * 85000 + 5) << std::endl;
-    std::cerr << g->get("softmax")->val()->get(5 * 85000 + 0) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(batchSize * 0 * 85000 + 21) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(batchSize * 1 * 85000 + 11) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(batchSize * 2 * 85000 + 10) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(batchSize * 3 * 85000 + 1078) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(batchSize * 4 * 85000 + 5) << std::endl;
+    std::cerr << g->get("softmax")->val()->get(batchSize * 5 * 85000 + 0) << std::endl;
     //g->backward();
     if(i % 100 == 0)
       std::cout << i << std::endl;

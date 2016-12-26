@@ -62,6 +62,17 @@ std::function<void(Tensor)> from_value(float v) {
   };
 }
 
+std::function<void(Tensor)> diag(float val) {
+  return [val](Tensor t) {
+    if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1 && t->shape()[3] == 1) {
+      std::vector<float> vec(t->size(), 0);
+      for(int i = 0; i < t->shape()[0]; ++i)
+        vec[i * t->shape()[1] + i] = val;
+      t->set(vec);
+    }
+  };
+}
+
 
 template <class Distribution>
 void distribution(Tensor t, float a, float b) {
