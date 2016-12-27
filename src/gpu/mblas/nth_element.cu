@@ -275,7 +275,7 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
         (d_res + pos, d_res_idx + pos, d_out, N_BLOCKS);
 
       gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-        (d_out, d_ind, probs, d_res_idx + pos, 2 * BLOCK_SIZE * N_BLOCKS, N);
+        (d_out, d_ind, probs + batchFirstElementIdxs[batchIdx], d_res_idx + pos, 2 * BLOCK_SIZE * N_BLOCKS, N);
     }
   }
 }
@@ -283,23 +283,27 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst) {
-    std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
-    std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
+  std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
+  std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
-    const size_t vocabSize = Probs.Cols();
-    for (size_t i = 0; i < beamSizes.size(); ++i) {
-      cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
-      batchFirstElementIdxs[i] += ((isFirst) ? 1 : cummulatedBeamSizes[i + 1]) * vocabSize;
+  const size_t vocabSize = Probs.Cols();
+  for (size_t i = 0; i < beamSizes.size(); ++i) {
+    cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
+    batchFirstElementIdxs[i + 1] += ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
+  }
+
+  getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
+  GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
+
+  for (size_t i = 0; i < cummulatedBeamSizes.back(); ++i) {
+    std::cerr << i << " " << outKeys[i] << " " << outCosts[i] << std::endl;
+  }
+
+  for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+    for (int i = cummulatedBeamSizes[batchIdx]; i < cummulatedBeamSizes[batchIdx + 1]; ++i) {
+      outKeys[i] += batchFirstElementIdxs[batchIdx];
     }
-
-    getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
-    GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
-
-    for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-      for (int i = cummulatedBeamSizes[batchIdx]; i < cummulatedBeamSizes[batchIdx + 1]; ++i) {
-        outKeys[i] += batchFirstElementIdxs[batchIdx];
-      }
-    }
+  }
 }
 
 void NthElement::GetPairs(size_t number,
