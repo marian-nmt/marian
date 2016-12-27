@@ -259,52 +259,46 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
   HANDLE_ERROR( cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)) );
 }
 
-void NthElement::getNBestList(float* d_in, size_t N, size_t n, size_t pos) {
-  if (n == 0) return;
+void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
+                              const std::vector<int>& cummulatedBeamSizes) {
+  const int numBatches = batchFirstElementIdxs.size() - 1;
 
-  const int N_BLOCKS = std::min(500, int(N / (2 * BLOCK_SIZE)) + int(N % (2 * BLOCK_SIZE) != 0));
+  for (int batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
+    const int N = batchFirstElementIdxs[batchIdx + 1] - batchFirstElementIdxs[batchIdx];
+    const int N_BLOCKS = std::min(500, int(N / (2 * BLOCK_SIZE)) + int(N % (2 * BLOCK_SIZE) != 0));
 
-  gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (d_out, d_ind, d_in, N);
+    gMaxElement<<<N_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+      (d_out, d_ind, probs + batchFirstElementIdxs[batchIdx], N);
 
-  for (size_t i = 0; i < n; ++i) {
+    for (size_t pos = cummulatedBeamSizes[batchIdx]; pos < cummulatedBeamSizes[batchIdx + 1]; ++pos) {
+      gMaxElement<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+        (d_res + pos, d_res_idx + pos, d_out, N_BLOCKS);
 
-    gMaxElement<<<1, 512, 512 * sizeof(float), stream_>>>
-      (d_res + pos + i, d_res_idx + pos + i, d_out, N_BLOCKS);
-
-    gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-      (d_out, d_ind, d_in, d_res_idx + pos + i, 2 * BLOCK_SIZE * N_BLOCKS, N);
+      gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+        (d_out, d_ind, probs, d_res_idx + pos, 2 * BLOCK_SIZE * N_BLOCKS, N);
+    }
   }
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst) {
-    const size_t vocabSize = Probs.Cols();
-    size_t batchBegin = 0;
-    size_t cumBeamSize = 0;
+    std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
+    std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
-    for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-      const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
-      getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], cumBeamSize);
-      batchBegin += nElements;
-      cumBeamSize += beamSizes[batchIdx];
+    const size_t vocabSize = Probs.Cols();
+    for (size_t i = 0; i < beamSizes.size(); ++i) {
+      cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
+      batchFirstElementIdxs[i] += ((isFirst) ? 1 : cummulatedBeamSizes[i + 1]) * vocabSize;
     }
 
-    GetPairs(cumBeamSize, outKeys, outCosts);
-
-    batchBegin = 0;
-    cumBeamSize = 0;
+    getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
+    GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 
     for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-      const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
-
-      for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
-        outKeys[cumBeamSize + i] += batchBegin;
+      for (int i = cummulatedBeamSizes[batchIdx]; i < cummulatedBeamSizes[batchIdx + 1]; ++i) {
+        outKeys[i] += batchFirstElementIdxs[batchIdx];
       }
-
-      batchBegin += nElements;
-      cumBeamSize += beamSizes[batchIdx];
     }
 }
 

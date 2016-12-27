@@ -12,7 +12,8 @@ class NthElement {
   public:
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
 
-    void getNBestList(float* d_in, size_t N, size_t n, size_t pos=0);
+    void getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
+                              const std::vector<int>& cummulatedBeamSizes);
     void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                       std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                       const bool isFirst=false);
