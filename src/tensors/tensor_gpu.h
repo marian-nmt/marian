@@ -160,16 +160,22 @@ class DeviceGPU {
 
     void reserve(size_t size) {
       UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
-      float *temp;
-      CUDA_CHECK(cudaMalloc(&temp, size * sizeof(float)));
 
       if(data_) {
+        // Allocate memory by going through host memory
+        float *temp = new float[size_];
         CUDA_CHECK(cudaMemcpy(temp, data_, size_* sizeof(float),
-                   cudaMemcpyDeviceToDevice));
+                   cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaFree(data_));
+        CUDA_CHECK(cudaMalloc(&data_, size * sizeof(float)));
+        CUDA_CHECK(cudaMemcpy(data_, temp, size_* sizeof(float),
+                   cudaMemcpyHostToDevice));
+        delete[] temp;
+      }
+      else {
+         CUDA_CHECK(cudaMalloc(&data_, size * sizeof(float)));
       }
 
-      data_ = temp;
       size_ = size;
     }
 

@@ -272,18 +272,19 @@ void construct(ExpressionGraphPtr g,
   };
 
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
-  //auto s = debug(logsoftmax(affine(t, W4, b4)), "softmax");
+  //auto s = dot(t, W4);
   //name(s, "softmax");
 
   DeviceVector<size_t> devicePicks(picks.size());
   thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
 
   //auto p = debug(mean(cross_entropy(affine(t, W4, b4), devicePicks)), "cost");
-  auto p = mean(debug(sum(cross_entropy(affine(t, W4, b4), devicePicks), axis=2), "cost"), axis=0);
+  //auto cost = debug(mean(debug(sum(cross_entropy(affine(t, W4, b4), devicePicks), axis=2), "costs"), axis=0), "cost");
+  auto cost = mean(sum(cross_entropy(affine(t, W4, b4), devicePicks), axis=2), axis=0);
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
-  //size_t length = rand() % 40 + 10;
+  //size_t length = rand() % 30 + 10;
   //return SentBatch(length, WordBatch(batchSize));
 
   // das ist ein Test . </s>
@@ -297,16 +298,16 @@ SentBatch generateSrcBatch(size_t batchSize) {
   });
 
 
-  if(batchSize > 2) {
-    srcBatch[0][1] = 109; // dies
-    srcBatch[0][2] = 19;  // es
-  }
+  //if(batchSize > 2) {
+  //  srcBatch[0][1] = 109; // dies
+  //  srcBatch[0][2] = 19;  // es
+  //}
 
   return srcBatch;
 }
 
 SentBatch generateTrgBatch(size_t batchSize) {
-  //size_t length = rand() % 40 + 10;
+  //size_t length = rand() % 30 + 10;
   //return SentBatch(length, WordBatch(batchSize));
 
   // this is a test . </s>
@@ -326,7 +327,7 @@ int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcin/marian/test/model.npz");
 
-  size_t batchSize = 3;
+  size_t batchSize = 5;
 
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1; ++i) {
@@ -341,7 +342,7 @@ int main(int argc, char** argv) {
     g->backward();
 
     if(i % 100 == 0)
-      std::cout << i << std::endl;
+      std::cout << i << " " << timer.format(5, "%ws") << std::endl;
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;

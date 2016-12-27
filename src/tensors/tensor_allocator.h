@@ -43,7 +43,7 @@ class TensorAllocatorBase {
 template <class Device>
 class TensorAllocatorDerived : public TensorAllocatorBase {
   private:
-    const size_t CHUNK  = 128;
+    const size_t CHUNK  = 512;
     const size_t MBYTE  = 1024 * 1024;
     const size_t FLOATS = CHUNK * MBYTE / sizeof(float);
 
