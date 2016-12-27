@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <cuda.h>
+#include "gpu/mblas/matrix.h"
 
 namespace GPU {
 
@@ -12,6 +13,9 @@ class NthElement {
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
 
     void getNBestList(float* d_in, size_t N, size_t n, size_t pos=0);
+    void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+                      std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
+                      const bool isFirst=false);
 
     void GetPairs(size_t number,
                   std::vector<unsigned>& outKeys,

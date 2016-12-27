@@ -277,6 +277,37 @@ void NthElement::getNBestList(float* d_in, size_t N, size_t n, size_t pos) {
   }
 }
 
+void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+                  std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
+                  const bool isFirst) {
+    const size_t vocabSize = Probs.Cols();
+    size_t batchBegin = 0;
+    size_t cumBeamSize = 0;
+
+    for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+      const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
+      getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx], cumBeamSize);
+      batchBegin += nElements;
+      cumBeamSize += beamSizes[batchIdx];
+    }
+
+    GetPairs(cumBeamSize, outKeys, outCosts);
+
+    batchBegin = 0;
+    cumBeamSize = 0;
+
+    for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+      const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
+
+      for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
+        outKeys[cumBeamSize + i] += batchBegin;
+      }
+
+      batchBegin += nElements;
+      cumBeamSize += beamSizes[batchIdx];
+    }
+}
+
 void NthElement::GetPairs(size_t number,
                     std::vector<unsigned>& outKeys,
                     std::vector<float>& outValues) {

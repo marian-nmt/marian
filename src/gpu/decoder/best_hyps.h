@@ -16,7 +16,8 @@ namespace GPU {
 class BestHyps {
   public:
     BestHyps()
-    : nthElement_(God::Get<size_t>("beam-size"), God::Get<size_t>("batch-size"), mblas::CudaStreamHandler::GetStream()),
+    : nthElement_(God::Get<size_t>("beam-size"), God::Get<size_t>("batch-size"),
+                  mblas::CudaStreamHandler::GetStream()),
       keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
       Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
       weights_(God::GetScorerWeights())
@@ -30,35 +31,7 @@ class BestHyps {
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst) {
-      const size_t vocabSize = Probs.Cols();
-      size_t batchBegin = 0;
-      size_t cumBeamSize = 0;
-
-      // Debug(Probs);
-
-      for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-        const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
-        nthElement_.getNBestList(Probs.data() + batchBegin, nElements, beamSizes[batchIdx],
-                                 cumBeamSize);
-        batchBegin += nElements;
-        cumBeamSize += beamSizes[batchIdx];
-      }
-
-      nthElement_.GetPairs(cumBeamSize, outKeys, outCosts);
-
-      batchBegin = 0;
-      cumBeamSize = 0;
-
-      for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-        const size_t nElements = ((isFirst) ? 1 : beamSizes[batchIdx]) * vocabSize;
-
-        for (size_t i = 0; i < beamSizes[batchIdx]; ++i) {
-          outKeys[cumBeamSize + i] += batchBegin;
-        }
-
-        batchBegin += nElements;
-        cumBeamSize += beamSizes[batchIdx];
-      }
+      nthElement_.getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
     }
 
     std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
@@ -90,15 +63,9 @@ class BestHyps {
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
 
       HostVector<float> vCosts;
-      // std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..\n";
-      // std::cerr << "COSTS:" << std::endl;
-      // std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..\n";
-      // int ii = 0;
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
-        // std::cerr <<  ii++ << " " << h->GetCost() << "\n";
       }
-      // std::cerr << std::endl;
       mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
