@@ -12,7 +12,7 @@ namespace marian {
     // C = sum(-B * logsoftmax(A))
     if(!probs_)
       graph_->tensor(probs_, a_->val()->shape());
-      // this should be cached in a->grad()
+      // @TODO: this should be cached in a_->grad()
 
     CudnnLogSoftmax(probs_, a_->val());
 
