@@ -338,6 +338,7 @@ int main(int argc, char** argv) {
   auto trgBatch = generateTrgBatch(batchSize);
   construct(g, srcBatch, trgBatch);
   g->forward();
+  g->backward();
 
   //
   //boost::timer::cpu_timer timer;

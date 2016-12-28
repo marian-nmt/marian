@@ -161,7 +161,11 @@ struct ScalarProductNodeOp : public BinaryNodeOp {
   }
 
   void backward() {
-    UTIL_THROW2("Not implemented!");
+    // @TODO: check gradient
+    Element(_1 += _2 * _3,
+            a_->grad(), b_->val(), adj_);
+    Element(_1 += _2 * _3,
+            b_->grad(), a_->val(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -499,7 +503,14 @@ struct AffineNodeOp : public NaryNodeOp {
   }
 
   void backward() {
-    UTIL_THROW2("Not implemented");
+    // D is the adjoint, the matrix of derivatives
+    // df/dA += D*B.T
+    // df/dB += A.T*D
+    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
+    // to sum gradients from different graph parts
+    Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
+    Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
+    Element(_1 += _2, children_[2]->val(), adj_);
   }
 
   virtual std::string graphviz() {

@@ -80,7 +80,7 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
       // Take the result, and perform matrix addition on biases[i-1].
       // Wrap the result in rectified linear activation function,
       // and finally wrap that in a dropout node
-      layers.emplace_back(dropout(relu(dot(layers.back(), weights.back()) + biases.back()),
+      layers.emplace_back(dropout(relu(affine(layers.back(), weights.back(), biases.back())),
                                   value=0.5));
     }
 
@@ -100,14 +100,14 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
   }
 
   // Perform matrix multiplication and addition for the last layer
-  auto linear = dot(layers.back(), weights.back()) + biases.back();
+  auto last = affine(layers.back(), weights.back(), biases.back());
 
   // Define a top-level node for training
-  auto cost = name(mean(training(cross_entropy(linear, y)), axis=0),
+  auto cost = name(mean(training(cross_entropy(last, y)), axis=0),
                    "cost");
 
   // Define a top-level node for inference
-  auto scores = name(inference(softmax(linear)),
+  auto scores = name(inference(softmax(last)),
                      "scores");
 
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
