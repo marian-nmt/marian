@@ -38,6 +38,151 @@ using namespace thrust::placeholders;
 class TensorGPU;
 
 template <class Functor>
+__global__ void gReduce(Functor functor,
+                        float* out,
+                        Shape outShape,
+                        const float* in,
+                        const Shape inShape,
+                        const Shape full) {
+  int length = full.elements();
+  int dims[4];
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      full.dims(index, dims);
+      int outIndex = outShape.bindex(dims);
+      int inIndex = inShape.bindex(dims);
+      atomicAdd(out + outIndex,
+                functor(in[inIndex]));
+    }
+  }
+}
+
+template <class Functor, class T1, class T2>
+void Reduce(Functor functor,
+         T1 out, T2 in) {
+
+  auto full = out->shape();
+  for(int i = 0; i < in->shape().size(); ++i)
+    full.set(i, std::max(full[i], in->shape()[i]));
+
+  int length = full.elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  out->set(0);
+  gReduce<<<blocks, threads>>>(functor,
+                               out->data(), out->shape(),
+                               in->data(), in->shape(),
+                               full);
+  cudaStreamSynchronize(0);
+}
+
+template <class Functor>
+__global__ void gReduce(Functor functor,
+                        float* out,
+                        Shape outShape,
+                        const float* in1,
+                        const Shape in1Shape,
+                        const float* in2,
+                        const Shape in2Shape,
+                        const Shape full) {
+  int length = full.elements();
+  int dims[4];
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      full.dims(index, dims);
+      int outIndex = outShape.bindex(dims);
+      int in1Index = in1Shape.bindex(dims);
+      int in2Index = in2Shape.bindex(dims);
+      atomicAdd(out + outIndex,
+                functor(in1[in1Index], in2[in2Index]));
+    }
+  }
+}
+
+template <class Functor, class T1, class T2, class T3>
+void Reduce(Functor functor,
+            T1 out, T2 in1, T3 in2) {
+
+  auto full = out->shape();
+  for(int i = 0; i < in1->shape().size(); ++i)
+    full.set(i, std::max(full[i], in1->shape()[i]));
+  for(int i = 0; i < in2->shape().size(); ++i)
+    full.set(i, std::max(full[i], in2->shape()[i]));
+
+  int length = full.elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  out->set(0);
+  gReduce<<<blocks, threads>>>(functor,
+                               out->data(), out->shape(),
+                               in1->data(), in1->shape(),
+                               in2->data(), in2->shape(),
+                               full);
+  cudaStreamSynchronize(0);
+}
+
+template <class Functor>
+__global__ void gReduce(Functor functor,
+                        float* out,
+                        Shape outShape,
+                        const float* in1,
+                        const Shape in1Shape,
+                        const float* in2,
+                        const Shape in2Shape,
+                        const float* in3,
+                        const Shape in3Shape,
+                        const Shape full) {
+  int length = full.elements();
+  int dims[4];
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      full.dims(index, dims);
+      int outIndex = outShape.bindex(dims);
+      int in1Index = in1Shape.bindex(dims);
+      int in2Index = in2Shape.bindex(dims);
+      int in3Index = in3Shape.bindex(dims);
+      atomicAdd(out + outIndex,
+                functor(in1[in1Index], in2[in2Index], in3[in3Index]));
+    }
+  }
+}
+
+template <class Functor, class T1, class T2, class T3, class T4>
+void Reduce(Functor functor,
+            T1 out, T2 in1, T3 in2, T4 in3) {
+
+  auto full = out->shape();
+  for(int i = 0; i < in1->shape().size(); ++i)
+    full.set(i, std::max(full[i], in1->shape()[i]));
+  for(int i = 0; i < in2->shape().size(); ++i)
+    full.set(i, std::max(full[i], in2->shape()[i]));
+  for(int i = 0; i < in3->shape().size(); ++i)
+    full.set(i, std::max(full[i], in3->shape()[i]));
+
+  int length = full.elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  out->set(0);
+  gReduce<<<blocks, threads>>>(functor,
+                               out->data(), out->shape(),
+                               in1->data(), in1->shape(),
+                               in2->data(), in2->shape(),
+                               in3->data(), in3->shape(),
+                               full);
+  cudaStreamSynchronize(0);
+}
+
+
+template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out,
                          Shape outShape,
@@ -264,6 +409,46 @@ void Pick(Functor functor, T1 out, const T2 in, const DeviceVector<size_t>& pick
   cudaStreamSynchronize(0);
 }
 
+template <class Functor>
+__global__ void gPickReduce(Functor functor,
+                      float* out,
+                      Shape outShape,
+                      const float* in,
+                      const Shape inShape,
+                      const size_t* d_pick) {
+  int length = inShape.elements();
+  int dims[4];
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      inShape.dims(index, dims);
+      int row = dims[0];
+      int col = dims[1];
+      int outIndex = outShape.bindex(dims);
+      float picked = col == (int)d_pick[row];
+      float result = functor(in[index], picked);
+
+      if(result)
+        atomicAdd(out + outIndex, result);
+    }
+  }
+}
+
+template <class Functor, class T1, class T2>
+void PickReduce(Functor functor, T1 out, const T2 in, const DeviceVector<size_t>& picks) {
+
+  int length = in->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  out->set(0);
+  gPickReduce<<<blocks, threads>>>(functor, out->data(), out->shape(),
+                             in->data(), in->shape(),
+                             thrust::raw_pointer_cast(picks.data()));
+  cudaStreamSynchronize(0);
+}
+
 
 template <class Functor>
 __global__ void gPick(Functor functor,
@@ -322,9 +507,6 @@ void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 
 void Prod(Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta = 0);
-
-void Sum(Tensor out, const Tensor in, int axis=-1, bool mean=false);
-void SumBackward(Tensor out, const Tensor in, int axis=-1, bool mean=false);
 
 void CopyRowsByIndex(Tensor out, const Tensor in,
                      thrust::pair<size_t, size_t>* ipair, size_t length);

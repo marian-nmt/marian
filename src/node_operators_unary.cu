@@ -6,20 +6,17 @@ namespace marian {
     graph_->remove_top_node(a_);
   }
 
-    // We're caching the logsoftmax probabilities here because we'll need them for
+  // We're caching the logsoftmax probabilities here because we'll need them for
   // the backward computation.
   void CrossEntropyPickNodeOp::forward() {
     // C = sum(-B * logsoftmax(A))
     if(!probs_)
       graph_->tensor(probs_, a_->val()->shape());
+      // this should be cached in a->grad()
 
     CudnnLogSoftmax(probs_, a_->val());
 
-    if(!result_)
-      graph_->tensor(result_, a_->val()->shape());
-
-    Pick(_1 = -_2 * _3, result_, probs_, picks_);
-    Sum(val_, result_, 1);
+    PickReduce(-_1 * _2, val_, probs_, picks_);
   }
 
 

@@ -129,13 +129,60 @@ struct DotNodeOp : public BinaryNodeOp {
 
 };
 
+struct ScalarProductNodeOp : public BinaryNodeOp {
+  template <typename ...Args>
+  ScalarProductNodeOp(Expr a, Expr b, Args ...args)
+  : BinaryNodeOp(a, b,
+                 keywords::shape=newShape(a, b, args...),
+                 args...) { }
+
+  template <typename ...Args>
+  Shape newShape(Expr a, Expr b, Args ...args) {
+    int ax = keywords::Get(keywords::axis, -1, args...);
+    Shape full = a->shape();
+    for(int i = 0; i < b->shape().size(); ++i)
+      full.set(i, std::max(full[i], b->shape()[i]));
+
+    if(ax != -1) {
+      full.set(ax, 1);
+    }
+    else {
+      full.set(0, 1);
+      full.set(1, 1);
+      full.set(2, 1);
+      full.set(3, 1);
+    }
+    return full;
+  }
+
+  void forward() {
+    Reduce(_1 * _2,
+           val_, a_->val(), b_->val());
+  }
+
+  void backward() {
+    UTIL_THROW2("Not implemented!");
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("scalar-product")
+      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
+    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  };
+
+};
+
+
 struct ElementBinaryNodeOp : public BinaryNodeOp {
   template <typename ...Args>
   ElementBinaryNodeOp(Expr a, Expr b, Args ...args)
    : BinaryNodeOp(a, b,
                   keywords::shape=newShape(a, b),
                   args...) {}
-  
+
   Shape newShape(Expr a, Expr b) {
     Shape shape1 = a->shape();
     Shape shape2 = b->shape();
@@ -385,6 +432,85 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   };
 
   int ax_;
+};
+
+struct TanhPlus3NodeOp : public NaryNodeOp {
+  TanhPlus3NodeOp(const std::vector<Expr>& nodes)
+    : NaryNodeOp(nodes, keywords::shape=newShape(nodes)) { }
+
+  Shape newShape(const std::vector<Expr>& nodes) {
+    Shape shape = nodes[0]->shape();
+
+    for(int n = 1; n < nodes.size(); ++n) {
+      Shape shapen = nodes[n]->shape();
+      for(int i = 0; i < shapen.size(); ++i) {
+        UTIL_THROW_IF2(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
+                       "Shapes cannot be broadcasted");
+        shape.set(i, std::max(shape[i], shapen[i]));
+      }
+    }
+    return shape;
+  }
+
+  void forward() {
+    Element(_1 = Tanh(_2 + _3 + _4),
+            val_,
+            children_[0]->val(),
+            children_[1]->val(),
+            children_[2]->val());
+  }
+
+  void backward() {
+    Element(_1 += (1 - _2 * _2) * _3,
+            children_[0]->grad(), val_, adj_);
+    Element(_1 += (1 - _2 * _2) * _3,
+            children_[1]->grad(), val_, adj_);
+    Element(_1 += (1 - _2 * _2) * _3,
+            children_[2]->grad(), val_, adj_);
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("tanhPlus3")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    for(auto child : children_)
+      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
+    ss << std::endl;
+    return ss.str();
+  }
+};
+
+struct AffineNodeOp : public NaryNodeOp {
+  AffineNodeOp(const std::vector<Expr>& nodes)
+    : NaryNodeOp(nodes, keywords::shape=newShape(nodes)) { }
+
+  Shape newShape(const std::vector<Expr>& nodes) {
+    Shape shape1 = nodes[0]->shape();
+    Shape shape2 = nodes[1]->shape();
+    UTIL_THROW_IF2(shape1[1] != shape2[0],
+                   "matrix product requires dimensions to match");
+    shape1.set(1, shape2[1]);
+    return shape1;
+  }
+
+  void forward() {
+    Prod(val_, children_[0]->val(), children_[1]->val(), false, false);
+    Element(_1 += _2, val_, children_[2]->val());
+  }
+
+  void backward() {
+    UTIL_THROW2("Not implemented");
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("tanhPlus3")
+      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    for(auto child : children_)
+      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
+    ss << std::endl;
+    return ss.str();
+  }
 };
 
 

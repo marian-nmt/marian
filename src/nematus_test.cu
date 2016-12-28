@@ -157,6 +157,7 @@ void construct(ExpressionGraphPtr g,
 
   std::vector<Expr> outputs;
   auto emptyEmbedding = name(g->zeros(shape={dimBatch, dimTrgEmb}), "emptyEmbedding");
+
   outputs.push_back(emptyEmbedding);
 
   i = 0;
@@ -204,8 +205,6 @@ void construct(ExpressionGraphPtr g,
 
     decParams.Ua = g->param("decoder_Wc_att", {2 * dimEncState, 2 * dimDecState},
                             init=glorot_uniform);
-    //decParams.Ua = g->param("decoder_Wc_att", {2 * dimEncState, 2 * dimDecState},
-    //                        init=diag(1));
 
     decParams.va = g->param("decoder_U_att", {2 * dimDecState, 1}, // ?
                             init=glorot_uniform);
@@ -267,24 +266,21 @@ void construct(ExpressionGraphPtr g,
   auto b4 = g->param("ff_logit_b", {1, dimTrgVoc},
                      init=glorot_uniform);
 
-  auto affine = [](Expr x, Expr w, Expr b) {
-    return dot(x, w) + b;
-  };
-
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
-  //auto s = dot(t, W4);
-  //name(s, "softmax");
 
   DeviceVector<size_t> devicePicks(picks.size());
   thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
 
-  //auto p = debug(mean(cross_entropy(affine(t, W4, b4), devicePicks)), "cost");
-  //auto cost = debug(mean(debug(sum(cross_entropy(affine(t, W4, b4), devicePicks), axis=2), "costs"), axis=0), "cost");
-  auto cost = mean(sum(cross_entropy(affine(t, W4, b4), devicePicks), axis=2), axis=0);
+  auto aff = debug(affine(t, W4, b4), "aff");;
+  //auto s = debug(softmax(aff), "softmax");
+
+  auto xe = debug(cross_entropy(aff, devicePicks), "costs");
+  auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
   //size_t length = rand() % 30 + 10;
+  //size_t length = 50;
   //return SentBatch(length, WordBatch(batchSize));
 
   // das ist ein Test . </s>
@@ -308,10 +304,11 @@ SentBatch generateSrcBatch(size_t batchSize) {
 
 SentBatch generateTrgBatch(size_t batchSize) {
   //size_t length = rand() % 30 + 10;
+  //size_t length = 50;
   //return SentBatch(length, WordBatch(batchSize));
 
   // this is a test . </s>
-  return SentBatch({
+  SentBatch trgBatch({
     WordBatch(batchSize, 21),
     WordBatch(batchSize, 11),
     WordBatch(batchSize, 10),
@@ -319,6 +316,14 @@ SentBatch generateTrgBatch(size_t batchSize) {
     WordBatch(batchSize, 5),
     WordBatch(batchSize, 0)
   });
+
+  if(batchSize > 2) {
+    trgBatch[0][1] = 12; // that
+    trgBatch[1][1] = 17; // 's
+    trgBatch[0][2] = 12;  // that
+  }
+
+  return trgBatch;
 }
 
 int main(int argc, char** argv) {
@@ -327,25 +332,31 @@ int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
   load(g, "/home/marcin/marian/test/model.npz");
 
-  size_t batchSize = 5;
+  size_t batchSize = 3;
 
-  boost::timer::cpu_timer timer;
-  for(int i = 1; i <= 1; ++i) {
-    g->clear();
+  auto srcBatch = generateSrcBatch(batchSize);
+  auto trgBatch = generateTrgBatch(batchSize);
+  construct(g, srcBatch, trgBatch);
+  g->forward();
 
-    // fake batch
-    auto srcBatch = generateSrcBatch(batchSize);
-    auto trgBatch = generateTrgBatch(batchSize);
-    construct(g, srcBatch, trgBatch);
-
-    g->forward();
-    g->backward();
-
-    if(i % 100 == 0)
-      std::cout << i << " " << timer.format(5, "%ws") << std::endl;
-  }
-  std::cout << std::endl;
-  std::cout << timer.format(5, "%ws") << std::endl;
+  //
+  //boost::timer::cpu_timer timer;
+  //for(int i = 1; i <= 1000; ++i) {
+  //  g->clear();
+  //
+  //  // fake batch
+  //  auto srcBatch = generateSrcBatch(batchSize);
+  //  auto trgBatch = generateTrgBatch(batchSize);
+  //  construct(g, srcBatch, trgBatch);
+  //
+  //  g->forward();
+  //  //g->backward();
+  //
+  //  if(i % 100 == 0)
+  //    std::cout << i << " " << timer.format(5, "%ws") << std::endl;
+  //}
+  //std::cout << std::endl;
+  //std::cout << timer.format(5, "%ws") << std::endl;
 
   return 0;
 }

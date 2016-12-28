@@ -108,7 +108,8 @@ class TensorGPU : public TensorBase {
       strm << "shape=" << shape_[0];
       for(int i = 1; i < shape_.size(); ++i)
          strm << "x" << shape_[i];
-      strm << std::endl;
+      strm << " size=" << shape_.elements()
+         << " (" << shape_.elements() * sizeof(float) << "B)" << std::endl;
 
       // values
       size_t totSize = shape_.elements();
@@ -128,7 +129,8 @@ class TensorGPU : public TensorBase {
                              + j * shape().stride(1)
                              + k * shape().stride(2) ] << " ";
             }
-            strm << "... ";
+            if(shape()[1] > 3)
+               strm << "... ";
             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
               strm << std::setw(9)
                    << values[  i * shape().stride(0)

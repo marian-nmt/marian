@@ -24,7 +24,7 @@ namespace marian {
     Element(_1 = -_2 * _3, result_, b_->val(), probs_);
     //Pick(result, probs_, ids);
 
-    Sum(val_, result_, 1);
+    Reduce(_1, val_, result_);
   }
 
   void NaryNodeOp::remove_children_from_top_nodes() {

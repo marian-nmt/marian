@@ -296,11 +296,11 @@ struct SumNodeOp : public UnaryNodeOp {
     : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
 
   void forward() {
-    Sum(val_, a_->val(), Get(keywords::axis, -1));
+    Reduce(_1, val_, a_->val());
   }
 
   void backward() {
-    SumBackward(a_->grad(), adj_, Get(keywords::axis, -1));
+    Element(_1 += _2, a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -335,11 +335,15 @@ struct MeanNodeOp : public UnaryNodeOp {
     : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
 
   void forward() {
-    Sum(val_, a_->val(), Get(keywords::axis, -1), true);
+    int left = a_->shape().elements() / val_->shape().elements();
+    float scale = 1.f / left;
+    Reduce(_1 * scale, val_, a_->val());
   }
 
   void backward() {
-    SumBackward(a_->grad(), adj_, Get(keywords::axis, -1), true);
+    int left = a_->shape().elements() / val_->shape().elements();
+    float scale = 1.f / left;
+    Element(_1 += _2 * scale, a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -573,7 +577,6 @@ struct CrossEntropyPickNodeOp : public UnaryNodeOp {
  protected:
   const DeviceVector<size_t> picks_;
   Tensor probs_;
-  Tensor result_;
 };
 
 

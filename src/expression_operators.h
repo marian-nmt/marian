@@ -128,4 +128,20 @@ Expr mean(Expr a, Args ...args) {
 Expr cross_entropy(Expr a, Expr b);
 Expr cross_entropy(Expr a, const DeviceVector<size_t>& b);
 
+Expr tanhPlus3(Expr a, Expr b, Expr c);
+
+Expr affine(Expr a, Expr b, Expr c);
+
+template <typename ...Args>
+Expr scalar_product(Expr a, Expr b, Args ...args) {
+  return Expression<ScalarProductNodeOp>(a, b, args...);
+}
+
+template <typename ...Args>
+Expr weighted_average(Expr in, Expr weights, Args ...args) {
+  //return sum(in * weights, args...) / sum(weights, args...);
+  return scalar_product(in, weights, args...) / sum(weights, args...);
+}
+
+
 }

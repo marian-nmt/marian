@@ -224,20 +224,25 @@ class GRUWithAttention {
       auto hidden = grufast({state, xW, sU, params_.b});
 
       int dimBatch = context_->shape()[0];
-      int dimEncState = context_->shape()[1] / 2;
       int srcWords = context_->shape()[2];
-      int dimDecState = state->shape()[1];
 
       auto mappedState = dot(hidden, params_.Wa);
 
-      auto temp = reshape(tanh(mappedState + mappedContext_ + params_.ba), {dimBatch * srcWords, 2 * dimDecState});
+      auto temp = tanhPlus3(mappedState, mappedContext_ , params_.ba);
 
       // @TODO: horrible ->
-      auto e = reshape(transpose(softmax(transpose(reshape(dot(temp, params_.va), {srcWords, dimBatch})))), {dimBatch, 1, srcWords});
-      auto alignedSource = sum(context_ * e, axis=2) / sum(e, axis=2);
+      auto e = reshape(
+        transpose(
+          softmax(
+            transpose(
+              reshape(
+                dot(temp, params_.va),
+                {srcWords, dimBatch})))),
+        {dimBatch, 1, srcWords});
       // <- horrible
-      contexts_.push_back(alignedSource);
 
+      auto alignedSource = weighted_average(context_, e, axis=2);
+      contexts_.push_back(alignedSource);
 
       auto aWc = dot(alignedSource, params_.Wc);
       auto hUc = dot(hidden, params_.Uc);

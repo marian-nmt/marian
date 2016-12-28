@@ -75,13 +75,13 @@ Expr operator-(Expr a) {
 
 Expr softmax(Expr a) {
   auto sOrig = a->shape();
-  auto sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
   return reshape(Expression<SoftmaxNodeOp>(reshape(a, sTemp)), sOrig);
 }
 
 Expr logsoftmax(Expr a) {
   auto sOrig = a->shape();
-  auto sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
   return reshape(Expression<LogSoftmaxNodeOp>(reshape(a, sTemp)), sOrig);
 }
 
@@ -130,9 +130,31 @@ Expr cross_entropy(Expr a, Expr b) {
 
 Expr cross_entropy(Expr a, const DeviceVector<size_t>& picks) {
   auto sOrig = a->shape();
-  auto sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
   return reshape(Expression<CrossEntropyPickNodeOp>(reshape(a, sTemp), picks),
                  {sOrig[0], 1, sOrig[2], sOrig[3]});
+}
+
+// @TODO: should be done automatically:
+
+Expr tanhPlus3(Expr a, Expr b, Expr c) {
+  std::vector<Expr> nodes = {a, b, c};
+  return Expression<TanhPlus3NodeOp>(nodes);
+}
+
+Expr affine(Expr a, Expr b, Expr c) {
+  auto shapeA = a->shape();
+  auto shapeB = b->shape();
+  if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1) {
+    auto ra = reshape(a, {shapeA[0] * shapeA[2] * shapeA[3], shapeA[1] , 1, 1});
+    std::vector<Expr> nodes = {ra, b, c};
+    return reshape(Expression<AffineNodeOp>(nodes),
+                   {shapeA[0], shapeB[1], shapeA[2], shapeA[3]});
+  }
+  else {
+    std::vector<Expr> nodes = {a, b, c};
+    return Expression<AffineNodeOp>(nodes);
+  }
 }
 
 }
