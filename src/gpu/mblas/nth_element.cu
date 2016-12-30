@@ -35,7 +35,6 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
 
     sdata[tid] = -3.40282e+38f;
 
-    /* if (i >= end) return; */
     if (i < end) {
       sdata[tid] = d_in[i];
       indices[tid] = i;
@@ -94,148 +93,152 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
       d_out[blockIdx.x + batchIdx * gridDim.x] = sdata[0];
       d_ind[blockIdx.x + batchIdx * gridDim.x] = indices[0];
     }
+    __syncthreads();
   }
 }
 
-__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int batchBeginIdx, int batchEndIdx, int num_bins, float* bestCost, int* blockID) {
+__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int batchBeginIdx, int batchEndIdx, int num_bins, float* bestCost, int* blockID, int beamBegin, int beamEnd) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
   __shared__ float bestBinCost;
   __shared__ int bestBinCostIdx;
 
   const int tid = threadIdx.x;
-  int i = blockIdx.x * (blockDim.x * 2) + tid;
+  for (int pos = beamBegin; pos < beamEnd; ++pos) {
+    int i = blockIdx.x * (blockDim.x * 2) + tid;
 
-  sdata[tid] = -3.40282e+38f;
+    sdata[tid] = -3.40282e+38f;
 
-  if (i < num_bins) {
-    sdata[tid] = binCosts[i];
-    indices[tid] = i;
-  }
-
-  if (i + blockDim.x < num_bins) {
-    float a = binCosts[i];
-    float b = binCosts[i+blockDim.x];
-    if (a > b) {
-      sdata[tid] = a;
-      indices[tid] = i;
-    } else {
-      sdata[tid] = b;
-      indices[tid] = i + blockDim.x;
-    }
-  }
-
-  while (i + 2 * blockDim.x < num_bins) {
-    i += 2 * blockDim.x;
-
-    float a = binCosts[i];
-    if (a > sdata[tid]) {
-      sdata[tid] = a;
+    if (i < num_bins) {
+      sdata[tid] = binCosts[i];
       indices[tid] = i;
     }
 
     if (i + blockDim.x < num_bins) {
-      float b = binCosts[i + blockDim.x];
-      if (b > sdata[tid]) {
+      float a = binCosts[i];
+      float b = binCosts[i+blockDim.x];
+      if (a > b) {
+        sdata[tid] = a;
+        indices[tid] = i;
+      } else {
         sdata[tid] = b;
         indices[tid] = i + blockDim.x;
       }
     }
-  }
 
-  __syncthreads();
+    while (i + 2 * blockDim.x < num_bins) {
+      i += 2 * blockDim.x;
 
-  for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
-    if (tid < s && tid + s < num_bins) {
-      if (sdata[tid + s] > sdata[tid]) {
-        sdata[tid] = sdata[tid + s];
-        indices[tid] = indices[tid + s];
+      float a = binCosts[i];
+      if (a > sdata[tid]) {
+        sdata[tid] = a;
+        indices[tid] = i;
+      }
+
+      if (i + blockDim.x < num_bins) {
+        float b = binCosts[i + blockDim.x];
+        if (b > sdata[tid]) {
+          sdata[tid] = b;
+          indices[tid] = i + blockDim.x;
+        }
       }
     }
+
     __syncthreads();
-  }
 
-  UNROLL_MAXARG_LOOP(32, num_bins);
-  UNROLL_MAXARG_LOOP(16, num_bins);
-  UNROLL_MAXARG_LOOP(8, num_bins);
-  UNROLL_MAXARG_LOOP(4, num_bins);
-  UNROLL_MAXARG_LOOP(2, num_bins);
-  UNROLL_MAXARG_LOOP(1, num_bins);
-
-  if (tid == 0) {
-    bestBinCost = sdata[0];
-    bestBinCostIdx = indices[0];
-
-    probs[binIdxs[bestBinCostIdx]] = -3.40282e+38f;
-
-    *blockID = binIdxs[bestBinCostIdx];
-    *bestCost = bestBinCost;
-  }
-
-  __syncthreads();
-
-  i = batchBeginIdx + bestBinCostIdx * (blockDim.x * 2) + tid;
-  const int dist = num_bins * 2 * blockDim.x;
-
-  sdata[tid] = -3.40282e+38f;
-
-  if (i < batchEndIdx) {
-    sdata[tid] = probs[i];
-    indices[tid] = i;
-  }
-
-  if (i + blockDim.x < batchEndIdx) {
-    float a = probs[i];
-    float b = probs[i+blockDim.x];
-    if (a > b) {
-      sdata[tid] = a;
-      indices[tid] = i;
-    } else {
-      sdata[tid] = b;
-      indices[tid] = i + blockDim.x;
+    for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
+      if (tid < s && tid + s < num_bins) {
+        if (sdata[tid + s] > sdata[tid]) {
+          sdata[tid] = sdata[tid + s];
+          indices[tid] = indices[tid + s];
+        }
+      }
+      __syncthreads();
     }
-  }
 
-  while (i + dist < batchEndIdx) {
-    i += dist;
+    UNROLL_MAXARG_LOOP(32, num_bins);
+    UNROLL_MAXARG_LOOP(16, num_bins);
+    UNROLL_MAXARG_LOOP(8, num_bins);
+    UNROLL_MAXARG_LOOP(4, num_bins);
+    UNROLL_MAXARG_LOOP(2, num_bins);
+    UNROLL_MAXARG_LOOP(1, num_bins);
 
-    float a = probs[i];
-    if (a > sdata[tid]) {
-      sdata[tid] = a;
+    if (tid == 0) {
+      bestBinCost = sdata[0];
+      bestBinCostIdx = indices[0];
+
+      probs[binIdxs[bestBinCostIdx]] = -3.40282e+38f;
+
+      blockID[pos] = binIdxs[bestBinCostIdx];
+      bestCost[pos] = bestBinCost;
+    }
+
+    __syncthreads();
+
+    i = batchBeginIdx + bestBinCostIdx * (blockDim.x * 2) + tid;
+    const int dist = num_bins * 2 * blockDim.x;
+
+    sdata[tid] = -3.40282e+38f;
+
+    if (i < batchEndIdx) {
+      sdata[tid] = probs[i];
       indices[tid] = i;
     }
 
     if (i + blockDim.x < batchEndIdx) {
-      float b = probs[i + blockDim.x];
-      if (b > sdata[tid]) {
+      float a = probs[i];
+      float b = probs[i+blockDim.x];
+      if (a > b) {
+        sdata[tid] = a;
+        indices[tid] = i;
+      } else {
         sdata[tid] = b;
         indices[tid] = i + blockDim.x;
       }
     }
-  }
 
-  __syncthreads();
+    while (i + dist < batchEndIdx) {
+      i += dist;
 
-  for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
-    if (tid < s && tid + s < batchEndIdx) {
-      if (sdata[tid + s] > sdata[tid]) {
-        sdata[tid] = sdata[tid + s];
-        indices[tid] = indices[tid + s];
+      float a = probs[i];
+      if (a > sdata[tid]) {
+        sdata[tid] = a;
+        indices[tid] = i;
+      }
+
+      if (i + blockDim.x < batchEndIdx) {
+        float b = probs[i + blockDim.x];
+        if (b > sdata[tid]) {
+          sdata[tid] = b;
+          indices[tid] = i + blockDim.x;
+        }
       }
     }
+
     __syncthreads();
-  }
 
-  UNROLL_MAXARG_LOOP(32, batchEndIdx);
-  UNROLL_MAXARG_LOOP(16, batchEndIdx);
-  UNROLL_MAXARG_LOOP(8, batchEndIdx);
-  UNROLL_MAXARG_LOOP(4, batchEndIdx);
-  UNROLL_MAXARG_LOOP(2, batchEndIdx);
-  UNROLL_MAXARG_LOOP(1, batchEndIdx);
+    for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
+      if (tid < s && tid + s < batchEndIdx) {
+        if (sdata[tid + s] > sdata[tid]) {
+          sdata[tid] = sdata[tid + s];
+          indices[tid] = indices[tid + s];
+        }
+      }
+      __syncthreads();
+    }
 
-  if (tid == 0) {
-    binCosts[bestBinCostIdx] = sdata[0];
-    binIdxs[bestBinCostIdx] = indices[0];
+    UNROLL_MAXARG_LOOP(32, batchEndIdx);
+    UNROLL_MAXARG_LOOP(16, batchEndIdx);
+    UNROLL_MAXARG_LOOP(8, batchEndIdx);
+    UNROLL_MAXARG_LOOP(4, batchEndIdx);
+    UNROLL_MAXARG_LOOP(2, batchEndIdx);
+    UNROLL_MAXARG_LOOP(1, batchEndIdx);
+
+    if (tid == 0) {
+      binCosts[bestBinCostIdx] = sdata[0];
+      binIdxs[bestBinCostIdx] = indices[0];
+    }
+    __syncthreads();
   }
 }
 
@@ -276,61 +279,40 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
 
-  /* std::cerr << "Computing maxing in buckets." << std::endl; */
   gMaxElement<<<NUM_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (d_out, d_ind, probs, numBatches, d_batchPosition);
 
-  /* cudaStreamSynchronize(stream_); */
-  /* HANDLE_ERROR( cudaPeekAtLastError() ); */
-  /* HANDLE_ERROR( cudaDeviceSynchronize() ); */
-
-  /* int tmp[NUM_BLOCKS * numBatches]; */
-  /* float tmpf[NUM_BLOCKS * numBatches]; */
-  /* HANDLE_ERROR( cudaMemcpyAsync(tmp, d_ind, NUM_BLOCKS * numBatches * sizeof(int), */
-                                /* cudaMemcpyDeviceToHost, stream_) ); */
-  /* HANDLE_ERROR( cudaMemcpyAsync(tmpf, d_out, NUM_BLOCKS * numBatches * sizeof(float), */
-                                /* cudaMemcpyDeviceToHost, stream_) ); */
-  /* cudaStreamSynchronize(stream_); */
-  /* HANDLE_ERROR( cudaPeekAtLastError() ); */
-  /* HANDLE_ERROR( cudaDeviceSynchronize() ); */
-  /* for (int k = 0; k < numBatches; ++k) { */
-    /* for (int i = 0; i < NUM_BLOCKS; ++i) std::cerr << tmp[k * NUM_BLOCKS + i] << ":" << tmpf[k * NUM_BLOCKS + i] << "\t"; */
-    /* std::cerr << std::endl; */
-  /* } */
 
   for (int batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
     const int N = batchFirstElementIdxs[batchIdx + 1] - batchFirstElementIdxs[batchIdx];
     const int NUM_BUCKETS(std::min(500, int(N / (2 * BLOCK_SIZE)) + int(N % (2 * BLOCK_SIZE) != 0)));
-    /* std::cerr << "batch idx: " << batchIdx << std::endl; */
-    /* std::cerr << "N: " << N << std::endl; */
-    /* std::cerr << "NUM_BLOCKS: " << NUM_BLOCKS << std::endl; */
-    /* std::cerr << "BLOCK_SIZE: " << BLOCK_SIZE << std::endl; */
-    /* std::cerr << "NUM_BUCKETS: " << NUM_BUCKETS << std::endl; */
 
-    for (size_t pos = cummulatedBeamSizes[batchIdx]; pos < cummulatedBeamSizes[batchIdx + 1]; ++pos) {
-      gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-        (d_out + batchIdx * NUM_BLOCKS,
-         d_ind + batchIdx * NUM_BLOCKS,
-         probs,
-         batchFirstElementIdxs[batchIdx],
-         batchFirstElementIdxs[batchIdx + 1],
-         NUM_BLOCKS,
-         d_res + pos,
-         d_res_idx + pos);
+    gMaxElementUpdate<<<1, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+      (d_out + batchIdx * NUM_BLOCKS,
+        d_ind + batchIdx * NUM_BLOCKS,
+        probs,
+        batchFirstElementIdxs[batchIdx],
+        batchFirstElementIdxs[batchIdx + 1],
+        NUM_BUCKETS,
+        d_res,
+        d_res_idx,
+        cummulatedBeamSizes[batchIdx],
+        cummulatedBeamSizes[batchIdx + 1]);
 
       /* cudaStreamSynchronize(stream_); */
       /* HANDLE_ERROR( cudaPeekAtLastError() ); */
       /* HANDLE_ERROR( cudaDeviceSynchronize() ); */
-
-      /* int tt; */
-      /* HANDLE_ERROR( cudaMemcpyAsync(&tt, d_res_idx + pos, sizeof(int), */
+      /* int beamSize = cummulatedBeamSizes[batchIdx + 1] - cummulatedBeamSizes[batchIdx]; */
+      /* int tt[beamSize]; */
+      /* HANDLE_ERROR( cudaMemcpyAsync(tt, d_res_idx + cummulatedBeamSizes[batchIdx], beamSize * sizeof(int), */
                                     /* cudaMemcpyDeviceToHost, stream_) ); */
       /* cudaStreamSynchronize(stream_); */
       /* HANDLE_ERROR( cudaPeekAtLastError() ); */
       /* HANDLE_ERROR( cudaDeviceSynchronize() ); */
 
-      /* std::cerr << "TT: " << tt << std::endl; */
-    }
+      /* std::cerr << "TT: "; */
+      /* for (int i = 0; i < beamSize; ++i) std::cerr << tt[i] << " "; */
+      /* std::cerr << std::endl; */
   }
 }
 
