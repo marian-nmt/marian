@@ -15,16 +15,7 @@ namespace marian {
       graph_->tensor(probs_, a_->val()->shape());
 
     CudnnLogSoftmax(probs_, a_->val());
-
-    if(!result_)
-      graph_->tensor(result_, a_->val()->shape());
-
-    // ... 0 0 1 0 0 ... | 12
-    // ... 1 0 0 0 0 ... | 10
-    Element(_1 = -_2 * _3, result_, b_->val(), probs_);
-    //Pick(result, probs_, ids);
-
-    Reduce(_1, val_, result_);
+    PickReduce(-_1 * _2, val_, probs_, b_->val());
   }
 
   void NaryNodeOp::remove_children_from_top_nodes() {

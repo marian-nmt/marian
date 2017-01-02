@@ -142,10 +142,10 @@ class MNIST : public DataBase {
 
       std::vector<DataPtr> _dataset(number_of_labels);
       for (int i = 0; i < number_of_labels; i++) {
-        _dataset[i].reset(new Data(10, 0.0f));
+        _dataset[i].reset(new Data(1, 0.0f));
         unsigned char label;
         file.read((char*)&label, 1);
-        (*_dataset[i])[(int)(label)] = 1.0f;
+        (*_dataset[i])[0] = label;
       }
 
       return _dataset;

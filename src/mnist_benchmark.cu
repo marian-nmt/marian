@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 
   auto ff = New<ExpressionGraph>();
   FeedforwardClassifier(
-    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)}, batchSize);
+    ff, {trainSet->dim(0), 2048, 2048, 10}, batchSize);
 
   ff->graphviz("mnist_benchmark.dot");
 
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   trainer->run();
 
   FeedforwardClassifier(
-    ff, {trainSet->dim(0), 2048, 2048, trainSet->dim(1)}, batchSize);
+    ff, {trainSet->dim(0), 2048, 2048, 10}, batchSize);
 
   auto validator =
     Run<Validator>(ff, validSet,

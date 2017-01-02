@@ -82,17 +82,16 @@ class Validator : public RunBase,
     data::DataBasePtr dataset_;
 
     float correct(const std::vector<float> pred, const std::vector<float> labels) {
+      size_t num = labels.size();
+      size_t scores = pred.size() / num;
       size_t acc = 0;
-      for (size_t i = 0; i < labels.size(); i += 10) {
-        size_t correct = 0;
+      for (size_t i = 0; i < num; ++i) {
         size_t proposed = 0;
-        for (size_t j = 0; j < 10; ++j) {
-          if (labels[i + j])
-            correct = j;
-          if (pred[i + j] > pred[i + proposed])
+        for(size_t j = 0; j < scores; ++j) {
+          if(pred[i * scores + j] > pred[i * scores + proposed])
             proposed = j;
         }
-        acc += (correct == proposed);
+        acc += (proposed == labels[i]);
       }
       return (float)acc;
     }

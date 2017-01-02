@@ -346,7 +346,7 @@ template <class Functor>
 __global__ void gPick(Functor functor,
                       float* out,
                       Shape outShape,
-                      const size_t* d_pick) {
+                      const float* pick) {
   int length = outShape.elements();
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
@@ -355,14 +355,14 @@ __global__ void gPick(Functor functor,
       outShape.dims(index, dims);
       int row = dims[0];
       int col = dims[1];
-      float picked = col == (int)d_pick[row];
+      float picked = col == (int)pick[row];
       out[index] = functor(out[index], picked);
     }
   }
 }
 
-template <class Functor, class T1>
-void Pick(Functor functor, T1 out, const DeviceVector<size_t>& picks) {
+template <class Functor, class T1, class T2>
+void Pick(Functor functor, T1 out, const T2 picks) {
 
   int length = out->shape().elements();
 
@@ -370,7 +370,7 @@ void Pick(Functor functor, T1 out, const DeviceVector<size_t>& picks) {
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   gPick<<<blocks, threads>>>(functor, out->data(), out->shape(),
-                             thrust::raw_pointer_cast(picks.data()));
+                             picks->data());
   cudaStreamSynchronize(0);
 }
 
@@ -380,23 +380,25 @@ __global__ void gPick(Functor functor,
                       float* out,
                       Shape outShape,
                       const float* in,
-                      const size_t* d_pick) {
+                      const Shape inShape,
+                      const float* pick) {
   int length = outShape.elements();
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if (index < length) {
       outShape.dims(index, dims);
+      int inIndex = inShape.bindex(dims);
       int row = dims[0];
       int col = dims[1];
-      float picked = col == (int)d_pick[row];
-      out[index] = functor(out[index], in[index], picked);
+      float picked = col == (int)pick[row];
+      out[index] = functor(out[index], in[inIndex], picked);
     }
   }
 }
 
-template <class Functor, class T1, class T2>
-void Pick(Functor functor, T1 out, const T2 in, const DeviceVector<size_t>& picks) {
+template <class Functor, class T1, class T2, class T3>
+void Pick(Functor functor, T1 out, const T2 in, const T3 picks) {
 
   int length = out->shape().elements();
 
@@ -404,8 +406,8 @@ void Pick(Functor functor, T1 out, const T2 in, const DeviceVector<size_t>& pick
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   gPick<<<blocks, threads>>>(functor, out->data(), out->shape(),
-                             in->data(),
-                             thrust::raw_pointer_cast(picks.data()));
+                             in->data(), in->shape(),
+                             picks->data());
   cudaStreamSynchronize(0);
 }
 
@@ -415,7 +417,7 @@ __global__ void gPickReduce(Functor functor,
                       Shape outShape,
                       const float* in,
                       const Shape inShape,
-                      const size_t* d_pick) {
+                      const float* pick) {
   int length = inShape.elements();
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
@@ -425,17 +427,17 @@ __global__ void gPickReduce(Functor functor,
       int row = dims[0];
       int col = dims[1];
       int outIndex = outShape.bindex(dims);
-      float picked = col == (int)d_pick[row];
+      float picked = col == (int)pick[row];
       float result = functor(in[index], picked);
-
+      
       if(result)
         atomicAdd(out + outIndex, result);
     }
   }
 }
 
-template <class Functor, class T1, class T2>
-void PickReduce(Functor functor, T1 out, const T2 in, const DeviceVector<size_t>& picks) {
+template <class Functor, class T1, class T2, class T3>
+void PickReduce(Functor functor, T1 out, const T2 in, const T3 picks) {
 
   int length = in->shape().elements();
 
@@ -445,7 +447,7 @@ void PickReduce(Functor functor, T1 out, const T2 in, const DeviceVector<size_t>
   out->set(0);
   gPickReduce<<<blocks, threads>>>(functor, out->data(), out->shape(),
                              in->data(), in->shape(),
-                             thrust::raw_pointer_cast(picks.data()));
+                             picks->data());
   cudaStreamSynchronize(0);
 }
 
@@ -455,24 +457,28 @@ __global__ void gPick(Functor functor,
                       float* out,
                       Shape outShape,
                       const float* in1,
+                      const Shape inShape1,
                       const float* in2,
-                      const size_t* d_pick) {
+                      const Shape inShape2,
+                      const float* pick) {
   int length = outShape.elements();
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if (index < length) {
       outShape.dims(index, dims);
+      int inIndex1 = inShape1.bindex(dims);
+      int inIndex2 = inShape2.bindex(dims);
       int row = dims[0];
       int col = dims[1];
-      float picked = col == (int)d_pick[row];
-      out[index] = functor(out[index], in1[index], in2[index], picked);
+      float picked = col == (int)pick[row];
+      out[index] = functor(out[index], in1[inIndex1], in2[inIndex2], picked);
     }
   }
 }
 
-template <class Functor, class T1, class T2, class T3>
-void Pick(Functor functor, T1 out, const T2 in1, const T3 in2, const DeviceVector<size_t>& picks) {
+template <class Functor, class T1, class T2, class T3, class T4>
+void Pick(Functor functor, T1 out, const T2 in1, const T3 in2, const T4 picks) {
 
   int length = out->shape().elements();
 
@@ -480,8 +486,11 @@ void Pick(Functor functor, T1 out, const T2 in1, const T3 in2, const DeviceVecto
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   gPick<<<blocks, threads>>>(functor, out->data(), out->shape(),
-                             in1->data(), in2->data(),
-                             thrust::raw_pointer_cast(picks.data()));
+                             in1->data(),
+                             in1->shape(),
+                             in2->data(),
+                             in2->shape(),
+                             picks->data());
   cudaStreamSynchronize(0);
 }
 

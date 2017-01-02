@@ -64,7 +64,7 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
   //
   // Once the batch size is known, "y" will represent a matrix with dimensions [batch_size, dims.front()].
   // Each row of this matrix will correspond with the ground truth data vector for one observed data point.
-  auto y = name(g->input(shape={(int)batchSize, dims.back()}), "y");
+  auto y = name(g->input(shape={(int)batchSize, 1}), "y");
 
   std::vector<Expr> layers, weights, biases;
   for(int i = 0; i < dims.size()-1; ++i) {

@@ -126,7 +126,6 @@ Expr mean(Expr a, Args ...args) {
 }
 
 Expr cross_entropy(Expr a, Expr b);
-Expr cross_entropy(Expr a, const DeviceVector<size_t>& b);
 
 Expr tanhPlus3(Expr a, Expr b, Expr c);
 

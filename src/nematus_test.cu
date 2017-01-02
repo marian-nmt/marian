@@ -268,13 +268,10 @@ void construct(ExpressionGraphPtr g,
 
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
 
-  DeviceVector<size_t> devicePicks(picks.size());
-  thrust::copy(picks.begin(), picks.end(), devicePicks.begin());
-
   auto aff = debug(affine(t, W4, b4), "aff");;
   //auto s = debug(softmax(aff), "softmax");
 
-  auto xe = debug(cross_entropy(aff, devicePicks), "costs");
+  auto xe = debug(cross_entropy(aff, yIndeces), "costs");
   auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
 }
 

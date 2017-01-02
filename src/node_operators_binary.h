@@ -317,24 +317,17 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
   template <typename ...Args>
     CrossEntropyNodeOp(Expr a, Expr b, Args ...args)
     : BinaryNodeOp(a, b,
-                   keywords::shape=newShape(a, b),
+                   keywords::shape=newShape(a),
                    args...) { }
 
-  Shape newShape(Expr a, Expr b) {
+  Shape newShape(Expr a) {
     Shape shape1 = a->shape();
-    Shape shape2 = b->shape();
-    UTIL_THROW_IF2(shape1[0] != shape2[0] || shape1[1] != shape2[1],
-                   "cross entropy requires dimensions to match");
     shape1.set(1, 1);
     return shape1;
   }
 
   void forward();
 
-  // @TODO: In most cases it's wasteful to compute the derivative with respect
-  // to the second input which is typically an input node in the computation
-  // graph. In general the backward functions can skip the computation of
-  // gradients wrt input nodes.
   void backward() {
   // We are using logsoftmax for this and cached probs are logs.
     // For each row, the first input derivative is given by adj * (exp(p) - y),
@@ -343,12 +336,8 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     // The second input derivative is -adj*p.
 
     // Compute first input derivative.
-    Element(_1 += _2 * (Exp(_3) - _4),
-      a_->grad(), adj_, probs_, b_->val());
-
-    // Compute second input derivative.
-    Element(_1 -= _2 * _3,
-      b_->grad(), adj_, probs_);
+    Pick(_1 += _2 * (Exp(_3) - _4),
+         a_->grad(), adj_, probs_, b_->val());
   }
 
   virtual std::string graphviz() {
@@ -362,7 +351,6 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
 
  protected:
   Tensor probs_;
-  Tensor result_;
 };
 
 // an n-ary node

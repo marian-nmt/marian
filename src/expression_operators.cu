@@ -128,13 +128,6 @@ Expr cross_entropy(Expr a, Expr b) {
   return Expression<CrossEntropyNodeOp>(a, b);
 }
 
-Expr cross_entropy(Expr a, const DeviceVector<size_t>& picks) {
-  auto sOrig = a->shape();
-  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  return reshape(Expression<CrossEntropyPickNodeOp>(reshape(a, sTemp), picks),
-                 {sOrig[0], 1, sOrig[2], sOrig[3]});
-}
-
 // @TODO: should be done automatically:
 
 Expr tanhPlus3(Expr a, Expr b, Expr c) {
