@@ -63,27 +63,5 @@ class CublasHandler {
     static thread_local cublasHandle_t* handle_;
 };
 
-class CuDNNHandler {
-  public:
-    static cudnnHandle_t GetHandle() {
-      if(handle_ == nullptr) {
-        assert(handle_ == nullptr);
-        handle_ = new cudnnHandle_t;
-        cudnnCreate(handle_);
-        cudnnSetStream(*handle_, CudaStreamHandler::GetStream());
-      }
-      return *handle_;
-    }
-
-  private:
-    ~CuDNNHandler() {
-      cudnnDestroy(*handle_);
-      if (handle_) {
-        delete handle_;
-      }
-    }
-    static thread_local cudnnHandle_t* handle_;
-};
-
 } // namespace mblas
 } // namespace GPU
