@@ -97,7 +97,7 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
   }
 }
 
-__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int *batchFirstElements, float* outCosts, int* outIdxs, int *cummulatedBeamSizes) {
+__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int *batchFirstElements, float* outCosts, int* outIdxs, int *cummulatedBeamSizes, int NUM_BLOCKS) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
   __shared__ float bestBinCost;
@@ -110,8 +110,6 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
   if (num_bins > 500) {
     num_bins = 500;
   }
-  const int maxBeamSize = 5;
-  const int NUM_BLOCKS(int(maxBeamSize * 85000 / (2 * 512)) + int(maxBeamSize * 85000 % (2 * 512) != 0));
 
   for (int pos = cummulatedBeamSizes[batchIdx]; pos < cummulatedBeamSizes[batchIdx + 1]; ++pos) {
     int i = tid;
@@ -295,11 +293,7 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
     (d_out, d_ind, probs, numBatches, d_batchPosition);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (d_out, d_ind,
-      probs,
-      d_batchPosition,
-      d_res, d_res_idx,
-      d_cumBeamSizes);
+    (d_out, d_ind, probs, d_batchPosition, d_res, d_res_idx, d_cumBeamSizes, NUM_BLOCKS);
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
@@ -313,7 +307,6 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
 
     cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
     batchFirstElementIdxs[i + 1] += ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
-    /* std::cerr << "BEAM: " << beamSizes[i] << "\tCUM: " << cummulatedBeamSizes[i + 1] << "\tFIRST: " << batchFirstElementIdxs[i + 1] << std::endl; */
   }
 
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
