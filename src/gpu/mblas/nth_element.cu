@@ -300,21 +300,6 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
       d_batchPosition,
       d_res, d_res_idx,
       d_cumBeamSizes);
-
-    /* cudaStreamSynchronize(stream_); */
-    /* HANDLE_ERROR( cudaPeekAtLastError() ); */
-    /* HANDLE_ERROR( cudaDeviceSynchronize() ); */
-    /* int beamSize = cummulatedBeamSizes[batchIdx + 1] - cummulatedBeamSizes[batchIdx]; */
-    /* int tt[beamSize]; */
-    /* HANDLE_ERROR( cudaMemcpyAsync(tt, d_res_idx + cummulatedBeamSizes[batchIdx], beamSize * sizeof(int), */
-                                  /* cudaMemcpyDeviceToHost, stream_) ); */
-    /* cudaStreamSynchronize(stream_); */
-    /* HANDLE_ERROR( cudaPeekAtLastError() ); */
-    /* HANDLE_ERROR( cudaDeviceSynchronize() ); */
-
-    /* std::cerr << "TT: "; */
-    /* for (int i = 0; i < beamSize; ++i) std::cerr << tt[i] << " "; */
-    /* std::cerr << std::endl; */
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
@@ -334,15 +319,6 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
   GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 
-  /* for (size_t i = 0; i < cummulatedBeamSizes.back(); ++i) { */
-    /* std::cerr << i << " " << outKeys[i] << " " << outCosts[i] << std::endl; */
-  /* } */
-
-  /* for (size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) { */
-    /* for (int i = cummulatedBeamSizes[batchIdx]; i < cummulatedBeamSizes[batchIdx + 1]; ++i) { */
-      /* outKeys[i] += batchFirstElementIdxs[batchIdx]; */
-    /* } */
-  /* } */
 }
 
 void NthElement::GetPairs(size_t number,
