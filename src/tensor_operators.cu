@@ -143,8 +143,9 @@ __global__ void gSoftmax(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      
       float max = _max[0];
+      __syncthreads();
+      
       float* _sum = _share + blockDim.x;
       
       _sum[threadIdx.x] = 0.0;
@@ -223,8 +224,9 @@ __global__ void gLogSoftmax(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      
       float max = _max[0];
+      __syncthreads();
+      
       float* _sum = _share + blockDim.x;
       
       _sum[threadIdx.x] = 0.0;
@@ -873,8 +875,8 @@ __global__ void gCrossEntropyPick(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      
       float max = _max[0];
+      __syncthreads();
       
       float* _sum = _share + blockDim.x;
       _sum[threadIdx.x] = 0.0;
@@ -898,8 +900,9 @@ __global__ void gCrossEntropyPick(float* out,
       // cross-entropy
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id == (int)pick[j])
+        if(id == (int)pick[j]) {
           out[j] = __logf(_sum[0]) - sp[id] + max;
+        }
       }
     }
   }
@@ -958,8 +961,8 @@ __global__ void gCrossEntropyPickBackward(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      
       float max = _max[0];
+      __syncthreads();
       
       float* _sum = _share + blockDim.x;
       _sum[threadIdx.x] = 0.0;

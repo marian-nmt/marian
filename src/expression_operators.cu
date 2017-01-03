@@ -125,7 +125,11 @@ Expr transpose(Expr a) {
 }
 
 Expr cross_entropy(Expr a, Expr b) {
-  return Expression<CrossEntropyNodeOp>(a, b);
+  auto sOrig = a->shape();
+  auto sOut = a->shape();
+  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  sOut.set(1, 1);
+  return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
 }
 
 // @TODO: should be done automatically:

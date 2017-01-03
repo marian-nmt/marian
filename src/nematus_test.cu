@@ -163,16 +163,19 @@ void construct(ExpressionGraphPtr g,
   i = 0;
   // @TODO: skip last
 
-  std::vector<size_t> picks;
-
+  std::vector<float> picks;
   for(auto& trgWordBatch : trgSentenceBatch) {
     for(auto w: trgWordBatch)
-      picks.push_back(w);
+      picks.push_back((float)w);
     if(outputs.size() < trgSentenceBatch.size()) {
       auto y = name(rows(Wemb_dec, trgWordBatch), "y_" + std::to_string(i++));
       outputs.push_back(y);
     }
   }
+  
+  auto p = g->constant(shape={(int)picks.size(), 1},
+                       init=from_vector(picks));
+  debug(p, "p");
 
   auto decoderGRUWithAttention = [=]() {
     ParametersGRUWithAttention decParams;
@@ -269,9 +272,9 @@ void construct(ExpressionGraphPtr g,
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
 
   auto aff = debug(affine(t, W4, b4), "aff");;
-  //auto s = debug(softmax(aff), "softmax");
+  auto s = debug(softmax(aff), "softmax");
 
-  auto xe = debug(cross_entropy(aff, yIndeces), "costs");
+  auto xe = debug(cross_entropy(aff, p), "costs");
   auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
 }
 
@@ -327,7 +330,7 @@ int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   auto g = New<ExpressionGraph>();
-  load(g, "/home/marcin/marian/test/model.npz");
+  load(g, "../test/model.npz");
 
   size_t batchSize = 3;
 
@@ -335,7 +338,7 @@ int main(int argc, char** argv) {
   auto trgBatch = generateTrgBatch(batchSize);
   construct(g, srcBatch, trgBatch);
   g->forward();
-  g->backward();
+  //g->backward();
 
   //
   //boost::timer::cpu_timer timer;

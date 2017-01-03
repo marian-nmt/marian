@@ -53,7 +53,10 @@ struct InputNode : public Node {
 struct ConstantNode : public Node {
   template <typename ...Args>
   ConstantNode(Args ...args)
-  : Node(args...) {
+  : Node(args...),
+    init_(Get(keywords::init, [](Tensor&){ })),
+    initialized_(false)
+  {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
                    "Constant items require shape information");
@@ -64,12 +67,17 @@ struct ConstantNode : public Node {
   void forward() {}
   void backward() {}
 
+  virtual void allocate(size_t batchSize);
+  
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"diamond\", label=" << label("const") << "]" << std::endl << std::endl;
     return ss.str();
   }
 
+  private:
+    std::function<void(Tensor&)> init_;
+    bool initialized_;
 };
 
 struct ParamNode : public Node {
