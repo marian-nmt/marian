@@ -494,7 +494,7 @@ struct AffineNodeOp : public NaryNodeOp {
     // to sum gradients from different graph parts
     Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
     Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
-    Element(_1 += _2, children_[2]->val(), adj_);
+    Element(_1 += _2, children_[2]->grad(), adj_);
   }
 
   virtual std::string graphviz() {

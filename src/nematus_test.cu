@@ -79,11 +79,11 @@ void construct(ExpressionGraphPtr g,
                const SentBatch& trgSentenceBatch) {
   g->clear();
 
-  int dimSrcVoc = g->get("Wemb") ? g->get("Wemb")->shape()[0] : 40000;
+  int dimSrcVoc = g->get("Wemb") ? g->get("Wemb")->shape()[0] : 85000;
   int dimSrcEmb = g->get("Wemb") ? g->get("Wemb")->shape()[1] : 500;
   int dimEncState = g->get("encoder_U") ? g->get("encoder_U")->shape()[0] : 1024;
 
-  int dimTrgVoc = g->get("Wemb_dec") ? g->get("Wemb_dec")->shape()[0] : 40000;
+  int dimTrgVoc = g->get("Wemb_dec") ? g->get("Wemb_dec")->shape()[0] : 85000;
   int dimTrgEmb = g->get("Wemb_dec") ? g->get("Wemb_dec")->shape()[1] : 500;
   int dimDecState = g->get("decoder_U") ? g->get("decoder_U")->shape()[0] : 1024;
 
@@ -173,9 +173,6 @@ void construct(ExpressionGraphPtr g,
     }
   }
   
-  auto p = g->constant(shape={(int)picks.size(), 1},
-                       init=from_vector(picks));
-  
   auto decoderGRUWithAttention = [=]() {
     ParametersGRUWithAttention decParams;
 
@@ -247,7 +244,7 @@ void construct(ExpressionGraphPtr g,
 
   auto contexts = decoderGRU.getCell().getContexts();
   auto c3 = concatenate(contexts, axis=2);
-
+  
   auto W1 = g->param("ff_logit_lstm_W", {dimDecState, dimTrgEmb},
                      init=glorot_uniform);
   auto b1 = g->param("ff_logit_lstm_b", {1, dimTrgEmb},
@@ -269,78 +266,79 @@ void construct(ExpressionGraphPtr g,
                      init=glorot_uniform);
 
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
-
+  
   auto aff = affine(t, W4, b4);
   //auto s = debug(softmax(aff), "softmax");
 
+  auto p = g->constant(shape={(int)picks.size(), 1},
+                       init=from_vector(picks));
+  
   auto xe = cross_entropy(aff, p);
-  auto cost = mean(sum(xe, axis=2), axis=0);
+  auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
-  size_t length = rand() % 40 + 10;
+  //size_t length = rand() % 40 + 10;
   //size_t length = 50;
-  return SentBatch(length, WordBatch(batchSize));
+  //return SentBatch(length, WordBatch(batchSize));
 
   // das ist ein Test . </s>
-  //SentBatch srcBatch({
-  //  WordBatch(batchSize, 13),
-  //  WordBatch(batchSize, 15),
-  //  WordBatch(batchSize, 20),
-  //  WordBatch(batchSize, 2548),
-  //  WordBatch(batchSize, 4),
-  //  WordBatch(batchSize, 0)
-  //});
-
+  SentBatch srcBatch({
+    WordBatch(batchSize, 13),
+    WordBatch(batchSize, 15),
+    WordBatch(batchSize, 20),
+    WordBatch(batchSize, 2548),
+    WordBatch(batchSize, 4),
+    WordBatch(batchSize, 0)
+  });
 
   //if(batchSize > 2) {
   //  srcBatch[0][1] = 109; // dies
   //  srcBatch[0][2] = 19;  // es
   //}
 
-  //return srcBatch;
+  return srcBatch;
 }
 
 SentBatch generateTrgBatch(size_t batchSize) {
-  size_t length = rand() % 40 + 10;
+  //size_t length = rand() % 40 + 10;
   //size_t length = 50;
-  return SentBatch(length, WordBatch(batchSize));
+  //return SentBatch(length, WordBatch(batchSize));
 
   // this is a test . </s>
-  //SentBatch trgBatch({
-  //  WordBatch(batchSize, 21),
-  //  WordBatch(batchSize, 11),
-  //  WordBatch(batchSize, 10),
-  //  WordBatch(batchSize, 1078),
-  //  WordBatch(batchSize, 5),
-  //  WordBatch(batchSize, 0)
-  //});
-  //
-  //if(batchSize > 2) {
-  //  trgBatch[0][1] = 12; // that
-  //  trgBatch[1][1] = 17; // 's
-  //  trgBatch[0][2] = 12;  // that
-  //}
-  //
-  //return trgBatch;
+  SentBatch trgBatch({
+    WordBatch(batchSize, 21),
+    WordBatch(batchSize, 11),
+    WordBatch(batchSize, 10),
+    WordBatch(batchSize, 1078),
+    WordBatch(batchSize, 5),
+    WordBatch(batchSize, 0)
+  });
+  
+  if(batchSize > 2) {
+    trgBatch[0][1] = 12; // that
+    trgBatch[1][1] = 17; // 's
+    trgBatch[0][2] = 12;  // that
+  }
+  
+  return trgBatch;
 }
 
 int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   auto g = New<ExpressionGraph>();
-  //load(g, "../test/model.npz");
+  load(g, "../test/model.npz");
   
-  size_t batchSize = 40;
+  size_t batchSize = 3;
 
   auto srcBatch = generateSrcBatch(batchSize);
   auto trgBatch = generateTrgBatch(batchSize);
-  construct(g, srcBatch, trgBatch);
   
   g->reserveWorkspaceMB(4096);
   
   boost::timer::cpu_timer timer;
-  for(int i = 1; i <= 1000; ++i) {
+  for(int i = 1; i <= 10; ++i) {
     g->clear();
   
     // fake batch
@@ -351,10 +349,10 @@ int main(int argc, char** argv) {
     g->forward();
     g->backward();
   
-    if(i % 10 == 0)
-      std::cerr << ".";
-    if(i % 100 == 0)
-      std::cout << "[" << i << "] " << timer.format(5, "%ws") << std::endl;
+    //if(i % 10 == 0)
+    //  std::cerr << ".";
+    //if(i % 100 == 0)
+    //  std::cout << "[" << i << "] " << timer.format(5, "%ws") << std::endl;
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;
