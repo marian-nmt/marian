@@ -70,7 +70,7 @@ class Node : public Chainable<Tensor>,
     virtual bool marked_for_debug() { return markedForDebug_; }
     virtual const std::string& debug_message() { return debugMessage_; }
 
-    virtual void allocate(size_t batchSize);
+    virtual size_t allocate(size_t batchSize);
 
     virtual void init_dependent();
 

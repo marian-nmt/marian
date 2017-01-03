@@ -67,7 +67,7 @@ struct ConstantNode : public Node {
   void forward() {}
   void backward() {}
 
-  virtual void allocate(size_t batchSize);
+  virtual size_t allocate(size_t batchSize);
   
   virtual std::string graphviz() {
     std::stringstream ss;
@@ -97,7 +97,7 @@ struct ParamNode : public Node {
   void forward() {}
   void backward() {}
 
-  virtual void allocate(size_t batchSize);
+  virtual size_t allocate(size_t batchSize);
 
   virtual std::string graphviz() {
     std::stringstream ss;

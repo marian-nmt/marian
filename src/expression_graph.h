@@ -46,7 +46,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Constructs a new expression graph
      * Constructor is private to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) {}
+    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) { }
 
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
@@ -55,6 +55,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     friend ExpressionGraphPtr New<ExpressionGraph>();
 
   public:
+    
+    void reserveWorkspaceMB(size_t num) {
+      size_t elements = num * 1024 * 1024 / 4 - 1;
+      tensors_->reserve(elements);
+    }
 
     void setInputs(data::BatchPtr batch) {
       auto& bInputs = batch->inputs();
@@ -98,6 +103,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
+    
     void forward(data::BatchPtr batch) {
       params_.allocateForward();
 
@@ -120,10 +126,12 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     void forward() {
       params_.allocateForward();
 
-      for(auto&& v : tape_)
+      size_t floats;      
+      for(auto&& v : tape_) {
         if(!v->skipped_training())
-          v->allocate(0);
-
+          floats += v->allocate(0);
+      }
+      
       for(auto&& v : tape_)
         if(!v->skipped_training()) {
           v->forward();

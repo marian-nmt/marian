@@ -95,7 +95,7 @@ struct Chainable {
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }
 
-    virtual void allocate(size_t) = 0;
+    virtual size_t allocate(size_t) = 0;
     virtual std::string graphviz() = 0;
     virtual void set_name(const std::string&) = 0;
     virtual const std::string &name() const = 0;

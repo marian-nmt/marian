@@ -510,11 +510,12 @@ struct ReshapeNodeOp : public UnaryNodeOp {
   ReshapeNodeOp(Expr a, Shape shape, Args ...args)
     : UnaryNodeOp(a, keywords::shape=shape, args...) { }
 
-  void allocate(size_t batchSize) {}
+  size_t allocate(size_t batchSize) { return 0; }
 
   void forward() {}
-
   void backward() {}
+  void init_dependent() {}
+  void set_zero_adjoint() {}
 
   Tensor& val()  {
     val_.reset(new TensorGPU(a_->val()->data(), shape()));

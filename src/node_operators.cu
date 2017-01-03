@@ -24,22 +24,32 @@
 
 namespace marian {
 
-  void ConstantNode::allocate(size_t batchSize) {
+  size_t ConstantNode::allocate(size_t batchSize) {
     // @TODO params
-    graph()->tensor(val_, shape_);
+    size_t elements = 0;
+    if(!val_) {
+      graph()->tensor(val_, shape_);
+      elements = val_->shape().elements();
+    }
     if(!initialized_) {
       init_(val_);
       initialized_ = true;
     }
+    return elements;
   }
 
-  void ParamNode::allocate(size_t batchSize) {
+  size_t ParamNode::allocate(size_t batchSize) {
     // @TODO params
-    graph()->tensor(val_, shape_);
+    size_t elements = 0;
+    if(!val_) {
+      graph()->tensor(val_, shape_);
+      elements = val_->shape().elements();
+    }
     if(!initialized_) {
       init_(val_);
       initialized_ = true;
     }
+    return elements;
   }
 
 

@@ -77,7 +77,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
   public:
     void reserve(size_t elements = 0) {
       float mult = elements / FLOATS + 1;
-      std::cerr << "Reserving " << mult * CHUNK << " MB" << std::endl;
+      std::cerr << "Extending reserved space to " << mult * CHUNK << " MB" << std::endl;
       device_.reserve(mult * FLOATS);
       resetAllocated();
     }

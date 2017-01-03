@@ -9,7 +9,7 @@ void Node::skip_training() {
   graph_->remove_top_node(shared_from_this());
 }
 
-void Node::allocate(size_t batchSize) {
+size_t Node::allocate(size_t batchSize) {
   auto it1 = shape_.begin();
   auto it2 = givenShape_.begin();
   while(it1 != shape_.end()) {
@@ -18,10 +18,16 @@ void Node::allocate(size_t batchSize) {
     it1++; it2++;
   }
 
-  graph_->tensor(val_, shape_);
+  size_t elements = 0;
+  if(!val_) {
+    graph_->tensor(val_, shape_);
+    elements = val_->shape().elements();
+  }
 
   if(Has(keywords::value))
     val_->set(Get(keywords::value, 0));
+    
+  return elements;
 }
 
 void Node::init_dependent() {

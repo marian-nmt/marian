@@ -79,11 +79,11 @@ void construct(ExpressionGraphPtr g,
                const SentBatch& trgSentenceBatch) {
   g->clear();
 
-  int dimSrcVoc = g->get("Wemb") ? g->get("Wemb")->shape()[0] : 85000;
+  int dimSrcVoc = g->get("Wemb") ? g->get("Wemb")->shape()[0] : 40000;
   int dimSrcEmb = g->get("Wemb") ? g->get("Wemb")->shape()[1] : 500;
   int dimEncState = g->get("encoder_U") ? g->get("encoder_U")->shape()[0] : 1024;
 
-  int dimTrgVoc = g->get("Wemb_dec") ? g->get("Wemb_dec")->shape()[0] : 85000;
+  int dimTrgVoc = g->get("Wemb_dec") ? g->get("Wemb_dec")->shape()[0] : 40000;
   int dimTrgEmb = g->get("Wemb_dec") ? g->get("Wemb_dec")->shape()[1] : 500;
   int dimDecState = g->get("decoder_U") ? g->get("decoder_U")->shape()[0] : 1024;
 
@@ -214,7 +214,7 @@ void construct(ExpressionGraphPtr g,
     auto Uc = g->param("decoder_U_nl", {dimDecState, 2 * dimDecState},
                        init=glorot_uniform);
 
-    auto Wc = g->param("decoder_Wc", {dimEncState,  2 * dimDecState},
+    auto Wc = g->param("decoder_Wc", {2 * dimEncState,  2 * dimDecState},
                        init=glorot_uniform);
 
     auto bc = g->param("decoder_b_nl", {1, 2 * dimDecState}, init=zeros);
@@ -222,7 +222,7 @@ void construct(ExpressionGraphPtr g,
     auto Uxc = g->param("decoder_Ux_nl", {dimDecState, dimDecState},
                         init=glorot_uniform);
 
-    auto Wxc = g->param("decoder_Wcx", {dimEncState, dimDecState},
+    auto Wxc = g->param("decoder_Wcx", {2 * dimEncState, dimDecState},
                         init=glorot_uniform);
 
     auto bxc = g->param("decoder_bx_nl", {1, dimDecState}, init=zeros);
@@ -274,12 +274,12 @@ void construct(ExpressionGraphPtr g,
   //auto s = debug(softmax(aff), "softmax");
 
   auto xe = cross_entropy(aff, p);
-  auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
+  auto cost = mean(sum(xe, axis=2), axis=0);
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
-  //size_t length = rand() % 30 + 10;
-  size_t length = 50;
+  size_t length = rand() % 40 + 10;
+  //size_t length = 50;
   return SentBatch(length, WordBatch(batchSize));
 
   // das ist ein Test . </s>
@@ -302,8 +302,8 @@ SentBatch generateSrcBatch(size_t batchSize) {
 }
 
 SentBatch generateTrgBatch(size_t batchSize) {
-  //size_t length = rand() % 30 + 10;
-  size_t length = 50;
+  size_t length = rand() % 40 + 10;
+  //size_t length = 50;
   return SentBatch(length, WordBatch(batchSize));
 
   // this is a test . </s>
@@ -329,16 +329,15 @@ int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   auto g = New<ExpressionGraph>();
-  load(g, "../test/model.npz");
-
+  //load(g, "../test/model.npz");
+  
   size_t batchSize = 40;
 
   auto srcBatch = generateSrcBatch(batchSize);
   auto trgBatch = generateTrgBatch(batchSize);
   construct(g, srcBatch, trgBatch);
   
-  g->forward();
-  g->backward();
+  g->reserveWorkspaceMB(4096);
   
   boost::timer::cpu_timer timer;
   for(int i = 1; i <= 1000; ++i) {
@@ -352,8 +351,10 @@ int main(int argc, char** argv) {
     g->forward();
     g->backward();
   
+    if(i % 10 == 0)
+      std::cerr << ".";
     if(i % 100 == 0)
-      std::cout << i << " " << timer.format(5, "%ws") << std::endl;
+      std::cout << "[" << i << "] " << timer.format(5, "%ws") << std::endl;
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;
