@@ -175,8 +175,7 @@ void construct(ExpressionGraphPtr g,
   
   auto p = g->constant(shape={(int)picks.size(), 1},
                        init=from_vector(picks));
-  debug(p, "p");
-
+  
   auto decoderGRUWithAttention = [=]() {
     ParametersGRUWithAttention decParams;
 
@@ -271,27 +270,27 @@ void construct(ExpressionGraphPtr g,
 
   auto t = tanh(affine(d1, W1, b1) + affine(e2, W2, b2) + affine(c3, W3, b3));
 
-  auto aff = debug(affine(t, W4, b4), "aff");;
-  auto s = debug(softmax(aff), "softmax");
+  auto aff = affine(t, W4, b4);
+  //auto s = debug(softmax(aff), "softmax");
 
-  auto xe = debug(cross_entropy(aff, p), "costs");
+  auto xe = cross_entropy(aff, p);
   auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
   //size_t length = rand() % 30 + 10;
-  //size_t length = 50;
-  //return SentBatch(length, WordBatch(batchSize));
+  size_t length = 50;
+  return SentBatch(length, WordBatch(batchSize));
 
   // das ist ein Test . </s>
-  SentBatch srcBatch({
-    WordBatch(batchSize, 13),
-    WordBatch(batchSize, 15),
-    WordBatch(batchSize, 20),
-    WordBatch(batchSize, 2548),
-    WordBatch(batchSize, 4),
-    WordBatch(batchSize, 0)
-  });
+  //SentBatch srcBatch({
+  //  WordBatch(batchSize, 13),
+  //  WordBatch(batchSize, 15),
+  //  WordBatch(batchSize, 20),
+  //  WordBatch(batchSize, 2548),
+  //  WordBatch(batchSize, 4),
+  //  WordBatch(batchSize, 0)
+  //});
 
 
   //if(batchSize > 2) {
@@ -299,31 +298,31 @@ SentBatch generateSrcBatch(size_t batchSize) {
   //  srcBatch[0][2] = 19;  // es
   //}
 
-  return srcBatch;
+  //return srcBatch;
 }
 
 SentBatch generateTrgBatch(size_t batchSize) {
   //size_t length = rand() % 30 + 10;
-  //size_t length = 50;
-  //return SentBatch(length, WordBatch(batchSize));
+  size_t length = 50;
+  return SentBatch(length, WordBatch(batchSize));
 
   // this is a test . </s>
-  SentBatch trgBatch({
-    WordBatch(batchSize, 21),
-    WordBatch(batchSize, 11),
-    WordBatch(batchSize, 10),
-    WordBatch(batchSize, 1078),
-    WordBatch(batchSize, 5),
-    WordBatch(batchSize, 0)
-  });
-
-  if(batchSize > 2) {
-    trgBatch[0][1] = 12; // that
-    trgBatch[1][1] = 17; // 's
-    trgBatch[0][2] = 12;  // that
-  }
-
-  return trgBatch;
+  //SentBatch trgBatch({
+  //  WordBatch(batchSize, 21),
+  //  WordBatch(batchSize, 11),
+  //  WordBatch(batchSize, 10),
+  //  WordBatch(batchSize, 1078),
+  //  WordBatch(batchSize, 5),
+  //  WordBatch(batchSize, 0)
+  //});
+  //
+  //if(batchSize > 2) {
+  //  trgBatch[0][1] = 12; // that
+  //  trgBatch[1][1] = 17; // 's
+  //  trgBatch[0][2] = 12;  // that
+  //}
+  //
+  //return trgBatch;
 }
 
 int main(int argc, char** argv) {
@@ -332,32 +331,32 @@ int main(int argc, char** argv) {
   auto g = New<ExpressionGraph>();
   load(g, "../test/model.npz");
 
-  size_t batchSize = 3;
+  size_t batchSize = 40;
 
   auto srcBatch = generateSrcBatch(batchSize);
   auto trgBatch = generateTrgBatch(batchSize);
   construct(g, srcBatch, trgBatch);
+  
   g->forward();
-  //g->backward();
-
-  //
-  //boost::timer::cpu_timer timer;
-  //for(int i = 1; i <= 1000; ++i) {
-  //  g->clear();
-  //
-  //  // fake batch
-  //  auto srcBatch = generateSrcBatch(batchSize);
-  //  auto trgBatch = generateTrgBatch(batchSize);
-  //  construct(g, srcBatch, trgBatch);
-  //
-  //  g->forward();
-  //  //g->backward();
-  //
-  //  if(i % 100 == 0)
-  //    std::cout << i << " " << timer.format(5, "%ws") << std::endl;
-  //}
-  //std::cout << std::endl;
-  //std::cout << timer.format(5, "%ws") << std::endl;
+  g->backward();
+  
+  boost::timer::cpu_timer timer;
+  for(int i = 1; i <= 1000; ++i) {
+    g->clear();
+  
+    // fake batch
+    auto srcBatch = generateSrcBatch(batchSize);
+    auto trgBatch = generateTrgBatch(batchSize);
+    construct(g, srcBatch, trgBatch);
+  
+    g->forward();
+    g->backward();
+  
+    if(i % 100 == 0)
+      std::cout << i << " " << timer.format(5, "%ws") << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << timer.format(5, "%ws") << std::endl;
 
   return 0;
 }
