@@ -499,6 +499,7 @@ void ClipNorm(Tensor out, float threshold);
 void SubtractMax(Tensor out, Tensor in);
 
 void Softmax(Tensor out, Tensor in);
+void LogSoftmax(Tensor out, Tensor in);
 
 void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
@@ -508,6 +509,8 @@ void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 
 void CudnnLogSoftmax(Tensor out, Tensor in);
 void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
+
+void CrossEntropyPick(Tensor out, Tensor in, Tensor pick);
 
 void Argmax(Tensor Out, const Tensor In);
 

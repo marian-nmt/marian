@@ -67,9 +67,8 @@ int main() {
 
     std::vector<Shape> shapes = {
         {1000, 1000},
-        {5, 30000},
-        {80, 50000},
-        {50000, 80},
+        {80, 85000},
+        {85000, 80},
     };
 
     for(auto& shape : shapes) {
@@ -78,6 +77,11 @@ int main() {
         std::cout << "Softmax forward" << std::endl;
         testForward(CudnnSoftmax, l, shape, "CuDNN ");
         testForward(Softmax, l, shape, "Marian");
+        std::cout << std::endl;
+        
+        std::cout << "LogSoftmax forward" << std::endl;
+        testForward(CudnnLogSoftmax, l, shape, "CuDNN ");
+        testForward(LogSoftmax, l, shape, "Marian");
         std::cout << std::endl;
 
         std::cout << "Softmax backward" << std::endl;

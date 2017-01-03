@@ -326,18 +326,20 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     return shape1;
   }
 
-  void forward();
+  void forward() {
+    // C = sum(-logsoftmax(A) * delta(y', y))
+    CrossEntropyPick(val_, a_->val(), b_->val());
+  }
 
+  
   void backward() {
-  // We are using logsoftmax for this and cached probs are logs.
-    // For each row, the first input derivative is given by adj * (exp(p) - y),
-    // where y is the gold label distribution (e.g. one hot vector) and
-    // p is the softmax output (probabilities).
-    // The second input derivative is -adj*p.
-
-    // Compute first input derivative.
-    Pick(_1 += _2 * (Exp(_3) - _4),
-         a_->grad(), adj_, probs_, b_->val());
+    // @TODO: save memory for the second derivative.
+    // Caching is not required, recomputation saves a lot of memory while not
+    // being slower.
+    // @TODO: join into single kernel?
+    Softmax(a_->grad(), a_->val());
+    Pick(_1 += _2 * (_1 - _3) - _1,
+         a_->grad(), adj_, b_->val());
   }
 
   virtual std::string graphviz() {
@@ -348,9 +350,6 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
-
- protected:
-  Tensor probs_;
 };
 
 // an n-ary node
