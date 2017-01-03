@@ -9,7 +9,7 @@ class Sentence {
 
     const Words& GetWords(size_t index = 0) const;
 
-    size_t GetLine() const;
+    size_t GetLineNum() const;
 
   private:
     std::vector<Words> words_;

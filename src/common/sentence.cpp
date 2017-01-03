@@ -22,7 +22,7 @@ const Words& Sentence::GetWords(size_t index) const {
   return words_[index];
 }
 
-size_t Sentence::GetLine() const {
+size_t Sentence::GetLineNum() const {
   return lineNo_;
 }
 

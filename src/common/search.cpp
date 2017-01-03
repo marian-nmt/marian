@@ -117,7 +117,7 @@ Histories Search::Decode(const Sentences& sentences) {
     prevHyps.swap(survivors);
   }
 
-  LOG(progress) << "Line " << sentences[0].GetLine()
+  LOG(progress) << "Line " << sentences[0].GetLineNum()
                 << ": Search took " << timer.format(3, "%ws");
 
   for (auto scorer : scorers_) {

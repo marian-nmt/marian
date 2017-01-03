@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
   boost::timer::cpu_timer timer;
 
   std::string in;
+  std::size_t lineNum = 0;
   std::size_t taskCounter = 0;
 
   size_t maxBatchSize = God::Get<size_t>("batch-size");
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]) {
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
     while (std::getline(God::GetInputStream(), in)) {
-      auto result = TranslationTask({Sentence(taskCounter, in)}, taskCounter);
+      auto result = TranslationTask({Sentence(lineNum++, in)}, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
   } else {
@@ -54,7 +55,7 @@ int main(int argc, char* argv[]) {
     Sentences sentences;
 
     while(std::getline(God::GetInputStream(), in)) {
-      sentences.emplace_back(taskCounter, in);
+      sentences.emplace_back(lineNum++, in);
 
       if (sentences.size() >= maxBatchSize) {
         results.emplace_back(
@@ -66,6 +67,7 @@ int main(int argc, char* argv[]) {
         sentences = Sentences();
         taskCounter++;
       }
+
     }
 
     if (sentences.size()) {
