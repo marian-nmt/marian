@@ -336,10 +336,7 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     // @TODO: save memory for the second derivative.
     // Caching is not required, recomputation saves a lot of memory while not
     // being slower.
-    // @TODO: join into single kernel?
-    Softmax(a_->grad(), a_->val());
-    Pick(_1 += _2 * (_1 - _3) - _1,
-         a_->grad(), adj_, b_->val());
+    CrossEntropyPickBackward(a_->grad(), adj_, a_->val(), b_->val());
   }
 
   virtual std::string graphviz() {

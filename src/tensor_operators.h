@@ -511,6 +511,7 @@ void CudnnLogSoftmax(Tensor out, Tensor in);
 void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 
 void CrossEntropyPick(Tensor out, Tensor in, Tensor pick);
+void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick);
 
 void Argmax(Tensor Out, const Tensor In);
 

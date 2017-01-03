@@ -921,4 +921,93 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   cudaStreamSynchronize(0);
 }
 
+__global__ void gCrossEntropyPickBackward(float* out,
+                                          const Shape outShape,
+                                          const float* adj,
+                                          const float* in,
+                                          const float* pick) {
+  
+  int rows = outShape[0];
+  int cols = outShape[1];
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      const float* sp = in + j * cols;
+      float* so = out + j * cols;
+      
+      extern __shared__ float _share[];
+      float* _max = _share + blockDim.x;
+      
+      _max[threadIdx.x] = sp[threadIdx.x];
+      for(int tid = 1; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if (id < cols) {
+          if (sp[id] > _max[threadIdx.x]) _max[threadIdx.x] = sp[id];
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if (threadIdx.x < (len >> 1)) {
+          if (_max[threadIdx.x + skip] > _max[threadIdx.x]) {
+             _max[threadIdx.x] = _max[threadIdx.x + skip];
+          }
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      
+      float max = _max[0];
+      
+      float* _sum = _share + blockDim.x;
+      _sum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = __expf(sp[id] - max);
+          _sum[threadIdx.x] += ex;
+        }
+      }
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      
+      // cross-entropy
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float sub = (float)(id == (int)pick[j]);
+          so[id] += adj[j] * (__expf(sp[id] - max) / _sum[0] - sub);
+        }
+      }
+    }
+  }
+}
+
+void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
+  size_t m = out->shape()[0];
+  size_t k = out->shape()[1];
+
+  int blocks = std::min(MAX_BLOCKS, (int) m);
+  int threads = std::min(MAX_THREADS, (int) k);
+  int shared = sizeof(float) * threads * 2;
+  
+  gCrossEntropyPickBackward<<<blocks, threads, shared>>>(out->data(),
+                                                         out->shape(),
+                                                         adj->data(),
+                                                         a->data(),
+                                                         pick->data());
+  cudaStreamSynchronize(0);
+}
+
+
 }
