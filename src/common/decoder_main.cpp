@@ -44,7 +44,9 @@ int main(int argc, char* argv[]) {
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
     while (std::getline(God::GetInputStream(), in)) {
-      auto result = TranslationTask({Sentence(lineNum++, in)}, taskCounter);
+      Sentences *sentences = new Sentences();
+      sentences->push_back(new Sentence(lineNum++, in));
+      auto result = TranslationTask(sentences, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
   } else {
@@ -52,28 +54,28 @@ int main(int argc, char* argv[]) {
     LOG(info) << "Reading input";
 
     std::vector<std::future<Histories>> results;
-    Sentences sentences;
+    Sentences *sentences = new Sentences();
 
     while(std::getline(God::GetInputStream(), in)) {
-      sentences.emplace_back(lineNum++, in);
+      sentences->push_back(new Sentence(lineNum++, in));
 
-      if (sentences.size() >= maxBatchSize) {
+      if (sentences->size() >= maxBatchSize) {
         results.emplace_back(
           pool.enqueue(
-            [=]{ return TranslationTask(std::move(sentences), taskCounter); }
+            [=]{ return TranslationTask(sentences, taskCounter); }
           )
         );
 
-        sentences = Sentences();
+        sentences = new Sentences();
         taskCounter++;
       }
 
     }
 
-    if (sentences.size()) {
+    if (sentences->size()) {
       results.emplace_back(
         pool.enqueue(
-          [=]{ return TranslationTask(std::move(sentences), taskCounter); }
+          [=]{ return TranslationTask(sentences, taskCounter); }
         )
       );
     }

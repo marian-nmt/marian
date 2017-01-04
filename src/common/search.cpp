@@ -55,7 +55,8 @@ Histories Search::Decode(const Sentences& sentences) {
   bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
     std::set<Word> srcWords;
-    for (const auto& sentence : sentences) {
+    for (size_t i = 0; i < sentences.size(); ++i) {
+      const Sentence &sentence = *sentences.at(i);
       for (const auto& srcWord : sentence.GetWords()) {
         srcWords.insert(srcWord);
       }
@@ -64,7 +65,8 @@ Histories Search::Decode(const Sentences& sentences) {
   }
 
   size_t maxLength = 0;
-  for (const auto& sentence : sentences) {
+  for (size_t i = 0; i < sentences.size(); ++i) {
+    const Sentence &sentence = *sentences.at(i);
     maxLength = std::max(maxLength, sentence.GetWords().size());
   }
 
@@ -91,7 +93,7 @@ Histories Search::Decode(const Sentences& sentences) {
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
-        histories[i].Add(beams[i], histories[i].size() == 3 * sentences[i].GetWords().size());
+        histories[i].Add(beams[i], histories[i].size() == 3 * sentences.at(i)->GetWords().size());
       }
     }
 
@@ -117,7 +119,7 @@ Histories Search::Decode(const Sentences& sentences) {
     prevHyps.swap(survivors);
   }
 
-  LOG(progress) << "Line " << sentences[0].GetLineNum()
+  LOG(progress) << "Line " << sentences.at(0)->GetLineNum()
                 << ": Search took " << timer.format(3, "%ws");
 
   for (auto scorer : scorers_) {

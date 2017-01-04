@@ -27,18 +27,25 @@ size_t Sentence::GetLineNum() const {
 }
 
 /////////////////////////////////////////////////////////
-// Sentences::Sentences()
-  // : maxLength_(0)
-// {
-// }
+ Sentences::Sentences()
+   : maxLength_(0)
+ {
+ }
 
-// void Sentences::push_back(const Sentence *sentence) {
-  // const Words &words = sentence->GetWords(0);
-  // size_t len = words.size();
-  // if (len > maxLength_) {
-    // maxLength_ = len;
-  // }
+ Sentences::~Sentences()
+ {
+   for (const Sentence *sentence : coll_) {
+     delete sentence;
+   }
+ }
 
-  // coll_.push_back(sentence);
-// }
+ void Sentences::push_back(const Sentence *sentence) {
+   const Words &words = sentence->GetWords(0);
+   size_t len = words.size();
+   if (len > maxLength_) {
+     maxLength_ = len;
+   }
+
+   coll_.push_back(sentence);
+ }
 
