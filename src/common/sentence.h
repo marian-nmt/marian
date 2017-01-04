@@ -28,8 +28,8 @@ class Sentence {
 
    void push_back(const Sentence *sentence);
 
-   const Sentence* at(size_t id) const {
-     return coll_.at(id).get();
+   boost::shared_ptr<const Sentence> at(size_t id) const {
+     return coll_.at(id);
    }
 
    size_t size() const {
