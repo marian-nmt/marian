@@ -83,12 +83,8 @@ class Histories
 public:
   Histories(const Sentences& sentences);
 
-  History &at(size_t id) {
-    return *coll_.at(id).get();
-  }
-
-  const History &at(size_t id) const {
-    return *coll_.at(id).get();
+  boost::shared_ptr<History> at(size_t id) const {
+    return coll_.at(id);
   }
 
   size_t size() const {

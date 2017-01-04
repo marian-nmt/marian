@@ -65,7 +65,7 @@ template <class OStream>
 void Printer(const Histories& histories, size_t lineNo, OStream& out) {
 
   for (size_t i = 0; i < histories.size(); ++i) {
-    const History& history = histories.at(i);
+    const History& history = *histories.at(i).get();
     Printer(history, lineNo, out);
   }
 }

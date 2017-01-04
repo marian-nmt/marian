@@ -44,7 +44,7 @@ Histories Search::Decode(const Sentences& sentences) {
   Histories histories(sentences);
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
   for (size_t i = 0; i < histories.size(); ++i) {
-    History &history = histories.at(i);
+    History &history = *histories.at(i).get();
     history.Add(prevHyps);
   }
 
@@ -94,7 +94,7 @@ Histories Search::Decode(const Sentences& sentences) {
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
-        histories.at(i).Add(beams[i], histories.at(i).size() == 3 * sentences.at(i)->GetWords().size());
+        histories.at(i)->Add(beams[i], histories.at(i)->size() == 3 * sentences.at(i)->GetWords().size());
       }
     }
 
