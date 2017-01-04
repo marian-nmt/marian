@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "sentence.h"
 #include "god.h"
 #include "utils.h"
@@ -44,5 +45,20 @@ size_t Sentence::GetLineNum() const {
    }
 
    coll_.push_back(boost::shared_ptr<const Sentence>(sentence));
+ }
+
+ class LengthOrderer
+ {
+ public:
+   bool operator()(const boost::shared_ptr<const Sentence> &a, const boost::shared_ptr<const Sentence> &b) const
+   {
+     return a->GetWords(0).size() < b->GetWords(0).size();
+   }
+
+ };
+
+ void Sentences::SortByLength()
+ {
+   std::sort(coll_.begin(), coll_.end(), LengthOrderer());
  }
 

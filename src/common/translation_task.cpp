@@ -14,8 +14,11 @@ Histories TranslationTask(const Sentences *sentences, size_t taskCounter) {
 
   size_t batchSize = God::Get<size_t>("batch-size");
 
+  vecSentences.push_back(*sentences);
+  vecSentences[0].SortByLength();
+
   assert(sentences->size());
-  Histories histories = search->Decode(*sentences);
+  Histories histories = search->Decode(vecSentences[0]);
   delete sentences;
 
   return histories;

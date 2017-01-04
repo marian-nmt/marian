@@ -40,6 +40,8 @@ class Sentence {
      return maxLength_;
    }
 
+   void SortByLength();
+
  protected:
    typedef  std::vector< boost::shared_ptr<const Sentence> > Coll;
    Coll coll_;
