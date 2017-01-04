@@ -9,6 +9,11 @@ Histories TranslationTask(const Sentences *sentences, size_t taskCounter) {
     search.reset(new Search(taskCounter));
   }
 
+  std::vector<Sentences> vecSentences;
+  std::vector<Histories> vecHistories;
+
+  size_t batchSize = God::Get<size_t>("batch-size");
+
   assert(sentences->size());
   Histories histories = search->Decode(*sentences);
   delete sentences;
