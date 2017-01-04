@@ -45,7 +45,8 @@ int main(int argc, char* argv[]) {
     LOG(info) << "Reading input";
     while (std::getline(God::GetInputStream(), in)) {
       Sentences *sentences = new Sentences();
-      sentences->push_back(new Sentence(lineNum++, in));
+      Sentence *sentence = new Sentence(lineNum++, in);
+      sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
       auto result = TranslationTask(sentences, taskCounter);
       Printer(result, taskCounter++, std::cout);
     }
@@ -57,7 +58,8 @@ int main(int argc, char* argv[]) {
     Sentences *sentences = new Sentences();
 
     while(std::getline(God::GetInputStream(), in)) {
-      sentences->push_back(new Sentence(lineNum++, in));
+      Sentence *sentence = new Sentence(lineNum++, in);
+      sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
       if (sentences->size() >= maxBatchSize) {
         results.emplace_back(

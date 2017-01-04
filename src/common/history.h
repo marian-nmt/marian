@@ -96,6 +96,7 @@ public:
   }
 
   void SortByLineNum();
+  void Append(const Histories &other);
 
 protected:
   std::vector< boost::shared_ptr<History> > coll_;

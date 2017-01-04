@@ -37,14 +37,14 @@ size_t Sentence::GetLineNum() const {
  {
  }
 
- void Sentences::push_back(const Sentence *sentence) {
+ void Sentences::push_back(boost::shared_ptr<const Sentence> sentence) {
    const Words &words = sentence->GetWords(0);
    size_t len = words.size();
    if (len > maxLength_) {
      maxLength_ = len;
    }
 
-   coll_.push_back(boost::shared_ptr<const Sentence>(sentence));
+   coll_.push_back(sentence);
  }
 
  class LengthOrderer

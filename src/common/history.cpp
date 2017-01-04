@@ -25,3 +25,11 @@ void Histories::SortByLineNum()
 {
   std::sort(coll_.begin(), coll_.end(), LineNumOrderer());
 }
+
+void Histories::Append(const Histories &other)
+{
+  for (size_t i = 0; i < other.size(); ++i) {
+    boost::shared_ptr<History> history = other.coll_[i];
+    coll_.push_back(history);
+  }
+}

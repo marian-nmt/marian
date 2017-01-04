@@ -26,7 +26,7 @@ class Sentence {
    Sentences();
    ~Sentences();
 
-   void push_back(const Sentence *sentence);
+   void push_back(boost::shared_ptr<const Sentence> sentence);
 
    boost::shared_ptr<const Sentence> at(size_t id) const {
      return coll_.at(id);
