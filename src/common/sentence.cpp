@@ -34,9 +34,6 @@ size_t Sentence::GetLineNum() const {
 
  Sentences::~Sentences()
  {
-   for (const Sentence *sentence : coll_) {
-     delete sentence;
-   }
  }
 
  void Sentences::push_back(const Sentence *sentence) {
@@ -46,6 +43,6 @@ size_t Sentence::GetLineNum() const {
      maxLength_ = len;
    }
 
-   coll_.push_back(sentence);
+   coll_.push_back(boost::shared_ptr<const Sentence>(sentence));
  }
 

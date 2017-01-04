@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <boost/shared_ptr.hpp>
 #include "types.h"
 
 class Sentence {
@@ -28,7 +29,7 @@ class Sentence {
    void push_back(const Sentence *sentence);
 
    const Sentence* at(size_t id) const {
-     return coll_.at(id);
+     return coll_.at(id).get();
    }
 
    size_t size() const {
@@ -40,7 +41,7 @@ class Sentence {
    }
 
  protected:
-   typedef  std::vector<const Sentence*> Coll;
+   typedef  std::vector< boost::shared_ptr<const Sentence> > Coll;
    Coll coll_;
 
    size_t maxLength_;
