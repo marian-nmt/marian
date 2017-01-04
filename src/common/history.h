@@ -64,10 +64,18 @@ class History {
       return NBest(1)[0];
     }
 
+    size_t GetLineNum() const
+    { return lineNo_; }
+
+    void SetLineNum(size_t lineNo)
+    { lineNo_ = lineNo; }
+
   private:
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
+    size_t lineNo_;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -75,11 +83,7 @@ class History {
 class Histories
 {
 public:
-  Histories(size_t size)
-  :coll_(size)
-  {
-
-  }
+  Histories(const Sentences& sentences);
 
   History &at(size_t id) {
     return coll_.at(id);

@@ -41,7 +41,7 @@ Histories Search::Decode(const Sentences& sentences) {
   size_t batchSize = sentences.size();
   std::vector<size_t> beamSizes(batchSize, 1);
 
-  Histories histories(batchSize);
+  Histories histories(sentences);
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
   for (size_t i = 0; i < histories.size(); ++i) {
     History &history = histories.at(i);
