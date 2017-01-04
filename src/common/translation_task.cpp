@@ -19,6 +19,8 @@ Histories TranslationTask(const Sentences *sentences, size_t taskCounter) {
 
   assert(sentences->size());
   Histories histories = search->Decode(vecSentences[0]);
+  histories.SortByLineNum();
+
   delete sentences;
 
   return histories;

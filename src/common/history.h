@@ -18,8 +18,9 @@ class History {
     };
 
   public:
-    History()
+    History(size_t lineNo)
       : normalize_(God::Get<bool>("normalize"))
+      , lineNo_(lineNo)
     {}
 
     void Add(const Beam& beam, bool last = false) {
@@ -67,9 +68,6 @@ class History {
     size_t GetLineNum() const
     { return lineNo_; }
 
-    void SetLineNum(size_t lineNo)
-    { lineNo_ = lineNo; }
-
   private:
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
@@ -86,11 +84,11 @@ public:
   Histories(const Sentences& sentences);
 
   History &at(size_t id) {
-    return coll_.at(id);
+    return *coll_.at(id).get();
   }
 
   const History &at(size_t id) const {
-    return coll_.at(id);
+    return *coll_.at(id).get();
   }
 
   size_t size() const {
@@ -100,6 +98,6 @@ public:
   void SortByLineNum();
 
 protected:
-  std::vector<History> coll_;
+  std::vector< boost::shared_ptr<History> > coll_;
 };
 
