@@ -444,9 +444,11 @@ struct NegNodeOp : public UnaryNodeOp {
 
 struct RowsNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-  RowsNodeOp(Expr a, const DeviceVector<size_t>& indeces, Args ...args)
+  RowsNodeOp(Expr a, const std::vector<size_t>& indeces, Args ...args)
     : UnaryNodeOp(a, keywords::shape=newShape(a, indeces), args...),
-      indeces_(indeces) { }
+      indeces_(indeces.size(), 0) {
+    thrust::copy(indeces.begin(), indeces.end(), indeces_.begin());
+  }
 
   void forward() {
     CopyRows(val_, a_->val(), indeces_);
@@ -457,7 +459,7 @@ struct RowsNodeOp : public UnaryNodeOp {
   }
 
   template <class ...Args>
-  Shape newShape(Expr a, const DeviceVector<size_t>& indeces) {
+  Shape newShape(Expr a, const std::vector<size_t>& indeces) {
     Shape shape = a->shape();
     shape.set(0, indeces.size());
     return shape;
@@ -471,7 +473,7 @@ struct RowsNodeOp : public UnaryNodeOp {
     return ss.str();
   }
 
-  const DeviceVector<size_t> &indeces_;
+  DeviceVector<size_t> indeces_;
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {

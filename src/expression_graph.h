@@ -42,9 +42,9 @@ Expr Expression(Args&& ... args);
  * @brief Represents a computation graph of expressions, over which algorithmic differentiation may be performed.
  */
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
-  private:
+  protected:
     /** @brief Constructs a new expression graph
-     * Constructor is private to force use of New<ExpressionGraph>()
+     * Constructor is protected to force use of New<ExpressionGraph>()
     */
     ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) { }
 
@@ -55,7 +55,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     friend ExpressionGraphPtr New<ExpressionGraph>();
 
   public:
-    
+
     void reserveWorkspaceMB(size_t num) {
       size_t elements = num * 1024 * 1024 / 4 - 1;
       tensors_->reserve(elements);
@@ -103,11 +103,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
-    
+
     void forward(data::BatchPtr batch = nullptr) {
       params_.allocateForward();
 
-      size_t floats;      
+      size_t floats;
       for(auto&& v : tape_)
         if(!v->skipped_training())
           if(batch)

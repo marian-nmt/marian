@@ -101,6 +101,8 @@ class Adam : public OptimizerBase {
       Tensor pv = graph->params().vals();
       Tensor pg = graph->params().grads();
 
+      //clip(pg);
+
       Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
               mt_, pg);
       Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),

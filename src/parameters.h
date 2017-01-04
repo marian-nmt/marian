@@ -54,6 +54,10 @@ class Parameters {
       return params_.end();
     }
 
+    auto getMap() -> decltype(named_)& {
+      return named_;
+    }
+
     Expr get(const std::string& name) {
       auto it = named_.find(name);
       if(it != named_.end()) {

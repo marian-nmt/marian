@@ -45,7 +45,7 @@ Expr name(Expr a, const std::string& name) {
   return a;
 }
 
-Expr rows(Expr a, const DeviceVector<size_t>& indeces) {
+Expr rows(Expr a, const std::vector<size_t>& indeces) {
   return Expression<RowsNodeOp>(a, indeces);
 }
 

@@ -40,7 +40,7 @@ Expr debug(Expr a, const std::string& message);
  */
 Expr name(Expr a, const std::string& name);
 
-Expr rows(Expr a, const DeviceVector<size_t>& indeces);
+Expr rows(Expr a, const std::vector<size_t>& indeces);
 
 Expr logit(Expr a);
 
