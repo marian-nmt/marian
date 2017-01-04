@@ -11,3 +11,17 @@ Histories::Histories(const Sentences& sentences)
   }
 }
 
+class LineNumOrderer
+{
+public:
+  bool operator()(const boost::shared_ptr<History> &a, const boost::shared_ptr<History> &b) const
+  {
+    return a->GetLineNum() < b->GetLineNum();
+  }
+
+};
+
+void Histories::SortByLineNum()
+{
+
+}

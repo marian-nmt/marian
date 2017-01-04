@@ -97,6 +97,8 @@ public:
     return coll_.size();
   }
 
+  void SortByLineNum();
+
 protected:
   std::vector<History> coll_;
 };
