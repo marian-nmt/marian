@@ -71,6 +71,29 @@ class History {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-typedef std::vector<History> Histories;
+//typedef std::vector<History> Histories;
+class Histories
+{
+public:
+  Histories(size_t size)
+  :coll_(size)
+  {
 
+  }
+
+  History &at(size_t id) {
+    return coll_.at(id);
+  }
+
+  const History &at(size_t id) const {
+    return coll_.at(id);
+  }
+
+  size_t size() const {
+    return coll_.size();
+  }
+
+protected:
+  std::vector<History> coll_;
+};
 
