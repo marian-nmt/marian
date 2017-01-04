@@ -13,7 +13,7 @@ namespace marian {
 
 class OptimizerBase {
   public:
-    virtual void update(ExpressionGraphPtr, data::BatchPtr) = 0;
+    virtual void update(ExpressionGraphPtr, data::BatchPtr = nullptr) = 0;
 };
 
 typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
@@ -22,7 +22,7 @@ class Sgd : public OptimizerBase {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
-    void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
+    void update(ExpressionGraphPtr graph, data::BatchPtr batch = nullptr) {
       graph->backprop(batch);
 
       for(auto& param : graph->params())
@@ -42,7 +42,7 @@ class Adagrad : public OptimizerBase {
       alloc_(newTensorAllocator<DeviceGPU>())
     {}
 
-    void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
+    void update(ExpressionGraphPtr graph, data::BatchPtr batch = nullptr) {
       graph->backprop(batch);
 
       if(!gt_) {
@@ -80,7 +80,7 @@ class Adam : public OptimizerBase {
       vtAlloc_(newTensorAllocator<DeviceGPU>())
     {}
 
-    void update(ExpressionGraphPtr graph, data::BatchPtr batch) {
+    void update(ExpressionGraphPtr graph, data::BatchPtr batch = nullptr) {
       graph->backprop(batch);
 
       if(!mt_) {

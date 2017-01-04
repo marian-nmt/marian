@@ -9,6 +9,7 @@
 #include "rnn.h"
 #include "batch_generator.h"
 #include "param_initializers.h"
+#include "optimizers.h"
 
 #include "cnpy/cnpy.h"
 
@@ -274,85 +275,90 @@ void construct(ExpressionGraphPtr g,
                        init=from_vector(picks));
   
   auto xe = cross_entropy(aff, p);
-  auto cost = debug(mean(sum(xe, axis=2), axis=0), "cost");
+  auto cost = debug(name(mean(sum(xe, axis=2), axis=0), "cost"), "cost");
 }
 
 SentBatch generateSrcBatch(size_t batchSize) {
-  //size_t length = rand() % 40 + 10;
+  size_t length = rand() % 40 + 10;
   //size_t length = 50;
-  //return SentBatch(length, WordBatch(batchSize));
+  return SentBatch(length, WordBatch(batchSize));
 
-  // das ist ein Test . </s>
-  SentBatch srcBatch({
-    WordBatch(batchSize, 13),
-    WordBatch(batchSize, 15),
-    WordBatch(batchSize, 20),
-    WordBatch(batchSize, 2548),
-    WordBatch(batchSize, 4),
-    WordBatch(batchSize, 0)
-  });
+  //// das ist ein Test . </s>
+  //SentBatch srcBatch({
+  //  WordBatch(batchSize, 13),
+  //  WordBatch(batchSize, 15),
+  //  WordBatch(batchSize, 20),
+  //  WordBatch(batchSize, 2548),
+  //  WordBatch(batchSize, 4),
+  //  WordBatch(batchSize, 0)
+  //});
 
   //if(batchSize > 2) {
   //  srcBatch[0][1] = 109; // dies
   //  srcBatch[0][2] = 19;  // es
   //}
 
-  return srcBatch;
+  //return srcBatch;
 }
 
 SentBatch generateTrgBatch(size_t batchSize) {
-  //size_t length = rand() % 40 + 10;
+  size_t length = rand() % 40 + 10;
   //size_t length = 50;
-  //return SentBatch(length, WordBatch(batchSize));
+  return SentBatch(length, WordBatch(batchSize));
 
   // this is a test . </s>
-  SentBatch trgBatch({
-    WordBatch(batchSize, 21),
-    WordBatch(batchSize, 11),
-    WordBatch(batchSize, 10),
-    WordBatch(batchSize, 1078),
-    WordBatch(batchSize, 5),
-    WordBatch(batchSize, 0)
-  });
-  
-  if(batchSize > 2) {
-    trgBatch[0][1] = 12; // that
-    trgBatch[1][1] = 17; // 's
-    trgBatch[0][2] = 12;  // that
-  }
-  
-  return trgBatch;
+  //SentBatch trgBatch({
+  //  WordBatch(batchSize, 21),
+  //  WordBatch(batchSize, 11),
+  //  WordBatch(batchSize, 10),
+  //  WordBatch(batchSize, 1078),
+  //  WordBatch(batchSize, 5),
+  //  WordBatch(batchSize, 0)
+  //});
+  //
+  //if(batchSize > 2) {
+  //  trgBatch[0][1] = 12; // that
+  //  trgBatch[1][1] = 17; // 's
+  //  trgBatch[0][2] = 12;  // that
+  //}
+  //
+  //return trgBatch;
 }
 
 int main(int argc, char** argv) {
-  cudaSetDevice(0);
+  cudaSetDevice(3);
 
   auto g = New<ExpressionGraph>();
   load(g, "../test/model.npz");
   
-  size_t batchSize = 3;
+  size_t batchSize = 1;
 
   auto srcBatch = generateSrcBatch(batchSize);
   auto trgBatch = generateTrgBatch(batchSize);
   
-  g->reserveWorkspaceMB(4096);
+  g->reserveWorkspaceMB(1024);
+  auto opt = Optimizer<Adam>(0.0001);
   
+  float sum = 0;
   boost::timer::cpu_timer timer;
-  for(int i = 1; i <= 10; ++i) {
-    g->clear();
-  
+  for(int i = 1; i <= 1000; ++i) {
+    
     // fake batch
     auto srcBatch = generateSrcBatch(batchSize);
     auto trgBatch = generateTrgBatch(batchSize);
     construct(g, srcBatch, trgBatch);
-  
-    g->forward();
-    g->backward();
-  
-    //if(i % 10 == 0)
+    
+    opt->update(g);
+    
+    float cost = g->get("cost")->val()->scalar();
+    sum += cost;
+    
+    //if(i % 1 == 0)
     //  std::cerr << ".";
-    //if(i % 100 == 0)
-    //  std::cout << "[" << i << "] " << timer.format(5, "%ws") << std::endl;
+    if(i % 1 == 0)
+      std::cout << "[" << i << "]" << std::fixed << std::setfill(' ') << std::setw(9)
+                << " - cost: " << cost << "/" << sum / i
+                << " - time: " << timer.format(5, "%ws") << std::endl;
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;

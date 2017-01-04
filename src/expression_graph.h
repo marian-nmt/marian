@@ -104,34 +104,20 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
     
-    void forward(data::BatchPtr batch) {
-      params_.allocateForward();
-
-      for(auto&& v : tape_)
-        if(!v->skipped_training())
-          v->allocate(batch->dim());
-
-      setInputs(batch);
-
-      for(auto&& v : tape_)
-        if(!v->skipped_training()) {
-          v->forward();
-          if(v->marked_for_debug()) {
-            std::cerr << "Debug: " << v->debug_message() << std::endl;
-            std::cerr << v->val()->debug() << std::endl;
-          }
-        }
-    }
-
-    void forward() {
+    void forward(data::BatchPtr batch = nullptr) {
       params_.allocateForward();
 
       size_t floats;      
-      for(auto&& v : tape_) {
+      for(auto&& v : tape_)
         if(!v->skipped_training())
-          floats += v->allocate(0);
-      }
-      
+          if(batch)
+            floats += v->allocate(batch->dim());
+          else
+            floats += v->allocate(0);
+
+      if(batch)
+        setInputs(batch);
+
       for(auto&& v : tape_)
         if(!v->skipped_training()) {
           v->forward();
