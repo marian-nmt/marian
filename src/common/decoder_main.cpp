@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
       Sentence *sentence = new Sentence(lineNum++, in);
       sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
-      if (sentences->size() >= maxBatchSize) {
+      if (sentences->size() >= maxBatchSize * 4) {
         results.emplace_back(
           pool.enqueue(
             [=]{ return TranslationTask(sentences, taskCounter); }
