@@ -35,14 +35,6 @@ class CudaStreamHandler {
 class CublasHandler {
   public:
     static cublasHandle_t GetHandle() {
-#ifdef __APPLE__
-      cublasHandle_t *handle = handle_.get();
-      if (handle == nullptr) {
-        handle = new cublasHandle_t;
-        handle_.reset(handle);
-      }
-      return *handle;
-#else
       if(handle_ == nullptr) {
         assert(handle_ == nullptr);
         handle_ = new cublasHandle_t;
@@ -50,7 +42,6 @@ class CublasHandler {
         cublasSetStream(*handle_, CudaStreamHandler::GetStream());
       }
       return *handle_;
-#endif
     }
 
   private:
