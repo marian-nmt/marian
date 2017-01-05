@@ -281,6 +281,19 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
   HANDLE_ERROR( cudaMalloc((void**)&d_cumBeamSizes, (maxBatchSize + 1) * sizeof(int)) );
 }
 
+NthElement::~NthElement()
+{
+  HANDLE_ERROR(cudaFree(d_ind));
+  HANDLE_ERROR(cudaFree(d_out));
+  HANDLE_ERROR(cudaFree(d_res_idx));
+  HANDLE_ERROR(cudaFree(d_res));
+  HANDLE_ERROR(cudaFree(h_res));
+  HANDLE_ERROR(cudaFree(h_res_idx));
+  HANDLE_ERROR(cudaFree(d_breakdown));
+  HANDLE_ERROR(cudaFree(d_batchPosition));
+  HANDLE_ERROR(cudaFree(d_cumBeamSizes));
+}
+
 void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes)
 {

@@ -12,8 +12,8 @@ class NthElement {
   public:
     NthElement() = delete;
     NthElement(const NthElement &copy) = delete;
-
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
+    virtual ~NthElement();
 
     void getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes);
