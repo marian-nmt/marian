@@ -52,7 +52,6 @@ typedef std::vector<ExamplePtr> Examples;
  */
 typedef Examples::const_iterator ExampleIterator;
 
-
 class Input {
   private:
     Shape shape_;
@@ -103,6 +102,34 @@ class Input {
     }
 };
 
+class Batch {
+  private:
+    std::vector<Input> inputs_;
+
+  public:
+    std::vector<Input>& inputs() {
+      return inputs_;
+    }
+
+    const std::vector<Input>& inputs() const {
+      return inputs_;
+    }
+
+    void push_back(Input input) {
+      inputs_.push_back(input);
+    }
+
+    int dim() const {
+      return inputs_[0].shape()[0];
+    }
+
+    size_t size() const {
+      return inputs_.size();
+    }
+};
+
+typedef std::shared_ptr<Batch> BatchPtr;
+
 class DataBase {
   public:
 
@@ -114,6 +141,8 @@ class DataBase {
 
     /** @brief Randomly shuffles the elements of this object's underlying data. */
     virtual void shuffle() = 0;
+
+    virtual BatchPtr toBatch(const Examples&) = 0;
 
     /**
      * @brief Returns the size of the <em>i</em>-th dimension of the data.

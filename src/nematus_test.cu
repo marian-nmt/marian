@@ -10,12 +10,17 @@
 #include "batch_generator.h"
 #include "optimizers.h"
 
+#include "corpus.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
   cudaSetDevice(0);
+
+  Corpus corpus({"../test/newstest2015-deen-src.de",
+                 "../test/newstest2015-deen-src.de",
+                 "../test/newstest2015-deen-ref.en"}, {});
 
   auto nematus = New<Nematus>();
   nematus->reserveWorkspaceMB(2048);

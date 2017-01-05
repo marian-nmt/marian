@@ -78,6 +78,36 @@ class MNIST : public DataBase {
       std::random_shuffle(examples_.begin(), examples_.end());
     }
 
+    BatchPtr toBatch(const Examples& batchVector) {
+      int batchSize = batchVector.size();
+
+      std::vector<int> maxDims;
+      for(auto& ex : batchVector) {
+        if(maxDims.size() < ex->size())
+          maxDims.resize(ex->size(), 0);
+        for(int i = 0; i < ex->size(); ++i) {
+          if((*ex)[i]->size() > maxDims[i])
+          maxDims[i] = (*ex)[i]->size();
+        }
+      }
+
+      BatchPtr batch(new Batch());
+      std::vector<Input::iterator> iterators;
+      for(auto& m : maxDims) {
+        batch->push_back(Shape({batchSize, m}));
+        iterators.push_back(batch->inputs().back().begin());
+      }
+
+      for(auto& ex : batchVector) {
+        for(int i = 0; i < ex->size(); ++i) {
+          DataPtr d = (*ex)[i];
+          d->resize(maxDims[i], 0.0f);
+          iterators[i] = std::copy(d->begin(), d->end(), iterators[i]);
+        }
+      }
+      return batch;
+    }
+
   private:
     typedef unsigned char uchar;
 

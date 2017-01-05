@@ -11,34 +11,6 @@ namespace marian {
 
 namespace data {
 
-class Batch {
-  private:
-    std::vector<Input> inputs_;
-
-  public:
-    std::vector<Input>& inputs() {
-      return inputs_;
-    }
-
-    const std::vector<Input>& inputs() const {
-      return inputs_;
-    }
-
-    void push_back(Input input) {
-      inputs_.push_back(input);
-    }
-
-    int dim() const {
-      return inputs_[0].shape()[0];
-    }
-
-    size_t size() const {
-      return inputs_.size();
-    }
-};
-
-typedef std::shared_ptr<Batch> BatchPtr;
-
 class BatchGenerator {
   private:
     DataBasePtr data_;
@@ -67,43 +39,13 @@ class BatchGenerator {
         batchVector.push_back(maxiBatch.top());
         maxiBatch.pop();
         if(batchVector.size() == batchSize_) {
-          bufferedBatches_.push_back(toBatch(batchVector));
+          bufferedBatches_.push_back(data_->toBatch(batchVector));
           batchVector.clear();
         }
       }
       if(!batchVector.empty())
-        bufferedBatches_.push_back(toBatch(batchVector));
+        bufferedBatches_.push_back(data_->toBatch(batchVector));
       //std::cerr << "Total: " << total.format(5, "%ws") << std::endl;
-    }
-
-    BatchPtr toBatch(const Examples& batchVector) {
-      int batchSize = batchVector.size();
-
-      std::vector<int> maxDims;
-      for(auto& ex : batchVector) {
-        if(maxDims.size() < ex->size())
-          maxDims.resize(ex->size(), 0);
-        for(int i = 0; i < ex->size(); ++i) {
-          if((*ex)[i]->size() > maxDims[i])
-          maxDims[i] = (*ex)[i]->size();
-        }
-      }
-
-      BatchPtr batch(new Batch());
-      std::vector<Input::iterator> iterators;
-      for(auto& m : maxDims) {
-        batch->push_back(Shape({batchSize, m}));
-        iterators.push_back(batch->inputs().back().begin());
-      }
-
-      for(auto& ex : batchVector) {
-        for(int i = 0; i < ex->size(); ++i) {
-          DataPtr d = (*ex)[i];
-          d->resize(maxDims[i], 0.0f);
-          iterators[i] = std::copy(d->begin(), d->end(), iterators[i]);
-        }
-      }
-      return batch;
     }
 
   public:
