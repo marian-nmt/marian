@@ -9,6 +9,8 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter) {
     search.reset(new Search(taskCounter));
   }
 
+  Histories ret;
+
   size_t maxBatchSize = God::Get<size_t>("batch-size");
 
   sentences->SortByLength();
@@ -20,12 +22,12 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter) {
 
   assert(decodeSentences->size());
   Histories histories = search->Decode(*decodeSentences);
-  histories.SortByLineNum();
+  ret.Append(histories);
+  ret.SortByLineNum();
 
   delete decodeSentences;
-
   delete sentences;
 
-  return histories;
+  return ret;
 }
 

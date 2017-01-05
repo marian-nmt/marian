@@ -81,6 +81,7 @@ class History {
 class Histories
 {
 public:
+  Histories() {}
   Histories(const Sentences& sentences);
 
   boost::shared_ptr<History> at(size_t id) const {
