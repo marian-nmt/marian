@@ -24,9 +24,7 @@ int main(int argc, char* argv[]) {
   std::size_t taskCounter = 0;
 
   size_t bunchSize = God::Get<size_t>("bunch-size");
-
   size_t maxBatchSize = God::Get<size_t>("batch-size");
-  std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
@@ -49,7 +47,7 @@ int main(int argc, char* argv[]) {
       Sentences *sentences = new Sentences();
       Sentence *sentence = new Sentence(lineNum++, in);
       sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
-      auto result = TranslationTask(sentences, taskCounter);
+      auto result = TranslationTask(sentences, taskCounter, maxBatchSize);
       Printer(result, taskCounter++, std::cout);
     }
   } else {
@@ -66,7 +64,7 @@ int main(int argc, char* argv[]) {
       if (sentences->size() >= maxBatchSize * bunchSize) {
         results.emplace_back(
           pool.enqueue(
-            [=]{ return TranslationTask(sentences, taskCounter); }
+            [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
           )
         );
 
@@ -79,7 +77,7 @@ int main(int argc, char* argv[]) {
     if (sentences->size()) {
       results.emplace_back(
         pool.enqueue(
-          [=]{ return TranslationTask(sentences, taskCounter); }
+          [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
         )
       );
     }

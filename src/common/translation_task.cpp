@@ -2,7 +2,7 @@
 #include "translation_task.h"
 #include "search.h"
 
-Histories TranslationTask(Sentences *sentences, size_t taskCounter) {
+Histories TranslationTask(Sentences *sentences, size_t taskCounter, size_t maxBatchSize) {
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
@@ -10,8 +10,6 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter) {
   }
 
   Histories ret;
-
-  size_t maxBatchSize = God::Get<size_t>("batch-size");
 
   sentences->SortByLength();
 
