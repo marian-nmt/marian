@@ -148,7 +148,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const size_t) {
 }
 
 BestHypsType EncoderDecoderLoader::GetBestHyps() {
-  return CPU::BestHyps;
+  return CPU::BestHyps();
 }
 
 }
