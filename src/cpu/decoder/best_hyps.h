@@ -138,4 +138,18 @@ void BestHyps(Beams& beams,
   }
 
 }
-}
+
+class BestHyps2 : public BestHypsBase
+{
+public:
+  void operator()(std::vector<Beam>& beams,
+        const Beam& prevHyps,
+        std::vector<size_t>& beamSizes,
+        const std::vector<ScorerPtr>& scorers,
+        const Words& filterIndices,
+        bool returnAlignment) {
+    BestHyps(beams, prevHyps, beamSizes, scorers, filterIndices, returnAlignment);
+  }
+};
+
+} // namespace

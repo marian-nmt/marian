@@ -13,7 +13,8 @@
 
 namespace GPU {
 
-class BestHyps {
+class BestHyps : public BestHypsBase
+{
   public:
     BestHyps()
     : nthElement_(God::Get<size_t>("beam-size"), God::Get<size_t>("batch-size"),
