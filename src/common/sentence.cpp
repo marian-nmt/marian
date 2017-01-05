@@ -59,6 +59,6 @@ size_t Sentence::GetLineNum() const {
 
  void Sentences::SortByLength()
  {
-   std::sort(coll_.begin(), coll_.end(), LengthOrderer());
+   std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
  }
 
