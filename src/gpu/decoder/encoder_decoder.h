@@ -76,7 +76,7 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load();
 
     virtual ScorerPtr NewScorer(size_t taskId);
-    virtual BestHypsBase *GetBestHyps();
+    virtual BestHypsBase &GetBestHyps();
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;

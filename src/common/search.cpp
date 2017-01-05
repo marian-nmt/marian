@@ -11,7 +11,7 @@ using namespace std;
 
 Search::Search(size_t threadId)
   : scorers_(God::GetScorers(threadId)),
-    BestHyps_(God::GetBestHyps(threadId)) {
+    bestHyps_(God::GetBestHyps(threadId)) {
 }
 
 
@@ -90,7 +90,7 @@ Histories Search::Decode(const Sentences& sentences) {
     Beams beams(batchSize);
     bool returnAlignment = God::Get<bool>("return-alignment");
 
-    (*BestHyps_)(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+    bestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {

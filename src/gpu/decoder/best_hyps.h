@@ -23,7 +23,9 @@ class BestHyps : public BestHypsBase
       keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
       Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
       weights_(God::GetScorerWeights())
-    {}
+    {
+      //std::cerr << "BestHyps::BestHyps" << std::endl;
+    }
 
     void DisAllowUNK(mblas::Matrix& Prob) {
       SetColumn(Prob, UNK, std::numeric_limits<float>::lowest());

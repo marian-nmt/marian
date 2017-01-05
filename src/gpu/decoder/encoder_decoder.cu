@@ -147,14 +147,14 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
                                       tab, *weights_[i]));
 }
 
-BestHypsBase *EncoderDecoderLoader::GetBestHyps() {
+BestHypsBase &EncoderDecoderLoader::GetBestHyps() {
   thread_local std::unique_ptr<BestHypsBase> bestHyps;
   if(!bestHyps) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
     bestHyps.reset(new GPU::BestHyps());
   }
 
-  return bestHyps.get();
+  return *bestHyps.get();
 }
 
 }
