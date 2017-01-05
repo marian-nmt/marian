@@ -1,61 +1,13 @@
 #pragma once
 
+#include "corpus.h"
+#include "cnpy/cnpy.h"
+
 #include "expression_graph.h"
 #include "rnn.h"
 #include "param_initializers.h"
-#include "cnpy/cnpy.h"
 
 namespace marian {
-
-typedef std::vector<size_t> WordBatch;
-typedef std::vector<WordBatch> SentBatch;
-
-SentBatch generateSrcBatch(size_t batchSize) {
-  //size_t length = rand() % 40 + 10;
-  //size_t length = 50;
-  //return SentBatch(length, WordBatch(batchSize));
-
-  // das ist ein Test . </s>
-  SentBatch srcBatch({
-    WordBatch(batchSize, 13),
-    WordBatch(batchSize, 15),
-    WordBatch(batchSize, 20),
-    WordBatch(batchSize, 2548),
-    WordBatch(batchSize, 4),
-    WordBatch(batchSize, 0)
-  });
-
-  if(batchSize > 2) {
-    srcBatch[0][1] = 109; // dies
-    srcBatch[0][2] = 19;  // es
-  }
-
-  return srcBatch;
-}
-
-SentBatch generateTrgBatch(size_t batchSize) {
-  //size_t length = rand() % 40 + 10;
-  //size_t length = 50;
-  //return SentBatch(length, WordBatch(batchSize));
-
-  // this is a test . </s>
-  SentBatch trgBatch({
-    WordBatch(batchSize, 21),
-    WordBatch(batchSize, 11),
-    WordBatch(batchSize, 10),
-    WordBatch(batchSize, 1078),
-    WordBatch(batchSize, 5),
-    WordBatch(batchSize, 0)
-  });
-
-  if(batchSize > 2) {
-    trgBatch[0][1] = 12; // that
-    trgBatch[1][1] = 17; // 's
-    trgBatch[0][2] = 12;  // that
-  }
-
-  return trgBatch;
-}
 
 class Nematus : public ExpressionGraph {
   public:
@@ -259,17 +211,17 @@ class Nematus : public ExpressionGraph {
     }
 
     void setDims() {
-      dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : 85000;
+      dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : 40000;
       dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : 500;
       dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : 1024;
 
-      dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : 85000;
+      dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : 40000;
       dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : 500;
       dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : 1024;
       dimBatch_ = 1;
     }
 
-    void constructEncoder(const SentBatch& srcSentenceBatch) {
+    void constructEncoder(const data::SentBatch& srcSentenceBatch) {
       using namespace keywords;
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
@@ -304,7 +256,7 @@ class Nematus : public ExpressionGraph {
       auto meanContext = name(mean(encContext, axis=2), "meanContext");
     }
 
-    void constructDecoder(const SentBatch& trgSentenceBatch) {
+    void constructDecoder(const data::SentBatch& trgSentenceBatch) {
       using namespace keywords;
 
       // *** Map mean encoder state to decoder start state ***
@@ -387,13 +339,12 @@ class Nematus : public ExpressionGraph {
       return this->get("cost")->val()->scalar();
     }
 
-    void construct(const SentBatch& srcSentenceBatch,
-                   const SentBatch& trgSentenceBatch) {
+    void construct(const data::CorpusBatch& batch) {
       this->clear();
 
       setDims();
-      constructEncoder(srcSentenceBatch);
-      constructDecoder(trgSentenceBatch);
+      constructEncoder(batch[0]);
+      constructDecoder(batch[1]);
     }
 };
 

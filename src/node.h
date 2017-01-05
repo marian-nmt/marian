@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <iostream>
+#include <thread>
 
 #include "keywords.h"
 #include "tensors/tensor.h"
@@ -90,6 +91,15 @@ class Node : public Chainable<Tensor>,
 
     void set_name(const std::string& name) {
       name_ = name;
+    }
+
+    template <class FuncList>
+    void run(const FuncList& functors) {
+      std::vector<std::thread> threads;
+      for(auto& f : functors)
+        threads.emplace_back(f);
+      for(auto& t : threads)
+        t.join();
     }
 
     const std::string &name() const { return name_; }

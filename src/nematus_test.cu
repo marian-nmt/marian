@@ -18,49 +18,51 @@ int main(int argc, char** argv) {
 
   cudaSetDevice(0);
 
-  std::vector<std::string> files = {"../test/mini.de", "../test/mini.en"};
-  std::vector<std::string> vocab = {"../test/vocab.de.json", "../test/vocab.en.json"};
+  std::vector<std::string> files =
+    {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.mt",
+     "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.pe"};
 
-  auto corpus = DataSet<Corpus>(files, vocab);
-  BatchGenerator<Corpus> bg(corpus, 10, 1000);
+  std::vector<std::string> vocab =
+    {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/mt.json",
+     "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/pe.json"};
 
-  bg.prepare();
-  auto batch = bg.next();
-  batch->test();
+  auto corpus = DataSet<Corpus>(files, vocab, 50);
+  BatchGenerator<Corpus> bg(corpus, 40, 1000);
 
   auto nematus = New<Nematus>();
-  nematus->reserveWorkspaceMB(2048);
-  //nematus->load("../test/model.npz");
-
+  nematus->reserveWorkspaceMB(6144);
   auto opt = Optimizer<Adam>(0.0001
                              /*,clip=norm(1)*/);
 
-  size_t batchSize = 3;
   float sum = 0;
   boost::timer::cpu_timer timer;
-  for(int i = 1; i <= 2000; ++i) {
+  size_t batches = 1;
+  for(int i = 1; i <= 20; ++i) {
+    bg.prepare();
+    while(bg) {
+      auto batch = bg.next();
 
-    // fake batch
-    auto srcBatch = generateSrcBatch(batchSize);
-    auto trgBatch = generateTrgBatch(batchSize);
-    nematus->construct(srcBatch, trgBatch);
+      nematus->construct(*batch);
+      opt->update(nematus);
 
-    opt->update(nematus);
+      float cost = nematus->cost();
+      sum += cost;
 
-    float cost = nematus->cost();
-    sum += cost;
+      if(batches % 1 == 0)
+        std::cerr << ".";
+      if(batches % 100 == 0)
+        std::cout << "[" << batches << "]" << std::fixed << std::setfill(' ') << std::setw(9)
+                  << " - cost: " << cost << "/" << sum / batches
+                  << " - time: " << timer.format(5, "%ws") << std::endl;
 
-    //if(i % 1 == 0)
-    //  std::cerr << ".";
-    if(i % 1 == 0)
-      std::cout << "[" << i << "]" << std::fixed << std::setfill(' ') << std::setw(9)
-                << " - cost: " << cost << "/" << sum / i
-                << " - time: " << timer.format(5, "%ws") << std::endl;
+      if(batches % 10000 == 0)
+        nematus->save("../test/model.marian.npz");
+
+      batches++;
+    }
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;
-
-  nematus->save("../test/model.marian.npz");
 
   return 0;
 }

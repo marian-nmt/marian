@@ -1,5 +1,7 @@
 #pragma once
 
+#include <thread>
+
 #include "node.h"
 #include "thrust_functions.h"
 #include "tensor_operators.h"
@@ -114,8 +116,13 @@ struct DotNodeOp : public BinaryNodeOp {
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-    Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
-    Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
+
+    std::vector<std::function<void()>> lambdas = {
+      [&]() { Prod(a_->grad(), adj_, b_->val(), false, true, 1.0); },
+      [&]() { Prod(b_->grad(), a_->val(), adj_, true, false, 1.0); }
+    };
+    run(lambdas);
+
   }
 
   virtual std::string graphviz() {
@@ -331,7 +338,7 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     CrossEntropyPick(val_, a_->val(), b_->val());
   }
 
-  
+
   void backward() {
     // @TODO: save memory for the second derivative.
     // Caching is not required, recomputation saves a lot of memory while not
@@ -449,12 +456,16 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += (1 - _2 * _2) * _3,
-            children_[0]->grad(), val_, adj_);
-    Element(_1 += (1 - _2 * _2) * _3,
-            children_[1]->grad(), val_, adj_);
-    Element(_1 += (1 - _2 * _2) * _3,
-            children_[2]->grad(), val_, adj_);
+
+    std::vector<std::function<void()>> lambdas = {
+      [&]() { Element(_1 += (1 - _2 * _2) * _3,
+                      children_[0]->grad(), val_, adj_); },
+      [&]() { Element(_1 += (1 - _2 * _2) * _3,
+                      children_[1]->grad(), val_, adj_); },
+      [&]() { Element(_1 += (1 - _2 * _2) * _3,
+                      children_[2]->grad(), val_, adj_); }
+    };
+    run(lambdas);
   }
 
   virtual std::string graphviz() {
@@ -492,9 +503,14 @@ struct AffineNodeOp : public NaryNodeOp {
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-    Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
-    Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
-    Element(_1 += _2, children_[2]->grad(), adj_);
+
+    std::vector<std::function<void()>> lambdas = {
+      [&]() { Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0); },
+      [&]() { Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0); },
+      [&]() { Element(_1 += _2, children_[2]->grad(), adj_); }
+    };
+
+    run(lambdas);
   }
 
   virtual std::string graphviz() {

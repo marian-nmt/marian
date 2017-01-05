@@ -7,11 +7,35 @@
 namespace marian {
 namespace data {
 
+typedef std::vector<size_t> WordBatch;
+typedef std::vector<WordBatch> SentBatch;
+
 class CorpusBatch {
   public:
-    void test() {
-      std::cerr << "Hello" << std::endl;
+    CorpusBatch(const std::vector<SentBatch>& batches)
+    : batches_(batches) {}
+
+    const SentBatch& operator[](size_t i) const {
+      return batches_[i];
     }
+
+    void debug() {
+      for(auto l : batches_) {
+        for(auto b: l) {
+          for(auto w : b) {
+            std::cerr << w << " ";
+          }
+          std::cerr << std::endl;
+        }
+      }
+    }
+
+    size_t size() {
+      return batches_[0][0].size();
+    }
+
+  private:
+    std::vector<SentBatch> batches_;
 };
 
 class Corpus : public DataBase {
@@ -20,7 +44,8 @@ class Corpus : public DataBase {
     typedef std::shared_ptr<batch_type> batch_ptr;
 
     Corpus(const std::vector<std::string> textPaths,
-           const std::vector<std::string> vocabPaths)
+           const std::vector<std::string> vocabPaths,
+           size_t maxLength = 50)
     {
       UTIL_THROW_IF2(textPaths.size() != vocabPaths.size(),
                      "Number of corpus files and vocab files does not agree");
@@ -50,7 +75,8 @@ class Corpus : public DataBase {
         }
 
         cont = sentences.size() == files.size();
-        if(cont)
+        if(cont && std::all_of(sentences.begin(), sentences.end(),
+                               [=](DataPtr d) { return d->size() <= maxLength; }))
           examples_.emplace_back(new Example(sentences));
       };
     }
@@ -69,7 +95,6 @@ class Corpus : public DataBase {
 
     batch_ptr toBatch(const Examples& batchVector) {
       int batchSize = batchVector.size();
-      std::cerr << batchSize << std::endl;
 
       std::vector<int> maxDims;
       for(auto& ex : batchVector) {
@@ -81,13 +106,20 @@ class Corpus : public DataBase {
         }
       }
 
-      for(auto m : maxDims)
-        std::cerr << m << " ";
-      std::cerr << std::endl;
+      std::vector<SentBatch> langs;
+      for(auto m : maxDims) {
+        langs.push_back(SentBatch(m, WordBatch(batchSize, 0)));
+      }
 
-      batch_ptr batch(new batch_type());
+      for(int i = 0; i < batchSize; ++i) {
+        for(int j = 0; j < maxDims.size(); ++j) {
+          for(int k = 0; k < (*batchVector[i])[j]->size(); ++k) {
+            langs[j][k][i] = (*(*batchVector[i])[j])[k];
+          }
+        }
+      }
 
-      return batch;
+      return batch_ptr(new batch_type(langs));
     }
 
   private:
