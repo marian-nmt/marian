@@ -36,18 +36,18 @@ int main(int argc, char** argv) {
   ff->graphviz("mnist_benchmark.dot");
 
   auto trainer =
-    Run<Trainer>(ff, trainSet,
-                 optimizer=Optimizer<Adam>(0.0002),
-                 batch_size=batchSize,
-                 max_epochs=50);
+    Run<Trainer<MNIST>>(ff, trainSet,
+                        optimizer=Optimizer<Adam>(0.0002),
+                        batch_size=batchSize,
+                        max_epochs=50);
   trainer->run();
 
   FeedforwardClassifier(
     ff, {trainSet->dim(0), 2048, 2048, 10}, batchSize);
 
   auto validator =
-    Run<Validator>(ff, validSet,
-                   batch_size=batchSize);
+    Run<Validator<MNIST>>(ff, validSet,
+                          batch_size=batchSize);
   validator->run();
 
   ff->dump("mnist.mrn");

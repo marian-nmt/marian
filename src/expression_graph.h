@@ -61,7 +61,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       tensors_->reserve(elements);
     }
 
-    void setInputs(data::BatchPtr batch) {
+    template <class Batch>
+    void setInputs(Batch batch) {
       auto& bInputs = batch->inputs();
       auto& gInputs = this->inputs();
 
@@ -81,10 +82,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * Backpropogation is implemented by performing first the forward pass
      *    and then the backward pass of algorithmic differentiation (AD) on the nodes of the graph.
      *
-     * @param batch A batch of training data
      */
-    void backprop(data::BatchPtr batch) {
-      forward(batch);
+    void backprop() {
+      forward();
       backward();
     }
 
@@ -104,19 +104,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
 
-    void forward(data::BatchPtr batch = nullptr) {
+    void forward() {
       params_.allocateForward();
 
       size_t floats;
       for(auto&& v : tape_)
         if(!v->skipped_training())
-          if(batch)
-            floats += v->allocate(batch->dim());
-          else
-            floats += v->allocate(0);
-
-      if(batch)
-        setInputs(batch);
+          floats += v->allocate(0);
 
       for(auto&& v : tape_)
         if(!v->skipped_training()) {
@@ -128,13 +122,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
         }
     }
 
-    void inference(data::BatchPtr batch) {
+    void inference() {
       for(auto&& v : tape_)
         if(!v->skipped_inference())
-          v->allocate(batch->dim());
-
-      // @TODO create setInputsInference !
-      setInputs(batch);
+          v->allocate(0);
 
       for(auto&& v : tape_)
         if(!v->skipped_inference()) {

@@ -19,16 +19,17 @@ class RunBase {
 
 typedef std::shared_ptr<RunBase> RunBasePtr;
 
+template <class DataSet>
 class Trainer : public RunBase,
                 public keywords::Keywords {
   private:
     ExpressionGraphPtr graph_;
-    data::DataBasePtr dataset_;
+    std::shared_ptr<DataSet> dataset_;
 
   public:
     template <typename ...Args>
     Trainer(ExpressionGraphPtr graph,
-            data::DataBasePtr dataset,
+            std::shared_ptr<DataSet> dataset,
             Args... args)
      : Keywords(args...),
        graph_(graph),
@@ -43,7 +44,7 @@ class Trainer : public RunBase,
         auto opt = Get(optimizer, Optimizer<Adam>());
         auto batchSize = Get(batch_size, 200);
         auto maxEpochs = Get(max_epochs, 50);
-        BatchGenerator bg(dataset_, batchSize);
+        BatchGenerator<DataSet> bg(dataset_, batchSize);
 
         auto validator = Get(valid, RunBasePtr());
 
@@ -55,8 +56,8 @@ class Trainer : public RunBase,
           float cost = 0;
           float totalExamples = 0;
           while(bg) {
-            BatchPtr batch = bg.next();
-            opt->update(graph_, batch);
+            auto batch = bg.next();
+            opt->update(graph_);
             cost += graph_->get("cost")->val()->scalar() * batch->dim();
             totalExamples += batch->dim();
             update++;
@@ -75,11 +76,12 @@ class Trainer : public RunBase,
     }
 };
 
+template <class DataSet>
 class Validator : public RunBase,
-                public keywords::Keywords {
+                  public keywords::Keywords {
   private:
     ExpressionGraphPtr graph_;
-    data::DataBasePtr dataset_;
+    std::shared_ptr<DataSet> dataset_;
 
     float correct(const std::vector<float> pred, const std::vector<float> labels) {
       size_t num = labels.size();
@@ -99,7 +101,7 @@ class Validator : public RunBase,
   public:
     template <typename ...Args>
     Validator(ExpressionGraphPtr graph,
-              data::DataBasePtr dataset,
+              std::shared_ptr<DataSet> dataset,
               Args... args)
      : Keywords(args...),
        graph_(graph),
@@ -111,7 +113,7 @@ class Validator : public RunBase,
         using namespace keywords;
 
         auto batchSize = Get(batch_size, 200);
-        BatchGenerator bg(dataset_, batchSize);
+        BatchGenerator<DataSet> bg(dataset_, batchSize);
 
         size_t update = 0;
         bg.prepare(false);
@@ -119,8 +121,8 @@ class Validator : public RunBase,
         float total = 0;
         float cor = 0;
         while(bg) {
-            BatchPtr batch = bg.next();
-            graph_->inference(batch);
+            auto batch = bg.next();
+            graph_->inference();
             std::vector<float> scores;
             graph_->get("scores")->val()->get(scores);
 

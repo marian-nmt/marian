@@ -11,9 +11,13 @@ namespace marian {
 
 namespace data {
 
+template <class DataSet>
 class BatchGenerator {
+  public:
+    typedef typename DataSet::batch_ptr BatchPtr;
+
   private:
-    DataBasePtr data_;
+    std::shared_ptr<DataSet> data_;
     ExampleIterator current_;
 
     size_t batchSize_;
@@ -49,7 +53,7 @@ class BatchGenerator {
     }
 
   public:
-    BatchGenerator(DataBasePtr data,
+    BatchGenerator(std::shared_ptr<DataSet> data,
                    size_t batchSize=100,
                    size_t maxiBatchSize=1000)
     : data_(data),

@@ -1,3 +1,4 @@
+add_subdirectory(3rd_party)
 
 include_directories(.)
 include_directories(3rd_party)
@@ -16,6 +17,7 @@ cuda_add_library(marian_lib
   tensor_operators.cu
   common/vocab.cpp
   common/utils.cpp
+  $<TARGET_OBJECTS:libyaml-cpp>
 )
 
 target_link_libraries(marian_lib)
@@ -36,11 +38,6 @@ cuda_add_executable(
 )
 
 cuda_add_executable(
-  gru_test
-  gru_test.cu
-)
-
-cuda_add_executable(
   nematus_test
   nematus_test.cu
 )
@@ -48,10 +45,9 @@ cuda_add_executable(
 target_link_libraries(softmax_benchmark marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(mnist_benchmark marian_lib)
-target_link_libraries(gru_test marian_lib)
 target_link_libraries(nematus_test marian_lib)
 
-foreach(exec mnist_benchmark tensor_test softmax_benchmark gru_test nematus_test)
+foreach(exec mnist_benchmark tensor_test softmax_benchmark nematus_test)
   target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

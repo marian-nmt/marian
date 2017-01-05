@@ -44,6 +44,8 @@ class MNIST : public DataBase {
 
   public:
 
+    typedef Batch batch_type;
+    typedef std::shared_ptr<batch_type> batch_ptr;
 
     /**
      * @brief Constructs a DataBase using <a href="http://yann.lecun.com/exdb/mnist/">MNIST</a> data.
@@ -78,7 +80,7 @@ class MNIST : public DataBase {
       std::random_shuffle(examples_.begin(), examples_.end());
     }
 
-    BatchPtr toBatch(const Examples& batchVector) {
+    batch_ptr toBatch(const Examples& batchVector) {
       int batchSize = batchVector.size();
 
       std::vector<int> maxDims;
@@ -91,7 +93,7 @@ class MNIST : public DataBase {
         }
       }
 
-      BatchPtr batch(new Batch());
+      batch_ptr batch(new Batch());
       std::vector<Input::iterator> iterators;
       for(auto& m : maxDims) {
         batch->push_back(Shape({batchSize, m}));

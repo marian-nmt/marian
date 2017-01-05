@@ -18,9 +18,15 @@ int main(int argc, char** argv) {
 
   cudaSetDevice(0);
 
-  Corpus corpus({"../test/newstest2015-deen-src.de",
-                 "../test/newstest2015-deen-src.de",
-                 "../test/newstest2015-deen-ref.en"}, {});
+  std::vector<std::string> files = {"../test/mini.de", "../test/mini.en"};
+  std::vector<std::string> vocab = {"../test/vocab.de.json", "../test/vocab.en.json"};
+
+  auto corpus = DataSet<Corpus>(files, vocab);
+  BatchGenerator<Corpus> bg(corpus, 10, 1000);
+
+  bg.prepare();
+  auto batch = bg.next();
+  batch->test();
 
   auto nematus = New<Nematus>();
   nematus->reserveWorkspaceMB(2048);

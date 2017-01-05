@@ -128,7 +128,7 @@ class Batch {
     }
 };
 
-typedef std::shared_ptr<Batch> BatchPtr;
+//typedef std::shared_ptr<Batch> BatchPtr;
 
 class DataBase {
   public:
@@ -142,7 +142,7 @@ class DataBase {
     /** @brief Randomly shuffles the elements of this object's underlying data. */
     virtual void shuffle() = 0;
 
-    virtual BatchPtr toBatch(const Examples&) = 0;
+    //virtual BatchPtr toBatch(const Examples&) = 0;
 
     /**
      * @brief Returns the size of the <em>i</em>-th dimension of the data.
@@ -162,9 +162,6 @@ class DataBase {
     }
 };
 
-/** @brief Defines a convenience type to represent a shared pointer to a DataBase object. */
-typedef std::shared_ptr<DataBase> DataBasePtr;
-
 /**
  * @brief Convenience function to construct a new DataBase object and return a shared pointer to that object.
  *
@@ -177,8 +174,8 @@ typedef std::shared_ptr<DataBase> DataBasePtr;
  * @return a shared pointer to a newly constructed DataBase object
  */
 template <class Set, typename ...Args>
-DataBasePtr DataSet(Args&& ...args) {
-  return DataBasePtr(new Set(args...));
+std::shared_ptr<Set> DataSet(Args&& ...args) {
+  return std::shared_ptr<Set>(new Set(std::forward<Args>(args)...));
 }
 
 }
