@@ -287,8 +287,8 @@ NthElement::~NthElement()
   HANDLE_ERROR(cudaFree(d_out));
   HANDLE_ERROR(cudaFree(d_res_idx));
   HANDLE_ERROR(cudaFree(d_res));
-  HANDLE_ERROR(cudaFree(h_res));
-  HANDLE_ERROR(cudaFree(h_res_idx));
+  HANDLE_ERROR(cudaFreeHost(h_res));
+  HANDLE_ERROR(cudaFreeHost(h_res_idx));
   HANDLE_ERROR(cudaFree(d_breakdown));
   HANDLE_ERROR(cudaFree(d_batchPosition));
   HANDLE_ERROR(cudaFree(d_cumBeamSizes));
