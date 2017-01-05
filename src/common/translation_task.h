@@ -2,4 +2,4 @@
 #include <string>
 #include "history.h"
 
-Histories TranslationTask(const Sentences *sentences, size_t taskCounter);
+Histories TranslationTask(Sentences *sentences, size_t taskCounter);
