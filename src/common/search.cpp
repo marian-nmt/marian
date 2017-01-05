@@ -90,7 +90,7 @@ Histories Search::Decode(const Sentences& sentences) {
     Beams beams(batchSize);
     bool returnAlignment = God::Get<bool>("return-alignment");
 
-    BestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+    (*BestHyps_)(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {

@@ -147,8 +147,8 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
                                       tab, *weights_[i]));
 }
 
-BestHypsType EncoderDecoderLoader::GetBestHyps() {
-  return GPU::BestHyps();
+BestHypsBase *EncoderDecoderLoader::GetBestHyps() {
+  return new GPU::BestHyps();
 }
 
 }

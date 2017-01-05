@@ -46,7 +46,7 @@ class God {
 
     static Filter& GetFilter();
 
-    static BestHypsType GetBestHyps(size_t threadId);
+    static BestHypsBase *GetBestHyps(size_t threadId);
 
     static std::vector<ScorerPtr> GetScorers(size_t);
     static std::vector<std::string> GetScorerNames();
