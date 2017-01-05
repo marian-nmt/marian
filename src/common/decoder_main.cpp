@@ -23,6 +23,8 @@ int main(int argc, char* argv[]) {
   std::size_t lineNum = 0;
   std::size_t taskCounter = 0;
 
+  size_t bunchSize = God::Get<size_t>("bunch-size");
+
   size_t maxBatchSize = God::Get<size_t>("batch-size");
   std::cerr << "maxBatchSize=" << maxBatchSize << std::endl;
 
@@ -61,7 +63,7 @@ int main(int argc, char* argv[]) {
       Sentence *sentence = new Sentence(lineNum++, in);
       sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
-      if (sentences->size() >= maxBatchSize * 4) {
+      if (sentences->size() >= maxBatchSize * bunchSize) {
         results.emplace_back(
           pool.enqueue(
             [=]{ return TranslationTask(sentences, taskCounter); }
