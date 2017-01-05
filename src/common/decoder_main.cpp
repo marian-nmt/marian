@@ -44,9 +44,10 @@ int main(int argc, char* argv[]) {
   if (God::Get<bool>("wipo")) {
     LOG(info) << "Reading input";
     while (std::getline(God::GetInputStream(), in)) {
-      Sentences *sentences = new Sentences();
+      boost::shared_ptr<Sentences> sentences(new Sentences());
       Sentence *sentence = new Sentence(lineNum++, in);
       sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
+
       auto result = TranslationTask(sentences, taskCounter, maxBatchSize);
       Printer(result, taskCounter++, std::cout);
     }
@@ -55,7 +56,7 @@ int main(int argc, char* argv[]) {
     LOG(info) << "Reading input";
 
     std::vector<std::future<Histories>> results;
-    Sentences *sentences = new Sentences();
+    boost::shared_ptr<Sentences> sentences(new Sentences());
 
     while(std::getline(God::GetInputStream(), in)) {
       Sentence *sentence = new Sentence(lineNum++, in);
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
           )
         );
 
-        sentences = new Sentences();
+        sentences.reset(new Sentences());
         taskCounter++;
       }
 

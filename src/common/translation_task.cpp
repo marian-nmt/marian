@@ -2,7 +2,7 @@
 #include "translation_task.h"
 #include "search.h"
 
-Histories TranslationTask(Sentences *sentences, size_t taskCounter, size_t maxBatchSize) {
+Histories TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
@@ -13,7 +13,7 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter, size_t maxBa
 
   sentences->SortByLength();
 
-  Sentences *decodeSentences = new Sentences();
+  boost::shared_ptr<Sentences> decodeSentences(new Sentences());
   for (size_t i = 0; i < sentences->size(); ++i) {
     decodeSentences->push_back(sentences->at(i));
 
@@ -22,8 +22,7 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter, size_t maxBa
       Histories histories = search->Decode(*decodeSentences);
       ret.Append(histories);
 
-      delete decodeSentences;
-      Sentences *decodeSentences = new Sentences();
+      decodeSentences.reset(new Sentences());
     }
   }
 
@@ -31,11 +30,8 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter, size_t maxBa
     Histories histories = search->Decode(*decodeSentences);
     ret.Append(histories);
   }
-  delete decodeSentences;
 
   ret.SortByLineNum();
-
-  delete sentences;
 
   return ret;
 }
