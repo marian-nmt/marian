@@ -18,14 +18,25 @@ Histories TranslationTask(Sentences *sentences, size_t taskCounter) {
   Sentences *decodeSentences = new Sentences();
   for (size_t i = 0; i < sentences->size(); ++i) {
     decodeSentences->push_back(sentences->at(i));
+
+    if (decodeSentences->size() >= maxBatchSize) {
+      assert(decodeSentences->size());
+      Histories histories = search->Decode(*decodeSentences);
+      ret.Append(histories);
+
+      delete decodeSentences;
+      Sentences *decodeSentences = new Sentences();
+    }
   }
 
-  assert(decodeSentences->size());
-  Histories histories = search->Decode(*decodeSentences);
-  ret.Append(histories);
+  if (decodeSentences->size()) {
+    Histories histories = search->Decode(*decodeSentences);
+    ret.Append(histories);
+  }
+  delete decodeSentences;
+
   ret.SortByLineNum();
 
-  delete decodeSentences;
   delete sentences;
 
   return ret;
