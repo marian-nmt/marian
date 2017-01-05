@@ -10,6 +10,9 @@
 class BestHypsBase
 {
 public:
+  BestHypsBase(const BestHypsBase &copy) = delete;
+  BestHypsBase() {}
+
   virtual void operator()(std::vector<Beam>& beams,
         const Beam& prevHyps,
         std::vector<size_t>& beamSizes,

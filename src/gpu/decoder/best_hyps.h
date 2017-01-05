@@ -16,6 +16,7 @@ namespace GPU {
 class BestHyps : public BestHypsBase
 {
   public:
+    BestHyps(const BestHyps &copy) = delete;
     BestHyps()
     : nthElement_(God::Get<size_t>("beam-size"), God::Get<size_t>("batch-size"),
                   mblas::CudaStreamHandler::GetStream()),

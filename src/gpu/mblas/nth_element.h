@@ -10,6 +10,9 @@ namespace GPU {
 
 class NthElement {
   public:
+    NthElement() = delete;
+    NthElement(const NthElement &copy) = delete;
+
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
 
     void getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
