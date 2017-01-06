@@ -14,6 +14,8 @@ class CudaStreamHandler {
       // cudaStreamCreateWithFlags(stream_.get(), cudaStreamNonBlocking);
     }
 
+    CudaStreamHandler(const CudaStreamHandler&) = delete;
+
   protected:
     static thread_local CudaStreamHandler *instance_;
     std::unique_ptr<cudaStream_t> stream_;

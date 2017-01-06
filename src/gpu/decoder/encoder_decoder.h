@@ -72,6 +72,7 @@ class EncoderDecoder : public Scorer {
 ////////////////////////////////////////////
 class EncoderDecoderLoader : public Loader {
   public:
+	EncoderDecoderLoader(const EncoderDecoderLoader&) = delete;
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
 

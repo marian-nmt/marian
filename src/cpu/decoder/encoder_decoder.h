@@ -22,6 +22,7 @@ class Decoder;
 class EncoderDecoderState : public State {
   public:
 	EncoderDecoderState();
+	EncoderDecoderState(const EncoderDecoderState&) = delete;
 
     virtual std::string Debug() const;
 

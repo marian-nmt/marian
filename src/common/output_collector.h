@@ -9,6 +9,8 @@ class OutputCollector
 {
 public:
   OutputCollector();
+  OutputCollector(const OutputCollector&) = delete;
+
   void Write(long sourceId, const std::string& output);
 
 protected:

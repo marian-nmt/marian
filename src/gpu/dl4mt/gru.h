@@ -60,6 +60,8 @@ class SlowGRU {
     mutable mblas::Matrix H_;
     mutable mblas::Matrix Temp1_;
     mutable mblas::Matrix Temp2_;
+
+    SlowGRU(const SlowGRU&) = delete;
 };
 
 __global__ void gElementwiseOps(float* out,
@@ -138,6 +140,8 @@ class FastGRU {
 
     mutable mblas::Matrix RUH_;
     mutable mblas::Matrix Temp_;
+
+    FastGRU(const FastGRU&) = delete;
 };
 
 template<class T>

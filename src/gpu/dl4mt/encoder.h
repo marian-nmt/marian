@@ -33,6 +33,8 @@ class Encoder {
 
       private:
         const Weights& w_;
+
+        Embeddings(const Embeddings&) = delete;
     };
 
     template <class Weights>
@@ -81,6 +83,8 @@ class Encoder {
         const GRU<Weights> gru_;
 
         mblas::Matrix State_;
+
+        RNN(const RNN&) = delete;
     };
 
   public:
@@ -96,6 +100,8 @@ class Encoder {
 
     // reusing memory
     std::vector<mblas::Matrix> embeddedWords_;
+
+    Encoder(const Encoder&) = delete;
 };
 
 }

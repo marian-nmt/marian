@@ -10,7 +10,9 @@
 
 class State {
   public:
-    virtual ~State() {}
+	State() {}
+	State(const State &) = delete;
+	virtual ~State() {}
 
     template <class T>
     T& get() {
