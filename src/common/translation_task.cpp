@@ -12,35 +12,61 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
     search.reset(new Search(taskCounter));
   }
 
-  Histories allHistories;
+  try {
+    Histories allHistories;
 
-  sentences->SortByLength();
+    sentences->SortByLength();
 
-  boost::shared_ptr<Sentences> decodeSentences(new Sentences());
-  for (size_t i = 0; i < sentences->size(); ++i) {
-    decodeSentences->push_back(sentences->at(i));
+    boost::shared_ptr<Sentences> decodeSentences(new Sentences());
+    for (size_t i = 0; i < sentences->size(); ++i) {
+      decodeSentences->push_back(sentences->at(i));
 
-    if (decodeSentences->size() >= maxBatchSize) {
-      assert(decodeSentences->size());
+      if (decodeSentences->size() >= maxBatchSize) {
+        assert(decodeSentences->size());
+        Histories histories = search->Decode(*decodeSentences);
+        allHistories.Append(histories);
+
+        decodeSentences.reset(new Sentences());
+      }
+    }
+
+    if (decodeSentences->size()) {
       Histories histories = search->Decode(*decodeSentences);
       allHistories.Append(histories);
-
-      decodeSentences.reset(new Sentences());
     }
+
+    allHistories.SortByLineNum();
+
+    std::stringstream strm;
+    Printer(allHistories, taskCounter, strm);
+
+    OutputCollector &outputCollector = God::GetOutputCollector();
+    outputCollector.Write(taskCounter, strm.str());
+    //std::cerr << "TranslationTaskEnd" << std::endl;
+  }
+  catch(thrust::system_error &e)
+  {
+    std::cerr << "CUDA error during some_function: " << e.what() << std::endl;
+    abort();
+  }
+  catch(std::bad_alloc &e)
+  {
+    std::cerr << "Bad memory allocation during some_function: " << e.what() << std::endl;
+    abort();
+  }
+  catch(std::runtime_error &e)
+  {
+    std::cerr << "Runtime error during some_function: " << e.what() << std::endl;
+    abort();
+  }
+  catch(...)
+  {
+    std::cerr << "Some other kind of error during some_function" << std::endl;
+    abort();
+
+    // no idea what to do, so just rethrow the exception
+    //throw;
   }
 
-  if (decodeSentences->size()) {
-    Histories histories = search->Decode(*decodeSentences);
-    allHistories.Append(histories);
-  }
-
-  allHistories.SortByLineNum();
-
-  std::stringstream strm;
-  Printer(allHistories, taskCounter, strm);
-
-  OutputCollector &outputCollector = God::GetOutputCollector();
-  outputCollector.Write(taskCounter, strm.str());
-  //std::cerr << "TranslationTaskEnd" << std::endl;
 }
 
