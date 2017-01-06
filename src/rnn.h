@@ -236,13 +236,15 @@ class GRUWithAttention {
         }
       }
 
-    Expr apply(Expr input, Expr state) {
+    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       using namespace keywords;
 
       auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
 
-      auto hidden = grufast({state, xW, sU, params_.b});
+      auto hidden = mask ?
+        grufast({state, xW, sU, params_.b}) :
+        grufast({state, xW, sU, params_.b, mask});
 
       int dimBatch = context_->shape()[0];
       int srcWords = context_->shape()[2];
@@ -268,7 +270,9 @@ class GRUWithAttention {
 
       auto aWc = dot(alignedSource, params_.Wc);
       auto hUc = dot(hidden, params_.Uc);
-      auto output = grufast({hidden, aWc, hUc, params_.bc}, true);
+      auto output = mask ?
+        grufast({hidden, aWc, hUc, params_.bc}, true) :
+        grufast({hidden, aWc, hUc, params_.bc, mask}, true);
 
       return output;
     }
