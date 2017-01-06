@@ -115,7 +115,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 // the destructor joins all threads
 inline ThreadPool::~ThreadPool()
 {
-  std::cerr << "~ThreadPool start:" << getNumTasks() << std::endl;
+  //std::cerr << "~ThreadPool start:" << getNumTasks() << std::endl;
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;
@@ -124,7 +124,7 @@ inline ThreadPool::~ThreadPool()
     for(std::thread &worker: workers)
         worker.join();
 
-    std::cerr << "~ThreadPool end:" << getNumTasks() << std::endl;
+    //std::cerr << "~ThreadPool end:" << getNumTasks() << std::endl;
 }
 
 

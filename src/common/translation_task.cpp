@@ -5,7 +5,7 @@
 #include "printer.h"
 
 void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
-  std::cerr << "TranslationTaskStart" << std::endl;
+  //std::cerr << "TranslationTaskStart" << std::endl;
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
@@ -41,6 +41,6 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
 
   OutputCollector &outputCollector = God::GetOutputCollector();
   outputCollector.Write(taskCounter, strm.str());
-  std::cerr << "TranslationTaskEnd" << std::endl;
+  //std::cerr << "TranslationTaskEnd" << std::endl;
 }
 
