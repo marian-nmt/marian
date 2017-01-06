@@ -4,14 +4,14 @@
 #include "output_collector.h"
 #include "printer.h"
 
-Histories TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
+void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
     search.reset(new Search(taskCounter));
   }
 
-  Histories ret;
+  Histories allHistories;
 
   sentences->SortByLength();
 
@@ -22,7 +22,7 @@ Histories TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCou
     if (decodeSentences->size() >= maxBatchSize) {
       assert(decodeSentences->size());
       Histories histories = search->Decode(*decodeSentences);
-      ret.Append(histories);
+      allHistories.Append(histories);
 
       decodeSentences.reset(new Sentences());
     }
@@ -30,17 +30,15 @@ Histories TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCou
 
   if (decodeSentences->size()) {
     Histories histories = search->Decode(*decodeSentences);
-    ret.Append(histories);
+    allHistories.Append(histories);
   }
 
-  ret.SortByLineNum();
+  allHistories.SortByLineNum();
 
   std::stringstream strm;
-  Printer(ret, taskCounter, strm);
+  Printer(allHistories, taskCounter, strm);
 
   OutputCollector &outputCollector = God::GetOutputCollector();
   outputCollector.Write(taskCounter, strm.str());
-
-  return ret;
 }
 

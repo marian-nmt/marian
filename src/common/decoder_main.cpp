@@ -48,14 +48,12 @@ int main(int argc, char* argv[]) {
       Sentence *sentence = new Sentence(lineNum++, in);
       sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
-      auto result = TranslationTask(sentences, taskCounter, maxBatchSize);
-      Printer(result, taskCounter++, std::cout);
+      TranslationTask(sentences, taskCounter, maxBatchSize);
     }
   } else {
     ThreadPool pool(totalThreads);
     LOG(info) << "Reading input";
 
-    std::vector<std::future<Histories>> results;
     boost::shared_ptr<Sentences> sentences(new Sentences());
 
     while(std::getline(God::GetInputStream(), in)) {
@@ -63,10 +61,8 @@ int main(int argc, char* argv[]) {
       sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
       if (sentences->size() >= maxBatchSize * bunchSize) {
-        results.emplace_back(
-          pool.enqueue(
+        pool.enqueue(
             [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
-          )
         );
 
         sentences.reset(new Sentences());
@@ -76,10 +72,8 @@ int main(int argc, char* argv[]) {
     }
 
     if (sentences->size()) {
-      results.emplace_back(
-        pool.enqueue(
+      pool.enqueue(
           [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
-        )
       );
     }
   }
