@@ -23,16 +23,16 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
 
       if (decodeSentences->size() >= maxBatchSize) {
         assert(decodeSentences->size());
-        Histories histories = search->Decode(*decodeSentences);
-        allHistories.Append(histories);
+        boost::shared_ptr<Histories> histories = search->Decode(*decodeSentences);
+        allHistories.Append(*histories.get());
 
         decodeSentences.reset(new Sentences(taskCounter, bunchId++));
       }
     }
 
     if (decodeSentences->size()) {
-      Histories histories = search->Decode(*decodeSentences);
-      allHistories.Append(histories);
+      boost::shared_ptr<Histories> histories = search->Decode(*decodeSentences);
+      allHistories.Append(*histories.get());
     }
 
     allHistories.SortByLineNum();

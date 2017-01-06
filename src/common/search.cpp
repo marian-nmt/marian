@@ -35,16 +35,17 @@ void Search::InitScorers(const Sentences& sentences, States& states, States& nex
   }
 }
 
-Histories Search::Decode(const Sentences& sentences) {
+boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
+
+  boost::shared_ptr<Histories> ret(new Histories(sentences));
 
   size_t batchSize = sentences.size();
   std::vector<size_t> beamSizes(batchSize, 1);
 
-  Histories histories(sentences);
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
-  for (size_t i = 0; i < histories.size(); ++i) {
-    History &history = *histories.at(i).get();
+  for (size_t i = 0; i < ret->size(); ++i) {
+    History &history = *ret->at(i).get();
     history.Add(prevHyps);
   }
 
@@ -94,7 +95,7 @@ Histories Search::Decode(const Sentences& sentences) {
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
-        histories.at(i)->Add(beams[i], histories.at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+        ret->at(i)->Add(beams[i], ret->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
       }
     }
 
@@ -127,5 +128,5 @@ Histories Search::Decode(const Sentences& sentences) {
 	  scorer->CleanUpAfterSentence();
   }
 
-  return histories;
+  return ret;
 }

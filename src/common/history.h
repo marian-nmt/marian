@@ -17,7 +17,10 @@ class History {
       float cost;
     };
 
+    History(const History &) = delete;
+
   public:
+
     History(size_t lineNo)
       : normalize_(God::Get<bool>("normalize"))
       , lineNo_(lineNo)
@@ -81,7 +84,7 @@ class History {
 class Histories
 {
 public:
-  Histories() {}
+  Histories() {} // for all histories in translation task
   Histories(const Sentences& sentences);
 
   boost::shared_ptr<History> at(size_t id) const {
@@ -97,5 +100,7 @@ public:
 
 protected:
   std::vector< boost::shared_ptr<History> > coll_;
+
+  Histories(const Histories &) = delete;
 };
 

@@ -15,6 +15,8 @@ class Sentence {
   private:
     std::vector<Words> words_;
     std::string line_;
+
+    Sentence(const Sentence &) = delete;
 };
 
 
@@ -49,4 +51,6 @@ class Sentence {
    Coll coll_;
 
    size_t maxLength_;
- };
+
+   Sentences(const Sentences &) = delete;
+};

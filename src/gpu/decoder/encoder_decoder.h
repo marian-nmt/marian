@@ -65,6 +65,8 @@ class EncoderDecoder : public Scorer {
     DeviceVector<int> batchMapping_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
+
+    EncoderDecoder(const EncoderDecoder&) = delete;
 };
 
 ////////////////////////////////////////////

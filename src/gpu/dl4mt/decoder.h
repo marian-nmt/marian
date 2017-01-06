@@ -22,9 +22,9 @@ class Decoder {
           for(auto&& id : tids)
             if(id >= w_.E_.Rows())
               id = 1;
-          indeces_.resize(tids.size());
-          mblas::copy_n(tids.begin(), tids.size(), indeces_.begin());
-          Assemble(Rows, w_.E_, indeces_);
+          indices_.resize(tids.size());
+          mblas::copy_n(tids.begin(), tids.size(), indices_.begin());
+          Assemble(Rows, w_.E_, indices_);
         }
 
         size_t GetCols() {
@@ -37,7 +37,9 @@ class Decoder {
 
       private:
         const Weights& w_;
-        DeviceVector<size_t> indeces_;
+        DeviceVector<size_t> indices_;
+
+        Embeddings(const Embeddings&) = delete;
     };
 
     template <class Weights1, class Weights2>
@@ -70,6 +72,8 @@ class Decoder {
 
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
+
+        RNNHidden(const RNNHidden&) = delete;
     };
 
     template <class Weights>
@@ -86,6 +90,8 @@ class Decoder {
 
       private:
         const GRU<Weights> gru_;
+
+        RNNFinal(const RNNFinal&) = delete;
     };
 
     template <class Weights>
@@ -164,6 +170,8 @@ class Decoder {
         mblas::Matrix Sums_;
 
         float WC_;
+
+        Alignment(const Alignment&) = delete;
     };
 
     template <class Weights>
@@ -232,6 +240,8 @@ class Decoder {
 
         mblas::Matrix TempW4;
         mblas::Matrix TempB4;
+
+        Softmax(const Softmax&) = delete;
     };
 
   public:
@@ -334,6 +344,8 @@ class Decoder {
     RNNFinal<Weights::DecGRU2> rnn2_;
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
+
+    Decoder(const Decoder&) = delete;
 };
 
 }
