@@ -120,7 +120,7 @@ Histories Search::Decode(const Sentences& sentences) {
     prevHyps.swap(survivors);
   }
 
-  LOG(progress) << "Line " << sentences.at(0)->GetLineNum()
+  LOG(progress) << "Batch " << sentences.taskCounter << "." << sentences.bunchId
                 << ": Search took " << timer.format(3, "%ws");
 
   for (auto scorer : scorers_) {

@@ -14,10 +14,10 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
 
   try {
     Histories allHistories;
-
     sentences->SortByLength();
 
-    boost::shared_ptr<Sentences> decodeSentences(new Sentences());
+    size_t bunchId = 0;
+    boost::shared_ptr<Sentences> decodeSentences(new Sentences(taskCounter, bunchId++));
     for (size_t i = 0; i < sentences->size(); ++i) {
       decodeSentences->push_back(sentences->at(i));
 
@@ -26,7 +26,7 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
         Histories histories = search->Decode(*decodeSentences);
         allHistories.Append(histories);
 
-        decodeSentences.reset(new Sentences());
+        decodeSentences.reset(new Sentences(taskCounter, bunchId++));
       }
     }
 

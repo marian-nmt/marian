@@ -4,8 +4,8 @@
 #include "utils.h"
 #include "common/vocab.h"
 
-Sentence::Sentence(size_t lineNo, const std::string& line)
-: lineNo_(lineNo), line_(line)
+Sentence::Sentence(size_t vLineNum, const std::string& line)
+: lineNum(vLineNum), line_(line)
 {
   std::vector<std::string> tabs;
   Split(line, tabs, "\t");
@@ -23,13 +23,11 @@ const Words& Sentence::GetWords(size_t index) const {
   return words_[index];
 }
 
-size_t Sentence::GetLineNum() const {
-  return lineNo_;
-}
-
 /////////////////////////////////////////////////////////
- Sentences::Sentences()
-   : maxLength_(0)
+ Sentences::Sentences(size_t vTaskCounter, size_t vBunchId)
+   : taskCounter(vTaskCounter)
+   , bunchId(vBunchId)
+   , maxLength_(0)
  {
  }
 

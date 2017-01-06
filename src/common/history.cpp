@@ -6,7 +6,7 @@ Histories::Histories(const Sentences& sentences)
 {
   for (size_t i = 0; i < sentences.size(); ++i) {
     const Sentence &sentence = *sentences.at(i).get();
-    History *history = new History(sentence.GetLineNum());
+    History *history = new History(sentence.lineNum);
     coll_[i].reset(history);
   }
 }
