@@ -233,7 +233,6 @@ class GRUWithAttention {
                           softmaxMask->shape()[0] };
           softmaxMask_ = transpose(
             reshape(softmaxMask, shape));
-          debug(softmaxMask_, "mask");
         }
       }
 
@@ -262,8 +261,6 @@ class GRUWithAttention {
                 {srcWords, dimBatch})),
             softmaxMask_)),
         {dimBatch, 1, srcWords});
-
-      debug(e, "e");
       // <- horrible
 
       auto alignedSource = weighted_average(context_, e, axis=2);

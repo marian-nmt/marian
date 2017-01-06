@@ -261,7 +261,6 @@ class Nematus : public ExpressionGraph {
       auto itFw = statesFw.begin();
       auto itBw = statesBw.rbegin();
       while(itFw != statesFw.end()) {
-        debug(*itBw, "stateBw");
         biStates.push_back(concatenate({*itFw++, *itBw++}, axis=1));
       }
 
@@ -272,10 +271,6 @@ class Nematus : public ExpressionGraph {
       name(weights, "encoderContextWeights");
 
       auto meanContext = name(weighted_average(encContext, weights, axis=2), "meanContext");
-
-      debug(encContext, "context");
-
-      debug(meanContext, "mean");
     }
 
     void constructDecoder(const data::SentBatch& trgSentenceBatch) {
@@ -329,22 +324,22 @@ class Nematus : public ExpressionGraph {
       auto W1 = this->param("ff_logit_lstm_W", {dimDecState_, dimTrgEmb_},
                             init=glorot_uniform);
       auto b1 = this->param("ff_logit_lstm_b", {1, dimTrgEmb_},
-                            init=glorot_uniform);
+                            init=marian::zeros);
 
       auto W2 = this->param("ff_logit_prev_W", {dimTrgEmb_, dimTrgEmb_},
                             init=glorot_uniform);
       auto b2 = this->param("ff_logit_prev_b", {1, dimTrgEmb_},
-                            init=glorot_uniform);
+                            init=marian::zeros);
 
       auto W3 = this->param("ff_logit_ctx_W", {2 * dimEncState_, dimTrgEmb_},
                             init=glorot_uniform);
       auto b3 = this->param("ff_logit_ctx_b", {1, dimTrgEmb_},
-                            init=glorot_uniform);
+                            init=marian::zeros);
 
       auto W4 = this->param("ff_logit_W", {dimTrgEmb_, dimTrgVoc_},
                             init=glorot_uniform);
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
-                            init=glorot_uniform);
+                            init=marian::zeros);
 
       auto t = tanh(affine(d1, W1, b1)
                     + affine(e2, W2, b2)
@@ -354,6 +349,7 @@ class Nematus : public ExpressionGraph {
       // *** Cross entropy and cost across words and batch ***
       auto xe = cross_entropy(aff, picksTensor);
       auto cost = name(mean(debug(sum(xe, axis=2), "costs"), axis=0), "cost");
+
       debug(xe, "xe");
     }
 

@@ -21,57 +21,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <random>
-#include <algorithm>
-#include <iterator>
 #include <functional>
-#include <stdint.h>
 
 #include "tensors/tensor.h"
 #include "cnpy/cnpy.h"
 
 namespace marian {
 
-float xor128() {
-    static uint64_t x = 123456789;
-    static uint64_t y = 362436069;
-    static uint64_t z = 521288629;
-    static uint64_t w = 88675123;
-    uint64_t t;
-
-    t = (x ^ (x << 11)) % 1000;
-    x = y; y = z; z = w;
-    w = (w ^ (w >> 19) ^ t ^ (t >> 8)) % 1000;
-    return 0.1 * ((w % 1000) / 1000.f) - 0.05;
-}
+float xor128();
 
 // Use a constant seed for deterministic behaviour.
 //std::default_random_engine engine(42);
 
-void zeros(Tensor t) {
-  t->set(0.f);
-}
+void zeros(Tensor t);
 
-void ones(Tensor t) {
-  t->set(1.0f);
-}
+void ones(Tensor t);
 
-std::function<void(Tensor)> from_value(float v) {
-  return [v](Tensor t) {
-    t->set(v);
-  };
-}
+std::function<void(Tensor)> from_value(float v);
 
-std::function<void(Tensor)> diag(float val) {
-  return [val](Tensor t) {
-    if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1 && t->shape()[3] == 1) {
-      std::vector<float> vec(t->size(), 0);
-      for(int i = 0; i < t->shape()[0]; ++i)
-        vec[i * t->shape()[1] + i] = val;
-      t->set(vec);
-    }
-  };
-}
+std::function<void(Tensor)> diag(float val);
 
 
 template <class Distribution>
@@ -87,54 +55,19 @@ void distribution(Tensor t, float a, float b) {
   t << vals;
 }
 
-std::function<void(Tensor)> normal(float mean = 0.0, float std = 0.05) {
-  return [mean, std](Tensor t) {
-    distribution<std::normal_distribution<float>>(t, mean, std);
-  };
-}
+std::function<void(Tensor)> normal(float mean = 0.0, float std = 0.05);
 
-std::function<void(Tensor)> uniform(float a = -0.05, float b = 0.05) {
-  return [a, b](Tensor t) {
-    distribution<std::uniform_real_distribution<float>>(t, a, b);
-  };
-}
+std::function<void(Tensor)> uniform(float a = -0.05, float b = 0.05);
 
-void glorot_uniform(Tensor t) {
-  float b = sqrtf( 6.0f / (t->shape()[0] + t->shape()[1]) );
-  distribution<std::uniform_real_distribution<float>>(t, -b, b);
-}
+void glorot_uniform(Tensor t);
 
-void xorshift(Tensor t) {
-  std::vector<float> vals(t->size());
-  for(auto&& v : vals)
-    v = xor128();
-  t << vals;
-}
+void xorshift(Tensor t);
 
-void glorot_normal(Tensor t) {
-  float b = sqrtf( 2.0f / (t->shape()[0] + t->shape()[1]) );
-  distribution<std::uniform_real_distribution<float>>(t, -b, b);
-}
+void glorot_normal(Tensor t);
 
-std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
-  return [v](Tensor t) {
-    t->set(v);
-  };
-}
+std::function<void(Tensor)> from_vector(const std::vector<float>& v);
 
-std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
-  size_t size = 1;
-  for(int i = 0; i < np.shape.size(); ++i) {
-    size *= np.shape[i];
-  };
-
-  std::vector<float> npv(size);
-  std::copy((float*)np.data, (float*)np.data + size, npv.begin());
-
-  return [npv](Tensor t) {
-    t->set(npv);
-  };
-}
+std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
 
 
 } // namespace marian

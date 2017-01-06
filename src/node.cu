@@ -24,9 +24,6 @@ size_t Node::allocate(size_t batchSize) {
     elements = val_->shape().elements();
   }
 
-  if(Has(keywords::value))
-    val_->set(Get(keywords::value, 0));
-    
   return elements;
 }
 

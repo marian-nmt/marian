@@ -709,40 +709,32 @@ __global__ void gGRUFastForward(float* out,
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      if(!mask || mask[j]) {
-        float* rowOut = out + j * cols;
-        const float* rowState = state + j * cols;
+      float m = !mask || mask[j];
+      float* rowOut = out + j * cols;
+      const float* rowState = state + j * cols;
 
-        const float* xWrow = xW + j * cols * 3;
-        const float* sUrow = sU + j * cols * 3;
+      const float* xWrow = xW + j * cols * 3;
+      const float* sUrow = sU + j * cols * 3;
 
-        for(int tid = 0; tid < cols; tid += blockDim.x) {
-          int i = tid + threadIdx.x;
-          if(i < cols) {
-            float ev1 = expf(-(xWrow[i] + sUrow[i] + b[i]));
-            float r = 1.0f / (1.0f + ev1);
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          float ev1 = expf(-(xWrow[i] + sUrow[i] + b[i]));
+          float r = 1.0f / (1.0f + ev1);
 
-            int k = i + cols;
-            float ev2 = expf(-(xWrow[k] + sUrow[k] + b[k]));
-            float z = 1.0f / (1.0f + ev2);
+          int k = i + cols;
+          float ev2 = expf(-(xWrow[k] + sUrow[k] + b[k]));
+          float z = 1.0f / (1.0f + ev2);
 
-            int l = i + 2 * cols;
-            float h;
-            if(final)
-              h = tanhf(xWrow[l] + (sUrow[l] + b[l]) * r);
-            else
-              h = tanhf(xWrow[l] + sUrow[l] * r + b[l]);
+          int l = i + 2 * cols;
+          float h;
+          if(final)
+            h = tanhf(xWrow[l] + (sUrow[l] + b[l]) * r);
+          else
+            h = tanhf(xWrow[l] + sUrow[l] * r + b[l]);
 
-            rowOut[i] = (1.0f - z) * h + z * rowState[i];
-          }
-        }
-      }
-      else {
-        float* rowOut = out + j * cols;
-        for(int tid = 0; tid < cols; tid += blockDim.x) {
-          int i = tid + threadIdx.x;
-          if(i < cols)
-            rowOut[i] = 0;
+          float out = (1.0f - z) * h + z * rowState[i];
+          rowOut[i] = m * out + (1 - m) * rowState[i];
         }
       }
     }

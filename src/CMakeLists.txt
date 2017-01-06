@@ -15,6 +15,7 @@ cuda_add_library(marian_lib
   tensors/tensor.cu
   tensors/tensor_gpu.cu
   tensor_operators.cu
+  param_initializers.cpp
   common/vocab.cpp
   common/utils.cpp
   $<TARGET_OBJECTS:libyaml-cpp>

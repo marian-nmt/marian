@@ -42,17 +42,16 @@ int main(int argc, char** argv) {
     bg.prepare(false);
     while(bg) {
       auto batch = bg.next();
-      batch->debug();
-
+      
       nematus->construct(*batch);
       nematus->forward();
 
       //opt->update(nematus);
 
-      float cost = nematus->cost();
-      sum += cost;
+      //float cost = nematus->cost();
+      //sum += cost;
 
-      std::cerr << cost << std::endl;
+      //std::cerr << cost << std::endl;
 
       //if(batches % 1 == 0)
       //  std::cerr << ".";

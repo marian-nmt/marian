@@ -65,10 +65,11 @@ struct ConstantNode : public Node {
   ~ConstantNode() {}
 
   void forward() {}
+
   void backward() {}
 
   virtual size_t allocate(size_t batchSize);
-  
+
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"diamond\", label=" << label("const") << "]" << std::endl << std::endl;

@@ -79,6 +79,10 @@ void Reduce(Functor functor,
   cudaStreamSynchronize(0);
 }
 
+// @TODO : make this deterministic. Currently
+// different order of addition due to parallelism
+// introduce small non-determinism that accumulates
+// during the execution. Probably neglectible.
 template <class Functor>
 __global__ void gReduce(Functor functor,
                         float* out,
@@ -97,8 +101,8 @@ __global__ void gReduce(Functor functor,
       int outIndex = outShape.bindex(dims);
       int in1Index = in1Shape.bindex(dims);
       int in2Index = in2Shape.bindex(dims);
-      atomicAdd(out + outIndex,
-                functor(in1[in1Index], in2[in2Index]));
+      float res = functor(in1[in1Index], in2[in2Index]);
+      atomicAdd(&out[outIndex], res);
     }
   }
 }

@@ -204,10 +204,14 @@ struct DropoutNodeOp : public UnaryNodeOp {
 
 struct SoftmaxNodeOp : public UnaryNodeOp {
   template <typename ...Args>
-    SoftmaxNodeOp(Expr a, Expr mask = nullptr, Args ...args)
-    : UnaryNodeOp(a, args...), mask_(mask) { }
+  SoftmaxNodeOp(Expr a, Expr mask = nullptr, Args ...args)
+    : UnaryNodeOp(a, args...), mask_(mask) {
+    remove_mask_from_top_nodes();
+  }
 
   Expr mask_;
+
+  void remove_mask_from_top_nodes();
 
   void forward() {
     Softmax(val_, a_->val(), mask_->val());

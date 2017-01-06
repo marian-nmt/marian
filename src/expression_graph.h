@@ -32,6 +32,7 @@
 #include "batch_generator.h"
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
+#include "param_initializers.h"
 
 namespace marian {
 
@@ -305,7 +306,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr ones(Args ...args) {
-      return Expression<ConstantNode>(shared_from_this(), keywords::value=1, args...);
+      return Expression<ConstantNode>(shared_from_this(),
+                                      keywords::init=marian::ones,
+                                      args...);
     }
 
     /**
@@ -319,7 +322,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
     template <typename ...Args>
     inline Expr zeros(Args ...args) {
-      return Expression<ConstantNode>(shared_from_this(), keywords::value=0, args...);
+      return Expression<ConstantNode>(shared_from_this(),
+                                      keywords::init=marian::zeros,
+                                      args...);
     }
 
     /*********************************************************/
