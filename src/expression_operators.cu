@@ -73,10 +73,10 @@ Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
 
-Expr softmax(Expr a) {
+Expr softmax(Expr a, Expr mask) {
   auto sOrig = a->shape();
   Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  return reshape(Expression<SoftmaxNodeOp>(reshape(a, sTemp)), sOrig);
+  return reshape(Expression<SoftmaxNodeOp>(reshape(a, sTemp), mask), sOrig);
 }
 
 Expr logsoftmax(Expr a) {

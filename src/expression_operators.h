@@ -114,7 +114,7 @@ Expr sum(Expr a, Args ...args) {
   return Expression<SumNodeOp>(a, args...);
 }
 
-Expr softmax(Expr a);
+Expr softmax(Expr a, Expr mask = nullptr);
 
 Expr logsoftmax(Expr a);
 

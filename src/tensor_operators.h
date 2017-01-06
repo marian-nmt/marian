@@ -429,7 +429,7 @@ __global__ void gPickReduce(Functor functor,
       int outIndex = outShape.bindex(dims);
       float picked = col == (int)pick[row];
       float result = functor(in[index], picked);
-      
+
       if(result)
         atomicAdd(out + outIndex, result);
     }
@@ -496,9 +496,7 @@ void Pick(Functor functor, T1 out, const T2 in1, const T3 in2, const T4 picks) {
 
 void ClipNorm(Tensor out, float threshold);
 
-void SubtractMax(Tensor out, Tensor in);
-
-void Softmax(Tensor out, Tensor in);
+void Softmax(Tensor out, Tensor in, Tensor mask = nullptr);
 void LogSoftmax(Tensor out, Tensor in);
 
 void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val);

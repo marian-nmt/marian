@@ -8,7 +8,9 @@ namespace marian {
 namespace data {
 
 typedef std::vector<size_t> WordBatch;
-typedef std::vector<WordBatch> SentBatch;
+typedef std::vector<float> MaskBatch;
+typedef std::pair<WordBatch, MaskBatch> WordMask;
+typedef std::vector<WordMask> SentBatch;
 
 class CorpusBatch {
   public:
@@ -20,9 +22,18 @@ class CorpusBatch {
     }
 
     void debug() {
+      size_t i = 0;
       for(auto l : batches_) {
-        for(auto b: l) {
-          for(auto w : b) {
+        std::cerr << "input " << i++ << ": " << std::endl;
+        for(auto b : l) {
+          std::cerr << "\t w: ";
+          for(auto w : b.first) {
+            std::cerr << w << " ";
+          }
+          std::cerr << std::endl;
+
+          std::cerr << "\t m: ";
+          for(auto w : b.second) {
             std::cerr << w << " ";
           }
           std::cerr << std::endl;
@@ -31,7 +42,7 @@ class CorpusBatch {
     }
 
     size_t size() {
-      return batches_[0][0].size();
+      return batches_[0][0].first.size();
     }
 
   private:
@@ -108,13 +119,16 @@ class Corpus : public DataBase {
 
       std::vector<SentBatch> langs;
       for(auto m : maxDims) {
-        langs.push_back(SentBatch(m, WordBatch(batchSize, 0)));
+        langs.push_back(SentBatch(m,
+                                  { WordBatch(batchSize, 0),
+                                    MaskBatch(batchSize, 0) } ));
       }
 
       for(int i = 0; i < batchSize; ++i) {
         for(int j = 0; j < maxDims.size(); ++j) {
           for(int k = 0; k < (*batchVector[i])[j]->size(); ++k) {
-            langs[j][k][i] = (*(*batchVector[i])[j])[k];
+            langs[j][k].first[i] = (*(*batchVector[i])[j])[k];
+            langs[j][k].second[i] = 1.f;
           }
         }
       }

@@ -114,7 +114,10 @@ class Nematus : public ExpressionGraph {
       decParams.bc = concatenate({bc, bxc}, axis=1);
 
       auto encoderContext = this->get("encoderContext");
-      GRUWithAttention gruCell(decParams, encoderContext);
+      auto encoderContextWeights = this->get("encoderContextWeights");
+      GRUWithAttention gruCell(decParams,
+                               encoderContext,
+                               encoderContextWeights);
       return RNN<GRUWithAttention>(gruCell);
     };
 
@@ -227,12 +230,20 @@ class Nematus : public ExpressionGraph {
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
 
-      std::vector<Expr> inputs;
+      std::vector<float> weightMask;
+      std::vector<std::pair<Expr, Expr>> inputs;
       size_t i = 0;
       for(auto& srcWordBatch : srcSentenceBatch) {
-        auto x = name(rows(Wemb, srcWordBatch), "x_" + std::to_string(i++));
-        inputs.push_back(x);
-        dimBatch_ = srcWordBatch.size();
+        auto indeces = srcWordBatch.first;
+        auto mask = srcWordBatch.second;
+        for(auto w: mask)
+          weightMask.push_back(w);
+
+        auto x = name(rows(Wemb, indeces), "x_" + std::to_string(i++));
+        auto xMask = this->constant(shape={ (int)mask.size() },
+                                    init=from_vector(mask));
+        inputs.push_back({x, xMask});
+        dimBatch_ = srcWordBatch.first.size();
       }
 
       auto encState0 = name(this->zeros(shape={dimBatch_, dimEncState_}),
@@ -249,11 +260,22 @@ class Nematus : public ExpressionGraph {
       std::vector<Expr> biStates;
       auto itFw = statesFw.begin();
       auto itBw = statesBw.rbegin();
-      while(itFw != statesFw.end())
+      while(itFw != statesFw.end()) {
+        debug(*itBw, "stateBw");
         biStates.push_back(concatenate({*itFw++, *itBw++}, axis=1));
+      }
 
       auto encContext = name(concatenate(biStates, axis=2), "encoderContext");
-      auto meanContext = name(mean(encContext, axis=2), "meanContext");
+
+      auto weights = this->constant(shape={dimBatch_, 1, (int)statesFw.size()},
+                                    init=from_vector(weightMask));
+      name(weights, "encoderContextWeights");
+
+      auto meanContext = name(weighted_average(encContext, weights, axis=2), "meanContext");
+
+      debug(encContext, "context");
+
+      debug(meanContext, "mean");
     }
 
     void constructDecoder(const data::SentBatch& trgSentenceBatch) {
@@ -279,11 +301,11 @@ class Nematus : public ExpressionGraph {
       outputs.push_back(emptyEmbedding);
       std::vector<float> picks;
       for(auto& trgWordBatch : trgSentenceBatch) {
-        for(auto w : trgWordBatch)
+        for(auto w : trgWordBatch.first)
           picks.push_back((float)w);
 
         if(outputs.size() < trgSentenceBatch.size()) {
-          auto y = name(rows(Wemb_dec, trgWordBatch),
+          auto y = name(rows(Wemb_dec, trgWordBatch.first),
                         "y_" + std::to_string(outputs.size() - 1));
           outputs.push_back(y);
         }
@@ -331,8 +353,8 @@ class Nematus : public ExpressionGraph {
 
       // *** Cross entropy and cost across words and batch ***
       auto xe = cross_entropy(aff, picksTensor);
-      auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
-      //debug(xe, "xe");
+      auto cost = name(mean(debug(sum(xe, axis=2), "costs"), axis=0), "cost");
+      debug(xe, "xe");
     }
 
     float cost() {

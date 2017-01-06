@@ -140,14 +140,16 @@ class GRUFast {
     GRUFast(ParametersGRUFast params)
     : params_(params) {}
 
-    Expr apply(Expr input, Expr state) {
+    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       using namespace keywords;
 
       auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
 
-      auto output = grufast({state, xW, sU, params_.b});
-      return output;
+      if(mask)
+        return grufast({state, xW, sU, params_.b, mask});
+      else
+        return grufast({state, xW, sU, params_.b});
     }
 
   private:
@@ -167,7 +169,8 @@ class RNN {
     RNN(const Cell& cell)
     : cell_(cell) {}
 
-    std::vector<Expr> apply(const std::vector<Expr>& inputs,
+    template <typename Expressions>
+    std::vector<Expr> apply(const std::vector<Expressions>& inputs,
                             const Expr initialState) {
       return apply(inputs.begin(), inputs.end(),
                    initialState);
@@ -179,10 +182,18 @@ class RNN {
       std::vector<Expr> outputs;
       auto state = initialState;
       while(it != end) {
-        state = cell_.apply(*it++, state);
+        state = apply(cell_, *it++, state);
         outputs.push_back(state);
       }
       return outputs;
+    }
+
+    Expr apply(Cell& cell, Expr input, Expr state) {
+      return cell_.apply(input, state);
+    }
+
+    Expr apply(Cell& cell, std::pair<Expr, Expr> inputMask, Expr state) {
+      return cell_.apply(inputMask.first, state, inputMask.second);
     }
 
     Cell& getCell() {
@@ -209,10 +220,21 @@ struct ParametersGRUWithAttention {
 
 class GRUWithAttention {
   public:
-    GRUWithAttention(ParametersGRUWithAttention params, Expr context)
+    GRUWithAttention(ParametersGRUWithAttention params,
+                     Expr context,
+                     Expr softmaxMask = nullptr)
     : params_(params),
-      context_(context) {
+      context_(context),
+      softmaxMask_(nullptr) {
         mappedContext_ = dot(context_, params_.Ua);
+
+        if(softmaxMask) {
+          Shape shape = { softmaxMask->shape()[2],
+                          softmaxMask->shape()[0] };
+          softmaxMask_ = transpose(
+            reshape(softmaxMask, shape));
+          debug(softmaxMask_, "mask");
+        }
       }
 
     Expr apply(Expr input, Expr state) {
@@ -237,8 +259,11 @@ class GRUWithAttention {
             transpose(
               reshape(
                 dot(temp, params_.va),
-                {srcWords, dimBatch})))),
+                {srcWords, dimBatch})),
+            softmaxMask_)),
         {dimBatch, 1, srcWords});
+
+      debug(e, "e");
       // <- horrible
 
       auto alignedSource = weighted_average(context_, e, axis=2);
@@ -258,6 +283,7 @@ class GRUWithAttention {
   private:
     ParametersGRUWithAttention params_;
     Expr context_;
+    Expr softmaxMask_;
     Expr mappedContext_;
     std::vector<Expr> contexts_;
 };

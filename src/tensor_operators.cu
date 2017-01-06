@@ -111,7 +111,8 @@ void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
 
 __global__ void gSoftmax(float* out,
                          const Shape outShape,
-                         const float* in) {
+                         const float* in,
+                         const float* mask) {
   int rows = outShape[0];
   int cols = outShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -119,15 +120,17 @@ __global__ void gSoftmax(float* out,
     if(j < rows) {
       float* so = out + j * cols;
       const float* sp = in + j * cols;
-      
+      const float* mp = mask ? (mask + j * cols) : 0;
+
       extern __shared__ float _share[];
-      
+
       float* _max = _share + blockDim.x;
-      _max[threadIdx.x] = sp[threadIdx.x];
+      _max[threadIdx.x] = sp[threadIdx.x]; // mask
       for(int tid = 1; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if (id < cols) {
-          if (sp[id] > _max[threadIdx.x]) _max[threadIdx.x] = sp[id];
+          if (sp[id] > _max[threadIdx.x])
+            _max[threadIdx.x] = sp[id];
         }
       }
       __syncthreads();
@@ -145,14 +148,16 @@ __global__ void gSoftmax(float* out,
       __syncthreads();
       float max = _max[0];
       __syncthreads();
-      
+
       float* _sum = _share + blockDim.x;
-      
+
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = __expf(sp[id] - max);
+          float ex = 0;
+          if(!mask || mp[id])
+            ex = __expf(sp[id] - max);
           so[id] = ex;
           _sum[threadIdx.x] += ex;
         }
@@ -176,17 +181,24 @@ __global__ void gSoftmax(float* out,
   }
 }
 
-void Softmax(Tensor out, Tensor in) {
+void Softmax(Tensor out, Tensor in, Tensor mask) {
   size_t m = out->shape()[0];
   size_t k = out->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
-  
-  gSoftmax<<<blocks, threads, shared>>>(out->data(),
-                                        out->shape(),
-                                        in->data());
+
+  if(mask)
+    gSoftmax<<<blocks, threads, shared>>>(out->data(),
+                                          out->shape(),
+                                          in->data(),
+                                          mask->data());
+  else
+    gSoftmax<<<blocks, threads, shared>>>(out->data(),
+                                          out->shape(),
+                                          in->data(),
+                                          0);
   cudaStreamSynchronize(0);
 }
 
@@ -200,9 +212,9 @@ __global__ void gLogSoftmax(float* out,
     if(j < rows) {
       float* so = out + j * cols;
       const float* sp = in + j * cols;
-      
+
       extern __shared__ float _share[];
-      
+
       float* _max = _share + blockDim.x;
       _max[threadIdx.x] = sp[threadIdx.x];
       for(int tid = 1; tid < cols; tid += blockDim.x) {
@@ -226,9 +238,9 @@ __global__ void gLogSoftmax(float* out,
       __syncthreads();
       float max = _max[0];
       __syncthreads();
-      
+
       float* _sum = _share + blockDim.x;
-      
+
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -265,7 +277,7 @@ void LogSoftmax(Tensor out, Tensor in) {
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
-  
+
   gLogSoftmax<<<blocks, threads, shared>>>(out->data(),
                                            out->shape(),
                                            in->data());
@@ -690,36 +702,47 @@ __global__ void gGRUFastForward(float* out,
                                 const float* xW,
                                 const float* sU,
                                 const float* b,
+                                const float* mask,
                                 size_t rows, size_t cols,
                                 bool final) {
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowState = state + j * cols;
+      if(!mask || mask[j]) {
+        float* rowOut = out + j * cols;
+        const float* rowState = state + j * cols;
 
-      const float* xWrow = xW + j * cols * 3;
-      const float* sUrow = sU + j * cols * 3;
+        const float* xWrow = xW + j * cols * 3;
+        const float* sUrow = sU + j * cols * 3;
 
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols) {
-          float ev1 = expf(-(xWrow[i] + sUrow[i] + b[i]));
-          float r = 1.0f / (1.0f + ev1);
+        for(int tid = 0; tid < cols; tid += blockDim.x) {
+          int i = tid + threadIdx.x;
+          if(i < cols) {
+            float ev1 = expf(-(xWrow[i] + sUrow[i] + b[i]));
+            float r = 1.0f / (1.0f + ev1);
 
-          int k = i + cols;
-          float ev2 = expf(-(xWrow[k] + sUrow[k] + b[k]));
-          float z = 1.0f / (1.0f + ev2);
+            int k = i + cols;
+            float ev2 = expf(-(xWrow[k] + sUrow[k] + b[k]));
+            float z = 1.0f / (1.0f + ev2);
 
-          int l = i + 2 * cols;
-          float h;
-          if(final)
-            h = tanhf(xWrow[l] + (sUrow[l] + b[l]) * r);
-          else
-            h = tanhf(xWrow[l] + sUrow[l] * r + b[l]);
+            int l = i + 2 * cols;
+            float h;
+            if(final)
+              h = tanhf(xWrow[l] + (sUrow[l] + b[l]) * r);
+            else
+              h = tanhf(xWrow[l] + sUrow[l] * r + b[l]);
 
-          rowOut[i] = (1.0f - z) * h + z * rowState[i];
+            rowOut[i] = (1.0f - z) * h + z * rowState[i];
+          }
+        }
+      }
+      else {
+        float* rowOut = out + j * cols;
+        for(int tid = 0; tid < cols; tid += blockDim.x) {
+          int i = tid + threadIdx.x;
+          if(i < cols)
+            rowOut[i] = 0;
         }
       }
     }
@@ -739,6 +762,7 @@ void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs, bool final){
     inputs[1]->data(), // xW
     inputs[2]->data(), // sU
     inputs[3]->data(), // b
+    inputs.size() > 4 ? inputs[4]->data() : 0, // mask
     rows, cols, final);
 }
 
@@ -844,17 +868,17 @@ __global__ void gCrossEntropyPick(float* out,
                                   const float* in,
                                   const Shape inShape,
                                   const float* pick) {
-  
+
   int rows = inShape[0];
   int cols = inShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
       const float* sp = in + j * cols;
-      
+
       extern __shared__ float _share[];
       float* _max = _share + blockDim.x;
-      
+
       _max[threadIdx.x] = sp[threadIdx.x];
       for(int tid = 1; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -877,7 +901,7 @@ __global__ void gCrossEntropyPick(float* out,
       __syncthreads();
       float max = _max[0];
       __syncthreads();
-      
+
       float* _sum = _share + blockDim.x;
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -896,7 +920,7 @@ __global__ void gCrossEntropyPick(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      
+
       // cross-entropy
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -915,7 +939,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
-  
+
   gCrossEntropyPick<<<blocks, threads, shared>>>(out->data(),
                                                  out->shape(),
                                                  in->data(),
@@ -929,7 +953,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
                                           const float* adj,
                                           const float* in,
                                           const float* pick) {
-  
+
   int rows = outShape[0];
   int cols = outShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -937,10 +961,10 @@ __global__ void gCrossEntropyPickBackward(float* out,
     if(j < rows) {
       const float* sp = in + j * cols;
       float* so = out + j * cols;
-      
+
       extern __shared__ float _share[];
       float* _max = _share + blockDim.x;
-      
+
       _max[threadIdx.x] = sp[threadIdx.x];
       for(int tid = 1; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -963,7 +987,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
       __syncthreads();
       float max = _max[0];
       __syncthreads();
-      
+
       float* _sum = _share + blockDim.x;
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -983,7 +1007,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      
+
       // cross-entropy
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -1003,7 +1027,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);
   int shared = sizeof(float) * threads * 2;
-  
+
   gCrossEntropyPickBackward<<<blocks, threads, shared>>>(out->data(),
                                                          out->shape(),
                                                          adj->data(),
