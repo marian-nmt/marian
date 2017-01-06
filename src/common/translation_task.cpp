@@ -1,6 +1,8 @@
 #include <boost/thread/tss.hpp>
 #include "translation_task.h"
 #include "search.h"
+#include "output_collector.h"
+#include "printer.h"
 
 Histories TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
   thread_local std::unique_ptr<Search> search;
@@ -32,6 +34,12 @@ Histories TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCou
   }
 
   ret.SortByLineNum();
+
+  std::stringstream strm;
+  Printer(ret, taskCounter, strm);
+
+  OutputCollector &outputCollector = God::GetOutputCollector();
+  outputCollector.Write(taskCounter, strm.str());
 
   return ret;
 }

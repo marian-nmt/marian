@@ -171,6 +171,10 @@ std::istream& God::GetInputStream() {
   return *Summon().inputStream_;
 }
 
+OutputCollector& God::GetOutputCollector() {
+  return Summon().outputCollector_;
+}
+
 std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   std::vector<ScorerPtr> scorers;
 

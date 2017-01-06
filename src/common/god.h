@@ -2,13 +2,14 @@
 #include <memory>
 #include <iostream>
 
+#include "common/processor/processor.h"
 #include "common/config.h"
 #include "common/loader.h"
 #include "common/logging.h"
 #include "common/scorer.h"
 #include "common/types.h"
-#include "common/processor/processor.h"
 #include "common/base_best_hyps.h"
+#include "common/output_collector.h"
 
 class Weights;
 class Vocab;
@@ -43,6 +44,7 @@ class God {
     static Vocab& GetTargetVocab();
 
     static std::istream& GetInputStream();
+    static OutputCollector& GetOutputCollector();
 
     static Filter& GetFilter();
 
@@ -85,4 +87,6 @@ class God {
     std::shared_ptr<spdlog::logger> progress_;
 
     std::unique_ptr<InputFileStream> inputStream_;
+    OutputCollector outputCollector_;
+
 };

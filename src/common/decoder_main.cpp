@@ -82,10 +82,6 @@ int main(int argc, char* argv[]) {
         )
       );
     }
-
-    size_t lineCounter = 0;
-    for (auto&& result : results)
-      Printer(result.get(), lineCounter++, std::cout);
   }
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();

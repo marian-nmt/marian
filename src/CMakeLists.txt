@@ -27,6 +27,7 @@ add_library(libcommon OBJECT
   common/history.cpp
   common/loader.cpp
   common/logging.cpp
+  common/output_collector.cpp
   common/printer.cpp
   common/scorer.cpp
   common/search.cpp
