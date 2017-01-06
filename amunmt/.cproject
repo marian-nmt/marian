@@ -68,10 +68,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.167556408" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1621792310" name="kenlm.h" rcbsApplicability="disable" resourcePath="gpu/decoder/kenlm.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1858744094" name="language_model.h" rcbsApplicability="disable" resourcePath="gpu/decoder/language_model.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="gpu/decoder/ape_penalty.h|gpu/decoder/ape_penalty.cu|gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
