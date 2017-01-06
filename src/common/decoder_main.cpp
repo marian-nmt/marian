@@ -26,6 +26,12 @@ int main(int argc, char* argv[]) {
   size_t bunchSize = God::Get<size_t>("bunch-size");
   size_t maxBatchSize = God::Get<size_t>("batch-size");
 
+  if (God::Get<bool>("wipo")) {
+    bunchSize = 1;
+    maxBatchSize = 1;
+  }
+  std::cerr << "wipo=" << God::Get<bool>("wipo") << std::endl;
+
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
@@ -40,45 +46,47 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Total number of threads: " << totalThreads;
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
+  ThreadPool *pool = new ThreadPool(totalThreads);
+  LOG(info) << "Reading input";
 
-  if (God::Get<bool>("wipo")) {
-    LOG(info) << "Reading input";
-    while (std::getline(God::GetInputStream(), in)) {
-      boost::shared_ptr<Sentences> sentences(new Sentences());
-      Sentence *sentence = new Sentence(lineNum++, in);
-      sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
+  boost::shared_ptr<Sentences> sentences(new Sentences());
 
-      TranslationTask(sentences, taskCounter, maxBatchSize);
-    }
-  } else {
-    ThreadPool pool(totalThreads);
-    LOG(info) << "Reading input";
+  while(std::getline(God::GetInputStream(), in)) {
+    std::cerr << "Main1" << std::endl;
+    Sentence *sentence = new Sentence(lineNum++, in);
+    sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
+    std::cerr << "Main2:" << lineNum << std::endl;
 
-    boost::shared_ptr<Sentences> sentences(new Sentences());
+    if (sentences->size() >= maxBatchSize * bunchSize) {
+      std::cerr << "Main3" << std::endl;
 
-    while(std::getline(God::GetInputStream(), in)) {
-      Sentence *sentence = new Sentence(lineNum++, in);
-      sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
-
-      if (sentences->size() >= maxBatchSize * bunchSize) {
-        pool.enqueue(
-            [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
-        );
-
-        sentences.reset(new Sentences());
-        taskCounter++;
-      }
-
-    }
-
-    if (sentences->size()) {
-      pool.enqueue(
+      pool->enqueue(
           [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
       );
+      std::cerr << "Main4" << std::endl;
+
+      sentences.reset(new Sentences());
+      std::cerr << "Main5" << std::endl;
+      taskCounter++;
     }
+
   }
+  std::cerr << "Main6" << std::endl;
+
+  if (sentences->size()) {
+    std::cerr << "Main7" << std::endl;
+    pool->enqueue(
+        [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
+    );
+  }
+  std::cerr << "Main8:" << pool->getNumTasks() << std::endl;
+
+  delete pool;
+  std::cerr << "Main9" << std::endl;
+
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
 
+  std::cerr << "Main10" << std::endl;
   return 0;
 }

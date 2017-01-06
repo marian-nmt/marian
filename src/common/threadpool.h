@@ -25,6 +25,7 @@ freely, subject to the following restrictions:
 
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <queue>
 #include <memory>
@@ -43,6 +44,9 @@ public:
         -> std::future<typename std::result_of<F(Args...)>::type>;
     ~ThreadPool();
     
+    size_t getNumTasks() const
+    { return tasks.size(); }
+
 private:
     // need to keep track of threads so we can join them
     std::vector< std::thread > workers;
@@ -111,6 +115,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 // the destructor joins all threads
 inline ThreadPool::~ThreadPool()
 {
+  std::cerr << "~ThreadPool start:" << getNumTasks() << std::endl;
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;
@@ -118,4 +123,9 @@ inline ThreadPool::~ThreadPool()
     condition.notify_all();
     for(std::thread &worker: workers)
         worker.join();
+
+    std::cerr << "~ThreadPool end:" << getNumTasks() << std::endl;
 }
+
+
+
