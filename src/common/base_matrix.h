@@ -14,8 +14,8 @@ typedef std::shared_ptr<Scorer> ScorerPtr;
 
 class BaseMatrix {
   public:
-	BaseMatrix() {}
-	BaseMatrix(const BaseMatrix&) = delete;
+    BaseMatrix() {}
+    BaseMatrix(const BaseMatrix&) = delete;
     virtual ~BaseMatrix() {}
 
     virtual size_t Rows() const = 0;

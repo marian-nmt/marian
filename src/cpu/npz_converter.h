@@ -9,6 +9,7 @@ class NpzConverter {
   private:
     class NpyMatrixWrapper {
       public:
+        NpyMatrixWrapper(const NpyMatrixWrapper&) = delete;
         NpyMatrixWrapper(const cnpy::NpyArray& npy)
         : npy_(npy) {}
         
@@ -44,7 +45,7 @@ class NpzConverter {
     typedef blaze::CustomMatrix<float, blaze::unaligned,
       blaze::unpadded, blaze::rowMajor> BlazeWrapper;
         
-    
+    NpzConverter(const NpzConverter&) = delete;
     NpzConverter(const std::string& file)
       : model_(cnpy::npz_load(file)),
         destructed_(false) {

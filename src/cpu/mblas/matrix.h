@@ -31,6 +31,7 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
                                 SO> BlazeBase;
 
     BlazeMatrix() {}
+    BlazeMatrix(const BlazeMatrix&) = delete;
 
     BlazeMatrix(size_t rows, size_t columns, value_type val = 0)
      : data_(rows * columns, val) {
@@ -121,6 +122,7 @@ class ArrayMatrix : public BlazeMatrix<float, blaze::rowMajor>
 {
 	typedef BlazeMatrix<float, blaze::rowMajor> Parent;
   public:
+	  ArrayMatrix(const ArrayMatrix&) = delete;
     ArrayMatrix()
       :Parent()
     {}

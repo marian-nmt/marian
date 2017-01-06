@@ -27,6 +27,7 @@ class Encoder {
       
         const Weights& w_;
       private:
+        Embeddings(const Embeddings&) = delete;
     };
     
     /////////////////////////////////////////////////////////////////
@@ -75,6 +76,8 @@ class Encoder {
         const GRU<Weights> gru_;
         
         mblas::Matrix State_;
+
+        RNN(const RNN&) = delete;
     };
     
   /////////////////////////////////////////////////////////////////
@@ -92,6 +95,8 @@ class Encoder {
     Embeddings<Weights::Embeddings> embeddings_;
     RNN<Weights::GRU> forwardRnn_;
     RNN<Weights::GRU> backwardRnn_;
+
+    Encoder(const Encoder&) = delete;
 };
 
 }

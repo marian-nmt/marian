@@ -35,6 +35,8 @@ class Decoder {
 
       private:
         const Weights& w_;
+
+        Embeddings(const Embeddings&) = delete;
     };
 
     //////////////////////////////////////////////////////////////
@@ -74,6 +76,8 @@ class Decoder {
 
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
+
+        RNNHidden(const RNNHidden&) = delete;
     };
 
     //////////////////////////////////////////////////////////////
@@ -91,6 +95,8 @@ class Decoder {
 
       private:
         const GRU<Weights> gru_;
+
+        RNNFinal(const RNNFinal&) = delete;
     };
 
     //////////////////////////////////////////////////////////////
@@ -152,6 +158,8 @@ class Decoder {
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
         mblas::ColumnVector V_;
+
+        Attention(const Attention&) = delete;
     };
 
     //////////////////////////////////////////////////////////////
@@ -208,6 +216,8 @@ class Decoder {
         mblas::Matrix T2_;
         mblas::Matrix T3_;
         mblas::Matrix Probs_;
+
+        Softmax(const Softmax&) = delete;
     };
 
   public:
@@ -268,6 +278,7 @@ class Decoder {
     }
 
   private:
+    Decoder(const Decoder&) = delete;
 
     void GetHiddenState(mblas::Matrix& HiddenState,
                         const mblas::Matrix& PrevState,

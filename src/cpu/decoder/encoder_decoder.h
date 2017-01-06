@@ -83,6 +83,8 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<CPU::Decoder> decoder_;
 
     mblas::Matrix SourceContext_;
+
+    EncoderDecoder(const EncoderDecoder&) = delete;
 };
 
 }

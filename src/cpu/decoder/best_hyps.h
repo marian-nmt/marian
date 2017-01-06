@@ -23,6 +23,9 @@ struct ProbCompare {
 class BestHyps : public BestHypsBase
 {
 public:
+  BestHyps() {}
+  BestHyps(const BestHyps&) = delete;
+
   void operator()(std::vector<Beam>& beams,
         const Beam& prevHyps,
         std::vector<size_t>& beamSizes,
