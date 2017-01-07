@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
     bg.prepare(false);
     while(bg) {
       auto batch = bg.next();
+      batch->debug();
       
       nematus->construct(*batch);
       nematus->forward();

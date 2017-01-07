@@ -297,6 +297,7 @@ class Nematus : public ExpressionGraph {
       outputs.push_back({emptyEmbedding, emptyMask});
       outputEmbeddings.push_back(emptyEmbedding);
 
+      std::vector<float> weightMask;
       std::vector<float> picks;
       for(auto& trgWordBatch : trgSentenceBatch) {
         for(auto w : trgWordBatch.first)
@@ -305,12 +306,21 @@ class Nematus : public ExpressionGraph {
         if(outputs.size() < trgSentenceBatch.size()) {
           auto indeces = trgWordBatch.first;
           auto mask = trgWordBatch.second;
+
+          for(auto w: mask)
+            weightMask.push_back(w);
+
           auto y = name(rows(Wemb_dec, indeces),
                         "y_" + std::to_string(outputs.size() - 1));
           auto yMask = this->constant(shape={ (int)mask.size() },
                                       init=from_vector(mask));
           outputs.push_back({y, yMask});
           outputEmbeddings.push_back(y);
+        }
+        else {
+          auto mask = trgWordBatch.second;
+          for(auto w: mask)
+            weightMask.push_back(w);
         }
       }
       auto picksTensor = this->constant(shape={(int)picks.size(), 1},
@@ -354,9 +364,14 @@ class Nematus : public ExpressionGraph {
                     + affine(c3, W3, b3));
       auto aff = affine(t, W4, b4);
 
+      auto weights = this->constant(shape={dimBatch_, 1, (int)decStates.size()},
+                                    init=from_vector(weightMask));
+
       // *** Cross entropy and cost across words and batch ***
-      auto xe = cross_entropy(aff, picksTensor);
+      auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(debug(sum(xe, axis=2), "costs"), axis=0), "cost");
+
+      debug(weights, "weights");
 
       debug(xe, "xe");
     }
