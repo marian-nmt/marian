@@ -41,8 +41,8 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, 40, 1000);
 
   auto nematus = New<Nematus>();
-  //nematus->load("../test/model.npz");
-  nematus->reserveWorkspaceMB(2048);
+  nematus->load("../train.src-pe.gpu0/model.iter10000.npz");
+  nematus->reserveWorkspaceMB(8000);
 
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 
