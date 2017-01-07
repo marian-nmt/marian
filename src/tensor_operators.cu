@@ -335,7 +335,9 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
   int shared = sizeof(float) * threads * 2;
-  gSoftmaxGrad<<<blocks, threads, shared>>>(grad->data(), adj->data(), val->data(),
+  gSoftmaxGrad<<<blocks, threads, shared>>>(grad->data(),
+                                            adj->data(),
+                                            val->data(),
                                             m, k);
   cudaStreamSynchronize(0);
 }
@@ -767,12 +769,15 @@ __global__ void gGRUFastBackward(float* outState,
                                  const float* sU,
                                  const float* b,
                                  const float* adj,
+                                 const float* mask,
                                  size_t rows, size_t cols,
                                  bool final) {
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
+      float m = !mask || mask[j];
+
       float* rowOutState = outState + j * cols;
       float* rowOutXW = outXW + j * cols * 3;
       float* rowOutSU = outSU + j * cols * 3;
@@ -803,30 +808,30 @@ __global__ void gGRUFastBackward(float* outState,
           float adj = rowAdj[i];
 
           // df/ds
-          rowOutState[i] += z * adj;
+          rowOutState[i] += m * z * adj - m + 1;
 
           float t = (1-z)*(1-h*h);
 
           // df/d(xW_r) ...
           float dfdxW_r = r*(1-r)*t*rowSU[l] * adj;
-          rowOutXW[i] += dfdxW_r;
-          rowOutSU[i] += dfdxW_r;
-          outB[i]     += dfdxW_r;
+          rowOutXW[i] += m * dfdxW_r;
+          rowOutSU[i] += m * dfdxW_r;
+          outB[i]     += m * dfdxW_r;
 
           // df/d(xW_z) ...
           float dfdxW_z = (1-z)*z*(rowState[i]-h) * adj;
-          rowOutXW[k] += dfdxW_z;
-          rowOutSU[k] += dfdxW_z;
-          outB[k]     += dfdxW_z;
+          rowOutXW[k] += m * dfdxW_z;
+          rowOutSU[k] += m * dfdxW_z;
+          outB[k]     += m * dfdxW_z;
 
           // df/d(xW_x) ...
           float dfdxW_x = t * adj;
-          rowOutXW[l] += dfdxW_x;
-          rowOutSU[l] += dfdxW_x * r;
+          rowOutXW[l] += m * dfdxW_x;
+          rowOutSU[l] += m * dfdxW_x * r;
           if(final)
-            outB[l]     += dfdxW_x * r;
+            outB[l] += m * dfdxW_x * r;
           else
-            outB[l]     += dfdxW_x;
+            outB[l] += m * dfdxW_x;
         }
       }
     }
@@ -851,6 +856,7 @@ void GRUFastBackward(std::vector<Tensor>& outputs,
     inputs[1]->data(), // xW
     inputs[2]->data(), // sU
     inputs[3]->data(), // b
+    inputs.size() > 4 ? inputs[4]->data() : 0, // mask
     adj->data(),
     rows, cols, final);
 }

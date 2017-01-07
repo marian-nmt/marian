@@ -228,6 +228,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     // Classification." ICML 2016.
     // http://jmlr.org/proceedings/papers/v48/martins16.pdf
 
+    // val_ is already masked if there is a mask, so no need to apply here.
     SoftmaxGrad(a_->grad(), adj_, val_);
   }
 
