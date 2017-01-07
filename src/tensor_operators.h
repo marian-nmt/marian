@@ -45,6 +45,7 @@ __global__ void gReduce(Functor functor,
                         const Shape inShape,
                         const Shape full) {
   int length = full.elements();
+  bool reduce = outShape.elements() != length;
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -52,8 +53,11 @@ __global__ void gReduce(Functor functor,
       full.dims(index, dims);
       int outIndex = outShape.bindex(dims);
       int inIndex = inShape.bindex(dims);
-      atomicAdd(out + outIndex,
-                functor(in[inIndex]));
+      float res = functor(in[inIndex]);
+      if(reduce)
+        atomicAdd(out + outIndex, res);
+      else
+        out[outIndex] += res;
     }
   }
 }
@@ -113,6 +117,7 @@ __global__ void gReduce(Functor functor,
                         const Shape in2Shape,
                         const Shape full) {
   int length = full.elements();
+  bool reduce = outShape.elements() != length;
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -122,7 +127,10 @@ __global__ void gReduce(Functor functor,
       int in1Index = in1Shape.bindex(dims);
       int in2Index = in2Shape.bindex(dims);
       float res = functor(in1[in1Index], in2[in2Index]);
-      atomicAdd(&out[outIndex], res);
+      if(reduce)
+        atomicAdd(&out[outIndex], res);
+      else
+        out[outIndex] += res;
     }
   }
 }
@@ -186,6 +194,7 @@ __global__ void gReduce(Functor functor,
                         const Shape in3Shape,
                         const Shape full) {
   int length = full.elements();
+  bool reduce = outShape.elements() != length;
   int dims[4];
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -195,8 +204,11 @@ __global__ void gReduce(Functor functor,
       int in1Index = in1Shape.bindex(dims);
       int in2Index = in2Shape.bindex(dims);
       int in3Index = in3Shape.bindex(dims);
-      atomicAdd(out + outIndex,
-                functor(in1[in1Index], in2[in2Index], in3[in3Index]));
+      float res = functor(in1[in1Index], in2[in2Index], in3[in3Index]);
+      if(reduce)
+        atomicAdd(out + outIndex, res);
+      else
+        out[outIndex] += res;
     }
   }
 }

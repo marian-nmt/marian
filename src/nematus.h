@@ -377,8 +377,8 @@ class Nematus : public ExpressionGraph {
       auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
 
-      //debug(xe, "xe");
-      //debug(cost, "cost");
+      debug(xe, "xe");
+      debug(cost, "cost");
     }
 
     float cost() {
