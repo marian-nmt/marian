@@ -19,15 +19,15 @@ int main(int argc, char** argv) {
 
   cudaSetDevice(0);
 
-  //std::vector<std::string> files =
-  //  {"../train.src-pe.gpu0/train.all.src",
-  //   "../train.src-pe.gpu0/train.all.pe"};
-  //
-  //std::vector<std::string> vocab =
-  //  {"../train.src-pe.gpu0/src.json",
-  //   "../train.src-pe.gpu0/pe.json"};
+  std::vector<std::string> files =
+    {"../train.src-pe.gpu0/train.all.src",
+     "../train.src-pe.gpu0/train.all.pe"};
 
-  ///*
+  std::vector<std::string> vocab =
+    {"../train.src-pe.gpu0/src.json",
+     "../train.src-pe.gpu0/pe.json"};
+
+  /*
   std::vector<std::string> files =
     {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.mt",
      "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.pe"};
@@ -35,14 +35,14 @@ int main(int argc, char** argv) {
   std::vector<std::string> vocab =
     {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/mt.json",
      "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/pe.json"};
-  //*/
+  */
 
   auto corpus = DataSet<Corpus>(files, vocab, 50);
   BatchGenerator<Corpus> bg(corpus, 40, 1000);
 
   auto nematus = New<Nematus>();
   //nematus->load("../test/model.npz");
-  nematus->reserveWorkspaceMB(4096);
+  nematus->reserveWorkspaceMB(2048);
 
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 
@@ -78,7 +78,6 @@ int main(int argc, char** argv) {
         timer.start();
       }
 
-
       if(batches % 10000 == 0)
         nematus->save("../test/model.marian." + std::to_string(batches) + ".npz");
 
@@ -86,7 +85,7 @@ int main(int argc, char** argv) {
     }
   }
   std::cout << std::endl;
-  std::cout << timer.format(5, "%ws") << std::endl;
+  std::cout << timer.format(2, "%ws") << std::endl;
 
   return 0;
 }
