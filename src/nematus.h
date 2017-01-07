@@ -126,6 +126,7 @@ class Nematus : public ExpressionGraph {
     void load(const std::string& name) {
       using namespace keywords;
 
+      std::cerr << "Loading model from " << name << std::endl;
       auto numpy = cnpy::npz_load(name);
 
       auto parameters = {
@@ -229,6 +230,7 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
+      //debug(Wemb, "Wemb");
 
       std::vector<float> weightMask;
       std::vector<std::pair<Expr, Expr>> inputs;
@@ -288,6 +290,10 @@ class Nematus : public ExpressionGraph {
       // *** Collect target embeddings and target indices ***
       auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
                                   init=glorot_uniform);
+
+      //debug(Wemb_dec, "Wemb_dec");
+      //debug(bi, "ff_state_b");
+      //debug(Wi, "ff_state_W");
 
       std::vector<std::pair<Expr, Expr>> outputs;
       std::vector<Expr> outputEmbeddings;
@@ -371,8 +377,8 @@ class Nematus : public ExpressionGraph {
       auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
 
-      //debug(weights, "weights");
       //debug(xe, "xe");
+      //debug(cost, "cost");
     }
 
     float cost() {

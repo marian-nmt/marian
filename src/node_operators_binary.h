@@ -117,12 +117,8 @@ struct DotNodeOp : public BinaryNodeOp {
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
 
-    std::vector<std::function<void()>> lambdas = {
-      [&]() { Prod(a_->grad(), adj_, b_->val(), false, true, 1.0); },
-      [&]() { Prod(b_->grad(), a_->val(), adj_, true, false, 1.0); }
-    };
-    run(lambdas);
-
+    Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
+    Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
   }
 
   virtual std::string graphviz() {
@@ -169,10 +165,10 @@ struct ScalarProductNodeOp : public BinaryNodeOp {
 
   void backward() {
     // @TODO: check gradient
-    Element(_1 += _2 * _3,
-            a_->grad(), b_->val(), adj_);
-    Element(_1 += _2 * _3,
-            b_->grad(), a_->val(), adj_);
+    Add(_1 * _2,
+        a_->grad(), b_->val(), adj_);
+    Add(_1 * _2,
+        b_->grad(), a_->val(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -218,10 +214,8 @@ struct PlusNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2,
-            a_->grad(), adj_);
-    Element(_1 += _2,
-            b_->grad(), adj_);
+    Add(_1, a_->grad(), adj_);
+    Add(_1, b_->grad(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -246,10 +240,8 @@ struct MinusNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2,
-            a_->grad(), adj_);
-    Element(_1 -= _2,
-            b_->grad(), adj_);
+    Add( _1, a_->grad(), adj_);
+    Add(-_1, b_->grad(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -274,10 +266,10 @@ struct MultNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * _3,
-            a_->grad(), adj_, b_->val());
-    Element(_1 += _2 * _3,
-            b_->grad(), adj_, a_->val());
+    Add(_1 * _2,
+        a_->grad(), adj_, b_->val());
+    Add(_1 * _2,
+        b_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -302,10 +294,10 @@ struct DivNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * 1.0f / _3,
-            a_->grad(), adj_, b_->val());
-    Element(_1 -= _2 * _3 / (_4 * _4),
-            b_->grad(), adj_, a_->val(), b_->val());
+    Add(_1 * 1.0f / _2,
+        a_->grad(), adj_, b_->val());
+    Add(-_1 * _2 / (_3 * _3),
+        b_->grad(), adj_, a_->val(), b_->val());
   }
 
   virtual std::string graphviz() {
@@ -456,16 +448,12 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
   }
 
   void backward() {
-
-    std::vector<std::function<void()>> lambdas = {
-      [&]() { Element(_1 += (1 - _2 * _2) * _3,
-                      children_[0]->grad(), val_, adj_); },
-      [&]() { Element(_1 += (1 - _2 * _2) * _3,
-                      children_[1]->grad(), val_, adj_); },
-      [&]() { Element(_1 += (1 - _2 * _2) * _3,
-                      children_[2]->grad(), val_, adj_); }
-    };
-    run(lambdas);
+    Add((1 - _1 * _1) * _2,
+        children_[0]->grad(), val_, adj_);
+    Add((1 - _1 * _1) * _2,
+        children_[1]->grad(), val_, adj_);
+    Add((1 - _1 * _1) * _2,
+        children_[2]->grad(), val_, adj_);
   }
 
   virtual std::string graphviz() {
@@ -494,7 +482,7 @@ struct AffineNodeOp : public NaryNodeOp {
 
   void forward() {
     Prod(val_, children_[0]->val(), children_[1]->val(), false, false);
-    Element(_1 += _2, val_, children_[2]->val());
+    Add(_1, val_, children_[2]->val());
   }
 
   void backward() {
@@ -504,13 +492,9 @@ struct AffineNodeOp : public NaryNodeOp {
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
 
-    std::vector<std::function<void()>> lambdas = {
-      [&]() { Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0); },
-      [&]() { Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0); },
-      [&]() { Element(_1 += _2, children_[2]->grad(), adj_); }
-    };
-
-    run(lambdas);
+    Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
+    Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
+    Add(_1, children_[2]->grad(), adj_);
   }
 
   virtual std::string graphviz() {

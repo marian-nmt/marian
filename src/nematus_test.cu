@@ -19,15 +19,15 @@ int main(int argc, char** argv) {
 
   cudaSetDevice(0);
 
-  //std::vector<std::string> files =
-  //  {"../train.src-pe.gpu0/train.all.src",
-  //   "../train.src-pe.gpu0/train.all.pe"};
-  //
-  //std::vector<std::string> vocab =
-  //  {"../train.src-pe.gpu0/src.json",
-  //   "../train.src-pe.gpu0/pe.json"};
+  std::vector<std::string> files =
+    {"../test/mini.de",
+     "../test/mini.en"};
 
-  ///*
+  std::vector<std::string> vocab =
+    {"../test/vocab.de.json",
+     "../test/vocab.en.json"};
+
+  /*
   std::vector<std::string> files =
     {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.mt",
      "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.pe"};
@@ -35,27 +35,29 @@ int main(int argc, char** argv) {
   std::vector<std::string> vocab =
     {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/mt.json",
      "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/pe.json"};
-  //*/
+  */
 
   auto corpus = DataSet<Corpus>(files, vocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 40, 1000);
+  BatchGenerator<Corpus> bg(corpus, 1, 1000);
 
   auto nematus = New<Nematus>();
-  //nematus->load("../test/model.npz");
-  nematus->reserveWorkspaceMB(4096);
+  nematus->load("../test/model.npz");
+  nematus->reserveWorkspaceMB(1024);
+
+  nematus->graphviz("nematus.dot");
 
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 
   float sum = 0;
   boost::timer::cpu_timer timer;
   size_t batches = 1;
-  for(int i = 0; i < 20; ++i) {
+  for(int i = 0; i < 1; ++i) {
     bg.prepare();
     while(bg) {
       auto batch = bg.next();
+      batch->debug();
 
       nematus->construct(*batch);
-
       opt->update(nematus);
 
       float cost = nematus->cost();
@@ -63,8 +65,8 @@ int main(int argc, char** argv) {
 
       if(batches % 100 == 0) {
         std::cout << std::setfill(' ')
-                  << "Epoch "   << std::setw(3) << i
-                  << " Update " << std::setw(7) << batches
+                  << "Epoch " << i
+                  << " Update " << batches
                   << " Cost "   << std::setw(7) << std::setprecision(6) << cost
                   << " UD " << timer.format(2, "%ws");
 

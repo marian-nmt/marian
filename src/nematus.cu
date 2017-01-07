@@ -41,8 +41,8 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, 40, 1000);
 
   auto nematus = New<Nematus>();
-  //nematus->load("../test/model.npz");
-  nematus->reserveWorkspaceMB(2048);
+  nematus->load("../train.src-pe.gpu0/model.iter10000.npz");
+  nematus->reserveWorkspaceMB(8000);
 
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 
@@ -63,8 +63,8 @@ int main(int argc, char** argv) {
 
       if(batches % 100 == 0) {
         std::cout << std::setfill(' ')
-                  << "Epoch "   << std::setw(3) << i
-                  << " Update " << std::setw(7) << batches
+                  << "Epoch " << i
+                  << " Update " << batches
                   << " Cost "   << std::setw(7) << std::setprecision(6) << cost
                   << " UD " << timer.format(2, "%ws");
 

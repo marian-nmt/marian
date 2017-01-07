@@ -79,6 +79,9 @@ class Corpus : public DataBase {
           std::string line;
           if(std::getline(files[i], line)) {
             Words words = vocabs[i](line);
+            if(words.empty())
+              words.push_back(0);
+              
             sentences.emplace_back(new Data());
             for(auto w : words)
               sentences.back()->push_back((float)w);
