@@ -79,6 +79,26 @@ void Reduce(Functor functor,
   cudaStreamSynchronize(0);
 }
 
+template <class Functor, class T1, class T2>
+void Add(Functor functor,
+         T1 out, T2 in) {
+
+  auto full = out->shape();
+  for(int i = 0; i < in->shape().size(); ++i)
+    full.set(i, std::max(full[i], in->shape()[i]));
+
+  int length = full.elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  gReduce<<<blocks, threads>>>(functor,
+                               out->data(), out->shape(),
+                               in->data(), in->shape(),
+                               full);
+  cudaStreamSynchronize(0);
+}
+
 // @TODO : make this deterministic. Currently
 // different order of addition due to parallelism
 // introduce small non-determinism that accumulates
@@ -123,6 +143,29 @@ void Reduce(Functor functor,
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   out->set(0);
+  gReduce<<<blocks, threads>>>(functor,
+                               out->data(), out->shape(),
+                               in1->data(), in1->shape(),
+                               in2->data(), in2->shape(),
+                               full);
+  cudaStreamSynchronize(0);
+}
+
+template <class Functor, class T1, class T2, class T3>
+void Add(Functor functor,
+         T1 out, T2 in1, T3 in2) {
+
+  auto full = out->shape();
+  for(int i = 0; i < in1->shape().size(); ++i)
+    full.set(i, std::max(full[i], in1->shape()[i]));
+  for(int i = 0; i < in2->shape().size(); ++i)
+    full.set(i, std::max(full[i], in2->shape()[i]));
+
+  int length = full.elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
   gReduce<<<blocks, threads>>>(functor,
                                out->data(), out->shape(),
                                in1->data(), in1->shape(),
@@ -176,6 +219,32 @@ void Reduce(Functor functor,
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   out->set(0);
+  gReduce<<<blocks, threads>>>(functor,
+                               out->data(), out->shape(),
+                               in1->data(), in1->shape(),
+                               in2->data(), in2->shape(),
+                               in3->data(), in3->shape(),
+                               full);
+  cudaStreamSynchronize(0);
+}
+
+template <class Functor, class T1, class T2, class T3, class T4>
+void Add(Functor functor,
+         T1 out, T2 in1, T3 in2, T4 in3) {
+
+  auto full = out->shape();
+  for(int i = 0; i < in1->shape().size(); ++i)
+    full.set(i, std::max(full[i], in1->shape()[i]));
+  for(int i = 0; i < in2->shape().size(); ++i)
+    full.set(i, std::max(full[i], in2->shape()[i]));
+  for(int i = 0; i < in3->shape().size(); ++i)
+    full.set(i, std::max(full[i], in3->shape()[i]));
+
+  int length = full.elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
   gReduce<<<blocks, threads>>>(functor,
                                out->data(), out->shape(),
                                in1->data(), in1->shape(),

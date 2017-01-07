@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 #include <functional>
-
+#include <random>
 #include "tensors/tensor.h"
 #include "cnpy/cnpy.h"
 

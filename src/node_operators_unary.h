@@ -307,7 +307,7 @@ struct SumNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2, a_->grad(), adj_);
+    Add(_1, a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -350,7 +350,7 @@ struct MeanNodeOp : public UnaryNodeOp {
   void backward() {
     int left = a_->shape().elements() / val_->shape().elements();
     float scale = 1.f / left;
-    Element(_1 += _2 * scale, a_->grad(), adj_);
+    Add(_1 * scale, a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -389,8 +389,8 @@ struct LogNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * (1.f / _3),
-            a_->grad(), adj_, a_->val());
+    Add(_1 * (1.f / _2),
+        a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -413,8 +413,8 @@ struct ExpNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * Exp(_3),
-            a_->grad(), adj_, a_->val());
+    Add(_1 * Exp(_2),
+        a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -437,7 +437,7 @@ struct NegNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += -_2, a_->grad(), adj_);
+    Add(-_1, a_->grad(), adj_);
   }
 
   virtual std::string graphviz() {

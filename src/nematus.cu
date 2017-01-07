@@ -63,8 +63,8 @@ int main(int argc, char** argv) {
 
       if(batches % 100 == 0) {
         std::cout << std::setfill(' ')
-                  << "Epoch "   << std::setw(3) << i
-                  << " Update " << std::setw(7) << batches
+                  << "Epoch " << i
+                  << " Update " << batches
                   << " Cost "   << std::setw(7) << std::setprecision(6) << cost
                   << " UD " << timer.format(2, "%ws");
 
