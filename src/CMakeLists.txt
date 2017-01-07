@@ -49,7 +49,7 @@ target_link_libraries(mnist_benchmark marian_lib)
 target_link_libraries(nematus_test marian_lib)
 
 foreach(exec mnist_benchmark tensor_test softmax_benchmark nematus_test)
-  target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn curand)
+  target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)

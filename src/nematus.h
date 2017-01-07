@@ -215,11 +215,11 @@ class Nematus : public ExpressionGraph {
 
     void setDims() {
       dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : 40000;
-      dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : 500;
+      dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : 512;
       dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : 1024;
 
       dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : 40000;
-      dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : 500;
+      dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : 512;
       dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : 1024;
       dimBatch_ = 1;
     }
