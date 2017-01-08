@@ -1,4 +1,5 @@
 #include <iostream>
+#include <boost/timer/timer.hpp>
 
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
@@ -11,44 +12,26 @@ int main() {
   //params->allocate(100000000);
 
   Tensor in1;
-  params->allocate(in1, {2,2,5});
-  in1->set(2);
+  params->allocate(in1, {80, 85000, 25});
+  in1->set(1);
 
   Tensor in2;
-  params->allocate(in2, {2,1,5});
-  in2->set(3);
-
-  Tensor out;
-  params->allocate(out, {2,2,1});
+  params->allocate(in2, {80, 85000, 25});
+  in2->set(1);
 
   Tensor sum;
-  params->allocate(sum, {2,2,1});
+  params->allocate(sum, {1, 85000, 1});
 
+  boost::timer::cpu_timer timer;
 
-  std::cerr << in1->debug() << std::endl;
-  std::cerr << in2->debug() << std::endl;
+  for(int i = 0; i < 1000; ++i) {
+    Reduce(_1 * _2, sum, in1, in2);
+  }
 
-  Reduce(_1, sum, in2);
-  Reduce((_1 * _2), out, in1, in2);
+  std::cout << timer.format(5, "%ws") << std::endl;
 
-
-  std::cerr << sum->debug() << std::endl;
-  std::cerr << out->debug() << std::endl;
-
-
-  //std::vector<Tensor> tensors;
-  //for (int i = 0; i < 200; ++i) {
-  //  std::cerr << i << std::endl;
-  //  tensors.emplace_back();
-  //  params->allocate(tensors.back(), {784,2048});
-  //  std::cerr << tensors.back()->size() << std::endl;
-  //  std::cerr << params->capacity() << " " << params->size() << std::endl;
-  //}
-  //
-  //for(int i = 0; i < 200; i++) {
-  //  tensors[i]->set(0, 3.14 * i);
-  //  std::cerr << tensors[i]->get(0) << std::endl;
-  //}
+  //std::cerr << in1->debug() << std::endl;
+  //std::cerr << sum->debug() << std::endl;
 
   return 0;
 }
