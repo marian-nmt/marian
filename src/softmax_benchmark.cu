@@ -67,7 +67,7 @@ int main() {
 
     std::vector<Shape> shapes = {
         {1000, 1000},
-        {80, 85000},
+        {80 * 25, 85000},
         {85000, 80},
     };
 
@@ -76,9 +76,9 @@ int main() {
 
         std::cout << "Softmax forward" << std::endl;
         testForward(CudnnSoftmax, l, shape, "CuDNN ");
-        testForward(Softmax, l, shape, "Marian");
+        //testForward(Softmax, l, shape, "Marian");
         std::cout << std::endl;
-        
+
         std::cout << "LogSoftmax forward" << std::endl;
         testForward(CudnnLogSoftmax, l, shape, "CuDNN ");
         testForward(LogSoftmax, l, shape, "Marian");

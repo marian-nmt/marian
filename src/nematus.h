@@ -49,6 +49,10 @@ class Nematus : public ExpressionGraph {
       encParams.W = concatenate({W, Wx}, axis=1);
       encParams.b = concatenate({b, bx}, axis=1);
 
+      debug(Ux, prefix + "_Ux");
+      debug(Wx, prefix + "_Wx");
+      debug(bx, prefix + "_bx");
+
       return RNN<GRUFast>(encParams);
     };
 
@@ -230,7 +234,7 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
-      //debug(Wemb, "Wemb");
+      debug(Wemb, "Wemb");
 
       std::vector<float> weightMask;
       std::vector<std::pair<Expr, Expr>> inputs;
@@ -290,10 +294,6 @@ class Nematus : public ExpressionGraph {
       // *** Collect target embeddings and target indices ***
       auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
                                   init=glorot_uniform);
-
-      //debug(Wemb_dec, "Wemb_dec");
-      //debug(bi, "ff_state_b");
-      //debug(Wi, "ff_state_W");
 
       std::vector<std::pair<Expr, Expr>> outputs;
       std::vector<Expr> outputEmbeddings;
@@ -364,6 +364,9 @@ class Nematus : public ExpressionGraph {
                             init=glorot_uniform);
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
                             init=marian::zeros);
+
+      debug(W1, "ff_logit_lstm_W");
+      debug(b1, "ff_logit_lstm_b");
 
       auto t = tanh(affine(d1, W1, b1)
                     + affine(e2, W2, b2)
