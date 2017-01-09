@@ -44,7 +44,7 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
 
       if(God::Get<bool>("wipo"))
         out << "OUT: ";
-      out << lineNo << " ||| " << Join(God::Postprocess(God::GetTargetVocab()(words))) << " |||";
+      out << history.GetLineNum() << " ||| " << Join(God::Postprocess(God::GetTargetVocab()(words))) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
