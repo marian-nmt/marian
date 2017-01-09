@@ -15,15 +15,13 @@ struct Weights {
   //////////////////////////////////////////////////////////////////////////////
 
   struct Embeddings {
-    Embeddings(const Embeddings&) = delete;
     Embeddings(const NpzConverter& model, const std::string &key);
 
     const mblas::Matrix E_;
   };
 
   struct GRU {
-    GRU(const GRU&) = delete;
-    GRU(const NpzConverter& model, const std::vector<std::string> &keys);
+	GRU(const NpzConverter& model, const std::vector<std::string> &keys);
 
     const mblas::Matrix W_;
     const mblas::Matrix B_;
@@ -37,7 +35,6 @@ struct Weights {
   //////////////////////////////////////////////////////////////////////////////
 
   struct DecInit {
-    DecInit(const DecInit&) = delete;
     DecInit(const NpzConverter& model);
 
     const mblas::Matrix Wi_;
@@ -45,7 +42,6 @@ struct Weights {
   };
 
   struct DecGRU2 {
-    DecGRU2(const DecGRU2&) = delete;
     DecGRU2(const NpzConverter& model);
 
     const mblas::Matrix W_;
@@ -58,7 +54,6 @@ struct Weights {
   };
 
   struct DecAttention {
-    DecAttention(const DecAttention&) = delete;
     DecAttention(const NpzConverter& model);
 
     const mblas::Matrix V_;
@@ -69,7 +64,6 @@ struct Weights {
   };
 
   struct DecSoftmax {
-    DecSoftmax(const DecSoftmax&) = delete;
     DecSoftmax(const NpzConverter& model);
 
     const mblas::Matrix W1_;
@@ -83,8 +77,6 @@ struct Weights {
   };
 
   //////////////////////////////////////////////////////////////////////////////
-
-  Weights(const Weights&) = delete;
 
   Weights(const std::string& npzFile, size_t device = 0)
   : Weights(NpzConverter(npzFile), device)

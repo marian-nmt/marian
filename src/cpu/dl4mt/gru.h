@@ -75,8 +75,6 @@ class GRU {
     // reused to avoid allocation
     mutable mblas::Matrix RUH_;
     mutable mblas::Matrix Temp_;
-
-    GRU(const GRU&) = delete;
 };
 
 }
