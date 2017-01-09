@@ -104,7 +104,10 @@ class Corpus : public DataBase {
     }
 
     void shuffle() {
-      std::random_shuffle(examples_.begin(), examples_.end());
+      std::random_device rd;
+      std::mt19937 g(rd());
+
+      std::shuffle(examples_.begin(), examples_.end(), g);
     }
 
     batch_ptr toBatch(const Examples& batchVector) {

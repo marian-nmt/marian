@@ -38,10 +38,10 @@ int main(int argc, char** argv) {
   */
 
   auto corpus = DataSet<Corpus>(files, vocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 40, 1000);
+  BatchGenerator<Corpus> bg(corpus, 80, 1600);
 
   auto nematus = New<Nematus>();
-  nematus->load("../train.src-pe.gpu0/model.iter10000.npz");
+  //nematus->load("../train.src-pe.gpu0/model.iter10000.npz");
   nematus->reserveWorkspaceMB(8000);
 
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
@@ -55,7 +55,6 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
 
       nematus->construct(*batch);
-
       opt->update(nematus);
 
       float cost = nematus->cost();
@@ -66,6 +65,7 @@ int main(int argc, char** argv) {
                   << "Epoch " << i
                   << " Update " << batches
                   << " Cost "   << std::setw(7) << std::setprecision(6) << cost
+                 << " avg: " << sum / 100 
                   << " UD " << timer.format(2, "%ws");
 
         float seconds = std::stof(timer.format(5, "%w"));
@@ -76,6 +76,7 @@ int main(int argc, char** argv) {
                   << sentences
                   << " sentences/s" << std::endl;
         timer.start();
+        sum = 0;
       }
 
       if(batches % 10000 == 0)

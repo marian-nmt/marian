@@ -565,7 +565,7 @@ __global__ void gPasteRows(float* out, const float* in, size_t cols,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols)
-          rowOut[i] = rowIn[i];
+          atomicAdd(rowOut + i, rowIn[i]);
       }
     }
   }

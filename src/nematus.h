@@ -49,9 +49,9 @@ class Nematus : public ExpressionGraph {
       encParams.W = concatenate({W, Wx}, axis=1);
       encParams.b = concatenate({b, bx}, axis=1);
 
-      debug(Ux, prefix + "_Ux");
-      debug(Wx, prefix + "_Wx");
-      debug(bx, prefix + "_bx");
+      //debug(Ux, prefix + "_Ux");
+      //debug(Wx, prefix + "_Wx");
+      //debug(bx, prefix + "_bx");
 
       return RNN<GRUFast>(encParams);
     };
@@ -234,7 +234,7 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
-      debug(Wemb, "Wemb");
+      //debug(Wemb, "Wemb");
 
       std::vector<float> weightMask;
       std::vector<std::pair<Expr, Expr>> inputs;
@@ -365,8 +365,8 @@ class Nematus : public ExpressionGraph {
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
                             init=marian::zeros);
 
-      debug(W1, "ff_logit_lstm_W");
-      debug(b1, "ff_logit_lstm_b");
+      //debug(W1, "ff_logit_lstm_W");
+      //debug(b1, "ff_logit_lstm_b");
 
       auto t = tanh(affine(d1, W1, b1)
                     + affine(e2, W2, b2)
@@ -380,8 +380,8 @@ class Nematus : public ExpressionGraph {
       auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
 
-      debug(xe, "xe");
-      debug(cost, "cost");
+      //debug(xe, "xe");
+      //debug(cost, "cost");
     }
 
     float cost() {
