@@ -9,7 +9,7 @@
 #include "common/soft_alignment.h"
 
 template <class OStream>
-void Printer(const History& history, size_t lineNo, OStream& out) {
+void Printer(const History& history, OStream& out) {
   std::string best = Join(God::Postprocess(God::GetTargetVocab()(history.Top().first)));
   //LOG(progress) << "Best translation: " << best;
 
@@ -62,10 +62,10 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
 }
 
 template <class OStream>
-void Printer(const Histories& histories, size_t lineNo, OStream& out) {
+void Printer(const Histories& histories, OStream& out) {
 
   for (size_t i = 0; i < histories.size(); ++i) {
     const History& history = *histories.at(i).get();
-    Printer(history, lineNo, out);
+    Printer(history, out);
   }
 }

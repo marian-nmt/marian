@@ -38,7 +38,7 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
     allHistories.SortByLineNum();
 
     std::stringstream strm;
-    Printer(allHistories, taskCounter, strm);
+    Printer(allHistories, strm);
 
     OutputCollector &outputCollector = God::GetOutputCollector();
     outputCollector.Write(taskCounter, strm.str());
