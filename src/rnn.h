@@ -133,20 +133,26 @@ Expr grufast(const std::vector<Expr>& nodes, bool final = false) {
 
 class GRUFast {
   public:
-    GRUFast(ParametersGRUFast params)
-    : params_(params) {}
+    GRUFast(ParametersGRUFast params, Expr dropoutMask = nullptr)
+    : params_(params),
+      dropoutMask_(dropoutMask) {}
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
 
-      return mask ?
+      auto output = mask ?
         grufast({state, xW, sU, params_.b, mask}) :
         grufast({state, xW, sU, params_.b});
+
+      if(dropoutMask_)
+        output = output * dropoutMask_;
+      return output;
     }
 
   private:
     ParametersGRUFast params_;
+    Expr dropoutMask_;
 };
 
 /***************************************************************/
@@ -215,10 +221,12 @@ class GRUWithAttention {
   public:
     GRUWithAttention(ParametersGRUWithAttention params,
                      Expr context,
-                     Expr softmaxMask = nullptr)
+                     Expr softmaxMask = nullptr,
+                     Expr dropoutMask = nullptr)
     : params_(params),
       context_(context),
-      softmaxMask_(nullptr) {
+      softmaxMask_(nullptr),
+      dropoutMask_(dropoutMask) {
         mappedContext_ = dot(context_, params_.Ua);
 
         if(softmaxMask) {
@@ -241,6 +249,9 @@ class GRUWithAttention {
 
       int dimBatch = context_->shape()[0];
       int srcWords = context_->shape()[2];
+
+      if(dropoutMask_)
+        hidden = hidden * dropoutMask_;
 
       auto mappedState = dot(hidden, params_.Wa);
       auto temp = tanhPlus3(mappedState, mappedContext_ , params_.ba);
@@ -266,6 +277,9 @@ class GRUWithAttention {
         grufast({hidden, aWc, hUc, params_.bc, mask}, true) :
         grufast({hidden, aWc, hUc, params_.bc}, true);
 
+      if(dropoutMask_)
+        output = output * dropoutMask_;
+
       return output;
     }
 
@@ -277,6 +291,7 @@ class GRUWithAttention {
     ParametersGRUWithAttention params_;
     Expr context_;
     Expr softmaxMask_;
+    Expr dropoutMask_;
     Expr mappedContext_;
     std::vector<Expr> contexts_;
 };

@@ -49,7 +49,11 @@ class Nematus : public ExpressionGraph {
       encParams.W = concatenate({W, Wx}, axis=1);
       encParams.b = concatenate({b, bx}, axis=1);
 
-      return RNN<GRUFast>(encParams);
+      auto dropoutConstant = this->ones(shape={dimBatch_, dimEncState_});
+      auto dropoutMask = dropout(dropoutConstant, value=0.2);
+
+      GRUFast gru(encParams, dropoutMask);
+      return RNN<GRUFast>(gru);
     };
 
     RNN<GRUWithAttention> decoderGRUWithAttention() {
@@ -115,9 +119,15 @@ class Nematus : public ExpressionGraph {
 
       auto encoderContext = this->get("encoderContext");
       auto encoderContextWeights = this->get("encoderContextWeights");
+
+      auto dropoutConstant = this->ones(shape={dimBatch_, dimDecState_});
+      auto dropoutMask = dropout(dropoutConstant, value=0.2);
+
       GRUWithAttention gruCell(decParams,
                                encoderContext,
-                               encoderContextWeights);
+                               encoderContextWeights,
+                               dropoutMask);
+
       return RNN<GRUWithAttention>(gruCell);
     };
 
@@ -230,6 +240,8 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
+
+      Wemb = dropout(Wemb, value=0.2);
 
       std::vector<float> weightMask;
       std::vector<Expr> inputs;
