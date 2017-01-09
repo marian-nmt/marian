@@ -20,8 +20,8 @@ int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   std::vector<std::string> files =
-    {"../test/mini.de",
-     "../test/mini.en"};
+    {"../test/test.10.de",
+     "../test/test.10.en"};
 
   std::vector<std::string> vocab =
     {"../test/vocab.de.json",
@@ -38,13 +38,13 @@ int main(int argc, char** argv) {
   */
 
   auto corpus = DataSet<Corpus>(files, vocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 3, 1000);
+  BatchGenerator<Corpus> bg(corpus, 10, 20);
 
   auto nematus = New<Nematus>();
   nematus->load("../test/model.npz");
   nematus->reserveWorkspaceMB(1024);
 
-  nematus->graphviz("nematus.dot");
+  //nematus->graphviz("nematus.dot");
 
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 

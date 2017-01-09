@@ -230,7 +230,6 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
-      //debug(Wemb, "Wemb");
 
       std::vector<float> weightMask;
       std::vector<Expr> inputs;
@@ -293,13 +292,9 @@ class Nematus : public ExpressionGraph {
       auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
                                   init=glorot_uniform);
 
-      std::vector<std::pair<Expr, Expr>> outputs;
-      std::vector<Expr> outputEmbeddings;
-
+      std::vector<Expr> outputs;
       auto emptyEmbedding = this->zeros(shape={dimBatch_, dimTrgEmb_});
-      auto emptyMask = this->ones(shape={ dimBatch_ });
-      outputs.push_back({emptyEmbedding, emptyMask});
-      outputEmbeddings.push_back(emptyEmbedding);
+      outputs.push_back(emptyEmbedding);
 
       std::vector<float> weightMask;
       std::vector<float> picks;
@@ -316,10 +311,7 @@ class Nematus : public ExpressionGraph {
 
           auto y = name(rows(Wemb_dec, indeces),
                         "y_" + std::to_string(outputs.size() - 1));
-          auto yMask = this->constant(shape={ (int)mask.size() },
-                                      init=from_vector(mask));
-          outputs.push_back({y, yMask});
-          outputEmbeddings.push_back(y);
+          outputs.push_back(y);
         }
         else {
           auto mask = trgWordBatch.second;
@@ -340,7 +332,7 @@ class Nematus : public ExpressionGraph {
 
       // *** Final output layers ***
       auto d1 = concatenate(decStates, axis=2);
-      auto e2 = concatenate(outputEmbeddings, axis=2);
+      auto e2 = concatenate(outputs, axis=2);
       auto c3 = concatenate(contexts, axis=2);
 
       auto W1 = this->param("ff_logit_lstm_W", {dimDecState_, dimTrgEmb_},
@@ -375,7 +367,6 @@ class Nematus : public ExpressionGraph {
       auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
 
-      //debug(xe, "xe");
       //debug(cost, "cost");
     }
 
