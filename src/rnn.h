@@ -243,7 +243,6 @@ class GRUWithAttention {
       int srcWords = context_->shape()[2];
 
       auto mappedState = dot(hidden, params_.Wa);
-
       auto temp = tanhPlus3(mappedState, mappedContext_ , params_.ba);
 
       // @TODO: horrible ->

@@ -38,13 +38,13 @@ int main(int argc, char** argv) {
   */
 
   auto corpus = DataSet<Corpus>(files, vocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 40, 1000);
+  BatchGenerator<Corpus> bg(corpus, 80, 20);
 
   auto nematus = New<Nematus>();
   nematus->load("../train.src-pe.gpu0/model.iter10000.npz");
   nematus->reserveWorkspaceMB(8000);
 
-  auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
+  auto opt = Optimizer<Adam>(0.0001); /*, clip=norm(1));*/
 
   float sum = 0;
   boost::timer::cpu_timer timer;

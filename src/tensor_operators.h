@@ -38,12 +38,12 @@ using namespace thrust::placeholders;
 class TensorGPU;
 
 template <class Functor>
-__global__ void gReduce(Functor functor,
-                        float* out,
-                        Shape outShape,
-                        const float* in,
-                        const Shape inShape,
-                        const Shape full) {
+__global__ void gAdd(Functor functor,
+                     float* out,
+                     Shape outShape,
+                     const float* in,
+                     const Shape inShape,
+                     const Shape full) {
   int length = full.elements();
   bool reduceOut = outShape.elements() != length;
   bool reduceIn  = inShape.elements() != length;
@@ -70,27 +70,6 @@ __global__ void gReduce(Functor functor,
 }
 
 template <class Functor, class T1, class T2>
-void Reduce(Functor functor,
-         T1 out, T2 in) {
-
-  auto full = out->shape();
-  for(int i = 0; i < in->shape().size(); ++i)
-    full.set(i, std::max(full[i], in->shape()[i]));
-
-  int length = full.elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
-
-  out->set(0);
-  gReduce<<<blocks, threads>>>(functor,
-                               out->data(), out->shape(),
-                               in->data(), in->shape(),
-                               full);
-  cudaStreamSynchronize(0);
-}
-
-template <class Functor, class T1, class T2>
 void Add(Functor functor,
          T1 out, T2 in) {
 
@@ -103,12 +82,20 @@ void Add(Functor functor,
   int threads = std::min(MAX_THREADS, length);
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
-  gReduce<<<blocks, threads>>>(functor,
-                               out->data(), out->shape(),
-                               in->data(), in->shape(),
-                               full);
+  gAdd<<<blocks, threads>>>(functor,
+                            out->data(), out->shape(),
+                            in->data(), in->shape(),
+                            full);
   cudaStreamSynchronize(0);
 }
+
+template <class Functor, class T1, class T2>
+void Reduce(Functor functor,
+         T1 out, T2 in) {
+  out->set(0);
+  Add(functor, out, in);
+}
+
 
 // @TODO : make this deterministic. Currently
 // different order of addition due to parallelism
@@ -145,7 +132,7 @@ __global__ void gReduce(Functor functor,
 
       float res = functor(in1[in1Index], in2[in2Index]);
 
-      if(reduceOut || reduceIn1 || reduceIn2)
+      if(reduceOut)
         atomicAdd(&out[outIndex], res);
       else
         out[outIndex] += res;

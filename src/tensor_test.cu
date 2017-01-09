@@ -11,27 +11,39 @@ int main() {
   TensorAllocator params = newTensorAllocator<DeviceGPU>();
   //params->allocate(100000000);
 
-  Tensor in1;
-  params->allocate(in1, {80, 85000, 25});
-  in1->set(1);
+  std::vector<float> in1v(4096);
+  std::vector<float> in2v(4096);
 
-  Tensor in2;
-  params->allocate(in2, {80, 85000, 25});
-  in2->set(1);
-
-  Tensor sum;
-  params->allocate(sum, {1, 85000, 1});
-
-  boost::timer::cpu_timer timer;
-
-  for(int i = 0; i < 1000; ++i) {
-    Reduce(_1 * _2, sum, in1, in2);
+  for(int i = 0; i < 4096; ++i) {
+    if(i < 2048) {
+      in1v[i] = 1.5;
+      in2v[i] = -1;
+    }
+    else {
+      in1v[i] = 1.4;
+      in2v[i] = 1;
+    }
   }
 
-  std::cout << timer.format(5, "%ws") << std::endl;
+  Tensor in1;
+  params->allocate(in1, {1, 2048, 2});
+  in1->set(in1v);
 
-  //std::cerr << in1->debug() << std::endl;
-  //std::cerr << sum->debug() << std::endl;
+  Tensor in2;
+  params->allocate(in2, {1, 2048, 2});
+  in2->set(in2v);
+
+  Tensor sum;
+  params->allocate(sum, {1, 2048, 2});
+  sum->set(0);
+
+
+  Element(_1 = (0.f + _2) * _3, sum, in1, in2);
+
+
+  std::cerr << in1->debug() << std::endl;
+  std::cerr << in2->debug() << std::endl;
+  std::cerr << sum->debug() << std::endl;
 
   return 0;
 }

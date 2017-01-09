@@ -448,11 +448,11 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
   }
 
   void backward() {
-    Add((1 - _1 * _1) * _2,
+    Add((1.f - _1 * _1) * _2,
         children_[0]->grad(), val_, adj_);
-    Add((1 - _1 * _1) * _2,
+    Add((1.f - _1 * _1) * _2,
         children_[1]->grad(), val_, adj_);
-    Add((1 - _1 * _1) * _2,
+    Add((1.f - _1 * _1) * _2,
         children_[2]->grad(), val_, adj_);
   }
 

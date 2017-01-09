@@ -49,9 +49,12 @@ class Nematus : public ExpressionGraph {
       encParams.W = concatenate({W, Wx}, axis=1);
       encParams.b = concatenate({b, bx}, axis=1);
 
-      debug(Ux, prefix + "_Ux");
-      debug(Wx, prefix + "_Wx");
-      debug(bx, prefix + "_bx");
+      //debug(U, prefix + "_U");
+      //debug(W, prefix + "_W");
+      //debug(b, prefix + "_b");
+      //debug(Ux, prefix + "_Ux");
+      //debug(Wx, prefix + "_Wx");
+      //debug(bx, prefix + "_bx");
 
       return RNN<GRUFast>(encParams);
     };
@@ -234,10 +237,11 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
-      debug(Wemb, "Wemb");
+      //debug(Wemb, "Wemb");
 
       std::vector<float> weightMask;
-      std::vector<std::pair<Expr, Expr>> inputs;
+      std::vector<Expr> inputs;
+      std::vector<std::pair<Expr, Expr>> inputsWithMask;
       size_t i = 0;
       for(auto& srcWordBatch : srcSentenceBatch) {
         auto indeces = srcWordBatch.first;
@@ -248,7 +252,8 @@ class Nematus : public ExpressionGraph {
         auto x = name(rows(Wemb, indeces), "x_" + std::to_string(i++));
         auto xMask = this->constant(shape={ (int)mask.size() },
                                     init=from_vector(mask));
-        inputs.push_back({x, xMask});
+        inputs.push_back(x);
+        inputsWithMask.push_back({x, xMask});
         dimBatch_ = srcWordBatch.first.size();
       }
 
@@ -259,8 +264,8 @@ class Nematus : public ExpressionGraph {
                                                   inputs.end(),
                                                   encState0);
 
-      auto statesBw = encoderGRU("encoder_r").apply(inputs.rbegin(),
-                                                    inputs.rend(),
+      auto statesBw = encoderGRU("encoder_r").apply(inputsWithMask.rbegin(),
+                                                    inputsWithMask.rend(),
                                                     encState0);
 
       std::vector<Expr> biStates;
@@ -365,9 +370,6 @@ class Nematus : public ExpressionGraph {
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
                             init=marian::zeros);
 
-      debug(W1, "ff_logit_lstm_W");
-      debug(b1, "ff_logit_lstm_b");
-
       auto t = tanh(affine(d1, W1, b1)
                     + affine(e2, W2, b2)
                     + affine(c3, W3, b3));
@@ -380,8 +382,8 @@ class Nematus : public ExpressionGraph {
       auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
 
-      debug(xe, "xe");
-      debug(cost, "cost");
+      //debug(xe, "xe");
+      //debug(cost, "cost");
     }
 
     float cost() {

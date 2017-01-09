@@ -56,11 +56,11 @@ class BatchGenerator {
 
   public:
     BatchGenerator(std::shared_ptr<DataSet> data,
-                   size_t batchSize=100,
-                   size_t maxiBatchSize=1000)
+                   size_t batchSize=80,
+                   size_t maxiBatchNum=20)
     : data_(data),
       batchSize_(batchSize),
-      maxiBatchSize_(maxiBatchSize),
+      maxiBatchSize_(batchSize * maxiBatchNum),
       current_(data_->begin()) { }
 
     operator bool() const {
