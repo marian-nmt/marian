@@ -9,6 +9,9 @@ namespace GPU {
 
 class EncoderDecoderState : public State {
   public:
+	EncoderDecoderState(const EncoderDecoderState&) = delete;
+	EncoderDecoderState() {}
+
     virtual std::string Debug() const;
 
     mblas::Matrix& GetStates();

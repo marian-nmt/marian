@@ -22,6 +22,7 @@ class Decoder;
 class EncoderDecoderState : public State {
   public:
 	EncoderDecoderState();
+	EncoderDecoderState(const EncoderDecoderState&) = delete;
 
     virtual std::string Debug() const;
 
@@ -51,13 +52,13 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const State& in, State& out);
+    virtual void Score(const State& in, State& out, const std::vector<size_t>& beamSizes);
 
     virtual State* NewState();
 
-    virtual void BeginSentenceState(State& state);
+    virtual void BeginSentenceState(State& state, size_t batchSize);
 
-    virtual void SetSource(const Sentence& source);
+    virtual void SetSource(const Sentences& sources);
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,

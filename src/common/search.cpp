@@ -11,11 +11,11 @@ using namespace std;
 
 Search::Search(size_t threadId)
   : scorers_(God::GetScorers(threadId)),
-    BestHyps_(God::GetBestHyps(threadId)) {
+    bestHyps_(God::GetBestHyps(threadId)) {
 }
 
 
-size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
+size_t Search::MakeFilter(const std::set<Word>& srcWords, size_t vocabSize) {
   filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
@@ -23,19 +23,31 @@ size_t Search::MakeFilter(const Words& srcWords, size_t vocabSize) {
   return filterIndices_.size();
 }
 
-History Search::Decode(const Sentence& sentence) {
+void Search::InitScorers(const Sentences& sentences, States& states, States& nextStates) {
+  for (size_t i = 0; i < scorers_.size(); i++) {
+    Scorer &scorer = *scorers_[i];
+    scorer.SetSource(sentences);
+
+    states[i].reset(scorer.NewState());
+    nextStates[i].reset(scorer.NewState());
+
+    scorer.BeginSentenceState(*states[i], sentences.size());
+  }
+}
+
+boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  size_t beamSize = God::Get<size_t>("beam-size");
-  bool normalize = God::Get<bool>("normalize");
+  boost::shared_ptr<Histories> ret(new Histories(sentences));
 
-  // @TODO Future: in order to do batch sentence decoding
-  // it should be enough to keep track of hypotheses in
-  // separate History objects.
+  size_t batchSize = sentences.size();
+  std::vector<size_t> beamSizes(batchSize, 1);
 
-  History history;
-  Beam prevHyps = { HypothesisPtr(new Hypothesis()) };
-  history.Add(prevHyps);
+  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
+  for (size_t i = 0; i < ret->size(); ++i) {
+    History &history = *ret->at(i).get();
+    history.Add(prevHyps);
+  }
 
   States states(scorers_.size());
   States nextStates(scorers_.size());
@@ -44,46 +56,61 @@ History Search::Decode(const Sentence& sentence) {
 
   bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
-    vocabSize = MakeFilter(sentence.GetWords(), vocabSize);
+    std::set<Word> srcWords;
+    for (size_t i = 0; i < sentences.size(); ++i) {
+      const Sentence &sentence = *sentences.at(i);
+      for (const auto& srcWord : sentence.GetWords()) {
+        srcWords.insert(srcWord);
+      }
+    }
+    vocabSize = MakeFilter(srcWords, vocabSize);
   }
 
-  for (size_t i = 0; i < scorers_.size(); i++) {
-    Scorer &scorer = *scorers_[i];
-    scorer.SetSource(sentence);
-
-    states[i].reset(scorer.NewState());
-    nextStates[i].reset(scorer.NewState());
-
-    scorer.BeginSentenceState(*states[i]);
+  size_t maxLength = 0;
+  for (size_t i = 0; i < sentences.size(); ++i) {
+    const Sentence &sentence = *sentences.at(i);
+    maxLength = std::max(maxLength, sentence.GetWords().size());
   }
 
-  const size_t maxLength = sentence.GetWords().size() * 3;
-  do {
+  InitScorers(sentences, states, nextStates);
+
+  for (size_t decoderStep = 0; decoderStep < 3 * maxLength; ++decoderStep) {
     for (size_t i = 0; i < scorers_.size(); i++) {
       Scorer &scorer = *scorers_[i];
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      // prob.Resize(beamSize, vocabSize);
-      scorer.Score(state, nextState);
+      scorer.Score(state, nextState, beamSizes);
     }
 
-    Beam hyps;
-
-    bool returnAlignment = God::Get<bool>("return-alignment");
-
-    BestHyps_(hyps, prevHyps, beamSize, scorers_, filterIndices_,
-                                     returnAlignment);
-    history.Add(hyps, history.size() == maxLength);
-
-    Beam survivors;
-    for (auto h : hyps) {
-      if (h->GetWord() != EOS) {
-        survivors.push_back(h);
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+        beamSize = God::Get<size_t>("beam-size");
       }
     }
-    beamSize = survivors.size();
-    if (beamSize == 0) {
+    Beams beams(batchSize);
+    bool returnAlignment = God::Get<bool>("return-alignment");
+
+    bestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+
+    for (size_t i = 0; i < batchSize; ++i) {
+      if (!beams[i].empty()) {
+        ret->at(i)->Add(beams[i], ret->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+      }
+    }
+
+    Beam survivors;
+    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
+      for (auto& h : beams[batchID]) {
+        if (h->GetWord() != EOS) {
+          survivors.push_back(h);
+        } else {
+          --beamSizes[batchID];
+        }
+      }
+    }
+
+    if (survivors.size() == 0) {
       break;
     }
 
@@ -92,15 +119,14 @@ History Search::Decode(const Sentence& sentence) {
     }
 
     prevHyps.swap(survivors);
+  }
 
-  } while(history.size() <= maxLength);
-
-  LOG(progress) << "Line " << sentence.GetLine()
+  LOG(progress) << "Batch " << sentences.taskCounter << "." << sentences.bunchId
                 << ": Search took " << timer.format(3, "%ws");
 
   for (auto scorer : scorers_) {
 	  scorer->CleanUpAfterSentence();
   }
 
-  return history;
+  return ret;
 }

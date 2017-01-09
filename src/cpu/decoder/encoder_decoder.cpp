@@ -60,7 +60,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Score(const State& in, State& out) {
+void EncoderDecoder::Score(const State& in, State& out, const std::vector<size_t>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -72,14 +72,14 @@ State* EncoderDecoder::NewState() {
   return new EDState();
 }
 
-void EncoderDecoder::BeginSentenceState(State& state) {
+void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), SourceContext_, 1);
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
+  decoder_->EmptyState(edState.GetStates(), SourceContext_, batchSize);
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
-void EncoderDecoder::SetSource(const Sentence& source) {
-  encoder_->GetContext(source.GetWords(tab_),
+void EncoderDecoder::SetSource(const Sentences& sources) {
+  encoder_->GetContext(sources.at(0)->GetWords(tab_),
                         SourceContext_);
 }
 
@@ -147,8 +147,14 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const size_t) {
                                       tab, *weights_[0]));
 }
 
-BestHypsType EncoderDecoderLoader::GetBestHyps() {
-  return CPU::BestHyps;
+BestHypsBase &EncoderDecoderLoader::GetBestHyps() {
+  thread_local std::unique_ptr<BestHypsBase> bestHyps;
+  if(!bestHyps) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    bestHyps.reset(new CPU::BestHyps());
+  }
+
+  return *bestHyps.get();
 }
 
 }

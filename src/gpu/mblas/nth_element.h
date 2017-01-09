@@ -3,25 +3,33 @@
 #include <vector>
 #include <algorithm>
 
-#include <cuda_runtime.h>
+#include <cuda.h>
+#include "gpu/mblas/matrix.h"
 
 namespace GPU {
 
-
 class NthElement {
   public:
-    NthElement(size_t maxBeamSize, cudaStream_t& stream);
+    NthElement() = delete;
+    NthElement(const NthElement &copy) = delete;
+    NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
+    virtual ~NthElement();
 
-    void getNBestList(float* d_in, size_t N, size_t n,
-                      std::vector<unsigned>& outKeys,
-                      std::vector<float>& outValues);
+    void getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
+                              const std::vector<int>& cummulatedBeamSizes);
+    void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+                      std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
+                      const bool isFirst=false);
+
+    void GetPairs(size_t number,
+                  std::vector<unsigned>& outKeys,
+                  std::vector<float>& outValues);
 
     void getValueByKey(std::vector<float>& out, float* d_in);
-    /* cudaFree(d_in); */
-    /* cudaFree(d_out); */
 
   private:
     const int BLOCK_SIZE = 512;
+    const int NUM_BLOCKS;
     cudaStream_t& stream_;
     int *d_ind;
 
@@ -34,8 +42,9 @@ class NthElement {
     float *h_res;
 
     float  *d_breakdown;
+    int    *d_batchPosition;
+    int    *d_cumBeamSizes;
     size_t lastN;
 };
-
 
 }  // namespace GPU

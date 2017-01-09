@@ -69,7 +69,7 @@ class ApePenaltyLoader : public Loader {
     virtual void Load();
 
     virtual ScorerPtr NewScorer(size_t taskId);
-    virtual BestHypsType GetBestHyps();
+    virtual BestHypsBase *GetBestHyps();
 
   private:
     SrcTrgMap srcTrgMap_;

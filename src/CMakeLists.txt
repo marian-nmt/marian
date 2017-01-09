@@ -27,6 +27,7 @@ add_library(libcommon OBJECT
   common/history.cpp
   common/loader.cpp
   common/logging.cpp
+  common/output_collector.cpp
   common/printer.cpp
   common/scorer.cpp
   common/search.cpp
@@ -44,7 +45,7 @@ set_source_files_properties( common/loader_factory.cpp
 cuda_add_executable(
   amun
   common/decoder_main.cpp
-  gpu/decoder/ape_penalty.cu
+  # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
@@ -52,6 +53,7 @@ cuda_add_executable(
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
   common/loader_factory.cpp
+  common/translation_task.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
@@ -60,8 +62,8 @@ cuda_add_executable(
 
 if(PYTHONLIBS_FOUND)
 cuda_add_library(amunmt SHARED
-  python/amunmt.cpp
-  gpu/decoder/ape_penalty.cu
+  # python/amunmt.cpp
+  # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu

@@ -7,5 +7,18 @@
 #include "scorer.h"
 
 
-using BestHypsType = std::function<void(Beam&, const Beam&, const size_t,
-                    const std::vector<ScorerPtr>&, const Words&, bool)>;
+class BestHypsBase
+{
+public:
+  BestHypsBase() {}
+  BestHypsBase(const BestHypsBase&) = delete;
+
+  virtual void operator()(std::vector<Beam>& beams,
+        const Beam& prevHyps,
+        std::vector<size_t>& beamSizes,
+        const std::vector<ScorerPtr>& scorers,
+        const Words& filterIndices,
+        bool returnAlignment) = 0;
+
+};
+

@@ -34,13 +34,13 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const State& in, State& out);
+    virtual void Score(const State& in, State& out, const std::vector<size_t>& beamSizes);
 
     virtual State* NewState();
 
-    virtual void BeginSentenceState(State& state);
+    virtual void BeginSentenceState(State& state, size_t batchSize=1);
 
-    virtual void SetSource(const Sentence& source);
+    virtual void SetSource(const Sentences& source);
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
@@ -61,21 +61,25 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    DeviceVector<size_t> indeces_;
+    DeviceVector<size_t> indices_;
+    DeviceVector<int> batchMapping_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
+
+    EncoderDecoder(const EncoderDecoder&) = delete;
 };
 
 ////////////////////////////////////////////
 class EncoderDecoderLoader : public Loader {
   public:
+	EncoderDecoderLoader(const EncoderDecoderLoader&) = delete;
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
 
     virtual void Load();
 
     virtual ScorerPtr NewScorer(size_t taskId);
-    virtual BestHypsType GetBestHyps();
+    virtual BestHypsBase &GetBestHyps();
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;

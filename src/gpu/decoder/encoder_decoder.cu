@@ -8,7 +8,7 @@
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
 
-using namespace std;
+/* using namespace std; */
 
 namespace GPU {
 
@@ -44,32 +44,34 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(model_)),
-    indeces_(God::Get<size_t>("beam-size")),
+    indices_(God::Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const State& in,State& out) {
+void EncoderDecoder::Score(const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
   decoder_->MakeStep(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
-                     *SourceContext_);
+                     *SourceContext_,
+                     batchMapping_,
+                     beamSizes);
 }
 
 State* EncoderDecoder::NewState() {
   return new EDState();
 }
 
-void EncoderDecoder::BeginSentenceState(State& state) {
+void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, 1);
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), 1);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_);
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
-void EncoderDecoder::SetSource(const Sentence& source) {
-  encoder_->GetContext(source.GetWords(tab_), *SourceContext_);
+void EncoderDecoder::SetSource(const Sentences& source) {
+  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
@@ -77,18 +79,18 @@ void EncoderDecoder::AssembleBeamState(const State& in,
                                State& out) {
   std::vector<size_t> beamWords;
   std::vector<size_t> beamStateIds;
-  for(auto h : beam) {
+  for (auto h : beam) {
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
   }
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
-  indeces_.resize(beamStateIds.size());
+  indices_.resize(beamStateIds.size());
   thrust::host_vector<size_t> tmp = beamStateIds;
-  mblas::copy_n(tmp.begin(), beamStateIds.size(), indeces_.begin());
+  mblas::copy_n(tmp.begin(), beamStateIds.size(), indices_.begin());
 
-  mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indeces_);
+  mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 
@@ -145,8 +147,14 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
                                       tab, *weights_[i]));
 }
 
-BestHypsType EncoderDecoderLoader::GetBestHyps() {
-  return GPU::BestHyps();
+BestHypsBase &EncoderDecoderLoader::GetBestHyps() {
+  thread_local std::unique_ptr<BestHypsBase> bestHyps;
+  if(!bestHyps) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    bestHyps.reset(new GPU::BestHyps());
+  }
+
+  return *bestHyps.get();
 }
 
 }

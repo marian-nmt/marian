@@ -11,7 +11,7 @@
 template <class OStream>
 void Printer(const History& history, size_t lineNo, OStream& out) {
   std::string best = Join(God::Postprocess(God::GetTargetVocab()(history.Top().first)));
-  LOG(progress) << "Best translation: " << best;
+  //LOG(progress) << "Best translation: " << best;
 
   // if (God::Get<bool>("return-alignment")) {
     // auto last = history.Top().second;
@@ -58,5 +58,14 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
   }
   else {
     out << best << std::endl;
+  }
+}
+
+template <class OStream>
+void Printer(const Histories& histories, size_t lineNo, OStream& out) {
+
+  for (size_t i = 0; i < histories.size(); ++i) {
+    const History& history = *histories.at(i).get();
+    Printer(history, lineNo, out);
   }
 }
