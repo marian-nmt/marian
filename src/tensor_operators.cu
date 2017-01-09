@@ -807,13 +807,17 @@ __global__ void gGRUFastBackward(float* outState,
 
           float adj = rowAdj[i];
 
+          float t = (1-z)*(1-h*h);
+
           // df/ds
           rowOutState[i] += m * z * adj - m + 1;
 
-          float t = (1-z)*(1-h*h);
-
           // df/d(xW_r) ...
-          float dfdxW_r = r*(1-r)*t*rowSU[l] * adj;
+          float dfdxW_r = r * (1-r) * t * adj;
+          if(final)
+            dfdxW_r *= rowSU[l] + b[l];
+          else
+            dfdxW_r *= rowSU[l];
           rowOutXW[i] += m * dfdxW_r;
           rowOutSU[i] += m * dfdxW_r;
           atomicAdd(outB + i, m * dfdxW_r);
@@ -828,7 +832,6 @@ __global__ void gGRUFastBackward(float* outState,
           float dfdxW_x = t * adj;
           rowOutXW[l] += m * dfdxW_x;
           rowOutSU[l] += m * dfdxW_x * r;
-
           if(final)
             atomicAdd(outB + l, m * dfdxW_x * r);
           else

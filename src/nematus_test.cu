@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
   */
 
   auto corpus = DataSet<Corpus>(files, vocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 1, 1000);
+  BatchGenerator<Corpus> bg(corpus, 3, 1000);
 
   auto nematus = New<Nematus>();
   nematus->load("../test/model.npz");
