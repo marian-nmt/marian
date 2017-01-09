@@ -100,8 +100,8 @@ void Validate(const YAML::Node& config) {
   for(auto&& pair: config["scorers"])
     UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
 
-  UTIL_THROW_IF2(config["cpu-threads"].as<int>() > 0 && config["batch-size"].as<int>() > 1,
-                "Different number of models and weights in config file");
+  //UTIL_THROW_IF2(config["cpu-threads"].as<int>() > 0 && config["batch-size"].as<int>() > 1,
+  //              "Different number of models and weights in config file");
 
   UTIL_THROW_IF2(config["bunch-size"].as<int>() == 0,
                 "bunch-size must be 1 or bigger");
