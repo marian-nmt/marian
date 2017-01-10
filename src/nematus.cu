@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
   auto opt = Optimizer<Adam>(0.0001); /*, clip=norm(1));*/
 
   float sum = 0;
+  float samples = 0;
   boost::timer::cpu_timer timer;
   size_t batches = 1;
   for(int i = 0; i < 20; ++i) {
@@ -59,17 +60,18 @@ int main(int argc, char** argv) {
 
       float cost = nematus->cost();
       sum += cost;
+      samples += batch->size();
 
       if(batches % 100 == 0) {
         std::cout << std::setfill(' ')
                   << "Epoch " << i
                   << " Update " << batches
                   << " Cost "   << std::setw(7) << std::setprecision(6) << cost
-                  << " avg: " << sum / 100
+                  << " Avg: " << sum / 100 
                   << " UD " << timer.format(2, "%ws");
 
         float seconds = std::stof(timer.format(5, "%w"));
-        float sentences = 100 * batch->size() / seconds;
+        float sentences = samples / seconds;
 
         std::cout << " " << std::setw(5)
                   << std::setprecision(4)
@@ -77,6 +79,7 @@ int main(int argc, char** argv) {
                   << " sentences/s" << std::endl;
         timer.start();
         sum = 0;
+        samples = 0;
       }
 
       if(batches % 10000 == 0)
