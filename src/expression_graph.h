@@ -313,7 +313,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     template <typename ...Args>
     inline Expr ones(Args ...args) {
       return Expression<ConstantNode>(shared_from_this(),
-                                      keywords::init=marian::ones,
+                                      keywords::init=inits::ones,
                                       args...);
     }
 
@@ -329,7 +329,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     template <typename ...Args>
     inline Expr zeros(Args ...args) {
       return Expression<ConstantNode>(shared_from_this(),
-                                      keywords::init=marian::zeros,
+                                      keywords::init=inits::zeros,
                                       args...);
     }
 

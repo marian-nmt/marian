@@ -25,7 +25,7 @@ void testForward(F f, size_t l,
     ta->allocate(in, shape);
     ta->allocate(out, shape);
 
-    uniform(-5, 5)(in);
+    inits::uniform(5)(in);
 
     std::cout << desc << ": " << std::flush;
     boost::timer::cpu_timer timer;
@@ -50,7 +50,7 @@ void testBackward(F f, size_t l,
     adj->set(1);
     ta->allocate(grad, shape);
 
-    uniform(-5, 5)(in);
+    inits::uniform(5)(in);
 
     std::cout << desc << ": " << std::flush;
     boost::timer::cpu_timer timer;

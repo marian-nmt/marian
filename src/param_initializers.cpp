@@ -25,8 +25,11 @@
 #include <stdint.h>
 
 #include "param_initializers.h"
+#include "svd/svd.h"
 
 namespace marian {
+
+namespace inits {
 
 float xor128() {
     static uint64_t x = 123456789;
@@ -69,21 +72,42 @@ std::function<void(Tensor)> diag(float val) {
   };
 }
 
-std::function<void(Tensor)> normal(float mean, float std) {
-  return [mean, std](Tensor t) {
-    distribution<std::normal_distribution<float>>(t, mean, std);
+void svd(std::vector<float>& vec, Shape shape) {
+  int rows = shape[0] * shape[2] * shape[3];
+  int cols = shape[1];
+
+  int n = std::min(rows, cols);
+  int m = std::max(rows, cols);
+
+  UTIL_THROW_IF2(m % n != 0, "Matrix dimensions must be equal or multiples of each other");
+
+  for(int i = 0; i < shape.elements(); i += n * n) {
+    if(i + n * n <= shape.elements()) {
+      std::vector<float> t1(n);
+      std::vector<float> t2(n * n);
+      float* a = vec.data() + i;
+      float* w = t1.data();
+      float* v = t2.data();
+      dsvd(&a, n, n, w, &v);
+    }
+  }
+}
+
+std::function<void(Tensor)> normal(float scale, bool orto) {
+  return [scale](Tensor t) {
+    distribution<std::normal_distribution<float>>(t, 0, scale);
   };
 }
 
-std::function<void(Tensor)> uniform(float a, float b) {
-  return [a, b](Tensor t) {
-    distribution<std::uniform_real_distribution<float>>(t, a, b);
+std::function<void(Tensor)> uniform(float scale) {
+  return [scale](Tensor t) {
+    distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
   };
 }
 
 void glorot_uniform(Tensor t) {
-  float b = sqrtf( 6.0f / (t->shape()[0] + t->shape()[1]) );
-  distribution<std::uniform_real_distribution<float>>(t, -b, b);
+  float scale = sqrtf( 6.0f / (t->shape()[0] + t->shape()[1]) );
+  distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
 }
 
 void xorshift(Tensor t) {
@@ -94,8 +118,15 @@ void xorshift(Tensor t) {
 }
 
 void glorot_normal(Tensor t) {
-  float b = sqrtf( 2.0f / (t->shape()[0] + t->shape()[1]) );
-  distribution<std::uniform_real_distribution<float>>(t, -b, b);
+  float scale = sqrtf( 2.0f / (t->shape()[0] + t->shape()[1]) );
+  distribution<std::normal_distribution<float>>(t, 0, scale);
+}
+
+void ortho(Tensor t) {
+  std::vector<float> vec(t->size());
+  distribution<std::normal_distribution<float>>(vec, 0, 1);
+  svd(vec, t->shape());
+  t->set(vec);
 }
 
 std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
@@ -116,6 +147,8 @@ std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   return [npv](Tensor t) {
     t->set(npv);
   };
+}
+
 }
 
 } // namespace marian

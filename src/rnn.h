@@ -178,6 +178,18 @@ class RNN {
     template <class Iterator>
     std::vector<Expr> apply(Iterator it, Iterator end,
                             const Expr initialState) {
+
+      //auto xW = dot(input, params_.W);
+      //
+      //std::vector<Expr> outputs;
+      //auto state = initialState;
+      //for(int i = 0; i < input->shape()[2]; ++i) {
+      //  auto x = view(xW, i, {dimBatch_, dimSrcEmb_});
+      //  state = apply(cell_, *it++, state);
+      //  outputs.push_back(state);
+      //}
+      //return concatenate(outputs, axis=2);
+
       std::vector<Expr> outputs;
       auto state = initialState;
       while(it != end) {
@@ -242,7 +254,6 @@ class GRUWithAttention {
 
       auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
-
       auto hidden = mask ?
         grufast({state, xW, sU, params_.b, mask}) :
         grufast({state, xW, sU, params_.b});

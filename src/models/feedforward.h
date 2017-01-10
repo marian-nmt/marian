@@ -87,7 +87,7 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
     // Construct a weight node for the outgoing connections from layer i
     weights.emplace_back(
       g->param("W" + std::to_string(i), {in, out},
-               init=uniform()));
+               init=inits::uniform()));
 
     // Construct a bias node. By definition, a bias node stores the value 1.
     //    Therefore, we don't actually store the 1.
@@ -96,7 +96,7 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
     //    These weights are initialized to zero
     biases.emplace_back(
       g->param("b" + std::to_string(i), {1, out},
-               init=zeros));
+               init=inits::zeros));
   }
 
   // Perform matrix multiplication and addition for the last layer
