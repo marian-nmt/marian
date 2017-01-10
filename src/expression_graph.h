@@ -33,6 +33,7 @@
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
 #include "param_initializers.h"
+#include "3rd_party/threadpool.h"
 
 namespace marian {
 
@@ -108,10 +109,16 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     void forward() {
       params_.allocateForward();
 
-      size_t floats;
       for(auto&& v : tape_)
-        if(!v->skipped_training())
-          floats += v->allocate(0);
+          if(!v->skipped_training())
+            v->allocate(0);
+
+      {
+        ThreadPool pool(10);
+        for(auto&& v : tape_)
+          if(!v->skipped_training())
+            pool.enqueue([&v] { v->init(); });
+      }
 
       for(auto&& v : tape_)
         if(!v->skipped_training()) {

@@ -31,11 +31,14 @@ namespace marian {
       graph()->tensor(val_, shape_);
       elements = val_->shape().elements();
     }
+    return elements;
+  }
+
+  void ConstantNode::init() {
     if(!initialized_) {
       init_(val_);
       initialized_ = true;
     }
-    return elements;
   }
 
   size_t ParamNode::allocate(size_t batchSize) {
@@ -45,13 +48,15 @@ namespace marian {
       graph()->tensor(val_, shape_);
       elements = val_->shape().elements();
     }
+    return elements;
+  }
+
+  void ParamNode::init() {
     if(!initialized_) {
       std::cerr << "Initializing parameter " << name() << std::endl;
       init_(val_);
       initialized_ = true;
     }
-    return elements;
   }
-
 
 }

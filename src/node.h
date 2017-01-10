@@ -73,6 +73,8 @@ class Node : public Chainable<Tensor>,
 
     virtual size_t allocate(size_t batchSize);
 
+    virtual void init() {};
+
     virtual void init_dependent();
 
     virtual void set_zero_adjoint();
