@@ -3,11 +3,11 @@
 #define MAX_THREADS 512
 #define MAX_BLOCKS 65535
 
-
 #include <cmath>
 #include <cublas_v2.h>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
+#include <iostream>
 
 #include "gpu/mblas/thrust_functions.h"
 #include "gpu/mblas/matrix.h"
@@ -17,15 +17,21 @@ namespace GPU {
 namespace mblas {
 
 template <class M>
-void Debug(const M& m, size_t pos = 0, size_t l = 5) {
+void Debug(const M& m, size_t pos = 0, size_t l = 8) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
   for(size_t i = 0; i < m.Rows(); ++i) {
+    std::cerr << i << ": ";
     for(size_t j = pos; j < m.Cols() && j < pos + l; ++j) {
       std::cerr << m.GetVec()[i * m.Cols() + j] << " ";
     }
+    std::cerr << " ... ";
+
+    for(size_t j = m.Cols() - l; j < m.Cols();  ++j) {
+      std::cerr << m.GetVec()[i * m.Cols() + j] << " ";
+    }
     std::cerr << std::endl;
-    if(i == 4)
-      break;
+    // if(i == 4)
+      // break;
   }
 }
 
@@ -43,7 +49,9 @@ void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
 
-Matrix& Mean(Matrix& Out, const Matrix& In);
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping);
+
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -55,6 +63,7 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r = 0,
                  const size_t c = 0);
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
 
 Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
@@ -62,6 +71,8 @@ Matrix& CopyRow(Matrix& Out,
                 const size_t c = 0);
 
 Matrix& Concat(Matrix& Out, const Matrix& In);
+
+void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
@@ -82,23 +93,23 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
-Matrix& Softmax(Matrix& Out);
+Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t srcSize);
 
 Matrix& LogSoftmax(Matrix& Out);
 
 template <class Functor>
 __global__ void gBroadcast(Functor functor,
-                           float* out, const float* in1, const float* in2,
-                           size_t rows, size_t rows1, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
+                            float* out, const float* in1, const float* in2,
+                            size_t rows, size_t rows1, size_t cols) {
+  for (int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
-    if(j < rows) {
+    if (j < rows) {
       float* rowOut = out + j * cols;
 
       const float* rowIn1 = in1 + (j % rows1) * cols;
       const float* rowIn2 = in2 + (j / rows1) * cols;
 
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols)
           rowOut[i] = functor(rowIn1[i], rowIn2[i]);
@@ -134,8 +145,50 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
 }
 
 template <class Functor>
+__global__ void gBroadcast(Functor functor,
+                           float* out, const float* in1, const float* in2,
+                           size_t srcSize, size_t sumBeams, size_t cols, const int* batchMapping) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < srcSize * sumBeams * cols) {
+    int row = id / cols;
+    int stateIdx = id % cols;
+
+    int beamIdx = row / srcSize;
+    int srcId = row % srcSize;
+
+    int batchIdx = batchMapping[beamIdx];
+
+    out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
+                      in2[beamIdx * cols + stateIdx]);
+  }
+}
+
+template <class Functor>
+Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVector<int>& batchMapping, size_t srcSize) {
+  size_t sumOfBeamSizes = In.Rows();
+
+  size_t rows = srcSize * sumOfBeamSizes;
+  size_t cols  = Out.Cols();
+
+  thread_local static Matrix Temp;
+  Temp.Resize(rows, cols);
+
+  float* d_out = Temp.data();
+  const float* d_in1 = Out.data();
+  const float* d_in2 = In.data();
+
+  int threads = 512;
+  int blocks  = (Temp.size() / threads) + 1;
+
+  gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()));
+
+  Swap(Out, Temp);
+  return Out;
+}
+
+template <class Functor>
 Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  // @TODO: Make this efficient with special kernel!
   Matrix InTemp;
   Transpose(InTemp, In);
 
@@ -149,8 +202,9 @@ template <class Functor>
 __global__ void gBroadcastVecColumn(Functor functor,
                                     float* out, const float* in, size_t rows, size_t cols) {
   extern __shared__ float sdata[];
-  if (threadIdx.x < rows) {
-      sdata[threadIdx.x] = in[threadIdx.x];
+  if (threadIdx.x == 0) {
+    for (int i = 0; i < rows; ++i)
+      sdata[i] = in[i];
   }
   __syncthreads();
 
@@ -316,9 +370,6 @@ Matrix& Element(Functor functor,
 }
 
 void SetColumn(Matrix& In, int noColumn, float value);
-
-
-
 
 } // namespace mblas
 } // namespace GPU

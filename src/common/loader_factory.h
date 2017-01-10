@@ -3,8 +3,8 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "exception.h"
-#include "loader.h"
+#include "common/exception.h"
+#include "common/loader.h"
 
 #define IF_MATCH_RETURN(typeVar, typeStr, LoaderType) \
 do { \

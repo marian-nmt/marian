@@ -171,6 +171,10 @@ std::istream& God::GetInputStream() {
   return *Summon().inputStream_;
 }
 
+OutputCollector& God::GetOutputCollector() {
+  return Summon().outputCollector_;
+}
+
 std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   std::vector<ScorerPtr> scorers;
 
@@ -186,7 +190,7 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   return scorers;
 }
 
-BestHypsType God::GetBestHyps(size_t threadId) {
+BestHypsBase &God::GetBestHyps(size_t threadId) {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (threadId < cpuThreads) {
     return Summon().cpuLoaders_.begin()->second->GetBestHyps();

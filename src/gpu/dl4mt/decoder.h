@@ -3,6 +3,7 @@
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
+#include "gpu/types-gpu.h"
 
 namespace GPU {
 
@@ -21,9 +22,9 @@ class Decoder {
           for(auto&& id : tids)
             if(id >= w_.E_.Rows())
               id = 1;
-          indeces_.resize(tids.size());
-          mblas::copy_n(tids.begin(), tids.size(), indeces_.begin());
-          Assemble(Rows, w_.E_, indeces_);
+          indices_.resize(tids.size());
+          mblas::copy_n(tids.begin(), tids.size(), indices_.begin());
+          Assemble(Rows, w_.E_, indices_);
         }
 
         size_t GetCols() {
@@ -36,7 +37,9 @@ class Decoder {
 
       private:
         const Weights& w_;
-        DeviceVector<size_t> indeces_;
+        DeviceVector<size_t> indices_;
+
+        Embeddings(const Embeddings&) = delete;
     };
 
     template <class Weights1, class Weights2>
@@ -47,13 +50,12 @@ class Decoder {
 
         void InitializeState(mblas::Matrix& State,
                              const mblas::Matrix& SourceContext,
-                             const size_t batchSize = 1) {
+                             const size_t batchSize,
+                             const DeviceVector<int>& mapping) {
           using namespace mblas;
 
-          Mean(Temp1_, SourceContext);
           Temp2_.Resize(batchSize, SourceContext.Cols());
-          mblas::Fill(Temp2_,  0.0f);
-          BroadcastVec(_1 + _2, Temp2_, Temp1_);
+          Mean(Temp2_, SourceContext, mapping);
           Prod(State, Temp2_, w_.Wi_);
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
@@ -70,6 +72,8 @@ class Decoder {
 
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
+
+        RNNHidden(const RNNHidden&) = delete;
     };
 
     template <class Weights>
@@ -86,21 +90,18 @@ class Decoder {
 
       private:
         const GRU<Weights> gru_;
+
+        RNNFinal(const RNNFinal&) = delete;
     };
 
     template <class Weights>
     class Alignment {
       public:
         Alignment(const Weights& model)
-        : w_(model),
-          WC_(w_.C_(0,0))
-        {
-          //for(int i = 0; i < 2; ++i) {
-          //  cudaStreamCreate(&s_[i]);
-          //  cublasCreate(&h_[i]);
-          //  cublasSetStream(h_[i], s_[i]);
-          //}
-        }
+          : w_(model),
+            WC_(w_.C_(0,0)),
+            dBatchMapping_(God::Get<size_t>("batch-size") * God::Get<size_t>("beam-size"), 0)
+        {}
 
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
@@ -109,24 +110,38 @@ class Decoder {
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const mblas::Matrix& HiddenState,
-                                     const mblas::Matrix& SourceContext) {
+                                     const mblas::Matrix& SourceContext,
+                                     const DeviceVector<int>& mapping,
+                                     const std::vector<size_t>& beamSizes) {
           using namespace mblas;
+
+          thrust::host_vector<int> batchMapping(HiddenState.Rows());
+          size_t k = 0;
+          for (size_t i = 0; i < beamSizes.size(); ++i) {
+            for (size_t j = 0; j < beamSizes[i]; ++j) {
+              batchMapping[k++] = i;
+            }
+          }
+
+          mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
+          const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
-          Broadcast(Tanh(_1 + _2), Temp1_, Temp2_);
-          
+          Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
           Prod(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
-          A_.Reshape(rows2, rows1); // due to broadcasting above
+          A_.Reshape(rows2, srcSize); // due to broadcasting above
           Element(_1 + WC_, A_);
 
-          mblas::Softmax(A_);
-          Prod(AlignedSourceContext, A_, SourceContext);
+          mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
+
+          AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
+          mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
         }
 
         void GetAttention(mblas::Matrix& Attention) {
@@ -143,6 +158,8 @@ class Decoder {
         cublasHandle_t h_[2];
         cudaStream_t s_[2];
 
+        DeviceVector<int> dBatchMapping_;
+
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
@@ -152,6 +169,8 @@ class Decoder {
         mblas::Matrix Sums_;
 
         float WC_;
+
+        Alignment(const Alignment&) = delete;
     };
 
     template <class Weights>
@@ -220,6 +239,8 @@ class Decoder {
 
         mblas::Matrix TempW4;
         mblas::Matrix TempB4;
+
+        Softmax(const Softmax&) = delete;
     };
 
   public:
@@ -234,9 +255,11 @@ class Decoder {
     void MakeStep(mblas::Matrix& NextState,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
-                  const mblas::Matrix& SourceContext) {
+                  const mblas::Matrix& SourceContext,
+                  const DeviceVector<int>& mapping,
+                  const std::vector<size_t>& beamSizes) {
       GetHiddenState(HiddenState_, State, Embeddings);
-      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
+      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       
@@ -248,13 +271,13 @@ class Decoder {
 
     void EmptyState(mblas::Matrix& State,
                     const mblas::Matrix& SourceContext,
-                    size_t batchSize = 1) {
-      rnn1_.InitializeState(State, SourceContext, batchSize);
+                    size_t batchSize,
+                    const DeviceVector<int>& batchMapping) {
+      rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
       alignment_.Init(SourceContext);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding,
-                        size_t batchSize = 1) {
+    void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
       Embedding.Clear();
       Embedding.Resize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
@@ -290,9 +313,12 @@ class Decoder {
     }
 
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                                 const mblas::Matrix& HiddenState,
-                                 const mblas::Matrix& SourceContext) {
-      alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext);
+                                  const mblas::Matrix& HiddenState,
+                                  const mblas::Matrix& SourceContext,
+                                  const DeviceVector<int>& mapping,
+                                  const std::vector<size_t>& beamSizes) {
+      alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
+                                         mapping, beamSizes);
     }
 
     void GetNextState(mblas::Matrix& State,
@@ -318,6 +344,8 @@ class Decoder {
     RNNFinal<Weights::DecGRU2> rnn2_;
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
+
+    Decoder(const Decoder&) = delete;
 };
 
 }

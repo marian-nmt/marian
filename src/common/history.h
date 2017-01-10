@@ -17,9 +17,13 @@ class History {
       float cost;
     };
 
+    History(const History &) = delete;
+
   public:
-    History()
-    :normalize_(God::Get<bool>("normalize"))
+
+    History(size_t lineNo)
+      : normalize_(God::Get<bool>("normalize"))
+      , lineNo_(lineNo)
     {}
 
     void Add(const Beam& beam, bool last = false) {
@@ -64,8 +68,39 @@ class History {
       return NBest(1)[0];
     }
 
+    size_t GetLineNum() const
+    { return lineNo_; }
+
   private:
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
+    size_t lineNo_;
+
 };
+
+///////////////////////////////////////////////////////////////////////////////
+//typedef std::vector<History> Histories;
+class Histories
+{
+public:
+  Histories() {} // for all histories in translation task
+  Histories(const Sentences& sentences);
+
+  boost::shared_ptr<History> at(size_t id) const {
+    return coll_.at(id);
+  }
+
+  size_t size() const {
+    return coll_.size();
+  }
+
+  void SortByLineNum();
+  void Append(const Histories &other);
+
+protected:
+  std::vector< boost::shared_ptr<History> > coll_;
+
+  Histories(const Histories &) = delete;
+};
+

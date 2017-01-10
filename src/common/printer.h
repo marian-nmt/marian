@@ -9,9 +9,9 @@
 #include "common/soft_alignment.h"
 
 template <class OStream>
-void Printer(const History& history, size_t lineNo, OStream& out) {
+void Printer(const History& history, OStream& out) {
   std::string best = Join(God::Postprocess(God::GetTargetVocab()(history.Top().first)));
-  LOG(progress) << "Best translation: " << best;
+  //LOG(progress) << "Best translation: " << best;
 
   // if (God::Get<bool>("return-alignment")) {
     // auto last = history.Top().second;
@@ -44,7 +44,7 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
 
       if(God::Get<bool>("wipo"))
         out << "OUT: ";
-      out << lineNo << " ||| " << Join(God::Postprocess(God::GetTargetVocab()(words))) << " |||";
+      out << history.GetLineNum() << " ||| " << Join(God::Postprocess(God::GetTargetVocab()(words))) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
@@ -58,5 +58,14 @@ void Printer(const History& history, size_t lineNo, OStream& out) {
   }
   else {
     out << best << std::endl;
+  }
+}
+
+template <class OStream>
+void Printer(const Histories& histories, OStream& out) {
+
+  for (size_t i = 0; i < histories.size(); ++i) {
+    const History& history = *histories.at(i).get();
+    Printer(history, out);
   }
 }

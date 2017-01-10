@@ -2,6 +2,7 @@
 
 #include <cuda.h>
 #include <cublas_v2.h>
+#include <cudnn.h>
 
 namespace GPU {
 namespace mblas {
@@ -12,6 +13,8 @@ class CudaStreamHandler {
       cudaStreamCreate(stream_.get());
       // cudaStreamCreateWithFlags(stream_.get(), cudaStreamNonBlocking);
     }
+
+    CudaStreamHandler(const CudaStreamHandler&) = delete;
 
   protected:
     static thread_local CudaStreamHandler *instance_;

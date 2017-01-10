@@ -11,27 +11,7 @@
 #include "common/printer.h"
 #include "common/sentence.h"
 #include "common/exception.h"
-
-History TranslationTask(const std::string& in, size_t taskCounter) {
-#ifdef __APPLE__
-  static boost::thread_specific_ptr<Search> s_search;
-  Search *search = s_search.get();
-
-  if(search == NULL) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search = new Search(taskCounter);
-    s_search.reset(search);
-  }
-#else
-  thread_local std::unique_ptr<Search> search;
-  if(!search) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(taskCounter));
-  }
-#endif
-
-  return search->Decode(Sentence(taskCounter, in));
-}
+#include "common/translation_task.h"
 
 int main(int argc, char* argv[]) {
   God::Init(argc, argv);
@@ -40,7 +20,17 @@ int main(int argc, char* argv[]) {
   boost::timer::cpu_timer timer;
 
   std::string in;
+  std::size_t lineNum = 0;
   std::size_t taskCounter = 0;
+
+  size_t bunchSize = God::Get<size_t>("bunch-size");
+  size_t maxBatchSize = God::Get<size_t>("batch-size");
+  std::cerr << "mode=" << God::Get("mode") << std::endl;
+
+  if (God::Get<bool>("wipo") || God::Get<size_t>("cpu-threads")) {
+    bunchSize = 1;
+    maxBatchSize = 1;
+  }
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
@@ -56,33 +46,35 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Total number of threads: " << totalThreads;
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
-  if (God::Get<bool>("wipo")) {
-    LOG(info) << "Reading input";
-    while (std::getline(God::GetInputStream(), in)) {
-      History result = TranslationTask(in, taskCounter);
-      Printer(result, taskCounter++, std::cout);
-    }
-  } else {
-    ThreadPool pool(totalThreads);
-    LOG(info) << "Reading input";
+  ThreadPool *pool = new ThreadPool(totalThreads);
+  LOG(info) << "Reading input";
 
-    std::vector<std::future<History>> results;
+  boost::shared_ptr<Sentences> sentences(new Sentences());
 
-    while(std::getline(God::GetInputStream(), in)) {
+  while(std::getline(God::GetInputStream(), in)) {
+    Sentence *sentence = new Sentence(lineNum++, in);
+    sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
-      results.emplace_back(
-        pool.enqueue(
-          [=]{ return TranslationTask(in, taskCounter); }
-        )
+    if (sentences->size() >= maxBatchSize * bunchSize) {
+
+      pool->enqueue(
+          [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
       );
 
+      sentences.reset(new Sentences());
       taskCounter++;
     }
 
-    size_t lineCounter = 0;
-    for (auto&& result : results)
-      Printer(result.get(), lineCounter++, std::cout);
   }
+
+  if (sentences->size()) {
+    pool->enqueue(
+        [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
+    );
+  }
+
+  delete pool;
+
   LOG(info) << "Total time: " << timer.format();
   God::CleanUp();
 
