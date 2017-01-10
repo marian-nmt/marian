@@ -106,28 +106,114 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
 
+/*
+try:
+    from functools import reduce
+except:
+    pass
+
+data = { # From: http://stackoverflow.com/questions/18314250/optimized-algorithm-to-schedule-tasks-with-dependency
+    # This   <-   This  (Reverse of how shown in question)
+    'B':         set(['A']),
+    'C':         set(['A']),
+    'D':         set(['B']),
+    'F':         set(['E']),
+    }
+
+def toposort2(data):
+    for k, v in data.items():
+        v.discard(k) # Ignore self dependencies
+    extra_items_in_deps = reduce(set.union, data.values()) - set(data.keys())
+    data.update({item:set() for item in extra_items_in_deps})
+    while True:
+        ordered = set(item for item,dep in data.items() if not dep)
+        if not ordered:
+            break
+        yield ' '.join(sorted(ordered))
+        data = {item: (dep - ordered) for item,dep in data.items()
+                if item not in ordered}
+    assert not data, "A cyclic dependency exists amongst %r" % data
+
+print ('\n'.join( toposort2(data) ))
+*/
+
+    void topological_group() {
+      std::map<Expr, std::vector<Expr>> data;
+      for(auto& e: tape_)
+        data.emplace(e, e->children());
+
+      std::vector<Expr> extra;
+      std::vector<Expr> keys;
+      std::set<Expr> deps;
+      for(auto& s : data) {
+        keys.push_back(s.first);
+        deps.insert(s.second.begin(), s.second.end());
+      }
+      std::set_difference(deps.begin(), deps.end(),
+                          keys.begin(), keys.end(),
+                          std::back_inserter(extra));
+      for(auto& e: extra)
+        data.emplace(e, std::vector<Expr>());
+
+      while(true) {
+        std::vector<Expr> ordered;
+        for(auto& p: data)
+          if(p.second.empty())
+            ordered.push_back(p.first);
+
+        if(ordered.empty())
+          break;
+        groups_.push_back(ordered);
+
+        for(auto& e: ordered)
+          data.erase(e);
+        for(auto& p: data) {
+          std::vector<Expr> newDeps;
+          std::set_difference(p.second.begin(), p.second.end(),
+                              ordered.begin(), ordered.end(),
+                              std::back_inserter(newDeps));
+          p.second = newDeps;
+        }
+      }
+    }
+
+
+
     void forward() {
       params_.allocateForward();
+
+      topological_group();
 
       for(auto&& v : tape_)
           if(!v->skipped_training())
             v->allocate(0);
 
-      {
-        ThreadPool pool(10);
-        for(auto&& v : tape_)
-          if(!v->skipped_training())
-            pool.enqueue([&v] { v->init(); });
-      }
-
-      for(auto&& v : tape_)
-        if(!v->skipped_training()) {
-          v->forward();
-          if(v->marked_for_debug()) {
-            std::cerr << "Debug: " << v->debug_message() << std::endl;
-            std::cerr << v->val()->debug() << std::endl;
+      for(auto& group : groups_) {
+        ThreadPool pool(std::min(10, (int)group.size()));
+        for(auto&& v : group) {
+          if(!v->skipped_training()) {
+            pool.enqueue(
+              [&] {
+                v->init();
+                v->forward();
+                if(v->marked_for_debug()) {
+                  std::cerr << "Debug: " << v->debug_message() << std::endl;
+                  std::cerr << v->val()->debug() << std::endl;
+                }
+              }
+            );
           }
         }
+      }
+
+      //for(auto&& v : tape_)
+      //  if(!v->skipped_training()) {
+      //    v->forward();
+      //    if(v->marked_for_debug()) {
+      //      std::cerr << "Debug: " << v->debug_message() << std::endl;
+      //      std::cerr << v->val()->debug() << std::endl;
+      //    }
+      //  }
     }
 
     void inference() {
@@ -423,6 +509,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     /** @brief The full list of nodes */
     Tape tape_;
+    std::vector<std::vector<Expr>> groups_;
 
     /** @brief Maps from name to expression node. */
     std::map<std::string, Expr> named_;

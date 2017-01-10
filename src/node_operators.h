@@ -42,6 +42,10 @@ struct InputNode : public Node {
   void forward() {}
   void backward() {}
 
+  std::vector<Expr> children() {
+    return {};
+  }
+
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"circle\", label=" << label("input") << ", style=\"filled\", fillcolor=\"lawngreen\"]" << std::endl << std::endl;
@@ -71,6 +75,10 @@ struct ConstantNode : public Node {
   virtual size_t allocate(size_t batchSize);
   virtual void init();
 
+  std::vector<Expr> children() {
+    return {};
+  }
+
   virtual std::string graphviz() {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"diamond\", label=" << label("const") << "]" << std::endl << std::endl;
@@ -95,6 +103,10 @@ struct ParamNode : public Node {
   }
 
   ~ParamNode() {}
+
+  std::vector<Expr> children() {
+    return {};
+  }
 
   void forward() {}
   void backward() {}

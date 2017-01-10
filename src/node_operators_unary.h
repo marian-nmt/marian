@@ -24,6 +24,10 @@ struct UnaryNodeOp : public Node {
 
     ~UnaryNodeOp() {}
 
+    std::vector<Expr> children() {
+      return { a_ };
+    }
+
     void remove_children_from_top_nodes();
 
     void backward_debug(Float delta) {

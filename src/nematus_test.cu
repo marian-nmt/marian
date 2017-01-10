@@ -58,6 +58,8 @@ int main(int argc, char** argv) {
       batch->debug();
 
       nematus->construct(*batch);
+      nematus->topological_group();
+      
       opt->update(nematus);
 
       float cost = nematus->cost();

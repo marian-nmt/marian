@@ -29,6 +29,13 @@ struct BinaryNodeOp : public Node {
 
   ~BinaryNodeOp() {}
 
+  std::vector<Expr> children() {
+    if(a_ < b_)
+      return {a_, b_};
+    else
+      return {b_, a_};
+  }
+
   void remove_children_from_top_nodes();
 
   void backward_debug(Float delta) {
@@ -372,6 +379,12 @@ struct NaryNodeOp : public Node {
 
   ~NaryNodeOp() {}
 
+  std::vector<Expr> children() {
+    std::vector<Expr> temp(children_.begin(), children_.end());
+    std::sort(temp.begin(), temp.end());
+    return temp;
+  }
+
   void remove_children_from_top_nodes();
 
   void backward_debug(Float delta) {}
@@ -393,31 +406,6 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     //std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
     return shape;
   }
-
-  /*
-  void allocate() {
-    graph()->Tensor(val_, shape);
-    placeValue(val_->data());
-  }
-
-  void placeValue(float* data) {
-    val_.reset(data);
-    for(auto child : children_) {
-      child->deallocateValue();
-      child->placeValue(data);
-      child->val()->set(0);
-      data += child->val()->size();
-    }
-  }
-
-  void forward() {}
-  void backward() {}
-
-  void init_dependent() {}
-  void set_zero_adjoint() {}
- 
-  */
-
 
   void forward() {
     std::vector<Tensor> concatenees;

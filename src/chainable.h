@@ -31,6 +31,12 @@
  */
 namespace marian {
 
+template <class DataType>
+class Chainable;
+/** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
+typedef std::shared_ptr<Chainable<Tensor>> Expr;
+
+
 class ExpressionGraph;
 typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
@@ -107,10 +113,9 @@ struct Chainable {
 
     virtual DataType& val() = 0;
     virtual DataType& grad() = 0;
-};
 
-/** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
-typedef std::shared_ptr<Chainable<Tensor>> Expr;
+    virtual std::vector<Expr> children() = 0;
+};
 
 /**
  * @brief Defines a convenience type to represent an ordered collection items.
