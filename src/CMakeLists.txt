@@ -6,6 +6,7 @@ include_directories(3rd_party)
 cuda_add_library(marian_lib
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
+  3rd_party/svd/svd.cpp
   expression_graph.cu
   expression_operators.cu
   node.cu

@@ -27,22 +27,22 @@ class Nematus : public ExpressionGraph {
       using namespace keywords;
 
       auto U = this->param(prefix + "_U", {dimEncState_, 2 * dimEncState_},
-                           init=glorot_uniform);
+                           init=inits::ortho);
 
       auto W = this->param(prefix + "_W", {dimSrcEmb_, 2 * dimEncState_},
-                           init=glorot_uniform);
+                           init=inits::glorot_normal);
 
       auto b = this->param(prefix + "_b", {1, 2 * dimEncState_},
-                           init=marian::zeros);
+                           init=inits::zeros);
 
       auto Ux = this->param(prefix + "_Ux", {dimEncState_, dimEncState_},
-                            init=glorot_uniform);
+                            init=inits::ortho);
 
       auto Wx = this->param(prefix + "_Wx", {dimSrcEmb_, dimEncState_},
-                            init=glorot_uniform);
+                            init=inits::glorot_normal);
 
       auto bx = this->param(prefix + "_bx", {1, dimEncState_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       ParametersGRUFast encParams;
       encParams.U = concatenate({U, Ux}, axis=1);
@@ -62,56 +62,56 @@ class Nematus : public ExpressionGraph {
       ParametersGRUWithAttention decParams;
 
       auto U = this->param("decoder_U", {dimDecState_, 2 * dimDecState_},
-                        init=glorot_uniform);
+                        init=inits::ortho);
 
       auto W = this->param("decoder_W", {dimTrgEmb_, 2 * dimDecState_},
-                        init=glorot_uniform);
+                        init=inits::glorot_normal);
 
       auto b = this->param("decoder_b", {1, 2 * dimDecState_},
-                        init=marian::zeros);
+                        init=inits::zeros);
 
       auto Ux = this->param("decoder_Ux", {dimDecState_, dimDecState_},
-                        init=glorot_uniform);
+                        init=inits::ortho);
 
       auto Wx = this->param("decoder_Wx", {dimTrgEmb_, dimDecState_},
-                         init=glorot_uniform);
+                         init=inits::glorot_normal);
 
       auto bx = this->param("decoder_bx", {1, dimDecState_},
-                         init=marian::zeros);
+                         init=inits::zeros);
 
       decParams.U = concatenate({U, Ux}, axis=1);
       decParams.W = concatenate({W, Wx}, axis=1);
       decParams.b = concatenate({b, bx}, axis=1);
 
       decParams.Wa = this->param("decoder_W_comb_att", {dimDecState_, 2 * dimDecState_},
-                                 init=glorot_uniform);
+                                 init=inits::glorot_normal);
 
       decParams.ba = this->param("decoder_b_att", {1, 2 * dimDecState_},
-                                 init=marian::zeros);
+                                 init=inits::zeros);
 
       decParams.Ua = this->param("decoder_Wc_att", {2 * dimEncState_, 2 * dimDecState_},
-                                 init=glorot_uniform);
+                                 init=inits::glorot_normal);
 
       decParams.va = this->param("decoder_U_att", {2 * dimDecState_, 1},
-                                 init=glorot_uniform);
+                                 init=inits::glorot_normal);
 
       auto Uc = this->param("decoder_U_nl", {dimDecState_, 2 * dimDecState_},
-                            init=glorot_uniform);
+                            init=inits::ortho);
 
       auto Wc = this->param("decoder_Wc", {2 * dimEncState_, 2 * dimDecState_},
-                            init=glorot_uniform);
+                            init=inits::glorot_normal);
 
       auto bc = this->param("decoder_b_nl", {1, 2 * dimDecState_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       auto Uxc = this->param("decoder_Ux_nl", {dimDecState_, dimDecState_},
-                             init=glorot_uniform);
+                             init=inits::ortho);
 
       auto Wxc = this->param("decoder_Wcx", {2 * dimEncState_, dimDecState_},
-                             init=glorot_uniform);
+                             init=inits::glorot_normal);
 
       auto bxc = this->param("decoder_bx_nl", {1, dimDecState_},
-                             init=marian::zeros);
+                             init=inits::zeros);
 
       decParams.Uc = concatenate({Uc, Uxc}, axis=1);
       decParams.Wc = concatenate({Wc, Wxc}, axis=1);
@@ -125,8 +125,7 @@ class Nematus : public ExpressionGraph {
 
       GRUWithAttention gruCell(decParams,
                                encoderContext,
-                               encoderContextWeights
-                               /*dropoutMask*/);
+                               encoderContextWeights);
 
       return RNN<GRUWithAttention>(gruCell);
     };
@@ -188,7 +187,7 @@ class Nematus : public ExpressionGraph {
         }
 
         this->param(name, shape,
-                    init=from_numpy(numpy[name]));
+                    init=inits::from_numpy(numpy[name]));
       }
     }
 
@@ -239,9 +238,7 @@ class Nematus : public ExpressionGraph {
       using namespace keywords;
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
-                              init=glorot_uniform);
-
-      //Wemb = dropout(Wemb, value=0.1);
+                              init=inits::glorot_normal);
 
       std::vector<float> weightMask;
       std::vector<Expr> inputs;
@@ -254,8 +251,11 @@ class Nematus : public ExpressionGraph {
           weightMask.push_back(w);
 
         auto x = name(rows(Wemb, indeces), "x_" + std::to_string(i++));
+
+        // x = dropout(x, value=0.1);
+
         auto xMask = this->constant(shape={ (int)mask.size() },
-                                    init=from_vector(mask));
+                                    init=inits::from_vector(mask));
         inputs.push_back(x);
         inputsWithMask.push_back({x, xMask});
         dimBatch_ = srcWordBatch.first.size();
@@ -282,7 +282,7 @@ class Nematus : public ExpressionGraph {
       auto encContext = name(concatenate(biStates, axis=2), "encoderContext");
 
       auto weights = this->constant(shape={dimBatch_, 1, (int)statesFw.size()},
-                                    init=from_vector(weightMask));
+                                    init=inits::from_vector(weightMask));
       name(weights, "encoderContextWeights");
 
       auto meanContext = name(weighted_average(encContext, weights, axis=2),
@@ -294,9 +294,9 @@ class Nematus : public ExpressionGraph {
 
       // *** Map mean encoder state to decoder start state ***
       auto Wi = this->param("ff_state_W", {2 * dimEncState_, dimDecState_},
-                            init=glorot_uniform);
+                            init=inits::ortho);
       auto bi = this->param("ff_state_b", {1, dimDecState_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       auto meanContext = this->get("meanContext");
       //meanContext = dropout(meanContext, value=0.2);
@@ -305,7 +305,7 @@ class Nematus : public ExpressionGraph {
 
       // *** Collect target embeddings and target indices ***
       auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
-                                  init=glorot_uniform);
+                                  init=inits::glorot_normal);
 
       //Wemb_dec = dropout(Wemb_dec, value=0.1);
 
@@ -337,7 +337,7 @@ class Nematus : public ExpressionGraph {
         }
       }
       auto picksTensor = this->constant(shape={(int)picks.size(), 1},
-                                        init=from_vector(picks));
+                                        init=inits::from_vector(picks));
 
 
       // *** Apply conditional GRU to target embeddings ***
@@ -353,24 +353,24 @@ class Nematus : public ExpressionGraph {
       auto c3 = concatenate(contexts, axis=2);
 
       auto W1 = this->param("ff_logit_lstm_W", {dimDecState_, dimTrgEmb_},
-                            init=glorot_uniform);
+                            init=inits::glorot_normal);
       auto b1 = this->param("ff_logit_lstm_b", {1, dimTrgEmb_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       auto W2 = this->param("ff_logit_prev_W", {dimTrgEmb_, dimTrgEmb_},
-                            init=glorot_uniform);
+                            init=inits::glorot_normal);
       auto b2 = this->param("ff_logit_prev_b", {1, dimTrgEmb_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       auto W3 = this->param("ff_logit_ctx_W", {2 * dimEncState_, dimTrgEmb_},
-                            init=glorot_uniform);
+                            init=inits::glorot_normal);
       auto b3 = this->param("ff_logit_ctx_b", {1, dimTrgEmb_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       auto W4 = this->param("ff_logit_W", {dimTrgEmb_, dimTrgVoc_},
-                            init=glorot_uniform);
+                            init=inits::glorot_normal);
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
-                            init=marian::zeros);
+                            init=inits::zeros);
 
       //d1 = dropout(d1, value=0.2);
       //e2 = dropout(e2, value=0.2);
@@ -385,7 +385,7 @@ class Nematus : public ExpressionGraph {
       auto aff = affine(t, W4, b4);
 
       auto weights = this->constant(shape={dimBatch_, 1, (int)decStates.size()},
-                                    init=from_vector(weightMask));
+                                    init=inits::from_vector(weightMask));
 
       // *** Cross entropy and cost across words and batch ***
       auto xe = cross_entropy(aff, picksTensor) * weights;

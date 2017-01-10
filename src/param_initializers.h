@@ -28,6 +28,8 @@
 
 namespace marian {
 
+namespace inits {
+
 float xor128();
 
 // Use a constant seed for deterministic behaviour.
@@ -41,23 +43,28 @@ std::function<void(Tensor)> from_value(float v);
 
 std::function<void(Tensor)> diag(float val);
 
-
 template <class Distribution>
-void distribution(Tensor t, float a, float b) {
+void distribution(std::vector<float>& vals, float a, float b) {
   std::random_device device;
   std::default_random_engine engine(device());
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
 
-  std::vector<float> vals(t->size());
   std::generate(begin(vals), end(vals), gen);
+}
 
+template <class Distribution>
+void distribution(Tensor t, float a, float b) {
+  std::vector<float> vals(t->size());
+  distribution<Distribution>(vals, a, b);
   t << vals;
 }
 
-std::function<void(Tensor)> normal(float mean = 0.0, float std = 0.05);
+std::function<void(Tensor)> normal(float scale = 0.1, bool ortho = true);
 
-std::function<void(Tensor)> uniform(float a = -0.05, float b = 0.05);
+std::function<void(Tensor)> uniform(float scale = 0.1);
+
+void ortho(Tensor t);
 
 void glorot_uniform(Tensor t);
 
@@ -69,5 +76,6 @@ std::function<void(Tensor)> from_vector(const std::vector<float>& v);
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
 
+}
 
 } // namespace marian
