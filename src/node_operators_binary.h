@@ -394,6 +394,31 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     return shape;
   }
 
+  /*
+  void allocate() {
+    graph()->Tensor(val_, shape);
+    placeValue(val_->data());
+  }
+
+  void placeValue(float* data) {
+    val_.reset(data);
+    for(auto child : children_) {
+      child->deallocateValue();
+      child->placeValue(data);
+      child->val()->set(0);
+      data += child->val()->size();
+    }
+  }
+
+  void forward() {}
+  void backward() {}
+
+  void init_dependent() {}
+  void set_zero_adjoint() {}
+ 
+  */
+
+
   void forward() {
     std::vector<Tensor> concatenees;
     for(auto child : children_)

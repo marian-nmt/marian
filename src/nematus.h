@@ -125,7 +125,7 @@ class Nematus : public ExpressionGraph {
 
       GRUWithAttention gruCell(decParams,
                                encoderContext,
-                               encoderContextWeights,
+                               encoderContextWeights
                                /*dropoutMask*/);
 
       return RNN<GRUWithAttention>(gruCell);
