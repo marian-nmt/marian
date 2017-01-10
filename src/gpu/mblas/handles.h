@@ -34,14 +34,6 @@ class CudaStreamHandler {
 class CublasHandler {
   public:
     static cublasHandle_t GetHandle() {
-#ifdef __APPLE__
-      cublasHandle_t *handle = handle_.get();
-      if (handle == nullptr) {
-        handle = new cublasHandle_t;
-        handle_.reset(handle);
-      }
-      return *handle;
-#else
       if(handle_ == nullptr) {
         assert(handle_ == nullptr);
         handle_ = new cublasHandle_t;
@@ -49,7 +41,6 @@ class CublasHandler {
         cublasSetStream(*handle_, CudaStreamHandler::GetStream());
       }
       return *handle_;
-#endif
     }
 
   private:
@@ -60,11 +51,7 @@ class CublasHandler {
       }
     }
 
-#ifdef __APPLE__
-    static boost::thread_specific_ptr<cublasHandle_t> handle_;
-#else
     static thread_local cublasHandle_t* handle_;
-#endif
 };
 
 } // namespace mblas
