@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, 10, 20);
 
   auto nematus = New<Nematus>();
-  nematus->load("../test/model.npz");
+  //nematus->load("../test/model.npz");
   nematus->reserveWorkspaceMB(1024);
 
   //nematus->graphviz("nematus.dot");

@@ -46,6 +46,7 @@ namespace marian {
       elements = val_->shape().elements();
     }
     if(!initialized_) {
+      std::cerr << "Initializing parameter " << name() << std::endl;
       init_(val_);
       initialized_ = true;
     }

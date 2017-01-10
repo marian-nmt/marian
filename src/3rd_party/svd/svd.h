@@ -1,10 +1,10 @@
-/* 
- * svdcomp - SVD decomposition routine. 
+/*
+ * svdcomp - SVD decomposition routine.
  * Takes an mxn matrix a and decomposes it into udv, where u,v are
- * left and right orthogonal transformation matrices, and d is a 
+ * left and right orthogonal transformation matrices, and d is a
  * diagonal matrix of singular values.
  *
- * This routine is adapted from svdecomp.c in XLISP-STAT 2.1 which is 
+ * This routine is adapted from svdecomp.c in XLISP-STAT 2.1 which is
  * code from Numerical Recipes adapted by Luke Tierney and David Betz.
  *
  * Input to dsvd is as follows:
@@ -15,5 +15,4 @@
  *   v = returns the right orthogonal transformation matrix
 */
 
-int dsvd(float **a, int m, int n, float *w, float **v);
-
+int dsvd(float *a, int m, int n, float *w, float *v);

@@ -299,6 +299,8 @@ class Nematus : public ExpressionGraph {
       auto bi = this->param("ff_state_b", {1, dimDecState_},
                             init=inits::zeros);
 
+      debug(Wi, "Wi");
+
       auto meanContext = this->get("meanContext");
       //meanContext = dropout(meanContext, value=0.2);
 
