@@ -49,10 +49,10 @@ class Nematus : public ExpressionGraph {
       encParams.W = concatenate({W, Wx}, axis=1);
       encParams.b = concatenate({b, bx}, axis=1);
 
-      auto dropoutConstant = this->ones(shape={dimBatch_, dimEncState_});
-      auto dropoutMask = dropout(dropoutConstant, value=0.2);
+      //auto dropoutConstant = this->ones(shape={dimBatch_, dimEncState_});
+      //auto dropoutMask = dropout(dropoutConstant, value=0.2);
 
-      GRUFast gru(encParams, dropoutMask);
+      GRUFast gru(encParams /*, dropoutMask*/);
       return RNN<GRUFast>(gru);
     };
 
@@ -120,13 +120,13 @@ class Nematus : public ExpressionGraph {
       auto encoderContext = this->get("encoderContext");
       auto encoderContextWeights = this->get("encoderContextWeights");
 
-      auto dropoutConstant = this->ones(shape={dimBatch_, dimDecState_});
-      auto dropoutMask = dropout(dropoutConstant, value=0.2);
+      //auto dropoutConstant = this->ones(shape={dimBatch_, dimDecState_});
+      //auto dropoutMask = dropout(dropoutConstant, value=0.2);
 
       GRUWithAttention gruCell(decParams,
                                encoderContext,
                                encoderContextWeights,
-                               dropoutMask);
+                               /*dropoutMask*/);
 
       return RNN<GRUWithAttention>(gruCell);
     };
@@ -241,7 +241,7 @@ class Nematus : public ExpressionGraph {
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=glorot_uniform);
 
-      Wemb = dropout(Wemb, value=0.2);
+      //Wemb = dropout(Wemb, value=0.1);
 
       std::vector<float> weightMask;
       std::vector<Expr> inputs;
@@ -285,7 +285,8 @@ class Nematus : public ExpressionGraph {
                                     init=from_vector(weightMask));
       name(weights, "encoderContextWeights");
 
-      auto meanContext = name(weighted_average(encContext, weights, axis=2), "meanContext");
+      auto meanContext = name(weighted_average(encContext, weights, axis=2),
+                              "meanContext");
     }
 
     void constructDecoder(const data::SentBatch& trgSentenceBatch) {
@@ -298,11 +299,15 @@ class Nematus : public ExpressionGraph {
                             init=marian::zeros);
 
       auto meanContext = this->get("meanContext");
+      //meanContext = dropout(meanContext, value=0.2);
+
       auto decState0 = tanh(affine(meanContext, Wi, bi));
 
       // *** Collect target embeddings and target indices ***
       auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
                                   init=glorot_uniform);
+
+      //Wemb_dec = dropout(Wemb_dec, value=0.1);
 
       std::vector<Expr> outputs;
       auto emptyEmbedding = this->zeros(shape={dimBatch_, dimTrgEmb_});
@@ -367,9 +372,16 @@ class Nematus : public ExpressionGraph {
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
                             init=marian::zeros);
 
+      //d1 = dropout(d1, value=0.2);
+      //e2 = dropout(e2, value=0.2);
+      //c3 = dropout(c3, value=0.2);
+
       auto t = tanh(affine(d1, W1, b1)
                     + affine(e2, W2, b2)
                     + affine(c3, W3, b3));
+
+      //t = dropout(t, value=0.2);
+
       auto aff = affine(t, W4, b4);
 
       auto weights = this->constant(shape={dimBatch_, 1, (int)decStates.size()},

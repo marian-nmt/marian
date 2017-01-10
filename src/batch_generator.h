@@ -50,7 +50,7 @@ class BatchGenerator {
       if(!batchVector.empty())
         bufferedBatches_.push_back(data_->toBatch(batchVector));
 
-      std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
+      //std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
       //std::cerr << "Total: " << total.format(5, "%ws") << std::endl;
     }
 
