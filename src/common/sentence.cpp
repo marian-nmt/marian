@@ -5,7 +5,7 @@
 #include "common/vocab.h"
 
 Sentence::Sentence(size_t vLineNum, const std::string& line)
-: lineNum(vLineNum), line_(line)
+  : lineNum(vLineNum), line_(line)
 {
   std::vector<std::string> tabs;
   Split(line, tabs, "\t");
@@ -18,6 +18,13 @@ Sentence::Sentence(size_t vLineNum, const std::string& line)
     words_.push_back(God::GetSourceVocab(i++)(processed));
   }
 }
+
+Sentence::Sentence(size_t lineNum, const std::vector<std::string>& words)
+  : lineNum(lineNum) {
+    auto processed = God::Preprocess(0, words);
+    words_.push_back(God::GetSourceVocab(0)(processed));
+}
+
 
 const Words& Sentence::GetWords(size_t index) const {
   return words_[index];
