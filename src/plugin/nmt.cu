@@ -18,17 +18,13 @@ void MosesPlugin::initGod(const std::string& configPath) {
   God::Init(configs);
 }
 
-MosesPlugin::MosesPlugin(const std::string& configPath)
+MosesPlugin::MosesPlugin()
   : debug_(false),
     states_(new States()),
     firstWord_(true),
     scorers_(God::GetScorers(1)),
     bestHyps_(God::GetBestHyps(1))
 {}
-
-/* void MosesPlugin::PrintState(StateInfoPtr ptr) { */
-  /* std::cerr << *ptr << std::endl; */
-/* } */
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
   int num_gpus = 0; // number of CUDA GPUs
@@ -42,6 +38,7 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
   }
   return (size_t)std::min(num_gpus, (int)maxDevices);
 }
+
 
 void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
                                   std::vector<NeuralPhrase>& phrases) {
@@ -140,12 +137,20 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
   /* return (*trg_)[str]; */
 /* } */
 
-void MosesPlugin::SetSource(const std::vector<std::string>& words) {
-  sentences_.push_back(boost::shared_ptr<Sentence>(new Sentence(0, words)));
-
-  for (auto& scorer : scorers_) {
-    scorer->SetSource(sentences_);
+States MosesPlugin::SetSource(const std::vector<std::string>& words) {
+  if (sentences_.size() == 0) {
+    sentences_.push_back(boost::shared_ptr<Sentence>(new Sentence(0, words)));
+  } else {
+    sentences_.at(0).reset(new Sentence(0, words));
   }
+
+  States states(scorers_.size());
+
+  for (size_t i = 0; i < scorers_.size(); ++i) {
+    scorers_[i]->SetSource(sentences_);
+    scorers_[i]->BeginSentenceState(*states[i], sentences_.size());
+  }
+  return states;
 }
 
 /* StateInfoPtr MosesPlugin::EmptyState() { */

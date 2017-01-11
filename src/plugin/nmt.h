@@ -24,7 +24,7 @@ typedef std::vector<size_t> LastWords;
 
 class MosesPlugin {
   public:
-    MosesPlugin(const std::string& configPath);
+    MosesPlugin();
 
     static size_t GetDevices(size_t = 1);
     void SetDevice();
@@ -36,13 +36,14 @@ class MosesPlugin {
 
     static void initGod(const std::string& configPath);
 
-    void SetSource(const std::vector<std::string>& s);
+    States SetSource(const std::vector<std::string>& s);
+
+    void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
 
     // StateInfoPtr EmptyState();
 
     // void PrintState(StateInfoPtr);
 
-    void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
 
     // size_t TargetVocab(const std::string& str);
 
