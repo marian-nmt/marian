@@ -4,6 +4,7 @@
 #include "model.h"
 #include "gru.h"
 #include "gpu/types-gpu.h"
+#include "common/god.h"
 
 namespace GPU {
 
