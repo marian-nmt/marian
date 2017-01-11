@@ -5,13 +5,13 @@
 
 class NeuralPhrase {
   public:
-   std::vector<std::string> words;
+   std::vector<size_t> words;
    std::vector<float> scores;
    int startPos, endPos;
 
     NeuralPhrase() {}
 
-    NeuralPhrase(const std::vector<std::string>& words, std::vector<float> scores,
+    NeuralPhrase(const std::vector<size_t>& words, std::vector<float> scores,
                  int startPos, int endPos)
       : words(words), scores(scores), startPos(startPos), endPos(endPos) {}
 
@@ -22,7 +22,6 @@ class NeuralPhrase {
     std::pair<int, int> getCoverage() {
       return std::make_pair(startPos, endPos);
     }
-
 
   private:
 
