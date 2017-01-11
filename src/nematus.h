@@ -11,7 +11,15 @@ namespace marian {
 
 class Nematus : public ExpressionGraph {
   public:
-    Nematus() {}
+    Nematus()
+    : dimSrcVoc_(40000), dimSrcEmb_(512), dimEncState_(1024),
+      dimTrgVoc_(40000), dimTrgEmb_(512), dimDecState_(1024),
+      dimBatch_(40) {}
+
+    Nematus(const std::vector<int> dims)
+    : dimSrcVoc_(dims[0]), dimSrcEmb_(dims[1]), dimEncState_(dims[2]),
+      dimTrgVoc_(dims[3]), dimTrgEmb_(dims[4]), dimDecState_(dims[5]),
+      dimBatch_(dims[6]) {}
 
   private:
     int dimSrcVoc_;
@@ -21,7 +29,18 @@ class Nematus : public ExpressionGraph {
     int dimTrgVoc_;
     int dimTrgEmb_;
     int dimDecState_;
+
     int dimBatch_;
+
+    void setDims() {
+      dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : dimSrcVoc_;
+      dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : dimSrcEmb_;
+      dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : dimEncState_;
+
+      dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : dimTrgVoc_;
+      dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
+      dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : dimDecState_;
+    }
 
     RNN<GRUFast> encoderGRU(const std::string& prefix) {
       using namespace keywords;
@@ -221,17 +240,6 @@ class Nematus : public ExpressionGraph {
       float ctt = 0;
       shape[0] = 1;
       cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
-    }
-
-    void setDims() {
-      dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : 40000;
-      dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : 512;
-      dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : 1024;
-
-      dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : 40000;
-      dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : 512;
-      dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : 1024;
-      dimBatch_ = 1;
     }
 
     void constructEncoder(const data::SentBatch& srcSentenceBatch) {

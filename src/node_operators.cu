@@ -53,7 +53,7 @@ namespace marian {
 
   void ParamNode::init() {
     if(!initialized_) {
-      std::cerr << "Initializing parameter " << name() << std::endl;
+      //std::cerr << "Initializing parameter " << name() << std::endl;
       init_(val_);
       initialized_ = true;
     }

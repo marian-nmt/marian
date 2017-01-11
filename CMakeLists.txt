@@ -18,7 +18,7 @@ else(ZLIB_FOUND)
     message(SEND_ERROR "Cannot find zlib" )
 endif(ZLIB_FOUND)
 
-find_package(Boost COMPONENTS system timer iostreams filesystem chrono)
+find_package(Boost COMPONENTS system timer iostreams filesystem chrono program_options)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
