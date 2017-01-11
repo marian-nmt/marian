@@ -23,7 +23,7 @@ MosesPlugin::MosesPlugin()
     states_(new States()),
     firstWord_(true),
     scorers_(God::GetScorers(1)),
-    bestHyps_(God::GetBestHyps(1))
+    bestHyps_(God::GetBestHyps(0))
 {}
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
