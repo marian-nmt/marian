@@ -51,6 +51,8 @@ cuda_add_executable(
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
+
+
   common/loader_factory.cpp
   common/translation_task.cpp
   $<TARGET_OBJECTS:libcommon>
@@ -60,7 +62,7 @@ cuda_add_executable(
 )
 
 if(PYTHONLIBS_FOUND)
-cuda_add_library(amunmt SHARED
+cuda_add_library(amunmt STATIC
   # python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
@@ -77,7 +79,7 @@ cuda_add_library(amunmt SHARED
 )
 endif(PYTHONLIBS_FOUND)
 
-cuda_add_library(mosesplugin SHARED
+cuda_add_library(mosesplugin STATIC
   plugin/nmt.cu
   plugin/nmt.cu
   gpu/decoder/encoder_decoder.cu
@@ -87,6 +89,7 @@ cuda_add_library(mosesplugin SHARED
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
   common/loader_factory.cpp
+  common/vocab.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
