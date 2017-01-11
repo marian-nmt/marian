@@ -182,38 +182,49 @@ print ('\n'.join( toposort2(data) ))
     void forward() {
       params_.allocateForward();
 
-      topological_group();
+      //topological_group();
 
       for(auto&& v : tape_)
           if(!v->skipped_training())
             v->allocate(0);
 
+      {
+      ThreadPool pool(10);
+      for(auto& v : tape_)
+         if(!v->skipped_training())
+            pool.enqueue([&] { v->init(); });
+      }
+
+      /*
       for(auto& group : groups_) {
         ThreadPool pool(std::min(10, (int)group.size()));
         for(auto&& v : group) {
           if(!v->skipped_training()) {
             pool.enqueue(
               [&] {
-                v->init();
+                v->init(); 
                 v->forward();
                 if(v->marked_for_debug()) {
                   std::cerr << "Debug: " << v->debug_message() << std::endl;
                   std::cerr << v->val()->debug() << std::endl;
-                }
+                } 
               }
             );
           }
         }
       }
+      */
 
-      //for(auto&& v : tape_)
-      //  if(!v->skipped_training()) {
-      //    v->forward();
-      //    if(v->marked_for_debug()) {
-      //      std::cerr << "Debug: " << v->debug_message() << std::endl;
-      //      std::cerr << v->val()->debug() << std::endl;
-      //    }
-      //  }
+      
+      for(auto&& v : tape_) {
+        if(!v->skipped_training()) {
+          v->forward();
+          if(v->marked_for_debug()) {
+            std::cerr << "Debug: " << v->debug_message() << std::endl;
+            std::cerr << v->val()->debug() << std::endl;
+          }
+        }
+      }
     }
 
     void inference() {

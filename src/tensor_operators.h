@@ -86,7 +86,7 @@ void Add(Functor functor,
                             out->data(), out->shape(),
                             in->data(), in->shape(),
                             full);
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor, class T1, class T2>
@@ -161,7 +161,7 @@ void Reduce(Functor functor,
                                in1->data(), in1->shape(),
                                in2->data(), in2->shape(),
                                full);
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor, class T1, class T2, class T3>
@@ -184,7 +184,7 @@ void Add(Functor functor,
                                in1->data(), in1->shape(),
                                in2->data(), in2->shape(),
                                full);
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor>
@@ -242,7 +242,7 @@ void Reduce(Functor functor,
                                in2->data(), in2->shape(),
                                in3->data(), in3->shape(),
                                full);
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor, class T1, class T2, class T3, class T4>
@@ -268,7 +268,7 @@ void Add(Functor functor,
                                in2->data(), in2->shape(),
                                in3->data(), in3->shape(),
                                full);
-  cudaStreamSynchronize(0);
+  
 }
 
 
@@ -307,7 +307,7 @@ void Element(Functor functor,
                                 out->data(), out->shape(),
                                 in->data(), in->shape(),
                                 out->shape() != in->shape());
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor>
@@ -351,7 +351,7 @@ void Element(Functor functor,
                                 in2->data(), in2->shape(),
                                 out->shape() != in1->shape() || out->shape() != in2->shape());
 
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor>
@@ -402,7 +402,7 @@ void Element(Functor functor,
                                 || out->shape() != in2->shape()
                                 || out->shape() != in3->shape());
 
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor>
@@ -426,7 +426,7 @@ void Element(Functor functor, T1 out) {
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   gElement<<<blocks, threads>>>(functor, out->data(), length);
-  cudaStreamSynchronize(0);
+  
 }
 
 
@@ -461,7 +461,7 @@ void Pick(Functor functor, T1 out, const T2 picks) {
 
   gPick<<<blocks, threads>>>(functor, out->data(), out->shape(),
                              picks->data());
-  cudaStreamSynchronize(0);
+  
 }
 
 
@@ -498,7 +498,7 @@ void Pick(Functor functor, T1 out, const T2 in, const T3 picks) {
   gPick<<<blocks, threads>>>(functor, out->data(), out->shape(),
                              in->data(), in->shape(),
                              picks->data());
-  cudaStreamSynchronize(0);
+  
 }
 
 template <class Functor>
@@ -538,7 +538,7 @@ void PickReduce(Functor functor, T1 out, const T2 in, const T3 picks) {
   gPickReduce<<<blocks, threads>>>(functor, out->data(), out->shape(),
                              in->data(), in->shape(),
                              picks->data());
-  cudaStreamSynchronize(0);
+  
 }
 
 
@@ -581,7 +581,7 @@ void Pick(Functor functor, T1 out, const T2 in1, const T3 in2, const T4 picks) {
                              in2->data(),
                              in2->shape(),
                              picks->data());
-  cudaStreamSynchronize(0);
+  
 }
 
 void ClipNorm(Tensor out, float threshold);

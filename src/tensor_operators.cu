@@ -281,7 +281,7 @@ void LogSoftmax(Tensor out, Tensor in) {
   gLogSoftmax<<<blocks, threads, shared>>>(out->data(),
                                            out->shape(),
                                            in->data());
-  cudaStreamSynchronize(0);
+  
 }
 
 
@@ -339,7 +339,7 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
                                             adj->data(),
                                             val->data(),
                                             m, k);
-  cudaStreamSynchronize(0);
+  
 }
 
 __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
@@ -393,7 +393,7 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   gLogSoftmaxGrad<<<blocks, threads, shared>>>(grad->data(),
                                                adj->data(), val->data(),
                                                m, k);
-  cudaStreamSynchronize(0);
+  
 }
 
 ///////////////////////////////////////////////////////
@@ -421,7 +421,7 @@ __global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols)
 //  int threads = k; //std::min(MAX_THREADS, (int) k);
 //  //int shared = sizeof(float) * threads * 2;
 //  gArgmax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
-//  cudaStreamSynchronize(0);
+//  
 //}
 
 ///////////////////////////////////////////////////////
@@ -548,7 +548,7 @@ void CopyRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces) 
   gCopyRows<<<blocks, threads>>>(out->data(), in->data(), cols,
                                  thrust::raw_pointer_cast(indeces.data()),
                                  rowsToCopy);
-  cudaStreamSynchronize(0);
+  
 }
 
 __global__ void gPasteRows(float* out, const float* in, size_t cols,
@@ -582,7 +582,7 @@ void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces)
                                   thrust::raw_pointer_cast(indeces.data()),
                                   rowsToCopy);
 
-  cudaStreamSynchronize(0);
+  
 }
 
 void Transpose(Tensor out, const Tensor in) {
@@ -947,7 +947,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
                                                  in->data(),
                                                  in->shape(),
                                                  pick->data());
-  cudaStreamSynchronize(0);
+  
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
@@ -1035,7 +1035,6 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
                                                          adj->data(),
                                                          a->data(),
                                                          pick->data());
-  cudaStreamSynchronize(0);
 }
 
 
