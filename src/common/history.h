@@ -81,9 +81,8 @@ class History {
 
 ///////////////////////////////////////////////////////////////////////////////
 //typedef std::vector<History> Histories;
-class Histories
-{
-public:
+class Histories {
+ public:
   Histories() {} // for all histories in translation task
   Histories(const Sentences& sentences);
 
@@ -98,7 +97,7 @@ public:
   void SortByLineNum();
   void Append(const Histories &other);
 
-protected:
+ protected:
   std::vector< boost::shared_ptr<History> > coll_;
 
   Histories(const Histories &) = delete;
