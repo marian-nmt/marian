@@ -40,7 +40,7 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
 }
 
 
-void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
+void MosesPlugin::GeneratePhrases(const States& states, const std::string& lastWord, size_t numPhrases,
                                   std::vector<NeuralPhrase>& phrases) {
   Histories histories(sentences_);
 

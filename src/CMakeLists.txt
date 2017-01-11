@@ -89,7 +89,6 @@ cuda_add_library(mosesplugin STATIC
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
   common/loader_factory.cpp
-  common/vocab.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
