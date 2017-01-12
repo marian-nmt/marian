@@ -9,9 +9,9 @@
 
 using namespace std;
 
-Search::Search(size_t threadId)
-  : scorers_(God::GetScorers(threadId)),
-    bestHyps_(God::GetBestHyps(threadId)) {
+Search::Search(size_t taskId)
+  : scorers_(God::GetScorers(taskId)),
+    bestHyps_(God::GetBestHyps(taskId)) {
 }
 
 
