@@ -82,6 +82,7 @@ endif(PYTHONLIBS_FOUND)
 cuda_add_library(mosesplugin STATIC
   plugin/nmt.cu
   plugin/nmt.cu
+  plugin/neural_phrase.cpp
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu

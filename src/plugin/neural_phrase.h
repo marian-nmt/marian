@@ -23,6 +23,8 @@ class NeuralPhrase {
       return std::make_pair(startPos, endPos);
     }
 
+    std::string Debug() const;
+
   private:
 
 };

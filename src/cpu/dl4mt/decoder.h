@@ -57,6 +57,7 @@ class Decoder {
           AddBiasVector<byRow>(Temp2_, Temp1_);
 
           State = Temp2_ * w_.Wi_;
+
           AddBiasVector<byRow>(State, w_.Bi_);
 
           State = blaze::forEach(State, Tanh());
@@ -236,8 +237,8 @@ class Decoder {
     void EmptyState(mblas::Matrix& State,
                     const mblas::Matrix& SourceContext,
                     size_t batchSize = 1) {
-      rnn1_.InitializeState(State, SourceContext, batchSize);
-      attention_.Init(SourceContext);
+    	rnn1_.InitializeState(State, SourceContext, batchSize);
+    	attention_.Init(SourceContext);
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding,
