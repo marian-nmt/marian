@@ -182,7 +182,7 @@ __global__ void gSoftmax(float* out,
 }
 
 void Softmax(Tensor out, Tensor in, Tensor mask) {
-  size_t m = out->shape()[0];
+  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
   size_t k = out->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int) m);
@@ -329,7 +329,7 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
   // adj is multiplied for each element to get backward step in autodiff
-  int m = grad->shape()[0];
+  int m = grad->shape()[0] * grad->shape()[2] * grad->shape()[3];
   int k = grad->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, m);
@@ -430,7 +430,7 @@ void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta) {
   Float alpha = 1.0;
 
-  size_t m = A->shape()[0];
+  size_t m = A->shape()[0] * A->shape()[2] * A->shape()[3];
   size_t k = A->shape()[1];
   if(transA)
     std::swap(m, k);

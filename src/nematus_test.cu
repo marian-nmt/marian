@@ -20,8 +20,8 @@ int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   std::vector<std::string> files =
-    {"../test/test.10.de",
-     "../test/test.10.en"};
+    {"../test/mini.de",
+     "../test/mini.en"};
 
   std::vector<std::string> vocab =
     {"../test/vocab.de.json",
@@ -34,8 +34,7 @@ int main(int argc, char** argv) {
   nematus->load("../test/model.npz");
   nematus->reserveWorkspaceMB(1024);
 
-  //nematus->graphviz("nematus.dot");
-
+  
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 
   float sum = 0;
@@ -48,6 +47,9 @@ int main(int argc, char** argv) {
       batch->debug();
 
       nematus->construct(*batch);
+
+      nematus->graphviz("debug.dot");
+
       nematus->forward();
       nematus->backward();
 

@@ -64,15 +64,11 @@ Expr operator-(Expr a) {
 };
 
 Expr softmax(Expr a, Expr mask) {
-  auto sOrig = a->shape();
-  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  return reshape(Expression<SoftmaxNodeOp>(reshape(a, sTemp), mask), sOrig);
+  return Expression<SoftmaxNodeOp>(a, mask);
 }
 
 Expr logsoftmax(Expr a) {
-  auto sOrig = a->shape();
-  Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  return reshape(Expression<LogSoftmaxNodeOp>(reshape(a, sTemp)), sOrig);
+  return Expression<LogSoftmaxNodeOp>(a);
 }
 
 Expr argmax(Expr a) {
@@ -98,16 +94,7 @@ Expr operator/(Expr a, Expr b) {
 }
 
 Expr dot(Expr a, Expr b) {
-  auto shapeA = a->shape();
-  auto shapeB = b->shape();
-  if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1) {
-    auto ra = reshape(a, {shapeA[0] * shapeA[2] * shapeA[3], shapeA[1] , 1, 1});
-    return reshape(Expression<DotNodeOp>(ra, b),
-                   {shapeA[0], shapeB[1], shapeA[2], shapeA[3]});
-  }
-  else {
-    return Expression<DotNodeOp>(a, b);
-  }
+  return Expression<DotNodeOp>(a, b);
 }
 
 Expr transpose(Expr a) {
@@ -130,18 +117,8 @@ Expr tanhPlus3(Expr a, Expr b, Expr c) {
 }
 
 Expr affine(Expr a, Expr b, Expr c) {
-  auto shapeA = a->shape();
-  auto shapeB = b->shape();
-  if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1) {
-    auto ra = reshape(a, {shapeA[0] * shapeA[2] * shapeA[3], shapeA[1] , 1, 1});
-    std::vector<Expr> nodes = {ra, b, c};
-    return reshape(Expression<AffineNodeOp>(nodes),
-                   {shapeA[0], shapeB[1], shapeA[2], shapeA[3]});
-  }
-  else {
-    std::vector<Expr> nodes = {a, b, c};
-    return Expression<AffineNodeOp>(nodes);
-  }
+  std::vector<Expr> nodes = {a, b, c};
+  return Expression<AffineNodeOp>(nodes);
 }
 
 }

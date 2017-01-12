@@ -47,13 +47,20 @@ struct DotNodeOp : public BinaryNodeOp {
                  args...) { }
 
   Shape newShape(Expr a, Expr b) {
-    Shape shape1 = a->shape();
-    Shape shape2 = b->shape();
 
-    UTIL_THROW_IF2(shape1[1] != shape2[0],
-                   "matrix product requires dimensions to match");
-    shape1.set(1, shape2[1]);
-    return shape1;
+    auto shapeA = a->shape();
+    auto shapeB = b->shape();
+
+    Shape outShape;
+    if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1)
+      outShape = {shapeA[0], shapeB[1], shapeA[2], shapeA[3]};
+    else {
+      outShape = shapeA;
+      outShape.set(1, shapeB[1]);
+    }
+    UTIL_THROW_IF2(shapeA[1] != shapeB[0],
+                 "matrix product requires dimensions to match");
+    return outShape;
   }
 
   void forward() {
