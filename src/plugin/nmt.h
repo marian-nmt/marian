@@ -73,6 +73,8 @@ class MosesPlugin {
     void GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
                          std::vector<NeuralPhrase>& phrases);
 
+    States GenerateStates(const States& parentStates, std::vector<size_t> phrase);
+
   private:
     bool debug_;
 

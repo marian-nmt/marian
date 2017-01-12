@@ -119,6 +119,10 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
   }
 }
 
+States MosesPlugin::GenerateStates(const States& parentStates, std::vector<size_t> phrase) {
+
+}
+
 /* void MosesPlugin::SetDevice() { */
   /* cudaSetDevice(w_->GetDevice()); */
   /* CublasHandler::StaticHandle(); */
