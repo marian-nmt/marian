@@ -20,8 +20,8 @@ int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   std::vector<std::string> files =
-    {"../test/mini.de",
-     "../test/mini.en"};
+    {"../test/test.10.de",
+     "../test/test.10.en"};
 
   std::vector<std::string> vocab =
     {"../test/vocab.de.json",
@@ -42,9 +42,10 @@ int main(int argc, char** argv) {
   boost::timer::cpu_timer timer;
   size_t batches = 1;
   for(int i = 0; i < 1; ++i) {
-    bg.prepare();
+    bg.prepare(false);
     while(bg) {
       auto batch = bg.next();
+      batch->debug();
 
       nematus->construct(*batch);
       nematus->forward();

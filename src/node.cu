@@ -14,15 +14,17 @@ size_t Node::allocate() {
 }
 
 void Node::init_dependent() {
-  if(!adj_)
+  if(!adj_) {
     graph_->tensor(adj_, shape_);
-  adj_->set(1);
+    adj_->set(1);
+  }
 }
 
 void Node::set_zero_adjoint() {
-  if(!adj_)
+  if(!adj_) {
     graph_->tensor(adj_, shape_);
-  adj_->set(0);
+    adj_->set(0);
+  }
 }
 
 }

@@ -63,29 +63,36 @@ struct Chainable {
     virtual void forward() { }
     virtual void backward() { }
 
-    virtual void debug(const std::string& message) = 0;
-    virtual bool marked_for_debug() = 0;
-    virtual const std::string& debug_message() = 0;
-
-    virtual void check() { }
+    virtual size_t allocate() = 0;
+    virtual void init() = 0;
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }
+    virtual bool trainable() = 0;
+    virtual void setTrainable(bool) = 0;
 
-    virtual size_t allocate() = 0;
+    virtual void setId(size_t) = 0;
+    virtual size_t getId() = 0;
 
-    virtual void init() = 0;
+    virtual void increaseEdges(size_t) = 0;
+    virtual void decreaseEdges(size_t) = 0;
+    virtual size_t edges() = 0;
+
+    //virtual const std::string& type() = 0;
+    virtual ExpressionGraphPtr graph() = 0;
+    virtual const Shape& shape() = 0;
+
+    virtual std::vector<Expr> children() = 0;
+    virtual DataType& val() = 0;
+    virtual DataType& grad() = 0;
+
     virtual std::string graphviz() = 0;
     virtual void set_name(const std::string&) = 0;
     virtual const std::string &name() const = 0;
     virtual const std::string label(const std::string& type) = 0;
 
-    virtual ExpressionGraphPtr graph() = 0;
-    virtual const Shape& shape() = 0;
-
-    virtual DataType& val() = 0;
-    virtual DataType& grad() = 0;
-
-    virtual std::vector<Expr> children() = 0;
+    virtual void debug(const std::string& message) = 0;
+    virtual bool marked_for_debug() = 0;
+    virtual const std::string& debug_message() = 0;
 };
 
 /**

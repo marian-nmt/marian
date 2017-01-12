@@ -17,6 +17,7 @@ struct UnaryNodeOp : public Node {
            args...),
         a_(a)
     {
+        setTrainable(a_->trainable());
         remove_children_from_top_nodes();
     }
 
@@ -40,8 +41,9 @@ struct LogitNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * _3 * (1.0f - _3),
-            a_->grad(), adj_, val_);
+    if(a_->trainable())
+        Element(_1 += _2 * _3 * (1.0f - _3),
+                a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {
@@ -65,8 +67,9 @@ struct TanhNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * (1.0f - (_3 * _3)),
-            a_->grad(), adj_, val_);
+    if(a_->trainable())
+        Element(_1 += _2 * (1.0f - (_3 * _3)),
+                a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {
@@ -105,8 +108,9 @@ struct ReLUNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Element(_1 += _2 * ReLUback(_3),
-            a_->grad(), adj_, a_->val());
+    if(a_->trainable())
+        Element(_1 += _2 * ReLUback(_3),
+                a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -155,8 +159,9 @@ struct DropoutNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    CudnnDropoutBackward(dropDesc_, space_, spaceSize_,
-                         a_->grad(), adj_);
+    if(a_->trainable())
+        CudnnDropoutBackward(dropDesc_, space_, spaceSize_,
+                             a_->grad(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -203,7 +208,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     // http://jmlr.org/proceedings/papers/v48/martins16.pdf
 
     // val_ is already masked if there is a mask, so no need to apply here.
-    SoftmaxGrad(a_->grad(), adj_, val_);
+    if(a_->trainable())
+        SoftmaxGrad(a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {
@@ -211,6 +217,8 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     ss << "\"" << this << "\" [shape=\"box\", label=" << label("softmax")
       << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    if(mask_)
+        ss << "\"" << mask_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
     return ss.str();
   };
 };
@@ -228,7 +236,8 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
     // Based on the description for softmax, we have logsoftmax:
     // J * dy = dy - avg*1
     // where avg = exp(p)'*dy and p is the softmax output (probabilities).
-    LogSoftmaxGrad(a_->grad(), adj_, val_);
+    if(a_->trainable())
+        LogSoftmaxGrad(a_->grad(), adj_, val_);
   }
 
   virtual std::string graphviz() {
@@ -281,7 +290,8 @@ struct SumNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Add(_1, a_->grad(), adj_);
+    if(a_->trainable())
+        Add(_1, a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -324,7 +334,8 @@ struct MeanNodeOp : public UnaryNodeOp {
   void backward() {
     int left = a_->shape().elements() / val_->shape().elements();
     float scale = 1.f / left;
-    Add(_1 * scale, a_->grad(), adj_);
+    if(a_->trainable())
+        Add(_1 * scale, a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -363,8 +374,9 @@ struct LogNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Add(_1 * (1.f / _2),
-        a_->grad(), adj_, a_->val());
+    if(a_->trainable())
+        Add(_1 * (1.f / _2),
+            a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -387,8 +399,9 @@ struct ExpNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Add(_1 * Exp(_2),
-        a_->grad(), adj_, a_->val());
+    if(a_->trainable())
+        Add(_1 * Exp(_2),
+            a_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -411,7 +424,8 @@ struct NegNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Add(-_1, a_->grad(), adj_);
+    if(a_->trainable())
+        Add(-_1, a_->grad(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -436,7 +450,8 @@ struct RowsNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    PasteRows(a_->grad(), adj_, indeces_);
+    if(a_->trainable())
+        PasteRows(a_->grad(), adj_, indeces_);
   }
 
   template <class ...Args>
@@ -467,7 +482,8 @@ struct TransposeNodeOp : public UnaryNodeOp {
   }
 
   void backward() {
-    Transpose(a_->grad(), adj_);
+    if(a_->trainable())
+        Transpose(a_->grad(), adj_);
   }
 
   template <class ...Args>
@@ -497,8 +513,14 @@ struct ReshapeNodeOp : public UnaryNodeOp {
 
   void forward() {}
   void backward() {}
-  void init_dependent() {}
-  void set_zero_adjoint() {}
+
+  void init_dependent() {
+    a_->init_dependent();
+  }
+
+  void set_zero_adjoint() {
+    a_->set_zero_adjoint();
+  }
 
   Tensor& val()  {
     val_.reset(new TensorGPU(a_->val()->data(), shape()));
@@ -510,6 +532,9 @@ struct ReshapeNodeOp : public UnaryNodeOp {
     return adj_;
   };
 
+  std::vector<Expr> children() {
+    return a_->children();
+  }
 
   virtual std::string graphviz() {
     std::stringstream ss;

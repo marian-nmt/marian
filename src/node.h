@@ -38,18 +38,52 @@ typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 class Node : public Chainable<Tensor>,
              public keywords::Keywords,
              public std::enable_shared_from_this<Node> {
+
+  protected:
+    size_t id_{0};
+    size_t edges_{0};
+    bool trainable_{true};
+
+    ExpressionGraphPtr graph_{nullptr};
+    Shape shape_{1, 1, 1, 1};
+    std::string name_{"none"};
+
+    Tensor val_{nullptr};
+    Tensor adj_{nullptr};
+
+    bool markedForDebug_{false};
+    std::string debugMessage_;
+
   public:
     template <typename ...Args>
     Node(ExpressionGraphPtr graph, Args ...args)
      : Keywords(args...),
        graph_(graph),
-       shape_(Get(keywords::shape, {1, 1})),
-       givenShape_(shape_),
-       name_("none"),
-       markedForDebug_(false)
+       shape_(Get(keywords::shape, {1, 1, 1, 1}))
     {}
 
     virtual ~Node() {}
+
+    virtual bool trainable() {
+      return trainable_;
+    }
+
+    virtual void setTrainable(bool trainable) {
+      trainable_ = trainable;
+    }
+
+    virtual void setId(size_t id) {
+      id_ = id;
+    }
+
+    virtual size_t getId() {
+      return id_;
+    }
+
+    virtual void increaseEdges(size_t edges = 1) { edges_ += edges; };
+    virtual void decreaseEdges(size_t edges = 1) { edges_ -= edges; };
+    virtual size_t edges() { return edges_; };
+
 
     virtual ExpressionGraphPtr graph() {
       return graph_;
@@ -94,21 +128,9 @@ class Node : public Chainable<Tensor>,
       if(name_ != "none") {
         label << "<br/>" << "\"" << name_ << "\"";
       }
-      label << ">";
+      label << " (" << getId() << "/" << trainable() << ")>";
       return label.str();
     }
-
-  protected:
-    ExpressionGraphPtr graph_;
-    Shape shape_;
-    const Shape givenShape_;
-    std::string name_;
-
-    Tensor val_;
-    Tensor adj_;
-
-    bool markedForDebug_;
-    std::string debugMessage_;
 };
 
 }

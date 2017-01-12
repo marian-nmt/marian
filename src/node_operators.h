@@ -35,6 +35,7 @@ struct InputNode : public Node {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
                    "Data items require shape information");
+    setTrainable(false);
   }
 
   ~InputNode() {}
@@ -64,6 +65,7 @@ struct ConstantNode : public Node {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
                    "Constant items require shape information");
+    setTrainable(false);
   }
 
   ~ConstantNode() {}
@@ -100,6 +102,7 @@ struct ParamNode : public Node {
     UTIL_THROW_IF2(!Has(keywords::shape) &&
                    !Has(keywords::lazy_shape),
                    "Param items require shape information");
+    setTrainable(true);
   }
 
   ~ParamNode() {}

@@ -247,6 +247,8 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=inits::glorot_uniform);
+      //debug(Wemb, "Wemb");
+
 
       std::vector<float> weightMask;
       std::vector<Expr> inputs;
@@ -259,7 +261,6 @@ class Nematus : public ExpressionGraph {
           weightMask.push_back(w);
 
         auto x = name(rows(Wemb, indeces), "x_" + std::to_string(i++));
-
         // x = dropout(x, value=0.1);
 
         auto xMask = this->constant(shape={ (int)mask.size() },

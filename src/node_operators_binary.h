@@ -16,7 +16,9 @@ struct BinaryNodeOp : public Node {
   BinaryNodeOp(Expr a, Expr b, Args ...args)
    : Node(a->graph(),
       keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
-      args...), a_(a), b_(b) {
+      args...), a_(a), b_(b)
+  {
+    setTrainable(a_->trainable() || b_->trainable());
     remove_children_from_top_nodes();
   }
 
@@ -47,6 +49,7 @@ struct DotNodeOp : public BinaryNodeOp {
   Shape newShape(Expr a, Expr b) {
     Shape shape1 = a->shape();
     Shape shape2 = b->shape();
+
     UTIL_THROW_IF2(shape1[1] != shape2[0],
                    "matrix product requires dimensions to match");
     shape1.set(1, shape2[1]);
@@ -64,9 +67,10 @@ struct DotNodeOp : public BinaryNodeOp {
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-
-    Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
-    Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
+    if(a_->trainable())
+      Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
+    if(b_->trainable())
+      Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
   }
 
   virtual std::string graphviz() {
@@ -113,10 +117,12 @@ struct ScalarProductNodeOp : public BinaryNodeOp {
 
   void backward() {
     // @TODO: check gradient
-    Add(_1 * _2,
-        a_->grad(), b_->val(), adj_);
-    Add(_1 * _2,
-        b_->grad(), a_->val(), adj_);
+    if(a_->trainable())
+      Add(_1 * _2,
+          a_->grad(), b_->val(), adj_);
+    if(b_->trainable())
+      Add(_1 * _2,
+          b_->grad(), a_->val(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -162,8 +168,10 @@ struct PlusNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Add(_1, a_->grad(), adj_);
-    Add(_1, b_->grad(), adj_);
+    if(a_->trainable())
+      Add(_1, a_->grad(), adj_);
+    if(b_->trainable())
+      Add(_1, b_->grad(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -188,8 +196,10 @@ struct MinusNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Add( _1, a_->grad(), adj_);
-    Add(-_1, b_->grad(), adj_);
+    if(a_->trainable())
+      Add( _1, a_->grad(), adj_);
+    if(b_->trainable())
+      Add(-_1, b_->grad(), adj_);
   }
 
   virtual std::string graphviz() {
@@ -214,10 +224,12 @@ struct MultNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Add(_1 * _2,
-        a_->grad(), adj_, b_->val());
-    Add(_1 * _2,
-        b_->grad(), adj_, a_->val());
+    if(a_->trainable())
+      Add(_1 * _2,
+          a_->grad(), adj_, b_->val());
+    if(b_->trainable())
+      Add(_1 * _2,
+          b_->grad(), adj_, a_->val());
   }
 
   virtual std::string graphviz() {
@@ -242,9 +254,11 @@ struct DivNodeOp : public ElementBinaryNodeOp {
   }
 
   void backward() {
-    Add(_1 * 1.0f / _2,
+    if(a_->trainable())
+      Add(_1 * 1.0f / _2,
         a_->grad(), adj_, b_->val());
-    Add(-_1 * _2 / (_3 * _3),
+    if(b_->trainable())
+      Add(-_1 * _2 / (_3 * _3),
         b_->grad(), adj_, a_->val(), b_->val());
   }
 
@@ -283,7 +297,8 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     // @TODO: save memory for the second derivative.
     // Caching is not required, recomputation saves a lot of memory while not
     // being slower.
-    CrossEntropyPickBackward(a_->grad(), adj_, a_->val(), b_->val());
+    if(a_->trainable())
+      CrossEntropyPickBackward(a_->grad(), adj_, a_->val(), b_->val());
   }
 
   virtual std::string graphviz() {
@@ -307,6 +322,8 @@ struct NaryNodeOp : public Node {
       keywords::shape=keywords::Get(keywords::shape, nodes.back()->shape(), args...),
       args...), children_(nodes)
   {
+    setTrainable(std::any_of(nodes.begin(), nodes.end(),
+                             [](Expr a) { return a->trainable(); } ));
     remove_children_from_top_nodes();
   }
 
@@ -319,9 +336,6 @@ struct NaryNodeOp : public Node {
   }
 
   void remove_children_from_top_nodes();
-
-  void backward_debug(Float delta) {}
-
 };
 
 struct ConcatenateNodeOp : public NaryNodeOp {
@@ -349,8 +363,10 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   void backward() {
     std::vector<Tensor> deconcatenees;
-    for(auto child : children_)
+    for(auto child : children_) {
+      child->set_zero_adjoint(); // @TODO: this is a hotfix, do this properly
       deconcatenees.push_back(child->grad());
+    }
     Deconcatenate(deconcatenees, adj_, ax_);
   }
 
@@ -394,12 +410,10 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
   }
 
   void backward() {
-    Add((1.f - _1 * _1) * _2,
-        children_[0]->grad(), val_, adj_);
-    Add((1.f - _1 * _1) * _2,
-        children_[1]->grad(), val_, adj_);
-    Add((1.f - _1 * _1) * _2,
-        children_[2]->grad(), val_, adj_);
+    for(auto&& child : children_)
+      if(child->trainable())
+        Add((1.f - _1 * _1) * _2,
+            child->grad(), val_, adj_);
   }
 
   virtual std::string graphviz() {
@@ -437,15 +451,17 @@ struct AffineNodeOp : public NaryNodeOp {
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-
-    Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
-    Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
-    Add(_1, children_[2]->grad(), adj_);
+    if(children_[0]->trainable())
+      Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
+    if(children_[1]->trainable())
+      Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
+    if(children_[2]->trainable())
+      Add(_1, children_[2]->grad(), adj_);
   }
 
   virtual std::string graphviz() {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("tanhPlus3")
+    ss << "\"" << this << "\" [shape=\"box\", label=" << label("affine")
       << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
     for(auto child : children_)
       ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;

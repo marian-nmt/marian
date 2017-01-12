@@ -104,6 +104,10 @@ class Parameters {
       }
     }
 
+    void set_zero_adjoint() {
+      grads()->set(0);
+    }
+
     Tensor vals() {
       return vals_->asTensor();
     }

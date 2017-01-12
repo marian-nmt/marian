@@ -281,7 +281,7 @@ void LogSoftmax(Tensor out, Tensor in) {
   gLogSoftmax<<<blocks, threads, shared>>>(out->data(),
                                            out->shape(),
                                            in->data());
-  
+
 }
 
 
@@ -339,7 +339,7 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
                                             adj->data(),
                                             val->data(),
                                             m, k);
-  
+
 }
 
 __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
@@ -393,7 +393,7 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   gLogSoftmaxGrad<<<blocks, threads, shared>>>(grad->data(),
                                                adj->data(), val->data(),
                                                m, k);
-  
+
 }
 
 ///////////////////////////////////////////////////////
@@ -421,7 +421,7 @@ __global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols)
 //  int threads = k; //std::min(MAX_THREADS, (int) k);
 //  //int shared = sizeof(float) * threads * 2;
 //  gArgmax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
-//  
+//
 //}
 
 ///////////////////////////////////////////////////////
@@ -548,7 +548,7 @@ void CopyRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces) 
   gCopyRows<<<blocks, threads>>>(out->data(), in->data(), cols,
                                  thrust::raw_pointer_cast(indeces.data()),
                                  rowsToCopy);
-  
+
 }
 
 __global__ void gPasteRows(float* out, const float* in, size_t cols,
@@ -582,7 +582,7 @@ void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces)
                                   thrust::raw_pointer_cast(indeces.data()),
                                   rowsToCopy);
 
-  
+
 }
 
 void Transpose(Tensor out, const Tensor in) {
@@ -810,7 +810,7 @@ __global__ void gGRUFastBackward(float* outState,
           float t = (1-z)*(1-h*h);
 
           // df/ds
-          rowOutState[i] += m * z * adj - m + 1;
+          if(outState) rowOutState[i] += m * z * adj - m + 1;
 
           // df/d(xW_r) ...
           float dfdxW_r = r * (1-r) * t * adj;
@@ -818,24 +818,24 @@ __global__ void gGRUFastBackward(float* outState,
             dfdxW_r *= rowSU[l] + b[l];
           else
             dfdxW_r *= rowSU[l];
-          rowOutXW[i] += m * dfdxW_r;
-          rowOutSU[i] += m * dfdxW_r;
-          atomicAdd(outB + i, m * dfdxW_r);
+          if(outXW) rowOutXW[i] += m * dfdxW_r;
+          if(outSU) rowOutSU[i] += m * dfdxW_r;
+          if(outB)  atomicAdd(outB + i, m * dfdxW_r);
 
           // df/d(xW_z) ...
           float dfdxW_z = (1-z)*z*(rowState[i]-h) * adj;
-          rowOutXW[k] += m * dfdxW_z;
-          rowOutSU[k] += m * dfdxW_z;
-          atomicAdd(outB + k, m * dfdxW_z);
+          if(outXW) rowOutXW[k] += m * dfdxW_z;
+          if(outSU) rowOutSU[k] += m * dfdxW_z;
+          if(outB)  atomicAdd(outB + k, m * dfdxW_z);
 
           // df/d(xW_x) ...
           float dfdxW_x = t * adj;
-          rowOutXW[l] += m * dfdxW_x;
-          rowOutSU[l] += m * dfdxW_x * r;
+          if(outXW) rowOutXW[l] += m * dfdxW_x;
+          if(outSU) rowOutSU[l] += m * dfdxW_x * r;
           if(final)
-            atomicAdd(outB + l, m * dfdxW_x * r);
+            if(outB) atomicAdd(outB + l, m * dfdxW_x * r);
           else
-            atomicAdd(outB + l, m * dfdxW_x);
+            if(outB) atomicAdd(outB + l, m * dfdxW_x);
         }
       }
     }
@@ -852,10 +852,10 @@ void GRUFastBackward(std::vector<Tensor>& outputs,
   int threads = std::min(MAX_THREADS, cols);
 
   gGRUFastBackward<<<blocks, threads>>>(
-    outputs[0]->data(), // state - adj
-    outputs[1]->data(), // xW - adj
-    outputs[2]->data(), // sU - adj
-    outputs[3]->data(), // b - adj
+    outputs[0] ? outputs[0]->data() : nullptr, // state - adj
+    outputs[1] ? outputs[1]->data() : nullptr, // xW - adj
+    outputs[2] ? outputs[2]->data() : nullptr, // sU - adj
+    outputs[3] ? outputs[3]->data() : nullptr, // b - adj
     inputs[0]->data(), // state
     inputs[1]->data(), // xW
     inputs[2]->data(), // sU
@@ -947,7 +947,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
                                                  in->data(),
                                                  in->shape(),
                                                  pick->data());
-  
+
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,

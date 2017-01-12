@@ -44,6 +44,28 @@ Expr Expression(Args&& ... args);
  * @brief Represents a computation graph of expressions, over which algorithmic differentiation may be performed.
  */
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
+  private:
+
+    /** @brief The full list of nodes */
+
+    size_t count_{0};
+
+    std::vector<Expr> nodes_;
+    std::vector<std::vector<Expr>> tapes_;
+    std::map<Expr, size_t> tapeMap_;
+
+    /** @brief Maps from name to expression node. */
+    std::map<std::string, Expr> named_;
+
+    /** @brief List of all input nodes of this expression graph. */
+    std::vector<Expr> inputs_;
+
+    /** @brief Contains all nodes with regard to which we want to calculate derivatives */
+    std::unordered_set<Expr> topNodes_;
+
+    Parameters params_;
+    TensorAllocator tensors_;
+
   protected:
     /** @brief Constructs a new expression graph
      * Constructor is protected to force use of New<ExpressionGraph>()
@@ -141,34 +163,51 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       params_.allocateBackward();
 
-      auto gIt = tapes_.rbegin();
-      while(gIt != tapes_.rend()) {
-        auto tIt = gIt->rbegin();
-        while(tIt != gIt->rend()) {
-          auto v = *tIt;
-          if(topNodes_.count(v))
-            v->init_dependent();
-          else
-            v->set_zero_adjoint();
-          tIt++;
+      params_.set_zero_adjoint();
+      for(auto&& v : topNodes_)
+        v->init_dependent();
+
+      auto it = nodes_.rbegin();
+      while(it != nodes_.rend()) {
+        auto v = *it;
+
+        for(auto&& child: v->children())
+          if(child->trainable())
+            child->set_zero_adjoint();
+        if(v->trainable())
+          v->backward();
+
+        if(v->trainable() && v->marked_for_debug()) {
+          std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+          std::cerr << v->grad()->debug() << std::endl;
         }
-        gIt++;
+
+        it++;
       }
 
-      gIt = tapes_.rbegin();
-      while(gIt != tapes_.rend()) {
-        auto tIt = gIt->rbegin();
-        while(tIt != gIt->rend()) {
-          auto v = *tIt;
-          v->backward();
-          if(v->marked_for_debug()) {
-            std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-            std::cerr << v->grad()->debug() << std::endl;
-          }
-          tIt++;
-        }
-        gIt++;
-      }
+      //auto gIt = tapes_.rbegin();
+      //while(gIt != tapes_.rend()) {
+      //  auto tIt = gIt->rbegin();
+      //  while(tIt != gIt->rend()) {
+      //    auto v = *tIt;
+      //    if(topNodes_.count(v))
+      //      v->init_dependent();
+      //
+      //    for(auto&& child: v->children())
+      //      if(child->trainable())
+      //        child->set_zero_adjoint();
+      //
+      //    if(v->trainable())
+      //      v->backward();
+      //
+      //    if(v->marked_for_debug()) {
+      //      std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+      //      std::cerr << v->grad()->debug() << std::endl;
+      //    }
+      //    tIt++;
+      //  }
+      //  gIt++;
+      //}
     }
 
     /**
@@ -181,18 +220,16 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::string graphviz() {
       std::stringstream ss;
       ss << "digraph ExpressionGraph {" << std::endl;
-      ss << "graph[splines=ortho]";
+      ss << "graph[splines=ortho]" << std::endl;
       ss << "rankdir=LR" << std::endl;
 
-      auto gIt = tapes_.rbegin();
-      while(gIt != tapes_.rend()) {
-        auto tIt = gIt->rbegin();
-        while(tIt != gIt->rend()) {
-          ss << (*tIt)->graphviz();
-          tIt++;
-        }
-        gIt++;
+      auto it = nodes_.rbegin();
+      while(it != nodes_.rend()) {
+        auto v = *it;
+        ss << v->graphviz();
+        it++;
       }
+
       ss << "}" << std::endl;
       return ss.str();
     }
@@ -368,12 +405,15 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void add(Expr node) {
       size_t group = 0;
+
+      node->setId(count_++);
       for(auto& child: node->children())
         group = std::max(group, tapeMap_[child] + 1);
       tapeMap_[node] = group;
       if(group >= tapes_.size())
         tapes_.resize(group + 1);
       tapes_[group].push_back(node);
+      nodes_.push_back(node);
       topNodes_.insert(node);
     }
 
@@ -388,6 +428,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void clear() {
       // clear everything apart from parameters
+      count_ = 0;
+      nodes_.clear();
       tapes_.clear();
       tapeMap_.clear();
 
@@ -396,25 +438,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       topNodes_.clear();
       tensors_->clear();
     }
-
-  private:
-
-    /** @brief The full list of nodes */
-    std::vector<Tape> tapes_;
-    std::map<Expr, size_t> tapeMap_;
-
-
-    /** @brief Maps from name to expression node. */
-    std::map<std::string, Expr> named_;
-
-    /** @brief List of all input nodes of this expression graph. */
-    std::vector<Expr> inputs_;
-
-    /** @brief Contains all nodes with regard to which we want to calculate derivatives */
-    std::unordered_set<Expr> topNodes_;
-
-    Parameters params_;
-    TensorAllocator tensors_;
 };
 
 /** @brief A pointer to an expression graph. */
