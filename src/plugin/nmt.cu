@@ -224,7 +224,7 @@ States MosesPlugin::SetSource(const std::vector<size_t>& words) {
   return states;
 }
 
-void MosesPlugin::Rescore(const std::vector<HypoInfo> &hypos)
+void MosesPlugin::Rescore(std::vector<HypoInfo> &hypos)
 {
 
 }
