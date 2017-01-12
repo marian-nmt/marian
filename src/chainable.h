@@ -60,38 +60,8 @@ struct Chainable {
     Chainable() { }
     virtual ~Chainable() {};
 
-    virtual void inference() { forward(); }
-
-    /**
-     * @brief In the context of
-     *    <a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">reverse mode</a>
-     *    <a href="https://en.wikipedia.org/wiki/Automatic_differentiation">algorithmic differentiation</a> over an expression graph,
-     *    performs forward calculation
-     *    for the expression subgraph rooted at this element (aka Chainable element \f$i\f$).
-     *
-     * If this Chainable object represents the result of the <em>i</em>-th function in an expression graph,
-     * then formally, this method calculates \f$w_i\f$.
-     */
     virtual void forward() { }
-
-    /**
-     * @brief In the context of
-     *    <a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">reverse mode</a>
-     *    <a href="https://en.wikipedia.org/wiki/Automatic_differentiation">algorithmic differentiation</a> over an expression graph,
-     *    performs <a href="https://en.wikipedia.org/wiki/Automatic_differentiation#Reverse_accumulation">reverse accumulation</a>
-     *    for the expression subgraph rooted at this element (aka Chainable element \f$i\f$).
-     *
-     * If this Chainable object represents the result of the <em>i</em>-th function in an expression graph,
-     * then formally, this method calculates \f$\bar{w}_i = \frac{\partial y}{\partial w_i}\f$.
-     */
-
     virtual void backward() { }
-    virtual void backward_debug(Float delta) { }
-
-    virtual void skip_inference() = 0;
-    virtual bool skipped_inference() = 0;
-    virtual void skip_training() = 0;
-    virtual bool skipped_training() = 0;
 
     virtual void debug(const std::string& message) = 0;
     virtual bool marked_for_debug() = 0;
@@ -101,7 +71,8 @@ struct Chainable {
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }
 
-    virtual size_t allocate(size_t) = 0;
+    virtual size_t allocate() = 0;
+
     virtual void init() = 0;
     virtual std::string graphviz() = 0;
     virtual void set_name(const std::string&) = 0;

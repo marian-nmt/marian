@@ -156,14 +156,13 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
 
       nematus->construct(*batch);
+
       opt->update(nematus);
 
       float cost = nematus->cost();
       sum += cost;
       samples += batch->size();
-
       batches++;
-
       if(maxBatches && batches >= maxBatches)
         break;
 

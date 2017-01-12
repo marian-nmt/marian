@@ -18,7 +18,8 @@ namespace models {
  */
 void FeedforwardClassifier(ExpressionGraphPtr g,
                            const std::vector<int>& dims,
-                           size_t batchSize) {
+                           size_t batchSize,
+                           bool training = true) {
   using namespace keywords;
   std::cerr << "Building Multi-layer Feedforward network" << std::endl;
   std::cerr << "\tLayer dimensions:";
@@ -102,13 +103,14 @@ void FeedforwardClassifier(ExpressionGraphPtr g,
   // Perform matrix multiplication and addition for the last layer
   auto last = affine(layers.back(), weights.back(), biases.back());
 
+  if(training) {
   // Define a top-level node for training
-  auto cost = name(mean(training(cross_entropy(last, y)), axis=0),
-                   "cost");
-
-  // Define a top-level node for inference
-  auto scores = name(inference(softmax(last)),
-                     "scores");
+    auto cost = name(mean(cross_entropy(last, y), axis=0), "cost");
+  }
+  else {
+    // Define a top-level node for inference
+    auto scores = name(softmax(last), "scores");
+  }
 
   std::cerr << "\tTotal time: " << timer.format(5, "%ws") << std::endl;
 };

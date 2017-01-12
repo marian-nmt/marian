@@ -24,16 +24,6 @@
 
 namespace marian {
 
-Expr training(Expr a) {
-  a->skip_inference();
-  return a;
-}
-
-Expr inference(Expr a) {
-  a->skip_training();
-  return a;
-}
-
 Expr debug(Expr a, const std::string& message) {
   a->debug(message);
   return a;

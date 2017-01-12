@@ -122,7 +122,7 @@ class Validator : public RunBase,
         float cor = 0;
         while(bg) {
             auto batch = bg.next();
-            graph_->inference();
+            graph_->forward();
             std::vector<float> scores;
             graph_->get("scores")->val()->get(scores);
 

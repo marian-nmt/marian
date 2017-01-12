@@ -24,7 +24,7 @@
 
 namespace marian {
 
-  size_t ConstantNode::allocate(size_t batchSize) {
+  size_t ConstantNode::allocate() {
     // @TODO params
     size_t elements = 0;
     if(!val_) {
@@ -41,7 +41,7 @@ namespace marian {
     }
   }
 
-  size_t ParamNode::allocate(size_t batchSize) {
+  size_t ParamNode::allocate() {
     // @TODO params
     size_t elements = 0;
     if(!val_) {

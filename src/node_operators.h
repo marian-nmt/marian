@@ -72,7 +72,7 @@ struct ConstantNode : public Node {
 
   void backward() {}
 
-  virtual size_t allocate(size_t batchSize);
+  virtual size_t allocate();
   virtual void init();
 
   std::vector<Expr> children() {
@@ -111,7 +111,7 @@ struct ParamNode : public Node {
   void forward() {}
   void backward() {}
 
-  virtual size_t allocate(size_t batchSize);
+  virtual size_t allocate();
 
   virtual void init();
 

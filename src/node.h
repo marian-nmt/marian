@@ -46,8 +46,6 @@ class Node : public Chainable<Tensor>,
        shape_(Get(keywords::shape, {1, 1})),
        givenShape_(shape_),
        name_("none"),
-       skipInference_(Get(keywords::no_inference, false)),
-       skipTraining_(Get(keywords::no_training, false)),
        markedForDebug_(false)
     {}
 
@@ -57,13 +55,6 @@ class Node : public Chainable<Tensor>,
       return graph_;
     }
 
-    virtual void skip_inference() { skipInference_ = true; }
-    virtual bool skipped_inference() { return skipInference_; }
-
-    virtual void skip_training();
-
-    virtual bool skipped_training() { return skipTraining_; }
-
     virtual void debug(const std::string& message) {
       debugMessage_ = message;
       markedForDebug_ = true;
@@ -71,7 +62,7 @@ class Node : public Chainable<Tensor>,
     virtual bool marked_for_debug() { return markedForDebug_; }
     virtual const std::string& debug_message() { return debugMessage_; }
 
-    virtual size_t allocate(size_t batchSize);
+    virtual size_t allocate();
 
     virtual void init() {};
 
@@ -95,15 +86,6 @@ class Node : public Chainable<Tensor>,
       name_ = name;
     }
 
-    template <class FuncList>
-    void run(const FuncList& functors) {
-      std::vector<std::thread> threads;
-      for(auto& f : functors)
-        threads.emplace_back(f);
-      for(auto& t : threads)
-        t.join();
-    }
-
     const std::string &name() const { return name_; }
 
     virtual const std::string label(const std::string& type) {
@@ -125,33 +107,8 @@ class Node : public Chainable<Tensor>,
     Tensor val_;
     Tensor adj_;
 
-    bool skipInference_;
-    bool skipTraining_;
-
     bool markedForDebug_;
     std::string debugMessage_;
-
-    template<class ITER>
-    void output(const std::string &title, const ITER &b, const ITER &e) const
-    {
-        std::cerr << title << ": ";
-        for (ITER iter = b; iter != e; ++iter) {
-          std::cerr << *iter << " ";
-        }
-        std::cerr << std::endl;
-    }
-
-    void calc_numeric_grad(
-              Float delta,
-              Tensor input,
-              Tensor grad
-              );
-
-    void broadcast(const std::vector<float> &largeVec, std::vector<float> &smallVec);
-
-    void outputL2Norm(const std::string &str, const std::vector<float> &x, const std::vector<float> &y) const;
-    float L2Norm(const std::vector<float> &vec) const;
-
 };
 
 }

@@ -20,28 +20,18 @@ int main(int argc, char** argv) {
   cudaSetDevice(0);
 
   std::vector<std::string> files =
-    {"../test/test.10.de",
-     "../test/test.10.en"};
+    {"../test/mini.de",
+     "../test/mini.en"};
 
   std::vector<std::string> vocab =
     {"../test/vocab.de.json",
      "../test/vocab.en.json"};
 
-  /*
-  std::vector<std::string> files =
-    {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.mt",
-     "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/train.all.pe"};
-
-  std::vector<std::string> vocab =
-    {"/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/mt.json",
-     "/work/wmt16/work/unbabel/wmt2015/APE/train.mt-pe.gpu0/pe.json"};
-  */
-
   auto corpus = DataSet<Corpus>(files, vocab, 50);
   BatchGenerator<Corpus> bg(corpus, 10, 20);
 
   auto nematus = New<Nematus>();
-  //nematus->load("../test/model.npz");
+  nematus->load("../test/model.npz");
   nematus->reserveWorkspaceMB(1024);
 
   //nematus->graphviz("nematus.dot");
@@ -55,12 +45,12 @@ int main(int argc, char** argv) {
     bg.prepare();
     while(bg) {
       auto batch = bg.next();
-      batch->debug();
 
       nematus->construct(*batch);
-      nematus->topological_group();
-      
-      opt->update(nematus);
+      nematus->forward();
+      nematus->backward();
+
+      //opt->update(nematus);
 
       float cost = nematus->cost();
       sum += cost;

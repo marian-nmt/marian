@@ -382,15 +382,9 @@ class Nematus : public ExpressionGraph {
       auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
                             init=inits::zeros);
 
-      //d1 = dropout(d1, value=0.2);
-      //e2 = dropout(e2, value=0.2);
-      //c3 = dropout(c3, value=0.2);
-
-      auto t = tanhPlus3(affine(d1, W1, b1)
-                    , affine(e2, W2, b2)
-                    , affine(c3, W3, b3));
-
-      //t = dropout(t, value=0.2);
+      auto t = tanhPlus3(affine(d1, W1, b1),
+                         affine(e2, W2, b2),
+                         affine(c3, W3, b3));
 
       auto aff = affine(t, W4, b4);
 
@@ -400,8 +394,6 @@ class Nematus : public ExpressionGraph {
       // *** Cross entropy and cost across words and batch ***
       auto xe = cross_entropy(aff, picksTensor) * weights;
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
-
-      //debug(cost, "cost");
     }
 
     float cost() {
