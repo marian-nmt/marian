@@ -26,6 +26,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>3rd_party</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/3rd_party</locationURI>
+		</link>
+		<link>
 			<name>cnpy</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -44,6 +49,11 @@
 			<name>gpu</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/gpu</locationURI>
+		</link>
+		<link>
+			<name>plugin</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin</locationURI>
 		</link>
 		<link>
 			<name>cnpy/LICENSE</name>
