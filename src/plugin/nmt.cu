@@ -40,7 +40,7 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
 }
 
 
-void MosesPlugin::GeneratePhrases(const States& states, const std::string& lastWord, size_t numPhrases,
+void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
                                   std::vector<NeuralPhrase>& phrases) {
   Histories histories(sentences_);
 
@@ -151,6 +151,7 @@ States MosesPlugin::SetSource(const std::vector<std::string>& words) {
   States states(scorers_.size());
 
   for (size_t i = 0; i < scorers_.size(); ++i) {
+    states[i].reset(scorers_[i]->NewState());
     scorers_[i]->SetSource(sentences_);
     scorers_[i]->BeginSentenceState(*states[i], sentences_.size());
   }
