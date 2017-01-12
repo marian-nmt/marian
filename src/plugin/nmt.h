@@ -70,10 +70,11 @@ class MosesPlugin {
     // std::vector<double> RescoreNBestList(
         // const std::vector<std::string>& nbest,
         // const size_t maxBatchSize=64);
+
     void GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
                          std::vector<NeuralPhrase>& phrases);
 
-    States GenerateStates(const States& parentStates, std::vector<size_t> phrase);
+    States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
 
   private:
     bool debug_;

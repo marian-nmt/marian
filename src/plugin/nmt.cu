@@ -53,8 +53,9 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
   }
 
   States nextStates(scorers_.size());
-  for (size_t i = 0; i < scorers_.size(); ++i) 
+  for (size_t i = 0; i < scorers_.size(); ++i){
     nextStates[i].reset(scorers_[i]->NewState());
+  }
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
   size_t maxLength = 5;
@@ -121,7 +122,64 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
 }
 
-States MosesPlugin::GenerateStates(const States& parentStates, std::vector<size_t> phrase) {
+States MosesPlugin::GenerateStates(const States& ParentStates,
+                                   size_t lastWord,
+                                   std::vector<size_t>& phrase) {
+  Histories histories(sentences_);
+
+  size_t batchSize = 1;
+  std::vector<size_t> beamSizes(batchSize, 1);
+
+  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
+  for (size_t i = 0; i < histories.size(); ++i) {
+    histories.at(i)->Add(prevHyps);
+  }
+
+
+  States states(scorers_.size());
+  States nextStates(scorers_.size());
+  for (size_t i = 0; i < scorers_.size(); ++i) {
+    nextStates[i].reset(scorers_[i]->NewState());
+    states[i].reset(scorers_[i]->NewState());
+  }
+
+  Beam survivors;
+  for (size_t i = 0; i < batchSize; ++i) {
+    survivors.emplace_back(new Hypothesis(prevHyps[i], lastWord, 0, 0.f));
+  }
+
+  for (size_t i = 0; i < scorers_.size(); i++) {
+    scorers_[i]->AssembleBeamState(*ParentStates[i], survivors, *states[i]);
+  }
+
+  prevHyps.swap(survivors);
+
+  size_t vocabSize = scorers_[0]->GetVocabSize();
+
+  for (size_t decoderStep = 0; decoderStep < phrase.size(); ++decoderStep) {
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      Scorer &scorer = *scorers_[i];
+      State &state = *states[i];
+      State &nextState = *nextStates[i];
+
+      scorer.Score(state, nextState, beamSizes);
+    }
+
+    Beam survivors;
+    survivors.emplace_back(new Hypothesis(prevHyps[0], phrase[decoderStep], 0, 0.0f));
+
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+    }
+
+    prevHyps.swap(survivors);
+  }
+
+  for (auto scorer : scorers_) {
+	  scorer->CleanUpAfterSentence();
+  }
+
+  return states;
 
 }
 
