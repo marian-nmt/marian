@@ -53,7 +53,8 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
   }
 
   States nextStates(scorers_.size());
-
+  for (size_t i = 0; i < scorers_.size(); ++i) 
+    nextStates[i].reset(scorers_[i]->NewState());
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
   size_t maxLength = 5;
@@ -117,6 +118,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
     phrases.emplace_back(result.first, scores, 0, 1);
   }
+
 }
 
 /* void MosesPlugin::SetDevice() { */
