@@ -38,7 +38,7 @@ class MosesPlugin {
 
     static void initGod(const std::string& configPath);
 
-    States SetSource(const std::vector<std::string>& words);
+    States SetSource(const std::vector<size_t>& words);
 
     void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
 
@@ -70,8 +70,7 @@ class MosesPlugin {
     // std::vector<double> RescoreNBestList(
         // const std::vector<std::string>& nbest,
         // const size_t maxBatchSize=64);
-
-    void GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
+    void GeneratePhrases(const States& states, size_t lastWord, size_t numPhrases,
                          std::vector<NeuralPhrase>& phrases);
 
     States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
