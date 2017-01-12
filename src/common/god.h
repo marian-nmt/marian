@@ -48,9 +48,12 @@ class God {
 
     static Filter& GetFilter();
 
+    static BestHypsBase& GetCPUBestHyps();
+    static BestHypsBase& GetGPUBestHyps();
     static BestHypsBase &GetBestHyps(size_t threadId);
 
     static std::vector<ScorerPtr> GetScorers(size_t);
+    static std::vector<ScorerPtr> GetCPUScorers();
     static std::vector<std::string> GetScorerNames();
     static std::map<std::string, float>& GetScorerWeights();
 

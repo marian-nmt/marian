@@ -175,27 +175,43 @@ OutputCollector& God::GetOutputCollector() {
   return Summon().outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
+std::vector<ScorerPtr> God::GetCPUScorers() {
+  std::vector<ScorerPtr> scorers;
+  for (auto&& loader : Summon().cpuLoaders_ | boost::adaptors::map_values) {
+    scorers.emplace_back(loader->NewScorer(0));
+  }
+  return scorers;
+}
+
+std::vector<ScorerPtr> God::GetScorers(size_t taskId) {
   std::vector<ScorerPtr> scorers;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
 
-  if (threadId < cpuThreads) {
+  if (taskId < cpuThreads) {
     for (auto&& loader : Summon().cpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(threadId));
+      scorers.emplace_back(loader->NewScorer(taskId));
   } else {
     for (auto&& loader : Summon().gpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(threadId - cpuThreads));
+      scorers.emplace_back(loader->NewScorer(taskId - cpuThreads));
   }
   return scorers;
+}
+
+BestHypsBase& God::GetCPUBestHyps() {
+  return Summon().cpuLoaders_.begin()->second->GetBestHyps();
+}
+
+BestHypsBase& God::GetGPUBestHyps() {
+  return Summon().gpuLoaders_.begin()->second->GetBestHyps();
 }
 
 BestHypsBase &God::GetBestHyps(size_t threadId) {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (threadId < cpuThreads) {
-    return Summon().cpuLoaders_.begin()->second->GetBestHyps();
+    return God::GetCPUBestHyps();
   } else {
-    return Summon().gpuLoaders_.begin()->second->GetBestHyps();
+    return God::GetGPUBestHyps();
   }
 }
 
