@@ -42,12 +42,8 @@ class MosesPlugin {
 
     void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
 
-    // StateInfoPtr EmptyState();
-
-    // void PrintState(StateInfoPtr);
-
-
-    // size_t TargetVocab(const std::string& str);
+    size_t TargetVocab(const std::string& str);
+    size_t SourceVocab(const std::string& str);
 
     // void BatchSteps(const Batches& batches, LastWords& lastWords,
                     // Scores& probs, Scores& unks, StateInfos& stateInfos,

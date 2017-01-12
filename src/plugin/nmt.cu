@@ -22,8 +22,8 @@ MosesPlugin::MosesPlugin()
   : debug_(false),
     states_(new States()),
     firstWord_(true),
-    scorers_(God::GetScorers(1)),
-    bestHyps_(God::GetBestHyps(0))
+    scorers_(God::GetCPUScorers()),
+    bestHyps_(God::GetCPUBestHyps())
 {}
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
@@ -133,9 +133,13 @@ void MosesPlugin::GeneratePhrases(const States& states, const std::string& lastW
   /* states_->Clear(); */
 /* } */
 
-/* size_t MosesPlugin::TargetVocab(const std::string& str) { */
-  /* return (*trg_)[str]; */
-/* } */
+size_t MosesPlugin::TargetVocab(const std::string& str) {
+  return God::GetTargetVocab()[str];
+}
+
+size_t MosesPlugin::SourceVocab(const std::string& str) {
+  return God::GetSourceVocab(0)[str];
+}
 
 States MosesPlugin::SetSource(const std::vector<std::string>& words) {
   if (sentences_.size() == 0) {
