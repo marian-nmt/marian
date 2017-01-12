@@ -11,6 +11,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/decoder/encoder_decoder.h"
 #include "neural_phrase.h"
+#include "hypo_info.h"
 
 class Vocab;
 
@@ -74,6 +75,7 @@ class MosesPlugin {
                          std::vector<NeuralPhrase>& phrases);
 
     States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
+    void Rescore(const std::vector<HypoInfo> hypos);
 
   private:
     bool debug_;
