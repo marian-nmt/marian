@@ -75,7 +75,7 @@ class MosesPlugin {
                          std::vector<NeuralPhrase>& phrases);
 
     States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
-    void Rescore(const std::vector<HypoInfo> hypos);
+    void Rescore(const std::vector<HypoInfo> &hypos);
 
   private:
     bool debug_;
