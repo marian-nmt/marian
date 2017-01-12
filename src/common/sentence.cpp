@@ -21,8 +21,18 @@ Sentence::Sentence(size_t vLineNum, const std::string& line)
 
 Sentence::Sentence(size_t lineNum, const std::vector<std::string>& words)
   : lineNum(lineNum) {
-    auto processed = God::Preprocess(0, words);
+	std::vector<std::string> processed = God::Preprocess(0, words);
     words_.push_back(God::GetSourceVocab(0)(processed));
+}
+
+Sentence::Sentence(size_t vLineNum, const std::vector<size_t>& words)
+:words_(1)
+{
+	Words &sentence = words_[0];
+	sentence.resize(words.size());
+	for (size_t i = 0; i < words.size(); ++i) {
+		sentence[i] = words[i];
+	}
 }
 
 

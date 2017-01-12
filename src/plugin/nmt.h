@@ -38,7 +38,7 @@ class MosesPlugin {
 
     static void initGod(const std::string& configPath);
 
-    States SetSource(const std::vector<std::string>& words);
+    States SetSource(const std::vector<size_t>& words);
 
     void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
 
