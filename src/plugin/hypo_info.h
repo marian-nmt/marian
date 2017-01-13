@@ -5,6 +5,7 @@
  *      Author: hieu
  */
 #pragma once
+#include <string>
 #include "common/scorer.h"
 
 struct HypoInfo
@@ -14,6 +15,9 @@ struct HypoInfo
   States prevStates;
   States nextStates;
   float score;
+
+  std::string Debug() const;
+
 };
 
 
