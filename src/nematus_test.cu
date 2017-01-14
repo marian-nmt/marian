@@ -32,9 +32,9 @@ int main(int argc, char** argv) {
 
   auto nematus = New<Nematus>();
   nematus->load("../test/model.npz");
-  nematus->reserveWorkspaceMB(1024);
+  nematus->reserveWorkspaceMB(128);
 
-  
+
   auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
 
   float sum = 0;
@@ -47,6 +47,8 @@ int main(int argc, char** argv) {
       batch->debug();
 
       nematus->construct(*batch);
+      debug(nematus->get("Wemb"), "Wemb");
+      debug(nematus->get("cost"), "cost");
 
       nematus->graphviz("debug.dot");
 

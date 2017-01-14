@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 #include <set>
+#include <deque>
 
 #include "definitions.h"
 #include "tensors/tensor.h"
@@ -35,6 +36,7 @@ class TensorAllocatorBase {
     virtual void reserveExact(size_t) = 0;
     virtual void clear() = 0;
     virtual void allocate(Tensor&, Shape) = 0;
+    virtual void free(Tensor&) = 0;
     virtual size_t capacity() = 0;
     virtual size_t size() = 0;
     virtual Tensor asTensor() = 0;
@@ -48,64 +50,126 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     const size_t FLOATS = CHUNK * MBYTE / sizeof(float);
 
     Device device_;
-    std::vector<Tensor> allocated_;
+
+    typedef std::pair<size_t, float*> Gap;
+    std::set<Gap> gaps_;
+    Gap lastGap_;
+
+    std::deque<Tensor> allocated_;
 
     void reset(Tensor t, float* start) {
       t->reset(start);
     }
 
-    void resetAllocated() {
-      float* start = device_.data();
-      for(auto t : allocated_) {
-        reset(t, start);
-        start += t->size();
+    void resetAllocated(float* oldStart) {
+      gaps_.clear();
+      size_t prev = 0;
+      for(auto&& t : allocated_) {
+        size_t dist = t->data() - oldStart;
+        reset(t, device_.data() + dist);
+        if(dist > prev)
+          gaps_.emplace(dist - prev, device_.data() + prev);
+        prev = dist + t->size();
       }
+
+      if(allocated_.empty()) {
+        lastGap_ = { device_.capacity(), device_.data() };
+      }
+      else {
+        size_t used = allocated_.back()->data() - device_.data() + allocated_.back()->size();
+        size_t gap = device_.capacity() - used;
+        float* addr = allocated_.back()->data() + allocated_.back()->size();
+        lastGap_ = { gap, addr };
+      }
+
+      gaps_.insert(lastGap_);
     }
 
-    void checkSpace(Shape shape) {
-      float* start = device_.data();
-      if(!allocated_.empty()) {
-        start = allocated_.back()->data() + allocated_.back()->size();
-      }
+    auto getGap(Shape shape) -> decltype(gaps_.begin()) {
+      auto it = std::lower_bound(gaps_.begin(), gaps_.end(),
+                                 std::make_pair((size_t)shape.elements(), (float*)0));
+      return it;
+    }
 
-      size_t available = device_.data() + device_.capacity() - start;
-      if(shape.elements() > available) {
-        reserve(device_.capacity() - available + shape.elements());
+    auto checkSpace(Shape shape) -> decltype(gaps_.begin()) {
+      auto gapIt = getGap(shape);
+      if(gapIt == gaps_.end()) {
+        size_t incr = device_.capacity() - lastGap_.first + shape.elements();
+        reserve(device_.capacity() + incr);
+        gapIt = gaps_.find(lastGap_);
       }
+      return gapIt;
     }
 
   public:
+    TensorAllocatorDerived() {
+      lastGap_ = { device_.capacity(), device_.data() };
+      gaps_.insert(lastGap_);
+    }
+
     void reserve(size_t elements = 0) {
       float mult = elements / FLOATS + 1;
       std::cerr << "Extending reserved space to " << mult * CHUNK << " MB" << std::endl;
+
+      size_t old = device_.capacity();
+      float* oldStart = device_.data();
       device_.reserve(mult * FLOATS);
-      resetAllocated();
+      resetAllocated(oldStart);
     }
 
     void reserveExact(size_t elements = 0) {
       size_t mbytes = (elements * sizeof(float)) / MBYTE;
       std::cerr << "Reserving space for " << elements
         << " floats (" << mbytes << " MB)" << std::endl;
+
+      size_t old = device_.capacity();
+      float* oldStart = device_.data();
       device_.reserve(elements);
-      resetAllocated();
+      resetAllocated(oldStart);
     }
 
     void clear() {
+      gaps_.clear();
+      lastGap_ = { device_.capacity(), device_.data() };
+      gaps_.insert(lastGap_);
       allocated_.clear();
     }
 
     void allocate(Tensor &t, Shape shape) {
       if(!t || t->shape() != shape) {
-        checkSpace(shape);
-
-        float* start = device_.data();
-        if(!allocated_.empty()) {
-          start = allocated_.back()->data() + allocated_.back()->size();
-        }
-
+        auto it = checkSpace(shape);
+        float* start = it->second;
         t.reset(new typename Device::tensor_type(start, shape));
         allocated_.push_back(t);
+        if(it->first > t->size())
+          gaps_.emplace(it->first - t->size(), it->second + t->size());
+        gaps_.erase(it);
       }
+    }
+
+    void free(Tensor& t) {
+      auto it = allocated_.rbegin();
+      while(it != allocated_.rend()) {
+        if(*it == t) {
+          Gap gap = { t->size(), t->data() };
+          allocated_.erase(std::next(it).base());
+
+          auto it = gaps_.begin();
+          while(it != gaps_.end()) {
+            if(it->second + it->first  == gap.second) {
+              gap = { gap.first + it->first, it->second };
+            }
+            if(gap.second + gap.first == it->second) {
+              gap = { gap.first + it->first, gap.second };
+            }
+            it++;
+          }
+          gaps_.insert(gap);
+          break;
+        }
+        it++;
+      }
+      t.reset();
     }
 
     Tensor asTensor() {

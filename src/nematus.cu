@@ -159,7 +159,8 @@ int main(int argc, char** argv) {
 
       opt->update(nematus);
 
-      float cost = nematus->cost();
+      //float cost = nematus->cost();
+      float cost = 1;
       sum += cost;
       samples += batch->size();
       batches++;

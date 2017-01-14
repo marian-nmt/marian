@@ -13,6 +13,13 @@ size_t Node::allocate() {
   return elements;
 }
 
+void Node::free() {
+  if(val_)
+    graph_->free(val_);
+  if(adj_)
+    graph_->free(adj_);
+}
+
 void Node::init_dependent() {
   if(!adj_) {
     graph_->tensor(adj_, shape_);

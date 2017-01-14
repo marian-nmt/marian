@@ -98,6 +98,8 @@ class Node : public Chainable<Tensor>,
 
     virtual size_t allocate();
 
+    virtual void free();
+
     virtual void init() {};
 
     virtual void init_dependent();

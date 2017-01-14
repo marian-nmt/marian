@@ -131,11 +131,21 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     void forward() {
       params_.allocateForward();
 
+      //std::cerr << "fw 1" << std::endl;
+      //for(auto&& n: nodes_)
+      //  std::cerr << n->getId() << " " << n->name() << " " << n->edges() << std::endl;
+
       for(auto&& tape : tapes_) {
         for(auto&& v : tape) {
           v->allocate();
           v->init();
           v->forward();
+
+          // @TODO: should be done in node
+          for(auto&& child : v->children()) {
+            v->decreaseEdges(1);
+            child->decreaseEdges(1);
+          }
 
           if(v->marked_for_debug()) {
             std::cerr << "Debug: " << v->debug_message() << std::endl;
@@ -176,14 +186,25 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
             child->set_zero_adjoint();
         if(v->trainable())
           v->backward();
+        for(auto&& child : v->children()) {
+          v->decreaseEdges(1);
+          child->decreaseEdges(1);
+        }
 
         if(v->trainable() && v->marked_for_debug()) {
           std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
           std::cerr << v->grad()->debug() << std::endl;
         }
 
+        if(v->edges() == 0)
+          v->free();
+
         it++;
       }
+
+      //std::cerr << "bw 2" << std::endl;
+      //for(auto&& n: nodes_)
+      //  std::cerr << n->getId() << " " << n->name() << " " << n->edges() << std::endl;
 
       //auto gIt = tapes_.rbegin();
       //while(gIt != tapes_.rend()) {
@@ -407,8 +428,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       size_t group = 0;
 
       node->setId(count_++);
-      for(auto& child: node->children())
+      for(auto& child: node->children()) {
         group = std::max(group, tapeMap_[child] + 1);
+        child->increaseEdges(2);
+        node->increaseEdges(2);
+      }
       tapeMap_[node] = group;
       if(group >= tapes_.size())
         tapes_.resize(group + 1);
@@ -424,6 +448,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     template <class ...Args>
     void tensor(Tensor& t, Args&&... args) {
       tensors_->allocate(t, args...);
+    }
+
+    void free(Tensor& t) {
+      tensors_->free(t);
     }
 
     void clear() {

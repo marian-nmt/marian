@@ -64,6 +64,7 @@ struct Chainable {
     virtual void backward() { }
 
     virtual size_t allocate() = 0;
+    virtual void free() = 0;
     virtual void init() = 0;
     virtual void init_dependent() { }
     virtual void set_zero_adjoint() { }

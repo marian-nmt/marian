@@ -510,6 +510,7 @@ struct ReshapeNodeOp : public UnaryNodeOp {
     : UnaryNodeOp(a, keywords::shape=shape, args...) { }
 
   size_t allocate() { return 0; }
+  void free() {}
 
   void forward() {}
   void backward() {}
