@@ -46,22 +46,22 @@ int main(int argc, char** argv) {
   po::options_description general("General options");
 
   general.add_options()
-    ("model", po::value(&modelPrefix)->default_value("./model"),
+    ("model,m", po::value(&modelPrefix)->default_value("./model"),
      "Path prefix for model to be saved")
-    ("init", po::value(&modelInit),
+    ("init,i", po::value(&modelInit),
      "Load weights from  arg  before training")
     ("overwrite", po::value(&modelOverwrite)->default_value(false),
      "Overwrite model with following checkpoints")
 
-    ("source-corpus", po::value(&srcCorpusPath)->required(),
+    ("source-corpus,S", po::value(&srcCorpusPath)->required(),
      "Path to source language training corpus")
-    ("target-corpus", po::value(&trgCorpusPath)->required(),
+    ("target-corpus,T", po::value(&trgCorpusPath)->required(),
      "Path to target language training corpus")
-    ("source-vocab", po::value(&srcVocabPath)->required(),
+    ("source-vocab,s", po::value(&srcVocabPath)->required(),
      "Path to source vocab file")
-    ("target-vocab", po::value(&trgVocabPath)->required(),
+    ("target-vocab,t", po::value(&trgVocabPath)->required(),
      "Path to target vocab file")
-    ("max-epochs", po::value(&maxEpochs)->default_value(0),
+    ("max-epochs,e", po::value(&maxEpochs)->default_value(0),
      "Maximum number of epochs, 0 is infinity")
     ("max-batches", po::value(&maxBatches)->default_value(0),
      "Maximum number of batch updates, 0 is infinity")
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
      "Display information every  arg  updates")
     ("save-freq", po::value(&saveFreq)->default_value(10000),
      "Save model file every  arg  updates")
-    ("work-space", po::value(&workSpace)->default_value(4096),
+    ("work-space,w", po::value(&workSpace)->default_value(4096),
      "Preallocate  arg  MB of work space")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
@@ -79,11 +79,11 @@ int main(int argc, char** argv) {
   hyper.add_options()
     ("max-length", po::value(&maxSentenceLength)->default_value(50),
      "Maximum length of a sentence in a training sentence pair")
-    ("mini-batch", po::value(&miniBatchSize)->default_value(40),
+    ("mini-batch,b", po::value(&miniBatchSize)->default_value(40),
      "Size of mini-batch used during update")
     ("maxi-batch", po::value(&maxiBatchSize)->default_value(20),
      "Number of batches to preload for length-based sorting")
-    ("lrate", po::value(&lrate)->default_value(0.0001),
+    ("lrate,l", po::value(&lrate)->default_value(0.0001),
      "Learning rate for Adam algorithm")
     ("dim-src-vocab", po::value(&dimSrcVoc)->default_value(40000),
      "Size of source vocabulary")

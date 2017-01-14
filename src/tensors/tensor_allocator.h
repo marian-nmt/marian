@@ -148,28 +148,28 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     }
 
     void free(Tensor& t) {
-      auto it = allocated_.rbegin();
-      while(it != allocated_.rend()) {
-        if(*it == t) {
-          Gap gap = { t->size(), t->data() };
-          allocated_.erase(std::next(it).base());
-
-          auto it = gaps_.begin();
-          while(it != gaps_.end()) {
-            if(it->second + it->first  == gap.second) {
-              gap = { gap.first + it->first, it->second };
-            }
-            if(gap.second + gap.first == it->second) {
-              gap = { gap.first + it->first, gap.second };
-            }
-            it++;
-          }
-          gaps_.insert(gap);
-          break;
-        }
-        it++;
-      }
-      t.reset();
+      //auto it = allocated_.rbegin();
+      //while(it != allocated_.rend()) {
+      //  if(*it == t) {
+      //    Gap gap = { t->size(), t->data() };
+      //    allocated_.erase(std::next(it).base());
+      //
+      //    auto it = gaps_.begin();
+      //    while(it != gaps_.end()) {
+      //      if(it->second + it->first  == gap.second) {
+      //        gap = { gap.first + it->first, it->second };
+      //      }
+      //      if(gap.second + gap.first == it->second) {
+      //        gap = { gap.first + it->first, gap.second };
+      //      }
+      //      it++;
+      //    }
+      //    gaps_.insert(gap);
+      //    break;
+      //  }
+      //  it++;
+      //}
+      //t.reset();
     }
 
     Tensor asTensor() {
