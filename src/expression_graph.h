@@ -135,6 +135,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       //for(auto&& n: nodes_)
       //  std::cerr << n->getId() << " " << n->name() << " " << n->edges() << std::endl;
 
+      for(auto&& p : named_)
+        p.second->allocate();
+
       for(auto&& tape : tapes_) {
         for(auto&& v : tape) {
           v->allocate();
@@ -196,7 +199,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           std::cerr << v->grad()->debug() << std::endl;
         }
 
-        if(v->edges() == 0)
+        // delete unnamed nodes
+        if(v->edges() == 0 && v->name() == "none")
           v->free();
 
         it++;

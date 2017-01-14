@@ -93,6 +93,7 @@ class Node : public Chainable<Tensor>,
       debugMessage_ = message;
       markedForDebug_ = true;
     }
+
     virtual bool marked_for_debug() { return markedForDebug_; }
     virtual const std::string& debug_message() { return debugMessage_; }
 
