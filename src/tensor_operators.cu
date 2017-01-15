@@ -832,10 +832,11 @@ __global__ void gGRUFastBackward(float* outState,
           float dfdxW_x = t * adj;
           if(outXW) rowOutXW[l] += m * dfdxW_x;
           if(outSU) rowOutSU[l] += m * dfdxW_x * r;
-          if(final)
-            if(outB) atomicAdd(outB + l, m * dfdxW_x * r);
-          else
-            if(outB) atomicAdd(outB + l, m * dfdxW_x);
+          if(outB)
+            if(final)
+              atomicAdd(outB + l, m * dfdxW_x * r);
+            else
+              atomicAdd(outB + l, m * dfdxW_x);
         }
       }
     }
@@ -852,10 +853,10 @@ void GRUFastBackward(std::vector<Tensor>& outputs,
   int threads = std::min(MAX_THREADS, cols);
 
   gGRUFastBackward<<<blocks, threads>>>(
-    outputs[0] ? outputs[0]->data() : nullptr, // state - adj
-    outputs[1] ? outputs[1]->data() : nullptr, // xW - adj
-    outputs[2] ? outputs[2]->data() : nullptr, // sU - adj
-    outputs[3] ? outputs[3]->data() : nullptr, // b - adj
+    outputs[0] ? outputs[0]->data() : 0, // state - adj
+    outputs[1] ? outputs[1]->data() : 0, // xW - adj
+    outputs[2] ? outputs[2]->data() : 0, // sU - adj
+    outputs[3] ? outputs[3]->data() : 0, // b - adj
     inputs[0]->data(), // state
     inputs[1]->data(), // xW
     inputs[2]->data(), // sU
