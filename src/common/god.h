@@ -27,8 +27,8 @@ class God {
       return instance_;
     }
 
-    static bool Has(const std::string& key) {
-      return Summon().config_.Has(key);
+    bool Has(const std::string& key) {
+      return config_.Has(key);
     }
 
     template <typename T>
