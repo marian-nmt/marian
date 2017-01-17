@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 
   boost::shared_ptr<Sentences> sentences(new Sentences());
 
-  while(std::getline(God::GetInputStream(), in)) {
+  while(std::getline(God::Summon().GetInputStream(), in)) {
     Sentence *sentence = new Sentence(lineNum++, in);
     sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 

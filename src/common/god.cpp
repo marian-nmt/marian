@@ -168,7 +168,7 @@ Filter& God::GetFilter() {
 }
 
 std::istream& God::GetInputStream() {
-  return *Summon().inputStream_;
+  return *inputStream_;
 }
 
 OutputCollector& God::GetOutputCollector() {

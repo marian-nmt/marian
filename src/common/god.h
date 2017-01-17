@@ -43,7 +43,7 @@ class God {
     Vocab& GetSourceVocab(size_t i = 0);
     Vocab& GetTargetVocab();
 
-    static std::istream& GetInputStream();
+    std::istream& GetInputStream();
     static OutputCollector& GetOutputCollector();
 
     static Filter& GetFilter();
