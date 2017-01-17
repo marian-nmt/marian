@@ -77,7 +77,7 @@ cuda_add_library(amunmt SHARED
 )
 endif(PYTHONLIBS_FOUND)
 
-cuda_add_library(mosesplugin SHARED
+cuda_add_library(mosesplugin STATIC
   #plugin/nbest.cu
   plugin/nmt.cu
   gpu/decoder/encoder_decoder.cu
