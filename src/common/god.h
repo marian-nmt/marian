@@ -40,7 +40,8 @@ class God {
       return Summon().config_.Get(key);
     }
 
-    static Vocab& GetSourceVocab(size_t i = 0);
+    Vocab& GetSourceVocab(size_t i = 0);
+
     static Vocab& GetTargetVocab();
 
     static std::istream& GetInputStream();

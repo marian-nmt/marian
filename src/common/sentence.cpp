@@ -15,14 +15,14 @@ Sentence::Sentence(size_t vLineNum, const std::string& line)
     Trim(tab);
     Split(tab, lineTokens, " ");
     auto processed = God::Preprocess(i, lineTokens);
-    words_.push_back(God::GetSourceVocab(i++)(processed));
+    words_.push_back(God::Summon().GetSourceVocab(i++)(processed));
   }
 }
 
 Sentence::Sentence(size_t lineNum, const std::vector<std::string>& words)
   : lineNum(lineNum) {
     auto processed = God::Preprocess(0, words);
-    words_.push_back(God::GetSourceVocab(0)(processed));
+    words_.push_back(God::Summon().GetSourceVocab(0)(processed));
 }
 
 
