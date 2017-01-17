@@ -113,7 +113,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
   for (size_t i = 0; i < nbl.size(); ++i) {
     const Result& result = nbl[i];
-    auto words = God::Postprocess(God::GetTargetVocab()(result.first));
+    auto words = God::Postprocess(God::Summon().GetTargetVocab()(result.first));
     auto& scores = result.second->GetCostBreakdown();
 
     phrases.emplace_back(words, scores, 0, 1);

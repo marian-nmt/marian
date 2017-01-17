@@ -41,8 +41,7 @@ class God {
     }
 
     Vocab& GetSourceVocab(size_t i = 0);
-
-    static Vocab& GetTargetVocab();
+    Vocab& GetTargetVocab();
 
     static std::istream& GetInputStream();
     static OutputCollector& GetOutputCollector();
