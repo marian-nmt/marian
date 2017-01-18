@@ -36,10 +36,12 @@ const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 
 ////////////////////////////////////////////
 
-EncoderDecoder::EncoderDecoder(const std::string& name,
-               const YAML::Node& config,
-               size_t tab,
-               const Weights& model)
+EncoderDecoder::EncoderDecoder(
+		God &god,
+		const std::string& name,
+        const YAML::Node& config,
+        size_t tab,
+        const Weights& model)
   : Scorer(name, config, tab),
     model_(model),
     encoder_(new Encoder(model_)),
@@ -143,7 +145,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
   size_t d = weights_[i]->GetDevice();
   cudaSetDevice(d);
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-  return ScorerPtr(new EncoderDecoder(name_, config_,
+  return ScorerPtr(new EncoderDecoder(God::Summon(), name_, config_,
                                       tab, *weights_[i]));
 }
 
