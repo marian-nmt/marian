@@ -15,7 +15,7 @@ using namespace GPU;
 
 void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
-  God::Init(configs);
+  God::Summon().Init(configs);
 }
 
 MosesPlugin::MosesPlugin()

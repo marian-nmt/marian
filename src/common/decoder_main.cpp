@@ -14,7 +14,7 @@
 #include "common/translation_task.h"
 
 int main(int argc, char* argv[]) {
-  God::Init(argc, argv);
+  God::Summon().Init(argc, argv);
   std::setvbuf(stdout, NULL, _IONBF, 0);
   std::setvbuf(stdin, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;

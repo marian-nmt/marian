@@ -18,14 +18,15 @@ class InputFileStream;
 
 class God {
   public:
-    virtual ~God();
-
-    static God& Init(const std::string&);
-    static God& Init(int argc, char** argv);
-
     static God& Summon() {
       return instance_;
     }
+
+    virtual ~God();
+
+    God& Init(const std::string&);
+    God& Init(int argc, char** argv);
+
 
     bool Has(const std::string& key) {
       return config_.Has(key);
@@ -62,13 +63,12 @@ class God {
     void LoadWeights(const std::string& path);
 
   private:
-    God& NonStaticInit(int argc, char** argv);
+    static God instance_;
 
     void LoadScorers();
     void LoadFiltering();
     void LoadPrePostProcessing();
 
-    static God instance_;
     Config config_;
 
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;

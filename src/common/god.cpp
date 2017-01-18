@@ -31,7 +31,49 @@ God& God::Init(const std::string& options) {
 }
 
 God& God::Init(int argc, char** argv) {
-  return Summon().NonStaticInit(argc, argv);
+  info_ = spdlog::stderr_logger_mt("info");
+  info_->set_pattern("[%c] (%L) %v");
+
+  progress_ = spdlog::stderr_logger_mt("progress");
+  progress_->set_pattern("%v");
+
+  config_.AddOptions(argc, argv);
+  config_.LogOptions();
+
+  if(Get("source-vocab").IsSequence()) {
+	for(auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab"))
+	  sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
+  }
+  else {
+	sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));
+  }
+  targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
+
+  weights_ = Get<std::map<std::string, float>>("weights");
+
+  if(Get<bool>("show-weights")) {
+	LOG(info) << "Outputting weights and exiting";
+	for(auto && pair : weights_) {
+	  std::cout << pair.first << "= " << pair.second << std::endl;
+	}
+	exit(0);
+  }
+
+  LoadScorers();
+  LoadFiltering();
+
+  if (Has("input-file")) {
+	LOG(info) << "Reading from " << Get<std::string>("input-file");
+	inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));
+  }
+  else {
+	LOG(info) << "Reading from stdin";
+	inputStream_.reset(new InputFileStream(std::cin));
+  }
+
+  LoadPrePostProcessing();
+
+  return *this;
 }
 
 void God::LoadScorers() {
@@ -107,52 +149,6 @@ void God::LoadPrePostProcessing() {
     LOG(info) << "De-BPE output";
     postprocessors_.emplace_back(new BPE());
   }
-}
-
-God& God::NonStaticInit(int argc, char** argv) {
-  info_ = spdlog::stderr_logger_mt("info");
-  info_->set_pattern("[%c] (%L) %v");
-
-  progress_ = spdlog::stderr_logger_mt("progress");
-  progress_->set_pattern("%v");
-
-  config_.AddOptions(argc, argv);
-  config_.LogOptions();
-
-  if(Get("source-vocab").IsSequence()) {
-    for(auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab"))
-      sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
-  }
-  else {
-    sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));
-  }
-  targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
-
-  weights_ = Get<std::map<std::string, float>>("weights");
-
-  if(Get<bool>("show-weights")) {
-    LOG(info) << "Outputting weights and exiting";
-    for(auto && pair : weights_) {
-      std::cout << pair.first << "= " << pair.second << std::endl;
-    }
-    exit(0);
-  }
-
-  LoadScorers();
-  LoadFiltering();
-
-  if (Has("input-file")) {
-    LOG(info) << "Reading from " << Get<std::string>("input-file");
-    inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));
-  }
-  else {
-    LOG(info) << "Reading from stdin";
-    inputStream_.reset(new InputFileStream(std::cin));
-  }
-
-  LoadPrePostProcessing();
-
-  return *this;
 }
 
 Vocab& God::GetSourceVocab(size_t i) {
