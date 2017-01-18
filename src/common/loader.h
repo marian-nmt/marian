@@ -27,7 +27,7 @@ class Loader {
     }
 
     virtual ScorerPtr NewScorer(size_t) = 0;
-    virtual BestHypsBase &GetBestHyps() = 0;
+    virtual BestHypsBase &GetBestHyps(God &god) = 0;
 
     const std::string& GetName() {
       return name_;

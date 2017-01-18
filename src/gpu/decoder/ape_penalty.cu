@@ -91,7 +91,7 @@ ScorerPtr ApePenaltyLoader::NewScorer(size_t taskId) {
                                   srcTrgMap_, penalties_));
 }
 
-BestHypsBase *ApePenaltyLoader::GetBestHyps() {
+BestHypsBase *ApePenaltyLoader::GetBestHyps(God &god) {
   return new GPU::BestHyps();
 }
 

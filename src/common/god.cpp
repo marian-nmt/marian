@@ -189,9 +189,9 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
 BestHypsBase &God::GetBestHyps(size_t threadId) {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (threadId < cpuThreads) {
-    return cpuLoaders_.begin()->second->GetBestHyps();
+    return cpuLoaders_.begin()->second->GetBestHyps(God::Summon());
   } else {
-    return gpuLoaders_.begin()->second->GetBestHyps();
+    return gpuLoaders_.begin()->second->GetBestHyps(God::Summon());
   }
 }
 
