@@ -22,7 +22,7 @@ class BestHyps : public BestHypsBase
                   mblas::CudaStreamHandler::GetStream()),
       keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
       Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
-      weights_(God::GetScorerWeights())
+      weights_(God::Summon().GetScorerWeights())
     {
       //std::cerr << "BestHyps::BestHyps" << std::endl;
     }

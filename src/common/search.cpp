@@ -10,8 +10,8 @@
 using namespace std;
 
 Search::Search(size_t threadId)
-  : scorers_(God::GetScorers(threadId)),
-    bestHyps_(God::GetBestHyps(threadId)) {
+  : scorers_(God::Summon().GetScorers(threadId)),
+    bestHyps_(God::Summon().GetBestHyps(threadId)) {
 }
 
 

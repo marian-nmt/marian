@@ -181,10 +181,10 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
 
   if (threadId < cpuThreads) {
-    for (auto&& loader : Summon().cpuLoaders_ | boost::adaptors::map_values)
+    for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(threadId));
   } else {
-    for (auto&& loader : Summon().gpuLoaders_ | boost::adaptors::map_values)
+    for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(threadId - cpuThreads));
   }
   return scorers;
@@ -193,23 +193,23 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
 BestHypsBase &God::GetBestHyps(size_t threadId) {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (threadId < cpuThreads) {
-    return Summon().cpuLoaders_.begin()->second->GetBestHyps();
+    return cpuLoaders_.begin()->second->GetBestHyps();
   } else {
-    return Summon().gpuLoaders_.begin()->second->GetBestHyps();
+    return gpuLoaders_.begin()->second->GetBestHyps();
   }
 }
 
 std::vector<std::string> God::GetScorerNames() {
   std::vector<std::string> scorerNames;
-  for(auto&& name : Summon().cpuLoaders_ | boost::adaptors::map_keys)
+  for(auto&& name : cpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
-  for(auto&& name : Summon().gpuLoaders_ | boost::adaptors::map_keys)
+  for(auto&& name : gpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
   return scorerNames;
 }
 
 std::map<std::string, float>& God::GetScorerWeights() {
-  return Summon().weights_;
+  return weights_;
 }
 
 std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) {

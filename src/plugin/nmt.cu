@@ -22,8 +22,8 @@ MosesPlugin::MosesPlugin()
   : debug_(false),
     states_(new States()),
     firstWord_(true),
-    scorers_(God::GetScorers(1)),
-    bestHyps_(God::GetBestHyps(1))
+    scorers_(God::Summon().GetScorers(1)),
+    bestHyps_(God::Summon().GetBestHyps(1))
 {}
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {

@@ -31,7 +31,7 @@ public:
         bool returnAlignment) {
     using namespace mblas;
 
-    auto& weights = God::GetScorerWeights();
+    auto& weights = God::Summon().GetScorerWeights();
 
     mblas::ArrayMatrix& Probs = static_cast<mblas::ArrayMatrix&>(scorers[0]->GetProbs());
 

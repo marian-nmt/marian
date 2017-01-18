@@ -48,11 +48,11 @@ class God {
 
     Filter& GetFilter();
 
-    static BestHypsBase &GetBestHyps(size_t threadId);
+    BestHypsBase &GetBestHyps(size_t threadId);
 
-    static std::vector<ScorerPtr> GetScorers(size_t);
-    static std::vector<std::string> GetScorerNames();
-    static std::map<std::string, float>& GetScorerWeights();
+    std::vector<ScorerPtr> GetScorers(size_t);
+    std::vector<std::string> GetScorerNames();
+    std::map<std::string, float>& GetScorerWeights();
 
     static std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input);
     static std::vector<std::string> Postprocess(const std::vector<std::string>& input);

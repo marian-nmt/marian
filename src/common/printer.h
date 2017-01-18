@@ -32,7 +32,7 @@ void Printer(const History& history, OStream& out) {
   // }
 
   if(God::Get<bool>("n-best")) {
-    std::vector<std::string> scorerNames = God::GetScorerNames();
+    std::vector<std::string> scorerNames = God::Summon().GetScorerNames();
     const NBestList &nbl = history.NBest(God::Get<size_t>("beam-size"));
     if(God::Get<bool>("wipo")) {
       out << "OUT: " << nbl.size() << std::endl;
