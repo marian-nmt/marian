@@ -16,7 +16,7 @@ Search::Search(size_t threadId)
 
 
 size_t Search::MakeFilter(const std::set<Word>& srcWords, size_t vocabSize) {
-  filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
+  filterIndices_ = God::Summon().GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
   }

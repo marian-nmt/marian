@@ -164,7 +164,7 @@ Vocab& God::GetTargetVocab() {
 }
 
 Filter& God::GetFilter() {
-  return *(Summon().filter_);
+  return *filter_;
 }
 
 std::istream& God::GetInputStream() {
@@ -172,7 +172,7 @@ std::istream& God::GetInputStream() {
 }
 
 OutputCollector& God::GetOutputCollector() {
-  return Summon().outputCollector_;
+  return outputCollector_;
 }
 
 std::vector<ScorerPtr> God::GetScorers(size_t threadId) {

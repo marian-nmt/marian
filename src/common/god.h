@@ -44,9 +44,9 @@ class God {
     Vocab& GetTargetVocab();
 
     std::istream& GetInputStream();
-    static OutputCollector& GetOutputCollector();
+    OutputCollector& GetOutputCollector();
 
-    static Filter& GetFilter();
+    Filter& GetFilter();
 
     static BestHypsBase &GetBestHyps(size_t threadId);
 
