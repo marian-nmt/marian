@@ -48,7 +48,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const State& in, State& out, const std::vector<size_t>& beamSizes) {
+void EncoderDecoder::Score(God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 

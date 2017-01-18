@@ -64,7 +64,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(state, nextState, beamSizes);
+      scorer.Score(God::Summon(), state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {

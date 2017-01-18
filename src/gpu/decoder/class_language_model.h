@@ -18,7 +18,7 @@ class ClassLanguageModel : public LanguageModel {
       classes_(LoadClasses(classPath))
     {}
     
-    virtual void Score(const State& in,
+    virtual void Score(God &god, const State& in,
                        Prob& prob,
                        State& out) {
       

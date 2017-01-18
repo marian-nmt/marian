@@ -80,7 +80,7 @@ boost::shared_ptr<Histories> Search::Decode(God &god, const Sentences& sentences
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(state, nextState, beamSizes);
+      scorer.Score(god, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
