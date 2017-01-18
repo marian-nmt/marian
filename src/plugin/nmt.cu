@@ -42,7 +42,7 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
 
 void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
                                   std::vector<NeuralPhrase>& phrases) {
-  Histories histories(sentences_);
+  Histories histories(God::Summon(), sentences_);
 
   size_t batchSize = 1;
   std::vector<size_t> beamSizes(batchSize, 1);

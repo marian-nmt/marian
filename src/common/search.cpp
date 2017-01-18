@@ -38,7 +38,7 @@ void Search::InitScorers(const Sentences& sentences, States& states, States& nex
 boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  boost::shared_ptr<Histories> ret(new Histories(sentences));
+  boost::shared_ptr<Histories> ret(new Histories(God::Summon(), sentences));
 
   size_t batchSize = sentences.size();
   std::vector<size_t> beamSizes(batchSize, 1);
