@@ -46,7 +46,7 @@ EncoderDecoder::EncoderDecoder(
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(model_)),
-    indices_(God::Summon().Get<size_t>("beam-size")),
+    indices_(god.Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {}
 
@@ -140,12 +140,12 @@ void EncoderDecoderLoader::Load() {
   }
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(size_t taskId) {
+ScorerPtr EncoderDecoderLoader::NewScorer(God &god, size_t taskId) {
   size_t i = taskId % weights_.size();
   size_t d = weights_[i]->GetDevice();
   cudaSetDevice(d);
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-  return ScorerPtr(new EncoderDecoder(God::Summon(), name_, config_,
+  return ScorerPtr(new EncoderDecoder(god, name_, config_,
                                       tab, *weights_[i]));
 }
 

@@ -178,10 +178,10 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
 
   if (threadId < cpuThreads) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(threadId));
+      scorers.emplace_back(loader->NewScorer(*this, threadId));
   } else {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(threadId - cpuThreads));
+      scorers.emplace_back(loader->NewScorer(*this, threadId - cpuThreads));
   }
   return scorers;
 }
