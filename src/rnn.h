@@ -252,6 +252,7 @@ class GRUWithAttention {
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       using namespace keywords;
 
+    
       auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
       auto hidden = mask ?
