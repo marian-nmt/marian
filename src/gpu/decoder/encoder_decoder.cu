@@ -44,7 +44,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(model_)),
-    indices_(God::Get<size_t>("beam-size")),
+    indices_(God::Summon().Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {}
 
@@ -123,7 +123,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
 void EncoderDecoderLoader::Load() {
   std::string path = Get<std::string>("path");
-  auto devices = God::Get<std::vector<size_t>>("devices");
+  auto devices = God::Summon().Get<std::vector<size_t>>("devices");
   ThreadPool devicePool(devices.size());
   weights_.resize(devices.size());
 

@@ -69,7 +69,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-        beamSize = God::Get<size_t>("beam-size");
+        beamSize = God::Summon().Get<size_t>("beam-size");
       }
     }
 
@@ -109,7 +109,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 	  scorer->CleanUpAfterSentence();
   }
 
-  const NBestList &nbl = histories.at(0)->NBest(God::Get<size_t>("beam-size"));
+  const NBestList &nbl = histories.at(0)->NBest(God::Summon().Get<size_t>("beam-size"));
 
   for (size_t i = 0; i < nbl.size(); ++i) {
     const Result& result = nbl[i];

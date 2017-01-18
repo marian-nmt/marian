@@ -22,7 +22,7 @@ class History {
   public:
 
     History(size_t lineNo)
-      : normalize_(God::Get<bool>("normalize"))
+      : normalize_(God::Summon().Get<bool>("normalize"))
       , lineNo_(lineNo)
     {}
 

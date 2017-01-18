@@ -60,7 +60,7 @@ public:
     std::vector<size_t> bestKeys(beamSize);
     std::vector<float> bestCosts(beamSize);
 
-    if (!God::Get<bool>("allow-unk")) {
+    if (!God::Summon().Get<bool>("allow-unk")) {
       blaze::column(Probs, UNK) = std::numeric_limits<float>::lowest();
     }
 
@@ -73,7 +73,7 @@ public:
     }
 
     std::vector<std::vector<float>> breakDowns;
-    bool doBreakdown = God::Get<bool>("n-best");
+    bool doBreakdown = God::Summon().Get<bool>("n-best");
     if (doBreakdown) {
       breakDowns.push_back(bestCosts);
       for (auto& scorer : scorers) {
@@ -86,7 +86,7 @@ public:
       }
     }
 
-    bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+    bool filter = God::Summon().Get<std::vector<std::string>>("softmax-filter").size();
 
     for (size_t i = 0; i < beamSize; i++) {
       size_t wordIndex = bestKeys[i] % Probs.columns();

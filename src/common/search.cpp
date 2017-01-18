@@ -54,7 +54,7 @@ boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
 
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
-  bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+  bool filter = God::Summon().Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
     std::set<Word> srcWords;
     for (size_t i = 0; i < sentences.size(); ++i) {
@@ -85,11 +85,11 @@ boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-        beamSize = God::Get<size_t>("beam-size");
+        beamSize = God::Summon().Get<size_t>("beam-size");
       }
     }
     Beams beams(batchSize);
-    bool returnAlignment = God::Get<bool>("return-alignment");
+    bool returnAlignment = God::Summon().Get<bool>("return-alignment");
 
     bestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
 

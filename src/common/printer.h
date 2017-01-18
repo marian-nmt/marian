@@ -31,10 +31,10 @@ void Printer(const History& history, OStream& out) {
     // LOG(progress) << "ALIGN: " << ss.str();
   // }
 
-  if(God::Get<bool>("n-best")) {
+  if(God::Summon().Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = God::Summon().GetScorerNames();
-    const NBestList &nbl = history.NBest(God::Get<size_t>("beam-size"));
-    if(God::Get<bool>("wipo")) {
+    const NBestList &nbl = history.NBest(God::Summon().Get<size_t>("beam-size"));
+    if(God::Summon().Get<bool>("wipo")) {
       out << "OUT: " << nbl.size() << std::endl;
     }
     for(size_t i = 0; i < nbl.size(); ++i) {
@@ -42,13 +42,13 @@ void Printer(const History& history, OStream& out) {
       const Words &words = result.first;
       const HypothesisPtr &hypo = result.second;
 
-      if(God::Get<bool>("wipo"))
+      if(God::Summon().Get<bool>("wipo"))
         out << "OUT: ";
       out << history.GetLineNum() << " ||| " << Join(God::Summon().Postprocess(God::Summon().GetTargetVocab()(words))) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
-      if(God::Get<bool>("normalize")) {
+      if(God::Summon().Get<bool>("normalize")) {
         out << " ||| " << hypo->GetCost() / words.size() << std::endl;
       }
       else {

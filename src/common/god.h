@@ -32,8 +32,8 @@ class God {
     }
 
     template <typename T>
-    static T Get(const std::string& key) {
-      return Summon().config_.Get<T>(key);
+    T Get(const std::string& key) {
+      return config_.Get<T>(key);
     }
 
     YAML::Node Get(const std::string& key) {
