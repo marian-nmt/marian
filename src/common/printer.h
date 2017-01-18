@@ -9,8 +9,8 @@
 #include "common/soft_alignment.h"
 
 template <class OStream>
-void Printer(const History& history, OStream& out) {
-  std::string best = Join(God::Summon().Postprocess(God::Summon().GetTargetVocab()(history.Top().first)));
+void Printer(God &god, const History& history, OStream& out) {
+  std::string best = Join(god.Postprocess(god.GetTargetVocab()(history.Top().first)));
   //LOG(progress) << "Best translation: " << best;
 
   // if (God::Get<bool>("return-alignment")) {
@@ -31,10 +31,10 @@ void Printer(const History& history, OStream& out) {
     // LOG(progress) << "ALIGN: " << ss.str();
   // }
 
-  if(God::Summon().Get<bool>("n-best")) {
-    std::vector<std::string> scorerNames = God::Summon().GetScorerNames();
-    const NBestList &nbl = history.NBest(God::Summon().Get<size_t>("beam-size"));
-    if(God::Summon().Get<bool>("wipo")) {
+  if(god.Get<bool>("n-best")) {
+    std::vector<std::string> scorerNames = god.GetScorerNames();
+    const NBestList &nbl = history.NBest(god.Get<size_t>("beam-size"));
+    if(god.Get<bool>("wipo")) {
       out << "OUT: " << nbl.size() << std::endl;
     }
     for(size_t i = 0; i < nbl.size(); ++i) {
@@ -42,13 +42,13 @@ void Printer(const History& history, OStream& out) {
       const Words &words = result.first;
       const HypothesisPtr &hypo = result.second;
 
-      if(God::Summon().Get<bool>("wipo"))
+      if(god.Get<bool>("wipo"))
         out << "OUT: ";
-      out << history.GetLineNum() << " ||| " << Join(God::Summon().Postprocess(God::Summon().GetTargetVocab()(words))) << " |||";
+      out << history.GetLineNum() << " ||| " << Join(god.Postprocess(god.GetTargetVocab()(words))) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
-      if(God::Summon().Get<bool>("normalize")) {
+      if(god.Get<bool>("normalize")) {
         out << " ||| " << hypo->GetCost() / words.size() << std::endl;
       }
       else {
@@ -62,10 +62,10 @@ void Printer(const History& history, OStream& out) {
 }
 
 template <class OStream>
-void Printer(const Histories& histories, OStream& out) {
+void Printer(God &god, const Histories& histories, OStream& out) {
 
   for (size_t i = 0; i < histories.size(); ++i) {
     const History& history = *histories.at(i).get();
-    Printer(history, out);
+    Printer(god, history, out);
   }
 }
