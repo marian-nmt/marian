@@ -84,7 +84,7 @@ void God::LoadScorers() {
   if (gpuThreads > 0 && devices.size() > 0) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      gpuLoaders_.emplace(name, LoaderFactory::Create(name, pair.second, "GPU"));
+      gpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, "GPU"));
     }
   }
 #endif
@@ -92,7 +92,7 @@ void God::LoadScorers() {
   if (cpuThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      cpuLoaders_.emplace(name, LoaderFactory::Create(name, pair.second, "CPU"));
+      cpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, "CPU"));
     }
   }
 }

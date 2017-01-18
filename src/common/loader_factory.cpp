@@ -15,13 +15,14 @@
 
 
 LoaderPtr LoaderFactory::Create(
+    God &god,
     const std::string& name,
     const YAML::Node& config,
     const std::string& mode) {
 	Loader *loader;
 
   if (HAS_GPU_SUPPORT && (mode == "GPU")) {
-    loader = CreateGPU(name, config);
+    loader = CreateGPU(god, name, config);
     if (loader) {
       return LoaderPtr(loader);
     } else {
@@ -30,7 +31,7 @@ LoaderPtr LoaderFactory::Create(
   }
 
 
-  loader = CreateCPU(name, config);
+  loader = CreateCPU(god, name, config);
   if (loader) {
     return LoaderPtr(loader);
   }
@@ -41,6 +42,7 @@ LoaderPtr LoaderFactory::Create(
 
 #ifdef CUDA
 Loader *LoaderFactory::CreateGPU(
+    God &god,
     const std::string& name,
     const YAML::Node& config) {
   UTIL_THROW_IF2(!config["type"],
@@ -66,8 +68,10 @@ Loader *LoaderFactory::CreateGPU(
 #endif
 
 
-Loader *LoaderFactory::CreateCPU(const std::string& name,
-            const YAML::Node& config) {
+Loader *LoaderFactory::CreateCPU(
+		God &god,
+		const std::string& name,
+        const YAML::Node& config) {
   UTIL_THROW_IF2(!config["type"],
          "Missing scorer type in config file");
   std::string type = config["type"].as<std::string>();
