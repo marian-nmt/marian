@@ -9,7 +9,7 @@ void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t ta
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(taskCounter));
+    search.reset(new Search(god, taskCounter));
   }
 
   try {
