@@ -6,7 +6,7 @@
 #include "common/exception.h"
 #include "common/loader.h"
 
-#define IF_MATCH_RETURN(typeVar, typeStr, LoaderType) \
+#define IF_MATCH_RETURN(god, typeVar, typeStr, LoaderType) \
 do { \
   if(typeVar == typeStr) { \
     Loader *loader = new LoaderType(name, config); \
