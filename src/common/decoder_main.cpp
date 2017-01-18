@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 
   size_t bunchSize = God::Get<size_t>("bunch-size");
   size_t maxBatchSize = God::Get<size_t>("batch-size");
-  std::cerr << "mode=" << God::Get("mode") << std::endl;
+  std::cerr << "mode=" << God::Summon().Get("mode") << std::endl;
 
   if (God::Get<bool>("wipo") || God::Get<size_t>("cpu-threads")) {
     bunchSize = 1;
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
   delete pool;
 
   LOG(info) << "Total time: " << timer.format();
-  God::CleanUp();
+  God::Summon().CleanUp();
 
   return 0;
 }

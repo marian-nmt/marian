@@ -36,8 +36,8 @@ class God {
       return Summon().config_.Get<T>(key);
     }
 
-    static YAML::Node Get(const std::string& key) {
-      return Summon().config_.Get(key);
+    YAML::Node Get(const std::string& key) {
+      return config_.Get(key);
     }
 
     Vocab& GetSourceVocab(size_t i = 0);
@@ -57,7 +57,7 @@ class God {
     std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input);
     std::vector<std::string> Postprocess(const std::vector<std::string>& input);
 
-    static void CleanUp();
+    void CleanUp();
 
     void LoadWeights(const std::string& path);
 

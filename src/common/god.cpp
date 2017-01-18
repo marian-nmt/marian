@@ -231,10 +231,10 @@ std::vector<std::string> God::Postprocess(const std::vector<std::string>& input)
 }
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
-  for (auto& loader : Summon().cpuLoaders_ | boost::adaptors::map_values) {
+  for (auto& loader : cpuLoaders_ | boost::adaptors::map_values) {
      loader.reset(nullptr);
   }
-  for (auto& loader : Summon().gpuLoaders_ | boost::adaptors::map_values) {
+  for (auto& loader : gpuLoaders_ | boost::adaptors::map_values) {
      loader.reset(nullptr);
   }
 }
