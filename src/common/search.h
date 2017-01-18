@@ -11,7 +11,7 @@
 class Search {
   public:
     Search(God &god, size_t threadId);
-    boost::shared_ptr<Histories> Decode(const Sentences& sentences);
+    boost::shared_ptr<Histories> Decode(God &god, const Sentences& sentences);
 
   private:
     Search(const Search &) = delete;

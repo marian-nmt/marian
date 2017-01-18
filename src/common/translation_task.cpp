@@ -23,7 +23,7 @@ void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t ta
 
       if (decodeSentences->size() >= maxBatchSize) {
         assert(decodeSentences->size());
-        boost::shared_ptr<Histories> histories = search->Decode(*decodeSentences);
+        boost::shared_ptr<Histories> histories = search->Decode(god, *decodeSentences);
         allHistories.Append(*histories.get());
 
         decodeSentences.reset(new Sentences(taskCounter, bunchId++));
@@ -31,7 +31,7 @@ void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t ta
     }
 
     if (decodeSentences->size()) {
-      boost::shared_ptr<Histories> histories = search->Decode(*decodeSentences);
+      boost::shared_ptr<Histories> histories = search->Decode(god, *decodeSentences);
       allHistories.Append(*histories.get());
     }
 
