@@ -18,6 +18,7 @@ void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t ta
 
     size_t bunchId = 0;
     boost::shared_ptr<Sentences> decodeSentences(new Sentences(taskCounter, bunchId++));
+
     for (size_t i = 0; i < sentences->size(); ++i) {
       decodeSentences->push_back(sentences->at(i));
 
@@ -42,7 +43,6 @@ void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t ta
 
     OutputCollector &outputCollector = god.GetOutputCollector();
     outputCollector.Write(taskCounter, strm.str());
-    //std::cerr << "TranslationTaskEnd" << std::endl;
   }
   catch(thrust::system_error &e)
   {
@@ -63,9 +63,6 @@ void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t ta
   {
     std::cerr << "Some other kind of error during some_function" << std::endl;
     abort();
-
-    // no idea what to do, so just rethrow the exception
-    //throw;
   }
 
 }

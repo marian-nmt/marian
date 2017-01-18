@@ -9,8 +9,11 @@ Sentence::Sentence(God &god, size_t vLineNum, const std::string& line)
 {
   std::vector<std::string> tabs;
   Split(line, tabs, "\t");
+  if (tabs.size() == 0) {
+    tabs.push_back("");
+  }
   size_t i = 0;
-  for(auto&& tab : tabs) {
+  for (auto& tab : tabs) {
     std::vector<std::string> lineTokens;
     Trim(tab);
     Split(tab, lineTokens, " ");
