@@ -123,9 +123,9 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)
  : Loader(name, config) {}
 
-void EncoderDecoderLoader::Load() {
+void EncoderDecoderLoader::Load(God &god) {
   std::string path = Get<std::string>("path");
-  auto devices = God::Summon().Get<std::vector<size_t>>("devices");
+  auto devices = god.Get<std::vector<size_t>>("devices");
   ThreadPool devicePool(devices.size());
   weights_.resize(devices.size());
 

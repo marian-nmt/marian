@@ -77,7 +77,7 @@ class EncoderDecoderLoader : public Loader {
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
 
-    virtual void Load();
+    virtual void Load(God &god);
 
     virtual ScorerPtr NewScorer(God &god, size_t taskId);
     virtual BestHypsBase &GetBestHyps(God &god);

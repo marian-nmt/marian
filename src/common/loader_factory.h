@@ -10,7 +10,7 @@
 do { \
   if(typeVar == typeStr) { \
     Loader *loader = new LoaderType(name, config); \
-    loader->Load(); \
+    loader->Load(god); \
     return loader; \
   } \
 } while(0)
