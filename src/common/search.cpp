@@ -91,7 +91,7 @@ boost::shared_ptr<Histories> Search::Decode(God &god, const Sentences& sentences
     Beams beams(batchSize);
     bool returnAlignment = god.Get<bool>("return-alignment");
 
-    bestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+    bestHyps_(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {

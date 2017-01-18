@@ -13,7 +13,8 @@ public:
   BestHypsBase() {}
   BestHypsBase(const BestHypsBase&) = delete;
 
-  virtual void operator()(std::vector<Beam>& beams,
+  virtual void operator()(God &god,
+		std::vector<Beam>& beams,
         const Beam& prevHyps,
         std::vector<size_t>& beamSizes,
         const std::vector<ScorerPtr>& scorers,

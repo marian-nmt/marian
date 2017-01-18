@@ -23,7 +23,8 @@ struct ProbCompare {
 class BestHyps : public BestHypsBase
 {
 public:
-  void operator()(std::vector<Beam>& beams,
+  void operator()(God &god,
+		std::vector<Beam>& beams,
         const Beam& prevHyps,
         std::vector<size_t>& beamSizes,
         const std::vector<ScorerPtr>& scorers,

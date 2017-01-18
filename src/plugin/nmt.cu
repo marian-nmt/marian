@@ -75,7 +75,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
     Beams beams(batchSize);
 
-    bestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
+    bestHyps_(God::Summon(), beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
