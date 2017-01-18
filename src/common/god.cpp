@@ -152,11 +152,11 @@ void God::LoadPrePostProcessing() {
 }
 
 Vocab& God::GetSourceVocab(size_t i) {
-  return *(Summon().sourceVocabs_[i]);
+  return *sourceVocabs_[i];
 }
 
 Vocab& God::GetTargetVocab() {
-  return *Summon().targetVocab_;
+  return *targetVocab_;
 }
 
 Filter& God::GetFilter() {
@@ -189,9 +189,9 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
 BestHypsBase &God::GetBestHyps(size_t threadId) {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (threadId < cpuThreads) {
-    return cpuLoaders_.begin()->second->GetBestHyps(God::Summon());
+    return cpuLoaders_.begin()->second->GetBestHyps(*this);
   } else {
-    return gpuLoaders_.begin()->second->GetBestHyps(God::Summon());
+    return gpuLoaders_.begin()->second->GetBestHyps(*this);
   }
 }
 
@@ -210,7 +210,7 @@ std::map<std::string, float>& God::GetScorerWeights() {
 
 std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) {
   std::vector<std::string> processed = input;
-  if (Summon().preprocessors_.size() >= i + 1) {
+  if (preprocessors_.size() >= i + 1) {
     for (const auto& processor : preprocessors_[i]) {
       processed = processor->Preprocess(processed);
     }
