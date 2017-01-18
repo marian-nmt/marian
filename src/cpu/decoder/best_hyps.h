@@ -32,7 +32,7 @@ public:
         bool returnAlignment) {
     using namespace mblas;
 
-    auto& weights = God::Summon().GetScorerWeights();
+    auto& weights = god.GetScorerWeights();
 
     mblas::ArrayMatrix& Probs = static_cast<mblas::ArrayMatrix&>(scorers[0]->GetProbs());
 
@@ -61,7 +61,7 @@ public:
     std::vector<size_t> bestKeys(beamSize);
     std::vector<float> bestCosts(beamSize);
 
-    if (!God::Summon().Get<bool>("allow-unk")) {
+    if (!god.Get<bool>("allow-unk")) {
       blaze::column(Probs, UNK) = std::numeric_limits<float>::lowest();
     }
 
@@ -74,7 +74,7 @@ public:
     }
 
     std::vector<std::vector<float>> breakDowns;
-    bool doBreakdown = God::Summon().Get<bool>("n-best");
+    bool doBreakdown = god.Get<bool>("n-best");
     if (doBreakdown) {
       breakDowns.push_back(bestCosts);
       for (auto& scorer : scorers) {
@@ -87,7 +87,7 @@ public:
       }
     }
 
-    bool filter = God::Summon().Get<std::vector<std::string>>("softmax-filter").size();
+    bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
 
     for (size_t i = 0; i < beamSize; i++) {
       size_t wordIndex = bestKeys[i] % Probs.columns();

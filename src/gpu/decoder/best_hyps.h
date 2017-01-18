@@ -17,12 +17,12 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
-    BestHyps()
-    : nthElement_(God::Summon().Get<size_t>("beam-size"), God::Summon().Get<size_t>("batch-size"),
+    BestHyps(God &god)
+    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("batch-size"),
                   mblas::CudaStreamHandler::GetStream()),
-      keys(God::Summon().Get<size_t>("beam-size") * God::Summon().Get<size_t>("batch-size")),
-      Costs(God::Summon().Get<size_t>("beam-size") * God::Summon().Get<size_t>("batch-size")),
-      weights_(God::Summon().GetScorerWeights())
+      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),
+      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),
+      weights_(god.GetScorerWeights())
     {
       //std::cerr << "BestHyps::BestHyps" << std::endl;
     }
