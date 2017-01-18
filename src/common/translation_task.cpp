@@ -4,7 +4,7 @@
 #include "output_collector.h"
 #include "printer.h"
 
-void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
+void TranslationTask(God &god, boost::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
   //std::cerr << "TranslationTaskStart" << std::endl;
   thread_local std::unique_ptr<Search> search;
   if(!search) {
@@ -38,9 +38,9 @@ void TranslationTask(boost::shared_ptr<Sentences> sentences, size_t taskCounter,
     allHistories.SortByLineNum();
 
     std::stringstream strm;
-    Printer(God::Summon(), allHistories, strm);
+    Printer(god, allHistories, strm);
 
-    OutputCollector &outputCollector = God::Summon().GetOutputCollector();
+    OutputCollector &outputCollector = god.GetOutputCollector();
     outputCollector.Write(taskCounter, strm.str());
     //std::cerr << "TranslationTaskEnd" << std::endl;
   }

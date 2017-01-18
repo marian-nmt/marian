@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     if (sentences->size() >= maxBatchSize * bunchSize) {
 
       pool->enqueue(
-          [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
+          [=]{ return TranslationTask(God::Summon(), sentences, taskCounter, maxBatchSize); }
       );
 
       sentences.reset(new Sentences());
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 
   if (sentences->size()) {
     pool->enqueue(
-        [=]{ return TranslationTask(sentences, taskCounter, maxBatchSize); }
+        [=]{ return TranslationTask(God::Summon(), sentences, taskCounter, maxBatchSize); }
     );
   }
 
