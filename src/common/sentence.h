@@ -4,12 +4,14 @@
 #include <boost/shared_ptr.hpp>
 #include "types.h"
 
+class God;
+
 class Sentence {
   public:
     size_t lineNum;
 
-    Sentence(size_t vLineNum, const std::string& line);
-    Sentence(size_t vLineNum, const std::vector<std::string>& words);
+    Sentence(God &god, size_t vLineNum, const std::string& line);
+    Sentence(God &god, size_t vLineNum, const std::vector<std::string>& words);
 
     const Words& GetWords(size_t index = 0) const;
 
