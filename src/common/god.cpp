@@ -215,7 +215,7 @@ std::map<std::string, float>& God::GetScorerWeights() {
 std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) {
   std::vector<std::string> processed = input;
   if (Summon().preprocessors_.size() >= i + 1) {
-    for (const auto& processor : Summon().preprocessors_[i]) {
+    for (const auto& processor : preprocessors_[i]) {
       processed = processor->Preprocess(processed);
     }
   }
@@ -224,7 +224,7 @@ std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string
 
 std::vector<std::string> God::Postprocess(const std::vector<std::string>& input) {
   std::vector<std::string> processed = input;
-  for (const auto& processor : Summon().postprocessors_) {
+  for (const auto& processor : postprocessors_) {
     processed = processor->Postprocess(processed);
   }
   return processed;

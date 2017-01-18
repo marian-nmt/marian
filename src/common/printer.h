@@ -10,7 +10,7 @@
 
 template <class OStream>
 void Printer(const History& history, OStream& out) {
-  std::string best = Join(God::Postprocess(God::Summon().GetTargetVocab()(history.Top().first)));
+  std::string best = Join(God::Summon().Postprocess(God::Summon().GetTargetVocab()(history.Top().first)));
   //LOG(progress) << "Best translation: " << best;
 
   // if (God::Get<bool>("return-alignment")) {
@@ -44,7 +44,7 @@ void Printer(const History& history, OStream& out) {
 
       if(God::Get<bool>("wipo"))
         out << "OUT: ";
-      out << history.GetLineNum() << " ||| " << Join(God::Postprocess(God::Summon().GetTargetVocab()(words))) << " |||";
+      out << history.GetLineNum() << " ||| " << Join(God::Summon().Postprocess(God::Summon().GetTargetVocab()(words))) << " |||";
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
