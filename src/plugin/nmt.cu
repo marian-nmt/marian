@@ -27,6 +27,11 @@ MosesPlugin::MosesPlugin()
     bestHyps_(god_->GetBestHyps(1))
 {}
 
+MosesPlugin::~MosesPlugin()
+{
+	delete god_;
+}
+
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
   int num_gpus = 0; // number of CUDA GPUs
   cudaGetDeviceCount(&num_gpus);

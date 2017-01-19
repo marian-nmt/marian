@@ -27,7 +27,8 @@ typedef std::vector<size_t> LastWords;
 class MosesPlugin {
   public:
     MosesPlugin();
-
+		~MosesPlugin();
+		
     static size_t GetDevices(size_t = 1);
     void SetDevice();
     size_t GetDevice();
