@@ -98,10 +98,10 @@ class Decoder {
     template <class Weights>
     class Alignment {
       public:
-        Alignment(const Weights& model)
+        Alignment(God &god, const Weights& model)
           : w_(model),
             WC_(w_.C_(0,0)),
-            dBatchMapping_(God::Summon().Get<size_t>("batch-size") * God::Summon().Get<size_t>("beam-size"), 0)
+            dBatchMapping_(god.Get<size_t>("batch-size") * god.Get<size_t>("beam-size"), 0)
         {}
 
         void Init(const mblas::Matrix& SourceContext) {
@@ -245,11 +245,11 @@ class Decoder {
     };
 
   public:
-    Decoder(const Weights& model)
+    Decoder(God &god, const Weights& model)
     : embeddings_(model.decEmbeddings_),
       rnn1_(model.decInit_, model.decGru1_),
       rnn2_(model.decGru2_),
-      alignment_(model.decAlignment_),
+      alignment_(god, model.decAlignment_),
       softmax_(model.decSoftmax_)
     {}
 

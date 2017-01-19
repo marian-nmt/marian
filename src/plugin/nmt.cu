@@ -15,15 +15,16 @@ using namespace GPU;
 
 void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
-  God::Summon().Init(configs);
+  god_ = new God();
+  god_->Init(configs);
 }
 
 MosesPlugin::MosesPlugin()
   : debug_(false),
     states_(new States()),
     firstWord_(true),
-    scorers_(God::Summon().GetScorers(1)),
-    bestHyps_(God::Summon().GetBestHyps(1))
+    scorers_(god_->GetScorers(1)),
+    bestHyps_(god_->GetBestHyps(1))
 {}
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
@@ -42,7 +43,7 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
 
 void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
                                   std::vector<NeuralPhrase>& phrases) {
-  Histories histories(God::Summon(), sentences_);
+  Histories histories(*god_, sentences_);
 
   size_t batchSize = 1;
   std::vector<size_t> beamSizes(batchSize, 1);
@@ -64,18 +65,18 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(God::Summon(), state, nextState, beamSizes);
+      scorer.Score(*god_, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-        beamSize = God::Summon().Get<size_t>("beam-size");
+        beamSize = god_->Get<size_t>("beam-size");
       }
     }
 
     Beams beams(batchSize);
 
-    bestHyps_(God::Summon(), beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
+    bestHyps_(*god_, beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
@@ -109,11 +110,11 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 	  scorer->CleanUpAfterSentence();
   }
 
-  const NBestList &nbl = histories.at(0)->NBest(God::Summon().Get<size_t>("beam-size"));
+  const NBestList &nbl = histories.at(0)->NBest(god_->Get<size_t>("beam-size"));
 
   for (size_t i = 0; i < nbl.size(); ++i) {
     const Result& result = nbl[i];
-    auto words = God::Summon().Postprocess(God::Summon().GetTargetVocab()(result.first));
+    auto words = god_->Postprocess(god_->GetTargetVocab()(result.first));
     auto& scores = result.second->GetCostBreakdown();
 
     phrases.emplace_back(words, scores, 0, 1);
@@ -139,9 +140,9 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
 States MosesPlugin::SetSource(const std::vector<std::string>& words) {
   if (sentences_.size() == 0) {
-    sentences_.push_back(boost::shared_ptr<Sentence>(new Sentence(God::Summon(), 0, words)));
+    sentences_.push_back(boost::shared_ptr<Sentence>(new Sentence(*god_, 0, words)));
   } else {
-    sentences_.at(0).reset(new Sentence(God::Summon(), 0, words));
+    sentences_.at(0).reset(new Sentence(*god_, 0, words));
   }
 
   States states(scorers_.size());

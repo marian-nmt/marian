@@ -10,6 +10,12 @@
 #include "common/types.h"
 #include "common/base_best_hyps.h"
 #include "common/output_collector.h"
+#include "common/vocab.h"
+#include "common/threadpool.h"
+#include "common/file_stream.h"
+#include "common/filter.h"
+#include "common/processor/bpe.h"
+#include "common/utils.h"
 
 class Weights;
 class Vocab;
@@ -18,10 +24,6 @@ class InputFileStream;
 
 class God {
   public:
-    static God& Summon() {
-      return instance_;
-    }
-
     virtual ~God();
 
     God& Init(const std::string&);
@@ -63,8 +65,6 @@ class God {
     void LoadWeights(const std::string& path);
 
   private:
-    static God instance_;
-
     void LoadScorers();
     void LoadFiltering();
     void LoadPrePostProcessing();

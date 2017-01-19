@@ -14,7 +14,8 @@
 #include "common/translation_task.h"
 
 int main(int argc, char* argv[]) {
-  God::Summon().Init(argc, argv);
+  God *god = new God();
+  god->Init(argc, argv);
   std::setvbuf(stdout, NULL, _IONBF, 0);
   std::setvbuf(stdin, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
@@ -23,22 +24,22 @@ int main(int argc, char* argv[]) {
   std::size_t lineNum = 0;
   std::size_t taskCounter = 0;
 
-  size_t bunchSize = God::Summon().Get<size_t>("bunch-size");
-  size_t maxBatchSize = God::Summon().Get<size_t>("batch-size");
-  std::cerr << "mode=" << God::Summon().Get("mode") << std::endl;
+  size_t bunchSize = god->Get<size_t>("bunch-size");
+  size_t maxBatchSize = god->Get<size_t>("batch-size");
+  std::cerr << "mode=" << god->Get("mode") << std::endl;
 
-  if (God::Summon().Get<bool>("wipo") || God::Summon().Get<size_t>("cpu-threads")) {
+  if (god->Get<bool>("wipo") || god->Get<size_t>("cpu-threads")) {
     bunchSize = 1;
     maxBatchSize = 1;
   }
 
-  size_t cpuThreads = God::Summon().Get<size_t>("cpu-threads");
+  size_t cpuThreads = god->Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
   size_t totalThreads = cpuThreads;
 #ifdef CUDA
-  size_t gpuThreads = God::Summon().Get<size_t>("gpu-threads");
-  auto devices = God::Summon().Get<std::vector<size_t>>("devices");
+  size_t gpuThreads = god->Get<size_t>("gpu-threads");
+  auto devices = god->Get<std::vector<size_t>>("devices");
   LOG(info) << "Setting GPU thread count to " << gpuThreads;
   totalThreads += gpuThreads * devices.size();
 #endif
@@ -51,14 +52,14 @@ int main(int argc, char* argv[]) {
 
   boost::shared_ptr<Sentences> sentences(new Sentences());
 
-  while(std::getline(God::Summon().GetInputStream(), in)) {
-    Sentence *sentence = new Sentence(God::Summon(), lineNum++, in);
+  while(std::getline(god->GetInputStream(), in)) {
+    Sentence *sentence = new Sentence(*god, lineNum++, in);
     sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
 
     if (sentences->size() >= maxBatchSize * bunchSize) {
 
       pool->enqueue(
-          [=]{ return TranslationTask(God::Summon(), sentences, taskCounter, maxBatchSize); }
+          [=]{ return TranslationTask(*god, sentences, taskCounter, maxBatchSize); }
       );
 
       sentences.reset(new Sentences());
@@ -69,14 +70,15 @@ int main(int argc, char* argv[]) {
 
   if (sentences->size()) {
     pool->enqueue(
-        [=]{ return TranslationTask(God::Summon(), sentences, taskCounter, maxBatchSize); }
+        [=]{ return TranslationTask(*god, sentences, taskCounter, maxBatchSize); }
     );
   }
 
   delete pool;
 
   LOG(info) << "Total time: " << timer.format();
-  God::Summon().CleanUp();
+  god->CleanUp();
+  delete god;
 
   return 0;
 }

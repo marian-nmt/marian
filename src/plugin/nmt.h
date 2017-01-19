@@ -36,7 +36,7 @@ class MosesPlugin {
       debug_ = debug;
     }
 
-    static void initGod(const std::string& configPath);
+    void initGod(const std::string& configPath);
 
     States SetSource(const std::vector<std::string>& s);
 
@@ -80,6 +80,8 @@ class MosesPlugin {
   private:
     bool debug_;
 
+    God *god_;
+    
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
     BestHypsBase &bestHyps_;

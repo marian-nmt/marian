@@ -45,7 +45,7 @@ EncoderDecoder::EncoderDecoder(
   : Scorer(name, config, tab),
     model_(model),
     encoder_(new Encoder(model_)),
-    decoder_(new Decoder(model_)),
+    decoder_(new Decoder(god, model_)),
     indices_(god.Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {}

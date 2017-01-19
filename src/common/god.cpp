@@ -16,8 +16,6 @@
 #include "scorer.h"
 #include "loader_factory.h"
 
-God God::instance_;
-
 God::~God(){}
 
 God& God::Init(const std::string& options) {
