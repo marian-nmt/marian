@@ -17,14 +17,15 @@ void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
   god_ = new God();
   god_->Init(configs);
+  
+  scorers_ = god_->GetScorers(1);
+  bestHyps_ = &god_->GetBestHyps(1);
 }
 
 MosesPlugin::MosesPlugin()
   : debug_(false),
     states_(new States()),
-    firstWord_(true),
-    scorers_(god_->GetScorers(1)),
-    bestHyps_(god_->GetBestHyps(1))
+    firstWord_(true)
 {}
 
 MosesPlugin::~MosesPlugin()
@@ -81,7 +82,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
     Beams beams(batchSize);
 
-    bestHyps_(*god_, beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
+    (*bestHyps_)(*god_, beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
