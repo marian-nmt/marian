@@ -2,11 +2,11 @@
 #include "sentence.h"
 
 Histories::Histories(God &god, const Sentences& sentences)
-:coll_(sentences.size())
+ : coll_(sentences.size())
 {
   for (size_t i = 0; i < sentences.size(); ++i) {
     const Sentence &sentence = *sentences.at(i).get();
-    History *history = new History(god, sentence.lineNum);
+    History *history = new History(god, sentence.GetLineNum());
     coll_[i].reset(history);
   }
 }

@@ -52,9 +52,8 @@ int main(int argc, char* argv[]) {
 
   boost::shared_ptr<Sentences> sentences(new Sentences());
 
-  while(std::getline(god->GetInputStream(), in)) {
-    Sentence *sentence = new Sentence(*god, lineNum++, in);
-    sentences->push_back(boost::shared_ptr<const Sentence>(sentence));
+  while (std::getline(god->GetInputStream(), in)) {
+    sentences->push_back(SentencePtr(new Sentence(*god, lineNum++, in)));
 
     if (sentences->size() >= maxBatchSize * bunchSize) {
 
