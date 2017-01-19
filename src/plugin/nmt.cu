@@ -139,7 +139,7 @@ void MosesPlugin::GeneratePhrases(const States& states, std::string& lastWord, s
 
 States MosesPlugin::SetSource(const std::vector<std::string>& words) {
   if (sentences_.size() == 0) {
-    sentences_.push_back(boost::shared_ptr<Sentence>(new Sentence(0, words)));
+    sentences_.push_back(SentencePtr(new Sentence(0, words)));
   } else {
     sentences_.at(0).reset(new Sentence(0, words));
   }
