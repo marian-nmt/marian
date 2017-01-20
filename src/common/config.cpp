@@ -313,7 +313,7 @@ void Config::AddOptions(size_t argc, char** argv) {
     OverwriteBPE(config_, bpePaths);
   }
 
-  if (Get<bool>("relative-paths"))
+  if (Get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
 
   Validate(config_);
@@ -324,6 +324,7 @@ void Config::AddOptions(size_t argc, char** argv) {
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
+
 }
 
 void Config::LogOptions() {
