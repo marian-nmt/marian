@@ -277,19 +277,52 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
 }
 
-__global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols, const int* batchID, int batchNum, const int* srcMapping, int srcNum) {
+__global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
+                         const int* batchID,
+                         int batchNum,
+                         const int* srcMapping,
+                         int srcNum) {
   extern __shared__ float _share[];
 
   int rowIdx =  blockIdx.x;
 
   while (rowIdx < rows) {
-    float* _sum = _share;// + blockDim.x;
     float* row = softMaxP + rowIdx * cols;
+
+    float* _max = _share;
+    _max[threadIdx.x] = row[threadIdx.x];
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        float value = row[id];
+        value *= srcMapping[ batchID[rowIdx] * srcNum + id ];
+        if (value > _max[threadIdx.x]) {
+          _max[threadIdx.x] = value;
+        }
+      }
+    }
+
+    int len = blockDim.x;
+    while (len != 1) {
+      __syncthreads();
+
+      int skip = (len + 1) >> 1;
+      if (threadIdx.x < (len >> 1)) {
+        if(_max[threadIdx.x + skip] > _max[threadIdx.x])
+          _max[threadIdx.x] = _max[threadIdx.x + skip];
+      }
+      len = (len + 1) >> 1;
+    }
+    __syncthreads();
+    float max = _max[0];
+    __syncthreads();
+
+    float* _sum = _share;// + blockDim.x;
     _sum[threadIdx.x] = 0.0f;
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
-        row[id] = __expf(row[id]);
+        row[id] = __expf(row[id] - max);
         row[id] *= srcMapping[ batchID[rowIdx] * srcNum + id ];
         _sum[threadIdx.x] += row[id];
       }
@@ -297,7 +330,7 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols, const int* b
 
     __syncthreads();
 
-    int len = blockDim.x;
+    len = blockDim.x;
     while (len != 1) {
       __syncthreads();
 
@@ -339,18 +372,46 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
   int rowIdx =  blockIdx.x;
 
   while (rowIdx < rows) {
-    float* _sum = _share;// + blockDim.x;
     float* row = softMaxP + rowIdx * cols;
-    _sum[threadIdx.x] = 0.0f;
+
+    float* _max = _share;
+    _max[threadIdx.x] = row[threadIdx.x];
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
-        row[id] = __expf(row[id]);
-        _sum[threadIdx.x] += row[id];
+        if (row[id] > _max[threadIdx.x]) {
+          _max[threadIdx.x] = row[id];
+        }
       }
     }
 
     int len = blockDim.x;
+    while (len != 1) {
+      __syncthreads();
+
+      int skip = (len + 1) >> 1;
+      if (threadIdx.x < (len >> 1)) {
+        if(_max[threadIdx.x + skip] > _max[threadIdx.x])
+          _max[threadIdx.x] = _max[threadIdx.x + skip];
+      }
+      len = (len + 1) >> 1;
+    }
+    __syncthreads();
+    float max = _max[0];
+    __syncthreads();
+
+    float* _sum = _share;// + blockDim.x;
+
+    _sum[threadIdx.x] = 0.0f;
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] = __expf(row[id] - max);
+        _sum[threadIdx.x] += row[id];
+      }
+    }
+
+    len = blockDim.x;
     while (len != 1) {
       __syncthreads();
 
@@ -447,4 +508,3 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
 
 }  // namespace mblas
 }  // namespace GPU
-
