@@ -15,7 +15,7 @@
 #include "common/translation_task.h"
 
 int main(int argc, char* argv[]) {
-  God *god = new God();
+  God* god = new God();
   god->Init(argc, argv);
   std::setvbuf(stdout, NULL, _IONBF, 0);
   std::setvbuf(stdin, NULL, _IONBF, 0);

@@ -35,6 +35,7 @@ add_library(libcommon OBJECT
   common/processor/bpe.cpp
   common/utils.cpp
   common/vocab.cpp
+  common/translation_task.cpp
 )
 
 if(CUDA_FOUND)
@@ -54,7 +55,6 @@ cuda_add_executable(
 
 
   common/loader_factory.cpp
-  common/translation_task.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>

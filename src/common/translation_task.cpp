@@ -5,7 +5,6 @@
 #include "printer.h"
 
 void TranslationTask(God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
-  //std::cerr << "TranslationTaskStart" << std::endl;
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
@@ -44,11 +43,13 @@ void TranslationTask(God &god, std::shared_ptr<Sentences> sentences, size_t task
     OutputCollector &outputCollector = god.GetOutputCollector();
     outputCollector.Write(taskCounter, strm.str());
   }
+#ifdef CUDA
   catch(thrust::system_error &e)
   {
     std::cerr << "CUDA error during some_function: " << e.what() << std::endl;
     abort();
   }
+#endif
   catch(std::bad_alloc &e)
   {
     std::cerr << "Bad memory allocation during some_function: " << e.what() << std::endl;
