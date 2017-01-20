@@ -15,7 +15,7 @@
 
 God *god_;
 
-History TranslationTask(const std::string& in, size_t taskCounter) {
+std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
   thread_local std::unique_ptr<Search> search;
 
   if(!search) {
@@ -23,8 +23,9 @@ History TranslationTask(const std::string& in, size_t taskCounter) {
     search.reset(new Search(*god_, taskCounter));
   }
 
-
-  //return search->Decode(Sentence(taskCounter, in));
+  std::shared_ptr<Sentences> sentences(new Sentences());
+  sentences->push_back(SentencePtr(new Sentence(*god_, taskCounter, in)));
+  return search->Decode(*god_, *sentences);
 }
 
 void init(const std::string& options) {
@@ -48,7 +49,7 @@ boost::python::list translate(boost::python::list& in) {
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   ThreadPool pool(totalThreads);
-  std::vector<std::future<History>> results;
+  std::vector<std::future< std::shared_ptr<Histories> >> results;
 
   boost::python::list output;
   for(int i = 0; i < boost::python::len(in); ++i) {
@@ -64,7 +65,7 @@ boost::python::list translate(boost::python::list& in) {
 
   for (auto&& result : results) {
     std::stringstream ss;
-    //Printer(result.get(), lineCounter++, ss);
+    Printer(*god_, *result.get().get(), ss);
     output.append(ss.str());
   }
 
