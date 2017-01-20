@@ -2,6 +2,7 @@
 #include <memory>
 #include <iostream>
 #include <boost/thread/tss.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include "common/processor/processor.h"
 #include "common/config.h"
@@ -26,6 +27,7 @@ class Search;
 
 class God {
   public:
+  God();
     virtual ~God();
 
     God& Init(const std::string&);
@@ -93,5 +95,8 @@ class God {
     std::unique_ptr<InputFileStream> inputStream_;
     OutputCollector outputCollector_;
 
+    mutable boost::shared_mutex m_accessLock;
     mutable boost::thread_specific_ptr<Search> search_;
+    size_t numGPUThreads_;
+
 };

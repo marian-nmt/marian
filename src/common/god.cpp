@@ -17,7 +17,14 @@
 #include "scorer.h"
 #include "loader_factory.h"
 
+God::God()
+:numGPUThreads_(0)
+{
+
+}
+
 God::~God() {}
+
 
 God& God::Init(const std::string& options) {
   std::vector<std::string> args = boost::program_options::split_unix(options);
@@ -239,8 +246,15 @@ Search &God::GetSearch(size_t taskCounter)
   Search *obj;
   obj = search_.get();
   if (obj == NULL) {
-    obj = new Search(*this, taskCounter);
+    boost::unique_lock<boost::shared_mutex> lock(m_accessLock);
+
+    size_t maxGPUThreads = God::Get<size_t>("gpu-threads");
+    DeviceType deviceType = (numGPUThreads_ < maxGPUThreads) ? GPUDevice : CPUDevice;
+    ++numGPUThreads_;
+
+    obj = new Search(*this, deviceType, taskCounter);
     search_.reset(obj);
+
   }
   assert(obj);
   return *obj;
