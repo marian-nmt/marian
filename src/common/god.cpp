@@ -16,7 +16,7 @@
 #include "scorer.h"
 #include "loader_factory.h"
 
-God::~God(){}
+God::~God() {}
 
 God& God::Init(const std::string& options) {
   std::vector<std::string> args = boost::program_options::split_unix(options);

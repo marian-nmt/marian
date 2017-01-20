@@ -57,7 +57,6 @@ int main(int argc, char* argv[]) {
     sentences->push_back(SentencePtr(new Sentence(*god, lineNum++, in)));
 
     if (sentences->size() >= maxBatchSize * bunchSize) {
-
       pool->enqueue(
           [=]{ return TranslationTask(*god, sentences, taskCounter, maxBatchSize); }
       );
