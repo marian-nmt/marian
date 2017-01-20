@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include "types.h"
 
 class God;

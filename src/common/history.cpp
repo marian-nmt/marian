@@ -22,7 +22,7 @@ History::History(God &god, size_t lineNo)
 class LineNumOrderer
 {
 public:
-  bool operator()(const boost::shared_ptr<History> &a, const boost::shared_ptr<History> &b) const
+  bool operator()(const std::shared_ptr<History> &a, const std::shared_ptr<History> &b) const
   {
     return a->GetLineNum() < b->GetLineNum();
   }
@@ -37,7 +37,7 @@ void Histories::SortByLineNum()
 void Histories::Append(const Histories &other)
 {
   for (size_t i = 0; i < other.size(); ++i) {
-    boost::shared_ptr<History> history = other.coll_[i];
+    std::shared_ptr<History> history = other.coll_[i];
     coll_.push_back(history);
   }
 }

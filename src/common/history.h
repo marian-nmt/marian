@@ -82,7 +82,7 @@ class Histories {
   Histories() {} // for all histories in translation task
   Histories(God &god, const Sentences& sentences);
 
-  boost::shared_ptr<History> at(size_t id) const {
+  std::shared_ptr<History> at(size_t id) const {
     return coll_.at(id);
   }
 
@@ -94,7 +94,7 @@ class Histories {
   void Append(const Histories &other);
 
  protected:
-  std::vector< boost::shared_ptr<History> > coll_;
+  std::vector< std::shared_ptr<History> > coll_;
 
   Histories(const Histories &) = delete;
 };

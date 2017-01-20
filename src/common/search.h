@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <boost/shared_ptr.hpp>
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "common/base_best_hyps.h"
@@ -11,7 +10,7 @@
 class Search {
   public:
     Search(God &god, size_t threadId);
-    boost::shared_ptr<Histories> Decode(God &god, const Sentences& sentences);
+    std::shared_ptr<Histories> Decode(God &god, const Sentences& sentences);
 
   private:
     Search(const Search &) = delete;

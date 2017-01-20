@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <memory>
 #include <boost/timer/timer.hpp>
 #include <boost/thread/tss.hpp>
 
@@ -50,7 +51,7 @@ int main(int argc, char* argv[]) {
   ThreadPool *pool = new ThreadPool(totalThreads);
   LOG(info) << "Reading input";
 
-  boost::shared_ptr<Sentences> sentences(new Sentences());
+  std::shared_ptr<Sentences> sentences(new Sentences());
 
   while (std::getline(god->GetInputStream(), in)) {
     sentences->push_back(SentencePtr(new Sentence(*god, lineNum++, in)));
