@@ -10,17 +10,16 @@
 
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 
+std::string GetAlignmentString(const std::vector<size_t>& alignment);
+
 template <class OStream>
 void Printer(God &god, const History& history, OStream& out) {
   auto bestTranslation = history.Top();
   std::vector<std::string> bestSentenceWords = god.Postprocess(god.GetTargetVocab()(bestTranslation.first));
 
-  std::string best;
+  std::string best = Join(bestSentenceWords);
   if (god.Get<bool>("return-alignment")) {
-    auto alignment = GetAlignment(bestTranslation.second);
-    best = Join(bestSentenceWords, alignment);
-  } else {
-    best = Join(bestSentenceWords);
+    best += GetAlignmentString(GetAlignment(bestTranslation.second));
   }
   LOG(progress) << "Best translation: " << best;
 
@@ -38,12 +37,9 @@ void Printer(God &god, const History& history, OStream& out) {
       if(god.Get<bool>("wipo")) {
         out << "OUT: ";
       }
-      std::string translation;
+      std::string translation = Join(god.Postprocess(god.GetTargetVocab()(words)));
       if (god.Get<bool>("return-alignment")) {
-        auto alignment = GetAlignment(bestTranslation.second);
-        translation = Join(god.Postprocess(god.GetTargetVocab()(words)), alignment);
-      } else {
-        translation = Join(god.Postprocess(god.GetTargetVocab()(words)));
+        translation += GetAlignmentString(GetAlignment(bestTranslation.second));
       }
       out << history.GetLineNum() << " ||| " << translation << " |||";
 
@@ -57,8 +53,7 @@ void Printer(God &god, const History& history, OStream& out) {
         out << " ||| " << hypo->GetCost() << std::endl;
       }
     }
-  }
-  else {
+  } else {
     out << best << std::endl;
   }
 }
