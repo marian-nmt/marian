@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <set>
+#include <memory>
 
 #include "common/scorer.h"
 #include "common/sentence.h"
@@ -16,7 +17,7 @@ class Vocab;
 
 class StateInfo;
 class NeuralPhrase;
-typedef boost::shared_ptr<StateInfo> StateInfoPtr;
+typedef std::shared_ptr<StateInfo> StateInfoPtr;
 
 typedef std::vector<size_t> Batch;
 typedef std::vector<Batch> Batches;
@@ -87,7 +88,7 @@ class MosesPlugin {
     BestHypsBase *bestHyps_;
     Sentences sentences_;
 
-    boost::shared_ptr<States> states_;
+    std::shared_ptr<States> states_;
     bool firstWord_;
 
     std::vector<size_t> filteredId_;

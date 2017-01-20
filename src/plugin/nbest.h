@@ -14,13 +14,13 @@ class NBest {
     NBest(
       const std::string& srcPath,
       const std::string& nbestPath,
-      const boost::shared_ptr<Vocab> srcVocab,
-      const boost::shared_ptr<Vocab> trgVocab,
+      const std::shared_ptr<Vocab> srcVocab,
+      const std::shared_ptr<Vocab> trgVocab,
       const size_t maxBatchSize=64);
 
     NBest(
-      const boost::shared_ptr<Vocab> srcVocab,
-      const boost::shared_ptr<Vocab> trgVocab,
+      const std::shared_ptr<Vocab> srcVocab,
+      const std::shared_ptr<Vocab> trgVocab,
       const std::vector<std::string>& nBestList,
       const size_t maxBatchSize=64);
 
@@ -57,8 +57,8 @@ class NBest {
   private:
     std::vector<std::vector<std::string> > data_;
     std::vector<std::string> srcSentences_;
-    boost::shared_ptr<Vocab> srcVocab_;
-    boost::shared_ptr<Vocab> trgVocab_;
+    std::shared_ptr<Vocab> srcVocab_;
+    std::shared_ptr<Vocab> trgVocab_;
     std::vector<size_t> indexes_;
     const size_t maxBatchSize_;
 
