@@ -46,6 +46,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/gpu</locationURI>
 		</link>
 		<link>
+			<name>python</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>cnpy/LICENSE</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/cnpy/LICENSE</locationURI>
@@ -59,6 +64,16 @@
 			<name>cnpy/cnpy.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/cnpy/cnpy.h</locationURI>
+		</link>
+		<link>
+			<name>python/amunmt.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/python/amunmt.cpp</locationURI>
+		</link>
+		<link>
+			<name>python/test.py</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/python/test.py</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
