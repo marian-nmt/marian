@@ -5,11 +5,6 @@
 
 #include "common/base_matrix.h"
 
-#ifdef __APPLE__
-#include <boost/thread/tss.hpp>
-#include <boost/pool/object_pool.hpp>
-#endif
-
 #include "gpu/types-gpu.h"
 
 namespace GPU {
