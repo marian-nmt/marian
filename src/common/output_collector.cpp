@@ -4,8 +4,8 @@
 using namespace std;
 
 OutputCollector::OutputCollector()
-:nextId_(0)
-,outStrm_(&std::cout)
+ : nextId_(0),
+  outStrm_(&std::cout)
 {
 }
 

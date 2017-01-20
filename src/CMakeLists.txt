@@ -63,7 +63,7 @@ cuda_add_executable(
 
 if(PYTHONLIBS_FOUND)
 cuda_add_library(amunmt SHARED
-  # python/amunmt.cpp
+  python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu

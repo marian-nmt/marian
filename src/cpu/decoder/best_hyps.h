@@ -23,7 +23,8 @@ struct ProbCompare {
 class BestHyps : public BestHypsBase
 {
 public:
-  void operator()(std::vector<Beam>& beams,
+  void operator()(God &god,
+		std::vector<Beam>& beams,
         const Beam& prevHyps,
         std::vector<size_t>& beamSizes,
         const std::vector<ScorerPtr>& scorers,
@@ -31,7 +32,7 @@ public:
         bool returnAlignment) {
     using namespace mblas;
 
-    auto& weights = God::GetScorerWeights();
+    auto& weights = god.GetScorerWeights();
 
     mblas::ArrayMatrix& Probs = static_cast<mblas::ArrayMatrix&>(scorers[0]->GetProbs());
 
@@ -60,7 +61,7 @@ public:
     std::vector<size_t> bestKeys(beamSize);
     std::vector<float> bestCosts(beamSize);
 
-    if (!God::Get<bool>("allow-unk")) {
+    if (!god.Get<bool>("allow-unk")) {
       blaze::column(Probs, UNK) = std::numeric_limits<float>::lowest();
     }
 
@@ -73,7 +74,7 @@ public:
     }
 
     std::vector<std::vector<float>> breakDowns;
-    bool doBreakdown = God::Get<bool>("n-best");
+    bool doBreakdown = god.Get<bool>("n-best");
     if (doBreakdown) {
       breakDowns.push_back(bestCosts);
       for (auto& scorer : scorers) {
@@ -86,7 +87,7 @@ public:
       }
     }
 
-    bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+    bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
 
     for (size_t i = 0; i < beamSize; i++) {
       size_t wordIndex = bestKeys[i] % Probs.columns();

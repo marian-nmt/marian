@@ -60,7 +60,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Score(const State& in, State& out, const std::vector<size_t>&) {
+void EncoderDecoder::Score(God &god, const State& in, State& out, const std::vector<size_t>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -134,20 +134,20 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                                            const YAML::Node& config)
   : Loader(name, config) {}
 
-void EncoderDecoderLoader::Load() {
+void EncoderDecoderLoader::Load(God &god) {
   std::string path = Get<std::string>("path");
 
   LOG(info) << "Loading model " << path;
   weights_.emplace_back(new Weights(path, 0));
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const size_t) {
+ScorerPtr EncoderDecoderLoader::NewScorer(God &god, const size_t) {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[0]));
 }
 
-BestHypsBase &EncoderDecoderLoader::GetBestHyps() {
+BestHypsBase &EncoderDecoderLoader::GetBestHyps(God &god) {
   thread_local std::unique_ptr<BestHypsBase> bestHyps;
   if(!bestHyps) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();

@@ -36,3 +36,16 @@ std::string Join(const std::vector<std::string>& words, const std::string del) {
   }
   return ss.str();
 }
+
+std::string Join(const std::vector<std::string>& words,
+                 const std::vector<size_t>& align, const std::string del) {
+  std::stringstream ss;
+  if (words.empty()) {
+    return "";
+  }
+  ss << words[0] << "|" << align[0];
+  for (size_t i = 1; i < words.size(); ++i) {
+    ss << del << words[i] << "|" << align[i];
+  }
+  return ss.str();
+}

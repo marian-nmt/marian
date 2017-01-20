@@ -1,56 +1,58 @@
 #pragma once
+#include <memory>
 #include <vector>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include "types.h"
+
+class God;
 
 class Sentence {
   public:
-    size_t lineNum;
 
-    Sentence(size_t vLineNum, const std::string& line);
-    Sentence(size_t vLineNum, const std::vector<std::string>& words);
-    Sentence(size_t vLineNum, const std::vector<size_t>& words);
+    Sentence(God &god, size_t lineNum, const std::string& line);
+    Sentence(God &god, size_t lineNum, const std::vector<std::string>& words);
+    Sentence(God &god, size_t lineNum, const std::vector<size_t>& words);
 
     const Words& GetWords(size_t index = 0) const;
+    size_t GetLineNum() const;
 
   private:
     std::vector<Words> words_;
     std::string line_;
+    size_t lineNum_;
 
     Sentence(const Sentence &) = delete;
 };
 
+using SentencePtr = std::shared_ptr<Sentence>;
 
-/////////////////////////////////////////////////////////
- class Sentences
- {
+
+class Sentences {
  public:
   size_t taskCounter;
   size_t bunchId;
 
-   Sentences(size_t vTaskCounter = 0, size_t vBunchId = 0);
-   ~Sentences();
+  Sentences(size_t vTaskCounter = 0, size_t vBunchId = 0);
+  ~Sentences();
 
-   void push_back(boost::shared_ptr<const Sentence> sentence);
+  void push_back(SentencePtr sentence);
 
-   boost::shared_ptr<const Sentence> at(size_t id) const {
-     return coll_.at(id);
-   }
+  SentencePtr at(size_t id) const {
+    return coll_.at(id);
+  }
 
-   size_t size() const {
-     return coll_.size();
-   }
+  size_t size() const {
+    return coll_.size();
+  }
 
-   size_t GetMaxLength() const {
-     return maxLength_;
-   }
+  size_t GetMaxLength() const {
+    return maxLength_;
+  }
 
-   void SortByLength();
+  void SortByLength();
 
  protected:
-   typedef  std::vector< boost::shared_ptr<const Sentence> > Coll;
-   Coll coll_;
+   std::vector<SentencePtr> coll_;
 
    size_t maxLength_;
 

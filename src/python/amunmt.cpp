@@ -13,40 +13,34 @@
 #include "common/sentence.h"
 #include "common/exception.h"
 
-History TranslationTask(const std::string& in, size_t taskCounter) {
-  #ifdef __APPLE__
-    static boost::thread_specific_ptr<Search> s_search;
-    Search *search = s_search.get();
+God *god_;
 
-    if(search == NULL) {
-      LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-      search = new Search(taskCounter);
-      s_search.reset(search);
-    }
-  #else
-    thread_local std::unique_ptr<Search> search;
+std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
+  thread_local std::unique_ptr<Search> search;
 
-    if(!search) {
-      LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-      search.reset(new Search(taskCounter));
-    }
-  #endif
+  if(!search) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    search.reset(new Search(*god_, taskCounter));
+  }
 
-  return search->Decode(Sentence(taskCounter, in));
+  std::shared_ptr<Sentences> sentences(new Sentences());
+  sentences->push_back(SentencePtr(new Sentence(*god_, taskCounter, in)));
+  return search->Decode(*god_, *sentences);
 }
 
 void init(const std::string& options) {
-  God::Init(options);
+  god_ = new God();
+  god_->Init(options);
 }
 
 boost::python::list translate(boost::python::list& in) {
-  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  size_t cpuThreads = god_->Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
   size_t totalThreads = cpuThreads;
 #ifdef CUDA
-  size_t gpuThreads = God::Get<size_t>("gpu-threads");
-  auto devices = God::Get<std::vector<size_t>>("devices");
+  size_t gpuThreads = god_->Get<size_t>("gpu-threads");
+  auto devices = god_->Get<std::vector<size_t>>("devices");
   LOG(info) << "Setting GPU thread count to " << gpuThreads;
   totalThreads += gpuThreads * devices.size();
 #endif
@@ -55,7 +49,7 @@ boost::python::list translate(boost::python::list& in) {
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   ThreadPool pool(totalThreads);
-  std::vector<std::future<History>> results;
+  std::vector<std::future< std::shared_ptr<Histories> >> results;
 
   boost::python::list output;
   for(int i = 0; i < boost::python::len(in); ++i) {
@@ -71,7 +65,7 @@ boost::python::list translate(boost::python::list& in) {
 
   for (auto&& result : results) {
     std::stringstream ss;
-    Printer(result.get(), lineCounter++, ss);
+    Printer(*god_, *result.get().get(), ss);
     output.append(ss.str());
   }
 

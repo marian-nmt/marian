@@ -5,15 +5,14 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/unordered_map.hpp>
 
-class OutputCollector
-{
-public:
+class OutputCollector {
+ public:
   OutputCollector();
   OutputCollector(const OutputCollector&) = delete;
 
   void Write(long sourceId, const std::string& output);
 
-protected:
+ protected:
   std::ostream* outStrm_;
   boost::mutex mutex_;
   long nextId_;

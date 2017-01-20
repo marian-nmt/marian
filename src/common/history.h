@@ -17,14 +17,10 @@ class History {
       float cost;
     };
 
-    History(const History &) = delete;
+    History(God &god, const History &) = delete;
 
   public:
-
-    History(size_t lineNo)
-      : normalize_(God::Get<bool>("normalize"))
-      , lineNo_(lineNo)
-    {}
+    History(God &god, size_t lineNo);
 
     void Add(const Beam& beam, bool last = false) {
       if (beam.back()->GetPrevHyp() != nullptr) {
@@ -84,9 +80,9 @@ class History {
 class Histories {
  public:
   Histories() {} // for all histories in translation task
-  Histories(const Sentences& sentences);
+  Histories(God &god, const Sentences& sentences);
 
-  boost::shared_ptr<History> at(size_t id) const {
+  std::shared_ptr<History> at(size_t id) const {
     return coll_.at(id);
   }
 
@@ -98,7 +94,7 @@ class Histories {
   void Append(const Histories &other);
 
  protected:
-  std::vector< boost::shared_ptr<History> > coll_;
+  std::vector< std::shared_ptr<History> > coll_;
 
   Histories(const Histories &) = delete;
 };

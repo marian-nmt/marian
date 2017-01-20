@@ -4,76 +4,72 @@
 #include "utils.h"
 #include "common/vocab.h"
 
-Sentence::Sentence(size_t vLineNum, const std::string& line)
-  : lineNum(vLineNum), line_(line)
+Sentence::Sentence(God &god, size_t vLineNum, const std::string& line)
+  : lineNum_(vLineNum), line_(line)
 {
   std::vector<std::string> tabs;
   Split(line, tabs, "\t");
+  if (tabs.size() == 0) {
+    tabs.push_back("");
+  }
   size_t i = 0;
-  for(auto&& tab : tabs) {
+  for (auto& tab : tabs) {
     std::vector<std::string> lineTokens;
     Trim(tab);
     Split(tab, lineTokens, " ");
-    auto processed = God::Preprocess(i, lineTokens);
-    words_.push_back(God::GetSourceVocab(i++)(processed));
+    auto processed = god.Preprocess(i, lineTokens);
+    words_.push_back(god.GetSourceVocab(i++)(processed));
   }
 }
 
-Sentence::Sentence(size_t lineNum, const std::vector<std::string>& words)
-  : lineNum(lineNum) {
-	std::vector<std::string> processed = God::Preprocess(0, words);
-    words_.push_back(God::GetSourceVocab(0)(processed));
+Sentence::Sentence(God &god, size_t lineNum, const std::vector<std::string>& words)
+  : lineNum_(lineNum) {
+    auto processed = god.Preprocess(0, words);
+    words_.push_back(god.GetSourceVocab(0)(processed));
 }
 
-Sentence::Sentence(size_t vLineNum, const std::vector<size_t>& words)
-:words_(1)
-{
-	Words &sentence = words_[0];
-	sentence.resize(words.size());
-	for (size_t i = 0; i < words.size(); ++i) {
-		sentence[i] = words[i];
-	}
+Sentence::Sentence(God &god, size_t lineNum, const std::vector<size_t>& words)
+: lineNum_(lineNum) {
+  words_.push_back(words);
 }
 
+
+size_t Sentence::GetLineNum() const {
+  return lineNum_;
+}
 
 const Words& Sentence::GetWords(size_t index) const {
   return words_[index];
 }
 
 /////////////////////////////////////////////////////////
- Sentences::Sentences(size_t vTaskCounter, size_t vBunchId)
-   : taskCounter(vTaskCounter)
-   , bunchId(vBunchId)
-   , maxLength_(0)
- {
- }
+Sentences::Sentences(size_t vTaskCounter, size_t vBunchId)
+  : taskCounter(vTaskCounter)
+  , bunchId(vBunchId)
+  , maxLength_(0)
+{}
 
- Sentences::~Sentences()
- {
- }
+Sentences::~Sentences()
+{}
 
- void Sentences::push_back(boost::shared_ptr<const Sentence> sentence) {
-   const Words &words = sentence->GetWords(0);
-   size_t len = words.size();
-   if (len > maxLength_) {
-     maxLength_ = len;
-   }
+void Sentences::push_back(SentencePtr sentence) {
+  const Words &words = sentence->GetWords(0);
+  size_t len = words.size();
+  if (len > maxLength_) {
+    maxLength_ = len;
+  }
 
-   coll_.push_back(sentence);
- }
+  coll_.push_back(sentence);
+}
 
- class LengthOrderer
- {
+class LengthOrderer {
  public:
-   bool operator()(const boost::shared_ptr<const Sentence> &a, const boost::shared_ptr<const Sentence> &b) const
-   {
-     return a->GetWords(0).size() < b->GetWords(0).size();
-   }
+  bool operator()(const SentencePtr& a, const SentencePtr& b) const {
+    return a->GetWords(0).size() < b->GetWords(0).size();
+  }
+};
 
- };
-
- void Sentences::SortByLength()
- {
-   std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
- }
+void Sentences::SortByLength() {
+  std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
+}
 

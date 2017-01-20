@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <vector>
 #include <set>
-#include <boost/shared_ptr.hpp>
 
 #include "common/scorer.h"
 #include "common/sentence.h"
@@ -28,7 +27,8 @@ typedef std::vector<size_t> LastWords;
 class MosesPlugin {
   public:
     MosesPlugin();
-
+		~MosesPlugin();
+		
     static size_t GetDevices(size_t = 1);
     void SetDevice();
     size_t GetDevice();
@@ -37,7 +37,7 @@ class MosesPlugin {
       debug_ = debug;
     }
 
-    static void initGod(const std::string& configPath);
+    void initGod(const std::string& configPath);
 
     States SetSource(const std::vector<size_t>& words);
 
@@ -80,9 +80,11 @@ class MosesPlugin {
   private:
     bool debug_;
 
+    God *god_;
+    
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
-    BestHypsBase &bestHyps_;
+    BestHypsBase *bestHyps_;
     Sentences sentences_;
 
     boost::shared_ptr<States> states_;

@@ -9,14 +9,14 @@
 
 using namespace std;
 
-Search::Search(size_t taskId)
-  : scorers_(God::GetScorers(taskId)),
-    bestHyps_(God::GetBestHyps(taskId)) {
+Search::Search(God &god, size_t threadId)
+  : scorers_(god.GetScorers(threadId)),
+    bestHyps_(god.GetBestHyps(threadId)) {
 }
 
 
-size_t Search::MakeFilter(const std::set<Word>& srcWords, size_t vocabSize) {
-  filterIndices_ = God::GetFilter().GetFilteredVocab(srcWords, vocabSize);
+size_t Search::MakeFilter(God &god, const std::set<Word>& srcWords, size_t vocabSize) {
+  filterIndices_ = god.GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
   }
@@ -35,10 +35,10 @@ void Search::InitScorers(const Sentences& sentences, States& states, States& nex
   }
 }
 
-boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
+std::shared_ptr<Histories> Search::Decode(God &god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  boost::shared_ptr<Histories> ret(new Histories(sentences));
+  std::shared_ptr<Histories> ret(new Histories(god, sentences));
 
   size_t batchSize = sentences.size();
   std::vector<size_t> beamSizes(batchSize, 1);
@@ -54,7 +54,7 @@ boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
 
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
-  bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+  bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
     std::set<Word> srcWords;
     for (size_t i = 0; i < sentences.size(); ++i) {
@@ -63,7 +63,7 @@ boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
         srcWords.insert(srcWord);
       }
     }
-    vocabSize = MakeFilter(srcWords, vocabSize);
+    vocabSize = MakeFilter(god, srcWords, vocabSize);
   }
 
   size_t maxLength = 0;
@@ -80,18 +80,18 @@ boost::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(state, nextState, beamSizes);
+      scorer.Score(god, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-        beamSize = God::Get<size_t>("beam-size");
+        beamSize = god.Get<size_t>("beam-size");
       }
     }
     Beams beams(batchSize);
-    bool returnAlignment = God::Get<bool>("return-alignment");
+    bool returnAlignment = god.Get<bool>("return-alignment");
 
-    bestHyps_(beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+    bestHyps_(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {

@@ -52,7 +52,7 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const State& in, State& out, const std::vector<size_t>& beamSizes);
+    virtual void Score(God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
 
     virtual State* NewState();
 

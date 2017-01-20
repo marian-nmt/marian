@@ -17,12 +17,12 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
-    BestHyps()
-    : nthElement_(God::Get<size_t>("beam-size"), God::Get<size_t>("batch-size"),
+    BestHyps(God &god)
+    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("batch-size"),
                   mblas::CudaStreamHandler::GetStream()),
-      keys(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
-      Costs(God::Get<size_t>("beam-size") * God::Get<size_t>("batch-size")),
-      weights_(God::GetScorerWeights())
+      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),
+      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),
+      weights_(god.GetScorerWeights())
     {
       //std::cerr << "BestHyps::BestHyps" << std::endl;
     }
@@ -56,7 +56,8 @@ class BestHyps : public BestHypsBase
       return alignments;
     }
 
-    void operator()(std::vector<Beam>& beams,
+    void operator()(God &god,
+    	  std::vector<Beam>& beams,
           const Beam& prevHyps,
           std::vector<size_t>& beamSizes,
           const std::vector<ScorerPtr>& scorers,
@@ -82,7 +83,7 @@ class BestHyps : public BestHypsBase
         Element(_1 + weights_[scorers[i]->GetName()] * _2, Probs, currProbs);
       }
 
-      if (!God::Get<bool>("allow-unk")) {
+      if (!god.Get<bool>("allow-unk")) {
         DisAllowUNK(Probs);
       }
 
@@ -94,7 +95,7 @@ class BestHyps : public BestHypsBase
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
 
       std::vector<HostVector<float>> breakDowns;
-      bool doBreakdown = God::Get<bool>("n-best");
+      bool doBreakdown = god.Get<bool>("n-best");
       if (doBreakdown) {
           breakDowns.push_back(bestCosts);
           for (size_t i = 1; i < scorers.size(); ++i) {
@@ -106,7 +107,7 @@ class BestHyps : public BestHypsBase
           }
       }
 
-      bool filter = God::Get<std::vector<std::string>>("softmax-filter").size();
+      bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
 
       std::map<size_t, size_t> batchMap;
       size_t tmp = 0;
