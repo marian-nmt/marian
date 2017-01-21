@@ -40,3 +40,6 @@ build
 # Examples
 examples/*/*.gz
 examples/mnist/*ubyte
+
+.cproject
+.project
