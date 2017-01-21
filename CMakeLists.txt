@@ -2,13 +2,14 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(marian CXX)
+find_package(CUDA REQUIRED)
+
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -Wno-unused-result -Wno-deprecated -fPIC -Wno-deprecated-gpu-targets")
-LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; -arch=sm_35; --use_fast_math; -Xcompiler '-fPIC'; -Wno-deprecated-gpu-targets)
+LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35)
 add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 include_directories(${amunn_SOURCE_DIR})
-find_package(CUDA REQUIRED)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)
