@@ -4,6 +4,7 @@
 #include <memory>
 #include <boost/any.hpp>
 #include "tensor_operators.h"
+#include "clippers.h"
 
 namespace marian {
 
@@ -74,14 +75,24 @@ class Adagrad : public OptimizerBase {
 // https://arxiv.org/pdf/1412.6980v8.pdf
 class Adam : public OptimizerBase {
   public:
-    Adam(float eta=0.001, float beta1=0.9, float beta2=0.999, float eps=1e-8)
-    : eta_(eta), beta1_(beta1), beta2_(beta2), eps_(eps), t_(0),
+    template <typename ...Args>
+    Adam(float eta = 0.001, Args ...args)
+    : eta_(eta),
+      beta1_(Get(keywords::beta1, 0.9, args...)),
+      beta2_(Get(keywords::beta2, 0.999, args...)),
+      eps_(Get(keywords::eps, 1e-8, args...)),
+      clipper_(Get(keywords::clip, nullptr, args...)),
+      t_(0),
       mtAlloc_(newTensorAllocator<DeviceGPU>()),
       vtAlloc_(newTensorAllocator<DeviceGPU>())
     {}
 
     void update(ExpressionGraphPtr graph) {
       graph->backprop();
+
+      if(clipper_) {
+        clipper_->clip(graph->params().grads());
+      }
 
       if(!mt_) {
         int totalSize = graph->params().totalSize();
@@ -123,6 +134,8 @@ class Adam : public OptimizerBase {
     Tensor mt_;
     TensorAllocator vtAlloc_;
     Tensor vt_;
+
+    ClipperBasePtr clipper_;
 };
 
 template <class Algorithm, typename ...Args>

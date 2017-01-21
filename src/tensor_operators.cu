@@ -20,6 +20,7 @@
 // SOFTWARE.
 
 #include "tensor_operators.h"
+#include "reduce_all.h"
 
 namespace marian {
 
@@ -1036,6 +1037,17 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
                                                          adj->data(),
                                                          a->data(),
                                                          pick->data());
+}
+
+float L2Norm(Tensor in) {
+  float* data;
+  cudaMalloc(&data, sizeof(float));
+  Tensor out(new TensorGPU(data, {1, 1}));
+  ReduceAll(_1 * _1, out, in);
+  float dataCpu = sqrtf(out->get(0));
+  out.reset();
+  cudaFree(data);
+  return dataCpu;
 }
 
 

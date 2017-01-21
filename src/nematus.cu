@@ -11,11 +11,13 @@
 #include "nematus.h"
 #include "batch_generator.h"
 #include "optimizers.h"
+#include "clippers.h"
 #include "corpus.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
+  using namespace keywords;
 
   cudaSetDevice(0);
 
@@ -38,6 +40,7 @@ int main(int argc, char** argv) {
   size_t miniBatchSize;
   size_t maxiBatchSize;
   double lrate;
+  double clipNorm;
   int dimSrcVoc, dimTrgVoc, dimSrcEmb,
     dimTrgEmb, dimEncState, dimDecState;
 
@@ -85,6 +88,8 @@ int main(int argc, char** argv) {
      "Number of batches to preload for length-based sorting")
     ("lrate,l", po::value(&lrate)->default_value(0.0001),
      "Learning rate for Adam algorithm")
+    ("clip-norm,c", po::value(&clipNorm)->default_value(1.f),
+     "Clip gradient norm to  arg  (0 to disable)")
     ("dim-src-vocab", po::value(&dimSrcVoc)->default_value(40000),
      "Size of source vocabulary")
     ("dim-trg-vocab", po::value(&dimTrgVoc)->default_value(40000),
@@ -140,8 +145,10 @@ int main(int argc, char** argv) {
     nematus->load(modelInit);
   nematus->reserveWorkspaceMB(workSpace);
 
-  auto opt = Optimizer<Adam>(lrate);
-            /*, clip=norm(1));*/
+  ClipperBasePtr clipper = nullptr;
+  if(clipNorm > 0)
+    clipper = Clipper<Norm>(clipNorm);
+  auto opt = Optimizer<Adam>(lrate, clip=clipper);
 
   float sum = 0;
   float samples = 0;

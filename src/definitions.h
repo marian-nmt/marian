@@ -65,6 +65,9 @@ namespace marian {
   class OptimizerBase;
   typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
 
+  class ClipperBase;
+  typedef std::shared_ptr<ClipperBase> ClipperBasePtr;
+
   class RunBase;
   typedef std::shared_ptr<RunBase> RunBasePtr;
 
@@ -76,16 +79,19 @@ namespace marian {
    */
   namespace keywords {
     KEY(axis, int)
-    //KEY(name, std::string)
     KEY(shape, Shape)
-    KEY(no_inference, bool)
-    KEY(no_training, bool)
     KEY(value, float)
     KEY(lazy_shape, std::function<Shape()>)
     KEY(lazy_value, std::function<float()>)
     KEY(init, std::function<void(Tensor&)>)
 
+
+    KEY(eta, float)
+    KEY(beta1, float)
+    KEY(beta2, float)
+    KEY(eps, float)
     KEY(optimizer, OptimizerBasePtr)
+    KEY(clip, ClipperBasePtr)
     KEY(batch_size, int)
     KEY(max_epochs, int)
     KEY(valid, RunBasePtr)
