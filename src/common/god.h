@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <iostream>
+#include <boost/thread/tss.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include "common/processor/processor.h"
 #include "common/config.h"
@@ -21,9 +23,11 @@ class Weights;
 class Vocab;
 class Filter;
 class InputFileStream;
+class Search;
 
 class God {
   public:
+  God();
     virtual ~God();
 
     God& Init(const std::string&);
@@ -53,7 +57,7 @@ class God {
 
     BestHypsBase &GetBestHyps(size_t threadId);
 
-    std::vector<ScorerPtr> GetScorers(size_t);
+    std::vector<ScorerPtr> GetScorers(DeviceType deviceType, size_t);
     std::vector<std::string> GetScorerNames();
     std::map<std::string, float>& GetScorerWeights();
 
@@ -63,6 +67,8 @@ class God {
     void CleanUp();
 
     void LoadWeights(const std::string& path);
+
+    Search &GetSearch(size_t taskCounter);
 
   private:
     void LoadScorers();
@@ -88,5 +94,9 @@ class God {
 
     std::unique_ptr<InputFileStream> inputStream_;
     OutputCollector outputCollector_;
+
+    mutable boost::shared_mutex m_accessLock;
+    mutable boost::thread_specific_ptr<Search> search_;
+    size_t numGPUThreads_;
 
 };

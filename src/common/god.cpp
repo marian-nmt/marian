@@ -12,11 +12,19 @@
 #include "common/filter.h"
 #include "common/processor/bpe.h"
 #include "common/utils.h"
+#include "common/search.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
 
+God::God()
+:numGPUThreads_(0)
+{
+
+}
+
 God::~God() {}
+
 
 God& God::Init(const std::string& options) {
   std::vector<std::string> args = boost::program_options::split_unix(options);
@@ -169,12 +177,12 @@ OutputCollector& God::GetOutputCollector() {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
+std::vector<ScorerPtr> God::GetScorers(DeviceType deviceType, size_t threadId) {
   std::vector<ScorerPtr> scorers;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
 
-  if (threadId < cpuThreads) {
+  if (deviceType == CPUDevice) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, threadId));
   } else {
@@ -232,3 +240,23 @@ void God::CleanUp() {
      loader.reset(nullptr);
   }
 }
+
+Search &God::GetSearch(size_t taskCounter)
+{
+  Search *obj;
+  obj = search_.get();
+  if (obj == NULL) {
+    boost::unique_lock<boost::shared_mutex> lock(m_accessLock);
+
+    size_t maxGPUThreads = God::Get<size_t>("gpu-threads");
+    DeviceType deviceType = (numGPUThreads_ < maxGPUThreads) ? GPUDevice : CPUDevice;
+    ++numGPUThreads_;
+
+    obj = new Search(*this, deviceType, taskCounter);
+    search_.reset(obj);
+
+  }
+  assert(obj);
+  return *obj;
+}
+

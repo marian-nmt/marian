@@ -17,7 +17,7 @@ class Exception : public std::exception {
     virtual ~Exception() throw();
     Exception(const Exception& o) throw();
 
-    const char *what() const throw() { return what_.str().c_str(); }
+    const char *what() const throw() { return what_.c_str(); }
 
     // For use by the UTIL_THROW macros.
     void SetLocation(
@@ -35,7 +35,22 @@ class Exception : public std::exception {
       typedef T Identity;
     };
 
-    std::stringstream what_;
+    void Append(const char *data) {
+      what_ += data;
+    }
+    void Append(const std::string &data) {
+      what_ += data;
+    }
+/*    void Append(StringPiece data) {
+      what_.append(data.data(), data.size());
+    }*/
+    template <class Data> void Append(const Data &data) {
+      std::stringstream crazy_slow;
+      crazy_slow << data;
+      what_ += crazy_slow.str();
+    }
+
+    std::string what_;
 };
 
 /* This implements the normal operator<< for Exception and all its children.
@@ -43,9 +58,10 @@ class Exception : public std::exception {
  * boost::enable_if.
  */
 template <class Except, class Data> typename Except::template ExceptionTag<Except&>::Identity operator<<(Except &e, const Data &data) {
-  e.what_ << data;
+  e.Append(data);
   return e;
 }
+
 
 #ifdef __GNUC__
 #define UTIL_FUNC_NAME __PRETTY_FUNCTION__
