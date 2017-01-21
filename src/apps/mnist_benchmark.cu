@@ -6,8 +6,8 @@
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
-#include "mnist.h"
-#include "trainer.h"
+#include "data/mnist.h"
+#include "data/trainer.h"
 #include "models/feedforward.h"
 
 #include "tensors/tensor.h"

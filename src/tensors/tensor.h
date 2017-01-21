@@ -24,7 +24,7 @@
 #include <memory>
 #include <iostream>
 
-#include "definitions.h"
+#include "common/definitions.h"
 
 namespace marian {
 

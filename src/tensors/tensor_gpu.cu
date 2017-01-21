@@ -1,4 +1,4 @@
-#include "tensor_gpu.h"
+#include "tensors/tensor_gpu.h"
 
 namespace marian {
 

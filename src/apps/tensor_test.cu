@@ -3,7 +3,7 @@
 
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
-#include "tensor_operators.h"
+#include "kernels/tensor_operators.h"
 
 using namespace marian;
 

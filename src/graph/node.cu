@@ -1,6 +1,6 @@
-#include "node.h"
-#include "tensor_operators.h"
-#include "expression_graph.h"
+#include "graph/expression_graph.h"
+#include "graph/node.h"
+#include "kernels/tensor_operators.h"
 
 namespace marian {
 

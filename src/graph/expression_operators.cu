@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "expression_operators.h"
-#include "node_operators.h"
+#include "graph/expression_operators.h"
+#include "graph/node_operators.h"
 
 namespace marian {
 

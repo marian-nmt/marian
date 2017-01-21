@@ -21,10 +21,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "node.h"
-#include "tensor_operators.h"
-#include "node_operators_unary.h"
-#include "node_operators_binary.h"
+#include "graph/node.h"
+#include "graph/node_operators_unary.h"
+#include "graph/node_operators_binary.h"
+#include "kernels/tensor_operators.h"
 
 namespace marian {
 

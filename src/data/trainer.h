@@ -4,11 +4,11 @@
 #include <iomanip>
 #include <boost/timer/timer.hpp>
 
-#include "keywords.h"
-#include "definitions.h"
-#include "expression_graph.h"
-#include "batch_generator.h"
-#include "optimizers.h"
+#include "common/keywords.h"
+#include "common/definitions.h"
+#include "graph/expression_graph.h"
+#include "optimizers/optimizers.h"
+#include "data/batch_generator.h"
 
 namespace marian {
 

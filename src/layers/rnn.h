@@ -6,8 +6,8 @@
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"
-#include "node_operators_binary.h"
-#include "expression_graph.h"
+#include "graph/node_operators_binary.h"
+#include "graph/expression_graph.h"
 
 namespace marian {
 
@@ -252,7 +252,7 @@ class GRUWithAttention {
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       using namespace keywords;
 
-    
+
       auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
       auto hidden = mask ?

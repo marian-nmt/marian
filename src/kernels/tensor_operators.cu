@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "tensor_operators.h"
-#include "reduce_all.h"
+#include "kernels/tensor_operators.h"
+#include "3rd_party/reduce_all.h"
 
 namespace marian {
 

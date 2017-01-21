@@ -28,8 +28,8 @@
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 
-#include "exception.h"
-#include "definitions.h"
+#include "3rd_party/exception.h"
+#include "common/definitions.h"
 #include "tensors/tensor.h"
 
 namespace marian {

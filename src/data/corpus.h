@@ -1,8 +1,8 @@
 #pragma once
 
-#include "dataset.h"
-#include "batch_generator.h"
-#include "common/vocab.h"
+#include "data/dataset.h"
+#include "data/batch_generator.h"
+#include "data/vocab.h"
 
 namespace marian {
 namespace data {

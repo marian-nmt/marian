@@ -8,11 +8,11 @@
 #include <boost/program_options.hpp>
 
 #include "marian.h"
-#include "nematus.h"
-#include "batch_generator.h"
-#include "optimizers.h"
-#include "clippers.h"
-#include "corpus.h"
+#include "optimizers/optimizers.h"
+#include "optimizers/clippers.h"
+#include "data/batch_generator.h"
+#include "data/corpus.h"
+#include "models/nematus.h"
 
 int main(int argc, char** argv) {
   using namespace marian;

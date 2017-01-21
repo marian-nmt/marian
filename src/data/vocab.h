@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "common/types.h"
+#include "data/types.h"
 
 class Vocab {
   public:

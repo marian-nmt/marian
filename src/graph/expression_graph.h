@@ -25,14 +25,14 @@
 #include <unordered_set>
 #include <fstream>
 
-#include "definitions.h"
-#include "chainable.h"
-#include "parameters.h"
-#include "node_operators.h"
-#include "batch_generator.h"
+#include "common/definitions.h"
+#include "graph/chainable.h"
+#include "graph/parameters.h"
+#include "graph/node_operators.h"
+#include "data/batch_generator.h"
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
-#include "param_initializers.h"
+#include "layers/param_initializers.h"
 #include "3rd_party/threadpool.h"
 
 namespace marian {

@@ -2,7 +2,8 @@
 
 #include <map>
 #include <memory>
-#include "tensor_operators.h"
+
+#include "kernels/tensor_operators.h"
 
 namespace marian {
 

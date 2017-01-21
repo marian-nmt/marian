@@ -2,9 +2,9 @@
 
 #include <map>
 #include <memory>
-#include <boost/any.hpp>
-#include "tensor_operators.h"
-#include "clippers.h"
+
+#include "kernels/tensor_operators.h"
+#include "optimizers/clippers.h"
 
 namespace marian {
 

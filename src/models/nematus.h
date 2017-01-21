@@ -1,11 +1,10 @@
 #pragma once
 
-#include "corpus.h"
-#include "cnpy/cnpy.h"
-
-#include "expression_graph.h"
-#include "rnn.h"
-#include "param_initializers.h"
+#include "data/corpus.h"
+#include "graph/expression_graph.h"
+#include "layers/rnn.h"
+#include "layers/param_initializers.h"
+#include "3rd_party/cnpy/cnpy.h"
 
 namespace marian {
 

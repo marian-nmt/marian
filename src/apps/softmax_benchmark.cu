@@ -9,8 +9,8 @@
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
 
-#include "tensor_operators.h"
-#include "param_initializers.h"
+#include "kernels/tensor_operators.h"
+#include "layers/param_initializers.h"
 
 using namespace marian;
 

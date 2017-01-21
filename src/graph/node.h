@@ -25,10 +25,10 @@
 #include <iostream>
 #include <thread>
 
-#include "keywords.h"
+#include "common/keywords.h"
 #include "tensors/tensor.h"
 #include "tensors/tensor_gpu.h"
-#include "chainable.h"
+#include "graph/chainable.h"
 
 namespace marian {
 

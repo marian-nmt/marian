@@ -1,6 +1,6 @@
 #pragma once
 
-#include "expression_graph.h"
+#include "graph/expression_graph.h"
 
 namespace marian {
 

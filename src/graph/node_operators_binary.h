@@ -2,9 +2,9 @@
 
 #include <thread>
 
-#include "node.h"
-#include "thrust_functions.h"
-#include "tensor_operators.h"
+#include "graph/node.h"
+#include "kernels/thrust_functions.h"
+#include "kernels/tensor_operators.h"
 
 namespace marian {
 

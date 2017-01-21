@@ -1,11 +1,11 @@
-#include "common/vocab.h"
 
 #include <sstream>
-#include <yaml-cpp/yaml.h>
 
+#include "data/vocab.h"
 #include "common/utils.h"
 #include "common/file_stream.h"
 #include "3rd_party/exception.h"
+#include "3rd_party/yaml-cpp/yaml.h"
 
 Vocab::Vocab(const std::string& path) {
     YAML::Node vocab = YAML::Load(InputFileStream(path));

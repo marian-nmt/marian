@@ -25,7 +25,7 @@
 #include <unordered_set>
 #include <fstream>
 
-#include "definitions.h"
+#include "common/definitions.h"
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
 

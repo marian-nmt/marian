@@ -1,9 +1,9 @@
 #pragma once
 
-#include "node.h"
+#include "graph/node.h"
 #include "tensors/tensor.h"
-#include "tensor_operators.h"
-#include "thrust_functions.h"
+#include "kernels/tensor_operators.h"
+#include "kernels/thrust_functions.h"
 
 namespace marian {
 

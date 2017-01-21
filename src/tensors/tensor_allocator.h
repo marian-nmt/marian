@@ -24,7 +24,7 @@
 #include <set>
 #include <deque>
 
-#include "definitions.h"
+#include "common/definitions.h"
 #include "tensors/tensor.h"
 
 namespace marian {
@@ -153,7 +153,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
         if(*it == t) {
           Gap gap = { t->size(), t->data() };
           allocated_.erase(std::next(it).base());
-      
+
           auto it2 = gaps_.begin();
           std::vector<decltype(it2)> adjacent;
           while(it2 != gaps_.end()) {

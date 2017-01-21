@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "definitions.h"
-#include "expression_graph.h"
-#include "param_initializers.h"
-#include "expression_operators.h"
-
+#include "common/definitions.h"
+#include "graph/expression_graph.h"
+#include "graph/expression_operators.h"
+#include "layers/param_initializers.h"
