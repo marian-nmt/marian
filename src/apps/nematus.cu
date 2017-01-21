@@ -152,6 +152,7 @@ int main(int argc, char** argv) {
 
   float sum = 0;
   float samples = 0;
+  float words = 0;
   boost::timer::cpu_timer timer;
 
   size_t epochs = 0;
@@ -169,6 +170,7 @@ int main(int argc, char** argv) {
       float cost = nematus->cost();
       sum += cost;
       samples += batch->size();
+      words += batch->words();
       batches++;
       if(maxBatches && batches >= maxBatches)
         break;
@@ -183,14 +185,18 @@ int main(int argc, char** argv) {
 
         float seconds = std::stof(timer.format(5, "%w"));
         float sentences = samples / seconds;
+        float wps = words / seconds;
 
         std::cout << " " << std::setw(5)
                   << std::setprecision(4)
                   << sentences
-                  << " sentences/s" << std::endl;
+                  << " sentences/s "
+                  << wps
+                  << " words/s" << std::endl;
         timer.start();
         sum = 0;
         samples = 0;
+        words = 0;
       }
 
       if(batches % saveFreq == 0) {

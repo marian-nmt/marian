@@ -101,6 +101,10 @@ Expr transpose(Expr a) {
   return Expression<TransposeNodeOp>(a);
 }
 
+Expr step(Expr a, size_t step) {
+  return Expression<TimestepNodeOp>(a, step);
+}
+
 Expr cross_entropy(Expr a, Expr b) {
   auto sOrig = a->shape();
   auto sOut = a->shape();

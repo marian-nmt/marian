@@ -141,5 +141,6 @@ Expr weighted_average(Expr in, Expr weights, Args ...args) {
   return scalar_product(in, weights, args...) / sum(weights, args...);
 }
 
+Expr step(Expr a, size_t step);
 
 }

@@ -31,7 +31,7 @@ class Nematus : public ExpressionGraph {
 
     int dimBatch_;
 
-    void setDims() {
+    void setDims(const data::CorpusBatch& batch) {
       dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : dimSrcVoc_;
       dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : dimSrcEmb_;
       dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : dimEncState_;
@@ -39,6 +39,8 @@ class Nematus : public ExpressionGraph {
       dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : dimTrgVoc_;
       dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
       dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : dimDecState_;
+
+      dimBatch_ = batch.size();
     }
 
     RNN<GRUFast> encoderGRU(const std::string& prefix) {
@@ -246,39 +248,30 @@ class Nematus : public ExpressionGraph {
 
       auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
                               init=inits::glorot_uniform);
-      //debug(Wemb, "Wemb");
 
-
+      std::vector<size_t> indeces;
       std::vector<float> weightMask;
+
       std::vector<Expr> inputs;
       std::vector<std::pair<Expr, Expr>> inputsWithMask;
-      size_t i = 0;
+
       for(auto& srcWordBatch : srcSentenceBatch) {
-        auto indeces = srcWordBatch.first;
-        auto mask = srcWordBatch.second;
-        for(auto w: mask)
-          weightMask.push_back(w);
-
-        auto x = name(rows(Wemb, indeces), "x_" + std::to_string(i++));
-        // x = dropout(x, value=0.1);
-
-        auto xMask = this->constant(shape={ (int)mask.size() },
-                                    init=inits::from_vector(mask));
-        inputs.push_back(x);
-        inputsWithMask.push_back({x, xMask});
-        dimBatch_ = srcWordBatch.first.size();
+        for(auto i: srcWordBatch.first)
+          indeces.push_back(i);
+        for(auto m: srcWordBatch.second)
+          weightMask.push_back(m);
       }
+
+      int srcWords = (int)srcSentenceBatch.size();
+      auto x = reshape(rows(Wemb, indeces), {dimBatch_, dimSrcEmb_, srcWords});
+      auto xMask = this->constant(shape={dimBatch_, 1, srcWords},
+                                  init=inits::from_vector(weightMask));
 
       auto encState0 = name(this->zeros(shape={dimBatch_, dimEncState_}),
                             "start");
 
-      auto statesFw = encoderGRU("encoder").apply(inputs.begin(),
-                                                  inputs.end(),
-                                                  encState0);
-
-      auto statesBw = encoderGRU("encoder_r").apply(inputsWithMask.rbegin(),
-                                                    inputsWithMask.rend(),
-                                                    encState0);
+      auto statesFw = encoderGRU("encoder").apply(x, encState0);
+      auto statesBw = encoderGRU("encoder_r").apply(x, encState0, xMask, true);
 
       std::vector<Expr> biStates;
       auto itFw = statesFw.begin();
@@ -306,60 +299,47 @@ class Nematus : public ExpressionGraph {
       auto bi = this->param("ff_state_b", {1, dimDecState_},
                             init=inits::zeros);
 
-      //debug(Wi, "Wi");
-
       auto meanContext = this->get("meanContext");
-      //meanContext = dropout(meanContext, value=0.2);
-
       auto decState0 = tanh(affine(meanContext, Wi, bi));
 
       // *** Collect target embeddings and target indices ***
       auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
                                   init=inits::glorot_uniform);
 
-      //Wemb_dec = dropout(Wemb_dec, value=0.1);
-
       std::vector<Expr> outputs;
       auto emptyEmbedding = this->zeros(shape={dimBatch_, dimTrgEmb_});
-      outputs.push_back(emptyEmbedding);
 
       std::vector<float> weightMask;
       std::vector<float> picks;
-      for(auto& trgWordBatch : trgSentenceBatch) {
-        for(auto w : trgWordBatch.first)
-          picks.push_back((float)w);
+      std::vector<size_t> indeces;
+      for(int j = 0; j < trgSentenceBatch.size(); ++j) {
+        auto& trgWordBatch = trgSentenceBatch[j];
 
-        if(outputs.size() < trgSentenceBatch.size()) {
-          auto indeces = trgWordBatch.first;
-          auto mask = trgWordBatch.second;
-
-          for(auto w: mask)
-            weightMask.push_back(w);
-
-          auto y = name(rows(Wemb_dec, indeces),
-                        "y_" + std::to_string(outputs.size() - 1));
-          outputs.push_back(y);
+        for(auto i : trgWordBatch.first) {
+          picks.push_back((float)i);
+          if(j < trgSentenceBatch.size() - 1)
+            indeces.push_back(i);
         }
-        else {
-          auto mask = trgWordBatch.second;
-          for(auto w: mask)
-            weightMask.push_back(w);
-        }
+
+        for(auto m : trgWordBatch.second)
+            weightMask.push_back(m);
       }
+
       auto picksTensor = this->constant(shape={(int)picks.size(), 1},
                                         init=inits::from_vector(picks));
 
+      int trgWords = (int)trgSentenceBatch.size();
+      auto y = reshape(rows(Wemb_dec, indeces), {dimBatch_, dimTrgEmb_, trgWords - 1});
+      y = concatenate({emptyEmbedding, y}, axis=2);
 
       // *** Apply conditional GRU to target embeddings ***
       auto decoderGRU = decoderGRUWithAttention();
-      auto decStates = decoderGRU.apply(outputs.begin(),
-                                        outputs.end(),
-                                        decState0);
+      auto decStates = decoderGRU.apply(y, decState0);
+
       auto contexts = decoderGRU.getCell().getContexts();
 
       // *** Final output layers ***
       auto d1 = concatenate(decStates, axis=2);
-      auto e2 = concatenate(outputs, axis=2);
       auto c3 = concatenate(contexts, axis=2);
 
       auto W1 = this->param("ff_logit_lstm_W", {dimDecState_, dimTrgEmb_},
@@ -383,7 +363,7 @@ class Nematus : public ExpressionGraph {
                             init=inits::zeros);
 
       auto t = tanhPlus3(affine(d1, W1, b1),
-                         affine(e2, W2, b2),
+                         affine(y, W2, b2),
                          affine(c3, W3, b3));
 
       auto aff = affine(t, W4, b4);
@@ -403,7 +383,7 @@ class Nematus : public ExpressionGraph {
     void construct(const data::CorpusBatch& batch) {
       this->clear();
 
-      setDims();
+      setDims(batch);
       constructEncoder(batch[0]);
       constructDecoder(batch[1]);
     }

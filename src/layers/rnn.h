@@ -95,7 +95,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
     : NaryNodeOp(nodes,
                  keywords::shape=nodes.front()->shape(),
                  args...),
-      final_(final) { }
+      final_(final) {}
 
   void forward() {
     std::vector<Tensor> inputs;
@@ -110,7 +110,10 @@ struct GRUFastNodeOp : public NaryNodeOp {
     std::vector<Tensor> outputs;
     for(auto child : children_) {
       inputs.push_back(child->val());
-      outputs.push_back(child->grad());
+      if(child->trainable())
+        outputs.push_back(child->grad());
+      else
+        outputs.push_back(nullptr);
     }
 
     GRUFastBackward(outputs, inputs, adj_, final_);
@@ -138,15 +141,21 @@ class GRUFast {
       dropoutMask_(dropoutMask) {}
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
+      return apply2(apply1(input), state, mask);
+    }
+
+    Expr apply1(Expr input) {
       auto xW = dot(input, params_.W);
+      return xW;
+    }
+
+    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
       auto sU = dot(state, params_.U);
 
       auto output = mask ?
         grufast({state, xW, sU, params_.b, mask}) :
         grufast({state, xW, sU, params_.b});
 
-      if(dropoutMask_)
-        output = output * dropoutMask_;
       return output;
     }
 
@@ -178,22 +187,30 @@ class RNN {
     template <class Iterator>
     std::vector<Expr> apply(Iterator it, Iterator end,
                             const Expr initialState) {
-
-      //auto xW = dot(input, params_.W);
-      //
-      //std::vector<Expr> outputs;
-      //auto state = initialState;
-      //for(int i = 0; i < input->shape()[2]; ++i) {
-      //  auto x = view(xW, i, {dimBatch_, dimSrcEmb_});
-      //  state = apply(cell_, *it++, state);
-      //  outputs.push_back(state);
-      //}
-      //return concatenate(outputs, axis=2);
-
       std::vector<Expr> outputs;
       auto state = initialState;
       while(it != end) {
         state = apply(cell_, *it++, state);
+        outputs.push_back(state);
+      }
+      return outputs;
+    }
+
+    std::vector<Expr> apply(const Expr input, const Expr initialState,
+                            const Expr mask = nullptr, bool reverse = false) {
+      auto xW = cell_.apply1(input);
+
+      std::vector<Expr> outputs;
+      auto state = initialState;
+      for(size_t i = 0; i < input->shape()[2]; ++i) {
+        int j = i;
+        if(reverse)
+          j = input->shape()[2] - i - 1;
+
+        if(mask)
+          state = cell_.apply2(step(xW, j), state, step(mask, j));
+        else
+          state = cell_.apply2(step(xW, j), state);
         outputs.push_back(state);
       }
       return outputs;
@@ -239,21 +256,26 @@ class GRUWithAttention {
       context_(context),
       softmaxMask_(nullptr),
       dropoutMask_(dropoutMask) {
-        mappedContext_ = dot(context_, params_.Ua);
+      mappedContext_ = dot(context_, params_.Ua);
 
-        if(softmaxMask) {
-          Shape shape = { softmaxMask->shape()[2],
-                          softmaxMask->shape()[0] };
-          softmaxMask_ = transpose(
-            reshape(softmaxMask, shape));
-        }
+      if(softmaxMask) {
+        Shape shape = { softmaxMask->shape()[2],
+                        softmaxMask->shape()[0] };
+        softmaxMask_ = transpose(
+          reshape(softmaxMask, shape));
       }
+    }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
+      return apply2(apply1(input), state, mask);
+    }
+
+    Expr apply1(Expr input) {
+      return dot(input, params_.W);
+    }
+
+    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
       using namespace keywords;
-
-
-      auto xW = dot(input, params_.W);
       auto sU = dot(state, params_.U);
       auto hidden = mask ?
         grufast({state, xW, sU, params_.b, mask}) :

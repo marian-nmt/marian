@@ -546,4 +546,58 @@ struct ReshapeNodeOp : public UnaryNodeOp {
   }
 };
 
+struct TimestepNodeOp : public UnaryNodeOp {
+  size_t step_;
+
+  TimestepNodeOp(Expr a, size_t step)
+    : UnaryNodeOp(a, keywords::shape=newShape(a)),
+      step_(step)
+    { }
+
+  Shape newShape(Expr a) {
+    Shape outShape = a->shape();
+    outShape.set(2, 1);
+    outShape.set(3, 1);
+    return outShape;
+  }
+
+  size_t allocate() { return 0; }
+  void free() {}
+
+  void forward() {}
+  void backward() {}
+
+  void init_dependent() {
+    a_->init_dependent();
+  }
+
+  void set_zero_adjoint() {
+    a_->set_zero_adjoint();
+  }
+
+  Tensor& val()  {
+    size_t offset = step_ * shape().elements();
+    val_.reset(new TensorGPU(a_->val()->data() + offset, shape()));
+    return val_;
+  };
+
+  Tensor& grad() {
+    size_t offset = step_ * shape().elements();
+    adj_.reset(new TensorGPU(a_->grad()->data() + offset, shape()));
+    return adj_;
+  };
+
+  std::vector<Expr> children() {
+    return a_->children();
+  }
+
+  virtual std::string graphviz() {
+    std::stringstream ss;
+    ss << "\"" << this << "\" [shape=\"box\", label="
+      << label("step") << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
+    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
+    return ss.str();
+  }
+};
+
 }

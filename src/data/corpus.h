@@ -14,8 +14,8 @@ typedef std::vector<WordMask> SentBatch;
 
 class CorpusBatch {
   public:
-    CorpusBatch(const std::vector<SentBatch>& batches)
-    : batches_(batches) {}
+    CorpusBatch(const std::vector<SentBatch>& batches, size_t words = 0)
+    : batches_(batches), words_(words) {}
 
     const SentBatch& operator[](size_t i) const {
       return batches_[i];
@@ -41,12 +41,17 @@ class CorpusBatch {
       }
     }
 
-    size_t size() {
+    size_t size() const {
       return batches_[0][0].first.size();
+    }
+
+    size_t words() const {
+      return words_;
     }
 
   private:
     std::vector<SentBatch> batches_;
+    size_t words_;
 };
 
 class Corpus : public DataBase {
@@ -112,6 +117,7 @@ class Corpus : public DataBase {
 
     batch_ptr toBatch(const Examples& batchVector) {
       int batchSize = batchVector.size();
+      size_t words = 0;
 
       std::vector<int> maxDims;
       for(auto& ex : batchVector) {
@@ -135,11 +141,13 @@ class Corpus : public DataBase {
           for(int k = 0; k < (*batchVector[i])[j]->size(); ++k) {
             langs[j][k].first[i] = (*(*batchVector[i])[j])[k];
             langs[j][k].second[i] = 1.f;
+            if(j == 0)
+              words++;
           }
         }
       }
 
-      return batch_ptr(new batch_type(langs));
+      return batch_ptr(new batch_type(langs, words));
     }
 
   private:
