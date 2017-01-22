@@ -101,7 +101,7 @@ class Decoder {
         Alignment(const God &god, const Weights& model)
           : w_(model),
             WC_(w_.C_(0,0)),
-            dBatchMapping_(god.Get<size_t>("batch-size") * god.Get<size_t>("beam-size"), 0)
+            dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
         {}
 
         void Init(const mblas::Matrix& SourceContext) {

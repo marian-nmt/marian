@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
   std::size_t taskCounter = 0;
 
   size_t bunchSize = god.Get<size_t>("bunch-size");
-  size_t maxBatchSize = god.Get<size_t>("batch-size");
+  size_t maxBatchSize = god.Get<size_t>("mini-batch");
   std::cerr << "mode=" << god.Get("mode") << std::endl;
 
   if (god.Get<bool>("wipo") || god.Get<size_t>("cpu-threads")) {
