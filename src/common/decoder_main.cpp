@@ -25,13 +25,13 @@ int main(int argc, char* argv[]) {
   std::size_t lineNum = 0;
   std::size_t taskCounter = 0;
 
-  size_t bunchSize = god.Get<size_t>("bunch-size");
-  size_t maxBatchSize = god.Get<size_t>("mini-batch");
+  size_t maxiBatch = god.Get<size_t>("maxi-batch");
+  size_t miniBatch = god.Get<size_t>("mini-batch");
   std::cerr << "mode=" << god.Get("mode") << std::endl;
 
   if (god.Get<bool>("wipo") || god.Get<size_t>("cpu-threads")) {
-    bunchSize = 1;
-    maxBatchSize = 1;
+    maxiBatch = 1;
+    miniBatch = 1;
   }
 
   size_t cpuThreads = god.Get<size_t>("cpu-threads");
@@ -56,9 +56,9 @@ int main(int argc, char* argv[]) {
   while (std::getline(god.GetInputStream(), in)) {
     sentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
-    if (sentences->size() >= maxBatchSize * bunchSize) {
+    if (sentences->size() >= maxiBatch) {
       pool->enqueue(
-          [=,&god]{ return TranslationTask(god, sentences, taskCounter, maxBatchSize); }
+          [=,&god]{ return TranslationTask(god, sentences, taskCounter, miniBatch); }
       );
 
       sentences.reset(new Sentences());
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 
   if (sentences->size()) {
     pool->enqueue(
-        [=,&god]{ return TranslationTask(god, sentences, taskCounter, maxBatchSize); }
+        [=,&god]{ return TranslationTask(god, sentences, taskCounter, miniBatch); }
     );
   }
 
