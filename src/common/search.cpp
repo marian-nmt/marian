@@ -9,7 +9,7 @@
 
 using namespace std;
 
-Search::Search(God &god, DeviceType deviceType, size_t threadId)
+Search::Search(God &god, size_t threadId)
   : scorers_(god.GetScorers(threadId)),
     bestHyps_(god.GetBestHyps(threadId)) {
 }
