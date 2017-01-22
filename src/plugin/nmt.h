@@ -34,9 +34,6 @@ class MosesPlugin {
     void SetDevice();
     size_t GetDevice();
 
-    God &GetGod()
-    { return *god_; }
-
     void SetDebug(bool debug) {
       debug_ = debug;
     }
