@@ -30,16 +30,16 @@ class God {
     God& Init(int argc, char** argv);
 
 
-    bool Has(const std::string& key) {
+    bool Has(const std::string& key) const {
       return config_.Has(key);
     }
 
     template <typename T>
-    T Get(const std::string& key) {
+    T Get(const std::string& key) const {
       return config_.Get<T>(key);
     }
 
-    YAML::Node Get(const std::string& key) {
+    YAML::Node Get(const std::string& key) const {
       return config_.Get(key);
     }
 
