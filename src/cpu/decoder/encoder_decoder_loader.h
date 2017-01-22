@@ -20,7 +20,7 @@ class EncoderDecoderLoader : public Loader {
 
     virtual void Load(God &god);
 
-    virtual ScorerPtr NewScorer(God &god, const size_t taskId);
+    virtual ScorerPtr NewScorer(const God &god, const size_t taskId) const;
     BestHypsBase &GetBestHyps(God &god);
 
   private:

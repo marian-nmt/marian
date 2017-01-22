@@ -169,7 +169,7 @@ OutputCollector& God::GetOutputCollector() {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
+std::vector<ScorerPtr> God::GetScorers(size_t threadId) const {
   std::vector<ScorerPtr> scorers;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
