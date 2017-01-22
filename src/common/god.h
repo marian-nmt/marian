@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <iostream>
-#include <boost/thread/tss.hpp>
 
 #include "common/processor/processor.h"
 #include "common/config.h"
@@ -22,7 +21,6 @@ class Weights;
 class Vocab;
 class Filter;
 class InputFileStream;
-class Search;
 
 class God {
   public:
@@ -66,8 +64,6 @@ class God {
 
     void LoadWeights(const std::string& path);
 
-    Search &GetSearch(size_t taskCounter);
-
   private:
     void LoadScorers();
     void LoadFiltering();
@@ -93,5 +89,4 @@ class God {
     std::unique_ptr<InputFileStream> inputStream_;
     OutputCollector outputCollector_;
 
-    mutable boost::thread_specific_ptr<Search> search_;
 };

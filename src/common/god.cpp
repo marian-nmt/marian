@@ -12,7 +12,6 @@
 #include "common/filter.h"
 #include "common/processor/bpe.h"
 #include "common/utils.h"
-#include "common/search.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
@@ -233,16 +232,3 @@ void God::CleanUp() {
      loader.reset(nullptr);
   }
 }
-
-Search &God::GetSearch(size_t taskCounter)
-{
-  Search *obj;
-  obj = search_.get();
-  if (obj == NULL) {
-    obj = new Search(*this, taskCounter);
-    search_.reset(obj);
-  }
-  assert(obj);
-  return *obj;
-}
-

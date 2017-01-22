@@ -5,7 +5,11 @@
 #include "printer.h"
 
 void TranslationTask(God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
-  Search &search = god.GetSearch(taskCounter);
+  thread_local std::unique_ptr<Search> search;
+  if(!search) {
+    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    search.reset(new Search(god, taskCounter));
+  }
 
   try {
     Histories allHistories;
@@ -19,7 +23,7 @@ void TranslationTask(God &god, std::shared_ptr<Sentences> sentences, size_t task
 
       if (decodeSentences->size() >= maxBatchSize) {
         assert(decodeSentences->size());
-        std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
+        std::shared_ptr<Histories> histories = search->Decode(god, *decodeSentences);
         allHistories.Append(*histories.get());
 
         decodeSentences.reset(new Sentences(taskCounter, bunchId++));
@@ -27,7 +31,7 @@ void TranslationTask(God &god, std::shared_ptr<Sentences> sentences, size_t task
     }
 
     if (decodeSentences->size()) {
-      std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
+      std::shared_ptr<Histories> histories = search->Decode(god, *decodeSentences);
       allHistories.Append(*histories.get());
     }
 
