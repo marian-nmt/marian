@@ -17,10 +17,10 @@ class History {
       float cost;
     };
 
-    History(God &god, const History &) = delete;
+    History(const God &god, const History &) = delete;
 
   public:
-    History(God &god, size_t lineNo);
+    History(const God &god, size_t lineNo);
 
     void Add(const Beam& beam, bool last = false) {
       if (beam.back()->GetPrevHyp() != nullptr) {
@@ -80,7 +80,7 @@ class History {
 class Histories {
  public:
   Histories() {} // for all histories in translation task
-  Histories(God &god, const Sentences& sentences);
+  Histories(const God &god, const Sentences& sentences);
 
   std::shared_ptr<History> at(size_t id) const {
     return coll_.at(id);
