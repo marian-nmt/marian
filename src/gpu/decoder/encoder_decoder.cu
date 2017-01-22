@@ -37,7 +37,7 @@ const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 ////////////////////////////////////////////
 
 EncoderDecoder::EncoderDecoder(
-		God &god,
+		const God &god,
 		const std::string& name,
         const YAML::Node& config,
         size_t tab,

@@ -29,7 +29,7 @@ class EncoderDecoder : public Scorer {
     typedef EncoderDecoderState EDState;
 
   public:
-    EncoderDecoder(God &god,
+    EncoderDecoder(const God &god,
     			   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,

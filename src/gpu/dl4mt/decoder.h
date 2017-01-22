@@ -98,7 +98,7 @@ class Decoder {
     template <class Weights>
     class Alignment {
       public:
-        Alignment(God &god, const Weights& model)
+        Alignment(const God &god, const Weights& model)
           : w_(model),
             WC_(w_.C_(0,0)),
             dBatchMapping_(god.Get<size_t>("batch-size") * god.Get<size_t>("beam-size"), 0)
@@ -245,7 +245,7 @@ class Decoder {
     };
 
   public:
-    Decoder(God &god, const Weights& model)
+    Decoder(const God &god, const Weights& model)
     : embeddings_(model.decEmbeddings_),
       rnn1_(model.decInit_, model.decGru1_),
       rnn2_(model.decGru2_),
