@@ -157,7 +157,7 @@ Vocab& God::GetTargetVocab() {
   return *targetVocab_;
 }
 
-Filter& God::GetFilter() {
+const Filter& God::GetFilter() const {
   return *filter_;
 }
 

@@ -49,7 +49,7 @@ class God {
     std::istream& GetInputStream();
     OutputCollector& GetOutputCollector();
 
-    Filter& GetFilter();
+    const Filter& GetFilter() const;
 
     BestHypsBase &GetBestHyps(size_t threadId) const;
 
@@ -74,7 +74,7 @@ class God {
     std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     std::unique_ptr<Vocab> targetVocab_;
 
-    std::unique_ptr<Filter> filter_;
+    std::unique_ptr<const Filter> filter_;
 
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;
