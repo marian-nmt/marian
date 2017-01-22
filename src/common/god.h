@@ -57,7 +57,7 @@ class God {
 
     BestHypsBase &GetBestHyps(size_t threadId);
 
-    std::vector<ScorerPtr> GetScorers(DeviceType deviceType, size_t);
+    std::vector<ScorerPtr> GetScorers(size_t);
     std::vector<std::string> GetScorerNames();
     std::map<std::string, float>& GetScorerWeights();
 

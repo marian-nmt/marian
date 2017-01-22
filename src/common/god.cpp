@@ -177,12 +177,12 @@ OutputCollector& God::GetOutputCollector() {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(DeviceType deviceType, size_t threadId) {
+std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   std::vector<ScorerPtr> scorers;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
 
-  if (deviceType == CPUDevice) {
+  if (threadId < cpuThreads) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, threadId));
   } else {
