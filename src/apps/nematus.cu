@@ -206,6 +206,7 @@ int main(int argc, char** argv) {
           nematus->save(modelPrefix + "." + std::to_string(batches) + ".npz");
       }
     }
+    epochs++;
   }
   std::cout << "Training finshed" << std::endl;
   nematus->save(modelPrefix + ".npz");
