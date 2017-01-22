@@ -40,7 +40,7 @@ class Scorer {
 
     virtual ~Scorer() {}
 
-    virtual void Score(God &god, const State& in,
+    virtual void Score(const God &god, const State& in,
                        State& out, const std::vector<size_t>& beamSizes) = 0;
 
     virtual void BeginSentenceState(State& state, size_t batchSize=1) = 0;

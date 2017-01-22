@@ -29,13 +29,13 @@ class EncoderDecoder : public Scorer {
     typedef EncoderDecoderState EDState;
 
   public:
-    EncoderDecoder(God &god,
+    EncoderDecoder(const God &god,
     			   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
+    virtual void Score(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
 
     virtual State* NewState();
 
@@ -77,10 +77,10 @@ class EncoderDecoderLoader : public Loader {
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
 
-    virtual void Load(God &god);
+    virtual void Load(const God &god);
 
-    virtual ScorerPtr NewScorer(God &god, size_t taskId);
-    virtual BestHypsBase &GetBestHyps(God &god);
+    virtual ScorerPtr NewScorer(const God &god, size_t taskId) const;
+    virtual BestHypsBase &GetBestHyps(const God &god) const;
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;

@@ -37,7 +37,7 @@ const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 ////////////////////////////////////////////
 
 EncoderDecoder::EncoderDecoder(
-		God &god,
+		const God &god,
 		const std::string& name,
         const YAML::Node& config,
         size_t tab,
@@ -50,7 +50,7 @@ EncoderDecoder::EncoderDecoder(
     SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
+void EncoderDecoder::Score(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -123,7 +123,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)
  : Loader(name, config) {}
 
-void EncoderDecoderLoader::Load(God &god) {
+void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");
   auto devices = god.Get<std::vector<size_t>>("devices");
   ThreadPool devicePool(devices.size());
@@ -140,7 +140,7 @@ void EncoderDecoderLoader::Load(God &god) {
   }
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(God &god, size_t taskId) {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, size_t taskId) const {
   size_t i = taskId % weights_.size();
   size_t d = weights_[i]->GetDevice();
   cudaSetDevice(d);
@@ -149,7 +149,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(God &god, size_t taskId) {
                                       tab, *weights_[i]));
 }
 
-BestHypsBase &EncoderDecoderLoader::GetBestHyps(God &god) {
+BestHypsBase &EncoderDecoderLoader::GetBestHyps(const God &god) const {
   thread_local std::unique_ptr<BestHypsBase> bestHyps;
   if(!bestHyps) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();

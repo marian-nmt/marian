@@ -9,13 +9,13 @@
 
 using namespace std;
 
-Search::Search(God &god, size_t threadId)
+Search::Search(const God &god, size_t threadId)
   : scorers_(god.GetScorers(threadId)),
     bestHyps_(god.GetBestHyps(threadId)) {
 }
 
 
-size_t Search::MakeFilter(God &god, const std::set<Word>& srcWords, size_t vocabSize) {
+size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize) {
   filterIndices_ = god.GetFilter().GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
@@ -35,7 +35,7 @@ void Search::InitScorers(const Sentences& sentences, States& states, States& nex
   }
 }
 
-std::shared_ptr<Histories> Search::Decode(God &god, const Sentences& sentences) {
+std::shared_ptr<Histories> Search::Decode(const God &god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   std::shared_ptr<Histories> ret(new Histories(god, sentences));

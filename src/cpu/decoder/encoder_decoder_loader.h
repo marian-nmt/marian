@@ -18,10 +18,10 @@ class EncoderDecoderLoader : public Loader {
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
 
-    virtual void Load(God &god);
+    virtual void Load(const God &god);
 
-    virtual ScorerPtr NewScorer(God &god, const size_t taskId);
-    BestHypsBase &GetBestHyps(God &god);
+    virtual ScorerPtr NewScorer(const God &god, const size_t taskId) const;
+    BestHypsBase &GetBestHyps(const God &god) const;
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;

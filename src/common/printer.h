@@ -13,7 +13,7 @@ std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 std::string GetAlignmentString(const std::vector<size_t>& alignment);
 
 template <class OStream>
-void Printer(God &god, const History& history, OStream& out) {
+void Printer(const God &god, const History& history, OStream& out) {
   auto bestTranslation = history.Top();
   std::vector<std::string> bestSentenceWords = god.Postprocess(god.GetTargetVocab()(bestTranslation.first));
 
@@ -59,7 +59,7 @@ void Printer(God &god, const History& history, OStream& out) {
 }
 
 template <class OStream>
-void Printer(God &god, const Histories& histories, OStream& out) {
+void Printer(const God &god, const Histories& histories, OStream& out) {
   for (size_t i = 0; i < histories.size(); ++i) {
     const History& history = *histories.at(i).get();
     Printer(god, history, out);

@@ -4,7 +4,7 @@
 #include "output_collector.h"
 #include "printer.h"
 
-void TranslationTask(God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
+void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
   thread_local std::unique_ptr<Search> search;
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();

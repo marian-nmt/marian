@@ -15,11 +15,15 @@ do { if(vm_.count(key) > 0) { \
   config_[key] = vm_[key].as<type>(); \
 }} while(0)
 
-bool Config::Has(const std::string& key) {
+bool Config::Has(const std::string& key) const {
   return config_[key];
 }
 
-YAML::Node& Config::Get() {
+YAML::Node Config::Get(const std::string& key) const {
+  return config_[key];
+}
+
+const YAML::Node& Config::Get() const {
   return config_;
 }
 
@@ -103,8 +107,8 @@ void Validate(const YAML::Node& config) {
   //UTIL_THROW_IF2(config["cpu-threads"].as<int>() > 0 && config["batch-size"].as<int>() > 1,
   //              "Different number of models and weights in config file");
 
-  UTIL_THROW_IF2(config["bunch-size"].as<int>() == 0,
-                "bunch-size must be 1 or bigger");
+  UTIL_THROW_IF2(config["maxi-batch"].as<int>() < config["mini-batch"].as<int>(),
+                "maxi-batch < mini-batch");
 }
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {
@@ -198,10 +202,10 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("cpu-threads", po::value<size_t>()->default_value(1),
      "Number of threads on the CPU.")
 #endif
-    ("batch-size", po::value<size_t>()->default_value(1),
-     "Number of sentences in one batch.")
-    ("bunch-size", po::value<size_t>()->default_value(1),
-      "Number of batches in one bunch.")
+    ("mini-batch", po::value<size_t>()->default_value(1),
+     "Number of sentences in mini batch.")
+    ("maxi-batch", po::value<size_t>()->default_value(1),
+      "Number of sentences in maxi batch.")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -281,8 +285,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("no-debpe", bool);
   SET_OPTION("beam-size", size_t);
   SET_OPTION("cpu-threads", size_t);
-  SET_OPTION("batch-size", size_t);
-  SET_OPTION("bunch-size", size_t);
+  SET_OPTION("mini-batch", size_t);
+  SET_OPTION("maxi-batch", size_t);
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);

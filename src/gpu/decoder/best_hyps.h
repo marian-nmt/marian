@@ -17,11 +17,11 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
-    BestHyps(God &god)
-    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("batch-size"),
+    BestHyps(const God &god)
+    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"),
                   mblas::CudaStreamHandler::GetStream()),
-      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),
-      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),
+      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
       weights_(god.GetScorerWeights())
     {
       //std::cerr << "BestHyps::BestHyps" << std::endl;
@@ -56,7 +56,7 @@ class BestHyps : public BestHypsBase
       return alignments;
     }
 
-    void operator()(God &god,
+    void operator()(const God &god,
     	  std::vector<Beam>& beams,
           const Beam& prevHyps,
           std::vector<size_t>& beamSizes,
@@ -75,12 +75,12 @@ class BestHyps : public BestHypsBase
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
-      BroadcastVecColumn(weights_[scorers[0]->GetName()] * _1 + _2, Probs, Costs);
+      BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
 
       for (size_t i = 1; i < scorers.size(); ++i) {
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-        Element(_1 + weights_[scorers[i]->GetName()] * _2, Probs, currProbs);
+        Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
       }
 
       if (!god.Get<bool>("allow-unk")) {
@@ -147,12 +147,12 @@ class BestHyps : public BestHypsBase
                     const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(scorers.size(), 0.0f);
                   cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
               }
-              sum += weights_[scorers[j]->GetName()] * cost;
+              sum += weights_.at(scorers[j]->GetName()) * cost;
               hyp->GetCostBreakdown()[j] = cost;
             }
           }
           hyp->GetCostBreakdown()[0] -= sum;
-          hyp->GetCostBreakdown()[0] /= weights_[scorers[0]->GetName()];
+          hyp->GetCostBreakdown()[0] /= weights_.at(scorers[0]->GetName());
         }
 
         beams[batchMap[i]].push_back(hyp);
@@ -163,7 +163,7 @@ class BestHyps : public BestHypsBase
     NthElement nthElement_;
     DeviceVector<unsigned> keys;
     DeviceVector<float> Costs;
-    std::map<std::string, float>& weights_;
+    const std::map<std::string, float>& weights_;
 };
 
 }

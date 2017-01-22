@@ -23,7 +23,7 @@ struct ProbCompare {
 class BestHyps : public BestHypsBase
 {
 public:
-  void operator()(God &god,
+  void operator()(const God &god,
 		std::vector<Beam>& beams,
         const Beam& prevHyps,
         std::vector<size_t>& beamSizes,
@@ -41,13 +41,13 @@ public:
       Costs.data()[i] = prevHyps[i]->GetCost();
     }
 
-    Probs *= weights[scorers[0]->GetName()];
+    Probs *= weights.at(scorers[0]->GetName());
     AddBiasVector<byColumn>(Probs, Costs);
 
     for (size_t i = 1; i < scorers.size(); ++i) {
       mblas::ArrayMatrix &currProb = static_cast<mblas::ArrayMatrix&>(scorers[i]->GetProbs());
 
-      Probs += weights[scorers[i]->GetName()] * currProb;
+      Probs += weights.at(scorers[i]->GetName()) * currProb;
     }
 
     size_t size = Probs.rows() * Probs.columns(); // Probs.size();
@@ -130,12 +130,12 @@ public:
                 const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown().resize(scorers.size(), 0.0);
               cost = breakDowns[j][i] + const_cast<HypothesisPtr&>(prevHyps[hypIndex])->GetCostBreakdown()[j];
             }
-            sum += weights[scorers[j]->GetName()] * cost;
+            sum += weights.at(scorers[j]->GetName()) * cost;
             hyp->GetCostBreakdown()[j] = cost;
           }
         }
         hyp->GetCostBreakdown()[0] -= sum;
-        hyp->GetCostBreakdown()[0] /= weights[scorers[0]->GetName()];
+        hyp->GetCostBreakdown()[0] /= weights.at(scorers[0]->GetName());
       }
       beams[0].push_back(hyp);
     }

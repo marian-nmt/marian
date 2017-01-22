@@ -15,21 +15,21 @@ class Loader {
 
     virtual ~Loader() {};
 
-    virtual void Load(God &god) = 0;
+    virtual void Load(const God &god) = 0;
 
-    bool Has(const std::string& key) {
+    bool Has(const std::string& key) const {
       return config_[key];
     }
 
     template <typename T>
-    T Get(const std::string& key) {
+    T Get(const std::string& key) const {
       return config_[key].as<T>();
     }
 
-    virtual ScorerPtr NewScorer(God &god, size_t) = 0;
-    virtual BestHypsBase &GetBestHyps(God &god) = 0;
+    virtual ScorerPtr NewScorer(const God &god, size_t) const = 0;
+    virtual BestHypsBase &GetBestHyps(const God &god) const = 0;
 
-    const std::string& GetName() {
+    const std::string& GetName() const {
       return name_;
     }
 

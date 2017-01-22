@@ -13,34 +13,33 @@
 #include "common/sentence.h"
 #include "common/exception.h"
 
-God *god_;
+God god_;
 
 std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
   thread_local std::unique_ptr<Search> search;
 
   if(!search) {
     LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(*god_, taskCounter));
+    search.reset(new Search(god_, taskCounter));
   }
 
   std::shared_ptr<Sentences> sentences(new Sentences());
-  sentences->push_back(SentencePtr(new Sentence(*god_, taskCounter, in)));
-  return search->Decode(*god_, *sentences);
+  sentences->push_back(SentencePtr(new Sentence(god_, taskCounter, in)));
+  return search->Decode(god_, *sentences);
 }
 
 void init(const std::string& options) {
-  god_ = new God();
-  god_->Init(options);
+  god_.Init(options);
 }
 
 boost::python::list translate(boost::python::list& in) {
-  size_t cpuThreads = god_->Get<size_t>("cpu-threads");
+  size_t cpuThreads = god_.Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
   size_t totalThreads = cpuThreads;
 #ifdef CUDA
-  size_t gpuThreads = god_->Get<size_t>("gpu-threads");
-  auto devices = god_->Get<std::vector<size_t>>("devices");
+  size_t gpuThreads = god_.Get<size_t>("gpu-threads");
+  auto devices = god_.Get<std::vector<size_t>>("devices");
   LOG(info) << "Setting GPU thread count to " << gpuThreads;
   totalThreads += gpuThreads * devices.size();
 #endif
@@ -65,7 +64,7 @@ boost::python::list translate(boost::python::list& in) {
 
   for (auto&& result : results) {
     std::stringstream ss;
-    Printer(*god_, *result.get().get(), ss);
+    Printer(god_, *result.get().get(), ss);
     output.append(ss.str());
   }
 

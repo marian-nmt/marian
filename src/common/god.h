@@ -30,35 +30,35 @@ class God {
     God& Init(int argc, char** argv);
 
 
-    bool Has(const std::string& key) {
+    bool Has(const std::string& key) const {
       return config_.Has(key);
     }
 
     template <typename T>
-    T Get(const std::string& key) {
+    T Get(const std::string& key) const {
       return config_.Get<T>(key);
     }
 
-    YAML::Node Get(const std::string& key) {
+    YAML::Node Get(const std::string& key) const {
       return config_.Get(key);
     }
 
-    Vocab& GetSourceVocab(size_t i = 0);
-    Vocab& GetTargetVocab();
+    Vocab& GetSourceVocab(size_t i = 0) const;
+    Vocab& GetTargetVocab() const;
 
-    std::istream& GetInputStream();
-    OutputCollector& GetOutputCollector();
+    std::istream& GetInputStream() const;
+    OutputCollector& GetOutputCollector() const;
 
-    Filter& GetFilter();
+    const Filter& GetFilter() const;
 
-    BestHypsBase &GetBestHyps(size_t threadId);
+    BestHypsBase &GetBestHyps(size_t threadId) const;
 
-    std::vector<ScorerPtr> GetScorers(size_t);
-    std::vector<std::string> GetScorerNames();
-    std::map<std::string, float>& GetScorerWeights();
+    std::vector<ScorerPtr> GetScorers(size_t) const;
+    std::vector<std::string> GetScorerNames() const;
+    const std::map<std::string, float>& GetScorerWeights() const;
 
-    std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input);
-    std::vector<std::string> Postprocess(const std::vector<std::string>& input);
+    std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input) const;
+    std::vector<std::string> Postprocess(const std::vector<std::string>& input) const;
 
     void CleanUp();
 
@@ -71,10 +71,10 @@ class God {
 
     Config config_;
 
-    std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
-    std::unique_ptr<Vocab> targetVocab_;
+    mutable std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
+    mutable std::unique_ptr<Vocab> targetVocab_;
 
-    std::unique_ptr<Filter> filter_;
+    std::unique_ptr<const Filter> filter_;
 
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;
@@ -86,7 +86,7 @@ class God {
     std::shared_ptr<spdlog::logger> info_;
     std::shared_ptr<spdlog::logger> progress_;
 
-    std::unique_ptr<InputFileStream> inputStream_;
-    OutputCollector outputCollector_;
+    mutable std::unique_ptr<InputFileStream> inputStream_;
+    mutable OutputCollector outputCollector_;
 
 };

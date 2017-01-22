@@ -149,27 +149,27 @@ void God::LoadPrePostProcessing() {
   }
 }
 
-Vocab& God::GetSourceVocab(size_t i) {
+Vocab& God::GetSourceVocab(size_t i) const {
   return *sourceVocabs_[i];
 }
 
-Vocab& God::GetTargetVocab() {
+Vocab& God::GetTargetVocab() const {
   return *targetVocab_;
 }
 
-Filter& God::GetFilter() {
+const Filter& God::GetFilter() const {
   return *filter_;
 }
 
-std::istream& God::GetInputStream() {
+std::istream& God::GetInputStream() const {
   return *inputStream_;
 }
 
-OutputCollector& God::GetOutputCollector() {
+OutputCollector& God::GetOutputCollector() const {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
+std::vector<ScorerPtr> God::GetScorers(size_t threadId) const {
   std::vector<ScorerPtr> scorers;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
@@ -184,7 +184,7 @@ std::vector<ScorerPtr> God::GetScorers(size_t threadId) {
   return scorers;
 }
 
-BestHypsBase &God::GetBestHyps(size_t threadId) {
+BestHypsBase &God::GetBestHyps(size_t threadId) const {
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (threadId < cpuThreads) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this);
@@ -193,7 +193,7 @@ BestHypsBase &God::GetBestHyps(size_t threadId) {
   }
 }
 
-std::vector<std::string> God::GetScorerNames() {
+std::vector<std::string> God::GetScorerNames() const {
   std::vector<std::string> scorerNames;
   for(auto&& name : cpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
@@ -202,11 +202,11 @@ std::vector<std::string> God::GetScorerNames() {
   return scorerNames;
 }
 
-std::map<std::string, float>& God::GetScorerWeights() {
+const std::map<std::string, float>& God::GetScorerWeights() const {
   return weights_;
 }
 
-std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) {
+std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) const {
   std::vector<std::string> processed = input;
   if (preprocessors_.size() >= i + 1) {
     for (const auto& processor : preprocessors_[i]) {
@@ -216,7 +216,7 @@ std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string
   return processed;
 }
 
-std::vector<std::string> God::Postprocess(const std::vector<std::string>& input) {
+std::vector<std::string> God::Postprocess(const std::vector<std::string>& input) const {
   std::vector<std::string> processed = input;
   for (const auto& processor : postprocessors_) {
     processed = processor->Postprocess(processed);

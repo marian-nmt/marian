@@ -1,7 +1,7 @@
 #include "history.h"
 #include "sentence.h"
 
-Histories::Histories(God &god, const Sentences& sentences)
+Histories::Histories(const God &god, const Sentences& sentences)
  : coll_(sentences.size())
 {
   for (size_t i = 0; i < sentences.size(); ++i) {
@@ -12,7 +12,7 @@ Histories::Histories(God &god, const Sentences& sentences)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-History::History(God &god, size_t lineNo)
+History::History(const  God &god, size_t lineNo)
 : normalize_(god.Get<bool>("normalize"))
 , lineNo_(lineNo)
 {}

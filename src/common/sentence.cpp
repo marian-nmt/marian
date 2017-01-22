@@ -4,7 +4,7 @@
 #include "utils.h"
 #include "common/vocab.h"
 
-Sentence::Sentence(God &god, size_t vLineNum, const std::string& line)
+Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)
   : lineNum_(vLineNum), line_(line)
 {
   std::vector<std::string> tabs;
@@ -22,7 +22,7 @@ Sentence::Sentence(God &god, size_t vLineNum, const std::string& line)
   }
 }
 
-Sentence::Sentence(God &god, size_t lineNum, const std::vector<std::string>& words)
+Sentence::Sentence(const God &god, size_t lineNum, const std::vector<std::string>& words)
   : lineNum_(lineNum) {
     auto processed = god.Preprocess(0, words);
     words_.push_back(god.GetSourceVocab(0)(processed));

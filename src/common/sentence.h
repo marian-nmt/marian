@@ -9,9 +9,9 @@ class God;
 class Sentence {
   public:
 
-    Sentence(God &god, size_t lineNum, const std::string& line);
-    Sentence(God &god, size_t lineNum, const std::vector<std::string>& words);
-    Sentence(God &god, size_t lineNum, const std::vector<size_t>& words);
+    Sentence(const God &god, size_t vLineNum, const std::string& line);
+    Sentence(const God &god, size_t vLineNum, const std::vector<std::string>& words);
+		Sentence(God &god, size_t lineNum, const std::vector<size_t>& words);
 
     const Words& GetWords(size_t index = 0) const;
     size_t GetLineNum() const;
