@@ -8,7 +8,7 @@
 #include "common/utils.h"
 
 
-std::vector<std::string> BPE::Preprocess(const std::vector<std::string> input) {
+std::vector<std::string> BPE::Preprocess(const std::vector<std::string> input) const {
   return Encode(input);
 }
 
@@ -80,7 +80,7 @@ void BPE::PrintSegment(const std::string& sentence) {
   }
 }
 
-std::set<BPE::BPEPair> BPE::GetPairs(const std::vector<std::string>& word) {
+std::set<BPE::BPEPair> BPE::GetPairs(const std::vector<std::string>& word) const {
   std::set<BPE::BPEPair> pairSet;
   for (size_t i = 1; i < word.size(); ++i) {
     pairSet.emplace(word[i-1], word[i]);
@@ -88,7 +88,7 @@ std::set<BPE::BPEPair> BPE::GetPairs(const std::vector<std::string>& word) {
   return pairSet;
 }
 
-const BPE::BPEPair* BPE::FindBestBigram(const std::set<BPEPair>& pairs) {
+const BPE::BPEPair* BPE::FindBestBigram(const std::set<BPEPair>& pairs) const {
   size_t minDist = bpeCodes_.size();
   auto best = bpeCodes_.begin();
 
@@ -110,7 +110,7 @@ const BPE::BPEPair* BPE::FindBestBigram(const std::set<BPEPair>& pairs) {
   }
 }
 
-std::vector<std::string>& BPE::Encode(const std::string& word) {
+std::vector<std::string>& BPE::Encode(const std::string& word) const {
   if (IsCached(word)) {
     return cache_[word];
   }
@@ -176,7 +176,7 @@ std::vector<std::string>& BPE::Encode(const std::string& word) {
   return cache_[word];
 }
 
-std::vector<std::string> BPE::Encode(const std::vector<std::string>& words) {
+std::vector<std::string> BPE::Encode(const std::vector<std::string>& words) const {
   std::vector<std::string> result;
   for (const auto& word : words) {
     auto& encoded = Encode(word);

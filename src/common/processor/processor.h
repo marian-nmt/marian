@@ -6,7 +6,7 @@
 
 class Preprocessor {
   public:
-    virtual std::vector<std::string> Preprocess(const std::vector<std::string> input) = 0;
+    virtual std::vector<std::string> Preprocess(const std::vector<std::string> input) const = 0;
     virtual ~Preprocessor() {}
 };
 
