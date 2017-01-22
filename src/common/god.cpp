@@ -161,7 +161,7 @@ const Filter& God::GetFilter() const {
   return *filter_;
 }
 
-std::istream& God::GetInputStream() {
+std::istream& God::GetInputStream() const {
   return *inputStream_;
 }
 
