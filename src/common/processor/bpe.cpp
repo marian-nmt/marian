@@ -12,7 +12,7 @@ std::vector<std::string> BPE::Preprocess(const std::vector<std::string> input) c
   return Encode(input);
 }
 
-std::vector<std::string> BPE::Postprocess(const std::vector<std::string> input) {
+std::vector<std::string> BPE::Postprocess(const std::vector<std::string> input) const {
   std::vector<std::string> debped;
   std::stringstream currWord;
   for (const auto& word : input) {

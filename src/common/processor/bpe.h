@@ -48,7 +48,7 @@ class BPE : public Processor {
     std::vector<std::string> Encode(const std::vector<std::string>& words) const;
 
     std::vector<std::string> Preprocess(const std::vector<std::string> input) const;
-    std::vector<std::string> Postprocess(const std::vector<std::string> input);
+    std::vector<std::string> Postprocess(const std::vector<std::string> input) const;
 
     virtual ~BPE() {}
   private:
