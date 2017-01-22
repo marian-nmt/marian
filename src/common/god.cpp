@@ -165,7 +165,7 @@ std::istream& God::GetInputStream() {
   return *inputStream_;
 }
 
-OutputCollector& God::GetOutputCollector() {
+OutputCollector& God::GetOutputCollector() const {
   return outputCollector_;
 }
 

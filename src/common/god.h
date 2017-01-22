@@ -47,7 +47,7 @@ class God {
     Vocab& GetTargetVocab();
 
     std::istream& GetInputStream();
-    OutputCollector& GetOutputCollector();
+    OutputCollector& GetOutputCollector() const;
 
     const Filter& GetFilter() const;
 
@@ -87,6 +87,6 @@ class God {
     std::shared_ptr<spdlog::logger> progress_;
 
     std::unique_ptr<InputFileStream> inputStream_;
-    OutputCollector outputCollector_;
+    mutable OutputCollector outputCollector_;
 
 };
