@@ -15,7 +15,7 @@
 
 
 LoaderPtr LoaderFactory::Create(
-    God &god,
+	const God &god,
     const std::string& name,
     const YAML::Node& config,
     const std::string& mode) {
@@ -42,7 +42,7 @@ LoaderPtr LoaderFactory::Create(
 
 #ifdef CUDA
 Loader *LoaderFactory::CreateGPU(
-    God &god,
+    const God &god,
     const std::string& name,
     const YAML::Node& config) {
   UTIL_THROW_IF2(!config["type"],
@@ -69,7 +69,7 @@ Loader *LoaderFactory::CreateGPU(
 
 
 Loader *LoaderFactory::CreateCPU(
-		God &god,
+		const God &god,
 		const std::string& name,
         const YAML::Node& config) {
   UTIL_THROW_IF2(!config["type"],

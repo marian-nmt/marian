@@ -17,17 +17,17 @@ do { \
 
 class LoaderFactory {
   public:
-    static LoaderPtr Create(God &god,
+    static LoaderPtr Create(const God &god,
     						const std::string& name,
                             const YAML::Node& config,
                             const std::string& mode);
 
   protected:
 
-    static Loader *CreateCPU(God &god, const std::string& name,
+    static Loader *CreateCPU(const God &god, const std::string& name,
                             const YAML::Node& config);
 
-    static Loader *CreateGPU(God &god, const std::string& name,
+    static Loader *CreateGPU(const God &god, const std::string& name,
                             const YAML::Node& config);
 
 #ifdef CUDA
