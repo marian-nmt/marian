@@ -15,11 +15,15 @@ do { if(vm_.count(key) > 0) { \
   config_[key] = vm_[key].as<type>(); \
 }} while(0)
 
-bool Config::Has(const std::string& key) {
+bool Config::Has(const std::string& key) const {
   return config_[key];
 }
 
-YAML::Node& Config::Get() {
+YAML::Node Config::Get(const std::string& key) const {
+  return config_[key];
+}
+
+const YAML::Node& Config::Get() const {
   return config_;
 }
 
