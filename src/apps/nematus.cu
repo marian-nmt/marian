@@ -187,10 +187,10 @@ int main(int argc, char** argv) {
         float sentences = samples / seconds;
         float wps = words / seconds;
 
-        std::cout << " " << std::setw(5)
-                  << std::setprecision(4)
+        std::cout << " " << std::setw(6)
+                  << std::setprecision(5)
                   << sentences
-                  << " sentences/s "
+                  << " sent/s "
                   << wps
                   << " words/s" << std::endl;
         timer.start();

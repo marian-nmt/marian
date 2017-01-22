@@ -284,9 +284,6 @@ class GRUWithAttention {
       int dimBatch = context_->shape()[0];
       int srcWords = context_->shape()[2];
 
-      if(dropoutMask_)
-        hidden = hidden * dropoutMask_;
-
       auto mappedState = dot(hidden, params_.Wa);
       auto temp = tanhPlus3(mappedState, mappedContext_ , params_.ba);
 
@@ -310,9 +307,6 @@ class GRUWithAttention {
       auto output = mask ?
         grufast({hidden, aWc, hUc, params_.bc, mask}, true) :
         grufast({hidden, aWc, hUc, params_.bc}, true);
-
-      if(dropoutMask_)
-        output = output * dropoutMask_;
 
       return output;
     }

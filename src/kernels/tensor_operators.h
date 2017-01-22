@@ -37,47 +37,65 @@ using namespace thrust::placeholders;
 
 class TensorGPU;
 
+
 template <class Functor>
 __global__ void gAdd(Functor functor,
                      float* out,
                      Shape outShape,
-                     const float* in,
-                     const Shape inShape,
+                     const float* in1,
+                     const Shape in1Shape,
                      const Shape full) {
-  int length = full.elements();
-  bool reduceOut = outShape.elements() != length;
-  bool reduceIn  = inShape.elements() != length;
-  int dims[4];
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if (index < length) {
-      int outIndex = index;
-      int inIndex = index;
-      if(reduceOut || reduceIn)
-        full.dims(index, dims);
-      if(reduceOut)
-        outIndex = outShape.bindex(dims);
-      if(reduceIn)
-        inIndex = inShape.bindex(dims);
 
-      float res = functor(in[inIndex]);
-      if(reduceOut)
-        atomicAdd(out + outIndex, res);
-      else
-        out[index] += res;
+  int outLength = outShape.elements();
+  bool same = outLength == full.elements() && outLength == in1Shape.elements();
+
+  int I = full[0] / outShape[0];
+  int J = full[1] / outShape[1];
+  int K = full[2] / outShape[2];
+  int L = full[3] / outShape[3];
+
+  int dims[4];
+  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < outLength) {
+      if(same) {
+        out[index] += functor(in1[index]);
+      }
+      else {
+        outShape.dims(index, dims);
+        float sum = 0;
+        for(int i = 0; i < I; ++i) {
+          for(int j = 0; j < J; ++j) {
+            for(int k = 0; k < K; ++k) {
+              for(int l = 0; l < L; ++l) {
+                int dimsFull[4] = {
+                  dims[0] + i,
+                  dims[1] + j,
+                  dims[2] + k,
+                  dims[3] + l
+                };
+
+                int in1Index = in1Shape.bindex(dimsFull);
+                sum += functor(in1[in1Index]);
+              }
+            }
+          }
+        }
+        out[index] += sum;
+      }
     }
   }
 }
 
-template <class Functor, class T1, class T2>
+template <class Functor>
 void Add(Functor functor,
-         T1 out, T2 in) {
+         Tensor out, Tensor in) {
 
   auto full = out->shape();
   for(int i = 0; i < in->shape().size(); ++i)
     full.set(i, std::max(full[i], in->shape()[i]));
 
-  int length = full.elements();
+  int length = out->shape().elements();
 
   int threads = std::min(MAX_THREADS, length);
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
@@ -86,7 +104,6 @@ void Add(Functor functor,
                             out->data(), out->shape(),
                             in->data(), in->shape(),
                             full);
-
 }
 
 template <class Functor, class T1, class T2>
@@ -96,53 +113,64 @@ void Reduce(Functor functor,
   Add(functor, out, in);
 }
 
-
-// @TODO : make this deterministic. Currently
-// different order of addition due to parallelism
-// introduce small non-determinism that accumulates
-// during the execution. Probably neglectible.
 template <class Functor>
-__global__ void gReduce(Functor functor,
-                        float* out,
-                        Shape outShape,
-                        const float* in1,
-                        const Shape in1Shape,
-                        const float* in2,
-                        const Shape in2Shape,
-                        const Shape full) {
-  int length = full.elements();
-  bool reduceOut = outShape.elements() != length;
-  bool reduceIn1 = in1Shape.elements() != length;
-  bool reduceIn2 = in2Shape.elements() != length;
+__global__ void gAdd(Functor functor,
+                     float* out,
+                     Shape outShape,
+                     const float* in1,
+                     const Shape in1Shape,
+                     const float* in2,
+                     const Shape in2Shape,
+                     const Shape full) {
+
+  int outLength = outShape.elements();
+
+  bool same = outLength == full.elements()
+    && outLength == in1Shape.elements()
+    && outLength == in2Shape.elements();
+
+  int I = full[0] / outShape[0];
+  int J = full[1] / outShape[1];
+  int K = full[2] / outShape[2];
+  int L = full[3] / outShape[3];
+
   int dims[4];
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if (index < length) {
-      int outIndex = index;
-      int in1Index = index;
-      int in2Index = index;
-      if(reduceOut || reduceIn1 || reduceIn2)
-        full.dims(index, dims);
-      if(reduceOut)
-        outIndex = outShape.bindex(dims);
-      if(reduceIn1)
-        in1Index = in1Shape.bindex(dims);
-      if(reduceIn2)
-        in2Index = in2Shape.bindex(dims);
+    if (index < outLength) {
+      if(same) {
+        out[index] += functor(in1[index], in2[index]);
+      }
+      else {
+        outShape.dims(index, dims);
+        float sum = 0;
+        for(int i = 0; i < I; ++i) {
+          for(int j = 0; j < J; ++j) {
+            for(int k = 0; k < K; ++k) {
+              for(int l = 0; l < L; ++l) {
+                int dimsFull[4] = {
+                  dims[0] + i,
+                  dims[1] + j,
+                  dims[2] + k,
+                  dims[3] + l
+                };
 
-      float res = functor(in1[in1Index], in2[in2Index]);
-
-      if(reduceOut)
-        atomicAdd(&out[outIndex], res);
-      else
-        out[outIndex] += res;
+                int in1Index = in1Shape.bindex(dimsFull);
+                int in2Index = in2Shape.bindex(dimsFull);
+                sum += functor(in1[in1Index], in2[in2Index]);
+              }
+            }
+          }
+        }
+        out[index] += sum;
+      }
     }
   }
 }
 
-template <class Functor, class T1, class T2, class T3>
-void Reduce(Functor functor,
-            T1 out, T2 in1, T3 in2) {
+template <class Functor>
+void Add(Functor functor,
+         Tensor out, Tensor in1, Tensor in2) {
 
   auto full = out->shape();
   for(int i = 0; i < in1->shape().size(); ++i)
@@ -150,77 +178,90 @@ void Reduce(Functor functor,
   for(int i = 0; i < in2->shape().size(); ++i)
     full.set(i, std::max(full[i], in2->shape()[i]));
 
-  int length = full.elements();
+  int length = out->shape().elements();
 
   int threads = std::min(MAX_THREADS, length);
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  gAdd<<<blocks, threads>>>(functor,
+                            out->data(), out->shape(),
+                            in1->data(), in1->shape(),
+                            in2->data(), in2->shape(),
+                            full);
+
+}
+
+template <class Functor>
+void Reduce(Functor functor,
+            Tensor out, Tensor in1, Tensor in2) {
 
   out->set(0);
-  gReduce<<<blocks, threads>>>(functor,
-                               out->data(), out->shape(),
-                               in1->data(), in1->shape(),
-                               in2->data(), in2->shape(),
-                               full);
-
+  Add(functor, out, in1, in2);
 }
 
-template <class Functor, class T1, class T2, class T3>
-void Add(Functor functor,
-         T1 out, T2 in1, T3 in2) {
-
-  auto full = out->shape();
-  for(int i = 0; i < in1->shape().size(); ++i)
-    full.set(i, std::max(full[i], in1->shape()[i]));
-  for(int i = 0; i < in2->shape().size(); ++i)
-    full.set(i, std::max(full[i], in2->shape()[i]));
-
-  int length = full.elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
-
-  gReduce<<<blocks, threads>>>(functor,
-                               out->data(), out->shape(),
-                               in1->data(), in1->shape(),
-                               in2->data(), in2->shape(),
-                               full);
-
-}
 
 template <class Functor>
-__global__ void gReduce(Functor functor,
-                        float* out,
-                        Shape outShape,
-                        const float* in1,
-                        const Shape in1Shape,
-                        const float* in2,
-                        const Shape in2Shape,
-                        const float* in3,
-                        const Shape in3Shape,
-                        const Shape full) {
-  int length = full.elements();
-  bool reduce = outShape.elements() != length;
+__global__ void gAdd(Functor functor,
+                     float* out,
+                     Shape outShape,
+                     const float* in1,
+                     const Shape in1Shape,
+                     const float* in2,
+                     const Shape in2Shape,
+                     const float* in3,
+                     const Shape in3Shape,
+                     const Shape full) {
+
+  int outLength = outShape.elements();
+
+  bool same = outLength == full.elements()
+    && outLength == in1Shape.elements()
+    && outLength == in2Shape.elements()
+    && outLength == in3Shape.elements();
+
+  int I = full[0] / outShape[0];
+  int J = full[1] / outShape[1];
+  int K = full[2] / outShape[2];
+  int L = full[3] / outShape[3];
+
   int dims[4];
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if (index < length) {
-      full.dims(index, dims);
-      int outIndex = outShape.bindex(dims);
-      int in1Index = in1Shape.bindex(dims);
-      int in2Index = in2Shape.bindex(dims);
-      int in3Index = in3Shape.bindex(dims);
-      float res = functor(in1[in1Index], in2[in2Index], in3[in3Index]);
-      if(reduce)
-        atomicAdd(out + outIndex, res);
-      else
-        out[outIndex] += res;
+    if(same) {
+      out[index] += functor(in1[index], in2[index], in3[index]);
+    }
+    else {
+      if (index < outLength) {
+        outShape.dims(index, dims);
+        float sum = 0;
+        for(int i = 0; i < I; ++i) {
+          for(int j = 0; j < J; ++j) {
+            for(int k = 0; k < K; ++k) {
+              for(int l = 0; l < L; ++l) {
+                int dimsFull[4] = {
+                  dims[0] + i,
+                  dims[1] + j,
+                  dims[2] + k,
+                  dims[3] + l
+                };
+
+                int in1Index = in1Shape.bindex(dimsFull);
+                int in2Index = in2Shape.bindex(dimsFull);
+                int in3Index = in3Shape.bindex(dimsFull);
+                sum += functor(in1[in1Index], in2[in2Index], in3[in3Index]);
+              }
+            }
+          }
+        }
+        out[index] += sum;
+      }
     }
   }
 }
 
-template <class Functor, class T1, class T2, class T3, class T4>
-void Reduce(Functor functor,
-            T1 out, T2 in1, T3 in2, T4 in3) {
+template <class Functor>
+void Add(Functor functor,
+         Tensor out, Tensor in1, Tensor in2, Tensor in3) {
 
   auto full = out->shape();
   for(int i = 0; i < in1->shape().size(); ++i)
@@ -230,46 +271,29 @@ void Reduce(Functor functor,
   for(int i = 0; i < in3->shape().size(); ++i)
     full.set(i, std::max(full[i], in3->shape()[i]));
 
-  int length = full.elements();
+  int length = out->shape().elements();
 
   int threads = std::min(MAX_THREADS, length);
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  gAdd<<<blocks, threads>>>(functor,
+                            out->data(), out->shape(),
+                            in1->data(), in1->shape(),
+                            in2->data(), in2->shape(),
+                            in3->data(), in3->shape(),
+                            full);
+
+}
+
+template <class Functor>
+void Reduce(Functor functor,
+            Tensor out, Tensor in1, Tensor in2, Tensor in3) {
 
   out->set(0);
-  gReduce<<<blocks, threads>>>(functor,
-                               out->data(), out->shape(),
-                               in1->data(), in1->shape(),
-                               in2->data(), in2->shape(),
-                               in3->data(), in3->shape(),
-                               full);
-
+  Add(functor, out, in1, in2, in3);
 }
 
-template <class Functor, class T1, class T2, class T3, class T4>
-void Add(Functor functor,
-         T1 out, T2 in1, T3 in2, T4 in3) {
 
-  auto full = out->shape();
-  for(int i = 0; i < in1->shape().size(); ++i)
-    full.set(i, std::max(full[i], in1->shape()[i]));
-  for(int i = 0; i < in2->shape().size(); ++i)
-    full.set(i, std::max(full[i], in2->shape()[i]));
-  for(int i = 0; i < in3->shape().size(); ++i)
-    full.set(i, std::max(full[i], in3->shape()[i]));
-
-  int length = full.elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
-
-  gReduce<<<blocks, threads>>>(functor,
-                               out->data(), out->shape(),
-                               in1->data(), in1->shape(),
-                               in2->data(), in2->shape(),
-                               in3->data(), in3->shape(),
-                               full);
-
-}
 
 
 template <class Functor>

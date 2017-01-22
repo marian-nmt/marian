@@ -373,6 +373,7 @@ class Nematus : public ExpressionGraph {
 
       // *** Cross entropy and cost across words and batch ***
       auto xe = cross_entropy(aff, picksTensor) * weights;
+
       auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
     }
 

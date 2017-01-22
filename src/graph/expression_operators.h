@@ -138,7 +138,9 @@ Expr scalar_product(Expr a, Expr b, Args ...args) {
 
 template <typename ...Args>
 Expr weighted_average(Expr in, Expr weights, Args ...args) {
-  return scalar_product(in, weights, args...) / sum(weights, args...);
+  auto p = scalar_product(in, weights, args...);
+  auto s = sum(weights, args...);
+  return p / s;
 }
 
 Expr step(Expr a, size_t step);

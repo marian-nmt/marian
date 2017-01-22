@@ -47,13 +47,10 @@ int main(int argc, char** argv) {
       batch->debug();
 
       nematus->construct(*batch);
-      debug(nematus->get("Wemb"), "Wemb");
+      for(auto p : nematus->params())
+        debug(p, p->name());
       debug(nematus->get("cost"), "cost");
-      debug(nematus->get("decoder_bx"), "decoder_bx");
-      debug(nematus->get("encoder_r_bx"), "encoder_r_bx");
-      debug(nematus->get("encoder_bx"), "encoder_bx");
-      debug(nematus->get("decoder_bx_nl"), "encoder_bx_nl");
-
+      
       nematus->graphviz("debug.dot");
 
       nematus->forward();
