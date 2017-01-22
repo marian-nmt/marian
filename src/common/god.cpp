@@ -193,7 +193,7 @@ BestHypsBase &God::GetBestHyps(size_t threadId) {
   }
 }
 
-std::vector<std::string> God::GetScorerNames() {
+std::vector<std::string> God::GetScorerNames() const {
   std::vector<std::string> scorerNames;
   for(auto&& name : cpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
@@ -202,7 +202,7 @@ std::vector<std::string> God::GetScorerNames() {
   return scorerNames;
 }
 
-std::map<std::string, float>& God::GetScorerWeights() {
+const std::map<std::string, float>& God::GetScorerWeights() const {
   return weights_;
 }
 
