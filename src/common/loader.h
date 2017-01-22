@@ -15,7 +15,7 @@ class Loader {
 
     virtual ~Loader() {};
 
-    virtual void Load(God &god) = 0;
+    virtual void Load(const God &god) = 0;
 
     bool Has(const std::string& key) const {
       return config_[key];

@@ -134,7 +134,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                                            const YAML::Node& config)
   : Loader(name, config) {}
 
-void EncoderDecoderLoader::Load(God &god) {
+void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");
 
   LOG(info) << "Loading model " << path;
