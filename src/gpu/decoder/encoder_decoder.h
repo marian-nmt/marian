@@ -80,7 +80,7 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load(God &god);
 
     virtual ScorerPtr NewScorer(const God &god, size_t taskId) const;
-    virtual BestHypsBase &GetBestHyps(God &god);
+    virtual BestHypsBase &GetBestHyps(const God &god) const;
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;

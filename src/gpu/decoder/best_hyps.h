@@ -17,7 +17,7 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
-    BestHyps(God &god)
+    BestHyps(const God &god)
     : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("batch-size"),
                   mblas::CudaStreamHandler::GetStream()),
       keys(god.Get<size_t>("beam-size") * god.Get<size_t>("batch-size")),

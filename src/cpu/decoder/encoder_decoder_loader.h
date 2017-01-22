@@ -21,7 +21,7 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load(God &god);
 
     virtual ScorerPtr NewScorer(const God &god, const size_t taskId) const;
-    BestHypsBase &GetBestHyps(God &god);
+    BestHypsBase &GetBestHyps(const God &god) const;
 
   private:
     std::vector<std::unique_ptr<Weights>> weights_;
