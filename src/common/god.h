@@ -43,8 +43,8 @@ class God {
       return config_.Get(key);
     }
 
-    Vocab& GetSourceVocab(size_t i = 0);
-    Vocab& GetTargetVocab();
+    Vocab& GetSourceVocab(size_t i = 0) const;
+    Vocab& GetTargetVocab() const;
 
     std::istream& GetInputStream() const;
     OutputCollector& GetOutputCollector() const;
@@ -71,8 +71,8 @@ class God {
 
     Config config_;
 
-    std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
-    std::unique_ptr<Vocab> targetVocab_;
+    mutable std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
+    mutable std::unique_ptr<Vocab> targetVocab_;
 
     std::unique_ptr<const Filter> filter_;
 

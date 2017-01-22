@@ -149,11 +149,11 @@ void God::LoadPrePostProcessing() {
   }
 }
 
-Vocab& God::GetSourceVocab(size_t i) {
+Vocab& God::GetSourceVocab(size_t i) const {
   return *sourceVocabs_[i];
 }
 
-Vocab& God::GetTargetVocab() {
+Vocab& God::GetTargetVocab() const {
   return *targetVocab_;
 }
 
