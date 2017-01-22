@@ -56,7 +56,7 @@ class BestHyps : public BestHypsBase
       return alignments;
     }
 
-    void operator()(God &god,
+    void operator()(const God &god,
     	  std::vector<Beam>& beams,
           const Beam& prevHyps,
           std::vector<size_t>& beamSizes,
