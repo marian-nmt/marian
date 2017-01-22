@@ -32,25 +32,23 @@ struct InputNode : public Node {
   template <typename ...Args>
   InputNode(Args ...args)
   : Node(args...) {
-    UTIL_THROW_IF2(!Has(keywords::shape) &&
-                   !Has(keywords::lazy_shape),
+    UTIL_THROW_IF2(!Has(keywords::shape),
                    "Data items require shape information");
     setTrainable(false);
   }
 
   ~InputNode() {}
 
-  void forward() {}
-  void backward() {}
-
-  std::vector<Expr> children() {
-    return {};
+  const std::string type() {
+    return "input";
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"circle\", label=" << label("input") << ", style=\"filled\", fillcolor=\"lawngreen\"]" << std::endl << std::endl;
-    return ss.str();
+  const std::string form() {
+    return "circle";
+  }
+
+  const std::string color() {
+    return "white";
   }
 
 };
@@ -62,29 +60,26 @@ struct ConstantNode : public Node {
     init_(Get(keywords::init, [](Tensor&){ })),
     initialized_(false)
   {
-    UTIL_THROW_IF2(!Has(keywords::shape) &&
-                   !Has(keywords::lazy_shape),
+    UTIL_THROW_IF2(!Has(keywords::shape),
                    "Constant items require shape information");
     setTrainable(false);
   }
 
   ~ConstantNode() {}
 
-  void forward() {}
-
-  void backward() {}
-
   virtual size_t allocate();
   virtual void init();
 
-  std::vector<Expr> children() {
-    return {};
+  const std::string type() {
+    return "const";
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"diamond\", label=" << label("const") << "]" << std::endl << std::endl;
-    return ss.str();
+  const std::string form() {
+    return "diamond";
+  }
+
+  const std::string color() {
+    return "white";
   }
 
   private:
@@ -99,33 +94,28 @@ struct ParamNode : public Node {
     init_(Get(keywords::init, [](Tensor&){ })),
     initialized_(false)
   {
-    UTIL_THROW_IF2(!Has(keywords::shape) &&
-                   !Has(keywords::lazy_shape),
+    UTIL_THROW_IF2(!Has(keywords::shape),
                    "Param items require shape information");
     setTrainable(true);
   }
 
   ~ParamNode() {}
 
-  std::vector<Expr> children() {
-    return {};
-  }
-
-  void forward() {}
-  void backward() {}
-
   virtual size_t allocate();
 
   virtual void init();
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"hexagon\", label=" << label("param")
-      << ", style=\"filled\", fillcolor=\"orangered\"]"
-      << std::endl << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "param";
+  }
 
+  const std::string form() {
+    return "hexagon";
+  }
+
+  const std::string color() {
+    return "orangered";
+  }
 
   private:
     std::function<void(Tensor&)> init_;

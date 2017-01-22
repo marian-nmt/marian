@@ -50,21 +50,23 @@ __global__ void gFill(float* d_in, int size, float val);
 class TensorGPU : public TensorBase {
   private:
     // cuDNN stuff
-    cudnnTensorDescriptor_t cudnnDesc_;
+    //cudnnTensorDescriptor_t cudnnDesc_;
+    size_t device_;
 
   public:
-    TensorGPU(float* data, Shape shape)
-    : TensorBase(data, shape) {
-      cudnnCreateTensorDescriptor(&cudnnDesc_);
-      cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
-                                   shape_[0], shape_[1],
-                                   shape_[2], shape_[3],
-                                   shape_.stride(0), shape_.stride(1),
-                                   shape_.stride(2), shape_.stride(3));
+    TensorGPU(float* data, Shape shape, size_t device = 0)
+    : TensorBase(data, shape),
+      device_(device) {
+      //cudnnCreateTensorDescriptor(&cudnnDesc_);
+      //cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
+      //                             shape_[0], shape_[1],
+      //                             shape_[2], shape_[3],
+      //                             shape_.stride(0), shape_.stride(1),
+      //                             shape_.stride(2), shape_.stride(3));
     }
 
     ~TensorGPU() {
-      cudnnDestroyTensorDescriptor(cudnnDesc_);
+      //cudnnDestroyTensorDescriptor(cudnnDesc_);
     }
 
 
@@ -76,17 +78,20 @@ class TensorGPU : public TensorBase {
     }
 
     void set(size_t i, float value) {
+      cudaSetDevice(device_);
       CUDA_CHECK(cudaMemcpy(data_ + i, &value, sizeof(float),
                  cudaMemcpyHostToDevice));
     }
 
     void get(std::vector<float> &v) {
       v.resize(size());
+      cudaSetDevice(device_);
       CUDA_CHECK(cudaMemcpy(v.data(), data_, size() * sizeof(float),
                  cudaMemcpyDeviceToHost));
     }
 
     void set(float value) {
+      cudaSetDevice(device_);
       int threads = std::min(512, (int)size());
       int blocks = (size() / threads) + (size() % threads != 0);
       gFill<<<blocks, threads>>>(data_, size(), value);
@@ -94,13 +99,14 @@ class TensorGPU : public TensorBase {
     }
 
     void set(const std::vector<float> &v) {
+      cudaSetDevice(device_);
       CUDA_CHECK(cudaMemcpy(data_, v.data(), v.size() * sizeof(float),
                  cudaMemcpyHostToDevice));
     }
 
-    cudnnTensorDescriptor_t& cudnn() {
-      return cudnnDesc_;
-    }
+    //cudnnTensorDescriptor_t& cudnn() {
+    //  return cudnnDesc_;
+    //}
 
     std::string debug() {
       std::stringstream strm;
@@ -187,14 +193,18 @@ class TensorGPU : public TensorBase {
 
 class DeviceGPU {
   private:
+    size_t device_;
     float* data_;
     size_t size_;
 
   public:
-    DeviceGPU()
-    : data_(0), size_(0) {}
+    DeviceGPU(size_t device = 0)
+    : device_(device), data_(0), size_(0) {
+      cudaSetDevice(device_);
+    }
 
     ~DeviceGPU() {
+      cudaSetDevice(device_);
       if(data_)
         CUDA_CHECK(cudaFree(data_));
     }
@@ -204,6 +214,7 @@ class DeviceGPU {
     void reserve(size_t size) {
       UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
 
+      cudaSetDevice(device_);
       if(data_) {
         // Allocate memory by going through host memory
         float *temp = new float[size_];

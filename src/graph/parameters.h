@@ -41,10 +41,11 @@ class Parameters {
     TensorAllocator grads_;
 
   public:
-    Parameters()
-      : vals_(newTensorAllocator<DeviceGPU>()),
-        grads_(newTensorAllocator<DeviceGPU>())
-    {}
+    void init(size_t device = 0) {
+      cudaSetDevice(device);
+      vals_  = newTensorAllocator<DeviceGPU>();
+      grads_ = newTensorAllocator<DeviceGPU>();
+    }
 
     auto begin() -> decltype(params_.begin()) {
       return params_.begin();

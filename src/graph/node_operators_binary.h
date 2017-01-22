@@ -8,43 +8,12 @@
 
 namespace marian {
 
-struct BinaryNodeOp : public Node {
-  Expr a_;
-  Expr b_;
-
-  template <typename ...Args>
-  BinaryNodeOp(Expr a, Expr b, Args ...args)
-   : Node(a->graph(),
-      keywords::shape=keywords::Get(keywords::shape, a->shape(), args...),
-      args...), a_(a), b_(b)
-  {
-    setTrainable(a_->trainable() || b_->trainable());
-    remove_children_from_top_nodes();
-  }
-
-  ~BinaryNodeOp() {}
-
-  std::vector<Expr> children() {
-    if(a_ < b_)
-      return {a_, b_};
-    else
-      return {b_, a_};
-  }
-
-  void remove_children_from_top_nodes();
-};
-
-/**
- * @brief Represents a node in an expression graph capable of performing
- *        <a href="https://en.wikipedia.org/wiki/Matrix_multiplication#Matrix_product_.28two_matrices.29">matrix
- *        multiplication</a> of two input matrices.
- */
-struct DotNodeOp : public BinaryNodeOp {
+struct DotNodeOp : public NaryNodeOp {
   template <typename ...Args>
   DotNodeOp(Expr a, Expr b, Args ...args)
-  : BinaryNodeOp(a, b,
-                 keywords::shape=newShape(a, b),
-                 args...) { }
+  : NaryNodeOp({a, b},
+               keywords::shape=newShape(a, b),
+               args...) { }
 
   Shape newShape(Expr a, Expr b) {
 
@@ -63,40 +32,52 @@ struct DotNodeOp : public BinaryNodeOp {
     return outShape;
   }
 
-  void forward() {
+  NodeOps forwardOps() {
     // C = A*B
-    Prod(val_, a_->val(), b_->val(), false, false);
+    return {
+      NodeOp(Prod(getCublasHandle(),
+                  val_,
+                  children_[0]->val(),
+                  children_[1]->val(),
+                  false, false))
+    };
   }
 
-  void backward() {
+  NodeOps backwardOps() {
     // D is the adjoint, the matrix of derivatives
     // df/dA += D*B.T
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-    if(a_->trainable())
-      Prod(a_->grad(), adj_, b_->val(), false, true, 1.0);
-    if(b_->trainable())
-      Prod(b_->grad(), a_->val(), adj_, true, false, 1.0);
+    return {
+      NodeOp(Prod(getCublasHandle(),
+                  children_[0]->grad(),
+                  adj_,
+                  children_[1]->val(),
+                  false, true, 1.0)),
+      NodeOp(Prod(getCublasHandle(),
+                  children_[1]->grad(),
+                  children_[0]->val(),
+                  adj_,
+                  true, false, 1.0))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("•")
-      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "•";
+  }
 
+  const std::string color() {
+    return "orange";
+  }
 };
 
-struct ScalarProductNodeOp : public BinaryNodeOp {
+struct ScalarProductNodeOp : public NaryNodeOp {
   template <typename ...Args>
   ScalarProductNodeOp(Expr a, Expr b, Args ...args)
-  : BinaryNodeOp(a, b,
-                 keywords::shape=newShape(a, b, args...),
-                 args...) { }
+  : NaryNodeOp({a, b},
+               keywords::shape=newShape(a, b, args...),
+               args...) { }
 
   template <typename ...Args>
   Shape newShape(Expr a, Expr b, Args ...args) {
@@ -117,39 +98,45 @@ struct ScalarProductNodeOp : public BinaryNodeOp {
     return full;
   }
 
-  void forward() {
-    Reduce(_1 * _2,
-           val_, a_->val(), b_->val());
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Reduce(_1 * _2,
+                    val_,
+                    children_[0]->val(),
+                    children_[1]->val()))
+    };
   }
 
-  void backward() {
-    // @TODO: check gradient
-    if(a_->trainable())
-      Add(_1 * _2,
-          a_->grad(), b_->val(), adj_);
-    if(b_->trainable())
-      Add(_1 * _2,
-          b_->grad(), a_->val(), adj_);
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(_1 * _2,
+             children_[0]->grad(),
+             children_[1]->val(),
+             adj_)),
+      NodeOp(Add(_1 * _2,
+             children_[1]->grad(),
+             children_[0]->val(),
+             adj_))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("scalar-product")
-      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "scalar-product";
+  }
+
+  const std::string color() {
+    return "orange";
+  }
 
 };
 
 
-struct ElementBinaryNodeOp : public BinaryNodeOp {
+struct ElementBinaryNodeOp : public NaryNodeOp {
   template <typename ...Args>
   ElementBinaryNodeOp(Expr a, Expr b, Args ...args)
-   : BinaryNodeOp(a, b,
-                  keywords::shape=newShape(a, b),
-                  args...) {}
+   : NaryNodeOp({a, b},
+                keywords::shape=newShape(a, b),
+                args...) {}
 
   Shape newShape(Expr a, Expr b) {
     Shape shape1 = a->shape();
@@ -162,6 +149,10 @@ struct ElementBinaryNodeOp : public BinaryNodeOp {
     return shape1;
   }
 
+  const std::string color() {
+    return "yellow";
+  }
+
 };
 
 struct PlusNodeOp : public ElementBinaryNodeOp {
@@ -169,26 +160,25 @@ struct PlusNodeOp : public ElementBinaryNodeOp {
   PlusNodeOp(Args ...args)
     : ElementBinaryNodeOp(args...) { }
 
-  void forward() {
-    Element(_1 = _2 + _3,
-            val_, a_->val(), b_->val());
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Element(_1 = _2 + _3,
+                     val_,
+                     children_[0]->val(),
+                     children_[1]->val()))
+    };
   }
 
-  void backward() {
-    if(a_->trainable())
-      Add(_1, a_->grad(), adj_);
-    if(b_->trainable())
-      Add(_1, b_->grad(), adj_);
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(_1, children_[0]->grad(), adj_)),
+      NodeOp(Add(_1, children_[1]->grad(), adj_))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("+")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "+";
+  }
 
 };
 
@@ -197,26 +187,23 @@ struct MinusNodeOp : public ElementBinaryNodeOp {
   MinusNodeOp(Args ...args)
     : ElementBinaryNodeOp(args...) { }
 
-  void forward() {
-    Element(_1 = _2 - _3,
-            val_, a_->val(), b_->val());
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Element(_1 = _2 - _3,
+                     val_, children_[0]->val(), children_[1]->val()))
+    };
   }
 
-  void backward() {
-    if(a_->trainable())
-      Add( _1, a_->grad(), adj_);
-    if(b_->trainable())
-      Add(-_1, b_->grad(), adj_);
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add( _1, children_[0]->grad(), adj_)),
+      NodeOp(Add(-_1, children_[1]->grad(), adj_))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("-")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "-";
+  }
 
 };
 
@@ -225,29 +212,25 @@ struct MultNodeOp : public ElementBinaryNodeOp {
   MultNodeOp(Args ...args)
     : ElementBinaryNodeOp(args...) { }
 
-  void forward() {
-    Element(_1 = _2 * _3,
-            val_, a_->val(), b_->val());
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Element(_1 = _2 * _3,
+                     val_,
+                     children_[0]->val(),
+                     children_[1]->val()))
+    };
   }
 
-  void backward() {
-    if(a_->trainable())
-      Add(_1 * _2,
-          a_->grad(), adj_, b_->val());
-    if(b_->trainable())
-      Add(_1 * _2,
-          b_->grad(), adj_, a_->val());
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(_1 * _2, children_[0]->grad(), adj_, children_[1]->val())),
+      NodeOp(Add(_1 * _2, children_[1]->grad(), adj_, children_[0]->val()))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("×")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
-
+  const std::string type() {
+    return "×";
+  }
 };
 
 struct DivNodeOp : public ElementBinaryNodeOp {
@@ -255,38 +238,42 @@ struct DivNodeOp : public ElementBinaryNodeOp {
   DivNodeOp(Args ...args)
     : ElementBinaryNodeOp(args...) { }
 
-  void forward() {
-    Element(_1 = _2 / _3,
-            val_, a_->val(), b_->val());
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Element(_1 = _2 / _3,
+                     val_,
+                     children_[0]->val(),
+                     children_[1]->val()))
+    };
   }
 
-  void backward() {
-    if(a_->trainable())
-      Add(_1 * 1.0f / _2,
-        a_->grad(), adj_, b_->val());
-    if(b_->trainable())
-      Add(-_1 * _2 / (_3 * _3),
-        b_->grad(), adj_, a_->val(), b_->val());
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(_1 * 1.0f / _2,
+                 children_[0]->grad(),
+                 adj_,
+                 children_[1]->val())),
+      NodeOp(Add(-_1 * _2 / (_3 * _3),
+                 children_[1]->grad(),
+                 adj_,
+                 children_[0]->val(),
+                 children_[1]->val()))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("÷")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "÷";
+  }
 
 };
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
-struct CrossEntropyNodeOp : public BinaryNodeOp {
+struct CrossEntropyNodeOp : public NaryNodeOp {
   template <typename ...Args>
     CrossEntropyNodeOp(Expr a, Expr b, Args ...args)
-    : BinaryNodeOp(a, b,
-                   keywords::shape=newShape(a),
-                   args...) { }
+    : NaryNodeOp({a, b},
+                 keywords::shape=newShape(a),
+                 args...) { }
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();
@@ -294,55 +281,29 @@ struct CrossEntropyNodeOp : public BinaryNodeOp {
     return shape1;
   }
 
-  void forward() {
+  NodeOps forwardOps() {
     // C = sum(-logsoftmax(A) * delta(y', y))
-    CrossEntropyPick(val_, a_->val(), b_->val());
+    return {
+      NodeOp(CrossEntropyPick(val_,
+                              children_[0]->val(),
+                              children_[1]->val()))
+    };
   }
 
 
-  void backward() {
-    // @TODO: save memory for the second derivative.
-    // Caching is not required, recomputation saves a lot of memory while not
-    // being slower.
-    if(a_->trainable())
-      CrossEntropyPickBackward(a_->grad(), adj_, a_->val(), b_->val());
+  NodeOps backwardOps() {
+    return {
+      NodeOp(CrossEntropyPickBackward(children_[0]->grad(),
+                                      adj_,
+                                      children_[0]->val(),
+                                      children_[1]->val()))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("x-ent")
-      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
-    ss << "\"" << a_ << "\" -> \"" << this << "\"" << std::endl;
-    ss << "\"" << b_ << "\" -> \"" << this << "\"" << std::endl << std::endl;
-    return ss.str();
-  };
-};
 
-// an n-ary node
-
-struct NaryNodeOp : public Node {
-  std::vector<Expr> children_;
-
-  template <typename ...Args>
-  NaryNodeOp(const std::vector<Expr>& nodes, Args ...args)
-   : Node(nodes.back()->graph(),
-      keywords::shape=keywords::Get(keywords::shape, nodes.back()->shape(), args...),
-      args...), children_(nodes)
-  {
-    setTrainable(std::any_of(nodes.begin(), nodes.end(),
-                             [](Expr a) { return a->trainable(); } ));
-    remove_children_from_top_nodes();
+  const std::string type() {
+    return "x-ent";
   }
-
-  ~NaryNodeOp() {}
-
-  std::vector<Expr> children() {
-    std::vector<Expr> temp(children_.begin(), children_.end());
-    std::sort(temp.begin(), temp.end());
-    return temp;
-  }
-
-  void remove_children_from_top_nodes();
 };
 
 struct ConcatenateNodeOp : public NaryNodeOp {
@@ -377,15 +338,9 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     Deconcatenate(deconcatenees, adj_, ax_);
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("concat")
-      << ", style=\"filled\", fillcolor=\"orange\"]" << std::endl;
-    for(auto child : children_)
-      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
-    ss << std::endl;
-    return ss.str();
-  };
+  const std::string type() {
+    return "concat";
+  }
 
   int ax_;
 };
@@ -423,15 +378,10 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
             child->grad(), val_, adj_);
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("tanhPlus3")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    for(auto child : children_)
-      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
-    ss << std::endl;
-    return ss.str();
+  const std::string type() {
+    return "tanhPlus3";
   }
+
 };
 
 struct AffineNodeOp : public NaryNodeOp {
@@ -447,33 +397,43 @@ struct AffineNodeOp : public NaryNodeOp {
     return shape1;
   }
 
-  void forward() {
-    Prod(val_, children_[0]->val(), children_[1]->val(), false, false);
-    Add(_1, val_, children_[2]->val());
+  NodeOps forwardOps() {
+    return {
+      NodeOp(
+        Prod(getCublasHandle(),
+             val_,
+             children_[0]->val(),
+             children_[1]->val(),
+             false, false);
+        Add(_1, val_, children_[2]->val());
+      )
+    };
   }
 
-  void backward() {
+  NodeOps backwardOps() {
     // D is the adjoint, the matrix of derivatives
     // df/dA += D*B.T
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-    if(children_[0]->trainable())
-      Prod(children_[0]->grad(), adj_, children_[1]->val(), false, true, 1.0);
-    if(children_[1]->trainable())
-      Prod(children_[1]->grad(), children_[0]->val(), adj_, true, false, 1.0);
-    if(children_[2]->trainable())
-      Add(_1, children_[2]->grad(), adj_);
+
+    return {
+      NodeOp(Prod(getCublasHandle(),
+                  children_[0]->grad(),
+                  adj_,
+                  children_[1]->val(),
+                  false, true, 1.0)),
+      NodeOp(Prod(getCublasHandle(),
+                  children_[1]->grad(),
+                  children_[0]->val(),
+                  adj_,
+                  true, false, 1.0)),
+      NodeOp(Add(_1, children_[2]->grad(), adj_))
+    };
   }
 
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("affine")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    for(auto child : children_)
-      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
-    ss << std::endl;
-    return ss.str();
+  const std::string type() {
+    return "affine";
   }
 };
 

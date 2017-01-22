@@ -31,6 +31,8 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, 10, 20);
 
   auto nematus = New<Nematus>();
+  nematus->initDevice(0);
+
   nematus->load("../test/model.npz");
   nematus->reserveWorkspaceMB(128);
 
@@ -50,7 +52,8 @@ int main(int argc, char** argv) {
       for(auto p : nematus->params())
         debug(p, p->name());
       debug(nematus->get("cost"), "cost");
-      
+      debug(nematus->get("encoderContext"), "Context");
+
       nematus->graphviz("debug.dot");
 
       nematus->forward();

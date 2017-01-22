@@ -24,91 +24,89 @@
 
 namespace marian {
 
-// @TODO: handle this better, maybe per thread?
-static cublasHandle_t create_handle() {
+cublasHandle_t create_handle() {
   cublasHandle_t cublasHandle;
   cublasCreate(&cublasHandle);
   return cublasHandle;
 }
 
-static cudnnHandle_t create_handle_dnn() {
-  cudnnHandle_t cudnnHandle;
-  cudnnCreate(&cudnnHandle);
-  return cudnnHandle;
-}
+//static cudnnHandle_t create_handle_dnn() {
+//  cudnnHandle_t cudnnHandle;
+//  cudnnCreate(&cudnnHandle);
+//  return cudnnHandle;
+//}
 
-cublasHandle_t cublasHandle = create_handle();
-cudnnHandle_t cudnnHandle = create_handle_dnn();
+//cudnnHandle_t cudnnHandle = create_handle_dnn();
 
-void CudnnSoftmax(Tensor out, Tensor in) {
-    float alpha = 1, beta = 0;
-    auto inGpu = static_cast<TensorGPU*>(in.get());
-    auto outGpu = static_cast<TensorGPU*>(out.get());
-    cudnnSoftmaxForward(cudnnHandle,
-                        CUDNN_SOFTMAX_ACCURATE,
-                        CUDNN_SOFTMAX_MODE_CHANNEL,
-                        &alpha,
-                        inGpu->cudnn(),
-                        inGpu->data(),
-                        &beta,
-                        outGpu->cudnn(),
-                        outGpu->data());
-    cudaDeviceSynchronize();
-}
-
-void CudnnLogSoftmax(Tensor out, Tensor in) {
-    float alpha = 1, beta = 0;
-    auto inGpu = static_cast<TensorGPU*>(in.get());
-    auto outGpu = static_cast<TensorGPU*>(out.get());
-    cudnnSoftmaxForward(cudnnHandle,
-                        CUDNN_SOFTMAX_LOG,
-                        CUDNN_SOFTMAX_MODE_CHANNEL,
-                        &alpha,
-                        inGpu->cudnn(),
-                        inGpu->data(),
-                        &beta,
-                        outGpu->cudnn(),
-                        outGpu->data());
-    cudaDeviceSynchronize();
-}
-
-void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
-    float alpha = 1, beta = 0;
-    auto valGpu = static_cast<TensorGPU*>(val.get());
-    auto adjGpu = static_cast<TensorGPU*>(adj.get());
-    auto gradGpu = static_cast<TensorGPU*>(grad.get());
-    cudnnSoftmaxBackward(cudnnHandle,
-                        CUDNN_SOFTMAX_ACCURATE,
-                        CUDNN_SOFTMAX_MODE_CHANNEL,
-                        &alpha,
-                        valGpu->cudnn(),
-                        valGpu->data(),
-                        adjGpu->cudnn(),
-                        adjGpu->data(),
-                        &beta,
-                        gradGpu->cudnn(),
-                        gradGpu->data());
-    cudaDeviceSynchronize();
-}
-
-void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
-    float alpha = 1, beta = 0;
-    auto valGpu = static_cast<TensorGPU*>(val.get());
-    auto adjGpu = static_cast<TensorGPU*>(adj.get());
-    auto gradGpu = static_cast<TensorGPU*>(grad.get());
-    cudnnSoftmaxBackward(cudnnHandle,
-                        CUDNN_SOFTMAX_LOG,
-                        CUDNN_SOFTMAX_MODE_CHANNEL,
-                        &alpha,
-                        valGpu->cudnn(),
-                        valGpu->data(),
-                        adjGpu->cudnn(),
-                        adjGpu->data(),
-                        &beta,
-                        gradGpu->cudnn(),
-                        gradGpu->data());
-    cudaDeviceSynchronize();
-}
+//void CudnnSoftmax(Tensor out, Tensor in) {
+//    float alpha = 1, beta = 0;
+//    auto inGpu = static_cast<TensorGPU*>(in.get());
+//    auto outGpu = static_cast<TensorGPU*>(out.get());
+//    cudnnSoftmaxForward(cudnnHandle,
+//                        CUDNN_SOFTMAX_ACCURATE,
+//                        CUDNN_SOFTMAX_MODE_CHANNEL,
+//                        &alpha,
+//                        inGpu->cudnn(),
+//                        inGpu->data(),
+//                        &beta,
+//                        outGpu->cudnn(),
+//                        outGpu->data());
+//    cudaDeviceSynchronize();
+//}
+//
+//void CudnnLogSoftmax(Tensor out, Tensor in) {
+//    float alpha = 1, beta = 0;
+//    auto inGpu = static_cast<TensorGPU*>(in.get());
+//    auto outGpu = static_cast<TensorGPU*>(out.get());
+//    cudnnSoftmaxForward(cudnnHandle,
+//                        CUDNN_SOFTMAX_LOG,
+//                        CUDNN_SOFTMAX_MODE_CHANNEL,
+//                        &alpha,
+//                        inGpu->cudnn(),
+//                        inGpu->data(),
+//                        &beta,
+//                        outGpu->cudnn(),
+//                        outGpu->data());
+//    cudaDeviceSynchronize();
+//}
+//
+//void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+//    float alpha = 1, beta = 0;
+//    auto valGpu = static_cast<TensorGPU*>(val.get());
+//    auto adjGpu = static_cast<TensorGPU*>(adj.get());
+//    auto gradGpu = static_cast<TensorGPU*>(grad.get());
+//    cudnnSoftmaxBackward(cudnnHandle,
+//                        CUDNN_SOFTMAX_ACCURATE,
+//                        CUDNN_SOFTMAX_MODE_CHANNEL,
+//                        &alpha,
+//                        valGpu->cudnn(),
+//                        valGpu->data(),
+//                        adjGpu->cudnn(),
+//                        adjGpu->data(),
+//                        &beta,
+//                        gradGpu->cudnn(),
+//                        gradGpu->data());
+//    cudaDeviceSynchronize();
+//}
+//
+//void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+//    float alpha = 1, beta = 0;
+//    auto valGpu = static_cast<TensorGPU*>(val.get());
+//    auto adjGpu = static_cast<TensorGPU*>(adj.get());
+//    auto gradGpu = static_cast<TensorGPU*>(grad.get());
+//    cudnnSoftmaxBackward(cudnnHandle,
+//                        CUDNN_SOFTMAX_LOG,
+//                        CUDNN_SOFTMAX_MODE_CHANNEL,
+//                        &alpha,
+//                        valGpu->cudnn(),
+//                        valGpu->data(),
+//                        adjGpu->cudnn(),
+//                        adjGpu->data(),
+//                        &beta,
+//                        gradGpu->cudnn(),
+//                        gradGpu->data());
+//    cudaDeviceSynchronize();
+//}
 
 __global__ void gSoftmax(float* out,
                          const Shape outShape,
@@ -455,69 +453,63 @@ void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
               n, m, k, &alpha, B->data(), ldb, A->data(), lda, &beta, C->data(), ldc);
 }
 
-void Prod(Tensor C, const Tensor A, const Tensor B,
-            bool transA, bool transB, Float beta) {
-
-  Prod(cublasHandle, C, A, B, transA, transB, beta);
-}
-
-void CudnnDropoutPrepare(Tensor in, float p,
-                         cudnnDropoutDescriptor_t* dropDesc,
-                         void** space, size_t* spaceSize,
-                         void** states, size_t seed) {
-  size_t statesSize;
-  cudnnDropoutGetStatesSize(cudnnHandle, &statesSize);
-  auto inGpu = static_cast<TensorGPU*>(in.get());
-  cudnnDropoutGetReserveSpaceSize(inGpu->cudnn(), spaceSize);
-
-  cudaMalloc((void**)states, statesSize);
-  cudaMalloc((void**)space, *spaceSize);
-
-  cudnnCreateDropoutDescriptor(dropDesc);
-  cudnnSetDropoutDescriptor(*dropDesc,
-                            cudnnHandle,
-                            p,
-                            (void*)*states,
-                            statesSize,
-                            seed);
-}
-
-void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
-                         void* space, void* states) {
-  cudnnDestroyDropoutDescriptor(dropDesc);
-  cudaFree(space);
-  cudaFree(states);
-}
-
-void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
-                  void* space, size_t spaceSize,
-                  Tensor out, Tensor in) {
-  auto inGpu = static_cast<TensorGPU*>(in.get());
-  auto outGpu = static_cast<TensorGPU*>(out.get());
-  cudnnDropoutForward(cudnnHandle,
-                      dropoutDesc,
-                      inGpu->cudnn(),
-                      inGpu->data(),
-                      outGpu->cudnn(),
-                      outGpu->data(),
-                      space,
-                      spaceSize);
-}
-
-void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
-                          void* space, size_t spaceSize,
-                          Tensor out, Tensor in) {
-  auto inGpu = static_cast<TensorGPU*>(in.get());
-  auto outGpu = static_cast<TensorGPU*>(out.get());
-  cudnnDropoutBackward(cudnnHandle,
-                      dropoutDesc,
-                      inGpu->cudnn(),
-                      inGpu->data(),
-                      outGpu->cudnn(),
-                      outGpu->data(),
-                      space,
-                      spaceSize);
-}
+//void CudnnDropoutPrepare(Tensor in, float p,
+//                         cudnnDropoutDescriptor_t* dropDesc,
+//                         void** space, size_t* spaceSize,
+//                         void** states, size_t seed) {
+//  size_t statesSize;
+//  cudnnDropoutGetStatesSize(cudnnHandle, &statesSize);
+//  auto inGpu = static_cast<TensorGPU*>(in.get());
+//  cudnnDropoutGetReserveSpaceSize(inGpu->cudnn(), spaceSize);
+//
+//  cudaMalloc((void**)states, statesSize);
+//  cudaMalloc((void**)space, *spaceSize);
+//
+//  cudnnCreateDropoutDescriptor(dropDesc);
+//  cudnnSetDropoutDescriptor(*dropDesc,
+//                            cudnnHandle,
+//                            p,
+//                            (void*)*states,
+//                            statesSize,
+//                            seed);
+//}
+//
+//void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
+//                         void* space, void* states) {
+//  cudnnDestroyDropoutDescriptor(dropDesc);
+//  cudaFree(space);
+//  cudaFree(states);
+//}
+//
+//void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
+//                  void* space, size_t spaceSize,
+//                  Tensor out, Tensor in) {
+//  auto inGpu = static_cast<TensorGPU*>(in.get());
+//  auto outGpu = static_cast<TensorGPU*>(out.get());
+//  cudnnDropoutForward(cudnnHandle,
+//                      dropoutDesc,
+//                      inGpu->cudnn(),
+//                      inGpu->data(),
+//                      outGpu->cudnn(),
+//                      outGpu->data(),
+//                      space,
+//                      spaceSize);
+//}
+//
+//void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
+//                          void* space, size_t spaceSize,
+//                          Tensor out, Tensor in) {
+//  auto inGpu = static_cast<TensorGPU*>(in.get());
+//  auto outGpu = static_cast<TensorGPU*>(out.get());
+//  cudnnDropoutBackward(cudnnHandle,
+//                      dropoutDesc,
+//                      inGpu->cudnn(),
+//                      inGpu->data(),
+//                      outGpu->cudnn(),
+//                      outGpu->data(),
+//                      space,
+//                      spaceSize);
+//}
 
 __global__ void gCopyRows(float* out, const float* in, size_t cols,
                           const size_t* sourceRowIdx, size_t rows) {
@@ -586,7 +578,7 @@ void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces)
 
 }
 
-void Transpose(Tensor out, const Tensor in) {
+void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
   size_t m = in->shape()[0];
   size_t n = in->shape()[1];
   float alpha = 1.0;
@@ -744,7 +736,7 @@ __global__ void gGRUFastForward(float* out,
   }
 }
 
-void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs, bool final){
+void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final){
   int rows = out->shape()[0];
   int cols = out->shape()[1];
 
@@ -844,9 +836,9 @@ __global__ void gGRUFastBackward(float* outState,
   }
 }
 
-void GRUFastBackward(std::vector<Tensor>& outputs,
-                     const std::vector<Tensor>& inputs,
-                     const Tensor adj, bool final) {
+void GRUFastBackward(std::vector<Tensor> outputs,
+                     std::vector<Tensor> inputs,
+                     Tensor adj, bool final) {
   int rows = adj->shape()[0];
   int cols = adj->shape()[1];
 

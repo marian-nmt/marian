@@ -19,8 +19,6 @@ int main(int argc, char** argv) {
   using namespace data;
   using namespace keywords;
 
-  cudaSetDevice(0);
-
   std::string modelPrefix;
   std::string modelInit;
   bool modelOverwrite;
@@ -43,6 +41,7 @@ int main(int argc, char** argv) {
   double clipNorm;
   int dimSrcVoc, dimTrgVoc, dimSrcEmb,
     dimTrgEmb, dimEncState, dimDecState;
+  int device;
 
 
   namespace po = boost::program_options;
@@ -51,6 +50,8 @@ int main(int argc, char** argv) {
   general.add_options()
     ("model,m", po::value(&modelPrefix)->default_value("./model"),
      "Path prefix for model to be saved")
+    ("device,d", po::value(&device)->default_value(0),
+     "Use device no.  arg")
     ("init,i", po::value(&modelInit),
      "Load weights from  arg  before training")
     ("overwrite", po::value(&modelOverwrite)->default_value(false),
@@ -141,6 +142,8 @@ int main(int argc, char** argv) {
     (int)miniBatchSize
   };
   auto nematus = New<Nematus>(dims);
+  nematus->initDevice(device);
+
   if(modelInit.size())
     nematus->load(modelInit);
   nematus->reserveWorkspaceMB(workSpace);

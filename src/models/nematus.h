@@ -43,7 +43,7 @@ class Nematus : public ExpressionGraph {
       dimBatch_ = batch.size();
     }
 
-    RNN<GRUFast> encoderGRU(const std::string& prefix) {
+    RNN<GRU> encoder(const std::string& prefix) {
       using namespace keywords;
 
       auto U = this->param(prefix + "_U", {dimEncState_, 2 * dimEncState_},
@@ -64,22 +64,19 @@ class Nematus : public ExpressionGraph {
       auto bx = this->param(prefix + "_bx", {1, dimEncState_},
                             init=inits::zeros);
 
-      ParametersGRUFast encParams;
+      ParametersGRU encParams;
       encParams.U = concatenate({U, Ux}, axis=1);
       encParams.W = concatenate({W, Wx}, axis=1);
       encParams.b = concatenate({b, bx}, axis=1);
 
-      //auto dropoutConstant = this->ones(shape={dimBatch_, dimEncState_});
-      //auto dropoutMask = dropout(dropoutConstant, value=0.2);
-
-      GRUFast gru(encParams /*, dropoutMask*/);
-      return RNN<GRUFast>(gru);
+      GRU gru(encParams);
+      return RNN<GRU>(gru);
     };
 
-    RNN<GRUWithAttention> decoderGRUWithAttention() {
+    RNN<ConditionalGRU> decoder() {
       using namespace keywords;
 
-      ParametersGRUWithAttention decParams;
+      // Parameters for first GRU cell
 
       auto U = this->param("decoder_U", {dimDecState_, 2 * dimDecState_},
                         init=inits::glorot_uniform);
@@ -99,21 +96,12 @@ class Nematus : public ExpressionGraph {
       auto bx = this->param("decoder_bx", {1, dimDecState_},
                          init=inits::zeros);
 
-      decParams.U = concatenate({U, Ux}, axis=1);
-      decParams.W = concatenate({W, Wx}, axis=1);
-      decParams.b = concatenate({b, bx}, axis=1);
+      ParametersGRU gruParams1;
+      gruParams1.U = concatenate({U, Ux}, axis=1);
+      gruParams1.W = concatenate({W, Wx}, axis=1);
+      gruParams1.b = concatenate({b, bx}, axis=1);
 
-      decParams.Wa = this->param("decoder_W_comb_att", {dimDecState_, 2 * dimDecState_},
-                                 init=inits::glorot_uniform);
-
-      decParams.ba = this->param("decoder_b_att", {1, 2 * dimDecState_},
-                                 init=inits::zeros);
-
-      decParams.Ua = this->param("decoder_Wc_att", {2 * dimEncState_, 2 * dimDecState_},
-                                 init=inits::glorot_uniform);
-
-      decParams.va = this->param("decoder_U_att", {2 * dimDecState_, 1},
-                                 init=inits::glorot_uniform);
+      // Parameters for second GRU cell
 
       auto Uc = this->param("decoder_U_nl", {dimDecState_, 2 * dimDecState_},
                             init=inits::glorot_uniform);
@@ -133,21 +121,36 @@ class Nematus : public ExpressionGraph {
       auto bxc = this->param("decoder_bx_nl", {1, dimDecState_},
                              init=inits::zeros);
 
-      decParams.Uc = concatenate({Uc, Uxc}, axis=1);
-      decParams.Wc = concatenate({Wc, Wxc}, axis=1);
-      decParams.bc = concatenate({bc, bxc}, axis=1);
+      ParametersGRU gruParams2;
+      gruParams2.U = concatenate({Uc, Uxc}, axis=1);
+      gruParams2.W = concatenate({Wc, Wxc}, axis=1);
+      gruParams2.b = concatenate({bc, bxc}, axis=1);
+      gruParams2.final = true;
+
+      // Attention mechanism
+
+      ParametersAttention attParams;
+      attParams.Wa = this->param("decoder_W_comb_att", {dimDecState_, 2 * dimDecState_},
+                                 init=inits::glorot_uniform);
+      attParams.ba = this->param("decoder_b_att", {1, 2 * dimDecState_},
+                                 init=inits::zeros);
+      attParams.Ua = this->param("decoder_Wc_att", {2 * dimEncState_, 2 * dimDecState_},
+                                 init=inits::glorot_uniform);
+      attParams.va = this->param("decoder_U_att", {2 * dimDecState_, 1},
+                                 init=inits::glorot_uniform);
 
       auto encoderContext = this->get("encoderContext");
       auto encoderContextWeights = this->get("encoderContextWeights");
 
-      //auto dropoutConstant = this->ones(shape={dimBatch_, dimDecState_});
-      //auto dropoutMask = dropout(dropoutConstant, value=0.2);
+      Attention attention(attParams,
+                          encoderContext,
+                          encoderContextWeights);
 
-      GRUWithAttention gruCell(decParams,
-                               encoderContext,
-                               encoderContextWeights);
+      ConditionalGRU gru(gruParams1,
+                         gruParams2,
+                         attention);
 
-      return RNN<GRUWithAttention>(gruCell);
+      return RNN<ConditionalGRU>(gru);
     };
 
   public:
@@ -216,10 +219,6 @@ class Nematus : public ExpressionGraph {
       unsigned shape[2];
       std::string mode = "w";
       for(auto p : this->params().getMap()) {
-        //std::cerr << p.first << " "
-        //  << p.second->shape()[0] << "x"
-        //  << p.second->shape()[1] << std::endl;
-
         std::vector<float> v;
         p.second->val() >> v;
 
@@ -270,8 +269,8 @@ class Nematus : public ExpressionGraph {
       auto encState0 = name(this->zeros(shape={dimBatch_, dimEncState_}),
                             "start");
 
-      auto statesFw = encoderGRU("encoder").apply(x, encState0);
-      auto statesBw = encoderGRU("encoder_r").apply(x, encState0, xMask, true);
+      auto statesFw = encoder("encoder").apply(x, encState0);
+      auto statesBw = encoder("encoder_r").apply(x, encState0, xMask, true);
 
       std::vector<Expr> biStates;
       auto itFw = statesFw.begin();
@@ -333,10 +332,9 @@ class Nematus : public ExpressionGraph {
       y = concatenate({emptyEmbedding, y}, axis=2);
 
       // *** Apply conditional GRU to target embeddings ***
-      auto decoderGRU = decoderGRUWithAttention();
-      auto decStates = decoderGRU.apply(y, decState0);
-
-      auto contexts = decoderGRU.getCell().getContexts();
+      auto decoderGRU = decoder();
+      auto decStates  = decoderGRU.apply(y, decState0);
+      auto contexts   = decoderGRU.getCell().getAttention().getContexts();
 
       // *** Final output layers ***
       auto d1 = concatenate(decStates, axis=2);

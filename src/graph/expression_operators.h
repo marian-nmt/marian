@@ -118,8 +118,6 @@ Expr softmax(Expr a, Expr mask = nullptr);
 
 Expr logsoftmax(Expr a);
 
-Expr argmax(Expr a);
-
 template <typename ...Args>
 Expr mean(Expr a, Args ...args) {
   return Expression<MeanNodeOp>(a, args...);

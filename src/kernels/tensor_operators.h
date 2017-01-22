@@ -37,6 +37,7 @@ using namespace thrust::placeholders;
 
 class TensorGPU;
 
+cublasHandle_t create_handle();
 
 template <class Functor>
 __global__ void gAdd(Functor functor,
@@ -628,9 +629,6 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick);
 void Argmax(Tensor Out, const Tensor In);
 
 void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
-             bool transA, bool transB, Float beta);
-
-void Prod(Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta = 0);
 
 void CopyRowsByIndex(Tensor out, const Tensor in,
@@ -656,16 +654,16 @@ void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
                           void* space, size_t spaceSize,
                           Tensor out, Tensor in);
 
-void Transpose(Tensor out, const Tensor in);
+void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
 
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
-void GRUFastForward(Tensor out, const std::vector<Tensor>& inputs, bool final = false);
+void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final = false);
 
-void GRUFastBackward(std::vector<Tensor>& outputs,
-                     const std::vector<Tensor>& inputs,
-                     const Tensor adj, bool final = false);
+void GRUFastBackward(std::vector<Tensor> outputs,
+                     std::vector<Tensor> inputs,
+                     Tensor adj, bool final = false);
 
 }

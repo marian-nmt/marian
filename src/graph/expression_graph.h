@@ -66,11 +66,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     Parameters params_;
     TensorAllocator tensors_;
 
+    cublasHandle_t cublasHandle_;
+    size_t device_{0};
+
   protected:
     /** @brief Constructs a new expression graph
      * Constructor is protected to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph() : tensors_(newTensorAllocator<DeviceGPU>()) { }
+    ExpressionGraph() { }
 
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
@@ -79,6 +82,21 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     friend ExpressionGraphPtr New<ExpressionGraph>();
 
   public:
+
+    void initDevice(size_t device = 0) {
+      cudaSetDevice(device);
+      params_.init(device);
+      tensors_ = newTensorAllocator<DeviceGPU>(device);
+      cublasHandle_ = create_handle();
+    }
+
+    cublasHandle_t getCublasHandle() {
+      return cublasHandle_;
+    }
+
+    size_t getDevice() {
+      return device_;
+    }
 
     void reserveWorkspaceMB(size_t num) {
       size_t elements = num * 1024 * 1024 / 4 - 1;
@@ -245,7 +263,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::string graphviz() {
       std::stringstream ss;
       ss << "digraph ExpressionGraph {" << std::endl;
-      ss << "graph[splines=ortho]" << std::endl;
+      //ss << "graph[splines=ortho]" << std::endl;
       ss << "rankdir=LR" << std::endl;
 
       auto it = nodes_.rbegin();

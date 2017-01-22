@@ -9,6 +9,8 @@
 #include "graph/node_operators_binary.h"
 #include "graph/expression_graph.h"
 
+#include "layers/attention.h"
+
 namespace marian {
 
 struct ParametersTanh {
@@ -21,147 +23,30 @@ class Tanh {
     Tanh(ParametersTanh params)
     : params_(params) {}
 
-    Expr apply(Expr input, Expr state) {
-      using namespace keywords;
-
-      Expr output = dot(input, params_.W) + dot(state, params_.U);
-      if(params_.b)
-        output = output + params_.b;
-      output = tanh(output);
-
-      return output;
-    }
-
-  private:
-    ParametersTanh params_;
-};
-
-/***************************************************************/
-
-struct ParametersGRU {
-  Expr Uz, Wz, bz;
-  Expr Ur, Wr, br;
-  Expr Ux, Wx, bx;
-  float dropout = 0;
-};
-
-class GRU {
-  public:
-    GRU(ParametersGRU params)
-    : params_(params) {}
-
-    Expr apply(Expr input, Expr state) {
-      using namespace keywords;
-
-      Expr z = dot(input, params_.Wz) + dot(state, params_.Uz);
-      if(params_.bz)
-        z = z + params_.bz;
-      z = logit(z);
-
-      Expr r = dot(input, params_.Wr) + dot(state, params_.Ur);
-      if(params_.br)
-        r = r + params_.br;
-      r = logit(r);
-
-      Expr h = dot(input, params_.Wx) + dot(state, params_.Ux) * r;
-      if(params_.bx)
-        h = h + params_.bx;
-      h = tanh(h);
-
-      // constant 1 in (1-z)*h+z*s
-      auto one = state->graph()->ones(shape=state->shape());
-
-      auto output = (one - z) * h + z * state;
-
-      return output;
-    }
-
-  private:
-    ParametersGRU params_;
-};
-
-/***************************************************************/
-
-struct ParametersGRUFast {
-  Expr U, W, b;
-  float dropout = 0;
-};
-
-struct GRUFastNodeOp : public NaryNodeOp {
-  bool final_;
-
-  template <typename ...Args>
-  GRUFastNodeOp(const std::vector<Expr>& nodes, bool final, Args ...args)
-    : NaryNodeOp(nodes,
-                 keywords::shape=nodes.front()->shape(),
-                 args...),
-      final_(final) {}
-
-  void forward() {
-    std::vector<Tensor> inputs;
-    for(auto child : children_)
-      inputs.push_back(child->val());
-
-    GRUFastForward(val_, inputs, final_);
-  }
-
-  void backward() {
-    std::vector<Tensor> inputs;
-    std::vector<Tensor> outputs;
-    for(auto child : children_) {
-      inputs.push_back(child->val());
-      if(child->trainable())
-        outputs.push_back(child->grad());
-      else
-        outputs.push_back(nullptr);
-    }
-
-    GRUFastBackward(outputs, inputs, adj_, final_);
-  }
-
-  virtual std::string graphviz() {
-    std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"box\", label=" << label("GRUFast")
-      << ", style=\"filled\", fillcolor=\"yellow\"]" << std::endl;
-    for(auto child : children_)
-      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
-    ss << std::endl;
-    return ss.str();
-  }
-};
-
-Expr grufast(const std::vector<Expr>& nodes, bool final = false) {
-  return Expression<GRUFastNodeOp>(nodes, final);
-}
-
-class GRUFast {
-  public:
-    GRUFast(ParametersGRUFast params, Expr dropoutMask = nullptr)
-    : params_(params),
-      dropoutMask_(dropoutMask) {}
-
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
-      auto xW = dot(input, params_.W);
-      return xW;
+      return dot(input, params_.W);
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto sU = dot(state, params_.U);
+      using namespace keywords;
 
-      auto output = mask ?
-        grufast({state, xW, sU, params_.b, mask}) :
-        grufast({state, xW, sU, params_.b});
+      Expr output = xW + dot(state, params_.U);
+      if(params_.b)
+        output = output + params_.b;
+      output = tanh(output);
 
-      return output;
+      if(mask)
+        return output * mask;
+      else
+        return output;
     }
 
   private:
-    ParametersGRUFast params_;
-    Expr dropoutMask_;
+    ParametersTanh params_;
 };
 
 /***************************************************************/
@@ -234,95 +119,127 @@ class RNN {
 
 /***************************************************************/
 
-struct ParametersGRUWithAttention {
-  // First GRU
+struct ParametersGRU {
   Expr U, W, b;
-
-  // Attention
-  Expr Wa, ba, Ua, va;
-
-  // Conditional GRU
-  Expr Uc, Wc, bc;
-  float dropout = 0;
+  bool final{false};
 };
 
-class GRUWithAttention {
-  public:
-    GRUWithAttention(ParametersGRUWithAttention params,
-                     Expr context,
-                     Expr softmaxMask = nullptr,
-                     Expr dropoutMask = nullptr)
-    : params_(params),
-      context_(context),
-      softmaxMask_(nullptr),
-      dropoutMask_(dropoutMask) {
-      mappedContext_ = dot(context_, params_.Ua);
+struct GRUFastNodeOp : public NaryNodeOp {
+  bool final_;
 
-      if(softmaxMask) {
-        Shape shape = { softmaxMask->shape()[2],
-                        softmaxMask->shape()[0] };
-        softmaxMask_ = transpose(
-          reshape(softmaxMask, shape));
-      }
+  template <typename ...Args>
+  GRUFastNodeOp(const std::vector<Expr>& nodes, bool final, Args ...args)
+    : NaryNodeOp(nodes,
+                 args...),
+      final_(final) {}
+
+  NodeOps forwardOps() {
+    std::vector<Tensor> inputs;
+    for(auto child : children_)
+      inputs.push_back(child->val());
+
+    return {
+      NodeOp(GRUFastForward(val_, inputs, final_))
+    };
+  }
+
+  NodeOps backwardOps() {
+    std::vector<Tensor> inputs;
+    std::vector<Tensor> outputs;
+    for(auto child : children_) {
+      inputs.push_back(child->val());
+      if(child->trainable())
+        outputs.push_back(child->grad());
+      else
+        outputs.push_back(nullptr);
     }
+
+    return {
+      NodeOp(GRUFastBackward(outputs, inputs, adj_, final_))
+    };
+  }
+
+  // do not check if node is trainable
+  virtual void runBackward(const NodeOps& ops) {
+    for(auto&& op : ops)
+      op();
+  }
+
+  const std::string type() {
+    return "GRU-ops";
+  }
+
+  const std::string color() {
+    return "yellow";
+  }
+};
+
+Expr gruOps(const std::vector<Expr>& nodes, bool final = false) {
+  return Expression<GRUFastNodeOp>(nodes, final);
+}
+
+class GRU {
+  public:
+    GRU(ParametersGRU params)
+    : params_(params) {}
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
-      return dot(input, params_.W);
+      auto xW = dot(input, params_.W);
+      return xW;
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      using namespace keywords;
       auto sU = dot(state, params_.U);
-      auto hidden = mask ?
-        grufast({state, xW, sU, params_.b, mask}) :
-        grufast({state, xW, sU, params_.b});
 
-      int dimBatch = context_->shape()[0];
-      int srcWords = context_->shape()[2];
-
-      auto mappedState = dot(hidden, params_.Wa);
-      auto temp = tanhPlus3(mappedState, mappedContext_ , params_.ba);
-
-      // @TODO: horrible ->
-      auto e = reshape(
-        transpose(
-          softmax(
-            transpose(
-              reshape(
-                dot(temp, params_.va),
-                {srcWords, dimBatch})),
-            softmaxMask_)),
-        {dimBatch, 1, srcWords});
-      // <- horrible
-
-      auto alignedSource = weighted_average(context_, e, axis=2);
-      contexts_.push_back(alignedSource);
-
-      auto aWc = dot(alignedSource, params_.Wc);
-      auto hUc = dot(hidden, params_.Uc);
       auto output = mask ?
-        grufast({hidden, aWc, hUc, params_.bc, mask}, true) :
-        grufast({hidden, aWc, hUc, params_.bc}, true);
+        gruOps({state, xW, sU, params_.b, mask}, params_.final) :
+        gruOps({state, xW, sU, params_.b}, params_.final);
 
       return output;
     }
 
-    std::vector<Expr>& getContexts() {
-      return contexts_;
-    }
-
   private:
-    ParametersGRUWithAttention params_;
-    Expr context_;
-    Expr softmaxMask_;
-    Expr dropoutMask_;
-    Expr mappedContext_;
-    std::vector<Expr> contexts_;
+    ParametersGRU params_;
 };
 
+/***************************************************************/
+
+class ConditionalGRU {
+  private:
+    GRU gru1_;
+    GRU gru2_;
+    Attention att_;
+
+  public:
+    ConditionalGRU(ParametersGRU gruParams1,
+                   ParametersGRU gruParams2,
+                   Attention att)
+     : gru1_(gruParams1),
+       gru2_(gruParams2),
+       att_(att)
+    {}
+
+    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
+      return apply2(apply1(input), state, mask);
+    }
+
+    Expr apply1(Expr input) {
+      return gru1_.apply1(input);
+    }
+
+    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
+      auto hidden = gru1_.apply2(xW, state, mask);
+      auto alignedSourceContext = att_.apply(hidden);
+      return gru2_.apply(alignedSourceContext, hidden, mask);
+    }
+
+    Attention& getAttention() {
+      return att_;
+    }
+};
 
 }

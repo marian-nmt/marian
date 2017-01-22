@@ -24,13 +24,16 @@
 #include <memory>
 #include <iostream>
 #include <thread>
+#include <cublas_v2.h>
 
 #include "common/keywords.h"
 #include "tensors/tensor.h"
 #include "tensors/tensor_gpu.h"
 #include "graph/chainable.h"
 
+
 namespace marian {
+
 
 class ExpressionGraph;
 typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
@@ -43,6 +46,7 @@ class Node : public Chainable<Tensor>,
     size_t id_{0};
     size_t edges_{0};
     bool trainable_{true};
+    std::vector<Expr> children_;
 
     ExpressionGraphPtr graph_{nullptr};
     Shape shape_{1, 1, 1, 1};
@@ -63,6 +67,30 @@ class Node : public Chainable<Tensor>,
     {}
 
     virtual ~Node() {}
+
+    virtual NodeOps forwardOps() { return {}; };
+    virtual NodeOps backwardOps() { return {}; };
+
+    virtual void runForward(const NodeOps& ops) {
+      for(auto&& op : ops)
+        op();
+    }
+
+    virtual void runBackward(const NodeOps& ops) {
+      size_t i = 0;
+      for(auto&& op : ops)
+        if(children()[i++]->trainable())
+          op();
+    }
+
+    virtual void forward() {
+      runForward(forwardOps());
+    }
+
+    virtual void backward() {
+      runBackward(backwardOps());
+    }
+
 
     virtual bool trainable() {
       return trainable_;
@@ -125,15 +153,62 @@ class Node : public Chainable<Tensor>,
 
     const std::string &name() const { return name_; }
 
-    virtual const std::string label(const std::string& type) {
+    virtual const std::string form() {
+      return "box";
+    }
+
+    virtual const std::string color() {
+      return "orange";
+    }
+
+    virtual const std::string label() {
       std::stringstream label;
-      label << "<" << type;
+      label << "<" << type();
       if(name_ != "none") {
         label << "<br/>" << "\"" << name_ << "\"";
       }
       label << " (" << getId() << "/" << trainable() << ")>";
       return label.str();
     }
+
+    virtual std::string graphviz() {
+      std::stringstream ss;
+      ss << "\"" << this << "\" [shape=\"" << form() << "\", label=" << label()
+        << ", style=\"filled\", fillcolor=\"" << color() << "\"]" << std::endl;
+      for(auto&& child : children())
+        ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
+      ss << std::endl;
+      return ss.str();
+    }
+
+    virtual std::vector<Expr>& children() {
+      return children_;
+    }
+
+    cublasHandle_t getCublasHandle();
+};
+
+struct NaryNodeOp : public Node {
+  std::vector<Expr> children_;
+
+  template <typename ...Args>
+  NaryNodeOp(const std::vector<Expr>& nodes, Args ...args)
+   : Node(nodes.front()->graph(),
+      keywords::shape=keywords::Get(keywords::shape, nodes.front()->shape(), args...),
+      args...), children_(nodes)
+  {
+    setTrainable(std::any_of(nodes.begin(), nodes.end(),
+                             [](Expr a) { return a->trainable(); } ));
+    remove_children_from_top_nodes();
+  }
+
+  ~NaryNodeOp() {}
+
+  std::vector<Expr>& children() {
+    return children_;
+  }
+
+  void remove_children_from_top_nodes();
 };
 
 }

@@ -34,4 +34,13 @@ void Node::set_zero_adjoint() {
   }
 }
 
+cublasHandle_t Node::getCublasHandle() {
+  return graph_->getCublasHandle();
+}
+
+void NaryNodeOp::remove_children_from_top_nodes() {
+  for(auto child : children_)
+    graph_->remove_top_node(child);
+}
+
 }

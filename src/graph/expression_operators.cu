@@ -71,10 +71,6 @@ Expr logsoftmax(Expr a) {
   return Expression<LogSoftmaxNodeOp>(a);
 }
 
-Expr argmax(Expr a) {
-  return Expression<ArgmaxNodeOp>(a);
-}
-
 /*********************************************************/
 
 Expr operator+(Expr a, Expr b) {
