@@ -6,6 +6,7 @@
 #include <set>
 #include <memory>
 
+#include "common/god.h"
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "gpu/mblas/matrix.h"
@@ -81,7 +82,7 @@ class MosesPlugin {
   private:
     bool debug_;
 
-    God *god_;
+    God god_;
     
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;

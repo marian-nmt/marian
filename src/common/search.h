@@ -9,7 +9,7 @@
 
 class Search {
   public:
-    Search(const God &god, size_t threadId);
+    Search(const God &god);
     std::shared_ptr<Histories> Decode(const God &god, const Sentences& sentences);
 
   private:

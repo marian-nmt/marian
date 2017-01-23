@@ -9,7 +9,7 @@
 
 using namespace std;
 
-Search::Search(const God &god, size_t threadId)
+Search::Search(const God &god)
 {
   DeviceInfo deviceInfo = god.GetNextDevice();
   scorers_ = god.GetScorers(deviceInfo);

@@ -264,12 +264,12 @@ DeviceInfo God::GetNextDevice() const
   return ret;
 }
 
-Search &God::GetSearch(size_t threadId) const
+Search &God::GetSearch() const
 {
   Search *obj;
   obj = m_search.get();
   if (obj == NULL) {
-    obj = new Search(*this, threadId);
+    obj = new Search(*this);
     m_search.reset(obj);
   }
   assert(obj);

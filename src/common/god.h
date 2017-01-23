@@ -68,7 +68,7 @@ class God {
     void LoadWeights(const std::string& path);
 
     DeviceInfo GetNextDevice() const;
-    Search &GetSearch(size_t threadId) const;
+    Search &GetSearch() const;
 
   private:
     void LoadScorers();

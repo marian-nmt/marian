@@ -5,7 +5,7 @@
 #include "printer.h"
 
 void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
-  Search &search = god.GetSearch(taskCounter);
+  Search &search = god.GetSearch();
 
   try {
     Histories allHistories;

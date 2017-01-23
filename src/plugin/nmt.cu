@@ -16,12 +16,11 @@ using namespace GPU;
 
 void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
-  god_ = new God();
-  god_->Init(configs);
+  god_.Init(configs);
 
-  DeviceInfo deviceInfo = god_->GetNextDevice();  
-  scorers_ = god_->GetScorers(deviceInfo);
-  bestHyps_ = &god_->GetBestHyps(deviceInfo);
+  DeviceInfo deviceInfo = god_.GetNextDevice();  
+  scorers_ = god_.GetScorers(deviceInfo);
+  bestHyps_ = &god_.GetBestHyps(deviceInfo);
 }
 
 MosesPlugin::MosesPlugin()
@@ -32,7 +31,6 @@ MosesPlugin::MosesPlugin()
 
 MosesPlugin::~MosesPlugin()
 {
-	delete god_;
 }
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
@@ -52,7 +50,7 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
 void MosesPlugin::GeneratePhrases(const States& states, size_t lastWord, size_t numPhrases,
                                   std::vector<NeuralPhrase>& phrases) {
   assert(states.size() == scorers_.size());
-  Histories histories(*god_, sentences_);
+  Histories histories(god_, sentences_);
 
   size_t batchSize = 1;
   std::vector<size_t> beamSizes(batchSize, 1);
@@ -76,18 +74,18 @@ void MosesPlugin::GeneratePhrases(const States& states, size_t lastWord, size_t 
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(*god_, state, nextState, beamSizes);
+      scorer.Score(god_, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-        beamSize = god_->Get<size_t>("beam-size");
+        beamSize = god_.Get<size_t>("beam-size");
       }
     }
 
     Beams beams(batchSize);
 
-    (*bestHyps_)(*god_, beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
+    (*bestHyps_)(god_, beams, prevHyps, beamSizes, scorers_, filterIndices_, true);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
@@ -121,11 +119,11 @@ void MosesPlugin::GeneratePhrases(const States& states, size_t lastWord, size_t 
 	  scorer->CleanUpAfterSentence();
   }
 
-  const NBestList &nbl = histories.at(0)->NBest(god_->Get<size_t>("beam-size"));
+  const NBestList &nbl = histories.at(0)->NBest(god_.Get<size_t>("beam-size"));
 
   for (size_t i = 0; i < nbl.size(); ++i) {
     const Result& result = nbl[i];
-    auto words = god_->Postprocess(god_->GetTargetVocab()(result.first));
+    auto words = god_.Postprocess(god_.GetTargetVocab()(result.first));
     auto& scores = result.second->GetCostBreakdown();
 
     phrases.emplace_back(result.first, scores, 0, 1);
@@ -136,7 +134,7 @@ void MosesPlugin::GeneratePhrases(const States& states, size_t lastWord, size_t 
 States MosesPlugin::GenerateStates(const States& ParentStates,
                                    size_t lastWord,
                                    std::vector<size_t>& phrase) {
-  Histories histories(*god_, sentences_);
+  Histories histories(god_, sentences_);
 
   size_t batchSize = 1;
   std::vector<size_t> beamSizes(batchSize, 1);
@@ -173,7 +171,7 @@ States MosesPlugin::GenerateStates(const States& ParentStates,
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(*god_, state, nextState, beamSizes);
+      scorer.Score(god_, state, nextState, beamSizes);
     }
 
     Beam survivors;
@@ -209,18 +207,18 @@ States MosesPlugin::GenerateStates(const States& ParentStates,
 /* } */
 
 size_t MosesPlugin::TargetVocab(const std::string& str) {
-  return god_->GetTargetVocab()[str];
+  return god_.GetTargetVocab()[str];
 }
 
 size_t MosesPlugin::SourceVocab(const std::string& str) {
-  return god_->GetSourceVocab(0)[str];
+  return god_.GetSourceVocab(0)[str];
 }
 
 States MosesPlugin::SetSource(const std::vector<size_t>& words) {
   if (sentences_.size() == 0) {
-      sentences_.push_back(SentencePtr(new Sentence(*god_, 0, words)));
+      sentences_.push_back(SentencePtr(new Sentence(god_, 0, words)));
   } else {
-      sentences_.at(0).reset(new Sentence(*god_, 0, words));
+      sentences_.at(0).reset(new Sentence(god_, 0, words));
   }
 
   States states(scorers_.size());
