@@ -11,9 +11,9 @@ using namespace std;
 
 Search::Search(const God &god)
 {
-  DeviceInfo deviceInfo = god.GetNextDevice();
-  scorers_ = god.GetScorers(deviceInfo);
-  bestHyps_ = &god.GetBestHyps(deviceInfo);
+  deviceInfo_ = god.GetNextDevice();
+  scorers_ = god.GetScorers(deviceInfo_);
+  bestHyps_ = &god.GetBestHyps(deviceInfo_);
 }
 
 

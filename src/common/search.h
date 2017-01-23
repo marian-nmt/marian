@@ -21,4 +21,6 @@ class Search {
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
     BestHypsBase *bestHyps_;
+
+    DeviceInfo deviceInfo_;
 };
