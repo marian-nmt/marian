@@ -176,17 +176,17 @@ OutputCollector& God::GetOutputCollector() const {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) const {
+std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   std::vector<ScorerPtr> scorers;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
 
-  if (threadId < cpuThreads) {
+  if (deviceInfo.deviceType == CPUDevice) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, threadId));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo.threadInd));
   } else {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, threadId - cpuThreads));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo.threadInd));
   }
   return scorers;
 }

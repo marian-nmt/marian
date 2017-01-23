@@ -56,7 +56,7 @@ class God {
 
     BestHypsBase &GetBestHyps(size_t threadId) const;
 
-    std::vector<ScorerPtr> GetScorers(size_t) const;
+    std::vector<ScorerPtr> GetScorers(const DeviceInfo &deviceInfo) const;
     std::vector<std::string> GetScorerNames() const;
     const std::map<std::string, float>& GetScorerWeights() const;
 
@@ -67,6 +67,7 @@ class God {
 
     void LoadWeights(const std::string& path);
 
+    DeviceInfo GetNextDevice() const;
     Search &GetSearch(size_t threadId) const;
 
   private:
@@ -74,7 +75,6 @@ class God {
     void LoadFiltering();
     void LoadPrePostProcessing();
 
-    DeviceInfo GetNextDevice() const;
 
     Config config_;
 

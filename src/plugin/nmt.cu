@@ -18,8 +18,9 @@ void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
   god_ = new God();
   god_->Init(configs);
-  
-  scorers_ = god_->GetScorers(1);
+
+  DeviceInfo deviceInfo = god_->GetNextDevice();  
+  scorers_ = god_->GetScorers(deviceInfo);
   bestHyps_ = &god_->GetBestHyps(1);
 }
 
