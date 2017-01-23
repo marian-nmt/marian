@@ -24,6 +24,7 @@ class InputFileStream;
 
 class God {
   public:
+	God();
     virtual ~God();
 
     God& Init(const std::string&);
@@ -88,5 +89,9 @@ class God {
 
     mutable std::unique_ptr<InputFileStream> inputStream_;
     mutable OutputCollector outputCollector_;
+
+    mutable size_t threadIncr_;
+
+    DeviceInfo GetNextDevice() const;
 
 };

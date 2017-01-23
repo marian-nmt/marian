@@ -16,6 +16,12 @@
 #include "scorer.h"
 #include "loader_factory.h"
 
+God::God()
+:threadIncr_(0)
+{
+
+}
+
 God::~God() {}
 
 God& God::Init(const std::string& options) {
@@ -232,3 +238,29 @@ void God::CleanUp() {
      loader.reset(nullptr);
   }
 }
+
+DeviceInfo God::GetNextDevice() const
+{
+  DeviceInfo ret;
+
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  ret.deviceType = (threadIncr_ < cpuThreads) ? CPUDevice : GPUDevice;
+
+  if (ret.deviceType == CPUDevice) {
+    ret.threadInd = threadIncr_;
+  }
+  else {
+    size_t threadIncrGPU = threadIncr_ - cpuThreads;
+    size_t gpuThreads = Get<size_t>("gpu-threads");
+
+    ret.threadInd = threadIncrGPU / gpuThreads;
+    ret.deviceInd = threadIncrGPU % gpuThreads;
+
+    std::vector<size_t> devices = Get<std::vector<size_t>>("devices");
+    UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
+    UTIL_THROW_IF2(ret.deviceInd >= devices.size(), "Too many GPU devices");
+  }
+
+  return ret;
+}
+
