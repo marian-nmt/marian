@@ -26,7 +26,7 @@ class Loader {
       return config_[key].as<T>();
     }
 
-    virtual ScorerPtr NewScorer(const God &god, size_t) const = 0;
+    virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const = 0;
     virtual BestHypsBase &GetBestHyps(const God &god) const = 0;
 
     const std::string& GetName() const {

@@ -141,7 +141,7 @@ void EncoderDecoderLoader::Load(const God &god) {
   weights_.emplace_back(new Weights(path, 0));
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const size_t) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[0]));

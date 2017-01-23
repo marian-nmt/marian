@@ -140,9 +140,9 @@ void EncoderDecoderLoader::Load(const God &god) {
   }
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, size_t taskId) const {
-  size_t i = taskId % weights_.size();
-  size_t d = weights_[i]->GetDevice();
+ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
+  size_t i = deviceInfo.threadInd % weights_.size();
+  size_t d = deviceInfo.deviceInd;
   cudaSetDevice(d);
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(god, name_, config_,

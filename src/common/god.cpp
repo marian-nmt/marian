@@ -181,10 +181,10 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
 
   if (deviceInfo.deviceType == CPUDevice) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, deviceInfo.threadInd));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   } else {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, deviceInfo.threadInd));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
   return scorers;
 }

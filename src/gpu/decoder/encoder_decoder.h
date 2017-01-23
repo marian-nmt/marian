@@ -79,7 +79,7 @@ class EncoderDecoderLoader : public Loader {
 
     virtual void Load(const God &god);
 
-    virtual ScorerPtr NewScorer(const God &god, size_t taskId) const;
+    virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
     virtual BestHypsBase &GetBestHyps(const God &god) const;
 
   private:
