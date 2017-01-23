@@ -149,14 +149,8 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
                                       tab, *weights_[i]));
 }
 
-BestHypsBase &EncoderDecoderLoader::GetBestHyps(const God &god) const {
-  thread_local std::unique_ptr<BestHypsBase> bestHyps;
-  if(!bestHyps) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
-    bestHyps.reset(new GPU::BestHyps(god));
-  }
-
-  return *bestHyps.get();
+BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
+  return BestHypsBasePtr(new GPU::BestHyps(god));
 }
 
 }

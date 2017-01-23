@@ -20,7 +20,7 @@ class Search {
 
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
-    BestHypsBase *bestHyps_;
+    BestHypsBasePtr bestHyps_;
 
     DeviceInfo deviceInfo_;
 };

@@ -13,7 +13,7 @@ Search::Search(const God &god)
 {
   deviceInfo_ = god.GetNextDevice();
   scorers_ = god.GetScorers(deviceInfo_);
-  bestHyps_ = &god.GetBestHyps(deviceInfo_);
+  bestHyps_ = god.GetBestHyps(deviceInfo_);
 }
 
 

@@ -54,7 +54,7 @@ class God {
 
     const Filter& GetFilter() const;
 
-    BestHypsBase &GetBestHyps(const DeviceInfo &deviceInfo) const;
+    BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 
     std::vector<ScorerPtr> GetScorers(const DeviceInfo &deviceInfo) const;
     std::vector<std::string> GetScorerNames() const;

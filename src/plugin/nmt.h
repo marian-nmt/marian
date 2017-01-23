@@ -86,7 +86,7 @@ class MosesPlugin {
     
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
-    BestHypsBase *bestHyps_;
+    BestHypsBasePtr bestHyps_;
     Sentences sentences_;
 
     std::shared_ptr<States> states_;
