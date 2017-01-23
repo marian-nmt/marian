@@ -189,9 +189,8 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   return scorers;
 }
 
-BestHypsBase &God::GetBestHyps(size_t threadId) const {
-  size_t cpuThreads = God::Get<size_t>("cpu-threads");
-  if (threadId < cpuThreads) {
+BestHypsBase &God::GetBestHyps(const DeviceInfo &deviceInfo) const {
+  if (deviceInfo.deviceType == CPUDevice) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this);
   } else {
     return gpuLoaders_.begin()->second->GetBestHyps(*this);
@@ -259,6 +258,8 @@ DeviceInfo God::GetNextDevice() const
     UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
     UTIL_THROW_IF2(ret.deviceInd >= devices.size(), "Too many GPU devices");
   }
+
+  ++threadIncr_;
 
   return ret;
 }

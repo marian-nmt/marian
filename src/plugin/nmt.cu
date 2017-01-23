@@ -21,7 +21,7 @@ void MosesPlugin::initGod(const std::string& configPath) {
 
   DeviceInfo deviceInfo = god_->GetNextDevice();  
   scorers_ = god_->GetScorers(deviceInfo);
-  bestHyps_ = &god_->GetBestHyps(1);
+  bestHyps_ = &god_->GetBestHyps(deviceInfo);
 }
 
 MosesPlugin::MosesPlugin()

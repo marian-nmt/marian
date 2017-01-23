@@ -20,5 +20,5 @@ class Search {
 
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
-    BestHypsBase &bestHyps_;
+    BestHypsBase *bestHyps_;
 };
