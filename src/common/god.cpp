@@ -12,6 +12,7 @@
 #include "common/filter.h"
 #include "common/processor/bpe.h"
 #include "common/utils.h"
+#include "common/search.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
@@ -264,3 +265,14 @@ DeviceInfo God::GetNextDevice() const
   return ret;
 }
 
+Search &God::GetSearch(size_t threadId) const
+{
+  Search *obj;
+  obj = m_search.get();
+  if (obj == NULL) {
+    obj = new Search(*this, threadId);
+    m_search.reset(obj);
+  }
+  assert(obj);
+  return *obj;
+}

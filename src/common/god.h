@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <iostream>
+#include <boost/thread/tss.hpp>
 
 #include "common/processor/processor.h"
 #include "common/config.h"
@@ -17,6 +18,7 @@
 #include "common/processor/bpe.h"
 #include "common/utils.h"
 
+class Search;
 class Weights;
 class Vocab;
 class Filter;
@@ -65,10 +67,14 @@ class God {
 
     void LoadWeights(const std::string& path);
 
+    Search &GetSearch(size_t threadId) const;
+
   private:
     void LoadScorers();
     void LoadFiltering();
     void LoadPrePostProcessing();
+
+    DeviceInfo GetNextDevice() const;
 
     Config config_;
 
@@ -92,6 +98,5 @@ class God {
 
     mutable size_t threadIncr_;
 
-    DeviceInfo GetNextDevice() const;
-
+    mutable boost::thread_specific_ptr<Search> m_search;
 };
