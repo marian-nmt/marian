@@ -108,7 +108,8 @@ void Validate(const YAML::Node& config) {
   //              "Different number of models and weights in config file");
 
   UTIL_THROW_IF2(config["maxi-batch"].as<int>() < config["mini-batch"].as<int>(),
-                "maxi-batch < mini-batch");
+                "maxi-batch (" << config["maxi-batch"].as<int>()
+                << ") < mini-batch (" << config["mini-batch"].as<int>() << ")");
 }
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {
