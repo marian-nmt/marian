@@ -4,7 +4,6 @@
 #include <vector>
 #include <memory>
 
-#include <boost/shared_ptr.hpp>
 class Vocab;
 
 typedef std::vector <std::vector < size_t > > NBestBatch;
