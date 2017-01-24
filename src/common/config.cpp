@@ -294,6 +294,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("show-weights", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION("relative-paths", bool);
+  SET_OPTION_NONDEFAULT("input-file", std::string);
 
   // @TODO: Apply complex overwrites
 
