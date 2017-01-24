@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Total number of threads: " << totalThreads;
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
-  ThreadPool *pool = new ThreadPool(totalThreads);
+  ThreadPool *pool = new ThreadPool(totalThreads, totalThreads);
   LOG(info) << "Reading input";
 
   std::shared_ptr<Sentences> sentences(new Sentences());
