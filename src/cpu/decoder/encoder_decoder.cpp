@@ -150,7 +150,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const size_t) const {
 BestHypsBase &EncoderDecoderLoader::GetBestHyps(const God &god) const {
   thread_local std::unique_ptr<BestHypsBase> bestHyps;
   if(!bestHyps) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    LOG(info) << "Create CPU::BestHyps for thread " << std::this_thread::get_id();
     bestHyps.reset(new CPU::BestHyps());
   }
 

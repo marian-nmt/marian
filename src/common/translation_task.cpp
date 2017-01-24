@@ -7,7 +7,7 @@
 void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
   thread_local std::unique_ptr<Search> search;
   if(!search) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    LOG(info) << "Create Search for thread " << std::this_thread::get_id();
     search.reset(new Search(god, taskCounter));
   }
 

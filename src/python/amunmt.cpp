@@ -19,7 +19,7 @@ std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCou
   thread_local std::unique_ptr<Search> search;
 
   if(!search) {
-    LOG(info) << "Created Search for thread " << std::this_thread::get_id();
+    LOG(info) << "Create Search for thread " << std::this_thread::get_id();
     search.reset(new Search(god_, taskCounter));
   }
 
