@@ -6,6 +6,7 @@
 #include <string>
 #include <stdint.h>
 
+namespace amunmt {
 namespace util {
 
 template <class Except, class Data> typename Except::template ExceptionTag<Except&>::Identity operator<<(Except &e, const Data &data);
@@ -94,7 +95,7 @@ template <class Except, class Data> typename Except::template ExceptionTag<Excep
   UTIL_THROW_BACKEND(NULL, Exception, , Modify);
 
 #define UTIL_THROW2(Modify) \
-  UTIL_THROW_BACKEND(NULL, util::Exception, , Modify);
+  UTIL_THROW_BACKEND(NULL, amunmt::util::Exception, , Modify);
 
 #if __GNUC__ >= 3
 #define UTIL_UNLIKELY(x) __builtin_expect (!!(x), 0)
@@ -118,7 +119,7 @@ template <class Except, class Data> typename Except::template ExceptionTag<Excep
   UTIL_THROW_IF_ARG(Condition, Exception, , Modify)
 
 #define UTIL_THROW_IF2(Condition, Modify) \
-  UTIL_THROW_IF_ARG(Condition, util::Exception, , Modify)
+  UTIL_THROW_IF_ARG(Condition, amunmt::util::Exception, , Modify)
 
 // Exception that records errno and adds it to the message.
 class ErrnoException : public Exception {
@@ -170,3 +171,5 @@ class WindowsException : public Exception {
 #endif
 
 } // namespace util
+}
+

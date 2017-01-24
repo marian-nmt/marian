@@ -16,16 +16,11 @@
 God god_;
 
 std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
-  thread_local std::unique_ptr<Search> search;
-
-  if(!search) {
-    LOG(info) << "Create Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(god_, taskCounter));
-  }
+  Search &search = god_.GetSearch();
 
   std::shared_ptr<Sentences> sentences(new Sentences());
   sentences->push_back(SentencePtr(new Sentence(god_, taskCounter, in)));
-  return search->Decode(god_, *sentences);
+  return search.Decode(god_, *sentences);
 }
 
 void init(const std::string& options) {

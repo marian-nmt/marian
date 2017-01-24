@@ -4,12 +4,8 @@
 #include "output_collector.h"
 #include "printer.h"
 
-void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t maxBatchSize) {
-  thread_local std::unique_ptr<Search> search;
-  if(!search) {
-    LOG(info) << "Create Search for thread " << std::this_thread::get_id();
-    search.reset(new Search(god, taskCounter));
-  }
+void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t miniBatch) {
+  Search &search = god.GetSearch();
 
   try {
     Histories allHistories;
@@ -21,9 +17,9 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
     for (size_t i = 0; i < sentences->size(); ++i) {
       decodeSentences->push_back(sentences->at(i));
 
-      if (decodeSentences->size() >= maxBatchSize) {
+      if (decodeSentences->size() >= miniBatch) {
         assert(decodeSentences->size());
-        std::shared_ptr<Histories> histories = search->Decode(god, *decodeSentences);
+        std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
         allHistories.Append(*histories.get());
 
         decodeSentences.reset(new Sentences(taskCounter, bunchId++));
@@ -31,7 +27,7 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
     }
 
     if (decodeSentences->size()) {
-      std::shared_ptr<Histories> histories = search->Decode(god, *decodeSentences);
+      std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
       allHistories.Append(*histories.get());
     }
 

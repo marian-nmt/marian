@@ -141,20 +141,14 @@ void EncoderDecoderLoader::Load(const God &god) {
   weights_.emplace_back(new Weights(path, 0));
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const size_t) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[0]));
 }
 
-BestHypsBase &EncoderDecoderLoader::GetBestHyps(const God &god) const {
-  thread_local std::unique_ptr<BestHypsBase> bestHyps;
-  if(!bestHyps) {
-    LOG(info) << "Create CPU::BestHyps for thread " << std::this_thread::get_id();
-    bestHyps.reset(new CPU::BestHyps());
-  }
-
-  return *bestHyps.get();
+BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
+  return BestHypsBasePtr(new CPU::BestHyps());
 }
 
 }

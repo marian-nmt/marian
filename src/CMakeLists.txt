@@ -52,6 +52,8 @@ cuda_add_executable(
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
+
+
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:cpumode>
@@ -78,8 +80,10 @@ cuda_add_library(amunmt SHARED
 endif(PYTHONLIBS_FOUND)
 
 cuda_add_library(mosesplugin STATIC
+  plugin/hypo_info.cpp
   #plugin/nbest.cu
   plugin/nmt.cu
+  plugin/neural_phrase.cpp
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu

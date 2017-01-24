@@ -9,9 +9,11 @@
 
 using namespace std;
 
-Search::Search(const God &god, size_t threadId)
-  : scorers_(god.GetScorers(threadId)),
-    bestHyps_(god.GetBestHyps(threadId)) {
+Search::Search(const God &god)
+{
+  deviceInfo_ = god.GetNextDevice();
+  scorers_ = god.GetScorers(deviceInfo_);
+  bestHyps_ = god.GetBestHyps(deviceInfo_);
 }
 
 
@@ -91,7 +93,7 @@ std::shared_ptr<Histories> Search::Decode(const God &god, const Sentences& sente
     Beams beams(batchSize);
     bool returnAlignment = god.Get<bool>("return-alignment");
 
-    bestHyps_(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+    (*bestHyps_)(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {

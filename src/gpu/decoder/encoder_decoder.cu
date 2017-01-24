@@ -140,23 +140,17 @@ void EncoderDecoderLoader::Load(const God &god) {
   }
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, size_t taskId) const {
-  size_t i = taskId % weights_.size();
-  size_t d = weights_[i]->GetDevice();
+ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
+  size_t i = deviceInfo.threadInd;
+  size_t d = deviceInfo.deviceInd;
   cudaSetDevice(d);
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(god, name_, config_,
                                       tab, *weights_[i]));
 }
 
-BestHypsBase &EncoderDecoderLoader::GetBestHyps(const God &god) const {
-  thread_local std::unique_ptr<BestHypsBase> bestHyps;
-  if(!bestHyps) {
-    LOG(info) << "Create GPU::BestHyps for thread " << std::this_thread::get_id();
-    bestHyps.reset(new GPU::BestHyps(god));
-  }
-
-  return *bestHyps.get();
+BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
+  return BestHypsBasePtr(new GPU::BestHyps(god));
 }
 
 }

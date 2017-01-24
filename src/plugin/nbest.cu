@@ -9,8 +9,8 @@
 NBest::NBest(
     const std::string& srcPath,
     const std::string& nbestPath,
-    const boost::shared_ptr<Vocab> srcVocab,
-    const boost::shared_ptr<Vocab> trgVocab,
+    const std::shared_ptr<Vocab> srcVocab,
+    const std::shared_ptr<Vocab> trgVocab,
     const size_t maxBatchSize)
     : srcVocab_(srcVocab),
       trgVocab_(trgVocab),
@@ -20,8 +20,8 @@ NBest::NBest(
 }
 
 NBest::NBest(
-  const boost::shared_ptr<Vocab> srcVocab,
-  const boost::shared_ptr<Vocab> trgVocab,
+  const std::shared_ptr<Vocab> srcVocab,
+  const std::shared_ptr<Vocab> trgVocab,
   const std::vector<std::string>& nBestList,
   const size_t maxBatchSize)
     : srcVocab_(srcVocab),

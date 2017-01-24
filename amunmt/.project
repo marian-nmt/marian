@@ -26,6 +26,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>3rd_party</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/3rd_party</locationURI>
+		</link>
+		<link>
 			<name>cnpy</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -46,6 +51,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/gpu</locationURI>
 		</link>
 		<link>
+			<name>plugin</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>python</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -64,6 +74,46 @@
 			<name>cnpy/cnpy.h</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/cnpy/cnpy.h</locationURI>
+		</link>
+		<link>
+			<name>plugin/hypo_info.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/hypo_info.cpp</locationURI>
+		</link>
+		<link>
+			<name>plugin/hypo_info.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/hypo_info.h</locationURI>
+		</link>
+		<link>
+			<name>plugin/nbest.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/nbest.cu</locationURI>
+		</link>
+		<link>
+			<name>plugin/nbest.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/nbest.h</locationURI>
+		</link>
+		<link>
+			<name>plugin/neural_phrase.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/neural_phrase.cpp</locationURI>
+		</link>
+		<link>
+			<name>plugin/neural_phrase.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/neural_phrase.h</locationURI>
+		</link>
+		<link>
+			<name>plugin/nmt.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/nmt.cu</locationURI>
+		</link>
+		<link>
+			<name>plugin/nmt.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/plugin/nmt.h</locationURI>
 		</link>
 		<link>
 			<name>python/amunmt.cpp</name>

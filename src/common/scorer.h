@@ -30,7 +30,7 @@ class State {
 
 };
 
-typedef std::unique_ptr<State> StatePtr;
+typedef std::shared_ptr<State> StatePtr;
 typedef std::vector<StatePtr> States;
 
 class Scorer {

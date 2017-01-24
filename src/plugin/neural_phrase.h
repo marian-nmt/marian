@@ -5,15 +5,15 @@
 
 class NeuralPhrase {
   public:
+   std::vector<size_t> words;
+   std::vector<float> scores;
+   int startPos, endPos;
+
     NeuralPhrase() {}
 
-    NeuralPhrase(const std::vector<std::string>& words, std::vector<float> scores,
+    NeuralPhrase(const std::vector<size_t>& words, std::vector<float> scores,
                  int startPos, int endPos)
       : words(words), scores(scores), startPos(startPos), endPos(endPos) {}
-
-    std::vector<std::string>& getWords() {
-      return words;
-    }
 
     float getScore(int i) {
       return scores[i];
@@ -23,9 +23,8 @@ class NeuralPhrase {
       return std::make_pair(startPos, endPos);
     }
 
+    std::string Debug() const;
+
   private:
-   std::vector<std::string> words;
-   std::vector<float> scores;
-   int startPos, endPos;
 
 };

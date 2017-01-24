@@ -12,9 +12,16 @@
 #include "common/filter.h"
 #include "common/processor/bpe.h"
 #include "common/utils.h"
+#include "common/search.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
+
+God::God()
+:threadIncr_(0)
+{
+
+}
 
 God::~God() {}
 
@@ -169,24 +176,21 @@ OutputCollector& God::GetOutputCollector() const {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(size_t threadId) const {
+std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   std::vector<ScorerPtr> scorers;
 
-  size_t cpuThreads = God::Get<size_t>("cpu-threads");
-
-  if (threadId < cpuThreads) {
+  if (deviceInfo.deviceType == CPUDevice) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, threadId));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   } else {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, threadId - cpuThreads));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
   return scorers;
 }
 
-BestHypsBase &God::GetBestHyps(size_t threadId) const {
-  size_t cpuThreads = God::Get<size_t>("cpu-threads");
-  if (threadId < cpuThreads) {
+BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
+  if (deviceInfo.deviceType == CPUDevice) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this);
   } else {
     return gpuLoaders_.begin()->second->GetBestHyps(*this);
@@ -231,4 +235,43 @@ void God::CleanUp() {
   for (auto& loader : gpuLoaders_ | boost::adaptors::map_values) {
      loader.reset(nullptr);
   }
+}
+
+DeviceInfo God::GetNextDevice() const
+{
+  DeviceInfo ret;
+
+  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  ret.deviceType = (threadIncr_ < cpuThreads) ? CPUDevice : GPUDevice;
+
+  if (ret.deviceType == CPUDevice) {
+    ret.threadInd = threadIncr_;
+  }
+  else {
+    size_t threadIncrGPU = threadIncr_ - cpuThreads;
+    size_t gpuThreads = Get<size_t>("gpu-threads");
+
+    ret.threadInd = threadIncrGPU / gpuThreads;
+    ret.deviceInd = threadIncrGPU % gpuThreads;
+
+    std::vector<size_t> devices = Get<std::vector<size_t>>("devices");
+    UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
+    UTIL_THROW_IF2(ret.deviceInd >= devices.size(), "Too many GPU devices");
+  }
+
+  ++threadIncr_;
+
+  return ret;
+}
+
+Search &God::GetSearch() const
+{
+  Search *obj;
+  obj = m_search.get();
+  if (obj == NULL) {
+    obj = new Search(*this);
+    m_search.reset(obj);
+  }
+  assert(obj);
+  return *obj;
 }

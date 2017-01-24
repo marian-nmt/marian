@@ -4,19 +4,21 @@
 #include <algorithm>
 #include <vector>
 #include <set>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
+#include "common/god.h"
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "gpu/mblas/matrix.h"
 #include "gpu/decoder/encoder_decoder.h"
 #include "neural_phrase.h"
+#include "hypo_info.h"
 
 class Vocab;
 
 class StateInfo;
 class NeuralPhrase;
-typedef boost::shared_ptr<StateInfo> StateInfoPtr;
+typedef std::shared_ptr<StateInfo> StateInfoPtr;
 
 typedef std::vector<size_t> Batch;
 typedef std::vector<Batch> Batches;
@@ -39,16 +41,12 @@ class MosesPlugin {
 
     void initGod(const std::string& configPath);
 
-    States SetSource(const std::vector<std::string>& s);
+    States SetSource(const std::vector<size_t>& words);
 
     void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
 
-    // StateInfoPtr EmptyState();
-
-    // void PrintState(StateInfoPtr);
-
-
-    // size_t TargetVocab(const std::string& str);
+    size_t TargetVocab(const std::string& str);
+    size_t SourceVocab(const std::string& str);
 
     // void BatchSteps(const Batches& batches, LastWords& lastWords,
                     // Scores& probs, Scores& unks, StateInfos& stateInfos,
@@ -75,20 +73,23 @@ class MosesPlugin {
     // std::vector<double> RescoreNBestList(
         // const std::vector<std::string>& nbest,
         // const size_t maxBatchSize=64);
-    void GeneratePhrases(const States& states, std::string& lastWord, size_t numPhrases,
+    void GeneratePhrases(const States& states, size_t lastWord, size_t numPhrases,
                          std::vector<NeuralPhrase>& phrases);
+
+    States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
+    void Rescore(std::vector<HypoInfo> &hypos);
 
   private:
     bool debug_;
 
-    God *god_;
+    God god_;
     
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
-    BestHypsBase *bestHyps_;
+    BestHypsBasePtr bestHyps_;
     Sentences sentences_;
 
-    boost::shared_ptr<States> states_;
+    std::shared_ptr<States> states_;
     bool firstWord_;
 
     std::vector<size_t> filteredId_;

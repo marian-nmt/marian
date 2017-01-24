@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <iostream>
+#include <boost/thread/tss.hpp>
 
 #include "common/processor/processor.h"
 #include "common/config.h"
@@ -17,6 +18,7 @@
 #include "common/processor/bpe.h"
 #include "common/utils.h"
 
+class Search;
 class Weights;
 class Vocab;
 class Filter;
@@ -24,6 +26,7 @@ class InputFileStream;
 
 class God {
   public:
+	God();
     virtual ~God();
 
     God& Init(const std::string&);
@@ -51,9 +54,9 @@ class God {
 
     const Filter& GetFilter() const;
 
-    BestHypsBase &GetBestHyps(size_t threadId) const;
+    BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 
-    std::vector<ScorerPtr> GetScorers(size_t) const;
+    std::vector<ScorerPtr> GetScorers(const DeviceInfo &deviceInfo) const;
     std::vector<std::string> GetScorerNames() const;
     const std::map<std::string, float>& GetScorerWeights() const;
 
@@ -64,10 +67,14 @@ class God {
 
     void LoadWeights(const std::string& path);
 
+    DeviceInfo GetNextDevice() const;
+    Search &GetSearch() const;
+
   private:
     void LoadScorers();
     void LoadFiltering();
     void LoadPrePostProcessing();
+
 
     Config config_;
 
@@ -89,4 +96,7 @@ class God {
     mutable std::unique_ptr<InputFileStream> inputStream_;
     mutable OutputCollector outputCollector_;
 
+    mutable size_t threadIncr_;
+
+    mutable boost::thread_specific_ptr<Search> m_search;
 };

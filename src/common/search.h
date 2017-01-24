@@ -9,7 +9,7 @@
 
 class Search {
   public:
-    Search(const God &god, size_t threadId);
+    Search(const God &god);
     std::shared_ptr<Histories> Decode(const God &god, const Sentences& sentences);
 
   private:
@@ -20,5 +20,7 @@ class Search {
 
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
-    BestHypsBase &bestHyps_;
+    BestHypsBasePtr bestHyps_;
+
+    DeviceInfo deviceInfo_;
 };
