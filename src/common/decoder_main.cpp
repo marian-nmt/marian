@@ -48,32 +48,32 @@ int main(int argc, char* argv[]) {
   LOG(info) << "Total number of threads: " << totalThreads;
   UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
-  ThreadPool *pool = new ThreadPool(totalThreads);
-  LOG(info) << "Reading input";
+  {
+    ThreadPool pool(totalThreads, totalThreads);
+    LOG(info) << "Reading input";
 
-  std::shared_ptr<Sentences> sentences(new Sentences());
+    std::shared_ptr<Sentences> sentences(new Sentences());
 
-  while (std::getline(god.GetInputStream(), in)) {
-    sentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
+    while (std::getline(god.GetInputStream(), in)) {
+      sentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
-    if (sentences->size() >= maxiBatch) {
-      pool->enqueue(
-          [=,&god]{ return TranslationTask(god, sentences, taskCounter, miniBatch); }
-      );
+      if (sentences->size() >= maxiBatch) {
+        pool.enqueue(
+            [&god,sentences,taskCounter,miniBatch]{ return TranslationTask(god, sentences, taskCounter, miniBatch); }
+            );
 
-      sentences.reset(new Sentences());
-      taskCounter++;
+        sentences.reset(new Sentences());
+        taskCounter++;
+      }
+
     }
 
+    if (sentences->size()) {
+      pool.enqueue(
+          [&god,sentences,taskCounter,miniBatch]{ return TranslationTask(god, sentences, taskCounter, miniBatch); }
+          );
+    }
   }
-
-  if (sentences->size()) {
-    pool->enqueue(
-        [=,&god]{ return TranslationTask(god, sentences, taskCounter, miniBatch); }
-    );
-  }
-
-  delete pool;
 
   LOG(info) << "Total time: " << timer.format();
   god.CleanUp();
