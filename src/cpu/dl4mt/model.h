@@ -85,7 +85,7 @@ struct Weights {
   Weights(const NpzConverter& model, size_t device = 0);
 
   size_t GetDevice() {
-    return 0;
+    return std::numeric_limits<size_t>::max();
   }
 
   const Embeddings encEmbeddings_;

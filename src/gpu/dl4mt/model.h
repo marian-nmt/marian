@@ -176,11 +176,11 @@ struct Weights {
     const mblas::Matrix B4_;
   };
 
-  Weights(const std::string& npzFile, size_t device = 0)
+  Weights(const std::string& npzFile, size_t device)
   : Weights(NpzConverter(npzFile), device)
   {}
 
-  Weights(const NpzConverter& model, size_t device = 0)
+  Weights(const NpzConverter& model, size_t device)
   : encEmbeddings_(model),
     encForwardGRU_(model),
     encBackwardGRU_(model),
