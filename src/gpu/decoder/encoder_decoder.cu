@@ -148,7 +148,7 @@ void EncoderDecoderLoader::Load(const God &god) {
 
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
   //size_t i = deviceInfo.threadInd;
-  size_t d = deviceInfo.deviceInd; // TODO what is not using gpu0?
+  size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
   //cerr << "NewScorer=" << i << " " << d << endl;
 
   cudaSetDevice(d);

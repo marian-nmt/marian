@@ -23,5 +23,5 @@ struct DeviceInfo
 
   DeviceType deviceType;
   size_t threadInd;
-  size_t deviceInd;
+  size_t deviceId;
 };

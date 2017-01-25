@@ -258,9 +258,9 @@ DeviceInfo God::GetNextDevice() const
 
     ret.threadInd = threadIncrGPU / devices.size();
 
-    ret.deviceInd = threadIncrGPU % devices.size();
-    assert(ret.deviceInd < devices.size());
-    ret.deviceInd = devices[ret.deviceInd];
+    size_t deviceInd = threadIncrGPU % devices.size();
+    assert(deviceInd < devices.size());
+    ret.deviceId = devices[deviceInd];
 
     UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
   }
