@@ -29,10 +29,11 @@ add_library(libcommon OBJECT
   common/logging.cpp
   common/output_collector.cpp
   common/printer.cpp
+  common/processor/bpe.cpp
   common/scorer.cpp
   common/search.cpp
   common/sentence.cpp
-  common/processor/bpe.cpp
+  common/types.cpp
   common/utils.cpp
   common/vocab.cpp
   common/translation_task.cpp

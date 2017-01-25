@@ -1,0 +1,7 @@
+#include "types.h"
+
+std::ostream& operator<<(std::ostream& out, const DeviceInfo& obj)
+{
+  out << obj.deviceType << " t=" << obj.threadInd << " d=" << obj.deviceInd;
+  return out;
+}

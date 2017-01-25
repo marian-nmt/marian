@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 typedef size_t Word;
 typedef std::vector<Word> Words;
@@ -12,12 +13,14 @@ const Word UNK = 1;
 
 enum DeviceType
 {
-	CPUDevice,
-	GPUDevice
+	CPUDevice = 7,
+	GPUDevice = 11
 };
 
 struct DeviceInfo
 {
+  friend std::ostream& operator<<(std::ostream& out, const DeviceInfo& obj);
+
   DeviceType deviceType;
   size_t threadInd;
   size_t deviceInd;
