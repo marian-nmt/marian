@@ -100,6 +100,6 @@ class God {
 
     mutable size_t threadIncr_;
 
-    mutable boost::thread_specific_ptr<Search> m_search;
-    mutable boost::shared_mutex m_accessLock;
+    mutable boost::thread_specific_ptr<Search> search_;
+    mutable boost::shared_mutex accessLock_;
 };
