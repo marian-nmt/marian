@@ -12,6 +12,9 @@ class Search {
     Search(const God &god);
     std::shared_ptr<Histories> Decode(const God &god, const Sentences& sentences);
 
+    const DeviceInfo &GetDeviceInfo()
+    { return deviceInfo_; }
+
   private:
     Search(const Search &) = delete;
 

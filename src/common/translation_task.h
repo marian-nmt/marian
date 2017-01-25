@@ -4,4 +4,4 @@
 
 class God;
 
-void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t miniBatch);
+void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter);

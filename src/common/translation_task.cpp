@@ -4,10 +4,18 @@
 #include "output_collector.h"
 #include "printer.h"
 
-void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter, size_t miniBatch) {
+void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter) {
   Search &search = god.GetSearch();
 
   try {
+    size_t miniBatch;
+    if (search.GetDeviceInfo().deviceType == CPUDevice) {
+      miniBatch = 1;
+    }
+    else {
+      miniBatch = god.Get<size_t>("mini-batch");
+    }
+
     Histories allHistories;
     sentences->SortByLength();
 
