@@ -125,18 +125,24 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
 void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");
-  auto devices = god.Get<std::vector<size_t>>("devices");
-  ThreadPool devicePool(devices.size());
-  weights_.resize(devices.size());
+  std::vector<size_t> devices = god.Get<std::vector<size_t>>("devices");
 
-  size_t i = 0;
+  size_t maxDeviceId = 0;
+  for (size_t i = 0; i < devices.size(); ++i) {
+    if (devices[i] > maxDeviceId) {
+      maxDeviceId = devices[i];
+    }
+  }
+
+  ThreadPool devicePool(devices.size());
+  weights_.resize(maxDeviceId + 1);
+
   for(auto d : devices) {
-    devicePool.enqueue([i, d, &path, this] {
+    devicePool.enqueue([d, &path, this] {
       LOG(info) << "Loading model " << path << " onto gpu" << d;
       cudaSetDevice(d);
-      weights_[i].reset(new Weights(path, d));
+      weights_[d].reset(new Weights(path, d));
     });
-    ++i;
   }
 }
 
