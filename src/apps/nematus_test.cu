@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
       auto costNode = nematus->construct(*batch);
       for(auto p : nematus->params())
         debug(p, p->name());
+      debug(costNode, "cost");
 
       nematus->graphviz("debug.dot");
 

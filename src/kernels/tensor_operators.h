@@ -56,6 +56,7 @@ __global__ void gAdd(Functor functor,
   int L = full[3] / outShape[3];
 
   int dims[4];
+  int dimsFull[4];
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
@@ -69,12 +70,11 @@ __global__ void gAdd(Functor functor,
           for(int j = 0; j < J; ++j) {
             for(int k = 0; k < K; ++k) {
               for(int l = 0; l < L; ++l) {
-                int dimsFull[4] = {
-                  dims[0] + i,
-                  dims[1] + j,
-                  dims[2] + k,
-                  dims[3] + l
-                };
+                dimsFull[0] = dims[0] + i;
+                dimsFull[1] = dims[1] + j;
+                dimsFull[2] = dims[2] + k;
+                dimsFull[3] = dims[3] + l;
+
 
                 int in1Index = in1Shape.bindex(dimsFull);
                 sum += functor(in1[in1Index]);
@@ -136,6 +136,7 @@ __global__ void gAdd(Functor functor,
   int L = full[3] / outShape[3];
 
   int dims[4];
+  int dimsFull[4];
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if (index < outLength) {
@@ -149,12 +150,10 @@ __global__ void gAdd(Functor functor,
           for(int j = 0; j < J; ++j) {
             for(int k = 0; k < K; ++k) {
               for(int l = 0; l < L; ++l) {
-                int dimsFull[4] = {
-                  dims[0] + i,
-                  dims[1] + j,
-                  dims[2] + k,
-                  dims[3] + l
-                };
+                dimsFull[0] = dims[0] + i;
+                dimsFull[1] = dims[1] + j;
+                dimsFull[2] = dims[2] + k;
+                dimsFull[3] = dims[3] + l;
 
                 int in1Index = in1Shape.bindex(dimsFull);
                 int in2Index = in2Shape.bindex(dimsFull);
@@ -226,6 +225,7 @@ __global__ void gAdd(Functor functor,
   int L = full[3] / outShape[3];
 
   int dims[4];
+  int dimsFull[4];
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(same) {
@@ -239,12 +239,10 @@ __global__ void gAdd(Functor functor,
           for(int j = 0; j < J; ++j) {
             for(int k = 0; k < K; ++k) {
               for(int l = 0; l < L; ++l) {
-                int dimsFull[4] = {
-                  dims[0] + i,
-                  dims[1] + j,
-                  dims[2] + k,
-                  dims[3] + l
-                };
+                dimsFull[0] = dims[0] + i;
+                dimsFull[1] = dims[1] + j;
+                dimsFull[2] = dims[2] + k;
+                dimsFull[3] = dims[3] + l;
 
                 int in1Index = in1Shape.bindex(dimsFull);
                 int in2Index = in2Shape.bindex(dimsFull);
@@ -665,5 +663,10 @@ void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final = false);
 void GRUFastBackward(std::vector<Tensor> outputs,
                      std::vector<Tensor> inputs,
                      Tensor adj, bool final = false);
+
+void Att(Tensor out, Tensor context, Tensor state, Tensor va);
+void AttBack(Tensor gContext, Tensor gState, Tensor gva,
+             Tensor context, Tensor state, Tensor va,
+             Tensor adj);
 
 }

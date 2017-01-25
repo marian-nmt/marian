@@ -5,6 +5,79 @@
 
 namespace marian {
 
+struct AttentionNodeOp : public NaryNodeOp {
+
+  template <typename ...Args>
+  AttentionNodeOp(const std::vector<Expr>& nodes, Args ...args)
+    : NaryNodeOp(nodes,
+                 keywords::shape=newShape(nodes)) {}
+
+  Shape newShape(const std::vector<Expr>& nodes) {
+    Shape shape = nodes[0]->shape();
+    Shape shape2 = nodes[1]->shape();
+    Shape shape3 = nodes[2]->shape();
+
+    for(int i = 0; i < shape2.size(); ++i) {
+      UTIL_THROW_IF2(shape[i] != shape2[i] && shape[i] != 1 && shape2[i] != 1,
+                     "Shapes cannot be broadcasted");
+      shape.set(i, std::max(shape[i], shape2[i]));
+    }
+
+    UTIL_THROW_IF2(shape3[0] != shape[1] || shape3[1] != 1,
+                   "Wrong size");
+
+    shape.set(1, 1);
+    return shape;
+  }
+
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Att(val_,
+                 children_[0]->val(),
+                 children_[1]->val(),
+                 children_[2]->val()))
+    };
+  }
+
+  NodeOps backwardOps() {
+    return {
+      NodeOp(
+        AttBack(
+          children_[0]->grad(),
+          children_[1]->grad(),
+          children_[2]->grad(),
+          children_[0]->val(),
+          children_[1]->val(),
+          children_[2]->val(),
+          adj_
+        );
+      )
+    };
+  }
+
+  // do not check if node is trainable
+  virtual void runBackward(const NodeOps& ops) {
+    for(auto&& op : ops)
+      op();
+  }
+
+  const std::string type() {
+    return "Att-ops";
+  }
+
+  const std::string color() {
+    return "yellow";
+  }
+};
+
+Expr attOps(Expr context, Expr state, Expr va) {
+  std::vector<Expr> nodes{context, state, va};
+  int dimBatch = context->shape()[0];
+  int dimWords = context->shape()[2];
+  return reshape(Expression<AttentionNodeOp>(nodes),
+                 {dimWords, dimBatch});
+}
+
 class Attention {
   private:
     Expr Wa_, ba_, Ua_, va_;
@@ -53,19 +126,17 @@ class Attention {
       int srcWords = context_->shape()[2];
 
       auto mappedState = dot(state, Wa_);
-
-      // do this in single reduction
-      auto temp = tanh(mappedState, mappedContext_);
-      auto temp2 = reshape(dot(temp, va_),
-                           {srcWords, dimBatch});
+      auto attReduce = attOps(mappedContext_, mappedState, va_);
 
       // @TODO: horrible ->
       auto e = reshape(
-        transpose(softmax(transpose(temp2), softmaxMask_)),
+        transpose(softmax(transpose(attReduce),
+                          softmaxMask_)),
         {dimBatch, 1, srcWords});
       // <- horrible
 
-      auto alignedSource = weighted_average(context_, e, axis=2);
+      auto alignedSource = weighted_average(context_, e,
+                                            axis=2);
 
       contexts_.push_back(alignedSource);
       return alignedSource;

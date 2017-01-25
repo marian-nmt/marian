@@ -1042,5 +1042,128 @@ float L2Norm(Tensor in) {
   return dataCpu;
 }
 
+__global__ void gAtt(float* out,
+                         const float* in1,
+                         const float* in2,
+                         const float* in3,
+                         int m, // rows
+                         int k, // cols
+                         int n // rows of in2
+                         ) {
+  int rows = m;
+  int cols = k;
+  for(int bid = 0; bid < m; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      const float* in1Row = in1 + j * cols;
+      const float* in2Row = in2 + (j % n) * cols;
+      const float* in3Row = in3;
+
+      extern __shared__ float _share[];
+      float* _sum = _share + blockDim.x;
+
+      _sum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = tanhf(in1Row[id] + in2Row[id]) * in3Row[id];
+          _sum[threadIdx.x] += ex;
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      out[j] = _sum[0];
+    }
+  }
+}
+
+void Att(Tensor out, Tensor context, Tensor state, Tensor va) {
+  size_t m = context->shape()[0] * context->shape()[2] * context->shape()[3];
+  size_t k = context->shape()[1];
+
+  size_t n = context->shape()[0];
+
+  int blocks = std::min(MAX_BLOCKS, (int) m);
+  int threads = std::min(MAX_THREADS, (int) k);
+  int shared = sizeof(float) * threads * 2;
+
+
+
+  gAtt<<<blocks, threads, shared>>>(out->data(),
+                                    context->data(),
+                                    state->data(),
+                                    va->data(),
+                                    m, k, n);
+}
+
+__global__ void gAttBack(float* gContext,
+                         float* gState,
+                         float* gVa,
+                         const float* context,
+                         const float* state,
+                         const float* va,
+                         const float* adj,
+                         int m, // rows
+                         int k, // cols
+                         int n // batch size
+                         ) {
+  int rows = m;
+  int cols = k;
+  for(int bid = 0; bid < m; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* gcRow = gContext + j * cols;
+      float* gsRow = gState + (j % n) * cols;
+
+      const float* cRow = context + j * cols;
+      const float* sRow = state + (j % n) * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float t = tanhf(cRow[id] + sRow[id]);
+          float r = va[id] * (1.f - t * t);
+
+          gcRow[id] += r * adj[j];
+          gsRow[id] += r * adj[j];
+          atomicAdd(gVa + id, t * adj[j]);
+        }
+      }
+    }
+  }
+}
+
+
+void AttBack(Tensor gContext, Tensor gState, Tensor gVa,
+             Tensor context, Tensor state, Tensor va,
+             Tensor adj) {
+
+  size_t m = context->shape()[0] * context->shape()[2] * context->shape()[3];
+  size_t k = context->shape()[1];
+
+  size_t n = context->shape()[0];
+
+  int blocks = std::min(MAX_BLOCKS, (int) n);
+  int threads = std::min(MAX_THREADS, (int) k);
+
+  gAttBack<<<blocks, threads>>>(gContext->data(),
+                                gState->data(),
+                                gVa->data(),
+
+                                context->data(),
+                                state->data(),
+                                va->data(),
+
+                                adj->data(),
+                                m, k, n);
+}
 
 }

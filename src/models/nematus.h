@@ -153,7 +153,17 @@ class Nematus : public ExpressionGraph {
         {"decoder_gru2_b", "decoder_b_nl"},
         {"decoder_gru2_Ux", "decoder_Ux_nl"},
         {"decoder_gru2_Wx", "decoder_Wcx"},
-        {"decoder_gru2_bx", "decoder_bx_nl"}
+        {"decoder_gru2_bx", "decoder_bx_nl"},
+
+        {"ff_logit_l1_W0", "ff_logit_prev_W"},
+        {"ff_logit_l1_b0", "ff_logit_prev_b"},
+        {"ff_logit_l1_W1", "ff_logit_lstm_W"},
+        {"ff_logit_l1_b1", "ff_logit_lstm_b"},
+        {"ff_logit_l1_W2", "ff_logit_ctx_W"},
+        {"ff_logit_l1_b2", "ff_logit_ctx_b"},
+
+        {"ff_logit_l2_W", "ff_logit_W"},
+        {"ff_logit_l2_b", "ff_logit_b"}
       };
 
       for(auto p : this->params().getMap()) {

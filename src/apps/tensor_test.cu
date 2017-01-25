@@ -4,38 +4,82 @@
 #include "tensors/tensor_allocator.h"
 #include "tensors/tensor_gpu.h"
 #include "kernels/tensor_operators.h"
+#include "kernels/thrust_functions.h"
 
 using namespace marian;
+
+
 
 int main() {
   TensorAllocator params = newTensorAllocator<DeviceGPU>();
 
-  Tensor in1;
-  params->allocate(in1, {3, 10, 7});
-  in1->set(2);
+  cublasHandle_t handle = create_handle();
 
-  Tensor in2;
-  params->allocate(in2, {3, 10, 1});
-  std::vector<float> v(30, 0);
-  for(int i = 0; i < 10; ++i)
-    v[i] = 1;
-  in2->set(v);
+  int words = 64;
+  int batch = 128;
+  int hidden = 4096;
+
+  Tensor mappedState;
+  params->allocate(mappedState, {batch, hidden, 1});
+  mappedState->set(0.001);
+
+  Tensor mappedContext;
+  params->allocate(mappedContext, {batch, hidden, words});
+  mappedContext->set(0.001);
+
+  Tensor va;
+  params->allocate(va, {hidden, 1});
+  va->set(0.001);
 
   Tensor out1;
-  params->allocate(out1, {3, 1, 7});
+  params->allocate(out1, {batch, hidden, words});
+  out1->set(0);
+
+  Tensor gMappedState;
+  params->allocate(gMappedState, {batch, hidden, 1});
+  gMappedState->set(0);
+
+  Tensor gMappedContext;
+  params->allocate(gMappedContext, {batch, hidden, words});
+  gMappedContext->set(0.001);
+
+  Tensor gVa;
+  params->allocate(gVa, {hidden, 1});
+  va->set(0.001);
+
+  Tensor gOut1;
+  params->allocate(gOut1, {batch, hidden, words});
   out1->set(0);
 
   Tensor out2;
-  params->allocate(out2, {3, 1, 7});
+  params->allocate(out2, {batch, 1, words});
   out2->set(0);
 
-  Add(_1 * _2, out1, in1, in2);
-  Reduce(_1 * _2, out2, in1, in2);
+  boost::timer::cpu_timer timer;
+  for(int i = 0; i < 5000; ++i) {
+    Element(_1 = Tanh(_2 + _3), out1, mappedState, mappedContext);
+    Prod(handle, out2, out1, va, false, false, 0);
+    Prod(handle, gOut1, out2, va, false, true, 1.0f);
+    Prod(handle, gVa, out1, out2, true, false, 1.0f);
+    Add(_1 * (1.f - (_2 *_2)), gMappedState, out1, out1);
+    Add(_1 * (1.f - (_2 *_2)), gMappedContext, out1, out1);
+    cudaStreamSynchronize(0);
 
-  std::cerr << in1->debug() << std::endl;
-  std::cerr << in2->debug() << std::endl;
-  std::cerr << out1->debug() << std::endl;
-  std::cerr << out2->debug() << std::endl;
+    if(i % 100 == 0)
+      std::cout << "." << std::flush;
+  }
+  std::cout << timer.format(5, "%ws") << std::endl;
+
+  boost::timer::cpu_timer timer2;
+  for(int i = 0; i < 5000; ++i) {
+    Att(out2, mappedContext, mappedState, va);
+    AttBack(gMappedContext, gMappedState, gVa,
+        mappedContext, mappedState, va, out2);
+    cudaStreamSynchronize(0);
+    if(i % 100 == 0)
+      std::cout << "." << std::flush;
+  }
+  std::cout << timer2.format(5, "%ws") << std::endl;
 
   return 0;
 }
