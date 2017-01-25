@@ -8,7 +8,7 @@
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
 
-/* using namespace std; */
+using namespace std;
 
 namespace GPU {
 
@@ -141,12 +141,14 @@ void EncoderDecoderLoader::Load(const God &god) {
 }
 
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
-  size_t i = deviceInfo.threadInd;
-  size_t d = deviceInfo.deviceInd;
+  //size_t i = deviceInfo.threadInd;
+  size_t d = deviceInfo.deviceInd; // TODO what is not using gpu0?
+  //cerr << "NewScorer=" << i << " " << d << endl;
+
   cudaSetDevice(d);
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(god, name_, config_,
-                                      tab, *weights_[i]));
+                                      tab, *weights_[d]));
 }
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {

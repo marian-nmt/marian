@@ -182,9 +182,11 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   std::vector<ScorerPtr> scorers;
 
   if (deviceInfo.deviceType == CPUDevice) {
+    //cerr << "CPU GetScorers" << endl;
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   } else {
+    //cerr << "GPU GetScorers" << endl;
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
@@ -265,15 +267,21 @@ DeviceInfo God::GetNextDevice() const
 
   ++threadIncr_;
 
-  cerr << "GetNextDevice=" << ret << endl;
+  //cerr << "GetNextDevice=" << ret << endl;
   return ret;
 }
 
 Search &God::GetSearch() const
 {
   Search *obj;
-  obj = m_search.get();
+  {
+    boost::shared_lock<boost::shared_mutex> read_lock(m_accessLock);
+    obj = m_search.get();
+  }
+
   if (obj == NULL) {
+    boost::unique_lock<boost::shared_mutex> lock(m_accessLock);
+
     obj = new Search(*this);
     m_search.reset(obj);
   }

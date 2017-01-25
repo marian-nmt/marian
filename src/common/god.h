@@ -2,6 +2,8 @@
 #include <memory>
 #include <iostream>
 #include <boost/thread/tss.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/locks.hpp>
 
 #include "common/processor/processor.h"
 #include "common/config.h"
@@ -99,4 +101,5 @@ class God {
     mutable size_t threadIncr_;
 
     mutable boost::thread_specific_ptr<Search> m_search;
+    mutable boost::shared_mutex m_accessLock;
 };
