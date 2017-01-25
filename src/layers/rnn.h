@@ -9,81 +9,77 @@
 #include "graph/node_operators_binary.h"
 #include "graph/expression_graph.h"
 
+#include "layers/generic.h"
 #include "layers/attention.h"
 
 namespace marian {
 
-struct ParametersTanh {
-  Expr U, W, b;
-  float dropout = 0;
-};
-
 class Tanh {
+  private:
+    Expr U_, W_, b_;
+
   public:
-    Tanh(ParametersTanh params)
-    : params_(params) {}
+    template <typename ...Args>
+    void initialize(
+        ExpressionGraphPtr graph,
+        const std::string prefix,
+        int dimInput,
+        int dimState,
+        Args ...args) {
+      U_ = graph->param(prefix + "_U", {dimState, dimState},
+                        keywords::init=inits::glorot_uniform);
+      W_ = graph->param(prefix + "_W", {dimInput, dimState},
+                        keywords::init=inits::glorot_uniform);
+      b_ = graph->param(prefix + "_b", {1, dimState},
+                        keywords::init=inits::zeros);
+    }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
-      return dot(input, params_.W);
+      return dot(input, W_);
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      using namespace keywords;
-
-      Expr output = xW + dot(state, params_.U);
-      if(params_.b)
-        output = output + params_.b;
-      output = tanh(output);
-
+      auto output = tanh(xW, dot(state, U_), b_);
       if(mask)
         return output * mask;
       else
         return output;
     }
-
-  private:
-    ParametersTanh params_;
 };
 
 /***************************************************************/
 
-template <class Cell = Tanh>
-class RNN {
+template <class Cell>
+class RNN : public Layer {
   public:
+    int dimState_;
+    dir direction_;
+    bool outputLast_;
 
-    template <class Parameters>
-    RNN(const Parameters& params)
-    : cell_(params) {}
+    Ptr<Cell> cell_;
 
-    RNN(const Cell& cell)
-    : cell_(cell) {}
+    template <typename ...Args>
+    RNN(const std::string& name,
+         int dimState,
+         Cell cell,
+         Args ...args)
+    : Layer(name),
+      dimState_{dimState},
+      direction_{Get(keywords::direction, dir::forward, args...)},
+      outputLast_{Get(keywords::output_last, false, args...)},
+      cell_(New<Cell>(cell)) {}
 
-    template <typename Expressions>
-    std::vector<Expr> apply(const std::vector<Expressions>& inputs,
-                            const Expr initialState) {
-      return apply(inputs.begin(), inputs.end(),
-                   initialState);
-    }
-
-    template <class Iterator>
-    std::vector<Expr> apply(Iterator it, Iterator end,
-                            const Expr initialState) {
-      std::vector<Expr> outputs;
-      auto state = initialState;
-      while(it != end) {
-        state = apply(cell_, *it++, state);
-        outputs.push_back(state);
-      }
-      return outputs;
+    Ptr<Cell> getCell() {
+      return cell_;
     }
 
     std::vector<Expr> apply(const Expr input, const Expr initialState,
                             const Expr mask = nullptr, bool reverse = false) {
-      auto xW = cell_.apply1(input);
+      auto xW = cell_->apply1(input);
 
       std::vector<Expr> outputs;
       auto state = initialState;
@@ -93,36 +89,117 @@ class RNN {
           j = input->shape()[2] - i - 1;
 
         if(mask)
-          state = cell_.apply2(step(xW, j), state, step(mask, j));
+          state = cell_->apply2(step(xW, j), state, step(mask, j));
         else
-          state = cell_.apply2(step(xW, j), state);
+          state = cell_->apply2(step(xW, j), state);
         outputs.push_back(state);
       }
       return outputs;
     }
 
-    Expr apply(Cell& cell, Expr input, Expr state) {
-      return cell_.apply(input, state);
+    Expr apply(Ptr<Cell> cell, Expr input, Expr state) {
+      return cell_->apply(input, state);
     }
 
-    Expr apply(Cell& cell, std::pair<Expr, Expr> inputMask, Expr state) {
-      return cell_.apply(inputMask.first, state, inputMask.second);
+    template <typename ...Args>
+    Expr operator()(Expr input, Args ...args) {
+      auto graph = input->graph();
+      int dimBatch = input->shape()[0];
+      auto startState = graph->zeros(keywords::shape={dimBatch, dimState_});
+      return (*this)(input, startState, args...);
     }
 
-    Cell& getCell() {
-      return cell_;
+    template <typename ...Args>
+    Expr operator()(Expr input, Expr state, Args ...args) {
+      auto graph = input->graph();
+      int dimInput = input->shape()[1];
+
+      cell_->initialize(graph, name_, dimInput, dimState_, args...);
+
+      Expr mask = Get(keywords::mask, nullptr, args...);
+
+      if(direction_ == dir::backward) {
+        auto states = apply(input, state, mask, true);
+        //std::reverse(states.begin(), states.end());
+        if(outputLast_)
+          return states.back();
+        else
+          return concatenate(states, keywords::axis=2);
+      }
+      else if(direction_ == dir::bidirect) {
+        UTIL_THROW2("Use BiRNN for bidirectional RNNs");
+      }
+      else { // assuming dir::forward
+        auto states = apply(input, state, mask, false);
+        if(outputLast_)
+          return states.back();
+        else
+          return concatenate(states, keywords::axis=2);
+      }
+    }
+};
+
+template <class Cell>
+class BiRNN : public Layer {
+  public:
+    int dimState_;
+
+    Ptr<RNN<Cell>> rnn1_;
+    Ptr<RNN<Cell>> rnn2_;
+
+    template <typename ...Args>
+    BiRNN(const std::string& name,
+         int dimState,
+         Cell cell1,
+         Cell cell2,
+         Args ...args)
+    : Layer(name),
+      dimState_{dimState},
+      rnn1_(New<RNN<Cell>>(name, dimState, cell1,
+                           keywords::direction=dir::forward,
+                           args...)),
+      rnn2_(New<RNN<Cell>>(name + "_r", dimState, cell2,
+                           keywords::direction=dir::backward,
+                           args...)) {}
+
+    template <typename ...Args>
+    BiRNN(const std::string& name,
+         int dimState,
+         Args ...args)
+    : BiRNN(name, dimState, Cell(), Cell(), args...) {}
+
+    template <typename ...Args>
+    Expr operator()(Expr input, Args ...args) {
+      auto graph = input->graph();
+      int dimBatch = input->shape()[0];
+      auto startState = graph->zeros(keywords::shape={dimBatch, dimState_});
+      return (*this)(input, startState, args...);
     }
 
-  private:
-    Cell cell_;
+    template <typename ...Args>
+    Expr operator()(Expr input, Expr state, Args ...args) {
+      Expr mask = Get(keywords::mask, nullptr, args...);
+
+      auto graph = input->graph();
+      int dimInput = input->shape()[1];
+
+      rnn1_->getCell()->initialize(graph, name_, dimInput, dimState_, args...);
+      auto states1 = rnn1_->apply(input, state, nullptr);
+
+      rnn2_->getCell()->initialize(graph, name_ + "_r", dimInput, dimState_, args...);
+      auto states2 = rnn2_->apply(input, state, mask, true);
+
+      std::reverse(states2.begin(), states2.end());
+      std::vector<Expr> states;
+      for(int i = 0; i < states1.size(); ++i)
+        states.push_back(concatenate({states1[i], states2[i]},
+                                     keywords::axis=1));
+
+      return concatenate(states, keywords::axis=2);
+    }
 };
 
 /***************************************************************/
-
-struct ParametersGRU {
-  Expr U, W, b;
-  bool final{false};
-};
 
 struct GRUFastNodeOp : public NaryNodeOp {
   bool final_;
@@ -179,67 +256,115 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final = false) {
 }
 
 class GRU {
+  private:
+    Expr U_, W_, b_;
+    bool final_;
+
   public:
-    GRU(ParametersGRU params)
-    : params_(params) {}
+    GRU() {}
+
+    template <typename ...Args>
+    void initialize(
+        ExpressionGraphPtr graph,
+        const std::string prefix,
+        int dimInput,
+        int dimState,
+        Args ...args) {
+      auto U = graph->param(prefix + "_U", {dimState, 2 * dimState},
+                               keywords::init=inits::glorot_uniform);
+      auto W = graph->param(prefix + "_W", {dimInput, 2 * dimState},
+                               keywords::init=inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b", {1, 2 * dimState},
+                               keywords::init=inits::zeros);
+      auto Ux = graph->param(prefix + "_Ux", {dimState, dimState},
+                                keywords::init=inits::glorot_uniform);
+      auto Wx = graph->param(prefix + "_Wx", {dimInput, dimState},
+                                keywords::init=inits::glorot_uniform);
+      auto bx = graph->param(prefix + "_bx", {1, dimState},
+                                keywords::init=inits::zeros);
+
+      U_ = concatenate({U, Ux}, keywords::axis=1);
+      W_ = concatenate({W, Wx}, keywords::axis=1);
+      b_ = concatenate({b, bx}, keywords::axis=1);
+
+      final_ = Get(keywords::final, false, args...);
+    }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
-      auto xW = dot(input, params_.W);
+      auto xW = dot(input, W_);
       return xW;
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto sU = dot(state, params_.U);
-
+      auto sU = dot(state, U_);
       auto output = mask ?
-        gruOps({state, xW, sU, params_.b, mask}, params_.final) :
-        gruOps({state, xW, sU, params_.b}, params_.final);
+        gruOps({state, xW, sU, b_, mask}, final_) :
+        gruOps({state, xW, sU, b_}, final_);
 
       return output;
     }
-
-  private:
-    ParametersGRU params_;
 };
 
 /***************************************************************/
 
-class ConditionalGRU {
+class CGRU {
   private:
-    GRU gru1_;
-    GRU gru2_;
-    Attention att_;
+    Ptr<GRU> gru1_;
+    Ptr<GRU> gru2_;
+    Ptr<Attention> att_;
 
   public:
-    ConditionalGRU(ParametersGRU gruParams1,
-                   ParametersGRU gruParams2,
-                   Attention att)
-     : gru1_(gruParams1),
-       gru2_(gruParams2),
-       att_(att)
-    {}
+
+    CGRU(Attention&& att)
+    : gru1_(New<GRU>()),
+      gru2_(New<GRU>()),
+      att_(New<Attention>(att)) {}
+
+    template <typename ...Args>
+    void initialize(Ptr<ExpressionGraph> graph,
+                    const std::string prefix,
+                    int dimInput,
+                    int dimState,
+                    Args ...args)
+    {
+      gru1_->initialize(graph,
+                        prefix + "_gru1",
+                        dimInput,
+                        dimState,
+                        keywords::final=false,
+                        args...);
+
+      gru2_->initialize(graph,
+                        prefix + "_gru2",
+                        att_->outputDim(),
+                        dimState,
+                        keywords::final=true,
+                        args...);
+    }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
-      return gru1_.apply1(input);
+      return gru1_->apply1(input);
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto hidden = gru1_.apply2(xW, state, mask);
-      auto alignedSourceContext = att_.apply(hidden);
-      return gru2_.apply(alignedSourceContext, hidden, mask);
+      auto hidden = gru1_->apply2(xW, state, mask);
+      auto alignedSourceContext = att_->apply(hidden);
+      return gru2_->apply(alignedSourceContext, hidden, mask);
     }
 
-    Attention& getAttention() {
-      return att_;
+    Expr getContexts() {
+      return concatenate(att_->getContexts(), keywords::axis=2);
     }
 };
+
+
 
 }

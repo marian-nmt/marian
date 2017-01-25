@@ -14,16 +14,14 @@ namespace marian {
 
 class OptimizerBase {
   public:
-    virtual void update(ExpressionGraphPtr graph) = 0;
+    virtual void update(Ptr<ExpressionGraph> graph) = 0;
 };
-
-typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
 
 class Sgd : public OptimizerBase {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
-    void update(ExpressionGraphPtr graph) {
+    void update(Ptr<ExpressionGraph> graph) {
       graph->backprop();
 
       for(auto& param : graph->params())
@@ -43,7 +41,7 @@ class Adagrad : public OptimizerBase {
       alloc_(newTensorAllocator<DeviceGPU>())
     {}
 
-    void update(ExpressionGraphPtr graph) {
+    void update(Ptr<ExpressionGraph> graph) {
       graph->backprop();
 
       if(!gt_) {
@@ -87,7 +85,7 @@ class Adam : public OptimizerBase {
       vtAlloc_(newTensorAllocator<DeviceGPU>())
     {}
 
-    void update(ExpressionGraphPtr graph) {
+    void update(Ptr<ExpressionGraph> graph) {
       graph->backprop();
 
       if(clipper_) {
@@ -135,12 +133,12 @@ class Adam : public OptimizerBase {
     TensorAllocator vtAlloc_;
     Tensor vt_;
 
-    ClipperBasePtr clipper_;
+    Ptr<ClipperBase> clipper_;
 };
 
 template <class Algorithm, typename ...Args>
-OptimizerBasePtr Optimizer(Args&& ...args) {
-  return OptimizerBasePtr(new Algorithm(args...));
+Ptr<OptimizerBase> Optimizer(Args&& ...args) {
+  return Ptr<OptimizerBase>(new Algorithm(args...));
 }
 
 }

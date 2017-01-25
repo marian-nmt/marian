@@ -34,10 +34,6 @@
 
 namespace marian {
 
-
-class ExpressionGraph;
-typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
-
 class Node : public Chainable<Tensor>,
              public keywords::Keywords,
              public std::enable_shared_from_this<Node> {

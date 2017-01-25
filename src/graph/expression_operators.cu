@@ -43,10 +43,6 @@ Expr logit(Expr a) {
   return Expression<LogitNodeOp>(a);
 }
 
-Expr tanh(Expr a) {
-  return Expression<TanhNodeOp>(a);
-}
-
 Expr relu(Expr a) {
   return Expression<ReLUNodeOp>(a);
 }
@@ -109,16 +105,31 @@ Expr cross_entropy(Expr a, Expr b) {
   return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
 }
 
-// @TODO: should be done automatically:
-
-Expr tanhPlus3(Expr a, Expr b, Expr c) {
-  std::vector<Expr> nodes = {a, b, c};
-  return Expression<TanhPlus3NodeOp>(nodes);
-}
-
 Expr affine(Expr a, Expr b, Expr c) {
   std::vector<Expr> nodes = {a, b, c};
   return Expression<AffineNodeOp>(nodes);
 }
+
+Expr plus(const std::vector<Expr>&) {
+  UTIL_THROW2("Not implemented");
+}
+
+Expr tanh(const std::vector<Expr>& nodes) {
+  return Expression<TanhNodeOp>(nodes);
+}
+
+//Expr tanh(Expr a, Expr b, Expr c) {
+//  std::vector<Expr> nodes = {a, b, c};
+//  return Expression<TanhPlus3NodeOp>(nodes);
+//}
+
+Expr logit(const std::vector<Expr>&) {
+  UTIL_THROW2("Not implemented");
+}
+
+Expr relu(const std::vector<Expr>&) {
+  UTIL_THROW2("Not implemented");
+}
+
 
 }

@@ -166,11 +166,11 @@ int main(int argc, char** argv) {
     while(bg) {
       auto batch = bg.next();
 
-      nematus->construct(*batch);
+      auto costNode = nematus->construct(*batch);
 
       opt->update(nematus);
 
-      float cost = nematus->cost();
+      float cost = costNode->val()->scalar();
       sum += cost;
       samples += batch->size();
       words += batch->words();

@@ -57,7 +57,7 @@ struct ConstantNode : public Node {
   template <typename ...Args>
   ConstantNode(Args ...args)
   : Node(args...),
-    init_(Get(keywords::init, [](Tensor&){ })),
+    init_(Get(keywords::init, [](Tensor){ })),
     initialized_(false)
   {
     UTIL_THROW_IF2(!Has(keywords::shape),
@@ -83,7 +83,7 @@ struct ConstantNode : public Node {
   }
 
   private:
-    std::function<void(Tensor&)> init_;
+    std::function<void(Tensor)> init_;
     bool initialized_;
 };
 
@@ -91,7 +91,7 @@ struct ParamNode : public Node {
   template <typename ...Args>
   ParamNode(Args ...args)
   : Node(args...),
-    init_(Get(keywords::init, [](Tensor&){ })),
+    init_(Get(keywords::init, [](Tensor){ })),
     initialized_(false)
   {
     UTIL_THROW_IF2(!Has(keywords::shape),

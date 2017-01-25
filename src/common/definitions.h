@@ -32,10 +32,19 @@
 #include "shape.h"
 
 namespace marian {
+
+  template<class T>
+  using Ptr = std::shared_ptr<T>;
+
   /** @brief Creates shared_ptr of any type, passes all arguments to any available constructor */
   template <class T, typename ...Args>
-  std::shared_ptr<T> New(Args&& ... args) {
-    return std::shared_ptr<T>(new T(std::forward<Args>(args)...));
+  Ptr<T> New(Args&& ... args) {
+    return Ptr<T>(new T(std::forward<Args>(args)...));
+  }
+
+  template <class T>
+  Ptr<T> New(Ptr<T> p) {
+    return Ptr<T>(p);
   }
 
   typedef float Float;
@@ -59,17 +68,28 @@ namespace marian {
 #include "keywords.h"
 
 namespace marian {
+
   class TensorBase;
-  typedef std::shared_ptr<TensorBase> Tensor;
+  typedef Ptr<TensorBase> Tensor;
+
+  template <class DataType> class Chainable;
+  typedef Ptr<Chainable<Tensor>> Expr;
 
   class OptimizerBase;
-  typedef std::shared_ptr<OptimizerBase> OptimizerBasePtr;
+  typedef Ptr<OptimizerBase> OptimizerBasePtr;
 
   class ClipperBase;
-  typedef std::shared_ptr<ClipperBase> ClipperBasePtr;
+  typedef Ptr<ClipperBase> ClipperBasePtr;
 
   class RunBase;
-  typedef std::shared_ptr<RunBase> RunBasePtr;
+  typedef Ptr<RunBase> RunBasePtr;
+
+  // An enumeration of activations
+  enum struct act { linear, tanh, logit, ReLU };
+
+  // An enumeration of directions
+  enum struct dir { forward, backward, bidirect };
+
 
   /**
    * @brief Defines a set of keywords.
@@ -81,20 +101,24 @@ namespace marian {
     KEY(axis, int)
     KEY(shape, Shape)
     KEY(value, float)
-    KEY(lazy_shape, std::function<Shape()>)
-    KEY(lazy_value, std::function<float()>)
-    KEY(init, std::function<void(Tensor&)>)
+    KEY(prefix, std::string)
+    KEY(final, bool)
+    KEY(output_last, bool)
+    KEY(activation, act)
+    KEY(direction, dir)
+    KEY(mask, Expr)
+    KEY(init, std::function<void(Tensor)>)
 
 
     KEY(eta, float)
     KEY(beta1, float)
     KEY(beta2, float)
     KEY(eps, float)
-    KEY(optimizer, OptimizerBasePtr)
-    KEY(clip, ClipperBasePtr)
+    KEY(optimizer, Ptr<OptimizerBase>)
+    KEY(clip, Ptr<ClipperBase>)
     KEY(batch_size, int)
     KEY(max_epochs, int)
-    KEY(valid, RunBasePtr)
+    KEY(valid, Ptr<RunBase>)
   }
 
 }

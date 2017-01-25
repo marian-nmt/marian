@@ -4,6 +4,7 @@
 #include "graph/expression_graph.h"
 #include "layers/rnn.h"
 #include "layers/param_initializers.h"
+#include "layers/generic.h"
 #include "3rd_party/cnpy/cnpy.h"
 
 namespace marian {
@@ -42,116 +43,6 @@ class Nematus : public ExpressionGraph {
 
       dimBatch_ = batch.size();
     }
-
-    RNN<GRU> encoder(const std::string& prefix) {
-      using namespace keywords;
-
-      auto U = this->param(prefix + "_U", {dimEncState_, 2 * dimEncState_},
-                           init=inits::glorot_uniform);
-
-      auto W = this->param(prefix + "_W", {dimSrcEmb_, 2 * dimEncState_},
-                           init=inits::glorot_uniform);
-
-      auto b = this->param(prefix + "_b", {1, 2 * dimEncState_},
-                           init=inits::zeros);
-
-      auto Ux = this->param(prefix + "_Ux", {dimEncState_, dimEncState_},
-                            init=inits::glorot_uniform);
-
-      auto Wx = this->param(prefix + "_Wx", {dimSrcEmb_, dimEncState_},
-                            init=inits::glorot_uniform);
-
-      auto bx = this->param(prefix + "_bx", {1, dimEncState_},
-                            init=inits::zeros);
-
-      ParametersGRU encParams;
-      encParams.U = concatenate({U, Ux}, axis=1);
-      encParams.W = concatenate({W, Wx}, axis=1);
-      encParams.b = concatenate({b, bx}, axis=1);
-
-      GRU gru(encParams);
-      return RNN<GRU>(gru);
-    };
-
-    RNN<ConditionalGRU> decoder() {
-      using namespace keywords;
-
-      // Parameters for first GRU cell
-
-      auto U = this->param("decoder_U", {dimDecState_, 2 * dimDecState_},
-                        init=inits::glorot_uniform);
-
-      auto W = this->param("decoder_W", {dimTrgEmb_, 2 * dimDecState_},
-                        init=inits::glorot_uniform);
-
-      auto b = this->param("decoder_b", {1, 2 * dimDecState_},
-                        init=inits::zeros);
-
-      auto Ux = this->param("decoder_Ux", {dimDecState_, dimDecState_},
-                        init=inits::glorot_uniform);
-
-      auto Wx = this->param("decoder_Wx", {dimTrgEmb_, dimDecState_},
-                         init=inits::glorot_uniform);
-
-      auto bx = this->param("decoder_bx", {1, dimDecState_},
-                         init=inits::zeros);
-
-      ParametersGRU gruParams1;
-      gruParams1.U = concatenate({U, Ux}, axis=1);
-      gruParams1.W = concatenate({W, Wx}, axis=1);
-      gruParams1.b = concatenate({b, bx}, axis=1);
-
-      // Parameters for second GRU cell
-
-      auto Uc = this->param("decoder_U_nl", {dimDecState_, 2 * dimDecState_},
-                            init=inits::glorot_uniform);
-
-      auto Wc = this->param("decoder_Wc", {2 * dimEncState_, 2 * dimDecState_},
-                            init=inits::glorot_uniform);
-
-      auto bc = this->param("decoder_b_nl", {1, 2 * dimDecState_},
-                            init=inits::zeros);
-
-      auto Uxc = this->param("decoder_Ux_nl", {dimDecState_, dimDecState_},
-                             init=inits::glorot_uniform);
-
-      auto Wxc = this->param("decoder_Wcx", {2 * dimEncState_, dimDecState_},
-                             init=inits::glorot_uniform);
-
-      auto bxc = this->param("decoder_bx_nl", {1, dimDecState_},
-                             init=inits::zeros);
-
-      ParametersGRU gruParams2;
-      gruParams2.U = concatenate({Uc, Uxc}, axis=1);
-      gruParams2.W = concatenate({Wc, Wxc}, axis=1);
-      gruParams2.b = concatenate({bc, bxc}, axis=1);
-      gruParams2.final = true;
-
-      // Attention mechanism
-
-      ParametersAttention attParams;
-      attParams.Wa = this->param("decoder_W_comb_att", {dimDecState_, 2 * dimDecState_},
-                                 init=inits::glorot_uniform);
-      attParams.ba = this->param("decoder_b_att", {1, 2 * dimDecState_},
-                                 init=inits::zeros);
-      attParams.Ua = this->param("decoder_Wc_att", {2 * dimEncState_, 2 * dimDecState_},
-                                 init=inits::glorot_uniform);
-      attParams.va = this->param("decoder_U_att", {2 * dimDecState_, 1},
-                                 init=inits::glorot_uniform);
-
-      auto encoderContext = this->get("encoderContext");
-      auto encoderContextWeights = this->get("encoderContextWeights");
-
-      Attention attention(attParams,
-                          encoderContext,
-                          encoderContextWeights);
-
-      ConditionalGRU gru(gruParams1,
-                         gruParams2,
-                         attention);
-
-      return RNN<ConditionalGRU>(gru);
-    };
 
   public:
 
@@ -198,6 +89,32 @@ class Nematus : public ExpressionGraph {
         "ff_logit_W", "ff_logit_b",
       };
 
+      std::map<std::string, std::string> nameMap = {
+        {"decoder_U", "decoder_gru1_U"},
+        {"decoder_W", "decoder_gru1_W"},
+        {"decoder_b", "decoder_gru1_b"},
+        {"decoder_Ux", "decoder_gru1_Ux"},
+        {"decoder_Wx", "decoder_gru1_Wx"},
+        {"decoder_bx", "decoder_gru1_bx"},
+
+        {"decoder_U_nl", "decoder_gru2_U"},
+        {"decoder_Wc", "decoder_gru2_W"},
+        {"decoder_b_nl", "decoder_gru2_b"},
+        {"decoder_Ux_nl", "decoder_gru2_Ux"},
+        {"decoder_Wcx", "decoder_gru2_Wx"},
+        {"decoder_bx_nl", "decoder_gru2_bx"},
+
+        {"ff_logit_prev_W", "ff_logit_l1_W0"},
+        {"ff_logit_prev_b", "ff_logit_l1_b0"},
+        {"ff_logit_lstm_W", "ff_logit_l1_W1"},
+        {"ff_logit_lstm_b", "ff_logit_l1_b1"},
+        {"ff_logit_ctx_W", "ff_logit_l1_W2"},
+        {"ff_logit_ctx_b", "ff_logit_l1_b2"},
+
+        {"ff_logit_W", "ff_logit_l2_W"},
+        {"ff_logit_b", "ff_logit_l2_b"}
+      };
+
       for(auto name : parameters) {
         Shape shape;
         if(numpy[name].shape.size() == 2) {
@@ -209,7 +126,11 @@ class Nematus : public ExpressionGraph {
           shape.set(1, numpy[name].shape[0]);
         }
 
-        this->param(name, shape,
+        std::string pName = name;
+        if(nameMap.count(name))
+          pName = nameMap[name];
+
+        this->param(pName, shape,
                     init=inits::from_numpy(numpy[name]));
       }
     }
@@ -218,6 +139,23 @@ class Nematus : public ExpressionGraph {
       std::cerr << "Saving to " << name << std::endl;
       unsigned shape[2];
       std::string mode = "w";
+
+      std::map<std::string, std::string> nameMap = {
+        {"decoder_gru1_U", "decoder_U"},
+        {"decoder_gru1_W", "decoder_W"},
+        {"decoder_gru1_b", "decoder_b"},
+        {"decoder_gru1_Ux", "decoder_Ux"},
+        {"decoder_gru1_Wx", "decoder_Wx"},
+        {"decoder_gru1_bx", "decoder_bx"},
+
+        {"decoder_gru2_U", "decoder_U_nl"},
+        {"decoder_gru2_W", "decoder_Wc"},
+        {"decoder_gru2_b", "decoder_b_nl"},
+        {"decoder_gru2_Ux", "decoder_Ux_nl"},
+        {"decoder_gru2_Wx", "decoder_Wcx"},
+        {"decoder_gru2_bx", "decoder_bx_nl"}
+      };
+
       for(auto p : this->params().getMap()) {
         std::vector<float> v;
         p.second->val() >> v;
@@ -233,7 +171,11 @@ class Nematus : public ExpressionGraph {
           dim = 2;
         }
 
-        cnpy::npz_save(name, p.first, v.data(), shape, dim, mode);
+        std::string pName = p.first;
+        if(nameMap.count(pName))
+          pName = nameMap[pName];
+
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
         mode = "a";
       }
 
@@ -242,11 +184,9 @@ class Nematus : public ExpressionGraph {
       cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
     }
 
-    void constructEncoder(const data::SentBatch& srcSentenceBatch) {
+    std::tuple<Expr, Expr>
+    processSource(Expr Wemb, const data::SentBatch& srcSentenceBatch) {
       using namespace keywords;
-
-      auto Wemb = this->param("Wemb", {dimSrcVoc_, dimSrcEmb_},
-                              init=inits::glorot_uniform);
 
       std::vector<size_t> indeces;
       std::vector<float> weightMask;
@@ -266,47 +206,13 @@ class Nematus : public ExpressionGraph {
       auto xMask = this->constant(shape={dimBatch_, 1, srcWords},
                                   init=inits::from_vector(weightMask));
 
-      auto encState0 = name(this->zeros(shape={dimBatch_, dimEncState_}),
-                            "start");
-
-      auto statesFw = encoder("encoder").apply(x, encState0);
-      auto statesBw = encoder("encoder_r").apply(x, encState0, xMask, true);
-
-      std::vector<Expr> biStates;
-      auto itFw = statesFw.begin();
-      auto itBw = statesBw.rbegin();
-      while(itFw != statesFw.end()) {
-        biStates.push_back(concatenate({*itFw++, *itBw++}, axis=1));
-      }
-
-      auto encContext = name(concatenate(biStates, axis=2), "encoderContext");
-
-      auto weights = this->constant(shape={dimBatch_, 1, (int)statesFw.size()},
-                                    init=inits::from_vector(weightMask));
-      name(weights, "encoderContextWeights");
-
-      auto meanContext = name(weighted_average(encContext, weights, axis=2),
-                              "meanContext");
+      return std::make_tuple(x, xMask);
     }
 
-    void constructDecoder(const data::SentBatch& trgSentenceBatch) {
+    std::tuple<Expr, Expr, Expr>
+    processTarget(Expr Wemb_dec,
+                  const data::SentBatch& trgSentenceBatch) {
       using namespace keywords;
-
-      // *** Map mean encoder state to decoder start state ***
-      auto Wi = this->param("ff_state_W", {2 * dimEncState_, dimDecState_},
-                            init=inits::glorot_uniform);
-      auto bi = this->param("ff_state_b", {1, dimDecState_},
-                            init=inits::zeros);
-
-      auto meanContext = this->get("meanContext");
-      auto decState0 = tanh(affine(meanContext, Wi, bi));
-
-      // *** Collect target embeddings and target indices ***
-      auto Wemb_dec = this->param("Wemb_dec", {dimTrgVoc_, dimTrgEmb_},
-                                  init=inits::glorot_uniform);
-
-      std::vector<Expr> outputs;
-      auto emptyEmbedding = this->zeros(shape={dimBatch_, dimTrgEmb_});
 
       std::vector<float> weightMask;
       std::vector<float> picks;
@@ -324,67 +230,68 @@ class Nematus : public ExpressionGraph {
             weightMask.push_back(m);
       }
 
-      auto picksTensor = this->constant(shape={(int)picks.size(), 1},
-                                        init=inits::from_vector(picks));
-
       int trgWords = (int)trgSentenceBatch.size();
-      auto y = reshape(rows(Wemb_dec, indeces), {dimBatch_, dimTrgEmb_, trgWords - 1});
-      y = concatenate({emptyEmbedding, y}, axis=2);
 
-      // *** Apply conditional GRU to target embeddings ***
-      auto decoderGRU = decoder();
-      auto decStates  = decoderGRU.apply(y, decState0);
-      auto contexts   = decoderGRU.getCell().getAttention().getContexts();
+      auto y = reshape(rows(Wemb_dec, indeces),
+                       {dimBatch_, dimTrgEmb_, trgWords - 1});
+      auto yMask = this->constant(shape={dimBatch_, 1, trgWords},
+                                  init=inits::from_vector(weightMask));
+      auto yPicks = this->constant(shape={(int)picks.size(), 1},
+                                   init=inits::from_vector(picks));
 
-      // *** Final output layers ***
-      auto d1 = concatenate(decStates, axis=2);
-      auto c3 = concatenate(contexts, axis=2);
-
-      auto W1 = this->param("ff_logit_lstm_W", {dimDecState_, dimTrgEmb_},
-                            init=inits::glorot_uniform);
-      auto b1 = this->param("ff_logit_lstm_b", {1, dimTrgEmb_},
-                            init=inits::zeros);
-
-      auto W2 = this->param("ff_logit_prev_W", {dimTrgEmb_, dimTrgEmb_},
-                            init=inits::glorot_uniform);
-      auto b2 = this->param("ff_logit_prev_b", {1, dimTrgEmb_},
-                            init=inits::zeros);
-
-      auto W3 = this->param("ff_logit_ctx_W", {2 * dimEncState_, dimTrgEmb_},
-                            init=inits::glorot_uniform);
-      auto b3 = this->param("ff_logit_ctx_b", {1, dimTrgEmb_},
-                            init=inits::zeros);
-
-      auto W4 = this->param("ff_logit_W", {dimTrgEmb_, dimTrgVoc_},
-                            init=inits::glorot_uniform);
-      auto b4 = this->param("ff_logit_b", {1, dimTrgVoc_},
-                            init=inits::zeros);
-
-      auto t = tanhPlus3(affine(d1, W1, b1),
-                         affine(y, W2, b2),
-                         affine(c3, W3, b3));
-
-      auto aff = affine(t, W4, b4);
-
-      auto weights = this->constant(shape={dimBatch_, 1, (int)decStates.size()},
-                                    init=inits::from_vector(weightMask));
-
-      // *** Cross entropy and cost across words and batch ***
-      auto xe = cross_entropy(aff, picksTensor) * weights;
-
-      auto cost = name(mean(sum(xe, axis=2), axis=0), "cost");
+      return std::make_tuple(y, yMask, yPicks);
     }
 
-    float cost() {
-      return this->get("cost")->val()->scalar();
-    }
+    Expr construct(const data::CorpusBatch& batch) {
+      using namespace keywords;
 
-    void construct(const data::CorpusBatch& batch) {
       this->clear();
-
       setDims(batch);
-      constructEncoder(batch[0]);
-      constructDecoder(batch[1]);
+
+      // Embeddings
+      auto Wemb = Embedding("Wemb", dimSrcVoc_, dimSrcEmb_)
+                    (this->shared_from_this());
+
+      auto Wemb_dec = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)
+                        (this->shared_from_this());
+
+      Expr x, xMask;
+      std::tie(x, xMask) = processSource(Wemb, batch[0]);
+
+      Expr y, yMask, yPicks;
+      std::tie(y, yMask, yPicks) = processTarget(Wemb_dec, batch[1]);
+
+      // Encoder
+      auto xContext = BiRNN<GRU>("encoder", dimEncState_)
+                        (x, mask=xMask);
+
+      auto xMeanContext = weighted_average(xContext, xMask, axis=2);
+
+      // Decoder
+      auto yStart = Dense("ff_state",
+                          dimDecState_,
+                          activation=act::tanh)(xMeanContext);
+
+      auto yEmpty = this->zeros(shape={dimBatch_, dimTrgEmb_});
+      auto yShifted = concatenate({yEmpty, y}, axis=2);
+
+      CGRU cgru({"decoder", xContext, dimDecState_, mask=xMask});
+      auto yLstm = RNN<CGRU>("decoder", dimDecState_, cgru)
+                     (yShifted, yStart);
+      auto yCtx = cgru.getContexts();
+
+      // 2-layer feedforward network for outputs and cost
+      auto ff_logit_l1 = Dense("ff_logit_l1", dimTrgEmb_,
+                               activation=act::tanh)
+                           (yShifted, yLstm, yCtx);
+
+      auto ff_logit_l2 = Dense("ff_logit_l2", dimTrgVoc_)
+                           (ff_logit_l1);
+
+      auto cost = CrossEntropyCost("cost")
+                    (ff_logit_l2, yPicks, mask=yMask);
+
+      return cost;
     }
 };
 

@@ -79,7 +79,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     ExpressionGraph(const ExpressionGraph&) = delete;
     ExpressionGraph(ExpressionGraph&&) = delete;
 
-    friend ExpressionGraphPtr New<ExpressionGraph>();
+    friend Ptr<ExpressionGraph> New<ExpressionGraph>();
 
   public:
 
@@ -489,9 +489,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       tensors_->clear();
     }
 };
-
-/** @brief A pointer to an expression graph. */
-typedef std::shared_ptr<ExpressionGraph> ExpressionGraphPtr;
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args) {

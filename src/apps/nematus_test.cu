@@ -36,9 +36,6 @@ int main(int argc, char** argv) {
   nematus->load("../test/model.npz");
   nematus->reserveWorkspaceMB(128);
 
-
-  auto opt = Optimizer<Adam>(0.0001 /*, clip=norm(1)*/);
-
   float sum = 0;
   boost::timer::cpu_timer timer;
   size_t batches = 1;
@@ -48,20 +45,16 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
       batch->debug();
 
-      nematus->construct(*batch);
+      auto costNode = nematus->construct(*batch);
       for(auto p : nematus->params())
         debug(p, p->name());
-      debug(nematus->get("cost"), "cost");
-      debug(nematus->get("encoderContext"), "Context");
 
       nematus->graphviz("debug.dot");
 
       nematus->forward();
       nematus->backward();
 
-      //opt->update(nematus);
-
-      float cost = nematus->cost();
+      float cost = costNode->val()->scalar();
       sum += cost;
 
       if(batches % 100 == 0) {

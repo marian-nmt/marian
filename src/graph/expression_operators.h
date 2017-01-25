@@ -29,7 +29,7 @@ Expr training(Expr a);
 
 Expr inference(Expr a);
 
-Expr debug(Expr a, const std::string& message);
+Expr debug(Expr a, const std::string& message = "");
 
 /**
  * @brief Associates a name with an Expr object and adds that object to the associated ExpressionGraph.
@@ -42,21 +42,21 @@ Expr name(Expr a, const std::string& name);
 
 Expr rows(Expr a, const std::vector<size_t>& indeces);
 
+Expr plus(const std::vector<Expr>&);
+
 Expr logit(Expr a);
+Expr logit(const std::vector<Expr>&);
 
-Expr tanh(Expr a);
+Expr tanh(const std::vector<Expr>&);
 
-/**
- * Constructs a ReLUNodeOp object from the provided Expr object,
- *     wraps the <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified linear</a> node in a shared pointer,
- *     adds it to the associated ExpressionGraph,
- *     and returns the shared pointer to the rectified linear node
- *
- * @arg a An expression object
- *
- * @see <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectifier</a>
- */
+template <typename ...Args>
+Expr tanh(Args ...args) {
+  std::vector<Expr> nodes{args...};
+  return Expression<TanhNodeOp>(nodes);
+}
+
 Expr relu(Expr a);
+Expr relu(const std::vector<Expr>&);
 
 /**
  * Constructs a DropoutNodeOp object from the provided Expr object,
@@ -125,7 +125,7 @@ Expr mean(Expr a, Args ...args) {
 
 Expr cross_entropy(Expr a, Expr b);
 
-Expr tanhPlus3(Expr a, Expr b, Expr c);
+//Expr tanh(Expr a, Expr b, Expr c);
 
 Expr affine(Expr a, Expr b, Expr c);
 
