@@ -4,6 +4,8 @@
 #include "output_collector.h"
 #include "printer.h"
 
+using namespace std;
+
 void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter) {
   Search &search = god.GetSearch();
 
@@ -26,6 +28,7 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
       decodeSentences->push_back(sentences->at(i));
 
       if (decodeSentences->size() >= miniBatch) {
+        //cerr << "decodeSentences=" << decodeSentences->GetMaxLength() << endl;
         assert(decodeSentences->size());
         std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
         allHistories.Append(*histories.get());

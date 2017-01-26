@@ -12,11 +12,18 @@ Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)
   if (tabs.size() == 0) {
     tabs.push_back("");
   }
+
+  size_t maxLength = god.Get<size_t>("max-length");
   size_t i = 0;
   for (auto& tab : tabs) {
     std::vector<std::string> lineTokens;
     Trim(tab);
     Split(tab, lineTokens, " ");
+
+    if (maxLength && lineTokens.size() > maxLength) {
+      lineTokens.resize(maxLength);
+    }
+
     auto processed = god.Preprocess(i, lineTokens);
     words_.push_back(god.GetSourceVocab(i++)(processed));
   }

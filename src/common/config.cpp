@@ -215,6 +215,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Use WIPO specific n-best-list format and non-buffering single-threading")
     ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return alignment.")
+    ("max-length", po::value<size_t>()->default_value(500),
+      "Maximum length of input sentences. Anything above this is truncated. 0=no max length")
     ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
      "Print version.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
@@ -288,6 +290,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("cpu-threads", size_t);
   SET_OPTION("mini-batch", size_t);
   SET_OPTION("maxi-batch", size_t);
+  SET_OPTION("max-length", size_t);
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
