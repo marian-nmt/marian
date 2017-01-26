@@ -27,7 +27,9 @@ int main(int argc, char** argv) {
     {"../test/vocab.de.json",
      "../test/vocab.en.json"};
 
-  auto corpus = DataSet<Corpus>(files, vocab, 50);
+  std::vector<int> maxVocab = { 50000, 50000 };
+
+  auto corpus = DataSet<Corpus>(files, vocab, maxVocab, 50);
   BatchGenerator<Corpus> bg(corpus, 10, 20);
 
   auto nematus = New<Nematus>();

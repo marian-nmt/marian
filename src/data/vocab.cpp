@@ -7,15 +7,17 @@
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
-Vocab::Vocab(const std::string& path) {
+Vocab::Vocab(const std::string& path, int max) {
     YAML::Node vocab = YAML::Load(InputFileStream(path));
     for(auto&& pair : vocab) {
       auto str = pair.first.as<std::string>();
       auto id = pair.second.as<Word>();
-      str2id_[str] = id;
-      if(id >= id2str_.size())
-        id2str_.resize(id + 1);
-      id2str_[id] = str;
+      if (id < (Word)max) {
+        str2id_[str] = id;
+        if(id >= id2str_.size())
+          id2str_.resize(id + 1);
+        id2str_[id] = str;
+      }
     }
     UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
     id2str_[0] = "</s>";

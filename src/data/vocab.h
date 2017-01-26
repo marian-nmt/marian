@@ -8,7 +8,7 @@
 
 class Vocab {
   public:
-    Vocab(const std::string& path);
+    Vocab(const std::string& path, int max = 50000);
 
     size_t operator[](const std::string& word) const;
 

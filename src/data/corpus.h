@@ -59,8 +59,9 @@ class Corpus : public DataBase {
     typedef CorpusBatch batch_type;
     typedef std::shared_ptr<batch_type> batch_ptr;
 
-    Corpus(const std::vector<std::string> textPaths,
-           const std::vector<std::string> vocabPaths,
+    Corpus(const std::vector<std::string>& textPaths,
+           const std::vector<std::string>& vocabPaths,
+           const std::vector<int>& maxVocabs,
            size_t maxLength = 50)
     {
       UTIL_THROW_IF2(textPaths.size() != vocabPaths.size(),
@@ -73,8 +74,8 @@ class Corpus : public DataBase {
       }
 
       std::vector<Vocab> vocabs;
-      for(auto path : vocabPaths) {
-        vocabs.emplace_back(path);
+      for(int i = 0; i < vocabPaths.size(); ++i) {
+        vocabs.emplace_back(vocabPaths[i], maxVocabs[i]);
       }
 
       bool cont = true;
@@ -95,7 +96,7 @@ class Corpus : public DataBase {
 
         cont = sentences.size() == files.size();
         if(cont && std::all_of(sentences.begin(), sentences.end(),
-                               [=](DataPtr d) { return d->size() <= maxLength; }))
+                               [=](DataPtr d) { return d->size() > 0 && d->size() <= maxLength; }))
           examples_.emplace_back(new Example(sentences));
       };
     }

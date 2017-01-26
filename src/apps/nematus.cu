@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
      "Display information every  arg  updates")
     ("save-freq", po::value(&saveFreq)->default_value(10000),
      "Save model file every  arg  updates")
-    ("work-space,w", po::value(&workSpace)->default_value(4096),
+    ("work-space,w", po::value(&workSpace)->default_value(2048),
      "Preallocate  arg  MB of work space")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
@@ -133,7 +133,9 @@ int main(int argc, char** argv) {
   std::vector<std::string> vocabs =
     { srcVocabPath, trgVocabPath };
 
-  auto corpus = DataSet<Corpus>(files, vocabs, maxSentenceLength);
+  std::vector<int> maxVocabs = { dimSrcVoc, dimTrgVoc };
+
+  auto corpus = DataSet<Corpus>(files, vocabs, maxVocabs, maxSentenceLength);
   BatchGenerator<Corpus> bg(corpus, miniBatchSize, maxiBatchSize);
 
   std::vector<int> dims = {

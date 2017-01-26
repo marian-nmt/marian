@@ -208,5 +208,14 @@ namespace marian {
       bool operator!=(const Shape& other) const {
         return !(*this == other);
       }
+
+      friend std::ostream& operator<<(std::ostream& strm, const Shape& shape) {
+        strm << "shape=" << shape[0];
+        for(int i = 1; i < shape.size(); ++i)
+          strm << "x" << shape[i];
+        strm << " size=" << shape.elements()
+          << " (" << shape.elements() * sizeof(float) << "B)";
+        return strm;
+      }
   };
 }
