@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
     while(bg) {
       auto batch = bg.next();
 
-      auto costNode = nematus->construct(*batch);
+      auto costNode = nematus->construct(batch);
 
       opt->update(nematus);
 

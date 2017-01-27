@@ -32,7 +32,7 @@ class Nematus : public ExpressionGraph {
 
     int dimBatch_;
 
-    void setDims(const data::CorpusBatch& batch) {
+    void setDims(Ptr<data::CorpusBatch> batch) {
       dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : dimSrcVoc_;
       dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : dimSrcEmb_;
       dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : dimEncState_;
@@ -41,7 +41,7 @@ class Nematus : public ExpressionGraph {
       dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
       dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : dimDecState_;
 
-      dimBatch_ = batch.size();
+      dimBatch_ = batch->size();
     }
 
   public:
@@ -195,64 +195,68 @@ class Nematus : public ExpressionGraph {
     }
 
     std::tuple<Expr, Expr>
-    processSource(Expr Wemb, const data::SentBatch& srcSentenceBatch) {
+    prepareSource(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
       using namespace keywords;
-
       std::vector<size_t> indeces;
-      std::vector<float> weightMask;
+      std::vector<float> mask;
 
-      std::vector<Expr> inputs;
-      std::vector<std::pair<Expr, Expr>> inputsWithMask;
-
-      for(auto& srcWordBatch : srcSentenceBatch) {
-        for(auto i: srcWordBatch.first)
+      for(auto& word : (*batch)[index]) {
+        for(auto i: word.first)
           indeces.push_back(i);
-        for(auto m: srcWordBatch.second)
-          weightMask.push_back(m);
+        for(auto m: word.second)
+          mask.push_back(m);
       }
 
-      int srcWords = (int)srcSentenceBatch.size();
-      auto x = reshape(rows(Wemb, indeces), {dimBatch_, dimSrcEmb_, srcWords});
-      auto xMask = this->constant(shape={dimBatch_, 1, srcWords},
-                                  init=inits::from_vector(weightMask));
+      int dimBatch = batch->size();
+      int dimEmb = emb->shape()[1];
+      int dimWords = (int)(*batch)[index].size();
 
+      auto graph = emb->graph();
+      auto x = reshape(rows(emb, indeces), {dimBatch, dimEmb, dimWords});
+      auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
+                                   init=inits::from_vector(mask));
       return std::make_tuple(x, xMask);
     }
 
     std::tuple<Expr, Expr, Expr>
-    processTarget(Expr Wemb_dec,
-                  const data::SentBatch& trgSentenceBatch) {
+    prepareTarget(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
       using namespace keywords;
 
-      std::vector<float> weightMask;
-      std::vector<float> picks;
       std::vector<size_t> indeces;
-      for(int j = 0; j < trgSentenceBatch.size(); ++j) {
-        auto& trgWordBatch = trgSentenceBatch[j];
+      std::vector<float> mask;
+      std::vector<float> findeces;
+
+      for(int j = 0; j < (*batch)[index].size(); ++j) {
+        auto& trgWordBatch = (*batch)[index][j];
 
         for(auto i : trgWordBatch.first) {
-          picks.push_back((float)i);
-          if(j < trgSentenceBatch.size() - 1)
+          findeces.push_back((float)i);
+          if(j < (*batch)[index].size() - 1)
             indeces.push_back(i);
         }
 
         for(auto m : trgWordBatch.second)
-            weightMask.push_back(m);
+            mask.push_back(m);
       }
 
-      int trgWords = (int)trgSentenceBatch.size();
+      int dimBatch = batch->size();
+      int dimEmb = emb->shape()[1];
+      int dimWords = (int)(*batch)[index].size();
 
-      auto y = reshape(rows(Wemb_dec, indeces),
-                       {dimBatch_, dimTrgEmb_, trgWords - 1});
-      auto yMask = this->constant(shape={dimBatch_, 1, trgWords},
-                                  init=inits::from_vector(weightMask));
-      auto yPicks = this->constant(shape={(int)picks.size(), 1},
-                                   init=inits::from_vector(picks));
+      auto graph = emb->graph();
 
-      return std::make_tuple(y, yMask, yPicks);
+      auto y = reshape(rows(emb, indeces),
+                       {dimBatch, dimEmb, dimWords - 1});
+
+      auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
+                                  init=inits::from_vector(mask));
+      auto yIdx = graph->constant(shape={(int)findeces.size(), 1},
+                                  init=inits::from_vector(findeces));
+
+      return std::make_tuple(y, yMask, yIdx);
     }
 
-    Expr construct(const data::CorpusBatch& batch) {
+    Expr construct(Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
       this->clear();
@@ -266,10 +270,10 @@ class Nematus : public ExpressionGraph {
                         (this->shared_from_this());
 
       Expr x, xMask;
-      std::tie(x, xMask) = processSource(Wemb, batch[0]);
+      Expr y, yMask, yIdx;
 
-      Expr y, yMask, yPicks;
-      std::tie(y, yMask, yPicks) = processTarget(Wemb_dec, batch[1]);
+      std::tie(x, xMask) = prepareSource(Wemb, batch, 0);
+      std::tie(y, yMask, yIdx) = prepareTarget(Wemb_dec, batch, 1);
 
       // Encoder
       auto xContext = BiRNN<GRU>("encoder", dimEncState_)
@@ -299,7 +303,7 @@ class Nematus : public ExpressionGraph {
                            (ff_logit_l1);
 
       auto cost = CrossEntropyCost("cost")
-                    (ff_logit_l2, yPicks, mask=yMask);
+                    (ff_logit_l2, yIdx, mask=yMask);
 
       return cost;
     }

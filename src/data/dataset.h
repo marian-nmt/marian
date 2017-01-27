@@ -174,8 +174,8 @@ class DataBase {
  * @return a shared pointer to a newly constructed DataBase object
  */
 template <class Set, typename ...Args>
-std::shared_ptr<Set> DataSet(Args&& ...args) {
-  return std::shared_ptr<Set>(new Set(std::forward<Args>(args)...));
+Ptr<Set> DataSet(Args&& ...args) {
+  return Ptr<Set>(new Set(std::forward<Args>(args)...));
 }
 
 }

@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
       batch->debug();
 
-      auto costNode = nematus->construct(*batch);
+      auto costNode = nematus->construct(batch);
       for(auto p : nematus->params())
         debug(p, p->name());
       debug(costNode, "cost");

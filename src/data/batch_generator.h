@@ -16,9 +16,12 @@ class BatchGenerator {
   public:
     typedef typename DataSet::batch_ptr BatchPtr;
 
+    typedef typename DataSet::sample sample;
+    typedef std::vector<sample> samples;
+
   private:
-    std::shared_ptr<DataSet> data_;
-    ExampleIterator current_;
+    Ptr<DataSet> data_;
+    typename DataSet::iterator current_;
 
     size_t batchSize_;
     size_t maxiBatchSize_;
@@ -27,18 +30,18 @@ class BatchGenerator {
     BatchPtr currentBatch_;
 
     void fillBatches() {
-      auto cmp = [](const ExamplePtr& a, const ExamplePtr& b) {
-        return (*a)[0]->size() < (*b)[0]->size();
+      auto cmp = [](const sample& a, const sample& b) {
+        return a[0].size() < b[0].size();
       };
 
-      std::priority_queue<ExamplePtr, Examples, decltype(cmp)> maxiBatch(cmp);
+      std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
 
       while(current_ != data_->end() && maxiBatch.size() < maxiBatchSize_) {
         maxiBatch.push(*current_);
         current_++;
       }
 
-      Examples batchVector;
+      samples batchVector;
       while(!maxiBatch.empty()) {
         batchVector.push_back(maxiBatch.top());
         maxiBatch.pop();
@@ -51,17 +54,16 @@ class BatchGenerator {
         bufferedBatches_.push_back(data_->toBatch(batchVector));
 
       std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
-      //std::cerr << "Total: " << total.format(5, "%ws") << std::endl;
     }
 
   public:
-    BatchGenerator(std::shared_ptr<DataSet> data,
+    BatchGenerator(Ptr<DataSet> data,
                    size_t batchSize=80,
                    size_t maxiBatchNum=20)
     : data_(data),
       batchSize_(batchSize),
-      maxiBatchSize_(batchSize * maxiBatchNum),
-      current_(data_->begin()) { }
+      maxiBatchSize_(batchSize * maxiBatchNum)
+      { }
 
     operator bool() const {
       return !bufferedBatches_.empty();
@@ -69,7 +71,7 @@ class BatchGenerator {
 
     BatchPtr next() {
       UTIL_THROW_IF2(bufferedBatches_.empty(),
-                     "No batches to fetch");
+                     "No batches to fetch, run prepare()");
       currentBatch_ = bufferedBatches_.front();
       bufferedBatches_.pop_front();
 
@@ -80,10 +82,8 @@ class BatchGenerator {
     }
 
     void prepare(bool shuffle=true) {
-      //boost::timer::cpu_timer total;
       if(shuffle)
         data_->shuffle();
-      //std::cerr << "shuffle: " << total.format(5, "%ws") << std::endl;
       current_ = data_->begin();
       fillBatches();
     }

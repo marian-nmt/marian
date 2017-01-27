@@ -29,6 +29,8 @@ target_link_libraries(marian_lib)
 cuda_add_executable(
   tensor_test
   apps/tensor_test.cu
+  data/vocab.cpp
+  data/corpus.cpp
 )
 
 #cuda_add_executable(
@@ -40,12 +42,14 @@ cuda_add_executable(
   nematus_test
   apps/nematus_test.cu
   data/vocab.cpp
+  data/corpus.cpp
 )
 
 cuda_add_executable(
   nematus
   apps/nematus.cu
   data/vocab.cpp
+  data/corpus.cpp
 )
 
 #target_link_libraries(softmax_benchmark marian_lib)
