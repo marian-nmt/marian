@@ -10,6 +10,7 @@
 
 using namespace std;
 
+namespace amunmt {
 namespace GPU {
 
 ////////////////////////////////////////////
@@ -161,5 +162,6 @@ BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
   return BestHypsBasePtr(new GPU::BestHyps(god));
 }
 
+}
 }
 

@@ -5,6 +5,8 @@
 #include "god.h"
 #include "hypothesis.h"
 
+namespace amunmt {
+
 class History {
   private:
     struct HypothesisCoord {
@@ -99,3 +101,4 @@ class Histories {
   Histories(const Histories &) = delete;
 };
 
+}

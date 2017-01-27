@@ -1,6 +1,7 @@
 #pragma once
 #include "../mblas/matrix.h"
 
+namespace amunmt {
 namespace CPU {
 
 template <class Weights>
@@ -77,5 +78,6 @@ class GRU {
     mutable mblas::Matrix Temp_;
 };
 
+}
 }
 

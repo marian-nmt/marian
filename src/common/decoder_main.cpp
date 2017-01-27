@@ -14,6 +14,8 @@
 #include "common/exception.h"
 #include "common/translation_task.h"
 
+using namespace amunmt;
+
 int main(int argc, char* argv[]) {
   God god;
   god.Init(argc, argv);

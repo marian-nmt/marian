@@ -6,6 +6,7 @@
 #include "common/types.h"
 #include "scorer.h"
 
+namespace amunmt {
 
 class BestHypsBase
 {
@@ -24,3 +25,5 @@ public:
 };
 
 typedef std::shared_ptr<BestHypsBase> BestHypsBasePtr;
+
+}

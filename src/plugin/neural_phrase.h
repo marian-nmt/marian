@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+namespace amunmt {
+
 class NeuralPhrase {
   public:
    std::vector<size_t> words;
@@ -28,3 +30,6 @@ class NeuralPhrase {
   private:
 
 };
+
+}
+

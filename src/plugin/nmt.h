@@ -14,6 +14,8 @@
 #include "neural_phrase.h"
 #include "hypo_info.h"
 
+namespace amunmt {
+
 class Vocab;
 
 class StateInfo;
@@ -34,7 +36,7 @@ class MosesPlugin {
     static size_t GetDevices(size_t = 1);
     void SetDevice();
     size_t GetDevice();
-    const God &GetGod() const
+    const amunmt::God &GetGod() const
     { return god_; }
 
     void SetDebug(bool debug) {
@@ -75,7 +77,7 @@ class MosesPlugin {
     // std::vector<double> RescoreNBestList(
         // const std::vector<std::string>& nbest,
         // const size_t maxBatchSize=64);
-    void GeneratePhrases(const States& states, size_t lastWord, size_t numPhrases,
+    void GeneratePhrases(const amunmt::States& states, size_t lastWord, size_t numPhrases,
                          std::vector<NeuralPhrase>& phrases);
 
     States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
@@ -84,15 +86,17 @@ class MosesPlugin {
   private:
     bool debug_;
 
-    God god_;
+    amunmt::God god_;
     
-    std::vector<ScorerPtr> scorers_;
-    Words filterIndices_;
-    BestHypsBasePtr bestHyps_;
-    Sentences sentences_;
+    std::vector<amunmt::ScorerPtr> scorers_;
+    amunmt::Words filterIndices_;
+    amunmt::BestHypsBasePtr bestHyps_;
+    amunmt::Sentences sentences_;
 
-    std::shared_ptr<States> states_;
+    std::shared_ptr<amunmt::States> states_;
     bool firstWord_;
 
     std::vector<size_t> filteredId_;
 };
+
+}

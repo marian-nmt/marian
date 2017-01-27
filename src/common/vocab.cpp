@@ -7,6 +7,8 @@
 #include "common/file_stream.h"
 #include "common/exception.h"
 
+namespace amunmt {
+
 Vocab::Vocab(const std::string& path) {
     YAML::Node vocab = YAML::Load(InputFileStream(path));
     for(auto&& pair : vocab) {
@@ -63,3 +65,6 @@ const std::string& Vocab::operator[](size_t id) const {
 size_t Vocab::size() const {
   return id2str_.size();
 }
+
+}
+

@@ -10,6 +10,7 @@
 #include "gpu/types-gpu.h"
 
 
+namespace amunmt {
 namespace GPU {
 
 class EncoderDecoderState;
@@ -87,3 +88,5 @@ class EncoderDecoderLoader : public Loader {
 };
 
 }
+}
+

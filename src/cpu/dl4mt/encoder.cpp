@@ -2,6 +2,7 @@
 
 using namespace std;
 
+namespace amunmt {
 namespace CPU {
 
 void Encoder::GetContext(const std::vector<size_t>& words,
@@ -27,3 +28,5 @@ void Encoder::GetContext(const std::vector<size_t>& words,
 }
 
 }
+}
+

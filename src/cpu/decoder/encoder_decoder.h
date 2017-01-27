@@ -12,6 +12,8 @@
 
 #include "../mblas/matrix.h"
 
+namespace amunmt {
+
 class Sentence;
 
 namespace CPU {
@@ -84,5 +86,7 @@ class EncoderDecoder : public Scorer {
 
     mblas::Matrix SourceContext_;
 };
+
+}
 
 }

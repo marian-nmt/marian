@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "common/vocab.h"
 
+namespace amunmt {
+
 Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)
   : lineNum_(vLineNum), line_(line)
 {
@@ -78,5 +80,7 @@ class LengthOrderer {
 
 void Sentences::SortByLength() {
   std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
+}
+
 }
 

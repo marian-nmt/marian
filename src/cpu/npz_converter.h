@@ -3,6 +3,7 @@
 #include "cnpy/cnpy.h"
 #include "mblas/matrix.h"
 
+namespace amunmt {
 namespace CPU {
 
 class NpzConverter {
@@ -89,5 +90,6 @@ class NpzConverter {
     bool destructed_;
 };
 
+}
 }
 

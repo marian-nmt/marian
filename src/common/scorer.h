@@ -8,6 +8,8 @@
 #include "common/base_matrix.h"
 #include "yaml-cpp/node/node.h"
 
+namespace amunmt {
+
 class God;
 
 class State {
@@ -83,3 +85,5 @@ class SourceIndependentScorer : public Scorer {
 };
 
 typedef std::shared_ptr<Scorer> ScorerPtr;
+
+}

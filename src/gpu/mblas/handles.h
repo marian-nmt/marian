@@ -3,6 +3,7 @@
 #include <cuda.h>
 #include <cublas_v2.h>
 
+namespace amunmt {
 namespace GPU {
 namespace mblas {
 
@@ -58,3 +59,4 @@ class CublasHandler {
 
 } // namespace mblas
 } // namespace GPU
+}

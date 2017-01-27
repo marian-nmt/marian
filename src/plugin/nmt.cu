@@ -12,7 +12,7 @@
 #include "common/history.h"
 #include "common/sentence.h"
 
-using namespace GPU;
+namespace amunmt {
 
 void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
@@ -239,4 +239,6 @@ void MosesPlugin::Rescore(std::vector<HypoInfo> &hypos)
     States nextStates = GenerateStates(hypo.prevStates, hypo.lastWord, hypo.words);
     hypo.nextStates = nextStates;
   }
+}
+
 }

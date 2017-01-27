@@ -13,6 +13,7 @@
 #endif
 #endif
 
+namespace amunmt {
 
 LoaderPtr LoaderFactory::Create(
 	const God &god,
@@ -82,3 +83,6 @@ Loader *LoaderFactory::CreateCPU(
 
   return NULL;
 }
+
+}
+

@@ -14,6 +14,8 @@
 #include "common/utils.h"
 #include "common/types.h"
 
+namespace amunmt {
+
 Filter::Filter(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}
 
 Filter::Filter(const Vocab& srcVocab,
@@ -116,4 +118,6 @@ size_t Filter::GetNumFirstWords() const {
 
 void Filter::SetNumFirstWords(const size_t numFirstWords) {
   numFirstWords_ = numFirstWords;
+}
+
 }

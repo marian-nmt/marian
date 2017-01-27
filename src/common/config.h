@@ -5,6 +5,8 @@
 
 #include "logging.h"
 
+namespace amunmt {
+
 class Config {
   private:
     YAML::Node config_;
@@ -33,3 +35,6 @@ class Config {
     
     void LogOptions();
 };
+
+}
+

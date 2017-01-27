@@ -7,6 +7,8 @@
 
 #include "common/types.h"
 
+namespace amunmt {
+
 class Vocab;
 
 class Filter {
@@ -56,3 +58,6 @@ class Filter {
 };
 
 typedef std::unique_ptr<Filter> FilterPtr;
+
+}
+

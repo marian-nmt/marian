@@ -5,6 +5,8 @@
 #include "common/exception.h"
 #include "common/git_version.h"
 
+namespace amunmt {
+
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
   config_[key] = vm_[key].as<type>(); \
@@ -341,4 +343,6 @@ void Config::LogOptions() {
   YAML::Emitter out;
   OutputRec(config_, out);
   LOG(info) << "Options: \n" << out.c_str();
+}
+
 }

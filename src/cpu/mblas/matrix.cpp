@@ -13,10 +13,12 @@
 
 using namespace std;
 
+namespace amunmt {
 namespace CPU {
 
 namespace mblas {
 
+}
 }
 }
 

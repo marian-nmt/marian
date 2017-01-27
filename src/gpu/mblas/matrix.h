@@ -7,6 +7,7 @@
 
 #include "gpu/types-gpu.h"
 
+namespace amunmt {
 namespace GPU {
 namespace mblas {
 
@@ -143,3 +144,4 @@ typedef TMatrix<DeviceVector<int>> IMatrix;
 
 }  // namespace mblas
 }  // namespace GPU
+}

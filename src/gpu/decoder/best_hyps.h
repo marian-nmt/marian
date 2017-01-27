@@ -11,6 +11,7 @@
 
 #include "gpu/decoder/encoder_decoder.h"
 
+namespace amunmt {
 namespace GPU {
 
 class BestHyps : public BestHypsBase
@@ -167,3 +168,5 @@ class BestHyps : public BestHypsBase
 };
 
 }
+}
+

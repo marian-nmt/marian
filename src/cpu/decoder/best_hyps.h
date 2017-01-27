@@ -8,6 +8,7 @@
 #include "common/exception.h"
 #include "cpu/mblas/matrix.h"
 
+namespace amunmt {
 namespace CPU {
 
 struct ProbCompare {
@@ -143,3 +144,4 @@ public:
 };
 
 } // namespace
+}

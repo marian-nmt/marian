@@ -13,6 +13,8 @@
 #include "common/sentence.h"
 #include "common/exception.h"
 
+using namespace amunmt;
+
 God god_;
 
 std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {

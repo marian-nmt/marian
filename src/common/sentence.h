@@ -4,6 +4,8 @@
 #include <string>
 #include "types.h"
 
+namespace amunmt {
+
 class God;
 
 class Sentence {
@@ -58,3 +60,6 @@ class Sentences {
 
    Sentences(const Sentences &) = delete;
 };
+
+}
+

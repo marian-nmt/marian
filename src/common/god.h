@@ -20,6 +20,8 @@
 #include "common/processor/bpe.h"
 #include "common/utils.h"
 
+namespace amunmt {
+
 class Search;
 class Weights;
 class Vocab;
@@ -103,3 +105,6 @@ class God {
     mutable boost::thread_specific_ptr<Search> search_;
     mutable boost::shared_mutex accessLock_;
 };
+
+}
+

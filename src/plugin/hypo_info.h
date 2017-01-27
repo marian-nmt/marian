@@ -8,6 +8,8 @@
 #include <string>
 #include "common/scorer.h"
 
+namespace amunmt {
+
 struct HypoInfo
 {
   std::vector<size_t> words;
@@ -20,4 +22,5 @@ struct HypoInfo
 
 };
 
+}
 

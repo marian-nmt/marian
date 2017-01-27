@@ -9,6 +9,7 @@
 #include "phoenix_functions.h"
 #include "common/base_matrix.h"
 
+namespace amunmt {
 namespace CPU {
 
 namespace mblas {
@@ -301,5 +302,6 @@ MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
   return std::move(out);
 }
 
+}
 }
 }

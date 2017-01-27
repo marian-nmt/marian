@@ -7,6 +7,7 @@
 #include "utf8/utf8.h"
 #include "common/utils.h"
 
+namespace amunmt {
 
 std::vector<std::string> BPE::Preprocess(const std::vector<std::string> input) const {
   return Encode(input);
@@ -215,4 +216,6 @@ bool BPE::EndsWith(std::string const &fullString, std::string const suffix) cons
   } else {
     return false;
   }
+}
+
 }

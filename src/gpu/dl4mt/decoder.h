@@ -6,6 +6,7 @@
 #include "gpu/types-gpu.h"
 #include "common/god.h"
 
+namespace amunmt {
 namespace GPU {
 
 class Decoder {
@@ -350,3 +351,5 @@ class Decoder {
 };
 
 }
+}
+

@@ -9,6 +9,8 @@
 #include "common/logging.h"
 #include "common/base_best_hyps.h"
 
+namespace amunmt {
+
 namespace CPU {
 
 class Weights;
@@ -28,3 +30,4 @@ class EncoderDecoderLoader : public Loader {
 };
 
 } // namespace CPU
+}

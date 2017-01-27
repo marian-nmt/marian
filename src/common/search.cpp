@@ -9,6 +9,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 Search::Search(const God &god)
 {
   deviceInfo_ = god.GetNextDevice();
@@ -132,3 +134,6 @@ std::shared_ptr<Histories> Search::Decode(const God &god, const Sentences& sente
 
   return ret;
 }
+
+}
+

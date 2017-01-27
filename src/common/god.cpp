@@ -19,6 +19,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 God::God()
 :threadIncr_(0)
 {
@@ -292,3 +294,6 @@ Search &God::GetSearch() const
   assert(obj);
   return *obj;
 }
+
+}
+

@@ -5,6 +5,8 @@
 #include <vector>
 #include <iostream>
 
+namespace amunmt {
+
 typedef size_t Word;
 typedef std::vector<Word> Words;
 
@@ -25,3 +27,6 @@ struct DeviceInfo
   size_t threadInd;
   size_t deviceId;
 };
+
+}
+

@@ -3,6 +3,7 @@
 #include "cnpy/cnpy.h"
 #include "mblas/matrix_functions.h"
 
+namespace amunmt {
 namespace GPU {
 
 class NpzConverter {
@@ -86,6 +87,7 @@ class NpzConverter {
     bool destructed_;
 };
 
+}
 }
 
 

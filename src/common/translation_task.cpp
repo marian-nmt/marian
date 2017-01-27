@@ -6,6 +6,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter) {
   Search &search = god.GetSearch();
 
@@ -72,6 +74,8 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
     std::cerr << "Some other kind of error during some_function" << std::endl;
     abort();
   }
+
+}
 
 }
 

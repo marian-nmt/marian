@@ -18,6 +18,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 namespace CPU {
 
 using EDState = EncoderDecoderState;
@@ -149,6 +151,8 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
   return BestHypsBasePtr(new CPU::BestHyps());
+}
+
 }
 
 }

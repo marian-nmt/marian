@@ -9,6 +9,7 @@
 
 #include "common/processor/processor.h"
 
+
 template<class T>
 inline void hash_combine(std::size_t & seed, const T & v)
 {
@@ -29,6 +30,8 @@ namespace std
           }
     };
 }
+
+namespace amunmt {
 
 class BPE : public Processor {
   using BPEPair = std::pair<std::string, std::string>;
@@ -68,3 +71,4 @@ class BPE : public Processor {
 
 
 };
+}

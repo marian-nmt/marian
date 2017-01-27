@@ -2,6 +2,7 @@
 #include <iostream>
 
 
+namespace amunmt {
 namespace GPU {
 
 static void HandleError(cudaError_t err, const char *file, int line ) {
@@ -356,4 +357,5 @@ void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
   cudaStreamSynchronize(stream_);
 }
 
+}
 }  // namespace GPU

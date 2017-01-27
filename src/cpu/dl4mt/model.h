@@ -8,6 +8,7 @@
 
 #include "../mblas/matrix.h"
 
+namespace amunmt {
 namespace CPU {
 
 struct Weights {
@@ -182,5 +183,6 @@ inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
 	return out;
 }
 
+}
 }
 

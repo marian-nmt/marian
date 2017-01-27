@@ -4,6 +4,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 std::string NeuralPhrase::Debug() const
 {
   stringstream strm;
@@ -13,5 +15,6 @@ std::string NeuralPhrase::Debug() const
   return strm.str(); 
 }
 
+}
 
 

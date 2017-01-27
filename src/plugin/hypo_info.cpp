@@ -3,6 +3,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 std::string HypoInfo::Debug() const
 {
   stringstream strm;
@@ -13,3 +15,6 @@ std::string HypoInfo::Debug() const
       << " score=" << score;
   return strm.str();
 }
+
+}
+

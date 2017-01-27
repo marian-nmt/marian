@@ -5,6 +5,7 @@
 #include "gru.h"
 #include "common/god.h"
 
+namespace amunmt {
 namespace CPU {
 
 class Decoder {
@@ -308,3 +309,5 @@ class Decoder {
 };
 
 }
+}
+

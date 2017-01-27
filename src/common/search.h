@@ -6,6 +6,7 @@
 #include "common/base_best_hyps.h"
 #include "common/history.h"
 
+namespace amunmt {
 
 class Search {
   public:
@@ -27,3 +28,6 @@ class Search {
 
     DeviceInfo deviceInfo_;
 };
+
+}
+

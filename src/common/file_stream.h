@@ -8,6 +8,8 @@
 
 #include "exception.h"
 
+namespace amunmt {
+
 class InputFileStream {
   public:
     InputFileStream(const std::string& file)
@@ -45,3 +47,6 @@ class InputFileStream {
     boost::filesystem::ifstream ifstream_;
     boost::iostreams::filtering_istream istream_;
 };
+
+}
+
