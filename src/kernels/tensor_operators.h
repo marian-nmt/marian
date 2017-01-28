@@ -632,9 +632,9 @@ void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
 void CopyRowsByIndex(Tensor out, const Tensor in,
                      thrust::pair<size_t, size_t>* ipair, size_t length);
 
-void CopyRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces);
+void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
-void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces);
+void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void CudnnDropoutPrepare(Tensor in, float p,
                          cudnnDropoutDescriptor_t* dropDesc,

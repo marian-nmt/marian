@@ -102,8 +102,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     }
 
   public:
-    TensorAllocatorDerived(size_t deviceNo)
-    : device_(deviceNo) {
+    TensorAllocatorDerived() {
       lastGap_ = { device_.capacity(), device_.data() };
       gaps_.insert(lastGap_);
     }
@@ -200,8 +199,8 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
 typedef std::shared_ptr<TensorAllocatorBase> TensorAllocator;
 
 template <class Device>
-TensorAllocator newTensorAllocator(size_t device = 0) {
-  return TensorAllocator(new TensorAllocatorDerived<Device>(device));
+TensorAllocator newTensorAllocator() {
+  return TensorAllocator(new TensorAllocatorDerived<Device>());
 }
 
 }

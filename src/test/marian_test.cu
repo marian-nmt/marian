@@ -17,8 +17,6 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
-  cudaSetDevice(0);
-
   std::vector<std::string> files =
     {"../test/mini.de",
      "../test/mini.en"};
@@ -33,10 +31,10 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, 10, 20);
 
   auto graph = New<ExpressionGraph>();
-  graph->initDevice(0);
+  graph->setDevice(std::atoi(argv[1]));
 
   auto nematus = New<Nematus>();
-  //nematus->load(graph, "../test/model.npz");
+  nematus->load(graph, "../test/model.npz");
 
   graph->reserveWorkspaceMB(128);
 

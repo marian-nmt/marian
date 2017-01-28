@@ -453,13 +453,16 @@ struct RowsNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   RowsNodeOp(Expr a, const std::vector<size_t>& indeces, Args ...args)
     : UnaryNodeOp(a, keywords::shape=newShape(a, indeces), args...),
-      indeces_(indeces.size(), 0) {
-    thrust::copy(indeces.begin(), indeces.end(), indeces_.begin());
+      indeces_(indeces) {
   }
 
   NodeOps forwardOps() {
+    // @TODO: solve this with a tensor!
+
     return {
-      NodeOp(CopyRows(val_, children_[0]->val(), indeces_))
+      NodeOp(CopyRows(val_,
+                      children_[0]->val(),
+                      indeces_))
     };
   }
 
@@ -486,7 +489,7 @@ struct RowsNodeOp : public UnaryNodeOp {
     return "orange";
   }
 
-  DeviceVector<size_t> indeces_;
+  std::vector<size_t> indeces_;
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {

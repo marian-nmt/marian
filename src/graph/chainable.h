@@ -92,6 +92,7 @@ struct Chainable {
     virtual std::vector<Expr>& children() = 0;
     virtual DataType& val() = 0;
     virtual DataType& grad() = 0;
+    virtual float scalar() = 0;
 
     virtual const std::string type() = 0;
     virtual const std::string color() = 0;

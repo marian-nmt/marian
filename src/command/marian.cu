@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
   int device = vm_["device"].as<int>();
 
   auto graph = New<ExpressionGraph>();
-  graph->initDevice(device);
+  graph->setDevice(device);
 
   auto nematus = New<Nematus>(dims);
 
@@ -208,9 +208,22 @@ int main(int argc, char** argv) {
 
   float clipNorm = vm_["clip-norm"].as<float>();
   float lrate = vm_["lrate"].as<float>();
+
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
   auto opt = Optimizer<Adam>(lrate, clip=clipper);
+
+  auto update = [graph, opt, nematus](Ptr<CorpusBatch> batch) -> float {
+    auto costNode = nematus->construct(graph, batch);
+    opt->update(graph);
+    return costNode->scalar();
+  };
+
+  auto save = [graph, nematus](const std::string& name) {
+    LOG(info) << "Saving parameters to " << name;
+    nematus->save(graph, name);
+  };
+
 
   auto trainSets = vm_["trainsets"].as<std::vector<std::string>>();
   auto vocabs = vm_["vocabs"].as<std::vector<std::string>>();
@@ -218,18 +231,6 @@ int main(int argc, char** argv) {
 
   auto corpus = New<Corpus>(trainSets, vocabs, dimVocabs, maxSentenceLength);
   auto bg = New<BatchGenerator<Corpus>>(corpus, dimBatch, dimMaxiBatch);
-
-  auto update = [graph, opt, nematus](Ptr<CorpusBatch> batch) -> float {
-    auto costNode = nematus->construct(graph, batch);
-    opt->update(graph);
-    return costNode->val()->scalar();
-  };
-
-  auto save = [graph, nematus](const std::string& name) {
-    LOG(info) << "Saving parameters to " << name << ".npz";
-    nematus->save(graph, name + ".npz");
-  };
-
   TrainingLoop(vm_, bg, update, save);
 
   return 0;

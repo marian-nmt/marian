@@ -14,20 +14,28 @@ namespace marian {
 
 class OptimizerBase {
   public:
-    virtual void update(Ptr<ExpressionGraph> graph) = 0;
+    virtual void update(Ptr<ExpressionGraph> graph) {
+      graph->backprop();
+      std::thread([&]() {
+        cudaSetDevice(graph->getDevice());
+        updateRule(graph);
+      }).join();
+    }
+
+    virtual void updateRule(Ptr<ExpressionGraph> graph) = 0;
 };
 
 class Sgd : public OptimizerBase {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
-    void update(Ptr<ExpressionGraph> graph) {
-      graph->backprop();
-
+    void updateRule(Ptr<ExpressionGraph> graph) {
       for(auto& param : graph->params())
         Element(_1 -= eta_ * _2,
                 param->val(), param->grad());
     }
+
+
 
   private:
     float eta_;
@@ -37,12 +45,12 @@ class Sgd : public OptimizerBase {
 class Adagrad : public OptimizerBase {
   public:
     Adagrad(float eta=0.01, float eps=1e-8)
-    : eta_(eta), eps_(eps),
-      alloc_(newTensorAllocator<DeviceGPU>())
+    : eta_(eta), eps_(eps)
     {}
 
-    void update(Ptr<ExpressionGraph> graph) {
-      graph->backprop();
+    void updateRule(Ptr<ExpressionGraph> graph) {
+      if(!alloc_)
+        alloc_ = newTensorAllocator<DeviceGPU>();
 
       if(!gt_) {
         int totalSize = graph->params().totalSize();
@@ -80,13 +88,14 @@ class Adam : public OptimizerBase {
       beta2_(Get(keywords::beta2, 0.999, args...)),
       eps_(Get(keywords::eps, 1e-8, args...)),
       clipper_(Get(keywords::clip, nullptr, args...)),
-      t_(0),
-      mtAlloc_(newTensorAllocator<DeviceGPU>()),
-      vtAlloc_(newTensorAllocator<DeviceGPU>())
+      t_(0)
     {}
 
-    void update(Ptr<ExpressionGraph> graph) {
-      graph->backprop();
+    void updateRule(Ptr<ExpressionGraph> graph) {
+      if(!mtAlloc_)
+        mtAlloc_ = newTensorAllocator<DeviceGPU>();
+      if(!vtAlloc_)
+        vtAlloc_ = newTensorAllocator<DeviceGPU>();
 
       if(clipper_) {
         clipper_->clip(graph->params().grads());

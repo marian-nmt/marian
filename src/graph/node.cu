@@ -34,6 +34,16 @@ void Node::set_zero_adjoint() {
   }
 }
 
+float Node::scalar() {
+  float s;
+  std::thread([&]() {
+    cudaSetDevice(graph()->getDevice());
+    s = val_->scalar();
+  }).join();
+  return s;
+}
+
+
 cublasHandle_t Node::getCublasHandle() {
   return graph_->getCublasHandle();
 }

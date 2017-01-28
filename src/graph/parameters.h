@@ -41,8 +41,7 @@ class Parameters {
     TensorAllocator grads_;
 
   public:
-    void init(size_t device = 0) {
-      cudaSetDevice(device);
+    void init() {
       vals_  = newTensorAllocator<DeviceGPU>();
       grads_ = newTensorAllocator<DeviceGPU>();
     }

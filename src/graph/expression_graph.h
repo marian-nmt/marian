@@ -83,11 +83,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
   public:
 
-    void initDevice(size_t device = 0) {
-      cudaSetDevice(device);
-      params_.init(device);
-      tensors_ = newTensorAllocator<DeviceGPU>(device);
-      cublasHandle_ = create_handle();
+    void setDevice(size_t device = 0) {
+      device_ = device;
+      std::thread([&]() {
+        cudaSetDevice(device_);
+        params_.init();
+        tensors_ = newTensorAllocator<DeviceGPU>();
+        cublasHandle_ = create_handle();
+      }).join();
     }
 
     cublasHandle_t getCublasHandle() {
@@ -99,23 +102,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     void reserveWorkspaceMB(size_t num) {
-      size_t elements = num * 1024 * 1024 / 4 - 1;
-      tensors_->reserve(elements);
-    }
-
-    template <class Batch>
-    void setInputs(Batch batch) {
-      auto& bInputs = batch->inputs();
-      auto& gInputs = this->inputs();
-
-      UTIL_THROW_IF2(bInputs.size() != gInputs.size(),
-                     "Number of batch inputs does not correspond to number of input nodes");
-
-      for(int i = 0; i < gInputs.size(); ++i) {
-        if(!gInputs[i]->val())
-          tensor(gInputs[i]->val(), bInputs[i].shape());
-        gInputs[i]->val()->set(bInputs[i].data());
-      }
+      std::thread([&]() {
+        cudaSetDevice(device_);
+        size_t elements = num * 1024 * 1024 / 4 - 1;
+        tensors_->reserve(elements);
+      }).join();
     }
 
     /**
@@ -147,33 +138,29 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
 
     void forward() {
-      params_.allocateForward();
+      auto exec = [&]() {
+        cudaSetDevice(device_);
+        params_.allocateForward();
+        for(auto&& tape : tapes_) {
+          for(auto&& v : tape) {
+            v->allocate();
+            v->init();
+            v->forward();
 
-      //std::cerr << "fw 1" << std::endl;
-      //for(auto&& n: nodes_)
-      //  std::cerr << n->getId() << " " << n->name() << " " << n->edges() << std::endl;
+            // @TODO: should be done in node
+            for(auto&& child : v->children()) {
+              v->decreaseEdges(1);
+              child->decreaseEdges(1);
+            }
 
-      //for(auto&& p : named_)
-      //  p.second->allocate();
-
-      for(auto&& tape : tapes_) {
-        for(auto&& v : tape) {
-          v->allocate();
-          v->init();
-          v->forward();
-
-          // @TODO: should be done in node
-          for(auto&& child : v->children()) {
-            v->decreaseEdges(1);
-            child->decreaseEdges(1);
-          }
-
-          if(v->marked_for_debug()) {
-            std::cerr << "Debug: " << v->debug_message() << std::endl;
-            std::cerr << v->val()->debug() << std::endl;
+            if(v->marked_for_debug()) {
+              std::cerr << "Debug: " << v->debug_message() << std::endl;
+              std::cerr << v->val()->debug() << std::endl;
+            }
           }
         }
-      }
+      };
+      std::thread(exec).join();
     }
 
     /**
@@ -192,65 +179,41 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
-      params_.allocateBackward();
+      auto exec = [&]() {
+        cudaSetDevice(device_);
+        params_.allocateBackward();
 
-      params_.set_zero_adjoint();
-      for(auto&& v : topNodes_)
-        v->init_dependent();
+        params_.set_zero_adjoint();
+        for(auto&& v : topNodes_)
+          v->init_dependent();
 
-      auto it = nodes_.rbegin();
-      while(it != nodes_.rend()) {
-        auto v = *it;
+        auto it = nodes_.rbegin();
+        while(it != nodes_.rend()) {
+          auto v = *it;
 
-        for(auto&& child: v->children())
-          if(child->trainable())
-            child->set_zero_adjoint();
-        if(v->trainable())
-          v->backward();
-        for(auto&& child : v->children()) {
-          v->decreaseEdges(1);
-          child->decreaseEdges(1);
+          for(auto&& child: v->children())
+            if(child->trainable())
+              child->set_zero_adjoint();
+          if(v->trainable())
+            v->backward();
+          for(auto&& child : v->children()) {
+            v->decreaseEdges(1);
+            child->decreaseEdges(1);
+          }
+
+          if(v->trainable() && v->marked_for_debug()) {
+            std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+            std::cerr << v->grad()->debug() << std::endl;
+          }
+
+          // delete unnamed nodes
+          if(v->edges() == 0 && v->name() == "none")
+            v->free();
+
+          it++;
         }
-
-        if(v->trainable() && v->marked_for_debug()) {
-          std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-          std::cerr << v->grad()->debug() << std::endl;
-        }
-
-        // delete unnamed nodes
-        if(v->edges() == 0 && v->name() == "none")
-          v->free();
-
-        it++;
-      }
-
-      //std::cerr << "bw 2" << std::endl;
-      //for(auto&& n: nodes_)
-      //  std::cerr << n->getId() << " " << n->name() << " " << n->edges() << std::endl;
-
-      //auto gIt = tapes_.rbegin();
-      //while(gIt != tapes_.rend()) {
-      //  auto tIt = gIt->rbegin();
-      //  while(tIt != gIt->rend()) {
-      //    auto v = *tIt;
-      //    if(topNodes_.count(v))
-      //      v->init_dependent();
-      //
-      //    for(auto&& child: v->children())
-      //      if(child->trainable())
-      //        child->set_zero_adjoint();
-      //
-      //    if(v->trainable())
-      //      v->backward();
-      //
-      //    if(v->marked_for_debug()) {
-      //      std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-      //      std::cerr << v->grad()->debug() << std::endl;
-      //    }
-      //    tIt++;
-      //  }
-      //  gIt++;
-      //}
+      };
+      std::thread(exec).join();
     }
 
     /**
@@ -411,15 +374,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       if(it == named_.end())
         return Expr();
       return it->second;
-    }
-
-    /**
-     * @brief Gets the list of all input nodes of this expression graph
-     *
-     * @return the list of all input nodes of this expression graph
-     */
-    std::vector<Expr>& inputs() {
-      return inputs_;
     }
 
     /**

@@ -5,7 +5,7 @@ project(marian CXX)
 find_package(CUDA REQUIRED)
 
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -Wno-unused-result -Wno-deprecated -fPIC -Wno-deprecated-gpu-targets")
-LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35)
+LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35)
 add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 

@@ -531,17 +531,23 @@ __global__ void gCopyRows(float* out, const float* in, size_t cols,
   }
 }
 
-void CopyRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces) {
+void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
   size_t cols = in->shape()[1];
   size_t rowsToCopy = indeces.size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, rowsToCopy * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), rowsToCopy * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+
   gCopyRows<<<blocks, threads>>>(out->data(), in->data(), cols,
-                                 thrust::raw_pointer_cast(indeces.data()),
+                                 d_indeces,
                                  rowsToCopy);
 
+  CUDA_CHECK(cudaFree(d_indeces));
 }
 
 __global__ void gPasteRows(float* out, const float* in, size_t cols,
@@ -564,18 +570,23 @@ __global__ void gPasteRows(float* out, const float* in, size_t cols,
   }
 }
 
-void PasteRows(Tensor out, const Tensor in, const DeviceVector<size_t>& indeces) {
+void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
   size_t cols = in->shape()[1];
   size_t rowsToCopy = indeces.size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
+  // @TODO: turn into tensor
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, rowsToCopy * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), rowsToCopy * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+
   gPasteRows<<<blocks, threads>>>(out->data(), in->data(), cols,
-                                  thrust::raw_pointer_cast(indeces.data()),
+                                  d_indeces,
                                   rowsToCopy);
-
-
+  CUDA_CHECK(cudaFree(d_indeces));
 }
 
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {

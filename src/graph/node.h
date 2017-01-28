@@ -64,6 +64,8 @@ class Node : public Chainable<Tensor>,
 
     virtual ~Node() {}
 
+    virtual float scalar();
+
     virtual NodeOps forwardOps() { return {}; };
     virtual NodeOps backwardOps() { return {}; };
 

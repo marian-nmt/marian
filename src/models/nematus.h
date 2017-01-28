@@ -168,6 +168,8 @@ class Nematus : public ExpressionGraph {
         {"ff_logit_l2_b", "ff_logit_b"}
       };
 
+      cudaSetDevice(graph->getDevice());
+
       for(auto p : graph->params().getMap()) {
         std::vector<float> v;
         p.second->val() >> v;
@@ -295,7 +297,7 @@ class Nematus : public ExpressionGraph {
                      (yShifted, yStart);
       auto yCtx = cgru.getContexts();
 
-      // 2-layer feedforward network for outputs and cost
+      //// 2-layer feedforward network for outputs and cost
       auto ff_logit_l1 = Dense("ff_logit_l1", dimTrgEmb_,
                                activation=act::tanh)
                            (yShifted, yLstm, yCtx);
@@ -305,7 +307,7 @@ class Nematus : public ExpressionGraph {
 
       auto cost = CrossEntropyCost("cost")
                     (ff_logit_l2, yIdx, mask=yMask);
-
+                    
       return cost;
     }
 };
