@@ -145,12 +145,13 @@ class Corpus {
           for(int k = 0; k < batchVector[i][j].size(); ++k) {
             langs[j][k].first[i] = batchVector[i][j][k];
             langs[j][k].second[i] = 1.f;
-            words++;
+            if(j == 0)
+              words++;
           }
         }
       }
 
-      words /= langs.size();
+      //words -= batchSize; // subtract end of sentence token
 
       return batch_ptr(new batch_type(langs, words));
     }

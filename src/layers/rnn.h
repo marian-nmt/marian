@@ -311,17 +311,18 @@ class GRU {
 
 /***************************************************************/
 
-class CGRU {
+template <class Cell1, class Attention, class Cell2>
+class AttentionCell {
   private:
-    Ptr<GRU> gru1_;
-    Ptr<GRU> gru2_;
+    Ptr<Cell1> cell1_;
+    Ptr<Cell2> cell2_;
     Ptr<Attention> att_;
 
   public:
 
-    CGRU(Attention&& att)
-    : gru1_(New<GRU>()),
-      gru2_(New<GRU>()),
+    AttentionCell(Attention&& att)
+    : cell1_(New<Cell1>()),
+      cell2_(New<Cell2>()),
       att_(New<Attention>(att)) {}
 
     template <typename ...Args>
@@ -331,15 +332,15 @@ class CGRU {
                     int dimState,
                     Args ...args)
     {
-      gru1_->initialize(graph,
-                        prefix + "_gru1",
+      cell1_->initialize(graph,
+                        prefix + "_cell1",
                         dimInput,
                         dimState,
                         keywords::final=false,
                         args...);
 
-      gru2_->initialize(graph,
-                        prefix + "_gru2",
+      cell2_->initialize(graph,
+                        prefix + "_cell2",
                         att_->outputDim(),
                         dimState,
                         keywords::final=true,
@@ -351,13 +352,13 @@ class CGRU {
     }
 
     Expr apply1(Expr input) {
-      return gru1_->apply1(input);
+      return cell1_->apply1(input);
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto hidden = gru1_->apply2(xW, state, mask);
+      auto hidden = cell1_->apply2(xW, state, mask);
       auto alignedSourceContext = att_->apply(hidden);
-      return gru2_->apply(alignedSourceContext, hidden, mask);
+      return cell2_->apply(alignedSourceContext, hidden, mask);
     }
 
     Expr getContexts() {
@@ -365,6 +366,6 @@ class CGRU {
     }
 };
 
-
+typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
 }

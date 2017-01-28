@@ -32,24 +32,25 @@ class Nematus : public ExpressionGraph {
 
     int dimBatch_;
 
-    void setDims(Ptr<data::CorpusBatch> batch) {
-      dimSrcVoc_ = this->get("Wemb") ? this->get("Wemb")->shape()[0] : dimSrcVoc_;
-      dimSrcEmb_ = this->get("Wemb") ? this->get("Wemb")->shape()[1] : dimSrcEmb_;
-      dimEncState_ = this->get("encoder_U") ? this->get("encoder_U")->shape()[0] : dimEncState_;
+    void setDims(Ptr<ExpressionGraph> graph,
+                 Ptr<data::CorpusBatch> batch) {
+      dimSrcVoc_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[0] : dimSrcVoc_;
+      dimSrcEmb_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[1] : dimSrcEmb_;
+      dimEncState_ = graph->get("encoder_U") ? graph->get("encoder_U")->shape()[0] : dimEncState_;
 
-      dimTrgVoc_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[0] : dimTrgVoc_;
-      dimTrgEmb_ = this->get("Wemb_dec") ? this->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
-      dimDecState_ = this->get("decoder_U") ? this->get("decoder_U")->shape()[0] : dimDecState_;
+      dimTrgVoc_ = graph->get("Wemb_dec") ? graph->get("Wemb_dec")->shape()[0] : dimTrgVoc_;
+      dimTrgEmb_ = graph->get("Wemb_dec") ? graph->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
+      dimDecState_ = graph->get("decoder_U") ? graph->get("decoder_U")->shape()[0] : dimDecState_;
 
       dimBatch_ = batch->size();
     }
 
   public:
 
-    void load(const std::string& name) {
+    void load(Ptr<ExpressionGraph> graph,
+              const std::string& name) {
       using namespace keywords;
 
-      std::cerr << "Loading model from " << name << std::endl;
       auto numpy = cnpy::npz_load(name);
 
       auto parameters = {
@@ -90,19 +91,19 @@ class Nematus : public ExpressionGraph {
       };
 
       std::map<std::string, std::string> nameMap = {
-        {"decoder_U", "decoder_gru1_U"},
-        {"decoder_W", "decoder_gru1_W"},
-        {"decoder_b", "decoder_gru1_b"},
-        {"decoder_Ux", "decoder_gru1_Ux"},
-        {"decoder_Wx", "decoder_gru1_Wx"},
-        {"decoder_bx", "decoder_gru1_bx"},
+        {"decoder_U", "decoder_cell1_U"},
+        {"decoder_W", "decoder_cell1_W"},
+        {"decoder_b", "decoder_cell1_b"},
+        {"decoder_Ux", "decoder_cell1_Ux"},
+        {"decoder_Wx", "decoder_cell1_Wx"},
+        {"decoder_bx", "decoder_cell1_bx"},
 
-        {"decoder_U_nl", "decoder_gru2_U"},
-        {"decoder_Wc", "decoder_gru2_W"},
-        {"decoder_b_nl", "decoder_gru2_b"},
-        {"decoder_Ux_nl", "decoder_gru2_Ux"},
-        {"decoder_Wcx", "decoder_gru2_Wx"},
-        {"decoder_bx_nl", "decoder_gru2_bx"},
+        {"decoder_U_nl", "decoder_cell2_U"},
+        {"decoder_Wc", "decoder_cell2_W"},
+        {"decoder_b_nl", "decoder_cell2_b"},
+        {"decoder_Ux_nl", "decoder_cell2_Ux"},
+        {"decoder_Wcx", "decoder_cell2_Wx"},
+        {"decoder_bx_nl", "decoder_cell2_bx"},
 
         {"ff_logit_prev_W", "ff_logit_l1_W0"},
         {"ff_logit_prev_b", "ff_logit_l1_b0"},
@@ -130,30 +131,31 @@ class Nematus : public ExpressionGraph {
         if(nameMap.count(name))
           pName = nameMap[name];
 
-        this->param(pName, shape,
-                    init=inits::from_numpy(numpy[name]));
+        graph->param(pName, shape,
+                     init=inits::from_numpy(numpy[name]));
       }
     }
 
-    void save(const std::string& name) {
-      std::cerr << "Saving to " << name << std::endl;
+    void save(Ptr<ExpressionGraph> graph,
+              const std::string& name) {
+
       unsigned shape[2];
       std::string mode = "w";
 
       std::map<std::string, std::string> nameMap = {
-        {"decoder_gru1_U", "decoder_U"},
-        {"decoder_gru1_W", "decoder_W"},
-        {"decoder_gru1_b", "decoder_b"},
-        {"decoder_gru1_Ux", "decoder_Ux"},
-        {"decoder_gru1_Wx", "decoder_Wx"},
-        {"decoder_gru1_bx", "decoder_bx"},
+        {"decoder_cell1_U", "decoder_U"},
+        {"decoder_cell1_W", "decoder_W"},
+        {"decoder_cell1_b", "decoder_b"},
+        {"decoder_cell1_Ux", "decoder_Ux"},
+        {"decoder_cell1_Wx", "decoder_Wx"},
+        {"decoder_cell1_bx", "decoder_bx"},
 
-        {"decoder_gru2_U", "decoder_U_nl"},
-        {"decoder_gru2_W", "decoder_Wc"},
-        {"decoder_gru2_b", "decoder_b_nl"},
-        {"decoder_gru2_Ux", "decoder_Ux_nl"},
-        {"decoder_gru2_Wx", "decoder_Wcx"},
-        {"decoder_gru2_bx", "decoder_bx_nl"},
+        {"decoder_cell2_U", "decoder_U_nl"},
+        {"decoder_cell2_W", "decoder_Wc"},
+        {"decoder_cell2_b", "decoder_b_nl"},
+        {"decoder_cell2_Ux", "decoder_Ux_nl"},
+        {"decoder_cell2_Wx", "decoder_Wcx"},
+        {"decoder_cell2_bx", "decoder_bx_nl"},
 
         {"ff_logit_l1_W0", "ff_logit_prev_W"},
         {"ff_logit_l1_b0", "ff_logit_prev_b"},
@@ -166,7 +168,7 @@ class Nematus : public ExpressionGraph {
         {"ff_logit_l2_b", "ff_logit_b"}
       };
 
-      for(auto p : this->params().getMap()) {
+      for(auto p : graph->params().getMap()) {
         std::vector<float> v;
         p.second->val() >> v;
 
@@ -256,24 +258,22 @@ class Nematus : public ExpressionGraph {
       return std::make_tuple(y, yMask, yIdx);
     }
 
-    Expr construct(Ptr<data::CorpusBatch> batch) {
+    Expr construct(Ptr<ExpressionGraph> graph,
+                   Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
+      graph->clear();
 
-      this->clear();
-      setDims(batch);
+      setDims(graph, batch);
 
       // Embeddings
-      auto Wemb = Embedding("Wemb", dimSrcVoc_, dimSrcEmb_)
-                    (this->shared_from_this());
-
-      auto Wemb_dec = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)
-                        (this->shared_from_this());
+      auto xEmb = Embedding("Wemb", dimSrcVoc_, dimSrcEmb_)(graph);
+      auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
 
       Expr x, xMask;
       Expr y, yMask, yIdx;
 
-      std::tie(x, xMask) = prepareSource(Wemb, batch, 0);
-      std::tie(y, yMask, yIdx) = prepareTarget(Wemb_dec, batch, 1);
+      std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
+      std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, 1);
 
       // Encoder
       auto xContext = BiRNN<GRU>("encoder", dimEncState_)
@@ -286,8 +286,9 @@ class Nematus : public ExpressionGraph {
                           dimDecState_,
                           activation=act::tanh)(xMeanContext);
 
-      auto yEmpty = this->zeros(shape={dimBatch_, dimTrgEmb_});
+      auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
       auto yShifted = concatenate({yEmpty, y}, axis=2);
+      //auto yShifted = shift(y, 1, axis=2);
 
       CGRU cgru({"decoder", xContext, dimDecState_, mask=xMask});
       auto yLstm = RNN<CGRU>("decoder", dimDecState_, cgru)

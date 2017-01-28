@@ -16,50 +16,34 @@ cuda_add_library(marian_lib
   kernels/tensor_operators.cu
   layers/param_initializers.cpp
   common/utils.cpp
+  data/vocab.cpp
+  data/corpus.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 
 target_link_libraries(marian_lib)
 
-#cuda_add_executable(
-#  softmax_benchmark
-#  apps/softmax_benchmark.cu
-#)
-
 cuda_add_executable(
   tensor_test
-  apps/tensor_test.cu
-  data/vocab.cpp
-  data/corpus.cpp
-)
-
-#cuda_add_executable(
-#  mnist_benchmark
-#  apps/mnist_benchmark.cu
-#)
-
-cuda_add_executable(
-  nematus_test
-  apps/nematus_test.cu
-  data/vocab.cpp
-  data/corpus.cpp
+  test/tensor_test.cu
 )
 
 cuda_add_executable(
-  nematus
-  apps/nematus.cu
-  data/vocab.cpp
-  data/corpus.cpp
+  marian_test
+  test/marian_test.cu
 )
 
-#target_link_libraries(softmax_benchmark marian_lib)
+cuda_add_executable(
+  marian
+  command/marian.cu
+)
+
+target_link_libraries(marian marian_lib)
 target_link_libraries(tensor_test marian_lib)
-#target_link_libraries(mnist_benchmark marian_lib)
-target_link_libraries(nematus_test marian_lib)
-target_link_libraries(nematus marian_lib)
+target_link_libraries(marian_test marian_lib)
 
-foreach(exec tensor_test nematus_test nematus)
-  target_link_libraries(${exec} ${EXT_LIBS} cuda cudnn)
+foreach(exec tensor_test marian_test marian)
+  target_link_libraries(${exec} ${EXT_LIBS} cudnn)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)

@@ -78,7 +78,7 @@ Expr attOps(Expr context, Expr state, Expr va) {
                  {dimWords, dimBatch});
 }
 
-class Attention {
+class GlobalAttention {
   private:
     Expr Wa_, ba_, Ua_, va_;
 
@@ -90,7 +90,7 @@ class Attention {
   public:
 
     template <typename ...Args>
-    Attention(const std::string prefix,
+    GlobalAttention(const std::string prefix,
               Expr context,
               int dimDecState,
               Args ...args)
