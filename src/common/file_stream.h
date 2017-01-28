@@ -15,7 +15,7 @@ class InputFileStream {
     InputFileStream(const std::string& file)
      : file_(file), ifstream_(file_)
     {
-      UTIL_THROW_IF2(!boost::filesystem::exists(file_),
+      amunmt_UTIL_THROW_IF2(!boost::filesystem::exists(file_),
                      "File " << file << " does not exist");
 
       if(file_.extension() == ".gz")

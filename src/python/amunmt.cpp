@@ -42,7 +42,7 @@ boost::python::list translate(boost::python::list& in) {
 #endif
 
   LOG(info) << "Total number of threads: " << totalThreads;
-  UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   ThreadPool pool(totalThreads);
   std::vector<std::future< std::shared_ptr<Histories> >> results;

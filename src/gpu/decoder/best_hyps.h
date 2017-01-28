@@ -51,7 +51,7 @@ class BestHyps : public BestHypsBase
                 attention.begin() + hypIndex * attLength,
                 attention.begin() + (hypIndex + 1) * attLength));
         } else {
-          UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+          amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
         }
       }
       return alignments;

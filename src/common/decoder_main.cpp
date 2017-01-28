@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 #endif
 
   LOG(info) << "Total number of threads: " << totalThreads;
-  UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   {
     ThreadPool pool(totalThreads, totalThreads);

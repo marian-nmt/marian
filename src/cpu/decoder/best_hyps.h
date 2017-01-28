@@ -109,7 +109,7 @@ public:
             alignments.emplace_back(new SoftAlignment(attention.begin(hypIndex),
                                                       attention.end(hypIndex)));
           } else {
-            UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+            amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
           }
         }
 
