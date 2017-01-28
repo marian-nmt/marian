@@ -7,6 +7,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 find_package(SparseHash)
 if(SPARSEHASH_FOUND)
   add_definitions(-DHAVE_SPARSEHASH)
+  include_directories(${SPARSEHASH_INCLUDE_DIR})
 endif(SPARSEHASH_FOUND)
 
 find_package(OpenMP QUIET)
