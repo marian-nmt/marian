@@ -35,6 +35,7 @@ cuda_add_executable(
 
 cuda_add_executable(
   marian
+  command/config.cpp
   command/marian.cu
 )
 
