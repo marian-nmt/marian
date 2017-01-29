@@ -130,8 +130,8 @@ int main(int argc, char** argv) {
 
   Ptr<ClipperBase> clipper = nullptr;
 
-  float clipNorm = options["clip-norm"].as<float>();
-  float lrate = options["lrate"].as<float>();
+  float clipNorm = options["clip-norm"].as<double>();
+  float lrate = options["lrate"].as<double>();
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
   auto opt = Optimizer<Adam>(lrate, clip=clipper);

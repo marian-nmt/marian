@@ -122,7 +122,7 @@ void Config::addOptions(int argc, char** argv) {
   po::options_description general("General options");
 
   general.add_options()
-    ("config,f", po::value(&configPath),
+    ("config,c", po::value(&configPath),
      "Configuration file")
     ("model,m", po::value<std::string>()->default_value("./model"),
       "Path prefix for model to be saved")
@@ -133,21 +133,19 @@ void Config::addOptions(int argc, char** argv) {
     ("overwrite", po::value<bool>()->default_value(false),
       "Overwrite model with following checkpoints")
     ("trainsets,t", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to training corpora")
+      "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files, have to correspond with --trainsets")
-    ("max-epochs,e", po::value<size_t>()->default_value(0),
-      "Maximum number of epochs, 0 is infinity")
-    ("max-batches", po::value<size_t>()->default_value(0),
-      "Maximum number of batch updates, 0 is infinity")
+      "Paths to vocabulary files, have to correspond to --trainsets")
+    ("after-epochs,e", po::value<size_t>()->default_value(0),
+      "Finish after this many epochs, 0 is infinity")
+    ("after-batches", po::value<size_t>()->default_value(0),
+      "Finish after this many batch updates, 0 is infinity")
     ("disp-freq", po::value<size_t>()->default_value(100),
       "Display information every  arg  updates")
     ("save-freq", po::value<size_t>()->default_value(30000),
       "Save model file every  arg  updates")
     ("workspace,w", po::value<size_t>()->default_value(2048),
       "Preallocate  arg  MB of work space")
-    ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
-      "Print this help message and exit")
   ;
 
   po::options_description hyper("Hyper-parameters");
@@ -158,9 +156,9 @@ void Config::addOptions(int argc, char** argv) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(20),
       "Number of batches to preload for length-based sorting")
-    ("lrate,l", po::value<float>()->default_value(0.0001),
+    ("lrate,l", po::value<double>()->default_value(0.0001),
       "Learning rate for Adam algorithm")
-    ("clip-norm,c", po::value<float>()->default_value(1.f),
+    ("clip-norm,c", po::value<double>()->default_value(1.f),
       "Clip gradient norm to  arg  (0 to disable)")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
@@ -176,6 +174,8 @@ void Config::addOptions(int argc, char** argv) {
      "All paths are relative to the config file location")
     ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
      "Dump current (modified) configuration to stdout and exit")
+    ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
+      "Print this help message and exit")
   ;
 
   po::options_description cmdline_options("Allowed options");
@@ -231,8 +231,8 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  SET_OPTION("lrate", float);
-  SET_OPTION("clip-norm", float);
+  SET_OPTION("lrate", double);
+  SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
