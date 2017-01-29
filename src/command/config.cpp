@@ -60,6 +60,27 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
   }
 }
 
+void Config::validate() const {
+  if (config_["trainsets"]) {
+    std::vector<std::string> tmp = config_["trainsets"].as<std::vector<std::string>>();
+    if (tmp.size() != 2) {
+      std::cerr << "No trainsets!" << std::endl;
+      exit(1);
+    }
+  } else {
+    std::cerr << "No trainsets!" << std::endl;
+    exit(1);
+  }
+  if (config_["vocabs"]) {
+    if (config_["vocabs"].as<std::vector<std::string>>().size() != 2) {
+      std::cerr << "No vocab files!" << std::endl;
+      exit(1);
+    }
+  } else {
+    std::cerr << "No vocab files!" << std::endl;
+    exit(1);
+  }
+}
 
 void OutputRec(const YAML::Node node, YAML::Emitter& out) {
   // std::set<std::string> flow = { "devices" };
@@ -191,8 +212,15 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("device", int);
   SET_OPTION("init", std::string);
   SET_OPTION("overwrite", bool);
-  SET_OPTION_NONDEFAULT("trainsets", std::vector<std::string>);
-  SET_OPTION_NONDEFAULT("vocabs", std::vector<std::string>);
+  // SET_OPTION_NONDEFAULT("trainsets", std::vector<std::string>);
+
+  if (!vm_["trainsets"].empty()) {
+    config_["trainsets"] = vm_["trainsets"].as<std::vector<std::string>>();
+  }
+  if (!vm_["vocabs"].empty()) {
+    config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
+  }
+  // SET_OPTION_NONDEFAULT("vocabs", std::vector<std::string>);
   SET_OPTION("max-epochs", size_t);
   SET_OPTION("max-batches", size_t);
   SET_OPTION("disp-freq", size_t);
@@ -208,6 +236,8 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
+
+  validate();
 
   if (get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);

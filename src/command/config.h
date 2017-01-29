@@ -25,6 +25,7 @@ class Config {
 
     void addOptions(int argc, char** argv);
     void logOptions();
+    void validate() const;
 
     template <class OStream>
     friend OStream& operator<<(OStream& out, const Config& config) {
