@@ -1,3 +1,4 @@
+#include <random>
 #include "corpus.h"
 
 namespace marian {
