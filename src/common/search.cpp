@@ -44,7 +44,7 @@ void Search::Decode(
 		const Sentences& sentences,
 		States &states,
 		States &nextStates,
-		std::shared_ptr<Histories> ret,
+		std::shared_ptr<Histories> &histories,
 		Beam &prevHyps)
 {
   size_t batchSize = sentences.size();
@@ -72,7 +72,7 @@ void Search::Decode(
 
 	for (size_t i = 0; i < batchSize; ++i) {
 	  if (!beams[i].empty()) {
-		ret->at(i)->Add(beams[i], ret->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+		histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
 	  }
 	}
 
@@ -102,38 +102,36 @@ void Search::Decode(
 std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  std::shared_ptr<Histories> ret(new Histories(god, sentences));
+  std::shared_ptr<Histories> histories(new Histories(god, sentences));
 
   size_t batchSize = sentences.size();
-  size_t vocabSize = scorers_[0]->GetVocabSize();
-
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
   States states(scorers_.size());
   States nextStates(scorers_.size());
 
   // calc
-  PreProcess(god, sentences, ret, prevHyps);
+  PreProcess(god, sentences, histories, prevHyps);
   Encode(sentences, states, nextStates);
-  Decode(god, sentences, states, nextStates, ret, prevHyps);
+  Decode(god, sentences, states, nextStates, histories, prevHyps);
   PostProcess();
 
-  LOG(progress) << "Batch " << sentences.taskCounter << "." << sentences.bunchId
+  LOG(progress) << "Batch " << sentences.GetTaskCounter() << "." << sentences.GetBunchId()
                 << ": Search took " << timer.format(3, "%ws");
 
-  return ret;
+  return histories;
 }
 
 void Search::PreProcess(
 		const God &god,
 		const Sentences& sentences,
-		std::shared_ptr<Histories> ret,
+		std::shared_ptr<Histories> &histories,
 		Beam &prevHyps)
 {
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
-  for (size_t i = 0; i < ret->size(); ++i) {
-	History &history = *ret->at(i).get();
+  for (size_t i = 0; i < histories->size(); ++i) {
+	History &history = *histories->at(i).get();
 	history.Add(prevHyps);
   }
 

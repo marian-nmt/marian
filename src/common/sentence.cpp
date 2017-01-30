@@ -52,9 +52,9 @@ const Words& Sentence::GetWords(size_t index) const {
 }
 
 /////////////////////////////////////////////////////////
-Sentences::Sentences(size_t vTaskCounter, size_t vBunchId)
-  : taskCounter(vTaskCounter)
-  , bunchId(vBunchId)
+Sentences::Sentences(size_t taskCounter, size_t bunchId)
+  : taskCounter_(taskCounter)
+  , bunchId_(bunchId)
   , maxLength_(0)
 {}
 

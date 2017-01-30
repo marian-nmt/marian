@@ -16,7 +16,7 @@ class Search {
     void PreProcess(
     		const God &god,
     		const Sentences& sentences,
-    		std::shared_ptr<Histories> ret,
+    		std::shared_ptr<Histories> &histories,
     		Beam &prevHyps);
 
     void PostProcess();
@@ -26,7 +26,7 @@ class Search {
     		const Sentences& sentences,
     		States &states,
     		States &nextStates,
-    		std::shared_ptr<Histories> ret,
+    		std::shared_ptr<Histories> &histories,
     		Beam &prevHyps);
 
     const DeviceInfo &GetDeviceInfo()
