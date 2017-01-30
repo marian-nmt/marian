@@ -39,6 +39,66 @@ void Search::Encode(const Sentences& sentences, States& states, States& nextStat
   }
 }
 
+void Search::Decode(
+		const God &god,
+		const Sentences& sentences,
+		States &states,
+		States &nextStates,
+		std::shared_ptr<Histories> ret,
+		Beam &prevHyps)
+{
+  size_t batchSize = sentences.size();
+
+  std::vector<size_t> beamSizes(batchSize, 1);
+
+  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+	for (size_t i = 0; i < scorers_.size(); i++) {
+	  Scorer &scorer = *scorers_[i];
+	  State &state = *states[i];
+	  State &nextState = *nextStates[i];
+
+	  scorer.Decode(god, state, nextState, beamSizes);
+	}
+
+	if (decoderStep == 0) {
+	  for (auto& beamSize : beamSizes) {
+		beamSize = god.Get<size_t>("beam-size");
+	  }
+	}
+	Beams beams(batchSize);
+	bool returnAlignment = god.Get<bool>("return-alignment");
+
+	(*bestHyps_)(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+
+	for (size_t i = 0; i < batchSize; ++i) {
+	  if (!beams[i].empty()) {
+		ret->at(i)->Add(beams[i], ret->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+	  }
+	}
+
+	Beam survivors;
+	for (size_t batchID = 0; batchID < batchSize; ++batchID) {
+	  for (auto& h : beams[batchID]) {
+		if (h->GetWord() != EOS) {
+		  survivors.push_back(h);
+		} else {
+		  --beamSizes[batchID];
+		}
+	  }
+	}
+
+	if (survivors.size() == 0) {
+	  break;
+	}
+
+	for (size_t i = 0; i < scorers_.size(); i++) {
+	  scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+	}
+
+	prevHyps.swap(survivors);
+  }
+}
+
 std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
@@ -49,64 +109,13 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
 
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
-  PreProcess(god, sentences, ret, prevHyps);
-
-  // Encode
   States states(scorers_.size());
   States nextStates(scorers_.size());
 
+  // calc
+  PreProcess(god, sentences, ret, prevHyps);
   Encode(sentences, states, nextStates);
-
-  // Decode
-  std::vector<size_t> beamSizes(batchSize, 1);
-
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      Scorer &scorer = *scorers_[i];
-      State &state = *states[i];
-      State &nextState = *nextStates[i];
-
-      scorer.Decode(god, state, nextState, beamSizes);
-    }
-
-    if (decoderStep == 0) {
-      for (auto& beamSize : beamSizes) {
-        beamSize = god.Get<size_t>("beam-size");
-      }
-    }
-    Beams beams(batchSize);
-    bool returnAlignment = god.Get<bool>("return-alignment");
-
-    (*bestHyps_)(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
-
-    for (size_t i = 0; i < batchSize; ++i) {
-      if (!beams[i].empty()) {
-        ret->at(i)->Add(beams[i], ret->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
-      }
-    }
-
-    Beam survivors;
-    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
-      for (auto& h : beams[batchID]) {
-        if (h->GetWord() != EOS) {
-          survivors.push_back(h);
-        } else {
-          --beamSizes[batchID];
-        }
-      }
-    }
-
-    if (survivors.size() == 0) {
-      break;
-    }
-
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
-    }
-
-    prevHyps.swap(survivors);
-  }
-
+  Decode(god, sentences, states, nextStates, ret, prevHyps);
   PostProcess();
 
   LOG(progress) << "Batch " << sentences.taskCounter << "." << sentences.bunchId

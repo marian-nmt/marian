@@ -21,6 +21,14 @@ class Search {
 
     void PostProcess();
 
+    void Decode(
+    		const God &god,
+    		const Sentences& sentences,
+    		States &states,
+    		States &nextStates,
+    		std::shared_ptr<Histories> ret,
+    		Beam &prevHyps);
+
     const DeviceInfo &GetDeviceInfo()
     { return deviceInfo_; }
 
