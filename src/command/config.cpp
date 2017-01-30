@@ -37,6 +37,7 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
         try {
           node = canonical(path{nodePath}, configPath).string();
         } catch (boost::filesystem::filesystem_error& e) {
+          std::cerr << e.what() << std::endl;
           auto parentPath = path{nodePath}.parent_path();
           node = (canonical(parentPath, configPath) / path{nodePath}.filename()).string();
         }
@@ -44,20 +45,20 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
     }
 
     if(node.Type() == YAML::NodeType::Sequence) {
-      for(auto&& sub : node) {
+      for (auto&& sub : node) {
         ProcessPaths(sub, configPath, true);
-        break;
       }
     }
   }
   else {
     switch (node.Type()) {
       case YAML::NodeType::Sequence:
-        for(auto&& sub : node)
+        for (auto&& sub : node) {
           ProcessPaths(sub, configPath, false);
+        }
         break;
       case YAML::NodeType::Map:
-        for(auto&& sub : node) {
+        for (auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
           ProcessPaths(sub.second, configPath, paths.count(key) > 0);
         }
