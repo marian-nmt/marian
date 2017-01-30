@@ -74,7 +74,7 @@ void MosesPlugin::GeneratePhrases(const States& states, size_t lastWord, size_t 
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(god_, state, nextState, beamSizes);
+      scorer.Decode(god_, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
@@ -171,7 +171,7 @@ States MosesPlugin::GenerateStates(const States& ParentStates,
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(god_, state, nextState, beamSizes);
+      scorer.Decode(god_, state, nextState, beamSizes);
     }
 
     Beam survivors;

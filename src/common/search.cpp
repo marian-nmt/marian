@@ -84,7 +84,7 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
       State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Score(god, state, nextState, beamSizes);
+      scorer.Decode(god, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
