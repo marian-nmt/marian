@@ -22,7 +22,7 @@ std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCou
 
   std::shared_ptr<Sentences> sentences(new Sentences());
   sentences->push_back(SentencePtr(new Sentence(god_, taskCounter, in)));
-  return search.Decode(god_, *sentences);
+  return search.Process(god_, *sentences);
 }
 
 void init(const std::string& options) {

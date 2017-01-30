@@ -11,7 +11,7 @@ namespace amunmt {
 class Search {
   public:
     Search(const God &god);
-    std::shared_ptr<Histories> Decode(const God &god, const Sentences& sentences);
+    std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
 
     const DeviceInfo &GetDeviceInfo()
     { return deviceInfo_; }

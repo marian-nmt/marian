@@ -39,7 +39,7 @@ void Search::InitScorers(const Sentences& sentences, States& states, States& nex
   }
 }
 
-std::shared_ptr<Histories> Search::Decode(const God &god, const Sentences& sentences) {
+std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   std::shared_ptr<Histories> ret(new Histories(god, sentences));
