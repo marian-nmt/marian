@@ -27,10 +27,10 @@ namespace marian {
 
     size_t epochs = 1;
     size_t batches = 0;
-    while((options["max-epochs"].as<size_t>() == 0
-           || epochs <= options["max-epochs"].as<size_t>()) &&
-          (options["max-batches"].as<size_t>() == 0
-           || batches < options["max-batches"].as<size_t>())) {
+    while((options["after-epochs"].as<size_t>() == 0
+           || epochs <= options["after-epochs"].as<size_t>()) &&
+          (options["after-batches"].as<size_t>() == 0
+           || batches < options["after-batches"].as<size_t>())) {
 
       batchGenerator->prepare();
 
@@ -47,8 +47,8 @@ namespace marian {
         samples += batch->size();
         wordsDisp += batch->words();
         batches++;
-        if(options["max-batches"].as<size_t>()
-           && batches >= options["max-batches"].as<size_t>())
+        if(options["after-batches"].as<size_t>()
+           && batches >= options["after-batches"].as<size_t>())
           break;
 
         if(batches % options["disp-freq"].as<size_t>() == 0) {

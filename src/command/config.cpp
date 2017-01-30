@@ -156,7 +156,7 @@ void Config::addOptions(int argc, char** argv) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(20),
       "Number of batches to preload for length-based sorting")
-    ("learn-rate,l,", po::value<double>()->default_value(0.0001),
+    ("lrate,l,", po::value<double>()->default_value(0.0001),
       "Learning rate for Adam algorithm")
     ("clip-norm", po::value<double>()->default_value(1.f),
       "Clip gradient norm to  arg  (0 to disable)")
@@ -231,7 +231,7 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  SET_OPTION("learn-rate", double);
+  SET_OPTION("lrate", double);
   SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
