@@ -7,7 +7,7 @@
 namespace amunmt {
 
 Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)
-  : lineNum_(vLineNum), line_(line)
+  : lineNum_(vLineNum)
 {
   std::vector<std::string> tabs;
   Split(line, tabs, "\t");

@@ -20,7 +20,6 @@ class Sentence {
 
   private:
     std::vector<Words> words_;
-    std::string line_;
     size_t lineNum_;
 
     Sentence(const Sentence &) = delete;
