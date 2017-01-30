@@ -13,6 +13,12 @@ class Search {
     Search(const God &god);
     std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
 
+    void PreProcess(
+    		const God &god,
+    		const Sentences& sentences,
+    		std::shared_ptr<Histories> ret,
+    		Beam &prevHyps);
+
     const DeviceInfo &GetDeviceInfo()
     { return deviceInfo_; }
 
