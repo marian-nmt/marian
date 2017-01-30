@@ -20,7 +20,7 @@ class Search {
     Search(const Search &) = delete;
 
     size_t MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize);
-    void InitScorers(const Sentences& sentences, States& states, States& nextStates);
+    void Encode(const Sentences& sentences, States& states, States& nextStates);
 
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;

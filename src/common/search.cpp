@@ -27,7 +27,7 @@ size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t
   return filterIndices_.size();
 }
 
-void Search::InitScorers(const Sentences& sentences, States& states, States& nextStates) {
+void Search::Encode(const Sentences& sentences, States& states, States& nextStates) {
   for (size_t i = 0; i < scorers_.size(); i++) {
     Scorer &scorer = *scorers_[i];
     scorer.SetSource(sentences);
@@ -76,7 +76,7 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
     maxLength = std::max(maxLength, sentence.GetWords().size());
   }
 
-  InitScorers(sentences, states, nextStates);
+  Encode(sentences, states, nextStates);
 
   for (size_t decoderStep = 0; decoderStep < 3 * maxLength; ++decoderStep) {
     for (size_t i = 0; i < scorers_.size(); i++) {
