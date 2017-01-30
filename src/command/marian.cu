@@ -27,10 +27,10 @@ namespace marian {
 
     size_t epochs = 1;
     size_t batches = 0;
-    while((options["after-epochs"].as<size_t>() == 0
-           || epochs <= options["after-epochs"].as<size_t>()) &&
-          (options["after-batches"].as<size_t>() == 0
-           || batches < options["after-batches"].as<size_t>())) {
+    while((options.get<size_t>("after-epochs") == 0
+           || epochs <= options.get<size_t>("after-epochs")) &&
+          (options.get<size_t>("after-batches") == 0
+           || batches < options.get<size_t>("after-batches"))) {
 
       batchGenerator->prepare();
 
@@ -47,17 +47,17 @@ namespace marian {
         samples += batch->size();
         wordsDisp += batch->words();
         batches++;
-        if(options["after-batches"].as<size_t>()
-           && batches >= options["after-batches"].as<size_t>())
+        if(options.get<size_t>("after-batches")
+           && batches >= options.get<size_t>("after-batches"))
           break;
 
-        if(batches % options["disp-freq"].as<size_t>() == 0) {
+        if(batches % options.get<size_t>("disp-freq") == 0) {
           std::stringstream ss;
           ss << "Ep. " << epochs
              << " : Up. " << batches
              << " : Sen. " << samples
              << " : Cost " << std::fixed << std::setprecision(2)
-                           << costSum / options["disp-freq"].as<size_t>()
+                           << costSum / options.get<size_t>("disp-freq")
              << " : Time " << timer.format(2, "%ws");
 
           float seconds = std::stof(timer.format(5, "%w"));
@@ -73,18 +73,18 @@ namespace marian {
           wordsDisp = 0;
         }
 
-        if(batches % options["save-freq"].as<size_t>() == 0) {
-          if(options["overwrite"].as<bool>())
-            save(options["model"].as<std::string>() + ".npz");
+        if(batches % options.get<size_t>("save-freq") == 0) {
+          if(options.get<bool>("overwrite"))
+            save(options.get<std::string>("model") + ".npz");
           else
-            save(options["model"].as<std::string>() + "." + std::to_string(batches) + ".npz");
+            save(options.get<std::string>("model") + "." + std::to_string(batches) + ".npz");
         }
       }
       epochs++;
       LOG(info) << "Starting epoch " << epochs << " after " << samples << " samples";
     }
     LOG(info) << "Training finshed";
-    save(options["model"].as<std::string>() + ".npz");
+    save(options.get<std::string>("model") + ".npz");
     LOG(info) << timer.format(2, "%ws");
   }
 }
@@ -101,11 +101,11 @@ int main(int argc, char** argv) {
   Config options(argc, argv);
   std::cerr << options << std::endl;
 
-  auto dimVocabs = options["dim-vocabs"].as<std::vector<int>>();
-  int dimEmb = options["dim-emb"].as<int>();
-  int dimRnn = options["dim-rnn"].as<int>();
-  int dimBatch = options["mini-batch"].as<int>();
-  int dimMaxiBatch = options["maxi-batch"].as<int>();
+  auto dimVocabs = options.get<std::vector<int>>("dim-vocabs");
+  int dimEmb = options.get<int>("dim-emb");
+  int dimRnn = options.get<int>("dim-rnn");
+  int dimBatch = options.get<int>("mini-batch");
+  int dimMaxiBatch = options.get<int>("maxi-batch");
 
   std::vector<int> dims = {
     dimVocabs[0], dimEmb, dimRnn,
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     dimBatch
   };
 
-  int device = options["device"].as<int>();
+  int device = options.get<int>("device");
 
   auto graph = New<ExpressionGraph>();
   graph->setDevice(device);
@@ -126,12 +126,12 @@ int main(int argc, char** argv) {
     nematus->load(graph, modelInit);
   }
 
-  graph->reserveWorkspaceMB(options["workspace"].as<size_t>());
+  graph->reserveWorkspaceMB(options.get<size_t>("workspace"));
 
   Ptr<ClipperBase> clipper = nullptr;
 
-  float clipNorm = options["clip-norm"].as<double>();
-  float lrate = options["lrate"].as<double>();
+  float clipNorm = options.get<double>("clip-norm");
+  float lrate = options.get<double>("lrate");
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
   auto opt = Optimizer<Adam>(lrate, clip=clipper);
@@ -147,10 +147,9 @@ int main(int argc, char** argv) {
     nematus->save(graph, name);
   };
 
-
-  auto trainSets = options["trainsets"].as<std::vector<std::string>>();
-  auto vocabs = options["vocabs"].as<std::vector<std::string>>();
-  size_t maxSentenceLength = options["max-length"].as<size_t>();
+  auto trainSets = options.get<std::vector<std::string>>("trainsets");
+  auto vocabs = options.get<std::vector<std::string>>("vocabs");
+  size_t maxSentenceLength = options.get<size_t>("max-length");
 
   auto corpus = New<Corpus>(trainSets, vocabs, dimVocabs, maxSentenceLength);
   auto bg = New<BatchGenerator<Corpus>>(corpus, dimBatch, dimMaxiBatch);
