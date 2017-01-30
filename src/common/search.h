@@ -19,6 +19,8 @@ class Search {
     		std::shared_ptr<Histories> ret,
     		Beam &prevHyps);
 
+    void PostProcess();
+
     const DeviceInfo &GetDeviceInfo()
     { return deviceInfo_; }
 

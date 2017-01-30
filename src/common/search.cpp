@@ -107,12 +107,10 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
     prevHyps.swap(survivors);
   }
 
+  PostProcess();
+
   LOG(progress) << "Batch " << sentences.taskCounter << "." << sentences.bunchId
                 << ": Search took " << timer.format(3, "%ws");
-
-  for (auto scorer : scorers_) {
-	  scorer->CleanUpAfterSentence();
-  }
 
   return ret;
 }
@@ -142,6 +140,13 @@ void Search::PreProcess(
 	vocabSize = MakeFilter(god, srcWords, vocabSize);
   }
 
+}
+
+void Search::PostProcess()
+{
+  for (auto scorer : scorers_) {
+	  scorer->CleanUpAfterSentence();
+  }
 }
 
 
