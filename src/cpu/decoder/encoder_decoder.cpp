@@ -66,7 +66,7 @@ void EncoderDecoder::Decode(const God &god, const State& in, State& out, const s
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  decoder_->MakeStep(edOut.GetStates(), edIn.GetStates(),
+  decoder_->Decode(edOut.GetStates(), edIn.GetStates(),
                      edIn.GetEmbeddings(), SourceContext_);
 }
 
