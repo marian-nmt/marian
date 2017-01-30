@@ -221,8 +221,8 @@ void Config::addOptions(int argc, char** argv) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
   // SET_OPTION_NONDEFAULT("vocabs", std::vector<std::string>);
-  SET_OPTION("max-epochs", size_t);
-  SET_OPTION("max-batches", size_t);
+  SET_OPTION("after-epochs", size_t);
+  SET_OPTION("after-batches", size_t);
   SET_OPTION("disp-freq", size_t);
   SET_OPTION("save-freq", size_t);
   SET_OPTION("workspace", size_t);
@@ -231,7 +231,7 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  SET_OPTION("lrate", double);
+  SET_OPTION("learn-rate", double);
   SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
