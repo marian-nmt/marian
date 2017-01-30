@@ -11,6 +11,7 @@
 #include "common/god.h"
 #include "common/history.h"
 #include "common/sentence.h"
+#include "common/search.h"
 
 namespace amunmt {
 
@@ -221,13 +222,19 @@ States MosesPlugin::SetSource(const std::vector<size_t>& words) {
       sentences_.at(0).reset(new Sentence(god_, 0, words));
   }
 
-  States states(scorers_.size());
+  // Encode
+  Search &search = god_.GetSearch();
 
-  for (size_t i = 0; i < scorers_.size(); ++i) {
-    states[i].reset(scorers_[i]->NewState());
-    scorers_[i]->SetSource(sentences_);
-    scorers_[i]->BeginSentenceState(*states[i], sentences_.size());
-  }
+  std::shared_ptr<Histories> histories(new Histories(god_, sentences_));
+
+  size_t batchSize = sentences_.size();
+  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
+
+  States states(scorers_.size());
+  States nextStates(scorers_.size());
+
+  search.PreProcess(god_, sentences_, histories, prevHyps);
+  search.Encode(sentences_, states, nextStates);
 
   return states;
 }
