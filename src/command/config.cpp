@@ -156,9 +156,9 @@ void Config::addOptions(int argc, char** argv) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(20),
       "Number of batches to preload for length-based sorting")
-    ("lrate,l", po::value<double>()->default_value(0.0001),
+    ("learn-rate,l,", po::value<double>()->default_value(0.0001),
       "Learning rate for Adam algorithm")
-    ("clip-norm,c", po::value<double>()->default_value(1.f),
+    ("clip-norm", po::value<double>()->default_value(1.f),
       "Clip gradient norm to  arg  (0 to disable)")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
