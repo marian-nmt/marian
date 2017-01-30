@@ -47,41 +47,6 @@ class MosesPlugin {
 
     States SetSource(const std::vector<size_t>& words);
 
-    void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
-
-    size_t TargetVocab(const std::string& str);
-    size_t SourceVocab(const std::string& str);
-
-    // void BatchSteps(const Batches& batches, LastWords& lastWords,
-                    // Scores& probs, Scores& unks, StateInfos& stateInfos,
-                    // bool firstWord);
-
-    // void OnePhrase(
-      // const std::vector<std::string>& phrase,
-      // const std::string& lastWord,
-      // bool firstWord,
-      // StateInfoPtr inputState,
-      // float& prob, size_t& unks,
-      // StateInfoPtr& outputState);
-
-    // void MakeStep(
-      // const std::vector<std::string>& nextWords,
-      // const std::vector<std::string>& lastWords,
-      // std::vector<StateInfoPtr>& inputStates,
-      // std::vector<double>& logProbs,
-      // std::vector<StateInfoPtr>& nextStates,
-      // std::vector<bool>& unks);
-
-    // void ClearStates();
-
-    // std::vector<double> RescoreNBestList(
-        // const std::vector<std::string>& nbest,
-        // const size_t maxBatchSize=64);
-    void GeneratePhrases(const amunmt::States& states, size_t lastWord, size_t numPhrases,
-                         std::vector<NeuralPhrase>& phrases);
-
-    States GenerateStates(const States& parentStates, size_t lastWord, std::vector<size_t>& phrase);
-    void Rescore(std::vector<HypoInfo> &hypos);
 
   private:
     bool debug_;
@@ -91,7 +56,6 @@ class MosesPlugin {
     std::vector<amunmt::ScorerPtr> scorers_;
     amunmt::Words filterIndices_;
     amunmt::BestHypsBasePtr bestHyps_;
-    amunmt::Sentences sentences_;
 
     std::shared_ptr<amunmt::States> states_;
     bool firstWord_;
