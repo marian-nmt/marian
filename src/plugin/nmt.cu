@@ -18,16 +18,9 @@ namespace amunmt {
 void MosesPlugin::initGod(const std::string& configPath) {
   std::string configs = "-c " + configPath;
   god_.Init(configs);
-
-  DeviceInfo deviceInfo = god_.GetNextDevice();  
-  scorers_ = god_.GetScorers(deviceInfo);
-  bestHyps_ = god_.GetBestHyps(deviceInfo);
 }
 
 MosesPlugin::MosesPlugin()
-  : debug_(false),
-    states_(new States()),
-    firstWord_(true)
 {}
 
 MosesPlugin::~MosesPlugin()
@@ -53,14 +46,15 @@ States MosesPlugin::SetSource(const std::vector<size_t>& words) {
 
   // Encode
   Search &search = god_.GetSearch();
+  size_t numScorers = search.GetScorers().size();
 
   std::shared_ptr<Histories> histories(new Histories(god_, sentences));
 
   size_t batchSize = sentences.size();
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
-  States states(scorers_.size());
-  States nextStates(scorers_.size());
+  States states(numScorers);
+  States nextStates(numScorers);
 
   search.PreProcess(god_, sentences, histories, prevHyps);
   search.Encode(sentences, states, nextStates);

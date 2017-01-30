@@ -34,6 +34,9 @@ class Search {
     const DeviceInfo &GetDeviceInfo()
     { return deviceInfo_; }
 
+    const std::vector<ScorerPtr> &GetScorers() const
+    { return scorers_; }
+
   private:
     Search(const Search &) = delete;
 

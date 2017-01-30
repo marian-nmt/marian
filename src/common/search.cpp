@@ -105,10 +105,12 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
   std::shared_ptr<Histories> histories(new Histories(god, sentences));
 
   size_t batchSize = sentences.size();
+  size_t numScorers = scorers_.size();
+
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
-  States states(scorers_.size());
-  States nextStates(scorers_.size());
+  States states(numScorers);
+  States nextStates(numScorers);
 
   // calc
   PreProcess(god, sentences, histories, prevHyps);

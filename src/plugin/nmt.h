@@ -39,28 +39,14 @@ class MosesPlugin {
     const amunmt::God &GetGod() const
     { return god_; }
 
-    void SetDebug(bool debug) {
-      debug_ = debug;
-    }
-
     void initGod(const std::string& configPath);
 
     States SetSource(const std::vector<size_t>& words);
 
 
   private:
-    bool debug_;
-
     amunmt::God god_;
     
-    std::vector<amunmt::ScorerPtr> scorers_;
-    amunmt::Words filterIndices_;
-    amunmt::BestHypsBasePtr bestHyps_;
-
-    std::shared_ptr<amunmt::States> states_;
-    bool firstWord_;
-
-    std::vector<size_t> filteredId_;
 };
 
 }
