@@ -27,10 +27,10 @@ namespace marian {
 
     size_t epochs = 1;
     size_t batches = 0;
-    while((options["after-epochs"].as<size_t>() == 0
-           || epochs <= options["after-epochs"].as<size_t>()) &&
-          (options["after-batches"].as<size_t>() == 0
-           || batches < options["after-batches"].as<size_t>())) {
+    while((options.get<size_t>("after-epochs") == 0
+           || epochs <= options.get<size_t>("after-epochs")) &&
+          (options.get<size_t>("after-batches") == 0
+           || batches < options.get<size_t>("after-batches"))) {
 
       batchGenerator->prepare();
 
@@ -47,8 +47,8 @@ namespace marian {
         samples += batch->size();
         wordsDisp += batch->words();
         batches++;
-        if(options["after-batches"].as<size_t>()
-           && batches >= options["after-batches"].as<size_t>())
+        if(options.get<size_t>("after-batches")
+           && batches >= options.get<size_t>("after-batches"))
           break;
 
         if(batches % options.get<size_t>("disp-freq") == 0) {
@@ -120,17 +120,17 @@ int main(int argc, char** argv) {
 
   auto nematus = New<Nematus>(dims);
 
-  if(options["init"]) {
-    LOG(info) << "Loading parameters from " << options["init"].as<std::string>();
-    nematus->load(graph, options["init"].as<std::string>());
+  if(options.has("init")) {
+    LOG(info) << "Loading parameters from " << options.get<std::string>("init");
+    nematus->load(graph, options.get<std::string>("init"));
   }
 
   graph->reserveWorkspaceMB(options.get<size_t>("workspace"));
 
   Ptr<ClipperBase> clipper = nullptr;
 
-  float clipNorm = options["clip-norm"].as<double>();
-  float lrate = options["learn-rate"].as<double>();
+  float clipNorm = options.get<double>("clip-norm");
+  float lrate = options.get<double>("lrate");
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
   auto opt = Optimizer<Adam>(lrate, clip=clipper);

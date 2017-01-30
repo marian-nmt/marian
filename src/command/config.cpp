@@ -68,8 +68,8 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
 }
 
 void Config::validate() const {
-  if (config_["trainsets"]) {
-    std::vector<std::string> tmp = config_["trainsets"].as<std::vector<std::string>>();
+  if (has("trainsets")) {
+    std::vector<std::string> tmp = get<std::vector<std::string>>("trainsets");
     if (tmp.size() != 2) {
       std::cerr << "No trainsets!" << std::endl;
       exit(1);
@@ -78,8 +78,8 @@ void Config::validate() const {
     std::cerr << "No trainsets!" << std::endl;
     exit(1);
   }
-  if (config_["vocabs"]) {
-    if (config_["vocabs"].as<std::vector<std::string>>().size() != 2) {
+  if (has("vocabs")) {
+    if (get<std::vector<std::string>>("vocabs").size() != 2) {
       std::cerr << "No vocab files!" << std::endl;
       exit(1);
     }
@@ -163,7 +163,7 @@ void Config::addOptions(int argc, char** argv) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(20),
       "Number of batches to preload for length-based sorting")
-    ("lrate,l,", po::value<double>()->default_value(0.0001),
+    ("lrate,l", po::value<double>()->default_value(0.0001),
       "Learning rate for Adam algorithm")
     ("clip-norm", po::value<double>()->default_value(1.f),
       "Clip gradient norm to  arg  (0 to disable)")
