@@ -120,8 +120,8 @@ int main(int argc, char** argv) {
 
   auto nematus = New<Nematus>(dims);
 
-  std::string modelInit = options["init"].as<std::string>();
-  if(modelInit.size()) {
+  if(options.has("init")) {
+    std::string modelInit = options.get<std::string>("init");
     LOG(info) << "Loading parameters from " << modelInit;
     nematus->load(graph, modelInit);
   }

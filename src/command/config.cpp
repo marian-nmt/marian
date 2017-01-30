@@ -128,7 +128,7 @@ void Config::addOptions(int argc, char** argv) {
       "Path prefix for model to be saved")
     ("device,d", po::value<int>()->default_value(0),
       "Use device no.  arg")
-    ("init,i", po::value<std::string>()->default_value(""),
+    ("init,i", po::value<std::string>(),
       "Load weights from  arg  before training")
     ("overwrite", po::value<bool>()->default_value(false),
       "Overwrite model with following checkpoints")
@@ -210,7 +210,7 @@ void Config::addOptions(int argc, char** argv) {
   // Simple overwrites
   SET_OPTION("model", std::string);
   SET_OPTION("device", int);
-  SET_OPTION("init", std::string);
+  SET_OPTION_NONDEFAULT("init", std::string);
   SET_OPTION("overwrite", bool);
   // SET_OPTION_NONDEFAULT("trainsets", std::vector<std::string>);
 
