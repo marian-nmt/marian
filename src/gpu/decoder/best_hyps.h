@@ -57,13 +57,15 @@ class BestHyps : public BestHypsBase
       return alignments;
     }
 
-    void operator()(const God &god,
-    	  std::vector<Beam>& beams,
+    void CalcBeam(const God &god,
           const Beam& prevHyps,
-          std::vector<size_t>& beamSizes,
           const std::vector<ScorerPtr>& scorers,
           const Words& filterIndices,
-          bool returnAlignment) {
+          bool returnAlignment,
+          std::vector<Beam>& beams,
+          std::vector<size_t>& beamSizes
+          )
+    {
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());

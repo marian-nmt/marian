@@ -68,7 +68,7 @@ void Search::Decode(
 	Beams beams(batchSize);
 	bool returnAlignment = god.Get<bool>("return-alignment");
 
-	(*bestHyps_)(god, beams, prevHyps, beamSizes, scorers_, filterIndices_, returnAlignment);
+	bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
 
 	for (size_t i = 0; i < batchSize; ++i) {
 	  if (!beams[i].empty()) {

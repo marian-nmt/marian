@@ -14,13 +14,15 @@ public:
   BestHypsBase() {}
   BestHypsBase(const BestHypsBase&) = delete;
 
-  virtual void operator()(const God &god,
-		std::vector<Beam>& beams,
-        const Beam& prevHyps,
-        std::vector<size_t>& beamSizes,
-        const std::vector<ScorerPtr>& scorers,
-        const Words& filterIndices,
-        bool returnAlignment) = 0;
+  virtual void CalcBeam(
+      const God &god,
+      const Beam& prevHyps,
+      const std::vector<ScorerPtr>& scorers,
+      const Words& filterIndices,
+      bool returnAlignment,
+      std::vector<Beam>& beams,
+      std::vector<size_t>& beamSizes
+      ) = 0;
 
 };
 
