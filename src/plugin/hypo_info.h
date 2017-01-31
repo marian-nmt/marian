@@ -22,5 +22,16 @@ struct HypoInfo
 
 };
 
+struct AmunInput
+{
+  States prevStates;
+  States nextStates;
+  Beam prevHyps;
+
+  Words phrase;
+};
+
+typedef std::vector<AmunInput> AmunInputs;
+
 }
 
