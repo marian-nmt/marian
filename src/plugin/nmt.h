@@ -35,7 +35,7 @@ class MosesPlugin {
 
     AmunOutput SetSource(const std::vector<size_t>& words);
 
-    void Score();
+    AmunOutputs Score(const AmunInputs &inputs);
 
   private:
     amunmt::God god_;
