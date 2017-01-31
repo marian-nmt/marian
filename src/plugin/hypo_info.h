@@ -12,10 +12,10 @@ namespace amunmt {
 
 struct HypoInfo
 {
-  std::vector<size_t> words;
-  size_t lastWord;
   States prevStates;
   States nextStates;
+  Beam prevHyps;
+
   float score;
 
   std::string Debug() const;

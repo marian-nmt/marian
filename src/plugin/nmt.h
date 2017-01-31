@@ -18,15 +18,7 @@ namespace amunmt {
 
 class Vocab;
 
-class StateInfo;
 class NeuralPhrase;
-typedef std::shared_ptr<StateInfo> StateInfoPtr;
-
-typedef std::vector<size_t> Batch;
-typedef std::vector<Batch> Batches;
-typedef std::vector<StateInfoPtr> StateInfos;
-typedef std::vector<float> Scores;
-typedef std::vector<size_t> LastWords;
 
 class MosesPlugin {
   public:
@@ -41,7 +33,7 @@ class MosesPlugin {
 
     void initGod(const std::string& configPath);
 
-    States SetSource(const std::vector<size_t>& words);
+    HypoInfo SetSource(const std::vector<size_t>& words);
 
 
   private:

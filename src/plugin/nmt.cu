@@ -40,7 +40,9 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
   return (size_t)std::min(num_gpus, (int)maxDevices);
 }
 
-States MosesPlugin::SetSource(const std::vector<size_t>& words) {
+HypoInfo MosesPlugin::SetSource(const std::vector<size_t>& words) {
+  HypoInfo ret;
+
   amunmt::Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(god_, 0, words)));
 
@@ -59,7 +61,13 @@ States MosesPlugin::SetSource(const std::vector<size_t>& words) {
   search.PreProcess(god_, sentences, histories, prevHyps);
   search.Encode(sentences, states, nextStates);
 
-  return states;
+  // fill return info
+  ret.prevStates = states;
+  ret.nextStates = nextStates;
+  ret.prevHyps = prevHyps;
+  ret.score = 0;
+
+  return ret;
 }
 
 
