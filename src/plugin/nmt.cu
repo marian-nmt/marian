@@ -40,8 +40,8 @@ size_t MosesPlugin::GetDevices(size_t maxDevices) {
   return (size_t)std::min(num_gpus, (int)maxDevices);
 }
 
-HypoInfo MosesPlugin::SetSource(const std::vector<size_t>& words) {
-  HypoInfo ret;
+AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
+  AmunOutput ret;
 
   amunmt::Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(god_, 0, words)));

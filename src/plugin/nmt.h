@@ -33,8 +33,9 @@ class MosesPlugin {
 
     void initGod(const std::string& configPath);
 
-    HypoInfo SetSource(const std::vector<size_t>& words);
+    AmunOutput SetSource(const std::vector<size_t>& words);
 
+    void Score();
 
   private:
     amunmt::God god_;

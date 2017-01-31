@@ -10,7 +10,7 @@
 
 namespace amunmt {
 
-struct HypoInfo
+struct AmunOutput
 {
   States prevStates;
   States nextStates;
@@ -22,6 +22,9 @@ struct HypoInfo
 
 };
 
+typedef std::vector<AmunOutput> AmunOutputs;
+
+////////////////////////////////////////////////////////////////
 struct AmunInput
 {
   States prevStates;
