@@ -70,7 +70,7 @@ AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
   return ret;
 }
 
-AmunOutputs Score(const AmunInputs &inputs)
+AmunOutputs MosesPlugin::Score(const AmunInputs &inputs)
 {
   AmunOutputs outputs(inputs.size());
 
