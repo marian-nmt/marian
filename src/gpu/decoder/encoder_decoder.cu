@@ -141,7 +141,7 @@ void EncoderDecoderLoader::Load(const God &god) {
   for(auto d : devices) {
     devicePool.enqueue([d, &path, this] {
       LOG(info) << "Loading model " << path << " onto gpu" << d;
-      cudaSetDevice(d);
+      HANDLE_ERROR(cudaSetDevice(d));
       weights_[d].reset(new Weights(path, d));
     });
   }
@@ -152,7 +152,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
   size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
   //cerr << "NewScorer=" << i << " " << d << endl;
 
-  cudaSetDevice(d);
+  HANDLE_ERROR(cudaSetDevice(d));
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(god, name_, config_,
                                       tab, *weights_[d]));

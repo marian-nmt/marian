@@ -29,12 +29,12 @@ MosesPlugin::~MosesPlugin()
 
 size_t MosesPlugin::GetDevices(size_t maxDevices) {
   int num_gpus = 0; // number of CUDA GPUs
-  cudaGetDeviceCount(&num_gpus);
+  HANDLE_ERROR( cudaGetDeviceCount(&num_gpus));
   std::cerr << "Number of CUDA devices: " << num_gpus << std::endl;
 
   for (int i = 0; i < num_gpus; i++) {
       cudaDeviceProp dprop;
-      cudaGetDeviceProperties(&dprop, i);
+      HANDLE_ERROR( cudaGetDeviceProperties(&dprop, i));
       std::cerr << i << ": " << dprop.name << std::endl;
   }
   return (size_t)std::min(num_gpus, (int)maxDevices);

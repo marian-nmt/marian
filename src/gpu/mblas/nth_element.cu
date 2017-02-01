@@ -347,7 +347,7 @@ void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
 
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
-  cudaStreamSynchronize(stream_);
+  HANDLE_ERROR( cudaStreamSynchronize(stream_));
 }
 
 }

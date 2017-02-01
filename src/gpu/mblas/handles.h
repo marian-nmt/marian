@@ -10,7 +10,7 @@ namespace mblas {
 class CudaStreamHandler {
     CudaStreamHandler()
     : stream_(new cudaStream_t()) {
-      cudaStreamCreate(stream_.get());
+      HANDLE_ERROR( cudaStreamCreate(stream_.get()));
       // cudaStreamCreateWithFlags(stream_.get(), cudaStreamNonBlocking);
     }
 
@@ -29,7 +29,7 @@ class CudaStreamHandler {
     }
 
     virtual ~CudaStreamHandler() {
-        cudaStreamDestroy(*stream_);
+      HANDLE_ERROR(cudaStreamDestroy(*stream_));
     }
 };
 
