@@ -53,6 +53,7 @@ cuda_add_executable(
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
+  gpu/types-gpu.cu
 
 
   common/loader_factory.cpp
