@@ -316,8 +316,11 @@ __global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
       __syncthreads();
       for(int tid = 0; tid < cols; tid += blockDim.x){
         int id = tid + threadIdx.x;
-        if(id < cols)
-          gradRow[id] += valRow[id] * (adjRow[id] - _sum[0]);
+        if(id < cols) {
+          float val = valRow[id] * (adjRow[id] - _sum[0]);
+          if(val)
+            gradRow[id] += val;
+        }
       }
     }
   }

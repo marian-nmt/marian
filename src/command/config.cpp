@@ -133,8 +133,10 @@ void Config::addOptions(int argc, char** argv) {
      "Configuration file")
     ("model,m", po::value<std::string>()->default_value("./model"),
       "Path prefix for model to be saved")
-    ("device,d", po::value<int>()->default_value(0),
-      "Use device no.  arg")
+    ("device,d", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({0}), "0"),
+      "Use device(s) no.  arg")
     ("init,i", po::value<std::string>(),
       "Load weights from  arg  before training")
     ("overwrite", po::value<bool>()->default_value(false),
@@ -155,7 +157,7 @@ void Config::addOptions(int argc, char** argv) {
       "Preallocate  arg  MB of work space")
   ;
 
-  po::options_description hyper("Hyper-parameters");
+  po::options_description hyper("Search options");
   hyper.add_options()
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
@@ -173,6 +175,8 @@ void Config::addOptions(int argc, char** argv) {
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
+    "Skip shuffling of training data before each epoch")
   ;
 
   po::options_description configuration("Configuration meta options");
@@ -216,7 +220,7 @@ void Config::addOptions(int argc, char** argv) {
 
   // Simple overwrites
   SET_OPTION("model", std::string);
-  SET_OPTION("device", int);
+  SET_OPTION("device", std::vector<int>);
   SET_OPTION_NONDEFAULT("init", std::string);
   SET_OPTION("overwrite", bool);
   // SET_OPTION_NONDEFAULT("trainsets", std::vector<std::string>);
@@ -243,6 +247,7 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
+  SET_OPTION("no-shuffle", bool);
 
   validate();
 

@@ -32,7 +32,7 @@ namespace marian {
           (options.get<size_t>("after-batches") == 0
            || batches < options.get<size_t>("after-batches"))) {
 
-      batchGenerator->prepare();
+      batchGenerator->prepare(!options.get<bool>("no-shuffle"));
 
       float costSum = 0;
       size_t samples = 0;
@@ -113,7 +113,8 @@ int main(int argc, char** argv) {
     dimBatch
   };
 
-  int device = options.get<int>("device");
+  auto devices = options.get<std::vector<int>>("device");
+  int device = devices[0];
 
   auto graph = New<ExpressionGraph>();
   graph->setDevice(device);

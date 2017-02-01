@@ -82,7 +82,8 @@ __global__ void gAdd(Functor functor,
             }
           }
         }
-        out[index] += sum;
+        if(sum)
+          out[index] += sum;
       }
     }
   }
@@ -162,7 +163,8 @@ __global__ void gAdd(Functor functor,
             }
           }
         }
-        out[index] += sum;
+        if(sum)
+          out[index] += sum;
       }
     }
   }
@@ -252,7 +254,8 @@ __global__ void gAdd(Functor functor,
             }
           }
         }
-        out[index] += sum;
+        if(sum)
+          out[index] += sum;
       }
     }
   }
