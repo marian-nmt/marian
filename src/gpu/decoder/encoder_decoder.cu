@@ -147,6 +147,17 @@ void EncoderDecoderLoader::Load(const God &god) {
   }
 }
 
+EncoderDecoderLoader::~EncoderDecoderLoader()
+{
+  for (size_t d = 0; d < weights_.size(); ++d) {
+    const Weights *weights = weights_[d].get();
+    if (weights) {
+      HANDLE_ERROR(cudaSetDevice(d));
+      weights_[d].reset(nullptr);
+    }
+  }
+}
+
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
   //size_t i = deviceInfo.threadInd;
   size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
