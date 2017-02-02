@@ -12,8 +12,7 @@ namespace amunmt {
 
 struct AmunOutput
 {
-  States prevStates;
-  States nextStates;
+  States states;
   Beam prevHyps;
 
   float score;

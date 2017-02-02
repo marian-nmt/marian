@@ -51,7 +51,7 @@ void Search::Encode(const Sentences& sentences, States& states) {
 void Search::Decode(
 		const God &god,
 		const Sentences& sentences,
-		States &states,
+		const States &states,
 		States &nextStates,
 		std::shared_ptr<Histories> &histories,
 		Beam &prevHyps)
@@ -63,7 +63,7 @@ void Search::Decode(
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
 	for (size_t i = 0; i < scorers_.size(); i++) {
 	  Scorer &scorer = *scorers_[i];
-	  State &state = *states[i];
+	  const State &state = *states[i];
 	  State &nextState = *nextStates[i];
 
 	  scorer.Decode(god, state, nextState, beamSizes);
