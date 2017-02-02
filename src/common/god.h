@@ -90,8 +90,9 @@ class God {
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;
 
-    std::map<std::string, LoaderPtr> cpuLoaders_;
-    std::map<std::string, LoaderPtr> gpuLoaders_;
+    typedef std::map<std::string, LoaderPtr> Loaders;
+    Loaders cpuLoaders_;
+    Loaders gpuLoaders_;
     std::map<std::string, float> weights_;
 
     std::shared_ptr<spdlog::logger> info_;
