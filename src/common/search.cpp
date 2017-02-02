@@ -18,6 +18,18 @@ Search::Search(const God &god)
   bestHyps_ = god.GetBestHyps(deviceInfo_);
 }
 
+States Search::NewStates() const
+{
+  size_t numScorers = scorers_.size();
+
+  States states(numScorers);
+  for (size_t i = 0; i < scorers_.size(); i++) {
+    Scorer &scorer = *scorers_[i];
+
+  }
+
+  return states;
+}
 
 size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize) {
   filterIndices_ = god.GetFilter().GetFilteredVocab(srcWords, vocabSize);

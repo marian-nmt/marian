@@ -13,6 +13,8 @@ class Search {
     Search(const God &god);
     std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
 
+    States NewStates() const;
+
     void PreProcess(
     		const God &god,
     		const Sentences& sentences,
