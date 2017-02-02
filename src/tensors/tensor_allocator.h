@@ -29,27 +29,13 @@
 
 namespace marian {
 
-class TensorAllocatorBase {
-  public:
-    virtual ~TensorAllocatorBase() {};
-    virtual void reserve(size_t) = 0;
-    virtual void reserveExact(size_t) = 0;
-    virtual void clear() = 0;
-    virtual void allocate(Tensor&, Shape) = 0;
-    virtual void free(Tensor&) = 0;
-    virtual size_t capacity() = 0;
-    virtual size_t size() = 0;
-    virtual Tensor asTensor() = 0;
-};
-
-template <class Device>
-class TensorAllocatorDerived : public TensorAllocatorBase {
+class TensorAllocator {
   private:
     const size_t CHUNK  = 512;
     const size_t MBYTE  = 1024 * 1024;
     const size_t FLOATS = CHUNK * MBYTE / sizeof(float);
 
-    Device device_;
+    DeviceGPU device_;
 
     typedef std::pair<size_t, float*> Gap;
     std::set<Gap> gaps_;
@@ -102,7 +88,8 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
     }
 
   public:
-    TensorAllocatorDerived() {
+    TensorAllocator(size_t device)
+     : device_(device) {
       lastGap_ = { device_.capacity(), device_.data() };
       gaps_.insert(lastGap_);
     }
@@ -139,7 +126,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
       if(!t || t->shape() != shape) {
         auto it = checkSpace(shape);
         float* start = it->second;
-        t.reset(new typename Device::tensor_type(start, shape));
+        t.reset(new TensorBase(start, shape, device_.getDevice()));
         allocated_.push_back(t);
         if(it->first > t->size())
           gaps_.emplace(it->first - t->size(), it->second + t->size());
@@ -179,7 +166,7 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
 
     Tensor asTensor() {
       float* start = device_.data();
-      return Tensor(new typename Device::tensor_type(start, {1, (int)size()}));
+      return Tensor(new TensorBase(start, {1, (int)size()}, device_.getDevice()));
     }
 
     size_t capacity() {
@@ -195,12 +182,5 @@ class TensorAllocatorDerived : public TensorAllocatorBase {
       return end - start;
     }
 };
-
-typedef std::shared_ptr<TensorAllocatorBase> TensorAllocator;
-
-template <class Device>
-TensorAllocator newTensorAllocator() {
-  return TensorAllocator(new TensorAllocatorDerived<Device>());
-}
 
 }

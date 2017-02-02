@@ -27,7 +27,6 @@
 
 #include "common/definitions.h"
 #include "tensors/tensor_allocator.h"
-#include "tensors/tensor_gpu.h"
 
 namespace marian {
 
@@ -37,13 +36,13 @@ class Parameters {
     std::vector<Expr> params_;
     std::map<std::string, Expr> named_;
 
-    TensorAllocator vals_;
-    TensorAllocator grads_;
+    Ptr<TensorAllocator> vals_;
+    Ptr<TensorAllocator> grads_;
 
   public:
-    void init() {
-      vals_  = newTensorAllocator<DeviceGPU>();
-      grads_ = newTensorAllocator<DeviceGPU>();
+    void init(size_t device) {
+      vals_  = New<TensorAllocator>(device);
+      grads_ = New<TensorAllocator>(device);
     }
 
     auto begin() -> decltype(params_.begin()) {

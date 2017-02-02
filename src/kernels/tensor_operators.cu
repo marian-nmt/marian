@@ -20,11 +20,15 @@
 // SOFTWARE.
 
 #include "kernels/tensor_operators.h"
+#include "kernels/cuda_helpers.h"
+
 #include "3rd_party/reduce_all.h"
 
 namespace marian {
+  
 
-cublasHandle_t create_handle() {
+cublasHandle_t create_handle(size_t device) {
+  cudaSetDevice(device);
   cublasHandle_t cublasHandle;
   cublasCreate(&cublasHandle);
   return cublasHandle;
@@ -181,6 +185,8 @@ __global__ void gSoftmax(float* out,
 }
 
 void Softmax(Tensor out, Tensor in, Tensor mask) {
+  cudaSetDevice(out->getDevice());
+
   size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
   size_t k = out->shape()[1];
 
@@ -270,6 +276,8 @@ __global__ void gLogSoftmax(float* out,
 }
 
 void LogSoftmax(Tensor out, Tensor in) {
+  cudaSetDevice(out->getDevice());
+  
   size_t m = out->shape()[0];
   size_t k = out->shape()[1];
 
@@ -327,6 +335,7 @@ __global__ void gSoftmaxGrad(float* grad, const float* adj, const float* val,
 }
 
 void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+  cudaSetDevice(adj->getDevice());
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -382,6 +391,8 @@ __global__ void gLogSoftmaxGrad(float* grad, const float* adj, const float* val,
 }
 
 void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+  cudaSetDevice(adj->getDevice());
+  
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -430,6 +441,7 @@ __global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols)
 
 void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
              bool transA, bool transB, Float beta) {
+  cudaSetDevice(C->getDevice());
   Float alpha = 1.0;
 
   size_t m = A->shape()[0] * A->shape()[2] * A->shape()[3];
@@ -535,6 +547,8 @@ __global__ void gCopyRows(float* out, const float* in, size_t cols,
 }
 
 void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
+  cudaSetDevice(out->getDevice());
+  
   size_t cols = in->shape()[1];
   size_t rowsToCopy = indeces.size();
 
@@ -574,6 +588,8 @@ __global__ void gPasteRows(float* out, const float* in, size_t cols,
 }
 
 void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
+  cudaSetDevice(out->getDevice());
+  
   size_t cols = in->shape()[1];
   size_t rowsToCopy = indeces.size();
 
@@ -593,6 +609,8 @@ void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) 
 }
 
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
+  cudaSetDevice(out->getDevice());
+  
   size_t m = in->shape()[0];
   size_t n = in->shape()[1];
   float alpha = 1.0;
@@ -603,6 +621,8 @@ void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
 }
 
 void Concatenate0(Tensor out, const std::vector<Tensor>& inputs) {
+  cudaSetDevice(out->getDevice());
+  
   size_t offset = 0;
   for(auto in : inputs) {
     UTIL_THROW_IF2(out->shape()[1] != in->shape()[1],
@@ -637,6 +657,8 @@ __global__ void gInsertCols(float* out, const float* in,
 // this probably does not work for tensors with more than 2
 // dimensions, verify this!
 void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
+  cudaSetDevice(out->getDevice());
+  
   size_t offset = 0;
   int rows = out->shape()[0];
   int cols_out = out->shape()[1];
@@ -667,6 +689,8 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
 }
 
 void Deconcatenate0(std::vector<Tensor>& outputs, const Tensor in) {
+  cudaSetDevice(in->getDevice());
+  
   size_t offset = 0;
   for(auto out : outputs) {
     cudaMemcpy(out->data(),
@@ -678,6 +702,8 @@ void Deconcatenate0(std::vector<Tensor>& outputs, const Tensor in) {
 }
 
 void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
+  cudaSetDevice(in->getDevice());
+  
   size_t offset = 0;
   int rows = in->shape()[0];
   int cols_in = in->shape()[1];
@@ -751,6 +777,8 @@ __global__ void gGRUFastForward(float* out,
 }
 
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final){
+  cudaSetDevice(out->getDevice());
+  
   int rows = out->shape()[0];
   int cols = out->shape()[1];
 
@@ -853,6 +881,9 @@ __global__ void gGRUFastBackward(float* outState,
 void GRUFastBackward(std::vector<Tensor> outputs,
                      std::vector<Tensor> inputs,
                      Tensor adj, bool final) {
+  
+  cudaSetDevice(adj->getDevice());
+  
   int rows = adj->shape()[0];
   int cols = adj->shape()[1];
 
@@ -943,6 +974,8 @@ __global__ void gCrossEntropyPick(float* out,
 }
 
 void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
+  cudaSetDevice(out->getDevice());
+  
   size_t m = in->shape()[0];
   size_t k = in->shape()[1];
 
@@ -1031,6 +1064,8 @@ __global__ void gCrossEntropyPickBackward(float* out,
 }
 
 void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
+  cudaSetDevice(out->getDevice());
+  
   size_t m = out->shape()[0];
   size_t k = out->shape()[1];
 
@@ -1046,9 +1081,11 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
 }
 
 float L2Norm(Tensor in) {
+  cudaSetDevice(in->getDevice());
+  
   float* data;
   cudaMalloc(&data, sizeof(float));
-  Tensor out(new TensorGPU(data, {1, 1}));
+  Tensor out(new TensorBase(data, {1, 1}, in->getDevice()));
   ReduceAll(_1 * _1, out, in);
   float dataCpu = sqrtf(out->get(0));
   out.reset();
@@ -1100,6 +1137,8 @@ __global__ void gAtt(float* out,
 }
 
 void Att(Tensor out, Tensor context, Tensor state, Tensor va) {
+  cudaSetDevice(out->getDevice());
+  
   size_t m = context->shape()[0] * context->shape()[2] * context->shape()[3];
   size_t k = context->shape()[1];
 
@@ -1159,7 +1198,8 @@ __global__ void gAttBack(float* gContext,
 void AttBack(Tensor gContext, Tensor gState, Tensor gVa,
              Tensor context, Tensor state, Tensor va,
              Tensor adj) {
-
+  cudaSetDevice(adj->getDevice());
+             
   size_t m = context->shape()[0] * context->shape()[2] * context->shape()[3];
   size_t k = context->shape()[1];
 

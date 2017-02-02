@@ -12,7 +12,6 @@ cuda_add_library(marian_lib
   graph/node.cu
   graph/node_operators.cu
   tensors/tensor.cu
-  tensors/tensor_gpu.cu
   kernels/tensor_operators.cu
   layers/param_initializers.cpp
   common/utils.cpp

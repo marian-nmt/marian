@@ -28,7 +28,6 @@
 
 #include "common/keywords.h"
 #include "tensors/tensor.h"
-#include "tensors/tensor_gpu.h"
 #include "graph/chainable.h"
 
 

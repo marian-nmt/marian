@@ -14,28 +14,27 @@ namespace marian {
 
 class OptimizerBase {
   public:
-    virtual void update(Ptr<ExpressionGraph> graph) {
+    void update(Ptr<ExpressionGraph> graph) {
       graph->backprop();
-      std::thread([&]() {
-        cudaSetDevice(graph->getDevice());
-        updateRule(graph);
-      }).join();
+      updateRule(graph);
     }
 
-    virtual void updateRule(Ptr<ExpressionGraph> graph) = 0;
+    void updateRule(Ptr<ExpressionGraph> graph) {
+      Tensor p = graph->params().vals();
+      Tensor g = graph->params().grads();
+      updateRule(p, g);  
+    }
+    
+    virtual void updateRule(Tensor params, Tensor grads) = 0;
 };
 
 class Sgd : public OptimizerBase {
   public:
     Sgd(float eta=0.01) : eta_(eta) {}
 
-    void updateRule(Ptr<ExpressionGraph> graph) {
-      for(auto& param : graph->params())
-        Element(_1 -= eta_ * _2,
-                param->val(), param->grad());
+    void updateRule(Tensor params, Tensor grads) {
+      Element(_1 -= eta_ * _2, params, grads);
     }
-
-
 
   private:
     float eta_;
@@ -48,31 +47,28 @@ class Adagrad : public OptimizerBase {
     : eta_(eta), eps_(eps)
     {}
 
-    void updateRule(Ptr<ExpressionGraph> graph) {
+    void updateRule(Tensor params, Tensor grads) {
       if(!alloc_)
-        alloc_ = newTensorAllocator<DeviceGPU>();
+        alloc_ = New<TensorAllocator>(params->getDevice());
 
       if(!gt_) {
-        int totalSize = graph->params().totalSize();
+        int totalSize = params->size();
         alloc_->reserveExact(totalSize);
         alloc_->allocate(gt_, {1, totalSize});
         gt_->set(0);
       }
-
-      Tensor pv = graph->params().vals();
-      Tensor pg = graph->params().grads();
-
+      
       Element(_1 += (_2 * _2),
-              gt_, pg);
+              gt_, params);
 
       Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-              pv, gt_, pg);
+              params, gt_, grads);
     }
 
   private:
     float eta_;
     float eps_;
-    TensorAllocator alloc_;
+    Ptr<TensorAllocator> alloc_;
     Tensor gt_;
 };
 
@@ -91,18 +87,18 @@ class Adam : public OptimizerBase {
       t_(0)
     {}
 
-    void updateRule(Ptr<ExpressionGraph> graph) {
+    void updateRule(Tensor params, Tensor grads) {
       if(!mtAlloc_)
-        mtAlloc_ = newTensorAllocator<DeviceGPU>();
+        mtAlloc_ = New<TensorAllocator>(params->getDevice());
       if(!vtAlloc_)
-        vtAlloc_ = newTensorAllocator<DeviceGPU>();
+        vtAlloc_ = New<TensorAllocator>(params->getDevice());
 
       if(clipper_) {
-        clipper_->clip(graph->params().grads());
+        clipper_->clip(grads);
       }
 
       if(!mt_) {
-        int totalSize = graph->params().totalSize();
+        int totalSize = params->size();
         mtAlloc_->reserveExact(totalSize);
         mtAlloc_->allocate(mt_, {1, totalSize});
         mt_->set(0);
@@ -115,19 +111,14 @@ class Adam : public OptimizerBase {
       t_++;
       float denom1 = 1 - pow(beta1_, t_);
       float denom2 = 1 - pow(beta2_, t_);
-
-      Tensor pv = graph->params().vals();
-      Tensor pg = graph->params().grads();
-
-      //clip(pg);
-
+      
       Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-              mt_, pg);
+              mt_, grads);
       Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-              vt_, pg);
+              vt_, grads);
 
       Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-              pv, mt_, vt_);
+              params, mt_, vt_);
     }
 
   private:
@@ -137,9 +128,9 @@ class Adam : public OptimizerBase {
     float eps_;
     size_t t_;
 
-    TensorAllocator mtAlloc_;
+    Ptr<TensorAllocator> mtAlloc_;
     Tensor mt_;
-    TensorAllocator vtAlloc_;
+    Ptr<TensorAllocator> vtAlloc_;
     Tensor vt_;
 
     Ptr<ClipperBase> clipper_;
