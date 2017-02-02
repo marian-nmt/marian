@@ -39,7 +39,7 @@ size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t
   return filterIndices_.size();
 }
 
-void Search::Encode(const Sentences& sentences, States& states, States& nextStates) {
+void Search::Encode(const Sentences& sentences, States& states) {
   for (size_t i = 0; i < scorers_.size(); i++) {
     Scorer &scorer = *scorers_[i];
     scorer.SetSource(sentences);
@@ -123,7 +123,7 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
 
   // calc
   PreProcess(god, sentences, histories, prevHyps);
-  Encode(sentences, states, nextStates);
+  Encode(sentences, states);
   Decode(god, sentences, states, nextStates, histories, prevHyps);
   PostProcess();
 

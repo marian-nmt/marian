@@ -59,7 +59,7 @@ AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
   States nextStates = search.NewStates();
 
   search.PreProcess(god_, sentences, histories, prevHyps);
-  search.Encode(sentences, states, nextStates);
+  search.Encode(sentences, states);
 
   // fill return info
   ret.prevStates = states;

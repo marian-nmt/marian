@@ -23,7 +23,7 @@ class Search {
 
     void PostProcess();
 
-    void Encode(const Sentences& sentences, States& states, States& nextStates);
+    void Encode(const Sentences& sentences, States& states);
 
     void Decode(
     		const God &god,
