@@ -82,7 +82,7 @@ class Adagrad : public OptimizerBase {
 class Adam : public OptimizerBase {
   public:
     template <typename ...Args>
-    Adam(float eta = 0.001, Args ...args)
+    Adam(float eta, Args ...args)
     : eta_(eta),
       beta1_(Get(keywords::beta1, 0.9, args...)),
       beta2_(Get(keywords::beta2, 0.999, args...)),
