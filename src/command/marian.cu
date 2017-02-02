@@ -22,6 +22,33 @@
 
 namespace marian {
 
+  //template <class Builder>
+  //class GraphGroup {
+  //  private:
+  //    ThreadPool pool_;
+  //    
+  //    Ptr<Builder> builder_;
+  //    
+  //  
+  //  public:
+  //    GraphGroup(size_t num) : pool_(num) {}
+  //    
+  //    float update(Ptr<data::CorpusBatch> batch) {
+  //      auto task = [=]() {
+  //        
+  //        builder_->build(graph, batch);
+  //        if(graph->getDevice() == masterDevice_) {
+  //          
+  //          this->
+  //          opt->update(params, grads);
+  //          this->distributeParams(graph);
+  //        }
+  //      }
+  //      
+  //      pool_.enqueue(task);
+  //    }
+  // }
+
   void TrainingLoop(Config& options,
                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
  

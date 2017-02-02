@@ -68,7 +68,7 @@ class ThreadPool {
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
   : stop(false), bound(in_bound) {
-    for (size_t i = 0;i<threads;++i)
+    for (size_t i = 0; i < threads; ++i)
       workers.emplace_back(
           [this] {
               for(;;) {
