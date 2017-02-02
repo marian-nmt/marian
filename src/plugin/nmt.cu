@@ -55,8 +55,8 @@ AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
   size_t batchSize = sentences.size();
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
-  States states(numScorers);
-  States nextStates(numScorers);
+  States states = search.NewStates();
+  States nextStates = search.NewStates();
 
   search.PreProcess(god_, sentences, histories, prevHyps);
   search.Encode(sentences, states, nextStates);

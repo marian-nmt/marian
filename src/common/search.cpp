@@ -44,9 +44,6 @@ void Search::Encode(const Sentences& sentences, States& states, States& nextStat
     Scorer &scorer = *scorers_[i];
     scorer.SetSource(sentences);
 
-    states[i].reset(scorer.NewState());
-    nextStates[i].reset(scorer.NewState());
-
     scorer.BeginSentenceState(*states[i], sentences.size());
   }
 }
@@ -121,8 +118,8 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
 
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
-  States states(numScorers);
-  States nextStates(numScorers);
+  States states = NewStates();
+  States nextStates = NewStates();
 
   // calc
   PreProcess(god, sentences, histories, prevHyps);
