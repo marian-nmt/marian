@@ -70,7 +70,7 @@ void EncoderDecoder::Decode(const God &god, const State& in, State& out, const s
                      edIn.GetEmbeddings(), SourceContext_);
 }
 
-State* EncoderDecoder::NewState() {
+State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 

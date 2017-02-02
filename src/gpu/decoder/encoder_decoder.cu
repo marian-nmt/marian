@@ -63,7 +63,7 @@ void EncoderDecoder::Decode(const God &god, const State& in, State& out, const s
                      beamSizes);
 }
 
-State* EncoderDecoder::NewState() {
+State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 

@@ -23,9 +23,9 @@ States Search::NewStates() const
   size_t numScorers = scorers_.size();
 
   States states(numScorers);
-  for (size_t i = 0; i < scorers_.size(); i++) {
+  for (size_t i = 0; i < numScorers; i++) {
     Scorer &scorer = *scorers_[i];
-
+    states[i].reset(scorer.NewState());
   }
 
   return states;
