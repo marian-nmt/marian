@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
   std::size_t taskCounter = 0;
 
   size_t maxiBatch = god.Get<size_t>("maxi-batch");
-  std::cerr << "mode=" << god.Get("mode") << std::endl;
+  //std::cerr << "mode=" << god.Get("mode") << std::endl;
 
   if (god.Get<bool>("wipo")) {
     maxiBatch = 1;
@@ -77,6 +77,6 @@ int main(int argc, char* argv[]) {
 
   LOG(info) << "Total time: " << timer.format();
   god.CleanUp();
-
+  //sleep(10);
   return 0;
 }

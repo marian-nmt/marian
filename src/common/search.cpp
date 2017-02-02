@@ -18,6 +18,13 @@ Search::Search(const God &god)
   bestHyps_ = god.GetBestHyps(deviceInfo_);
 }
 
+Search::~Search()
+{
+  if (deviceInfo_.deviceType == GPUDevice) {
+    cudaSetDevice(deviceInfo_.deviceId);
+  }
+}
+  
 States Search::NewStates() const
 {
   size_t numScorers = scorers_.size();

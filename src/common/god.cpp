@@ -236,11 +236,11 @@ std::vector<std::string> God::Postprocess(const std::vector<std::string>& input)
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
   for (Loaders::value_type& loader : cpuLoaders_) {
-     cerr << "cpu loader=" << loader.first << endl;
+    //cerr << "cpu loader=" << loader.first << endl;
      loader.second.reset(nullptr);
   }
   for (Loaders::value_type& loader : gpuLoaders_) {
-     cerr << "gpu loader=" << loader.first << endl;
+    //cerr << "gpu loader=" << loader.first << endl;
      loader.second.reset(nullptr);
   }
 }
