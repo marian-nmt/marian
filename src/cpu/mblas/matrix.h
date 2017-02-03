@@ -8,6 +8,7 @@
 #include <blaze/Math.h>
 #include "phoenix_functions.h"
 #include "common/base_matrix.h"
+#include "common/exception.h"
 
 namespace amunmt {
 namespace CPU {
@@ -44,10 +45,12 @@ public:
 
   virtual void Resize(size_t rows, size_t cols)
   {
+    amunmt_UTIL_THROW2("Not implemented");
   }
 
   virtual std::string Debug() const
   {
+    amunmt_UTIL_THROW2("Not implemented");
   }
 
 };
