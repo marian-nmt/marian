@@ -32,9 +32,9 @@ namespace marian {
       //nematus->save(graph, name);
     };
 
-    
+    auto reporter = New<Reporter>(options);
     auto graphGroup = New<SynchronousGraphGroup<Nematus>>(options);
-    graphGroup->setReporter(New<Reporter>(options));
+    graphGroup->setReporter(reporter);
  
     size_t epochs = 1;
     size_t batches = 0;
@@ -44,10 +44,6 @@ namespace marian {
            || batches < options->get<size_t>("after-batches"))) {
 
       batchGenerator->prepare(!options->get<bool>("no-shuffle"));
-
-      //float costSum = 0;
-      size_t samples = 0;
-      //size_t wordsDisp = 0;
       
       boost::timer::cpu_timer timer;
 
@@ -56,88 +52,18 @@ namespace marian {
         auto batch = batchGenerator->next();
         graphGroup->update(batch);
         
-        //for(auto device : devices) {
-        //
-        //  auto update = [&, device](Ptr<data::CorpusBatch> batch) {
-        //    thread_local Ptr<ExpressionGraph> graph;
-        //    thread_local Ptr<Nematus> nematus;
-        //    thread_local Ptr<OptimizerBase> opt;
-        //    
-        //    if(!graph) {
-        //      std::lock_guard<std::mutex> guard(dispMutex);
-        //      graph = New<ExpressionGraph>();
-        //      graph->setDevice(device);
-        //      graph->reserveWorkspaceMB(options->get<size_t>("workspace"));
-        //    }
-        //    
-        //    if(!nematus) {
-        //      nematus = New<Nematus>(options);
-        //      if(options->has("init")) {
-        //        LOG(info) << "Loading parameters from " << options->get<std::string>("init");
-        //        nematus->load(graph, options->get<std::string>("init"));
-        //      }
-        //    }
-        //  
-        //    if(!opt) {
-        //      Ptr<ClipperBase> clipper = nullptr;
-        //      float clipNorm = options->get<double>("clip-norm");
-        //      float lrate = options->get<double>("lrate");
-        //      if(clipNorm > 0)
-        //        clipper = Clipper<Norm>(clipNorm);
-        //      opt = Optimizer<Adam>(lrate, keywords::clip=clipper);
-        //    }
-        //    
-        //    auto costNode = nematus->build(graph, batch);
-        //    opt->update(graph);
-        //    float cost =  costNode->scalar();
-        //    
-        //    std::lock_guard<std::mutex> guard(dispMutex);
-        //
-        //    costSum += cost;
-        //    samples += batch->size();
-        //    wordsDisp += batch->words();
-        //    batches++;
-        //    //if(options.get<size_t>("after-batches")
-        //    //   && batches >= options.get<size_t>("after-batches"))
-        //    //  break;
-        //
-        //    if(batches % options->get<size_t>("disp-freq") == 0) {
-        //      std::stringstream ss;
-        //      ss << "Ep. " << epochs
-        //         << " : Up. " << batches
-        //         << " : Sen. " << samples
-        //         << " : Cost " << std::fixed << std::setprecision(2)
-        //                       << costSum / options->get<size_t>("disp-freq")
-        //         << " : Time " << timer.format(2, "%ws");
-        //
-        //      float seconds = std::stof(timer.format(5, "%w"));
-        //      float wps = wordsDisp /   (float)seconds;
-        //
-        //      ss << " : " << std::fixed << std::setprecision(2)
-        //         << wps << " words/s";
-        //
-        //      LOG(info) << ss.str();
-        //
-        //      timer.start();
-        //      costSum = 0;
-        //      wordsDisp = 0;
-        //    }
-        //
+
         //    if(batches % options->get<size_t>("save-freq") == 0) {
         //      if(options->get<bool>("overwrite"))
         //        save(options->get<std::string>("model") + ".npz");
         //      else
         //        save(options->get<std::string>("model") + "." + std::to_string(batches) + ".npz");
         //    }
-        //    
-        //  };
-        //  
-        //  auto batch = batchGenerator->next();
-        //  pool.enqueue(update, batch);
-        //}
+        
       }
       epochs++;
-      LOG(info) << "Starting epoch " << epochs << " after " << samples << " samples";
+      LOG(info) << "Starting epoch " << epochs << " after "
+        << reporter->samples << " samples";
     }
     LOG(info) << "Training finshed";
     save(options->get<std::string>("model") + ".npz");

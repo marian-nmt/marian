@@ -67,6 +67,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     cublasHandle_t cublasHandle_;
     size_t device_{0};
+    
+    size_t stale_{0};
 
   protected:
     /** @brief Constructs a new expression graph
@@ -164,13 +166,17 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * After this method has successfully completed,
      *    and that all backward pass computations have been performed.
      */
-    void backward() {
+    void backward(bool zeroGrads = true) {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
       params_.allocateBackward();
-
-      params_.set_zero_adjoint();
+      if(zeroGrads) {
+        params_.set_zero_adjoint();
+        stale_ = 0;
+      }
+      stale_++;
+      
       for(auto&& v : topNodes_)
         v->init_dependent();
 
@@ -199,6 +205,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
         it++;
       }
+    }
+    
+    size_t staleness() {
+      return stale_;
+    }
+    
+    void resetStaleness() {
+      stale_ = 0;
     }
 
     /**

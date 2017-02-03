@@ -177,6 +177,9 @@ void Config::addOptions(int argc, char** argv) {
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")
+    ("tau", po::value<size_t>()->default_value(1),
+     "Batch multiplier for multi-gpu mode")
+    
   ;
 
   po::options_description configuration("Configuration meta options");
@@ -248,7 +251,9 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
-
+  
+  SET_OPTION("tau", size_t);
+  
   validate();
 
   if (get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
