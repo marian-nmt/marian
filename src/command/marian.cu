@@ -25,15 +25,9 @@ namespace marian {
   
   void TrainingLoop(Ptr<Config> options,
                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
- 
-     
-    auto save = [](const std::string& name) {
-      LOG(info) << "Saving parameters to " << name;
-      //nematus->save(graph, name);
-    };
 
     auto reporter = New<Reporter>(options);
-    auto graphGroup = New<SynchronousGraphGroup<Nematus>>(options);
+    Ptr<GraphGroup> graphGroup = New<SynchronousGraphGroup<Nematus>>(options);
     graphGroup->setReporter(reporter);
  
     size_t epochs = 1;

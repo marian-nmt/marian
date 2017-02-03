@@ -7,6 +7,7 @@
 #include "layers/param_initializers.h"
 #include "layers/generic.h"
 #include "3rd_party/cnpy/cnpy.h"
+#include "common/logging.h"
 
 namespace marian {
 
@@ -60,6 +61,8 @@ class Nematus : public ExpressionGraph {
               const std::string& name) {
       using namespace keywords;
 
+      LOG(info) << "Loading model from " << name;
+      
       auto numpy = cnpy::npz_load(name);
 
       auto parameters = {
@@ -148,6 +151,8 @@ class Nematus : public ExpressionGraph {
     void save(Ptr<ExpressionGraph> graph,
               const std::string& name) {
 
+      LOG(info) << "Saving model to " << name;
+      
       unsigned shape[2];
       std::string mode = "w";
 
