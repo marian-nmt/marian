@@ -59,6 +59,7 @@ class Reporter {
     }
 };
 
+/*
 template <class Builder>
 class AsynchronousGraphGroup {
   private:
@@ -111,9 +112,7 @@ class AsynchronousGraphGroup {
       accumulateGradients(graphs_[0], graphs_);
       opt_->update(graphs_[0]);
       distributeParameters(graphs_[0], graphs_);
-      
-      batches_.clear();
-    }
+    } 
   
   public:
     AsynchronousGraphGroup(Ptr<Config> options)
@@ -159,6 +158,7 @@ class AsynchronousGraphGroup {
       }
     }
 };
+*/
   
 template <class Builder>
 class SynchronousGraphGroup {
