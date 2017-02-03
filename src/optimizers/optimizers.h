@@ -14,9 +14,12 @@ namespace marian {
 
 class OptimizerBase {
   public:
-    void update(Ptr<ExpressionGraph> graph) {
+    float update(Ptr<ExpressionGraph> graph) {
+      graph->forward();
+      float cost = graph->topNode()->scalar();
       graph->backprop();
       updateRule(graph);
+      return cost;
     }
 
     void updateRule(Ptr<ExpressionGraph> graph) {

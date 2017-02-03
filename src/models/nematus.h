@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data/corpus.h"
+#include "command/config.h"
 #include "graph/expression_graph.h"
 #include "layers/rnn.h"
 #include "layers/param_initializers.h"
@@ -10,27 +11,18 @@
 namespace marian {
 
 class Nematus : public ExpressionGraph {
-  public:
-    Nematus()
-    : dimSrcVoc_(40000), dimSrcEmb_(512), dimEncState_(1024),
-      dimTrgVoc_(40000), dimTrgEmb_(512), dimDecState_(1024),
-      dimBatch_(40) {}
-
-    Nematus(const std::vector<int> dims)
-    : dimSrcVoc_(dims[0]), dimSrcEmb_(dims[1]), dimEncState_(dims[2]),
-      dimTrgVoc_(dims[3]), dimTrgEmb_(dims[4]), dimDecState_(dims[5]),
-      dimBatch_(dims[6]) {}
-
   private:
-    int dimSrcVoc_;
-    int dimSrcEmb_;
-    int dimEncState_;
+    Ptr<Config> options_;
+    
+    int dimSrcVoc_{40000};
+    int dimSrcEmb_{512};
+    int dimEncState_{1024};
 
-    int dimTrgVoc_;
-    int dimTrgEmb_;
-    int dimDecState_;
+    int dimTrgVoc_{40000};
+    int dimTrgEmb_{512};
+    int dimDecState_{1024};
 
-    int dimBatch_;
+    int dimBatch_{64};
 
     void setDims(Ptr<ExpressionGraph> graph,
                  Ptr<data::CorpusBatch> batch) {
@@ -46,7 +38,24 @@ class Nematus : public ExpressionGraph {
     }
 
   public:
+    
+    Nematus() {}
+    
+    Nematus(Ptr<Config> options)
+    : options_(options) {
+    
+      auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
+      
+      dimSrcVoc_   = dimVocabs[0];
+      dimSrcEmb_   = options->get<int>("dim-emb");
+      dimEncState_ = options->get<int>("dim-rnn");
+      dimTrgVoc_   = dimVocabs[0];
+      dimTrgEmb_   = options->get<int>("dim-emb");
+      dimDecState_ = options->get<int>("dim-rnn");
+      dimBatch_    = options->get<int>("mini-batch");
+    }
 
+  
     void load(Ptr<ExpressionGraph> graph,
               const std::string& name) {
       using namespace keywords;
@@ -260,8 +269,8 @@ class Nematus : public ExpressionGraph {
       return std::make_tuple(y, yMask, yIdx);
     }
 
-    Expr construct(Ptr<ExpressionGraph> graph,
-                   Ptr<data::CorpusBatch> batch) {
+    Expr build(Ptr<ExpressionGraph> graph,
+               Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
       graph->clear();
 

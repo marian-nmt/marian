@@ -427,6 +427,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       topNodes_.clear();
       tensors_->clear();
     }
+    
+    Expr topNode() {
+      return nodes_.back();
+    }
 };
 
 template <class T, typename ...Args>
