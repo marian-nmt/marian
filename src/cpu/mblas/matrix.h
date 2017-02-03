@@ -14,10 +14,46 @@ namespace CPU {
 
 namespace mblas {
 
-typedef blaze::DynamicMatrix<float, blaze::rowMajor> Matrix;
 typedef blaze::DynamicVector<float, blaze::rowVector> Vector;
 typedef blaze::DynamicVector<float, blaze::columnVector> ColumnVector;
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+class Matrix : public BaseMatrix, public blaze::DynamicMatrix<float, blaze::rowMajor>
+{
+public:
+  typedef blaze::DynamicMatrix<float, blaze::rowMajor> Parent;
+
+  Matrix()
+  :Parent()
+  {}
+
+  Matrix(size_t rows, size_t cols)
+  :Parent(rows, cols)
+  {}
+
+  template<typename T>
+  Parent operator=(const T &other) {
+    return Parent::operator=(other);
+  }
+
+  virtual size_t Rows() const
+  { return Parent::rows(); }
+
+  virtual size_t Cols() const
+  { return Parent::rows(); }
+
+  virtual void Resize(size_t rows, size_t cols)
+  {
+  }
+
+  virtual std::string Debug() const
+  {
+  }
+
+};
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, bool SO = blaze::rowMajor>
 class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unaligned,
                                              blaze::unpadded,
