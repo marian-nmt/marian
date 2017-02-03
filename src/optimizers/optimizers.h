@@ -109,7 +109,7 @@ class Adam : public OptimizerBase {
       t_(0)
     {}
 
-    void updateRule(Tensor params, Tensor grads) {
+    void updateImpl(Tensor params, Tensor grads) {
       
       if(!mtAlloc_)
         mtAlloc_ = New<TensorAllocator>(params->getDevice());

@@ -27,7 +27,7 @@ namespace marian {
                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
 
     auto reporter = New<Reporter>(options);
-    Ptr<GraphGroup> graphGroup = New<SynchronousGraphGroup<Nematus>>(options);
+    Ptr<GraphGroup> graphGroup = New<AsynchronousGraphGroup<Nematus>>(options);
     graphGroup->setReporter(reporter);
  
     size_t epochs = 1;

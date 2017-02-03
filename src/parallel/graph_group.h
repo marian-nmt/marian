@@ -77,8 +77,8 @@ class GraphGroup {
       if(clipNorm > 0)
         clipper = Clipper<Norm>(clipNorm);
       
-      opt_ = Optimizer<Adagrad>(lrate,
-                                keywords::clip=clipper);
+      opt_ = Optimizer<Adam>(lrate,
+                             keywords::clip=clipper);
     }
     
     virtual void update(Ptr<data::CorpusBatch>) = 0;
@@ -110,6 +110,7 @@ class AsynchronousGraphGroup : public GraphGroup {
     Ptr<TensorAllocator> gradsAlloc_;
     
     void fetchParams(Tensor oldParams) {
+      // @TODO read guard on parameters
       std::lock_guard<std::mutex> guard(sync_);
       oldParams->copyFrom(params_);
     }
@@ -131,8 +132,10 @@ class AsynchronousGraphGroup : public GraphGroup {
       static bool first = true;
       if(first) {
         // initialize the paramters
-        builder_->build(graphs_[0], batch);
-        graphs_[0]->forward();
+        for(auto graph : graphs_) {
+          builder_->build(graph, batch);
+          graph->forward();
+        }
         
         if(!params_) {
           paramsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
