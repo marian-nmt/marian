@@ -166,16 +166,12 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * After this method has successfully completed,
      *    and that all backward pass computations have been performed.
      */
-    void backward(bool zeroGrads = true) {
+    void backward() {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
       params_.allocateBackward();
-      if(zeroGrads) {
-        params_.set_zero_adjoint();
-        stale_ = 0;
-      }
-      stale_++;
+      params_.set_zero_adjoint();
       
       for(auto&& v : topNodes_)
         v->init_dependent();
@@ -207,14 +203,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       }
     }
     
-    size_t staleness() {
-      return stale_;
-    }
-    
-    void resetStaleness() {
-      stale_ = 0;
-    }
-
     /**
      * @brief Returns a string representing this expression graph in <code>graphviz</code> notation.
      *

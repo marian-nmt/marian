@@ -14,43 +14,63 @@ namespace marian {
 
 class OptimizerBase {
   public:
-    float update(Ptr<ExpressionGraph> graph) {
+    template <typename ...Args>
+    OptimizerBase(Args... args)
+    : clipper_(Get(keywords::clip, nullptr, args...)) {}
+    
+    float backpropUpdate(Ptr<ExpressionGraph> graph) {
       graph->forward();
       float cost = graph->topNode()->scalar();
       graph->backprop();
-      updateRule(graph);
+      update(graph);
       return cost;
     }
 
-    void updateRule(Ptr<ExpressionGraph> graph) {
+    void update(Ptr<ExpressionGraph> graph) {
       Tensor p = graph->params().vals();
       Tensor g = graph->params().grads();
-      updateRule(p, g);  
+      update(p, g);  
     }
     
-    virtual void updateRule(Tensor params, Tensor grads) = 0;
+    void update(Tensor params, Tensor grads) {
+      if(clipper_)
+        clipper_->clip(grads);
+      updateImpl(params, grads);
+    }
+  
+  private:
+    
+    virtual void updateImpl(Tensor params, Tensor grads) = 0;
+    
+    Ptr<ClipperBase> clipper_;
 };
 
 class Sgd : public OptimizerBase {
   public:
-    Sgd(float eta=0.01) : eta_(eta) {}
+    template <typename ...Args>
+    Sgd(float eta=0.01, Args... args)
+    : OptimizerBase(args...), eta_(eta) {}
 
-    void updateRule(Tensor params, Tensor grads) {
+  private:
+    void updateImpl(Tensor params, Tensor grads) {
       Element(_1 -= eta_ * _2, params, grads);
     }
 
-  private:
     float eta_;
 };
 
 // @TODO: Add serialization for historic gradients and parameters
 class Adagrad : public OptimizerBase {
   public:
-    Adagrad(float eta=0.01, float eps=1e-8)
-    : eta_(eta), eps_(eps)
+    template <typename ...Args>
+    Adagrad(float eta=0.01, Args ...args)
+    : OptimizerBase(args...),
+      eta_(eta),
+      eps_(Get(keywords::eps, 1e-8, args...))
     {}
 
-    void updateRule(Tensor params, Tensor grads) {
+  private:
+    void updateImpl(Tensor params, Tensor grads) {
       if(!alloc_)
         alloc_ = New<TensorAllocator>(params->getDevice());
 
@@ -62,13 +82,12 @@ class Adagrad : public OptimizerBase {
       }
       
       Element(_1 += (_2 * _2),
-              gt_, params);
+              gt_, grads);
 
       Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
               params, gt_, grads);
     }
 
-  private:
     float eta_;
     float eps_;
     Ptr<TensorAllocator> alloc_;
@@ -81,24 +100,21 @@ class Adagrad : public OptimizerBase {
 class Adam : public OptimizerBase {
   public:
     template <typename ...Args>
-    Adam(float eta = 0.001, Args ...args)
-    : eta_(eta),
+    Adam(float eta = 0.0001, Args ...args)
+    : OptimizerBase(args...),
+      eta_(eta),
       beta1_(Get(keywords::beta1, 0.9, args...)),
       beta2_(Get(keywords::beta2, 0.999, args...)),
       eps_(Get(keywords::eps, 1e-8, args...)),
-      clipper_(Get(keywords::clip, nullptr, args...)),
       t_(0)
     {}
 
     void updateRule(Tensor params, Tensor grads) {
+      
       if(!mtAlloc_)
         mtAlloc_ = New<TensorAllocator>(params->getDevice());
       if(!vtAlloc_)
         vtAlloc_ = New<TensorAllocator>(params->getDevice());
-
-      if(clipper_) {
-        clipper_->clip(grads);
-      }
 
       if(!mt_) {
         int totalSize = params->size();
@@ -135,8 +151,6 @@ class Adam : public OptimizerBase {
     Tensor mt_;
     Ptr<TensorAllocator> vtAlloc_;
     Tensor vt_;
-
-    Ptr<ClipperBase> clipper_;
 };
 
 template <class Algorithm, typename ...Args>

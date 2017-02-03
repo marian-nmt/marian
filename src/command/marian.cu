@@ -52,21 +52,13 @@ namespace marian {
         auto batch = batchGenerator->next();
         graphGroup->update(batch);
         
-
-        //    if(batches % options->get<size_t>("save-freq") == 0) {
-        //      if(options->get<bool>("overwrite"))
-        //        save(options->get<std::string>("model") + ".npz");
-        //      else
-        //        save(options->get<std::string>("model") + "." + std::to_string(batches) + ".npz");
-        //    }
-        
       }
       epochs++;
       LOG(info) << "Starting epoch " << epochs << " after "
         << reporter->samples << " samples";
     }
     LOG(info) << "Training finshed";
-    save(options->get<std::string>("model") + ".npz");
+    graphGroup->save();
   }
 }
 

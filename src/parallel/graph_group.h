@@ -58,6 +58,107 @@ class Reporter {
       }
     }
 };
+
+template <class Builder>
+class AsynchronousGraphGroup {
+  private:
+    Ptr<Config> options_;
+    Ptr<OptimizerBase> opt_;
+    Ptr<Builder> builder_;
+    
+    std::vector<Ptr<ExpressionGraph>> graphs_;
+    
+    Ptr<Reporter> reporter_;
+    
+    bool first_{true};
+    
+    void execute(Ptr<data::CorpusBatch> batch) {
+      if(first_) {
+        for(auto graph : graphs_) {
+          builder_->build(graph, batches_[0]);
+          graph->forward();
+          // params_.copyFrom(graph->params.vals());
+        }
+        first_ = false;
+      }
+      
+      auto task = [this](int i,
+                         Ptr<data::CorpusBatch> batch) {
+        thread_local int j = -1;
+        if(j == -1)
+          j = i;
+        auto localGraph = this->graphs_[j];
+        
+        builder_->build(localGraph, batch);
+        localGraph->forward();
+        float cost = localGraph->topNode()->scalar();
+        localGraph->backward();
+        
+        if(reporter_) {
+          reporter_->update(cost, batch);
+          if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
+            this->save();
+        }
+      };
+      
+      {
+        size_t workers = graphs_.size();
+        ThreadPool pool(workers, workers);
+        
+        for(int i = 0; i < batches_.size(); ++i)
+          pool.enqueue(task, i % (int)workers, batches_[i]);
+      }   
+      accumulateGradients(graphs_[0], graphs_);
+      opt_->update(graphs_[0]);
+      distributeParameters(graphs_[0], graphs_);
+      
+      batches_.clear();
+    }
+  
+  public:
+    AsynchronousGraphGroup(Ptr<Config> options)
+     : options_(options) {
+      auto devices = options_->get<std::vector<size_t>>("device");
+      size_t workers = devices.size();
+      
+      builder_ = New<Builder>(options_);
+      
+      Ptr<ClipperBase> clipper = nullptr;
+      float clipNorm = options_->get<double>("clip-norm");
+      float lrate = options_->get<double>("lrate");
+      if(clipNorm > 0)
+        clipper = Clipper<Norm>(clipNorm);
+      
+      opt_ = Optimizer<Adagrad>(lrate,
+                                keywords::clip=clipper);
+  
+      for(auto device : devices) {
+        graphs_.emplace_back(New<ExpressionGraph>());
+        graphs_.back()->setDevice(device);
+        graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      }
+    }
+    
+    void setReporter(Ptr<Reporter> reporter) {
+      reporter_ = reporter;
+    }
+    
+    void update(Ptr<data::CorpusBatch> batch) {
+      execute(batch);
+    }
+    
+    void save() {
+      if(options_->get<bool>("overwrite")) {
+        std::string name = options_->get<std::string>("model") + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+      else {
+        std::string name = options_->get<std::string>("model")
+          + "." + std::to_string(reporter_->batches) + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+    }
+};
   
 template <class Builder>
 class SynchronousGraphGroup {
@@ -73,8 +174,9 @@ class SynchronousGraphGroup {
     
     void accumulateGradients(Ptr<ExpressionGraph> master,
                              std::vector<Ptr<ExpressionGraph>> graphs) {
-      if(graphs_.size() < 2)
+      if(graphs_.size() < 2) {
         return;
+      }
       
       Tensor grads = master->params().grads();
       Tensor tempGrads;
@@ -84,9 +186,7 @@ class SynchronousGraphGroup {
         if(graph != master) {
           Tensor remoteGrads = graph->params().grads();
           tempGrads->copyFrom(remoteGrads);
-          float stale = graph->staleness();
-          Element(_1 += _2 / stale, grads, tempGrads);
-          graph->resetStaleness();
+          Element(_1 += _2, grads, tempGrads);
         }
       }
       
@@ -124,13 +224,16 @@ class SynchronousGraphGroup {
           j = i;
         auto localGraph = this->graphs_[j];
         
-        this->builder_->build(localGraph, batch);
+        builder_->build(localGraph, batch);
         localGraph->forward();
         float cost = localGraph->topNode()->scalar();
-        localGraph->backward(localGraph->staleness() == 0);
+        localGraph->backward();
         
-        if(this->reporter_)
-          this->reporter_->update(cost, batch);
+        if(reporter_) {
+          reporter_->update(cost, batch);
+          if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
+            this->save();
+        }
       };
       
       {
@@ -141,7 +244,7 @@ class SynchronousGraphGroup {
           pool.enqueue(task, i % (int)workers, batches_[i]);
       }   
       accumulateGradients(graphs_[0], graphs_);
-      opt_->updateRule(graphs_[0]);
+      opt_->update(graphs_[0]);
       distributeParameters(graphs_[0], graphs_);
       
       batches_.clear();
@@ -160,8 +263,9 @@ class SynchronousGraphGroup {
       float lrate = options_->get<double>("lrate");
       if(clipNorm > 0)
         clipper = Clipper<Norm>(clipNorm);
-      opt_ = Optimizer<Adam>(lrate,
-                             keywords::clip=clipper);
+      
+      opt_ = Optimizer<Adagrad>(lrate,
+                                keywords::clip=clipper);
   
       for(auto device : devices) {
         graphs_.emplace_back(New<ExpressionGraph>());
@@ -180,9 +284,20 @@ class SynchronousGraphGroup {
     
     void update(Ptr<data::CorpusBatch> batch) {
       batches_.push_back(batch);
-      size_t tau = options_->get<size_t>("tau");
-      if(batches_.size() == graphs_.size() * tau)
+      if(batches_.size() == graphs_.size())
         execute();
+    }
+    
+    void save() {
+      if(options_->get<bool>("overwrite")) {
+        std::string name = options_->get<std::string>("model") + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+      else {
+        std::string name = options_->get<std::string>("model")
+          + "." + std::to_string(reporter_->batches) + ".npz";
+        builder_->save(graphs_[0], name);
+      }
     }
 };
   

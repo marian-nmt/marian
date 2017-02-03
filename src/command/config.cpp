@@ -165,7 +165,7 @@ void Config::addOptions(int argc, char** argv) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(20),
       "Number of batches to preload for length-based sorting")
-    ("lrate,l", po::value<double>()->default_value(0.0001),
+    ("lrate,l", po::value<double>()->default_value(0.0002),
       "Learning rate for Adam algorithm")
     ("clip-norm", po::value<double>()->default_value(1.f),
       "Clip gradient norm to  arg  (0 to disable)")
@@ -177,9 +177,6 @@ void Config::addOptions(int argc, char** argv) {
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")
-    ("tau", po::value<size_t>()->default_value(1),
-     "Batch multiplier for multi-gpu mode")
-    
   ;
 
   po::options_description configuration("Configuration meta options");
@@ -251,8 +248,6 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
-  
-  SET_OPTION("tau", size_t);
   
   validate();
 
