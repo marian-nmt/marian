@@ -265,6 +265,47 @@ MT Assemble(const MT1& in,
 }
 
 template <class MT>
+void SafeSoftmax(MT& Out) {
+  size_t rows = Out.rows();
+  size_t cols = Out.columns();
+  float sum[rows];
+  for (int j = 0; j < rows; ++j) {
+    float maxRowValue = 0.0f;
+    for (int i = 0; i < cols; ++i) {
+      maxRowValue = std::max(maxRowValue, Out(j,i));
+    }
+    sum[j] = 0;
+    for (int i = 0; i < cols; ++i) {
+      Out(j, i) = expapprox(Out(j, i) - maxRowValue);
+      sum[j] += Out(j, i);
+    }
+    for(int i = 0; i < cols; ++i) {
+      Out(j, i) /= sum[j];
+    }
+  }
+}
+
+template <class MT>
+void LogSoftmax(MT& Out) {
+  size_t rows = Out.rows();
+  size_t cols = Out.columns();
+  float sum[rows];
+  for (int j = 0; j < rows; ++j) {
+    float maxRowValue = 0.0f;
+    for (int i = 0; i < cols; ++i) {
+      maxRowValue = std::max(maxRowValue, Out(j,i));
+    }
+    sum[j] = 0;
+    for (int i = 0; i < cols; ++i) {
+      sum[j] += exp(Out(j, i) - maxRowValue);
+    }
+    for(int i = 0; i < cols; ++i) {
+      Out(j, i) -= (maxRowValue + log(sum[j]));
+    }
+  }
+}
+
+template <class MT>
 void Softmax(MT& Out) {
   size_t rows = Out.rows();
   size_t cols = Out.columns();
@@ -272,7 +313,7 @@ void Softmax(MT& Out) {
   for (int j = 0; j < rows; ++j) {
     sum[j] = 0;
     for (int i = 0; i < cols; ++i) {
-      Out(j, i) = expapprox(Out(j, i));
+      Out(j,i) = expapprox(Out(j, i));
       sum[j] += Out(j, i);
     }
     for(int i = 0; i < cols; ++i) {
