@@ -110,27 +110,28 @@ class AsynchronousGraphGroup : public GraphGroup {
     Ptr<TensorAllocator> gradsAlloc_;
     
     void fetchParams(Tensor oldParams) {
+      if(graphs_.size() < 2)
+        return;
+      
       // @TODO read guard on parameters
       std::lock_guard<std::mutex> guard(sync_);
       oldParams->copyFrom(params_);
     }
     
     void pushGradients(Tensor newGrads) {
-      std::lock_guard<std::mutex> guard(sync_);
-      if(!grads_) {
-        gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
-  
-        int totalSize = graphs_[0]->params().grads()->size();
-        gradsAlloc_->reserveExact(totalSize);
-        gradsAlloc_->allocate(grads_, {1, totalSize});
+      if(graphs_.size() < 2) {
+        opt_->update(graphs_[0]);
       }
-      grads_->copyFrom(newGrads);
-      opt_->update(params_, grads_);
+      else {
+        std::lock_guard<std::mutex> guard(sync_);
+        grads_->copyFrom(newGrads);
+        opt_->update(params_, grads_);
+      }
     }
     
     void execute(Ptr<data::CorpusBatch> batch) {
       static bool first = true;
-      if(first) {
+      if(first && graphs_.size() > 1) {
         // initialize the paramters
         for(auto graph : graphs_) {
           builder_->build(graph, batch);
@@ -143,6 +144,14 @@ class AsynchronousGraphGroup : public GraphGroup {
           int totalSize = graphs_[0]->params().vals()->size();
           paramsAlloc_->reserveExact(totalSize);
           paramsAlloc_->allocate(params_, {1, totalSize});
+        }
+        
+        if(!grads_) {
+          gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
+    
+          int totalSize = graphs_[0]->params().vals()->size();
+          gradsAlloc_->reserveExact(totalSize);
+          gradsAlloc_->allocate(grads_, {1, totalSize});
         }
         
         params_->copyFrom(graphs_[0]->params().vals());
