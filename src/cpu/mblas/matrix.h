@@ -291,16 +291,12 @@ void LogSoftmax(MT& Out) {
   size_t cols = Out.columns();
   float sum[rows];
   for (int j = 0; j < rows; ++j) {
-    float maxRowValue = 0.0f;
-    for (int i = 0; i < cols; ++i) {
-      maxRowValue = std::max(maxRowValue, Out(j,i));
-    }
     sum[j] = 0;
     for (int i = 0; i < cols; ++i) {
-      sum[j] += exp(Out(j, i) - maxRowValue);
+      sum[j] += expapprox(Out(j, i));
     }
     for(int i = 0; i < cols; ++i) {
-      Out(j, i) -= (maxRowValue + log(sum[j]));
+      Out(j, i) -= logapprox(sum[j]);
     }
   }
 }
