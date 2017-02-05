@@ -23,8 +23,8 @@
 
 namespace marian {
 
-  void TrainingLoop(Ptr<Config> options,
-                    Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+  void TrainingLoop(Ptr<data::BatchGenerator<data::Corpus>> batchGenerator,
+                    Ptr<Config> options) {
 
     auto reporter = New<Reporter>(options);
     Ptr<GraphGroup> graphGroup = New<AsyncGraphGroup<Nematus>>(options);
@@ -72,11 +72,10 @@ int main(int argc, char** argv) {
 
   int dimBatch = options->get<int>("mini-batch");
   int dimMaxiBatch = options->get<int>("maxi-batch");
-  
-  auto corpus = New<Corpus>(options);
-  auto bg = New<BatchGenerator<Corpus>>(corpus, dimBatch, dimMaxiBatch);
 
-  TrainingLoop(options, bg);
+  auto corpus = New<Corpus>(options);
+  auto bg = New<BatchGenerator<Corpus>>(corpus, options);
+  TrainingLoop(bg, options);
 
   return 0;
 }

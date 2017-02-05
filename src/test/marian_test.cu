@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   c["vocabs"] = vocab;
 
   auto corpus = DataSet<Corpus>(options);
-  BatchGenerator<Corpus> bg(corpus, 10, 20);
+  BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);

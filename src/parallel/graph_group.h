@@ -114,6 +114,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
       else {
         std::lock_guard<std::mutex> guard(sync_);
+        // add instead of copy?
         grads_->copyFrom(newGrads);
         opt_->update(params_, grads_);
       }
