@@ -1,5 +1,6 @@
 #include <random>
-#include "corpus.h"
+
+#include "data/corpus.h"
 
 namespace marian {
 namespace data {
@@ -33,15 +34,18 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
-Corpus::Corpus(const std::vector<std::string>& textPaths,
-               const std::vector<std::string>& vocabPaths,
-               const std::vector<int>& maxVocabs,
-               size_t maxLength)
-  : textPaths_(textPaths),
-    maxLength_(maxLength)
-{
-  UTIL_THROW_IF2(textPaths.size() != vocabPaths.size(),
+Corpus::Corpus(Ptr<Config> options)
+  : options_(options),
+    textPaths_(options_->get<std::vector<std::string>>("trainsets")),
+    maxLength_(options_->get<size_t>("max-length")) {
+  std::vector<std::string> vocabPaths =
+    options_->get<std::vector<std::string>>("vocabs");
+
+  UTIL_THROW_IF2(textPaths_.size() != vocabPaths.size(),
                  "Number of corpus files and vocab files does not agree");
+
+  std::vector<int> maxVocabs =
+    options_->get<std::vector<int>>("dim-vocabs");
 
   std::vector<Vocab> vocabs;
   for(int i = 0; i < vocabPaths.size(); ++i) {
@@ -51,7 +55,6 @@ Corpus::Corpus(const std::vector<std::string>& textPaths,
   for(auto path : textPaths_) {
     files_.emplace_back(new InputFileStream(path));
   }
-
 }
 
 SentenceTuple Corpus::next() {

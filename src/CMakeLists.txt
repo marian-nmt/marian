@@ -15,6 +15,8 @@ cuda_add_library(marian_lib
   kernels/tensor_operators.cu
   layers/param_initializers.cpp
   common/utils.cpp
+  common/logging.cpp
+  command/config.cpp
   data/vocab.cpp
   data/corpus.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
@@ -34,7 +36,6 @@ cuda_add_executable(
 
 cuda_add_executable(
   marian
-  command/config.cpp
   command/marian.cu
 )
 

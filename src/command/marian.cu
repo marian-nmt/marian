@@ -22,14 +22,14 @@
 #include "parallel/graph_group.h"
 
 namespace marian {
-  
+
   void TrainingLoop(Ptr<Config> options,
                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
 
     auto reporter = New<Reporter>(options);
-    Ptr<GraphGroup> graphGroup = New<AsynchronousGraphGroup<Nematus>>(options);
+    Ptr<GraphGroup> graphGroup = New<AsyncGraphGroup<Nematus>>(options);
     graphGroup->setReporter(reporter);
- 
+
     size_t epochs = 1;
     size_t batches = 0;
     while((options->get<size_t>("after-epochs") == 0
@@ -38,14 +38,14 @@ namespace marian {
            || batches < options->get<size_t>("after-batches"))) {
 
       batchGenerator->prepare(!options->get<bool>("no-shuffle"));
-      
+
       boost::timer::cpu_timer timer;
 
       while(*batchGenerator) {
-        
+
         auto batch = batchGenerator->next();
         graphGroup->update(batch);
-        
+
       }
       epochs++;
       LOG(info) << "Starting epoch " << epochs << " after "
@@ -61,25 +61,21 @@ int main(int argc, char** argv) {
   using namespace data;
   using namespace keywords;
 
-  std::shared_ptr<spdlog::logger> info;
-  info = spdlog::stderr_logger_mt("info");
-  info->set_pattern("[%Y-%m-%d %T] %v");
+  Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v")};
+  Logger config{stderrLogger("config", "[config] %v")};
+  Logger memory{stderrLogger("memory", "[memory] %v")};
 
   auto options = New<Config>(argc, argv);
-  std::cerr << *options << std::endl;
+  options->log();
 
   auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
-  int dimEmb = options->get<int>("dim-emb");
-  int dimRnn = options->get<int>("dim-rnn");
+
   int dimBatch = options->get<int>("mini-batch");
   int dimMaxiBatch = options->get<int>("maxi-batch");
   
-  auto trainSets = options->get<std::vector<std::string>>("trainsets");
-  auto vocabs = options->get<std::vector<std::string>>("vocabs");
-  size_t maxSentenceLength = options->get<size_t>("max-length");
-  auto corpus = New<Corpus>(trainSets, vocabs, dimVocabs, maxSentenceLength);
+  auto corpus = New<Corpus>(options);
   auto bg = New<BatchGenerator<Corpus>>(corpus, dimBatch, dimMaxiBatch);
- 
+
   TrainingLoop(options, bg);
 
   return 0;

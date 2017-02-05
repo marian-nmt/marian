@@ -1,8 +1,10 @@
-#include "command/config.h"
 #include <set>
 #include <string>
+#include <boost/algorithm/string.hpp>
 
+#include "command/config.h"
 #include "common/file_stream.h"
+#include "common/logging.h"
 
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
@@ -23,6 +25,10 @@ YAML::Node Config::get(const std::string& key) const {
 }
 
 const YAML::Node& Config::get() const {
+  return config_;
+}
+
+YAML::Node& Config::get() {
   return config_;
 }
 
@@ -122,7 +128,7 @@ void OutputRec(const YAML::Node node, YAML::Emitter& out) {
   }
 }
 
-void Config::addOptions(int argc, char** argv) {
+void Config::addOptions(int argc, char** argv, bool doValidate) {
   std::string configPath;
 
   namespace po = boost::program_options;
@@ -133,10 +139,6 @@ void Config::addOptions(int argc, char** argv) {
      "Configuration file")
     ("model,m", po::value<std::string>()->default_value("./model"),
       "Path prefix for model to be saved")
-    ("device,d", po::value<std::vector<int>>()
-      ->multitoken()
-      ->default_value(std::vector<int>({0}), "0"),
-      "Use device(s) no.  arg")
     ("init,i", po::value<std::string>(),
       "Load weights from  arg  before training")
     ("overwrite", po::value<bool>()->default_value(false),
@@ -145,6 +147,8 @@ void Config::addOptions(int argc, char** argv) {
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files, have to correspond to --trainsets")
+    ("max-length", po::value<size_t>()->default_value(50),
+      "Maximum length of a sentence in a training sentence pair")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
       "Finish after this many epochs, 0 is infinity")
     ("after-batches", po::value<size_t>()->default_value(0),
@@ -153,30 +157,38 @@ void Config::addOptions(int argc, char** argv) {
       "Display information every  arg  updates")
     ("save-freq", po::value<size_t>()->default_value(30000),
       "Save model file every  arg  updates")
+    ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
+    "Skip shuffling of training data before each epoch")
     ("workspace,w", po::value<size_t>()->default_value(2048),
       "Preallocate  arg  MB of work space")
   ;
 
-  po::options_description hyper("Search options");
-  hyper.add_options()
-    ("max-length", po::value<size_t>()->default_value(50),
-      "Maximum length of a sentence in a training sentence pair")
-    ("mini-batch,b", po::value<int>()->default_value(40),
-      "Size of mini-batch used during update")
-    ("maxi-batch", po::value<int>()->default_value(20),
-      "Number of batches to preload for length-based sorting")
-    ("lrate,l", po::value<double>()->default_value(0.0002),
-      "Learning rate for Adam algorithm")
-    ("clip-norm", po::value<double>()->default_value(1.f),
-      "Clip gradient norm to  arg  (0 to disable)")
+  po::options_description model("Model options");
+  model.add_options()
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
-    ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
-    "Skip shuffling of training data before each epoch")
+  ;
+
+  po::options_description opt("Optimizer options");
+  opt.add_options()
+    ("mini-batch,b", po::value<int>()->default_value(64),
+      "Size of mini-batch used during update")
+    ("maxi-batch", po::value<int>()->default_value(100),
+      "Number of batches to preload for length-based sorting")
+    ("optimizer,o", po::value<std::string>()->default_value("adam"),
+      "Optimization algorithm (possible values: sgd, adagrad, adam")
+    ("learn-rate,l", po::value<double>()->default_value(0.0001),
+      "Learning rate")
+    ("clip-norm", po::value<double>()->default_value(1.f),
+      "Clip gradient norm to  arg  (0 to disable)")
+    ("device,d", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({0}), "0"),
+      "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
   ;
 
   po::options_description configuration("Configuration meta options");
@@ -191,7 +203,8 @@ void Config::addOptions(int argc, char** argv) {
 
   po::options_description cmdline_options("Allowed options");
   cmdline_options.add(general);
-  cmdline_options.add(hyper);
+  cmdline_options.add(model);
+  cmdline_options.add(opt);
   cmdline_options.add(configuration);
 
   boost::program_options::variables_map vm_;
@@ -242,14 +255,16 @@ void Config::addOptions(int argc, char** argv) {
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  SET_OPTION("lrate", double);
+  SET_OPTION("optimizer", std::string);
+  SET_OPTION("learn-rate", double);
   SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
-  
-  validate();
+
+  if(doValidate)
+    validate();
 
   if (get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
@@ -263,9 +278,13 @@ void Config::addOptions(int argc, char** argv) {
 
 }
 
-void Config::logOptions() {
-  std::stringstream ss;
+void Config::log() {
   YAML::Emitter out;
   OutputRec(config_, out);
-  std::cerr << "Options: \n" << out.c_str() << std::endl;
+  std::string conf = out.c_str();
+
+  std::vector<std::string> results;
+  boost::algorithm::split(results, conf, boost::is_any_of("\n"));
+  for(auto &r : results)
+    LOG(config) << r;
 }

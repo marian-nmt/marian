@@ -5,8 +5,8 @@
 
 class Config {
   public:
-    Config(int argc, char** argv) {
-      addOptions(argc, argv);
+    Config(int argc, char** argv, bool validate = true) {
+      addOptions(argc, argv, validate);
     }
 
     bool has(const std::string& key) const;
@@ -19,12 +19,14 @@ class Config {
     }
 
     const YAML::Node& get() const;
+    YAML::Node& get();
+
     YAML::Node operator[](const std::string& key) const {
       return get(key);
     }
 
-    void addOptions(int argc, char** argv);
-    void logOptions();
+    void addOptions(int argc, char** argv, bool validate);
+    void log();
     void validate() const;
 
     template <class OStream>

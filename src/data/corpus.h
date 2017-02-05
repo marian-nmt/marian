@@ -4,6 +4,7 @@
 #include <fstream>
 #include <boost/iterator/iterator_facade.hpp>
 
+#include "command/config.h"
 #include "common/definitions.h"
 #include "data/vocab.h"
 #include "common/file_stream.h"
@@ -88,6 +89,8 @@ class CorpusIterator
 
 class Corpus {
   private:
+    Ptr<Config> options_;
+
     std::vector<std::string> textPaths_;
     std::vector<UPtr<InputFileStream>> files_;
     std::vector<Vocab> vocabs_;
@@ -102,10 +105,7 @@ class Corpus {
     typedef CorpusIterator iterator;
     typedef SentenceTuple sample;
 
-    Corpus(const std::vector<std::string>& textPaths,
-           const std::vector<std::string>& vocabPaths,
-           const std::vector<int>& maxVocabs,
-           size_t maxLength = 50);
+    Corpus(Ptr<Config> options);
 
     sample next();
 
