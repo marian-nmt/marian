@@ -11,7 +11,7 @@
 
 namespace marian {
 
-class Nematus : public ExpressionGraph {
+class DL4MT {
   private:
     Ptr<Config> options_;
     
@@ -40,9 +40,9 @@ class Nematus : public ExpressionGraph {
 
   public:
     
-    Nematus() {}
+    DL4MT() {}
     
-    Nematus(Ptr<Config> options)
+    DL4MT(Ptr<Config> options)
     : options_(options) {
     
       auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");

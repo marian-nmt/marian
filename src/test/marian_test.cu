@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/nematus.h"
+#include "models/dl4mt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto nematus = New<Nematus>();
-  nematus->load(graph, "../test/model.npz");
+  auto dl4mt = New<DL4MT>();
+  dl4mt->load(graph, "../test/model.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
       batch->debug();
 
-      auto costNode = nematus->build(graph, batch);
+      auto costNode = dl4mt->build(graph, batch);
       for(auto p : graph->params())
         debug(p, p->name());
       debug(costNode, "cost");
@@ -82,9 +82,8 @@ int main(int argc, char** argv) {
         timer.start();
       }
 
-
       if(batches % 10000 == 0)
-        nematus->save(graph, "../test/model.marian." + std::to_string(batches) + ".npz");
+        dl4mt->save(graph, "../test/model.marian." + std::to_string(batches) + ".npz");
 
       batches++;
     }

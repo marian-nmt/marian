@@ -13,13 +13,13 @@
 #include "marian.h"
 #include "command/training.h"
 #include "parallel/graph_group.h"
-#include "models/nematus.h"
+#include "models/dl4mt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv);
-  Train<AsyncGraphGroup<Nematus>>(options);
+  Train<AsyncGraphGroup<DL4MT>>(options);
 
   return 0;
 }
