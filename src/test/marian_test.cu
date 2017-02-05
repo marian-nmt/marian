@@ -18,10 +18,6 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
-  Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v")};
-  Logger config{stderrLogger("config", "[config] %v")};
-  Logger memory{stderrLogger("memory", "[memory] %v")};
-
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =

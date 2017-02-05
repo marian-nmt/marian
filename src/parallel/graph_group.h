@@ -4,60 +4,10 @@
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
+#include "optimizers/optimizers.h"
+#include "command/training.h"
 
 namespace marian {
-
-class Reporter {
-  public:
-    Ptr<Config> options_;
-
-    float costSum{0};
-    size_t epochs{1};
-
-    size_t samples{0};
-    size_t wordsDisp{0};
-    size_t batches{0};
-
-    boost::timer::cpu_timer timer;
-
-  public:
-    Reporter(Ptr<Config> options) : options_(options) {}
-
-    void update(float cost, Ptr<data::CorpusBatch> batch) {
-      static std::mutex sMutex;
-      std::lock_guard<std::mutex> guard(sMutex);
-
-      costSum += cost;
-      samples += batch->size();
-      wordsDisp += batch->words();
-      batches++;
-      //if(options.get<size_t>("after-batches")
-      //   && batches >= options.get<size_t>("after-batches"))
-      //  break;
-
-      if(batches % options_->get<size_t>("disp-freq") == 0) {
-        std::stringstream ss;
-        ss << "Ep. " << epochs
-           << " : Up. " << batches
-           << " : Sen. " << samples
-           << " : Cost " << std::fixed << std::setprecision(2)
-                         << costSum / options_->get<size_t>("disp-freq")
-           << " : Time " << timer.format(2, "%ws");
-
-        float seconds = std::stof(timer.format(5, "%w"));
-        float wps = wordsDisp /   (float)seconds;
-
-        ss << " : " << std::fixed << std::setprecision(2)
-           << wps << " words/s";
-
-        LOG(info) << ss.str();
-
-        timer.start();
-        costSum = 0;
-        wordsDisp = 0;
-      }
-    }
-};
 
 class GraphGroup {
   protected:
@@ -187,19 +137,6 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    void save() {
-      std::lock_guard<std::mutex> guard(sync_);
-      if(options_->get<bool>("overwrite")) {
-        std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-      else {
-        std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-    }
-
   public:
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
@@ -218,6 +155,19 @@ class AsyncGraphGroup : public GraphGroup {
 
     void update(Ptr<data::CorpusBatch> batch) {
       execute(batch);
+    }
+
+    void save() {
+      std::lock_guard<std::mutex> guard(sync_);
+      if(options_->get<bool>("overwrite")) {
+        std::string name = options_->get<std::string>("model") + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+      else {
+        std::string name = options_->get<std::string>("model")
+          + "." + std::to_string(reporter_->batches) + ".npz";
+        builder_->save(graphs_[0], name);
+      }
     }
 };
 
@@ -315,18 +265,6 @@ class SyncGraphGroup : public GraphGroup {
       }
     }
 
-    void save() {
-      if(options_->get<bool>("overwrite")) {
-        std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-      else {
-        std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-    }
-
   public:
     SyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
@@ -353,6 +291,19 @@ class SyncGraphGroup : public GraphGroup {
       if(batches_.size() == graphs_.size())
         execute();
     }
+
+    void save() {
+      if(options_->get<bool>("overwrite")) {
+        std::string name = options_->get<std::string>("model") + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+      else {
+        std::string name = options_->get<std::string>("model")
+          + "." + std::to_string(reporter_->batches) + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+    }
+
 };
 
 }

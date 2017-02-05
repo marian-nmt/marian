@@ -16,6 +16,8 @@ do { if(vm_.count(key) > 0) { \
   config_[key] = vm_[key].as<type>(); \
 }} while(0)
 
+namespace marian {
+
 bool Config::has(const std::string& key) const {
   return config_[key];
 }
@@ -287,4 +289,6 @@ void Config::log() {
   boost::algorithm::split(results, conf, boost::is_any_of("\n"));
   for(auto &r : results)
     LOG(config) << r;
+}
+
 }
