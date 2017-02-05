@@ -77,6 +77,8 @@ class GraphGroup {
       reporter_ = reporter;
     }
 
+    virtual void load() = 0;
+
     virtual void save() = 0;
 };
 
@@ -178,22 +180,11 @@ class AsyncGraphGroup : public GraphGroup {
       pool_.enqueue(task, batch);
     }
 
-  public:
-    AsyncGraphGroup(Ptr<Config> options)
-     : GraphGroup(options),
-       builder_{New<Builder>(options_)},
-       devices_{options_->get<std::vector<size_t>>("device")},
-       pool_{devices_.size(), devices_.size() } {
-
-      for(auto device : devices_) {
-        graphs_.emplace_back(New<ExpressionGraph>());
-        graphs_.back()->setDevice(device);
-        graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+    void load() {
+      if(options_->has("init")) {
+        std::string init = options_->get<std::string>("init");
+        builder_->load(graphs_[0], init);
       }
-    }
-
-    void update(Ptr<data::CorpusBatch> batch) {
-      execute(batch);
     }
 
     void save() {
@@ -207,6 +198,26 @@ class AsyncGraphGroup : public GraphGroup {
           + "." + std::to_string(reporter_->batches) + ".npz";
         builder_->save(graphs_[0], name);
       }
+    }
+
+  public:
+    AsyncGraphGroup(Ptr<Config> options)
+     : GraphGroup(options),
+       builder_{New<Builder>(options_)},
+       devices_{options_->get<std::vector<size_t>>("device")},
+       pool_{devices_.size(), devices_.size() } {
+
+      for(auto device : devices_) {
+        graphs_.emplace_back(New<ExpressionGraph>());
+        graphs_.back()->setDevice(device);
+        graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      }
+
+      load();
+    }
+
+    void update(Ptr<data::CorpusBatch> batch) {
+      execute(batch);
     }
 };
 
@@ -297,6 +308,25 @@ class SyncGraphGroup : public GraphGroup {
       batches_.clear();
     }
 
+    void load() {
+      if(options_->has("init")) {
+        std::string init = options_->get<std::string>("init");
+        builder_->load(graphs_[0], init);
+      }
+    }
+
+    void save() {
+      if(options_->get<bool>("overwrite")) {
+        std::string name = options_->get<std::string>("model") + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+      else {
+        std::string name = options_->get<std::string>("model")
+          + "." + std::to_string(reporter_->batches) + ".npz";
+        builder_->save(graphs_[0], name);
+      }
+    }
+
   public:
     SyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
@@ -311,6 +341,7 @@ class SyncGraphGroup : public GraphGroup {
         graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       }
 
+      load();
     }
 
     ~SyncGraphGroup() {
@@ -321,18 +352,6 @@ class SyncGraphGroup : public GraphGroup {
       batches_.push_back(batch);
       if(batches_.size() == graphs_.size())
         execute();
-    }
-
-    void save() {
-      if(options_->get<bool>("overwrite")) {
-        std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-      else {
-        std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
-      }
     }
 };
 
