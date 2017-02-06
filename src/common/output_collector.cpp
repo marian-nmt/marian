@@ -3,6 +3,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 OutputCollector::OutputCollector()
  : nextId_(0),
   outStrm_(&std::cout)
@@ -46,3 +48,6 @@ void OutputCollector::Write(long sourceId, const std::string& output)
     outputs_[sourceId] = output;
   }
 }
+
+}
+

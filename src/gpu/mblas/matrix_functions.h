@@ -13,6 +13,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/handles.h"
 
+namespace amunmt {
 namespace GPU {
 namespace mblas {
 
@@ -373,3 +374,4 @@ void SetColumn(Matrix& In, int noColumn, float value);
 
 } // namespace mblas
 } // namespace GPU
+}

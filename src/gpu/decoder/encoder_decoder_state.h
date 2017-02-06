@@ -5,6 +5,7 @@
 
 #include "gpu/mblas/matrix.h"
 
+namespace amunmt {
 namespace GPU {
 
 class EncoderDecoderState : public State {
@@ -24,4 +25,5 @@ class EncoderDecoderState : public State {
     mblas::Matrix embeddings_;
 };
 
+}
 }  // namespace GPU

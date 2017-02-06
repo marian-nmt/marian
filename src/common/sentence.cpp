@@ -4,8 +4,10 @@
 #include "utils.h"
 #include "common/vocab.h"
 
+namespace amunmt {
+
 Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)
-  : lineNum_(vLineNum), line_(line)
+  : lineNum_(vLineNum)
 {
   std::vector<std::string> tabs;
   Split(line, tabs, "\t");
@@ -50,9 +52,9 @@ const Words& Sentence::GetWords(size_t index) const {
 }
 
 /////////////////////////////////////////////////////////
-Sentences::Sentences(size_t vTaskCounter, size_t vBunchId)
-  : taskCounter(vTaskCounter)
-  , bunchId(vBunchId)
+Sentences::Sentences(size_t taskCounter, size_t bunchId)
+  : taskCounter_(taskCounter)
+  , bunchId_(bunchId)
   , maxLength_(0)
 {}
 
@@ -78,5 +80,7 @@ class LengthOrderer {
 
 void Sentences::SortByLength() {
   std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
+}
+
 }
 

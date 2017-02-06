@@ -7,6 +7,8 @@
 #include "common/file_stream.h"
 #include "common/exception.h"
 
+namespace amunmt {
+
 Vocab::Vocab(const std::string& path) {
     YAML::Node vocab = YAML::Load(InputFileStream(path));
     for(auto&& pair : vocab) {
@@ -17,7 +19,7 @@ Vocab::Vocab(const std::string& path) {
         id2str_.resize(id + 1);
       id2str_[id] = str;
     }
-    UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
+    amunmt_UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
     id2str_[0] = "</s>";
 }
 
@@ -56,10 +58,13 @@ std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS
 
 
 const std::string& Vocab::operator[](size_t id) const {
-  UTIL_THROW_IF2(id >= id2str_.size(), "Unknown word id: " << id);
+  amunmt_UTIL_THROW_IF2(id >= id2str_.size(), "Unknown word id: " << id);
   return id2str_[id];
 }
 
 size_t Vocab::size() const {
   return id2str_.size();
 }
+
+}
+

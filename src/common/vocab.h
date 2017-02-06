@@ -6,6 +6,8 @@
 
 #include "common/types.h"
 
+namespace amunmt {
+
 class Vocab {
   public:
     Vocab(const std::string& path);
@@ -26,3 +28,5 @@ class Vocab {
     std::map<std::string, size_t> str2id_;
     std::vector<std::string> id2str_;
 };
+
+}

@@ -6,6 +6,8 @@
 #include "scorer.h"
 #include "common/base_best_hyps.h"
 
+namespace amunmt {
+
 class Loader {
   public:
     Loader(const std::string& name,
@@ -39,3 +41,6 @@ class Loader {
 };
 
 typedef std::unique_ptr<Loader> LoaderPtr;
+
+}
+

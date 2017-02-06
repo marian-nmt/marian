@@ -5,6 +5,8 @@
 #include "common/exception.h"
 #include "common/git_version.h"
 
+namespace amunmt {
+
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
   config_[key] = vm_[key].as<type>(); \
@@ -85,29 +87,29 @@ void OverwriteBPE(YAML::Node& config, std::vector<std::string>& bpePaths) {
 }
 
 void Validate(const YAML::Node& config) {
-  UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
+  amunmt_UTIL_THROW_IF2(!config["scorers"] || config["scorers"].size() == 0,
                  "No scorers given in config file");
 
-  UTIL_THROW_IF2(!config["source-vocab"],
+  amunmt_UTIL_THROW_IF2(!config["source-vocab"],
                  "No source-vocab given in config file");
 
-  UTIL_THROW_IF2(!config["target-vocab"],
+  amunmt_UTIL_THROW_IF2(!config["target-vocab"],
                  "No target-vocab given in config file");
 
-  UTIL_THROW_IF2(config["weights"].size() != config["scorers"].size(),
+  amunmt_UTIL_THROW_IF2(config["weights"].size() != config["scorers"].size(),
                 "Different number of models and weights in config file");
 
   for(auto&& pair: config["weights"])
-    UTIL_THROW_IF2(!(config["scorers"][pair.first.as<std::string>()]),
+    amunmt_UTIL_THROW_IF2(!(config["scorers"][pair.first.as<std::string>()]),
                    "Weight has no scorer: " << pair.first.as<std::string>());
 
   for(auto&& pair: config["scorers"])
-    UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
+    amunmt_UTIL_THROW_IF2(!(config["weights"][pair.first.as<std::string>()]), "Scorer has no weight: " << pair.first.as<std::string>());
 
-  //UTIL_THROW_IF2(config["cpu-threads"].as<int>() > 0 && config["batch-size"].as<int>() > 1,
+  //amunmt_UTIL_THROW_IF2(config["cpu-threads"].as<int>() > 0 && config["batch-size"].as<int>() > 1,
   //              "Different number of models and weights in config file");
 
-  UTIL_THROW_IF2(config["maxi-batch"].as<int>() < config["mini-batch"].as<int>(),
+  amunmt_UTIL_THROW_IF2(config["maxi-batch"].as<int>() < config["mini-batch"].as<int>(),
                 "maxi-batch (" << config["maxi-batch"].as<int>()
                 << ") < mini-batch (" << config["mini-batch"].as<int>() << ")");
 }
@@ -341,4 +343,6 @@ void Config::LogOptions() {
   YAML::Emitter out;
   OutputRec(config_, out);
   LOG(info) << "Options: \n" << out.c_str();
+}
+
 }

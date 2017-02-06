@@ -2,6 +2,8 @@
 #include <iostream>
 #include <sstream>
 
+namespace amunmt {
+
 void Trim(std::string& s) {
   boost::trim_if(s, boost::is_any_of(" \t\n"));
 }
@@ -49,3 +51,6 @@ std::string Join(const std::vector<std::string>& words,
   }
   return ss.str();
 }
+
+}
+

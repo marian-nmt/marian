@@ -10,6 +10,7 @@
 #include "gpu/types-gpu.h"
 
 
+namespace amunmt {
 namespace GPU {
 
 class EncoderDecoderState;
@@ -35,9 +36,9 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
+    virtual void Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
 
-    virtual State* NewState();
+    virtual State* NewState() const;
 
     virtual void BeginSentenceState(State& state, size_t batchSize=1);
 
@@ -73,17 +74,20 @@ class EncoderDecoder : public Scorer {
 ////////////////////////////////////////////
 class EncoderDecoderLoader : public Loader {
   public:
-	EncoderDecoderLoader(const EncoderDecoderLoader&) = delete;
+    EncoderDecoderLoader(const EncoderDecoderLoader&) = delete;
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
-
+    virtual ~EncoderDecoderLoader();
+    
     virtual void Load(const God &god);
 
     virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
     virtual BestHypsBasePtr GetBestHyps(const God &god) const;
 
   private:
-    std::vector<std::unique_ptr<Weights>> weights_;
+    std::vector<std::unique_ptr<Weights>> weights_; // MUST be indexed by gpu id. eg. weights_[2] is for gpu2
 };
 
 }
+}
+

@@ -13,6 +13,7 @@
 #endif
 #endif
 
+namespace amunmt {
 
 LoaderPtr LoaderFactory::Create(
 	const God &god,
@@ -37,7 +38,7 @@ LoaderPtr LoaderFactory::Create(
   }
 
 	std::string type = config["type"].as<std::string>();
-	UTIL_THROW2("Unknown scorer in config file: " << type);
+	amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
 }
 
 #ifdef CUDA
@@ -45,7 +46,7 @@ Loader *LoaderFactory::CreateGPU(
     const God &god,
     const std::string& name,
     const YAML::Node& config) {
-  UTIL_THROW_IF2(!config["type"],
+  amunmt_UTIL_THROW_IF2(!config["type"],
 				 "Missing scorer type in config file");
 
   std::string type = config["type"].as<std::string>();
@@ -72,7 +73,7 @@ Loader *LoaderFactory::CreateCPU(
 		const God &god,
 		const std::string& name,
         const YAML::Node& config) {
-  UTIL_THROW_IF2(!config["type"],
+  amunmt_UTIL_THROW_IF2(!config["type"],
          "Missing scorer type in config file");
   std::string type = config["type"].as<std::string>();
 
@@ -82,3 +83,6 @@ Loader *LoaderFactory::CreateCPU(
 
   return NULL;
 }
+
+}
+

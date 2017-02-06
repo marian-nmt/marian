@@ -1,5 +1,7 @@
 #include "printer.h"
 
+namespace amunmt {
+
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis) {
   std::vector<SoftAlignment> aligns;
   HypothesisPtr last = hypothesis->GetPrevHyp();
@@ -31,3 +33,6 @@ std::string GetAlignmentString(const std::vector<size_t>& alignment) {
   }
   return alignString.str();
 }
+
+}
+

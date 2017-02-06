@@ -12,6 +12,8 @@
 
 #include "../mblas/matrix.h"
 
+namespace amunmt {
+
 class Sentence;
 
 namespace CPU {
@@ -52,9 +54,9 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
-    virtual void Score(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
+    virtual void Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
 
-    virtual State* NewState();
+    virtual State* NewState() const;
 
     virtual void BeginSentenceState(State& state, size_t batchSize);
 
@@ -84,5 +86,7 @@ class EncoderDecoder : public Scorer {
 
     mblas::Matrix SourceContext_;
 };
+
+}
 
 }

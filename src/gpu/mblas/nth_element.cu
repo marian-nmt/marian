@@ -2,14 +2,8 @@
 #include <iostream>
 
 
+namespace amunmt {
 namespace GPU {
-
-static void HandleError(cudaError_t err, const char *file, int line ) {
-  if (err != cudaSuccess) {
-    std::cerr << "ERROR: " << cudaGetErrorString(err) << " in " << file << " at line " << line << std::endl;
-    exit( EXIT_FAILURE );
-  }
-}
 
 #define UNROLL_MAXARG_LOOP( n, max ) \
   if (tid < (n) && tid + (n) < ( max ) ) { \
@@ -353,7 +347,8 @@ void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
 
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
-  cudaStreamSynchronize(stream_);
+  HANDLE_ERROR( cudaStreamSynchronize(stream_));
 }
 
+}
 }  // namespace GPU

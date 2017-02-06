@@ -2,6 +2,7 @@
 
 using namespace std;
 
+namespace amunmt {
 namespace GPU {
 
 Encoder::Encoder(const Weights& model)
@@ -65,5 +66,6 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
                           Context, source.size(), true, &dMapping);
 }
 
+}
 }
 

@@ -8,16 +8,32 @@
 #include <string>
 #include "common/scorer.h"
 
-struct HypoInfo
+namespace amunmt {
+
+struct AmunOutput
 {
-  std::vector<size_t> words;
-  size_t lastWord;
-  States prevStates;
-  States nextStates;
+  States states;
+  Beam prevHyps;
+
   float score;
 
   std::string Debug() const;
 
 };
 
+typedef std::vector<AmunOutput> AmunOutputs;
+
+////////////////////////////////////////////////////////////////
+struct AmunInput
+{
+  States prevStates;
+  States nextStates;
+  Beam prevHyps;
+
+  Words phrase;
+};
+
+typedef std::vector<AmunInput> AmunInputs;
+
+}
 

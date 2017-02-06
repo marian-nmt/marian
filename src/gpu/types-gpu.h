@@ -4,6 +4,14 @@
 
 #include <thrust/device_vector.h>
 
+/////////////////////////////////////////////////////////////////////////////////////
+
+void HandleError(cudaError_t err, const char *file, int line );
+
+#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
+
+/////////////////////////////////////////////////////////////////////////////////////
+
 template<class T>
 using DeviceVector = thrust::device_vector<T>;
 

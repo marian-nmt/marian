@@ -8,12 +8,14 @@
 
 #include "exception.h"
 
+namespace amunmt {
+
 class InputFileStream {
   public:
     InputFileStream(const std::string& file)
      : file_(file), ifstream_(file_)
     {
-      UTIL_THROW_IF2(!boost::filesystem::exists(file_),
+      amunmt_UTIL_THROW_IF2(!boost::filesystem::exists(file_),
                      "File " << file << " does not exist");
 
       if(file_.extension() == ".gz")
@@ -45,3 +47,6 @@ class InputFileStream {
     boost::filesystem::ifstream ifstream_;
     boost::iostreams::filtering_istream istream_;
 };
+
+}
+

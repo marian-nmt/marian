@@ -5,6 +5,7 @@
 #include "gru.h"
 #include "common/god.h"
 
+namespace amunmt {
 namespace CPU {
 
 class Decoder {
@@ -220,7 +221,7 @@ class Decoder {
       softmax_(model.decSoftmax_)
     {}
 
-    void MakeStep(mblas::Matrix& NextState,
+    void Decode(mblas::Matrix& NextState,
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext) {
@@ -308,3 +309,5 @@ class Decoder {
 };
 
 }
+}
+

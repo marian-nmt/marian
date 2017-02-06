@@ -6,6 +6,7 @@
 #include "common/sentence.h"
 #include "gpu/types-gpu.h"
 
+namespace amunmt {
 namespace GPU {
 
 class Encoder {
@@ -104,5 +105,6 @@ class Encoder {
     Encoder(const Encoder&) = delete;
 };
 
+}
 }
 

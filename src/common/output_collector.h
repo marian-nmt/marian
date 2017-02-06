@@ -5,6 +5,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/unordered_map.hpp>
 
+namespace amunmt {
+
 class OutputCollector {
  public:
   OutputCollector();
@@ -21,3 +23,6 @@ class OutputCollector {
   Outputs outputs_;
 
 };
+
+}
+

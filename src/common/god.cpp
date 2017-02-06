@@ -19,6 +19,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 God::God()
 :threadIncr_(0)
 {
@@ -233,11 +235,13 @@ std::vector<std::string> God::Postprocess(const std::vector<std::string>& input)
 }
 // clean up cuda vectors before cuda context goes out of scope
 void God::CleanUp() {
-  for (auto& loader : cpuLoaders_ | boost::adaptors::map_values) {
-     loader.reset(nullptr);
+  for (Loaders::value_type& loader : cpuLoaders_) {
+    //cerr << "cpu loader=" << loader.first << endl;
+     loader.second.reset(nullptr);
   }
-  for (auto& loader : gpuLoaders_ | boost::adaptors::map_values) {
-     loader.reset(nullptr);
+  for (Loaders::value_type& loader : gpuLoaders_) {
+    //cerr << "gpu loader=" << loader.first << endl;
+     loader.second.reset(nullptr);
   }
 }
 
@@ -262,7 +266,7 @@ DeviceInfo God::GetNextDevice() const
     assert(deviceInd < devices.size());
     ret.deviceId = devices[deviceInd];
 
-    UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
+    amunmt_UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
   }
 
   ++threadIncr_;
@@ -292,3 +296,6 @@ Search &God::GetSearch() const
   assert(obj);
   return *obj;
 }
+
+}
+

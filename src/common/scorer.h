@@ -8,6 +8,8 @@
 #include "common/base_matrix.h"
 #include "yaml-cpp/node/node.h"
 
+namespace amunmt {
+
 class God;
 
 class State {
@@ -40,7 +42,7 @@ class Scorer {
 
     virtual ~Scorer() {}
 
-    virtual void Score(const God &god, const State& in,
+    virtual void Decode(const God &god, const State& in,
                        State& out, const std::vector<size_t>& beamSizes) = 0;
 
     virtual void BeginSentenceState(State& state, size_t batchSize=1) = 0;
@@ -53,7 +55,7 @@ class Scorer {
 
     virtual void Filter(const std::vector<size_t>&) = 0;
 
-    virtual State* NewState() = 0;
+    virtual State* NewState() const = 0;
 
     virtual size_t GetVocabSize() const = 0;
 
@@ -83,3 +85,5 @@ class SourceIndependentScorer : public Scorer {
 };
 
 typedef std::shared_ptr<Scorer> ScorerPtr;
+
+}

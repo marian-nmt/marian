@@ -2,6 +2,7 @@
 
 using namespace std;
 
+namespace amunmt {
 namespace CPU {
 
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
@@ -74,5 +75,6 @@ decSoftmax_(model)
 	//cerr << *this << endl;
 }
 
+}
 }
 

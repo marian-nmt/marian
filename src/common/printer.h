@@ -8,6 +8,8 @@
 #include "common/vocab.h"
 #include "common/soft_alignment.h"
 
+namespace amunmt {
+
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 
 std::string GetAlignmentString(const std::vector<size_t>& alignment);
@@ -65,3 +67,6 @@ void Printer(const God &god, const Histories& histories, OStream& out) {
     Printer(god, history, out);
   }
 }
+
+}
+

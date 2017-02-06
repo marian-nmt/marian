@@ -2,6 +2,7 @@
 
 #include "gpu/mblas/matrix_functions.h"
 
+namespace amunmt {
 namespace GPU {
 
 template <class Weights>
@@ -148,4 +149,6 @@ template<class T>
 using GRU = FastGRU<T>;
 
 }
+}
+
 

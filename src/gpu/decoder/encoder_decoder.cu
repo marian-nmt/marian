@@ -10,6 +10,7 @@
 
 using namespace std;
 
+namespace amunmt {
 namespace GPU {
 
 ////////////////////////////////////////////
@@ -50,11 +51,11 @@ EncoderDecoder::EncoderDecoder(
     SourceContext_(new mblas::Matrix())
 {}
 
-void EncoderDecoder::Score(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
+void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  decoder_->MakeStep(edOut.GetStates(),
+  decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
                      *SourceContext_,
@@ -62,7 +63,7 @@ void EncoderDecoder::Score(const God &god, const State& in, State& out, const st
                      beamSizes);
 }
 
-State* EncoderDecoder::NewState() {
+State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
@@ -140,9 +141,20 @@ void EncoderDecoderLoader::Load(const God &god) {
   for(auto d : devices) {
     devicePool.enqueue([d, &path, this] {
       LOG(info) << "Loading model " << path << " onto gpu" << d;
-      cudaSetDevice(d);
+      HANDLE_ERROR(cudaSetDevice(d));
       weights_[d].reset(new Weights(path, d));
     });
+  }
+}
+
+EncoderDecoderLoader::~EncoderDecoderLoader()
+{
+  for (size_t d = 0; d < weights_.size(); ++d) {
+    const Weights *weights = weights_[d].get();
+    if (weights) {
+      HANDLE_ERROR(cudaSetDevice(d));
+      weights_[d].reset(nullptr);
+    }
   }
 }
 
@@ -151,7 +163,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
   size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
   //cerr << "NewScorer=" << i << " " << d << endl;
 
-  cudaSetDevice(d);
+  HANDLE_ERROR(cudaSetDevice(d));
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(god, name_, config_,
                                       tab, *weights_[d]));
@@ -161,5 +173,6 @@ BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
   return BestHypsBasePtr(new GPU::BestHyps(god));
 }
 
+}
 }
 

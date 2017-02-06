@@ -4,6 +4,7 @@
 
 #include "language_model.h"
 
+namespace amunmt {
 namespace GPU {
 
 class ClassLanguageModel : public LanguageModel {
@@ -60,4 +61,5 @@ class ClassLanguageModel : public LanguageModel {
     std::vector<std::vector<Word>> classes_;
 };
 
+}
 }

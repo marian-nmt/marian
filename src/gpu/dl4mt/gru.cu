@@ -1,5 +1,6 @@
 #include "gru.h"
 
+namespace amunmt {
 namespace GPU {
 
 __global__ void gElementwiseOps(float* out,
@@ -42,5 +43,6 @@ __global__ void gElementwiseOps(float* out,
   }
 }
 
+}
 }
 

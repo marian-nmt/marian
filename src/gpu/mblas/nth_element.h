@@ -6,6 +6,7 @@
 #include <cuda.h>
 #include "gpu/mblas/matrix.h"
 
+namespace amunmt {
 namespace GPU {
 
 class NthElement {
@@ -47,4 +48,5 @@ class NthElement {
     size_t lastN;
 };
 
+}
 }  // namespace GPU

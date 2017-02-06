@@ -8,6 +8,7 @@
 #include "common/exception.h"
 #include "cpu/mblas/matrix.h"
 
+namespace amunmt {
 namespace CPU {
 
 struct ProbCompare {
@@ -23,13 +24,16 @@ struct ProbCompare {
 class BestHyps : public BestHypsBase
 {
 public:
-  void operator()(const God &god,
-		std::vector<Beam>& beams,
-        const Beam& prevHyps,
-        std::vector<size_t>& beamSizes,
-        const std::vector<ScorerPtr>& scorers,
-        const Words& filterIndices,
-        bool returnAlignment) {
+  void CalcBeam(
+      const God &god,
+      const Beam& prevHyps,
+      const std::vector<ScorerPtr>& scorers,
+      const Words& filterIndices,
+      bool returnAlignment,
+      std::vector<Beam>& beams,
+      std::vector<size_t>& beamSizes
+      )
+  {
     using namespace mblas;
 
     auto& weights = god.GetScorerWeights();
@@ -108,7 +112,7 @@ public:
             alignments.emplace_back(new SoftAlignment(attention.begin(hypIndex),
                                                       attention.end(hypIndex)));
           } else {
-            UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+            amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
           }
         }
 
@@ -143,3 +147,4 @@ public:
 };
 
 } // namespace
+}

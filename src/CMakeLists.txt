@@ -53,6 +53,7 @@ cuda_add_executable(
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
+  gpu/types-gpu.cu
 
 
   common/loader_factory.cpp
@@ -72,6 +73,7 @@ cuda_add_library(amunmt SHARED
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
+  gpu/types-gpu.cu
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
@@ -91,6 +93,7 @@ cuda_add_library(mosesplugin STATIC
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
+  gpu/types-gpu.cu
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>

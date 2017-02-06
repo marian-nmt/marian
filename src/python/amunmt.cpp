@@ -13,6 +13,8 @@
 #include "common/sentence.h"
 #include "common/exception.h"
 
+using namespace amunmt;
+
 God god_;
 
 std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
@@ -20,7 +22,7 @@ std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCou
 
   std::shared_ptr<Sentences> sentences(new Sentences());
   sentences->push_back(SentencePtr(new Sentence(god_, taskCounter, in)));
-  return search.Decode(god_, *sentences);
+  return search.Process(god_, *sentences);
 }
 
 void init(const std::string& options) {
@@ -40,7 +42,7 @@ boost::python::list translate(boost::python::list& in) {
 #endif
 
   LOG(info) << "Total number of threads: " << totalThreads;
-  UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   ThreadPool pool(totalThreads);
   std::vector<std::future< std::shared_ptr<Histories> >> results;

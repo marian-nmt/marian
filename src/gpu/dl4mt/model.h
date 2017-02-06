@@ -6,6 +6,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/npz_converter.h"
 
+namespace amunmt {
 namespace GPU {
 
 struct Weights {
@@ -213,4 +214,6 @@ struct Weights {
 };
 
 }
+}
+
 

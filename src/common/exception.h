@@ -94,7 +94,7 @@ template <class Except, class Data> typename Except::template ExceptionTag<Excep
 #define UTIL_THROW(Exception, Modify) \
   UTIL_THROW_BACKEND(NULL, Exception, , Modify);
 
-#define UTIL_THROW2(Modify) \
+#define amunmt_UTIL_THROW2(Modify) \
   UTIL_THROW_BACKEND(NULL, amunmt::util::Exception, , Modify);
 
 #if __GNUC__ >= 3
@@ -118,7 +118,7 @@ template <class Except, class Data> typename Except::template ExceptionTag<Excep
 #define UTIL_THROW_IF(Condition, Exception, Modify) \
   UTIL_THROW_IF_ARG(Condition, Exception, , Modify)
 
-#define UTIL_THROW_IF2(Condition, Modify) \
+#define amunmt_UTIL_THROW_IF2(Condition, Modify) \
   UTIL_THROW_IF_ARG(Condition, amunmt::util::Exception, , Modify)
 
 // Exception that records errno and adds it to the message.

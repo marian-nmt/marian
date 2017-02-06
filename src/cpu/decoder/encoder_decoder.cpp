@@ -18,6 +18,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 namespace CPU {
 
 using EDState = EncoderDecoderState;
@@ -60,15 +62,15 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Score(const God &god, const State& in, State& out, const std::vector<size_t>&) {
+void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  decoder_->MakeStep(edOut.GetStates(), edIn.GetStates(),
+  decoder_->Decode(edOut.GetStates(), edIn.GetStates(),
                      edIn.GetEmbeddings(), SourceContext_);
 }
 
-State* EncoderDecoder::NewState() {
+State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
@@ -149,6 +151,8 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
   return BestHypsBasePtr(new CPU::BestHyps());
+}
+
 }
 
 }

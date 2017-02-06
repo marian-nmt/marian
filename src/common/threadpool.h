@@ -38,6 +38,8 @@ This source code has been modified to have optional bounded size.
 #include <functional>
 #include <stdexcept>
 
+namespace amunmt {
+
 class ThreadPool {
  public:
     explicit ThreadPool(size_t threads, size_t bound /* bound on size, or 0 for unbounded */ = 0);
@@ -129,5 +131,5 @@ inline ThreadPool::~ThreadPool() {
   }
 }
 
-
+}
 

@@ -1,5 +1,6 @@
 #pragma once
 
+namespace amunmt {
 namespace CPU {
 namespace mblas
 {
@@ -106,6 +107,7 @@ namespace mblas
     }
   };
 
+}
 }
 }
 

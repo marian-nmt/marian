@@ -2,6 +2,7 @@
 
 #include "gpu/mblas/handles.h"
 
+namespace amunmt {
 namespace GPU {
 namespace mblas {
 
@@ -508,3 +509,4 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
 
 }  // namespace mblas
 }  // namespace GPU
+}

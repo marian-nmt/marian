@@ -20,6 +20,8 @@
 #include "common/processor/bpe.h"
 #include "common/utils.h"
 
+namespace amunmt {
+
 class Search;
 class Weights;
 class Vocab;
@@ -88,8 +90,9 @@ class God {
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;
 
-    std::map<std::string, LoaderPtr> cpuLoaders_;
-    std::map<std::string, LoaderPtr> gpuLoaders_;
+    typedef std::map<std::string, LoaderPtr> Loaders;
+    Loaders cpuLoaders_;
+    Loaders gpuLoaders_;
     std::map<std::string, float> weights_;
 
     std::shared_ptr<spdlog::logger> info_;
@@ -103,3 +106,6 @@ class God {
     mutable boost::thread_specific_ptr<Search> search_;
     mutable boost::shared_mutex accessLock_;
 };
+
+}
+

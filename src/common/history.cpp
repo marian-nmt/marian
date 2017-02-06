@@ -1,6 +1,8 @@
 #include "history.h"
 #include "sentence.h"
 
+namespace amunmt {
+
 Histories::Histories(const God &god, const Sentences& sentences)
  : coll_(sentences.size())
 {
@@ -41,3 +43,6 @@ void Histories::Append(const Histories &other)
     coll_.push_back(history);
   }
 }
+
+}
+

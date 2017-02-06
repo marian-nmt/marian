@@ -6,6 +6,8 @@
 
 using namespace std;
 
+namespace amunmt {
+
 void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter) {
   Search &search = god.GetSearch();
 
@@ -30,7 +32,7 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
       if (decodeSentences->size() >= miniBatch) {
         //cerr << "decodeSentences=" << decodeSentences->GetMaxLength() << endl;
         assert(decodeSentences->size());
-        std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
+        std::shared_ptr<Histories> histories = search.Process(god, *decodeSentences);
         allHistories.Append(*histories.get());
 
         decodeSentences.reset(new Sentences(taskCounter, bunchId++));
@@ -38,7 +40,7 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
     }
 
     if (decodeSentences->size()) {
-      std::shared_ptr<Histories> histories = search.Decode(god, *decodeSentences);
+      std::shared_ptr<Histories> histories = search.Process(god, *decodeSentences);
       allHistories.Append(*histories.get());
     }
 
@@ -72,6 +74,8 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
     std::cerr << "Some other kind of error during some_function" << std::endl;
     abort();
   }
+
+}
 
 }
 
