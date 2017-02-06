@@ -5,7 +5,8 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "dataset.h"
+#include "data/dataset.h"
+#include "training/config.h"
 
 namespace marian {
 
@@ -21,9 +22,10 @@ class BatchGenerator {
 
   private:
     Ptr<DataSet> data_;
+    Ptr<Config> options_;
+
     typename DataSet::iterator current_;
 
-    size_t batchSize_;
     size_t maxiBatchSize_;
 
     std::deque<BatchPtr> bufferedBatches_;
@@ -36,7 +38,8 @@ class BatchGenerator {
 
       std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
 
-      while(current_ != data_->end() && maxiBatch.size() < maxiBatchSize_) {
+      int maxSize = options_->get<int>("mini-batch") * options_->get<int>("maxi-batch");
+      while(current_ != data_->end() && maxiBatch.size() < maxSize) {
         maxiBatch.push(*current_);
         current_++;
       }
@@ -45,7 +48,7 @@ class BatchGenerator {
       while(!maxiBatch.empty()) {
         batchVector.push_back(maxiBatch.top());
         maxiBatch.pop();
-        if(batchVector.size() == batchSize_) {
+        if(batchVector.size() == options_->get<int>("mini-batch")) {
           bufferedBatches_.push_back(data_->toBatch(batchVector));
           batchVector.clear();
         }
@@ -58,12 +61,9 @@ class BatchGenerator {
 
   public:
     BatchGenerator(Ptr<DataSet> data,
-                   size_t batchSize=80,
-                   size_t maxiBatchNum=20)
+                   Ptr<Config> options)
     : data_(data),
-      batchSize_(batchSize),
-      maxiBatchSize_(batchSize * maxiBatchNum)
-      { }
+      options_(options) { }
 
     operator bool() const {
       return !bufferedBatches_.empty();

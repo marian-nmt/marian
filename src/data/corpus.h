@@ -4,6 +4,7 @@
 #include <fstream>
 #include <boost/iterator/iterator_facade.hpp>
 
+#include "training/config.h"
 #include "common/definitions.h"
 #include "data/vocab.h"
 #include "common/file_stream.h"
@@ -88,9 +89,11 @@ class CorpusIterator
 
 class Corpus {
   private:
+    Ptr<Config> options_;
+
     std::vector<std::string> textPaths_;
     std::vector<UPtr<InputFileStream>> files_;
-    std::vector<Vocab> vocabs_;
+    std::vector<Ptr<Vocab>> vocabs_;
     size_t maxLength_;
 
     void shuffleFiles(const std::vector<std::string>& paths);
@@ -102,21 +105,29 @@ class Corpus {
     typedef CorpusIterator iterator;
     typedef SentenceTuple sample;
 
-    Corpus(const std::vector<std::string>& textPaths,
-           const std::vector<std::string>& vocabPaths,
-           const std::vector<int>& maxVocabs,
-           size_t maxLength = 50);
+    Corpus(Ptr<Config> options);
+    
+    Corpus(std::vector<std::string> paths,
+           std::vector<Ptr<Vocab>> vocabs,
+           Ptr<Config> options);
 
     sample next();
 
     void shuffle();
+    
+    void reset();
 
     iterator begin() {
+      reset();
       return iterator(*this);
     }
 
     iterator end() {
       return iterator();
+    }
+    
+    std::vector<Ptr<Vocab>>& getVocabs() {
+      return vocabs_;
     }
 
     batch_ptr toBatch(const std::vector<sample>& batchVector) {

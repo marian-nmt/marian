@@ -27,7 +27,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/pair.h>
 
-#include "tensors/tensor_gpu.h"
+#include "tensors/tensor.h"
 
 namespace marian {
 
@@ -37,7 +37,7 @@ using namespace thrust::placeholders;
 
 class TensorGPU;
 
-cublasHandle_t create_handle();
+cublasHandle_t create_handle(size_t);
 
 template <class Functor>
 __global__ void gAdd(Functor functor,
@@ -46,7 +46,7 @@ __global__ void gAdd(Functor functor,
                      const float* in1,
                      const Shape in1Shape,
                      const Shape full) {
-
+  
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
 
@@ -82,7 +82,8 @@ __global__ void gAdd(Functor functor,
             }
           }
         }
-        out[index] += sum;
+        if(sum)
+          out[index] += sum;
       }
     }
   }
@@ -91,6 +92,8 @@ __global__ void gAdd(Functor functor,
 template <class Functor>
 void Add(Functor functor,
          Tensor out, Tensor in) {
+
+  cudaSetDevice(out->getDevice());
 
   auto full = out->shape();
   for(int i = 0; i < in->shape().size(); ++i)
@@ -162,7 +165,8 @@ __global__ void gAdd(Functor functor,
             }
           }
         }
-        out[index] += sum;
+        if(sum)
+          out[index] += sum;
       }
     }
   }
@@ -171,6 +175,8 @@ __global__ void gAdd(Functor functor,
 template <class Functor>
 void Add(Functor functor,
          Tensor out, Tensor in1, Tensor in2) {
+
+  cudaSetDevice(out->getDevice());
 
   auto full = out->shape();
   for(int i = 0; i < in1->shape().size(); ++i)
@@ -252,7 +258,8 @@ __global__ void gAdd(Functor functor,
             }
           }
         }
-        out[index] += sum;
+        if(sum)
+          out[index] += sum;
       }
     }
   }
@@ -261,6 +268,7 @@ __global__ void gAdd(Functor functor,
 template <class Functor>
 void Add(Functor functor,
          Tensor out, Tensor in1, Tensor in2, Tensor in3) {
+  cudaSetDevice(out->getDevice());
 
   auto full = out->shape();
   for(int i = 0; i < in1->shape().size(); ++i)
@@ -320,6 +328,7 @@ __global__ void gElement(Functor functor,
 template <class Functor, class T1, class T2>
 void Element(Functor functor,
              T1 out, T2 in) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -362,6 +371,7 @@ __global__ void gElement(Functor functor,
 template <class Functor, class T1, class T2, class T3>
 void Element(Functor functor,
              T1 out, T2 in1, T3 in2) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -410,6 +420,7 @@ __global__ void gElement(Functor functor,
 template <class Functor, class T1, class T2, class T3, class T4>
 void Element(Functor functor,
              T1 out, T2 in1, T3 in2, T4 in3) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -442,6 +453,7 @@ __global__ void gElement(Functor functor,
 
 template <class Functor, class T1>
 void Element(Functor functor, T1 out) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -476,6 +488,7 @@ __global__ void gPick(Functor functor,
 
 template <class Functor, class T1, class T2>
 void Pick(Functor functor, T1 out, const T2 picks) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -512,6 +525,7 @@ __global__ void gPick(Functor functor,
 
 template <class Functor, class T1, class T2, class T3>
 void Pick(Functor functor, T1 out, const T2 in, const T3 picks) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -551,6 +565,7 @@ __global__ void gPickReduce(Functor functor,
 
 template <class Functor, class T1, class T2, class T3>
 void PickReduce(Functor functor, T1 out, const T2 in, const T3 picks) {
+  cudaSetDevice(out->getDevice());
 
   int length = in->shape().elements();
 
@@ -592,6 +607,7 @@ __global__ void gPick(Functor functor,
 
 template <class Functor, class T1, class T2, class T3, class T4>
 void Pick(Functor functor, T1 out, const T2 in1, const T3 in2, const T4 picks) {
+  cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
 
@@ -636,21 +652,21 @@ void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
-void CudnnDropoutPrepare(Tensor in, float p,
-                         cudnnDropoutDescriptor_t* dropDesc,
-                         void** space, size_t* spaceSize,
-                         void** states, size_t seed);
-
-void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
-                         void* space, void* states);
-
-void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
-                  void* space, size_t spaceSize,
-                  Tensor out, Tensor in);
-
-void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
-                          void* space, size_t spaceSize,
-                          Tensor out, Tensor in);
+//void CudnnDropoutPrepare(Tensor in, float p,
+//                         cudnnDropoutDescriptor_t* dropDesc,
+//                         void** space, size_t* spaceSize,
+//                         void** states, size_t seed);
+//
+//void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
+//                         void* space, void* states);
+//
+//void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
+//                  void* space, size_t spaceSize,
+//                  Tensor out, Tensor in);
+//
+//void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
+//                          void* space, size_t spaceSize,
+//                          Tensor out, Tensor in);
 
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
 

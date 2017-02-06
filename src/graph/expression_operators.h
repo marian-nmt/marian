@@ -68,10 +68,10 @@ Expr relu(const std::vector<Expr>&);
  *
  * @see <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a>
  */
-template <typename ...Args>
-Expr dropout(Expr a, Args ...args) {
-  return Expression<DropoutNodeOp>(a, args...);
-}
+//template <typename ...Args>
+//Expr dropout(Expr a, Args ...args) {
+//  return Expression<DropoutNodeOp>(a, args...);
+//}
 
 Expr log(Expr a);
 

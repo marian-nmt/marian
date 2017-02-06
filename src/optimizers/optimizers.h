@@ -4,75 +4,90 @@
 #include <memory>
 
 #include "kernels/tensor_operators.h"
+#include "training/config.h"
 #include "optimizers/clippers.h"
 
 namespace marian {
 
-// @TODO: modify computation graph to group all paramters in single matrix object.
-// This will allow to perform a single large SGD update per batch. Currently there
-// are as many updates as different parameters.
-
 class OptimizerBase {
   public:
-    virtual void update(Ptr<ExpressionGraph> graph) {
+    template <typename ...Args>
+    OptimizerBase(Args... args)
+    : clipper_(Get(keywords::clip, nullptr, args...)) {}
+
+    float backpropUpdate(Ptr<ExpressionGraph> graph) {
+      graph->forward();
+      float cost = graph->topNode()->scalar();
       graph->backprop();
-      std::thread([&]() {
-        cudaSetDevice(graph->getDevice());
-        updateRule(graph);
-      }).join();
+      update(graph);
+      return cost;
     }
 
-    virtual void updateRule(Ptr<ExpressionGraph> graph) = 0;
+    void update(Ptr<ExpressionGraph> graph) {
+      Tensor p = graph->params().vals();
+      Tensor g = graph->params().grads();
+      update(p, g);
+    }
+
+    void update(Tensor params, Tensor grads) {
+      if(clipper_)
+        clipper_->clip(grads);
+      updateImpl(params, grads);
+    }
+
+  private:
+
+    virtual void updateImpl(Tensor params, Tensor grads) = 0;
+
+    Ptr<ClipperBase> clipper_;
 };
 
 class Sgd : public OptimizerBase {
   public:
-    Sgd(float eta=0.01) : eta_(eta) {}
-
-    void updateRule(Ptr<ExpressionGraph> graph) {
-      for(auto& param : graph->params())
-        Element(_1 -= eta_ * _2,
-                param->val(), param->grad());
-    }
-
-
+    template <typename ...Args>
+    Sgd(float eta=0.01, Args... args)
+    : OptimizerBase(args...), eta_(eta) {}
 
   private:
+    void updateImpl(Tensor params, Tensor grads) {
+      Element(_1 -= eta_ * _2, params, grads);
+    }
+
     float eta_;
 };
 
 // @TODO: Add serialization for historic gradients and parameters
 class Adagrad : public OptimizerBase {
   public:
-    Adagrad(float eta=0.01, float eps=1e-8)
-    : eta_(eta), eps_(eps)
+    template <typename ...Args>
+    Adagrad(float eta=0.01, Args ...args)
+    : OptimizerBase(args...),
+      eta_(eta),
+      eps_(Get(keywords::eps, 1e-8, args...))
     {}
 
-    void updateRule(Ptr<ExpressionGraph> graph) {
+  private:
+    void updateImpl(Tensor params, Tensor grads) {
       if(!alloc_)
-        alloc_ = newTensorAllocator<DeviceGPU>();
+        alloc_ = New<TensorAllocator>(params->getDevice());
 
       if(!gt_) {
-        int totalSize = graph->params().totalSize();
+        int totalSize = params->size();
         alloc_->reserveExact(totalSize);
         alloc_->allocate(gt_, {1, totalSize});
         gt_->set(0);
       }
 
-      Tensor pv = graph->params().vals();
-      Tensor pg = graph->params().grads();
-
       Element(_1 += (_2 * _2),
-              gt_, pg);
+              gt_, grads);
 
       Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-              pv, gt_, pg);
+              params, gt_, grads);
     }
 
-  private:
     float eta_;
     float eps_;
-    TensorAllocator alloc_;
+    Ptr<TensorAllocator> alloc_;
     Tensor gt_;
 };
 
@@ -83,26 +98,23 @@ class Adam : public OptimizerBase {
   public:
     template <typename ...Args>
     Adam(float eta, Args ...args)
-    : eta_(eta),
+    : OptimizerBase(args...),
+      eta_(eta),
       beta1_(Get(keywords::beta1, 0.9, args...)),
       beta2_(Get(keywords::beta2, 0.999, args...)),
       eps_(Get(keywords::eps, 1e-8, args...)),
-      clipper_(Get(keywords::clip, nullptr, args...)),
       t_(0)
     {}
 
-    void updateRule(Ptr<ExpressionGraph> graph) {
-      if(!mtAlloc_)
-        mtAlloc_ = newTensorAllocator<DeviceGPU>();
-      if(!vtAlloc_)
-        vtAlloc_ = newTensorAllocator<DeviceGPU>();
+    void updateImpl(Tensor params, Tensor grads) {
 
-      if(clipper_) {
-        clipper_->clip(graph->params().grads());
-      }
+      if(!mtAlloc_)
+        mtAlloc_ = New<TensorAllocator>(params->getDevice());
+      if(!vtAlloc_)
+        vtAlloc_ = New<TensorAllocator>(params->getDevice());
 
       if(!mt_) {
-        int totalSize = graph->params().totalSize();
+        int totalSize = params->size();
         mtAlloc_->reserveExact(totalSize);
         mtAlloc_->allocate(mt_, {1, totalSize});
         mt_->set(0);
@@ -116,18 +128,13 @@ class Adam : public OptimizerBase {
       float denom1 = 1 - pow(beta1_, t_);
       float denom2 = 1 - pow(beta2_, t_);
 
-      Tensor pv = graph->params().vals();
-      Tensor pg = graph->params().grads();
-
-      //clip(pg);
-
       Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-              mt_, pg);
+              mt_, grads);
       Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-              vt_, pg);
+              vt_, grads);
 
       Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-              pv, mt_, vt_);
+              params, mt_, vt_);
     }
 
   private:
@@ -137,17 +144,40 @@ class Adam : public OptimizerBase {
     float eps_;
     size_t t_;
 
-    TensorAllocator mtAlloc_;
+    Ptr<TensorAllocator> mtAlloc_;
     Tensor mt_;
-    TensorAllocator vtAlloc_;
+    Ptr<TensorAllocator> vtAlloc_;
     Tensor vt_;
-
-    Ptr<ClipperBase> clipper_;
 };
 
 template <class Algorithm, typename ...Args>
 Ptr<OptimizerBase> Optimizer(Args&& ...args) {
   return Ptr<OptimizerBase>(new Algorithm(args...));
+}
+
+Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
+
+  Ptr<ClipperBase> clipper = nullptr;
+  float clipNorm = options->get<double>("clip-norm");
+  if(clipNorm > 0)
+    clipper = Clipper<Norm>(clipNorm);
+
+  float lrate = options->get<double>("learn-rate");
+
+  std::string opt = options->get<std::string>("optimizer");
+
+  if(opt == "sgd") {
+    return Optimizer<Sgd>(lrate, keywords::clip=clipper);
+  }
+  else if(opt == "adagrad") {
+    return Optimizer<Adagrad>(lrate, keywords::clip=clipper);
+  }
+  else if(opt == "adam") {
+    return Optimizer<Adam>(lrate, keywords::clip=clipper);
+  }
+  else {
+    return Optimizer<Adam>(lrate, keywords::clip=clipper);
+  }
 }
 
 }

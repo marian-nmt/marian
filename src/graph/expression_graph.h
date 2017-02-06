@@ -31,7 +31,6 @@
 #include "graph/node_operators.h"
 #include "data/batch_generator.h"
 #include "tensors/tensor_allocator.h"
-#include "tensors/tensor_gpu.h"
 #include "layers/param_initializers.h"
 #include "3rd_party/threadpool.h"
 
@@ -64,10 +63,12 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::unordered_set<Expr> topNodes_;
 
     Parameters params_;
-    TensorAllocator tensors_;
+    Ptr<TensorAllocator> tensors_;
 
     cublasHandle_t cublasHandle_;
     size_t device_{0};
+    
+    size_t stale_{0};
 
   protected:
     /** @brief Constructs a new expression graph
@@ -85,12 +86,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void setDevice(size_t device = 0) {
       device_ = device;
-      std::thread([&]() {
-        cudaSetDevice(device_);
-        params_.init();
-        tensors_ = newTensorAllocator<DeviceGPU>();
-        cublasHandle_ = create_handle();
-      }).join();
+      params_.init(device);
+      tensors_ = New<TensorAllocator>(device);
+      cublasHandle_ = create_handle(device);
     }
 
     cublasHandle_t getCublasHandle() {
@@ -102,11 +100,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     void reserveWorkspaceMB(size_t num) {
-      std::thread([&]() {
-        cudaSetDevice(device_);
-        size_t elements = num * 1024 * 1024 / 4 - 1;
-        tensors_->reserve(elements);
-      }).join();
+      size_t elements = num * 1024 * 1024 / 4 - 1;
+      tensors_->reserve(elements);
     }
 
     /**
@@ -138,29 +133,25 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
 
     void forward() {
-      auto exec = [&]() {
-        cudaSetDevice(device_);
-        params_.allocateForward();
-        for(auto&& tape : tapes_) {
-          for(auto&& v : tape) {
-            v->allocate();
-            v->init();
-            v->forward();
+      params_.allocateForward();
+      for(auto&& tape : tapes_) {
+        for(auto&& v : tape) {
+          v->allocate();
+          v->init();
+          v->forward();
 
-            // @TODO: should be done in node
-            for(auto&& child : v->children()) {
-              v->decreaseEdges(1);
-              child->decreaseEdges(1);
-            }
+          // @TODO: should be done in node
+          for(auto&& child : v->children()) {
+            v->decreaseEdges(1);
+            child->decreaseEdges(1);
+          }
 
-            if(v->marked_for_debug()) {
-              std::cerr << "Debug: " << v->debug_message() << std::endl;
-              std::cerr << v->val()->debug() << std::endl;
-            }
+          if(v->marked_for_debug()) {
+            std::cerr << "Debug: " << v->debug_message() << std::endl;
+            std::cerr << v->val()->debug() << std::endl;
           }
         }
-      };
-      std::thread(exec).join();
+      }
     }
 
     /**
@@ -179,43 +170,39 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
-      auto exec = [&]() {
-        cudaSetDevice(device_);
-        params_.allocateBackward();
+      params_.allocateBackward();
+      params_.set_zero_adjoint();
+      
+      for(auto&& v : topNodes_)
+        v->init_dependent();
 
-        params_.set_zero_adjoint();
-        for(auto&& v : topNodes_)
-          v->init_dependent();
+      auto it = nodes_.rbegin();
+      while(it != nodes_.rend()) {
+        auto v = *it;
 
-        auto it = nodes_.rbegin();
-        while(it != nodes_.rend()) {
-          auto v = *it;
-
-          for(auto&& child: v->children())
-            if(child->trainable())
-              child->set_zero_adjoint();
-          if(v->trainable())
-            v->backward();
-          for(auto&& child : v->children()) {
-            v->decreaseEdges(1);
-            child->decreaseEdges(1);
-          }
-
-          if(v->trainable() && v->marked_for_debug()) {
-            std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-            std::cerr << v->grad()->debug() << std::endl;
-          }
-
-          // delete unnamed nodes
-          if(v->edges() == 0 && v->name() == "none")
-            v->free();
-
-          it++;
+        for(auto&& child: v->children())
+          if(child->trainable())
+            child->set_zero_adjoint();
+        if(v->trainable())
+          v->backward();
+        for(auto&& child : v->children()) {
+          v->decreaseEdges(1);
+          child->decreaseEdges(1);
         }
-      };
-      std::thread(exec).join();
-    }
 
+        if(v->trainable() && v->marked_for_debug()) {
+          std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+          std::cerr << v->grad()->debug() << std::endl;
+        }
+
+        // delete unnamed nodes
+        if(v->edges() == 0 && v->name() == "none")
+          v->free();
+
+        it++;
+      }
+    }
+    
     /**
      * @brief Returns a string representing this expression graph in <code>graphviz</code> notation.
      *
@@ -441,6 +428,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       inputs_.clear();
       topNodes_.clear();
       tensors_->clear();
+    }
+    
+    Expr topNode() {
+      return nodes_.back();
     }
 };
 

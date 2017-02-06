@@ -164,52 +164,52 @@ struct ReLUNodeOp : public UnaryNodeOp {
  * @see \cite dropout
  * @see \cite cudnn
  */
-struct DropoutNodeOp : public UnaryNodeOp {
-  template <typename ...Args>
-  DropoutNodeOp(Args ...args)
-  : UnaryNodeOp(args...),
-    allocated_(false), p_(Get(keywords::value, 0.5)) {}
-
-  ~DropoutNodeOp() {
-    if(allocated_)
-      CudnnDropoutDestroy(dropDesc_, space_, states_);
- }
-
-  void inference() {
-    Element(_1 = _2, val_, children_[0]->val());
-  }
-
-  void forward() {
-    if(!allocated_) {
-        CudnnDropoutPrepare(children_[0]->val(), p_,
-                            &dropDesc_,
-                            &space_, &spaceSize_,
-                            &states_, (size_t)this); // seeding with pointer address
-        allocated_ = true;
-    }
-
-    CudnnDropoutForward(dropDesc_, space_, spaceSize_,
-                        val_, children_[0]->val());
-  }
-
-  void backward() {
-    if(children_[0]->trainable())
-        CudnnDropoutBackward(dropDesc_, space_, spaceSize_,
-                             children_[0]->grad(), adj_);
-  }
-
-  const std::string type() {
-    return "dropout";
-  }
-
-  private:
-    bool allocated_;
-    float p_;
-    void* states_;
-    void* space_;
-    size_t spaceSize_;
-    cudnnDropoutDescriptor_t dropDesc_;
-};
+//struct DropoutNodeOp : public UnaryNodeOp {
+//  template <typename ...Args>
+//  DropoutNodeOp(Args ...args)
+//  : UnaryNodeOp(args...),
+//    allocated_(false), p_(Get(keywords::value, 0.5)) {}
+//
+//  ~DropoutNodeOp() {
+//    if(allocated_)
+//      CudnnDropoutDestroy(dropDesc_, space_, states_);
+// }
+//
+//  void inference() {
+//    Element(_1 = _2, val_, children_[0]->val());
+//  }
+//
+//  void forward() {
+//    if(!allocated_) {
+//        CudnnDropoutPrepare(children_[0]->val(), p_,
+//                            &dropDesc_,
+//                            &space_, &spaceSize_,
+//                            &states_, (size_t)this); // seeding with pointer address
+//        allocated_ = true;
+//    }
+//
+//    CudnnDropoutForward(dropDesc_, space_, spaceSize_,
+//                        val_, children_[0]->val());
+//  }
+//
+//  void backward() {
+//    if(children_[0]->trainable())
+//        CudnnDropoutBackward(dropDesc_, space_, spaceSize_,
+//                             children_[0]->grad(), adj_);
+//  }
+//
+//  const std::string type() {
+//    return "dropout";
+//  }
+//
+//  private:
+//    bool allocated_;
+//    float p_;
+//    void* states_;
+//    void* space_;
+//    size_t spaceSize_;
+//    cudnnDropoutDescriptor_t dropDesc_;
+//};
 
 struct SoftmaxNodeOp : public NaryNodeOp {
   template <typename ...Args>
@@ -549,12 +549,14 @@ struct ReshapeNodeOp : public UnaryNodeOp {
   }
 
   Tensor& val()  {
-    val_.reset(new TensorGPU(children_[0]->val()->data(), shape()));
+    auto childVal = children_[0]->val();
+    val_.reset(new TensorBase(childVal->data(), shape(), childVal->getDevice()));
     return val_;
   };
 
   Tensor& grad() {
-    adj_.reset(new TensorGPU(children_[0]->grad()->data(), shape()));
+    auto childGrad = children_[0]->grad();
+    adj_.reset(new TensorBase(childGrad->data(), shape(), childGrad->getDevice()));
     return adj_;
   };
 
@@ -597,14 +599,16 @@ struct TimestepNodeOp : public UnaryNodeOp {
   }
 
   Tensor& val()  {
+    auto childVal = children_[0]->val();
     size_t offset = step_ * shape().elements();
-    val_.reset(new TensorGPU(children_[0]->val()->data() + offset, shape()));
+    val_.reset(new TensorBase(childVal->data() + offset, shape(), childVal->getDevice()));
     return val_;
   };
 
   Tensor& grad() {
+    auto childGrad = children_[0]->grad();
     size_t offset = step_ * shape().elements();
-    adj_.reset(new TensorGPU(children_[0]->grad()->data() + offset, shape()));
+    adj_.reset(new TensorBase(childGrad->data() + offset, shape(), childGrad->getDevice()));
     return adj_;
   };
 

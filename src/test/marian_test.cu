@@ -7,15 +7,18 @@
 #include <boost/chrono.hpp>
 
 #include "marian.h"
+#include "training/config.h"
 #include "optimizers/optimizers.h"
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/nematus.h"
+#include "models/dl4mt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
+
+  auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
     {"../test/mini.de",
@@ -25,16 +28,18 @@ int main(int argc, char** argv) {
     {"../test/vocab.de.json",
      "../test/vocab.en.json"};
 
-  std::vector<int> maxVocab = { 50000, 50000 };
+  YAML::Node& c = options->get();
+  c["train-sets"] = files;
+  c["vocabs"] = vocab;
 
-  auto corpus = DataSet<Corpus>(files, vocab, maxVocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 10, 20);
+  auto corpus = DataSet<Corpus>(options);
+  BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(std::atoi(argv[1]));
+  graph->setDevice(0);
 
-  auto nematus = New<Nematus>();
-  nematus->load(graph, "../test/model.npz");
+  auto dl4mt = New<DL4MT>();
+  dl4mt->load(graph, "../test/model.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -47,7 +52,7 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
       batch->debug();
 
-      auto costNode = nematus->construct(graph, batch);
+      auto costNode = dl4mt->build(graph, batch);
       for(auto p : graph->params())
         debug(p, p->name());
       debug(costNode, "cost");
@@ -77,9 +82,8 @@ int main(int argc, char** argv) {
         timer.start();
       }
 
-
       if(batches % 10000 == 0)
-        nematus->save(graph, "../test/model.marian." + std::to_string(batches) + ".npz");
+        dl4mt->save(graph, "../test/model.marian." + std::to_string(batches) + ".npz");
 
       batches++;
     }
