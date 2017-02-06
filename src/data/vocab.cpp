@@ -82,7 +82,10 @@ public:
 
 void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath)
 {
-  std::cerr << "Vocab::create" << std::endl;
+  UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
+                 "Vocab file " << vocabPath << " exist. Not overwriting");
+
+  //std::cerr << "Vocab::create" << std::endl;
   InputFileStream trainStrm(trainPath);
 
   // create freqency list, reuse Str2Id but use Id to store freq
@@ -119,17 +122,28 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   std::sort(vocabVec.rbegin(), vocabVec.rend(), VocabFreqOrderer());
 
   // put into class variables
+  // AND write to file
   size_t vocabSize = std::min((size_t) max, vocab.size());
   id2str_.resize(vocabSize);
 
+  OutputFileStream vocabStrm(vocabPath);
+  (std::ostream&) vocabStrm << "{" << std::endl;
+
   for (size_t i = 0; i < vocabSize; ++i) {
     const Str2Id::value_type *p = vocabVec[i];
-    std::cerr << p->first << "=" << p->second << std::endl;
+    //std::cerr << p->first << "=" << p->second << std::endl;
     const std::string &str = p->first;
     str2id_[str] = i;
     id2str_.push_back(str);
+
+    vocabStrm << "\"" << str << "\": " << i;
+    if (i < vocabSize - 1) {
+      vocabStrm << ",";
+    }
+    (std::ostream&) vocabStrm << std::endl;
   }
 
+  (std::ostream&) vocabStrm << "}" << std::endl;
 }
 
 
