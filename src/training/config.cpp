@@ -149,9 +149,9 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Finish after this many epochs, 0 is infinity")
     ("after-batches", po::value<size_t>()->default_value(0),
       "Finish after this many batch updates, 0 is infinity")
-    ("disp-freq", po::value<size_t>()->default_value(100),
+    ("disp-freq", po::value<size_t>()->default_value(1000),
       "Display information every  arg  updates")
-    ("save-freq", po::value<size_t>()->default_value(30000),
+    ("save-freq", po::value<size_t>()->default_value(10000),
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")

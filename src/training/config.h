@@ -13,6 +13,7 @@ class Config {
       Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v")};
       Logger config{stderrLogger("config", "[%Y-%m-%d %T] [config] %v")};
       Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v")};
+      Logger data{stderrLogger("data", "[%Y-%m-%d %T] [data] %v")};
       Logger valid{stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v")};
 
       addOptions(argc, argv, validate);

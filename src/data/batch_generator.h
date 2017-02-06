@@ -84,6 +84,8 @@ class BatchGenerator {
     void prepare(bool shuffle=true) {
       if(shuffle)
         data_->shuffle();
+      else
+        data_->reset();
       current_ = data_->begin();
       fillBatches();
     }

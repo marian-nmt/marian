@@ -63,9 +63,6 @@ class Reporter {
     }
     
     void update(float cost, Ptr<data::CorpusBatch> batch) {
-      static std::mutex sMutex;
-      std::lock_guard<std::mutex> guard(sMutex);
-
       costSum += cost;
       samples += batch->size();
       wordsDisp += batch->words();

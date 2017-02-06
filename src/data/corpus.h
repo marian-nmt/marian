@@ -118,7 +118,6 @@ class Corpus {
     void reset();
 
     iterator begin() {
-      reset();
       return iterator(*this);
     }
 

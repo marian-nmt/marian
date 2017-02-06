@@ -10,22 +10,29 @@ namespace marian {
   class Validator {
     protected:
       Ptr<Config> options_;
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator_;
+      std::vector<Ptr<Vocab>> vocabs_;
     
     public:
       Validator(std::vector<Ptr<Vocab>> vocabs,
                 Ptr<Config> options)
-       : options_(options) {
-        
-        using namespace data;
-        
-        auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-        auto corpus = New<Corpus>(validPaths, vocabs, options);
-        batchGenerator_ = New<BatchGenerator<Corpus>>(corpus, options);
-      }
+       : options_(options),
+         vocabs_(vocabs) { }
       
       virtual std::string type() = 0;
-      virtual float validate(Ptr<ExpressionGraph>) = 0;
+      
+      float validate(Ptr<ExpressionGraph> graph) {
+        using namespace data;
+        auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+        auto corpus = New<Corpus>(validPaths, vocabs_, options_);
+        Ptr<BatchGenerator<Corpus>> batchGenerator
+          = New<BatchGenerator<Corpus>>(corpus, options_);
+        batchGenerator->prepare(false);
+        
+        return validate(graph, batchGenerator);
+      };
+    
+      virtual float validate(Ptr<ExpressionGraph>,
+                             Ptr<data::BatchGenerator<data::Corpus>>) = 0;
     
   };
   
@@ -40,13 +47,13 @@ namespace marian {
        : Validator(vocabs, options),
          builder_(New<Builder>(options)) {}
        
-      float validate(Ptr<ExpressionGraph> graph) {
+      float validate(Ptr<ExpressionGraph> graph,
+                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
         float cost = 0;
         size_t samples = 0;
         
-        batchGenerator_->prepare(false);
-        while(*batchGenerator_) {
-          auto batch = batchGenerator_->next();
+        while(*batchGenerator) {
+          auto batch = batchGenerator->next();
           builder_->build(graph, batch);
           graph->forward();
           
@@ -71,13 +78,13 @@ namespace marian {
        : Validator(vocabs, options),
          builder_(New<Builder>(options)) {}
        
-      float validate(Ptr<ExpressionGraph> graph) {
+      float validate(Ptr<ExpressionGraph> graph,
+                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
         float cost = 0;
         size_t words = 0;
         
-        batchGenerator_->prepare(false);
-        while(*batchGenerator_) {
-          auto batch = batchGenerator_->next();
+        while(*batchGenerator) {
+          auto batch = batchGenerator->next();
           builder_->build(graph, batch);
           graph->forward();
           

@@ -176,7 +176,7 @@ Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
     return Optimizer<Adam>(lrate, keywords::clip=clipper);
   }
   else {
-    return Optimizer<Adam>(lrate, keywords::clip=clipper);
+    UTIL_THROW2("Unknown optimizer: " << opt);
   }
 }
 

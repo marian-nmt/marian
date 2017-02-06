@@ -163,7 +163,6 @@ class AsyncGraphGroup : public GraphGroup {
     }
 
     void save() {
-      std::lock_guard<std::mutex> guard(sync_);
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model") + ".npz";
         builder_->save(graphs_[0], name);
