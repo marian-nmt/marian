@@ -16,7 +16,7 @@ size_t Vocab::operator[](const std::string& word) const {
     if(it != str2id_.end())
         return it->second;
     else
-        return 1;
+        return UNK_ID;
 }
 
 Words Vocab::operator()(const std::vector<std::string>& lineTokens, bool addEOS) const {
@@ -24,7 +24,7 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens, bool addEOS)
   std::transform(lineTokens.begin(), lineTokens.end(), words.begin(),
                   [&](const std::string& w) { return (*this)[w]; });
   if(addEOS)
-    words.push_back(EOS);
+    words.push_back(EOS_ID);
   return words;
 }
 
@@ -37,7 +37,7 @@ Words Vocab::operator()(const std::string& line, bool addEOS) const {
 std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS) const {
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
-    if(sentence[i] != EOS || !ignoreEOS) {
+    if(sentence[i] != EOS_ID || !ignoreEOS) {
       decoded.push_back((*this)[sentence[i]]);
     }
   }
@@ -54,9 +54,19 @@ size_t Vocab::size() const {
   return id2str_.size();
 }
 
-void Vocab::load(const std::string& path, int max)
+void Vocab::loadOrCreate(bool createVocabs, const std::string& vocabPath, int max, const std::string& trainPath)
 {
-  YAML::Node vocab = YAML::Load(InputFileStream(path));
+  if (createVocabs && !boost::filesystem::exists(vocabPath)) {
+    create(vocabPath, max, trainPath);
+  }
+  else {
+    load(vocabPath, max);
+  }
+}
+
+void Vocab::load(const std::string& vocabPath, int max)
+{
+  YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();
     auto id = pair.second.as<Word>();
@@ -67,9 +77,10 @@ void Vocab::load(const std::string& path, int max)
       id2str_[id] = str;
     }
   }
-  UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
-  id2str_[0] = "</s>";
+  UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << vocabPath);
 
+  id2str_[EOS_ID] = EOS_STR;
+  id2str_[UNK_ID] = UNK_STR;
 }
 
 class Vocab::VocabFreqOrderer
@@ -127,9 +138,14 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   id2str_.resize(vocabSize);
 
   OutputFileStream vocabStrm(vocabPath);
+
   vocabStrm << "{\n" 
-	    << "\"eos\": 0,\n"
-	    << "\"UNK\": 1,\n";
+	    << "\"" << EOS_STR << "\": " << EOS_ID << ",\n"
+	    << "\"" << UNK_STR << "\": " << UNK_ID << ",\n";
+  id2str_.push_back(EOS_STR);
+  id2str_.push_back(UNK_STR);
+  str2id_[EOS_STR] = EOS_ID;
+  str2id_[UNK_STR] = UNK_ID;
 
   for (size_t i = 0; i < vocabSize; ++i) {
     const Str2Id::value_type *p = vocabVec[i];

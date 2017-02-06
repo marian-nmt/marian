@@ -22,8 +22,7 @@ class Vocab {
 
     size_t size() const;
 
-    void load(const std::string& path, int max);
-    void create(const std::string& path, int max, const std::string& trainPath);
+    void loadOrCreate(bool createVocabs, const std::string& vocabPath, int max, const std::string& trainPath);
 
   private:
     typedef std::map<std::string, size_t> Str2Id;
@@ -33,4 +32,7 @@ class Vocab {
     Id2Str id2str_;
 
     class VocabFreqOrderer;
+
+    void load(const std::string& vocabPath, int max);
+    void create(const std::string& vocabPath, int max, const std::string& trainPath);
 };

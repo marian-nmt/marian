@@ -51,14 +51,7 @@ Corpus::Corpus(Ptr<Config> options)
   std::vector<Vocab> vocabs;
   for(int i = 0; i < vocabPaths.size(); ++i) {
     Ptr<Vocab> vocab = New<Vocab>();
-
-    if (createVocabs) {
-      vocab->create(vocabPaths[i], maxVocabs[i], textPaths_[i]);
-    }
-    else {
-      vocab->load(vocabPaths[i], maxVocabs[i]);
-    }
-
+    vocab->loadOrCreate(createVocabs, vocabPaths[i], maxVocabs[i], textPaths_[i]);
     vocabs_.emplace_back(vocab);
   }
 
