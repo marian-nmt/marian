@@ -127,9 +127,14 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   id2str_.resize(vocabSize);
 
   OutputFileStream vocabStrm(vocabPath);
+
   vocabStrm << "{\n" 
 	    << "\"eos\": 0,\n"
 	    << "\"UNK\": 1,\n";
+  id2str_.push_back("eos");
+  id2str_.push_back("UNK");
+  str2id_["eos"] = 0;
+  str2id_["UNK"] = 1;
 
   for (size_t i = 0; i < vocabSize; ++i) {
     const Str2Id::value_type *p = vocabVec[i];
