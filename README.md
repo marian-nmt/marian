@@ -2,6 +2,7 @@ Marian
 ======
 
 [![Join the chat at https://gitter.im/MarianNMT/Lobby](https://badges.gitter.im/MarianNMT/Lobby.svg)](https://gitter.im/MarianNMT/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](http://37.247.57.181:8000/job/marian_compilation/badge/icon)](http://37.247.57.181:8000/job/marian_compilation/)
 
 Google group for commit messages: https://groups.google.com/forum/#!forum/mariannmt
 
