@@ -21,7 +21,6 @@
 
 
 #include <cuda.h>
-#include <cudnn.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 
