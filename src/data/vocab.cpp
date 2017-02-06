@@ -16,7 +16,7 @@ size_t Vocab::operator[](const std::string& word) const {
     if(it != str2id_.end())
         return it->second;
     else
-        return 1;
+        return UNK_ID;
 }
 
 Words Vocab::operator()(const std::vector<std::string>& lineTokens, bool addEOS) const {
@@ -24,7 +24,7 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens, bool addEOS)
   std::transform(lineTokens.begin(), lineTokens.end(), words.begin(),
                   [&](const std::string& w) { return (*this)[w]; });
   if(addEOS)
-    words.push_back(EOS);
+    words.push_back(EOS_ID);
   return words;
 }
 
@@ -37,7 +37,7 @@ Words Vocab::operator()(const std::string& line, bool addEOS) const {
 std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS) const {
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
-    if(sentence[i] != EOS || !ignoreEOS) {
+    if(sentence[i] != EOS_ID || !ignoreEOS) {
       decoded.push_back((*this)[sentence[i]]);
     }
   }
@@ -129,12 +129,12 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   OutputFileStream vocabStrm(vocabPath);
 
   vocabStrm << "{\n" 
-	    << "\"eos\": 0,\n"
+	    << "\"" << EOS_STR << "\": " << EOS_ID ",\n"
 	    << "\"UNK\": 1,\n";
-  id2str_.push_back("eos");
-  id2str_.push_back("UNK");
-  str2id_["eos"] = 0;
-  str2id_["UNK"] = 1;
+  id2str_.push_back(EOS_STR);
+  id2str_.push_back(UNK_ID);
+  str2id_[EOS_STR] = EOS_ID;
+  str2id_[UNK_STR] = UNK_ID;
 
   for (size_t i = 0; i < vocabSize; ++i) {
     const Str2Id::value_type *p = vocabVec[i];
