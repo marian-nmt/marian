@@ -40,11 +40,15 @@
 							<tool id="nvcc.linker.base.635344589" name="NVCC Linker" superClass="nvcc.linker.base">
 								<option id="nvcc.linker.option.libs.1878015233" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="boost_chrono"/>
+									<listOptionValue builtIn="false" value="boost_iostreams"/>
+									<listOptionValue builtIn="false" value="boost_filesystem"/>
+									<listOptionValue builtIn="false" value="boost_program_options"/>
 									<listOptionValue builtIn="false" value="boost_system"/>
 									<listOptionValue builtIn="false" value="boost_timer"/>
 									<listOptionValue builtIn="false" value="cudnn"/>
 									<listOptionValue builtIn="false" value="cuda"/>
 									<listOptionValue builtIn="false" value="cublas"/>
+									<listOptionValue builtIn="false" value="z"/>
 								</option>
 								<option id="nvcc.linker.option.paths.1326041662" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/boost/lib64&quot;"/>
@@ -62,11 +66,9 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.2059033302" name="xor.cu" rcbsApplicability="disable" resourcePath="src/xor.cu" toolsToInvoke="nvcc.compiler.base.1979453423.223624211">
-						<tool id="nvcc.compiler.base.1979453423.223624211" name="NVCC Compiler" superClass="nvcc.compiler.base.1979453423"/>
-					</fileInfo>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1479727693.2014034551" name="npz_converter.h" rcbsApplicability="disable" resourcePath="src/data/npz_converter.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="src/xor.cu|src/tensor_test.cu|src/rnn_test.cu|src/test_nodes.cu|src/nematus_test.cu|src/tensors/bac|src/softmax_benchmark.cu|src/mnist_benchmark.cu|src/validate_encoder_decoder.cu|src/test.cu|src/validate_mnist_batch.cu|src/train_mnist.cu|src/validate_mnist.cu|src/npz_converter.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/test|src/3rd_party/spdlog/details/format.cc|src/data/npz_converter.h|src/data/npz_converter.cpp|src/xor.cu|src/tensor_test.cu|src/rnn_test.cu|src/test_nodes.cu|src/nematus_test.cu|src/tensors/bac|src/softmax_benchmark.cu|src/mnist_benchmark.cu|src/validate_encoder_decoder.cu|src/test.cu|src/validate_mnist_batch.cu|src/train_mnist.cu|src/validate_mnist.cu|src/npz_converter.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -157,4 +159,5 @@
 		</configuration>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>
