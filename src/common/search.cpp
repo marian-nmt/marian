@@ -97,7 +97,7 @@ void Search::Decode(
 	Beam survivors;
 	for (size_t batchID = 0; batchID < batchSize; ++batchID) {
 	  for (auto& h : beams[batchID]) {
-		if (h->GetWord() != EOS) {
+		if (h->GetWord() != EOS_ID) {
 		  survivors.push_back(h);
 		} else {
 		  --beamSizes[batchID];

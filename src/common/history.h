@@ -27,7 +27,7 @@ class History {
     void Add(const Beam& beam, bool last = false) {
       if (beam.back()->GetPrevHyp() != nullptr) {
         for (size_t j = 0; j < beam.size(); ++j)
-          if(beam[j]->GetWord() == EOS || last) {
+          if(beam[j]->GetWord() == EOS_ID || last) {
             float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
             topHyps_.push({ history_.size(), j, cost });
           }
