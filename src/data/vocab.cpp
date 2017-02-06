@@ -54,9 +54,19 @@ size_t Vocab::size() const {
   return id2str_.size();
 }
 
-void Vocab::load(const std::string& path, int max)
+void Vocab::loadOrCreate(bool createVocabs, const std::string& vocabPath, int max, const std::string& trainPath)
 {
-  YAML::Node vocab = YAML::Load(InputFileStream(path));
+  if (createVocabs && boost::filesystem::exists(vocabPath)) {
+    create(vocabPath, max, trainPath);
+  }
+  else {
+    load(vocabPath, max);
+  }
+}
+
+void Vocab::load(const std::string& vocabPath, int max)
+{
+  YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();
     auto id = pair.second.as<Word>();
@@ -67,7 +77,7 @@ void Vocab::load(const std::string& path, int max)
       id2str_[id] = str;
     }
   }
-  UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
+  UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << vocabPath);
 
   id2str_[EOS_ID] = EOS_STR;
   id2str_[UNK_ID] = UNK_STR;
