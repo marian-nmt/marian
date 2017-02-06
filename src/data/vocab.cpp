@@ -56,7 +56,7 @@ size_t Vocab::size() const {
 
 void Vocab::loadOrCreate(bool createVocabs, const std::string& vocabPath, int max, const std::string& trainPath)
 {
-  if (createVocabs && boost::filesystem::exists(vocabPath)) {
+  if (createVocabs && !boost::filesystem::exists(vocabPath)) {
     create(vocabPath, max, trainPath);
   }
   else {
