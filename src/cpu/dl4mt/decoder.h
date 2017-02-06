@@ -134,7 +134,7 @@ class Decoder {
           float bias = w_.C_(0,0);
           blaze::forEach(A_, [=](float x) { return x + bias; });
 
-          mblas::Softmax(A_);
+          mblas::SafeSoftmax(A_);
           AlignedSourceContext = A_ * SourceContext;
         }
 
