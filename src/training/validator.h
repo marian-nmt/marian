@@ -1,5 +1,7 @@
 #pragma once
 
+ #include <limits>
+
 #include "training/config.h"
 #include "graph/expression_graph.h"
 #include "data/corpus.h"
@@ -11,14 +13,28 @@ namespace marian {
     protected:
       Ptr<Config> options_;
       std::vector<Ptr<Vocab>> vocabs_;
+      float lastBest_;
+      size_t stalled_{0};
     
     public:
       Validator(std::vector<Ptr<Vocab>> vocabs,
                 Ptr<Config> options)
        : options_(options),
-         vocabs_(vocabs) { }
+         vocabs_(vocabs),
+         lastBest_{lowerIsBetter() ?
+          std::numeric_limits<float>::max() :
+          std::numeric_limits<float>::lowest() } {
+      }
       
       virtual std::string type() = 0;
+      
+      virtual bool lowerIsBetter() {
+        return true;
+      }
+      
+      size_t stalled() {
+        return stalled_;
+      }
       
       float validate(Ptr<ExpressionGraph> graph) {
         using namespace data;
@@ -28,7 +44,16 @@ namespace marian {
           = New<BatchGenerator<Corpus>>(corpus, options_);
         batchGenerator->prepare(false);
         
-        return validate(graph, batchGenerator);
+        float val = validate(graph, batchGenerator);
+        if(lowerIsBetter() && lastBest_ > val ||
+           !lowerIsBetter() && lastBest_ < val) {
+            stalled_ = 0;
+            lastBest_ = val;
+        }
+        else {
+          stalled_++;
+        }
+        return val;
       };
     
       virtual float validate(Ptr<ExpressionGraph>,

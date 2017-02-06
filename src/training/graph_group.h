@@ -105,6 +105,8 @@ class AsyncGraphGroup : public GraphGroup {
       auto task = [this](Ptr<data::CorpusBatch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
+        thread_local size_t t = 0;
+        
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
           graph = graphs_[i++];
@@ -127,6 +129,8 @@ class AsyncGraphGroup : public GraphGroup {
             this->save();
           reporter_->validate(graph);
         }
+        
+        t++;
       };
 
       pool_.enqueue(task, batch);
