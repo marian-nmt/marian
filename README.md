@@ -26,14 +26,3 @@ Compilation with `cmake > 3.5`:
     cd build
     cmake ..
     make -j
-
-To compile API documentation using Doxygen, first cd to the build directory, and then:
-
-    make doc
-
-To test, first compile, then:
-
-    cd examples/mnist
-    make
-    cd ../../build
-    ./mnist_benchmark
