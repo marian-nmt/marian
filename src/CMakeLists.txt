@@ -141,4 +141,6 @@ foreach(exec ${EXES})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endforeach(exec)
 
+set_target_properties("amunmt" "mosesplugin" PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_ALL 1)
+
 add_subdirectory(3rd_party)
