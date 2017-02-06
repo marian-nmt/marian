@@ -143,6 +143,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files, have to correspond to --trainsets")
+    ("create-vocabs", po::value<bool>()->zero_tokens()->default_value(false),
+      "Create JSON vocab files. Must also specify path with --vocabs. Vocab files must not exist")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
@@ -281,6 +283,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
+  SET_OPTION("create-vocabs", bool);
 
   if(doValidate)
     validate();

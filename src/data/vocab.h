@@ -8,7 +8,7 @@
 
 class Vocab {
   public:
-    Vocab(const std::string& path, int max = 50000);
+    Vocab();
 
     size_t operator[](const std::string& word) const;
 
@@ -21,6 +21,9 @@ class Vocab {
     const std::string& operator[](size_t id) const;
 
     size_t size() const;
+
+    void load(const std::string& path, int max);
+    void create(const std::string& path, int max);
 
   private:
     std::map<std::string, size_t> str2id_;
