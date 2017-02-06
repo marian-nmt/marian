@@ -25,6 +25,9 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#ifdef CUDNN
+#include <cudnn.h>
+#endif
 
 #include "3rd_party/exception.h"
 #include "common/definitions.h"
@@ -37,14 +40,31 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     float* data_;
     Shape shape_;
     size_t device_;
-    
+#ifdef CUDNN
+    cudnnTensorDescriptor_t cudnnDesc_;
+#endif
+
   public:
     TensorBase(float* data, Shape shape, size_t device)
-    : data_(data), shape_(shape), device_(device)
-    { }
-    
-    ~TensorBase() {}
-    
+      : data_(data), shape_(shape), device_(device)
+    {
+#ifdef CUDNN
+  cudnnCreateTensorDescriptor(&cudnnDesc_);
+  cudnnSetTensor4dDescriptorEx(cudnnDesc_, CUDNN_DATA_FLOAT,
+                               shape_[0], shape_[1],
+                               shape_[2], shape_[3],
+                               shape_.stride(0), shape_.stride(1),
+                               shape_.stride(2), shape_.stride(3));
+#endif
+    }
+
+    ~TensorBase()
+    {
+#ifdef CUDNN
+      cudnnDestroyTensorDescriptor(cudnnDesc_);
+#endif
+    }
+
     virtual void reset(float* data) {
       data_ = data;
     }
@@ -65,7 +85,7 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
       UTIL_THROW_IF2(size() != 1, "Tensor is not a scalar");
       return get(0);
     }
-    
+
     size_t getDevice() {
       return device_;
     }
@@ -79,8 +99,14 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     void set(float value);
 
     void set(const std::vector<float> &v);
-    
+
     void copyFrom(Tensor);
+
+#ifdef CUDNN
+      cudnnTensorDescriptor_t& cudnn() {
+            return cudnnDesc_;
+          }
+#endif
 
     std::string debug();
 };

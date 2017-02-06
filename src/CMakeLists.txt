@@ -38,12 +38,20 @@ cuda_add_executable(
   command/marian.cu
 )
 
+cuda_add_executable(
+  dropout_test
+  test/dropout_test.cu
+  kernels/dropout_cudnn.cu
+)
+
 target_link_libraries(marian marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(marian_test marian_lib)
+target_link_libraries(dropout_test marian_lib)
 
-foreach(exec tensor_test marian_test marian)
+foreach(exec tensor_test marian_test marian dropout_test)
   target_link_libraries(${exec} ${EXT_LIBS} cudnn)
+  target_link_libraries(${exec} ${EXT_LIBS} curand)
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
