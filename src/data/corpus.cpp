@@ -40,6 +40,7 @@ Corpus::Corpus(Ptr<Config> options)
     maxLength_(options_->get<size_t>("max-length")) {
   std::vector<std::string> vocabPaths =
     options_->get<std::vector<std::string>>("vocabs");
+  bool createVocabs = options_->get<bool>("create-vocabs");;
 
   UTIL_THROW_IF2(textPaths_.size() != vocabPaths.size(),
                  "Number of corpus files and vocab files does not agree");
@@ -49,8 +50,18 @@ Corpus::Corpus(Ptr<Config> options)
 
   std::vector<Vocab> vocabs;
   for(int i = 0; i < vocabPaths.size(); ++i) {
-    vocabs_.emplace_back(New<Vocab>(vocabPaths[i], maxVocabs[i]));
+    Ptr<Vocab> vocab = New<Vocab>();
+
+    if (createVocabs) {
+      vocab->create(vocabPaths[i], maxVocabs[i], textPaths_[i]);
+    }
+    else {
+      vocab->load(vocabPaths[i], maxVocabs[i]);
+    }
+
+    vocabs_.emplace_back(vocab);
   }
+
 
   for(auto path : textPaths_) {
     files_.emplace_back(new InputFileStream(path));

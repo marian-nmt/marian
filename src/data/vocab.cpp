@@ -1,5 +1,6 @@
 
 #include <sstream>
+#include <algorithm>
 
 #include "data/vocab.h"
 #include "common/utils.h"
@@ -7,20 +8,7 @@
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
-Vocab::Vocab(const std::string& path, int max) {
-    YAML::Node vocab = YAML::Load(InputFileStream(path));
-    for(auto&& pair : vocab) {
-      auto str = pair.first.as<std::string>();
-      auto id = pair.second.as<Word>();
-      if (id < (Word)max) {
-        str2id_[str] = id;
-        if(id >= id2str_.size())
-          id2str_.resize(id + 1);
-        id2str_[id] = str;
-      }
-    }
-    UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
-    id2str_[0] = "</s>";
+Vocab::Vocab() {
 }
 
 size_t Vocab::operator[](const std::string& word) const {
@@ -65,3 +53,97 @@ const std::string& Vocab::operator[](size_t id) const {
 size_t Vocab::size() const {
   return id2str_.size();
 }
+
+void Vocab::load(const std::string& path, int max)
+{
+  YAML::Node vocab = YAML::Load(InputFileStream(path));
+  for(auto&& pair : vocab) {
+    auto str = pair.first.as<std::string>();
+    auto id = pair.second.as<Word>();
+    if (id < (Word)max) {
+      str2id_[str] = id;
+      if(id >= id2str_.size())
+        id2str_.resize(id + 1);
+      id2str_[id] = str;
+    }
+  }
+  UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
+  id2str_[0] = "</s>";
+
+}
+
+class Vocab::VocabFreqOrderer
+{
+public:
+  bool operator()(const Vocab::Str2Id::value_type* a, const Vocab::Str2Id::value_type* b) const {
+    return a->second < b->second;
+  }
+};
+
+void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath)
+{
+  UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
+                 "Vocab file " << vocabPath << " exist. Not overwriting");
+
+  //std::cerr << "Vocab::create" << std::endl;
+  InputFileStream trainStrm(trainPath);
+
+  // create freqency list, reuse Str2Id but use Id to store freq
+  Str2Id vocab;
+  std::string line;
+  while (getline((std::istream&)trainStrm, line)) {
+    //std::cerr << "line=" << line << std::endl;
+
+    std::vector<std::string> toks;
+    Split(line, toks);
+
+    for (const std::string &tok: toks) {
+      Str2Id::iterator iter = vocab.find(tok);
+      if (iter == vocab.end()) {
+        //std::cerr << "tok=" << tok << std::endl;
+        vocab[tok] = 1;
+      }
+      else {
+        //std::cerr << "tok=" << tok << std::endl;
+        size_t &count = iter->second;
+        ++count;
+      }
+    }
+  }
+
+  // put into vector & sort
+  std::vector<const Str2Id::value_type*> vocabVec;
+  vocabVec.reserve(max);
+
+  for (const Str2Id::value_type &p: vocab) {
+    //std::cerr << p.first << "=" << p.second << std::endl;
+    vocabVec.push_back(&p);
+  }
+  std::sort(vocabVec.rbegin(), vocabVec.rend(), VocabFreqOrderer());
+
+  // put into class variables
+  // AND write to file
+  size_t vocabSize = std::min((size_t) max, vocab.size());
+  id2str_.resize(vocabSize);
+
+  OutputFileStream vocabStrm(vocabPath);
+  (std::ostream&) vocabStrm << "{" << std::endl;
+
+  for (size_t i = 0; i < vocabSize; ++i) {
+    const Str2Id::value_type *p = vocabVec[i];
+    //std::cerr << p->first << "=" << p->second << std::endl;
+    const std::string &str = p->first;
+    str2id_[str] = i;
+    id2str_.push_back(str);
+
+    vocabStrm << "\"" << str << "\": " << i;
+    if (i < vocabSize - 1) {
+      vocabStrm << ",";
+    }
+    (std::ostream&) vocabStrm << std::endl;
+  }
+
+  (std::ostream&) vocabStrm << "}" << std::endl;
+}
+
+
