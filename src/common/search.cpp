@@ -20,9 +20,11 @@ Search::Search(const God &god)
 
 Search::~Search()
 {
+#ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
+#endif
 }
   
 States Search::NewStates() const
