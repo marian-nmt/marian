@@ -267,7 +267,7 @@ class SyncGraphGroup : public GraphGroup {
       if(options_->has("init")) {
         std::string init = options_->get<std::string>("init");
         for(auto graph : graphs_)
-        builder_->load(graphs, init);
+        builder_->load(graph, init);
       }
     }
 

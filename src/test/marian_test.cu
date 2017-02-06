@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
      "../test/vocab.en.json"};
 
   YAML::Node& c = options->get();
-  c["trainsets"] = files;
+  c["train-sets"] = files;
   c["vocabs"] = vocab;
 
   auto corpus = DataSet<Corpus>(options);
