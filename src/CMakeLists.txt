@@ -16,7 +16,7 @@ cuda_add_library(marian_lib
   layers/param_initializers.cpp
   common/utils.cpp
   common/logging.cpp
-  command/config.cpp
+  training/config.cpp
   data/vocab.cpp
   data/corpus.cpp
   $<TARGET_OBJECTS:libyaml-cpp>

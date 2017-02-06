@@ -100,7 +100,8 @@ std::string TensorBase::debug() {
   for(int i = 1; i < shape_.size(); ++i)
      strm << "x" << shape_[i];
   strm << " size=" << shape_.elements()
-     << " (" << shape_.elements() * sizeof(float) << "B)" << std::endl;
+     << " (" << shape_.elements() * sizeof(float) << "B)";
+  strm << " device=" << device_ << std::endl;
 
   // values
   size_t totSize = shape_.elements();

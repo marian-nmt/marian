@@ -11,8 +11,9 @@ class Config {
   public:
     Config(int argc, char** argv, bool validate = true) {
       Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v")};
-      Logger config{stderrLogger("config", "[config] %v")};
-      Logger memory{stderrLogger("memory", "[memory] %v")};
+      Logger config{stderrLogger("config", "[%Y-%m-%d %T] [config] %v")};
+      Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v")};
+      Logger valid{stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v")};
 
       addOptions(argc, argv, validate);
 

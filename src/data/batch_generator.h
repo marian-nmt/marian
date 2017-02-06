@@ -6,7 +6,7 @@
 #include <boost/timer/timer.hpp>
 
 #include "data/dataset.h"
-#include "command/config.h"
+#include "training/config.h"
 
 namespace marian {
 

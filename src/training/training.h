@@ -2,13 +2,15 @@
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "command/config.h"
+#include "training/config.h"
+#include "training/validator.h"
 
 namespace marian {
 
 class Reporter {
   public:
     Ptr<Config> options_;
+    std::vector<Ptr<Validator>> validators_;
 
     float costSum{0};
     size_t epochs{1};
@@ -44,6 +46,22 @@ class Reporter {
       LOG(info) << "Training finshed";
     }
 
+    void addValidator(Ptr<Validator> validator) {
+      validators_.push_back(validator);
+    }
+    
+    void validate(Ptr<ExpressionGraph> graph) {
+      if(batches % options_->get<size_t>("valid-freq") == 0) {
+        LOG(valid) << "Validating after " << batches << " batches";
+        for(auto validator : validators_) {
+          if(validator) {
+            float value = validator->validate(graph);
+            LOG(valid) << validator->type() << " : " << value;
+          }
+        }
+      }
+    }
+    
     void update(float cost, Ptr<data::CorpusBatch> batch) {
       static std::mutex sMutex;
       std::lock_guard<std::mutex> guard(sMutex);
@@ -82,13 +100,21 @@ void Train(Ptr<Config> options) {
   using namespace data;
   using namespace keywords;
 
-  auto reporter = New<Reporter>(options);
   auto model = New<Model>(options);
-
+  
+  auto trainCorpus = New<Corpus>(options);
+  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus,
+                                                    options);
+  auto reporter = New<Reporter>(options);
+  
+  if(options->has("valid-sets") && options->get<size_t>("valid-freq") > 0) {
+    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
+                                                                  options))
+      reporter->addValidator(validator);
+  }
+  
   model->setReporter(reporter);
-
-  auto corpus = New<Corpus>(options);
-  auto batchGenerator = New<BatchGenerator<Corpus>>(corpus, options);
+  
   while(reporter->keepGoing()) {
     batchGenerator->prepare(!options->get<bool>("no-shuffle"));
     while(*batchGenerator && reporter->keepGoing()) {

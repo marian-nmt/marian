@@ -5,10 +5,13 @@
 #include "tensors/tensor.h"
 #include "kernels/tensor_operators.h"
 #include "kernels/thrust_functions.h"
+#include "common/logging.h"
 
 using namespace marian;
 
 int main() {
+  Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v")};
+
   Ptr<TensorAllocator> params = New<TensorAllocator>(0);
 
   cublasHandle_t handle = create_handle(0);

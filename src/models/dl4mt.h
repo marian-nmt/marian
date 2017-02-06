@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data/corpus.h"
-#include "command/config.h"
+#include "training/config.h"
 #include "graph/expression_graph.h"
 #include "layers/rnn.h"
 #include "layers/param_initializers.h"

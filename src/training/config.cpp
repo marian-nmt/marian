@@ -2,7 +2,7 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 
-#include "command/config.h"
+#include "training/config.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 
@@ -76,24 +76,18 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
 }
 
 void Config::validate() const {
-  if (has("trainsets")) {
-    std::vector<std::string> tmp = get<std::vector<std::string>>("trainsets");
-    if (tmp.size() != 2) {
-      std::cerr << "No trainsets!" << std::endl;
-      exit(1);
-    }
-  } else {
-    std::cerr << "No trainsets!" << std::endl;
-    exit(1);
+  UTIL_THROW_IF2(!has("train-sets")
+                 || get<std::vector<std::string>>("train-sets").empty(),
+                 "No train sets given in config file or on command line");
+  if(has("vocabs")) {
+    UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size() !=
+      get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many vocabularies as training sets");
   }
-  if (has("vocabs")) {
-    if (get<std::vector<std::string>>("vocabs").size() != 2) {
-      std::cerr << "No vocab files!" << std::endl;
-      exit(1);
-    }
-  } else {
-    std::cerr << "No vocab files!" << std::endl;
-    exit(1);
+  if(has("valid-sets")) {
+    UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size() !=
+      get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many validation sets as training sets");
   }
 }
 
@@ -145,7 +139,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Load weights from  arg  before training")
     ("overwrite", po::value<bool>()->default_value(false),
       "Overwrite model with following checkpoints")
-    ("trainsets,t", po::value<std::vector<std::string>>()->multitoken(),
+    ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files, have to correspond to --trainsets")
@@ -165,6 +159,20 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Preallocate  arg  MB of work space")
   ;
 
+  po::options_description valid("Validation set options");
+  valid.add_options()
+      ("valid-sets", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to validation corpora: source target")
+    ("valid-freq", po::value<size_t>()->default_value(10000),
+      "Validate model every  arg  updates")
+    ("valid-metrics", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"cross-entropy"}),
+                      "cross-entropy"),
+      "Metric to use during validation: cross-entropy, perplexity. "
+      "Multiple metrics can be specified")
+  ;
+  
   po::options_description model("Model options");
   model.add_options()
     ("dim-vocabs", po::value<std::vector<int>>()
@@ -205,6 +213,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
 
   po::options_description cmdline_options("Allowed options");
   cmdline_options.add(general);
+  cmdline_options.add(valid);
   cmdline_options.add(model);
   cmdline_options.add(opt);
   cmdline_options.add(configuration);
@@ -240,12 +249,20 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("overwrite", bool);
   // SET_OPTION_NONDEFAULT("trainsets", std::vector<std::string>);
 
-  if (!vm_["trainsets"].empty()) {
-    config_["trainsets"] = vm_["trainsets"].as<std::vector<std::string>>();
+  if (!vm_["train-sets"].empty()) {
+    config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
+  }
+  if (!vm_["valid-sets"].empty()) {
+    config_["valid-sets"] = vm_["valid-sets"].as<std::vector<std::string>>();
   }
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
+  
+  SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
+  SET_OPTION("valid-freq", size_t);
+  SET_OPTION("valid-metrics", std::vector<std::string>);
+  
   // SET_OPTION_NONDEFAULT("vocabs", std::vector<std::string>);
   SET_OPTION("after-epochs", size_t);
   SET_OPTION("after-batches", size_t);

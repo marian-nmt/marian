@@ -4,14 +4,10 @@
 #include <memory>
 
 #include "kernels/tensor_operators.h"
-#include "command/config.h"
+#include "training/config.h"
 #include "optimizers/clippers.h"
 
 namespace marian {
-
-// @TODO: modify computation graph to group all paramters in single matrix object.
-// This will allow to perform a single large SGD update per batch. Currently there
-// are as many updates as different parameters.
 
 class OptimizerBase {
   public:

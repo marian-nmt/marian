@@ -5,7 +5,8 @@
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
 #include "optimizers/optimizers.h"
-#include "command/training.h"
+#include "training/training.h"
+#include "training/validator.h"
 
 namespace marian {
 
@@ -75,7 +76,7 @@ class AsyncGraphGroup : public GraphGroup {
     void execute(Ptr<data::CorpusBatch> batch) {
       static bool first = true;
       if(first && graphs_.size() > 1) {
-        // initialize the paramters
+        // initialize the parameters
         for(auto graph : graphs_) {
           builder_->build(graph, batch);
           graph->forward();
@@ -124,6 +125,7 @@ class AsyncGraphGroup : public GraphGroup {
           reporter_->update(cost, batch);
           if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
             this->save();
+          reporter_->validate(graph);
         }
       };
 
@@ -133,11 +135,14 @@ class AsyncGraphGroup : public GraphGroup {
     void load() {
       if(options_->has("init")) {
         std::string init = options_->get<std::string>("init");
-        builder_->load(graphs_[0], init);
+        for(auto graph : graphs_)
+          builder_->load(graph, init);
       }
     }
 
   public:
+    typedef Builder builder_type;
+    
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
        builder_{New<Builder>(options_)},
@@ -261,11 +266,14 @@ class SyncGraphGroup : public GraphGroup {
     void load() {
       if(options_->has("init")) {
         std::string init = options_->get<std::string>("init");
-        builder_->load(graphs_[0], init);
+        for(auto graph : graphs_)
+        builder_->load(graphs, init);
       }
     }
 
   public:
+    typedef Builder builder_type;
+    
     SyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
        builder_{New<Builder>(options_)} {

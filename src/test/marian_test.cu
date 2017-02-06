@@ -7,7 +7,7 @@
 #include <boost/chrono.hpp>
 
 #include "marian.h"
-#include "command/config.h"
+#include "training/config.h"
 #include "optimizers/optimizers.h"
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"

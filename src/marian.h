@@ -25,3 +25,5 @@
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
 #include "layers/param_initializers.h"
+#include "training/training.h"
+#include "training/graph_group.h"
