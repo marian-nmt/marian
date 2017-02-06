@@ -68,8 +68,9 @@ void Vocab::load(const std::string& path, int max)
     }
   }
   UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << path);
-  id2str_[0] = "</s>";
 
+  id2str_[EOS_ID] = EOS_STR;
+  id2str_[UNK_ID] = UNK_STR;
 }
 
 class Vocab::VocabFreqOrderer
@@ -129,10 +130,10 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   OutputFileStream vocabStrm(vocabPath);
 
   vocabStrm << "{\n" 
-	    << "\"" << EOS_STR << "\": " << EOS_ID ",\n"
-	    << "\"UNK\": 1,\n";
+	    << "\"" << EOS_STR << "\": " << EOS_ID << ",\n"
+	    << "\"" << UNK_STR << "\": " << UNK_ID << ",\n";
   id2str_.push_back(EOS_STR);
-  id2str_.push_back(UNK_ID);
+  id2str_.push_back(UNK_STR);
   str2id_[EOS_STR] = EOS_ID;
   str2id_[UNK_STR] = UNK_ID;
 
