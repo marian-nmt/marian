@@ -66,7 +66,7 @@ public:
     std::vector<float> bestCosts(beamSize);
 
     if (!god.Get<bool>("allow-unk")) {
-      blaze::column(Probs, UNK) = std::numeric_limits<float>::lowest();
+      blaze::column(Probs, UNK_ID) = std::numeric_limits<float>::lowest();
     }
 
     std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),

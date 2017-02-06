@@ -80,6 +80,7 @@ cuda_add_library(amunmt SHARED
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+set_target_properties("amunmt" PROPERTIES EXCLUDE_FROM_ALL 1)
 endif(PYTHONLIBS_FOUND)
 
 cuda_add_library(mosesplugin STATIC
@@ -100,6 +101,7 @@ cuda_add_library(mosesplugin STATIC
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+set_target_properties("mosesplugin" PROPERTIES EXCLUDE_FROM_ALL 1)
 
 else(CUDA_FOUND)
 
@@ -122,6 +124,7 @@ add_library(amunmt SHARED
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
+set_target_properties("amunmt" PROPERTIES EXCLUDE_FROM_ALL 1)
 endif(PYTHONLIBS_FOUND)
 endif(CUDA_FOUND)
 

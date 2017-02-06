@@ -29,7 +29,7 @@ class BestHyps : public BestHypsBase
     }
 
     void DisAllowUNK(mblas::Matrix& Prob) {
-      SetColumn(Prob, UNK, std::numeric_limits<float>::lowest());
+      SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
     }
 
     void FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
