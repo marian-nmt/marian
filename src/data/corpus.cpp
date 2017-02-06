@@ -53,7 +53,7 @@ Corpus::Corpus(Ptr<Config> options)
     Ptr<Vocab> vocab = New<Vocab>();
 
     if (createVocabs) {
-      vocab->create(vocabPaths[i], maxVocabs[i]);
+      vocab->create(vocabPaths[i], maxVocabs[i], textPaths_[i]);
     }
     else {
       vocab->load(vocabPaths[i], maxVocabs[i]);

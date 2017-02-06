@@ -1,5 +1,6 @@
 
 #include <sstream>
+#include <algorithm>
 
 #include "data/vocab.h"
 #include "common/utils.h"
@@ -71,8 +72,63 @@ void Vocab::load(const std::string& path, int max)
 
 }
 
-void Vocab::create(const std::string& path, int max)
+class Vocab::VocabFreqOrderer
 {
+public:
+  bool operator()(const Vocab::Str2Id::value_type* a, const Vocab::Str2Id::value_type* b) const {
+    return a->second < b->second;
+  }
+};
+
+void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath)
+{
+  std::cerr << "Vocab::create" << std::endl;
+  InputFileStream trainStrm(trainPath);
+
+  // create freqency list, reuse Str2Id but use Id to store freq
+  Str2Id vocab;
+  std::string line;
+  while (getline((std::istream&)trainStrm, line)) {
+    //std::cerr << "line=" << line << std::endl;
+
+    std::vector<std::string> toks;
+    Split(line, toks);
+
+    for (const std::string &tok: toks) {
+      Str2Id::iterator iter = vocab.find(tok);
+      if (iter == vocab.end()) {
+        //std::cerr << "tok=" << tok << std::endl;
+        vocab[tok] = 1;
+      }
+      else {
+        //std::cerr << "tok=" << tok << std::endl;
+        size_t &count = iter->second;
+        ++count;
+      }
+    }
+  }
+
+  // put into vector & sort
+  std::vector<const Str2Id::value_type*> vocabVec;
+  vocabVec.reserve(max);
+
+  for (const Str2Id::value_type &p: vocab) {
+    //std::cerr << p.first << "=" << p.second << std::endl;
+    vocabVec.push_back(&p);
+  }
+  std::sort(vocabVec.rbegin(), vocabVec.rend(), VocabFreqOrderer());
+
+  // put into class variables
+  size_t vocabSize = std::min((size_t) max, vocab.size());
+  id2str_.resize(vocabSize);
+
+  for (size_t i = 0; i < vocabSize; ++i) {
+    const Str2Id::value_type *p = vocabVec[i];
+    std::cerr << p->first << "=" << p->second << std::endl;
+    const std::string &str = p->first;
+    str2id_[str] = i;
+    id2str_.push_back(str);
+  }
 
 }
 
