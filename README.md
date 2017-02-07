@@ -4,15 +4,29 @@
 [![CUDA build Status](http://37.247.57.181:8000/job/amunmt_compilation_cuda/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://37.247.57.181:8000/job/amunmt_compilation_cpu/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cpu/)
 
+<<<<<<< 423251a380dccc1348c4f947146fc5aba80ad5bd
+=======
+[![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/badge/icon)](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/)
+
+>>>>>>> Add Gitter badge
 A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
 We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed.
+<<<<<<< 423251a380dccc1348c4f947146fc5aba80ad5bd
 
 If you use this, please cite:
 
 Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Translation Ready for Deployment? A Case Study on 30 Translation Directions (https://arxiv.org/abs/1610.01108)
 
+=======
+
+If you use this, please cite:
+
+Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Translation Ready for Deployment? A Case Study on 30 Translation Directions (https://arxiv.org/abs/1610.01108)
+
+>>>>>>> Add Gitter badge
 ## Recommended for GPU version:
 Tested on Ubuntu 14.04 LTS
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
