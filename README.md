@@ -1,7 +1,7 @@
 Marian
 ======
 
-[![Join the chat at https://gitter.im/MarianNMT/Lobby](https://badges.gitter.im/MarianNMT/Lobby.svg)](https://gitter.im/MarianNMT/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/amunmt/marian](https://badges.gitter.im/amunmt/marian.svg)](https://gitter.im/amunmt/marian?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Google group for commit messages: https://groups.google.com/forum/#!forum/mariannmt
 

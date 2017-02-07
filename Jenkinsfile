@@ -1,4 +1,4 @@
-// -*- mode: groovy; indent-tabs-mode: nil; tab-width: 2 -*-
+// -*- mode: groovy; indent-tabs-mode: nil; tab-indent: 2 -*-
 //
 // This file is needed for continuous integration testing with Jenkins at
 // http://vali.inf.ed.ac.uk/jenkins (log in with your github credentials)
