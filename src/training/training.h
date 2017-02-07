@@ -56,7 +56,13 @@ class Reporter {
         for(auto validator : validators_) {
           if(validator) {
             float value = validator->validate(graph);
-            LOG(valid) << validator->type() << " : " << value;
+            std::stringstream ss;
+            ss << validator->type() << " : " << value;
+            if(validator->stalled() > 0)
+              ss << " : stalled " << validator->stalled() << " times";
+            else
+              ss << " : new best";
+            LOG(valid) << ss.str();
           }
         }
       }
