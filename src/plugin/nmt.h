@@ -25,7 +25,6 @@ class MosesPlugin {
     MosesPlugin();
 		~MosesPlugin();
 		
-    static size_t GetDevices(size_t = 1);
     void SetDevice();
     size_t GetDevice();
     const amunmt::God &GetGod() const
@@ -33,9 +32,9 @@ class MosesPlugin {
 
     void initGod(const std::string& configPath);
 
-    AmunOutput SetSource(const std::vector<size_t>& words);
+    HypoState SetSource(const std::vector<size_t>& words);
 
-    AmunOutputs Score(const AmunInputs &inputs);
+    HypoStates Score(const AmunInputs &inputs);
 
   private:
     amunmt::God god_;

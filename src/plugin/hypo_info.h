@@ -10,25 +10,31 @@
 
 namespace amunmt {
 
-struct AmunOutput
+struct HypoState
 {
   States states;
   Beam prevHyps;
 
   float score;
 
+  std::shared_ptr<Sentences> sentences;
+
+  HypoState();
+  ~HypoState();
+
   std::string Debug() const;
 
 };
 
-typedef std::vector<AmunOutput> AmunOutputs;
+typedef std::vector<HypoState> HypoStates;
 
 ////////////////////////////////////////////////////////////////
-struct AmunInput
+struct AmunInput : public HypoState
 {
-  States prevStates;
-  States nextStates;
-  Beam prevHyps;
+  AmunInput(const HypoState &hypoState)
+  :HypoState(hypoState)
+  {
+  }
 
   Words phrase;
 };

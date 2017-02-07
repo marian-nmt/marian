@@ -27,38 +27,25 @@ MosesPlugin::~MosesPlugin()
 {
 }
 
-size_t MosesPlugin::GetDevices(size_t maxDevices) {
-  int num_gpus = 0; // number of CUDA GPUs
-  HANDLE_ERROR( cudaGetDeviceCount(&num_gpus));
-  std::cerr << "Number of CUDA devices: " << num_gpus << std::endl;
+HypoState MosesPlugin::SetSource(const std::vector<size_t>& words) {
+  HypoState ret;
 
-  for (int i = 0; i < num_gpus; i++) {
-      cudaDeviceProp dprop;
-      HANDLE_ERROR( cudaGetDeviceProperties(&dprop, i));
-      std::cerr << i << ": " << dprop.name << std::endl;
-  }
-  return (size_t)std::min(num_gpus, (int)maxDevices);
-}
-
-AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
-  AmunOutput ret;
-
-  amunmt::Sentences sentences;
-  sentences.push_back(SentencePtr(new Sentence(god_, 0, words)));
+  ret.sentences.reset(new Sentences());
+  ret.sentences->push_back(SentencePtr(new Sentence(god_, 0, words)));
 
   // Encode
   Search &search = god_.GetSearch();
   size_t numScorers = search.GetScorers().size();
 
-  std::shared_ptr<Histories> histories(new Histories(god_, sentences));
+  std::shared_ptr<Histories> histories(new Histories(god_, *ret.sentences));
 
-  size_t batchSize = sentences.size();
+  size_t batchSize = ret.sentences->size();
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
   States states = search.NewStates();
 
-  search.PreProcess(god_, sentences, histories, prevHyps);
-  search.Encode(sentences, states);
+  search.PreProcess(god_, *ret.sentences, histories, prevHyps);
+  search.Encode(*ret.sentences, states);
 
   // fill return info
   ret.states = states;
@@ -68,9 +55,9 @@ AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
   return ret;
 }
 
-AmunOutputs MosesPlugin::Score(const AmunInputs &inputs)
+HypoStates MosesPlugin::Score(const AmunInputs &inputs)
 {
-  AmunOutputs outputs(inputs.size());
+  HypoStates outputs(inputs.size());
 
   // TODO
 
