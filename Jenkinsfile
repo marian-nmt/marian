@@ -1,4 +1,4 @@
-// -*- mode: groovy; indent-tabs-mode: nil; tab-indent: 2 -*-
+// -*- mode: groovy; indent-tabs-mode: nil; tab-width: 2 -*-
 //
 // This file is needed for continuous integration testing with Jenkins at
 // http://vali.inf.ed.ac.uk/jenkins (log in with your github credentials)
@@ -16,7 +16,7 @@ pipeline {
     stage('Build') {
       steps {
         echo 'Building Marian ...'
-        sh 'mkdir build && cd build && cmake .. && make -j'
+        sh 'rm -rf  build && mkdir build && cd build && cmake .. && make -j'
       }
     }
   }
