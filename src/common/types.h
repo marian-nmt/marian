@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <cstdint>
 #include <vector>
+#include <iostream>
+
+namespace amunmt {
 
 typedef size_t Word;
 typedef std::vector<Word> Words;
@@ -10,17 +13,20 @@ typedef std::vector<Word> Words;
 const Word EOS = 0;
 const Word UNK = 1;
 
-#include <thrust/device_vector.h>
-#include <thrust/functional.h>
-#include <thrust/sort.h>
-#include <thrust/sequence.h>
-#include <thrust/extrema.h>
+enum DeviceType
+{
+	CPUDevice = 7,
+	GPUDevice = 11
+};
 
-template<class T>
-using DeviceVector = thrust::device_vector<T>;
+struct DeviceInfo
+{
+  friend std::ostream& operator<<(std::ostream& out, const DeviceInfo& obj);
 
-template<class T>
-using HostVector = thrust::host_vector<T>;
+  DeviceType deviceType;
+  size_t threadInd;
+  size_t deviceId;
+};
 
-namespace algo = thrust;
-namespace iteralgo = thrust;
+}
+

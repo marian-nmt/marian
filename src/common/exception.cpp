@@ -12,14 +12,13 @@
 #include <io.h>
 #endif
 
+namespace amunmt {
 namespace util {
 
 Exception::Exception() throw() {}
 Exception::~Exception() throw() {}
 
-Exception::Exception(const Exception& o) throw() {
-  what_.str(o.what_.str());
-}
+Exception::Exception(const Exception& o) throw() : what_(o.what_) {}
 
 void Exception::SetLocation(const char *file, unsigned int line, const char *func, const char *child_name, const char *condition) {
   /* The child class might have set some text, but we want this to come first.
@@ -27,24 +26,26 @@ void Exception::SetLocation(const char *file, unsigned int line, const char *fun
    * then child classes would have to accept constructor arguments and pass
    * them down.
    */
-  std::string old_text = what_.str();
-  what_.str(std::string());
-  what_ << file << ':' << line;
-  if (func) what_ << " in " << func << " threw ";
+  std::string old_text = what_;
+  std::swap(old_text, what_);
+  std::stringstream stream;
+  stream << file << ':' << line;
+  if (func) stream << " in " << func << " threw ";
   if (child_name) {
-    what_ << child_name;
+    stream << child_name;
   } else {
 #ifdef __GXX_RTTI
-    what_ << typeid(this).name();
+    stream << typeid(this).name();
 #else
-    what_ << "an exception";
+    stream << "an exception";
 #endif
   }
   if (condition) {
-    what_ << " because `" << condition << '\'';
+    stream << " because `" << condition << '\'';
   }
-  what_ << ".\n";
-  what_ << old_text;
+  stream << ".\n";
+  stream << old_text;
+  what_ = stream.str();
 }
 
 namespace {
@@ -106,3 +107,4 @@ WindowsException::~WindowsException() throw() {}
 #endif
 
 } // namespace util
+}
