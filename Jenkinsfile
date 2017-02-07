@@ -17,7 +17,7 @@ pipeline {
       steps {
         echo 'Building Marian ...'
         sh 'rm -rf  build && mkdir build && cd build && cmake .. && make -j'
-        sh 'cd .. && tar zcvf marian.tgz build/*'
+        sh 'tar zcvf marian.tgz build/*'
 
         archiveArtifacts artifacts: 'marian.tgz'
       }
