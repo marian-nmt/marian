@@ -17,7 +17,7 @@ pipeline {
       steps {
         echo 'Building Marian ...'
         echo "PATH is ${PATH}"
-        echo "LD_LIBRARY_PATH is ${LD_LIBRARY_PATH"
+        echo "LD_LIBRARY_PATH is ${LD_LIBRARY_PATH}"
         echo "LIBRARY_PATH is ${LIBRARY_PATH}"
         sh 'mkdir -p build'
         sh 'cd build'
