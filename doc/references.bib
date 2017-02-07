@@ -1,0 +1,128 @@
+@article{dropout,
+ author = {Srivastava, Nitish and Hinton, Geoffrey and Krizhevsky, Alex and Sutskever, Ilya and Salakhutdinov, Ruslan},
+ title = {Dropout: A Simple Way to Prevent Neural Networks from Overfitting},
+ journal = {Journal of Machine Learning Research},
+ issue_date = {January 2014},
+ volume = {15},
+ number = {1},
+ month = January,
+ year = {2014},
+ issn = {1532-4435},
+ pages = {1929--1958},
+ numpages = {30},
+ url = {http://dl.acm.org/citation.cfm?id=2627435.2670313},
+ acmid = {2670313},
+ publisher = {JMLR.org},
+ keywords = {deep learning, model combination, neural networks, regularization},
+}
+
+
+@manual{cudnn,
+  title       = {cuDNN Library},
+  author = {Nvidia},
+  edition     = {5.1},
+  month       = {May},
+  year        = {2016}
+}
+
+@INCOLLECTION{
+         Kearfott1996ADo,
+       author = "R. Baker Kearfott",
+       editor = "Martin Berz and Christian Bischof and George Corliss and Andreas Griewank",
+       title = "Automatic Differentiation of Conditional Branches in an Operator Overloading Context",
+       booktitle = "Computational Differentiation: Techniques, Applications, and Tools",
+       pages = "75--81",
+       publisher = "SIAM",
+       address = "Philadelphia, PA",
+       key = "Kearfott1996ADo",
+       crossref = "Berz1996CDT",
+       abstract = "In the past, it has been problematical to include {\tt IF-THEN-ELSE} branches
+         in automatic differentiation processes driven by operator overloading and code list generation, when
+         the branch condition contains variables. However, this problem can be circumvented with a special
+         ``branch function'' $\chi$. Definition of this function, formulas for its use, and
+         implications of its use will be discussed. A second issue is: what can be done when derivatives are
+         discontinuous? In fact, simple and meaningful Newton iterations can be set up when even the function
+         itself is discontinuous. Simplified figures and examples are given, as well as references to
+         in-depth explanations. An example of the convergence behavior is given with an interval Newton
+         method to find critical points for the problem ``$\min |x|$.''",
+       keywords = "Conditional branches, operator overloading, branch function, discontinuous
+         derivatives.",
+       referred = "[Berz2002TaU], [Dignath2002AAa].",
+       year = "1996"
+}
+
+@INCOLLECTION{
+         Tadjouddine2005ItP,
+       author = "Mohamed Tadjouddine and Frances Bodman and John D. Pryce and Shaun A. Forth",
+       title = "Improving the Performance of the Vertex Elimination Algorithm for Derivative
+         Calculation",
+       editor = "H. M. B{\"u}cker and G. Corliss and P. Hovland and U. Naumann and B.
+         Norris",
+       booktitle = "Automatic Differentiation: {A}pplications, Theory, and Implementations",
+       series = "Lecture Notes in Computational Science and Engineering",
+       publisher = "Springer",
+       year = "2005",
+       abstract = "In previous work [TOMS, 2004, 30(3), 266--299], we used Markowitz-like heuristics
+         to find elimination sequences that minimise the number of floating-point operations (flops) for
+         vertex elimination Jacobian code. We also used the depth-first traversal algorithm to reorder the
+         statements of the Jacobian code with the aim of reducing the number of memory accesses. In this
+         work, we study the effects of reducing flops or memory accesses within the vertex elimination
+         algorithm for Jacobian calculation. On RISC processors, we observed that for data residing in
+         registers, the number of flops gives a good estimate of the execution time, while for
+         out-of-register data, the execution time is dominated by the time for memory access operations. We
+         also present a statement reordering scheme based on a greedy list scheduling algorithm using ranking
+         functions. This statement reordering will enable us to trade off the exploitation of the instruction
+         level parallelism of such processors with the reduction in memory accesses.",
+       crossref = "Bucker2005ADA",
+       ad_tools = "EliAD",
+       ad_theotech = "X-Country",
+       pages = "111--120",
+       doi = "10.1007/3-540-28438-9_10"
+}
+
+@ARTICLE{
+         Tadjouddine2008VoA,
+       author = "Tadjouddine, E. M.",
+       title = "{Vertex-ordering Algorithms for Automatic Differentiation of Computer Codes}",
+       journal = "The Computer Journal",
+       volume = "51",
+       number = "6",
+       pages = "688--699",
+       doi = "10.1093/comjnl/bxm115",
+       year = "2008",
+       abstract = "In the context of Automatic Differentiation (AD) of functions represented by
+         computer code via the vertex elimination approach first advocated by Griewank and Reese (On the
+         Calculation of Jacobian Matrices by the Markowitz Rule. In Griewank, A. and Corliss, G.F. (eds),
+         Automatic Differentiation of Algorithms: Theory, Implementation and Application, pp. 126-135. SIAM,
+         1991, Philadelphia, PA.), we present two approximate algorithms based on the linearized
+         computational graph of the input code. The first is a statement-reordering algorithm aiming to tune
+         the AD-generated code so as to maximize its performance for modern superscalar processors. The
+         second is aimed at detecting interface contractions introduced by Bischof and Haghighat
+         (Hierarchical Approaches to Automatic Differentiation. In Berz, M., Bischof, C., Corliss, G. and
+         Griewank, A. (eds), Computational Differentiation: Techniques, Applications, and Tools, pp. 83-94.
+         SIAM, 1996, Philadelphia, PA) in order to enable exploitation of the structure of the input code in
+         the differentiation process. Performance data are also presented.",
+       url = "http://comjnl.oxfordjournals.org/cgi/content/abstract/51/6/688",
+       eprint = "http://comjnl.oxfordjournals.org/cgi/reprint/51/6/688.pdf",
+       ad_theotech = "Hierarchical Approach"
+}
+
+@INCOLLECTION{
+         Griewank1991OtC,
+       author = "Andreas Griewank and Shawn Reese",
+       editor = "Andreas Griewank and George F. Corliss",
+       title = "On the Calculation of {J}acobian Matrices by the {M}arkowitz Rule",
+       booktitle = "Automatic Differentiation of Algorithms: Theory, Implementation, and Application",
+       pages = "126--135",
+       publisher = "SIAM",
+       address = "Philadelphia, PA",
+       key = "Griewank1991OtC",
+       crossref = "Griewank1991ADo",
+       comment = "Also appeared as Preprint MCS--P267--1091, Mathematics and Computer Science
+         Division, Argonne National Laboratory, Argonne, Ill., January 1992.",
+       referred = "[Bischof1996HAt], [Corl91a]; [Feehery1996ADB], [Irim91a], [Naumann2002ETf],
+         [Tadjouddine2001ATa].",
+       isbn = "0--89871--284--X",
+       year = "1991",
+       ad_theotech = "X-Country"
+}
