@@ -1,13 +1,11 @@
 
 # AmuNMT
-
-[![Join the chat at https://gitter.im/emjotde/amunmt](https://badges.gitter.im/emjotde/amunmt.svg)](https://gitter.im/emjotde/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/badge/icon)](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/)
+[![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![CUDA build Status](http://37.247.57.181:8000/job/amunmt_compilation_cuda/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cuda/)
+[![CPU Build Status](http://37.247.57.181:8000/job/amunmt_compilation_cpu/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cpu/)
 
 A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
-
-We aim at keeping compatibility with Nematus (at least as long as there is no training framework in AmunNMT), the continued compatbility with DL4MT will not be guaranteed.
 
 If you use this, please cite:
 

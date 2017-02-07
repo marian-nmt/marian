@@ -36,6 +36,7 @@
 
 
 build
+build_cpu
 
 *~
 *.swp
