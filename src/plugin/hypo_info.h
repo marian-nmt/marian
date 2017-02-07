@@ -17,6 +17,11 @@ struct HypoState
 
   float score;
 
+  std::shared_ptr<Sentences> sentences;
+
+  HypoState();
+  ~HypoState();
+
   std::string Debug() const;
 
 };

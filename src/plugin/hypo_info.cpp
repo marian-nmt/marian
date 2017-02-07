@@ -5,6 +5,13 @@ using namespace std;
 
 namespace amunmt {
 
+HypoState::HypoState()
+{}
+
+HypoState::~HypoState()
+{
+}
+
 std::string HypoState::Debug() const
 {
   stringstream strm;
