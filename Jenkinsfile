@@ -17,7 +17,7 @@ pipeline {
       steps {
         echo 'Building Marian ...'
         sh 'export PATH="/usr/local/cuda-8.0/bin:${PATH}"'
-        echo "PATH is ${PATH}"
+        sh "echo PATH is ${PATH}"
         echo "LD_LIBRARY_PATH is ${LD_LIBRARY_PATH}"
         echo "LIBRARY_PATH is ${LIBRARY_PATH}"
         sh 'mkdir -p build'
