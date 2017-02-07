@@ -2,6 +2,9 @@
 # AmuNMT
 [![Build Status](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/badge/icon)](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/)
 
+[![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/badge/icon)](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/)
+
 A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
 
