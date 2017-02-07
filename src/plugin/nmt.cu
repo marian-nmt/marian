@@ -27,8 +27,8 @@ MosesPlugin::~MosesPlugin()
 {
 }
 
-AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
-  AmunOutput ret;
+HypoState MosesPlugin::SetSource(const std::vector<size_t>& words) {
+  HypoState ret;
 
   amunmt::Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(god_, 0, words)));
@@ -55,9 +55,9 @@ AmunOutput MosesPlugin::SetSource(const std::vector<size_t>& words) {
   return ret;
 }
 
-AmunOutputs MosesPlugin::Score(const AmunInputs &inputs)
+HypoStates MosesPlugin::Score(const HypoStates &inputs)
 {
-  AmunOutputs outputs(inputs.size());
+  HypoStates outputs(inputs.size());
 
   // TODO
 

@@ -5,7 +5,7 @@ using namespace std;
 
 namespace amunmt {
 
-std::string AmunOutput::Debug() const
+std::string HypoState::Debug() const
 {
   stringstream strm;
  /*

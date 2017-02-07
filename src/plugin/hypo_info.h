@@ -10,7 +10,7 @@
 
 namespace amunmt {
 
-struct AmunOutput
+struct HypoState
 {
   States states;
   Beam prevHyps;
@@ -21,19 +21,8 @@ struct AmunOutput
 
 };
 
-typedef std::vector<AmunOutput> AmunOutputs;
+typedef std::vector<HypoState> HypoStates;
 
-////////////////////////////////////////////////////////////////
-struct AmunInput
-{
-  States prevStates;
-  States nextStates;
-  Beam prevHyps;
-
-  Words phrase;
-};
-
-typedef std::vector<AmunInput> AmunInputs;
 
 }
 
