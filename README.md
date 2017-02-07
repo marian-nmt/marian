@@ -1,7 +1,5 @@
 
 # AmuNMT
-
-[![Join the chat at https://gitter.im/emjotde/amunmt](https://badges.gitter.im/emjotde/amunmt.svg)](https://gitter.im/emjotde/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/badge/icon)](http://filipg-jenkins.wmi.amu.edu.pl:8090/job/amunmt-cpu/)
 
 A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
