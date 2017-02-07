@@ -1,6 +1,5 @@
 
 # AmuNMT
-
 [![Join the chat at https://gitter.im/emjotde/amunmt](https://badges.gitter.im/emjotde/amunmt.svg)](https://gitter.im/emjotde/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![CUDA build Status](http://37.247.57.181:8000/job/amunmt_compilation_cuda/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://37.247.57.181:8000/job/amunmt_compilation_cpu/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cpu/)
