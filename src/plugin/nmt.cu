@@ -55,7 +55,7 @@ HypoState MosesPlugin::SetSource(const std::vector<size_t>& words) {
   return ret;
 }
 
-HypoStates MosesPlugin::Score(const HypoStates &inputs)
+HypoStates MosesPlugin::Score(const AmunInputs &inputs)
 {
   HypoStates outputs(inputs.size());
 

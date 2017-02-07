@@ -34,7 +34,7 @@ class MosesPlugin {
 
     HypoState SetSource(const std::vector<size_t>& words);
 
-    HypoStates Score(const HypoStates &inputs);
+    HypoStates Score(const AmunInputs &inputs);
 
   private:
     amunmt::God god_;

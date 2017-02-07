@@ -23,6 +23,18 @@ struct HypoState
 
 typedef std::vector<HypoState> HypoStates;
 
+////////////////////////////////////////////////////////////////
+struct AmunInput : public HypoState
+{
+  AmunInput(const HypoState &hypoState)
+  :HypoState(hypoState)
+  {
+  }
+
+  Words phrase;
+};
+
+typedef std::vector<AmunInput> AmunInputs;
 
 }
 
