@@ -25,7 +25,6 @@ class MosesPlugin {
     MosesPlugin();
 		~MosesPlugin();
 		
-    static size_t GetDevices(size_t = 1);
     void SetDevice();
     size_t GetDevice();
     const amunmt::God &GetGod() const
