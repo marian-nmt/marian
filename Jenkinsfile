@@ -11,12 +11,15 @@
 
 pipeline {
   agent any
-  
+
   stages {
     stage('Build') {
       steps {
         echo 'Building Marian ...'
         sh 'rm -rf  build && mkdir build && cd build && cmake .. && make -j'
+        sh 'cd .. && tar zcvf marian.tgz build/*'
+
+        archiveArtifacts artifacts: 'marian.tgz'
       }
     }
   }
