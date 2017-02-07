@@ -70,50 +70,50 @@ void Search::Decode(
   std::vector<size_t> beamSizes(batchSize, 1);
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-	for (size_t i = 0; i < scorers_.size(); i++) {
-	  Scorer &scorer = *scorers_[i];
-	  const State &state = *states[i];
-	  State &nextState = *nextStates[i];
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      Scorer &scorer = *scorers_[i];
+      const State &state = *states[i];
+      State &nextState = *nextStates[i];
 
-	  scorer.Decode(god, state, nextState, beamSizes);
-	}
+      scorer.Decode(god, state, nextState, beamSizes);
+    }
 
-	if (decoderStep == 0) {
-	  for (auto& beamSize : beamSizes) {
-		beamSize = god.Get<size_t>("beam-size");
-	  }
-	}
-	Beams beams(batchSize);
-	bool returnAlignment = god.Get<bool>("return-alignment");
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+      beamSize = god.Get<size_t>("beam-size");
+      }
+    }
+    Beams beams(batchSize);
+    bool returnAlignment = god.Get<bool>("return-alignment");
 
-	bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
+    bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
 
-	for (size_t i = 0; i < batchSize; ++i) {
-	  if (!beams[i].empty()) {
-		histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
-	  }
-	}
+    for (size_t i = 0; i < batchSize; ++i) {
+      if (!beams[i].empty()) {
+        histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+      }
+    }
 
-	Beam survivors;
-	for (size_t batchID = 0; batchID < batchSize; ++batchID) {
-	  for (auto& h : beams[batchID]) {
-		if (h->GetWord() != EOS) {
-		  survivors.push_back(h);
-		} else {
-		  --beamSizes[batchID];
-		}
-	  }
-	}
+    Beam survivors;
+    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
+      for (auto& h : beams[batchID]) {
+        if (h->GetWord() != EOS) {
+          survivors.push_back(h);
+        } else {
+          --beamSizes[batchID];
+        }
+      }
+    }
 
-	if (survivors.size() == 0) {
-	  break;
-	}
+    if (survivors.size() == 0) {
+      break;
+    }
 
-	for (size_t i = 0; i < scorers_.size(); i++) {
-	  scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
-	}
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+    }
 
-	prevHyps.swap(survivors);
+    prevHyps.swap(survivors);
   }
 }
 
@@ -151,20 +151,20 @@ void Search::PreProcess(
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
   for (size_t i = 0; i < histories->size(); ++i) {
-	History &history = *histories->at(i).get();
-	history.Add(prevHyps);
+    History &history = *histories->at(i).get();
+    history.Add(prevHyps);
   }
 
   bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
   if (filter) {
-	std::set<Word> srcWords;
-	for (size_t i = 0; i < sentences.size(); ++i) {
-	  const Sentence &sentence = *sentences.at(i);
-	  for (const auto& srcWord : sentence.GetWords()) {
-		srcWords.insert(srcWord);
-	  }
-	}
-	vocabSize = MakeFilter(god, srcWords, vocabSize);
+    std::set<Word> srcWords;
+    for (size_t i = 0; i < sentences.size(); ++i) {
+      const Sentence &sentence = *sentences.at(i);
+      for (const auto& srcWord : sentence.GetWords()) {
+        srcWords.insert(srcWord);
+      }
+    }
+    vocabSize = MakeFilter(god, srcWords, vocabSize);
   }
 
 }
