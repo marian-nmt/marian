@@ -60,7 +60,7 @@ void Search::Encode(const Sentences& sentences, States& states) {
 void Search::Decode(
 		const God &god,
 		const Sentences& sentences,
-		const States &states,
+		States &states,
 		States &nextStates,
 		std::shared_ptr<Histories> &histories,
 		Beam &prevHyps)
