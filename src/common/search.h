@@ -50,6 +50,16 @@ class Search {
 
     DeviceInfo deviceInfo_;
 
+    bool Decode(
+    		const God &god,
+    		const Sentences& sentences,
+    		States &states,
+    		std::shared_ptr<Histories> &histories,
+    		Beam &prevHyps,
+    		size_t decoderStep,
+    		States &nextStates,
+    		std::vector<size_t> &beamSizes);
+
     bool CalcBeam(
     		const God &god,
     		Beam &prevHyps,
