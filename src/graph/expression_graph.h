@@ -67,7 +67,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     cublasHandle_t cublasHandle_;
     size_t device_{0};
-    
+
     size_t stale_{0};
 
   protected:
@@ -83,6 +83,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     friend Ptr<ExpressionGraph> New<ExpressionGraph>();
 
   public:
+
+    ~ExpressionGraph() {
+      clear();
+    }
 
     void setDevice(size_t device = 0) {
       device_ = device;
@@ -172,7 +176,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       params_.allocateBackward();
       params_.set_zero_adjoint();
-      
+
       for(auto&& v : topNodes_)
         v->init_dependent();
 
@@ -202,7 +206,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
         it++;
       }
     }
-    
+
     /**
      * @brief Returns a string representing this expression graph in <code>graphviz</code> notation.
      *
@@ -429,7 +433,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       topNodes_.clear();
       tensors_->clear();
     }
-    
+
     Expr topNode() {
       return nodes_.back();
     }

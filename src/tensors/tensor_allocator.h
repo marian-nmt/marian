@@ -94,6 +94,10 @@ class TensorAllocator {
       gaps_.insert(lastGap_);
     }
 
+    ~TensorAllocator() {
+      clear();
+    }
+
     void reserve(size_t elements = 0) {
       float mult = elements / FLOATS + 1;
       LOG(memory) << "Extending reserved space to "
