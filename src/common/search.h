@@ -49,6 +49,14 @@ class Search {
     BestHypsBasePtr bestHyps_;
 
     DeviceInfo deviceInfo_;
+
+    void CalcBeam(
+    		const God &god,
+    		Beam &prevHyps,
+    		Beams &beams,
+    		std::vector<size_t> &beamSizes
+    		);
+
 };
 
 }

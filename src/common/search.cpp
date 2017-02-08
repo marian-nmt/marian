@@ -84,9 +84,7 @@ void Search::Decode(
       }
     }
     Beams beams(batchSize);
-    bool returnAlignment = god.Get<bool>("return-alignment");
-
-    bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
+    CalcBeam(god, prevHyps, beams, beamSizes);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
@@ -115,6 +113,19 @@ void Search::Decode(
 
     prevHyps.swap(survivors);
   }
+}
+
+void Search::CalcBeam(
+		const God &god,
+		Beam &prevHyps,
+		Beams &beams,
+		std::vector<size_t> &beamSizes
+		)
+{
+    bool returnAlignment = god.Get<bool>("return-alignment");
+
+    bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
+
 }
 
 std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
