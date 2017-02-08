@@ -56,7 +56,8 @@ class Search {
     		Beams &beams,
     		std::vector<size_t> &beamSizes,
     		std::shared_ptr<Histories> &histories,
-    		const Sentences& sentences
+    		const Sentences& sentences,
+    		Beam &survivors
     		);
 
 };

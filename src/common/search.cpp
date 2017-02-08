@@ -85,18 +85,9 @@ void Search::Decode(
     }
 
     Beams beams(batchSize);
-    CalcBeam(god, prevHyps, beams, beamSizes, histories, sentences);
-
     Beam survivors;
-    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
-      for (auto& h : beams[batchID]) {
-        if (h->GetWord() != EOS_ID) {
-          survivors.push_back(h);
-        } else {
-          --beamSizes[batchID];
-        }
-      }
-    }
+
+    CalcBeam(god, prevHyps, beams, beamSizes, histories, sentences, survivors);
 
     if (survivors.size() == 0) {
       break;
@@ -116,7 +107,8 @@ void Search::CalcBeam(
 		Beams &beams,
 		std::vector<size_t> &beamSizes,
 		std::shared_ptr<Histories> &histories,
-		const Sentences& sentences
+		const Sentences& sentences,
+		Beam &survivors
 		)
 {
     bool returnAlignment = god.Get<bool>("return-alignment");
@@ -127,6 +119,16 @@ void Search::CalcBeam(
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
         histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+      }
+    }
+
+    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
+      for (auto& h : beams[batchID]) {
+        if (h->GetWord() != EOS_ID) {
+          survivors.push_back(h);
+        } else {
+          --beamSizes[batchID];
+        }
       }
     }
 
