@@ -134,9 +134,9 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   YAML::Node vocabYaml;
   vocabYaml[EOS_STR] = EOS_ID;
   vocabYaml[UNK_STR] = UNK_ID;
-  for(size_t i = 2; i < vocabVec.size(); ++i) {
+  for(size_t i = 0; i < vocabVec.size(); ++i) {
     const Str2Id::value_type *p = vocabVec[i];
-    vocabYaml[p->first] = i;
+    vocabYaml[p->first] = i + 2;
   }
 
   OutputFileStream vocabStrm(vocabPath);
