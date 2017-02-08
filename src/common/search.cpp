@@ -102,12 +102,6 @@ void Search::Decode(
     if (!hasSurvivors) {
     	break;
     }
-
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
-    }
-
-    prevHyps.swap(survivors);
   }
 }
 
@@ -147,6 +141,12 @@ bool Search::CalcBeam(
     if (survivors.size() == 0) {
       return false;
     }
+
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
+    }
+
+    prevHyps.swap(survivors);
 
     return true;
 }
