@@ -132,7 +132,7 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
   // calc
   PreProcess(god, sentences, histories, prevHyps);
   Encode(sentences, states);
-  Decode(god, sentences, states, nextStates, histories, prevHyps);
+  Decode(god, sentences, states, histories, prevHyps);
   PostProcess();
 
   LOG(progress) << "Batch " << sentences.GetTaskCounter() << "." << sentences.GetBunchId()
