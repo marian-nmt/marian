@@ -87,7 +87,18 @@ void Search::Decode(
     Beams beams(batchSize);
     Beam survivors;
 
-    bool hasSurvivors = CalcBeam(god, prevHyps, beams, beamSizes, histories, sentences, survivors);
+    bool hasSurvivors = CalcBeam(
+    		god,
+    		prevHyps,
+    		beams,
+    		beamSizes,
+    		histories,
+    		sentences,
+    		survivors,
+    		states,
+    		nextStates
+    		);
+
     if (!hasSurvivors) {
     	break;
     }
@@ -107,7 +118,9 @@ bool Search::CalcBeam(
 		std::vector<size_t> &beamSizes,
 		std::shared_ptr<Histories> &histories,
 		const Sentences& sentences,
-		Beam &survivors
+		Beam &survivors,
+		States &states,
+		States &nextStates
 		)
 {
     bool returnAlignment = god.Get<bool>("return-alignment");
