@@ -61,12 +61,12 @@ void Search::Decode(
 		const God &god,
 		const Sentences& sentences,
 		States &states,
-		States &nextStates,
 		std::shared_ptr<Histories> &histories,
 		Beam &prevHyps)
 {
-  size_t batchSize = sentences.size();
+  States nextStates = NewStates();
 
+  size_t batchSize = sentences.size();
   std::vector<size_t> beamSizes(batchSize, 1);
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
@@ -128,7 +128,6 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
   States states = NewStates();
-  States nextStates = NewStates();
 
   // calc
   PreProcess(god, sentences, histories, prevHyps);
