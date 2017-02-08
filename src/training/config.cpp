@@ -142,7 +142,10 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files, have to correspond to --trainsets")
+      "Paths to vocabulary files, have to correspond to --trainsets."
+      "If this parameters is not supplied we look for vocabulary files"
+      "source.{yml,json} and target.{yml,json}."
+      "If these files do not exists there are created.")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
@@ -172,7 +175,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Metric to use during validation: cross-entropy, perplexity. "
       "Multiple metrics can be specified")
   ;
-  
+
   po::options_description model("Model options");
   model.add_options()
     ("dim-vocabs", po::value<std::vector<int>>()
@@ -258,11 +261,11 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
-  
+
   SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
   SET_OPTION("valid-freq", size_t);
   SET_OPTION("valid-metrics", std::vector<std::string>);
-  
+
   // SET_OPTION_NONDEFAULT("vocabs", std::vector<std::string>);
   SET_OPTION("after-epochs", size_t);
   SET_OPTION("after-batches", size_t);

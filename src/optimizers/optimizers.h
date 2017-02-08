@@ -45,7 +45,7 @@ class OptimizerBase {
 class Sgd : public OptimizerBase {
   public:
     template <typename ...Args>
-    Sgd(float eta=0.01, Args... args)
+    Sgd(float eta, Args... args)
     : OptimizerBase(args...), eta_(eta) {}
 
   private:
@@ -60,7 +60,7 @@ class Sgd : public OptimizerBase {
 class Adagrad : public OptimizerBase {
   public:
     template <typename ...Args>
-    Adagrad(float eta=0.01, Args ...args)
+    Adagrad(float eta, Args ...args)
     : OptimizerBase(args...),
       eta_(eta),
       eps_(Get(keywords::eps, 1e-8, args...))
@@ -97,7 +97,7 @@ class Adagrad : public OptimizerBase {
 class Adam : public OptimizerBase {
   public:
     template <typename ...Args>
-    Adam(float eta = 0.0001, Args ...args)
+    Adam(float eta, Args ...args)
     : OptimizerBase(args...),
       eta_(eta),
       beta1_(Get(keywords::beta1, 0.9, args...)),

@@ -106,7 +106,7 @@ class AsyncGraphGroup : public GraphGroup {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
         thread_local size_t t = 0;
-        
+
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
           graph = graphs_[i++];
@@ -129,7 +129,7 @@ class AsyncGraphGroup : public GraphGroup {
             this->save();
           reporter_->validate(graph);
         }
-        
+
         t++;
       };
 
@@ -146,7 +146,7 @@ class AsyncGraphGroup : public GraphGroup {
 
   public:
     typedef Builder builder_type;
-    
+
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
        builder_{New<Builder>(options_)},
@@ -154,9 +154,10 @@ class AsyncGraphGroup : public GraphGroup {
        pool_{devices_.size(), devices_.size() } {
 
       for(auto device : devices_) {
-        graphs_.emplace_back(New<ExpressionGraph>());
-        graphs_.back()->setDevice(device);
-        graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+        auto graph = New<ExpressionGraph>();
+        graph->setDevice(device);
+        graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+        graphs_.push_back(graph);
       }
 
       load();
@@ -276,7 +277,7 @@ class SyncGraphGroup : public GraphGroup {
 
   public:
     typedef Builder builder_type;
-    
+
     SyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
        builder_{New<Builder>(options_)} {
