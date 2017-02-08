@@ -142,10 +142,10 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files, have to correspond to --trainsets."
-      "If this parameters is not supplied we look for vocabulary files"
-      "source.{yml,json} and target.{yml,json}."
-      "If these files do not exists there are created.")
+      "Paths to vocabulary files have to correspond to --trainsets. "
+      "If this parameter is not supplied we look for vocabulary files "
+      "source.{yml,json} and target.{yml,json}. "
+      "If these files do not exists they are created.")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
