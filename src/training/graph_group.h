@@ -40,7 +40,6 @@ class AsyncGraphGroup : public GraphGroup {
     Ptr<Builder> builder_;
 
     std::vector<size_t> devices_;
-    ThreadPool pool_;
 
     std::vector<Ptr<ExpressionGraph>> graphs_;
 
@@ -51,6 +50,8 @@ class AsyncGraphGroup : public GraphGroup {
 
     Tensor grads_;
     Ptr<TensorAllocator> gradsAlloc_;
+
+    ThreadPool pool_;
 
     void fetchParams(Tensor oldParams) {
       if(graphs_.size() < 2)

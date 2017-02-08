@@ -176,14 +176,15 @@ std::string TensorBase::debug() {
 }
 
 DeviceGPU::~DeviceGPU() {
-   cudaSetDevice(device_);
-   if(data_)
-     CUDA_CHECK(cudaFree(data_));
+  cudaSetDevice(device_);
+  if(data_)
+    CUDA_CHECK(cudaFree(data_));
+  cudaDeviceSynchronize();
 }
 
 void DeviceGPU::reserve(size_t size) {
    cudaSetDevice(device_);
-   
+
    UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
 
    if(data_) {
