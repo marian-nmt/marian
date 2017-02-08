@@ -83,14 +83,9 @@ void Search::Decode(
       beamSize = god.Get<size_t>("beam-size");
       }
     }
-    Beams beams(batchSize);
-    CalcBeam(god, prevHyps, beams, beamSizes);
 
-    for (size_t i = 0; i < batchSize; ++i) {
-      if (!beams[i].empty()) {
-        histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
-      }
-    }
+    Beams beams(batchSize);
+    CalcBeam(god, prevHyps, beams, beamSizes, histories, sentences);
 
     Beam survivors;
     for (size_t batchID = 0; batchID < batchSize; ++batchID) {
@@ -119,12 +114,21 @@ void Search::CalcBeam(
 		const God &god,
 		Beam &prevHyps,
 		Beams &beams,
-		std::vector<size_t> &beamSizes
+		std::vector<size_t> &beamSizes,
+		std::shared_ptr<Histories> &histories,
+		const Sentences& sentences
 		)
 {
     bool returnAlignment = god.Get<bool>("return-alignment");
+    size_t batchSize = sentences.size();
 
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
+
+    for (size_t i = 0; i < batchSize; ++i) {
+      if (!beams[i].empty()) {
+        histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+      }
+    }
 
 }
 

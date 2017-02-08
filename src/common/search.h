@@ -54,7 +54,9 @@ class Search {
     		const God &god,
     		Beam &prevHyps,
     		Beams &beams,
-    		std::vector<size_t> &beamSizes
+    		std::vector<size_t> &beamSizes,
+    		std::shared_ptr<Histories> &histories,
+    		const Sentences& sentences
     		);
 
 };
