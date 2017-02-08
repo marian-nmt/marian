@@ -63,11 +63,11 @@ class Reporter {
 
     void validate(Ptr<ExpressionGraph> graph) {
       if(batches % options_->get<size_t>("valid-freq") == 0) {
-        LOG(valid) << "Validating after " << batches << " batches";
         for(auto validator : validators_) {
           if(validator) {
             float value = validator->validate(graph);
             std::stringstream ss;
+            ss << batches << " : ";
             ss << validator->type() << " : " << value;
             if(validator->stalled() > 0)
               ss << " : stalled " << validator->stalled() << " times";
@@ -114,8 +114,6 @@ void Train(Ptr<Config> options) {
   using namespace data;
   using namespace keywords;
 
-  auto model = New<Model>(options);
-
   auto trainCorpus = New<Corpus>(options);
   auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus,
                                                     options);
@@ -127,6 +125,7 @@ void Train(Ptr<Config> options) {
       reporter->addValidator(validator);
   }
 
+  auto model = New<Model>(options);
   model->setReporter(reporter);
 
   while(reporter->keepGoing()) {
@@ -135,7 +134,8 @@ void Train(Ptr<Config> options) {
       auto batch = batchGenerator->next();
       model->update(batch);
     }
-    reporter->increaseEpoch();
+    if(reporter->keepGoing())
+      reporter->increaseEpoch();
   }
   reporter->finished();
   model->save();
