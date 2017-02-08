@@ -50,7 +50,7 @@ class Search {
 
     DeviceInfo deviceInfo_;
 
-    void CalcBeam(
+    bool CalcBeam(
     		const God &god,
     		Beam &prevHyps,
     		Beams &beams,

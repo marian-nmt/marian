@@ -87,10 +87,9 @@ void Search::Decode(
     Beams beams(batchSize);
     Beam survivors;
 
-    CalcBeam(god, prevHyps, beams, beamSizes, histories, sentences, survivors);
-
-    if (survivors.size() == 0) {
-      break;
+    bool hasSurvivors = CalcBeam(god, prevHyps, beams, beamSizes, histories, sentences, survivors);
+    if (!hasSurvivors) {
+    	break;
     }
 
     for (size_t i = 0; i < scorers_.size(); i++) {
@@ -101,7 +100,7 @@ void Search::Decode(
   }
 }
 
-void Search::CalcBeam(
+bool Search::CalcBeam(
 		const God &god,
 		Beam &prevHyps,
 		Beams &beams,
@@ -132,6 +131,11 @@ void Search::CalcBeam(
       }
     }
 
+    if (survivors.size() == 0) {
+      return false;
+    }
+
+    return true;
 }
 
 std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
