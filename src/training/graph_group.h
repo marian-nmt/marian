@@ -45,11 +45,13 @@ class AsyncGraphGroup : public GraphGroup {
 
     std::mutex sync_;
 
-    Tensor params_;
+    Tensor* params_;
     Ptr<TensorAllocator> paramsAlloc_;
 
-    Tensor grads_;
+    Tensor* grads_;
     Ptr<TensorAllocator> gradsAlloc_;
+
+    int shardSize_;
 
     ThreadPool pool_;
 
@@ -59,7 +61,11 @@ class AsyncGraphGroup : public GraphGroup {
 
       // @TODO read guard on parameters
       std::lock_guard<std::mutex> guard(sync_);
-      oldParams->copyFrom(params_);
+      int pos = 0;
+      for (int idx = 0; idx < devices_.size(); idx++) {
+        oldParams->copyFrom(params_[idx], pos, 0);
+        pos += shardSize_;
+      }
     }
 
     void pushGradients(Tensor newGrads) {
@@ -69,8 +75,12 @@ class AsyncGraphGroup : public GraphGroup {
       else {
         std::lock_guard<std::mutex> guard(sync_);
         // add instead of copy?
-        grads_->copyFrom(newGrads);
-        opt_->update(params_, grads_);
+        int pos = 0;
+        for (int idx = 0; idx < devices_.size(); idx++) {
+          grads_[idx]->copyFrom(newGrads, 0, pos);
+          opt_->update(params_[idx], grads_[idx]);
+          pos += shardSize_;
+        }
       }
     }
 
@@ -84,24 +94,42 @@ class AsyncGraphGroup : public GraphGroup {
         }
 
         if(!params_) {
-          paramsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
+          params_ = (Tensor*) malloc(sizeof(Tensor) * devices_.size());
 
           int totalSize = graphs_[0]->params().vals()->size();
-          paramsAlloc_->reserveExact(totalSize);
-          paramsAlloc_->allocate(params_, {1, totalSize});
+          shardSize_ = totalSize / devices_.size();
+
+          size_t p_i = 0;
+          //parameter sharding
+          for (auto device : devices_){
+            int __size__ = min(shardSize_, totalSize);
+            totalSize -= __size__;
+
+            paramsAlloc_ = New<TensorAllocator>(device);
+
+            paramsAlloc_->reserveExact(__size__);
+            paramsAlloc_->allocate(params_[p_i], {1, __size__});
+            params_[p_i++]->copyFrom(graphs_[0]->params().vals());
+          }
         }
 
         if(!grads_) {
-          gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
-
+          grads_ = (Tensor*) malloc(sizeof(Tensor) * devices_.size());
           int totalSize = graphs_[0]->params().vals()->size();
-          gradsAlloc_->reserveExact(totalSize);
-          gradsAlloc_->allocate(grads_, {1, totalSize});
+          size_t g_i = 0;
+          for (auto device : devices_){
+            int __size__ = min(shardSize_, totalSize);
+            totalSize -= __size__;
+
+            gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
+
+            gradsAlloc_->reserveExact(__size__);
+            gradsAlloc_->allocate(grads_[g_i++], {1, __size__});
+          }
         }
 
-        params_->copyFrom(graphs_[0]->params().vals());
         first = false;
-      }
+      } 
 
       auto task = [this](Ptr<data::CorpusBatch> batch) {
         static size_t i = 0;

@@ -80,7 +80,7 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
 
     void set(const std::vector<float> &v);
     
-    void copyFrom(Tensor);
+    void copyFrom(Tensor, int offsetFrom = 0, int offsetTo = 0);
 
     std::string debug();
 };
