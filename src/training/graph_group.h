@@ -97,9 +97,10 @@ class AsyncGraphGroup : public GraphGroup {
           params_ = (Tensor*) malloc(sizeof(Tensor) * devices_.size());
 
           int totalSize = graphs_[0]->params().vals()->size();
-          shardSize_ = totalSize / devices_.size();
+          shardSize_ = ceil(totalSize / devices_.size());
 
           size_t p_i = 0;
+          int pos = 0;
           //parameter sharding
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
@@ -109,7 +110,8 @@ class AsyncGraphGroup : public GraphGroup {
 
             paramsAlloc_->reserveExact(__size__);
             paramsAlloc_->allocate(params_[p_i], {1, __size__});
-            params_[p_i++]->copyFrom(graphs_[0]->params().vals());
+            params_[p_i++]->copyFrom(graphs_[0]->params().vals(), 0, pos);
+            pos += __size__;
           }
         }
 
