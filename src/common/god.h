@@ -102,8 +102,6 @@ class God {
     mutable OutputCollector outputCollector_;
 
     mutable size_t threadIncr_;
-
-    mutable boost::thread_specific_ptr<Search> search_;
     mutable boost::shared_mutex accessLock_;
 };
 

@@ -250,8 +250,11 @@ DeviceInfo God::GetNextDevice() const
   DeviceInfo ret;
 
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
-  ret.deviceType = (threadIncr_ < cpuThreads) ? CPUDevice : GPUDevice;
 
+  // start locking
+  boost::unique_lock<boost::shared_mutex> lock(accessLock_);
+
+  ret.deviceType = (threadIncr_ < cpuThreads) ? CPUDevice : GPUDevice;
   if (ret.deviceType == CPUDevice) {
     ret.threadInd = threadIncr_;
   }
@@ -277,24 +280,8 @@ DeviceInfo God::GetNextDevice() const
 
 Search &God::GetSearch() const
 {
-  Search *obj;
-
-  {
-    boost::shared_lock<boost::shared_mutex> read_lock(accessLock_);
-    obj = search_.get();
-    if (obj) {
-      // found exiting obj
-      return *obj;
-    }
-  }
-
-  // create new obj
-  boost::unique_lock<boost::shared_mutex> lock(accessLock_);
-  obj = new Search(*this);
-  search_.reset(obj);
-
-  assert(obj);
-  return *obj;
+  thread_local Search obj(*this);
+  return obj;
 }
 
 }
