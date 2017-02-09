@@ -12,45 +12,18 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_
   Search &search = god.GetSearch();
 
   try {
-    size_t miniBatch;
-    if (search.GetDeviceInfo().deviceType == CPUDevice) {
-      miniBatch = 1;
-    }
-    else {
-      miniBatch = god.Get<size_t>("mini-batch");
-    }
-
-    Histories allHistories;
-    sentences->SortByLength();
-
-    size_t bunchId = 0;
-    std::shared_ptr<Sentences> decodeSentences(new Sentences(taskCounter, bunchId++));
-
-    for (size_t i = 0; i < sentences->size(); ++i) {
-      decodeSentences->push_back(sentences->at(i));
-
-      if (decodeSentences->size() >= miniBatch) {
-        //cerr << "decodeSentences=" << decodeSentences->GetMaxLength() << endl;
-        assert(decodeSentences->size());
-        std::shared_ptr<Histories> histories = search.Process(god, *decodeSentences);
-        allHistories.Append(*histories.get());
-
-        decodeSentences.reset(new Sentences(taskCounter, bunchId++));
-      }
-    }
-
-    if (decodeSentences->size()) {
-      std::shared_ptr<Histories> histories = search.Process(god, *decodeSentences);
-      allHistories.Append(*histories.get());
-    }
-
-    allHistories.SortByLineNum();
-
-    std::stringstream strm;
-    Printer(god, allHistories, strm);
+    std::shared_ptr<Histories> histories = search.Process(god, *sentences);
 
     OutputCollector &outputCollector = god.GetOutputCollector();
-    outputCollector.Write(taskCounter, strm.str());
+    for (size_t i = 0; i < histories->size(); ++i) {
+      const History &history = *histories->at(i);
+      size_t lineNum = history.GetLineNum();
+
+      std::stringstream strm;
+      Printer(god, history, strm);
+
+      outputCollector.Write(lineNum, strm.str());
+    }
   }
 #ifdef CUDA
   catch(thrust::system_error &e)

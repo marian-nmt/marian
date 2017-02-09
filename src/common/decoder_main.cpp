@@ -27,10 +27,12 @@ int main(int argc, char* argv[]) {
   std::size_t lineNum = 0;
   std::size_t taskCounter = 0;
 
+  size_t miniBatch = god.Get<size_t>("mini-batch");
   size_t maxiBatch = god.Get<size_t>("maxi-batch");
   //std::cerr << "mode=" << god.Get("mode") << std::endl;
 
   if (god.Get<bool>("wipo")) {
+    miniBatch = 1;
     maxiBatch = 1;
   }
 
@@ -52,25 +54,31 @@ int main(int argc, char* argv[]) {
     ThreadPool pool(totalThreads, totalThreads);
     LOG(info) << "Reading input";
 
-    std::shared_ptr<Sentences> sentences(new Sentences());
+    SentencesPtr maxiSentences(new Sentences());
 
     while (std::getline(god.GetInputStream(), in)) {
-      sentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
+      maxiSentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
-      if (sentences->size() >= maxiBatch) {
-        pool.enqueue(
-            [&god,sentences,taskCounter]{ return TranslationTask(god, sentences, taskCounter); }
-            );
+      if (maxiSentences->size() >= maxiBatch) {
+        maxiSentences->SortByLength();
+        while (maxiSentences->size()) {
+          SentencesPtr miniSentences = maxiSentences->NextMiniBatch(miniBatch);
+          pool.enqueue(
+              [&god,miniSentences,taskCounter]{ return TranslationTask(god, miniSentences, taskCounter); }
+              );
+        }
 
-        sentences.reset(new Sentences());
+        maxiSentences.reset(new Sentences());
         taskCounter++;
       }
 
     }
 
-    if (sentences->size()) {
+    maxiSentences->SortByLength();
+    while (maxiSentences->size()) {
+      SentencesPtr miniSentences = maxiSentences->NextMiniBatch(miniBatch);
       pool.enqueue(
-          [&god,sentences,taskCounter]{ return TranslationTask(god, sentences, taskCounter); }
+          [&god,miniSentences,taskCounter]{ return TranslationTask(god, miniSentences, taskCounter); }
           );
     }
   }

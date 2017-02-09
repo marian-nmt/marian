@@ -12,6 +12,7 @@ class Search {
   public:
     Search(const God &god);
     virtual ~Search();
+
     std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
 
     States NewStates() const;

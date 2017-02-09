@@ -27,6 +27,9 @@ class Sentence {
 
 using SentencePtr = std::shared_ptr<Sentence>;
 
+//////////////////////////////////////////////////////////////////
+class Sentences;
+using SentencesPtr = std::shared_ptr<Sentences>;
 
 class Sentences {
  public:
@@ -59,6 +62,8 @@ class Sentences {
 
   void SortByLength();
 
+  SentencesPtr NextMiniBatch(size_t batchsize);
+
  protected:
    std::vector<SentencePtr> coll_;
    size_t taskCounter_;
@@ -67,6 +72,7 @@ class Sentences {
 
    Sentences(const Sentences &) = delete;
 };
+
 
 }
 
