@@ -1,5 +1,6 @@
 #include <cassert>
 #include "output_collector.h"
+#include "logging.h"
 
 using namespace std;
 
@@ -16,6 +17,8 @@ void OutputCollector::Write(long sourceId, const std::string& output)
   boost::mutex::scoped_lock lock(mutex_);
   if (sourceId == nextId_) {
     *outStrm_ << output << std::flush;
+    LOG(progress) << "Best translation " << sourceId << " : " << output;
+
     ++nextId_;
 
     Outputs::const_iterator iter, iterNext;
@@ -27,6 +30,8 @@ void OutputCollector::Write(long sourceId, const std::string& output)
         // 1st element in the map is the next
         const string &currOutput = iter->second;
         *outStrm_ << currOutput << std::flush;
+        LOG(progress) << "Best translation " << currId << " : " << currOutput;
+
         ++nextId_;
 
         // delete current record, move iter on 1

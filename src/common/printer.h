@@ -23,7 +23,6 @@ void Printer(const God &god, const History& history, OStream& out) {
   if (god.Get<bool>("return-alignment")) {
     best += GetAlignmentString(GetAlignment(bestTranslation.second));
   }
-  LOG(progress) << "Best translation: " << best;
 
   if (god.Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = god.GetScorerNames();
