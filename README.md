@@ -2,7 +2,7 @@ Marian
 ======
 
 [![Join the chat at https://gitter.im/amunmt/marian](https://badges.gitter.im/amunmt/marian.svg)](https://gitter.im/amunmt/marian?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](http://37.247.57.181:8000/job/marian_compilation/badge/icon)](http://37.247.57.181:8000/job/marian_compilation/)
+[![Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=Marian)](http://vali.inf.ed.ac.uk/jenkins/job/Marian/)
 
 Google group for commit messages: https://groups.google.com/forum/#!forum/mariannmt
 
