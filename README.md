@@ -95,7 +95,7 @@ AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/su
     debpe: true
 
 ## Using GPU/CPU threads
-AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. 'However, it is unlikely that CPUs used together with GPUs yield any performance improvement. It is probably better to only use the GPU if one or more are available.'
+AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. **However, it is unlikely that CPUs used together with GPUs yield any performance improvement. It is probably better to only use the GPU if one or more are available.**
 
     cpu-threads: 8
     gpu-threads: 2
