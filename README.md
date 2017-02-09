@@ -95,13 +95,13 @@ AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/su
     debpe: true
 
 ## Using GPU/CPU threads
-AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. 
+AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. 'However, it is unlikely that CPUs used together with GPUs yield any performance improvement. It is probably better to only use the GPU if one or more are available.'
 
     cpu-threads: 8
     gpu-threads: 2
     devices: [0, 1]
 
-The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception.
+The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception. 
 
 ## Example usage
 
