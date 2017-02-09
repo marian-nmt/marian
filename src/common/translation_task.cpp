@@ -1,4 +1,3 @@
-#include <boost/thread/tss.hpp>
 #include "translation_task.h"
 #include "search.h"
 #include "output_collector.h"

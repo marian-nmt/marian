@@ -3,7 +3,6 @@
 #include <string>
 #include <memory>
 #include <boost/timer/timer.hpp>
-#include <boost/thread/tss.hpp>
 
 #include "common/god.h"
 #include "common/logging.h"

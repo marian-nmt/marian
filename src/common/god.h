@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <iostream>
-#include <boost/thread/tss.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/locks.hpp>
 
