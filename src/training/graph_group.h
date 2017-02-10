@@ -45,10 +45,10 @@ class AsyncGraphGroup : public GraphGroup {
 
     std::mutex sync_;
 
-    Tensor* params_;
+    std::vector<Tensor> params_;
     Ptr<TensorAllocator> paramsAlloc_;
 
-    Tensor* grads_;
+    std::vector<Tensor> grads_;
     Ptr<TensorAllocator> gradsAlloc_;
 
     int shardSize_;
@@ -93,40 +93,39 @@ class AsyncGraphGroup : public GraphGroup {
           graph->forward();
         }
 
-        if(!params_) {
-          params_ = (Tensor*) malloc(sizeof(Tensor) * devices_.size());
-
+        if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
           shardSize_ = ceil(totalSize / devices_.size());
 
-          size_t p_i = 0;
           int pos = 0;
           //parameter sharding
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-
+            Tensor param_;
             paramsAlloc_ = New<TensorAllocator>(device);
 
             paramsAlloc_->reserveExact(__size__);
-            paramsAlloc_->allocate(params_[p_i], {1, __size__});
-            params_[p_i++]->copyFrom(graphs_[0]->params().vals(), 0, pos);
+            paramsAlloc_->allocate(param_, {1, __size__});
+
+            param_->copyFrom(graphs_[0]->params().vals(), 0, pos);
+            params_.push_back(param_);
             pos += __size__;
           }
         }
 
-        if(!grads_) {
-          grads_ = (Tensor*) malloc(sizeof(Tensor) * devices_.size());
+        if(grads_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
-          size_t g_i = 0;
+ 
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-
+            Tensor grad_;
             gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
 
             gradsAlloc_->reserveExact(__size__);
-            gradsAlloc_->allocate(grads_[g_i++], {1, __size__});
+            gradsAlloc_->allocate(grad_, {1, __size__});
+            grads_.push_back(grad_);
           }
         }
 
