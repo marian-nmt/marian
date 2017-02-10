@@ -33,7 +33,7 @@ public:
   {}
 
   template<typename T>
-  Parent operator=(const T &other) {
+  Parent& operator=(const T &other) {
     return Parent::operator=(other);
   }
 
