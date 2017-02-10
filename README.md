@@ -111,8 +111,8 @@ print libamunmt.translate(['this is a little test .'])
 ```
 
 The `init` function init the decoder and the syntax is the same as in command line. The `translate`
-function takes a list of sentences to translate. The `scripts/amunmt_erver.py` script uses python
-bindings to run REST server.
+function takes a list of sentences to translate. For real-world example, see the `scripts/amunmt_erver.py`
+script, which uses python bindings to run REST server.
 
 
 ## Using GPU/CPU threads
