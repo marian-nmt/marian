@@ -1,8 +1,10 @@
 
 # AmuNMT
 [![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![CUDA build Status](http://37.247.57.181:8000/job/amunmt_compilation_cuda/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cuda/)
-[![CPU Build Status](http://37.247.57.181:8000/job/amunmt_compilation_cpu/badge/icon)](http://37.247.57.181:8000/job/amunmt_compilation_cpu/)
+
+[![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
+[![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
+
 
 A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
 Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
@@ -92,14 +94,35 @@ AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/su
     bpe: bpe.codes
     debpe: true
 
+## Python Bindings
+
+Python bindings allow to run AmuNMT decoder in python scripts. The compilation of the bindings requires `python-dev` package. To compile the bindings run:
+```
+make python
+```
+
+The Python bindings consist of 2 function: `init` and `translate`:
+
+```python
+import libamunmt
+
+libamunmt.init('-c config.yml')
+print libamunmt.translate(['this is a little test .'])
+```
+
+The `init` function init the decoder and the syntax is the same as in command line. The `translate`
+function takes a list of sentences to translate. For real-world example, see the `scripts/amunmt_erver.py`
+script, which uses python bindings to run REST server.
+
+
 ## Using GPU/CPU threads
-AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. 
+AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. **However, it is unlikely that CPUs used together with GPUs yield any performance improvement. It is probably better to only use the GPU if one or more are available.**
 
     cpu-threads: 8
     gpu-threads: 2
     devices: [0, 1]
 
-The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception.
+The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception. 
 
 ## Example usage
 
