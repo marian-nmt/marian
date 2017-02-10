@@ -94,6 +94,27 @@ AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/su
     bpe: bpe.codes
     debpe: true
 
+## Python Bindings
+
+Python bindings allow to run AmuNMT decoder in python scripts. The compilation of the bindings requires `python-dev` package. To compile the bindings run:
+```
+make python
+```
+
+The Python bindings consist of 2 function: `init` and `translate`:
+
+```python
+import libamunmt
+
+libamunmt.init('-c config.yml')
+print libamunmt.translate(['this is a little test .'])
+```
+
+The `init` function init the decoder and the syntax is the same as in command line. The `translate`
+function takes a list of sentences to translate. The `scripts/amunmt_erver.py` script uses python
+bindings to run REST server.
+
+
 ## Using GPU/CPU threads
 AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. **However, it is unlikely that CPUs used together with GPUs yield any performance improvement. It is probably better to only use the GPU if one or more are available.**
 
