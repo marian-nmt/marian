@@ -142,7 +142,10 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files, have to correspond to --trainsets")
+      "Paths to vocabulary files have to correspond to --trainsets. "
+      "If this parameter is not supplied we look for vocabulary files "
+      "source.{yml,json} and target.{yml,json}. "
+      "If these files do not exists they are created.")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
@@ -157,11 +160,13 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     "Skip shuffling of training data before each epoch")
     ("workspace,w", po::value<size_t>()->default_value(2048),
       "Preallocate  arg  MB of work space")
+    ("log", po::value<std::string>(),
+     "Log training process information to file given by  arg")
   ;
 
   po::options_description valid("Validation set options");
   valid.add_options()
-      ("valid-sets", po::value<std::vector<std::string>>()->multitoken(),
+    ("valid-sets", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to validation corpora: source target")
     ("valid-freq", po::value<size_t>()->default_value(10000),
       "Validate model every  arg  updates")
@@ -171,8 +176,13 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
                       "cross-entropy"),
       "Metric to use during validation: cross-entropy, perplexity. "
       "Multiple metrics can be specified")
+    ("early-stopping", po::value<size_t>()->default_value(10),
+     "Stop if the first validation metric does not improve for  arg  consecutive "
+     "validation steps")
+    ("valid-log", po::value<std::string>(),
+     "Log validation scores to file given by  arg")
   ;
-  
+
   po::options_description model("Model options");
   model.add_options()
     ("dim-vocabs", po::value<std::vector<int>>()
@@ -247,6 +257,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("device", std::vector<int>);
   SET_OPTION_NONDEFAULT("init", std::string);
   SET_OPTION("overwrite", bool);
+  SET_OPTION_NONDEFAULT("log", std::string);
   // SET_OPTION_NONDEFAULT("trainsets", std::vector<std::string>);
 
   if (!vm_["train-sets"].empty()) {
@@ -258,11 +269,13 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
-  
+
   SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
   SET_OPTION("valid-freq", size_t);
   SET_OPTION("valid-metrics", std::vector<std::string>);
-  
+  SET_OPTION("early-stopping", size_t);
+  SET_OPTION_NONDEFAULT("valid-log", std::string);
+
   // SET_OPTION_NONDEFAULT("vocabs", std::vector<std::string>);
   SET_OPTION("after-epochs", size_t);
   SET_OPTION("after-batches", size_t);
@@ -298,6 +311,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
 }
 
 void Config::log() {
+  createLoggers(*this);
+
   YAML::Emitter out;
   OutputRec(config_, out);
   std::string conf = out.c_str();

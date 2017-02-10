@@ -45,6 +45,7 @@ class ThreadPool {
     template<class F, class... Args>
     auto enqueue(F&& f, Args&&... args)
         -> std::future<typename std::result_of<F(Args...)>::type>;
+        
     ~ThreadPool();
 
     size_t getNumTasks() const {
@@ -128,6 +129,3 @@ inline ThreadPool::~ThreadPool() {
     worker.join();
   }
 }
-
-
-
