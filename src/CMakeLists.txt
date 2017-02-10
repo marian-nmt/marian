@@ -64,7 +64,7 @@ cuda_add_executable(
 )
 
 if(PYTHONLIBS_FOUND)
-cuda_add_library(amunmt SHARED
+cuda_add_library(python SHARED
   python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
@@ -80,7 +80,9 @@ cuda_add_library(amunmt SHARED
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
-set_target_properties("amunmt" PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties("python" PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties("python" PROPERTIES OUTPUT_NAME "amunmt")
+
 endif(PYTHONLIBS_FOUND)
 
 cuda_add_library(mosesplugin STATIC
@@ -116,7 +118,7 @@ add_executable(
 )
 
 if(PYTHONLIBS_FOUND)
-add_library(amunmt SHARED
+add_library(python SHARED
   python/amunmt.cpp
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcnpy>
@@ -124,14 +126,15 @@ add_library(amunmt SHARED
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libyaml-cpp>
 )
-set_target_properties("amunmt" PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties("python" PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties("python" PROPERTIES OUTPUT_NAME "amunmt")
 endif(PYTHONLIBS_FOUND)
 endif(CUDA_FOUND)
 
 SET(EXES "amun")
 
 if(PYTHONLIBS_FOUND)
-SET(EXES ${EXES} "amunmt")
+SET(EXES ${EXES} "python")
 endif(PYTHONLIBS_FOUND)
 
 foreach(exec ${EXES})
