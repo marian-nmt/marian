@@ -84,10 +84,10 @@ void TensorBase::set(const std::vector<float> &v) {
   cudaStreamSynchronize(0);
 }
 
-void TensorBase::copyFrom(Tensor in, int offsetFrom, int offsetTo) {
+void TensorBase::copyFrom(Tensor in, int offsetTo, int offsetFrom) {
     cudaSetDevice(device_);
     int copySize = min((long)shape_.elements() - offsetTo, in->size() - offsetFrom);
-    CUDA_CHECK(cudaMemcpy(data_ + offsetFrom, in->data() + offsetTo, copySize * sizeof(float),
+    CUDA_CHECK(cudaMemcpy(data_ + offsetTo, in->data() + offsetFrom, copySize * sizeof(float),
                           cudaMemcpyDefault));
     cudaStreamSynchronize(0);
 }
@@ -108,7 +108,7 @@ std::string TensorBase::debug() {
   std::vector<Float> values(totSize);
   get(values);
 
-
+  
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');
   for(size_t k = 0; k < shape()[2]; ++k) {
      strm << "[ ";

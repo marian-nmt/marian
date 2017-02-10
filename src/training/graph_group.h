@@ -46,10 +46,12 @@ class AsyncGraphGroup : public GraphGroup {
     std::mutex sync_;
 
     std::vector<Tensor> params_;
-    Ptr<TensorAllocator> paramsAlloc_;
+    std::vector<Ptr<TensorAllocator> > paramsAlloc_;
 
     std::vector<Tensor> grads_;
-    Ptr<TensorAllocator> gradsAlloc_;
+    std::vector<Ptr<TensorAllocator> > gradsAlloc_;
+
+    std::vector< Ptr<OptimizerBase> > shardOpt_;
 
     int shardSize_;
 
@@ -75,10 +77,12 @@ class AsyncGraphGroup : public GraphGroup {
       else {
         std::lock_guard<std::mutex> guard(sync_);
         // add instead of copy?
+        ThreadPool pool(devices_.size());
+        std::vector< std::future<int> > results;
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
           grads_[idx]->copyFrom(newGrads, 0, pos);
-          opt_->update(params_[idx], grads_[idx]);
+          shardOpt_[idx]->update(params_[idx], grads_[idx]);
           pos += shardSize_;
         }
       }
@@ -93,6 +97,13 @@ class AsyncGraphGroup : public GraphGroup {
           graph->forward();
         }
 
+        if(shardOpt_.size() == 0){
+          for (auto device : devices_) {
+            shardOpt_.push_back(Optimizer(options_));
+
+          }
+        }
+
         if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
           shardSize_ = ceil(totalSize / devices_.size());
@@ -103,17 +114,17 @@ class AsyncGraphGroup : public GraphGroup {
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
             Tensor param_;
-            paramsAlloc_ = New<TensorAllocator>(device);
+            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
 
-            paramsAlloc_->reserveExact(__size__);
-            paramsAlloc_->allocate(param_, {1, __size__});
-
+            allocator_->reserveExact(__size__);
+            allocator_->allocate(param_, {1, __size__});
+            paramsAlloc_.push_back(allocator_);
             param_->copyFrom(graphs_[0]->params().vals(), 0, pos);
             params_.push_back(param_);
             pos += __size__;
+
           }
         }
-
         if(grads_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
  
@@ -121,13 +132,15 @@ class AsyncGraphGroup : public GraphGroup {
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
             Tensor grad_;
-            gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
+            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
 
-            gradsAlloc_->reserveExact(__size__);
-            gradsAlloc_->allocate(grad_, {1, __size__});
+            allocator_->reserveExact(__size__);
+            allocator_->allocate(grad_, {1, __size__});
+            gradsAlloc_.push_back(allocator_);
             grads_.push_back(grad_);
+
           }
-        }
+        } 
 
         first = false;
       } 
@@ -147,9 +160,12 @@ class AsyncGraphGroup : public GraphGroup {
         fetchParams(graph->params().vals());
 
         graph->forward();
+
+        cudaStreamSynchronize(0);
         float cost = graph->topNode()->scalar();
         graph->backward();
 
+        cudaStreamSynchronize(0);
         pushGradients(graph->params().grads());
 
         if(reporter_) {
