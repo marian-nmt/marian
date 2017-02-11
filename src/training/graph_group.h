@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <future> 
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
@@ -64,9 +65,16 @@ class AsyncGraphGroup : public GraphGroup {
       // @TODO read guard on parameters
       std::lock_guard<std::mutex> guard(sync_);
       int pos = 0;
+      std::vector< std::future<void> > results;
       for (int idx = 0; idx < devices_.size(); idx++) {
+        results.push_back( std::async (std::launch::async, [=](int idx, int pos) {
         oldParams->copyFrom(params_[idx], pos, 0);
+        }, idx, pos));
+
         pos += shardSize_;
+      }
+      for (auto &res : results) {
+        res.get();
       }
     }
 
@@ -78,12 +86,19 @@ class AsyncGraphGroup : public GraphGroup {
         std::lock_guard<std::mutex> guard(sync_);
         // add instead of copy?
         ThreadPool pool(devices_.size());
-        std::vector< std::future<int> > results;
+        std::vector< std::future<void> > results;
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
-          grads_[idx]->copyFrom(newGrads, 0, pos);
-          shardOpt_[idx]->update(params_[idx], grads_[idx]);
+            results.push_back( std::async (std::launch::async, [=](int idx, int pos) {
+            grads_[idx]->copyFrom(newGrads, 0, pos);
+            shardOpt_[idx]->update(params_[idx], grads_[idx]);
+          } , idx, pos));  
+
           pos += shardSize_;
+        }
+
+        for(auto &res : results) {
+          res.get();
         }
       }
     }
@@ -161,11 +176,11 @@ class AsyncGraphGroup : public GraphGroup {
 
         graph->forward();
 
-        cudaStreamSynchronize(0);
         float cost = graph->topNode()->scalar();
         graph->backward();
 
-        cudaStreamSynchronize(0);
+        cudaDeviceSynchronize();
+        
         pushGradients(graph->params().grads());
 
         if(reporter_) {
