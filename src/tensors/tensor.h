@@ -70,6 +70,10 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
       return device_;
     }
 
+    Tensor subtensor(int offset, int size){
+      return Tensor(new TensorBase(data_ + offset, {1, size}, device_ ));
+    }
+
     float get(size_t i);
 
     void set(size_t i, float value);
@@ -80,7 +84,7 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
 
     void set(const std::vector<float> &v);
     
-    void copyFrom(Tensor, int offsetFrom = 0, int offsetTo = 0);
+    void copyFrom(Tensor in);
 
     std::string debug();
 };

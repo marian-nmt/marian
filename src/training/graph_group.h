@@ -68,7 +68,7 @@ class AsyncGraphGroup : public GraphGroup {
       std::vector< std::future<void> > results;
       for (int idx = 0; idx < devices_.size(); idx++) {
         results.push_back( std::async (std::launch::async, [=](int idx, int pos) {
-        oldParams->copyFrom(params_[idx], pos, 0);
+        oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
         }, idx, pos));
 
         pos += shardSize_;
@@ -90,7 +90,7 @@ class AsyncGraphGroup : public GraphGroup {
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
             results.push_back( std::async (std::launch::async, [=](int idx, int pos) {
-            grads_[idx]->copyFrom(newGrads, 0, pos);
+            grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
           } , idx, pos));  
 
@@ -134,7 +134,7 @@ class AsyncGraphGroup : public GraphGroup {
             allocator_->reserveExact(__size__);
             allocator_->allocate(param_, {1, __size__});
             paramsAlloc_.push_back(allocator_);
-            param_->copyFrom(graphs_[0]->params().vals(), 0, pos);
+            param_->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
             params_.push_back(param_);
             pos += __size__;
 
@@ -179,8 +179,7 @@ class AsyncGraphGroup : public GraphGroup {
         float cost = graph->topNode()->scalar();
         graph->backward();
 
-        cudaDeviceSynchronize();
-        
+        //cudaDeviceSynchronize();
         pushGradients(graph->params().grads());
 
         if(reporter_) {
