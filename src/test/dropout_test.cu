@@ -16,9 +16,10 @@
 using namespace marian;
 
 int main() {
-  TensorAllocator* params = new TensorAllocator(0);
+  int cudaDevice = 2;
+  TensorAllocator* params = new TensorAllocator(cudaDevice);
 
-  cublasHandle_t handle = create_handle(0);
+  cublasHandle_t handle = create_handle(cudaDevice);
 
   int rows = 1000;
   int cols = 50000;
@@ -37,7 +38,7 @@ int main() {
     dropout.Generate(dropoutMatrix, prob);
   }
 
-  cudaStreamSynchronize(0);
+  cudaDeviceSynchronize();
 
   std::cerr << "DropoutGenerator: " << rep << " repetitions: " << timer.format(5, "%ws") << std::endl;
 
@@ -53,12 +54,13 @@ int main() {
   CudnnDropoutPrepare(cudnnInTensor, prob, &dropDesc_, &space_, &spaceSize_, &states_, (size_t)1234);
   cudaStreamSynchronize(0);
 
+  cudaDeviceSynchronize();
   timer.start();
   for (int i = 0; i < rep; ++i) {
     CudnnDropoutForward(dropDesc_, space_, spaceSize_, cudnnInTensor, cudnnOutTensor);
   }
 
-  cudaStreamSynchronize(0);
+  cudaDeviceSynchronize();
   std::cerr << "CUDNN Dropout: " << rep << " repetitions: " << timer.format(5, "%ws") << std::endl;
 
 
