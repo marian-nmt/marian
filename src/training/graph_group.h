@@ -45,16 +45,15 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<Ptr<ExpressionGraph>> graphs_;
 
     std::mutex sync_;
-    //std::unique_ptr<std::mutex[]> shardSync_;
     std::vector<std::mutex> shardSync_;
 
     std::vector<Tensor> params_;
     std::vector<Ptr<TensorAllocator> > paramsAlloc_;
 
     std::vector<Tensor> grads_;
-    std::vector<Ptr<TensorAllocator> > gradsAlloc_;
+    std::vector<Ptr<TensorAllocator>> gradsAlloc_;
 
-    std::vector< Ptr<OptimizerBase> > shardOpt_;
+    std::vector<Ptr<OptimizerBase>> shardOpt_;
 
     int shardSize_;
 
@@ -66,10 +65,19 @@ class AsyncGraphGroup : public GraphGroup {
 
       // @TODO read guard on parameters
       int pos = 0;
+      
+      std::vector<std::thread> threads;
       for (int idx = 0; idx < devices_.size(); idx++) {
-        std::lock_guard<std::mutex> guard( shardSync_[idx] );
-        oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
+        threads.emplace_back( std::thread( [=](int idx, int pos) {
+          //individual mutex per-shard
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
+          oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
+        }, idx, pos) );
+
         pos += shardSize_;
+      }
+      for (auto &&t : threads) {
+        t.join();
       }
     }
 
@@ -79,18 +87,22 @@ class AsyncGraphGroup : public GraphGroup {
       }
       else {
         // add instead of copy?
+        std::vector<std::thread> threads;
         int pos = 0;
-        for(int idx = 0; idx < devices_.size(); idx++) {
-          auto task = [=](int idx, int pos) {
+        for (int idx = 0; idx < devices_.size(); idx++) {
+          threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
             grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
+
             cudaDeviceSynchronize();
-          };
-          std::thread(task, idx, pos).detach();
+          } , idx, pos) );
+
           pos += shardSize_;
         }
+        for(auto&& t : threads)
+          t.join();
       }
     }
 
@@ -193,7 +205,7 @@ class AsyncGraphGroup : public GraphGroup {
      : GraphGroup(options),
        builder_{New<Builder>(options_)},
        devices_{options_->get<std::vector<size_t>>("device")},
-       pool_{devices_.size(), devices_.size() },
+       pool_{devices_.size(), devices_.size()},
        shardSync_{devices_.size()} {
 
       for(auto device : devices_) {
