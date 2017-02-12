@@ -45,6 +45,7 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<Ptr<ExpressionGraph>> graphs_;
 
     std::mutex sync_;
+    std::unique_ptr<std::mutex[]> shardSync_;
 
     std::vector<Tensor> params_;
     std::vector<Ptr<TensorAllocator> > paramsAlloc_;
@@ -63,18 +64,20 @@ class AsyncGraphGroup : public GraphGroup {
         return;
 
       // @TODO read guard on parameters
-      std::lock_guard<std::mutex> guard(sync_);
       int pos = 0;
-      std::vector< std::future<void> > results;
+      
+      std::vector<std::thread> threads;
       for (int idx = 0; idx < devices_.size(); idx++) {
-        results.push_back( std::async (std::launch::async, [=](int idx, int pos) {
-        oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
-        }, idx, pos));
+        threads.emplace_back( std::thread( [=](int idx, int pos) {
+          //individual mutex per-shard
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
+          oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
+        }, idx, pos) );
 
         pos += shardSize_;
       }
-      for (auto &res : results) {
-        res.get();
+      for (auto &&t : threads) {
+        t.join();
       }
     }
 
@@ -83,23 +86,23 @@ class AsyncGraphGroup : public GraphGroup {
         opt_->update(graphs_[0]);
       }
       else {
-        std::lock_guard<std::mutex> guard(sync_);
         // add instead of copy?
-        ThreadPool pool(devices_.size());
-        std::vector< std::future<void> > results;
+        std::vector<std::thread> threads;
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
-            results.push_back( std::async (std::launch::async, [=](int idx, int pos) {
+          threads.emplace_back( std::thread([=](int idx, int pos) {
+            //individual mutex per-shard
+            std::lock_guard<std::mutex> guard( shardSync_[idx] );
             grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
-          } , idx, pos));  
+
+            cudaStreamSynchronize(0);
+          } , idx, pos) );
 
           pos += shardSize_;
         }
-
-        for(auto &res : results) {
-          res.get();
-        }
+        for(auto&& t : threads)
+          t.join();
       }
     }
 
@@ -112,12 +115,12 @@ class AsyncGraphGroup : public GraphGroup {
           graph->forward();
         }
 
-        if(shardOpt_.size() == 0){
-          for (auto device : devices_) {
+        if(shardOpt_.size() == 0)
+          for (auto device : devices_) 
             shardOpt_.push_back(Optimizer(options_));
 
-          }
-        }
+        shardSync_.reset( new std::mutex[devices_.size()] );
+         
 
         if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
@@ -171,15 +174,13 @@ class AsyncGraphGroup : public GraphGroup {
         }
 
         builder_->build(graph, batch);
-
         fetchParams(graph->params().vals());
 
         graph->forward();
-
         float cost = graph->topNode()->scalar();
         graph->backward();
 
-        //cudaDeviceSynchronize();
+        cudaStreamSynchronize(0);
         pushGradients(graph->params().grads());
 
         if(reporter_) {
