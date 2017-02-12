@@ -45,15 +45,15 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<Ptr<ExpressionGraph>> graphs_;
 
     std::mutex sync_;
-    std::unique_ptr<std::mutex[]> shardSync_;
+    std::vector<std::mutex> shardSync_;
 
     std::vector<Tensor> params_;
     std::vector<Ptr<TensorAllocator> > paramsAlloc_;
 
     std::vector<Tensor> grads_;
-    std::vector<Ptr<TensorAllocator> > gradsAlloc_;
+    std::vector<Ptr<TensorAllocator>> gradsAlloc_;
 
-    std::vector< Ptr<OptimizerBase> > shardOpt_;
+    std::vector<Ptr<OptimizerBase>> shardOpt_;
 
     int shardSize_;
 
@@ -96,7 +96,7 @@ class AsyncGraphGroup : public GraphGroup {
             grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
-            cudaStreamSynchronize(0);
+            cudaDeviceSynchronize();
           } , idx, pos) );
 
           pos += shardSize_;
@@ -114,13 +114,6 @@ class AsyncGraphGroup : public GraphGroup {
           builder_->build(graph, batch);
           graph->forward();
         }
-
-        if(shardOpt_.size() == 0)
-          for (auto device : devices_) 
-            shardOpt_.push_back(Optimizer(options_));
-
-        shardSync_.reset( new std::mutex[devices_.size()] );
-         
 
         if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
@@ -212,13 +205,15 @@ class AsyncGraphGroup : public GraphGroup {
      : GraphGroup(options),
        builder_{New<Builder>(options_)},
        devices_{options_->get<std::vector<size_t>>("device")},
-       pool_{devices_.size(), devices_.size() } {
+       pool_{devices_.size(), devices_.size()},
+       shardSync_{devices_.size()} {
 
       for(auto device : devices_) {
         auto graph = New<ExpressionGraph>();
         graph->setDevice(device);
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
+        shardOpt_.push_back(Optimizer(options_));
       }
 
       load();
