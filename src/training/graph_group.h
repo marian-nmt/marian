@@ -66,15 +66,9 @@ class AsyncGraphGroup : public GraphGroup {
 
       // @TODO read guard on parameters
       int pos = 0;
-      
       for (int idx = 0; idx < devices_.size(); idx++) {
-        auto task = [=](int idx, int pos) {
-          //individual mutex per-shard
-          std::lock_guard<std::mutex> guard( shardSync_[idx] );
-          oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
-          cudaDeviceSynchronize();
-        };
-        std::thread(task, idx, pos).detach();
+        std::lock_guard<std::mutex> guard( shardSync_[idx] );
+        oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
         pos += shardSize_;
       }
     }
@@ -108,8 +102,6 @@ class AsyncGraphGroup : public GraphGroup {
           builder_->build(graph, batch);
           graph->forward();
         }
-
-         
 
         if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
@@ -202,7 +194,6 @@ class AsyncGraphGroup : public GraphGroup {
        builder_{New<Builder>(options_)},
        devices_{options_->get<std::vector<size_t>>("device")},
        pool_{devices_.size(), devices_.size() },
-       shardOpt_{devices_.size(), Optimizer(options_)},
        shardSync_{devices_.size()} {
 
       for(auto device : devices_) {
@@ -210,6 +201,7 @@ class AsyncGraphGroup : public GraphGroup {
         graph->setDevice(device);
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
+        shardOpt_.push_back(Optimizer(options_));
       }
 
       load();
