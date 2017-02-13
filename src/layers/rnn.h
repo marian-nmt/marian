@@ -358,19 +358,16 @@ class BNGRU {
     }
 
     Expr apply1(Expr input) {
-      auto xW = dot(input, W_);
+      auto xW = batch_norm(dot(input, W_), gamma1_);
       return xW;
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto sU = dot(state, U_);
-
-      auto xW_bn = batch_norm(xW, gamma1_);
-      auto sU_bn = batch_norm(sU, gamma2_);
+      auto sU = batch_norm(dot(state, U_), gamma2_);
 
       auto output = mask ?
-        gruOps({state, xW_bn, sU_bn, b_, mask}, final_) :
-        gruOps({state, xW_bn, sU_bn, b_}, final_);
+        gruOps({state, xW, sU, b_, mask}, final_) :
+        gruOps({state, xW, sU, b_}, final_);
 
       return output;
     }

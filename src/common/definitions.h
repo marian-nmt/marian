@@ -120,6 +120,7 @@ namespace marian {
     KEY(optimizer, Ptr<OptimizerBase>);
     KEY(clip, Ptr<ClipperBase>);
     KEY(batch_size, int);
+    KEY(normalize, bool);
     KEY(max_epochs, int);
     KEY(valid, Ptr<RunBase>);
   }

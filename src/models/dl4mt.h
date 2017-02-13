@@ -300,20 +300,26 @@ class DL4MT {
       // Decoder
       auto yStart = Dense("ff_state",
                           dimDecState_,
-                          activation=act::tanh)(xMeanContext);
+                          activation=act::tanh,
+                          normalize=true)(xMeanContext);
 
       auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
       auto yShifted = concatenate({yEmpty, y}, axis=2);
       //auto yShifted = shift(y, 1, axis=2);
 
-      BNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask});
+      BNCGRU cgru({"decoder",
+                  xContext,
+                  dimDecState_,
+                  mask=xMask,
+                  normalize=true});
       auto yLstm = RNN<BNCGRU>("decoder", dimDecState_, cgru)
                      (yShifted, yStart);
       auto yCtx = cgru.getContexts();
 
       //// 2-layer feedforward network for outputs and cost
       auto ff_logit_l1 = Dense("ff_logit_l1", dimTrgEmb_,
-                               activation=act::tanh)
+                               activation=act::tanh,
+                               normalize=true)
                            (yShifted, yLstm, yCtx);
 
       auto ff_logit_l2 = Dense("ff_logit_l2", dimTrgVoc_)
