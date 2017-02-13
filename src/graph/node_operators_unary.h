@@ -423,19 +423,17 @@ struct ExpNodeOp : public UnaryNodeOp {
 
 };
 
-struct PowNodeOp : public UnaryNodeOp {
-  float exponent_;
+struct SqrtNodeOp : public UnaryNodeOp {
   float epsilon_;
 
   template <typename ...Args>
-    PowNodeOp(Expr a, float exponent, float epsilon, Args ...args)
+    SqrtNodeOp(Expr a, float epsilon, Args ...args)
     : UnaryNodeOp(a, args...),
-      exponent_(exponent),
       epsilon_(epsilon) { }
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Element(_1 = Pow(epsilon_ + _2, exponent_),
+      NodeOp(Element(_1 = Sqrt(_2 + epsilon_),
                      val_,
                      children_[0]->val()))
     };
@@ -443,7 +441,37 @@ struct PowNodeOp : public UnaryNodeOp {
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Add(exponent_ * Pow(epsilon_ + _1, exponent_ - 1.f) * _2,
+      NodeOp(Add(0.5f * (1.f / _1) * _2,
+                 children_[0]->grad(),
+                 val_,
+                 adj_))
+    };
+  }
+
+  const std::string type() {
+    return "sqrt";
+  }
+
+};
+
+struct SquareNodeOp : public UnaryNodeOp {
+  float epsilon_;
+
+  template <typename ...Args>
+    SquareNodeOp(Args ...args)
+    : UnaryNodeOp(args...) { }
+
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Element(_1 = _2 * _2,
+                     val_,
+                     children_[0]->val()))
+    };
+  }
+
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(2.f * _1 * _2,
                  children_[0]->grad(),
                  children_[0]->val(),
                  adj_))
@@ -451,7 +479,7 @@ struct PowNodeOp : public UnaryNodeOp {
   }
 
   const std::string type() {
-    return "pow";
+    return "square";
   }
 
 };

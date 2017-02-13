@@ -171,7 +171,12 @@ namespace thrust
       template<typename T>
       struct binary_pow : public thrust::binary_function<T, T, T> {
         __host__ __device__
-        T operator()(const T &x, const T &y) const { return powf(x, y); }
+        T operator()(const T &x, const T &y) const {
+          float tx = x;
+          if(y == (int)y && (int)y % 2 == 0)
+            tx = abs(x);
+          return powf(tx, y);
+        }
       };
 
       template<typename T1, typename T2>

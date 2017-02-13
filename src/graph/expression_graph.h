@@ -138,6 +138,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void forward() {
       params_.allocateForward();
+
       for(auto&& tape : tapes_) {
         for(auto&& v : tape) {
           v->allocate();
@@ -149,8 +150,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
             v->decreaseEdges(1);
             child->decreaseEdges(1);
           }
-
-          std::cerr << v->getId() << std::endl;
 
           if(v->marked_for_debug()) {
             std::cerr << "Debug: " << v->debug_message() << std::endl;
@@ -185,8 +184,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       auto it = nodes_.rbegin();
       while(it != nodes_.rend()) {
         auto v = *it;
-
-        std::cerr << v->getId() << std::endl;
 
         for(auto&& child: v->children())
           if(child->trainable())

@@ -366,7 +366,7 @@ class BNGRU {
       auto sU = dot(state, U_);
 
       auto xW_bn = batch_norm(xW, gamma1_);
-      auto sU_bn = batch_norm(xW, gamma2_);
+      auto sU_bn = batch_norm(sU, gamma2_);
 
       auto output = mask ?
         gruOps({state, xW_bn, sU_bn, b_, mask}, final_) :

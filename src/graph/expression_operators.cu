@@ -126,14 +126,18 @@ Expr relu(const std::vector<Expr>&) {
   UTIL_THROW2("Not implemented");
 }
 
-Expr pow(Expr a, float exp, float eps) {
-  return Expression<PowNodeOp>(a, exp, eps);
+Expr sqrt(Expr a, float eps) {
+  return Expression<SqrtNodeOp>(a, eps);
+}
+
+Expr square(Expr a) {
+  return Expression<SquareNodeOp>(a);
 }
 
 Expr batch_norm(Expr x, Expr gamma, Expr beta) {
   auto mju = mean(x, keywords::axis=0);
   auto xmmju = x - mju;
-  auto std = pow(mean(pow(xmmju, 2.0), keywords::axis=0), 0.5, 1e-9);
+  auto std = sqrt(mean(square(xmmju), keywords::axis=0), 1e-9);
   if(beta)
     return gamma * (xmmju / std) + beta;
   else
