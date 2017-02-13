@@ -346,9 +346,9 @@ class BNGRU {
       b_ = concatenate({b, bx}, keywords::axis=1);
 
       gamma1_ = graph->param(prefix + "_gamma1", {1, 3 * dimState},
-                             keywords::init=inits::from_value(0.1));
+                             keywords::init=inits::from_value(1.f));
       gamma2_ = graph->param(prefix + "_gamma2", {1, 3 * dimState},
-                             keywords::init=inits::from_value(0.1));
+                             keywords::init=inits::from_value(1.f));
 
       final_ = Get(keywords::final, false, args...);
     }

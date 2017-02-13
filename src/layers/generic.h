@@ -47,22 +47,20 @@ namespace marian {
         auto g = in->graph();
         auto W = g->param(name_ + "_W", {in->shape()[1], outDim_},
                           keywords::init=inits::glorot_uniform);
+        auto b = g->param(name_ + "_b", {1, outDim_},
+                            keywords::init=inits::zeros);
+
+        params_ = { W, b };
 
         Expr out;
         if(batchNorm_) {
           auto gamma = g->param(name_ + "_gamma", {1, outDim_},
                                 keywords::init=inits::from_value(1.0));
-          auto beta = g->param(name_ + "_beta", {1, outDim_},
-                               keywords::init=inits::from_value(0));
 
-          params_ = { W, gamma, beta };
-          out = batch_norm(dot(in, W), gamma, beta);
+          params_.push_back(gamma);
+          out = batch_norm(dot(in, W), gamma, b);
         }
         else {
-          auto b = g->param(name_ + "_b", {1, outDim_},
-                            keywords::init=inits::zeros);
-
-          params_ = { W, b };
           out = affine(in, W, b);
         }
 
@@ -95,27 +93,20 @@ namespace marian {
           auto W = g->param(name_ + "_W" + std::to_string(i),
                             {in->shape()[1], outDim_},
                             keywords::init=inits::glorot_uniform);
-
-          if(batchNorm_) {
-            auto gamma = g->param(name_ + "_gamma", {1, outDim_},
-                                  keywords::init=inits::from_value(1.0));
-            auto beta = g->param(name_ + "_beta", {1, outDim_},
-                                 keywords::init=inits::from_value(0));
-
-            params_.push_back(W);
-            params_.push_back(gamma);
-            params_.push_back(beta);
-
-            outputs.push_back(batch_norm(dot(in, W), gamma, beta));
-          }
-          else {
-            auto b = g->param(name_ + "_b" + std::to_string(i),
+          auto b = g->param(name_ + "_b" + std::to_string(i),
                               {1, outDim_},
                               keywords::init=inits::zeros);
+          params_.push_back(W);
+          params_.push_back(b);
 
-            params_.push_back(W);
-            params_.push_back(b);
+          if(batchNorm_) {
+            auto gamma = g->param(name_ + "_gamma" + std::to_string(i), {1, outDim_},
+                                  keywords::init=inits::from_value(1.0));
 
+            params_.push_back(gamma);
+            outputs.push_back(batch_norm(dot(in, W), gamma, b));
+          }
+          else {
             outputs.push_back(affine(in, W, b));
           }
           i++;

@@ -111,18 +111,16 @@ class GlobalAttention {
                          keywords::init=inits::glorot_uniform);
       va_ = graph->param(prefix + "_U_att", {dimEncState, 1},
                          keywords::init=inits::glorot_uniform);
-
       ba_ = graph->param(prefix + "_b_att", {1, dimEncState},
                          keywords::init=inits::zeros);
 
       if(batchNorm_) {
         gammaContext_ = graph->param(prefix + "_att_gamma1", {1, dimEncState},
                                      keywords::init=inits::from_value(1.0));
-
         gammaState_ = graph->param(prefix + "_att_gamma2", {1, dimEncState},
                                    keywords::init=inits::from_value(1.0));
 
-        mappedContext_ = batch_norm(dot(context_, Ua_), gammaContext_) + ba_;
+        mappedContext_ = batch_norm(dot(context_, Ua_), gammaContext_, ba_);
       }
       else {
         mappedContext_ = affine(context_, Ua_, ba_);
