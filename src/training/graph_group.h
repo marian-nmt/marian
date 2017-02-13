@@ -65,12 +65,12 @@ class AsyncGraphGroup : public GraphGroup {
 
       // @TODO read guard on parameters
       int pos = 0;
-      std::lock_guard<std::mutex> guard( sync_ );
+      
       std::vector<std::thread> threads;
       for (int idx = 0; idx < devices_.size(); idx++) {
         threads.emplace_back( std::thread( [=](int idx, int pos) {
           //individual mutex per-shard
-          //std::lock_guard<std::mutex> guard( shardSync_[idx] );
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
           oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
         }, idx, pos) );
 
@@ -88,12 +88,11 @@ class AsyncGraphGroup : public GraphGroup {
       else {
         // add instead of copy?
         std::vector<std::thread> threads;
-        std::lock_guard<std::mutex> guard( sync_ );
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
           threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
-            //std::lock_guard<std::mutex> guard( shardSync_[idx] );
+            std::lock_guard<std::mutex> guard( shardSync_[idx] );
             grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
