@@ -150,6 +150,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
             child->decreaseEdges(1);
           }
 
+          std::cerr << v->getId() << std::endl;
+
           if(v->marked_for_debug()) {
             std::cerr << "Debug: " << v->debug_message() << std::endl;
             std::cerr << v->val()->debug() << std::endl;
@@ -183,6 +185,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       auto it = nodes_.rbegin();
       while(it != nodes_.rend()) {
         auto v = *it;
+
+        std::cerr << v->getId() << std::endl;
 
         for(auto&& child: v->children())
           if(child->trainable())

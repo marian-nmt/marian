@@ -423,6 +423,40 @@ struct ExpNodeOp : public UnaryNodeOp {
 
 };
 
+struct PowNodeOp : public UnaryNodeOp {
+  float exponent_;
+  float epsilon_;
+
+  template <typename ...Args>
+    PowNodeOp(Expr a, float exponent, float epsilon, Args ...args)
+    : UnaryNodeOp(a, args...),
+      exponent_(exponent),
+      epsilon_(epsilon) { }
+
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Element(_1 = Pow(epsilon_ + _2, exponent_),
+                     val_,
+                     children_[0]->val()))
+    };
+  }
+
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(exponent_ * Pow(epsilon_ + _1, exponent_ - 1.f) * _2,
+                 children_[0]->grad(),
+                 children_[0]->val(),
+                 adj_))
+    };
+  }
+
+  const std::string type() {
+    return "pow";
+  }
+
+};
+
+
 struct NegNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   NegNodeOp(Args ...args)

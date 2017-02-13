@@ -143,4 +143,8 @@ Expr weighted_average(Expr in, Expr weights, Args ...args) {
 
 Expr step(Expr a, size_t step);
 
+Expr pow(Expr a, float exp, float eps = 0.f);
+
+Expr batch_norm(Expr x, Expr gamma, Expr beta = nullptr);
+
 }

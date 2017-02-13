@@ -125,8 +125,8 @@ class Adam : public OptimizerBase {
       }
 
       t_++;
-      float denom1 = 1 - pow(beta1_, t_);
-      float denom2 = 1 - pow(beta2_, t_);
+      float denom1 = 1 - std::pow(beta1_, t_);
+      float denom2 = 1 - std::pow(beta2_, t_);
 
       Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
               mt_, grads);

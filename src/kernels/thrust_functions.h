@@ -48,6 +48,7 @@ namespace thrust
         return compose(unary_operator<unary_exp>(), _1);
       }
 
+
       template<typename T>
       struct unary_log : public thrust::unary_function<T,T> {
         __host__ __device__
@@ -163,6 +164,28 @@ namespace thrust
       Clip(const actor<T1> &_1, const T2 &_2)
       {
         return compose(binary_operator<binary_clip>(),
+                       make_actor(_1),
+                       make_actor(_2));
+      }
+
+      template<typename T>
+      struct binary_pow : public thrust::binary_function<T, T, T> {
+        __host__ __device__
+        T operator()(const T &x, const T &y) const { return powf(x, y); }
+      };
+
+      template<typename T1, typename T2>
+      __host__ __device__
+      actor<
+        composite<
+          binary_operator<binary_pow>,
+          actor<T1>,
+          typename as_actor<T2>::type
+        >
+      >
+      Pow(const actor<T1> &_1, const T2 &_2)
+      {
+        return compose(binary_operator<binary_pow>(),
                        make_actor(_1),
                        make_actor(_2));
       }

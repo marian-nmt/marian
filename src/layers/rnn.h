@@ -311,6 +311,74 @@ class GRU {
 
 /***************************************************************/
 
+class BNGRU {
+  private:
+    Expr U_, W_, b_;
+    Expr gamma1_;
+    Expr gamma2_;
+    bool final_;
+
+  public:
+    BNGRU() {}
+
+    template <typename ...Args>
+    void initialize(
+        ExpressionGraphPtr graph,
+        const std::string prefix,
+        int dimInput,
+        int dimState,
+        Args ...args) {
+      auto U = graph->param(prefix + "_U", {dimState, 2 * dimState},
+                               keywords::init=inits::glorot_uniform);
+      auto W = graph->param(prefix + "_W", {dimInput, 2 * dimState},
+                               keywords::init=inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b", {1, 2 * dimState},
+                               keywords::init=inits::zeros);
+      auto Ux = graph->param(prefix + "_Ux", {dimState, dimState},
+                                keywords::init=inits::glorot_uniform);
+      auto Wx = graph->param(prefix + "_Wx", {dimInput, dimState},
+                                keywords::init=inits::glorot_uniform);
+      auto bx = graph->param(prefix + "_bx", {1, dimState},
+                                keywords::init=inits::zeros);
+
+      U_ = concatenate({U, Ux}, keywords::axis=1);
+      W_ = concatenate({W, Wx}, keywords::axis=1);
+      b_ = concatenate({b, bx}, keywords::axis=1);
+
+      gamma1_ = graph->param(prefix + "_gamma1", {1, 3 * dimState},
+                             keywords::init=inits::from_value(0.1));
+      gamma2_ = graph->param(prefix + "_gamma2", {1, 3 * dimState},
+                             keywords::init=inits::from_value(0.1));
+
+      final_ = Get(keywords::final, false, args...);
+    }
+
+    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
+      return apply2(apply1(input), state, mask);
+    }
+
+    Expr apply1(Expr input) {
+      auto xW = dot(input, W_);
+      return xW;
+    }
+
+    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
+      auto sU = dot(state, U_);
+
+      auto xW_bn = batch_norm(xW, gamma1_);
+      auto sU_bn = batch_norm(xW, gamma2_);
+
+      auto output = mask ?
+        gruOps({state, xW_bn, sU_bn, b_, mask}, final_) :
+        gruOps({state, xW_bn, sU_bn, b_}, final_);
+
+      return output;
+    }
+};
+
+
+/***************************************************************/
+
 template <class Cell1, class Attention, class Cell2>
 class AttentionCell {
   private:
@@ -367,5 +435,6 @@ class AttentionCell {
 };
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
+typedef AttentionCell<BNGRU, GlobalAttention, BNGRU> BNCGRU;
 
 }

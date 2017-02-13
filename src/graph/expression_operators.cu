@@ -118,11 +118,6 @@ Expr tanh(const std::vector<Expr>& nodes) {
   return Expression<TanhNodeOp>(nodes);
 }
 
-//Expr tanh(Expr a, Expr b, Expr c) {
-//  std::vector<Expr> nodes = {a, b, c};
-//  return Expression<TanhPlus3NodeOp>(nodes);
-//}
-
 Expr logit(const std::vector<Expr>&) {
   UTIL_THROW2("Not implemented");
 }
@@ -131,5 +126,18 @@ Expr relu(const std::vector<Expr>&) {
   UTIL_THROW2("Not implemented");
 }
 
+Expr pow(Expr a, float exp, float eps) {
+  return Expression<PowNodeOp>(a, exp, eps);
+}
+
+Expr batch_norm(Expr x, Expr gamma, Expr beta) {
+  auto mju = mean(x, keywords::axis=0);
+  auto xmmju = x - mju;
+  auto std = pow(mean(pow(xmmju, 2.0), keywords::axis=0), 0.5, 1e-9);
+  if(beta)
+    return gamma * (xmmju / std) + beta;
+  else
+    return gamma * (xmmju / std);
+}
 
 }

@@ -14,7 +14,7 @@ namespace marian {
 class DL4MT {
   private:
     Ptr<Config> options_;
-    
+
     int dimSrcVoc_{40000};
     int dimSrcEmb_{512};
     int dimEncState_{1024};
@@ -39,14 +39,14 @@ class DL4MT {
     }
 
   public:
-    
+
     DL4MT() {}
-    
+
     DL4MT(Ptr<Config> options)
     : options_(options) {
-    
+
       auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
-      
+
       dimSrcVoc_   = dimVocabs[0];
       dimSrcEmb_   = options->get<int>("dim-emb");
       dimEncState_ = options->get<int>("dim-rnn");
@@ -56,13 +56,13 @@ class DL4MT {
       dimBatch_    = options->get<int>("mini-batch");
     }
 
-  
+
     void load(Ptr<ExpressionGraph> graph,
               const std::string& name) {
       using namespace keywords;
 
       LOG(info) << "Loading model from " << name;
-      
+
       auto numpy = cnpy::npz_load(name);
 
       auto parameters = {
@@ -152,7 +152,7 @@ class DL4MT {
               const std::string& name) {
 
       LOG(info) << "Saving model to " << name;
-      
+
       unsigned shape[2];
       std::string mode = "w";
 
@@ -292,7 +292,7 @@ class DL4MT {
       std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, 1);
 
       // Encoder
-      auto xContext = BiRNN<GRU>("encoder", dimEncState_)
+      auto xContext = BiRNN<BNGRU>("encoder", dimEncState_)
                         (x, mask=xMask);
 
       auto xMeanContext = weighted_average(xContext, xMask, axis=2);
@@ -306,8 +306,8 @@ class DL4MT {
       auto yShifted = concatenate({yEmpty, y}, axis=2);
       //auto yShifted = shift(y, 1, axis=2);
 
-      CGRU cgru({"decoder", xContext, dimDecState_, mask=xMask});
-      auto yLstm = RNN<CGRU>("decoder", dimDecState_, cgru)
+      BNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask});
+      auto yLstm = RNN<BNCGRU>("decoder", dimDecState_, cgru)
                      (yShifted, yStart);
       auto yCtx = cgru.getContexts();
 
@@ -321,7 +321,7 @@ class DL4MT {
 
       auto cost = CrossEntropyCost("cost")
                     (ff_logit_l2, yIdx, mask=yMask);
-                    
+
       return cost;
     }
 };
