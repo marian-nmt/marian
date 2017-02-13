@@ -41,7 +41,7 @@ public:
   { return Parent::rows(); }
 
   virtual size_t Cols() const
-  { return Parent::rows(); }
+  { return Parent::columns(); }
 
   virtual void Resize(size_t rows, size_t cols)
   {
