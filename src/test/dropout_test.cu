@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <cuda.h>
 #include <curand.h>
+#include <vector>
 #include <boost/timer/timer.hpp>
 #include <boost/chrono.hpp>
 
@@ -16,18 +17,21 @@
 using namespace marian;
 
 int main() {
-  int cudaDevice = 2;
+  int cudaDevice = 0;
   TensorAllocator* params = new TensorAllocator(cudaDevice);
 
   cublasHandle_t handle = create_handle(cudaDevice);
 
-  int rows = 1000;
-  int cols = 50000;
-  int rep = 1000;
-  const float prob = 0.05f;
+  int rows = 64;
+  int cols = 2048;
+  int layers = 64;
+
+  std::cerr << "Number of elements in tensor: " << rows * cols * layers << std::endl;
+  int rep = 10;
+  const float prob = 0.5f;
 
   Tensor dropoutMatrix;
-  params->allocate(dropoutMatrix, {rows, cols, 1});
+  params->allocate(dropoutMatrix, {rows, cols, layers});
 
   DropoutGenerator dropout(0);
 
@@ -36,6 +40,17 @@ int main() {
 
   for (int i = 0; i < rep;++i) {
     dropout.Generate(dropoutMatrix, prob);
+    cudaDeviceSynchronize();
+    std::vector<float> tmpVector(rows * cols * layers);
+    dropoutMatrix >> tmpVector;
+    std::cerr << dropoutMatrix->debug();
+
+    /* for (size_t i = 0; i < 30; ++i) std::cerr << tmpVector[i] << " "; */
+    /* std::cerr <<"| non-zero: "; */
+    /* int counter = 0; */
+    /* for (auto& v : tmpVector) counter += (v != 0.0f); */
+    /* std::cerr << counter << std::endl; */
+
   }
 
   cudaDeviceSynchronize();
@@ -43,8 +58,8 @@ int main() {
   std::cerr << "DropoutGenerator: " << rep << " repetitions: " << timer.format(5, "%ws") << std::endl;
 
   Tensor cudnnInTensor, cudnnOutTensor;
-  params->allocate(cudnnInTensor, {rows, cols, 1});
-  params->allocate(cudnnOutTensor, {rows, cols, 1});
+  params->allocate(cudnnInTensor, {rows, cols, layers});
+  params->allocate(cudnnOutTensor, {rows, cols, layers});
 
   void* states_;
   void* space_;
