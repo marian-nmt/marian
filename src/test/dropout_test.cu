@@ -27,7 +27,7 @@ int main() {
   int layers = 64;
 
   std::cerr << "Number of elements in tensor: " << rows * cols * layers << std::endl;
-  int rep = 10;
+  int rep = 1000;
   const float prob = 0.5f;
 
   Tensor dropoutMatrix;
@@ -40,16 +40,6 @@ int main() {
 
   for (int i = 0; i < rep;++i) {
     dropout.Generate(dropoutMatrix, prob);
-    cudaDeviceSynchronize();
-    std::vector<float> tmpVector(rows * cols * layers);
-    dropoutMatrix >> tmpVector;
-    std::cerr << dropoutMatrix->debug();
-
-    /* for (size_t i = 0; i < 30; ++i) std::cerr << tmpVector[i] << " "; */
-    /* std::cerr <<"| non-zero: "; */
-    /* int counter = 0; */
-    /* for (auto& v : tmpVector) counter += (v != 0.0f); */
-    /* std::cerr << counter << std::endl; */
 
   }
 

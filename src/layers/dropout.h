@@ -42,8 +42,10 @@ class DropoutGenerator {
 
     void Generate(float* data, int n, float p) {
       CURAND_CALL(curandGenerateUniform(generator_, data, n));
-      /* CUDA_CALL( gScalled<<<512, 512>>>(data, n, p) ); */
-      gScalled<<<512, 512>>>(data, n, p);
+      int numThreads = std::min(n, 512);
+      int numBlocks = n / numThreads + (n % numThreads != 0);
+
+      gScalled<<<numBlocks, numThreads>>>(data, n, p);
     }
 
     ~DropoutGenerator() {
