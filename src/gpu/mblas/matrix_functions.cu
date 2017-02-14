@@ -566,7 +566,11 @@ __global__ void gLNormalization(float* out, const float* in, const float* alpha,
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          so[id] = alpha[id] * (so[id] / sigma) + beta[id];
+          if (beta != nullptr) {
+            so[id] = alpha[id] * (so[id] / sigma) + beta[id];
+          } else {
+            so[id] = alpha[id] * (so[id] / sigma);
+          }
         }
       }
     }
@@ -584,8 +588,22 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
   int numBlocks = std::min(rows, 65000);
   int shared = numThreads * sizeof(float) * 2;
 
-  gLNormalization<<<numBlocks, numThreads, shared>>>
+  gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (out.data(), in.data(), alpha.data(), beta.data(), rows, cols, eps);
+}
+
+void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps) {
+  int numThreads = std::min((int)in.Cols(), 512);
+
+  out.Reshape(in.Rows(), in.Cols());
+
+  int rows = in.Rows();
+  int cols = in.Cols();
+  int numBlocks = std::min(rows, 65000);
+  int shared = numThreads * sizeof(float) * 2;
+
+  gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
+    (out.data(), in.data(), alpha.data(), nullptr, rows, cols, eps);
 }
 
 }  // namespace mblas

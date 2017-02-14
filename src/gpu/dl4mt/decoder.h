@@ -58,8 +58,14 @@ class Decoder {
 
           Temp2_.Resize(batchSize, SourceContext.Cols());
           Mean(Temp2_, SourceContext, mapping);
+          // std::cerr << "INIT STATE:" << std::endl;
           Prod(State, Temp2_, w_.Wi_);
-          BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
+          // std::cerr << "STATE: " << State.Debug() << std::endl;
+          Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
+          // std::cerr << "NORM STATE: " << State.Debug() << std::endl;
+          // std::cerr << "FINISH INIT STATE\n" << std::endl;
+          // norm: TODO: ff_state_gamma + w_.Bi_;
+          // BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
 
         void GetNextState(mblas::Matrix& NextState,
@@ -107,7 +113,17 @@ class Decoder {
 
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
+          // std::cerr << "ATTENTION INIT: " << std::endl;
           Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+          // std::cerr << "SCU: " << SCU_.Debug() << std::endl;
+
+          Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);
+          // std::cerr << "NORM SCU: " << SCU_.Debug() << std::endl;
+          // std::cerr << "FINISH ATTENTION INIT\n" << std::endl;
+
+          // BroadcastVec(_1 + _2, SCU_, w_.B_[>, s_[1]<]);
+
+          // TODO: att_gamma_1 + nowy bias
         }
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
@@ -128,8 +144,13 @@ class Decoder {
           mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
           const size_t srcSize = mapping.size() / beamSizes.size();
 
+          // std::cerr << "ATTENTION:" << std::endl;
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
-          BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
+          // std::cerr << "TEMP2: " << Temp2_.Debug() << std::endl;
+          // TODO: att_gamma_2 (bez biasu)
+          Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
+          // std::cerr << "NORM TEMP2: " << Temp2_.Debug() << std::endl;
+          // std::cerr << "FINISH ATTENTION" << std::endl;
 
           Copy(Temp1_, SCU_);
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
@@ -191,13 +212,18 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          Prod(/*h_[0],*/ T1_, State, w_.W1_);
-          Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
-          Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+          Prod(/*h_[0],*/ T1_, State, w_.W1_); // TODO: gamma 1
+          Normalization(T1_, T1_, w_.Gamma_1_, w_.B1_, 1e-9);
 
-          BroadcastVec(_1 + _2, T1_, w_.B1_ /*,s_[0]*/);
-          BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
-          BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
+          Prod(/*h_[1],*/ T2_, Embedding, w_.W2_); // TODO: gamma 0
+          Normalization(T2_, T2_, w_.Gamma_0_, w_.B2_, 1e-9);
+
+          Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_); // TODO: gamma 2
+          Normalization(T3_, T3_, w_.Gamma_2_, w_.B3_, 1e-9);
+
+          // BroadcastVec(_1 + _2, T1_, w_.B1_ [>,s_[0]<]);
+          // BroadcastVec(_1 + _2, T2_, w_.B2_ [>,s_[1]<]);
+          // BroadcastVec(_1 + _2, T3_, w_.B3_ [>,s_[2]<]);
 
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
@@ -264,7 +290,7 @@ class Decoder {
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
-      
+
     }
 
     mblas::Matrix& GetProbs() {

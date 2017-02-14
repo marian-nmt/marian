@@ -53,6 +53,8 @@ class Encoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Embd) {
           gru_.GetNextState(NextState, State, Embd);
+          // std::cerr << "GRU: " << NextState.Debug() << std::endl;
+
         }
 
         template <class It>
@@ -67,12 +69,13 @@ class Encoder {
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
-            }
-            else {
+            } else {
               mblas::PasteRows(Context, State_, i, 0, n);
             }
             ++i;
           }
+
+          // std::cerr << "FINISH CONTEXT" << std::endl;
         }
 
         size_t GetStateLength() const {
