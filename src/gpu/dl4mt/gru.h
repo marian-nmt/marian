@@ -104,9 +104,19 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      // const size_t cols = GetStateLength();
+      // encoder i decoder
+
+      // TODO: norm bez bias gamma_1 context  -input: context or embs
       Prod(RUH_, Context, WWx_);
+      // std::cerr << "RUH: " << RUH_.Debug() << std::endl;
+      Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);
+      // std::cerr << "NORM RUH: " << RUH_.Debug() << std::endl;
+      // TODO: norm bez bias gamma_2
       Prod(Temp_, State, UUx_);
+      // std::cerr << "TEMP: " << Temp_.Debug() << std::endl;
+      Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
+      // std::cerr << "NORM TEMP: " << Temp_.Debug() << std::endl;
+
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
 
