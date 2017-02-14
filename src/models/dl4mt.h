@@ -100,6 +100,14 @@ class DL4MT {
         "ff_logit_prev_W", "ff_logit_prev_b",
         "ff_logit_ctx_W", "ff_logit_ctx_b",
         "ff_logit_W", "ff_logit_b",
+
+        "decoder_att_gamma1", "decoder_att_gamma2",
+        "decoder_cell1_gamma1", "decoder_cell1_gamma2",
+        "decoder_cell2_gamma1", "decoder_cell2_gamma2",
+        "encoder_gamma1", "encoder_gamma2",
+        "encoder_r_gamma1", "encoder_r_gamma2",
+        "ff_logit_l1_gamma0", "ff_logit_l1_gamma1",
+        "ff_logit_l1_gamma2", "ff_state_gamma"
       };
 
       std::map<std::string, std::string> nameMap = {
@@ -274,61 +282,112 @@ class DL4MT {
       return std::make_tuple(y, yMask, yIdx);
     }
 
-    Expr build(Ptr<ExpressionGraph> graph,
-               Ptr<data::CorpusBatch> batch) {
+    std::tuple<Expr, Expr> encoder(Ptr<ExpressionGraph> graph,
+                                   Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
-      graph->clear();
 
-      setDims(graph, batch);
-
-      // Embeddings
       auto xEmb = Embedding("Wemb", dimSrcVoc_, dimSrcEmb_)(graph);
-      auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
 
       Expr x, xMask;
-      Expr y, yMask, yIdx;
-
       std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
-      std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, 1);
 
       // Encoder
       auto xContext = BiRNN<BNGRU>("encoder", dimEncState_)
                         (x, mask=xMask);
 
-      auto xMeanContext = weighted_average(xContext, xMask, axis=2);
+      return std::make_tuple(xContext, xMask);
+    }
 
-      // Decoder
-      auto yStart = Dense("ff_state",
-                          dimDecState_,
-                          activation=act::tanh,
-                          normalize=true)(xMeanContext);
+    template <class RNN>
+    std::tuple<Expr, Expr> step(Ptr<RNN> rnn, Expr yInStates, Expr yEmbeddings) {
+      using namespace keywords;
 
-      auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
-      auto yShifted = concatenate({yEmpty, y}, axis=2);
-      //auto yShifted = shift(y, 1, axis=2);
-
-      BNCGRU cgru({"decoder",
-                  xContext,
-                  dimDecState_,
-                  mask=xMask,
-                  normalize=true});
-      auto yLstm = RNN<BNCGRU>("decoder", dimDecState_, cgru)
-                     (yShifted, yStart);
-      auto yCtx = cgru.getContexts();
+      auto yOutStates = (*rnn)(yEmbeddings, yInStates);
+      auto yCtx = rnn->getCell()->getContexts();
 
       //// 2-layer feedforward network for outputs and cost
-      auto ff_logit_l1 = Dense("ff_logit_l1", dimTrgEmb_,
-                               activation=act::tanh,
-                               normalize=true)
-                           (yShifted, yLstm, yCtx);
+      auto yLogitsL1 = Dense("ff_logit_l1", dimTrgEmb_,
+                             activation=act::tanh,
+                             normalize=true)
+                         (yEmbeddings, yOutStates, yCtx);
 
-      auto ff_logit_l2 = Dense("ff_logit_l2", dimTrgVoc_)
-                           (ff_logit_l1);
+      auto yLogitsL2 = Dense("ff_logit_l2", dimTrgVoc_)
+                         (yLogitsL1);
 
-      auto cost = CrossEntropyCost("cost")
-                    (ff_logit_l2, yIdx, mask=yMask);
+      return std::make_tuple(yOutStates, yLogitsL2);
+    }
+
+    Expr startState(Expr context, Expr mask) {
+      using namespace keywords;
+
+      auto meanContext = weighted_average(context, mask, axis=2);
+      auto start = Dense("ff_state",
+                         dimDecState_,
+                         activation=act::tanh,
+                         normalize=true)(meanContext);
+      return start;
+    }
+
+    std::tuple<Expr, Expr, Expr> embeddings(Ptr<ExpressionGraph> graph,
+                                            Ptr<data::CorpusBatch> batch) {
+      using namespace keywords;
+
+      auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
+      Expr y, yMask, yIdx;
+      std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, 1);
+      auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
+      auto yShifted = concatenate({yEmpty, y}, axis=2);
+
+      return std::make_tuple(yShifted, yMask, yIdx);
+    }
+
+    Expr build(Ptr<ExpressionGraph> graph,
+               Ptr<data::CorpusBatch> batch) {
+      using namespace keywords;
+      graph->clear();
+      setDims(graph, batch);
+
+      Expr xContext, xMask;
+      std::tie(xContext, xMask) = encoder(graph, batch);
+
+      BNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
+      auto decoderRNN = New<RNN<BNCGRU>>("decoder", dimDecState_, cgru);
+
+      auto yStartStates = startState(xContext, xMask);
+
+      Expr yEmbeddings, yMask, yIdx;
+      std::tie(yEmbeddings, yMask, yIdx) = embeddings(graph, batch);
+
+      Expr yOutStates, yLogits;
+      std::tie(yOutStates, yLogits) = step(decoderRNN, yStartStates, yEmbeddings);
+
+      auto cost = CrossEntropyCost("cost")(yLogits, yIdx, mask=yMask);
 
       return cost;
+    }
+
+    std::tuple<Expr, Expr>
+    initTranslator(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, int beamSize) {
+      using namespace keywords;
+      graph->clear();
+      setDims(graph, batch);
+
+      Expr xContext, xMask;
+      std::tie(xContext, xMask) = encoder(graph, batch);
+
+      BNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
+      auto decoderRNN = New<RNN<BNCGRU>>("decoder", dimDecState_, cgru);
+
+      auto yStartStates = startState(xContext, xMask);
+
+      auto yEmpty = graph->zeros(shape={dimBatch_ * beamSize, dimTrgEmb_});
+
+      Expr yOutStates, yLogits;
+      std::tie(yOutStates, yLogits) = step(decoderRNN, yStartStates, yEmpty);
+
+      auto ySoftmax = logsoftmax(yLogits);
+
+      return std::make_tuple(yOutStates, ySoftmax);
     }
 };
 

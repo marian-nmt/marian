@@ -138,6 +138,7 @@ Expr batch_norm(Expr x, Expr gamma, Expr beta) {
   auto mju = mean(x, keywords::axis=1);
   auto xmmju = x - mju;
   auto std = sqrt(mean(square(xmmju), keywords::axis=1), 1e-9);
+  //auto std = sqrt(mean(square(x), keywords::axis=1) - square(mju), 1e-9);
   if(beta)
     return gamma * (xmmju / std) + beta;
   else

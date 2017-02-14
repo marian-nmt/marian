@@ -324,7 +324,7 @@ void Add(Functor functor,
 
   int length = out->shape().elements();
 
-
+  /*
   if(full.elements() / length == full[1]) {
     size_t m = full.elements() / length;
     size_t k = full[1];
@@ -339,7 +339,7 @@ void Add(Functor functor,
                                        in2->data(), in2->shape(),
                                        full);
   }
-  else {
+  else {*/
     int threads = std::min(MAX_THREADS, length);
     int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
@@ -348,7 +348,7 @@ void Add(Functor functor,
                               in1->data(), in1->shape(),
                               in2->data(), in2->shape(),
                               full);
-  }
+  //}
 }
 
 template <class Functor>
