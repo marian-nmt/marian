@@ -380,7 +380,7 @@ class DL4MT {
 
       auto yStartStates = startState(xContext, xMask);
 
-      auto yEmpty = graph->zeros(shape={dimBatch_ * beamSize, dimTrgEmb_});
+      auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
 
       Expr yOutStates, yLogits;
       std::tie(yOutStates, yLogits) = step(decoderRNN, yStartStates, yEmpty);

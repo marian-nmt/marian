@@ -13,6 +13,7 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "models/dl4mt.h"
+#include "translator/nth_element.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -48,15 +49,29 @@ int main(int argc, char** argv) {
     batch->debug();
 
     size_t beamSize = 12;
+    int batchSize = batch->size();
 
     Expr hyps, probs;
     std::tie(hyps, probs) = dl4mt->initTranslator(graph, batch, beamSize);
     graph->forward();
 
     std::cerr << probs->val()->debug() << std::endl;
-    std::cerr << probs->val()->get(10) << std::endl;
-    std::cerr << probs->val()->get(11) << std::endl;
-    std::cerr << probs->val()->get(12) << std::endl;
+
+    cudaStream_t stream(0);
+    auto nth = New<NthElement>(beamSize, batchSize, stream);
+
+    std::vector<float> outCosts;
+    std::vector<unsigned> outKeys;
+    std::vector<size_t> beamSizes;
+
+    for(int i = 0; i < batchSize; ++i)
+      beamSizes.push_back(beamSize);
+
+    nth->getNBestList(beamSizes, probs->val(),
+                      outCosts, outKeys, true);
+
+    for(int i = 0; i < outKeys.size(); ++i)
+      std::cerr << i << " " << outKeys[i] << " " << outCosts[i] << std::endl;
 
     /*
     std::vector<size_t> bestHypIndeces;
