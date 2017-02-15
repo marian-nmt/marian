@@ -329,7 +329,7 @@ struct MeanNodeOp : public UnaryNodeOp {
     float scale = 1.f / left;
 
     return {
-      NodeOp(Reduce(_1 * scale, val_, children_[0]->val()))
+      NodeOp(Reduce(_1, val_, children_[0]->val(), scale))
     };
   }
 
@@ -338,7 +338,7 @@ struct MeanNodeOp : public UnaryNodeOp {
     float scale = 1.f / left;
 
     return {
-      NodeOp(Add(_1 * scale, children_[0]->grad(), adj_))
+      NodeOp(Add(_1, children_[0]->grad(), adj_, scale))
     };
   }
 
