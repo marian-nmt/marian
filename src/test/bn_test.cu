@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
   std::random_device rnd_device;
   // Specify the engine and distribution.
   std::mt19937 mersenne_engine(rnd_device());
+  mersenne_engine.seed(1234);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
 
   auto gen = std::bind(dist, mersenne_engine);
