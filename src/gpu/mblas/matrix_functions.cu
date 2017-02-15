@@ -518,11 +518,11 @@ __global__ void gLNormalization(float* out, const float* in, const float* alpha,
       const float* sp = in + j * cols;
 
       float* _sum = _share + blockDim.x;
-      _sum[threadIdx.x] = sp[threadIdx.x]; // mask
+      _sum[threadIdx.x] = 0.0f;
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if (id < cols) {
-          _sum[threadIdx.x] = sp[id];
+          _sum[threadIdx.x] += sp[id];
         }
       }
       __syncthreads();
