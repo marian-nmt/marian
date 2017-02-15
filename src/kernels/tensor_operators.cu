@@ -1259,7 +1259,6 @@ __global__ void gLNormalization(float* out, const float* in, const float* alpha,
         int id = tid + threadIdx.x;
         if(id < cols) {
           float ex = sp[id] - mean;
-          so[id] = ex;
           _sqSum[threadIdx.x] += ex * ex;
         }
       }
@@ -1279,7 +1278,7 @@ __global__ void gLNormalization(float* out, const float* in, const float* alpha,
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float t = alpha[id] * (so[id] / sigma);
+          float t = alpha[id] * ((sp[id] - mean) / sigma);
           if (beta != nullptr)
             t += beta[id];
           so[id] = t;

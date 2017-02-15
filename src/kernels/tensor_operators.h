@@ -45,7 +45,8 @@ __global__ void gAdd(Functor functor,
                      Shape outShape,
                      const float* in1,
                      const Shape in1Shape,
-                     const Shape full) {
+                     const Shape full,
+                     float scale = 1.0) {
 
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
@@ -83,7 +84,7 @@ __global__ void gAdd(Functor functor,
           }
         }
         if(sum)
-          out[index] += sum;
+          out[index] += sum * scale;
       }
     }
   }
@@ -95,7 +96,8 @@ __global__ void gAdd1(Functor functor,
                       Shape outShape,
                       const float* in1,
                       const Shape in1Shape,
-                      const Shape full) {
+                      const Shape full,
+                      float scale = 1.0) {
 
   int rows = full[0] * full[2] * full[3];
   int cols = full[1];
@@ -142,7 +144,7 @@ __global__ void gAdd1(Functor functor,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] = _sum[0];
+      out[j] = _sum[0] * scale;
     }
   }
 }
@@ -150,7 +152,7 @@ __global__ void gAdd1(Functor functor,
 
 template <class Functor>
 void Add(Functor functor,
-         Tensor out, Tensor in) {
+         Tensor out, Tensor in, float scale = 1.0) {
 
   cudaSetDevice(out->getDevice());
 
@@ -171,7 +173,7 @@ void Add(Functor functor,
     gAdd1<<<blocks, threads, shared>>>(functor,
                                        out->data(), out->shape(),
                                        in->data(), in->shape(),
-                                       full);
+                                       full, scale);
   }
   else {
     int threads = std::min(MAX_THREADS, length);
@@ -180,15 +182,15 @@ void Add(Functor functor,
     gAdd<<<blocks, threads>>>(functor,
                               out->data(), out->shape(),
                               in->data(), in->shape(),
-                              full);
+                              full, scale);
   }
 }
 
 template <class Functor, class T1, class T2>
 void Reduce(Functor functor,
-         T1 out, T2 in) {
+         T1 out, T2 in, float scale = 1.0) {
   out->set(0);
-  Add(functor, out, in);
+  Add(functor, out, in, scale);
 }
 
 template <class Functor>
@@ -199,7 +201,8 @@ __global__ void gAdd(Functor functor,
                      const Shape in1Shape,
                      const float* in2,
                      const Shape in2Shape,
-                     const Shape full) {
+                     const Shape full,
+                     float scale = 1.0) {
 
   int outLength = outShape.elements();
 
@@ -240,7 +243,7 @@ __global__ void gAdd(Functor functor,
           }
         }
         if(sum)
-          out[index] += sum;
+          out[index] += sum * scale;
       }
     }
   }
@@ -254,7 +257,8 @@ __global__ void gAdd1(Functor functor,
                       const Shape in1Shape,
                       const float* in2,
                       const Shape in2Shape,
-                      const Shape full) {
+                      const Shape full,
+                      float scale = 1.0) {
 
   int rows = full[0] * full[2] * full[3];
   int cols = full[1];
@@ -304,7 +308,7 @@ __global__ void gAdd1(Functor functor,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] = _sum[0];
+      out[j] = _sum[0] * scale;
     }
   }
 }
@@ -312,7 +316,7 @@ __global__ void gAdd1(Functor functor,
 
 template <class Functor>
 void Add(Functor functor,
-         Tensor out, Tensor in1, Tensor in2) {
+         Tensor out, Tensor in1, Tensor in2, float scale = 1.0) {
 
   cudaSetDevice(out->getDevice());
 
@@ -347,16 +351,16 @@ void Add(Functor functor,
                               out->data(), out->shape(),
                               in1->data(), in1->shape(),
                               in2->data(), in2->shape(),
-                              full);
+                              full, scale);
   //}
 }
 
 template <class Functor>
 void Reduce(Functor functor,
-            Tensor out, Tensor in1, Tensor in2) {
+            Tensor out, Tensor in1, Tensor in2, float scale = 1.0) {
 
   out->set(0);
-  Add(functor, out, in1, in2);
+  Add(functor, out, in1, in2, scale);
 }
 
 
