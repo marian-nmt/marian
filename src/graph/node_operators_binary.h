@@ -452,7 +452,10 @@ struct LayerNormalizationOp : public NaryNodeOp {
   }
 
   NodeOps backwardOps() {
-    return {};
+    return {
+      NodeOp(Add(_1, children_[1]->grad(), adj_)),
+      NodeOp(Add(_1, children_[2]->grad(), adj_))
+    };
   }
 
   const std::string type() {

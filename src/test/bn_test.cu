@@ -48,8 +48,10 @@ int main(int argc, char** argv) {
     auto ce = cross_entropy(y, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
-    debug(x, "x");
+    /* debug(x, "x"); */
     debug(y, "y");
+    debug(gamma, "gamma");
+    debug(beta, "beta");
     debug(cost, "cost");
 
     graph->forward();
@@ -72,9 +74,11 @@ int main(int argc, char** argv) {
     auto ce = cross_entropy(y, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
-    debug(x, "x");
+    /* debug(x, "x"); */
     debug(y, "y");
     debug(cost, "cost");
+    debug(gamma, "gamma");
+    debug(beta, "beta");
 
     graph->forward();
     graph->backward();
