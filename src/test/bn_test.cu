@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
     graph->reserveWorkspaceMB(128);
 
     auto x = graph->param("x", {128, 512}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 512}, init=inits::from_value(1.0));
+    auto gamma = graph->param("gamma", {1, 512}, init=inits::from_value(2.0));
     auto beta = graph->param("beta", {1, 512}, init=inits::zeros);
 
     auto mju = mean(x, keywords::axis=1);
@@ -49,11 +49,8 @@ int main(int argc, char** argv) {
     auto ce = cross_entropy(y, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
-    /* debug(x, "x"); */
     debug(y, "y");
     debug(gamma, "gamma");
-    debug(beta, "beta");
-    debug(cost, "cost");
 
     graph->forward();
     graph->backward();
@@ -65,7 +62,7 @@ int main(int argc, char** argv) {
     graph->reserveWorkspaceMB(128);
 
     auto x = graph->param("x", {128, 512}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 512}, init=inits::from_value(1.0));
+    auto gamma = graph->param("gamma", {1, 512}, init=inits::from_value(2.0));
     auto beta = graph->param("beta", {1, 512}, init=inits::zeros);
 
     auto y = layer_norm(x, gamma, beta);
@@ -75,11 +72,8 @@ int main(int argc, char** argv) {
     auto ce = cross_entropy(y, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
-    /* debug(x, "x"); */
     debug(y, "y");
-    debug(cost, "cost");
     debug(gamma, "gamma");
-    debug(beta, "beta");
 
     graph->forward();
     graph->backward();

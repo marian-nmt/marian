@@ -1305,4 +1305,25 @@ void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float 
                                                rows, cols, eps);
 }
 
+__global__ void gLayerNormalizationGrad(float* out, float* adj, float* y, float* gamma, float* beta, int rows, int cols) {
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (tid < rows * cols) {
+    int col = tid % cols;
+    atomicAdd(out + col, adj[tid] * (y[tid] - beta[col]) / gamma[col]);
+  }
+
+}
+
+void LayerNormalizationGrad(Tensor out, Tensor adj, Tensor y, Tensor gamma, Tensor beta) {
+  int rows = y->shape()[0] * y->shape()[2] * y->shape()[3];
+  int cols = y->shape()[1];
+
+  int threads = std::min(MAX_THREADS, rows * cols);
+  int blocks = std::min(MAX_BLOCKS, (rows * cols / threads) + (rows * cols % threads != 0) ? 1 : 0 );
+
+  gLayerNormalizationGrad<<<blocks, threads>>>
+    (out->data(), adj->data(), y->data(), gamma->data(), beta->data(), rows, cols);
+}
+
 }  // namespace marian
