@@ -54,6 +54,7 @@ target_link_libraries(marian marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(marian_test marian_lib)
 target_link_libraries(marian_translate marian_lib)
+target_link_libraries(bn_test marian_lib)
 
 foreach(exec tensor_test marian_test marian_translate marian bn_test)
   target_link_libraries(${exec} ${EXT_LIBS})

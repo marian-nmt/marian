@@ -48,30 +48,34 @@ int main(int argc, char** argv) {
     auto batch = bg.next();
     batch->debug();
 
-    size_t beamSize = 12;
+    size_t beamSize = 1;
     int batchSize = batch->size();
-
-    Expr hyps, probs;
-    std::tie(hyps, probs) = dl4mt->initTranslator(graph, batch, beamSize);
-    graph->forward();
-
-    std::cerr << probs->val()->debug() << std::endl;
 
     cudaStream_t stream(0);
     auto nth = New<NthElement>(beamSize, batchSize, stream);
 
+    Expr hyps, probs;
+    std::tie(hyps, probs) = dl4mt->initTranslator(graph, batch, beamSize);
+    auto it = graph->forward();
+
+    std::cerr << probs->val()->debug() << std::endl;
+
     std::vector<float> outCosts;
     std::vector<unsigned> outKeys;
     std::vector<size_t> beamSizes;
-
     for(int i = 0; i < batchSize; ++i)
       beamSizes.push_back(beamSize);
 
-    nth->getNBestList(beamSizes, probs->val(),
-                      outCosts, outKeys, true);
+    nth->getNBestList(beamSizes, probs->val(), outCosts, outKeys, true);
 
     for(int i = 0; i < outKeys.size(); ++i)
       std::cerr << i << " " << outKeys[i] << " " << outCosts[i] << std::endl;
+
+    auto selected = rows(hyps, {0, 0, 0});
+    it = graph->forward(it);
+
+    std::cerr << selected->val()->debug() << std::endl;
+
 
     /*
     std::vector<size_t> bestHypIndeces;

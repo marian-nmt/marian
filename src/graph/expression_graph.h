@@ -136,27 +136,31 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
 
-    void forward() {
+    auto forward() -> decltype(nodes_.begin()) {
       params_.allocateForward();
+      return forward(nodes_.begin());
+    }
 
-      for(auto&& tape : tapes_) {
-        for(auto&& v : tape) {
-          v->allocate();
-          v->init();
-          v->forward();
+    auto forward(decltype(nodes_.begin()) it) -> decltype(nodes_.begin()) {
+      while(it != nodes_.end()) {
+        auto v = *it;
+        v->allocate();
+        v->init();
+        v->forward();
 
-          // @TODO: should be done in node
-          for(auto&& child : v->children()) {
-            v->decreaseEdges(1);
-            child->decreaseEdges(1);
-          }
-
-          if(v->marked_for_debug()) {
-            std::cerr << "Debug: " << v->debug_message() << std::endl;
-            std::cerr << v->val()->debug() << std::endl;
-          }
+        // @TODO: should be done in node
+        for(auto&& child : v->children()) {
+          v->decreaseEdges(1);
+          child->decreaseEdges(1);
         }
+
+        if(v->marked_for_debug()) {
+          std::cerr << "Debug: " << v->debug_message() << std::endl;
+          std::cerr << v->val()->debug() << std::endl;
+        }
+        it++;
       }
+      return it;
     }
 
     /**

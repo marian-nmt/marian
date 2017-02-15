@@ -439,19 +439,15 @@ struct AffineNodeOp : public NaryNodeOp {
 
 struct LayerNormalizationOp : public NaryNodeOp {
   LayerNormalizationOp(const std::vector<Expr>& nodes)
-    : NaryNodeOp(nodes, keywords::shape=newShape(nodes))
-  {}
-
-  Shape newShape(const std::vector<Expr>& nodes) {
-    return nodes[0]->shape();
-  }
+    : NaryNodeOp(nodes) {}
 
   NodeOps forwardOps() {
     return {
       NodeOp(
-          LayerNormalization(val_, children_[0]->val(), children_[1]->val(), children_[2]->val(),
-                             1e-9);
-            )
+          LayerNormalization(val_,
+                             children_[0]->val(),
+                             children_[1]->val(),
+                             children_[2]->val()))
       };
   }
 

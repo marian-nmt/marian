@@ -1221,7 +1221,7 @@ void AttBack(Tensor gContext, Tensor gState, Tensor gVa,
 }
 
 __global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
-                                int rows, int cols, float eps=0.00001) {
+                                int rows, int cols, float eps=1e-9) {
   extern __shared__ float _share[];
 
   for (int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1279,11 +1279,10 @@ __global__ void gLNormalization(float* out, const float* in, const float* alpha,
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          if (beta != nullptr) {
-            so[id] = alpha[id] * (so[id] / sigma) + beta[id];
-          } else {
-            so[id] = alpha[id] * (so[id] / sigma);
-          }
+          float t = alpha[id] * (so[id] / sigma);
+          if (beta != nullptr)
+            t += beta[id];
+          so[id] = t;
         }
       }
     }
@@ -1296,15 +1295,15 @@ void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float 
   int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
   int cols = in->shape()[1];
 
-  int blocks = std::min(MAX_BLOCKS, (int) rows);
-  int threads = std::min(MAX_THREADS, (int) cols);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
   int shared = 2 * threads * sizeof(float);
 
-  if (beta == nullptr) {
-    gLNormalization<<<blocks, threads, shared>>>(out->data(), in->data(), gamma->data(), nullptr, rows, cols, eps);
-  } else {
-    gLNormalization<<<blocks, threads, shared>>>(out->data(), in->data(), gamma->data(), beta->data(), rows, cols, eps);
-  }
+  gLNormalization<<<blocks, threads, shared>>>(out->data(),
+                                               in->data(),
+                                               gamma->data(),
+                                               beta ? beta->data() : nullptr,
+                                               rows, cols, eps);
 }
 
 }  // namespace marian
