@@ -839,4 +839,6 @@ void AttBack(Tensor gContext, Tensor gState, Tensor gva,
              Tensor context, Tensor state, Tensor va,
              Tensor adj);
 
+void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps=1e-9);
+
 }

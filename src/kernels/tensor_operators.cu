@@ -1220,4 +1220,91 @@ void AttBack(Tensor gContext, Tensor gState, Tensor gVa,
                                 m, k, n);
 }
 
+__global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
+                                int rows, int cols, float eps=0.00001) {
+  extern __shared__ float _share[];
+
+  for (int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if (j < rows) {
+      float* so = out + j * cols;
+      const float* sp = in + j * cols;
+
+      float* _sum = _share + blockDim.x;
+      _sum[threadIdx.x] = sp[threadIdx.x]; // mask
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if (id < cols) {
+          _sum[threadIdx.x] = sp[id];
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if (threadIdx.x < (len >> 1)) {
+             _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float mean = _sum[0] / cols;
+      __syncthreads();
+
+      float* _sqSum = _share + blockDim.x;
+
+      _sqSum[threadIdx.x] = 0.0;
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = sp[id] - mean;
+          so[id] = ex;
+          _sqSum[threadIdx.x] += ex * ex;
+        }
+      }
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sigma = sqrtf(eps + (_sqSum[0] / cols));
+      __syncthreads();
+
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          if (beta != nullptr) {
+            so[id] = alpha[id] * (so[id] / sigma) + beta[id];
+          } else {
+            so[id] = alpha[id] * (so[id] / sigma);
+          }
+        }
+      }
+    }
+  }
 }
+
+void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps) {
+  cudaSetDevice(out->getDevice());
+
+  int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  int cols = in->shape()[1];
+
+  int blocks = std::min(MAX_BLOCKS, (int) rows);
+  int threads = std::min(MAX_THREADS, (int) cols);
+  int shared = 2 * threads * sizeof(float);
+
+  if (beta == nullptr) {
+    gLNormalization<<<blocks, threads, shared>>>(out->data(), in->data(), gamma->data(), nullptr, rows, cols, eps);
+  } else {
+    gLNormalization<<<blocks, threads, shared>>>(out->data(), in->data(), gamma->data(), beta->data(), rows, cols, eps);
+  }
+}
+
+}  // namespace marian
