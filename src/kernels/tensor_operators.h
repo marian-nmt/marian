@@ -844,6 +844,7 @@ void AttBack(Tensor gContext, Tensor gState, Tensor gva,
              Tensor adj);
 
 void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps=1e-9);
-void LayerNormalizationGrad(Tensor out, Tensor adj, Tensor y, Tensor gamma, Tensor beta);
+void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
+                            Tensor adj, Tensor y, Tensor x, Tensor gamma, Tensor beta);
 
 }

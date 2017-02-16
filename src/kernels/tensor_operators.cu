@@ -1305,25 +1305,106 @@ void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float 
                                                rows, cols, eps);
 }
 
-__global__ void gLayerNormalizationGrad(float* out, float* adj, float* y, float* gamma, float* beta, int rows, int cols) {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+__global__ void gLayerNormalizationGrad(float* gradX, float* gradGamma, float* gradBeta,
+                                        float* adj, float* y, float* x, float* gamma, float* beta,
+                                        int rows, int cols, float eps=1e-9) {
+  extern __shared__ float shared[];
 
-  if (tid < rows * cols) {
-    int col = tid % cols;
-    atomicAdd(out + col, adj[tid] * (y[tid] - beta[col]) / gamma[col]);
+  for (int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if (j < rows) {
+      float* sum_adj = shared;
+      float* sum_adj_x = shared + blockDim.x;
+      float* sum_x = shared + 2 * blockDim.x;
+      float* sum_sqr = shared + 3 * blockDim.x;
+
+      const float* xRow = x + j * cols;
+      const float* yRow = y + j * cols;
+      const float* adjRow = adj + j * cols;
+      float* gradXRow = gradX + j * cols;
+
+      sum_x[threadIdx.x] = 0.0f;
+      sum_adj[threadIdx.x] = 0.0f;
+      sum_adj_x[threadIdx.x] = 0.0f;
+      sum_sqr[threadIdx.x] = 0.0f;
+
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if (id < cols) {
+          sum_x[threadIdx.x] += xRow[id];
+          sum_adj_x[threadIdx.x] += adjRow[id] * (yRow[id] - beta[id]) / gamma[id];
+          sum_adj[threadIdx.x] += adjRow[id];
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if (threadIdx.x < (len >> 1)) {
+             sum_x[threadIdx.x] += sum_x[threadIdx.x + skip];
+             sum_adj[threadIdx.x] += sum_adj[threadIdx.x + skip];
+             sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float mean = sum_x[0] / cols;
+      __syncthreads();
+
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = xRow[id] - mean;
+          sum_sqr[threadIdx.x] += ex * ex;
+        }
+      }
+
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          sum_sqr[threadIdx.x] += sum_sqr[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sigma = sqrtf(eps + (sum_sqr[0] / cols));
+      __syncthreads();
+
+
+      for (int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if (id < cols) {
+          float grad_x = 0.0f;
+          float x_hat = (yRow[id] - beta[id]) / gamma[id];
+          grad_x += cols * adjRow[id];
+          grad_x -= sum_adj[0];
+          grad_x -= sum_adj_x[0] * x_hat;
+          grad_x /= (cols * sigma);
+
+          gradXRow[id] += 2 * grad_x;
+          atomicAdd(gradGamma + id, adjRow[id] * x_hat);
+          atomicAdd(gradBeta + id, adjRow[id]);
+        }
+      }
+    }
   }
-
 }
 
-void LayerNormalizationGrad(Tensor out, Tensor adj, Tensor y, Tensor gamma, Tensor beta) {
+void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
+                            Tensor adj, Tensor y, Tensor x, Tensor gamma, Tensor beta) {
   int rows = y->shape()[0] * y->shape()[2] * y->shape()[3];
   int cols = y->shape()[1];
 
-  int threads = std::min(MAX_THREADS, rows * cols);
-  int blocks = std::min(MAX_BLOCKS, (rows * cols / threads) + (rows * cols % threads != 0) ? 1 : 0 );
+  int threads = std::min(MAX_THREADS, cols);
+  int blocks = std::min(MAX_BLOCKS, rows);
+  int shared = sizeof(float) * cols * 4;
 
-  gLayerNormalizationGrad<<<blocks, threads>>>
-    (out->data(), adj->data(), y->data(), gamma->data(), beta->data(), rows, cols);
+  gLayerNormalizationGrad<<<blocks, threads, shared>>>
+    (gradX->data(), gradGamma->data(), gradBeta->data(),
+     adj->data(), y->data(), x->data(), gamma->data(), beta->data(), rows, cols);
 }
 
 }  // namespace marian

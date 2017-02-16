@@ -18,8 +18,8 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv, false);
 
-  std::vector<float> temp(128 * 512);
-  std::vector<float> indeces(128, 0.f);
+  std::vector<float> temp(6 * 1025);
+  std::vector<float> indeces(6, 0.f);
 
   std::random_device rnd_device;
   // Specify the engine and distribution.
@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
     graph->setDevice(0);
     graph->reserveWorkspaceMB(128);
 
-    auto x = graph->param("x", {128, 512}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 512}, init=inits::from_value(2.0));
-    auto beta = graph->param("beta", {1, 512}, init=inits::zeros);
+    auto x = graph->param("x", {6, 1025}, init=inits::from_vector(temp));
+    auto gamma = graph->param("gamma", {1, 1025}, init=inits::from_value(2.0));
+    auto beta = graph->param("beta", {1, 1025}, init=inits::zeros);
 
     auto mju = mean(x, keywords::axis=1);
     auto xmmju = x - mju;
@@ -49,8 +49,9 @@ int main(int argc, char** argv) {
     auto ce = cross_entropy(y, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
-    debug(y, "y");
-    debug(gamma, "gamma");
+    debug(x, "x");
+    /* debug(gamma, "gamma"); */
+    /* debug(beta, "beta"); */
 
     graph->forward();
     graph->backward();
@@ -61,9 +62,9 @@ int main(int argc, char** argv) {
     graph->setDevice(0);
     graph->reserveWorkspaceMB(128);
 
-    auto x = graph->param("x", {128, 512}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 512}, init=inits::from_value(2.0));
-    auto beta = graph->param("beta", {1, 512}, init=inits::zeros);
+    auto x = graph->param("x", {6, 1025}, init=inits::from_vector(temp));
+    auto gamma = graph->param("gamma", {1, 1025}, init=inits::from_value(2.0));
+    auto beta = graph->param("beta", {1, 1025}, init=inits::zeros);
 
     auto y = layer_norm(x, gamma, beta);
 
@@ -72,8 +73,9 @@ int main(int argc, char** argv) {
     auto ce = cross_entropy(y, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
-    debug(y, "y");
-    debug(gamma, "gamma");
+    debug(x, "x");
+    /* debug(gamma, "gamma"); */
+    /* debug(beta, "beta"); */
 
     graph->forward();
     graph->backward();

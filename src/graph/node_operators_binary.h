@@ -453,8 +453,9 @@ struct LayerNormalizationOp : public NaryNodeOp {
 
   NodeOps backwardOps() {
     return {
-      NodeOp(LayerNormalizationGrad(children_[1]->grad(), adj_, val_, children_[1]->val(), children_[2]->val())),
-      NodeOp(Add(_1, children_[2]->grad(), adj_))
+      NodeOp(LayerNormalizationGrad(children_[0]->grad(), children_[1]->grad(), children_[2]->grad(),
+                                    adj_, val_, children_[0]->val(), children_[1]->val(),
+                                    children_[2]->val()))
     };
   }
 
