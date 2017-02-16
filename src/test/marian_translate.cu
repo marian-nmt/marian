@@ -15,6 +15,72 @@
 #include "models/dl4mt.h"
 #include "translator/nth_element.h"
 
+namespace marian {
+
+template <class Builder>
+class BeamSearch {
+  private:
+    Ptr<Builder> builder_;
+    size_t beamSize_;
+    cudaStream_t stream_{0};
+
+  public:
+    BeamSearch(Ptr<Builder> builder)
+     : builder_(builder),
+       beamSize_(1)
+    {}
+
+    void search(Ptr<ExpressionGraph> graph,
+                Ptr<data::CorpusBatch> batch) {
+
+      auto nth = New<NthElement>(beamSize_, batch->size(), stream_);
+
+      Expr startState, hyps, probs;
+      startState = builder_->buildEncoder(graph, batch);
+      hyps = startState;
+
+      std::vector<unsigned> outKeys;
+
+      size_t pos = 0;
+      bool first = true;
+
+      size_t dimTrgVoc = 1;
+
+      while(first || outKeys[0] != 0) {
+
+        std::vector<size_t> hypIdx;
+        std::vector<size_t> embIdx;
+        for(auto k : outKeys) {
+          hypIdx.push_back(k / dimTrgVoc);
+          embIdx.push_back(k % dimTrgVoc);
+        }
+
+        std::tie(hyps, probs) = builder_->stepPredict(hyps, hypIdx, embIdx);
+        pos = graph->forward(pos);
+
+        std::cerr << hyps->val()->debug() << std::endl;
+        std::cerr << probs->val()->debug() << std::endl;
+
+        dimTrgVoc = probs->shape()[0];
+
+        std::vector<float> outCosts;
+        std::vector<size_t> beamSizes(batch->size(), beamSize_);
+
+        outKeys.clear();
+        nth->getNBestList(beamSizes, probs->val(),
+                          outCosts, outKeys, first);
+        first = false;
+
+        for(int i = 0; i < outKeys.size(); ++i)
+          std::cerr << i << " " << outKeys[i]
+            << " " << outCosts[i] << std::endl;
+      }
+
+    }
+};
+
+}
+
 int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
@@ -48,54 +114,10 @@ int main(int argc, char** argv) {
     auto batch = bg.next();
     batch->debug();
 
-    size_t beamSize = 1;
-    int batchSize = batch->size();
+    auto search = New<BeamSearch<DL4MT>>(dl4mt);
+    search->search(graph, batch);
 
-    cudaStream_t stream(0);
-    auto nth = New<NthElement>(beamSize, batchSize, stream);
-
-    Expr hyps, probs;
-    std::tie(hyps, probs) = dl4mt->initTranslator(graph, batch, beamSize);
-    auto it = graph->forward();
-
-    std::cerr << probs->val()->debug() << std::endl;
-
-    std::vector<float> outCosts;
-    std::vector<unsigned> outKeys;
-    std::vector<size_t> beamSizes;
-    for(int i = 0; i < batchSize; ++i)
-      beamSizes.push_back(beamSize);
-
-    nth->getNBestList(beamSizes, probs->val(), outCosts, outKeys, true);
-
-    for(int i = 0; i < outKeys.size(); ++i)
-      std::cerr << i << " " << outKeys[i] << " " << outCosts[i] << std::endl;
-
-    auto selected = rows(hyps, {0, 0, 0});
-    it = graph->forward(it);
-
-    std::cerr << selected->val()->debug() << std::endl;
-
-
-    /*
-    std::vector<size_t> bestHypIndeces;
-    std::vector<size_t> bestEmbIndeces;
-    do {
-      std::vector<std::pair<size_t, float>>
-      bestIndecesProbs = Argmax(probs->val(), beamSize);
-
-      bestHypIndeces = toHyps(bestIndecesProbs);
-      bestEmbIndeces = toEmbs(bestIndecesProbs);
-
-      if(!bestHypIndeces.empty()) {
-        //auto nextEmbs = rows(yEmb, bestEmbIndeces);
-        //auto nextHyps = rows(states, bestHypIndeces);
-        std::tie(hyps, probs) = dl4mt->step(hyps, bestHypIndeces, bestEmbIndeces);
-        it = graph->forward(it);
-      }
-
-    } while(!bestHypsIndeces.empty());
-    */
+    exit(0);
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;

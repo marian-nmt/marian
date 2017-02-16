@@ -136,12 +136,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
 
-    auto forward() -> decltype(nodes_.begin()) {
+    size_t forward() {
       params_.allocateForward();
-      return forward(nodes_.begin());
+      return forward(0);
     }
 
-    auto forward(decltype(nodes_.begin()) it) -> decltype(nodes_.begin()) {
+    size_t forward(size_t pos) {
+      auto it = nodes_.begin() + pos;
       while(it != nodes_.end()) {
         auto v = *it;
         v->allocate();
@@ -160,7 +161,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
         }
         it++;
       }
-      return it;
+      return std::distance(nodes_.begin(), it);
     }
 
     /**

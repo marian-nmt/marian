@@ -429,6 +429,10 @@ class AttentionCell {
     Expr getContexts() {
       return concatenate(att_->getContexts(), keywords::axis=2);
     }
+
+    Expr getLastContext() {
+      return att_->getContexts().back();
+    }
 };
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
