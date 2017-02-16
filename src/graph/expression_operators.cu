@@ -143,14 +143,23 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta) {
 }
 
 Expr batch_norm(Expr x, Expr gamma, Expr beta) {
-  auto mju = mean(x, keywords::axis=1);
-  auto xmmju = x - mju;
-  auto std = sqrt(mean(square(xmmju), keywords::axis=1), 1e-9);
+  if(false) {
+    std::vector<Expr> nodes = {x, gamma};
+    if (beta) {
+      nodes.emplace_back(beta);
+    }
+    return Expression<LayerNormalizationOp>(nodes);
+  }
+  else {
+    auto mju = mean(x, keywords::axis=1);
+    auto xmmju = x - mju;
+    auto std = sqrt(mean(square(xmmju), keywords::axis=1), 1e-9);
 
-  if(beta)
-    return gamma * (xmmju / std) + beta;
-  else
-    return gamma * (xmmju / std);
+    if(beta)
+      return gamma * (xmmju / std) + beta;
+    else
+      return gamma * (xmmju / std);
+  }
 }
 
 }
