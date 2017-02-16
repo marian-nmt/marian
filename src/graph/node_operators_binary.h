@@ -447,15 +447,15 @@ struct LayerNormalizationOp : public NaryNodeOp {
           LayerNormalization(val_,
                              children_[0]->val(),
                              children_[1]->val(),
-                             children_[2]->val()))
+                             (children_.size() == 3) ? children_[2]->val() : nullptr))
       };
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(LayerNormalizationGrad(children_[0]->grad(), children_[1]->grad(), children_[2]->grad(),
+      NodeOp(LayerNormalizationGrad(children_[0]->grad(), children_[1]->grad(), (children_.size() == 3) ? children_[2]->grad() : nullptr,
                                     adj_, val_, children_[0]->val(), children_[1]->val(),
-                                    children_[2]->val()))
+                                    (children_.size() == 3) ? children_[2]->val() : nullptr))
     };
   }
 

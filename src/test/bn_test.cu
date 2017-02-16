@@ -50,8 +50,8 @@ int main(int argc, char** argv) {
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
     debug(x, "x");
-    /* debug(gamma, "gamma"); */
-    /* debug(beta, "beta"); */
+    debug(gamma, "gamma");
+    debug(beta, "beta");
 
     graph->forward();
     graph->backward();
@@ -74,8 +74,8 @@ int main(int argc, char** argv) {
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
     debug(x, "x");
-    /* debug(gamma, "gamma"); */
-    /* debug(beta, "beta"); */
+    debug(gamma, "gamma");
+    debug(beta, "beta");
 
     graph->forward();
     graph->backward();

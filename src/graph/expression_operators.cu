@@ -135,7 +135,10 @@ Expr square(Expr a) {
 }
 
 Expr layer_norm(Expr x, Expr gamma, Expr beta) {
-  std::vector<Expr> nodes = {x, gamma, beta};
+  std::vector<Expr> nodes = {x, gamma};
+  if (beta) {
+    nodes.emplace_back(beta);
+  }
   return Expression<LayerNormalizationOp>(nodes);
 }
 
