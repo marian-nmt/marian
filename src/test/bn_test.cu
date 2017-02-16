@@ -9,6 +9,7 @@
 #include <iostream>
 #include <functional>
 
+#include "layers/generic.h"
 #include "marian.h"
 
 int main(int argc, char** argv) {
@@ -18,8 +19,11 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv, false);
 
-  std::vector<float> temp(6 * 1025);
-  std::vector<float> indeces(6, 0.f);
+  int batchSize = 128;
+
+  std::vector<float> temp(batchSize * 3072);
+  std::vector<float> temp2(3072 * 3072);
+  std::vector<float> indeces(batchSize, 0.f);
 
   std::random_device rnd_device;
   // Specify the engine and distribution.
@@ -29,24 +33,30 @@ int main(int argc, char** argv) {
 
   auto gen = std::bind(dist, mersenne_engine);
   std::generate(std::begin(temp), std::end(temp), gen);
+  std::generate(std::begin(temp2), std::end(temp2), gen);
 
   {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(0);
     graph->reserveWorkspaceMB(128);
 
-    auto x = graph->param("x", {6, 1025}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 1025}, init=inits::from_value(2.0));
-    auto beta = graph->param("beta", {1, 1025}, init=inits::zeros);
+    auto x = graph->param("x", {batchSize, 3072}, init=inits::from_vector(temp));
+    auto gamma = graph->param("gamma", {1, 3072}, init=inits::from_value(2.0));
+    auto beta = graph->param("beta", {1, 3072}, init=inits::zeros);
 
-    auto mju = mean(x, keywords::axis=1);
-    auto xmmju = x - mju;
-    auto std = sqrt(mean(square(xmmju), keywords::axis=1), 1e-9);
-    auto y = gamma * (xmmju / std) + beta;
+    auto y = batch_norm(x, gamma, beta);
+
+    auto yLogitsL1 = Dense("ff_logit_l1", 512,
+                             activation=act::tanh,
+                             normalize=true)
+                         (y, y, y);
+
+    auto yLogitsL2 = Dense("ff_logit_l2", 50000)
+                         (yLogitsL1);
 
     auto idx = graph->constant(shape={(int)indeces.size(), 1},
                                init=inits::from_vector(indeces));
-    auto ce = cross_entropy(y, idx);
+    auto ce = cross_entropy(yLogitsL2, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
     debug(x, "x");
@@ -57,20 +67,24 @@ int main(int argc, char** argv) {
     graph->backward();
   }
 
-  {
+  /*{
     auto graph = New<ExpressionGraph>();
     graph->setDevice(0);
     graph->reserveWorkspaceMB(128);
 
-    auto x = graph->param("x", {6, 1025}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 1025}, init=inits::from_value(2.0));
-    auto beta = graph->param("beta", {1, 1025}, init=inits::zeros);
+    auto x = graph->param("x", {batchSize, 3072}, init=inits::from_vector(temp));
+    auto gamma = graph->param("gamma", {1, 3072}, init=inits::from_value(2.0));
+    auto beta = graph->param("beta", {1, 3072}, init=inits::zeros);
 
     auto y = layer_norm(x, gamma, beta);
 
+    auto w = graph->param("w", {3072, 3072}, init=inits::from_vector(temp2));
+
+    auto y2 = tanh(layer_norm(dot(y, w), gamma, beta));
+
     auto idx = graph->constant(shape={(int)indeces.size(), 1},
                                init=inits::from_vector(indeces));
-    auto ce = cross_entropy(y, idx);
+    auto ce = cross_entropy(y2, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
     debug(x, "x");
@@ -79,7 +93,7 @@ int main(int argc, char** argv) {
 
     graph->forward();
     graph->backward();
-  }
+  }*/
 
   return 0;
 }
