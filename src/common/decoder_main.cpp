@@ -27,43 +27,25 @@ int main(int argc, char* argv[]) {
   std::size_t lineNum = 0;
 
   size_t maxiSize = god.Get<size_t>("maxi-batch");
-  //std::cerr << "mode=" << god.Get("mode") << std::endl;
 
-  size_t cpuThreads = god.Get<size_t>("cpu-threads");
-  LOG(info) << "Setting CPU thread count to " << cpuThreads;
+  LOG(info) << "Reading input";
 
-  size_t totalThreads = cpuThreads;
-#ifdef CUDA
-  size_t gpuThreads = god.Get<size_t>("gpu-threads");
-  auto devices = god.Get<std::vector<size_t>>("devices");
-  LOG(info) << "Setting GPU thread count to " << gpuThreads;
-  totalThreads += gpuThreads * devices.size();
-#endif
+  SentencesPtr maxiBatch(new Sentences());
 
-  LOG(info) << "Total number of threads: " << totalThreads;
-  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+  while (std::getline(god.GetInputStream(), in)) {
+    maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
-  {
-    ThreadPool pool(totalThreads, totalThreads);
-    LOG(info) << "Reading input";
-
-    SentencesPtr maxiBatch(new Sentences());
-
-    while (std::getline(god.GetInputStream(), in)) {
-      maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
-
-      if (maxiBatch->size() >= maxiSize) {
-        god.Enqueue(*maxiBatch, pool);
-        maxiBatch.reset(new Sentences());
-      }
-
+    if (maxiBatch->size() >= maxiSize) {
+      god.Enqueue(*maxiBatch);
+      maxiBatch.reset(new Sentences());
     }
 
-    god.Enqueue(*maxiBatch, pool);
   }
 
+  // last batch
+  god.Enqueue(*maxiBatch);
+
   LOG(info) << "Total time: " << timer.format();
-  god.CleanUp();
   //sleep(10);
   return 0;
 }

@@ -66,14 +66,15 @@ class God {
     std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input) const;
     std::vector<std::string> Postprocess(const std::vector<std::string>& input) const;
 
-    void CleanUp();
 
     void LoadWeights(const std::string& path);
 
     DeviceInfo GetNextDevice() const;
     Search &GetSearch() const;
 
-    void Enqueue(Sentences &maxiBatch, ThreadPool &pool);
+    void Enqueue(Sentences &maxiBatch);
+
+    size_t GetTotalThreads() const;
 
   private:
     void LoadScorers();
@@ -104,6 +105,8 @@ class God {
 
     mutable size_t threadIncr_;
     mutable boost::shared_mutex accessLock_;
+
+    std::unique_ptr<ThreadPool> pool_;
 };
 
 }
