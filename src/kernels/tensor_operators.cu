@@ -1384,7 +1384,7 @@ __global__ void gLayerNormalizationGrad(float* gradX, float* gradGamma, float* g
           grad_x -= sum_adj_x[0] * x_hat;
           grad_x /= (cols * sigma);
 
-          gradXRow[id] += 2 * grad_x;
+          gradXRow[id] += gamma[id] * grad_x;
           atomicAdd(gradGamma + id, adjRow[id] * x_hat);
           if (beta) {
             atomicAdd(gradBeta + id, adjRow[id]);
@@ -1397,6 +1397,7 @@ __global__ void gLayerNormalizationGrad(float* gradX, float* gradGamma, float* g
 
 void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
                             Tensor adj, Tensor y, Tensor x, Tensor gamma, Tensor beta) {
+  cudaSetDevice(adj->getDevice());
   int rows = y->shape()[0] * y->shape()[2] * y->shape()[3];
   int cols = y->shape()[1];
 
