@@ -12,6 +12,7 @@
 #include "common/loader.h"
 #include "common/scorer.h"
 #include "common/sentence.h"
+#include "common/sentences.h"
 
 #include "cpu/mblas/matrix.h"
 #include "cpu/decoder/best_hyps.h"

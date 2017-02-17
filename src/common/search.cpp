@@ -1,7 +1,6 @@
-#include "common/search.h"
-
 #include <boost/timer/timer.hpp>
-
+#include "common/search.h"
+#include "common/sentences.h"
 #include "common/god.h"
 #include "common/history.h"
 #include "common/filter.h"

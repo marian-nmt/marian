@@ -10,6 +10,7 @@
 #include "common/threadpool.h"
 #include "common/printer.h"
 #include "common/sentence.h"
+#include "common/sentences.h"
 #include "common/exception.h"
 #include "common/translation_task.h"
 

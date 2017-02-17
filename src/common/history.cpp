@@ -1,5 +1,6 @@
 #include "history.h"
 #include "sentence.h"
+#include "sentences.h"
 
 namespace amunmt {
 

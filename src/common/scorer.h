@@ -11,6 +11,7 @@
 namespace amunmt {
 
 class God;
+class Sentences;
 
 class State {
   public:

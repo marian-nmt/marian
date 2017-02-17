@@ -1,4 +1,5 @@
 #include "encoder.h"
+#include "common/sentences.h"
 
 using namespace std;
 

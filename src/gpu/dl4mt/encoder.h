@@ -7,6 +7,9 @@
 #include "gpu/types-gpu.h"
 
 namespace amunmt {
+
+class Sentences;
+
 namespace GPU {
 
 class Encoder {

@@ -7,6 +7,8 @@
 
 namespace amunmt {
 
+class Sentences;
+
 class History {
   private:
     struct HypothesisCoord {
