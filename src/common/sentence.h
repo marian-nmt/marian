@@ -33,7 +33,7 @@ using SentencesPtr = std::shared_ptr<Sentences>;
 
 class Sentences {
  public:
-  Sentences(size_t taskCounter = 0, size_t bunchId = 0);
+  Sentences();
   ~Sentences();
 
   void push_back(SentencePtr sentence);
@@ -50,24 +50,12 @@ class Sentences {
     return maxLength_;
   }
 
-  // for debugging only. Do not use to assign to thread, GPU etc
-  size_t GetTaskCounter() const {
-    return taskCounter_;
-  }
-
-  // for debugging only. Do not use to assign to thread, GPU etc
-  size_t GetBunchId() const {
-    return bunchId_;
-  }
-
   void SortByLength();
 
   SentencesPtr NextMiniBatch(size_t batchsize);
 
  protected:
    std::vector<SentencePtr> coll_;
-   size_t taskCounter_;
-   size_t bunchId_;
    size_t maxLength_;
 
    Sentences(const Sentences &) = delete;

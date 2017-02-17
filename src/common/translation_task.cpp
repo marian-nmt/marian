@@ -7,7 +7,7 @@ using namespace std;
 
 namespace amunmt {
 
-void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences, size_t taskCounter) {
+void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences) {
   Search &search = god.GetSearch();
 
   try {

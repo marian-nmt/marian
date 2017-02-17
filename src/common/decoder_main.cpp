@@ -24,7 +24,6 @@ int main(int argc, char* argv[]) {
 
   std::string in;
   std::size_t lineNum = 0;
-  std::size_t taskCounter = 0;
 
   size_t miniBatch = god.Get<size_t>("mini-batch");
   size_t maxiBatch = god.Get<size_t>("maxi-batch");
@@ -63,12 +62,11 @@ int main(int argc, char* argv[]) {
         while (maxiSentences->size()) {
           SentencesPtr miniSentences = maxiSentences->NextMiniBatch(miniBatch);
           pool.enqueue(
-              [&god,miniSentences,taskCounter]{ return TranslationTask(god, miniSentences, taskCounter); }
+              [&god,miniSentences]{ return TranslationTask(god, miniSentences); }
               );
         }
 
         maxiSentences.reset(new Sentences());
-        taskCounter++;
       }
 
     }
@@ -77,7 +75,7 @@ int main(int argc, char* argv[]) {
     while (maxiSentences->size()) {
       SentencesPtr miniSentences = maxiSentences->NextMiniBatch(miniBatch);
       pool.enqueue(
-          [&god,miniSentences,taskCounter]{ return TranslationTask(god, miniSentences, taskCounter); }
+          [&god,miniSentences]{ return TranslationTask(god, miniSentences); }
           );
     }
   }
