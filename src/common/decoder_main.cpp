@@ -26,14 +26,8 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t lineNum = 0;
 
-  size_t miniBatch = god.Get<size_t>("mini-batch");
   size_t maxiBatch = god.Get<size_t>("maxi-batch");
   //std::cerr << "mode=" << god.Get("mode") << std::endl;
-
-  if (god.Get<bool>("wipo")) {
-    miniBatch = 1;
-    maxiBatch = 1;
-  }
 
   size_t cpuThreads = god.Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
@@ -59,26 +53,13 @@ int main(int argc, char* argv[]) {
       maxiSentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
       if (maxiSentences->size() >= maxiBatch) {
-        maxiSentences->SortByLength();
-        while (maxiSentences->size()) {
-          SentencesPtr miniSentences = maxiSentences->NextMiniBatch(miniBatch);
-          pool.enqueue(
-              [&god,miniSentences]{ return TranslationTask(god, miniSentences); }
-              );
-        }
-
+        maxiSentences->Enqueue(god, pool);
         maxiSentences.reset(new Sentences());
       }
 
     }
 
-    maxiSentences->SortByLength();
-    while (maxiSentences->size()) {
-      SentencesPtr miniSentences = maxiSentences->NextMiniBatch(miniBatch);
-      pool.enqueue(
-          [&god,miniSentences]{ return TranslationTask(god, miniSentences); }
-          );
-    }
+    maxiSentences->Enqueue(god, pool);
   }
 
   LOG(info) << "Total time: " << timer.format();

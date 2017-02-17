@@ -3,6 +3,8 @@
 
 namespace amunmt {
 
+class God;
+class ThreadPool;
 class Sentences;
 using SentencesPtr = std::shared_ptr<Sentences>;
 
@@ -28,6 +30,8 @@ class Sentences {
   void SortByLength();
 
   SentencesPtr NextMiniBatch(size_t batchsize);
+
+  void Enqueue(const God &god, ThreadPool &pool);
 
  protected:
    std::vector<SentencePtr> coll_;

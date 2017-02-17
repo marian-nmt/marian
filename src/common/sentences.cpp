@@ -1,5 +1,7 @@
 #include <algorithm>
 #include "sentences.h"
+#include "god.h"
+#include "translation_task.h"
 
 namespace amunmt {
 
@@ -42,6 +44,19 @@ SentencesPtr Sentences::NextMiniBatch(size_t batchsize)
 
   coll_.resize(startInd);
   return sentences;
+}
+
+void Sentences::Enqueue(const God &god, ThreadPool &pool)
+{
+  size_t miniBatch = god.Get<size_t>("mini-batch");
+
+  SortByLength();
+  while (size()) {
+    SentencesPtr miniSentences = NextMiniBatch(miniBatch);
+    pool.enqueue(
+        [&god,miniSentences]{ return TranslationTask(god, miniSentences); }
+        );
+  }
 }
 
 }
