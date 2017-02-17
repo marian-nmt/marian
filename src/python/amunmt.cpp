@@ -16,6 +16,7 @@
 using namespace amunmt;
 
 God god_;
+std::unique_ptr<ThreadPool> pool;
 
 std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
   Search &search = god_.GetSearch();
@@ -27,7 +28,10 @@ std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCou
 
 void init(const std::string& options) {
   god_.Init(options);
+  size_t totalThreads = god_.Get<size_t>("gpu-threads") + god_.Get<size_t>("cpu-threads");
+  pool.reset(new ThreadPool(totalThreads));
 }
+
 
 boost::python::list translate(boost::python::list& in) {
   size_t cpuThreads = god_.Get<size_t>("cpu-threads");
@@ -44,14 +48,13 @@ boost::python::list translate(boost::python::list& in) {
   LOG(info) << "Total number of threads: " << totalThreads;
   amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
-  ThreadPool pool(totalThreads);
   std::vector<std::future< std::shared_ptr<Histories> >> results;
 
   boost::python::list output;
   for(int i = 0; i < boost::python::len(in); ++i) {
     std::string s = boost::python::extract<std::string>(boost::python::object(in[i]));
     results.emplace_back(
-        pool.enqueue(
+        pool->enqueue(
             [=]{ return TranslationTask(s, i); }
         )
     );
