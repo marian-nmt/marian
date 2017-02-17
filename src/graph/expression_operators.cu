@@ -136,30 +136,20 @@ Expr square(Expr a) {
 
 Expr layer_norm(Expr x, Expr gamma, Expr beta) {
   std::vector<Expr> nodes = {x, gamma};
-  if (beta) {
-    nodes.emplace_back(beta);
-  }
+  if(beta)
+    nodes.push_back(beta);
   return Expression<LayerNormalizationOp>(nodes);
 }
 
-Expr batch_norm(Expr x, Expr gamma, Expr beta) {
-  if(false) {
-    std::vector<Expr> nodes = {x, gamma};
-    if (beta) {
-      nodes.emplace_back(beta);
-    }
-    return Expression<LayerNormalizationOp>(nodes);
-  }
-  else {
-    auto mju = mean(x, keywords::axis=1);
-    auto xmmju = x - mju;
-    auto std = sqrt(mean(square(xmmju), keywords::axis=1), 1e-9);
-
-    if(beta)
-      return gamma * (xmmju / std) + beta;
-    else
-      return gamma * (xmmju / std);
-  }
-}
+//Expr batch_norm(Expr x, Expr gamma, Expr beta) {
+//  auto mju = mean(x, keywords::axis=0);
+//  auto xmmju = x - mju;
+//  auto std = sqrt(mean(square(xmmju), keywords::axis=0), 1e-9);
+//
+//  if(beta)
+//    return gamma * (xmmju / std) + beta;
+//  else
+//    return gamma * (xmmju / std);
+//}
 
 }

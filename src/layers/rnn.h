@@ -311,7 +311,7 @@ class GRU {
 
 /***************************************************************/
 
-class BNGRU {
+class LNGRU {
   private:
     Expr U_, W_, b_;
     Expr gamma1_;
@@ -319,7 +319,7 @@ class BNGRU {
     bool final_;
 
   public:
-    BNGRU() {}
+    LNGRU() {}
 
     template <typename ...Args>
     void initialize(
@@ -358,12 +358,12 @@ class BNGRU {
     }
 
     Expr apply1(Expr input) {
-      auto xW = batch_norm(dot(input, W_), gamma1_);
+      auto xW = layer_norm(dot(input, W_), gamma1_);
       return xW;
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto sU = batch_norm(dot(state, U_), gamma2_);
+      auto sU = layer_norm(dot(state, U_), gamma2_);
 
       auto output = mask ?
         gruOps({state, xW, sU, b_, mask}, final_) :
@@ -432,6 +432,6 @@ class AttentionCell {
 };
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
-typedef AttentionCell<BNGRU, GlobalAttention, BNGRU> BNCGRU;
+typedef AttentionCell<LNGRU, GlobalAttention, LNGRU> LNCGRU;
 
 }

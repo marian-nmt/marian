@@ -292,7 +292,7 @@ class DL4MT {
       std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
 
       // Encoder
-      auto xContext = BiRNN<BNGRU>("encoder", dimEncState_)
+      auto xContext = BiRNN<LNGRU>("encoder", dimEncState_)
                         (x, mask=xMask);
 
       return std::make_tuple(xContext, xMask);
@@ -350,8 +350,8 @@ class DL4MT {
       Expr xContext, xMask;
       std::tie(xContext, xMask) = encoder(graph, batch);
 
-      BNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
-      auto decoderRNN = New<RNN<BNCGRU>>("decoder", dimDecState_, cgru);
+      LNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
+      auto decoderRNN = New<RNN<LNCGRU>>("decoder", dimDecState_, cgru);
 
       auto yStartStates = startState(xContext, xMask);
 
@@ -375,8 +375,8 @@ class DL4MT {
       Expr xContext, xMask;
       std::tie(xContext, xMask) = encoder(graph, batch);
 
-      BNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
-      auto decoderRNN = New<RNN<BNCGRU>>("decoder", dimDecState_, cgru);
+      LNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
+      auto decoderRNN = New<RNN<LNCGRU>>("decoder", dimDecState_, cgru);
 
       auto yStartStates = startState(xContext, xMask);
 

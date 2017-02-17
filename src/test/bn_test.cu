@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     auto gamma = graph->param("gamma", {1, 3072}, init=inits::from_value(2.0));
     auto beta = graph->param("beta", {1, 3072}, init=inits::zeros);
 
-    auto y = batch_norm(x, gamma, beta);
+    auto y = layer_norm(x, gamma, beta);
 
     auto yLogitsL1 = Dense("ff_logit_l1", 512,
                              activation=act::tanh,

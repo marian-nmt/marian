@@ -28,7 +28,7 @@ namespace marian {
     private:
       int outDim_;
       act activation_;
-      bool batchNorm_;
+      bool layerNorm_;
 
     public:
       template <class ...Args>
@@ -40,7 +40,7 @@ namespace marian {
          activation_(Get(keywords::activation,
                          act::linear,
                          args...)),
-         batchNorm_(Get(keywords::normalize,
+         layerNorm_(Get(keywords::normalize,
                         false, args...)) {}
 
       Expr operator()(Expr in) {
@@ -53,12 +53,12 @@ namespace marian {
         params_ = { W, b };
 
         Expr out;
-        if(batchNorm_) {
+        if(layerNorm_) {
           auto gamma = g->param(name_ + "_gamma", {1, outDim_},
                                 keywords::init=inits::from_value(1.0));
 
           params_.push_back(gamma);
-          out = batch_norm(dot(in, W), gamma, b);
+          out = layer_norm(dot(in, W), gamma, b);
         }
         else {
           out = affine(in, W, b);
@@ -99,12 +99,12 @@ namespace marian {
           params_.push_back(W);
           params_.push_back(b);
 
-          if(batchNorm_) {
+          if(layerNorm_) {
             auto gamma = g->param(name_ + "_gamma" + std::to_string(i), {1, outDim_},
                                   keywords::init=inits::from_value(1.0));
 
             params_.push_back(gamma);
-            outputs.push_back(batch_norm(dot(in, W), gamma, b));
+            outputs.push_back(layer_norm(dot(in, W), gamma, b));
           }
           else {
             outputs.push_back(affine(in, W, b));

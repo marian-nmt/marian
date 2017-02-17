@@ -89,7 +89,7 @@ class GlobalAttention {
     Expr softmaxMask_;
     Expr mappedContext_;
     std::vector<Expr> contexts_;
-    bool batchNorm_;
+    bool layerNorm_;
 
   public:
 
@@ -100,7 +100,7 @@ class GlobalAttention {
               Args ...args)
      : context_(context),
        softmaxMask_(nullptr),
-       batchNorm_(Get(keywords::normalize, false, args...)) {
+       layerNorm_(Get(keywords::normalize, false, args...)) {
 
       int dimEncState = context->shape()[1];
       auto graph = context->graph();
@@ -114,13 +114,13 @@ class GlobalAttention {
       ba_ = graph->param(prefix + "_b_att", {1, dimEncState},
                          keywords::init=inits::zeros);
 
-      if(batchNorm_) {
+      if(layerNorm_) {
         gammaContext_ = graph->param(prefix + "_att_gamma1", {1, dimEncState},
                                      keywords::init=inits::from_value(1.0));
         gammaState_ = graph->param(prefix + "_att_gamma2", {1, dimEncState},
                                    keywords::init=inits::from_value(1.0));
 
-        mappedContext_ = batch_norm(dot(context_, Ua_), gammaContext_, ba_);
+        mappedContext_ = layer_norm(dot(context_, Ua_), gammaContext_, ba_);
       }
       else {
         mappedContext_ = affine(context_, Ua_, ba_);
@@ -141,8 +141,8 @@ class GlobalAttention {
       int srcWords = context_->shape()[2];
 
       auto mappedState = dot(state, Wa_);
-      if(batchNorm_)
-        mappedState = batch_norm(mappedState, gammaState_);
+      if(layerNorm_)
+        mappedState = layer_norm(mappedState, gammaState_);
 
       auto attReduce = attOps(mappedContext_, mappedState, va_);
 
