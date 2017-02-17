@@ -46,18 +46,5 @@ SentencesPtr Sentences::NextMiniBatch(size_t batchsize)
   return sentences;
 }
 
-void Sentences::Enqueue(const God &god, ThreadPool &pool)
-{
-  size_t miniBatch = god.Get<size_t>("mini-batch");
-
-  SortByLength();
-  while (size()) {
-    SentencesPtr miniSentences = NextMiniBatch(miniBatch);
-    pool.enqueue(
-        [&god,miniSentences]{ return TranslationTask(god, miniSentences); }
-        );
-  }
-}
-
 }
 

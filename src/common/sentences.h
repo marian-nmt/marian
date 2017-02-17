@@ -31,8 +31,6 @@ class Sentences {
 
   SentencesPtr NextMiniBatch(size_t batchsize);
 
-  void Enqueue(const God &god, ThreadPool &pool);
-
  protected:
    std::vector<SentencePtr> coll_;
    size_t maxLength_;

@@ -13,6 +13,8 @@
 #include "common/processor/bpe.h"
 #include "common/utils.h"
 #include "common/search.h"
+#include "common/sentences.h"
+#include "common/translation_task.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
@@ -279,6 +281,20 @@ Search &God::GetSearch() const
 {
   thread_local Search obj(*this);
   return obj;
+}
+
+void God::Enqueue(Sentences &maxiBatch, ThreadPool &pool)
+{
+  size_t miniBatch = Get<size_t>("mini-batch");
+
+  maxiBatch.SortByLength();
+  while (maxiBatch.size()) {
+    SentencesPtr miniBatch = maxiBatch.NextMiniBatch(miniBatch);
+    pool.enqueue(
+        [this,miniBatch]{ return TranslationTask(*this, miniBatch); }
+        );
+  }
+
 }
 
 }

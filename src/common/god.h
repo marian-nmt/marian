@@ -73,6 +73,8 @@ class God {
     DeviceInfo GetNextDevice() const;
     Search &GetSearch() const;
 
+    void Enqueue(Sentences &maxiBatch, ThreadPool &pool);
+
   private:
     void LoadScorers();
     void LoadFiltering();

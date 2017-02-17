@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t lineNum = 0;
 
-  size_t maxiBatch = god.Get<size_t>("maxi-batch");
+  size_t maxiSize = god.Get<size_t>("maxi-batch");
   //std::cerr << "mode=" << god.Get("mode") << std::endl;
 
   size_t cpuThreads = god.Get<size_t>("cpu-threads");
@@ -47,19 +47,19 @@ int main(int argc, char* argv[]) {
     ThreadPool pool(totalThreads, totalThreads);
     LOG(info) << "Reading input";
 
-    SentencesPtr maxiSentences(new Sentences());
+    SentencesPtr maxiBatch(new Sentences());
 
     while (std::getline(god.GetInputStream(), in)) {
-      maxiSentences->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
+      maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
-      if (maxiSentences->size() >= maxiBatch) {
-        maxiSentences->Enqueue(god, pool);
-        maxiSentences.reset(new Sentences());
+      if (maxiBatch->size() >= maxiSize) {
+        god.Enqueue(*maxiBatch, pool);
+        maxiBatch.reset(new Sentences());
       }
 
     }
 
-    maxiSentences->Enqueue(god, pool);
+    god.Enqueue(*maxiBatch, pool);
   }
 
   LOG(info) << "Total time: " << timer.format();
