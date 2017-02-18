@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto dl4mt = New<DL4MT>();
+  auto dl4mt = New<DL4MT>(options);
   dl4mt->load(graph, "../benchmark/marian32K/modelBN.90000.npz");
 
   graph->reserveWorkspaceMB(128);

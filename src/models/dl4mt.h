@@ -25,6 +25,8 @@ class DL4MT {
 
     int dimBatch_{64};
 
+    bool normalize_;
+
     void setDims(Ptr<ExpressionGraph> graph,
                  Ptr<data::CorpusBatch> batch) {
       dimSrcVoc_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[0] : dimSrcVoc_;
@@ -40,12 +42,14 @@ class DL4MT {
 
   public:
 
-    DL4MT() {}
+    //DL4MT() {}
 
     DL4MT(Ptr<Config> options)
     : options_(options) {
 
       auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
+
+      normalize_ = options->get<bool>("normalize");
 
       dimSrcVoc_   = dimVocabs[0];
       dimSrcEmb_   = options->get<int>("dim-emb");
@@ -65,7 +69,7 @@ class DL4MT {
 
       auto numpy = cnpy::npz_load(name);
 
-      auto parameters = {
+      std::vector<std::string> parameters = {
         // Source word embeddings
         "Wemb",
 
@@ -100,7 +104,9 @@ class DL4MT {
         "ff_logit_prev_W", "ff_logit_prev_b",
         "ff_logit_ctx_W", "ff_logit_ctx_b",
         "ff_logit_W", "ff_logit_b",
+      };
 
+      std::vector<std::string> parametersNorm = {
         "decoder_att_gamma1", "decoder_att_gamma2",
         "decoder_cell1_gamma1", "decoder_cell1_gamma2",
         "decoder_cell2_gamma1", "decoder_cell2_gamma2",
@@ -109,6 +115,10 @@ class DL4MT {
         "ff_logit_l1_gamma0", "ff_logit_l1_gamma1",
         "ff_logit_l1_gamma2", "ff_state_gamma"
       };
+
+      if(normalize_)
+        for(auto& p : parametersNorm)
+          parameters.push_back(p);
 
       std::map<std::string, std::string> nameMap = {
         {"decoder_U", "decoder_cell1_U"},
@@ -137,6 +147,9 @@ class DL4MT {
       };
 
       for(auto name : parameters) {
+        UTIL_THROW_IF2(numpy.count(name) == 0,
+                       "Parameter " << name << " does not exist.");
+
         Shape shape;
         if(numpy[name].shape.size() == 2) {
           shape.set(0, numpy[name].shape[0]);
@@ -292,7 +305,9 @@ class DL4MT {
       std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
 
       // Encoder
-      auto xContext = BiRNN<LNGRU>("encoder", dimEncState_)
+      auto xContext = BiRNN<GRU>(graph, "encoder",
+                                 dimSrcEmb_, dimEncState_,
+                                 normalize=normalize_)
                         (x, mask=xMask);
 
       return std::make_tuple(xContext, xMask);
@@ -308,7 +323,7 @@ class DL4MT {
       //// 2-layer feedforward network for outputs and cost
       auto yLogitsL1 = Dense("ff_logit_l1", dimTrgEmb_,
                              activation=act::tanh,
-                             normalize=true)
+                             normalize=normalize_)
                          (yEmbeddings, yOutStates, yCtx);
 
       auto yLogitsL2 = Dense("ff_logit_l2", dimTrgVoc_)
@@ -324,7 +339,7 @@ class DL4MT {
       auto start = Dense("ff_state",
                          dimDecState_,
                          activation=act::tanh,
-                         normalize=true)(meanContext);
+                         normalize=normalize_)(meanContext);
       return start;
     }
 
@@ -350,8 +365,13 @@ class DL4MT {
       Expr xContext, xMask;
       std::tie(xContext, xMask) = encoder(graph, batch);
 
-      LNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
-      auto decoderRNN = New<RNN<LNCGRU>>("decoder", dimDecState_, cgru);
+      auto attention = New<GlobalAttention>("decoder",
+                                            xContext, dimDecState_,
+                                            mask=xMask, normalize=normalize_);
+      auto decoderRNN = New<RNN<CGRU>>(graph, "decoder",
+                                       dimTrgEmb_, dimDecState_,
+                                       attention,
+                                       normalize=normalize_);
 
       auto yStartStates = startState(xContext, xMask);
 
@@ -375,15 +395,17 @@ class DL4MT {
       Expr xContext, xMask;
       std::tie(xContext, xMask) = encoder(graph, batch);
 
-      LNCGRU cgru({"decoder", xContext, dimDecState_, mask=xMask, normalize=true});
-      auto decoderRNN = New<RNN<LNCGRU>>("decoder", dimDecState_, cgru);
+      //auto decoderRNN = New<RNN<CGRU>>(graph, "decoder",
+      //                                 dimTrgEmb_, dimDecState_,
+      //                                 {"decoder", xContext, dimDecState_, mask=xMask, normalize=true},
+      //                                 normalize=true);
 
       auto yStartStates = startState(xContext, xMask);
 
       auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
 
       Expr yOutStates, yLogits;
-      std::tie(yOutStates, yLogits) = step(decoderRNN, yStartStates, yEmpty);
+      //std::tie(yOutStates, yLogits) = step(decoderRNN, yStartStates, yEmpty);
 
       auto ySoftmax = logsoftmax(yLogits);
 

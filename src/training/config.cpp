@@ -191,6 +191,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable layer normalization")
   ;
 
   po::options_description opt("Optimizer options");
@@ -294,6 +296,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
+  SET_OPTION("normalize", bool);
 
   if(doValidate)
     validate();
