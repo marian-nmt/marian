@@ -285,11 +285,11 @@ Search &God::GetSearch() const
 
 void God::Enqueue(Sentences &maxiBatch, ThreadPool &pool)
 {
-  size_t miniBatch = Get<size_t>("mini-batch");
+  size_t miniSize = Get<size_t>("mini-batch");
 
   maxiBatch.SortByLength();
   while (maxiBatch.size()) {
-    SentencesPtr miniBatch = maxiBatch.NextMiniBatch(miniBatch);
+    SentencesPtr miniBatch = maxiBatch.NextMiniBatch(miniSize);
     pool.enqueue(
         [this,miniBatch]{ return TranslationTask(*this, miniBatch); }
         );
