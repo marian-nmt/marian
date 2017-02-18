@@ -314,8 +314,8 @@ class DL4MT {
     }
 
     std::tuple<Expr, Expr> step(Expr hyps,
-                                const std::vector<size_t> hypIdx,
-                                const std::vector<size_t> embIdx) {
+                                const std::vector<size_t> hypIdx = {},
+                                const std::vector<size_t> embIdx = {}) {
       using namespace keywords;
       auto graph = hyps->graph();
 
@@ -323,7 +323,7 @@ class DL4MT {
       if(embIdx.empty()) {
         selectedHyps = hyps;
         selectedEmbs = graph->constant(shape={1, dimTrgEmb_},
-                                      init=inits::zeros);
+                                       init=inits::zeros);
       }
       else {
         selectedHyps = rows(hyps, hypIdx);

@@ -27,7 +27,7 @@ class BeamSearch {
   public:
     BeamSearch(Ptr<Builder> builder)
      : builder_(builder),
-       beamSize_(1)
+       beamSize_(3)
     {}
 
     void search(Ptr<ExpressionGraph> graph,
@@ -37,47 +37,40 @@ class BeamSearch {
 
       Expr startState, hyps, probs;
       startState = builder_->buildEncoder(graph, batch);
-      hyps = startState;
+      std::tie(hyps, probs) = builder_->step(startState);
+      size_t pos = graph->forward();
 
+      std::vector<size_t> beamSizes(batch->size(), beamSize_);
       std::vector<unsigned> outKeys;
+      std::vector<float> outCosts;
 
-      size_t pos = 0;
-      bool first = true;
+      nth->getNBestList(beamSizes, probs->val(),
+                        outCosts, outKeys, true);
+      size_t dimTrgVoc = probs->shape()[1];
 
-      size_t dimTrgVoc = 1;
-
-      while(first || outKeys[0] != 0) {
-
+      std::vector<int> beam(beamSize_, 0);
+      while(outKeys[0] != 0) {
         std::vector<size_t> hypIdx;
         std::vector<size_t> embIdx;
-        for(auto k : outKeys) {
+        for(int i = 0; i < outKeys.size(); ++i) {
+          int k = outKeys[i];
+
           hypIdx.push_back(k / dimTrgVoc);
           embIdx.push_back(k % dimTrgVoc);
 
-          std::cerr << hypIdx.back() << " " << embIdx.back() << std::endl;
+          std::cerr << hypIdx.back() << " "
+            << embIdx.back() << " "
+            << outCosts[i] << std::endl;
         }
+        std::cerr << std::endl;
 
         std::tie(hyps, probs) = builder_->step(hyps, hypIdx, embIdx);
         pos = graph->forward(pos);
 
-        std::cerr << hyps->val()->debug() << std::endl;
-        std::cerr << probs->val()->debug() << std::endl;
-
-        dimTrgVoc = probs->shape()[1];
-
-        std::vector<float> outCosts;
-        std::vector<size_t> beamSizes(batch->size(), beamSize_);
-
         outKeys.clear();
-        nth->getNBestList(beamSizes, probs->val(),
-                          outCosts, outKeys, first);
-        first = false;
-
-        for(int i = 0; i < outKeys.size(); ++i)
-          std::cerr << i << " " << outKeys[i]
-            << " " << outCosts[i] << std::endl;
+        outCosts.clear();
+        nth->getNBestList(beamSizes, probs->val(), outCosts, outKeys, false);
       }
-
     }
 };
 
