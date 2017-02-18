@@ -62,7 +62,7 @@ __global__ void gAdd(Functor functor,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
       if(same) {
-        out[index] += functor(in1[index]);
+        out[index] += functor(in1[index]) * scale;
       }
       else {
         outShape.dims(index, dims);
@@ -221,7 +221,7 @@ __global__ void gAdd(Functor functor,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if (index < outLength) {
       if(same) {
-        out[index] += functor(in1[index], in2[index]);
+        out[index] += functor(in1[index], in2[index]) * scale;
       }
       else {
         outShape.dims(index, dims);

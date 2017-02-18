@@ -47,6 +47,7 @@ template <class Distribution>
 void distribution(std::vector<float>& vals, float a, float b) {
   std::random_device device;
   std::default_random_engine engine(device());
+  engine.seed(1234);
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
 

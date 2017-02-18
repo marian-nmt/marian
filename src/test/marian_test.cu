@@ -21,12 +21,12 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-    {"../test/mini.de",
-     "../test/mini.en"};
+    {"../testln/mini.en",
+     "../testln/mini.de"};
 
   std::vector<std::string> vocab =
-    {"../test/vocab.de.json",
-     "../test/vocab.en.json"};
+    {"../testln/train.tok.true.bpe.en.json",
+     "../testln/train.tok.true.bpe.de.json"};
 
   YAML::Node& c = options->get();
   c["train-sets"] = files;
@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto dl4mt = New<DL4MT>();
-  dl4mt->load(graph, "../test/model.npz");
+  auto dl4mt = New<DL4MT>(options);
+  dl4mt->load(graph, "../testln/modelBN.150000.npz");
 
   graph->reserveWorkspaceMB(128);
 

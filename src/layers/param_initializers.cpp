@@ -44,9 +44,6 @@ float xor128() {
     return 0.1 * ((w % 1000) / 1000.f) - 0.05;
 }
 
-// Use a constant seed for deterministic behaviour.
-//std::default_random_engine engine(42);
-
 void zeros(Tensor t) {
   t->set(0.f);
 }
