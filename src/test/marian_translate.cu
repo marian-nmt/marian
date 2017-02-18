@@ -53,15 +53,17 @@ class BeamSearch {
         for(auto k : outKeys) {
           hypIdx.push_back(k / dimTrgVoc);
           embIdx.push_back(k % dimTrgVoc);
+
+          std::cerr << hypIdx.back() << " " << embIdx.back() << std::endl;
         }
 
-        std::tie(hyps, probs) = builder_->stepPredict(hyps, hypIdx, embIdx);
+        std::tie(hyps, probs) = builder_->step(hyps, hypIdx, embIdx);
         pos = graph->forward(pos);
 
         std::cerr << hyps->val()->debug() << std::endl;
         std::cerr << probs->val()->debug() << std::endl;
 
-        dimTrgVoc = probs->shape()[0];
+        dimTrgVoc = probs->shape()[1];
 
         std::vector<float> outCosts;
         std::vector<size_t> beamSizes(batch->size(), beamSize_);
