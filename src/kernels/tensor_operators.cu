@@ -660,7 +660,7 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaSetDevice(out->getDevice());
 
   size_t offset = 0;
-  int rows = out->shape()[0];
+  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
   int cols_out = out->shape()[1];
 
   for(auto in : inputs) {

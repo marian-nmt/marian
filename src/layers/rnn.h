@@ -121,7 +121,7 @@ class RNN : public Layer {
 
       if(direction_ == dir::backward) {
         auto states = apply(input, state, mask, true);
-        //std::reverse(states.begin(), states.end());
+        std::reverse(states.begin(), states.end());
         if(outputLast_)
           return states.back();
         else
@@ -141,8 +141,64 @@ class RNN : public Layer {
 };
 
 template <class Cell>
+class MLRNN : public Layer {
+  private:
+    int layers_;
+    int dimState_;
+    std::vector<Ptr<RNN<Cell>>> rnns_;
+
+  public:
+
+    template <typename ...Args>
+    MLRNN(Ptr<ExpressionGraph> graph,
+          const std::string& name,
+          int layers,
+          int dimInput,
+          int dimState,
+          Args ...args)
+    : Layer(name),
+      layers_(layers),
+      dimState_{dimState} {
+      for(int i = 0; i < layers; ++i) {
+        rnns_.push_back(
+          New<RNN<Cell>>(graph,
+                         name + "_l" + std::to_string(i),
+                         i == 0 ? dimInput : dimState,
+                         dimState,
+                         args...)
+        );
+      }
+    }
+
+    template <typename ...Args>
+    std::vector<Expr> operator()(Expr input, Args ...args) {
+      Expr output = input;
+      std::vector<Expr> outStates;
+      for(auto& rnn : rnns_) {
+        output = (*rnn)(output, args...);
+        outStates.push_back(output);
+      }
+      return outStates;
+    }
+
+    template <typename ...Args>
+    std::vector<Expr> operator()(Expr input,
+                                 std::vector<Expr> states,
+                                 Args ...args) {
+      Expr output = input;
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i) {
+        output = (*rnns_[i])(output, states[i], args...);
+        outStates.push_back(output);
+      }
+      return outStates;
+    }
+};
+
+template <class Cell>
 class BiRNN : public Layer {
   public:
+    int layers_;
     int dimState_;
 
     Ptr<RNN<Cell>> rnn1_;
@@ -151,43 +207,43 @@ class BiRNN : public Layer {
     template <typename ...Args>
     BiRNN(Ptr<ExpressionGraph> graph,
           const std::string& name,
+          int layers,
           int dimInput,
           int dimState,
           Args ...args)
     : Layer(name),
       dimState_{dimState},
-      rnn1_(New<RNN<Cell>>(graph, name, dimInput, dimState,
-                           keywords::direction=dir::forward,
-                           args...)),
-      rnn2_(New<RNN<Cell>>(graph, name + "_r", dimInput, dimState,
-                           keywords::direction=dir::backward,
-                           args...)) {}
+      rnn1_(New<MLRNN<Cell>>(graph, name, layers, dimInput, dimState,
+                             keywords::direction=dir::forward,
+                             args...)),
+      rnn2_(New<MLRNN<Cell>>(graph, name + "_r", layers, dimInput, dimState,
+                             keywords::direction=dir::backward,
+                             args...)) {}
 
     template <typename ...Args>
-    Expr operator()(Expr input, Args ...args) {
-      auto graph = input->graph();
-      int dimBatch = input->shape()[0];
-      auto startState = graph->zeros(keywords::shape={dimBatch, dimState_});
-      return (*this)(input, startState, args...);
+    std::vector<Expr> operator()(Expr input, Args ...args) {
+      Expr mask = Get(keywords::mask, nullptr, args...);
+      auto statesfw = (*rnn1_)(input);
+      auto statesbw = (*rnn2_)(input, keywords::mask=mask);
+
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i)
+        outStates.push_back(concatenate({statesfw[i], statesbw[i]},
+                                        keywords::axis=1));
+      return outStates;
     }
 
     template <typename ...Args>
-    Expr operator()(Expr input, Expr state, Args ...args) {
+    std::vector<Expr> operator()(Expr input, std::vector<Expr> states, Args ...args) {
       Expr mask = Get(keywords::mask, nullptr, args...);
+      auto statesfw = (*rnn1_)(input, states);
+      auto statesbw = (*rnn2_)(input, states, keywords::mask=mask);
 
-      auto graph = input->graph();
-      int dimInput = input->shape()[1];
-
-      auto states1 = rnn1_->apply(input, state, nullptr);
-      auto states2 = rnn2_->apply(input, state, mask, true);
-
-      std::reverse(states2.begin(), states2.end());
-      std::vector<Expr> states;
-      for(int i = 0; i < states1.size(); ++i)
-        states.push_back(concatenate({states1[i], states2[i]},
-                                     keywords::axis=1));
-
-      return concatenate(states, keywords::axis=2);
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i)
+        outStates.push_back(concatenate({statesfw[i], statesbw[i]},
+                                        keywords::axis=1));
+      return outStates;
     }
 };
 

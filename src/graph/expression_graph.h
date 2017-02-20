@@ -142,6 +142,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     size_t forward(size_t pos) {
+      // @TODO: check if allocation works properly
       auto it = nodes_.begin() + pos;
       while(it != nodes_.end()) {
         auto v = *it;

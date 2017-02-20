@@ -16,6 +16,7 @@ cuda_add_library(marian_lib
   layers/param_initializers.cpp
   common/utils.cpp
   common/logging.cpp
+  common/history.cpp
   training/config.cpp
   translator/nth_element.cu
   data/vocab.cpp

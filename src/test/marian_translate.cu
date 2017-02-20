@@ -14,6 +14,7 @@
 #include "data/corpus.h"
 #include "models/dl4mt.h"
 #include "translator/nth_element.h"
+#include "common/history.h"
 
 namespace marian {
 
@@ -27,67 +28,96 @@ class BeamSearch {
   public:
     BeamSearch(Ptr<Builder> builder)
      : builder_(builder),
-       beamSize_(3)
+       beamSize_(12)
     {}
 
-    void search(Ptr<ExpressionGraph> graph,
-                Ptr<data::CorpusBatch> batch) {
+    Beam toHyps(const std::vector<uint> keys,
+                  const std::vector<float> costs,
+                  size_t vocabSize,
+                  const Beam& beam) {
+      Beam newBeam;
+      for(int i = 0; i < keys.size(); ++i) {
+        int embIdx = keys[i] % vocabSize;
+        int hypIdx = keys[i] / vocabSize;
+        newBeam.push_back(
+          New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, costs[i]));
+      }
+      return newBeam;
+    }
 
-      auto nth = New<NthElement>(beamSize_, batch->size(), stream_);
+    Beam pruneBeam(const Beam& beam) {
+      Beam newBeam;
+      for(auto hyp : beam) {
+        if(hyp->GetWord() > 0) {
+          newBeam.push_back(hyp);
+        }
+      }
+      return newBeam;
+    }
+
+    std::tuple<Expr, Expr> step(Expr hyps, const Beam& beam) {
+      std::vector<size_t> hypIndeces;
+      std::vector<size_t> embIndeces;
+      std::vector<float> beamCosts;
+
+      for(auto hyp : beam) {
+        hypIndeces.push_back(hyp->GetPrevStateIndex());
+        embIndeces.push_back(hyp->GetWord());
+        beamCosts.push_back(hyp->GetCost());
+      }
+
+      auto graph = hyps->graph();
+      auto costs = graph->constant(keywords::shape={(int)beamCosts.size(), 1},
+                                   keywords::init=inits::from_vector(beamCosts));
+      Expr probs;
+      std::tie(hyps, probs) = builder_->step(hyps, hypIndeces, embIndeces);
+      probs = probs + costs;
+      return std::make_tuple(hyps, probs);
+    }
+
+    Ptr<History> search(Ptr<ExpressionGraph> graph,
+                        Ptr<data::CorpusBatch> batch) {
 
       Expr startState, hyps, probs;
       startState = builder_->buildEncoder(graph, batch);
-      std::tie(hyps, probs) = builder_->step(startState);
-      size_t pos = graph->forward();
 
+      size_t pos = 0;
+      auto history = New<History>(0);
+      Beam beam(1, New<Hypothesis>());
+      bool first = true;
+      bool final = false;
       std::vector<size_t> beamSizes(1, beamSize_);
-      std::vector<unsigned> outKeys;
-      std::vector<float> outCosts;
+      auto nth = New<NthElement>(beamSize_, batch->size(), stream_);
 
-      nth->getNBestList(beamSizes, probs->val(),
-                        outCosts, outKeys, true);
-      size_t dimTrgVoc = probs->shape()[1];
+      do {
 
-      while(beamSizes[0] > 0) {
-        std::vector<size_t> hypIndeces;
-        std::vector<size_t> embIndeces;
-        std::vector<float> beamCosts;
-
-        for(int i = 0; i < outKeys.size(); ++i) {
-          int k = outKeys[i];
-
-          int embIdx = k % dimTrgVoc;
-          int hypIdx  = k / dimTrgVoc;
-
-          std::cerr
-            << hypIdx << " "
-            << embIdx << " "
-            << outCosts[i]
-            << std::endl;
-
-          if(embIdx != 0) {
-            embIndeces.push_back(embIdx);
-            hypIndeces.push_back(hypIdx);
-            beamCosts.push_back(outCosts[i]);
-          }
+        if(first) {
+          std::tie(hyps, probs) = builder_->step(startState);
+          pos = graph->forward();
         }
-        std::cerr << std::endl;
+        else {
+          std::tie(hyps, probs) = step(hyps, beam);
+          beamSizes.clear();
+          beamSizes.resize(1, beam.size());
+          pos = graph->forward(pos);
+        }
 
-        if(hypIndeces.empty())
-          break;
+        size_t dimTrgVoc = probs->shape()[1];
 
-        auto costs = graph->constant(keywords::shape={(int)beamCosts.size(), 1},
-                                     keywords::init=inits::from_vector(beamCosts));
-        std::tie(hyps, probs) = builder_->step(hyps, hypIndeces, embIndeces);
-        probs = probs + costs;
-        pos = graph->forward(pos);
+        std::vector<unsigned> outKeys;
+        std::vector<float> outCosts;
+        nth->getNBestList(beamSizes, probs->val(),
+                          outCosts, outKeys, first);
+        first = false;
 
-        outKeys.clear();
-        outCosts.clear();
-        beamSizes.clear();
-        beamSizes.resize(1, hypIndeces.size());
-        nth->getNBestList(beamSizes, probs->val(), outCosts, outKeys, false);
-      }
+        beam = toHyps(outKeys, outCosts, dimTrgVoc, beam);
+        final = history->size() >= 3 * batch->words();
+        history->Add(beam, final);
+        beam = pruneBeam(beam);
+
+      } while(!beam.empty() && !final);
+
+      return history;
     }
 };
 
@@ -100,7 +130,7 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-    {"../test/mini.en"};
+    {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
 
   std::vector<std::string> vocab =
     {"../benchmark/marian32K/train.tok.true.bpe.en.json"};
@@ -115,8 +145,11 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto dl4mt = New<DL4MT>(options);
-  dl4mt->load(graph, "../benchmark/marian32K/modelBN.90000.npz");
+  auto target = New<Vocab>();
+  target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
+
+  auto encdec = New<DL4MT>(options);
+  encdec->load(graph, "../benchmark/marian32K/modelML.10000.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -124,12 +157,15 @@ int main(int argc, char** argv) {
   bg.prepare(false);
   while(bg) {
     auto batch = bg.next();
-    batch->debug();
+    auto search = New<BeamSearch<DL4MT>>(encdec);
+    auto history = search->search(graph, batch);
 
-    auto search = New<BeamSearch<DL4MT>>(dl4mt);
-    search->search(graph, batch);
+    auto r = history->Top();
+    for(auto w : r.first)
+      if(w != 0)
+        std::cout << (*target)[w] << " ";
+    std::cout << std::endl;
 
-    exit(0);
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;
