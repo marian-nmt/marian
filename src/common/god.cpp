@@ -30,6 +30,7 @@ God::God()
 
 God::~God()
 {
+  Cleanup();
 }
 
 God& God::Init(const std::string& options) {
@@ -86,7 +87,20 @@ God& God::Init(int argc, char** argv) {
 
   LoadPrePostProcessing();
 
+  size_t totalThreads = GetTotalThreads();
+  LOG(info) << "Total number of threads: " << totalThreads;
+  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+
+  pool_.reset(new ThreadPool(totalThreads, totalThreads));
+
   return *this;
+}
+
+void God::Cleanup()
+{
+  pool_.reset();
+  cpuLoaders_.clear();
+  gpuLoaders_.clear();
 }
 
 void God::LoadScorers() {
@@ -236,15 +250,6 @@ std::vector<std::string> God::Postprocess(const std::vector<std::string>& input)
   return processed;
 }
 
-void God::CleanUp() {
-  for (Loaders::value_type& loader : cpuLoaders_) {
-     loader.second.reset(nullptr);
-  }
-  for (Loaders::value_type& loader : gpuLoaders_) {
-     loader.second.reset(nullptr);
-  }
-}
-
 DeviceInfo God::GetNextDevice() const
 {
   DeviceInfo ret;
@@ -283,18 +288,19 @@ Search &God::GetSearch() const
   return obj;
 }
 
-void God::Enqueue(Sentences &maxiBatch, ThreadPool &pool)
+size_t God::GetTotalThreads() const
 {
-  size_t miniSize = Get<size_t>("mini-batch");
+  size_t cpuThreads = Get<size_t>("cpu-threads");
+  LOG(info) << "Setting CPU thread count to " << cpuThreads;
 
-  maxiBatch.SortByLength();
-  while (maxiBatch.size()) {
-    SentencesPtr miniBatch = maxiBatch.NextMiniBatch(miniSize);
-    pool.enqueue(
-        [this,miniBatch]{ return TranslationTask(*this, miniBatch); }
-        );
-  }
-
+  size_t totalThreads = cpuThreads;
+#ifdef CUDA
+  size_t gpuThreads = Get<size_t>("gpu-threads");
+  auto devices = Get<std::vector<size_t>>("devices");
+  LOG(info) << "Setting GPU thread count to " << gpuThreads;
+  totalThreads += gpuThreads * devices.size();
+#endif
+  return totalThreads;
 }
 
 }

@@ -35,6 +35,7 @@ class God {
     God& Init(const std::string&);
     God& Init(int argc, char** argv);
 
+    void Cleanup();
 
     bool Has(const std::string& key) const {
       return config_.Has(key);
@@ -66,14 +67,15 @@ class God {
     std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input) const;
     std::vector<std::string> Postprocess(const std::vector<std::string>& input) const;
 
-    void CleanUp();
 
     void LoadWeights(const std::string& path);
 
     DeviceInfo GetNextDevice() const;
     Search &GetSearch() const;
 
-    void Enqueue(Sentences &maxiBatch, ThreadPool &pool);
+    size_t GetTotalThreads() const;
+    ThreadPool &GetThreadPool()
+    { return *pool_; }
 
   private:
     void LoadScorers();
@@ -104,6 +106,8 @@ class God {
 
     mutable size_t threadIncr_;
     mutable boost::shared_mutex accessLock_;
+
+    std::unique_ptr<ThreadPool> pool_;
 };
 
 }

@@ -11,20 +11,15 @@
 #include "common/search.h"
 #include "common/printer.h"
 #include "common/sentence.h"
+#include "common/sentences.h"
 #include "common/exception.h"
+#include "common/translation_task.h"
 
 using namespace amunmt;
+using namespace std;
 
 God god_;
 std::unique_ptr<ThreadPool> pool;
-
-std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
-  Search &search = god_.GetSearch();
-
-  std::shared_ptr<Sentences> sentences(new Sentences());
-  sentences->push_back(SentencePtr(new Sentence(god_, taskCounter, in)));
-  return search.Process(god_, *sentences);
-}
 
 void init(const std::string& options) {
   god_.Init(options);
@@ -33,40 +28,64 @@ void init(const std::string& options) {
 }
 
 
-boost::python::list translate(boost::python::list& in) {
-  size_t cpuThreads = god_.Get<size_t>("cpu-threads");
-  LOG(info) << "Setting CPU thread count to " << cpuThreads;
-
-  size_t totalThreads = cpuThreads;
-#ifdef CUDA
-  size_t gpuThreads = god_.Get<size_t>("gpu-threads");
-  auto devices = god_.Get<std::vector<size_t>>("devices");
-  LOG(info) << "Setting GPU thread count to " << gpuThreads;
-  totalThreads += gpuThreads * devices.size();
-#endif
-
-  LOG(info) << "Total number of threads: " << totalThreads;
-  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
+boost::python::list translate(boost::python::list& in)
+{
+  size_t miniSize = god_.Get<size_t>("mini-batch");
+  size_t maxiSize = god_.Get<size_t>("maxi-batch");
 
   std::vector<std::future< std::shared_ptr<Histories> >> results;
+  SentencesPtr maxiBatch(new Sentences());
 
-  boost::python::list output;
-  for(int i = 0; i < boost::python::len(in); ++i) {
-    std::string s = boost::python::extract<std::string>(boost::python::object(in[i]));
-    results.emplace_back(
-        pool->enqueue(
-            [=]{ return TranslationTask(s, i); }
-        )
-    );
+  for(int lineNum = 0; lineNum < boost::python::len(in); ++lineNum) {
+    std::string line = boost::python::extract<std::string>(boost::python::object(in[lineNum]));
+    //cerr << "line=" << line << endl;
+
+    maxiBatch->push_back(SentencePtr(new Sentence(god_, lineNum, line)));
+
+    if (maxiBatch->size() >= maxiSize) {
+
+      maxiBatch->SortByLength();
+      while (maxiBatch->size()) {
+        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+
+        results.emplace_back(
+          god_.GetThreadPool().enqueue(
+              [&god_,miniBatch]{ return TranslationTaskSync(god_, miniBatch); }
+              )
+        );
+      }
+
+      maxiBatch.reset(new Sentences());
+    }
   }
 
-  size_t lineCounter = 0;
+  // last batch
+  if (maxiBatch->size()) {
+    maxiBatch->SortByLength();
+    while (maxiBatch->size()) {
+      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+      results.emplace_back(
+        god_.GetThreadPool().enqueue(
+            [&god_,miniBatch]{ return TranslationTaskSync(god_, miniBatch); }
+            )
+      );
+    }
+  }
 
+  // resort batch into line number order
+  Histories allHistories;
   for (auto&& result : results) {
-    std::stringstream ss;
-    Printer(god_, *result.get().get(), ss);
-    output.append(ss.str());
+    std::shared_ptr<Histories> histories = result.get();
+    allHistories.Append(*histories);
   }
+  allHistories.SortByLineNum();
+
+  // output
+  std::stringstream ss;
+  Printer(god_, allHistories, ss);
+  string str = ss.str();
+  boost::python::list output;
+  output.append(str);
 
   return output;
 }
