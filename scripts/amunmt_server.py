@@ -24,7 +24,13 @@ def handle_websocket():
                 message = wsock.receive()
                 #print message
                 if message is not None:
-                    trans = nmt.translate(message.split('\n'))
+                    listSentences = message.split('\n')
+                    numEle = len(listSentences)
+                    #print numEle
+                    if numEle > 0 and listSentences[numEle - 1] == "":
+                      #print "deleting"
+                      del listSentences[numEle - 1]
+                    trans = nmt.translate(listSentences)
                     wsock.send('\n'.join(trans))
             except WebSocketError:
                 break
