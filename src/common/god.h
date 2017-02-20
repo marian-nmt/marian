@@ -35,6 +35,7 @@ class God {
     God& Init(const std::string&);
     God& Init(int argc, char** argv);
 
+    void Cleanup();
 
     bool Has(const std::string& key) const {
       return config_.Has(key);
@@ -72,9 +73,9 @@ class God {
     DeviceInfo GetNextDevice() const;
     Search &GetSearch() const;
 
-    void Enqueue(Sentences &maxiBatch);
-
     size_t GetTotalThreads() const;
+    ThreadPool &GetThreadPool()
+    { return *pool_; }
 
   private:
     void LoadScorers();

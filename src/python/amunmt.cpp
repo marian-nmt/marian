@@ -11,6 +11,7 @@
 #include "common/search.h"
 #include "common/printer.h"
 #include "common/sentence.h"
+#include "common/sentences.h"
 #include "common/exception.h"
 
 using namespace amunmt;

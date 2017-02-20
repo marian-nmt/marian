@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
   std::string in;
   std::size_t lineNum = 0;
 
+  size_t miniSize = god.Get<size_t>("mini-batch");
   size_t maxiSize = god.Get<size_t>("maxi-batch");
 
   LOG(info) << "Reading input";
@@ -36,15 +37,32 @@ int main(int argc, char* argv[]) {
     maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
 
     if (maxiBatch->size() >= maxiSize) {
-      god.Enqueue(*maxiBatch);
+
+      maxiBatch->SortByLength();
+      while (maxiBatch->size()) {
+        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+        god.GetThreadPool().enqueue(
+            [&god,miniBatch]{ return TranslationTask(god, miniBatch); }
+            );
+      }
+
       maxiBatch.reset(new Sentences());
     }
 
   }
 
   // last batch
-  god.Enqueue(*maxiBatch);
+  if (maxiBatch->size()) {
+    maxiBatch->SortByLength();
+    while (maxiBatch->size()) {
+      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+      god.GetThreadPool().enqueue(
+          [&god,miniBatch]{ return TranslationTask(god, miniBatch); }
+          );
+    }
+  }
 
+  god.Cleanup();
   LOG(info) << "Total time: " << timer.format();
   //sleep(10);
   return 0;

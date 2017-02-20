@@ -30,13 +30,7 @@ God::God()
 
 God::~God()
 {
-  pool_.reset();
-  for (Loaders::value_type& loader : cpuLoaders_) {
-     loader.second.reset(nullptr);
-  }
-  for (Loaders::value_type& loader : gpuLoaders_) {
-     loader.second.reset(nullptr);
-  }
+  Cleanup();
 }
 
 God& God::Init(const std::string& options) {
@@ -100,6 +94,13 @@ God& God::Init(int argc, char** argv) {
   pool_.reset(new ThreadPool(totalThreads, totalThreads));
 
   return *this;
+}
+
+void God::Cleanup()
+{
+  pool_.reset();
+  cpuLoaders_.clear();
+  gpuLoaders_.clear();
 }
 
 void God::LoadScorers() {
@@ -285,20 +286,6 @@ Search &God::GetSearch() const
 {
   thread_local Search obj(*this);
   return obj;
-}
-
-void God::Enqueue(Sentences &maxiBatch)
-{
-  size_t miniSize = Get<size_t>("mini-batch");
-
-  maxiBatch.SortByLength();
-  while (maxiBatch.size()) {
-    SentencesPtr miniBatch = maxiBatch.NextMiniBatch(miniSize);
-    pool_->enqueue(
-        [this,miniBatch]{ return TranslationTask(*this, miniBatch); }
-        );
-  }
-
 }
 
 size_t God::GetTotalThreads() const
