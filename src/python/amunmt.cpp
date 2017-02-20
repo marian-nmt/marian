@@ -39,9 +39,9 @@ boost::python::list translate(boost::python::list& in)
 
   for(int lineNum = 0; lineNum < boost::python::len(in); ++lineNum) {
     std::string line = boost::python::extract<std::string>(boost::python::object(in[lineNum]));
-    cerr << "line=" << line << endl;
+    //cerr << "line=" << line << endl;
 
-    maxiBatch->push_back(SentencePtr(new Sentence(god_, lineNum++, line)));
+    maxiBatch->push_back(SentencePtr(new Sentence(god_, lineNum, line)));
 
     if (maxiBatch->size() >= maxiSize) {
 
@@ -79,7 +79,7 @@ boost::python::list translate(boost::python::list& in)
     std::stringstream ss;
     Printer(god_, *result.get().get(), ss);
     string str = ss.str();
-    cerr << "output=" << str << endl;
+    //cerr << "output=" << str << endl;
     output.append(str);
   }
 

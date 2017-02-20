@@ -7,6 +7,7 @@ import sys
 filePath = sys.argv[1]
 batchSize = int(sys.argv[2])
 #print filePath
+#print batchSize
 
 with open(filePath) as f:
   batchCount = 0
@@ -19,8 +20,10 @@ with open(filePath) as f:
       ws = create_connection("ws://localhost:8080/translate")
 
       batch = batch[:-1]
+      #print batch
       ws.send(batch)
       result=ws.recv()
+      result = result[:-1]
       print(result)
       ws.close()
       #time.sleep(5)

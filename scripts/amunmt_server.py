@@ -22,6 +22,7 @@ def handle_websocket():
         while True:
             try:
                 message = wsock.receive()
+                #print message
                 if message is not None:
                     trans = nmt.translate(message.split('\n'))
                     wsock.send('\n'.join(trans))
