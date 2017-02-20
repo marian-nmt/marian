@@ -9,6 +9,18 @@ batchSize = int(sys.argv[2])
 #print filePath
 #print batchSize
 
+def translate( batch ):
+  ws = create_connection("ws://localhost:8080/translate")
+
+  batch = batch[:-1]
+  #print batch
+  ws.send(batch)
+  result=ws.recv()
+  result = result[:-1]
+  print(result)
+  ws.close()
+  #time.sleep(5)
+
 with open(filePath) as f:
   batchCount = 0
   batch = ""
@@ -17,17 +29,10 @@ with open(filePath) as f:
     batchCount = batchCount + 1
     batch = batch + line 
     if batchCount == batchSize:
-      ws = create_connection("ws://localhost:8080/translate")
-
-      batch = batch[:-1]
-      #print batch
-      ws.send(batch)
-      result=ws.recv()
-      result = result[:-1]
-      print(result)
-      ws.close()
-      #time.sleep(5)
+      translate(batch)
 
       batchCount = 0
       batch = ""
 
+  if batchCount:
+    translate(batch)
