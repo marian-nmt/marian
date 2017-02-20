@@ -12,7 +12,7 @@ batchSize = int(sys.argv[2])
 def translate( batch ):
   ws = create_connection("ws://localhost:8080/translate")
 
-  batch = batch[:-1]
+  #batch = batch[:-1]
   #print batch
   ws.send(batch)
   result=ws.recv()
