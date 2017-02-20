@@ -8,6 +8,7 @@
 #include "optimizers/optimizers.h"
 #include "training/training.h"
 #include "training/validator.h"
+#include "training/dropper.h"
 
 namespace marian {
 
@@ -86,6 +87,7 @@ class AsyncGraphGroup : public GraphGroup {
         opt_->update(graphs_[0]);
       }
       else {
+        GradientDrop d;
         // add instead of copy?
         std::vector<std::thread> threads;
         int pos = 0;
@@ -93,6 +95,7 @@ class AsyncGraphGroup : public GraphGroup {
           threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
+
             grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
