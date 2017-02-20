@@ -72,6 +72,7 @@ boost::python::list translate(boost::python::list& in)
     }
   }
 
+  // resort batch into line number order
   Histories allHistories;
   for (auto&& result : results) {
     std::shared_ptr<Histories> histories = result.get();
@@ -79,6 +80,7 @@ boost::python::list translate(boost::python::list& in)
   }
   allHistories.SortByLineNum();
 
+  // output
   std::stringstream ss;
   Printer(god_, allHistories, ss);
   string str = ss.str();
