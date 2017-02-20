@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
   std::setvbuf(stdin, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
 
-  std::string in;
+  std::string line;
   std::size_t lineNum = 0;
 
   size_t miniSize = god.Get<size_t>("mini-batch");
@@ -33,8 +33,8 @@ int main(int argc, char* argv[]) {
 
   SentencesPtr maxiBatch(new Sentences());
 
-  while (std::getline(god.GetInputStream(), in)) {
-    maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, in)));
+  while (std::getline(god.GetInputStream(), line)) {
+    maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, line)));
 
     if (maxiBatch->size() >= maxiSize) {
 

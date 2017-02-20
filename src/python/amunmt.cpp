@@ -40,15 +40,13 @@ boost::python::list translate(boost::python::list& in)
 
   boost::python::list output;
   for(int i = 0; i < boost::python::len(in); ++i) {
-    std::string s = boost::python::extract<std::string>(boost::python::object(in[i]));
+    std::string line = boost::python::extract<std::string>(boost::python::object(in[i]));
     results.emplace_back(
         god_.GetThreadPool().enqueue(
-            [=]{ return TranslationTask(s, i); }
+            [=]{ return TranslationTask(line, i); }
         )
     );
   }
-
-  size_t lineCounter = 0;
 
   for (auto&& result : results) {
     std::stringstream ss;
