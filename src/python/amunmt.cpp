@@ -73,15 +73,22 @@ boost::python::list translate(boost::python::list& in)
     }
   }
 
-  //cerr << "results=" << results.size() << endl;
-  boost::python::list output;
+  cerr << "results=" << results.size() << endl;
+
+  Histories allHistories;
   for (auto&& result : results) {
-    std::stringstream ss;
-    Printer(god_, *result.get().get(), ss);
-    string str = ss.str();
+    std::shared_ptr<Histories> histories = result.get();
+    cerr << "histories=" << histories.get() << " " << histories->size() << endl;
+    allHistories.Append(histories);
     //cerr << "output=" << str << endl;
-    output.append(str);
   }
+  allHistories.SortByLineNum();
+
+  std::stringstream ss;
+  Printer(god_, allHistories, ss);
+  string str = ss.str();
+  boost::python::list output;
+  output.append(str);
 
   return output;
 }
