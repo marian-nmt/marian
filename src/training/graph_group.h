@@ -1,7 +1,7 @@
 #pragma once
 
 #include <thread>
-#include <future> 
+#include <future>
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
@@ -38,7 +38,7 @@ class GraphGroup {
 template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
   private:
-    Ptr<Builder> builder_;
+    std::vector<Ptr<Builder>> builders_;
 
     std::vector<size_t> devices_;
 
@@ -65,7 +65,7 @@ class AsyncGraphGroup : public GraphGroup {
 
       // @TODO read guard on parameters
       int pos = 0;
-      
+
       std::vector<std::thread> threads;
       for (int idx = 0; idx < devices_.size(); idx++) {
         threads.emplace_back( std::thread( [=](int idx, int pos) {
@@ -110,9 +110,9 @@ class AsyncGraphGroup : public GraphGroup {
       static bool first = true;
       if(first && graphs_.size() > 1) {
         // initialize the parameters
-        for(auto graph : graphs_) {
-          builder_->build(graph, batch);
-          graph->forward();
+        for(size_t i = 0; i < graphs_.size(); ++i) {
+          builders_[i]->build(graphs_[i], batch);
+          graphs_[i]->forward();
         }
 
         if(params_.size() == 0) {
@@ -138,7 +138,7 @@ class AsyncGraphGroup : public GraphGroup {
         }
         if(grads_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
- 
+
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
@@ -151,22 +151,24 @@ class AsyncGraphGroup : public GraphGroup {
             grads_.push_back(grad_);
 
           }
-        } 
+        }
 
         first = false;
-      } 
+      }
 
       auto task = [this](Ptr<data::CorpusBatch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Builder> builder;
         thread_local size_t t = 0;
 
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
-          graph = graphs_[i++];
+          graph = graphs_[i];
+          builder = builders_[i++];
         }
 
-        builder_->build(graph, batch);
+        builder->build(graph, batch);
         fetchParams(graph->params().vals());
 
         graph->forward();
@@ -181,7 +183,11 @@ class AsyncGraphGroup : public GraphGroup {
           reporter_->update(cost, batch);
           if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
             this->save();
+          size_t prevStalled = reporter_->stalled();
           reporter_->validate(graph);
+          if(prevStalled < reporter_->stalled())
+            for(auto opt : shardOpt_)
+              opt->updateSchedule();
         }
 
         t++;
@@ -193,8 +199,9 @@ class AsyncGraphGroup : public GraphGroup {
     void load() {
       if(options_->has("init")) {
         std::string init = options_->get<std::string>("init");
+        size_t i = 0;
         for(auto graph : graphs_)
-          builder_->load(graph, init);
+          builders_[i++]->load(graph, init);
       }
     }
 
@@ -203,7 +210,6 @@ class AsyncGraphGroup : public GraphGroup {
 
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
-       builder_{New<Builder>(options_)},
        devices_{options_->get<std::vector<size_t>>("device")},
        pool_{devices_.size(), devices_.size()},
        shardSync_{devices_.size()} {
@@ -214,6 +220,7 @@ class AsyncGraphGroup : public GraphGroup {
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
         shardOpt_.push_back(Optimizer(options_));
+        builders_.push_back(New<Builder>(options_));
       }
 
       load();
@@ -226,12 +233,12 @@ class AsyncGraphGroup : public GraphGroup {
     void save() {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
+        builders_[0]->save(graphs_[0], name);
       }
       else {
         std::string name = options_->get<std::string>("model")
           + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
+        builders_[0]->save(graphs_[0], name);
       }
     }
 };

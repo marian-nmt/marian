@@ -40,7 +40,7 @@ class BeamSearch {
       std::tie(hyps, probs) = builder_->step(startState);
       size_t pos = graph->forward();
 
-      std::vector<size_t> beamSizes(batch->size(), beamSize_);
+      std::vector<size_t> beamSizes(1, beamSize_);
       std::vector<unsigned> outKeys;
       std::vector<float> outCosts;
 
@@ -48,27 +48,44 @@ class BeamSearch {
                         outCosts, outKeys, true);
       size_t dimTrgVoc = probs->shape()[1];
 
-      std::vector<int> beam(beamSize_, 0);
-      while(outKeys[0] != 0) {
-        std::vector<size_t> hypIdx;
-        std::vector<size_t> embIdx;
+      while(beamSizes[0] > 0) {
+        std::vector<size_t> hypIndeces;
+        std::vector<size_t> embIndeces;
+        std::vector<float> beamCosts;
+
         for(int i = 0; i < outKeys.size(); ++i) {
           int k = outKeys[i];
 
-          hypIdx.push_back(k / dimTrgVoc);
-          embIdx.push_back(k % dimTrgVoc);
+          int embIdx = k % dimTrgVoc;
+          int hypIdx  = k / dimTrgVoc;
 
-          std::cerr << hypIdx.back() << " "
-            << embIdx.back() << " "
-            << outCosts[i] << std::endl;
+          std::cerr
+            << hypIdx << " "
+            << embIdx << " "
+            << outCosts[i]
+            << std::endl;
+
+          if(embIdx != 0) {
+            embIndeces.push_back(embIdx);
+            hypIndeces.push_back(hypIdx);
+            beamCosts.push_back(outCosts[i]);
+          }
         }
         std::cerr << std::endl;
 
-        std::tie(hyps, probs) = builder_->step(hyps, hypIdx, embIdx);
+        if(hypIndeces.empty())
+          break;
+
+        auto costs = graph->constant(keywords::shape={(int)beamCosts.size(), 1},
+                                     keywords::init=inits::from_vector(beamCosts));
+        std::tie(hyps, probs) = builder_->step(hyps, hypIndeces, embIndeces);
+        probs = probs + costs;
         pos = graph->forward(pos);
 
         outKeys.clear();
         outCosts.clear();
+        beamSizes.clear();
+        beamSizes.resize(1, hypIndeces.size());
         nth->getNBestList(beamSizes, probs->val(), outCosts, outKeys, false);
       }
     }

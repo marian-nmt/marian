@@ -68,13 +68,13 @@ class RNN : public Layer {
         const std::string& name,
         int dimInput,
         int dimState,
-        Args&& ...args)
+        Args ...args)
     : Layer(name),
       dimInput_{dimInput},
       dimState_{dimState},
       direction_{Get(keywords::direction, dir::forward, args...)},
       outputLast_{Get(keywords::output_last, false, args...)},
-      cell_(New<Cell>(graph, name_, dimInput_, dimState_, std::forward<Args>(args)...)) {}
+      cell_(New<Cell>(graph, name_, dimInput_, dimState_, args...)) {}
 
     Ptr<Cell> getCell() {
       return cell_;
@@ -335,40 +335,15 @@ class AttentionCell {
                   const std::string prefix,
                   int dimInput,
                   int dimState,
-                  Attention att,
-                  Args&& ...args)
-    {
-      cell1_ = New<Cell1>(graph,
-                          prefix + "_cell1",
-                          dimInput,
-                          dimState,
-                          keywords::final=false,
-                          std::forward<Args>(args)...);
-
-      att_ = New<Attention>(att);
-
-      cell2_ = New<Cell2>(graph,
-                          prefix + "_cell2",
-                          att_->outputDim(),
-                          dimState,
-                          keywords::final=true,
-                          std::forward<Args>(args)...);
-    }
-
-    template <class ...Args>
-    AttentionCell(Ptr<ExpressionGraph> graph,
-                  const std::string prefix,
-                  int dimInput,
-                  int dimState,
                   Ptr<Attention> att,
-                  Args&& ...args)
+                  Args ...args)
     {
       cell1_ = New<Cell1>(graph,
                           prefix + "_cell1",
                           dimInput,
                           dimState,
                           keywords::final=false,
-                          std::forward<Args>(args)...);
+                          args...);
 
       att_ = New<Attention>(att);
 
@@ -377,7 +352,7 @@ class AttentionCell {
                           att_->outputDim(),
                           dimState,
                           keywords::final=true,
-                          std::forward<Args>(args)...);
+                          args...);
     }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
