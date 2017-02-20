@@ -13,19 +13,13 @@
 #include "common/sentence.h"
 #include "common/sentences.h"
 #include "common/exception.h"
+#include "common/translation_task.h"
 
 using namespace amunmt;
+using namespace std;
 
 God god_;
 std::unique_ptr<ThreadPool> pool;
-
-std::shared_ptr<Histories> TranslationTask(const std::string& in, size_t taskCounter) {
-  Search &search = god_.GetSearch();
-
-  std::shared_ptr<Sentences> sentences(new Sentences());
-  sentences->push_back(SentencePtr(new Sentence(god_, taskCounter, in)));
-  return search.Process(god_, *sentences);
-}
 
 void init(const std::string& options) {
   god_.Init(options);
@@ -36,18 +30,49 @@ void init(const std::string& options) {
 
 boost::python::list translate(boost::python::list& in)
 {
-  std::vector<std::future< std::shared_ptr<Histories> >> results;
+  size_t miniSize = god_.Get<size_t>("mini-batch");
+  size_t maxiSize = god_.Get<size_t>("maxi-batch");
 
-  boost::python::list output;
+  std::vector<std::future< std::shared_ptr<Histories> >> results;
+  SentencesPtr maxiBatch(new Sentences());
+
   for(int lineNum = 0; lineNum < boost::python::len(in); ++lineNum) {
     std::string line = boost::python::extract<std::string>(boost::python::object(in[lineNum]));
-    results.emplace_back(
-        god_.GetThreadPool().enqueue(
-            [=]{ return TranslationTask(line, lineNum); }
-        )
-    );
+
+    maxiBatch->push_back(SentencePtr(new Sentence(god_, lineNum++, line)));
+
+    if (maxiBatch->size() >= maxiSize) {
+
+      maxiBatch->SortByLength();
+      while (maxiBatch->size()) {
+        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+
+        results.emplace_back(
+          god_.GetThreadPool().enqueue(
+              [&god_,miniBatch]{ return TranslationTaskSync(god_, miniBatch); }
+              )
+        );
+      }
+
+      maxiBatch.reset(new Sentences());
+    }
   }
 
+  // last batch
+  if (maxiBatch->size()) {
+    maxiBatch->SortByLength();
+    while (maxiBatch->size()) {
+      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+      results.emplace_back(
+        god_.GetThreadPool().enqueue(
+            [&god_,miniBatch]{ return TranslationTaskSync(god_, miniBatch); }
+            )
+      );
+    }
+  }
+
+  //cerr << "results=" << results.size() << endl;
+  boost::python::list output;
   for (auto&& result : results) {
     std::stringstream ss;
     Printer(god_, *result.get().get(), ss);

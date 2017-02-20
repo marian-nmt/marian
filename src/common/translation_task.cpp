@@ -27,6 +27,8 @@ std::shared_ptr<Histories> TranslationTaskSync(const God &god, std::shared_ptr<S
   try {
     Search &search = god.GetSearch();
     std::shared_ptr<Histories> histories = search.Process(god, *sentences);
+
+    //cerr << "histories=" << histories->size() << endl;
     return histories;
   }
 #ifdef CUDA
