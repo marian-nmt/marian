@@ -9,6 +9,9 @@ print filePath
 
 with open(filePath) as f:
   for line in f:
+    #print line
+    line = line[:-1]
+    #print line
     ws = create_connection("ws://localhost:8080/translate")
     ws.send(line)
     result=ws.recv()

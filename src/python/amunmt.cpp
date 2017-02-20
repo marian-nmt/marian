@@ -30,6 +30,7 @@ void init(const std::string& options) {
 
 boost::python::list translate(boost::python::list& in)
 {
+  cerr << "in=" << boost::python::len(in) << endl;
   size_t miniSize = god_.Get<size_t>("mini-batch");
   size_t maxiSize = god_.Get<size_t>("maxi-batch");
 
