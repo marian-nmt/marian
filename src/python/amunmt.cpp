@@ -39,11 +39,11 @@ boost::python::list translate(boost::python::list& in)
   std::vector<std::future< std::shared_ptr<Histories> >> results;
 
   boost::python::list output;
-  for(int i = 0; i < boost::python::len(in); ++i) {
-    std::string line = boost::python::extract<std::string>(boost::python::object(in[i]));
+  for(int lineNum = 0; lineNum < boost::python::len(in); ++lineNum) {
+    std::string line = boost::python::extract<std::string>(boost::python::object(in[lineNum]));
     results.emplace_back(
         god_.GetThreadPool().enqueue(
-            [=]{ return TranslationTask(line, i); }
+            [=]{ return TranslationTask(line, lineNum); }
         )
     );
   }
