@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
       while (maxiBatch->size()) {
         SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
         god.GetThreadPool().enqueue(
-            [&god,miniBatch]{ return TranslationTask(god, miniBatch); }
+            [&god,miniBatch]{ return TranslationTaskAndOutput(god, miniBatch); }
             );
       }
 
@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     while (maxiBatch->size()) {
       SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
       god.GetThreadPool().enqueue(
-          [&god,miniBatch]{ return TranslationTask(god, miniBatch); }
+          [&god,miniBatch]{ return TranslationTaskAndOutput(god, miniBatch); }
           );
     }
   }

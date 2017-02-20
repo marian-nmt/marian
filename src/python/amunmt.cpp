@@ -50,7 +50,7 @@ boost::python::list translate(boost::python::list& in)
 
         results.emplace_back(
           god_.GetThreadPool().enqueue(
-              [&god_,miniBatch]{ return TranslationTaskSync(god_, miniBatch); }
+              [&god_,miniBatch]{ return TranslationTask(god_, miniBatch); }
               )
         );
       }
@@ -66,7 +66,7 @@ boost::python::list translate(boost::python::list& in)
       SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
       results.emplace_back(
         god_.GetThreadPool().enqueue(
-            [&god_,miniBatch]{ return TranslationTaskSync(god_, miniBatch); }
+            [&god_,miniBatch]{ return TranslationTask(god_, miniBatch); }
             )
       );
     }

@@ -7,10 +7,10 @@ using namespace std;
 
 namespace amunmt {
 
-void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences) {
+void TranslationTaskAndOutput(const God &god, std::shared_ptr<Sentences> sentences) {
   OutputCollector &outputCollector = god.GetOutputCollector();
 
-  std::shared_ptr<Histories> histories = TranslationTaskSync(god, sentences);
+  std::shared_ptr<Histories> histories = TranslationTask(god, sentences);
 
   for (size_t i = 0; i < histories->size(); ++i) {
     const History &history = *histories->at(i);
@@ -23,7 +23,7 @@ void TranslationTask(const God &god, std::shared_ptr<Sentences> sentences) {
   }
 }
 
-std::shared_ptr<Histories> TranslationTaskSync(const God &god, std::shared_ptr<Sentences> sentences) {
+std::shared_ptr<Histories> TranslationTask(const God &god, std::shared_ptr<Sentences> sentences) {
   try {
     Search &search = god.GetSearch();
     std::shared_ptr<Histories> histories = search.Process(god, *sentences);
