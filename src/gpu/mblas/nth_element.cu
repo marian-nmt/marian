@@ -308,14 +308,16 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst) {
-  std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
-  std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
+  std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1);
+  std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1);
+  cummulatedBeamSizes[0] = 0;
+  batchFirstElementIdxs[0] = 0;
 
   const size_t vocabSize = Probs.Cols();
   for (size_t i = 0; i < beamSizes.size(); ++i) {
 
     cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
-    batchFirstElementIdxs[i + 1] += ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
+    batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
 
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
