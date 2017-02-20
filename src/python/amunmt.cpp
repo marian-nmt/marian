@@ -34,28 +34,15 @@ void init(const std::string& options) {
 }
 
 
-boost::python::list translate(boost::python::list& in) {
-  size_t cpuThreads = god_.Get<size_t>("cpu-threads");
-  LOG(info) << "Setting CPU thread count to " << cpuThreads;
-
-  size_t totalThreads = cpuThreads;
-#ifdef CUDA
-  size_t gpuThreads = god_.Get<size_t>("gpu-threads");
-  auto devices = god_.Get<std::vector<size_t>>("devices");
-  LOG(info) << "Setting GPU thread count to " << gpuThreads;
-  totalThreads += gpuThreads * devices.size();
-#endif
-
-  LOG(info) << "Total number of threads: " << totalThreads;
-  amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
-
+boost::python::list translate(boost::python::list& in)
+{
   std::vector<std::future< std::shared_ptr<Histories> >> results;
 
   boost::python::list output;
   for(int i = 0; i < boost::python::len(in); ++i) {
     std::string s = boost::python::extract<std::string>(boost::python::object(in[i]));
     results.emplace_back(
-        pool->enqueue(
+        god_.GetThreadPool().enqueue(
             [=]{ return TranslationTask(s, i); }
         )
     );
