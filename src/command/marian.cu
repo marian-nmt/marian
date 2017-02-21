@@ -1,6 +1,6 @@
 
 #include "marian.h"
-#include "models/dl4mt.h"
+#include "models/encdec.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
   //validator = New<ValidPerplexity<DL4MT>>(options);
   //float cost = validator->validate(graph);
 
-  Train<AsyncGraphGroup<DL4MT>>(options);
+  Train<AsyncGraphGroup<EncDec>>(options);
 
   return 0;
 }

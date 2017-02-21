@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/dl4mt.h"
+#include "models/encdec.h"
 #include "translator/nth_element.h"
 #include "common/history.h"
 
@@ -146,9 +146,9 @@ int main(int argc, char** argv) {
   graph->setDevice(0);
 
   auto target = New<Vocab>();
-  target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
+  target->load("../marian32K/train.tok.true.bpe.de.json", 50000);
 
-  auto encdec = New<DL4MT>(options);
+  auto encdec = New<EncDec>(options);
   encdec->load(graph, "../benchmark/marian32K/modelML.10000.npz");
 
   graph->reserveWorkspaceMB(128);
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
   bg.prepare(false);
   while(bg) {
     auto batch = bg.next();
-    auto search = New<BeamSearch<DL4MT>>(encdec);
+    auto search = New<BeamSearch<EncDec>>(encdec);
     auto history = search->search(graph, batch);
 
     auto r = history->Top();

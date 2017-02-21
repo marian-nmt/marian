@@ -705,7 +705,7 @@ void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
   cudaSetDevice(in->getDevice());
 
   size_t offset = 0;
-  int rows = in->shape()[0];
+  int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
   int cols_in = in->shape()[1];
   for(auto out : outputs) {
     UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],

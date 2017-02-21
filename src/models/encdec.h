@@ -187,26 +187,19 @@ class EncDec {
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
 
-      auto xfw = MLRNN<GRU>(graph, "encoder", 1,
+      auto xFw = MLRNN<GRU>(graph, "encoder", 2,
                             dimSrcEmb_, dimEncState_,
                             normalize=normalize_,
                             direction=dir::forward)
                            (x);
 
-      auto xbw = MLRNN<GRU>(graph, "encoder_r", 1,
+      auto xBw = MLRNN<GRU>(graph, "encoder_r", 2,
                             dimSrcEmb_, dimEncState_,
                             normalize=normalize_,
                             direction=dir::backward)
                            (x, mask=xMask);
 
-      auto xContext = concatenate({xfw.back(), xbw.back()}, axis=1);
-
-
-      // Encoder
-      //auto xContext = BiRNN<GRU>(graph, "encoder",
-      //                           dimSrcEmb_, dimEncState_,
-      //                           normalize=normalize_)
-      //                  (x, mask=xMask);
+      auto xContext = concatenate({xFw.back(), xBw.back()}, axis=1);
       return std::make_tuple(xContext, xMask);
     }
 
