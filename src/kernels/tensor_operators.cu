@@ -116,7 +116,7 @@ __global__ void gSoftmax(float* out,
                          const Shape outShape,
                          const float* in,
                          const float* mask) {
-  int rows = outShape[0];
+  int rows = outShape[0] * outShape[2] * outShape[3];
   int cols = outShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -210,7 +210,7 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
 __global__ void gLogSoftmax(float* out,
                             const Shape outShape,
                             const float* in) {
-  int rows = outShape[0];
+  int rows = outShape[0] * outShape[2] * outShape[3];
   int cols = outShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -278,7 +278,7 @@ __global__ void gLogSoftmax(float* out,
 void LogSoftmax(Tensor out, Tensor in) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = out->shape()[0];
+  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
   size_t k = out->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int) m);
@@ -397,7 +397,7 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
   // adj is multiplied for each element to get backward step in autodiff
-  int m = grad->shape()[0];
+  int m = grad->shape()[0] * grad->shape()[2] * grad->shape()[3];
   int k = grad->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, m);
@@ -611,7 +611,7 @@ void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) 
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = in->shape()[0];
+  size_t m = in->shape()[0] * in->shape()[2] * in->shape()[3];
   size_t n = in->shape()[1];
   float alpha = 1.0;
   float beta  = 0.0;
@@ -779,7 +779,7 @@ __global__ void gGRUFastForward(float* out,
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final){
   cudaSetDevice(out->getDevice());
 
-  int rows = out->shape()[0];
+  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
   int cols = out->shape()[1];
 
   int blocks  = std::min(MAX_BLOCKS, rows);
@@ -884,7 +884,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 
   cudaSetDevice(adj->getDevice());
 
-  int rows = adj->shape()[0];
+  int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
   int cols = adj->shape()[1];
 
   int blocks  = std::min(MAX_BLOCKS, rows);
@@ -1097,17 +1097,17 @@ __global__ void gAtt(float* out,
                          const float* in1,
                          const float* in2,
                          const float* in3,
-                         int m, // rows
-                         int k, // cols
-                         int n // rows of in2
+                         int m, // total rows (batch x time x beam)
+                         int k, // depth
+                         int n // time of in1
                          ) {
   int rows = m;
   int cols = k;
   for(int bid = 0; bid < m; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      const float* in1Row = in1 + j * cols;
-      const float* in2Row = in2 + (j % n) * cols;
+      const float* in1Row = in1 + (j % n) * cols;
+      const float* in2Row = in2 + (j / n) * cols;
       const float* in3Row = in3;
 
       extern __shared__ float _share[];
@@ -1139,10 +1139,12 @@ __global__ void gAtt(float* out,
 void Att(Tensor out, Tensor context, Tensor state, Tensor va) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = context->shape()[0] * context->shape()[2] * context->shape()[3];
-  size_t k = context->shape()[1];
+  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
 
-  size_t n = context->shape()[0];
+  size_t k = context->shape()[1];
+  size_t n = context->shape()[2];
+
+  std::cerr << "Att: " << m << " " << k << " " << n << std::endl;
 
   int blocks = std::min(MAX_BLOCKS, (int) m);
   int threads = std::min(MAX_THREADS, (int) k);

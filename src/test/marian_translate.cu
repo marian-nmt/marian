@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/encdec.h"
+#include "models/dl4mt.h"
 #include "translator/nth_element.h"
 #include "common/history.h"
 
@@ -28,7 +28,7 @@ class BeamSearch {
   public:
     BeamSearch(Ptr<Builder> builder)
      : builder_(builder),
-       beamSize_(12)
+       beamSize_(10)
     {}
 
     Beam toHyps(const std::vector<uint> keys,
@@ -39,9 +39,13 @@ class BeamSearch {
       for(int i = 0; i < keys.size(); ++i) {
         int embIdx = keys[i] % vocabSize;
         int hypIdx = keys[i] / vocabSize;
+        float cost = costs[i];
+
+        std::cerr << hypIdx << " " << beam[hypIdx] << " " << embIdx << " " << cost << std::endl;
         newBeam.push_back(
-          New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, costs[i]));
+          New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, cost));
       }
+      std::cerr << std::endl;
       return newBeam;
     }
 
@@ -67,10 +71,11 @@ class BeamSearch {
       }
 
       auto graph = hyps->graph();
-      auto costs = graph->constant(keywords::shape={(int)beamCosts.size(), 1},
+      auto costs = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
                                    keywords::init=inits::from_vector(beamCosts));
       Expr probs;
       std::tie(hyps, probs) = builder_->step(hyps, hypIndeces, embIndeces);
+      debug(probs, "probs");
       probs = probs + costs;
       return std::make_tuple(hyps, probs);
     }
@@ -89,6 +94,8 @@ class BeamSearch {
       std::vector<size_t> beamSizes(1, beamSize_);
       auto nth = New<NthElement>(beamSize_, batch->size(), stream_);
 
+      history->Add(beam);
+
       do {
 
         if(first) {
@@ -97,8 +104,7 @@ class BeamSearch {
         }
         else {
           std::tie(hyps, probs) = step(hyps, beam);
-          beamSizes.clear();
-          beamSizes.resize(1, beam.size());
+          beamSizes[0] = beam.size();
           pos = graph->forward(pos);
         }
 
@@ -130,7 +136,8 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-    {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
+//    {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
+    {"../benchmark/marian32K/test.txt"};
 
   std::vector<std::string> vocab =
     {"../benchmark/marian32K/train.tok.true.bpe.en.json"};
@@ -146,10 +153,10 @@ int main(int argc, char** argv) {
   graph->setDevice(0);
 
   auto target = New<Vocab>();
-  target->load("../marian32K/train.tok.true.bpe.de.json", 50000);
+  target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
 
-  auto encdec = New<EncDec>(options);
-  encdec->load(graph, "../benchmark/marian32K/modelML.10000.npz");
+  auto encdec = New<DL4MT>(options);
+  encdec->load(graph, "../benchmark/marian32K/old/model4.340000.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -157,15 +164,16 @@ int main(int argc, char** argv) {
   bg.prepare(false);
   while(bg) {
     auto batch = bg.next();
-    auto search = New<BeamSearch<EncDec>>(encdec);
+    auto search = New<BeamSearch<DL4MT>>(encdec);
     auto history = search->search(graph, batch);
 
-    auto r = history->Top();
-    for(auto w : r.first)
-      if(w != 0)
-        std::cout << (*target)[w] << " ";
-    std::cout << std::endl;
-
+    auto results = history->NBest(10);
+    for(auto r : results) {
+        for(auto w : r.first)
+        if(w != 0)
+          std::cout << (*target)[w] << " ";
+      std::cout << r.second->GetCost() << std::endl;
+    }
   }
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;

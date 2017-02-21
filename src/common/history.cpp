@@ -3,7 +3,7 @@
 namespace marian {
 
 History::History(size_t lineNo)
- : normalize_(true),
+ : normalize_(false),
    lineNo_(lineNo)
 {}
 

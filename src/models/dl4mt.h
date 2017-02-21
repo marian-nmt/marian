@@ -332,12 +332,18 @@ class DL4MT {
                                        init=inits::zeros);
       }
       else {
-        selectedHyps = rows(hyps, hypIdx);
+        // @TODO : solve this better than reshaping!
+        selectedHyps = reshape(rows(hyps, hypIdx),
+                               {1, hyps->shape()[1], 1, (int)hypIdx.size()});
 
         auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
-        selectedEmbs = rows(yEmb, embIdx);
+        selectedEmbs = reshape(rows(yEmb, embIdx),
+                               {1, yEmb->shape()[1], 1, (int)embIdx.size()});
       }
+      debug(hyps, "hyps");
 
+      debug(selectedHyps, "selectedHyps");
+      debug(selectedEmbs, "selectedEmbs");
       Expr newHyps, logits;
       std::tie(newHyps, logits) = step(selectedHyps, selectedEmbs, true);
       return std::make_tuple(newHyps, logsoftmax(logits));
@@ -351,7 +357,6 @@ class DL4MT {
       auto yCtx = single ?
         rnn_->getCell()->getLastContext() :
         rnn_->getCell()->getContexts();
-
 
       //// 2-layer feedforward network for outputs and cost
       auto yLogitsL1 = Dense("ff_logit_l1", dimTrgEmb_,
@@ -423,6 +428,7 @@ class DL4MT {
       Expr yEmbeddings, yMask, yIdx;
       std::tie(yEmbeddings, yMask, yIdx) = embeddings(graph, batch);
 
+      debug(xContext, "source");
       auto attention = New<GlobalAttention>("decoder",
                                             xContext, dimDecState_,
                                             mask=xMask, normalize=normalize_);

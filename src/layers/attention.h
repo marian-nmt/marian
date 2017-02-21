@@ -74,8 +74,9 @@ Expr attOps(Expr context, Expr state, Expr va) {
   std::vector<Expr> nodes{context, state, va};
   int dimBatch = context->shape()[0];
   int dimWords = context->shape()[2];
+  int dimBeam  = state->shape()[3];
   return reshape(Expression<AttentionNodeOp>(nodes),
-                 {dimWords, dimBatch});
+                 {dimWords, dimBatch, 1, dimBeam});
 }
 
 class GlobalAttention {
@@ -139,18 +140,23 @@ class GlobalAttention {
 
       int dimBatch = context_->shape()[0];
       int srcWords = context_->shape()[2];
+      int dimBeam  = state->shape()[3];
 
       auto mappedState = dot(state, Wa_);
       if(layerNorm_)
         mappedState = layer_norm(mappedState, gammaState_);
 
+      debug(mappedContext_, "mappedContext");
+      debug(mappedState, "mappedState");
       auto attReduce = attOps(mappedContext_, mappedState, va_);
+      debug(attReduce, "attops");
 
       // @TODO: horrible ->
       auto e = reshape(
-        transpose(softmax(transpose(attReduce),
-                          softmaxMask_)),
-        {dimBatch, 1, srcWords});
+        debug(softmax(debug(transpose(attReduce), "transpose"),
+                          softmaxMask_), "ef"),
+        {dimBatch, 1, srcWords, dimBeam});
+      debug(e, "e");
       // <- horrible
 
       auto alignedSource = weighted_average(context_, e,

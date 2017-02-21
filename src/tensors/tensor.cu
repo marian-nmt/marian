@@ -107,70 +107,78 @@ std::string TensorBase::debug() {
   std::vector<Float> values(totSize);
   get(values);
 
-  
+
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');
-  for(size_t k = 0; k < shape()[2]; ++k) {
-     strm << "[ ";
-     if(shape()[0] > 10) {
-        for (size_t i = 0; i < shape()[0] && i < 3; ++i) {
-           if(i > 0)
-             strm << std::endl << "  ";
-           for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-           if(shape()[1] > 3)
-              strm << "... ";
-           for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-        }
-        strm << std::endl << "  ...";
-        for (size_t i = shape()[0] - 3; i < shape()[0]; ++i) {
-           if(i > 0)
-             strm << std::endl << "  ";
-           for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-           if(shape()[1] > 3)
-              strm << "... ";
-           for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-        }
-     }
-     else {
-        for (size_t i = 0; i < shape()[0] && i < 10; ++i) {
-           if(i > 0)
-             strm << std::endl << "  ";
-           for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-           if(shape()[1] > 3)
-              strm << "... ";
-           for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-        }
-     }
-     strm << "]" << std::endl;
+  for(size_t l = 0; l < shape()[3]; ++l) {
+    for(size_t k = 0; k < shape()[2]; ++k) {
+       strm << "[ ";
+       if(shape()[0] > 10) {
+          for (size_t i = 0; i < shape()[0] && i < 3; ++i) {
+             if(i > 0)
+               strm << std::endl << "  ";
+             for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+             if(shape()[1] > 3)
+                strm << "... ";
+             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+          }
+          strm << std::endl << "  ...";
+          for (size_t i = shape()[0] - 3; i < shape()[0]; ++i) {
+             if(i > 0)
+               strm << std::endl << "  ";
+             for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+             if(shape()[1] > 3)
+                strm << "... ";
+             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+          }
+       }
+       else {
+          for (size_t i = 0; i < shape()[0] && i < 10; ++i) {
+             if(i > 0)
+               strm << std::endl << "  ";
+             for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+             if(shape()[1] > 3)
+                strm << "... ";
+             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+          }
+       }
+       strm << "]" << std::endl;
+    }
   }
   return strm.str();
 }

@@ -19,14 +19,9 @@ struct DotNodeOp : public NaryNodeOp {
 
     auto shapeA = a->shape();
     auto shapeB = b->shape();
-
-    Shape outShape;
-    if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1)
-      outShape = {shapeA[0], shapeB[1], shapeA[2], shapeA[3]};
-    else {
-      outShape = shapeA;
-      outShape.set(1, shapeB[1]);
-    }
+    
+    Shape outShape = shapeA;
+    outShape.set(1, shapeB[1]);
     UTIL_THROW_IF2(shapeA[1] != shapeB[0],
                  "matrix product requires dimensions to match");
     return outShape;
