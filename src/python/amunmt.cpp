@@ -19,12 +19,10 @@ using namespace amunmt;
 using namespace std;
 
 God god_;
-std::unique_ptr<ThreadPool> pool;
 
 void init(const std::string& options) {
   god_.Init(options);
   size_t totalThreads = god_.Get<size_t>("gpu-threads") + god_.Get<size_t>("cpu-threads");
-  pool.reset(new ThreadPool(totalThreads));
 }
 
 
@@ -50,7 +48,7 @@ boost::python::list translate(boost::python::list& in)
 
         results.emplace_back(
           god_.GetThreadPool().enqueue(
-              [&god_,miniBatch]{ return TranslationTask(god_, miniBatch); }
+              [miniBatch]{ return TranslationTask(::god_, miniBatch); }
               )
         );
       }
@@ -66,7 +64,7 @@ boost::python::list translate(boost::python::list& in)
       SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
       results.emplace_back(
         god_.GetThreadPool().enqueue(
-            [&god_,miniBatch]{ return TranslationTask(god_, miniBatch); }
+            [miniBatch]{ return TranslationTask(::god_, miniBatch); }
             )
       );
     }
