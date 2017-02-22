@@ -187,13 +187,13 @@ class EncDec {
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
 
-      auto xFw = MLRNN<GRU>(graph, "encoder", 2,
+      auto xFw = MLRNN<GRU>(graph, "encoder", 4,
                             dimSrcEmb_, dimEncState_,
                             normalize=normalize_,
                             direction=dir::forward)
                            (x);
 
-      auto xBw = MLRNN<GRU>(graph, "encoder_r", 2,
+      auto xBw = MLRNN<GRU>(graph, "encoder_r", 4,
                             dimSrcEmb_, dimEncState_,
                             normalize=normalize_,
                             direction=dir::backward)
@@ -216,12 +216,14 @@ class EncDec {
                                        init=inits::zeros);
       }
       else {
-        selectedHyps = rows(hyps, hypIdx);
+        // @TODO : solve this better than reshaping!
+        selectedHyps = reshape(rows(hyps, hypIdx),
+                               {1, hyps->shape()[1], 1, (int)hypIdx.size()});
 
         auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
-        selectedEmbs = rows(yEmb, embIdx);
+        selectedEmbs = reshape(rows(yEmb, embIdx),
+                               {1, yEmb->shape()[1], 1, (int)embIdx.size()});
       }
-
       Expr newHyps, logits;
       std::tie(newHyps, logits) = step(selectedHyps, selectedEmbs, true);
       return std::make_tuple(newHyps, logsoftmax(logits));

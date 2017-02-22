@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/dl4mt.h"
+#include "models/encdec.h"
 #include "translator/nth_element.h"
 #include "common/history.h"
 
@@ -28,7 +28,7 @@ class BeamSearch {
   public:
     BeamSearch(Ptr<Builder> builder)
      : builder_(builder),
-       beamSize_(10)
+       beamSize_(12)
     {}
 
     Beam toHyps(const std::vector<uint> keys,
@@ -41,11 +41,9 @@ class BeamSearch {
         int hypIdx = keys[i] / vocabSize;
         float cost = costs[i];
 
-        std::cerr << hypIdx << " " << beam[hypIdx] << " " << embIdx << " " << cost << std::endl;
         newBeam.push_back(
           New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, cost));
       }
-      std::cerr << std::endl;
       return newBeam;
     }
 
@@ -75,7 +73,6 @@ class BeamSearch {
                                    keywords::init=inits::from_vector(beamCosts));
       Expr probs;
       std::tie(hyps, probs) = builder_->step(hyps, hypIndeces, embIndeces);
-      debug(probs, "probs");
       probs = probs + costs;
       return std::make_tuple(hyps, probs);
     }
@@ -112,6 +109,11 @@ class BeamSearch {
 
         std::vector<unsigned> outKeys;
         std::vector<float> outCosts;
+
+        for(int i = 0; i < probs->shape()[3]; i++) {
+          probs->val()->set(i * dimTrgVoc + 1, std::numeric_limits<float>::lowest());
+        }
+
         nth->getNBestList(beamSizes, probs->val(),
                           outCosts, outKeys, first);
         first = false;
@@ -136,8 +138,8 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-//    {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
-    {"../benchmark/marian32K/test.txt"};
+    {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
+//    {"../benchmark/marian32K/test.txt"};
 
   std::vector<std::string> vocab =
     {"../benchmark/marian32K/train.tok.true.bpe.en.json"};
@@ -155,8 +157,8 @@ int main(int argc, char** argv) {
   auto target = New<Vocab>();
   target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
 
-  auto encdec = New<DL4MT>(options);
-  encdec->load(graph, "../benchmark/marian32K/old/model4.340000.npz");
+  auto encdec = New<EncDec>(options);
+  encdec->load(graph, "../benchmark/marian32K/modelML.avg.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -164,19 +166,19 @@ int main(int argc, char** argv) {
   bg.prepare(false);
   while(bg) {
     auto batch = bg.next();
-    auto search = New<BeamSearch<DL4MT>>(encdec);
+    auto search = New<BeamSearch<EncDec>>(encdec);
     auto history = search->search(graph, batch);
 
-    auto results = history->NBest(10);
+    auto results = history->NBest(1);
     for(auto r : results) {
         for(auto w : r.first)
         if(w != 0)
           std::cout << (*target)[w] << " ";
-      std::cout << r.second->GetCost() << std::endl;
+      //std::cout << r.second->GetCost() << std::endl;
+      std::cout << std::endl;
     }
   }
-  std::cout << std::endl;
-  std::cout << timer.format(5, "%ws") << std::endl;
+  std::cerr << timer.format(5, "%ws") << std::endl;
 
   return 0;
 }

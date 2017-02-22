@@ -370,7 +370,6 @@ class GRU {
         gruOps({state, xW, sU, b_, mask}, final_) :
         gruOps({state, xW, sU, b_}, final_);
 
-      debug(output, "output");
       return output;
     }
 };
@@ -422,9 +421,7 @@ class AttentionCell {
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
       auto hidden = cell1_->apply2(xW, state, mask);
-      debug(hidden, "hidden");
       auto alignedSourceContext = att_->apply(hidden);
-      debug(alignedSourceContext, "aligned");
       return cell2_->apply(alignedSourceContext, hidden, mask);
     }
 

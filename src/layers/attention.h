@@ -146,17 +146,11 @@ class GlobalAttention {
       if(layerNorm_)
         mappedState = layer_norm(mappedState, gammaState_);
 
-      debug(mappedContext_, "mappedContext");
-      debug(mappedState, "mappedState");
       auto attReduce = attOps(mappedContext_, mappedState, va_);
-      debug(attReduce, "attops");
-
+      
       // @TODO: horrible ->
-      auto e = reshape(
-        debug(softmax(debug(transpose(attReduce), "transpose"),
-                          softmaxMask_), "ef"),
-        {dimBatch, 1, srcWords, dimBeam});
-      debug(e, "e");
+      auto e = reshape(transpose(softmax(transpose(attReduce), softmaxMask_)),
+                       {dimBatch, 1, srcWords, dimBeam});
       // <- horrible
 
       auto alignedSource = weighted_average(context_, e,

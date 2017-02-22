@@ -340,10 +340,6 @@ class DL4MT {
         selectedEmbs = reshape(rows(yEmb, embIdx),
                                {1, yEmb->shape()[1], 1, (int)embIdx.size()});
       }
-      debug(hyps, "hyps");
-
-      debug(selectedHyps, "selectedHyps");
-      debug(selectedEmbs, "selectedEmbs");
       Expr newHyps, logits;
       std::tie(newHyps, logits) = step(selectedHyps, selectedEmbs, true);
       return std::make_tuple(newHyps, logsoftmax(logits));
@@ -428,7 +424,6 @@ class DL4MT {
       Expr yEmbeddings, yMask, yIdx;
       std::tie(yEmbeddings, yMask, yIdx) = embeddings(graph, batch);
 
-      debug(xContext, "source");
       auto attention = New<GlobalAttention>("decoder",
                                             xContext, dimDecState_,
                                             mask=xMask, normalize=normalize_);
