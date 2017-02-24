@@ -236,7 +236,7 @@ class EncDec {
     }
 
     std::tuple<Expr, Expr, Expr> buildEmbeddings(Ptr<ExpressionGraph> graph,
-                                            Ptr<data::CorpusBatch> batch) {
+                                                 Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
       auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);

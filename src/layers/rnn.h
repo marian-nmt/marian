@@ -185,6 +185,8 @@ class MLRNN : public Layer {
           input = output + input;
         else
           input = output;
+
+        //outStates.push_back(input);
       }
       return outStates;
     }
