@@ -25,8 +25,9 @@ class EncDec {
     int dimBatch_{64};
 
     bool normalize_;
-    size_t encoderLayers_{8};
-    size_t decoderLayers_{8};
+    bool skip_;
+    int encoderLayers_{8};
+    int decoderLayers_{8};
 
     void setDims(Ptr<ExpressionGraph> graph,
                  Ptr<data::CorpusBatch> batch) {
@@ -48,15 +49,18 @@ class EncDec {
 
       auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
 
-      normalize_ = options->get<bool>("normalize");
-
       dimSrcVoc_   = dimVocabs[0];
       dimSrcEmb_   = options->get<int>("dim-emb");
       dimEncState_ = options->get<int>("dim-rnn");
-      dimTrgVoc_   = dimVocabs[0];
+      dimTrgVoc_   = dimVocabs[1];
       dimTrgEmb_   = options->get<int>("dim-emb");
       dimDecState_ = options->get<int>("dim-rnn");
       dimBatch_    = options->get<int>("mini-batch");
+
+      encoderLayers_ = options->get<int>("layers-enc");
+      decoderLayers_ = options->get<int>("layers-dec");
+      skip_ = options->get<bool>("skip");
+      normalize_ = options->get<bool>("normalize");
     }
 
 
@@ -157,7 +161,7 @@ class EncDec {
         auto xContexts = MLRNN<GRU>(graph, "encoder", encoderLayers_ - 1,
                               2 * dimEncState_, dimEncState_,
                               normalize=normalize_,
-                              residual=true)
+                              residual=skip_)
                              (xBi);
         return std::make_tuple(xContexts.back(), xMask);
       }
@@ -200,7 +204,7 @@ class EncDec {
                                    decoderLayers_ - 1,
                                    dimDecState_, dimDecState_,
                                    normalize=normalize_,
-                                   residual=true)
+                                   residual=skip_)
                                   (stateL1, statesIn);
 
         statesOut.insert(statesOut.end(),

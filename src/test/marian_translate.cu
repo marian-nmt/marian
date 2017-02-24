@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
   target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
 
   auto encdec = New<EncDec>(options);
-  encdec->load(graph, "../benchmark/marian32K/modelML5.110000.npz");
+  encdec->load(graph, "../benchmark/marian32K/modelML5.180000.npz");
 
   graph->reserveWorkspaceMB(128);
 
