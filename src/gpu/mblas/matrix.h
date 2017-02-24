@@ -22,19 +22,27 @@ class TMatrix : public BaseMatrix {
     typedef typename VecType::const_iterator const_iterator;
 
     TMatrix()
-    : rows_(0), cols_(0)
+    : rows_(0)
+    , cols_(0)
     {}
 
     TMatrix(size_t rows, size_t cols)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_)
+    : rows_(rows)
+    , cols_(cols)
+    , data_(size())
     {}
 
     TMatrix(size_t rows, size_t cols, value_type val)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_, val)
+    : rows_(rows)
+    , cols_(cols)
+    , data_(size(), val)
     {}
 
     TMatrix(TMatrix&& m)
-    : rows_(m.rows_), cols_(m.cols_), data_(std::move(m.data_)) {}
+    : rows_(m.rows_)
+    , cols_(m.cols_)
+    , data_(std::move(m.data_))
+    {}
 
     TMatrix(const TMatrix& m) = delete;
 
@@ -79,12 +87,6 @@ class TMatrix : public BaseMatrix {
         strm << rowSum << " ";
       }
       return strm.str();
-    }
-
-    void Purge() {
-      Clear();
-      VecType temp;
-      data_.swap(temp);
     }
 
     void Clear() {
