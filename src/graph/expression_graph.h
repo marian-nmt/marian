@@ -33,6 +33,7 @@
 #include "tensors/tensor_allocator.h"
 #include "layers/param_initializers.h"
 #include "3rd_party/threadpool.h"
+#include "3rd_party/cnpy/cnpy.h"
 
 namespace marian {
 
@@ -68,7 +69,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     cublasHandle_t cublasHandle_;
     size_t device_{0};
 
-    size_t stale_{0};
+    std::unordered_map<size_t, Expr> hashMap_;
 
   protected:
     /** @brief Constructs a new expression graph
@@ -398,10 +399,18 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       named_.emplace(name, e);
     }
 
-    void add(Expr node) {
+    Expr add(Expr node) {
       size_t group = 0;
 
+      size_t hash = node->hash();
+      auto it = hashMap_.find(hash);
+      if(it != hashMap_.end())
+        return it->second;
+
+      hashMap_[hash] = node;
+
       node->setId(count_++);
+
       for(auto& child: node->children()) {
         group = std::max(group, tapeMap_[child] + 1);
         child->increaseEdges(2);
@@ -413,6 +422,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       tapes_[group].push_back(node);
       nodes_.push_back(node);
       topNodes_.insert(node);
+
+      return node;
     }
 
     void remove_top_node(Expr node) {
@@ -439,18 +450,72 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       inputs_.clear();
       topNodes_.clear();
       tensors_->clear();
+      hashMap_.clear();
     }
 
     Expr topNode() {
       return nodes_.back();
     }
+
+    void load(const std::string& name) {
+      using namespace keywords;
+
+      LOG(info) << "Loading model from " << name;
+
+      auto numpy = cnpy::npz_load(name);
+
+      for(auto it : numpy) {
+        auto name = it.first;
+
+        Shape shape;
+        if(it.second.shape.size() == 2) {
+          shape.set(0, it.second.shape[0]);
+          shape.set(1, it.second.shape[1]);
+        }
+        else if(it.second.shape.size() == 1) {
+          shape.set(0, 1);
+          shape.set(1, it.second.shape[0]);
+        }
+
+        param(name, shape,
+              init=inits::from_numpy(it.second));
+      }
+    }
+
+    void save(const std::string& name) {
+      LOG(info) << "Saving model to " << name;
+
+      unsigned shape[2];
+      std::string mode = "w";
+
+      cudaSetDevice(getDevice());
+      for(auto p : params().getMap()) {
+        std::vector<float> v;
+        p.second->val() >> v;
+
+        unsigned dim;
+        if(p.second->shape()[0] == 1) {
+          shape[0] = p.second->shape()[1];
+          dim = 1;
+        }
+        else {
+          shape[0] = p.second->shape()[0];
+          shape[1] = p.second->shape()[1];
+          dim = 2;
+        }
+        std::string pName = p.first;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+        mode = "a";
+      }
+    }
 };
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args) {
+  // @TODO check hash, if exists do not add and return
+  // cached node to minimize calculations
   auto e = Expr(new T(std::forward<Args>(args)...));
-  e->graph()->add(e);
-  return e;
+  return e->graph()->add(e);
 }
 
 }

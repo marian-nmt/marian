@@ -166,7 +166,7 @@ namespace marian {
         auto mask = Get(keywords::mask, nullptr, args...);
 
         auto ce = cross_entropy(in, picks);
-
+        
         if(mask)
           ce = ce * mask;
 

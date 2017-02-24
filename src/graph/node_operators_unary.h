@@ -232,6 +232,16 @@ struct SoftmaxNodeOp : public NaryNodeOp {
     };
   }
 
+  virtual size_t hash() {
+    if(!hash_) {
+      hash_ = NaryNodeOp::hash();
+      if(mask_)
+        boost::hash_combine(hash_, mask_->hash());
+    }
+    return hash_;
+  }
+
+
   NodeOps backwardOps() {
     // For each row, the Jacobian times vector is given by:
     // J * dy = p .* (dy - avg*1)
@@ -281,9 +291,12 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 struct SumNodeOp : public UnaryNodeOp {
+  int ax_;
+
   template <typename ...Args>
   SumNodeOp(Expr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...),
+      ax_(keywords::Get(keywords::axis, -1, args...)) { }
 
   NodeOps forwardOps() {
     return { NodeOp(Reduce(_1, val_, children_[0]->val())) };
@@ -317,12 +330,24 @@ struct SumNodeOp : public UnaryNodeOp {
     return "orange";
   }
 
+  virtual size_t hash() {
+    if(!hash_) {
+      hash_ = NaryNodeOp::hash();
+      boost::hash_combine(hash_, ax_);
+    }
+    return hash_;
+  }
+
+
 };
 
 struct MeanNodeOp : public UnaryNodeOp {
+  int ax_;
+
   template <typename ...Args>
   MeanNodeOp(Expr a, Args ...args)
-    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...) { }
+    : UnaryNodeOp(a, keywords::shape=newShape(a, args...), args...),
+      ax_(keywords::Get(keywords::axis, -1, args...)) { }
 
   NodeOps forwardOps() {
     int left = children_[0]->shape().elements() / val_->shape().elements();
@@ -365,6 +390,15 @@ struct MeanNodeOp : public UnaryNodeOp {
   const std::string color() {
     return "orange";
   }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      hash_ = NaryNodeOp::hash();
+      boost::hash_combine(hash_, ax_);
+    }
+    return hash_;
+  }
+
 };
 
 
@@ -451,6 +485,16 @@ struct SqrtNodeOp : public UnaryNodeOp {
   const std::string type() {
     return "sqrt";
   }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      boost::hash_combine(seed, epsilon_);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
 
 };
 
@@ -551,6 +595,17 @@ struct RowsNodeOp : public UnaryNodeOp {
     return "orange";
   }
 
+  virtual size_t hash() {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      for(auto i : indeces_)
+        boost::hash_combine(seed, i);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+
   std::vector<size_t> indeces_;
 };
 
@@ -629,6 +684,17 @@ struct ReshapeNodeOp : public UnaryNodeOp {
   const std::string color() {
     return "grey";
   }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      for(auto s : shape())
+        boost::hash_combine(seed, s);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
 };
 
 struct TimestepNodeOp : public UnaryNodeOp {
@@ -681,6 +747,15 @@ struct TimestepNodeOp : public UnaryNodeOp {
   const std::string color() {
     return "grey";
   }
+
+  virtual size_t hash() {
+    if(!hash_) {
+       hash_ = NaryNodeOp::hash();
+       boost::hash_combine(hash_, step_);
+    }
+    return hash_;
+  }
+
 };
 
 }

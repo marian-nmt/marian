@@ -83,7 +83,6 @@ class RNN : public Layer {
     std::vector<Expr> apply(const Expr input, const Expr initialState,
                             const Expr mask = nullptr, bool reverse = false) {
       auto xW = cell_->apply1(input);
-
       std::vector<Expr> outputs;
       auto state = initialState;
       for(size_t i = 0; i < input->shape()[2]; ++i) {
@@ -144,6 +143,7 @@ template <class Cell>
 class MLRNN : public Layer {
   private:
     int layers_;
+    bool residual_;
     int dimState_;
     std::vector<Ptr<RNN<Cell>>> rnns_;
 
@@ -158,6 +158,7 @@ class MLRNN : public Layer {
           Args ...args)
     : Layer(name),
       layers_(layers),
+      residual_(Get(keywords::residual, false, args...)),
       dimState_{dimState} {
       for(int i = 0; i < layers; ++i) {
         rnns_.push_back(
@@ -172,11 +173,18 @@ class MLRNN : public Layer {
 
     template <typename ...Args>
     std::vector<Expr> operator()(Expr input, Args ...args) {
-      Expr output = input;
       std::vector<Expr> outStates;
-      for(auto& rnn : rnns_) {
-        output = (*rnn)(output, args...);
+      std::vector<Expr> prevStates;
+      prevStates.push_back(input);
+
+      for(int i = 0; i < layers_; ++i) {
+        auto output = (*rnns_[i])(input, args...);
         outStates.push_back(output);
+
+        if(residual_ && i > 0 && i < layers_ - 1)
+          input = output + input;
+        else
+          input = output;
       }
       return outStates;
     }
@@ -185,11 +193,15 @@ class MLRNN : public Layer {
     std::vector<Expr> operator()(Expr input,
                                  std::vector<Expr> states,
                                  Args ...args) {
-      Expr output = input;
       std::vector<Expr> outStates;
       for(int i = 0; i < layers_; ++i) {
-        output = (*rnns_[i])(output, states[i], args...);
+        auto output = (*rnns_[i])(input, states[i], args...);
         outStates.push_back(output);
+
+        if(residual_ && i > 0 && i < layers_ - 1)
+          input = output + input;
+        else
+          input = output;
       }
       return outStates;
     }
@@ -312,6 +324,7 @@ class GRU {
     Expr gamma2_;
     bool final_;
     bool layerNorm_;
+    std::string prefix_;
 
   public:
 
@@ -320,7 +333,7 @@ class GRU {
         const std::string prefix,
         int dimInput,
         int dimState,
-        Args ...args) {
+        Args ...args) : prefix_(prefix) {
 
       auto U = graph->param(prefix + "_U", {dimState, 2 * dimState},
                                keywords::init=inits::glorot_uniform);
@@ -362,7 +375,9 @@ class GRU {
     }
 
     Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
+
       auto sU = dot(state, U_);
+
       if(layerNorm_)
         sU = layer_norm(sU, gamma2_);
 
@@ -423,6 +438,10 @@ class AttentionCell {
       auto hidden = cell1_->apply2(xW, state, mask);
       auto alignedSourceContext = att_->apply(hidden);
       return cell2_->apply(alignedSourceContext, hidden, mask);
+    }
+
+    Ptr<Attention> getAttention() {
+      return att_;
     }
 
     Expr getContexts() {

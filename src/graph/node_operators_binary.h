@@ -19,7 +19,7 @@ struct DotNodeOp : public NaryNodeOp {
 
     auto shapeA = a->shape();
     auto shapeB = b->shape();
-    
+
     Shape outShape = shapeA;
     outShape.set(1, shapeB[1]);
     UTIL_THROW_IF2(shapeA[1] != shapeB[0],
@@ -331,6 +331,12 @@ struct ConcatenateNodeOp : public NaryNodeOp {
       deconcatenees.push_back(child->grad());
     }
     Deconcatenate(deconcatenees, adj_, ax_);
+  }
+
+  virtual size_t hash() {
+    size_t seed = NaryNodeOp::hash();
+    boost::hash_combine(seed, ax_);
+    return seed;
   }
 
   const std::string type() {

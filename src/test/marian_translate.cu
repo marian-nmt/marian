@@ -16,6 +16,7 @@
 #include "translator/nth_element.h"
 #include "common/history.h"
 
+
 namespace marian {
 
 template <class Builder>
@@ -32,9 +33,9 @@ class BeamSearch {
     {}
 
     Beam toHyps(const std::vector<uint> keys,
-                  const std::vector<float> costs,
-                  size_t vocabSize,
-                  const Beam& beam) {
+                const std::vector<float> costs,
+                size_t vocabSize,
+                const Beam& beam) {
       Beam newBeam;
       for(int i = 0; i < keys.size(); ++i) {
         int embIdx = keys[i] % vocabSize;
@@ -57,7 +58,52 @@ class BeamSearch {
       return newBeam;
     }
 
-    std::tuple<Expr, Expr> step(Expr hyps, const Beam& beam) {
+    std::tuple<std::vector<Expr>, Expr>
+    step(std::vector<Expr> hyps,
+         Expr srcContext,
+         Expr srcMask,
+         const std::vector<size_t> hypIdx = {},
+         const std::vector<size_t> embIdx = {}) {
+      using namespace keywords;
+      auto graph = hyps[0]->graph();
+
+      // @TODO: not hard-coded!
+      int dimTrgEmb_ = 512;
+      int dimTrgVoc_ = 50000;
+
+      std::vector<Expr> selectedHyps;
+      Expr selectedEmbs;
+      if(embIdx.empty()) {
+        selectedHyps = hyps;
+        selectedEmbs = graph->constant(shape={1, dimTrgEmb_},
+                                       init=inits::zeros);
+      }
+      else {
+        // @TODO : solve this better than reshaping!
+        for(auto h : hyps)
+          selectedHyps.push_back(
+            reshape(rows(h, hypIdx), {1, h->shape()[1], 1, (int)hypIdx.size()}));
+
+        auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
+        selectedEmbs = reshape(rows(yEmb, embIdx),
+                               {1, yEmb->shape()[1], 1, (int)embIdx.size()});
+      }
+
+      Expr logits;
+      std::vector<Expr> newHyps;
+      std::tie(logits, newHyps) = builder_->step(selectedEmbs,
+                                                 selectedHyps,
+                                                 srcContext,
+                                                 srcMask);
+      return std::make_tuple(newHyps, logsoftmax(logits));
+    }
+
+    std::tuple<std::vector<Expr>, Expr>
+    step(std::vector<Expr> hyps,
+         Expr srcContext,
+         Expr srcMask,
+         const Beam& beam) {
+
       std::vector<size_t> hypIndeces;
       std::vector<size_t> embIndeces;
       std::vector<float> beamCosts;
@@ -68,20 +114,28 @@ class BeamSearch {
         beamCosts.push_back(hyp->GetCost());
       }
 
-      auto graph = hyps->graph();
+      auto graph = hyps[0]->graph();
       auto costs = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
                                    keywords::init=inits::from_vector(beamCosts));
+
+      std::vector<Expr> newHyps;
       Expr probs;
-      std::tie(hyps, probs) = builder_->step(hyps, hypIndeces, embIndeces);
+      std::tie(newHyps, probs) = step(hyps,
+                                      srcContext,
+                                      srcMask,
+                                      hypIndeces,
+                                      embIndeces);
       probs = probs + costs;
-      return std::make_tuple(hyps, probs);
+      return std::make_tuple(newHyps, probs);
     }
 
     Ptr<History> search(Ptr<ExpressionGraph> graph,
                         Ptr<data::CorpusBatch> batch) {
 
-      Expr startState, hyps, probs;
-      startState = builder_->buildEncoder(graph, batch);
+      std::vector<Expr> startStates;
+      Expr srcContext, srcMask;
+      std::tie(startStates, srcContext, srcMask)
+        = builder_->buildEncoder(graph, batch);
 
       size_t pos = 0;
       auto history = New<History>(0);
@@ -93,14 +147,21 @@ class BeamSearch {
 
       history->Add(beam);
 
+      std::vector<Expr> hyps;
+      Expr probs;
       do {
 
         if(first) {
-          std::tie(hyps, probs) = builder_->step(startState);
+          std::tie(hyps, probs) = step(startStates,
+                                       srcContext,
+                                       srcMask);
           pos = graph->forward();
         }
         else {
-          std::tie(hyps, probs) = step(hyps, beam);
+          std::tie(hyps, probs) = step(hyps,
+                                       srcContext,
+                                       srcMask,
+                                       beam);
           beamSizes[0] = beam.size();
           pos = graph->forward(pos);
         }
@@ -139,7 +200,7 @@ int main(int argc, char** argv) {
 
   std::vector<std::string> files =
     {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
-//    {"../benchmark/marian32K/test.txt"};
+    //{"../benchmark/marian32K/test.txt"};
 
   std::vector<std::string> vocab =
     {"../benchmark/marian32K/train.tok.true.bpe.en.json"};
@@ -152,13 +213,13 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(0);
+  graph->setDevice(1);
 
   auto target = New<Vocab>();
   target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
 
   auto encdec = New<EncDec>(options);
-  encdec->load(graph, "../benchmark/marian32K/modelML.avg.npz");
+  encdec->load(graph, "../benchmark/marian32K/modelML3.150000.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -181,4 +242,6 @@ int main(int argc, char** argv) {
   std::cerr << timer.format(5, "%ws") << std::endl;
 
   return 0;
+
 }
+
