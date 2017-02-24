@@ -24,34 +24,40 @@ class TMatrix : public BaseMatrix {
     TMatrix()
     : rows_(0)
     , cols_(0)
+    , data_(nullptr)
     {}
 
     TMatrix(size_t rows, size_t cols)
     : rows_(rows)
     , cols_(cols)
-    , data_(size())
+    , data_(new VecType(size()))
     {}
 
     TMatrix(size_t rows, size_t cols, value_type val)
     : rows_(rows)
     , cols_(cols)
-    , data_(size(), val)
+    , data_(new VecType(size(), val))
     {}
 
     TMatrix(TMatrix&& m)
-    : rows_(m.rows_)
-    , cols_(m.cols_)
-    , data_(std::move(m.data_))
-    {}
+    : TMatrix()
+    {
+      swap(m);
+    }
 
     TMatrix(const TMatrix& m) = delete;
 
     value_type operator()(size_t i, size_t j) const {
-      return data_[i * cols_ + j];
+      return (*data_)[i * cols_ + j];
+    }
+
+    ~TMatrix()
+    {
+      Clear();
     }
 
     void Set(size_t i, size_t j, float value)  {
-      data_[i * cols_ + j] = value;
+      (*data_)[i * cols_ + j] = value;
     }
 
     size_t Rows() const {
@@ -63,8 +69,13 @@ class TMatrix : public BaseMatrix {
     }
 
     void Resize(size_t rows, size_t cols) {
-      if (cols * rows > data_.size()) {
-        data_.resize(rows * cols);
+      if (cols * rows > size()) {
+        if (data_) {
+          data_->resize(rows * cols);
+        }
+        else {
+          data_ = new VecType(rows * cols);
+        }
       }
       rows_ = rows;
       cols_ = cols;
@@ -79,6 +90,7 @@ class TMatrix : public BaseMatrix {
     {
       std::stringstream strm;
       strm << Rows() << "x" << Cols() << ":";
+      /*
       for (size_t row = 0; row < Rows(); ++row) {
         float rowSum = 0;
         for (size_t col = 0; col < Cols(); ++col) {
@@ -86,46 +98,40 @@ class TMatrix : public BaseMatrix {
         }
         strm << rowSum << " ";
       }
+      */
       return strm.str();
     }
 
     void Clear() {
-      data_.clear();
+      delete data_;
+      data_ = nullptr;
       rows_ = 0;
       cols_ = 0;
     }
 
-    VecType& GetVec() {
-      return data_;
-    }
-
-    const VecType& GetVec() const {
-      return data_;
-    }
-
     value_type* data() {
-      return thrust::raw_pointer_cast(data_.data());
+      return thrust::raw_pointer_cast(data_->data());
     }
 
     const value_type* data() const {
-      return thrust::raw_pointer_cast(data_.data());
+      return thrust::raw_pointer_cast(data_->data());
     }
 
     iterator begin() {
-      return data_.begin();
+      return data_->begin();
     }
 
     iterator end() {
-      return data_.begin() + size();
+      return data_->begin() + size();
       // return data_.end();
     }
 
     const_iterator begin() const{
-      return data_.begin();
+      return data_->begin();
     }
 
     const_iterator end() const {
-      return data_.begin() + size();
+      return data_->begin() + size();
       // return data_.end();
     }
 
@@ -134,10 +140,17 @@ class TMatrix : public BaseMatrix {
       return cols_ * rows_;
     }
 
+    void swap(TMatrix &other)
+    {
+      std::swap(rows_, other.rows_);
+      std::swap(cols_, other.cols_);
+      std::swap(data_, other.data_);
+    }
+
   private:
     size_t rows_;
     size_t cols_;
-    VecType data_;
+    VecType *data_;
 };
 
 typedef TMatrix<DeviceVector<float>> Matrix;
