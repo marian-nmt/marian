@@ -158,12 +158,16 @@ class EncDec {
 
       if(encoderLayers_ > 1) {
         auto xBi = concatenate({xFw, xBw}, axis=1);
-        auto xContexts = MLRNN<GRU>(graph, "encoder", encoderLayers_ - 1,
-                              2 * dimEncState_, dimEncState_,
-                              normalize=normalize_,
-                              residual=skip_)
-                             (xBi);
-        return std::make_tuple(xContexts.back(), xMask);
+
+        Expr xContext;
+        std::vector<Expr> states;
+        std::tie(xContext, states)
+          = MLRNN<GRU>(graph, "encoder", encoderLayers_ - 1,
+                       2 * dimEncState_, dimEncState_,
+                       normalize=normalize_,
+                       residual=skip_)
+                      (xBi);
+        return std::make_tuple(xContext, xMask);
       }
       else {
         auto xContext = concatenate({xFw, xBw}, axis=1);
@@ -194,33 +198,32 @@ class EncDec {
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);
 
-      Expr stateLast;
+      Expr outputLn;
       if(decoderLayers_ > 1) {
         std::vector<Expr> statesIn;
         for(int i = 1; i < states.size(); ++i)
           statesIn.push_back(states[i]);
 
-        auto statesLn = MLRNN<GRU>(graph, "decoder",
-                                   decoderLayers_ - 1,
-                                   dimDecState_, dimDecState_,
-                                   normalize=normalize_,
-                                   residual=skip_)
-                                  (stateL1, statesIn);
+        std::vector<Expr> statesLn;
+        std::tie(outputLn, statesLn) = MLRNN<GRU>(graph, "decoder",
+                                                  decoderLayers_ - 1,
+                                                  dimDecState_, dimDecState_,
+                                                  normalize=normalize_,
+                                                  residual=skip_)
+                                                 (stateL1, statesIn);
 
         statesOut.insert(statesOut.end(),
                          statesLn.begin(), statesLn.end());
-
-        stateLast = statesOut.back();
       }
       else {
-        stateLast = stateL1;
+        outputLn = stateL1;
       }
 
       //// 2-layer feedforward network for outputs and cost
       auto logitsL1 = Dense("ff_logit_l1", dimTrgEmb_,
                             activation=act::tanh,
                             normalize=normalize_)
-                        (embeddings, stateLast, alignedContext);
+                        (embeddings, outputLn, alignedContext);
 
       auto logitsL2 = Dense("ff_logit_l2", dimTrgVoc_)
                         (logitsL1);

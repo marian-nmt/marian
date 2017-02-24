@@ -39,11 +39,11 @@ class CorpusBatch {
           }
           std::cerr << std::endl;
 
-          std::cerr << "\t m: ";
-          for(auto w : b.second) {
-            std::cerr << w << " ";
-          }
-          std::cerr << std::endl;
+          //std::cerr << "\t m: ";
+          //for(auto w : b.second) {
+            //std::cerr << w << " ";
+          //}
+          //std::cerr << std::endl;
         }
       }
     }

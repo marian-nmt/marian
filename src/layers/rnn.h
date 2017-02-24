@@ -172,40 +172,43 @@ class MLRNN : public Layer {
     }
 
     template <typename ...Args>
-    std::vector<Expr> operator()(Expr input, Args ...args) {
+    std::tuple<Expr, std::vector<Expr>>
+    operator()(Expr input, Args ...args) {
+      Expr output;
       std::vector<Expr> outStates;
-      std::vector<Expr> prevStates;
-      prevStates.push_back(input);
-
       for(int i = 0; i < layers_; ++i) {
-        auto output = (*rnns_[i])(input, args...);
-        outStates.push_back(output);
+        auto outState = (*rnns_[i])(input, args...);
+        outStates.push_back(outState);
 
-        if(residual_ && i > 0 && i < layers_ - 1)
-          input = output + input;
+        if(residual_ && i > 0)
+          output = outState + input;
         else
-          input = output;
+          output = outState;
 
-        //outStates.push_back(input);
+        input = output;
       }
-      return outStates;
+      return std::make_tuple(output, outStates);
     }
 
     template <typename ...Args>
-    std::vector<Expr> operator()(Expr input,
-                                 std::vector<Expr> states,
-                                 Args ...args) {
+    std::tuple<Expr, std::vector<Expr>>
+    operator()(Expr input,
+               std::vector<Expr> states,
+               Args ...args) {
+      Expr output;
       std::vector<Expr> outStates;
       for(int i = 0; i < layers_; ++i) {
-        auto output = (*rnns_[i])(input, states[i], args...);
-        outStates.push_back(output);
+        auto outState = (*rnns_[i])(input, states[i], args...);
+        outStates.push_back(outState);
 
-        if(residual_ && i > 0 && i < layers_ - 1)
-          input = output + input;
+        if(residual_ && i > 0)
+          output = outState + input;
         else
-          input = output;
+          output = outState;
+
+        input = output;
       }
-      return outStates;
+      return std::make_tuple(output, outStates);
     }
 };
 
