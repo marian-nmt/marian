@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/encdec.h"
+#include "models/gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(1);
 
-  auto encdec = New<EncDec>(options);
-  encdec->load(graph, "../benchmark/marian32K/modelML4.50000.npz");
+  auto encdec = New<GNMT>(options);
+  encdec->load(graph, "../benchmark/marian32K/modelML6.110000.npz");
 
   graph->reserveWorkspaceMB(128);
 

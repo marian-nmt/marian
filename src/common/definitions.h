@@ -121,7 +121,8 @@ namespace marian {
     KEY(clip, Ptr<ClipperBase>);
     KEY(batch_size, int);
     KEY(normalize, bool);
-    KEY(residual, bool);
+    KEY(skip, bool);
+    KEY(skip_first, bool);
     KEY(max_epochs, int);
     KEY(valid, Ptr<RunBase>);
   }

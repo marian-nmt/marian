@@ -143,7 +143,8 @@ template <class Cell>
 class MLRNN : public Layer {
   private:
     int layers_;
-    bool residual_;
+    bool skip_;
+    bool skipFirst_;
     int dimState_;
     std::vector<Ptr<RNN<Cell>>> rnns_;
 
@@ -158,7 +159,8 @@ class MLRNN : public Layer {
           Args ...args)
     : Layer(name),
       layers_(layers),
-      residual_(Get(keywords::residual, false, args...)),
+      skip_(Get(keywords::skip, false, args...)),
+      skipFirst_(Get(keywords::skip_first, false, args...)),
       dimState_{dimState} {
       for(int i = 0; i < layers; ++i) {
         rnns_.push_back(
@@ -180,7 +182,7 @@ class MLRNN : public Layer {
         auto outState = (*rnns_[i])(input, args...);
         outStates.push_back(outState);
 
-        if(residual_ && i > 0)
+        if(skip_ && (skipFirst_ || i > 0))
           output = outState + input;
         else
           output = outState;
@@ -201,7 +203,7 @@ class MLRNN : public Layer {
         auto outState = (*rnns_[i])(input, states[i], args...);
         outStates.push_back(outState);
 
-        if(residual_ && i > 0)
+        if(skip_ && (skipFirst_ || i > 0))
           output = outState + input;
         else
           output = outState;

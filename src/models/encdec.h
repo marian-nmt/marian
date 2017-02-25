@@ -10,71 +10,11 @@
 
 namespace marian {
 
-class EncDec {
-  private:
+class EncoderBase {
+  protected:
     Ptr<Config> options_;
 
-    int dimSrcVoc_{40000};
-    int dimSrcEmb_{512};
-    int dimEncState_{1024};
-
-    int dimTrgVoc_{40000};
-    int dimTrgEmb_{512};
-    int dimDecState_{1024};
-
-    int dimBatch_{64};
-
-    bool normalize_;
-    bool skip_;
-    int encoderLayers_{8};
-    int decoderLayers_{8};
-
-    void setDims(Ptr<ExpressionGraph> graph,
-                 Ptr<data::CorpusBatch> batch) {
-      dimSrcVoc_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[0] : dimSrcVoc_;
-      dimSrcEmb_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[1] : dimSrcEmb_;
-      dimEncState_ = graph->get("encoder_U") ? graph->get("encoder_U")->shape()[0] : dimEncState_;
-
-      dimTrgVoc_ = graph->get("Wemb_dec") ? graph->get("Wemb_dec")->shape()[0] : dimTrgVoc_;
-      dimTrgEmb_ = graph->get("Wemb_dec") ? graph->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
-      dimDecState_ = graph->get("decoder_U") ? graph->get("decoder_U")->shape()[0] : dimDecState_;
-
-      dimBatch_ = batch->size();
-    }
-
-  public:
-
-    EncDec(Ptr<Config> options)
-    : options_(options) {
-
-      auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
-
-      dimSrcVoc_   = dimVocabs[0];
-      dimSrcEmb_   = options->get<int>("dim-emb");
-      dimEncState_ = options->get<int>("dim-rnn");
-      dimTrgVoc_   = dimVocabs[1];
-      dimTrgEmb_   = options->get<int>("dim-emb");
-      dimDecState_ = options->get<int>("dim-rnn");
-      dimBatch_    = options->get<int>("mini-batch");
-
-      encoderLayers_ = options->get<int>("layers-enc");
-      decoderLayers_ = options->get<int>("layers-dec");
-      skip_ = options->get<bool>("skip");
-      normalize_ = options->get<bool>("normalize");
-    }
-
-
-    void load(Ptr<ExpressionGraph> graph,
-              const std::string& name) {
-      graph->load(name);
-    }
-
-    void save(Ptr<ExpressionGraph> graph,
-              const std::string& name) {
-      graph->save(name);
-    }
-
-    std::tuple<Expr, Expr>
+    virtual std::tuple<Expr, Expr>
     prepareSource(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
       using namespace keywords;
       std::vector<size_t> indeces;
@@ -98,7 +38,19 @@ class EncDec {
       return std::make_tuple(x, xMask);
     }
 
-    std::tuple<Expr, Expr, Expr>
+  public:
+    EncoderBase(Ptr<Config> options)
+     : options_(options) {}
+
+    virtual std::tuple<Expr, Expr>
+    build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, size_t = 0) = 0;
+};
+
+class DecoderBase {
+  protected:
+    Ptr<Config> options_;
+
+    virtual std::tuple<Expr, Expr, Expr>
     prepareTarget(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
       using namespace keywords;
 
@@ -136,149 +88,98 @@ class EncDec {
       return std::make_tuple(y, yMask, yIdx);
     }
 
-    std::tuple<Expr, Expr> encoder(Ptr<ExpressionGraph> graph,
-                                   Ptr<data::CorpusBatch> batch) {
+  public:
+    DecoderBase(Ptr<Config> options)
+     : options_(options) {}
+
+    virtual std::tuple<Expr, Expr, Expr>
+    groundTruth(Ptr<ExpressionGraph> graph,
+                Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
-      auto xEmb = Embedding("Wemb", dimSrcVoc_, dimSrcEmb_)(graph);
+      int dimBatch  = batch->size();
+      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+      int dimTrgEmb = options_->get<int>("dim-emb");
 
-      Expr x, xMask;
-      std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
-
-      auto xFw = RNN<GRU>(graph, "encoder_bi",
-                          dimSrcEmb_, dimEncState_,
-                          normalize=normalize_)
-                         (x);
-
-      auto xBw = RNN<GRU>(graph, "encoder_bi_r",
-                          dimSrcEmb_, dimEncState_,
-                          normalize=normalize_,
-                          direction=dir::backward)
-                         (x, mask=xMask);
-
-      if(encoderLayers_ > 1) {
-        auto xBi = concatenate({xFw, xBw}, axis=1);
-
-        Expr xContext;
-        std::vector<Expr> states;
-        std::tie(xContext, states)
-          = MLRNN<GRU>(graph, "encoder", encoderLayers_ - 1,
-                       2 * dimEncState_, dimEncState_,
-                       normalize=normalize_,
-                       residual=skip_)
-                      (xBi);
-        return std::make_tuple(xContext, xMask);
-      }
-      else {
-        auto xContext = concatenate({xFw, xBw}, axis=1);
-        return std::make_tuple(xContext, xMask);
-      }
-    }
-
-    std::tuple<Expr, std::vector<Expr>>
-    step(Expr embeddings,
-         std::vector<Expr> states,
-         Expr context,
-         Expr contextMask) {
-      using namespace keywords;
-
-      auto graph = embeddings->graph();
-
-      auto attention = New<GlobalAttention>("decoder",
-                                            context, dimDecState_,
-                                            mask=contextMask,
-                                            normalize=normalize_);
-      RNN<CGRU> rnnL1(graph, "decoder",
-                      dimTrgEmb_, dimDecState_,
-                      attention,
-                      normalize=normalize_);
-      auto stateL1 = rnnL1(embeddings, states[0]);
-      auto alignedContext = rnnL1.getCell()->getContexts();
-
-      std::vector<Expr> statesOut;
-      statesOut.push_back(stateL1);
-
-      Expr outputLn;
-      if(decoderLayers_ > 1) {
-        std::vector<Expr> statesIn;
-        for(int i = 1; i < states.size(); ++i)
-          statesIn.push_back(states[i]);
-
-        std::vector<Expr> statesLn;
-        std::tie(outputLn, statesLn) = MLRNN<GRU>(graph, "decoder",
-                                                  decoderLayers_ - 1,
-                                                  dimDecState_, dimDecState_,
-                                                  normalize=normalize_,
-                                                  residual=skip_)
-                                                 (stateL1, statesIn);
-
-        statesOut.insert(statesOut.end(),
-                         statesLn.begin(), statesLn.end());
-      }
-      else {
-        outputLn = stateL1;
-      }
-
-      //// 2-layer feedforward network for outputs and cost
-      auto logitsL1 = Dense("ff_logit_l1", dimTrgEmb_,
-                            activation=act::tanh,
-                            normalize=normalize_)
-                        (embeddings, outputLn, alignedContext);
-
-      auto logitsL2 = Dense("ff_logit_l2", dimTrgVoc_)
-                        (logitsL1);
-
-      return std::make_tuple(logitsL2, statesOut);
-    }
-
-    Expr buildStartState(Expr context, Expr mask) {
-      using namespace keywords;
-
-      auto meanContext = weighted_average(context, mask, axis=2);
-      auto start = Dense("ff_state",
-                         dimDecState_,
-                         activation=act::tanh,
-                         normalize=normalize_)(meanContext);
-      return start;
-    }
-
-    std::tuple<Expr, Expr, Expr> buildEmbeddings(Ptr<ExpressionGraph> graph,
-                                                 Ptr<data::CorpusBatch> batch) {
-      using namespace keywords;
-
-      auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
+      auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
       Expr y, yMask, yIdx;
       std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, 1);
-      auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
+      auto yEmpty = graph->zeros(shape={dimBatch, dimTrgEmb});
       auto yShifted = concatenate({yEmpty, y}, axis=2);
 
       return std::make_tuple(yShifted, yMask, yIdx);
     }
 
-    void clear(Ptr<ExpressionGraph> graph,
-               Ptr<data::CorpusBatch> batch) {
-      graph->clear();
-      setDims(graph, batch);
+    virtual Expr
+    buildStartState(Expr context, Expr mask) {
+      using namespace keywords;
+
+      auto meanContext = weighted_average(context, mask, axis=2);
+
+      bool layerNorm = options_->get<bool>("normalize");
+      auto start = Dense("ff_state",
+                         options_->get<int>("dim-rnn"),
+                         activation=act::tanh,
+                         normalize=layerNorm)(meanContext);
+      return start;
     }
 
-    std::tuple<std::vector<Expr>, Expr, Expr>
+    virtual std::tuple<Expr, std::vector<Expr>>
+    step(Expr embeddings, std::vector<Expr> states,
+         Expr context, Expr contextMask) = 0;
+};
+
+template <class Encoder, class Decoder>
+class Seq2Seq {
+  protected:
+    Ptr<Config> options_;
+    Ptr<EncoderBase> encoder_;
+    Ptr<DecoderBase> decoder_;
+
+  public:
+
+    Seq2Seq(Ptr<Config> options)
+     : options_(options),
+       encoder_(New<Encoder>(options)),
+       decoder_(New<Decoder>(options))
+    {}
+
+     virtual void load(Ptr<ExpressionGraph> graph,
+                       const std::string& name) {
+      graph->load(name);
+    }
+
+    virtual void save(Ptr<ExpressionGraph> graph,
+                      const std::string& name) {
+      graph->save(name);
+    }
+
+    virtual std::tuple<std::vector<Expr>, Expr, Expr>
     buildEncoder(Ptr<ExpressionGraph> graph,
                  Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
-      clear(graph, batch);
+      graph->clear();
 
       Expr srcContext, srcMask;
-      std::tie(srcContext, srcMask) = encoder(graph, batch);
-      auto startState = buildStartState(srcContext, srcMask);
+      std::tie(srcContext, srcMask) = encoder_->build(graph, batch);
+      auto startState = decoder_->buildStartState(srcContext, srcMask);
 
-      std::vector<Expr> startStates(decoderLayers_, startState);
+      size_t decoderLayers = options_->get<size_t>("layers-dec");
+      std::vector<Expr> startStates(decoderLayers, startState);
 
       return std::make_tuple(startStates, srcContext, srcMask);
     }
 
+    virtual std::tuple<Expr, std::vector<Expr>>
+    step(Expr embeddings,
+         std::vector<Expr> states,
+         Expr context,
+         Expr contextMask) {
+      return decoder_->step(embeddings, states, context, contextMask);
+    }
 
-    Expr build(Ptr<ExpressionGraph> graph,
-               Ptr<data::CorpusBatch> batch) {
+    virtual Expr build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
       std::vector<Expr> startStates;
@@ -286,20 +187,21 @@ class EncDec {
       std::tie(startStates, srcContext, srcMask) = buildEncoder(graph, batch);
 
       Expr trgEmbeddings, trgMask, trgIdx;
-      std::tie(trgEmbeddings, trgMask, trgIdx) = buildEmbeddings(graph, batch);
+      std::tie(trgEmbeddings, trgMask, trgIdx) = decoder_->groundTruth(graph, batch);
 
       Expr trgLogits;
       std::vector<Expr> trgStates;
-      std::tie(trgLogits, trgStates) = step(trgEmbeddings,
-                                            startStates,
-                                            srcContext,
-                                            srcMask);
+      std::tie(trgLogits, trgStates) = decoder_->step(trgEmbeddings,
+                                                      startStates,
+                                                      srcContext,
+                                                      srcMask);
 
       auto cost = CrossEntropyCost("cost")(trgLogits, trgIdx,
                                            mask=trgMask);
 
       return cost;
     }
+
 };
 
 }
