@@ -1,6 +1,11 @@
+#pragma once
+
 #include "models/encdec.h"
+#include "layers/attention.h"
 
 namespace marian {
+
+  typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
   class EncoderGNMT : public EncoderBase {
   public:
@@ -58,6 +63,8 @@ namespace marian {
 };
 
 class DecoderGNMT : public DecoderBase {
+  private:
+    Ptr<GlobalAttention> attention_;
 
   public:
     DecoderGNMT(Ptr<Config> options)
@@ -67,7 +74,8 @@ class DecoderGNMT : public DecoderBase {
     step(Expr embeddings,
          std::vector<Expr> states,
          Expr context,
-         Expr contextMask) {
+         Expr contextMask,
+         bool single) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -77,19 +85,21 @@ class DecoderGNMT : public DecoderBase {
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
 
-
       auto graph = embeddings->graph();
 
-      auto attention = New<GlobalAttention>("decoder",
-                                            context, dimDecState,
-                                            mask=contextMask,
-                                            normalize=layerNorm);
+      if(!attention_)
+        attention_ = New<GlobalAttention>("decoder",
+                                          context, dimDecState,
+                                          mask=contextMask,
+                                          normalize=layerNorm);
       RNN<CGRU> rnnL1(graph, "decoder",
                       dimTrgEmb, dimDecState,
-                      attention,
+                      attention_,
                       normalize=layerNorm);
       auto stateL1 = rnnL1(embeddings, states[0]);
-      auto alignedContext = rnnL1.getCell()->getContexts();
+      auto alignedContext = single ?
+        rnnL1.getCell()->getLastContext() :
+        rnnL1.getCell()->getContexts();
 
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);

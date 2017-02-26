@@ -144,7 +144,7 @@ __global__ void gAdd1(Functor functor,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] = _sum[0] * scale;
+      out[j] += _sum[0] * scale;
     }
   }
 }
@@ -176,6 +176,7 @@ void Add(Functor functor,
                                        full, scale);
   }
   else {
+
     int threads = std::min(MAX_THREADS, length);
     int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
@@ -308,7 +309,7 @@ __global__ void gAdd1(Functor functor,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] = _sum[0] * scale;
+      out[j] += _sum[0] * scale;
     }
   }
 }
@@ -838,9 +839,9 @@ void GRUFastBackward(std::vector<Tensor> outputs,
                      std::vector<Tensor> inputs,
                      Tensor adj, bool final = false);
 
-void Att(Tensor out, Tensor context, Tensor state, Tensor va);
-void AttBack(Tensor gContext, Tensor gState, Tensor gva,
-             Tensor context, Tensor state, Tensor va,
+void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage);
+void AttBack(Tensor gva, Tensor gContext, Tensor gState, Tensor gCoverage,
+             Tensor va, Tensor context, Tensor state, Tensor coverage,
              Tensor adj);
 
 void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps=1e-9);

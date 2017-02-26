@@ -149,4 +149,20 @@ Expr square(Expr a);
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr);
 //Expr batch_norm(Expr x, Expr gamma, Expr beta = nullptr);
 
+template <typename ...Args>
+Expr dropout(Expr x, Args ...args) {
+  auto mask = Get(keywords::mask, nullptr, args...);
+  float dropout_prob = Get(keywords::dropout_prob, 0.0f, args...);
+
+  UTIL_THROW_IF2(!mask && !dropout_prob,
+                 "Neither mask nor dropout prob given");
+  if(!mask) {
+    auto graph = x->graph();
+    mask = graph->constant(keywords::shape=x->shape(),
+                           keywords::init=inits::dropout(dropout_prob));
+  }
+  return x * mask;
+}
+
+
 }

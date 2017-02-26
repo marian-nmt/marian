@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "graph/expression_graph.h"
+#include "layers/rnn.h"
 
 namespace marian {
 
@@ -13,17 +14,19 @@ struct AttentionNodeOp : public NaryNodeOp {
                  keywords::shape=newShape(nodes)) {}
 
   Shape newShape(const std::vector<Expr>& nodes) {
-    Shape shape = nodes[0]->shape();
-    Shape shape2 = nodes[1]->shape();
-    Shape shape3 = nodes[2]->shape();
+    Shape shape = nodes[1]->shape();
 
-    for(int i = 0; i < shape2.size(); ++i) {
-      UTIL_THROW_IF2(shape[i] != shape2[i] && shape[i] != 1 && shape2[i] != 1,
+    Shape vaShape =  nodes[0]->shape();
+    Shape ctxShape = nodes[1]->shape();
+    Shape stateShape = nodes[2]->shape();
+
+    for(int i = 0; i < stateShape.size(); ++i) {
+      UTIL_THROW_IF2(ctxShape[i] != stateShape[i] && ctxShape[i] != 1 && stateShape[i] != 1,
                      "Shapes cannot be broadcasted");
-      shape.set(i, std::max(shape[i], shape2[i]));
+      shape.set(i, std::max(ctxShape[i], stateShape[i]));
     }
 
-    UTIL_THROW_IF2(shape3[0] != shape[1] || shape3[1] != 1,
+    UTIL_THROW_IF2(vaShape[0] != shape[1] || vaShape[1] != 1,
                    "Wrong size");
 
     shape.set(1, 1);
@@ -35,7 +38,8 @@ struct AttentionNodeOp : public NaryNodeOp {
       NodeOp(Att(val_,
                  children_[0]->val(),
                  children_[1]->val(),
-                 children_[2]->val()))
+                 children_[2]->val(),
+                 children_.size() == 4 ? children_[3]->val() : nullptr))
     };
   }
 
@@ -46,9 +50,11 @@ struct AttentionNodeOp : public NaryNodeOp {
           children_[0]->grad(),
           children_[1]->grad(),
           children_[2]->grad(),
+          children_.size() == 4 ? children_[3]->grad() : nullptr,
           children_[0]->val(),
           children_[1]->val(),
           children_[2]->val(),
+          children_.size() == 4 ? children_[3]->val() : nullptr,
           adj_
         );
       )
@@ -70,8 +76,11 @@ struct AttentionNodeOp : public NaryNodeOp {
   }
 };
 
-Expr attOps(Expr context, Expr state, Expr va) {
-  std::vector<Expr> nodes{context, state, va};
+Expr attOps(Expr va, Expr context, Expr state, Expr coverage=nullptr) {
+  std::vector<Expr> nodes{va, context, state};
+  if(coverage)
+    nodes.push_back(coverage);
+
   int dimBatch = context->shape()[0];
   int dimWords = context->shape()[2];
   int dimBeam  = state->shape()[3];
@@ -90,7 +99,10 @@ class GlobalAttention {
     Expr softmaxMask_;
     Expr mappedContext_;
     std::vector<Expr> contexts_;
+    std::vector<Expr> alignments_;
     bool layerNorm_;
+
+    Expr cov_;
 
   public:
 
@@ -101,9 +113,11 @@ class GlobalAttention {
               Args ...args)
      : context_(context),
        softmaxMask_(nullptr),
-       layerNorm_(Get(keywords::normalize, false, args...)) {
+       layerNorm_(Get(keywords::normalize, false, args...)),
+       cov_(Get(keywords::coverage, nullptr, args...)) {
 
       int dimEncState = context->shape()[1];
+
       auto graph = context->graph();
 
       Wa_ = graph->param(prefix + "_W_comb_att", {dimDecState, dimEncState},
@@ -146,17 +160,17 @@ class GlobalAttention {
       if(layerNorm_)
         mappedState = layer_norm(mappedState, gammaState_);
 
-      auto attReduce = attOps(mappedContext_, mappedState, va_);
-      
+      auto attReduce = attOps(va_, mappedContext_, mappedState);
+
       // @TODO: horrible ->
       auto e = reshape(transpose(softmax(transpose(attReduce), softmaxMask_)),
                        {dimBatch, 1, srcWords, dimBeam});
       // <- horrible
 
-      auto alignedSource = weighted_average(context_, e,
-                                            axis=2);
+      auto alignedSource = weighted_average(context_, e, axis=2);
 
       contexts_.push_back(alignedSource);
+      alignments_.push_back(e);
       return alignedSource;
     }
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
@@ -10,7 +12,6 @@
 #include "graph/expression_graph.h"
 
 #include "layers/generic.h"
-#include "layers/attention.h"
 
 namespace marian {
 
@@ -326,12 +327,18 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final = false) {
 
 class GRU {
   private:
+    std::string prefix_;
+
     Expr U_, W_, b_;
     Expr gamma1_;
     Expr gamma2_;
+
     bool final_;
     bool layerNorm_;
-    std::string prefix_;
+    float dropout_;
+
+    Expr dropMaskX_;
+    Expr dropMaskS_;
 
   public:
 
@@ -362,26 +369,41 @@ class GRU {
       final_ = Get(keywords::final, false, args...);
       layerNorm_ = Get(keywords::normalize, false, args...);
 
+      dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
+
       if(layerNorm_) {
         gamma1_ = graph->param(prefix + "_gamma1", {1, 3 * dimState},
                                keywords::init=inits::from_value(1.f));
         gamma2_ = graph->param(prefix + "_gamma2", {1, 3 * dimState},
                                keywords::init=inits::from_value(1.f));
       }
+
+      if(dropout_> 0.0f) {
+        dropMaskX_ = graph->constant(keywords::shape={1, dimInput},
+                                     keywords::init=inits::dropout(dropout_));
+        dropMaskS_ = graph->constant(keywords::shape={1, dimState},
+                                     keywords::init=inits::dropout(dropout_));
+      }
     }
 
-    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
+    Expr apply(Expr input, Expr state,
+               Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
+      if(dropMaskX_)
+        x = dropout(x, keywords::mask=dropMaskX_);
       auto xW = dot(input, W_);
       if(layerNorm_)
         xW = layer_norm(xW, gamma1_);
       return xW;
     }
 
-    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
+    Expr apply2(Expr xW, Expr state,
+                Expr mask = nullptr) {
+      if(dropMaskS_)
+        state = dropout(state, keywords::mask=dropMaskS_);
 
       auto sU = dot(state, U_);
 
@@ -459,7 +481,5 @@ class AttentionCell {
       return att_->getContexts().back();
     }
 };
-
-typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
 }

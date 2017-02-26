@@ -73,9 +73,9 @@ int main() {
 
   boost::timer::cpu_timer timer2;
   for(int i = 0; i < 5000; ++i) {
-    Att(out2, mappedContext, mappedState, va);
-    AttBack(gMappedContext, gMappedState, gVa,
-        mappedContext, mappedState, va, out2);
+    Att(va, out2, mappedContext, mappedState, nullptr);
+    AttBack(gVa, gMappedContext, gMappedState, nullptr,
+        va, mappedContext, mappedState, out2, nullptr);
     cudaStreamSynchronize(0);
     if(i % 100 == 0)
       std::cout << "." << std::flush;

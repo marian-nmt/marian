@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
   graph->setDevice(1);
 
   auto encdec = New<GNMT>(options);
-  encdec->load(graph, "../benchmark/marian32K/modelML6.110000.npz");
+  encdec->load(graph, "../benchmark/marian32K/modelML8.10000.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 
       auto costNode = encdec->build(graph, batch);
       //for(auto p : graph->params())
-      //  debug(p, p->name());
+        //debug(p, p->name());
       debug(costNode, "cost");
 
       //graph->graphviz("debug.dot");

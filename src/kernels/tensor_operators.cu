@@ -1098,22 +1098,24 @@ float L2Norm(Tensor in) {
 }
 
 __global__ void gAtt(float* out,
-                         const float* in1,
-                         const float* in2,
-                         const float* in3,
-                         int m, // total rows (batch x time x beam)
-                         int k, // depth
-                         int b, // batch size
-                         int t // time of in1
-                         ) {
+                     const float* va,
+                     const float* ctx,
+                     const float* state,
+                     const float* cov,
+                     int m, // total rows (batch x time x beam)
+                     int k, // depth
+                     int b, // batch size
+                     int t // time of ctx
+                     ) {
   int rows = m;
   int cols = k;
   for(int bid = 0; bid < m; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      const float* in1Row = in1 + (j % (b * t)) * cols;
-      const float* in2Row = in2 + (j / (b * t) + j % b) * cols;
-      const float* in3Row = in3;
+      const float* vaRow = va;
+      const float* ctxRow = ctx + (j % (b * t)) * cols;
+      const float* stateRow = state + (j / (b * t) + j % b) * cols;
+      const float* covRow = cov ? cov + (j % (b * t)) * cols : nullptr;
 
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
@@ -1122,7 +1124,10 @@ __global__ void gAtt(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = tanhf(in1Row[id] + in2Row[id]) * in3Row[id];
+          float z = ctxRow[id] + stateRow[id];
+          if(cov)
+            z += covRow[id];
+          float ex = tanhf(z) * vaRow[id];
           _sum[threadIdx.x] += ex;
         }
       }
@@ -1141,7 +1146,11 @@ __global__ void gAtt(float* out,
   }
 }
 
-void Att(Tensor out, Tensor context, Tensor state, Tensor va) {
+void Att(Tensor out,
+         Tensor va,
+         Tensor context,
+         Tensor state,
+         Tensor coverage) {
   cudaSetDevice(out->getDevice());
 
   size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
@@ -1155,18 +1164,21 @@ void Att(Tensor out, Tensor context, Tensor state, Tensor va) {
   int shared = sizeof(float) * threads * 2;
 
   gAtt<<<blocks, threads, shared>>>(out->data(),
+                                    va->data(),
                                     context->data(),
                                     state->data(),
-                                    va->data(),
+                                    coverage ? coverage->data() : nullptr,
                                     m, k, b, t);
 }
 
-__global__ void gAttBack(float* gContext,
+__global__ void gAttBack(float* gVa,
+                         float* gContext,
                          float* gState,
-                         float* gVa,
+                         float* gCoverage,
+                         const float* va,
                          const float* context,
                          const float* state,
-                         const float* va,
+                         const float* coverage,
                          const float* adj,
                          int m, // rows
                          int k, // cols
@@ -1179,18 +1191,26 @@ __global__ void gAttBack(float* gContext,
     if(j < rows) {
       float* gcRow = gContext + j * cols;
       float* gsRow = gState + (j % n) * cols;
+      float* gcovRow = gCoverage ? gCoverage + j * cols : nullptr;
 
       const float* cRow = context + j * cols;
       const float* sRow = state + (j % n) * cols;
+      const float* covRow = coverage ? coverage + j * cols : nullptr;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float t = tanhf(cRow[id] + sRow[id]);
+          float z = cRow[id] + sRow[id];
+          if(coverage)
+            z += covRow[id];
+
+          float t = tanhf(z);
           float r = va[id] * (1.f - t * t);
 
           gcRow[id] += r * adj[j];
           gsRow[id] += r * adj[j];
+          if(gCoverage)
+            gcovRow[id] += r * adj[j];
           atomicAdd(gVa + id, t * adj[j]);
         }
       }
@@ -1199,8 +1219,8 @@ __global__ void gAttBack(float* gContext,
 }
 
 
-void AttBack(Tensor gContext, Tensor gState, Tensor gVa,
-             Tensor context, Tensor state, Tensor va,
+void AttBack(Tensor gVa, Tensor gContext, Tensor gState, Tensor gCoverage,
+             Tensor va, Tensor context, Tensor state, Tensor coverage,
              Tensor adj) {
   cudaSetDevice(adj->getDevice());
 
@@ -1212,13 +1232,15 @@ void AttBack(Tensor gContext, Tensor gState, Tensor gVa,
   int blocks = std::min(MAX_BLOCKS, (int) n);
   int threads = std::min(MAX_THREADS, (int) k);
 
-  gAttBack<<<blocks, threads>>>(gContext->data(),
+  gAttBack<<<blocks, threads>>>(gVa->data(),
+                                gContext->data(),
                                 gState->data(),
-                                gVa->data(),
+                                gCoverage ? gCoverage->data() : nullptr,
 
+                                va->data(),
                                 context->data(),
                                 state->data(),
-                                va->data(),
+                                coverage ? coverage->data() : nullptr,
 
                                 adj->data(),
                                 m, k, n);

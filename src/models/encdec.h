@@ -126,7 +126,7 @@ class DecoderBase {
 
     virtual std::tuple<Expr, std::vector<Expr>>
     step(Expr embeddings, std::vector<Expr> states,
-         Expr context, Expr contextMask) = 0;
+         Expr context, Expr contextMask, bool single=false) = 0;
 };
 
 template <class Encoder, class Decoder>
@@ -159,6 +159,8 @@ class Seq2Seq {
                  Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
       graph->clear();
+      encoder_ = New<Encoder>(options_);
+      decoder_ = New<Decoder>(options_);
 
       Expr srcContext, srcMask;
       std::tie(srcContext, srcMask) = encoder_->build(graph, batch);
@@ -174,8 +176,9 @@ class Seq2Seq {
     step(Expr embeddings,
          std::vector<Expr> states,
          Expr context,
-         Expr contextMask) {
-      return decoder_->step(embeddings, states, context, contextMask);
+         Expr contextMask,
+         bool single=false) {
+      return decoder_->step(embeddings, states, context, contextMask, single);
     }
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
