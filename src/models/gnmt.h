@@ -26,11 +26,18 @@ namespace marian {
       bool skipDepth = options_->get<bool>("skip");
       size_t encoderLayers = options_->get<size_t>("layers-enc");
       float dropoutRnn = options_->get<float>("dropout-rnn");
+      float dropoutSrc = options_->get<float>("dropout-src");
 
       auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
+
+      if(dropoutSrc) {
+        int srcWords = x->shape()[2];
+        auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
+        x = dropout(x, mask=srcWordDrop);
+      }
 
       auto xFw = RNN<GRU>(graph, "encoder_bi",
                           dimSrcEmb, dimEncState,
@@ -45,7 +52,6 @@ namespace marian {
                           dropout_prob=dropoutRnn)
                          (x, mask=xMask);
 
-      debug(xFw, "xFw");
       if(encoderLayers > 1) {
         auto xBi = concatenate({xFw, xBw}, axis=1);
 
@@ -90,8 +96,15 @@ class DecoderGNMT : public DecoderBase {
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
       float dropoutRnn = options_->get<float>("dropout-rnn");
+      float dropoutTrg = options_->get<float>("dropout-trg");
 
       auto graph = embeddings->graph();
+
+      if(dropoutTrg) {
+        int trgWords = embeddings->shape()[2];
+        auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+        embeddings = dropout(embeddings, mask=trgWordDrop);
+      }
 
       if(!attention_)
         attention_ = New<GlobalAttention>("decoder",

@@ -199,6 +199,10 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
      "Enable layer normalization")
     ("dropout-rnn", po::value<float>()->default_value(0),
      "Scaling dropout along rnn layers and time (0 = no dropout)")
+    ("dropout-src", po::value<float>()->default_value(0),
+     "Dropout source words (0 = no dropout)")
+    ("dropout-trg", po::value<float>()->default_value(0),
+     "Dropout target words (0 = no dropout)")
   ;
 
   po::options_description opt("Optimizer options");
@@ -307,6 +311,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("no-shuffle", bool);
   SET_OPTION("normalize", bool);
   SET_OPTION("dropout-rnn", float);
+  SET_OPTION("dropout-src", float);
+  SET_OPTION("dropout-trg", float);
   SET_OPTION("skip", bool);
 
   if(doValidate)

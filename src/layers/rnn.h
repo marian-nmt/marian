@@ -392,7 +392,6 @@ class GRU {
     Expr apply1(Expr input) {
       if(dropMaskX_)
         input = dropout(input, keywords::mask=dropMaskX_);
-      debug(input, "in");
       auto xW = dot(input, W_);
       if(layerNorm_)
         xW = layer_norm(xW, gamma1_);
@@ -403,7 +402,6 @@ class GRU {
                 Expr mask = nullptr) {
       if(dropMaskS_)
         state = dropout(state, keywords::mask=dropMaskS_);
-      debug(state, "state");
 
       auto sU = dot(state, U_);
 
