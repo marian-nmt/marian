@@ -94,9 +94,14 @@ class TensorAllocator {
       gaps_.insert(lastGap_);
     }
 
+    ~TensorAllocator() {
+      clear();
+    }
+
     void reserve(size_t elements = 0) {
       float mult = elements / FLOATS + 1;
-      std::cerr << "Extending reserved space to " << mult * CHUNK << " MB" << std::endl;
+      LOG(memory) << "Extending reserved space to "
+        << mult * CHUNK << " MB (device " << device_.getDevice() << ")";
 
       size_t old = device_.capacity();
       float* oldStart = device_.data();
@@ -106,8 +111,8 @@ class TensorAllocator {
 
     void reserveExact(size_t elements = 0) {
       size_t mbytes = (elements * sizeof(float)) / MBYTE;
-      std::cerr << "Reserving space for " << elements
-        << " floats (" << mbytes << " MB)" << std::endl;
+      LOG(memory) << "Reserving space for " << elements
+        << " floats (" << mbytes << " MB, device " << device_.getDevice() << ")";
 
       size_t old = device_.capacity();
       float* oldStart = device_.data();

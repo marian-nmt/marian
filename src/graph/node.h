@@ -186,6 +186,7 @@ class Node : public Chainable<Tensor>,
 };
 
 struct NaryNodeOp : public Node {
+  size_t hash_{0};
   std::vector<Expr> children_;
 
   template <typename ...Args>
@@ -203,6 +204,17 @@ struct NaryNodeOp : public Node {
 
   std::vector<Expr>& children() {
     return children_;
+  }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      std::size_t seed = boost::hash<std::string>()(name());
+      boost::hash_combine(seed, type());
+      for(auto child : children())
+        boost::hash_combine(seed, child->hash());
+      hash_ = seed;
+    }
+    return hash_;
   }
 
   void remove_children_from_top_nodes();

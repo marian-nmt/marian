@@ -1,12 +1,17 @@
 #pragma once
 
-#include <yaml-cpp/yaml.h>
 #include <boost/program_options.hpp>
+
+#include "3rd_party/yaml-cpp/yaml.h"
+#include "common/logging.h"
+
+namespace marian {
 
 class Config {
   public:
-    Config(int argc, char** argv) {
-      addOptions(argc, argv);
+    Config(int argc, char** argv, bool validate = true) {
+      addOptions(argc, argv, validate);
+      log();
     }
 
     bool has(const std::string& key) const;
@@ -19,12 +24,14 @@ class Config {
     }
 
     const YAML::Node& get() const;
+    YAML::Node& get();
+
     YAML::Node operator[](const std::string& key) const {
       return get(key);
     }
 
-    void addOptions(int argc, char** argv);
-    void logOptions();
+    void addOptions(int argc, char** argv, bool validate);
+    void log();
     void validate() const;
 
     template <class OStream>
@@ -37,3 +44,5 @@ class Config {
     std::string inputPath;
     YAML::Node config_;
 };
+
+}

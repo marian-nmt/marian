@@ -30,6 +30,7 @@
 #include <thrust/host_vector.h>
 
 #include "shape.h"
+#include "common/logging.h"
 
 namespace marian {
 
@@ -93,7 +94,6 @@ namespace marian {
   // An enumeration of directions
   enum struct dir { forward, backward, bidirect };
 
-
   /**
    * @brief Defines a set of keywords.
    *
@@ -101,27 +101,32 @@ namespace marian {
    *    will result in the creation of an instance of the Keyword class.
    */
   namespace keywords {
-    KEY(axis, int)
-    KEY(shape, Shape)
-    KEY(value, float)
-    KEY(prefix, std::string)
-    KEY(final, bool)
-    KEY(output_last, bool)
-    KEY(activation, act)
-    KEY(direction, dir)
-    KEY(mask, Expr)
-    KEY(init, std::function<void(Tensor)>)
+    KEY(axis, int);
+    KEY(shape, Shape);
+    KEY(value, float);
+    KEY(prefix, std::string);
+    KEY(final, bool);
+    KEY(output_last, bool);
+    KEY(activation, act);
+    KEY(direction, dir);
+    KEY(mask, Expr);
+    KEY(dropout_prob, float);
+    KEY(init, std::function<void(Tensor)>);
 
 
-    KEY(eta, float)
-    KEY(beta1, float)
-    KEY(beta2, float)
-    KEY(eps, float)
-    KEY(optimizer, Ptr<OptimizerBase>)
-    KEY(clip, Ptr<ClipperBase>)
-    KEY(batch_size, int)
-    KEY(max_epochs, int)
-    KEY(valid, Ptr<RunBase>)
+    KEY(eta, float);
+    KEY(beta1, float);
+    KEY(beta2, float);
+    KEY(eps, float);
+    KEY(optimizer, Ptr<OptimizerBase>);
+    KEY(clip, Ptr<ClipperBase>);
+    KEY(batch_size, int);
+    KEY(normalize, bool);
+    KEY(skip, bool);
+    KEY(skip_first, bool);
+    KEY(coverage, Expr);
+    KEY(max_epochs, int);
+    KEY(valid, Ptr<RunBase>);
   }
 
 }

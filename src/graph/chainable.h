@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <memory>
+#include <boost/functional/hash.hpp>
 
 #include "exception.h"
 
@@ -106,6 +107,8 @@ struct Chainable {
     virtual void debug(const std::string& message) = 0;
     virtual bool marked_for_debug() = 0;
     virtual const std::string& debug_message() = 0;
+
+    virtual size_t hash() = 0;
 };
 
 /**

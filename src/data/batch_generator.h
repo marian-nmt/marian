@@ -5,7 +5,8 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "dataset.h"
+#include "data/dataset.h"
+#include "training/config.h"
 
 namespace marian {
 
@@ -21,22 +22,24 @@ class BatchGenerator {
 
   private:
     Ptr<DataSet> data_;
+    Ptr<Config> options_;
+
     typename DataSet::iterator current_;
 
-    size_t batchSize_;
     size_t maxiBatchSize_;
 
     std::deque<BatchPtr> bufferedBatches_;
     BatchPtr currentBatch_;
 
-    void fillBatches() {
+    void fillBatches(bool shuffle=true) {
       auto cmp = [](const sample& a, const sample& b) {
         return a[0].size() < b[0].size();
       };
 
       std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
 
-      while(current_ != data_->end() && maxiBatch.size() < maxiBatchSize_) {
+      int maxSize = options_->get<int>("mini-batch") * options_->get<int>("maxi-batch");
+      while(current_ != data_->end() && maxiBatch.size() < maxSize) {
         maxiBatch.push(*current_);
         current_++;
       }
@@ -45,7 +48,7 @@ class BatchGenerator {
       while(!maxiBatch.empty()) {
         batchVector.push_back(maxiBatch.top());
         maxiBatch.pop();
-        if(batchVector.size() == batchSize_) {
+        if(batchVector.size() == options_->get<int>("mini-batch")) {
           bufferedBatches_.push_back(data_->toBatch(batchVector));
           batchVector.clear();
         }
@@ -53,17 +56,15 @@ class BatchGenerator {
       if(!batchVector.empty())
         bufferedBatches_.push_back(data_->toBatch(batchVector));
 
-      std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
+      if(shuffle)
+        std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
     }
 
   public:
     BatchGenerator(Ptr<DataSet> data,
-                   size_t batchSize=80,
-                   size_t maxiBatchNum=20)
+                   Ptr<Config> options)
     : data_(data),
-      batchSize_(batchSize),
-      maxiBatchSize_(batchSize * maxiBatchNum)
-      { }
+      options_(options) { }
 
     operator bool() const {
       return !bufferedBatches_.empty();
@@ -84,8 +85,10 @@ class BatchGenerator {
     void prepare(bool shuffle=true) {
       if(shuffle)
         data_->shuffle();
+      else
+        data_->reset();
       current_ = data_->begin();
-      fillBatches();
+      fillBatches(shuffle);
     }
 };
 

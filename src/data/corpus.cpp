@@ -1,5 +1,6 @@
 #include <random>
-#include "corpus.h"
+
+#include "data/corpus.h"
 
 namespace marian {
 namespace data {
@@ -33,20 +34,53 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
-Corpus::Corpus(const std::vector<std::string>& textPaths,
-               const std::vector<std::string>& vocabPaths,
-               const std::vector<int>& maxVocabs,
-               size_t maxLength)
-  : textPaths_(textPaths),
-    maxLength_(maxLength)
-{
-  UTIL_THROW_IF2(textPaths.size() != vocabPaths.size(),
+Corpus::Corpus(Ptr<Config> options)
+  : options_(options),
+    textPaths_(options_->get<std::vector<std::string>>("train-sets")),
+    maxLength_(options_->get<size_t>("max-length")) {
+
+  std::vector<std::string> vocabPaths;
+  if(options_->has("vocabs"))
+    vocabPaths = options_->get<std::vector<std::string>>("vocabs");
+
+  UTIL_THROW_IF2(!vocabPaths.empty() && textPaths_.size() != vocabPaths.size(),
                  "Number of corpus files and vocab files does not agree");
 
+  std::vector<int> maxVocabs =
+    options_->get<std::vector<int>>("dim-vocabs");
+
   std::vector<Vocab> vocabs;
-  for(int i = 0; i < vocabPaths.size(); ++i) {
-    vocabs_.emplace_back(vocabPaths[i], maxVocabs[i]);
+  if(vocabPaths.empty()) {
+    for(int i = 0; i < textPaths_.size(); ++i) {
+      Ptr<Vocab> vocab = New<Vocab>();
+      vocab->loadOrCreate(textPaths_[i], maxVocabs[i]);
+      vocabs_.emplace_back(vocab);
+    }
   }
+  else {
+    for(int i = 0; i < vocabPaths.size(); ++i) {
+      Ptr<Vocab> vocab = New<Vocab>();
+      vocab->load(vocabPaths[i], maxVocabs[i]);
+      vocabs_.emplace_back(vocab);
+    }
+  }
+
+
+  for(auto path : textPaths_) {
+    files_.emplace_back(new InputFileStream(path));
+  }
+}
+
+Corpus::Corpus(std::vector<std::string> paths,
+               std::vector<Ptr<Vocab>> vocabs,
+               Ptr<Config> options)
+  : options_(options),
+    textPaths_(paths),
+    vocabs_(vocabs),
+    maxLength_(options_->get<size_t>("max-length")) {
+
+  UTIL_THROW_IF2(textPaths_.size() != vocabs_.size(),
+                 "Number of corpus files and vocab files does not agree");
 
   for(auto path : textPaths_) {
     files_.emplace_back(new InputFileStream(path));
@@ -61,7 +95,7 @@ SentenceTuple Corpus::next() {
     for(int i = 0; i < files_.size(); ++i) {
       std::string line;
       if(std::getline((std::istream&)*files_[i], line)) {
-        Words words = vocabs_[i](line);
+        Words words = (*vocabs_[i])(line);
         if(words.empty())
           words.push_back(0);
         tup.push_back(words);
@@ -82,8 +116,15 @@ void Corpus::shuffle() {
   shuffleFiles(textPaths_);
 }
 
+void Corpus::reset() {
+  files_.clear();
+  for(auto& path : textPaths_) {
+    files_.emplace_back(new InputFileStream(path));
+  }
+}
+
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
-  std::cerr << "Shuffling files" << std::endl;
+  LOG(data) << "Shuffling files";
   std::vector<std::vector<std::string>> corpus;
 
   files_.clear();
@@ -129,7 +170,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     files_.emplace_back(new InputFileStream(path));
   }
 
-  std::cerr << "Done" << std::endl;
+  LOG(data) << "Done";
 }
 
 }

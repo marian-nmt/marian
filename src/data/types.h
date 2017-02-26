@@ -7,6 +7,8 @@
 typedef size_t Word;
 typedef std::vector<Word> Words;
 
-const Word EOS = 0;
-const Word UNK = 1;
+const Word EOS_ID = 0;
+const Word UNK_ID = 1;
 
+const std::string EOS_STR = "</s>";
+const std::string UNK_STR = "<unk>";

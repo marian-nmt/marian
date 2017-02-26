@@ -7,38 +7,42 @@
 #include <boost/chrono.hpp>
 
 #include "marian.h"
+#include "training/config.h"
 #include "optimizers/optimizers.h"
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/nematus.h"
+#include "models/gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
+  auto options = New<Config>(argc, argv, false);
+
   std::vector<std::string> files =
-    {"../test/mini.de",
-     "../test/mini.en"};
+    {"../testln/mini.en",
+     "../testln/mini.de"};
 
   std::vector<std::string> vocab =
-    {"../test/vocab.de.json",
-     "../test/vocab.en.json"};
+    {"../benchmark/marian32K/train.tok.true.bpe.en.json",
+     "../benchmark/marian32K/train.tok.true.bpe.de.json"};
 
-  std::vector<int> maxVocab = { 50000, 50000 };
+  YAML::Node& c = options->get();
+  c["train-sets"] = files;
+  c["vocabs"] = vocab;
 
-  auto corpus = DataSet<Corpus>(files, vocab, maxVocab, 50);
-  BatchGenerator<Corpus> bg(corpus, 10, 20);
+  auto corpus = DataSet<Corpus>(options);
+  BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(std::atoi(argv[1]));
+  graph->setDevice(1);
 
-  auto nematus = New<Nematus>();
-  nematus->load(graph, "../test/model.npz");
+  auto encdec = New<GNMT>(options);
+  encdec->load(graph, "../benchmark/marian32K/modelML6.200000.npz");
 
   graph->reserveWorkspaceMB(128);
 
-  float sum = 0;
   boost::timer::cpu_timer timer;
   size_t batches = 1;
   for(int i = 0; i < 1; ++i) {
@@ -47,39 +51,15 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
       batch->debug();
 
-      auto costNode = nematus->build(graph, batch);
-      for(auto p : graph->params())
-        debug(p, p->name());
+      auto costNode = encdec->build(graph, batch);
+      //for(auto p : graph->params())
+        //debug(p, p->name());
       debug(costNode, "cost");
 
-      graph->graphviz("debug.dot");
+      //graph->graphviz("debug.dot");
 
       graph->forward();
-      graph->backward();
-
-      float cost = costNode->val()->scalar();
-      sum += cost;
-
-      if(batches % 100 == 0) {
-        std::cout << std::setfill(' ')
-                  << "Epoch " << i
-                  << " Update " << batches
-                  << " Cost "   << std::setw(7) << std::setprecision(6) << cost
-                  << " UD " << timer.format(2, "%ws");
-
-        float seconds = std::stof(timer.format(5, "%w"));
-        float sentences = 100 * batch->size() / seconds;
-
-        std::cout << " " << std::setw(5)
-                  << std::setprecision(4)
-                  << sentences
-                  << " sentences/s" << std::endl;
-        timer.start();
-      }
-
-
-      if(batches % 10000 == 0)
-        nematus->save(graph, "../test/model.marian." + std::to_string(batches) + ".npz");
+      //graph->backward();
 
       batches++;
     }

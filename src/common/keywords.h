@@ -219,7 +219,7 @@ namespace keywords {
  */
 #define KEY(name, value_type) \
 typedef const Keyword<COMPILE_TIME_CRC32_STR(#name),value_type> name ## _k; \
-name ## _k name;
+name ## _k name
 
 }
 

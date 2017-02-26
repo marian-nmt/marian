@@ -28,6 +28,7 @@ namespace marian {
     private:
       int outDim_;
       act activation_;
+      bool layerNorm_;
 
     public:
       template <class ...Args>
@@ -38,18 +39,30 @@ namespace marian {
          outDim_(outDim),
          activation_(Get(keywords::activation,
                          act::linear,
-                         args...)) {}
+                         args...)),
+         layerNorm_(Get(keywords::normalize,
+                        false, args...)) {}
 
       Expr operator()(Expr in) {
         auto g = in->graph();
         auto W = g->param(name_ + "_W", {in->shape()[1], outDim_},
                           keywords::init=inits::glorot_uniform);
         auto b = g->param(name_ + "_b", {1, outDim_},
-                          keywords::init=inits::zeros);
+                            keywords::init=inits::zeros);
 
         params_ = { W, b };
 
-        auto out = affine(in, W, b);
+        Expr out;
+        if(layerNorm_) {
+          auto gamma = g->param(name_ + "_gamma", {1, outDim_},
+                                keywords::init=inits::from_value(1.0));
+
+          params_.push_back(gamma);
+          out = layer_norm(dot(in, W), gamma, b);
+        }
+        else {
+          out = affine(in, W, b);
+        }
 
         switch (activation_) {
           case act::linear :
@@ -81,13 +94,21 @@ namespace marian {
                             {in->shape()[1], outDim_},
                             keywords::init=inits::glorot_uniform);
           auto b = g->param(name_ + "_b" + std::to_string(i),
-                            {1, outDim_},
-                            keywords::init=inits::zeros);
-
+                              {1, outDim_},
+                              keywords::init=inits::zeros);
           params_.push_back(W);
           params_.push_back(b);
 
-          outputs.push_back(affine(in, W, b));
+          if(layerNorm_) {
+            auto gamma = g->param(name_ + "_gamma" + std::to_string(i), {1, outDim_},
+                                  keywords::init=inits::from_value(1.0));
+
+            params_.push_back(gamma);
+            outputs.push_back(layer_norm(dot(in, W), gamma, b));
+          }
+          else {
+            outputs.push_back(affine(in, W, b));
+          }
           i++;
         }
 
@@ -145,7 +166,7 @@ namespace marian {
         auto mask = Get(keywords::mask, nullptr, args...);
 
         auto ce = cross_entropy(in, picks);
-
+        
         if(mask)
           ce = ce * mask;
 

@@ -82,6 +82,11 @@ struct ConstantNode : public Node {
     return "white";
   }
 
+  virtual size_t hash() {
+    // @TODO: think of something better for constant nodes
+    return boost::hash<size_t>()((size_t)this);
+  }
+
   private:
     std::function<void(Tensor)> init_;
     bool initialized_;
@@ -115,6 +120,10 @@ struct ParamNode : public Node {
 
   const std::string color() {
     return "orangered";
+  }
+
+  virtual size_t hash() {
+    return boost::hash<size_t>()((size_t)this);
   }
 
   private:

@@ -21,7 +21,6 @@
 
 
 #include <cuda.h>
-#include <cudnn.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 
@@ -87,7 +86,7 @@ void TensorBase::set(const std::vector<float> &v) {
 
 void TensorBase::copyFrom(Tensor in) {
     cudaSetDevice(device_);
-    CUDA_CHECK(cudaMemcpy(data_, in->data(), in->size() * sizeof(float),
+    CUDA_CHECK(cudaMemcpy(data_ , in->data() , in->size() * sizeof(float),
                           cudaMemcpyDefault));
     cudaStreamSynchronize(0);
 }
@@ -100,7 +99,8 @@ std::string TensorBase::debug() {
   for(int i = 1; i < shape_.size(); ++i)
      strm << "x" << shape_[i];
   strm << " size=" << shape_.elements()
-     << " (" << shape_.elements() * sizeof(float) << "B)" << std::endl;
+     << " (" << shape_.elements() * sizeof(float) << "B)";
+  strm << " device=" << device_ << std::endl;
 
   // values
   size_t totSize = shape_.elements();
@@ -109,81 +109,90 @@ std::string TensorBase::debug() {
 
 
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');
-  for(size_t k = 0; k < shape()[2]; ++k) {
-     strm << "[ ";
-     if(shape()[0] > 10) {
-        for (size_t i = 0; i < shape()[0] && i < 3; ++i) {
-           if(i > 0)
-             strm << std::endl << "  ";
-           for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-           if(shape()[1] > 3)
-              strm << "... ";
-           for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-        }
-        strm << std::endl << "  ...";
-        for (size_t i = shape()[0] - 3; i < shape()[0]; ++i) {
-           if(i > 0)
-             strm << std::endl << "  ";
-           for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-           if(shape()[1] > 3)
-              strm << "... ";
-           for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-        }
-     }
-     else {
-        for (size_t i = 0; i < shape()[0] && i < 10; ++i) {
-           if(i > 0)
-             strm << std::endl << "  ";
-           for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-           if(shape()[1] > 3)
-              strm << "... ";
-           for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
-             strm << std::setw(12)
-                  << values[  i * shape().stride(0)
-                            + j * shape().stride(1)
-                            + k * shape().stride(2) ] << " ";
-           }
-        }
-     }
-     strm << "]" << std::endl;
+  for(size_t l = 0; l < shape()[3]; ++l) {
+    for(size_t k = 0; k < shape()[2]; ++k) {
+       strm << "[ ";
+       if(shape()[0] > 10) {
+          for (size_t i = 0; i < shape()[0] && i < 3; ++i) {
+             if(i > 0)
+               strm << std::endl << "  ";
+             for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+             if(shape()[1] > 3)
+                strm << "... ";
+             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+          }
+          strm << std::endl << "  ...";
+          for (size_t i = shape()[0] - 3; i < shape()[0]; ++i) {
+             if(i > 0)
+               strm << std::endl << "  ";
+             for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+             if(shape()[1] > 3)
+                strm << "... ";
+             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+          }
+       }
+       else {
+          for (size_t i = 0; i < shape()[0] && i < 10; ++i) {
+             if(i > 0)
+               strm << std::endl << "  ";
+             for (size_t j = 0; j < shape()[1] && j < 3; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+             if(shape()[1] > 3)
+                strm << "... ";
+             for (size_t j = shape()[1] - 3; j < shape()[1]; ++j) {
+               strm << std::setw(12)
+                    << values[  i * shape().stride(0)
+                              + j * shape().stride(1)
+                              + k * shape().stride(2)
+                              + l * shape().stride(3) ] << " ";
+             }
+          }
+       }
+       strm << "]" << std::endl;
+    }
   }
   return strm.str();
 }
 
 DeviceGPU::~DeviceGPU() {
-   cudaSetDevice(device_);
-   if(data_)
-     CUDA_CHECK(cudaFree(data_));
+  cudaSetDevice(device_);
+  if(data_)
+    CUDA_CHECK(cudaFree(data_));
+  cudaDeviceSynchronize();
 }
 
 void DeviceGPU::reserve(size_t size) {
    cudaSetDevice(device_);
-   
+
    UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
 
    if(data_) {
