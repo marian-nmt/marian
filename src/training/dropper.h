@@ -17,6 +17,14 @@ __global__ void gScatterUpdate(float* denseData, float* sparseData, int* sparseI
 		denseData[ sparseIndices[idx] ] = sparseData[idx];
 }
 
+__global__ void gScatterCopy(float* denseData, float* sparseData, int* sparseIndices, int denseSize, int sparseSize){
+	int idx = blockDim.x * blockIdx.x + threadIdx.x;
+	if (idx >= sparseSize)
+		return;
+	if (sparseIndices[idx]  >= 0 && sparseIndices[idx] < denseSize)
+		sparseData[idx] = denseData[ sparseIndices[idx] ];
+}
+
 __global__ void gShift(int* indices, int size, int offset){
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if (idx >= size)
@@ -124,6 +132,20 @@ public:
 		gScatterUpdate<<<blocks, threads>>> (t->data() , data_, indices_, t->size(), size_);
 	}
 
+	void scatterUpdate(Tensor t){
+		cudaSetDevice(device_);
+		int threads = 512;
+		int blocks = 1 + size_ /threads;
+		gScatterUpdate<<<blocks, threads>>> (t->data() , data_, indices_, t->size(), size_);
+	}
+
+	void scatterCopyFrom(Tensor t){
+		cudaSetDevice(device_);
+		int threads = 512;
+		int blocks = 1 + size_ /threads;
+		gScatterCopy<<<blocks, threads>>> (t->data() , data_, indices_, t->size(), size_);
+	}
+
 	std::shared_ptr<SparseTensorBase> subtensor(int pos, int size){
 		cudaSetDevice(device_);
 		int* start;
@@ -182,15 +204,16 @@ __global__ void full_abs(float* data, int max_size){
 
 __global__ void buildIndices(float* denseData, float* denseSum, float* sparseData, int* sparseIndices, int denseSize){
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
+  int t_id = (int) (denseSum[idx] + 0.2) -1;
   if (idx >= denseSize)
     return;
   if (idx == 0 && denseSum[idx] > 0){
-  	sparseIndices[ (int) denseSum[idx] -1 ] = idx;
-  	sparseData[ (int) denseSum[idx] -1 ] = denseData[idx];
+  	sparseIndices[ t_id ] = idx;
+  	sparseData[ t_id ] = denseData[idx];
   }
-  else if (denseSum[idx] > denseSum[idx-1]){
-  	sparseIndices[ (int) denseSum[idx] -1 ] = idx;
-  	sparseData[ (int) denseSum[idx] -1 ] = denseData[idx];
+  else if (denseSum[idx] - denseSum[idx-1] > 0.5){
+  	sparseIndices[ t_id ] = idx;
+  	sparseData[ t_id ] = denseData[idx];
   }
 }
 

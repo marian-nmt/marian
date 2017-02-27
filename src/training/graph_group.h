@@ -87,6 +87,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
+
     void pushGradients(Tensor newGrads) {
       if(graphs_.size() < 2) {
         opt_->update(graphs_[0]);
@@ -112,8 +113,32 @@ class AsyncGraphGroup : public GraphGroup {
           t.join();
       }
     }
+
+    void sparseFetchParams(Tensor oldParams) {
+      if(graphs_.size() < 2)
+        return;
+
+      // @TODO read guard on parameters
+      int pos = 0;
+      
+      std::vector<std::thread> threads;
+      for (int idx = 0; idx < devices_.size(); idx++) {
+        threads.emplace_back( std::thread( [=](int idx, int pos) {
+          //individual mutex per-shard
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
+
+
+            cudaStreamSynchronize(0);
+        }, idx, pos) );
+
+        pos += shardSize_;
+      }
+      for (auto &&t : threads) {
+        t.join();
+      }
+    }
     
-    void sparsePushGradients(SparseTensor newGrads) {
+    void sparsePushGradients(SparseTensor newGrads, Tensor oldParams) {
       if(graphs_.size() < 2) {
         opt_->update(graphs_[0]);
       }
@@ -126,12 +151,22 @@ class AsyncGraphGroup : public GraphGroup {
           threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
-
-            sparseGrads_[idx]->copyFrom(  newGrads->subtensor(pos , grads_[idx]->size() ) );
+            
+            SparseTensor subGrad = newGrads->subtensor(pos , grads_[idx]->size() );
+            sparseGrads_[idx]->copyFrom( subGrad  );
             //std::cout<<"subtensor size "<<sparseGrads_[idx]->size()<<std::endl;
             sparseGrads_[idx]->shiftIndices( -pos );
             sparseGrads_[idx]->toDense(grads_[idx]);
+            
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
+
+            cudaStreamSynchronize(0);
+
+            //now fetch
+            sparseGrads_[idx]->scatterCopyFrom( params_[idx] );
+            sparseGrads_[idx]->shiftIndices( pos );  
+            subGrad->copyFrom(sparseGrads_[idx]);
+            newGrads->scatterUpdate( oldParams );
 
             cudaStreamSynchronize(0);
           } , idx, pos) );
@@ -207,10 +242,13 @@ class AsyncGraphGroup : public GraphGroup {
           std::lock_guard<std::mutex> lock(sync_);
           my_id = i;
           graph = graphs_[i++];
+
+          
         }
 
         builder_->build(graph, batch);
         fetchParams(graph->params().vals());
+
 
         graph->forward();
         float cost = graph->topNode()->scalar();
@@ -219,7 +257,7 @@ class AsyncGraphGroup : public GraphGroup {
         cudaStreamSynchronize(0);
         gradDropper_[my_id].dropGraph(graph , localSparseGrads_[my_id] );
         //pushGradients(graph->params().grads());
-        sparsePushGradients(localSparseGrads_[my_id]);
+        sparsePushGradients(localSparseGrads_[my_id], graph->params().vals() );
         if(reporter_) {
           std::lock_guard<std::mutex> guard(sync_);
           reporter_->update(cost, batch);
