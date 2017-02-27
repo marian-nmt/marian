@@ -164,10 +164,9 @@ class AsyncGraphGroup : public GraphGroup {
 
             //now fetch
             sparseGrads_[idx]->scatterCopyFrom( params_[idx] );
-            sparseGrads_[idx]->shiftIndices( pos );  
             subGrad->copyFrom(sparseGrads_[idx]);
-            newGrads->scatterUpdate( oldParams );
-
+            subGrad->scatterUpdate( oldParams->subtensor(pos, grads_[idx]->size()) );
+            
             cudaStreamSynchronize(0);
           } , idx, pos) );
 
@@ -243,11 +242,10 @@ class AsyncGraphGroup : public GraphGroup {
           my_id = i;
           graph = graphs_[i++];
 
-          
+          fetchParams(graph->params().vals());
         }
 
         builder_->build(graph, batch);
-        fetchParams(graph->params().vals());
 
 
         graph->forward();

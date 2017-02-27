@@ -52,6 +52,10 @@ class SparseTensorBase: public std::enable_shared_from_this<SparseTensorBase> {
 	int capacity_;
 	size_t device_; 
 
+
+	int* start;
+	int* end;
+
 public:
 	SparseTensorBase(int capacity, size_t device){
 		device_ = device;
@@ -59,6 +63,10 @@ public:
 		cudaSetDevice(device_);
 		cudaMalloc((void**)&data_, sizeof(float) * capacity);
     	cudaMalloc((void**)&indices_, sizeof(int) * capacity);
+
+		cudaMalloc((void**)&start, sizeof(int));
+		cudaMalloc((void**)&end, sizeof(int));
+
     	std::cout<<"INITIATE SPARSE TENSOR HOLDER AT GPU "<<device<<" capacity "<<capacity<<std::endl;
 	}
 
@@ -68,6 +76,10 @@ public:
 		size_ = size;
 		capacity_ = size;
 		device_ = device;
+	}
+
+	~SparseTensorBase(){
+
 	}
 
 	int capacity(){
@@ -88,6 +100,8 @@ public:
 
 	void copyFrom(float* data, int* indices, int size){
 		if (capacity_ < size){
+			std::cerr<<"INI DIA PELAKUNYA GAN"<<std::endl;
+			exit(1);
 			return;
 			//NO enough capacity
 		}
@@ -95,8 +109,8 @@ public:
 
 		cudaSetDevice(device_);
 
-		cudaMemcpy(data_, data, size * sizeof(float), cudaMemcpyDeviceToDevice);
-		cudaMemcpy(indices_, indices, size * sizeof(int), cudaMemcpyDeviceToDevice);
+		cudaMemcpy(data_, data, size * sizeof(float), cudaMemcpyDefault);
+		cudaMemcpy(indices_, indices, size * sizeof(int), cudaMemcpyDefault);
 		cudaStreamSynchronize(0);
 	}
 
@@ -148,10 +162,7 @@ public:
 
 	std::shared_ptr<SparseTensorBase> subtensor(int pos, int size){
 		cudaSetDevice(device_);
-		int* start;
-		int* end;
-		cudaMalloc((void**)&start, sizeof(int));
-		cudaMalloc((void**)&end, sizeof(int));
+
 		int threads = 512;
 		int blocks = 1 + size_ /threads;
 		//std::cout<<"cutting dense from "<<pos<<" to "<<pos + size<<std::endl;
@@ -205,7 +216,7 @@ __global__ void full_abs(float* data, int max_size){
 __global__ void buildIndices(float* denseData, float* denseSum, float* sparseData, int* sparseIndices, int denseSize){
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   int t_id = (int) (denseSum[idx] + 0.2) -1;
-  if (idx >= denseSize)
+  if (idx >= denseSize || t_id < 0)
     return;
   if (idx == 0 && denseSum[idx] > 0){
   	sparseIndices[ t_id ] = idx;
@@ -252,12 +263,15 @@ class GradientDrop {
     }
     int wow;
     void dropGraph(Ptr<ExpressionGraph> graph, SparseTensor destination, double rate = 0.99) {
+
+    	
     	cudaSetDevice(graph->params().grads()->getDevice());
     	if(!feedback){
     		 cudaMalloc((void**)&feedback, sizeof(float) * graph->params().vals()->size());
     		 cudaMalloc((void**)&temp_d, sizeof(float) * graph->params().vals()->size());
     		 wow = 0;
     		 step = 0;
+    		 std::cerr<<"MALLOC for grad Dropper GPU "<<graph->params().grads()->getDevice()<<std::endl;
     	}
     	int offset = 0;
     	for(auto& param : graph->params()){
@@ -280,6 +294,7 @@ class GradientDrop {
 	  	cudaSetDevice(graph->params().grads()->getDevice());
     	buildIndices<<<blocks, threads>>>(graph->params().grads()->data(), temp_d,destination->data(), destination->indices(),  denseSize);
     	destination->setSize(sparseSize);
+    	
     	cudaStreamSynchronize(0);
 
 
