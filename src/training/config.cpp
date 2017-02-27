@@ -191,8 +191,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
-    ("layers-enc", po::value<int>()->default_value(8), "Number of encoder layers")
-    ("layers-dec", po::value<int>()->default_value(8), "Number of decoder layers")
+    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
+    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
      "Use skip connections")
     ("normalize", po::value<bool>()->zero_tokens()->default_value(false),

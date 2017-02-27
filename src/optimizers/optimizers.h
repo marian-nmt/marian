@@ -37,8 +37,8 @@ class OptimizerBase {
     }
 
     void updateSchedule() {
-      eta_ *= 0.5;
-      LOG(info) << "Changing learning rate to " << eta_;
+      //eta_ *= 0.5;
+      //LOG(info) << "Changing learning rate to " << eta_;
     }
 
   protected:

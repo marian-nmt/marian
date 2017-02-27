@@ -115,7 +115,8 @@ class DecoderGNMT : public DecoderBase {
                       dimTrgEmb, dimDecState,
                       attention_,
                       normalize=layerNorm,
-                      dropout_prob=dropoutRnn);
+                      dropout_prob=dropoutRnn
+                      );
       auto stateL1 = rnnL1(embeddings, states[0]);
       auto alignedContext = single ?
         rnnL1.getCell()->getLastContext() :

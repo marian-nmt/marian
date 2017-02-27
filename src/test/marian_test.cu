@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
   graph->setDevice(1);
 
   auto encdec = New<GNMT>(options);
-  encdec->load(graph, "../benchmark/marian32K/modelML6.200000.npz");
+  encdec->load(graph, "../benchmark/marian32K/model9.10000.npz");
 
   graph->reserveWorkspaceMB(128);
 
