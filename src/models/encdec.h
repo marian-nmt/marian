@@ -10,8 +10,6 @@
 
 namespace marian {
 
-class EncoderInfo {};
-
 class EncoderBase {
   protected:
     Ptr<Config> options_;
@@ -44,11 +42,9 @@ class EncoderBase {
     EncoderBase(Ptr<Config> options)
      : options_(options) {}
 
-    virtual Ptr<EncoderInfo>
+    virtual std::tuple<Expr, Expr>
     build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, size_t = 0) = 0;
 };
-
-class State {};
 
 class DecoderBase {
   protected:
@@ -158,7 +154,7 @@ class Seq2Seq {
       graph->save(name);
     }
 
-    virtual Ptr<StateBase>
+    virtual std::tuple<std::vector<Expr>, Expr, Expr>
     buildEncoder(Ptr<ExpressionGraph> graph,
                  Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
@@ -166,38 +162,32 @@ class Seq2Seq {
       encoder_ = New<Encoder>(options_);
       decoder_ = New<Decoder>(options_);
 
-      //Expr srcContext, srcMask;
-      //std::tie(srcContext, srcMask) = encoder_->build(graph, batch);
+      Expr srcContext, srcMask;
+      std::tie(srcContext, srcMask) = encoder_->build(graph, batch);
+      auto startState = decoder_->buildStartState(srcContext, srcMask);
 
-      //auto startState = decoder_->buildStartState(srcContext, srcMask);
-      //size_t decoderLayers = options_->get<size_t>("layers-dec");
-      //std::vector<Expr> startStates(decoderLayers, startState);
+      size_t decoderLayers = options_->get<size_t>("layers-dec");
+      std::vector<Expr> startStates(decoderLayers, startState);
 
-      //return decoder_->startState(srcContext, srcMask);
-
-      auto encoderInfo = encoder_->build(graph, batch);
-      return decoder_->startState(encoderInfo);
+      return std::make_tuple(startStates, srcContext, srcMask);
     }
 
-    virtual Ptr<State>
-    step(Expr embeddings, Ptr<State> state, bool single) {
-      return decoder_->step(embeddings, state, single);
+    virtual std::tuple<Expr, std::vector<Expr>>
+    step(Expr embeddings,
+         std::vector<Expr> states,
+         Expr context,
+         Expr contextMask,
+         bool single=false) {
+      return decoder_->step(embeddings, states, context, contextMask, single);
     }
-
-    //virtual std::tuple<Expr, std::vector<Expr>>
-    //step(Expr embeddings,
-    //     std::vector<Expr> states,
-    //     Expr context,
-    //     Expr contextMask,
-    //     bool single=false) {
-    //  return decoder_->step(embeddings, states, context, contextMask, single);
-    //}
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
-       = buildEncoder(graph, batch);
+      std::vector<Expr> startStates;
+      Expr srcContext, srcMask;
+      std::tie(startStates, srcContext, srcMask) = buildEncoder(graph, batch);
 
       Expr trgEmbeddings, trgMask, trgIdx;
       std::tie(trgEmbeddings, trgMask, trgIdx) = decoder_->groundTruth(graph, batch);
