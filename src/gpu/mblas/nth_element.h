@@ -48,5 +48,5 @@ class NthElement {
     size_t lastN;
 };
 
-}
 }  // namespace GPU
+}
