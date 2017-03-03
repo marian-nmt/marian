@@ -29,6 +29,10 @@ void init(const std::string& options) {
   god_.Init(options);
 }
 
+void shutdown() {
+  god_.CleanUp();
+}
+
 boost::python::list translate(boost::python::list& in) {
   size_t cpuThreads = god_.Get<size_t>("cpu-threads");
   LOG(info) << "Setting CPU thread count to " << cpuThreads;
@@ -72,4 +76,5 @@ BOOST_PYTHON_MODULE(libamunmt)
 {
   boost::python::def("init", init);
   boost::python::def("translate", translate);
+  boost::python::def("shutdown", shutdown);
 }
