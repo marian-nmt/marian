@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
@@ -10,7 +12,6 @@
 #include "graph/expression_graph.h"
 
 #include "layers/generic.h"
-#include "layers/attention.h"
 
 namespace marian {
 
@@ -56,6 +57,7 @@ class Tanh {
 template <class Cell>
 class RNN : public Layer {
   public:
+    int dimInput_;
     int dimState_;
     dir direction_;
     bool outputLast_;
@@ -63,15 +65,17 @@ class RNN : public Layer {
     Ptr<Cell> cell_;
 
     template <typename ...Args>
-    RNN(const std::string& name,
-         int dimState,
-         Cell cell,
-         Args ...args)
+    RNN(Ptr<ExpressionGraph> graph,
+        const std::string& name,
+        int dimInput,
+        int dimState,
+        Args ...args)
     : Layer(name),
+      dimInput_{dimInput},
       dimState_{dimState},
       direction_{Get(keywords::direction, dir::forward, args...)},
       outputLast_{Get(keywords::output_last, false, args...)},
-      cell_(New<Cell>(cell)) {}
+      cell_(New<Cell>(graph, name_, dimInput_, dimState_, args...)) {}
 
     Ptr<Cell> getCell() {
       return cell_;
@@ -80,7 +84,6 @@ class RNN : public Layer {
     std::vector<Expr> apply(const Expr input, const Expr initialState,
                             const Expr mask = nullptr, bool reverse = false) {
       auto xW = cell_->apply1(input);
-
       std::vector<Expr> outputs;
       auto state = initialState;
       for(size_t i = 0; i < input->shape()[2]; ++i) {
@@ -114,13 +117,11 @@ class RNN : public Layer {
       auto graph = input->graph();
       int dimInput = input->shape()[1];
 
-      cell_->initialize(graph, name_, dimInput, dimState_, args...);
-
       Expr mask = Get(keywords::mask, nullptr, args...);
 
       if(direction_ == dir::backward) {
         auto states = apply(input, state, mask, true);
-        //std::reverse(states.begin(), states.end());
+        std::reverse(states.begin(), states.end());
         if(outputLast_)
           return states.back();
         else
@@ -140,62 +141,129 @@ class RNN : public Layer {
 };
 
 template <class Cell>
+class MLRNN : public Layer {
+  private:
+    int layers_;
+    bool skip_;
+    bool skipFirst_;
+    int dimState_;
+    std::vector<Ptr<RNN<Cell>>> rnns_;
+
+  public:
+
+    template <typename ...Args>
+    MLRNN(Ptr<ExpressionGraph> graph,
+          const std::string& name,
+          int layers,
+          int dimInput,
+          int dimState,
+          Args ...args)
+    : Layer(name),
+      layers_(layers),
+      skip_(Get(keywords::skip, false, args...)),
+      skipFirst_(Get(keywords::skip_first, false, args...)),
+      dimState_{dimState} {
+      for(int i = 0; i < layers; ++i) {
+        rnns_.push_back(
+          New<RNN<Cell>>(graph,
+                         name + "_l" + std::to_string(i),
+                         i == 0 ? dimInput : dimState,
+                         dimState,
+                         args...)
+        );
+      }
+    }
+
+    template <typename ...Args>
+    std::tuple<Expr, std::vector<Expr>>
+    operator()(Expr input, Args ...args) {
+      Expr output;
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i) {
+        auto outState = (*rnns_[i])(input, args...);
+        outStates.push_back(outState);
+
+        if(skip_ && (skipFirst_ || i > 0))
+          output = outState + input;
+        else
+          output = outState;
+
+        input = output;
+      }
+      return std::make_tuple(output, outStates);
+    }
+
+    template <typename ...Args>
+    std::tuple<Expr, std::vector<Expr>>
+    operator()(Expr input,
+               std::vector<Expr> states,
+               Args ...args) {
+      Expr output;
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i) {
+        auto outState = (*rnns_[i])(input, states[i], args...);
+        outStates.push_back(outState);
+
+        if(skip_ && (skipFirst_ || i > 0))
+          output = outState + input;
+        else
+          output = outState;
+
+        input = output;
+      }
+      return std::make_tuple(output, outStates);
+    }
+};
+
+template <class Cell>
 class BiRNN : public Layer {
   public:
+    int layers_;
     int dimState_;
 
     Ptr<RNN<Cell>> rnn1_;
     Ptr<RNN<Cell>> rnn2_;
 
     template <typename ...Args>
-    BiRNN(const std::string& name,
-         int dimState,
-         Cell cell1,
-         Cell cell2,
-         Args ...args)
+    BiRNN(Ptr<ExpressionGraph> graph,
+          const std::string& name,
+          int layers,
+          int dimInput,
+          int dimState,
+          Args ...args)
     : Layer(name),
       dimState_{dimState},
-      rnn1_(New<RNN<Cell>>(name, dimState, cell1,
-                           keywords::direction=dir::forward,
-                           args...)),
-      rnn2_(New<RNN<Cell>>(name + "_r", dimState, cell2,
-                           keywords::direction=dir::backward,
-                           args...)) {}
+      rnn1_(New<MLRNN<Cell>>(graph, name, layers, dimInput, dimState,
+                             keywords::direction=dir::forward,
+                             args...)),
+      rnn2_(New<MLRNN<Cell>>(graph, name + "_r", layers, dimInput, dimState,
+                             keywords::direction=dir::backward,
+                             args...)) {}
 
     template <typename ...Args>
-    BiRNN(const std::string& name,
-         int dimState,
-         Args ...args)
-    : BiRNN(name, dimState, Cell(), Cell(), args...) {}
+    std::vector<Expr> operator()(Expr input, Args ...args) {
+      Expr mask = Get(keywords::mask, nullptr, args...);
+      auto statesfw = (*rnn1_)(input);
+      auto statesbw = (*rnn2_)(input, keywords::mask=mask);
 
-    template <typename ...Args>
-    Expr operator()(Expr input, Args ...args) {
-      auto graph = input->graph();
-      int dimBatch = input->shape()[0];
-      auto startState = graph->zeros(keywords::shape={dimBatch, dimState_});
-      return (*this)(input, startState, args...);
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i)
+        outStates.push_back(concatenate({statesfw[i], statesbw[i]},
+                                        keywords::axis=1));
+      return outStates;
     }
 
     template <typename ...Args>
-    Expr operator()(Expr input, Expr state, Args ...args) {
+    std::vector<Expr> operator()(Expr input, std::vector<Expr> states, Args ...args) {
       Expr mask = Get(keywords::mask, nullptr, args...);
+      auto statesfw = (*rnn1_)(input, states);
+      auto statesbw = (*rnn2_)(input, states, keywords::mask=mask);
 
-      auto graph = input->graph();
-      int dimInput = input->shape()[1];
-
-      rnn1_->getCell()->initialize(graph, name_, dimInput, dimState_, args...);
-      auto states1 = rnn1_->apply(input, state, nullptr);
-
-      rnn2_->getCell()->initialize(graph, name_ + "_r", dimInput, dimState_, args...);
-      auto states2 = rnn2_->apply(input, state, mask, true);
-
-      std::reverse(states2.begin(), states2.end());
-      std::vector<Expr> states;
-      for(int i = 0; i < states1.size(); ++i)
-        states.push_back(concatenate({states1[i], states2[i]},
-                                     keywords::axis=1));
-
-      return concatenate(states, keywords::axis=2);
+      std::vector<Expr> outStates;
+      for(int i = 0; i < layers_; ++i)
+        outStates.push_back(concatenate({statesfw[i], statesbw[i]},
+                                        keywords::axis=1));
+      return outStates;
     }
 };
 
@@ -255,21 +323,32 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final = false) {
   return Expression<GRUFastNodeOp>(nodes, final);
 }
 
+/***************************************************************/
+
 class GRU {
   private:
+    std::string prefix_;
+
     Expr U_, W_, b_;
+    Expr gamma1_;
+    Expr gamma2_;
+
     bool final_;
+    bool layerNorm_;
+    float dropout_;
+
+    Expr dropMaskX_;
+    Expr dropMaskS_;
 
   public:
-    GRU() {}
 
     template <typename ...Args>
-    void initialize(
-        ExpressionGraphPtr graph,
+    GRU(ExpressionGraphPtr graph,
         const std::string prefix,
         int dimInput,
         int dimState,
-        Args ...args) {
+        Args ...args) : prefix_(prefix) {
+
       auto U = graph->param(prefix + "_U", {dimState, 2 * dimState},
                                keywords::init=inits::glorot_uniform);
       auto W = graph->param(prefix + "_W", {dimInput, 2 * dimState},
@@ -288,19 +367,47 @@ class GRU {
       b_ = concatenate({b, bx}, keywords::axis=1);
 
       final_ = Get(keywords::final, false, args...);
+      layerNorm_ = Get(keywords::normalize, false, args...);
+
+      dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
+
+      if(layerNorm_) {
+        gamma1_ = graph->param(prefix + "_gamma1", {1, 3 * dimState},
+                               keywords::init=inits::from_value(1.f));
+        gamma2_ = graph->param(prefix + "_gamma2", {1, 3 * dimState},
+                               keywords::init=inits::from_value(1.f));
+      }
+
+      if(dropout_> 0.0f) {
+        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+        dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+      }
     }
 
-    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
+    Expr apply(Expr input, Expr state,
+               Expr mask = nullptr) {
       return apply2(apply1(input), state, mask);
     }
 
     Expr apply1(Expr input) {
+      if(dropMaskX_)
+        input = dropout(input, keywords::mask=dropMaskX_);
       auto xW = dot(input, W_);
+      if(layerNorm_)
+        xW = layer_norm(xW, gamma1_);
       return xW;
     }
 
-    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
+    Expr apply2(Expr xW, Expr state,
+                Expr mask = nullptr) {
+      if(dropMaskS_)
+        state = dropout(state, keywords::mask=dropMaskS_);
+
       auto sU = dot(state, U_);
+
+      if(layerNorm_)
+        sU = layer_norm(sU, gamma2_);
+
       auto output = mask ?
         gruOps({state, xW, sU, b_, mask}, final_) :
         gruOps({state, xW, sU, b_}, final_);
@@ -308,6 +415,7 @@ class GRU {
       return output;
     }
 };
+
 
 /***************************************************************/
 
@@ -320,31 +428,29 @@ class AttentionCell {
 
   public:
 
-    AttentionCell(Attention&& att)
-    : cell1_(New<Cell1>()),
-      cell2_(New<Cell2>()),
-      att_(New<Attention>(att)) {}
-
-    template <typename ...Args>
-    void initialize(Ptr<ExpressionGraph> graph,
-                    const std::string prefix,
-                    int dimInput,
-                    int dimState,
-                    Args ...args)
+    template <class ...Args>
+    AttentionCell(Ptr<ExpressionGraph> graph,
+                  const std::string prefix,
+                  int dimInput,
+                  int dimState,
+                  Ptr<Attention> att,
+                  Args ...args)
     {
-      cell1_->initialize(graph,
-                        prefix + "_cell1",
-                        dimInput,
-                        dimState,
-                        keywords::final=false,
-                        args...);
+      cell1_ = New<Cell1>(graph,
+                          prefix + "_cell1",
+                          dimInput,
+                          dimState,
+                          keywords::final=false,
+                          args...);
 
-      cell2_->initialize(graph,
-                        prefix + "_cell2",
-                        att_->outputDim(),
-                        dimState,
-                        keywords::final=true,
-                        args...);
+      att_ = New<Attention>(att);
+
+      cell2_ = New<Cell2>(graph,
+                          prefix + "_cell2",
+                          att_->outputDim(),
+                          dimState,
+                          keywords::final=true,
+                          args...);
     }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
@@ -361,11 +467,17 @@ class AttentionCell {
       return cell2_->apply(alignedSourceContext, hidden, mask);
     }
 
+    Ptr<Attention> getAttention() {
+      return att_;
+    }
+
     Expr getContexts() {
       return concatenate(att_->getContexts(), keywords::axis=2);
     }
-};
 
-typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
+    Expr getLastContext() {
+      return att_->getContexts().back();
+    }
+};
 
 }

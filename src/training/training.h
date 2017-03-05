@@ -65,6 +65,7 @@ class Reporter {
       if(batches % options_->get<size_t>("valid-freq") == 0) {
         for(auto validator : validators_) {
           if(validator) {
+            size_t stalledPrev = validator->stalled();
             float value = validator->validate(graph);
             std::stringstream ss;
             ss << batches << " : ";
@@ -77,6 +78,13 @@ class Reporter {
           }
         }
       }
+    }
+
+    size_t stalled() {
+      for(auto validator : validators_)
+        if(validator)
+          return validator->stalled();
+      return 0;
     }
 
     void update(float cost, Ptr<data::CorpusBatch> batch) {

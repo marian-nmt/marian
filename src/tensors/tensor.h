@@ -37,14 +37,15 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     float* data_;
     Shape shape_;
     size_t device_;
-    
+
   public:
     TensorBase(float* data, Shape shape, size_t device)
-    : data_(data), shape_(shape), device_(device)
-    { }
-    
-    ~TensorBase() {}
-    
+      : data_(data), shape_(shape), device_(device)
+    {}
+
+    ~TensorBase()
+    {}
+
     virtual void reset(float* data) {
       data_ = data;
     }
@@ -65,9 +66,13 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
       UTIL_THROW_IF2(size() != 1, "Tensor is not a scalar");
       return get(0);
     }
-    
+
     size_t getDevice() {
       return device_;
+    }
+
+    Tensor subtensor(int offset, int size){
+      return Tensor(new TensorBase(data_ + offset, {1, size}, device_ ));
     }
 
     float get(size_t i);
@@ -79,7 +84,7 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     void set(float value);
 
     void set(const std::vector<float> &v);
-    
+
     void copyFrom(Tensor);
 
     std::string debug();

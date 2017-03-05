@@ -1,16 +1,13 @@
 
 #include "marian.h"
-#include "models/dl4mt.h"
+#include "models/gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv);
+  auto options = New<Config>(argc, argv);;
   
-  //validator = New<ValidPerplexity<DL4MT>>(options);
-  //float cost = validator->validate(graph);
-  
-  Train<AsyncGraphGroup<DL4MT>>(options);
+  Train<AsyncGraphGroup<GNMT>>(options);
 
   return 0;
 }

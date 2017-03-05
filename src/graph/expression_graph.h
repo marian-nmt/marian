@@ -1,26 +1,5 @@
 #pragma once
 
-// This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 #include <map>
 #include <unordered_set>
 #include <fstream>
@@ -32,7 +11,9 @@
 #include "data/batch_generator.h"
 #include "tensors/tensor_allocator.h"
 #include "layers/param_initializers.h"
+#include "kernels/dropout.h"
 #include "3rd_party/threadpool.h"
+#include "3rd_party/cnpy/cnpy.h"
 
 namespace marian {
 
@@ -66,9 +47,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     Ptr<TensorAllocator> tensors_;
 
     cublasHandle_t cublasHandle_;
+    curandGenerator_t curandGenerator_;
     size_t device_{0};
 
-    size_t stale_{0};
+    std::unordered_map<size_t, Expr> hashMap_;
 
   protected:
     /** @brief Constructs a new expression graph
@@ -93,10 +75,15 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       params_.init(device);
       tensors_ = New<TensorAllocator>(device);
       cublasHandle_ = create_handle(device);
+      curandGenerator_ = createCurandGenerator(device, 1234);
     }
 
     cublasHandle_t getCublasHandle() {
       return cublasHandle_;
+    }
+
+    curandGenerator_t getCurandGenerator() {
+      return curandGenerator_;
     }
 
     size_t getDevice() {
@@ -136,26 +123,34 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
 
-    void forward() {
+    size_t forward() {
       params_.allocateForward();
-      for(auto&& tape : tapes_) {
-        for(auto&& v : tape) {
-          v->allocate();
-          v->init();
-          v->forward();
+      return forward(0);
+    }
 
-          // @TODO: should be done in node
-          for(auto&& child : v->children()) {
-            v->decreaseEdges(1);
-            child->decreaseEdges(1);
-          }
+    size_t forward(size_t pos) {
+      // @TODO: check if allocation works properly
 
-          if(v->marked_for_debug()) {
-            std::cerr << "Debug: " << v->debug_message() << std::endl;
-            std::cerr << v->val()->debug() << std::endl;
-          }
+      auto it = nodes_.begin() + pos;
+      while(it != nodes_.end()) {
+        auto v = *it;
+        v->allocate();
+        v->init();
+        v->forward();
+
+        // @TODO: should be done in node
+        for(auto&& child : v->children()) {
+          v->decreaseEdges(1);
+          child->decreaseEdges(1);
         }
+
+        if(v->marked_for_debug()) {
+          std::cerr << "Debug: " << v->debug_message() << std::endl;
+          std::cerr << v->val()->debug() << std::endl;
+        }
+        it++;
       }
+      return std::distance(nodes_.begin(), it);
     }
 
     /**
@@ -304,8 +299,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * This method does not attach the new constant node to any existing expression graph.
      *
-     * @param args           XXX Marcin, what are args here?
-     *
      * @return a newly constructed constant node
      */
     template <typename ...Args>
@@ -343,6 +336,17 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       return Expression<ConstantNode>(shared_from_this(),
                                       keywords::init=inits::zeros,
                                       args...);
+    }
+
+    template <typename ...Args>
+    inline Expr dropout(float prob, Shape shape) {
+      auto dropoutInit = [prob, this](Tensor t) {
+        Dropout(t, prob, getCurandGenerator());
+      };
+
+      return Expression<ConstantNode>(shared_from_this(),
+                                      keywords::init=dropoutInit,
+                                      keywords::shape=shape);
     }
 
     /*********************************************************/
@@ -391,10 +395,18 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       named_.emplace(name, e);
     }
 
-    void add(Expr node) {
+    Expr add(Expr node) {
       size_t group = 0;
 
+      size_t hash = node->hash();
+      auto it = hashMap_.find(hash);
+      if(it != hashMap_.end())
+        return it->second;
+
+      hashMap_[hash] = node;
+
       node->setId(count_++);
+
       for(auto& child: node->children()) {
         group = std::max(group, tapeMap_[child] + 1);
         child->increaseEdges(2);
@@ -406,6 +418,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       tapes_[group].push_back(node);
       nodes_.push_back(node);
       topNodes_.insert(node);
+
+      return node;
     }
 
     void remove_top_node(Expr node) {
@@ -432,18 +446,72 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       inputs_.clear();
       topNodes_.clear();
       tensors_->clear();
+      hashMap_.clear();
     }
 
     Expr topNode() {
       return nodes_.back();
     }
+
+    void load(const std::string& name) {
+      using namespace keywords;
+
+      LOG(info) << "Loading model from " << name;
+
+      auto numpy = cnpy::npz_load(name);
+
+      for(auto it : numpy) {
+        auto name = it.first;
+
+        Shape shape;
+        if(it.second.shape.size() == 2) {
+          shape.set(0, it.second.shape[0]);
+          shape.set(1, it.second.shape[1]);
+        }
+        else if(it.second.shape.size() == 1) {
+          shape.set(0, 1);
+          shape.set(1, it.second.shape[0]);
+        }
+
+        param(name, shape,
+              init=inits::from_numpy(it.second));
+      }
+    }
+
+    void save(const std::string& name) {
+      LOG(info) << "Saving model to " << name;
+
+      unsigned shape[2];
+      std::string mode = "w";
+
+      cudaSetDevice(getDevice());
+      for(auto p : params().getMap()) {
+        std::vector<float> v;
+        p.second->val() >> v;
+
+        unsigned dim;
+        if(p.second->shape()[0] == 1) {
+          shape[0] = p.second->shape()[1];
+          dim = 1;
+        }
+        else {
+          shape[0] = p.second->shape()[0];
+          shape[1] = p.second->shape()[1];
+          dim = 2;
+        }
+        std::string pName = p.first;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+        mode = "a";
+      }
+    }
 };
 
 template <class T, typename ...Args>
 Expr Expression(Args&& ... args) {
+  // @TODO check hash, if exists do not add and return
+  // cached node to minimize calculations
   auto e = Expr(new T(std::forward<Args>(args)...));
-  e->graph()->add(e);
-  return e;
+  return e->graph()->add(e);
 }
 
 }

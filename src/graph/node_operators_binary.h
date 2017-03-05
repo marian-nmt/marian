@@ -20,13 +20,8 @@ struct DotNodeOp : public NaryNodeOp {
     auto shapeA = a->shape();
     auto shapeB = b->shape();
 
-    Shape outShape;
-    if((shapeA[2] > 1 || shapeA[3] > 1) && shapeB[2] == 1 && shapeB[3] == 1)
-      outShape = {shapeA[0], shapeB[1], shapeA[2], shapeA[3]};
-    else {
-      outShape = shapeA;
-      outShape.set(1, shapeB[1]);
-    }
+    Shape outShape = shapeA;
+    outShape.set(1, shapeB[1]);
     UTIL_THROW_IF2(shapeA[1] != shapeB[0],
                  "matrix product requires dimensions to match");
     return outShape;
@@ -338,6 +333,12 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     Deconcatenate(deconcatenees, adj_, ax_);
   }
 
+  virtual size_t hash() {
+    size_t seed = NaryNodeOp::hash();
+    boost::hash_combine(seed, ax_);
+    return seed;
+  }
+
   const std::string type() {
     return "concat";
   }
@@ -435,6 +436,34 @@ struct AffineNodeOp : public NaryNodeOp {
   const std::string type() {
     return "affine";
   }
+};
+
+struct LayerNormalizationOp : public NaryNodeOp {
+  LayerNormalizationOp(const std::vector<Expr>& nodes)
+    : NaryNodeOp(nodes) {}
+
+  NodeOps forwardOps() {
+    return {
+      NodeOp(
+          LayerNormalization(val_,
+                             children_[0]->val(),
+                             children_[1]->val(),
+                             (children_.size() == 3) ? children_[2]->val() : nullptr))
+      };
+  }
+
+  NodeOps backwardOps() {
+    return {
+      NodeOp(LayerNormalizationGrad(children_[0]->grad(), children_[1]->grad(), (children_.size() == 3) ? children_[2]->grad() : nullptr,
+                                    adj_, val_, children_[0]->val(), children_[1]->val(),
+                                    (children_.size() == 3) ? children_[2]->val() : nullptr))
+    };
+  }
+
+  const std::string type() {
+    return "layer_normalization";
+  }
+
 };
 
 

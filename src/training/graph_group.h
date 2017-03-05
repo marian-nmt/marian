@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <future>
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
@@ -37,19 +38,24 @@ class GraphGroup {
 template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
   private:
-    Ptr<Builder> builder_;
+    std::vector<Ptr<Builder>> builders_;
 
     std::vector<size_t> devices_;
 
     std::vector<Ptr<ExpressionGraph>> graphs_;
 
     std::mutex sync_;
+    std::vector<std::mutex> shardSync_;
 
-    Tensor params_;
-    Ptr<TensorAllocator> paramsAlloc_;
+    std::vector<Tensor> params_;
+    std::vector<Ptr<TensorAllocator> > paramsAlloc_;
 
-    Tensor grads_;
-    Ptr<TensorAllocator> gradsAlloc_;
+    std::vector<Tensor> grads_;
+    std::vector<Ptr<TensorAllocator>> gradsAlloc_;
+
+    std::vector<Ptr<OptimizerBase>> shardOpt_;
+
+    int shardSize_;
 
     ThreadPool pool_;
 
@@ -58,8 +64,21 @@ class AsyncGraphGroup : public GraphGroup {
         return;
 
       // @TODO read guard on parameters
-      std::lock_guard<std::mutex> guard(sync_);
-      oldParams->copyFrom(params_);
+      int pos = 0;
+
+      std::vector<std::thread> threads;
+      for (int idx = 0; idx < devices_.size(); idx++) {
+        threads.emplace_back( std::thread( [=](int idx, int pos) {
+          //individual mutex per-shard
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
+          oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
+        }, idx, pos) );
+
+        pos += shardSize_;
+      }
+      for (auto &&t : threads) {
+        t.join();
+      }
     }
 
     void pushGradients(Tensor newGrads) {
@@ -67,10 +86,23 @@ class AsyncGraphGroup : public GraphGroup {
         opt_->update(graphs_[0]);
       }
       else {
-        std::lock_guard<std::mutex> guard(sync_);
         // add instead of copy?
-        grads_->copyFrom(newGrads);
-        opt_->update(params_, grads_);
+        std::vector<std::thread> threads;
+        int pos = 0;
+        for (int idx = 0; idx < devices_.size(); idx++) {
+          threads.emplace_back( std::thread([=](int idx, int pos) {
+            //individual mutex per-shard
+            std::lock_guard<std::mutex> guard( shardSync_[idx] );
+            grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
+            shardOpt_[idx]->update(params_[idx], grads_[idx]);
+
+            cudaStreamSynchronize(0);
+          } , idx, pos) );
+
+          pos += shardSize_;
+        }
+        for(auto&& t : threads)
+          t.join();
       }
     }
 
@@ -78,49 +110,72 @@ class AsyncGraphGroup : public GraphGroup {
       static bool first = true;
       if(first && graphs_.size() > 1) {
         // initialize the parameters
-        for(auto graph : graphs_) {
-          builder_->build(graph, batch);
-          graph->forward();
+        for(size_t i = 0; i < graphs_.size(); ++i) {
+          builders_[i]->build(graphs_[i], batch);
+          graphs_[i]->forward();
         }
 
-        if(!params_) {
-          paramsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
-
+        if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
-          paramsAlloc_->reserveExact(totalSize);
-          paramsAlloc_->allocate(params_, {1, totalSize});
+          shardSize_ = ceil(totalSize / devices_.size());
+
+          int pos = 0;
+          //parameter sharding
+          for (auto device : devices_){
+            int __size__ = min(shardSize_, totalSize);
+            totalSize -= __size__;
+            Tensor param_;
+            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+
+            allocator_->reserveExact(__size__);
+            allocator_->allocate(param_, {1, __size__});
+            paramsAlloc_.push_back(allocator_);
+            param_->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
+            params_.push_back(param_);
+            pos += __size__;
+
+          }
         }
-
-        if(!grads_) {
-          gradsAlloc_ = New<TensorAllocator>(graphs_[0]->getDevice());
-
+        if(grads_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
-          gradsAlloc_->reserveExact(totalSize);
-          gradsAlloc_->allocate(grads_, {1, totalSize});
+
+          for (auto device : devices_){
+            int __size__ = min(shardSize_, totalSize);
+            totalSize -= __size__;
+            Tensor grad_;
+            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+
+            allocator_->reserveExact(__size__);
+            allocator_->allocate(grad_, {1, __size__});
+            gradsAlloc_.push_back(allocator_);
+            grads_.push_back(grad_);
+
+          }
         }
 
-        params_->copyFrom(graphs_[0]->params().vals());
         first = false;
       }
 
       auto task = [this](Ptr<data::CorpusBatch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Builder> builder;
         thread_local size_t t = 0;
 
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
-          graph = graphs_[i++];
+          graph = graphs_[i];
+          builder = builders_[i++];
         }
 
-        builder_->build(graph, batch);
-
+        builder->build(graph, batch);
         fetchParams(graph->params().vals());
 
         graph->forward();
         float cost = graph->topNode()->scalar();
         graph->backward();
 
+        cudaStreamSynchronize(0);
         pushGradients(graph->params().grads());
 
         if(reporter_) {
@@ -128,7 +183,11 @@ class AsyncGraphGroup : public GraphGroup {
           reporter_->update(cost, batch);
           if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
             this->save();
+          size_t prevStalled = reporter_->stalled();
           reporter_->validate(graph);
+          if(prevStalled < reporter_->stalled())
+            for(auto opt : shardOpt_)
+              opt->updateSchedule();
         }
 
         t++;
@@ -140,8 +199,9 @@ class AsyncGraphGroup : public GraphGroup {
     void load() {
       if(options_->has("init")) {
         std::string init = options_->get<std::string>("init");
+        size_t i = 0;
         for(auto graph : graphs_)
-          builder_->load(graph, init);
+          builders_[i++]->load(graph, init);
       }
     }
 
@@ -150,15 +210,17 @@ class AsyncGraphGroup : public GraphGroup {
 
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
-       builder_{New<Builder>(options_)},
        devices_{options_->get<std::vector<size_t>>("device")},
-       pool_{devices_.size(), devices_.size() } {
+       pool_{devices_.size(), devices_.size()},
+       shardSync_{devices_.size()} {
 
       for(auto device : devices_) {
         auto graph = New<ExpressionGraph>();
         graph->setDevice(device);
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
+        shardOpt_.push_back(Optimizer(options_));
+        builders_.push_back(New<Builder>(options_));
       }
 
       load();
@@ -171,12 +233,12 @@ class AsyncGraphGroup : public GraphGroup {
     void save() {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
+        builders_[0]->save(graphs_[0], name);
       }
       else {
         std::string name = options_->get<std::string>("model")
           + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
+        builders_[0]->save(graphs_[0], name);
       }
     }
 };

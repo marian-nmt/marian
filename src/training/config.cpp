@@ -191,6 +191,18 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
+    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
+    ("skip", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use skip connections")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable layer normalization")
+    ("dropout-rnn", po::value<float>()->default_value(0),
+     "Scaling dropout along rnn layers and time (0 = no dropout)")
+    ("dropout-src", po::value<float>()->default_value(0),
+     "Dropout source words (0 = no dropout)")
+    ("dropout-trg", po::value<float>()->default_value(0),
+     "Dropout target words (0 = no dropout)")
   ;
 
   po::options_description opt("Optimizer options");
@@ -291,9 +303,17 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("learn-rate", double);
   SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
+
+  SET_OPTION("layers-enc", int);
+  SET_OPTION("layers-dec", int);
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
+  SET_OPTION("normalize", bool);
+  SET_OPTION("dropout-rnn", float);
+  SET_OPTION("dropout-src", float);
+  SET_OPTION("dropout-trg", float);
+  SET_OPTION("skip", bool);
 
   if(doValidate)
     validate();

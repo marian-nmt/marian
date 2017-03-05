@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/dl4mt.h"
+#include "models/gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -21,12 +21,12 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-    {"../test/mini.de",
-     "../test/mini.en"};
+    {"../testln/mini.en",
+     "../testln/mini.de"};
 
   std::vector<std::string> vocab =
-    {"../test/vocab.de.json",
-     "../test/vocab.en.json"};
+    {"../benchmark/marian32K/train.tok.true.bpe.en.json",
+     "../benchmark/marian32K/train.tok.true.bpe.de.json"};
 
   YAML::Node& c = options->get();
   c["train-sets"] = files;
@@ -36,14 +36,13 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(0);
+  graph->setDevice(1);
 
-  auto dl4mt = New<DL4MT>();
-  dl4mt->load(graph, "../test/model.npz");
+  auto encdec = New<GNMT>(options);
+  encdec->load(graph, "../benchmark/marian32K/model9.10000.npz");
 
   graph->reserveWorkspaceMB(128);
 
-  float sum = 0;
   boost::timer::cpu_timer timer;
   size_t batches = 1;
   for(int i = 0; i < 1; ++i) {
@@ -52,38 +51,15 @@ int main(int argc, char** argv) {
       auto batch = bg.next();
       batch->debug();
 
-      auto costNode = dl4mt->build(graph, batch);
-      for(auto p : graph->params())
-        debug(p, p->name());
+      auto costNode = encdec->build(graph, batch);
+      //for(auto p : graph->params())
+        //debug(p, p->name());
       debug(costNode, "cost");
 
-      graph->graphviz("debug.dot");
+      //graph->graphviz("debug.dot");
 
       graph->forward();
-      graph->backward();
-
-      float cost = costNode->val()->scalar();
-      sum += cost;
-
-      if(batches % 100 == 0) {
-        std::cout << std::setfill(' ')
-                  << "Epoch " << i
-                  << " Update " << batches
-                  << " Cost "   << std::setw(7) << std::setprecision(6) << cost
-                  << " UD " << timer.format(2, "%ws");
-
-        float seconds = std::stof(timer.format(5, "%w"));
-        float sentences = 100 * batch->size() / seconds;
-
-        std::cout << " " << std::setw(5)
-                  << std::setprecision(4)
-                  << sentences
-                  << " sentences/s" << std::endl;
-        timer.start();
-      }
-
-      if(batches % 10000 == 0)
-        dl4mt->save(graph, "../test/model.marian." + std::to_string(batches) + ".npz");
+      //graph->backward();
 
       batches++;
     }

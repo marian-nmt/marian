@@ -110,6 +110,7 @@ namespace marian {
     KEY(activation, act);
     KEY(direction, dir);
     KEY(mask, Expr);
+    KEY(dropout_prob, float);
     KEY(init, std::function<void(Tensor)>);
 
 
@@ -120,6 +121,10 @@ namespace marian {
     KEY(optimizer, Ptr<OptimizerBase>);
     KEY(clip, Ptr<ClipperBase>);
     KEY(batch_size, int);
+    KEY(normalize, bool);
+    KEY(skip, bool);
+    KEY(skip_first, bool);
+    KEY(coverage, Expr);
     KEY(max_epochs, int);
     KEY(valid, Ptr<RunBase>);
   }

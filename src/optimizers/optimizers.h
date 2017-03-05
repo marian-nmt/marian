@@ -12,8 +12,9 @@ namespace marian {
 class OptimizerBase {
   public:
     template <typename ...Args>
-    OptimizerBase(Args... args)
-    : clipper_(Get(keywords::clip, nullptr, args...)) {}
+    OptimizerBase(float eta, Args... args)
+    : clipper_(Get(keywords::clip, nullptr, args...)),
+      eta_(eta) {}
 
     float backpropUpdate(Ptr<ExpressionGraph> graph) {
       graph->forward();
@@ -35,25 +36,29 @@ class OptimizerBase {
       updateImpl(params, grads);
     }
 
-  private:
+    void updateSchedule() {
+      //eta_ *= 0.5;
+      //LOG(info) << "Changing learning rate to " << eta_;
+    }
+
+  protected:
 
     virtual void updateImpl(Tensor params, Tensor grads) = 0;
 
     Ptr<ClipperBase> clipper_;
+    float eta_;
 };
 
 class Sgd : public OptimizerBase {
   public:
     template <typename ...Args>
     Sgd(float eta, Args... args)
-    : OptimizerBase(args...), eta_(eta) {}
+    : OptimizerBase(eta, args...) {}
 
   private:
     void updateImpl(Tensor params, Tensor grads) {
       Element(_1 -= eta_ * _2, params, grads);
     }
-
-    float eta_;
 };
 
 // @TODO: Add serialization for historic gradients and parameters
@@ -61,8 +66,7 @@ class Adagrad : public OptimizerBase {
   public:
     template <typename ...Args>
     Adagrad(float eta, Args ...args)
-    : OptimizerBase(args...),
-      eta_(eta),
+    : OptimizerBase(eta, args...),
       eps_(Get(keywords::eps, 1e-8, args...))
     {}
 
@@ -85,7 +89,6 @@ class Adagrad : public OptimizerBase {
               params, gt_, grads);
     }
 
-    float eta_;
     float eps_;
     Ptr<TensorAllocator> alloc_;
     Tensor gt_;
@@ -98,8 +101,7 @@ class Adam : public OptimizerBase {
   public:
     template <typename ...Args>
     Adam(float eta, Args ...args)
-    : OptimizerBase(args...),
-      eta_(eta),
+    : OptimizerBase(eta, args...),
       beta1_(Get(keywords::beta1, 0.9, args...)),
       beta2_(Get(keywords::beta2, 0.999, args...)),
       eps_(Get(keywords::eps, 1e-8, args...)),
@@ -125,8 +127,8 @@ class Adam : public OptimizerBase {
       }
 
       t_++;
-      float denom1 = 1 - pow(beta1_, t_);
-      float denom2 = 1 - pow(beta2_, t_);
+      float denom1 = 1 - std::pow(beta1_, t_);
+      float denom2 = 1 - std::pow(beta2_, t_);
 
       Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
               mt_, grads);
@@ -138,7 +140,6 @@ class Adam : public OptimizerBase {
     }
 
   private:
-    float eta_;
     float beta1_;
     float beta2_;
     float eps_;
