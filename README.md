@@ -23,7 +23,11 @@ Requirements:
 
 Compilation with `cmake > 3.5`:
 
-    mkdir build
-    cd build
-    cmake ..
-    make -j
+```
+git submodule init
+git submodule update
+mkdir build
+cd build
+cmake ..
+make -j
+```
