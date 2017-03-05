@@ -35,17 +35,17 @@ void shutdown() {
 
 boost::python::list translate(boost::python::list& in) {
   size_t cpuThreads = god_.Get<size_t>("cpu-threads");
-  LOG(info) << "Setting CPU thread count to " << cpuThreads;
+  LOG(info, "Setting CPU thread count to {}", cpuThreads);
 
   size_t totalThreads = cpuThreads;
 #ifdef CUDA
   size_t gpuThreads = god_.Get<size_t>("gpu-threads");
   auto devices = god_.Get<std::vector<size_t>>("devices");
-  LOG(info) << "Setting GPU thread count to " << gpuThreads;
+  LOG(info, "Setting GPU thread count to {}", gpuThreads);
   totalThreads += gpuThreads * devices.size();
 #endif
 
-  LOG(info) << "Total number of threads: " << totalThreads;
+  LOG(info, "Total number of threads: ", totalThreads);
   amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   ThreadPool pool(totalThreads);
