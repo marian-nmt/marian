@@ -148,7 +148,7 @@ void OutputRec(const YAML::Node node, YAML::Emitter& out) {
 }
 
 void LoadWeights(YAML::Node& config, const std::string& path) {
-  LOG(info) << "Reading weights from " << path;
+  LOG(info, "Reading weights from {}", path);
   InputFileStream fweights(path);
   std::string name;
   float weight;
@@ -156,7 +156,7 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
   while(fweights >> name >> weight) {
     if(name.back() == '=')
       name.pop_back();
-    LOG(info) << " > " << name << "= " << weight;
+    LOG(info, " > {} = {}", name , weight);
     config["weights"][name] = weight;
     i++;
   }
@@ -223,6 +223,10 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Print version.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
+    ("log-progress",po::value<bool>()->default_value(true)->implicit_value(true),
+     "Log progress to stderr.")
+    ("log-info",po::value<bool>()->default_value(true)->implicit_value(true),
+     "Log info to stderr.")
   ;
 
   po::options_description search("Search options");
@@ -301,7 +305,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION("relative-paths", bool);
   SET_OPTION_NONDEFAULT("input-file", std::string);
-
+  SET_OPTION("log-progress", bool);
+  SET_OPTION("log-info", bool);
   // @TODO: Apply complex overwrites
 
   if (Has("load-weights")) {
@@ -342,7 +347,7 @@ void Config::LogOptions() {
   std::stringstream ss;
   YAML::Emitter out;
   OutputRec(config_, out);
-  LOG(info) << "Options: \n" << out.c_str();
+  LOG(info, "Options: {}\n", out.c_str());
 }
 
 }
