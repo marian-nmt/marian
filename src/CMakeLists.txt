@@ -2,7 +2,6 @@ add_subdirectory(3rd_party)
 
 include_directories(.)
 include_directories(3rd_party)
-include_directories(3rd_party/spdlog/include)
 
 cuda_add_library(marian_lib
   3rd_party/cnpy/cnpy.cpp

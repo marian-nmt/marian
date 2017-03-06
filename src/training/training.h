@@ -45,16 +45,16 @@ class Reporter {
     }
 
     void increaseEpoch() {
-      LOG(info, "Seen {} samples", samples);
+      LOG(info) << "Seen " << samples << " samples";
 
       epochs++;
       samples = 0;
 
-      LOG(info, "Starting epoch {}", epochs);
+      LOG(info) << "Starting epoch " << epochs;
     }
 
     void finished() {
-      LOG(info, "Training finshed");
+      LOG(info) << "Training finshed";
     }
 
     void addValidator(Ptr<Validator> validator) {
@@ -74,7 +74,7 @@ class Reporter {
               ss << " : stalled " << validator->stalled() << " times";
             else
               ss << " : new best";
-            LOG(valid, ss.str());
+            LOG(valid) << ss.str();
           }
         }
       }
@@ -108,7 +108,7 @@ class Reporter {
         ss << " : " << std::fixed << std::setprecision(2)
            << wps << " words/s";
 
-        LOG(info, ss.str());
+        LOG(info) << ss.str();
 
         timer.start();
         costSum = 0;

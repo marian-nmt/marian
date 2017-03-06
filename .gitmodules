@@ -1,5 +1,0 @@
-[submodule "src/3rd_party/spdlog"]
-	path = src/3rd_party/spdlog
-	url = http://github.com/gabime/spdlog
-[submodule "spdlog"]
-	shallow = bool
