@@ -19,9 +19,9 @@ class Decoder;
 class Weights;
 
 namespace mblas {
-  template <class VecType>
+  template <typename T>
   class TMatrix;
-  typedef TMatrix<DeviceVector<float>> Matrix;
+  typedef TMatrix<float> Matrix;
 }
 
 ////////////////////////////////////////////

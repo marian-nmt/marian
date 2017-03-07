@@ -14,9 +14,10 @@ namespace mblas {
 using namespace thrust::placeholders;
 
 
-template <class VecType>
+template <typename T>
 class TMatrix : public BaseMatrix {
   public:
+    typedef DeviceVector<T> VecType;
     typedef typename VecType::value_type value_type;
     typedef typename VecType::iterator iterator;
     typedef typename VecType::const_iterator const_iterator;
@@ -157,8 +158,8 @@ class TMatrix : public BaseMatrix {
     VecType *data_;
 };
 
-typedef TMatrix<DeviceVector<float>> Matrix;
-typedef TMatrix<DeviceVector<int>> IMatrix;
+typedef TMatrix<float> Matrix;
+typedef TMatrix<int> IMatrix;
 
 
 }  // namespace mblas
