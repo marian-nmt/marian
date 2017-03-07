@@ -45,7 +45,11 @@ class TMatrix : public BaseMatrix {
       swap(m);
     }
 
-    TMatrix(const TMatrix& m) = delete;
+    TMatrix(const TMatrix& m)
+    : rows_(m.rows_)
+    , cols_(m.cols_)
+    , data_(new VecType(*m.data_))
+    {}
 
     value_type operator()(size_t i, size_t j) const {
       return (*data_)[i * cols_ + j];

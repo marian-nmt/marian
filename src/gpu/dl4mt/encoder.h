@@ -63,10 +63,11 @@ class Encoder {
                         const DeviceVector<int>* mapping=nullptr) {
           InitializeState(batchSize);
 
+          mblas::Matrix prevState(State_);
           size_t n = std::distance(it, end);
           size_t i = 0;
           while(it != end) {
-            GetNextState(State_, State_, *it++);
+            GetNextState(State_, prevState, *it++);
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
@@ -74,6 +75,8 @@ class Encoder {
             else {
               mblas::PasteRows(Context, State_, i, 0, n);
             }
+
+            prevState.swap(State_);
             ++i;
           }
         }
