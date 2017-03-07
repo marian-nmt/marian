@@ -142,7 +142,7 @@ class Decoder {
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
-          AlignedSourceContext.ResizeOrig(A_.Rows(), SourceContext.Cols());
+          AlignedSourceContext.ResizeNew(A_.Rows(), SourceContext.Cols());
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
         }
 
@@ -202,11 +202,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
-            Probs.ResizeOrig(T1_.Rows(), w_.W4_.Cols());
+            Probs.ResizeNew(T1_.Rows(), w_.W4_.Cols());
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
-            Probs.ResizeOrig(T1_.Rows(), FilteredW4_.Cols());
+            Probs.ResizeNew(T1_.Rows(), FilteredW4_.Cols());
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }

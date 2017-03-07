@@ -46,7 +46,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
 
   dMapping = hMapping;
 
-  Context.ResizeOrig(maxSentenceLength * source.size(),
+  Context.ResizeNew(maxSentenceLength * source.size(),
                  forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
 
   auto input = GetBatchInput(source, tab, maxSentenceLength);

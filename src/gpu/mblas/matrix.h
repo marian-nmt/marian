@@ -97,8 +97,7 @@ class TMatrix : public BaseMatrix {
         if (data_) {
           std::cerr << "ResizeNew" << std::endl;
           VecType *newData = new VecType(rows * cols);
-          thrust::copy(thrust::cuda::par.on(0), data_->begin(), data_->end(), newData->begin());
-          cudaStreamSynchronize(0);
+          thrust::copy(data_->begin(), data_->begin() + size(), newData->begin());
 
           delete data_;
           data_ = newData;
