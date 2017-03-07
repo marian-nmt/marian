@@ -117,7 +117,7 @@ class FastGRU {
                         const mblas::Matrix& Temp) const {
       const size_t rows = State.Rows();
       const size_t cols = State.Cols();
-      NextState.Resize(rows, cols);
+      NextState.ResizeOrig(rows, cols);
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);

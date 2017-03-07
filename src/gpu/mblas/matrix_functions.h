@@ -128,7 +128,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
   size_t cols  = Out.Cols();
 
   thread_local static Matrix Temp;
-  Temp.Resize(rows, cols);
+  Temp.ResizeOrig(rows, cols);
   mblas::Fill(Temp, 1.0f);
 
   float* d_out = Temp.data();
@@ -172,7 +172,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   size_t cols  = Out.Cols();
 
   thread_local static Matrix Temp;
-  Temp.Resize(rows, cols);
+  Temp.ResizeOrig(rows, cols);
 
   float* d_out = Temp.data();
   const float* d_in1 = Out.data();
