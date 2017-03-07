@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <sstream>
+#include <thrust/execution_policy.h>
+#include <thrust/functional.h>
 
 #include "common/base_matrix.h"
 
@@ -93,7 +95,11 @@ class TMatrix : public BaseMatrix {
     void ResizeNew(size_t rows, size_t cols) {
       if (cols * rows > size()) {
         if (data_) {
-          VecType *newData = new VecType(*data_);
+          std::cerr << "ResizeNew" << std::endl;
+          VecType *newData = new VecType(rows * cols);
+          thrust::copy(thrust::cuda::par.on(0), data_->begin(), data_->end(), newData->begin());
+          cudaStreamSynchronize(0);
+
           delete data_;
           data_ = newData;
         }
