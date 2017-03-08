@@ -72,7 +72,7 @@ void Vocab::loadOrCreate(const std::string& trainPath, int max)
 
 void Vocab::load(const std::string& vocabPath, int max)
 {
-  LOG(data) << "Loading vocabulary from " << vocabPath << " (max: " << max << ")";
+  LOG(data, "Loading vocabulary from {} (max: {})", vocabPath, max);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();
@@ -100,11 +100,10 @@ public:
 
 void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath)
 {
-  LOG(data) << "Creating vocabulary " << vocabPath
-    << " from " << trainPath << " (max: " << max << ")";
+  LOG(data,"Creating vocabulary {} from {} (max: {})", vocabPath, trainPath, max);
 
   UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
-                 "Vocab file " << vocabPath << " exist. Not overwriting");
+                 "Vocab file " << vocabPath << " exists. Not overwriting");
 
   InputFileStream trainStrm(trainPath);
 

@@ -340,7 +340,7 @@ void Config::log() {
   std::vector<std::string> results;
   boost::algorithm::split(results, conf, boost::is_any_of("\n"));
   for(auto &r : results)
-    LOG(config) << r;
+    LOG(config, r);
 }
 
 }

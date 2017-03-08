@@ -124,7 +124,7 @@ void Corpus::reset() {
 }
 
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
-  LOG(data) << "Shuffling files";
+  LOG(data, "Shuffling files");
   std::vector<std::vector<std::string>> corpus;
 
   files_.clear();
@@ -170,7 +170,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     files_.emplace_back(new InputFileStream(path));
   }
 
-  LOG(data) << "Done";
+  LOG(data, "Done");
 }
 
 }

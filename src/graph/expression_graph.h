@@ -456,7 +456,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     void load(const std::string& name) {
       using namespace keywords;
 
-      LOG(info) << "Loading model from " << name;
+      LOG(info, "Loading model from {}", name);
 
       auto numpy = cnpy::npz_load(name);
 
@@ -479,7 +479,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     void save(const std::string& name) {
-      LOG(info) << "Saving model to " << name;
+      LOG(info, "Saving model to {}", name);
 
       unsigned shape[2];
       std::string mode = "w";
