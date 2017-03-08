@@ -56,7 +56,7 @@ class Decoder {
                              const DeviceVector<int>& mapping) {
           using namespace mblas;
 
-          Temp2_.ResizeNew(batchSize, SourceContext.Cols());
+          Temp2_.Resize(batchSize, SourceContext.Cols());
           Mean(Temp2_, SourceContext, mapping);
           Prod(State, Temp2_, w_.Wi_);
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
@@ -131,12 +131,7 @@ class Decoder {
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
-          std::cerr << "Temp1_=" << Temp1_.Debug() << " "
-              << SCU_.Debug()
-              << std::endl;
           Copy(Temp1_, SCU_);
-          std::cerr << "copied" << std::endl;
-          //Temp1_ = SCU_;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
           Prod(A_, w_.V_, Temp1_, false, true);
@@ -148,7 +143,7 @@ class Decoder {
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
-          AlignedSourceContext.ResizeNew(A_.Rows(), SourceContext.Cols());
+          AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
         }
 
@@ -208,11 +203,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
-            Probs.ResizeNew(T1_.Rows(), w_.W4_.Cols());
+            Probs.Resize(T1_.Rows(), w_.W4_.Cols());
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
-            Probs.ResizeNew(T1_.Rows(), FilteredW4_.Cols());
+            Probs.Resize(T1_.Rows(), FilteredW4_.Cols());
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
@@ -287,7 +282,7 @@ class Decoder {
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
       Embedding.Clear();
-      Embedding.ResizeNew(batchSize, embeddings_.GetCols());
+      Embedding.Resize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
 

@@ -80,23 +80,6 @@ class TMatrix : public BaseMatrix {
     }
 
     void Resize(size_t rows, size_t cols) {
-       abort();
-    }
-
-    void ResizeOrig(size_t rows, size_t cols) {
-      if (cols * rows > size()) {
-        if (data_) {
-          data_->resize(rows * cols);
-        }
-        else {
-          data_ = new VecType(rows * cols);
-        }
-      }
-      rows_ = rows;
-      cols_ = cols;
-    }
-
-    void ResizeNew(size_t rows, size_t cols) {
       if (data_) {
         if ((cols*rows) > data_->size()) {
           //HANDLE_ERROR(cudaStreamSynchronize(0));

@@ -69,7 +69,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   int numRows = Weights.Rows();
   int numCols = In.Cols();
 
-  Out.ResizeNew(numRows, numCols);
+  Out.Resize(numRows, numCols);
 
   int nThreads = 512;
   int nBlocks =  (Out.size() / 512) + ((Out.size() % 512 == 0) ?  0 : 1);
@@ -83,7 +83,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In) {
   size_t m = In.Rows();
   size_t n = In.Cols();
 
-  Out.ResizeNew(n, m);
+  Out.Resize(n, m);
 
   float alpha = 1.0;
   float beta  = 0.0;
@@ -103,13 +103,13 @@ Matrix& Transpose(Matrix& Out) {
 
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
-  Out.ResizeNew(Out.Rows() + In.Rows(), Out.Cols());
+  Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
   mblas::copy(In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
-  Out.ResizeNew(In.Rows(), In.Cols());
+  Out.Resize(In.Rows(), In.Cols());
   mblas::copy(In.begin(), In.end(), Out.begin());
   return Out;
 }
@@ -146,7 +146,7 @@ Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
                 const size_t r, const size_t c) {
   size_t length = In.Cols() - c;
-  Out.ResizeNew(1, length);
+  Out.Resize(1, length);
   size_t start = r * In.Cols() + c;
   size_t end   = start + length;
   mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
@@ -193,7 +193,7 @@ Matrix& CopyRows(Matrix& Out,
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indeces) {
-  Out.ResizeNew(indeces.size(), In.Cols());
+  Out.Resize(indeces.size(), In.Cols());
   CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }
@@ -220,7 +220,7 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim) {
 
-  Out.ResizeNew(In.Rows(), dim);
+  Out.Resize(In.Rows(), dim);
 
   float* d_out = Out.data();
   const float* d_in = In.data();
@@ -255,7 +255,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   if(transB)
     ldc = B.Rows();
 
-  C.ResizeNew(m, n);
+  C.Resize(m, n);
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
