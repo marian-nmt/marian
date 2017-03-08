@@ -199,8 +199,7 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
   Decode(god, sentences, states, histories, prevHyps);
   PostProcess();
 
-  LOG(progress) << "Search took " << timer.format(3, "%ws");
-
+  LOG(progress,  "Search took ", timer.format(3, "%ws"));
   return histories;
 }
 

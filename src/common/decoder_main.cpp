@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
   size_t miniSize = god.Get<size_t>("mini-batch");
   size_t maxiSize = god.Get<size_t>("maxi-batch");
 
-  LOG(info) << "Reading input";
+  LOG(info, "Reading input");
 
   SentencesPtr maxiBatch(new Sentences());
 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
   }
 
   god.Cleanup();
-  LOG(info) << "Total time: " << timer.format();
+  LOG(info, "Total time: ", timer.format());
   //sleep(10);
   return 0;
 }

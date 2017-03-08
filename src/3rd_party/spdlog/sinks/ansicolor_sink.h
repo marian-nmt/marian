@@ -33,7 +33,7 @@ public:
     virtual void log(const details::log_msg& msg) override;
     virtual void flush() override;
 
-    void set_color(level::level_enum level, const std::string& color);
+    void set_color(level::level_enum color_level, const std::string& color);
 
     /// Formatting codes
     const std::string reset      = "\033[00m";
@@ -72,15 +72,12 @@ protected:
 
 inline ansicolor_sink::ansicolor_sink(sink_ptr wrapped_sink) : sink_(wrapped_sink)
 {
-    colors_[level::trace]    = cyan;
-    colors_[level::debug]    = cyan;
-    colors_[level::info]     = white;
-    colors_[level::notice]   = bold + white;
-    colors_[level::warn]     = bold + yellow;
-    colors_[level::err]      = red;
-    colors_[level::critical] = bold + red;
-    colors_[level::alert]    = bold + white + on_red;
-    colors_[level::emerg]    = bold + yellow + on_red;
+    colors_[level::trace]   = cyan;
+    colors_[level::debug]   = cyan;
+    colors_[level::info]    = bold;
+    colors_[level::warn]    = yellow + bold;
+    colors_[level::err]     = red + bold;
+    colors_[level::critical] = bold + on_red;
     colors_[level::off]      = reset;
 }
 
@@ -91,6 +88,10 @@ inline void ansicolor_sink::log(const details::log_msg& msg)
     const std::string& s = msg.formatted.str();
     const std::string& suffix = reset;
     details::log_msg m;
+    m.level = msg.level;
+    m.logger_name = msg.logger_name;
+    m.time = msg.time;
+    m.thread_id = msg.thread_id;
     m.formatted << prefix  << s << suffix;
     sink_->log(m);
 }
@@ -100,9 +101,9 @@ inline void ansicolor_sink::flush()
     sink_->flush();
 }
 
-inline void ansicolor_sink::set_color(level::level_enum level, const std::string& color)
+inline void ansicolor_sink::set_color(level::level_enum color_level, const std::string& color)
 {
-    colors_[level] = color;
+    colors_[color_level] = color;
 }
 
 inline ansicolor_sink::~ansicolor_sink()
