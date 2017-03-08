@@ -67,14 +67,12 @@ class Reporter {
           if(validator) {
             size_t stalledPrev = validator->stalled();
             float value = validator->validate(graph);
-            std::stringstream ss;
-            ss << batches << " : ";
-            ss << validator->type() << " : " << value;
             if(validator->stalled() > 0)
-              ss << " : stalled " << validator->stalled() << " times";
+	      LOG(valid, "{} : {} : {} : stalled {} times", batches,
+		  validator->type(), value, validator->stalled());
             else
-              ss << " : new best";
-            LOG(valid, ss.str());
+	      LOG(valid, "{} : {} : {} : new best", batches,
+		  validator->type(), value);
           }
         }
       }
@@ -94,23 +92,10 @@ class Reporter {
       batches++;
 
       if(batches % options_->get<size_t>("disp-freq") == 0) {
-        std::stringstream ss;
-        ss << "Ep. " << epochs
-           << " : Up. " << batches
-           << " : Sen. " << samples
-           << " : Cost " << std::fixed << std::setprecision(2)
-                         << costSum / options_->get<size_t>("disp-freq")
-           << " : Time " << timer.format(2, "%ws");
-
-        float seconds = std::stof(timer.format(5, "%w"));
-        float wps = wordsDisp /   (float)seconds;
-
-        ss << " : " << std::fixed << std::setprecision(2)
-           << wps << " words/s";
-
-        LOG(info, ss.str());
-
-        timer.start();
+	LOG("Ep. {} : Up. {} : Sen. : Cost {.2f} : Time {} : {.2f} words/s",
+	    epochs, batches, samples, costSum / options_->get<size_t>("disp-freq"),
+	    timer.format(2), wordsDisp / std::stof(timer.format(5, "%w")));
+	timer.start();
         costSum = 0;
         wordsDisp = 0;
       }
