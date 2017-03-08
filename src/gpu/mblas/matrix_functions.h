@@ -59,6 +59,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In);
 Matrix& Transpose(Matrix& Out);
 
 Matrix& Copy(Matrix& Out, const Matrix& In);
+Matrix& CopyNew(Matrix& Out, const Matrix& In);
 
 Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,

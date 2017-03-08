@@ -114,6 +114,12 @@ Matrix& Copy(Matrix& Out, const Matrix& In) {
   return Out;
 }
 
+Matrix& CopyNew(Matrix& Out, const Matrix& In) {
+  Out.ResizeNew(In.Rows(), In.Cols());
+  mblas::copy(In.begin(), In.end(), Out.begin());
+  return Out;
+}
+
 __global__ void gPasteRows(float* d_out, int outRows, int outCols, const float* d_in, int inRows, int inCols, int colNo, int sparse) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < inRows * inCols) {
