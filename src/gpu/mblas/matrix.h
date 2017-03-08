@@ -31,18 +31,16 @@ class TMatrix : public BaseMatrix {
     {
     }
 
-    TMatrix(size_t rows, size_t cols)
+    TMatrix(size_t rows, size_t cols, bool zero = false)
     : rows_(rows)
     , cols_(cols)
-    , data_(new VecType(size()))
     {
-    }
-
-    TMatrix(size_t rows, size_t cols, value_type val)
-    : rows_(rows)
-    , cols_(cols)
-    , data_(new VecType(size(), val))
-    {
+      if (zero) {
+        data_ = new VecType(size(), 0);
+      }
+      else {
+        data_ = new VecType(size());
+      }
     }
 
     TMatrix(TMatrix&& m)

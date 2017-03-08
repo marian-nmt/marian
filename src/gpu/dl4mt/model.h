@@ -32,7 +32,7 @@ struct Weights {
       U_(model["encoder_U"]),
       Wx_(model["encoder_Wx"]),
       Bx1_(model("encoder_bx", true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(Bx1_.Rows(), Bx1_.Cols(), true),
       Ux_(model["encoder_Ux"])
     { }
 
@@ -54,7 +54,7 @@ struct Weights {
       U_(model["encoder_r_U"]),
       Wx_(model["encoder_r_Wx"]),
       Bx1_(model("encoder_r_bx", true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(Bx1_.Rows(), Bx1_.Cols(), true),
       Ux_(model["encoder_r_Ux"])
     {}
 
@@ -100,7 +100,7 @@ struct Weights {
       U_(model["decoder_U"]),
       Wx_(model["decoder_Wx"]),
       Bx1_(model("decoder_bx", true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(Bx1_.Rows(), Bx1_.Cols(), true),
       Ux_(model["decoder_Ux"])
     {}
 
@@ -122,7 +122,7 @@ struct Weights {
       U_(model["decoder_U_nl"]),
       Wx_(model["decoder_Wcx"]),
       Bx2_(model("decoder_bx_nl", true)),
-      Bx1_(Bx2_.Rows(), Bx2_.Cols(), 0.0f),
+      Bx1_(Bx2_.Rows(), Bx2_.Cols(), true),
       Ux_(model["decoder_Ux_nl"])
     {}
 
