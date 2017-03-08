@@ -146,7 +146,7 @@ Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
                 const size_t r, const size_t c) {
   size_t length = In.Cols() - c;
-  Out.ResizeOrig(1, length);
+  Out.ResizeNew(1, length);
   size_t start = r * In.Cols() + c;
   size_t end   = start + length;
   mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
@@ -193,7 +193,7 @@ Matrix& CopyRows(Matrix& Out,
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indeces) {
-  Out.ResizeOrig(indeces.size(), In.Cols());
+  Out.ResizeNew(indeces.size(), In.Cols());
   CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }
@@ -220,7 +220,7 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim) {
 
-  Out.ResizeOrig(In.Rows(), dim);
+  Out.ResizeNew(In.Rows(), dim);
 
   float* d_out = Out.data();
   const float* d_in = In.data();
@@ -255,7 +255,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   if(transB)
     ldc = B.Rows();
 
-  C.ResizeOrig(m, n);
+  C.ResizeNew(m, n);
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
