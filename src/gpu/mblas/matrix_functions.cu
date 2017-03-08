@@ -69,7 +69,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   int numRows = Weights.Rows();
   int numCols = In.Cols();
 
-  Out.ResizeOrig(numRows, numCols);
+  Out.ResizeNew(numRows, numCols);
 
   int nThreads = 512;
   int nBlocks =  (Out.size() / 512) + ((Out.size() % 512 == 0) ?  0 : 1);
@@ -83,7 +83,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In) {
   size_t m = In.Rows();
   size_t n = In.Cols();
 
-  Out.ResizeOrig(n, m);
+  Out.ResizeNew(n, m);
 
   float alpha = 1.0;
   float beta  = 0.0;
@@ -103,7 +103,7 @@ Matrix& Transpose(Matrix& Out) {
 
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
-  Out.ResizeOrig(Out.Rows() + In.Rows(), Out.Cols());
+  Out.ResizeNew(Out.Rows() + In.Rows(), Out.Cols());
   mblas::copy(In.begin(), In.end(), Out.begin() + oldSize);
   return Out;
 }
