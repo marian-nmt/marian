@@ -172,7 +172,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   size_t cols  = Out.Cols();
 
   thread_local static Matrix Temp;
-  Temp.ResizeOrig(rows, cols);
+  Temp.ResizeNew(rows, cols);
 
   float* d_out = Temp.data();
   const float* d_in1 = Out.data();
