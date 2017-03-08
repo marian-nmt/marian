@@ -131,8 +131,12 @@ class Decoder {
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
-          //Copy(Temp1_, SCU_);
-          Temp1_ = SCU_;
+          std::cerr << "Temp1_=" << Temp1_.Debug() << " "
+              << SCU_.Debug()
+              << std::endl;
+          Copy(Temp1_, SCU_);
+          std::cerr << "copied" << std::endl;
+          //Temp1_ = SCU_;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
           Prod(A_, w_.V_, Temp1_, false, true);
@@ -149,7 +153,7 @@ class Decoder {
         }
 
         void GetAttention(mblas::Matrix& Attention) {
-          mblas::CopyNew(Attention, A_);
+          mblas::Copy(Attention, A_);
         }
 
         mblas::Matrix& GetAttention() {

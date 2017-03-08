@@ -28,19 +28,22 @@ class TMatrix : public BaseMatrix {
     : rows_(0)
     , cols_(0)
     , data_(nullptr)
-    {}
+    {
+    }
 
     TMatrix(size_t rows, size_t cols)
     : rows_(rows)
     , cols_(cols)
     , data_(new VecType(size()))
-    {}
+    {
+    }
 
     TMatrix(size_t rows, size_t cols, value_type val)
     : rows_(rows)
     , cols_(cols)
     , data_(new VecType(size(), val))
-    {}
+    {
+    }
 
     TMatrix(TMatrix&& m)
     : TMatrix()
@@ -52,7 +55,8 @@ class TMatrix : public BaseMatrix {
     : rows_(m.rows_)
     , cols_(m.cols_)
     , data_(new VecType(*m.data_))
-    {}
+    {
+    }
 
     value_type operator()(size_t i, size_t j) const {
       return (*data_)[i * cols_ + j];
@@ -93,18 +97,22 @@ class TMatrix : public BaseMatrix {
     }
 
     void ResizeNew(size_t rows, size_t cols) {
-      if (cols * rows > size()) {
-        if (data_) {
-          std::cerr << "ResizeNew" << std::endl;
+      if (data_) {
+        if ((cols*rows) > data_->size()) {
+          //HANDLE_ERROR(cudaStreamSynchronize(0));
           VecType *newData = new VecType(rows * cols);
+          //HANDLE_ERROR(cudaStreamSynchronize(0));
+
           thrust::copy(data_->begin(), data_->begin() + size(), newData->begin());
+          //HANDLE_ERROR(cudaStreamSynchronize(0));
 
           delete data_;
           data_ = newData;
         }
-        else {
-          data_ = new VecType(rows * cols);
-        }
+      }
+      else {
+        data_ = new VecType(rows * cols);
+        //HANDLE_ERROR(cudaStreamSynchronize(0));
       }
       rows_ = rows;
       cols_ = cols;
@@ -118,7 +126,7 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug() const
     {
       std::stringstream strm;
-      strm << Rows() << "x" << Cols() << ":";
+      strm << Rows() << "x" << Cols() << " " << data_ << ":";
       /*
       for (size_t row = 0; row < Rows(); ++row) {
         float rowSum = 0;
