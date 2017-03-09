@@ -125,7 +125,11 @@ class Decoder {
             }
           }
 
-          mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
+          mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
+              batchMapping.size(),
+              thrust::raw_pointer_cast(dBatchMapping_.data()),
+              cudaMemcpyHostToDevice);
+
           const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);

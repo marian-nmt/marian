@@ -36,9 +36,9 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
   }
 }
 
-template<class IteratorT1, class IteratorT2>
-void copy(IteratorT1 inBegin, IteratorT1 inEnd, IteratorT2 outBegin) {
-  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()), inBegin, inEnd, outBegin);
+template<typename T>
+void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
+  HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
 
 template<class IteratorT1, class IteratorT2>

@@ -104,13 +104,17 @@ Matrix& Transpose(Matrix& Out) {
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
   Out.Resize(Out.Rows() + In.Rows(), Out.Cols());
-  mblas::copy(In.begin(), In.end(), Out.begin() + oldSize);
+
+  mblas::copy(In.data(), In.size(), Out.data() + oldSize, cudaMemcpyDeviceToDevice);
+
   return Out;
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
-  mblas::copy(In.begin(), In.end(), Out.begin());
+
+  mblas::copy(In.data(), In.size(), Out.data(), cudaMemcpyDeviceToDevice);
+
   return Out;
 }
 
@@ -138,7 +142,9 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r, const size_t c) {
   size_t start = r * Out.Cols() + c;
-  mblas::copy(In.begin(), In.end(), Out.begin() + start);
+
+  mblas::copy(In.data(), In.size(), Out.data() + start, cudaMemcpyDeviceToDevice);
+
   return Out;
 }
 
@@ -148,8 +154,11 @@ Matrix& CopyRow(Matrix& Out,
   size_t length = In.Cols() - c;
   Out.Resize(1, length);
   size_t start = r * In.Cols() + c;
-  size_t end   = start + length;
-  mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
+  //size_t end   = start + length;
+
+  //mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
+  mblas::copy(In.data() + start, length , Out.data(), cudaMemcpyDeviceToDevice);
+
   return Out;
 }
 
