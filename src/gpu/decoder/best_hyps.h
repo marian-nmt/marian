@@ -49,7 +49,7 @@ class BestHyps : public BestHypsBase
 
           SoftAlignment *softAlignment = new SoftAlignment(attLength);
           mblas::copy(
-              thrust::raw_pointer_cast(attention.data()) + hypIndex * attLength,
+              attention.data() + hypIndex * attLength,
               attLength,
               thrust::raw_pointer_cast(softAlignment->data()),
               cudaMemcpyDeviceToHost

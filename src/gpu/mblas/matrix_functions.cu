@@ -501,7 +501,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
   int numThreads = std::min((int)state.size(), 512);
   int numBlocks = (state.size() / numThreads) + 1;
 
-  float* d_in = thrust::raw_pointer_cast(state.data());
+  float* d_in = state.data();
   const int* d_mapping = thrust::raw_pointer_cast(mapping.data());
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>

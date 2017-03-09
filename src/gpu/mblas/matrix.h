@@ -22,8 +22,6 @@ class TMatrix : public BaseMatrix {
   public:
     typedef DeviceVector<T> VecType;
     typedef typename VecType::value_type value_type;
-    typedef typename VecType::iterator iterator;
-    typedef typename VecType::const_iterator const_iterator;
 
     TMatrix()
     : rows_(0)
@@ -136,11 +134,11 @@ class TMatrix : public BaseMatrix {
       arrSize_ = 0;
     }
 
-    value_type* data() {
+    T* data() {
       return thrust::raw_pointer_cast(data_->data());
     }
 
-    const value_type* data() const {
+    const T* data() const {
       return thrust::raw_pointer_cast(data_->data());
     }
 
