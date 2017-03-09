@@ -47,9 +47,13 @@ class BestHyps : public BestHypsBase
           const mblas::Matrix &attention = encdec->GetAttention();
           size_t attLength = attention.Cols();
 
-          SoftAlignment *softAlignment = new SoftAlignment(
-              attention.begin() + hypIndex * attLength,
-              attention.begin() + (hypIndex + 1) * attLength);
+          SoftAlignment *softAlignment = new SoftAlignment(attLength);
+          mblas::copy(
+              thrust::raw_pointer_cast(attention.data()) + hypIndex * attLength,
+              attLength,
+              thrust::raw_pointer_cast(softAlignment->data()),
+              cudaMemcpyDeviceToHost
+          );
 
           alignments.emplace_back(softAlignment);
         } else {

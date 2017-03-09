@@ -127,10 +127,6 @@ class TMatrix : public BaseMatrix {
       return thrust::raw_pointer_cast(data_->data());
     }
 
-    const_iterator begin() const{
-      return data_->begin();
-    }
-
     size_t size() const {
       // return data_.size();
       return cols_ * rows_;
