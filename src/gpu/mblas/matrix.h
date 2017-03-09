@@ -56,17 +56,9 @@ class TMatrix : public BaseMatrix {
     {
     }
 
-    value_type operator()(size_t i, size_t j) const {
-      return (*data_)[i * cols_ + j];
-    }
-
     ~TMatrix()
     {
       Clear();
-    }
-
-    void Set(size_t i, size_t j, float value)  {
-      (*data_)[i * cols_ + j] = value;
     }
 
     size_t Rows() const {
@@ -137,11 +129,6 @@ class TMatrix : public BaseMatrix {
 
     iterator begin() {
       return data_->begin();
-    }
-
-    iterator end() {
-      return data_->begin() + size();
-      // return data_.end();
     }
 
     const_iterator begin() const{
