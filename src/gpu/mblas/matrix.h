@@ -27,6 +27,7 @@ class TMatrix : public BaseMatrix {
     TMatrix()
     : rows_(0)
     , cols_(0)
+    , arrSize_(0)
     , data_(nullptr)
     {
     }
@@ -34,12 +35,13 @@ class TMatrix : public BaseMatrix {
     TMatrix(size_t rows, size_t cols, bool zero = false)
     : rows_(rows)
     , cols_(cols)
+    , arrSize_(size())
     {
       if (zero) {
-        data_ = new VecType(size(), 0);
+        data_ = new VecType(arrSize_, 0);
       }
       else {
-        data_ = new VecType(size());
+        data_ = new VecType(arrSize_);
       }
     }
 
@@ -52,6 +54,7 @@ class TMatrix : public BaseMatrix {
     TMatrix(const TMatrix& m)
     : rows_(m.rows_)
     , cols_(m.cols_)
+    , arrSize_(size())
     , data_(new VecType(*m.data_))
     {
     }
@@ -71,7 +74,7 @@ class TMatrix : public BaseMatrix {
 
     void Resize(size_t rows, size_t cols) {
       if (data_) {
-        if ((cols*rows) > data_->size()) {
+        if ((rows * cols) > arrSize_) {
           //HANDLE_ERROR(cudaStreamSynchronize(0));
           VecType *newData = new VecType(rows * cols);
           //HANDLE_ERROR(cudaStreamSynchronize(0));
@@ -81,11 +84,13 @@ class TMatrix : public BaseMatrix {
 
           delete data_;
           data_ = newData;
+          arrSize_ = rows * cols;
         }
       }
       else {
         data_ = new VecType(rows * cols);
         //HANDLE_ERROR(cudaStreamSynchronize(0));
+        arrSize_ = rows * cols;
       }
       rows_ = rows;
       cols_ = cols;
@@ -117,6 +122,7 @@ class TMatrix : public BaseMatrix {
       data_ = nullptr;
       rows_ = 0;
       cols_ = 0;
+      arrSize_ = 0;
     }
 
     value_type* data() {
@@ -136,12 +142,14 @@ class TMatrix : public BaseMatrix {
     {
       std::swap(rows_, other.rows_);
       std::swap(cols_, other.cols_);
+      std::swap(arrSize_, other.arrSize_);
       std::swap(data_, other.data_);
     }
 
   private:
     size_t rows_;
     size_t cols_;
+    size_t arrSize_;
     VecType *data_;
 };
 
