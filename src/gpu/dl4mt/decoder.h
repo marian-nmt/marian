@@ -25,7 +25,12 @@ class Decoder {
             if(id >= w_.E_.Rows())
               id = 1;
           indices_.resize(tids.size());
-          mblas::copy_n(tids.begin(), tids.size(), indices_.begin());
+
+          mblas::copy(thrust::raw_pointer_cast(tids.data()),
+              tids.size(),
+              thrust::raw_pointer_cast(indices_.data()),
+              cudaMemcpyHostToDevice);
+
           Assemble(Rows, w_.E_, indices_);
         }
 

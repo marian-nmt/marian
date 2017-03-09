@@ -131,15 +131,6 @@ class TMatrix : public BaseMatrix {
       return data_->begin();
     }
 
-    const_iterator begin() const{
-      return data_->begin();
-    }
-
-    const_iterator end() const {
-      return data_->begin() + size();
-      // return data_.end();
-    }
-
     size_t size() const {
       // return data_.size();
       return cols_ * rows_;
