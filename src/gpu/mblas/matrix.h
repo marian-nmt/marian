@@ -8,6 +8,7 @@
 #include "common/base_matrix.h"
 
 #include "gpu/types-gpu.h"
+#include "handles.h"
 
 namespace amunmt {
 namespace GPU {
@@ -37,11 +38,9 @@ class TMatrix : public BaseMatrix {
     , cols_(cols)
     , arrSize_(size())
     {
+      data_ = new VecType(arrSize_);
       if (zero) {
-        data_ = new VecType(arrSize_, 0);
-      }
-      else {
-        data_ = new VecType(arrSize_);
+        HANDLE_ERROR( cudaMemset(thrust::raw_pointer_cast(data_->data()), arrSize_ * sizeof(T), 0) );
       }
     }
 
@@ -55,8 +54,14 @@ class TMatrix : public BaseMatrix {
     : rows_(m.rows_)
     , cols_(m.cols_)
     , arrSize_(size())
-    , data_(new VecType(*m.data_))
     {
+      data_ = new VecType(arrSize_);
+      HANDLE_ERROR( cudaMemcpyAsync(
+          thrust::raw_pointer_cast(data_->data()),
+          thrust::raw_pointer_cast(m.data_->data()),
+          arrSize_ * sizeof(T),
+          cudaMemcpyDeviceToDevice,
+          CudaStreamHandler::GetStream()) );
     }
 
     ~TMatrix()
@@ -79,7 +84,13 @@ class TMatrix : public BaseMatrix {
           VecType *newData = new VecType(rows * cols);
           //HANDLE_ERROR(cudaStreamSynchronize(0));
 
-          thrust::copy(data_->begin(), data_->begin() + size(), newData->begin());
+          HANDLE_ERROR( cudaMemcpyAsync(
+              thrust::raw_pointer_cast(newData->data()),
+              thrust::raw_pointer_cast(data_->data()),
+              size() * sizeof(T),
+              cudaMemcpyDeviceToDevice,
+              CudaStreamHandler::GetStream()) );
+
           //HANDLE_ERROR(cudaStreamSynchronize(0));
 
           delete data_;
