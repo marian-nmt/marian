@@ -20,6 +20,8 @@ float Sum(const float *data, size_t count)
   gSum<<<1,1>>>(data, count, *d_ret);
   HANDLE_ERROR( cudaMemcpy(&ret, d_ret, sizeof(float), cudaMemcpyDeviceToHost) );
   HANDLE_ERROR(cudaFree(d_ret));
+  HANDLE_ERROR( cudaStreamSynchronize(0));
+  HANDLE_ERROR( cudaDeviceSynchronize() );
 
   return ret;
 }
