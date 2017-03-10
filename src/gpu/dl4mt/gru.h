@@ -120,6 +120,10 @@ class FastGRU {
                         const mblas::Matrix& Temp) const {
       const size_t rows = State.Rows();
       const size_t cols = State.Cols();
+      std::cerr << "ElementwiseOps1" << std::endl;
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+
+      std::cerr << "ElementwiseOps2" << NextState.Rows() << " " << NextState.Cols() << std::endl;
       std::cerr << "before resize NextState=" << NextState.Debug() << std::endl;
       NextState.Resize(rows, cols);
       std::cerr << "after resize NextState=" << NextState.Debug() << std::endl;

@@ -17,7 +17,7 @@ using namespace thrust::placeholders;
 
 float Sum(const float *data, size_t count);
 
-
+/*
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
@@ -165,9 +165,9 @@ class TMatrix : public BaseMatrix {
     size_t arrSize_;
     T *data_;
 };
+*/
 
 
-/*
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
@@ -272,8 +272,13 @@ class TMatrix : public BaseMatrix {
       //}
       //strm << "size=" << size() << " sum=" << sum << std::flush;
 
-      float sum = Sum(data(), size());
-      strm << "size=" << size() << " sum=" << sum << std::flush;
+      if (data()) {
+        float sum = Sum(data(), size());
+        strm << "size=" << size() << " sum=" << sum << std::flush;
+      }
+      else {
+        strm << "empty array" << std::flush;
+      }
 
       return strm.str();
     }
@@ -313,7 +318,7 @@ class TMatrix : public BaseMatrix {
     size_t arrSize_;
     VecType *data_;
 };
-*/
+
 typedef TMatrix<float> Matrix;
 typedef TMatrix<int> IMatrix;
 
