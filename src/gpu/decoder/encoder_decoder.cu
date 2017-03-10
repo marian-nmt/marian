@@ -77,6 +77,7 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
 
 void EncoderDecoder::SetSource(const Sentences& source) {
   encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
+  cerr << "SourceContext_=" << SourceContext_->Debug() << endl;
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,

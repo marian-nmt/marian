@@ -113,16 +113,13 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug() const
     {
       std::stringstream strm;
-      strm << Rows() << "x" << Cols() << " " << data_ << ":";
-      /*
-      for (size_t row = 0; row < Rows(); ++row) {
-        float rowSum = 0;
-        for (size_t col = 0; col < Cols(); ++col) {
-          rowSum += (*this)(row, col);
-        }
-        strm << rowSum << " ";
+      strm << Rows() << "x" << Cols() << " " << data_ << " ";
+
+      T sum = 0;
+      for (size_t i = 0; i < size(); ++i) {
+        sum += (*data_)[i];
       }
-      */
+      strm << sum;
       return strm.str();
     }
 
