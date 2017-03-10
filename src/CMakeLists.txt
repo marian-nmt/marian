@@ -70,6 +70,7 @@ cuda_add_library(python SHARED
   python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
+  gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/dl4mt/encoder.cu
