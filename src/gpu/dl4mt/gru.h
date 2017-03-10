@@ -120,13 +120,22 @@ class FastGRU {
                         const mblas::Matrix& Temp) const {
       const size_t rows = State.Rows();
       const size_t cols = State.Cols();
-      std::cerr << "ElementwiseOps1" << std::endl;
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      //std::cerr << "ElementwiseOps1" << std::endl;
+      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
-      std::cerr << "ElementwiseOps2:" << NextState.Rows() << " " << NextState.Cols() << std::endl;
-      std::cerr << "before resize NextState=" << NextState.Debug() << std::endl;
+      //std::cerr << "ElementwiseOps2:" << NextState.Rows() << " " << NextState.Cols() << std::endl;
+      //std::cerr << "before resize NextState=" << NextState.Debug() << std::endl;
       NextState.Resize(rows, cols);
+
       std::cerr << "after resize NextState=" << NextState.Debug() << std::endl;
+      std::cerr << "State=" << State.Debug() << std::endl;
+      std::cerr << "RUH=" << RUH.Debug() << std::endl;
+      std::cerr << "Temp=" << Temp.Debug() << std::endl;
+      std::cerr << "w_.B_=" << w_.B_.Debug() << std::endl;
+      std::cerr << "w_.Bx1_=" << w_.Bx1_.Debug() << std::endl;
+      std::cerr << "w_.Bx2_=" << w_.Bx2_.Debug() << std::endl;
+      std::cerr << "rows=" << rows << std::endl;
+      std::cerr << "cols=" << cols << std::endl;
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
