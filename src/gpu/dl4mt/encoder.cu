@@ -11,7 +11,6 @@ Encoder::Encoder(const Weights& model)
   forwardRnn_(model.encForwardGRU_),
   backwardRnn_(model.encBackwardGRU_)
 {
-  cerr << "model.encForwardGRU_.Bx2_=" << model.encForwardGRU_.Bx2_.Debug() << endl;
 }
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
@@ -58,15 +57,12 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
       embeddedWords_.emplace_back();
     }
     embeddings_.Lookup(embeddedWords_[i], input[i]);
-    cerr << "embeddedWords_=" << i << embeddedWords_[i].Debug() << endl;
   }
 
-  cerr << "forwardRnn_:" << endl;
   forwardRnn_.GetContext(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
                          Context, source.size(), false);
 
-  cerr << "backwardRnn_:" << endl;
   backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
                           Context, source.size(), true, &dMapping);

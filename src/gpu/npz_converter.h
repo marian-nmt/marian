@@ -57,7 +57,6 @@ class NpzConverter {
     }
 
     mblas::Matrix operator[](const std::string& key) const {
-      std::cerr << "key1=" << key << std::endl;
       mblas::Matrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
@@ -72,7 +71,6 @@ class NpzConverter {
     }
 
     mblas::Matrix operator()(const std::string& key, bool transpose) const {
-      std::cerr << "key2=" << key << std::endl;
       mblas::Matrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {

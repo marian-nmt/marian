@@ -29,7 +29,6 @@ class TMatrix : public BaseMatrix {
     , arrSize_(0)
     , data_(nullptr)
     {
-      //std::cerr << "data_1=" << data_ << std::endl;
     }
 
     TMatrix(size_t rows, size_t cols, bool zero = false)
@@ -37,20 +36,15 @@ class TMatrix : public BaseMatrix {
     , cols_(cols)
     , arrSize_(rows * cols)
     {
-      std::cerr << "TMatrix2=" << std::endl;
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       if (zero) {
-        std::cerr << "zeros=" << std::endl;
         HANDLE_ERROR( cudaMemset(data_, 0, arrSize_ * sizeof(T)) );
       }
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Debug=" << Debug() << std::endl;
     }
 
     TMatrix(TMatrix&& m)
     : TMatrix()
     {
-      std::cerr << "TMatrix1=" << std::endl;
       swap(m);
     }
 
@@ -66,7 +60,6 @@ class TMatrix : public BaseMatrix {
           arrSize_ * sizeof(T),
           cudaMemcpyDeviceToDevice,
           CudaStreamHandler::GetStream()) );
-      //std::cerr << "data_3=" << data_ << std::endl;
     }
 
     ~TMatrix()
@@ -87,7 +80,6 @@ class TMatrix : public BaseMatrix {
         if ((cols*rows) > arrSize_) {
           T *newData;
           HANDLE_ERROR( cudaMalloc((void**)&newData, rows * cols * sizeof(T)) );
-          //std::cerr << "newData=" << newData << std::endl;
 
           HANDLE_ERROR( cudaMemcpyAsync(
               newData,
@@ -97,7 +89,6 @@ class TMatrix : public BaseMatrix {
               CudaStreamHandler::GetStream()) );
 
           HANDLE_ERROR(cudaFree(data_));
-          //std::cerr << "delete data_1=" << data_ << std::endl;
           data_ = newData;
           arrSize_ = rows * cols;
         }
@@ -107,9 +98,7 @@ class TMatrix : public BaseMatrix {
       }
       else {
         HANDLE_ERROR( cudaMalloc((void**)&data_, rows * cols * sizeof(T)) );
-        //std::cerr << "data_4=" << data_ << " " << (rows * cols) << std::endl;
         arrSize_ = rows * cols;
-        //HANDLE_ERROR(cudaStreamSynchronize(0));
       }
       rows_ = rows;
       cols_ = cols;
@@ -122,7 +111,6 @@ class TMatrix : public BaseMatrix {
 
     virtual std::string Debug() const
     {
-      HANDLE_ERROR(cudaStreamSynchronize(0));
       std::stringstream strm;
       strm << Rows() << "x" << Cols() << " "
           << data_ << " "
@@ -137,7 +125,6 @@ class TMatrix : public BaseMatrix {
 
     void Clear() {
       HANDLE_ERROR(cudaFree(data_));
-      //std::cerr << "delete data_2=" << data_ << std::endl;
       data_ = nullptr;
       rows_ = 0;
       cols_ = 0;
