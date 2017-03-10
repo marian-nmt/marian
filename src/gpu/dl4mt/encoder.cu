@@ -10,7 +10,9 @@ Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
   forwardRnn_(model.encForwardGRU_),
   backwardRnn_(model.encBackwardGRU_)
-{}
+{
+  cerr << "model.encForwardGRU_.Bx2_=" << model.encForwardGRU_.Bx2_.Debug() << endl;
+}
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
   size_t maxLength = source.at(0)->GetWords(tab).size();
