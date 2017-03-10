@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/gnmt.h"
+#include "models/multi_gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -21,12 +21,14 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-    {"../testln/mini.en",
-     "../testln/mini.de"};
+    {"../test/mini.en",
+     "../test/mini.en",
+     "../test/mini.de"};
 
   std::vector<std::string> vocab =
-    {"../benchmark/marian32K/train.tok.true.bpe.en.json",
-     "../benchmark/marian32K/train.tok.true.bpe.de.json"};
+    {"../benchmark/marian32K/train.tok.true.bpe.en.yml",
+     "../benchmark/marian32K/train.tok.true.bpe.en.yml",
+     "../benchmark/marian32K/train.tok.true.bpe.de.yml"};
 
   YAML::Node& c = options->get();
   c["train-sets"] = files;
@@ -36,10 +38,10 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(1);
+  graph->setDevice(0);
 
-  auto encdec = New<GNMT>(options);
-  encdec->load(graph, "../benchmark/marian32K/model9.10000.npz");
+  auto encdec = New<MultiGNMT>(options);
+  //encdec->load(graph, "../benchmark/marian32K/model9.10000.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -52,14 +54,14 @@ int main(int argc, char** argv) {
       batch->debug();
 
       auto costNode = encdec->build(graph, batch);
-      //for(auto p : graph->params())
-        //debug(p, p->name());
+      for(auto p : graph->params())
+        debug(p, p->name());
       debug(costNode, "cost");
 
       //graph->graphviz("debug.dot");
 
       graph->forward();
-      //graph->backward();
+      graph->backward();
 
       batches++;
     }

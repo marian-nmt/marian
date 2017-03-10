@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/gnmt.h"
+#include "models/multi_gnmt.h"
 #include "translator/nth_element.h"
 #include "common/history.h"
 
@@ -60,8 +60,7 @@ class BeamSearch {
 
     std::tuple<std::vector<Expr>, Expr>
     step(std::vector<Expr> hyps,
-         Expr srcContext,
-         Expr srcMask,
+         Ptr<EncoderState> encState,
          const std::vector<size_t> hypIdx = {},
          const std::vector<size_t> embIdx = {}) {
       using namespace keywords;
@@ -93,16 +92,14 @@ class BeamSearch {
       std::vector<Expr> newHyps;
       std::tie(logits, newHyps) = builder_->step(selectedEmbs,
                                                  selectedHyps,
-                                                 srcContext,
-                                                 srcMask,
+                                                 encState,
                                                  true);
       return std::make_tuple(newHyps, logsoftmax(logits));
     }
 
     std::tuple<std::vector<Expr>, Expr>
     step(std::vector<Expr> hyps,
-         Expr srcContext,
-         Expr srcMask,
+         Ptr<EncoderState> encState,
          const Beam& beam) {
 
       std::vector<size_t> hypIndeces;
@@ -122,8 +119,7 @@ class BeamSearch {
       std::vector<Expr> newHyps;
       Expr probs;
       std::tie(newHyps, probs) = step(hyps,
-                                      srcContext,
-                                      srcMask,
+                                      encState,
                                       hypIndeces,
                                       embIndeces);
       probs = probs + costs;
@@ -134,8 +130,8 @@ class BeamSearch {
                         Ptr<data::CorpusBatch> batch) {
 
       std::vector<Expr> startStates;
-      Expr srcContext, srcMask;
-      std::tie(startStates, srcContext, srcMask)
+      Ptr<EncoderState> encState;
+      std::tie(startStates, encState)
         = builder_->buildEncoder(graph, batch);
 
       size_t pos = 0;
@@ -153,16 +149,11 @@ class BeamSearch {
       do {
 
         if(first) {
-          std::tie(hyps, probs) = step(startStates,
-                                       srcContext,
-                                       srcMask);
+          std::tie(hyps, probs) = step(startStates, encState);
           pos = graph->forward();
         }
         else {
-          std::tie(hyps, probs) = step(hyps,
-                                       srcContext,
-                                       srcMask,
-                                       beam);
+          std::tie(hyps, probs) = step(hyps, encState, beam);
           beamSizes[0] = beam.size();
           pos = graph->forward(pos);
         }
@@ -200,11 +191,13 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, false);
 
   std::vector<std::string> files =
-    {"../benchmark/marian32K/newstest2016.tok.true.bpe.en"};
+    {"/work/wmt16/work/unbabel/marian2016/dev.mt",
+    "/work/wmt16/work/unbabel/marian2016/dev.src"};
     //{"../benchmark/marian32K/test.txt"};
 
   std::vector<std::string> vocab =
-    {"../benchmark/marian32K/train.tok.true.bpe.en.json"};
+    {"/work/wmt16/work/unbabel/marian2016/vocab.mt.json",
+    "/work/wmt16/work/unbabel/marian2016/vocab.src.json"};
 
   YAML::Node& c = options->get();
   c["train-sets"] = files;
@@ -217,10 +210,10 @@ int main(int argc, char** argv) {
   graph->setDevice(1);
 
   auto target = New<Vocab>();
-  target->load("../benchmark/marian32K/train.tok.true.bpe.de.json", 50000);
+  target->load("/work/wmt16/work/unbabel/marian2016/vocab.pe.json", 40000);
 
-  auto encdec = New<GNMT>(options);
-  encdec->load(graph, "../benchmark/marian32K/model9.90000.npz");
+  auto encdec = New<MultiGNMT>(options);
+  encdec->load(graph, "/work/wmt16/work/unbabel/marian2016/multisource/model.10000.npz");
 
   graph->reserveWorkspaceMB(128);
 
@@ -228,7 +221,7 @@ int main(int argc, char** argv) {
   bg.prepare(false);
   while(bg) {
     auto batch = bg.next();
-    auto search = New<BeamSearch<GNMT>>(encdec);
+    auto search = New<BeamSearch<MultiGNMT>>(encdec);
     auto history = search->search(graph, batch);
 
     auto results = history->NBest(1);

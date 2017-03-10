@@ -53,18 +53,24 @@ cuda_add_executable(
 )
 
 cuda_add_executable(
+  multimarian
+  command/multimarian.cu
+)
+
+cuda_add_executable(
   dropout_test
   test/dropout_test.cu
 )
 
 target_link_libraries(marian marian_lib)
+target_link_libraries(multimarian marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(marian_test marian_lib)
 target_link_libraries(dropout_test marian_lib)
 target_link_libraries(marian_translate marian_lib)
 target_link_libraries(bn_test marian_lib)
 
-foreach(exec dropout_test tensor_test marian_test marian_translate marian bn_test)
+foreach(exec dropout_test tensor_test marian_test marian_translate marian multimarian bn_test)
   target_link_libraries(${exec} ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
