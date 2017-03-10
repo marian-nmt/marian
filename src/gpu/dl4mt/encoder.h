@@ -76,6 +76,9 @@ class Encoder {
               mblas::PasteRows(Context, State_, i, 0, n);
             }
 
+            HANDLE_ERROR( cudaStreamSynchronize(0));
+            std::cerr << "State_=" << State_.Debug() << std::endl;
+
             prevState.swap(State_);
             ++i;
           }

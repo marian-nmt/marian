@@ -117,13 +117,13 @@ class TMatrix : public BaseMatrix {
     {
       HANDLE_ERROR(cudaStreamSynchronize(0));
       std::stringstream strm;
-      std::cerr << Rows() << "x" << Cols() << " "
+      strm << Rows() << "x" << Cols() << " "
           << data_ << " "
           << arrSize_ << " "
           << std::flush;
 
       float sum = Sum(data_, size());
-      std::cerr << "sum=" << sum << std::flush;
+      strm << "sum=" << sum << std::flush;
 
       return strm.str();
     }
