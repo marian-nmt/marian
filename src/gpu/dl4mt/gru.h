@@ -123,7 +123,7 @@ class FastGRU {
       std::cerr << "ElementwiseOps1" << std::endl;
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
-      std::cerr << "ElementwiseOps2" << NextState.Rows() << " " << NextState.Cols() << std::endl;
+      std::cerr << "ElementwiseOps2:" << NextState.Rows() << " " << NextState.Cols() << std::endl;
       std::cerr << "before resize NextState=" << NextState.Debug() << std::endl;
       NextState.Resize(rows, cols);
       std::cerr << "after resize NextState=" << NextState.Debug() << std::endl;
