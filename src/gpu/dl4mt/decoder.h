@@ -106,7 +106,6 @@ class Decoder {
       public:
         Alignment(const God &god, const Weights& model)
           : w_(model),
-            WC_(0),
             dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
         {}
 
@@ -148,7 +147,6 @@ class Decoder {
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
           A_.Reshape(rows2, srcSize); // due to broadcasting above
-          Element(_1 + WC_, A_);
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
@@ -179,8 +177,6 @@ class Decoder {
 
         mblas::Matrix Ones_;
         mblas::Matrix Sums_;
-
-        float WC_;
 
         Alignment(const Alignment&) = delete;
     };
