@@ -75,7 +75,7 @@ void ApePenaltyLoader::Load() {
   penalties_.resize(tvcb.size(), -1.0);
 
   if(Has("path")) {
-    LOG(info) << "Loading APE penalties from " << Get<std::string>("path");
+    LOG(info, "Loading APE penalties from {}",Get<std::string>("path"));
     YAML::Node penalties = YAML::Load(InputFileStream(Get<std::string>("path")));
     for(auto&& pair : penalties) {
       std::string entry = pair.first.as<std::string>();
