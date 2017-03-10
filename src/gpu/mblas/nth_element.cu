@@ -331,7 +331,7 @@ void NthElement::GetPairs(size_t number,
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
                                 cudaMemcpyDeviceToHost, stream_) );
-  cudaStreamSynchronize(stream_);
+  HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
   for (size_t i = 0; i < number; ++i) {
     outKeys.push_back(h_res_idx[i]);
