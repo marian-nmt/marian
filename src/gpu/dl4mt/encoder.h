@@ -50,6 +50,8 @@ class Encoder {
         void InitializeState(size_t batchSize = 1) {
           State_.Resize(batchSize, gru_.GetStateLength());
           mblas::Fill(State_, 0.0f);
+          std::cerr << "InitializeState State_=" << State_.Debug() << std::endl;
+
         }
 
         void GetNextState(mblas::Matrix& NextState,
@@ -61,30 +63,41 @@ class Encoder {
         template <class It>
         void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
                         const DeviceVector<int>* mapping=nullptr) {
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           InitializeState(batchSize);
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
           mblas::Matrix prevState(State_);
+          std::cerr << "State_1=" << State_.Debug() << std::endl;
+          std::cerr << "prevState=" << prevState.Debug() << std::endl;
           size_t n = std::distance(it, end);
           size_t i = 0;
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+
           while(it != end) {
             GetNextState(State_, prevState, *it++);
+            std::cerr << "State_2=" << State_.Debug() << std::endl;
             HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+              std::cerr << "State_3=" << State_.Debug() << std::endl;
+
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
+              std::cerr << "State_4=" << State_.Debug() << std::endl;
             }
             else {
               mblas::PasteRows(Context, State_, i, 0, n);
+              std::cerr << "State_5=" << State_.Debug() << std::endl;
             }
 
             HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-            std::cerr << "State_=" << State_.Debug() << std::endl;
+            std::cerr << "State_6=" << State_.Debug() << std::endl;
 
             prevState.swap(State_);
             HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+            HANDLE_ERROR( cudaDeviceSynchronize() );
             ++i;
           }
         }
