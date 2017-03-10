@@ -56,6 +56,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
       embeddedWords_.emplace_back();
     }
     embeddings_.Lookup(embeddedWords_[i], input[i]);
+    cerr << "embeddedWords_=" << i << embeddedWords_[i].Debug() << endl;
   }
 
   cerr << "forwardRnn_:" << endl;

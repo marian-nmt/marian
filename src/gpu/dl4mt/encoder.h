@@ -62,23 +62,29 @@ class Encoder {
         void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
                         const DeviceVector<int>* mapping=nullptr) {
           InitializeState(batchSize);
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
           mblas::Matrix prevState(State_);
           size_t n = std::distance(it, end);
           size_t i = 0;
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           while(it != end) {
             GetNextState(State_, prevState, *it++);
+            HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
+              HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
             }
             else {
               mblas::PasteRows(Context, State_, i, 0, n);
             }
 
+            HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
             std::cerr << "State_=" << State_.Debug() << std::endl;
 
             prevState.swap(State_);
+            HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
             ++i;
           }
         }
