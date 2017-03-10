@@ -17,7 +17,7 @@ using namespace thrust::placeholders;
 
 float Sum(const float *data, size_t count);
 
-/*
+
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
@@ -123,8 +123,8 @@ class TMatrix : public BaseMatrix {
           << arrSize_ << " "
           << std::flush;
 
-      float sum = Sum(data_, size());
-      strm << "sum=" << sum << std::flush;
+      float sum = Sum(data(), size());
+      strm << "size=" << size() << " sum=" << sum << std::flush;
 
       return strm.str();
     }
@@ -165,10 +165,9 @@ class TMatrix : public BaseMatrix {
     size_t arrSize_;
     T *data_;
 };
-*/
 
 
-
+/*
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
@@ -267,13 +266,11 @@ class TMatrix : public BaseMatrix {
       std::stringstream strm;
       strm << Rows() << "x" << Cols() << " " << data_ << " ";
 
-      /*
-      T sum = 0;
-      for (size_t i = 0; i < size(); ++i) {
-        sum += (*data_)[i];
-      }
-      strm << "size=" << size() << " sum=" << sum << std::flush;
-      */
+      //T sum = 0;
+      //for (size_t i = 0; i < size(); ++i) {
+      //  sum += (*data_)[i];
+      //}
+      //strm << "size=" << size() << " sum=" << sum << std::flush;
 
       float sum = Sum(data(), size());
       strm << "size=" << size() << " sum=" << sum << std::flush;
@@ -316,7 +313,7 @@ class TMatrix : public BaseMatrix {
     size_t arrSize_;
     VecType *data_;
 };
-
+*/
 typedef TMatrix<float> Matrix;
 typedef TMatrix<int> IMatrix;
 
