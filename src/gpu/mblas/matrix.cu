@@ -17,11 +17,14 @@ float Sum(const float *data, size_t count)
   float ret;
   float *d_ret;
   HANDLE_ERROR( cudaMalloc((void**)&d_ret, sizeof(float)) );
+
+  HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
+
   gSum<<<1,1>>>(data, count, *d_ret);
   HANDLE_ERROR( cudaMemcpy(&ret, d_ret, sizeof(float), cudaMemcpyDeviceToHost) );
   HANDLE_ERROR(cudaFree(d_ret));
-  HANDLE_ERROR( cudaStreamSynchronize(0));
-  HANDLE_ERROR( cudaDeviceSynchronize() );
+
+  HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
 
   return ret;
 }

@@ -267,17 +267,17 @@ class TMatrix : public BaseMatrix {
       std::stringstream strm;
       strm << Rows() << "x" << Cols() << " " << data_ << " ";
 
-
+      /*
       T sum = 0;
       for (size_t i = 0; i < size(); ++i) {
         sum += (*data_)[i];
       }
       strm << "size=" << size() << " sum=" << sum << std::flush;
+      */
 
-      /*
       float sum = Sum(data(), size());
       strm << "size=" << size() << " sum=" << sum << std::flush;
-      */
+
       return strm.str();
     }
 
