@@ -57,6 +57,7 @@ class NpzConverter {
     }
 
     mblas::Matrix operator[](const std::string& key) const {
+      std::cerr << "key1=" << key << std::endl;
       mblas::Matrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
@@ -71,12 +72,16 @@ class NpzConverter {
     }
 
     mblas::Matrix operator()(const std::string& key, bool transpose) const {
+      std::cerr << "key2=" << key << std::endl;
       mblas::Matrix matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
         NpyMatrixWrapper np(it->second);
         matrix.Resize(np.size1(), np.size2());
         mblas::copy(np.data(), np.size(), matrix.data(), cudaMemcpyHostToDevice);
+      }
+      else {
+        std::cerr << "Missing " << key << std::endl;
       }
       mblas::Transpose(matrix);
       return std::move(matrix);

@@ -37,17 +37,20 @@ class TMatrix : public BaseMatrix {
     , cols_(cols)
     , arrSize_(rows * cols)
     {
+      std::cerr << "TMatrix2=" << std::endl;
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       if (zero) {
-        HANDLE_ERROR( cudaMemset(data_, arrSize_ * sizeof(T), 0) );
+        std::cerr << "zeros=" << std::endl;
+        HANDLE_ERROR( cudaMemset(data_, 0, arrSize_ * sizeof(T)) );
       }
-      //HANDLE_ERROR(cudaStreamSynchronize(0));
-      //std::cerr << "data_2=" << data_ << std::endl;
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "Debug=" << Debug() << std::endl;
     }
 
     TMatrix(TMatrix&& m)
     : TMatrix()
     {
+      std::cerr << "TMatrix1=" << std::endl;
       swap(m);
     }
 
