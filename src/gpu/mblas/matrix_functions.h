@@ -367,6 +367,7 @@ Matrix& Element(Functor functor,
 
 void SetColumn(Matrix& In, int noColumn, float value);
 
+
 } // namespace mblas
 } // namespace GPU
 }

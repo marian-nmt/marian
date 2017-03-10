@@ -6,7 +6,6 @@
 #include <thrust/functional.h>
 
 #include "common/base_matrix.h"
-
 #include "gpu/types-gpu.h"
 #include "handles.h"
 
@@ -16,12 +15,12 @@ namespace mblas {
 
 using namespace thrust::placeholders;
 
+float Sum(const float *data, size_t count);
 
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
-    typedef DeviceVector<T> VecType;
-    typedef typename VecType::value_type value_type;
+    typedef T value_type;
 
     TMatrix()
     : rows_(0)
@@ -29,17 +28,20 @@ class TMatrix : public BaseMatrix {
     , arrSize_(0)
     , data_(nullptr)
     {
+      std::cerr << "data_1=" << data_ << std::endl;
     }
 
     TMatrix(size_t rows, size_t cols, bool zero = false)
     : rows_(rows)
     , cols_(cols)
-    , arrSize_(size())
+    , arrSize_(rows * cols)
     {
-      data_ = new VecType(arrSize_);
+      HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       if (zero) {
-        HANDLE_ERROR( cudaMemset(thrust::raw_pointer_cast(data_->data()), arrSize_ * sizeof(T), 0) );
+        HANDLE_ERROR( cudaMemset(data_, arrSize_ * sizeof(T), 0) );
       }
+      //HANDLE_ERROR(cudaStreamSynchronize(0));
+      std::cerr << "data_2=" << data_ << std::endl;
     }
 
     TMatrix(TMatrix&& m)
@@ -51,15 +53,16 @@ class TMatrix : public BaseMatrix {
     TMatrix(const TMatrix& m)
     : rows_(m.rows_)
     , cols_(m.cols_)
-    , arrSize_(size())
+    , arrSize_(m.arrSize_)
     {
-      data_ = new VecType(arrSize_);
+      HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       HANDLE_ERROR( cudaMemcpyAsync(
-          thrust::raw_pointer_cast(data_->data()),
-          thrust::raw_pointer_cast(m.data_->data()),
+          data_,
+          m.data_,
           arrSize_ * sizeof(T),
           cudaMemcpyDeviceToDevice,
           CudaStreamHandler::GetStream()) );
+      std::cerr << "data_3=" << data_ << std::endl;
     }
 
     ~TMatrix()
@@ -77,29 +80,29 @@ class TMatrix : public BaseMatrix {
 
     void Resize(size_t rows, size_t cols) {
       if (data_) {
-        if ((rows * cols) > arrSize_) {
-          //HANDLE_ERROR(cudaStreamSynchronize(0));
-          VecType *newData = new VecType(rows * cols);
-          //HANDLE_ERROR(cudaStreamSynchronize(0));
+        if ((cols*rows) > arrSize_) {
+          T *newData;
+          HANDLE_ERROR( cudaMalloc((void**)&newData, rows * cols * sizeof(T)) );
+          std::cerr << "newData=" << newData << std::endl;
 
           HANDLE_ERROR( cudaMemcpyAsync(
-              thrust::raw_pointer_cast(newData->data()),
-              thrust::raw_pointer_cast(data_->data()),
-              size() * sizeof(T),
+              newData,
+              data_,
+              arrSize_ * sizeof(T),
               cudaMemcpyDeviceToDevice,
               CudaStreamHandler::GetStream()) );
 
-          //HANDLE_ERROR(cudaStreamSynchronize(0));
-
-          delete data_;
+          HANDLE_ERROR(cudaFree(data_));
+          std::cerr << "delete data_1=" << data_ << std::endl;
           data_ = newData;
           arrSize_ = rows * cols;
         }
       }
       else {
-        data_ = new VecType(rows * cols);
-        //HANDLE_ERROR(cudaStreamSynchronize(0));
+        HANDLE_ERROR( cudaMalloc((void**)&data_, rows * cols * sizeof(T)) );
+        std::cerr << "data_4=" << data_ << " " << (rows * cols) << std::endl;
         arrSize_ = rows * cols;
+        //HANDLE_ERROR(cudaStreamSynchronize(0));
       }
       rows_ = rows;
       cols_ = cols;
@@ -112,31 +115,34 @@ class TMatrix : public BaseMatrix {
 
     virtual std::string Debug() const
     {
+      HANDLE_ERROR(cudaStreamSynchronize(0));
       std::stringstream strm;
-      strm << Rows() << "x" << Cols() << " " << data_ << " ";
+      std::cerr << Rows() << "x" << Cols() << " "
+          << data_ << " "
+          << arrSize_ << " "
+          << std::flush;
 
-      T sum = 0;
-      for (size_t i = 0; i < size(); ++i) {
-        sum += (*data_)[i];
-      }
-      strm << sum;
+      float sum = Sum(data_, size());
+      std::cerr << "sum=" << sum << std::flush;
+
       return strm.str();
     }
 
     void Clear() {
-      delete data_;
+      HANDLE_ERROR(cudaFree(data_));
+      std::cerr << "delete data_2=" << data_ << std::endl;
       data_ = nullptr;
       rows_ = 0;
       cols_ = 0;
       arrSize_ = 0;
     }
 
-    T* data() {
-      return thrust::raw_pointer_cast(data_->data());
+    value_type* data() {
+      return data_;
     }
 
-    const T* data() const {
-      return thrust::raw_pointer_cast(data_->data());
+    const value_type* data() const {
+      return data_;
     }
 
     size_t size() const {
@@ -156,7 +162,7 @@ class TMatrix : public BaseMatrix {
     size_t rows_;
     size_t cols_;
     size_t arrSize_;
-    VecType *data_;
+    T *data_;
 };
 
 typedef TMatrix<float> Matrix;

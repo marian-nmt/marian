@@ -508,6 +508,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
     (d_in, batchSize, stateLength, sentenceLength, d_mapping, i);
 }
 
+
 }  // namespace mblas
 }  // namespace GPU
 }
