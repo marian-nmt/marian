@@ -146,7 +146,7 @@ void EncoderDecoderLoader::Load(const God &god) {
 
   for(auto d : devices) {
     devicePool.enqueue([d, &path, this] {
-        LOG(info, "Loading model {} onto gpu", path, d);
+        LOG(info, "Loading model {} onto gpu {}", path, d);
         HANDLE_ERROR(cudaSetDevice(d));
         weights_[d].reset(new Weights(path, d));
       });
