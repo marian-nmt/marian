@@ -99,6 +99,9 @@ class Corpus {
     std::vector<UPtr<InputFileStream>> files_;
     std::vector<Ptr<Vocab>> vocabs_;
     size_t maxLength_;
+    
+    std::random_device rd_;
+    std::mt19937 g_;
 
     void shuffleFiles(const std::vector<std::string>& paths);
 

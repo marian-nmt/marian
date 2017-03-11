@@ -56,8 +56,9 @@ class BatchGenerator {
       if(!batchVector.empty())
         bufferedBatches_.push_back(data_->toBatch(batchVector));
 
-      if(shuffle)
+      if(shuffle) {
         std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
+      }
     }
 
   public:
