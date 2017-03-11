@@ -18,6 +18,8 @@ do { if(vm_.count(key) > 0) { \
 
 namespace marian {
 
+size_t Config::seed = 1234;
+
 bool Config::has(const std::string& key) const {
   return config_[key];
 }
@@ -162,6 +164,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
+    ("seed", po::value<size_t>()->default_value(1234),
+     "Seed for all random number generators")
   ;
 
   po::options_description valid("Validation set options");
@@ -295,7 +299,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("save-freq", size_t);
   SET_OPTION("workspace", size_t);
   SET_OPTION("relative-paths", bool);
-
+  SET_OPTION("seed", size_t);
+  
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
@@ -327,7 +332,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
-
+  
+  seed = vm_["seed"].as<size_t>();
 }
 
 void Config::log() {

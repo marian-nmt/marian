@@ -34,8 +34,9 @@ namespace marian {
       std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
 
       if(dropoutSrc) {
+        int dimBatch = x->shape()[0];
         int srcWords = x->shape()[2];
-        auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
+        auto srcWordDrop = graph->dropout(dropoutSrc, {dimBatch, 1, srcWords});
         x = dropout(x, mask=srcWordDrop);
       }
 
@@ -101,8 +102,9 @@ class DecoderGNMT : public DecoderBase {
       auto graph = embeddings->graph();
 
       if(dropoutTrg) {
+        int dimBatch = embeddings->shape()[0];
         int trgWords = embeddings->shape()[2];
-        auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+        auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, trgWords});
         embeddings = dropout(embeddings, mask=trgWordDrop);
       }
 

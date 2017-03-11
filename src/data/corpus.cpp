@@ -37,7 +37,10 @@ const SentenceTuple& CorpusIterator::dereference() const {
 Corpus::Corpus(Ptr<Config> options)
   : options_(options),
     textPaths_(options_->get<std::vector<std::string>>("train-sets")),
-    maxLength_(options_->get<size_t>("max-length")) {
+    maxLength_(options_->get<size_t>("max-length")),
+    g_(rd_()) {
+  
+  g_.seed(Config::seed);
 
   std::vector<std::string> vocabPaths;
   if(options_->has("vocabs"))
@@ -143,9 +146,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
       corpus.push_back(lines);
   }
 
-  std::random_device rd;
-  std::mt19937 g(rd());
-  std::shuffle(corpus.begin(), corpus.end(), g);
+  std::shuffle(corpus.begin(), corpus.end(), g_);
 
   std::vector<UPtr<OutputFileStream>> outs;
   for(int i = 0; i < files_.size(); ++i) {

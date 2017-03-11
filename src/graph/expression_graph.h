@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "common/definitions.h"
+#include "training/config.h"
 #include "graph/chainable.h"
 #include "graph/parameters.h"
 #include "graph/node_operators.h"
@@ -75,7 +76,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       params_.init(device);
       tensors_ = New<TensorAllocator>(device);
       cublasHandle_ = create_handle(device);
-      curandGenerator_ = createCurandGenerator(device, 1234);
+      curandGenerator_ = createCurandGenerator(device, Config::seed);
     }
 
     cublasHandle_t getCublasHandle() {
