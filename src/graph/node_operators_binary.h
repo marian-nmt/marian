@@ -218,7 +218,13 @@ struct MultNodeOp : public ElementBinaryNodeOp {
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Add(_1 * _2, children_[0]->grad(), adj_, children_[1]->val())),
+      NodeOp(
+        //std::cerr << "bf " << children_[0]->grad()->debug() << std::endl;
+        //std::cerr << "f1 " << adj_->debug() << std::endl;
+        //std::cerr << "f2 " << children_[1]->val()->debug() << std::endl;
+        Add(_1 * _2, children_[0]->grad(), adj_, children_[1]->val());
+        //std::cerr << "af " << children_[0]->grad()->debug() << std::endl;
+      ),
       NodeOp(Add(_1 * _2, children_[1]->grad(), adj_, children_[0]->val()))
     };
   }

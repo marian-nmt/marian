@@ -377,11 +377,6 @@ class GRU {
         gamma2_ = graph->param(prefix + "_gamma2", {1, 3 * dimState},
                                keywords::init=inits::from_value(1.f));
       }
-
-      if(dropout_> 0.0f) {
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-        dropMaskS_ = graph->dropout(dropout_, {1, dimState});
-      }
     }
 
     Expr apply(Expr input, Expr state,
@@ -390,6 +385,13 @@ class GRU {
     }
 
     Expr apply1(Expr input) {
+      if(dropout_> 0.0f && !dropMaskX_) {
+        auto graph = input->graph();
+        int dimBatch = input->shape()[0];
+        int dimInput = input->shape()[1];
+        dropMaskX_ = graph->dropout(dropout_, {dimBatch, dimInput});
+      }
+
       if(dropMaskX_)
         input = dropout(input, keywords::mask=dropMaskX_);
       auto xW = dot(input, W_);
@@ -400,6 +402,12 @@ class GRU {
 
     Expr apply2(Expr xW, Expr state,
                 Expr mask = nullptr) {
+      if(dropout_> 0.0f && !dropMaskS_) {
+        auto graph = state->graph();
+        int dimBatch = state->shape()[0];
+        int dimState = state->shape()[1];
+        dropMaskS_ = graph->dropout(dropout_, {dimBatch, dimState});
+      }
       if(dropMaskS_)
         state = dropout(state, keywords::mask=dropMaskS_);
 
