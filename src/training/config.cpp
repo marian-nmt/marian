@@ -189,8 +189,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
 
   po::options_description model("Model options");
   model.add_options()
-    ("type", po::value<std::string>()->default_value("generic"),
-      "Model type (possible values: generic, dl4mt")
+    ("type", po::value<std::string>()->default_value("dl4mt"),
+      "Model type (possible values: dl4mt, gnmt, multi-gnmt")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),

@@ -141,8 +141,23 @@ class DecoderBase {
          Ptr<EncoderState> encState, bool single=false) = 0;
 };
 
+class Seq2SeqBase {
+  public:
+    virtual void load(Ptr<ExpressionGraph>,
+                      const std::string&) = 0;
+
+    virtual void save(Ptr<ExpressionGraph>,
+                      const std::string&) = 0;
+
+    virtual std::tuple<Expr, std::vector<Expr>>
+    step(Expr, std::vector<Expr>, Ptr<EncoderState>, bool=false) = 0;
+
+    virtual Expr build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch) = 0;
+};
+
 template <class Encoder, class Decoder>
-class Seq2Seq {
+class Seq2Seq : public Seq2SeqBase {
   protected:
     Ptr<Config> options_;
     Ptr<EncoderBase> encoder_;
