@@ -450,8 +450,8 @@ class AttentionCell {
                           prefix + "_cell2",
                           att_->outputDim(),
                           dimState,
-                          keywords::final=true /*,
-                          args...*/);
+                          keywords::final=true,
+                          args...);
     }
 
     Expr apply(Expr input, Expr state, Expr mask = nullptr) {
