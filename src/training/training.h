@@ -92,7 +92,7 @@ class Reporter {
       batches++;
 
       if(batches % options_->get<size_t>("disp-freq") == 0) {
-        LOG(info, "Ep. {} : Up. {} : Sen. {} : Cost {} : Time {} : {} words/s",
+        LOG(info, "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} words/s",
             epochs, batches, samples, costSum / options_->get<size_t>("disp-freq"),
             timer.format(2, "%ws"), wordsDisp / std::stof(timer.format(5, "%w")));
         timer.start();
