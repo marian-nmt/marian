@@ -56,6 +56,10 @@ class CorpusBatch {
       return words_;
     }
 
+    size_t sets() const {
+      return batches_.size();
+    }
+
   private:
     std::vector<SentBatch> batches_;
     size_t words_;
@@ -109,7 +113,7 @@ class Corpus {
     typedef SentenceTuple sample;
 
     Corpus(Ptr<Config> options);
-    
+
     Corpus(std::vector<std::string> paths,
            std::vector<Ptr<Vocab>> vocabs,
            Ptr<Config> options);
@@ -117,7 +121,7 @@ class Corpus {
     sample next();
 
     void shuffle();
-    
+
     void reset();
 
     iterator begin() {
@@ -127,7 +131,7 @@ class Corpus {
     iterator end() {
       return iterator();
     }
-    
+
     std::vector<Ptr<Vocab>>& getVocabs() {
       return vocabs_;
     }

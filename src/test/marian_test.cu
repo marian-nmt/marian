@@ -12,7 +12,7 @@
 #include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "models/gnmt.h"
+#include "models/multi_gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -22,11 +22,13 @@ int main(int argc, char** argv) {
 
   std::vector<std::string> files =
     {"../test/mini.en",
+     "../test/mini.en",
      "../test/mini.de"};
 
   std::vector<std::string> vocab =
-    {"../test/vocab.en.json",
-     "../test/vocab.de.json"};
+    {"../benchmark/marian32K/train.tok.true.bpe.en.yml",
+     "../benchmark/marian32K/train.tok.true.bpe.en.yml",
+     "../benchmark/marian32K/train.tok.true.bpe.de.yml"};
 
   YAML::Node& c = options->get();
   c["train-sets"] = files;
@@ -36,9 +38,9 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(1);
+  graph->setDevice(0);
 
-  auto encdec = New<GNMT>(options);
+  auto encdec = New<MultiGNMT>(options);
   //encdec->load(graph, "../benchmark/marian32K/model9.10000.npz");
 
   graph->reserveWorkspaceMB(128);
