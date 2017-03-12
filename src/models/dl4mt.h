@@ -96,6 +96,7 @@ class DecoderDL4MT : public DecoderBase {
         attention_ = New<GlobalAttention>("decoder",
                                           encState,
                                           dimDecState,
+                                          dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
       RNN<CGRU> rnnL1(graph, "decoder",
                       dimTrgEmb, dimDecState,

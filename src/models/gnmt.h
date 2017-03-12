@@ -112,13 +112,14 @@ class DecoderGNMT : public DecoderBase {
         attention_ = New<GlobalAttention>("decoder",
                                           encState,
                                           dimDecState,
+                                          dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
       RNN<CGRU> rnnL1(graph, "decoder",
                       dimTrgEmb, dimDecState,
                       attention_,
-                      normalize=layerNorm,
-                      dropout_prob=dropoutRnn
-                      );
+                      dropout_prob=dropoutRnn,
+                      normalize=layerNorm);
+
       auto stateL1 = rnnL1(embeddings, states[0]);
       auto alignedContext = single ?
         rnnL1.getCell()->getLastContext() :

@@ -102,6 +102,11 @@ class GlobalAttention {
     std::vector<Expr> alignments_;
     bool layerNorm_;
 
+    float dropout_;
+    Expr context_;
+    Expr dropMaskContext_;
+    Expr dropMaskState_;
+
     Expr cov_;
 
   public:
@@ -112,6 +117,7 @@ class GlobalAttention {
               int dimDecState,
               Args ...args)
      : encState_(encState),
+       context_(encState->context),
        layerNorm_(Get(keywords::normalize, false, args...)),
        cov_(Get(keywords::coverage, nullptr, args...)) {
 
@@ -128,16 +134,25 @@ class GlobalAttention {
       ba_ = graph->param(prefix + "_b_att", {1, dimEncState},
                          keywords::init=inits::zeros);
 
+      dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
+      if(dropout_> 0.0f) {
+        dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
+        dropMaskState_ = graph->dropout(dropout_, {1, dimDecState});
+      }
+
+      if(dropMaskContext_)
+        context_ = dropout(context_, keywords::mask=dropMaskContext_);
+
       if(layerNorm_) {
         gammaContext_ = graph->param(prefix + "_att_gamma1", {1, dimEncState},
                                      keywords::init=inits::from_value(1.0));
         gammaState_ = graph->param(prefix + "_att_gamma2", {1, dimEncState},
                                    keywords::init=inits::from_value(1.0));
 
-        mappedContext_ = layer_norm(dot(encState_->context, Ua_), gammaContext_, ba_);
+        mappedContext_ = layer_norm(dot(context_, Ua_), gammaContext_, ba_);
       }
       else {
-        mappedContext_ = affine(encState_->context, Ua_, ba_);
+        mappedContext_ = affine(context_, Ua_, ba_);
       }
 
       auto softmaxMask = encState_->mask;
@@ -151,9 +166,12 @@ class GlobalAttention {
     Expr apply(Expr state) {
       using namespace keywords;
 
-      int dimBatch = encState_->context->shape()[0];
-      int srcWords = encState_->context->shape()[2];
+      int dimBatch = context_->shape()[0];
+      int srcWords = context_->shape()[2];
       int dimBeam  = state->shape()[3];
+
+      if(dropMaskState_)
+        state = dropout(state, keywords::mask=dropMaskState_);
 
       auto mappedState = dot(state, Wa_);
       if(layerNorm_)
@@ -166,7 +184,7 @@ class GlobalAttention {
                        {dimBatch, 1, srcWords, dimBeam});
       // <- horrible
 
-      auto alignedSource = weighted_average(encState_->context, e, axis=2);
+      auto alignedSource = weighted_average(context_, e, axis=2);
 
       contexts_.push_back(alignedSource);
       alignments_.push_back(e);
@@ -178,7 +196,7 @@ class GlobalAttention {
     }
 
     int outputDim() {
-      return encState_->context->shape()[1];
+      return context_->shape()[1];
     }
 };
 
