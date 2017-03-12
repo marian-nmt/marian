@@ -101,22 +101,28 @@ Python bindings allow to run AmuNMT decoder in python scripts. The compilation o
 make python
 ```
 
-The Python bindings consist of 2 function: `init` and `translate`:
+The Python bindings consist of 3 functions: `init`, `translate`, and `shutdown`:
 
 ```python
 import libamunmt
 
 libamunmt.init('-c config.yml')
 print libamunmt.translate(['this is a little test .'])
+
+libamunmt.shutdown()
 ```
 
 The `init` function init the decoder and the syntax is the same as in command line. The `translate`
-function takes a list of sentences to translate. For real-world example, see the `scripts/amunmt_erver.py`
+function takes a list of sentences to translate. For real-world example, see the `scripts/amunmt_server.py`
 script, which uses python bindings to run REST server.
 
+The function `shutdown` is needed (and should be called at the end of your script) to avoid runtime errors
+due to the random order in which objects may be deallocated if they are not explicitly destroyed.
 
 ## Using GPU/CPU threads
-AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences. **However, it is unlikely that CPUs used together with GPUs yield any performance improvement. It is probably better to only use the GPU if one or more are available.**
+AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences.
+**However, it is unlikely that CPUs used together with GPUs yield any performance improvement.
+It is probably better to only use the GPU if one or more are available.**
 
     cpu-threads: 8
     gpu-threads: 2
@@ -128,3 +134,10 @@ The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The
 
   * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)
 
+<<<<<<< HEAD
+=======
+
+
+
+
+>>>>>>> d33c4e0c5cab0f97c2e9061ccb0631d9381a5383

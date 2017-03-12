@@ -140,7 +140,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");
 
-  LOG(info) << "Loading model " << path;
+  LOG(info, "Loading model {}", path);
   weights_.emplace_back(new Weights(path, 0));
 }
 

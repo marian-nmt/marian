@@ -253,11 +253,9 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n)
 }
 
 NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream)
-    : stream_(stream) ,
+    : stream_(stream),
       NUM_BLOCKS(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
 {
-  //std::cerr << "NthElement::NthElement" << std::endl;
-
   HANDLE_ERROR( cudaMalloc((void**)&d_ind, maxBatchSize * NUM_BLOCKS * sizeof(int)) );
 
   HANDLE_ERROR( cudaMalloc((void**)&d_out, maxBatchSize * NUM_BLOCKS * sizeof(float)) );
@@ -321,8 +319,8 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
-  GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 
+  GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 }
 
 void NthElement::GetPairs(size_t number,
@@ -352,5 +350,5 @@ void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
   HANDLE_ERROR( cudaStreamSynchronize(stream_));
 }
 
-}
 }  // namespace GPU
+} // namespace amunmt
