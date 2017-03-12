@@ -189,6 +189,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
 
   po::options_description model("Model options");
   model.add_options()
+    ("type", po::value<std::string>()->default_value("generic"),
+      "Model type (possible values: generic, dl4mt")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
@@ -300,7 +302,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("workspace", size_t);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("seed", size_t);
-  
+
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
@@ -309,6 +311,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
 
+  SET_OPTION("type", std::string);
   SET_OPTION("layers-enc", int);
   SET_OPTION("layers-dec", int);
   SET_OPTION("dim-emb", int);
@@ -332,7 +335,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
-  
+
   seed = vm_["seed"].as<size_t>();
 }
 
