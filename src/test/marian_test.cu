@@ -29,9 +29,9 @@ int main(int argc, char** argv) {
      "../test/mini.de"};
 
   std::vector<std::string> vocab =
-    {"../benchmark/marian32K/train.tok.true.bpe.en.yml",
+    {"../benchmark/marian32K/train.tok.true.bpe.en.json",
 //     "../benchmark/marian32K/train.tok.true.bpe.en.yml",
-     "../benchmark/marian32K/train.tok.true.bpe.de.yml"};
+     "../benchmark/marian32K/train.tok.true.bpe.de.json"};
 
   YAML::Node& c = options->get();
   c["train-sets"] = files;
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
   else
     encdec = New<DL4MT>(options);
 
-  //encdec->load(graph, "../benchmark/marian32K/model9.10000.npz");
+  encdec->load(graph, "../benchmark/marian32K/model.160000.npz");
 
   graph->reserveWorkspaceMB(128);
 

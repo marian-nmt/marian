@@ -401,10 +401,12 @@ class GRU {
 
     Expr apply2(Expr xW, Expr state,
                 Expr mask = nullptr) {
-      if(dropMaskS_)
-        state = dropout(state, keywords::mask=dropMaskS_);
 
-      auto sU = dot(state, U_);
+      auto stateDropped = state;
+      if(dropMaskS_)
+        stateDropped = dropout(state, keywords::mask=dropMaskS_);
+
+      auto sU = dot(stateDropped, U_);
 
       if(layerNorm_)
         sU = layer_norm(sU, gamma2_);

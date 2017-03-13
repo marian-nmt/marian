@@ -103,7 +103,7 @@ class GlobalAttention {
     bool layerNorm_;
 
     float dropout_;
-    Expr context_;
+    Expr contextDropped_;
     Expr dropMaskContext_;
     Expr dropMaskState_;
 
@@ -117,7 +117,7 @@ class GlobalAttention {
               int dimDecState,
               Args ...args)
      : encState_(encState),
-       context_(encState->context),
+       contextDropped_(encState->context),
        layerNorm_(Get(keywords::normalize, false, args...)),
        cov_(Get(keywords::coverage, nullptr, args...)) {
 
@@ -141,7 +141,7 @@ class GlobalAttention {
       }
 
       if(dropMaskContext_)
-        context_ = dropout(context_, keywords::mask=dropMaskContext_);
+        contextDropped_ = dropout(contextDropped_, keywords::mask=dropMaskContext_);
 
       if(layerNorm_) {
         gammaContext_ = graph->param(prefix + "_att_gamma1", {1, dimEncState},
@@ -149,10 +149,10 @@ class GlobalAttention {
         gammaState_ = graph->param(prefix + "_att_gamma2", {1, dimEncState},
                                    keywords::init=inits::from_value(1.0));
 
-        mappedContext_ = layer_norm(dot(context_, Ua_), gammaContext_, ba_);
+        mappedContext_ = layer_norm(dot(contextDropped_, Ua_), gammaContext_, ba_);
       }
       else {
-        mappedContext_ = affine(context_, Ua_, ba_);
+        mappedContext_ = affine(contextDropped_, Ua_, ba_);
       }
 
       auto softmaxMask = encState_->mask;
@@ -166,8 +166,8 @@ class GlobalAttention {
     Expr apply(Expr state) {
       using namespace keywords;
 
-      int dimBatch = context_->shape()[0];
-      int srcWords = context_->shape()[2];
+      int dimBatch = contextDropped_->shape()[0];
+      int srcWords = contextDropped_->shape()[2];
       int dimBeam  = state->shape()[3];
 
       if(dropMaskState_)
@@ -184,7 +184,7 @@ class GlobalAttention {
                        {dimBatch, 1, srcWords, dimBeam});
       // <- horrible
 
-      auto alignedSource = weighted_average(context_, e, axis=2);
+      auto alignedSource = weighted_average(encState_->context, e, axis=2);
 
       contexts_.push_back(alignedSource);
       alignments_.push_back(e);
@@ -196,7 +196,7 @@ class GlobalAttention {
     }
 
     int outputDim() {
-      return context_->shape()[1];
+      return encState_->context->shape()[1];
     }
 };
 
