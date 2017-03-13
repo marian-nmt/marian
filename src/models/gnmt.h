@@ -26,8 +26,9 @@ class EncoderGNMT : public EncoderBase {
       bool layerNorm = options_->get<bool>("normalize");
       bool skipDepth = options_->get<bool>("skip");
       size_t encoderLayers = options_->get<size_t>("layers-enc");
-      float dropoutRnn = options_->get<float>("dropout-rnn");
-      float dropoutSrc = options_->get<float>("dropout-src");
+
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
       auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
@@ -80,8 +81,10 @@ class DecoderGNMT : public DecoderBase {
     Ptr<GlobalAttention> attention_;
 
   public:
-    DecoderGNMT(Ptr<Config> options)
-     : DecoderBase(options) {}
+
+    template <class ...Args>
+    DecoderGNMT(Ptr<Config> options, Args ...args)
+     : DecoderBase(options, args...) {}
 
     virtual std::tuple<Expr, std::vector<Expr>>
     step(Expr embeddings,
@@ -96,8 +99,9 @@ class DecoderGNMT : public DecoderBase {
       bool layerNorm = options_->get<bool>("normalize");
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
-      float dropoutRnn = options_->get<float>("dropout-rnn");
-      float dropoutTrg = options_->get<float>("dropout-trg");
+
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto graph = embeddings->graph();
 

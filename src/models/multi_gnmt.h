@@ -21,10 +21,11 @@ class MultiEncoder : public EncoderBase {
     Ptr<Encoder2> encoder2_;
 
   public:
-    MultiEncoder(Ptr<Config> options)
-     : EncoderBase(options),
-       encoder1_(New<Encoder1>(options, keywords::prefix="encoder1")),
-       encoder2_(New<Encoder2>(options, keywords::prefix="encoder2")) {}
+    template <class ...Args>
+    MultiEncoder(Ptr<Config> options, Args ...args)
+     : EncoderBase(options, args...),
+       encoder1_(New<Encoder1>(options, keywords::prefix="encoder1", args...)),
+       encoder2_(New<Encoder2>(options, keywords::prefix="encoder2", args...)) {}
 
     Ptr<EncoderState>
     build(Ptr<ExpressionGraph> graph,
@@ -125,8 +126,10 @@ class MultiDecoderGNMT : public DecoderBase {
     Ptr<GlobalAttention> attention2_;
 
   public:
-    MultiDecoderGNMT(Ptr<Config> options)
-     : DecoderBase(options) {}
+
+    template <class ...Args>
+    MultiDecoderGNMT(Ptr<Config> options, Args ...args)
+     : DecoderBase(options, args...) {}
 
     virtual Expr
     buildStartState(Ptr<EncoderState> encState) {
@@ -164,8 +167,9 @@ class MultiDecoderGNMT : public DecoderBase {
       bool layerNorm = options_->get<bool>("normalize");
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
-      float dropoutRnn = options_->get<float>("dropout-rnn");
-      float dropoutTrg = options_->get<float>("dropout-trg");
+
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto graph = embeddings->graph();
 

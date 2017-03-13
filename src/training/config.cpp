@@ -178,8 +178,10 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"cross-entropy"}),
                       "cross-entropy"),
-      "Metric to use during validation: cross-entropy, perplexity. "
+      "Metric to use during validation: cross-entropy, perplexity, valid-script. "
       "Multiple metrics can be specified")
+    ("valid-script-path", po::value<std::string>(),
+     "Path to external validation script")
     ("early-stopping", po::value<size_t>()->default_value(10),
      "Stop if the first validation metric does not improve for  arg  consecutive "
      "validation steps")
@@ -291,6 +293,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
   SET_OPTION("valid-freq", size_t);
   SET_OPTION("valid-metrics", std::vector<std::string>);
+  SET_OPTION_NONDEFAULT("valid-script-path", std::string);
   SET_OPTION("early-stopping", size_t);
   SET_OPTION_NONDEFAULT("valid-log", std::string);
 

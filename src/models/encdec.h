@@ -19,6 +19,7 @@ class EncoderBase {
   protected:
     Ptr<Config> options_;
     std::string prefix_{"encoder"};
+    bool inference_{false};
 
     virtual std::tuple<Expr, Expr>
     prepareSource(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
@@ -48,7 +49,8 @@ class EncoderBase {
     template <class ...Args>
     EncoderBase(Ptr<Config> options, Args ...args)
      : options_(options),
-       prefix_(Get(keywords::prefix, "encoder", args...))
+       prefix_(Get(keywords::prefix, "encoder", args...)),
+       inference_(Get(keywords::inference, false, args...))
       {}
 
     virtual Ptr<EncoderState>
@@ -58,6 +60,7 @@ class EncoderBase {
 class DecoderBase {
   protected:
     Ptr<Config> options_;
+    bool inference_{false};
 
     virtual std::tuple<Expr, Expr, Expr>
     prepareTarget(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
@@ -98,8 +101,10 @@ class DecoderBase {
     }
 
   public:
-    DecoderBase(Ptr<Config> options)
-     : options_(options) {}
+    template <class ...Args>
+    DecoderBase(Ptr<Config> options, Args ...args)
+     : options_(options),
+       inference_(Get(keywords::inference, false, args...)) {}
 
     virtual std::tuple<Expr, Expr, Expr>
     groundTruth(Ptr<ExpressionGraph> graph,
@@ -162,13 +167,16 @@ class Seq2Seq : public Seq2SeqBase {
     Ptr<Config> options_;
     Ptr<EncoderBase> encoder_;
     Ptr<DecoderBase> decoder_;
+    bool inference_{false};
 
   public:
 
-    Seq2Seq(Ptr<Config> options)
+    template <class ...Args>
+    Seq2Seq(Ptr<Config> options, Args ...args)
      : options_(options),
-       encoder_(New<Encoder>(options)),
-       decoder_(New<Decoder>(options))
+       encoder_(New<Encoder>(options, args...)),
+       decoder_(New<Decoder>(options, args...)),
+       inference_(Get(keywords::inference, false, args...))
     {}
 
      virtual void load(Ptr<ExpressionGraph> graph,
@@ -186,8 +194,8 @@ class Seq2Seq : public Seq2SeqBase {
                  Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
       graph->clear();
-      encoder_ = New<Encoder>(options_);
-      decoder_ = New<Decoder>(options_);
+      encoder_ = New<Encoder>(options_, keywords::inference=inference_);
+      decoder_ = New<Decoder>(options_, keywords::inference=inference_);
 
       auto encState = encoder_->build(graph, batch);
       auto startState = decoder_->buildStartState(encState);

@@ -1,6 +1,8 @@
 #pragma once
 
- #include <limits>
+#include <limits>
+#include <cstdio>
+#include <cstdlib>
 
 #include "training/config.h"
 #include "graph/expression_graph.h"
@@ -36,7 +38,7 @@ namespace marian {
         return stalled_;
       }
 
-      float validate(Ptr<ExpressionGraph> graph) {
+      virtual float validate(Ptr<ExpressionGraph> graph) {
         using namespace data;
         auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
         auto corpus = New<Corpus>(validPaths, vocabs_, options_);
@@ -44,7 +46,7 @@ namespace marian {
           = New<BatchGenerator<Corpus>>(corpus, options_);
         batchGenerator->prepare(false);
 
-        float val = validate(graph, batchGenerator);
+        float val = validateBG(graph, batchGenerator);
         if(lowerIsBetter() && lastBest_ > val ||
            !lowerIsBetter() && lastBest_ < val) {
             stalled_ = 0;
@@ -56,8 +58,8 @@ namespace marian {
         return val;
       };
 
-      virtual float validate(Ptr<ExpressionGraph>,
-                             Ptr<data::BatchGenerator<data::Corpus>>) = 0;
+      virtual float validateBG(Ptr<ExpressionGraph>,
+                               Ptr<data::BatchGenerator<data::Corpus>>) = 0;
 
   };
 
@@ -70,10 +72,10 @@ namespace marian {
       CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
                             Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {}
 
-      float validate(Ptr<ExpressionGraph> graph,
-                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+      virtual float validateBG(Ptr<ExpressionGraph> graph,
+                               Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
         float cost = 0;
         size_t samples = 0;
 
@@ -101,10 +103,10 @@ namespace marian {
       PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
                           Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {}
 
-      float validate(Ptr<ExpressionGraph> graph,
-                     Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+      virtual float validateBG(Ptr<ExpressionGraph> graph,
+                               Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
         float cost = 0;
         size_t words = 0;
 
@@ -121,7 +123,65 @@ namespace marian {
       }
 
       std::string type() { return "perplexity"; }
+  };
 
+  template <class Builder>
+  class ScriptValidator : public Validator {
+    private:
+      Ptr<Builder> builder_;
+
+    public:
+      ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
+                      Ptr<Config> options)
+       : Validator(vocabs, options),
+         builder_(New<Builder>(options, keywords::inference=true)) {}
+
+      std::string exec(const std::string& cmd) {
+        std::array<char, 128> buffer;
+        std::string result;
+        std::shared_ptr<std::FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+        if(!pipe)
+          UTIL_THROW2("popen() failed!");
+
+        while(!std::feof(pipe.get())) {
+          if(std::fgets(buffer.data(), 128, pipe.get()) != NULL)
+            result += buffer.data();
+        }
+        return result;
+      }
+
+      virtual float validate(Ptr<ExpressionGraph> graph) {
+        using namespace data;
+        auto model = options_->get<std::string>("model");
+
+        builder_->save(graph, model + ".dev.npz");
+
+        UTIL_THROW_IF2(!options_->has("valid-script-path"),
+                       "valid-script metric but no script given");
+        auto command = options_->get<std::string>("valid-script-path");
+
+        auto valStr = exec(command);
+        float val = std::atof(valStr.c_str());
+
+        if(lowerIsBetter() && lastBest_ > val ||
+           !lowerIsBetter() && lastBest_ < val) {
+            stalled_ = 0;
+            lastBest_ = val;
+        }
+        else {
+          stalled_++;
+        }
+
+        return val;
+      };
+
+
+      virtual float validateBG(Ptr<ExpressionGraph> graph,
+                               Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+        return 0;
+      }
+
+      std::string type() { return "valid-script"; }
   };
 
   template <class Builder>
@@ -130,6 +190,7 @@ namespace marian {
     std::vector<Ptr<Validator>> validators;
 
     auto validMetrics = options->get<std::vector<std::string>>("valid-metrics");
+
     for(auto metric : validMetrics) {
       if(metric == "cross-entropy") {
         auto validator = New<CrossEntropyValidator<Builder>>(vocabs, options);
@@ -139,7 +200,12 @@ namespace marian {
         auto validator = New<PerplexityValidator<Builder>>(vocabs, options);
         validators.push_back(validator);
       }
+      if(metric == "valid-script") {
+        auto validator = New<ScriptValidator<Builder>>(vocabs, options);
+        validators.push_back(validator);
+      }
     }
+
     return validators;
   }
 

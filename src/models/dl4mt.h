@@ -26,8 +26,8 @@ class EncoderDL4MT : public EncoderBase {
       int dimEncState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("normalize");
 
-      float dropoutRnn = options_->get<float>("dropout-rnn");
-      float dropoutSrc = options_->get<float>("dropout-src");
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
       auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
@@ -63,8 +63,9 @@ class DecoderDL4MT : public DecoderBase {
     Ptr<GlobalAttention> attention_;
 
   public:
-    DecoderDL4MT(Ptr<Config> options)
-     : DecoderBase(options) {}
+    template <class ...Args>
+    DecoderDL4MT(Ptr<Config> options, Args ...args)
+     : DecoderBase(options, args...) {}
 
     virtual std::tuple<Expr, std::vector<Expr>>
     step(Expr embeddings,
@@ -79,8 +80,9 @@ class DecoderDL4MT : public DecoderBase {
       bool layerNorm = options_->get<bool>("normalize");
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
-      float dropoutRnn = options_->get<float>("dropout-rnn");
-      float dropoutTrg = options_->get<float>("dropout-trg");
+
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto graph = embeddings->graph();
 
@@ -128,7 +130,9 @@ class DecoderDL4MT : public DecoderBase {
 
 class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
   public:
-    DL4MT(Ptr<Config> options) : Seq2Seq(options) {}
+    template <class ...Args>
+    DL4MT(Ptr<Config> options, Args ...args)
+    : Seq2Seq(options, args...) {}
 
     void load(Ptr<ExpressionGraph> graph,
               const std::string& name) {
