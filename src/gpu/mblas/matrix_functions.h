@@ -182,6 +182,17 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   int threads = 512;
   int blocks  = (Temp.size() / threads) + 1;
 
+  std::cerr << "\nTemp=" << Temp.Debug() << std::endl;
+  std::cerr << "Out=" << Out.Debug() << std::endl;
+  std::cerr << "In=" << In.Debug() << std::endl;
+  std::cerr << "srcSize=" << srcSize << std::endl;
+
+  std::cerr << "batchMapping=" << batchMapping.size() << ":";
+  for (size_t i = 0; i < batchMapping.size(); ++i) {
+    std::cerr << batchMapping[i] << " ";
+  }
+  std::cerr << std::endl;
+
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()),
         batchMapping.size(), Temp.size(), Out.size(), In.size()
