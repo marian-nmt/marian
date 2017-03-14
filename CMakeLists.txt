@@ -4,8 +4,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(amunn C CXX)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread -DHAS_CPU")
-set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread -DHAS_CPU")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
+set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
@@ -17,7 +17,12 @@ endif(BUILD_STATIC)
 
 include_directories(${amunmt_SOURCE_DIR})
 
+option(CPU "Select to compile CPU support" ON)
 option(CUDA "Select to compile CUDA support by default if available" ON)
+
+if(CPU)
+    add_definitions(-DHAS_CPU)
+endif(CPU)
 
 if(CUDA)
   find_package(CUDA)

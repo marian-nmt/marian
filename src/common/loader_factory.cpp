@@ -35,11 +35,12 @@ LoaderPtr LoaderFactory::Create(
   }
 
 #ifdef HAS_CPU
+  std::cerr << "Trying CPU version" << std::endl;
   loader = CreateCPU(god, name, config);
-#endif
   if (loader) {
     return LoaderPtr(loader);
   }
+#endif
 
 	std::string type = config["type"].as<std::string>();
 	amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
