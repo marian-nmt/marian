@@ -43,12 +43,13 @@ public:
   virtual size_t Cols() const
   { return Parent::columns(); }
 
-  virtual void Resize(size_t rows, size_t cols)
-  {
-    amunmt_UTIL_THROW2("Not implemented");
-  }
+  virtual size_t Beam() const
+  { return 1; }
 
-  virtual std::string Debug() const
+  virtual size_t Batches() const
+  { return 1; }
+
+  virtual void Resize(size_t rows, size_t cols)
   {
     amunmt_UTIL_THROW2("Not implemented");
   }
@@ -95,6 +96,12 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     {
     	return BlazeBase::columns();
     }
+
+    virtual size_t Beam() const
+    { return 1; }
+
+    virtual size_t Batches() const
+    { return 1; }
 
     virtual void Resize(size_t rows, size_t columns) {
        data_.resize(rows * columns);

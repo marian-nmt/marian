@@ -3,7 +3,7 @@
 
 namespace amunmt {
 
-std::string BaseMatrix::Debug() const
+std::string BaseMatrix::Debug(bool detailed) const
 {
   std::stringstream strm;
   strm << Rows() << "x" << Cols();

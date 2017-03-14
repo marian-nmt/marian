@@ -67,13 +67,20 @@ class TMatrix : public BaseMatrix {
       Clear();
     }
 
-    size_t Rows() const {
+    virtual size_t Rows() const {
       return rows_;
     }
 
-    size_t Cols() const {
+    virtual size_t Cols() const {
       return cols_;
     }
+
+    virtual size_t Beam() const
+    { return 1; }
+
+    virtual size_t Batches() const
+    { return 1; }
+
 
     void Resize(size_t rows, size_t cols) {
       if (data_) {
@@ -109,7 +116,7 @@ class TMatrix : public BaseMatrix {
       cols_ = cols;
     }
 
-    virtual std::string Debug() const
+    virtual std::string Debug(bool detailed = false) const
     {
       std::stringstream strm;
       strm << BaseMatrix::Debug() << " ";
