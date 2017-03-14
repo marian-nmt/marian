@@ -2,7 +2,10 @@
 
 #include "common/scorer.h"
 #include "common/logging.h"
+
+#ifdef HAS_CPU
 #include "cpu/decoder/encoder_decoder_loader.h"
+#endif
 
 #ifdef CUDA
 #include "gpu/decoder/encoder_decoder.h"
@@ -31,8 +34,9 @@ LoaderPtr LoaderFactory::Create(
     }
   }
 
-
+#ifdef HAS_CPU
   loader = CreateCPU(god, name, config);
+#endif
   if (loader) {
     return LoaderPtr(loader);
   }
@@ -69,6 +73,7 @@ Loader *LoaderFactory::CreateGPU(
 #endif
 
 
+#ifdef HAS_CPU
 Loader *LoaderFactory::CreateCPU(
 		const God &god,
 		const std::string& name,
@@ -83,6 +88,7 @@ Loader *LoaderFactory::CreateCPU(
 
   return NULL;
 }
+#endif
 
 }
 
