@@ -89,10 +89,13 @@ class TMatrix : public BaseMatrix {
 
 
     void Resize(size_t rows, size_t cols) {
+      size_t newSize = cols * rows;
       if (data_) {
-        if ((cols*rows) > arrSize_) {
+        if (newSize > arrSize_) {
           T *newData;
-          HANDLE_ERROR( cudaMalloc((void**)&newData, rows * cols * sizeof(T)) );
+          HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
+
+          //size_t count = std::min(arrSize_, newSize);
 
           HANDLE_ERROR( cudaMemcpyAsync(
               newData,
@@ -103,15 +106,15 @@ class TMatrix : public BaseMatrix {
 
           HANDLE_ERROR(cudaFree(data_));
           data_ = newData;
-          arrSize_ = rows * cols;
+          arrSize_ = newSize;
         }
-        else if (rows == 0 || cols == 1) {
+        else if (rows == 0 || cols == 0) {
           Clear();
         }
       }
       else {
-        HANDLE_ERROR( cudaMalloc((void**)&data_, rows * cols * sizeof(T)) );
-        arrSize_ = rows * cols;
+        HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
+        arrSize_ = newSize;
       }
       rows_ = rows;
       cols_ = cols;
