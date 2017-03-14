@@ -15,6 +15,7 @@
 #include "common/search.h"
 #include "common/sentences.h"
 #include "common/translation_task.h"
+#include "common/logging.h"
 
 #include "scorer.h"
 #include "loader_factory.h"
