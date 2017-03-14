@@ -144,10 +144,11 @@ template <class Functor>
 __global__ void gBroadcast(Functor functor,
                            float* out, const float* in1, const float* in2,
                            size_t srcSize, size_t sumBeams, size_t cols, const int* batchMapping,
-                           size_t batchMappingSize, size_t outSize, size_t in1Size, size_t in2Size)
+                           size_t batchMappingSize, size_t outSize, size_t in1Size, size_t in2Size,
+                           size_t inRows)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < srcSize * sumBeams * cols) {
+  if (id < srcSize * inRows * cols) {
     int row = id / cols;
     int stateIdx = id % cols;
 
@@ -156,9 +157,9 @@ __global__ void gBroadcast(Functor functor,
 
     int batchIdx = batchMapping[beamIdx];
 
-    //assert(id < outSize);
-    //assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
-    //assert(beamIdx * cols + stateIdx < in2Size);
+    assert(id < outSize);
+    assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
+    assert(beamIdx * cols + stateIdx < in2Size);
 
     out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
                       in2[beamIdx * cols + stateIdx]);
@@ -182,6 +183,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   int threads = 512;
   int blocks  = (Temp.size() / threads) + 1;
 
+  /*
   std::cerr << "\nTemp=" << Temp.Debug() << std::endl;
   std::cerr << "Out=" << Out.Debug() << std::endl;
   std::cerr << "In=" << In.Debug() << std::endl;
@@ -192,10 +194,10 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
     std::cerr << batchMapping[i] << " ";
   }
   std::cerr << std::endl;
-
+  */
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()),
-        batchMapping.size(), Temp.size(), Out.size(), In.size()
+        batchMapping.size(), Temp.size(), Out.size(), In.size(), In.Rows()
     );
 
   Swap(Out, Temp);
