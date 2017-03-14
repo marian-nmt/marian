@@ -26,6 +26,8 @@ class TMatrix : public BaseMatrix {
     TMatrix()
     : rows_(0)
     , cols_(0)
+    , beam_(0)
+    , batches_(0)
     , arrSize_(0)
     , data_(nullptr)
     {
@@ -34,7 +36,9 @@ class TMatrix : public BaseMatrix {
     TMatrix(size_t rows, size_t cols, bool zero = false)
     : rows_(rows)
     , cols_(cols)
-    , arrSize_(rows * cols)
+    , beam_(1)
+    , batches_(1)
+    , arrSize_(size())
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       if (zero) {
@@ -51,6 +55,8 @@ class TMatrix : public BaseMatrix {
     TMatrix(const TMatrix& m)
     : rows_(m.rows_)
     , cols_(m.cols_)
+    , beam_(m.beam_)
+    , batches_(m.batches_)
     , arrSize_(m.arrSize_)
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
@@ -76,10 +82,10 @@ class TMatrix : public BaseMatrix {
     }
 
     virtual size_t Beam() const
-    { return 1; }
+    { return beam_; }
 
     virtual size_t Batches() const
-    { return 1; }
+    { return batches_; }
 
 
     void Resize(size_t rows, size_t cols) {
@@ -109,11 +115,19 @@ class TMatrix : public BaseMatrix {
       }
       rows_ = rows;
       cols_ = cols;
+      beam_ = 1;
+      batches_ = 1;
     }
 
     void Reshape(size_t rows, size_t cols) {
       rows_ = rows;
       cols_ = cols;
+    }
+
+    void Reshape2D() {
+      rows_ = rows_ * beam_ * batches_;
+      beam_ = 1;
+      batches_ = 1;
     }
 
     virtual std::string Debug(bool detailed = false) const
@@ -135,6 +149,8 @@ class TMatrix : public BaseMatrix {
       data_ = nullptr;
       rows_ = 0;
       cols_ = 0;
+      beam_ = 0;
+      batches_ = 0;
       arrSize_ = 0;
     }
 
@@ -148,13 +164,15 @@ class TMatrix : public BaseMatrix {
 
     size_t size() const {
       // return data_.size();
-      return cols_ * rows_;
+      return cols_ * rows_ * beam_ * batches_;
     }
 
     void swap(TMatrix &other)
     {
       std::swap(rows_, other.rows_);
       std::swap(cols_, other.cols_);
+      std::swap(beam_, other.beam_);
+      std::swap(batches_, other.batches_);
       std::swap(arrSize_, other.arrSize_);
       std::swap(data_, other.data_);
     }
@@ -162,6 +180,8 @@ class TMatrix : public BaseMatrix {
   private:
     size_t rows_;
     size_t cols_;
+    size_t beam_;
+    size_t batches_;
     size_t arrSize_;
     T *data_;
 };
