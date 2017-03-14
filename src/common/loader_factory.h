@@ -32,12 +32,6 @@ class LoaderFactory {
     static Loader *CreateGPU(const God &god, const std::string& name,
                             const YAML::Node& config);
 
-#ifdef CUDA
-    static const bool HAS_GPU_SUPPORT = true;
-#else
-    static const bool HAS_GPU_SUPPORT = false;
-#endif
-
 };
 
 }

@@ -36,6 +36,9 @@
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/boost/include"/>
 								</option>
 								<option id="nvcc.compiler.cpp11option.1982513734" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
+								<option id="nvcc.compiler.def.symbols.576604014" superClass="nvcc.compiler.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CUDA"/>
+								</option>
 								<inputType id="nvcc.compiler.input.cu.2121946165" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1665748884" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.1276987953" superClass="nvcc.compiler.input.c"/>
@@ -66,14 +69,6 @@
 							<tool id="com.nvidia.host.assembler.450937849" name="Host Assembler" superClass="com.nvidia.host.assembler">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.206505934" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
-						</toolChain>
-					</folderInfo>
-					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.25450518" name="/" resourcePath="src/half">
-						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug.2013731923" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug" unusedChildren="">
-							<tool id="nvcc.compiler.base.461069529" name="NVCC Compiler" superClass="nvcc.compiler.base.366234936"/>
-							<tool id="nvcc.linker.base.1462283043" name="NVCC Linker" superClass="nvcc.linker.base.2109915963"/>
-							<tool id="nvcc.archiver.base.1101719324" name="NVCC Archiver" superClass="nvcc.archiver.base.2079600633"/>
-							<tool id="com.nvidia.host.assembler.1868497227" name="Host Assembler" superClass="com.nvidia.host.assembler.450937849"/>
 						</toolChain>
 					</folderInfo>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.769555163" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
@@ -111,7 +106,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.783657058" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.783657058" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.release.783657058." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.seven_five.exe.release.984760345" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.ide.toolchain.seven_five.exe.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1014548176" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>

@@ -25,7 +25,8 @@ LoaderPtr LoaderFactory::Create(
     const std::string& mode) {
 	Loader *loader;
 
-  if (HAS_GPU_SUPPORT && (mode == "GPU")) {
+#ifdef CUDA
+  if (mode == "GPU") {
     loader = CreateGPU(god, name, config);
     if (loader) {
       return LoaderPtr(loader);
@@ -33,12 +34,14 @@ LoaderPtr LoaderFactory::Create(
       LOG(info, "No GPU scorer type. Switching to CPU");
     }
   }
+#endif
 
 #ifdef HAS_CPU
-  std::cerr << "Trying CPU version" << std::endl;
-  loader = CreateCPU(god, name, config);
-  if (loader) {
-    return LoaderPtr(loader);
+  if (mode == "CPU") {
+    loader = CreateCPU(god, name, config);
+    if (loader) {
+      return LoaderPtr(loader);
+    }
   }
 #endif
 
