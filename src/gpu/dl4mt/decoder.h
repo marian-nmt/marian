@@ -125,9 +125,10 @@ class Decoder {
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
 
-	  std::cerr << "1HiddenState=" << HiddenState.Debug() << std::endl;
-	  const_cast<mblas::Matrix&>(HiddenState).Reshape2D();
-	  std::cerr << "2HiddenState=" << HiddenState.Debug() << std::endl;
+          std::cerr << std::endl;
+          std::cerr << "1HiddenState=" << HiddenState.Debug() << std::endl;
+          const_cast<mblas::Matrix&>(HiddenState).Reshape2D();
+          std::cerr << "2HiddenState=" << HiddenState.Debug() << std::endl;
 	  
           thrust::host_vector<int> batchMapping(HiddenState.Rows());
           size_t k = 0;
@@ -137,6 +138,12 @@ class Decoder {
             }
           }
 
+          std::cerr << "batchMapping " << batchMapping.size() << ": ";
+          for (size_t i = 0; i < batchMapping.size(); ++i) {
+            std::cerr << batchMapping[i] << " ";
+          }
+          std::cerr << std::endl;
+
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),
@@ -145,6 +152,12 @@ class Decoder {
           const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod2(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+
+          //std::cerr << "w_.W_=" << w_.W_.Debug() << std::endl;
+          //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
+          //Temp2_.Reshape2D();
+          //std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
+
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
