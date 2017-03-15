@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
   }
 
   god.Cleanup();
-  LOG(info, "Total time: ", timer.format());
+  LOG(info, "Total time: {}", timer.format());
   //sleep(10);
   return 0;
 }
