@@ -56,8 +56,6 @@ class Encoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Embd) {
           gru_.GetNextState(NextState, State, Embd);
-          //NextState.Reshape2D();
-          //const_cast<mblas::Matrix&>(State).Reshape2D();
         }
 
         template <class It>

@@ -95,7 +95,6 @@ class Decoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Context) {
           gru_.GetNextState(NextState, State, Context);
-          //NextState.Reshape2D();
         }
 
       private:
@@ -125,11 +124,6 @@ class Decoder {
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
 
-          std::cerr << std::endl;
-          std::cerr << "1HiddenState=" << HiddenState.Debug() << std::endl;
-          const_cast<mblas::Matrix&>(HiddenState).Reshape2D();
-          std::cerr << "2HiddenState=" << HiddenState.Debug() << std::endl;
-	  
           thrust::host_vector<int> batchMapping(HiddenState.Rows());
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
@@ -137,12 +131,6 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
-
-          std::cerr << "batchMapping " << batchMapping.size() << ": ";
-          for (size_t i = 0; i < batchMapping.size(); ++i) {
-            std::cerr << batchMapping[i] << " ";
-          }
-          std::cerr << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
@@ -152,12 +140,6 @@ class Decoder {
           const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod2(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
-
-          //std::cerr << "w_.W_=" << w_.W_.Debug() << std::endl;
-          //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
-          //Temp2_.Reshape2D();
-          //std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
-
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
@@ -169,12 +151,17 @@ class Decoder {
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
+
+          std::cerr << "1A_=" << A_.Debug() << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
+          std::cerr << "2A_=" << A_.Debug() << std::endl;
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
           AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
+
+          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
         }
 
         void GetAttention(mblas::Matrix& Attention) {

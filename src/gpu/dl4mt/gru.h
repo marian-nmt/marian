@@ -120,8 +120,8 @@ class FastGRU {
       const size_t rows = State.Rows() * State.Beam() * State.Batches();
       const size_t cols = State.Cols();
 
-      NextState.Resize(State.Rows(), cols, State.Beam(), State.Batches());
-      std::cerr << "NextState=" << NextState.Debug() << std::endl;
+      NextState.Resize(State.Rows() * State.Batches(), cols, State.Beam(), 1);
+      //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
