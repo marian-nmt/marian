@@ -109,7 +109,7 @@ class FastGRU {
       Prod2(Temp_, State, UUx_);
 
       ElementwiseOps(NextState, State, RUH_, Temp_);
-      NextState.Reshape2D();
+      //NextState.Reshape2D();
     }
 
 

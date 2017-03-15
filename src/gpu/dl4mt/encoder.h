@@ -56,6 +56,8 @@ class Encoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Embd) {
           gru_.GetNextState(NextState, State, Embd);
+          //NextState.Reshape2D();
+          //const_cast<mblas::Matrix&>(State).Reshape2D();
         }
 
         template <class It>
@@ -69,7 +71,7 @@ class Encoder {
 
           while(it != end) {
             GetNextState(State_, prevState, *it++);
-
+	    
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
