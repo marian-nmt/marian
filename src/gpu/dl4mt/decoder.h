@@ -62,16 +62,7 @@ class Decoder {
           using namespace mblas;
 
           Temp2_.Resize(1, SourceContext.Cols(), 1, batchSize);
-
-          std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
           Mean(Temp2_, SourceContext, mapping);
-          std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
-
-          const_cast<mblas::Matrix&>(SourceContext).Reshape2D();
-           std::cerr << "SourceContext=" << SourceContext.Debug() << std::endl;
-
-          //Temp2_.Reshape2D();
-          //std::cerr << "3Temp2_=" << Temp2_.Debug() << std::endl;
 
           Prod2(State, Temp2_, w_.Wi_);
 
@@ -126,7 +117,13 @@ class Decoder {
 
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
-          Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+
+          Prod2(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+
+          std::cerr << "1SCU_=" << SCU_.Debug() << std::endl;
+          const_cast<mblas::Matrix&>(SCU_).Reshape2D();
+          std::cerr << "2SCU_=" << SCU_.Debug() << std::endl;
+
         }
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
@@ -224,11 +221,11 @@ class Decoder {
 
           if(!filtered_) {
             Probs.Resize(T1_.Rows(), w_.W4_.Cols());
-            Prod(Probs, T1_, w_.W4_);
+            Prod2(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
             Probs.Resize(T1_.Rows(), FilteredW4_.Cols());
-            Prod(Probs, T1_, FilteredW4_);
+            Prod2(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
 
@@ -297,6 +294,7 @@ class Decoder {
                     size_t batchSize,
                     const DeviceVector<int>& batchMapping) {
       rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
+
       alignment_.Init(SourceContext);
     }
 

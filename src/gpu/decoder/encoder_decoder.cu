@@ -33,9 +33,7 @@ State* EncoderDecoder::NewState() const {
 }
 
 void EncoderDecoder::SetSource(const Sentences& source) {
-  cerr << "1sourceContext_=" << sourceContext_.Debug() << endl;
   encoder_->GetContext(source, tab_, sourceContext_, batchMapping_);
-  cerr << "2sourceContext_=" << sourceContext_.Debug() << endl;
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {

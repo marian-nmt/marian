@@ -285,7 +285,6 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
   Matrix::value_type beta = 0.0;
 
   size_t m = A.Rows();
-  size_t m2 = A.Rows() * A.Beam() * A.Batches();
   size_t k = A.Cols();
   if(transA)
     std::swap(m, k);
@@ -307,6 +306,8 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
+  size_t m2 = A.Rows() * A.Beam() * A.Batches();
+
   cublasSgemm(handle, opB, opA,
               n, m2, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
   return C;
@@ -315,13 +316,13 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
 Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
 
-  std::cerr << "1C=" << C.Debug() << std::endl;
-  std::cerr << "1A=" << A.Debug() << std::endl;
-  std::cerr << "1B=" << B.Debug() << std::endl;
+  //std::cerr << "1C=" << C.Debug() << std::endl;
+  //std::cerr << "1A=" << A.Debug() << std::endl;
+  //std::cerr << "1B=" << B.Debug() << std::endl;
 
   Matrix &ret = Prod2(CublasHandler::GetHandle(), C, A, B, transA, transB);
 
-  std::cerr << "2C=" << C.Debug() << std::endl;
+  //std::cerr << "2C=" << C.Debug() << std::endl;
   return ret;
 }
 

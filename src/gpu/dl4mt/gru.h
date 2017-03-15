@@ -21,13 +21,13 @@ class SlowGRU {
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(RU_, Context, w_.W_);
+      Prod2(RU_, Context, w_.W_);
       Prod(H_,  Context, w_.Wx_);
       // -----------------------------------------------------
 
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(Temp1_, State, w_.U_);
-      Prod(Temp2_, State, w_.Ux_);
+      Prod2(Temp1_, State, w_.U_);
+      Prod2(Temp2_, State, w_.Ux_);
       // -----------------------------------------------------
 
       // @TODO: Organize into one kernel ---------------------
@@ -105,8 +105,8 @@ class FastGRU {
       using namespace mblas;
 
       // const size_t cols = GetStateLength();
-      Prod(RUH_, Context, WWx_);
-      Prod(Temp_, State, UUx_);
+      Prod2(RUH_, Context, WWx_);
+      Prod2(Temp_, State, UUx_);
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
 

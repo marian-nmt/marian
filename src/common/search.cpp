@@ -47,6 +47,55 @@ size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t
   return filterIndices_.size();
 }
 
+std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
+  boost::timer::cpu_timer timer;
+
+  std::shared_ptr<Histories> histories(new Histories(god, sentences));
+
+  size_t batchSize = sentences.size();
+  size_t numScorers = scorers_.size();
+
+  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
+
+  States states = NewStates();
+
+  // calc
+  PreProcess(god, sentences, histories, prevHyps);
+  Encode(sentences, states);
+  Decode(god, sentences, states, histories, prevHyps);
+  PostProcess();
+
+  LOG(progress,  "Search took ", timer.format(3, "%ws"));
+  return histories;
+}
+
+void Search::PreProcess(
+    const God &god,
+    const Sentences& sentences,
+    std::shared_ptr<Histories> &histories,
+    Beam &prevHyps)
+{
+  size_t vocabSize = scorers_[0]->GetVocabSize();
+
+  for (size_t i = 0; i < histories->size(); ++i) {
+    History &history = *histories->at(i).get();
+    history.Add(prevHyps);
+  }
+
+  bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
+  if (filter) {
+    std::set<Word> srcWords;
+    for (size_t i = 0; i < sentences.size(); ++i) {
+      const Sentence &sentence = *sentences.at(i);
+      for (const auto& srcWord : sentence.GetWords()) {
+        srcWords.insert(srcWord);
+      }
+    }
+    vocabSize = MakeFilter(god, srcWords, vocabSize);
+  }
+
+}
+
 void Search::Encode(const Sentences& sentences, States& states) {
   for (size_t i = 0; i < scorers_.size(); i++) {
     Scorer &scorer = *scorers_[i];
@@ -181,59 +230,10 @@ bool Search::CalcBeam(
     return true;
 }
 
-std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
-  boost::timer::cpu_timer timer;
-
-  std::shared_ptr<Histories> histories(new Histories(god, sentences));
-
-  size_t batchSize = sentences.size();
-  size_t numScorers = scorers_.size();
-
-  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
-
-  States states = NewStates();
-
-  // calc
-  PreProcess(god, sentences, histories, prevHyps);
-  Encode(sentences, states);
-  Decode(god, sentences, states, histories, prevHyps);
-  PostProcess();
-
-  LOG(progress,  "Search took ", timer.format(3, "%ws"));
-  return histories;
-}
-
-void Search::PreProcess(
-		const God &god,
-		const Sentences& sentences,
-		std::shared_ptr<Histories> &histories,
-		Beam &prevHyps)
-{
-  size_t vocabSize = scorers_[0]->GetVocabSize();
-
-  for (size_t i = 0; i < histories->size(); ++i) {
-    History &history = *histories->at(i).get();
-    history.Add(prevHyps);
-  }
-
-  bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
-  if (filter) {
-    std::set<Word> srcWords;
-    for (size_t i = 0; i < sentences.size(); ++i) {
-      const Sentence &sentence = *sentences.at(i);
-      for (const auto& srcWord : sentence.GetWords()) {
-        srcWords.insert(srcWord);
-      }
-    }
-    vocabSize = MakeFilter(god, srcWords, vocabSize);
-  }
-
-}
-
 void Search::PostProcess()
 {
   for (auto scorer : scorers_) {
-	  scorer->CleanUpAfterSentence();
+    scorer->CleanUpAfterSentence();
   }
 }
 
