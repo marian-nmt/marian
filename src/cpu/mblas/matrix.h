@@ -49,7 +49,7 @@ public:
   virtual size_t Batches() const
   { return 1; }
 
-  virtual void Resize(size_t rows, size_t cols)
+  virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1)
   {
     amunmt_UTIL_THROW2("Not implemented");
   }
@@ -103,10 +103,13 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     virtual size_t Batches() const
     { return 1; }
 
-    virtual void Resize(size_t rows, size_t columns) {
-       data_.resize(rows * columns);
-       BlazeBase temp(data_.data(), rows, columns);
-       std::swap(temp, *(BlazeBase*)this);
+    virtual void Resize(size_t rows, size_t columns, size_t beam = 1, size_t batches = 1)
+    {
+      assert(beam == 1);
+      assert(batches == 1);
+      data_.resize(rows * columns);
+      BlazeBase temp(data_.data(), rows, columns);
+      std::swap(temp, *(BlazeBase*)this);
     }
 
     virtual std::string Debug() const

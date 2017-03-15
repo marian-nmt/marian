@@ -5,6 +5,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 
+#include "common/exception.h"
 #include "common/base_matrix.h"
 #include "gpu/types-gpu.h"
 #include "handles.h"
@@ -88,8 +89,8 @@ class TMatrix : public BaseMatrix {
     { return batches_; }
 
 
-    void Resize(size_t rows, size_t cols) {
-      size_t newSize = cols * rows;
+    void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
+      size_t newSize = cols * rows * beam * batches;
       if (data_) {
         if (newSize > arrSize_) {
           T *newData;
@@ -116,15 +117,22 @@ class TMatrix : public BaseMatrix {
         HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
         arrSize_ = newSize;
       }
+
       rows_ = rows;
       cols_ = cols;
-      beam_ = 1;
-      batches_ = 1;
+      beam_ = beam;
+      batches_ = batches;
     }
 
-    void Reshape(size_t rows, size_t cols) {
+    void Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
+    {
+      size_t newSize = cols * rows * beam * batches;
+      amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
+
       rows_ = rows;
       cols_ = cols;
+      beam_ = beam;
+      batches_ = batches;
     }
 
     void Reshape2D() {
