@@ -144,13 +144,15 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug(bool detailed = false) const
     {
       std::stringstream strm;
-      strm << BaseMatrix::Debug() << " ";
+      strm << BaseMatrix::Debug(detailed) << " ";
       strm << data_ << " "
           << arrSize_ << " "
           << std::flush;
 
-      float sum = Sum(data(), size());
-      strm << "size=" << size() << " sum=" << sum << std::flush;
+      if (detailed) {
+        float sum = Sum(data(), size());
+        strm << "size=" << size() << " sum=" << sum << std::flush;
+      }
 
       return strm.str();
     }
