@@ -111,7 +111,7 @@ Matrix& Concat(Matrix& Out, const Matrix& In) {
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
-  Out.Resize(In.Rows(), In.Cols());
+  Out.Resize(In.Rows(), In.Cols(), In.Beam(), In.Batches());
 
   mblas::copy(In.data(), In.size(), Out.data(), cudaMemcpyDeviceToDevice);
 

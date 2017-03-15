@@ -22,7 +22,7 @@ class SlowGRU {
       // @TODO: Launch streams to perform GEMMs in parallel
       // @TODO: Join matrices and perform single GEMM --------
       Prod2(RU_, Context, w_.W_);
-      Prod(H_,  Context, w_.Wx_);
+      Prod2(H_,  Context, w_.Wx_);
       // -----------------------------------------------------
 
       // @TODO: Join matrices and perform single GEMM --------

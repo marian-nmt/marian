@@ -66,10 +66,6 @@ class Decoder {
 
           Prod2(State, Temp2_, w_.Wi_);
 
-          std::cerr << "1State=" << State.Debug() << std::endl;
-          State.Reshape2D();
-          std::cerr << "2State=" << State.Debug() << std::endl;
-
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
 
@@ -119,11 +115,6 @@ class Decoder {
           using namespace mblas;
 
           Prod2(/*h_[0],*/ SCU_, SourceContext, w_.U_);
-
-          std::cerr << "1SCU_=" << SCU_.Debug() << std::endl;
-          const_cast<mblas::Matrix&>(SCU_).Reshape2D();
-          std::cerr << "2SCU_=" << SCU_.Debug() << std::endl;
-
         }
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
@@ -148,10 +139,12 @@ class Decoder {
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 
-          Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+          Prod2(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
+          //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
+          //std::cerr << "Temp1_=" << Temp1_.Debug() << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
           Prod(A_, w_.V_, Temp1_, false, true);
@@ -209,9 +202,9 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          Prod(/*h_[0],*/ T1_, State, w_.W1_);
-          Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
-          Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+          Prod2(/*h_[0],*/ T1_, State, w_.W1_);
+          Prod2(/*h_[1],*/ T2_, Embedding, w_.W2_);
+          Prod2(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
 
           BroadcastVec(_1 + _2, T1_, w_.B1_ /*,s_[0]*/);
           BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
@@ -294,7 +287,6 @@ class Decoder {
                     size_t batchSize,
                     const DeviceVector<int>& batchMapping) {
       rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
-
       alignment_.Init(SourceContext);
     }
 

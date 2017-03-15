@@ -271,7 +271,10 @@ __global__ void gBroadcastVec(Functor functor,
 
 template <class Functor>
 Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
-  size_t rows  = Out.Rows();
+  //std::cerr << "Out=" << Out.Debug() << std::endl;
+  //std::cerr << "In=" << In.Debug() << std::endl;
+
+  size_t rows  = Out.Rows() * Out.Beam() * Out.Batches();
   size_t cols = Out.Cols();
 
   float* d_out = Out.data();
