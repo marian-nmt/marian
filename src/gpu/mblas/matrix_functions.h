@@ -89,6 +89,9 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
+Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
+             bool transA = false, bool transB = false);
+
 Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t srcSize);
 
 Matrix& LogSoftmax(Matrix& Out);

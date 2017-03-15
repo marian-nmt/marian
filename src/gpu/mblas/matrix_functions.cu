@@ -279,6 +279,51 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
 }
 
+Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
+             bool transA, bool transB) {
+  Matrix::value_type alpha = 1.0;
+  Matrix::value_type beta = 0.0;
+
+  size_t m = A.Rows();
+  size_t k = A.Cols();
+  if(transA)
+    std::swap(m, k);
+
+  size_t l = B.Rows();
+  size_t n = B.Cols();
+  if(transB)
+    std::swap(l, n);
+
+  size_t lda = A.Cols();
+  size_t ldb = B.Cols();
+  size_t ldc = B.Cols();
+
+  if(transB)
+    ldc = B.Rows();
+
+  C.Resize(m, n, A.Beam(), A.Batches());
+
+  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
+
+  cublasSgemm(handle, opB, opA,
+              n, m, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
+  return C;
+}
+
+Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
+             bool transA, bool transB) {
+
+  std::cerr << "1C=" << C.Debug() << std::endl;
+  std::cerr << "1A=" << A.Debug() << std::endl;
+  std::cerr << "1B=" << B.Debug() << std::endl;
+
+  Matrix &ret = Prod2(CublasHandler::GetHandle(), C, A, B, transA, transB);
+
+  std::cerr << "2C=" << C.Debug() << std::endl;
+  return ret;
+}
+
 __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
                          const int* batchID,
                          int batchNum,

@@ -73,7 +73,9 @@ class Decoder {
           Temp2_.Reshape2D();
           std::cerr << "3Temp2_=" << Temp2_.Debug() << std::endl;
 
-          Prod(State, Temp2_, w_.Wi_);
+          Prod2(State, Temp2_, w_.Wi_);
+
+          std::cerr << "State=" << State.Debug() << std::endl;
 
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
