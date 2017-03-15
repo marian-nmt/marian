@@ -49,6 +49,7 @@ set_source_files_properties( common/loader_factory.cpp
 cuda_add_executable(
   amun
   common/decoder_main.cpp
+  gpu/decoder/encoder_decoder_state.cu
   gpu/decoder/encoder_decoder.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
@@ -70,6 +71,7 @@ if(PYTHONLIBS_FOUND)
 cuda_add_library(python SHARED
   python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
+  gpu/decoder/encoder_decoder_state.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
@@ -94,6 +96,7 @@ cuda_add_library(mosesplugin STATIC
   #plugin/nbest.cu
   plugin/nmt.cu
   plugin/neural_phrase.cpp
+  gpu/decoder/encoder_decoder_state.cu
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
