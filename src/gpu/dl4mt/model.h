@@ -122,7 +122,7 @@ struct Weights {
       U_(model["decoder_U_nl"]),
       Wx_(model["decoder_Wcx"]),
       Bx2_(model("decoder_bx_nl", true)),
-      Bx1_(Bx2_.Rows(), Bx2_.Cols(), Bx1_.Beam(), Bx1_.Batches(), true),
+      Bx1_(Bx2_.Rows(), Bx2_.Cols(), Bx2_.Beam(), Bx2_.Batches(), true),
       Ux_(model["decoder_Ux_nl"])
     {}
 
