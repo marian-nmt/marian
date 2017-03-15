@@ -8,6 +8,7 @@
 #include "common/base_best_hyps.h"
 #include "common/threadpool.h"
 #include "gpu/types-gpu.h"
+#include "gpu/mblas/matrix.h"
 
 
 namespace amunmt {
@@ -17,12 +18,6 @@ class EncoderDecoderState;
 class Encoder;
 class Decoder;
 class Weights;
-
-namespace mblas {
-  template <typename T>
-  class TMatrix;
-  typedef TMatrix<float> Matrix;
-}
 
 ////////////////////////////////////////////
 class EncoderDecoder : public Scorer {
@@ -66,7 +61,7 @@ class EncoderDecoder : public Scorer {
     DeviceVector<size_t> indices_;
     DeviceVector<int> batchMapping_;
 
-    std::unique_ptr<mblas::Matrix> SourceContext_;
+    mblas::Matrix sourceContext_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
 };

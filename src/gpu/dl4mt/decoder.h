@@ -61,10 +61,21 @@ class Decoder {
                              const DeviceVector<int>& mapping) {
           using namespace mblas;
 
+          std::cerr << "batchSize=" << batchSize << std::endl;
+          std::cerr << "mapping=" << mapping.size() << std::endl;
+          std::cerr << "w_.Wi_=" << w_.Wi_.Debug() << std::endl;
+
+          std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
           Temp2_.Resize(batchSize, SourceContext.Cols());
+          std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
           Mean(Temp2_, SourceContext, mapping);
+          std::cerr << "3Temp2_=" << Temp2_.Debug() << std::endl;
+
+          std::cerr << "1State=" << State.Debug() << std::endl;
           Prod(State, Temp2_, w_.Wi_);
+          std::cerr << "2State=" << State.Debug() << std::endl;
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
+          std::cerr << "3State=" << State.Debug() << std::endl;
         }
 
         void GetNextState(mblas::Matrix& NextState,

@@ -25,9 +25,24 @@ EncoderDecoder::EncoderDecoder(
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(god, model_)),
-    indices_(god.Get<size_t>("beam-size")),
-    SourceContext_(new mblas::Matrix())
+    indices_(god.Get<size_t>("beam-size"))
 {}
+
+State* EncoderDecoder::NewState() const {
+  return new EDState();
+}
+
+void EncoderDecoder::SetSource(const Sentences& source) {
+  cerr << "1sourceContext_=" << sourceContext_.Debug() << endl;
+  encoder_->GetContext(source, tab_, sourceContext_, batchMapping_);
+  cerr << "2sourceContext_=" << sourceContext_.Debug() << endl;
+}
+
+void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+  EDState& edState = state.get<EDState>();
+  decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+}
 
 void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
@@ -36,23 +51,9 @@ void EncoderDecoder::Decode(const God &god, const State& in, State& out, const s
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
-                     *SourceContext_,
+                     sourceContext_,
                      batchMapping_,
                      beamSizes);
-}
-
-State* EncoderDecoder::NewState() const {
-  return new EDState();
-}
-
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
-  EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_);
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
-}
-
-void EncoderDecoder::SetSource(const Sentences& source) {
-  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
