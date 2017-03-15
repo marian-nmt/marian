@@ -107,6 +107,7 @@ class FastGRU {
       // const size_t cols = GetStateLength();
       Prod2(RUH_, Context, WWx_);
       Prod2(Temp_, State, UUx_);
+
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }
 
@@ -115,10 +116,10 @@ class FastGRU {
                         const mblas::Matrix& State,
                         const mblas::Matrix& RUH,
                         const mblas::Matrix& Temp) const {
-      const size_t rows = State.Rows();
+      const size_t rows = State.Rows() * State.Beam() * State.Batches();
       const size_t cols = State.Cols();
 
-      NextState.Resize(rows, cols);
+      NextState.Resize(State.Rows(), cols, State.Beam(), State.Batches());
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);

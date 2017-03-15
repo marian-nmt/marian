@@ -46,10 +46,6 @@ void EncoderDecoder::Decode(const God &god, const State& in, State& out, const s
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  std::cerr << "1State=" << edIn.GetStates().Debug() << std::endl;
-  const_cast<mblas::Matrix&>(edIn.GetStates()).Reshape2D();
-  std::cerr << "2State=" << edIn.GetStates().Debug() << std::endl;
-
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),

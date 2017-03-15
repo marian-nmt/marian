@@ -271,6 +271,7 @@ class Decoder {
                   const mblas::Matrix& SourceContext,
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes) {
+
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
