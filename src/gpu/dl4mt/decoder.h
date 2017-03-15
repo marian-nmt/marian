@@ -73,7 +73,6 @@ class Decoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Context) {
           gru_.GetNextState(NextState, State, Context);
-	  NextState.Reshape2D();
         }
 
       private:
@@ -126,6 +125,10 @@ class Decoder {
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
 
+	  std::cerr << "1HiddenState=" << HiddenState.Debug() << std::endl;
+	  const_cast<mblas::Matrix&>(HiddenState).Reshape2D();
+	  std::cerr << "2HiddenState=" << HiddenState.Debug() << std::endl;
+	  
           thrust::host_vector<int> batchMapping(HiddenState.Rows());
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
