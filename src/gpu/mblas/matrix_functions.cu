@@ -36,9 +36,9 @@ __global__ void gMean(float* d_out, const float* d_in, const int* mapping,
 }
 
 void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
-  int batchNum = Out.Rows();
+  int batchNum = Out.Rows() * Out.Beam() * Out.Batches();
   int stateLength = Out.Cols();
-  int sentenceLength = In.Rows() / batchNum;
+  int sentenceLength = (In.Rows() * In.Beam() * In.Batches()) / batchNum;
 
   int nThreads = 512;
   int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
