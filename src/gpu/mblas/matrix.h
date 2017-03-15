@@ -101,7 +101,7 @@ class TMatrix : public BaseMatrix {
           HANDLE_ERROR( cudaMemcpyAsync(
               newData,
               data_,
-              arrSize_ * sizeof(T),
+              size() * sizeof(T),
               cudaMemcpyDeviceToDevice,
               CudaStreamHandler::GetStream()) );
 
