@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -100,8 +100,8 @@ class TensorAllocator {
 
     void reserve(size_t elements = 0) {
       float mult = elements / FLOATS + 1;
-      LOG(memory) << "Extending reserved space to "
-        << mult * CHUNK << " MB (device " << device_.getDevice() << ")";
+      LOG(memory, "Extending reserved space to {} MB (device {})",
+	  mult * CHUNK, device_.getDevice());
 
       size_t old = device_.capacity();
       float* oldStart = device_.data();
@@ -111,8 +111,8 @@ class TensorAllocator {
 
     void reserveExact(size_t elements = 0) {
       size_t mbytes = (elements * sizeof(float)) / MBYTE;
-      LOG(memory) << "Reserving space for " << elements
-        << " floats (" << mbytes << " MB, device " << device_.getDevice() << ")";
+      LOG(memory, "Reserving space for {} floats ({} MB, device {})",
+	  elements, mbytes, device_.getDevice());
 
       size_t old = device_.capacity();
       float* oldStart = device_.data();

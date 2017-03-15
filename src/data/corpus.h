@@ -39,11 +39,11 @@ class CorpusBatch {
           }
           std::cerr << std::endl;
 
-          std::cerr << "\t m: ";
-          for(auto w : b.second) {
-            std::cerr << w << " ";
-          }
-          std::cerr << std::endl;
+          //std::cerr << "\t m: ";
+          //for(auto w : b.second) {
+            //std::cerr << w << " ";
+          //}
+          //std::cerr << std::endl;
         }
       }
     }
@@ -54,6 +54,10 @@ class CorpusBatch {
 
     size_t words() const {
       return words_;
+    }
+
+    size_t sets() const {
+      return batches_.size();
     }
 
   private:
@@ -95,6 +99,9 @@ class Corpus {
     std::vector<UPtr<InputFileStream>> files_;
     std::vector<Ptr<Vocab>> vocabs_;
     size_t maxLength_;
+    
+    std::random_device rd_;
+    std::mt19937 g_;
 
     void shuffleFiles(const std::vector<std::string>& paths);
 
@@ -106,7 +113,7 @@ class Corpus {
     typedef SentenceTuple sample;
 
     Corpus(Ptr<Config> options);
-    
+
     Corpus(std::vector<std::string> paths,
            std::vector<Ptr<Vocab>> vocabs,
            Ptr<Config> options);
@@ -114,7 +121,7 @@ class Corpus {
     sample next();
 
     void shuffle();
-    
+
     void reset();
 
     iterator begin() {
@@ -124,7 +131,7 @@ class Corpus {
     iterator end() {
       return iterator();
     }
-    
+
     std::vector<Ptr<Vocab>>& getVocabs() {
       return vocabs_;
     }

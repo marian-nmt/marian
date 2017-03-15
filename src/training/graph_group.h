@@ -1,5 +1,8 @@
 #pragma once
-
+#define GRAD_DROP true
+#define SPARSE_PUSH false
+#define DEBUG false
+#define TIME_CHECK true
 #include <thread>
 #include <future> 
 
@@ -64,6 +67,9 @@ class AsyncGraphGroup : public GraphGroup {
     int shardSize_;
 
     ThreadPool pool_;
+    long long el_1 = 0; //computation time
+    long long el_2 = 0; // grad drop time
+    long long el_3 = 0; // communication time
 
     void fetchParams(Tensor oldParams) {
       if(graphs_.size() < 2)
@@ -97,14 +103,25 @@ class AsyncGraphGroup : public GraphGroup {
         std::vector<std::thread> threads;
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
-          threads.emplace_back( std::thread([=](int idx, int pos) {
+            threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
-
+            auto start1 = std::chrono::system_clock::now();
             grads_[idx]->copyFrom(  newGrads->subtensor(pos , grads_[idx]->size() ) );
-            shardOpt_[idx]->update(params_[idx], grads_[idx]);
+            auto end1 = std::chrono::system_clock::now();
 
+            auto start2 = std::chrono::system_clock::now();
+            shardOpt_[idx]->update(params_[idx], grads_[idx]);
             cudaStreamSynchronize(0);
+            auto end2 = std::chrono::system_clock::now();
+
+            if (idx == 0 && newGrads->getDevice() == 0){
+              auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
+              auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
+              el_1 += elapsed2.count();
+              el_3 += elapsed1.count();
+            }
+
           } , idx, pos) );
 
           pos += shardSize_;
@@ -138,7 +155,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
     
-    void sparsePushGradients(SparseTensor newGrads, Tensor oldParams) {
+    void sparsePushGradients(SparseTensor newGrads, Tensor oldParams, int wut) {
       if(graphs_.size() < 2) {
         opt_->update(graphs_[0]);
       }
@@ -147,28 +164,56 @@ class AsyncGraphGroup : public GraphGroup {
         std::vector<std::thread> threads;
         
         int pos = 0;
+        if (wut == 0)
+          if (DEBUG) std::cerr<<"expected total size : "<<newGrads->size()<<std::endl;
         for (int idx = 0; idx < devices_.size(); idx++) {
-          threads.emplace_back( std::thread([=](int idx, int pos) {
+          threads.emplace_back( std::thread([=](int idx, int pos, int wut) {
             //individual mutex per-shard
+            //std::cerr<<"SPARSE PUSHING"std::endl;
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
-            
-            SparseTensor subGrad = newGrads->subtensor(pos , grads_[idx]->size() );
+            auto start1 = std::chrono::system_clock::now();
+            SparseTensor subGrad = newGrads->subtensor(pos , grads_[idx]->size() ,idx);
             sparseGrads_[idx]->copyFrom( subGrad  );
+            auto end1 = std::chrono::system_clock::now();
+            auto start2 = std::chrono::system_clock::now();
             //std::cout<<"subtensor size "<<sparseGrads_[idx]->size()<<std::endl;
             sparseGrads_[idx]->shiftIndices( -pos );
-            sparseGrads_[idx]->toDense(grads_[idx]);
-            
+            sparseGrads_[idx]->toDense(grads_[idx], 0);
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
-
             cudaStreamSynchronize(0);
 
-            //now fetch
-            sparseGrads_[idx]->scatterCopyFrom( params_[idx] );
-            subGrad->copyFrom(sparseGrads_[idx]);
-            subGrad->scatterUpdate( oldParams->subtensor(pos, grads_[idx]->size()) );
-            
-            cudaStreamSynchronize(0);
-          } , idx, pos) );
+            if (!SPARSE_PUSH)
+              return;
+              //now fetch
+              sparseGrads_[idx]->scatterCopyFrom( params_[idx] );
+
+              if (subGrad->size() != sparseGrads_[idx]->size()){
+                if (DEBUG) std::cerr<<"LHO"<<std::endl;
+                exit(1);
+              }
+              if (wut == 0){
+                if (DEBUG) 
+                  std::cerr<<"fraction "<<idx<<"   :  "<<subGrad->size()<<" / " <<subGrad->capacity()<<"    copying "<< oldParams->size() <<std::endl;
+                //fprintf(stderr, "scatter updating %d\n", (int)oldParams->subtensor(pos, grads_[idx]->size())->size() );
+              }
+
+              auto end2 = std::chrono::system_clock::now();
+
+              auto start3 = std::chrono::system_clock::now();
+              subGrad->copyFrom(sparseGrads_[idx] , true);
+              subGrad->scatterUpdate( oldParams->subtensor(pos , params_[idx]->size()) , -pos);
+              
+              cudaStreamSynchronize(0);
+              auto end3 = std::chrono::system_clock::now();
+
+            if (idx == 0 && newGrads->getDevice() == 0){
+              auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
+              auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
+              auto elapsed3 = std::chrono::duration_cast<std::chrono::milliseconds>(end3 - start3);
+              el_1 += elapsed2.count();
+              el_3 += elapsed1.count() + elapsed3.count();
+            }
+          } , idx, pos, wut) );
 
           pos += shardSize_;
         }
@@ -177,6 +222,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
+      int bt = 0;
     void execute(Ptr<data::CorpusBatch> batch) {
       static bool first = true;
       if(first) {
@@ -223,8 +269,6 @@ class AsyncGraphGroup : public GraphGroup {
             //give size of 10% extra grads. even though we will use only around 1%
             sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
             localSparseGrads_.push_back( SparseTensor(new SparseTensorBase(sparseCap , device )) );
-
-
           }
         } 
 
@@ -243,9 +287,17 @@ class AsyncGraphGroup : public GraphGroup {
           graph = graphs_[i++];
 
           fetchParams(graph->params().vals());
+          cudaStreamSynchronize(0);
         }
-
+        auto start4 = std::chrono::system_clock::now();
+        
         builder_->build(graph, batch);
+        if (!GRAD_DROP || !SPARSE_PUSH)
+          fetchParams(graph->params().vals());
+
+        auto end4 = std::chrono::system_clock::now();
+
+        auto start1 = std::chrono::system_clock::now();
 
 
         graph->forward();
@@ -253,15 +305,48 @@ class AsyncGraphGroup : public GraphGroup {
         graph->backward();
 
         cudaStreamSynchronize(0);
-        gradDropper_[my_id].dropGraph(graph , localSparseGrads_[my_id] );
-        //pushGradients(graph->params().grads());
-        sparsePushGradients(localSparseGrads_[my_id], graph->params().vals() );
+        auto end1 = std::chrono::system_clock::now();
+        auto start2 = std::chrono::system_clock::now();
+        if (GRAD_DROP)
+          gradDropper_[my_id].dropGraph(graph , localSparseGrads_[my_id] , 0.99 );
+        cudaStreamSynchronize(0);
+
+        auto end2 = std::chrono::system_clock::now();
+        
+        //if (GRAD_DROP)
+        // sparsePushGradients(localSparseGrads_[my_id], graph->params().vals(), my_id );
+        //else
+          pushGradients(graph->params().grads());
+        cudaStreamSynchronize(0);
+
+
         if(reporter_) {
           std::lock_guard<std::mutex> guard(sync_);
           reporter_->update(cost, batch);
           if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
             this->save();
           reporter_->validate(graph);
+        }
+
+        if (TIME_CHECK && my_id == 0){
+          bt++;
+          auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
+          auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
+          auto elapsed4 = std::chrono::duration_cast<std::chrono::milliseconds>(end4 - start4);
+          el_1 += elapsed1.count();
+          el_2 += elapsed2.count();
+          el_3 += elapsed4.count();
+          if (bt == 25){
+            std::cout<<"\nTime used per "<<25<<" batches\n";
+            std::cout<<"    "<< el_1 <<"  COMP\n";
+            std::cout<<"    "<< el_2 <<"  DROP\n";
+            std::cout<<"    "<< el_3 <<"  DATA\n";
+            bt = 0;
+            el_1 = 0;
+            el_2 = 0;
+            el_3 = 0;
+          }
+
         }
 
         t++;

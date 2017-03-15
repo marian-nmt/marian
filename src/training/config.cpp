@@ -18,6 +18,8 @@ do { if(vm_.count(key) > 0) { \
 
 namespace marian {
 
+size_t Config::seed = 1234;
+
 bool Config::has(const std::string& key) const {
   return config_[key];
 }
@@ -162,6 +164,8 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
+    ("seed", po::value<size_t>()->default_value(1234),
+     "Seed for all random number generators")
   ;
 
   po::options_description valid("Validation set options");
@@ -174,8 +178,10 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"cross-entropy"}),
                       "cross-entropy"),
-      "Metric to use during validation: cross-entropy, perplexity. "
+      "Metric to use during validation: cross-entropy, perplexity, valid-script. "
       "Multiple metrics can be specified")
+    ("valid-script-path", po::value<std::string>(),
+     "Path to external validation script")
     ("early-stopping", po::value<size_t>()->default_value(10),
      "Stop if the first validation metric does not improve for  arg  consecutive "
      "validation steps")
@@ -185,12 +191,26 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
 
   po::options_description model("Model options");
   model.add_options()
+    ("type", po::value<std::string>()->default_value("dl4mt"),
+      "Model type (possible values: dl4mt, gnmt, multi-gnmt")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
+    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
+    ("skip", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use skip connections")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable layer normalization")
+    ("dropout-rnn", po::value<float>()->default_value(0),
+     "Scaling dropout along rnn layers and time (0 = no dropout)")
+    ("dropout-src", po::value<float>()->default_value(0),
+     "Dropout source words (0 = no dropout)")
+    ("dropout-trg", po::value<float>()->default_value(0),
+     "Dropout target words (0 = no dropout)")
   ;
 
   po::options_description opt("Optimizer options");
@@ -273,6 +293,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
   SET_OPTION("valid-freq", size_t);
   SET_OPTION("valid-metrics", std::vector<std::string>);
+  SET_OPTION_NONDEFAULT("valid-script-path", std::string);
   SET_OPTION("early-stopping", size_t);
   SET_OPTION_NONDEFAULT("valid-log", std::string);
 
@@ -283,6 +304,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("save-freq", size_t);
   SET_OPTION("workspace", size_t);
   SET_OPTION("relative-paths", bool);
+  SET_OPTION("seed", size_t);
 
   SET_OPTION("max-length", size_t);
   SET_OPTION("mini-batch", int);
@@ -291,9 +313,18 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("learn-rate", double);
   SET_OPTION("clip-norm", double);
   SET_OPTION("dim-vocabs", std::vector<int>);
+
+  SET_OPTION("type", std::string);
+  SET_OPTION("layers-enc", int);
+  SET_OPTION("layers-dec", int);
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("no-shuffle", bool);
+  SET_OPTION("normalize", bool);
+  SET_OPTION("dropout-rnn", float);
+  SET_OPTION("dropout-src", float);
+  SET_OPTION("dropout-trg", float);
+  SET_OPTION("skip", bool);
 
   if(doValidate)
     validate();
@@ -308,6 +339,7 @@ void Config::addOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
+  seed = vm_["seed"].as<size_t>();
 }
 
 void Config::log() {
@@ -320,7 +352,7 @@ void Config::log() {
   std::vector<std::string> results;
   boost::algorithm::split(results, conf, boost::is_any_of("\n"));
   for(auto &r : results)
-    LOG(config) << r;
+    LOG(config, r);
 }
 
 }

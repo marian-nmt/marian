@@ -1,5 +1,5 @@
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -118,11 +118,6 @@ Expr tanh(const std::vector<Expr>& nodes) {
   return Expression<TanhNodeOp>(nodes);
 }
 
-//Expr tanh(Expr a, Expr b, Expr c) {
-//  std::vector<Expr> nodes = {a, b, c};
-//  return Expression<TanhPlus3NodeOp>(nodes);
-//}
-
 Expr logit(const std::vector<Expr>&) {
   UTIL_THROW2("Not implemented");
 }
@@ -131,5 +126,30 @@ Expr relu(const std::vector<Expr>&) {
   UTIL_THROW2("Not implemented");
 }
 
+Expr sqrt(Expr a, float eps) {
+  return Expression<SqrtNodeOp>(a, eps);
+}
+
+Expr square(Expr a) {
+  return Expression<SquareNodeOp>(a);
+}
+
+Expr layer_norm(Expr x, Expr gamma, Expr beta) {
+  std::vector<Expr> nodes = {x, gamma};
+  if(beta)
+    nodes.push_back(beta);
+  return Expression<LayerNormalizationOp>(nodes);
+}
+
+//Expr batch_norm(Expr x, Expr gamma, Expr beta) {
+//  auto mju = mean(x, keywords::axis=0);
+//  auto xmmju = x - mju;
+//  auto std = sqrt(mean(square(xmmju), keywords::axis=0), 1e-9);
+//
+//  if(beta)
+//    return gamma * (xmmju / std) + beta;
+//  else
+//    return gamma * (xmmju / std);
+//}
 
 }

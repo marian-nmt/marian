@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -110,6 +110,7 @@ namespace marian {
     KEY(activation, act);
     KEY(direction, dir);
     KEY(mask, Expr);
+    KEY(dropout_prob, float);
     KEY(init, std::function<void(Tensor)>);
 
 
@@ -120,6 +121,11 @@ namespace marian {
     KEY(optimizer, Ptr<OptimizerBase>);
     KEY(clip, Ptr<ClipperBase>);
     KEY(batch_size, int);
+    KEY(normalize, bool);
+    KEY(inference, bool);
+    KEY(skip, bool);
+    KEY(skip_first, bool);
+    KEY(coverage, Expr);
     KEY(max_epochs, int);
     KEY(valid, Ptr<RunBase>);
   }

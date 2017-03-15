@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal

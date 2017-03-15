@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,14 +37,15 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     float* data_;
     Shape shape_;
     size_t device_;
-    
+
   public:
     TensorBase(float* data, Shape shape, size_t device)
-    : data_(data), shape_(shape), device_(device)
-    { }
-    
-    ~TensorBase() {}
-    
+      : data_(data), shape_(shape), device_(device)
+    {}
+
+    ~TensorBase()
+    {}
+
     virtual void reset(float* data) {
       data_ = data;
     }
@@ -65,7 +66,7 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
       UTIL_THROW_IF2(size() != 1, "Tensor is not a scalar");
       return get(0);
     }
-    
+
     size_t getDevice() {
       return device_;
     }
@@ -83,8 +84,8 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     void set(float value);
 
     void set(const std::vector<float> &v);
-    
-    void copyFrom(Tensor in);
+
+    void copyFrom(Tensor);
 
     std::string debug();
 };

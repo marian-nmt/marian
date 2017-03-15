@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +82,11 @@ struct ConstantNode : public Node {
     return "white";
   }
 
+  virtual size_t hash() {
+    // @TODO: think of something better for constant nodes
+    return boost::hash<size_t>()((size_t)this);
+  }
+
   private:
     std::function<void(Tensor)> init_;
     bool initialized_;
@@ -115,6 +120,10 @@ struct ParamNode : public Node {
 
   const std::string color() {
     return "orangered";
+  }
+
+  virtual size_t hash() {
+    return boost::hash<size_t>()((size_t)this);
   }
 
   private:

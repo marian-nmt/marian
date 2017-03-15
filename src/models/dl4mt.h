@@ -1,71 +1,148 @@
 #pragma once
 
-#include "data/corpus.h"
-#include "training/config.h"
-#include "graph/expression_graph.h"
-#include "layers/rnn.h"
-#include "layers/param_initializers.h"
-#include "layers/generic.h"
-#include "3rd_party/cnpy/cnpy.h"
-#include "common/logging.h"
+#include "models/encdec.h"
+#include "layers/attention.h"
 
 namespace marian {
 
-class DL4MT {
-  private:
-    Ptr<Config> options_;
-    
-    int dimSrcVoc_{40000};
-    int dimSrcEmb_{512};
-    int dimEncState_{1024};
+typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
-    int dimTrgVoc_{40000};
-    int dimTrgEmb_{512};
-    int dimDecState_{1024};
+class EncoderDL4MT : public EncoderBase {
+  public:
 
-    int dimBatch_{64};
+    template <class ...Args>
+    EncoderDL4MT(Ptr<Config> options, Args... args)
+     : EncoderBase(options, args...) {}
 
-    void setDims(Ptr<ExpressionGraph> graph,
-                 Ptr<data::CorpusBatch> batch) {
-      dimSrcVoc_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[0] : dimSrcVoc_;
-      dimSrcEmb_ = graph->get("Wemb") ? graph->get("Wemb")->shape()[1] : dimSrcEmb_;
-      dimEncState_ = graph->get("encoder_U") ? graph->get("encoder_U")->shape()[0] : dimEncState_;
+    Ptr<EncoderState>
+    build(Ptr<ExpressionGraph> graph,
+          Ptr<data::CorpusBatch> batch,
+          size_t batchIdx = 0) {
 
-      dimTrgVoc_ = graph->get("Wemb_dec") ? graph->get("Wemb_dec")->shape()[0] : dimTrgVoc_;
-      dimTrgEmb_ = graph->get("Wemb_dec") ? graph->get("Wemb_dec")->shape()[1] : dimTrgEmb_;
-      dimDecState_ = graph->get("decoder_U") ? graph->get("decoder_U")->shape()[0] : dimDecState_;
+      using namespace keywords;
 
-      dimBatch_ = batch->size();
+      int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
+      int dimSrcEmb = options_->get<int>("dim-emb");
+      int dimEncState = options_->get<int>("dim-rnn");
+      bool layerNorm = options_->get<bool>("normalize");
+
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
+
+      auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
+
+      Expr x, xMask;
+      std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
+
+      if(dropoutSrc) {
+        int srcWords = x->shape()[2];
+        auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
+        x = dropout(x, mask=srcWordDrop);
+      }
+
+      auto xFw = RNN<GRU>(graph, prefix_,
+                          dimSrcEmb, dimEncState,
+                          normalize=layerNorm,
+                          dropout_prob=dropoutRnn)
+                         (x);
+
+      auto xBw = RNN<GRU>(graph, prefix_ + "_r",
+                          dimSrcEmb, dimEncState,
+                          normalize=layerNorm,
+                          direction=dir::backward,
+                          dropout_prob=dropoutRnn)
+                         (x, mask=xMask);
+
+      auto xContext = concatenate({xFw, xBw}, axis=1);
+      return New<EncoderState>(EncoderState{xContext, xMask});
     }
+};
+
+class DecoderDL4MT : public DecoderBase {
+  private:
+    Ptr<GlobalAttention> attention_;
 
   public:
-    
-    DL4MT() {}
-    
-    DL4MT(Ptr<Config> options)
-    : options_(options) {
-    
-      auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
-      
-      dimSrcVoc_   = dimVocabs[0];
-      dimSrcEmb_   = options->get<int>("dim-emb");
-      dimEncState_ = options->get<int>("dim-rnn");
-      dimTrgVoc_   = dimVocabs[0];
-      dimTrgEmb_   = options->get<int>("dim-emb");
-      dimDecState_ = options->get<int>("dim-rnn");
-      dimBatch_    = options->get<int>("mini-batch");
+    template <class ...Args>
+    DecoderDL4MT(Ptr<Config> options, Args ...args)
+     : DecoderBase(options, args...) {}
+
+    virtual std::tuple<Expr, std::vector<Expr>>
+    step(Expr embeddings,
+         std::vector<Expr> states,
+         Ptr<EncoderState> encState,
+         bool single) {
+      using namespace keywords;
+
+      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+      int dimTrgEmb = options_->get<int>("dim-emb");
+      int dimDecState = options_->get<int>("dim-rnn");
+      bool layerNorm = options_->get<bool>("normalize");
+      bool skipDepth = options_->get<bool>("skip");
+      size_t decoderLayers = options_->get<size_t>("layers-dec");
+
+      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+      float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
+
+      auto graph = embeddings->graph();
+
+      if(dropoutTrg) {
+        int trgWords = embeddings->shape()[2];
+        auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+        embeddings = dropout(embeddings, mask=trgWordDrop);
+      }
+
+      if(!attention_)
+        attention_ = New<GlobalAttention>("decoder",
+                                          encState,
+                                          dimDecState,
+                                          dropout_prob=dropoutRnn,
+                                          normalize=layerNorm);
+      RNN<CGRU> rnnL1(graph, "decoder",
+                      dimTrgEmb, dimDecState,
+                      attention_,
+                      normalize=layerNorm,
+                      dropout_prob=dropoutRnn
+                      );
+      auto stateL1 = rnnL1(embeddings, states[0]);
+      auto alignedContext = single ?
+        rnnL1.getCell()->getLastContext() :
+        rnnL1.getCell()->getContexts();
+
+      std::vector<Expr> statesOut;
+      statesOut.push_back(stateL1);
+
+      Expr outputLn = stateL1;
+
+      //// 2-layer feedforward network for outputs and cost
+      auto logitsL1 = Dense("ff_logit_l1", dimTrgEmb,
+                            activation=act::tanh,
+                            normalize=layerNorm)
+                        (embeddings, outputLn, alignedContext);
+
+      auto logitsL2 = Dense("ff_logit_l2", dimTrgVoc)
+                        (logitsL1);
+
+      return std::make_tuple(logitsL2, statesOut);
     }
 
-  
+};
+
+class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
+  public:
+    template <class ...Args>
+    DL4MT(Ptr<Config> options, Args ...args)
+    : Seq2Seq(options, args...) {}
+
     void load(Ptr<ExpressionGraph> graph,
               const std::string& name) {
       using namespace keywords;
 
-      LOG(info) << "Loading model from " << name;
-      
+      LOG(info, "Loading model from {}", name);
+
       auto numpy = cnpy::npz_load(name);
 
-      auto parameters = {
+      std::vector<std::string> parameters = {
         // Source word embeddings
         "Wemb",
 
@@ -102,6 +179,20 @@ class DL4MT {
         "ff_logit_W", "ff_logit_b",
       };
 
+      std::vector<std::string> parametersNorm = {
+        "decoder_att_gamma1", "decoder_att_gamma2",
+        "decoder_cell1_gamma1", "decoder_cell1_gamma2",
+        "decoder_cell2_gamma1", "decoder_cell2_gamma2",
+        "encoder_gamma1", "encoder_gamma2",
+        "encoder_r_gamma1", "encoder_r_gamma2",
+        "ff_logit_l1_gamma0", "ff_logit_l1_gamma1",
+        "ff_logit_l1_gamma2", "ff_state_gamma"
+      };
+
+      if(options_->get<bool>("normalize"))
+        for(auto& p : parametersNorm)
+          parameters.push_back(p);
+
       std::map<std::string, std::string> nameMap = {
         {"decoder_U", "decoder_cell1_U"},
         {"decoder_W", "decoder_cell1_W"},
@@ -129,6 +220,9 @@ class DL4MT {
       };
 
       for(auto name : parameters) {
+        UTIL_THROW_IF2(numpy.count(name) == 0,
+                       "Parameter " << name << " does not exist.");
+
         Shape shape;
         if(numpy[name].shape.size() == 2) {
           shape.set(0, numpy[name].shape[0]);
@@ -151,8 +245,8 @@ class DL4MT {
     void save(Ptr<ExpressionGraph> graph,
               const std::string& name) {
 
-      LOG(info) << "Saving model to " << name;
-      
+      LOG(info, "Saving model to {}", name);
+
       unsigned shape[2];
       std::string mode = "w";
 
@@ -210,119 +304,6 @@ class DL4MT {
       float ctt = 0;
       shape[0] = 1;
       cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
-    }
-
-    std::tuple<Expr, Expr>
-    prepareSource(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
-      using namespace keywords;
-      std::vector<size_t> indeces;
-      std::vector<float> mask;
-
-      for(auto& word : (*batch)[index]) {
-        for(auto i: word.first)
-          indeces.push_back(i);
-        for(auto m: word.second)
-          mask.push_back(m);
-      }
-
-      int dimBatch = batch->size();
-      int dimEmb = emb->shape()[1];
-      int dimWords = (int)(*batch)[index].size();
-
-      auto graph = emb->graph();
-      auto x = reshape(rows(emb, indeces), {dimBatch, dimEmb, dimWords});
-      auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
-                                   init=inits::from_vector(mask));
-      return std::make_tuple(x, xMask);
-    }
-
-    std::tuple<Expr, Expr, Expr>
-    prepareTarget(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
-      using namespace keywords;
-
-      std::vector<size_t> indeces;
-      std::vector<float> mask;
-      std::vector<float> findeces;
-
-      for(int j = 0; j < (*batch)[index].size(); ++j) {
-        auto& trgWordBatch = (*batch)[index][j];
-
-        for(auto i : trgWordBatch.first) {
-          findeces.push_back((float)i);
-          if(j < (*batch)[index].size() - 1)
-            indeces.push_back(i);
-        }
-
-        for(auto m : trgWordBatch.second)
-            mask.push_back(m);
-      }
-
-      int dimBatch = batch->size();
-      int dimEmb = emb->shape()[1];
-      int dimWords = (int)(*batch)[index].size();
-
-      auto graph = emb->graph();
-
-      auto y = reshape(rows(emb, indeces),
-                       {dimBatch, dimEmb, dimWords - 1});
-
-      auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
-                                  init=inits::from_vector(mask));
-      auto yIdx = graph->constant(shape={(int)findeces.size(), 1},
-                                  init=inits::from_vector(findeces));
-
-      return std::make_tuple(y, yMask, yIdx);
-    }
-
-    Expr build(Ptr<ExpressionGraph> graph,
-               Ptr<data::CorpusBatch> batch) {
-      using namespace keywords;
-      graph->clear();
-
-      setDims(graph, batch);
-
-      // Embeddings
-      auto xEmb = Embedding("Wemb", dimSrcVoc_, dimSrcEmb_)(graph);
-      auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
-
-      Expr x, xMask;
-      Expr y, yMask, yIdx;
-
-      std::tie(x, xMask) = prepareSource(xEmb, batch, 0);
-      std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, 1);
-
-      // Encoder
-      auto xContext = BiRNN<GRU>("encoder", dimEncState_)
-                        (x, mask=xMask);
-
-      auto xMeanContext = weighted_average(xContext, xMask, axis=2);
-
-      // Decoder
-      auto yStart = Dense("ff_state",
-                          dimDecState_,
-                          activation=act::tanh)(xMeanContext);
-
-      auto yEmpty = graph->zeros(shape={dimBatch_, dimTrgEmb_});
-      auto yShifted = concatenate({yEmpty, y}, axis=2);
-      //auto yShifted = shift(y, 1, axis=2);
-
-      CGRU cgru({"decoder", xContext, dimDecState_, mask=xMask});
-      auto yLstm = RNN<CGRU>("decoder", dimDecState_, cgru)
-                     (yShifted, yStart);
-      auto yCtx = cgru.getContexts();
-
-      //// 2-layer feedforward network for outputs and cost
-      auto ff_logit_l1 = Dense("ff_logit_l1", dimTrgEmb_,
-                               activation=act::tanh)
-                           (yShifted, yLstm, yCtx);
-
-      auto ff_logit_l2 = Dense("ff_logit_l2", dimTrgVoc_)
-                           (ff_logit_l1);
-
-      auto cost = CrossEntropyCost("cost")
-                    (ff_logit_l2, yIdx, mask=yMask);
-                    
-      return cost;
     }
 };
 

@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project(marian CXX)
-find_package(CUDA REQUIRED)
+find_package(CUDA "8.0" REQUIRED)
+if(CUDA_FOUND) 
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY})
+endif(CUDA_FOUND)
 
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -Wno-unused-result -Wno-deprecated -fPIC -Wno-deprecated-gpu-targets")
-LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35)
-#LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35)
+LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 include_directories(${amunn_SOURCE_DIR})

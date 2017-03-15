@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -142,5 +142,26 @@ Expr weighted_average(Expr in, Expr weights, Args ...args) {
 }
 
 Expr step(Expr a, size_t step);
+
+Expr sqrt(Expr a, float eps = 0.f);
+Expr square(Expr a);
+
+Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr);
+//Expr batch_norm(Expr x, Expr gamma, Expr beta = nullptr);
+
+template <typename ...Args>
+Expr dropout(Expr x, Args ...args) {
+  auto mask = Get(keywords::mask, nullptr, args...);
+  float dropout_prob = Get(keywords::dropout_prob, 0.0f, args...);
+
+  UTIL_THROW_IF2(!mask && !dropout_prob,
+                 "Neither mask nor dropout prob given");
+  if(!mask) {
+    auto graph = x->graph();
+    mask = graph->dropout(dropout_prob, x->shape());
+  }
+  return x * mask;
+}
+
 
 }

@@ -9,6 +9,9 @@ namespace marian {
 
 class Config {
   public:
+    
+    static size_t seed;
+    
     Config(int argc, char** argv, bool validate = true) {
       addOptions(argc, argv, validate);
       log();

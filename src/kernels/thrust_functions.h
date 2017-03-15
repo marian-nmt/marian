@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is part of the Marian toolkit.
-// Marian is copyright (c) 2016 Marcin Junczys-Dowmunt.
+
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,7 @@ namespace thrust
       Exp(const actor<Eval> &_1) {
         return compose(unary_operator<unary_exp>(), _1);
       }
+
 
       template<typename T>
       struct unary_log : public thrust::unary_function<T,T> {
@@ -163,6 +164,33 @@ namespace thrust
       Clip(const actor<T1> &_1, const T2 &_2)
       {
         return compose(binary_operator<binary_clip>(),
+                       make_actor(_1),
+                       make_actor(_2));
+      }
+
+      template<typename T>
+      struct binary_pow : public thrust::binary_function<T, T, T> {
+        __host__ __device__
+        T operator()(const T &x, const T &y) const {
+          float tx = x;
+          if(y == (int)y && (int)y % 2 == 0)
+            tx = abs(x);
+          return powf(tx, y);
+        }
+      };
+
+      template<typename T1, typename T2>
+      __host__ __device__
+      actor<
+        composite<
+          binary_operator<binary_pow>,
+          actor<T1>,
+          typename as_actor<T2>::type
+        >
+      >
+      Pow(const actor<T1> &_1, const T2 &_2)
+      {
+        return compose(binary_operator<binary_pow>(),
                        make_actor(_1),
                        make_actor(_2));
       }
