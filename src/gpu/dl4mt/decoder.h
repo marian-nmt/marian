@@ -70,12 +70,14 @@ class Decoder {
           const_cast<mblas::Matrix&>(SourceContext).Reshape2D();
            std::cerr << "SourceContext=" << SourceContext.Debug() << std::endl;
 
-          Temp2_.Reshape2D();
-          std::cerr << "3Temp2_=" << Temp2_.Debug() << std::endl;
+          //Temp2_.Reshape2D();
+          //std::cerr << "3Temp2_=" << Temp2_.Debug() << std::endl;
 
           Prod2(State, Temp2_, w_.Wi_);
 
-          std::cerr << "State=" << State.Debug() << std::endl;
+          std::cerr << "1State=" << State.Debug() << std::endl;
+          State.Reshape2D();
+          std::cerr << "2State=" << State.Debug() << std::endl;
 
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }

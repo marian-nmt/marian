@@ -285,6 +285,7 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
   Matrix::value_type beta = 0.0;
 
   size_t m = A.Rows();
+  size_t m2 = A.Rows() * A.Beam() * A.Batches();
   size_t k = A.Cols();
   if(transA)
     std::swap(m, k);
@@ -307,7 +308,7 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
   cublasSgemm(handle, opB, opA,
-              n, m, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
+              n, m2, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
   return C;
 }
 
