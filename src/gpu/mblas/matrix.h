@@ -34,7 +34,7 @@ class TMatrix : public BaseMatrix {
     {
     }
 
-    TMatrix(size_t rows, size_t cols, bool zero = false)
+    TMatrix(size_t rows, size_t cols, size_t beam, size_t batches, bool zero = false)
     : rows_(rows)
     , cols_(cols)
     , beam_(1)
