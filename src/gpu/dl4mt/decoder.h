@@ -96,7 +96,7 @@ class Decoder {
                           const mblas::Matrix& State,
                           const mblas::Matrix& Context) {
           gru_.GetNextState(NextState, State, Context);
-          NextState.Reshape2D();
+          //NextState.Reshape2D();
         }
 
       private:
