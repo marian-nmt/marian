@@ -64,7 +64,7 @@ class Decoder {
           Temp2_.Resize(1, SourceContext.Cols(), 1, batchSize);
           Mean(Temp2_, SourceContext, mapping);
 
-          Prod2(State, Temp2_, w_.Wi_);
+          Prod(State, Temp2_, w_.Wi_);
 
           BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
         }
@@ -114,7 +114,7 @@ class Decoder {
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
 
-          Prod2(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+          Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
         }
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
@@ -139,7 +139,7 @@ class Decoder {
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 
-          Prod2(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+          Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
@@ -158,7 +158,7 @@ class Decoder {
           //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
 
-          Prod2(A_, w_.V_, Temp1_, false, true);
+          Prod(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
@@ -218,9 +218,9 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          Prod2(/*h_[0],*/ T1_, State, w_.W1_);
-          Prod2(/*h_[1],*/ T2_, Embedding, w_.W2_);
-          Prod2(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+          Prod(/*h_[0],*/ T1_, State, w_.W1_);
+          Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
+          Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
 
           BroadcastVec(_1 + _2, T1_, w_.B1_ /*,s_[0]*/);
           BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
@@ -230,11 +230,11 @@ class Decoder {
 
           if(!filtered_) {
             Probs.Resize(T1_.Rows(), w_.W4_.Cols());
-            Prod2(Probs, T1_, w_.W4_);
+            Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
             Probs.Resize(T1_.Rows(), FilteredW4_.Cols());
-            Prod2(Probs, T1_, FilteredW4_);
+            Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
 

@@ -242,7 +242,7 @@ Matrix& Slice(Matrix& Out,
   return Out;
 }
 
-Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
@@ -276,14 +276,14 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
   return C;
 }
 
-Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
 
   //std::cerr << "1C=" << C.Debug() << std::endl;
   //std::cerr << "1A=" << A.Debug() << std::endl;
   //std::cerr << "1B=" << B.Debug() << std::endl;
 
-  Matrix &ret = Prod2(CublasHandler::GetHandle(), C, A, B, transA, transB);
+  Matrix &ret = Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
 
   //std::cerr << "2C=" << C.Debug() << std::endl;
   return ret;
