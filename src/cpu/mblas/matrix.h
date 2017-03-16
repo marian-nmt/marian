@@ -37,9 +37,6 @@ public:
     return Parent::operator=(other);
   }
 
-  virtual size_t Rows() const
-  { return Parent::rows(); }
-
   virtual size_t dim(size_t i) const
   {
   	switch (i) {
@@ -88,11 +85,6 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
        BlazeBase temp(data_.data(), rhs.rows(), rhs.columns());
        temp = rhs;
        std::swap(temp, *(BlazeBase*)this);
-    }
-
-    virtual size_t Rows() const
-    {
-    	return BlazeBase::rows();
     }
 
     virtual size_t dim(size_t i) const

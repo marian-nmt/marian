@@ -12,7 +12,7 @@ void LanguageModel::Score(const State& in,
   const LMState& lmIn = in.get<LMState>();
   LMState& lmOut = out.get<LMState>();
 
-  size_t rows = prob.Rows();
+  size_t rows = prob.dim(0);
   size_t cols = prob.Cols();
 
   std::vector<float> costs(rows * cols);

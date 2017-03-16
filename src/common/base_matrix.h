@@ -21,8 +21,6 @@ class BaseMatrix {
 	BaseMatrix() {}
     virtual ~BaseMatrix() {}
 
-    virtual size_t Rows() const = 0;
-
     virtual size_t dim(size_t i) const = 0;
 
     virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) = 0;

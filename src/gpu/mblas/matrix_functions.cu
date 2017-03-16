@@ -36,9 +36,9 @@ __global__ void gMean(float* d_out, const float* d_in, const int* mapping,
 }
 
 void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
-  int batchNum = Out.Rows() * Out.dim(2) * Out.dim(3);
+  int batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
   int stateLength = Out.dim(1);
-  int sentenceLength = (In.Rows() * In.dim(2) * In.dim(3)) / batchNum;
+  int sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
 
   int nThreads = 512;
   int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
@@ -66,7 +66,7 @@ __global__ void gWeightedMean(float* d_out, const float* weights, const float* d
 }
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
-  int numRows = Weights.Rows();
+  int numRows = Weights.dim(0);
   int numCols = In.dim(1);
 
   Out.Resize(numRows, numCols);
@@ -80,7 +80,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
-  size_t m = In.Rows();
+  size_t m = In.dim(0);
   size_t n = In.dim(1);
 
   Out.Resize(n, m);
@@ -103,7 +103,7 @@ Matrix& Transpose(Matrix& Out) {
 
 Matrix& Concat(Matrix& Out, const Matrix& In) {
   size_t oldSize = Out.size();
-  Out.Resize(Out.Rows() + In.Rows(), Out.dim(1));
+  Out.Resize(Out.dim(0) + In.dim(0), Out.dim(1));
 
   mblas::copy(In.data(), In.size(), Out.data() + oldSize, cudaMemcpyDeviceToDevice);
 
@@ -111,7 +111,7 @@ Matrix& Concat(Matrix& Out, const Matrix& In) {
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
-  Out.Resize(In.Rows(), In.dim(1), In.dim(2), In.dim(3));
+  Out.Resize(In.dim(0), In.dim(1), In.dim(2), In.dim(3));
 
   mblas::copy(In.data(), In.size(), Out.data(), cudaMemcpyDeviceToDevice);
 
@@ -129,13 +129,13 @@ __global__ void gPasteRows(float* d_out, int outRows, int outCols, const float* 
 }
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse) {
   int nColumns = In.dim(1);
-  int nRows = In.Rows();
+  int nRows = In.dim(0);
   int nThreads = 512;
   int nBlocks =  (In.size() / 512) + ((In.size() % 512 == 0) ?  0 : 1);
 
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (Out.data(), rowNo, Out.dim(1), In.data(), In.Rows(), In.dim(1), colNo, sparse);
+    (Out.data(), rowNo, Out.dim(1), In.data(), In.dim(0), In.dim(1), colNo, sparse);
 }
 
 Matrix& PasteRow(Matrix& Out,
@@ -229,16 +229,16 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim) {
 
-  Out.Resize(In.Rows(), dim);
+  Out.Resize(In.dim(0), dim);
 
   float* d_out = Out.data();
   const float* d_in = In.data();
 
   int threads = std::min(MAX_THREADS, (int)dim);
-  int blocks = std::min(MAX_BLOCKS, (int)In.Rows());
+  int blocks = std::min(MAX_BLOCKS, (int)In.dim(0));
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (d_out, d_in, n, dim, In.Rows(), In.dim(1));
+    (d_out, d_in, n, dim, In.dim(0), In.dim(1));
   return Out;
 }
 
@@ -247,12 +247,12 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
 
-  size_t m = A.Rows();
+  size_t m = A.dim(0);
   size_t k = A.dim(1);
   if(transA)
     std::swap(m, k);
 
-  size_t l = B.Rows();
+  size_t l = B.dim(0);
   size_t n = B.dim(1);
   if(transB)
     std::swap(l, n);
@@ -262,14 +262,14 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   size_t ldc = B.dim(1);
 
   if(transB)
-    ldc = B.Rows();
+    ldc = B.dim(0);
 
   C.Resize(m, n, A.dim(2), A.dim(3));
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  size_t m2 = A.Rows() * A.dim(2) * A.dim(3);
+  size_t m2 = A.dim(0) * A.dim(2) * A.dim(3);
 
   cublasSgemm(handle, opB, opA,
               n, m2, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
@@ -367,12 +367,12 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
 }
 
 Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping,size_t srcSize) {
-  int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
+  int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   int shared = sizeof(float) * threads * 2;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Out.Rows(), Out.dim(1),
+    (Out.data(), Out.dim(0), Out.dim(1),
      thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
      thrust::raw_pointer_cast(srcMapping.data()), srcSize);
   return Out;
@@ -449,12 +449,12 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
 
 
 Matrix& LogSoftmax(Matrix& Out) {
-  int blocks = std::min(MAX_BLOCKS, (int)Out.Rows());
+  int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   int shared = sizeof(float) * threads * 2;
 
   gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Out.Rows(), Out.dim(1));
+    (Out.data(), Out.dim(0), Out.dim(1));
 
   return Out;
 }
@@ -470,7 +470,7 @@ __global__ void gSetColumn(float* d_in, int n_columns, int n_rows, int noColumn,
 
 void SetColumn(Matrix& In, int noColumn, float value) {
   int nColumns = In.dim(1);
-  int nRows = In.Rows();
+  int nRows = In.dim(0);
   int nBlocks = nRows / 512 + ((nRows % 512 == 0) ?  0 : 1);
   int nThreads = std::min(512, nRows);
 
@@ -504,7 +504,7 @@ void gMapMatrix(float* d_in, int numRows, int numCols, int mappingCols, const in
 }
 
 void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
-  int batchSize = state.Rows();
+  int batchSize = state.dim(0);
   int stateLength = state.dim(1);
   int sentenceLength = mapping.size() / batchSize;
 

@@ -22,7 +22,7 @@ class Decoder {
           using namespace mblas;
           thrust::host_vector<size_t> tids = ids;
           for(auto&& id : tids)
-            if(id >= w_.E_.Rows())
+            if(id >= w_.E_.dim(0))
               id = 1;
           indices_.resize(tids.size());
 
@@ -39,7 +39,7 @@ class Decoder {
         }
 
         size_t GetRows() const {
-          return w_.E_.Rows();
+          return w_.E_.dim(0);
         }
 
       private:
@@ -124,7 +124,7 @@ class Decoder {
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
 
-          thrust::host_vector<int> batchMapping(HiddenState.Rows());
+          thrust::host_vector<int> batchMapping(HiddenState.dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
@@ -160,8 +160,8 @@ class Decoder {
 
           Prod(A_, w_.V_, Temp1_, false, true);
 
-          size_t rows1 = SourceContext.Rows();
-          size_t rows2 = HiddenState.Rows();
+          size_t rows1 = SourceContext.dim(0);
+          size_t rows2 = HiddenState.dim(0);
 
           //std::cerr << "1A_=" << A_.Debug() << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
@@ -169,7 +169,7 @@ class Decoder {
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
-          AlignedSourceContext.Resize(A_.Rows(), SourceContext.dim(1));
+          AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
           //std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
@@ -229,11 +229,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
-            Probs.Resize(T1_.Rows(), w_.W4_.dim(1));
+            Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
-            Probs.Resize(T1_.Rows(), FilteredW4_.dim(1));
+            Probs.Resize(T1_.dim(0), FilteredW4_.dim(1));
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }

@@ -74,10 +74,6 @@ class TMatrix : public BaseMatrix {
       Clear();
     }
 
-    virtual size_t Rows() const {
-      return rows_;
-    }
-
     virtual size_t dim(size_t i) const
     {
     	switch (i) {
