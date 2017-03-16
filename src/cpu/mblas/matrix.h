@@ -49,6 +49,18 @@ public:
   virtual size_t Batches() const
   { return 1; }
 
+  virtual size_t dim(size_t i)
+  {
+  	switch (i) {
+  	case 0: return Parent::rows();
+  	case 1: return Parent::columns();
+  	case 2: return 1;
+  	case 3: return 1;
+  	default:
+  		abort();
+  	}
+  }
+
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1)
   {
     amunmt_UTIL_THROW2("Not implemented");
@@ -102,6 +114,18 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
 
     virtual size_t Batches() const
     { return 1; }
+
+    virtual size_t dim(size_t i)
+    {
+    	switch (i) {
+    	case 0: return BlazeBase::rows();
+    	case 1: return BlazeBase::columns();
+    	case 2: return 1;
+    	case 3: return 1;
+    	default:
+    		abort();
+    	}
+    }
 
     virtual void Resize(size_t rows, size_t columns, size_t beam = 1, size_t batches = 1)
     {

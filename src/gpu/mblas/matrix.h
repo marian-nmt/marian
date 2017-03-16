@@ -88,6 +88,17 @@ class TMatrix : public BaseMatrix {
     virtual size_t Batches() const
     { return batches_; }
 
+    virtual size_t dim(size_t i)
+    {
+    	switch (i) {
+    	case 0: return rows_;
+    	case 1: return cols_;
+    	case 2: return beam_;
+    	case 3: return batches_;
+    	default:
+    		abort();
+    	}
+    }
 
     void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
       size_t newSize = cols * rows * beam * batches;
