@@ -1,3 +1,4 @@
+// -*- mode: c++; indent-tabs-mode: nil; tab-width: 4 -*-
 //Copyright (C) 2011  Carl Rogers
 //Released under MIT License
 //license available in LICENSE file, or at http://www.opensource.org/licenses/mit-license.php
@@ -63,6 +64,7 @@ void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& sh
     if(res != 11)
         throw std::runtime_error("parse_npy_header: failed fread");
     std::string header = fgets(buffer,256,fp);
+
     assert(header[header.size()-1] == '\n');
 
     int loc1, loc2;
@@ -137,9 +139,13 @@ cnpy::NpyArray load_the_npy_file(FILE* fp) {
     delete[] shape;
     arr.data = new char[size*word_size];    
     arr.fortran_order = fortran_order;
-    size_t nread = fread(arr.data,word_size,size,fp);
-    if(nread != size)
-        throw std::runtime_error("load_the_npy_file: failed fread");
+    if (word_size > 0) // it can happen that it is 0 ...
+      {
+	size_t nread = fread(arr.data,word_size,size,fp);
+	if(nread != size)
+	  throw std::runtime_error("load_the_npy_file: failed fread");
+      }
+
     return arr;
 }
 
@@ -178,8 +184,16 @@ cnpy::npz_t cnpy::npz_load(std::string fname) {
             if(efield_res != extra_field_len)
                 throw std::runtime_error("npz_load: failed fread");
         }
-
-        arrays[varname] = load_the_npy_file(fp);
+	off_t pos = ftell(fp); // remember current position
+	NpyArray arr = load_the_npy_file(fp);
+	arrays[varname] = arr;
+        if (arr.word_size == 0) {
+	  // This happens when a None was saved with numpy.savez().
+	  // Numpy then saves some addtional stuff after the npy header,
+	  // which we need to skip. It appears that the entire entry / file
+	  // is 210 bytes if a None was saved.
+	  fseek(fp,pos + 210, SEEK_SET); // scan forward to the end of the block
+	}
     }
 
     fclose(fp);
