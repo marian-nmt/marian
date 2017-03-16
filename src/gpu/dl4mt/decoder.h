@@ -143,10 +143,18 @@ class Decoder {
           BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
 
           Copy(Temp1_, SCU_);
+
+          std::cerr << std::endl;
+          std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
           //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
-          //std::cerr << "Temp1_=" << Temp1_.Debug() << std::endl;
+          std::cerr << "1Temp1_=" << Temp1_.Debug() << std::endl;
+          std::cerr << "Temp2_=" << Temp2_.Debug() << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
+
+          std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
+          std::cerr << "2Temp1_=" << Temp1_.Debug() << std::endl;
+
           Prod(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.Rows();
