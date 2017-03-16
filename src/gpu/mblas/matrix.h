@@ -82,13 +82,7 @@ class TMatrix : public BaseMatrix {
       return cols_;
     }
 
-    virtual size_t Beam() const
-    { return beam_; }
-
-    virtual size_t Batches() const
-    { return batches_; }
-
-    virtual size_t dim(size_t i)
+    virtual size_t dim(size_t i) const
     {
     	switch (i) {
     	case 0: return rows_;

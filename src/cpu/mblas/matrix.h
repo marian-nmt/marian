@@ -43,13 +43,7 @@ public:
   virtual size_t Cols() const
   { return Parent::columns(); }
 
-  virtual size_t Beam() const
-  { return 1; }
-
-  virtual size_t Batches() const
-  { return 1; }
-
-  virtual size_t dim(size_t i)
+  virtual size_t dim(size_t i) const
   {
   	switch (i) {
   	case 0: return Parent::rows();
@@ -109,13 +103,7 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     	return BlazeBase::columns();
     }
 
-    virtual size_t Beam() const
-    { return 1; }
-
-    virtual size_t Batches() const
-    { return 1; }
-
-    virtual size_t dim(size_t i)
+    virtual size_t dim(size_t i) const
     {
     	switch (i) {
     	case 0: return BlazeBase::rows();

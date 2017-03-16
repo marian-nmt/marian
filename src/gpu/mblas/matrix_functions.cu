@@ -36,9 +36,9 @@ __global__ void gMean(float* d_out, const float* d_in, const int* mapping,
 }
 
 void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
-  int batchNum = Out.Rows() * Out.Beam() * Out.Batches();
+  int batchNum = Out.Rows() * Out.dim(2) * Out.dim(3);
   int stateLength = Out.Cols();
-  int sentenceLength = (In.Rows() * In.Beam() * In.Batches()) / batchNum;
+  int sentenceLength = (In.Rows() * In.dim(2) * In.dim(3)) / batchNum;
 
   int nThreads = 512;
   int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
@@ -111,7 +111,7 @@ Matrix& Concat(Matrix& Out, const Matrix& In) {
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
-  Out.Resize(In.Rows(), In.Cols(), In.Beam(), In.Batches());
+  Out.Resize(In.Rows(), In.Cols(), In.dim(2), In.dim(3));
 
   mblas::copy(In.data(), In.size(), Out.data(), cudaMemcpyDeviceToDevice);
 
@@ -264,12 +264,12 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   if(transB)
     ldc = B.Rows();
 
-  C.Resize(m, n, A.Beam(), A.Batches());
+  C.Resize(m, n, A.dim(2), A.dim(3));
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  size_t m2 = A.Rows() * A.Beam() * A.Batches();
+  size_t m2 = A.Rows() * A.dim(2) * A.dim(3);
 
   cublasSgemm(handle, opB, opA,
               n, m2, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);

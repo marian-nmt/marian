@@ -268,7 +268,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In=" << In.Debug() << std::endl;
 
-  size_t rows  = Out.Rows() * Out.Beam() * Out.Batches();
+  size_t rows  = Out.Rows() * Out.dim(2) * Out.dim(3);
   size_t cols = Out.Cols();
 
   float* d_out = Out.data();

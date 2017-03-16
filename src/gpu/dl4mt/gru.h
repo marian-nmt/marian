@@ -116,10 +116,10 @@ class FastGRU {
                         const mblas::Matrix& State,
                         const mblas::Matrix& RUH,
                         const mblas::Matrix& Temp) const {
-      const size_t rows = State.Rows() * State.Beam() * State.Batches();
+      const size_t rows = State.Rows() * State.dim(2) * State.dim(3);
       const size_t cols = State.Cols();
 
-      NextState.Resize(State.Rows() * State.Batches(), cols, State.Beam(), 1);
+      NextState.Resize(State.Rows() * State.dim(3), cols, State.dim(2), 1);
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
