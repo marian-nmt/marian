@@ -158,7 +158,7 @@ class Decoder {
           //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
 
-          Prod(A_, w_.V_, Temp1_, false, true);
+          Prod2(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();

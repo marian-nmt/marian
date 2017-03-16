@@ -83,12 +83,6 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim);
 
-Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA=false, bool transB=false);
-
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
-
 Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
