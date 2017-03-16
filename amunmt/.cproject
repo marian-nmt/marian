@@ -71,12 +71,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.413032780" name="/" resourcePath="src/cpu">
-						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug.1259956227" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug" unusedChildren="">
-							<tool id="nvcc.compiler.base.109320976" name="NVCC Compiler" superClass="nvcc.compiler.base.366234936"/>
-							<tool id="nvcc.linker.base.1143250217" name="NVCC Linker" superClass="nvcc.linker.base.2109915963"/>
-							<tool id="nvcc.archiver.base.1646031654" name="NVCC Archiver" superClass="nvcc.archiver.base.2079600633"/>
-							<tool id="com.nvidia.host.assembler.1430219129" name="Host Assembler" superClass="com.nvidia.host.assembler.450937849"/>
+					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1138239754" name="/" resourcePath="src/cpu">
+						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug.1435856056" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug" unusedChildren="">
+							<tool id="nvcc.compiler.base.1841938418" name="NVCC Compiler" superClass="nvcc.compiler.base.366234936"/>
+							<tool id="nvcc.linker.base.1755337526" name="NVCC Linker" superClass="nvcc.linker.base.2109915963"/>
+							<tool id="nvcc.archiver.base.1446386633" name="NVCC Archiver" superClass="nvcc.archiver.base.2079600633"/>
+							<tool id="com.nvidia.host.assembler.227463510" name="Host Assembler" superClass="com.nvidia.host.assembler.450937849"/>
 						</toolChain>
 					</folderInfo>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.769555163" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
@@ -84,7 +84,7 @@
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.14115701" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/kenlm.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.231195644" name="class_language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/class_language_model.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="src/half|src/gpu/decoder/language_model.h|src/gpu/decoder/language_model.cu|src/gpu/decoder/kenlm.h|src/gpu/decoder/kenlm.cpp|src/gpu/decoder/class_language_model.h|src/gpu/decoder/ape_penalty.h|src/gpu/decoder/ape_penalty.cu|src/plugin|src/python|src/3rd_party/spdlog/fmt/bundled/ostream.cc|src/3rd_party/spdlog/fmt/bundled/format.cc|src/3rd_party/spdlog/details/format.cc|src/3rd_party/fast_align|src/3rd_party/extract_lex|src/3rd_party/blaze|plugin/nbest.h|plugin/nbest.cu|python|gpu/decoder/ape_penalty.h|gpu/decoder/ape_penalty.cu|gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/cpu|src/half|src/gpu/decoder/language_model.h|src/gpu/decoder/language_model.cu|src/gpu/decoder/kenlm.h|src/gpu/decoder/kenlm.cpp|src/gpu/decoder/class_language_model.h|src/gpu/decoder/ape_penalty.h|src/gpu/decoder/ape_penalty.cu|src/plugin|src/python|src/3rd_party/spdlog/fmt/bundled/ostream.cc|src/3rd_party/spdlog/fmt/bundled/format.cc|src/3rd_party/spdlog/details/format.cc|src/3rd_party/fast_align|src/3rd_party/extract_lex|src/3rd_party/blaze|plugin/nbest.h|plugin/nbest.cu|python|gpu/decoder/ape_penalty.h|gpu/decoder/ape_penalty.cu|gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
