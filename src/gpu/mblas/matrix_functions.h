@@ -173,11 +173,11 @@ template <class Functor>
 Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVector<int>& batchMapping, size_t srcSize) {
   size_t sumOfBeamSizes = In.Rows();
 
-  size_t rows = srcSize * sumOfBeamSizes;
+  //size_t rows = srcSize * sumOfBeamSizes;
   size_t cols  = Out.Cols();
 
   thread_local static Matrix Temp;
-  Temp.Resize(rows, cols);
+  Temp.Resize(sumOfBeamSizes, cols, srcSize);
 
   float* d_out = Temp.data();
   const float* d_in1 = Out.data();

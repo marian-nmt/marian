@@ -152,8 +152,11 @@ class Decoder {
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
-          std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
           std::cerr << "2Temp1_=" << Temp1_.Debug() << std::endl;
+          Temp1_.Reshape2D();
+
+          std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
+          std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
 
           Prod(A_, w_.V_, Temp1_, false, true);
 
