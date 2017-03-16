@@ -40,9 +40,6 @@ public:
   virtual size_t Rows() const
   { return Parent::rows(); }
 
-  virtual size_t Cols() const
-  { return Parent::columns(); }
-
   virtual size_t dim(size_t i) const
   {
   	switch (i) {
@@ -98,11 +95,6 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     	return BlazeBase::rows();
     }
 
-    virtual size_t Cols() const
-    {
-    	return BlazeBase::columns();
-    }
-
     virtual size_t dim(size_t i) const
     {
     	switch (i) {
@@ -122,13 +114,6 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
       data_.resize(rows * columns);
       BlazeBase temp(data_.data(), rows, columns);
       std::swap(temp, *(BlazeBase*)this);
-    }
-
-    virtual std::string Debug() const
-    {
-    	std::stringstream strm;
-    	strm << "(" << Rows() << "x" << Cols() << ")";
-    	return strm.str();
     }
 
     BlazeMatrix<T, SO>& operator=(const value_type& val) {

@@ -45,7 +45,7 @@ class BestHyps : public BestHypsBase
       for (auto& scorer : scorers) {
         if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
           const mblas::Matrix &attention = encdec->GetAttention();
-          size_t attLength = attention.Cols();
+          size_t attLength = attention.dim(1);
 
           SoftAlignment *softAlignment = new SoftAlignment(attLength);
           mblas::copy(
@@ -132,12 +132,12 @@ class BestHyps : public BestHypsBase
       }
 
       for (size_t i = 0; i < beamSizeSum; i++) {
-        size_t wordIndex = bestKeys[i] % Probs.Cols();
+        size_t wordIndex = bestKeys[i] % Probs.dim(1);
         if (filter) {
           wordIndex = filterIndices[wordIndex];
         }
 
-        size_t hypIndex  = bestKeys[i] / Probs.Cols();
+        size_t hypIndex  = bestKeys[i] / Probs.dim(1);
         float cost = bestCosts[i];
 
         HypothesisPtr hyp;

@@ -35,7 +35,7 @@ class Decoder {
         }
 
         size_t GetCols() {
-          return w_.E_.Cols();
+          return w_.E_.dim(1);
         }
 
         size_t GetRows() const {
@@ -61,7 +61,7 @@ class Decoder {
                              const DeviceVector<int>& mapping) {
           using namespace mblas;
 
-          Temp2_.Resize(1, SourceContext.Cols(), 1, batchSize);
+          Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
           Mean(Temp2_, SourceContext, mapping);
 
           Prod(State, Temp2_, w_.Wi_);
@@ -169,7 +169,7 @@ class Decoder {
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
-          AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
+          AlignedSourceContext.Resize(A_.Rows(), SourceContext.dim(1));
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
           //std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
@@ -229,11 +229,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
-            Probs.Resize(T1_.Rows(), w_.W4_.Cols());
+            Probs.Resize(T1_.Rows(), w_.W4_.dim(1));
             Prod(Probs, T1_, w_.W4_);
             BroadcastVec(_1 + _2, Probs, w_.B4_);
           } else {
-            Probs.Resize(T1_.Rows(), FilteredW4_.Cols());
+            Probs.Resize(T1_.Rows(), FilteredW4_.dim(1));
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
