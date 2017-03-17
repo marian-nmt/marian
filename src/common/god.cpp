@@ -111,6 +111,7 @@ void God::Cleanup()
   pool_.reset();
   cpuLoaders_.clear();
   gpuLoaders_.clear();
+  fpgaLoaders_.clear();
 }
 
 void God::LoadScorers() {
@@ -121,17 +122,29 @@ void God::LoadScorers() {
   if (gpuThreads > 0 && devices.size() > 0) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      gpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, "GPU"));
+      gpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, GPUDevice));
     }
   }
 #endif
+#ifdef HAS_CPU
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
   if (cpuThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      cpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, "CPU"));
+      cpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, CPUDevice));
     }
   }
+#endif
+#ifdef HAS_FPGA
+  size_t fpgaThreads = God::Get<size_t>("fpga-threads");
+  if (fpgaThreads) {
+    for (auto&& pair : config_.Get()["scorers"]) {
+      std::string name = pair.first.as<std::string>();
+      fpgaLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, "FPGA"));
+    }
+  }
+#endif
+
 }
 
 void God::LoadFiltering() {
@@ -214,18 +227,34 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   if (deviceInfo.deviceType == CPUDevice) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
-  } else {
+  }
+  else if (deviceInfo.deviceType == GPUDevice) {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
+  else if (deviceInfo.deviceType == FPGA) {
+    for (auto&& loader : fpgaLoaders_ | boost::adaptors::map_values)
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
+  }
+  else {
+	amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
+  }
+
   return scorers;
 }
 
 BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
   if (deviceInfo.deviceType == CPUDevice) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this);
-  } else {
+  }
+  else if (deviceInfo.deviceType == GPUDevice) {
     return gpuLoaders_.begin()->second->GetBestHyps(*this);
+  }
+  else if (deviceInfo.deviceType == FPGA) {
+    return fpgaLoaders_.begin()->second->GetBestHyps(*this);
+  }
+  else {
+	amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
   }
 }
 
@@ -235,6 +264,9 @@ std::vector<std::string> God::GetScorerNames() const {
     scorerNames.push_back(name);
   for(auto&& name : gpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
+  for(auto&& name : fpgaLoaders_ | boost::adaptors::map_keys)
+    scorerNames.push_back(name);
+
   return scorerNames;
 }
 
@@ -300,16 +332,24 @@ Search &God::GetSearch() const
 
 size_t God::GetTotalThreads() const
 {
-  size_t cpuThreads = Get<size_t>("cpu-threads");
-  LOG(info, "Setting CPU thread count to ", cpuThreads);
-
-  size_t totalThreads = cpuThreads;
+  size_t totalThreads = 0;
 #ifdef CUDA
   size_t gpuThreads = Get<size_t>("gpu-threads");
   auto devices = Get<std::vector<size_t>>("devices");
   LOG(info, "Setting GPU thread count to ", gpuThreads);
   totalThreads += gpuThreads * devices.size();
 #endif
+#ifdef HAS_CPU
+  size_t cpuThreads = Get<size_t>("cpu-threads");
+  LOG(info, "Setting CPU thread count to ", cpuThreads);
+  totalThreads += cpuThreads;
+#endif
+#ifdef HAS_FPGA
+  size_t fpgaThreads = Get<size_t>("fpga-threads");
+  LOG(info, "Setting FPGA thread count to ", fpgaThreads);
+  totalThreads += fpgaThreads;
+#endif
+
   return totalThreads;
 }
 

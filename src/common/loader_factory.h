@@ -22,7 +22,7 @@ class LoaderFactory {
     static LoaderPtr Create(const God &god,
     						const std::string& name,
                             const YAML::Node& config,
-                            const std::string& mode);
+                            const DeviceType deviceType);
 
   protected:
 

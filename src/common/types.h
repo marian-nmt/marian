@@ -19,7 +19,8 @@ const std::string UNK_STR = "<unk>";
 enum DeviceType
 {
 	CPUDevice = 7,
-	GPUDevice = 11
+	GPUDevice = 11,
+	FPGA = 13
 };
 
 struct DeviceInfo

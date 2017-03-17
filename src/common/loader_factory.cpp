@@ -22,11 +22,11 @@ LoaderPtr LoaderFactory::Create(
 	const God &god,
     const std::string& name,
     const YAML::Node& config,
-    const std::string& mode) {
+    const DeviceType deviceType) {
 	Loader *loader;
 
 #ifdef CUDA
-  if (mode == "GPU") {
+  if (deviceType == GPUDevice) {
     loader = CreateGPU(god, name, config);
     if (loader) {
       return LoaderPtr(loader);
@@ -37,7 +37,7 @@ LoaderPtr LoaderFactory::Create(
 #endif
 
 #ifdef HAS_CPU
-  if (mode == "CPU") {
+  if (deviceType == CPUDevice) {
     loader = CreateCPU(god, name, config);
     if (loader) {
       return LoaderPtr(loader);
