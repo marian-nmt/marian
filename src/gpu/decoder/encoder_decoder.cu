@@ -140,8 +140,7 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
 }
 
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
-  //size_t i = deviceInfo.threadInd;
-  size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
+  size_t d = deviceInfo.deviceId;
 
   HANDLE_ERROR(cudaSetDevice(d));
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
