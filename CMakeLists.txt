@@ -17,11 +17,16 @@ endif(BUILD_STATIC)
 
 include_directories(${amunmt_SOURCE_DIR})
 
-option(CPU "Select to compile CPU support" ON)
+option(CPU "Select to compile with CPU support" ON)
 option(CUDA "Select to compile CUDA support by default if available" ON)
+option(FPGA "Select to compile with FPGA support" ON)
 
 if(CPU)
     add_definitions(-DHAS_CPU)
+endif(CPU)
+
+if(FPGA)
+    add_definitions(-DHAS_FPGA)
 endif(CPU)
 
 if(CUDA)

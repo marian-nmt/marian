@@ -140,7 +140,7 @@ void God::LoadScorers() {
   if (fpgaThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      fpgaLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, "FPGA"));
+      fpgaLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, FPGA));
     }
   }
 #endif

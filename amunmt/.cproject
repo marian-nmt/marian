@@ -38,6 +38,7 @@
 								<option id="nvcc.compiler.cpp11option.1982513734" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.def.symbols.576604014" name="Defined symbols (-D)" superClass="nvcc.compiler.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="CUDA"/>
+									<listOptionValue builtIn="false" value="HAS_FPGA"/>
 								</option>
 								<inputType id="nvcc.compiler.input.cu.2121946165" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1665748884" superClass="nvcc.compiler.input.cpp"/>
@@ -169,4 +170,5 @@
 		</configuration>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

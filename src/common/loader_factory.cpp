@@ -100,7 +100,9 @@ Loader *LoaderFactory::CreateCPU(
 Loader *LoaderFactory::CreateFPGA(const God &god, const std::string& name,
                         const YAML::Node& config)
 {
-  amunmt_UTIL_THROW2("Not yet implemented");
+  amunmt_UTIL_THROW_IF2(!config["type"],
+          "Missing scorer type in config file");
+   std::string type = config["type"].as<std::string>();
 }
 #endif
 

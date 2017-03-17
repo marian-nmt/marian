@@ -209,6 +209,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Number of threads on the FPGA.")
     ("fpga-devices", po::value(&fpgaDevices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
      "FPGA device(s) to use, set to 0 by default, "
+        "e.g. set to 0 1 to use fpga0 and fpga1. "
+        "Implicitly sets minimal number of threads to number of devices.")
 #endif
 
     ("mini-batch", po::value<size_t>()->default_value(1),
