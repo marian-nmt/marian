@@ -296,7 +296,15 @@ DeviceInfo God::GetNextDevice() const
 {
   DeviceInfo ret;
 
-  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  size_t cpuThreads = Get<size_t>("cpu-threads");
+  size_t gpuThreads = Get<size_t>("gpu-threads");
+  //size_t fpgaThreads = Get<size_t>("fpga-threads");
+
+  std::vector<size_t> gpuDevices = Get<std::vector<size_t>>("devices");
+  //std::vector<size_t> fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
+
+  size_t totGPUThreads = gpuThreads * gpuDevices.size();
+  //size_t totFPGAThreads = fpgaThreads * fpgaDevices.size();
 
   // start locking
   boost::unique_lock<boost::shared_mutex> lock(accessLock_);
@@ -342,14 +350,15 @@ size_t God::GetTotalThreads() const
 
 #ifdef HAS_CPU
   size_t cpuThreads = Get<size_t>("cpu-threads");
-  LOG(info, "Setting CPU thread count to ", cpuThreads);
+  LOG(info, "Setting CPU thread count to {}", cpuThreads);
   totalThreads += cpuThreads;
 #endif
 
 #ifdef HAS_FPGA
   size_t fpgaThreads = Get<size_t>("fpga-threads");
-  LOG(info, "Setting FPGA thread count to ", fpgaThreads);
-  totalThreads += fpgaThreads;
+  auto fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
+  LOG(info, "Setting FPGA thread count to {}", fpgaThreads);
+  totalThreads += fpgaThreads * fpgaDevices.size();
 #endif
 
   return totalThreads;

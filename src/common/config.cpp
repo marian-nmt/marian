@@ -174,7 +174,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> bpePaths;
   bool debpe;
 
-  std::vector<size_t> devices;
+  std::vector<size_t> devices, fpgaDevices;
 
   general.add_options()
     ("config,c", po::value(&configPath),
@@ -207,6 +207,8 @@ void Config::AddOptions(size_t argc, char** argv) {
 #ifdef HAS_FPGA
     ("fpga-threads", po::value<size_t>()->default_value(0),
      "Number of threads on the FPGA.")
+    ("fpga-devices", po::value(&fpgaDevices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
+     "FPGA device(s) to use, set to 0 by default, "
 #endif
 
     ("mini-batch", po::value<size_t>()->default_value(1),
@@ -307,6 +309,7 @@ void Config::AddOptions(size_t argc, char** argv) {
 #endif
 #ifdef HAS_FPGA
   SET_OPTION("fpga-threads", size_t);
+  SET_OPTION("fpga-devices", std::vector<size_t>);
 #endif
   SET_OPTION("show-weights", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);
