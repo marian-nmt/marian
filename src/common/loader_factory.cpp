@@ -23,30 +23,32 @@ LoaderPtr LoaderFactory::Create(
     const std::string& name,
     const YAML::Node& config,
     const DeviceType deviceType) {
-	Loader *loader;
+	Loader *loader = nullptr;
 
 #ifdef CUDA
   if (deviceType == GPUDevice) {
     loader = CreateGPU(god, name, config);
-    if (loader) {
-      return LoaderPtr(loader);
-    } else {
-      LOG(info, "No GPU scorer type. Switching to CPU");
-    }
   }
 #endif
 
 #ifdef HAS_CPU
   if (deviceType == CPUDevice) {
     loader = CreateCPU(god, name, config);
-    if (loader) {
-      return LoaderPtr(loader);
-    }
   }
 #endif
 
-	std::string type = config["type"].as<std::string>();
-	amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
+#ifdef HAS_FPGA
+  if (deviceType == FPGA) {
+    loader = CreateFPGA(god, name, config);
+  }
+#endif
+
+  if (loader) {
+    return LoaderPtr(loader);
+  }
+
+  std::string type = config["type"].as<std::string>();
+  amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
 }
 
 #ifdef CUDA
@@ -93,6 +95,15 @@ Loader *LoaderFactory::CreateCPU(
   return NULL;
 }
 #endif
+
+#ifdef HAS_FPGA
+Loader *LoaderFactory::CreateFPGA(const God &god, const std::string& name,
+                        const YAML::Node& config)
+{
+  amunmt_UTIL_THROW2("Not yet implemented");
+}
+#endif
+
 
 }
 

@@ -339,11 +339,13 @@ size_t God::GetTotalThreads() const
   LOG(info, "Setting GPU thread count to ", gpuThreads);
   totalThreads += gpuThreads * devices.size();
 #endif
+
 #ifdef HAS_CPU
   size_t cpuThreads = Get<size_t>("cpu-threads");
   LOG(info, "Setting CPU thread count to ", cpuThreads);
   totalThreads += cpuThreads;
 #endif
+
 #ifdef HAS_FPGA
   size_t fpgaThreads = Get<size_t>("fpga-threads");
   LOG(info, "Setting FPGA thread count to ", fpgaThreads);

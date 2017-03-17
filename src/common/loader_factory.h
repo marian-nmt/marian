@@ -32,6 +32,8 @@ class LoaderFactory {
     static Loader *CreateGPU(const God &god, const std::string& name,
                             const YAML::Node& config);
 
+    static Loader *CreateFPGA(const God &god, const std::string& name,
+                            const YAML::Node& config);
 };
 
 }
