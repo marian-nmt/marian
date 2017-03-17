@@ -16,6 +16,10 @@
 #endif
 #endif
 
+#ifdef HAS_FPGA
+#include "fpga/encoder_decoder_loader.h"
+#endif
+
 namespace amunmt {
 
 LoaderPtr LoaderFactory::Create(
@@ -38,7 +42,7 @@ LoaderPtr LoaderFactory::Create(
 #endif
 
 #ifdef HAS_FPGA
-  if (deviceType == FPGA) {
+  if (deviceType == FPGADevice) {
     loader = CreateFPGA(god, name, config);
   }
 #endif
@@ -103,6 +107,13 @@ Loader *LoaderFactory::CreateFPGA(const God &god, const std::string& name,
   amunmt_UTIL_THROW_IF2(!config["type"],
           "Missing scorer type in config file");
    std::string type = config["type"].as<std::string>();
+
+   IF_MATCH_RETURN(god, type, "Nematus", FPGA::EncoderDecoderLoader);
+   IF_MATCH_RETURN(god, type, "nematus", FPGA::EncoderDecoderLoader);
+   IF_MATCH_RETURN(god, type, "NEMATUS", FPGA::EncoderDecoderLoader);
+
+   return NULL;
+
 }
 #endif
 

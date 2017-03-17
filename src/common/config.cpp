@@ -301,13 +301,15 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("allow-unk", bool);
   SET_OPTION("no-debpe", bool);
   SET_OPTION("beam-size", size_t);
-  SET_OPTION("cpu-threads", size_t);
   SET_OPTION("mini-batch", size_t);
   SET_OPTION("maxi-batch", size_t);
   SET_OPTION("max-length", size_t);
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
+#endif
+#ifdef HAS_CPU
+  SET_OPTION("cpu-threads", size_t);
 #endif
 #ifdef HAS_FPGA
   SET_OPTION("fpga-threads", size_t);

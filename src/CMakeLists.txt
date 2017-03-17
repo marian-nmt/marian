@@ -16,6 +16,7 @@ add_library(cpumode OBJECT
   cpu/dl4mt/gru.cpp
   cpu/dl4mt/model.cpp
   cpu/decoder/encoder_decoder.cpp
+  fpga/encoder_decoder_loader.cpp
 )
 
 add_library(libcommon OBJECT

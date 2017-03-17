@@ -140,7 +140,7 @@ void God::LoadScorers() {
   if (fpgaThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      fpgaLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, FPGA));
+      fpgaLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, FPGADevice));
     }
   }
 #endif
@@ -232,7 +232,7 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
-  else if (deviceInfo.deviceType == FPGA) {
+  else if (deviceInfo.deviceType == FPGADevice) {
     for (auto&& loader : fpgaLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
@@ -250,7 +250,7 @@ BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
   else if (deviceInfo.deviceType == GPUDevice) {
     return gpuLoaders_.begin()->second->GetBestHyps(*this);
   }
-  else if (deviceInfo.deviceType == FPGA) {
+  else if (deviceInfo.deviceType == FPGADevice) {
     return fpgaLoaders_.begin()->second->GetBestHyps(*this);
   }
   else {
@@ -334,7 +334,7 @@ DeviceInfo God::GetNextDevice() const
     ret.deviceId = gpuDevices[deviceInd];
   }
   else if (threadIncr_ < cpuThreads + totGPUThreads + totFPGAThreads) {
-    ret.deviceType = FPGA;
+    ret.deviceType = FPGADevice;
     size_t threadIncr = threadIncr_ - cpuThreads - totGPUThreads;
 
     ret.threadInd = threadIncr / fpgaDevices.size();

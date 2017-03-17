@@ -20,7 +20,7 @@ enum DeviceType
 {
 	CPUDevice = 7,
 	GPUDevice = 11,
-	FPGA = 13
+	FPGADevice = 13
 };
 
 struct DeviceInfo
