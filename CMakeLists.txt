@@ -54,6 +54,11 @@ else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
+find_package( OpenCL REQUIRED )
+if(OpenCL_FOUND)
+    set(EXT_LIBS ${EXT_LIBS} ${OpenCL_LIBRARIES})
+endif(OpenCL_FOUND)
+
 find_package(PythonLibs 2.7)
 if(PYTHONLIBS_FOUND)
   message("-- Found Python" )

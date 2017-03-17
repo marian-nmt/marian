@@ -16,7 +16,17 @@ add_library(cpumode OBJECT
   cpu/dl4mt/gru.cpp
   cpu/dl4mt/model.cpp
   cpu/decoder/encoder_decoder.cpp
+
+  fpga/best_hyps.cpp
+  fpga/decoder.cpp
   fpga/encoder_decoder_loader.cpp
+  fpga/encoder_decoder_state.cpp
+  fpga/encoder_decoder.cpp
+  fpga/encoder.cpp
+  fpga/matrix_functions.cpp
+  fpga/matrix.cpp
+  fpga/model.cpp
+  fpga/npz_converter.cpp
 )
 
 add_library(libcommon OBJECT
