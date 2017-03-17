@@ -54,8 +54,8 @@ add_library(libcommon OBJECT
 
 if(CUDA_FOUND)
 
-set_source_files_properties( common/loader_factory.cpp
-  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+#set_source_files_properties( common/loader_factory.cpp
+#  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
 
 cuda_add_executable(
   amun
