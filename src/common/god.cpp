@@ -296,35 +296,55 @@ DeviceInfo God::GetNextDevice() const
 {
   DeviceInfo ret;
 
-  size_t cpuThreads = Get<size_t>("cpu-threads");
-  size_t gpuThreads = Get<size_t>("gpu-threads");
-  //size_t fpgaThreads = Get<size_t>("fpga-threads");
+  size_t cpuThreads = 0, gpuThreads = 0, fpgaThreads = 0;
+  std::vector<size_t> gpuDevices, fpgaDevices;
 
-  std::vector<size_t> gpuDevices = Get<std::vector<size_t>>("devices");
-  //std::vector<size_t> fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
+#ifdef CUDA
+  gpuThreads = Get<size_t>("gpu-threads");
+  gpuDevices = Get<std::vector<size_t>>("devices");
+#endif
+
+#ifdef HAS_CPU
+  cpuThreads = God::Get<size_t>("cpu-threads");
+#endif
+
+#ifdef HAS_FPGA
+  fpgaThreads = Get<size_t>("fpga-threads");
+  fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
+#endif
 
   size_t totGPUThreads = gpuThreads * gpuDevices.size();
-  //size_t totFPGAThreads = fpgaThreads * fpgaDevices.size();
+  size_t totFPGAThreads = fpgaThreads * fpgaDevices.size();
 
   // start locking
   boost::unique_lock<boost::shared_mutex> lock(accessLock_);
 
-  ret.deviceType = (threadIncr_ < cpuThreads) ? CPUDevice : GPUDevice;
-  if (ret.deviceType == CPUDevice) {
+  if (threadIncr_ < cpuThreads) {
+    ret.deviceType = CPUDevice;
     ret.threadInd = threadIncr_;
   }
+  else if (threadIncr_ < cpuThreads + totGPUThreads) {
+    ret.deviceType = GPUDevice;
+    size_t threadIncr = threadIncr_ - cpuThreads;
+
+    ret.threadInd = threadIncr / gpuDevices.size();
+
+    size_t deviceInd = threadIncr % gpuDevices.size();
+    assert(deviceInd < gpuDevices.size());
+    ret.deviceId = gpuDevices[deviceInd];
+  }
+  else if (threadIncr_ < cpuThreads + totGPUThreads + totFPGAThreads) {
+    ret.deviceType = FPGA;
+    size_t threadIncr = threadIncr_ - cpuThreads - totGPUThreads;
+
+    ret.threadInd = threadIncr / fpgaDevices.size();
+
+    size_t deviceInd = threadIncr % fpgaDevices.size();
+    assert(deviceInd < fpgaDevices.size());
+    ret.deviceId = fpgaDevices[deviceInd];
+  }
   else {
-    size_t threadIncrGPU = threadIncr_ - cpuThreads;
-    size_t gpuThreads = Get<size_t>("gpu-threads");
-    std::vector<size_t> devices = Get<std::vector<size_t>>("devices");
-
-    ret.threadInd = threadIncrGPU / devices.size();
-
-    size_t deviceInd = threadIncrGPU % devices.size();
-    assert(deviceInd < devices.size());
-    ret.deviceId = devices[deviceInd];
-
-    amunmt_UTIL_THROW_IF2(ret.threadInd >= gpuThreads, "Too many GPU threads");
+    amunmt_UTIL_THROW2("Too many threads");
   }
 
   ++threadIncr_;
