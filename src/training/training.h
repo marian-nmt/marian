@@ -9,12 +9,14 @@ namespace marian {
 
 class Reporter {
   public:
+    YAML::Node progress;
+
     Ptr<Config> options_;
     std::vector<Ptr<Validator>> validators_;
 
     float costSum{0};
-    size_t epochs{1};
 
+    size_t epochs{1};
     size_t samples{0};
     size_t wordsDisp{0};
     size_t batches{0};
@@ -100,6 +102,25 @@ class Reporter {
         wordsDisp = 0;
       }
     }
+
+    void load(const std::string& name) {
+      std::string nameYaml = name + ".progress.yml";
+      if(boost::filesystem::exists(nameYaml)) {
+        YAML::Node progress = YAML::LoadFile(nameYaml);
+        epochs = progress["epochs"].as<size_t>();
+        batches = progress["batches"].as<size_t>();
+      }
+    }
+
+    void save(const std::string& name) {
+      YAML::Node progress;
+      progress["epochs"] = epochs;
+      progress["batches"] = batches;
+
+      std::string nameYaml = name + ".progress.yml";
+      std::ofstream fout(nameYaml);
+      fout << progress;
+    }
 };
 
 template <class Model>
@@ -108,18 +129,17 @@ void Train(Ptr<Config> options) {
   using namespace keywords;
 
   auto trainCorpus = New<Corpus>(options);
-  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus,
-                                                    options);
+  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options);
   auto reporter = New<Reporter>(options);
 
   if(options->has("valid-sets") && options->get<size_t>("valid-freq") > 0) {
-    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
-                                                                  options))
+    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options))
       reporter->addValidator(validator);
   }
 
   auto model = New<Model>(options);
   model->setReporter(reporter);
+  model->load();
 
   while(reporter->keepGoing()) {
     batchGenerator->prepare(!options->get<bool>("no-shuffle"));

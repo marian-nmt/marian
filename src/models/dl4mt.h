@@ -24,7 +24,7 @@ class EncoderDL4MT : public EncoderBase {
       int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
       int dimSrcEmb = options_->get<int>("dim-emb");
       int dimEncState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
 
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
@@ -77,7 +77,7 @@ class DecoderDL4MT : public DecoderBase {
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
       int dimTrgEmb = options_->get<int>("dim-emb");
       int dimDecState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
 
@@ -189,7 +189,7 @@ class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
         "ff_logit_l1_gamma2", "ff_state_gamma"
       };
 
-      if(options_->get<bool>("normalize"))
+      if(options_->get<bool>("layer-normalization"))
         for(auto& p : parametersNorm)
           parameters.push_back(p);
 

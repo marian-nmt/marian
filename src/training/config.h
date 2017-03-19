@@ -9,11 +9,11 @@ namespace marian {
 
 class Config {
   public:
-    
+
     static size_t seed;
-    
-    Config(int argc, char** argv, bool validate = true) {
-      addOptions(argc, argv, validate);
+
+    Config(int argc, char** argv, bool validate=true, bool translate=false) {
+      addOptions(argc, argv, validate, translate);
       log();
     }
 
@@ -33,9 +33,18 @@ class Config {
       return get(key);
     }
 
-    void addOptions(int argc, char** argv, bool validate);
+    void addOptions(int argc, char** argv, bool validate, bool translate);
+
+    void addOptionsCommon(boost::program_options::options_description&);
+    void addOptionsModel(boost::program_options::options_description&, bool);
+    void addOptionsTraining(boost::program_options::options_description&);
+    void addOptionsValid(boost::program_options::options_description&);
+
+    void addOptionsTranslate(boost::program_options::options_description& desc);
+
+
     void log();
-    void validate() const;
+    void validate(bool translate=false) const;
 
     template <class OStream>
     friend OStream& operator<<(OStream& out, const Config& config) {

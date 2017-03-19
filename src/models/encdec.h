@@ -133,7 +133,7 @@ class DecoderBase {
                                           encState->mask,
                                           axis=2);
 
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
       auto start = Dense("ff_state",
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,

@@ -34,12 +34,16 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
-Corpus::Corpus(Ptr<Config> options)
+Corpus::Corpus(Ptr<Config> options, bool translate)
   : options_(options),
-    textPaths_(options_->get<std::vector<std::string>>("train-sets")),
     maxLength_(options_->get<size_t>("max-length")),
     g_(rd_()) {
-  
+
+  if(!translate)
+    textPaths_ = options_->get<std::vector<std::string>>("train-sets");
+  else
+    textPaths_ = options_->get<std::vector<std::string>>("inputs");
+
   g_.seed(Config::seed);
 
   std::vector<std::string> vocabPaths;

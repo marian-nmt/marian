@@ -8,8 +8,8 @@ int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv);;
-
   auto type = options->get<std::string>("type");
+  
   if(type == "gnmt")
     Train<AsyncGraphGroup<GNMT>>(options);
   else if(type == "multi-gnmt")

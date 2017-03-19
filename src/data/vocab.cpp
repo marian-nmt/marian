@@ -77,7 +77,7 @@ void Vocab::load(const std::string& vocabPath, int max)
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();
     auto id = pair.second.as<Word>();
-    if (id < (Word)max) {
+    if(!max || id < (Word)max) {
       str2id_[str] = id;
       if(id >= id2str_.size())
         id2str_.resize(id + 1);

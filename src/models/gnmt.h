@@ -23,7 +23,7 @@ class EncoderGNMT : public EncoderBase {
       int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
       int dimSrcEmb = options_->get<int>("dim-emb");
       int dimEncState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
       size_t encoderLayers = options_->get<size_t>("layers-enc");
 
@@ -96,7 +96,7 @@ class DecoderGNMT : public DecoderBase {
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
       int dimTrgEmb = options_->get<int>("dim-emb");
       int dimDecState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
 

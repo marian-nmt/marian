@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
   else
     encdec = New<DL4MT>(options);
 
-  encdec->load(graph, "../benchmark/marian32K/model.160000.npz");
+  //encdec->load(graph, "../benchmark/marian32K/model.160000.npz");
 
   graph->reserveWorkspaceMB(128);
 

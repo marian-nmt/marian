@@ -13,6 +13,9 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "models/multi_gnmt.h"
+#include "models/gnmt.h"
+#include "models/dl4mt.h"
+
 #include "translator/nth_element.h"
 #include "common/history.h"
 
@@ -22,13 +25,15 @@ namespace marian {
 template <class Builder>
 class BeamSearch {
   private:
+    Ptr<Config> options_;
     Ptr<Builder> builder_;
     size_t beamSize_;
     cudaStream_t stream_{0};
 
   public:
-    BeamSearch(Ptr<Builder> builder)
-     : builder_(builder),
+    BeamSearch(Ptr<Config> options)
+     : options_(options),
+       builder_(New<Builder>(options)),
        beamSize_(12)
     {}
 
@@ -182,56 +187,74 @@ class BeamSearch {
     }
 };
 
+class TranslatorBase {
+  public:
+    virtual Ptr<History> translate(Ptr<data::CorpusBatch>) = 0;
+};
+
+template <class Model>
+class Translator : public TranslatorBase {
+  private:
+    Ptr<Config> options_;
+    Ptr<ExpressionGraph> graph_;
+
+
+  public:
+    Translator(Ptr<Config> options)
+    : options_(options),
+    graph_(New<ExpressionGraph>()) {
+      auto devices = options_->get<std::vector<int>>("device");
+      graph_->setDevice(devices[0]);
+    }
+
+    Ptr<History> translate(Ptr<data::CorpusBatch> batch) {
+      auto search = New<BeamSearch<Model>>(options_);
+      return search->search(graph_, batch);
+    }
+
+};
+
 }
 
 int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
-  auto options = New<Config>(argc, argv, false);
+  auto options = New<Config>(argc, argv, true, true);
 
-  std::vector<std::string> files =
-    {"/work/wmt16/work/unbabel/marian2016/dev.mt",
-    "/work/wmt16/work/unbabel/marian2016/dev.src"};
-    //{"../benchmark/marian32K/test.txt"};
+  Ptr<TranslatorBase> translator;
+  auto type = options->get<std::string>("type");
+  if(type == "gnmt")
+    translator = New<Translator<GNMT>>(options);
+  else if(type == "multi-gnmt")
+    translator = New<Translator<MultiGNMT>>(options);
+  else
+    translator = New<Translator<DL4MT>>(options);
 
-  std::vector<std::string> vocab =
-    {"/work/wmt16/work/unbabel/marian2016/vocab.mt.json",
-    "/work/wmt16/work/unbabel/marian2016/vocab.src.json"};
-
-  YAML::Node& c = options->get();
-  c["train-sets"] = files;
-  c["vocabs"] = vocab;
-
-  auto corpus = DataSet<Corpus>(options);
+  auto corpus = DataSet<Corpus>(options, true);
   BatchGenerator<Corpus> bg(corpus, options);
 
-  auto graph = New<ExpressionGraph>();
-  graph->setDevice(1);
-
   auto target = New<Vocab>();
-  target->load("/work/wmt16/work/unbabel/marian2016/vocab.pe.json", 40000);
-
-  auto encdec = New<MultiGNMT>(options);
-  encdec->load(graph, "/work/wmt16/work/unbabel/marian2016/multisource/model.10000.npz");
-
-  graph->reserveWorkspaceMB(128);
+  auto vocabs = options->get<std::vector<std::string>>("vocabs");
+  target->load(vocabs.back());
 
   boost::timer::cpu_timer timer;
   bg.prepare(false);
   while(bg) {
     auto batch = bg.next();
-    auto search = New<BeamSearch<MultiGNMT>>(encdec);
-    auto history = search->search(graph, batch);
+    auto history = translator->translate(batch);
 
+    //********************************
     auto results = history->NBest(1);
+    std::stringstream ss;
     for(auto r : results) {
-        for(auto w : r.first)
+      for(auto w : r.first)
         if(w != 0)
-          std::cout << (*target)[w] << " ";
-      //std::cout << r.second->GetCost() << std::endl;
-      std::cout << std::endl;
+          ss << (*target)[w] << " ";
     }
+    std::cout << ss.str() << std::endl;
+    //********************************
+
   }
   std::cerr << timer.format(5, "%ws") << std::endl;
 

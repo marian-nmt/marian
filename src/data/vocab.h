@@ -22,8 +22,8 @@ class Vocab {
 
     size_t size() const;
 
-    void loadOrCreate(const std::string& textPath, int max);
-    void load(const std::string& vocabPath, int max);
+    void loadOrCreate(const std::string& textPath, int max=0);
+    void load(const std::string& vocabPath, int max=0);
     void create(const std::string& vocabPath, int max, const std::string& trainPath);
 
   private:

@@ -145,7 +145,7 @@ class MultiDecoderGNMT : public DecoderBase {
                                            multiEncState->enc2->mask,
                                            axis=2);
 
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
 
       auto start = Dense("ff_state",
                          options_->get<int>("dim-rnn"),
@@ -164,7 +164,7 @@ class MultiDecoderGNMT : public DecoderBase {
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
       int dimTrgEmb = options_->get<int>("dim-emb");
       int dimDecState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("normalize");
+      bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
       size_t decoderLayers = options_->get<size_t>("layers-dec");
 
