@@ -34,6 +34,12 @@ namespace marian {
         return true;
       }
 
+      virtual void initLastBest() {
+        lastBest_ = lowerIsBetter() ?
+          std::numeric_limits<float>::max() :
+          std::numeric_limits<float>::lowest();
+      }
+
       size_t stalled() {
         return stalled_;
       }
@@ -72,7 +78,9 @@ namespace marian {
       CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
                             Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
 
       virtual float validateBG(Ptr<ExpressionGraph> graph,
                                Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
@@ -103,7 +111,9 @@ namespace marian {
       PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
                           Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
 
       virtual float validateBG(Ptr<ExpressionGraph> graph,
                                Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
@@ -134,7 +144,9 @@ namespace marian {
       ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
                       Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
 
       std::string exec(const std::string& cmd) {
         std::array<char, 128> buffer;
