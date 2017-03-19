@@ -132,7 +132,8 @@ void Train(Ptr<Config> options) {
   auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options);
   auto reporter = New<Reporter>(options);
 
-  if(options->has("valid-sets") && options->get<size_t>("valid-freq") > 0) {
+  if((options->has("valid-sets") || options->has("valid-script-path"))
+     && options->get<size_t>("valid-freq") > 0) {
     for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options))
       reporter->addValidator(validator);
   }
