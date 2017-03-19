@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <cassert>
 #include "kernel.h"
@@ -7,6 +8,15 @@ using namespace std;
 
 namespace amunmt {
 namespace FPGA {
+
+std::string LoadKernel(const std::string &filePath)
+{
+ std::ifstream in(filePath.c_str());
+ std::string result (
+   (std::istreambuf_iterator<char> (in)),
+   std::istreambuf_iterator<char> ());
+ return result;
+}
 
 cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device)
 {
@@ -18,23 +28,10 @@ cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, c
   cl_kernel kernel;                   // compute kernel
 
   // Create the compute program from the source buffer
-  const char *fileName = filePath.c_str();
-  //std::ifstream file(fileName);
-  //std::string kernelSource((std::istreambuf_iterator<char>(file)),
-  //                 std::istreambuf_iterator<char>());
-  //cerr << "kernelSource=" << kernelSource << endl;
+  string str = LoadKernel(filePath);
+  const char *arr[1] = {str.c_str()};
+  program = clCreateProgramWithSource(context, 1, (const char **) arr, NULL, &err);
 
-  FILE *fp = fopen(fileName, "rb");
-  if (!fp) {
-      fprintf(stderr, "Failed to load kernel.\n");
-      exit(1);
-  }
-  char *source_str = (char *)malloc(MAX_SOURCE_SIZE);
-  size_t source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
-  fclose(fp);
-  //cerr << "source_str=" << source_str << endl;
-
-  program = clCreateProgramWithSource(context, 1, (const char **) & source_str, NULL, &err);
   CheckError(err);
   assert(program);
 
