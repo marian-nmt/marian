@@ -28,7 +28,9 @@ protected:
   cl_uint numDevices_;
   cl_device_id devices_[100];
 
-  cl_context CreateContext(size_t maxDevices);
+  cl_context CreateContext(
+      size_t maxDevices,
+      cl_device_id *devices);
 
   //int HelloWorld(const std::string &filePath);
   int HelloWorld2();

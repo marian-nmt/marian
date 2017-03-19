@@ -17,7 +17,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 :Loader(name, config)
 {
   cerr << "opencl start" << endl;
-  context_ = CreateContext(100);
+  context_ = CreateContext(100, devices_);
 
   cerr << "HelloWorld:" << endl;
 
@@ -70,7 +70,9 @@ BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const
   return BestHypsBasePtr(obj);
 }
 
-cl_context EncoderDecoderLoader::CreateContext(size_t maxDevices)
+cl_context EncoderDecoderLoader::CreateContext(
+    size_t maxDevices,
+    cl_device_id *devices)
 {
   cl_uint platformIdCount = 0;
   CL_CHECK(clGetPlatformIDs (0, nullptr, &platformIdCount));
@@ -106,10 +108,10 @@ cl_context EncoderDecoderLoader::CreateContext(size_t maxDevices)
   }
 
   // CL_CHECK(clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 100, devices, &numDevices));
-  CL_CHECK(clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices_, &numDevices_));
+  CL_CHECK(clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices, &numDevices_));
 
   int err;
-  cl_context ret = clCreateContext(NULL, 1, devices_, &pfn_notify, NULL, &err);
+  cl_context ret = clCreateContext(NULL, 1, devices, &pfn_notify, NULL, &err);
 
   /*
   cl_context context = clCreateContextFromType(
