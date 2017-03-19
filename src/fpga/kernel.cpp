@@ -9,31 +9,12 @@ namespace FPGA {
 
 cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device)
 {
-  #define DATA_SIZE (1024)
   #define MAX_SOURCE_SIZE (0x100000)
 
   int err;                            // error code returned from api calls
 
-  float data[DATA_SIZE];              // original data set given to device
-  float results[DATA_SIZE];           // results returned from device
-  unsigned int correct;               // number of correct results returned
-
-  size_t global;                      // global domain size for our calculation
-  size_t local;                       // local domain size for our calculation
-
   cl_program program;                 // compute program
   cl_kernel kernel;                   // compute kernel
-
-  cl_mem input;                       // device memory used for the input array
-  cl_mem output;                      // device memory used for the output array
-
-  // Fill our data set with random float values
-
-  //
-  int i = 0;
-  unsigned int count = DATA_SIZE;
-  for(i = 0; i < count; i++)
-      data[i] = rand() / (float)RAND_MAX;
 
   // Create the compute program from the source buffer
   const char *fileName = filePath.c_str();
@@ -104,7 +85,6 @@ cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_i
 int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
 {
   #define DATA_SIZE (1024)
-  #define MAX_SOURCE_SIZE (0x100000)
 
   int err;                            // error code returned from api calls
 
