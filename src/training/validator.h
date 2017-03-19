@@ -47,8 +47,8 @@ namespace marian {
         batchGenerator->prepare(false);
 
         float val = validateBG(graph, batchGenerator);
-        if(lowerIsBetter() && lastBest_ > val ||
-           !lowerIsBetter() && lastBest_ < val) {
+        if((lowerIsBetter() && lastBest_ > val) ||
+           (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
         }
@@ -167,8 +167,8 @@ namespace marian {
         auto valStr = exec(command);
         float val = std::atof(valStr.c_str());
 
-        if(lowerIsBetter() && lastBest_ > val ||
-           !lowerIsBetter() && lastBest_ < val) {
+        if((lowerIsBetter() && lastBest_ > val) ||
+           (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
         }
