@@ -24,8 +24,8 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
   cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
 
-  HelloWorld(kernel, context_, devices_[0], commands);
-  HelloWorld(kernel, context_, devices_[0], commands);
+  HelloWorld(kernel, context_, devices_[0], commands, 1024);
+  HelloWorld(kernel, context_, devices_[0], commands, 768);
 
 
   clReleaseCommandQueue(commands);

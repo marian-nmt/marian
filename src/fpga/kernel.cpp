@@ -76,14 +76,17 @@ cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_i
   return commands;
 }
 
-void HelloWorld(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
+void HelloWorld(
+    cl_kernel &kernel,
+    const cl_context &context,
+    const cl_device_id &device,
+    const cl_command_queue &commands,
+    size_t dataSize)
 {
-  #define DATA_SIZE (1024)
-
   int err;                            // error code returned from api calls
 
-  float data[DATA_SIZE];              // original data set given to device
-  float results[DATA_SIZE];           // results returned from device
+  float data[dataSize];              // original data set given to device
+  float results[dataSize];           // results returned from device
   unsigned int correct;               // number of correct results returned
 
   size_t global;                      // global domain size for our calculation
@@ -96,7 +99,7 @@ void HelloWorld(cl_kernel &kernel, const cl_context &context, const cl_device_id
 
   //
   int i = 0;
-  unsigned int count = DATA_SIZE;
+  unsigned int count = dataSize;
   for(i = 0; i < count; i++)
       data[i] = rand() / (float)RAND_MAX;
 
