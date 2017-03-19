@@ -30,7 +30,7 @@ protected:
 
   void CreateContext();
 
-  int HelloWorld();
+  int HelloWorld(const std::string &filePath);
   int HelloWorld2();
 
   void DebugDevicesInfo(cl_platform_id id) const;

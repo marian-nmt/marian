@@ -19,7 +19,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   CreateContext();
 
   cerr << "HelloWorld:" << endl;
-  HelloWorld();
+  HelloWorld("kernels/square.cl");
 
   cerr << "HelloWorld2:" << endl;
   HelloWorld2();

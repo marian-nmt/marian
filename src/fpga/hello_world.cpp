@@ -5,7 +5,7 @@ using namespace std;
 namespace amunmt {
 namespace FPGA {
 
-int EncoderDecoderLoader::HelloWorld()
+int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
 {
   #define DATA_SIZE (1024)
   #define MAX_SOURCE_SIZE (0x100000)
@@ -44,7 +44,7 @@ int EncoderDecoderLoader::HelloWorld()
   }
 
   // Create the compute program from the source buffer
-  const char fileName[] = "kernels/square.cl";
+  const char *fileName = filePath.c_str();
   //std::ifstream file(fileName);
   //std::string kernelSource((std::istreambuf_iterator<char>(file)),
   //                 std::istreambuf_iterator<char>());
