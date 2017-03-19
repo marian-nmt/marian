@@ -76,7 +76,7 @@ cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_i
   return commands;
 }
 
-int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
+void ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
 {
   #define DATA_SIZE (1024)
 
@@ -155,7 +155,11 @@ int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_
   CheckError( clReleaseMemObject(input) );
   CheckError( clReleaseMemObject(output) );
 
-  return 0;
+}
+
+void HelloWorld(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
+{
+
 }
 
 }
