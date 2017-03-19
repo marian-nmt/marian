@@ -30,6 +30,7 @@ protected:
 
   void CreateContext();
 
+  int HelloWorld();
   int HelloWorld2();
 
   void DebugDevicesInfo(cl_platform_id id) const;
