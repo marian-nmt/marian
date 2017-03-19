@@ -7,16 +7,6 @@
     #include <CL/cl.h>
 #endif
 
-#define CL_CHECK(_expr)                                                         \
-   do {                                                                         \
-     cl_int _err = _expr;                                                       \
-     if (_err == CL_SUCCESS)                                                    \
-       break;                                                                   \
-     fprintf(stderr, "OpenCL Error: '%s' returned %d!\n", #_expr, (int)_err);   \
-     abort();                                                                   \
-   } while (0)
-
-
 inline void CheckError(cl_int error)
  {
   if (error != CL_SUCCESS) {

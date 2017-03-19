@@ -17,10 +17,10 @@ cl_context CreateContext(
     cl_uint &numDevices)
 {
   cl_uint platformIdCount = 0;
-  CL_CHECK(clGetPlatformIDs (0, nullptr, &platformIdCount));
+  CheckError( clGetPlatformIDs (0, nullptr, &platformIdCount));
 
   std::vector<cl_platform_id> platformIds (platformIdCount);
-  CL_CHECK(clGetPlatformIDs (platformIdCount, platformIds.data (), nullptr));
+  CheckError( clGetPlatformIDs (platformIdCount, platformIds.data (), nullptr));
 
   cerr << "platformIdCount=" << platformIdCount << endl;
 
@@ -29,19 +29,19 @@ cl_context CreateContext(
     char buffer[10240];
     cerr << i << ":";
 
-    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, 10240, buffer, NULL));
+    CheckError( clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, 10240, buffer, NULL));
     cerr << " profile=" << buffer;
 
-    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_VERSION, 10240, buffer, NULL));
+    CheckError( clGetPlatformInfo(platformIds[i], CL_PLATFORM_VERSION, 10240, buffer, NULL));
     cerr << " version=" << buffer;
 
-    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, 10240, buffer, NULL));
+    CheckError( clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, 10240, buffer, NULL));
     cerr << " name=" << buffer;
 
-    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, 10240, buffer, NULL));
+    CheckError( clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, 10240, buffer, NULL));
     cerr << " vendor=" << buffer;
 
-    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, 10240, buffer, NULL));
+    CheckError( clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, 10240, buffer, NULL));
     cerr << " extension=" << buffer;
 
     DebugDevicesInfo(platformIds[i]);
@@ -49,8 +49,7 @@ cl_context CreateContext(
     cerr << endl;
   }
 
-  // CL_CHECK(clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 100, devices, &numDevices));
-  CL_CHECK(clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices, &numDevices));
+  CheckError( clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices, &numDevices));
 
   int err;
   cl_context ret = clCreateContext(NULL, 1, devices, &pfn_notify, NULL, &err);
