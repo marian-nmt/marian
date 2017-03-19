@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 #ifdef __APPLE__
     #include <OpenCL/opencl.h>
