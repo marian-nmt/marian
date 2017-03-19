@@ -17,7 +17,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 :Loader(name, config)
 {
   cerr << "opencl start" << endl;
-  CreateContext();
+  context_ = CreateContext(100);
 
   cerr << "HelloWorld:" << endl;
 
@@ -70,7 +70,7 @@ BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const
   return BestHypsBasePtr(obj);
 }
 
-void EncoderDecoderLoader::CreateContext()
+cl_context EncoderDecoderLoader::CreateContext(size_t maxDevices)
 {
   cl_uint platformIdCount = 0;
   CL_CHECK(clGetPlatformIDs (0, nullptr, &platformIdCount));
@@ -106,10 +106,10 @@ void EncoderDecoderLoader::CreateContext()
   }
 
   // CL_CHECK(clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 100, devices, &numDevices));
-  CL_CHECK(clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, 100, devices_, &numDevices_));
+  CL_CHECK(clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices_, &numDevices_));
 
   int err;
-  context_ = clCreateContext(NULL, 1, devices_, &pfn_notify, NULL, &err);
+  cl_context ret = clCreateContext(NULL, 1, devices_, &pfn_notify, NULL, &err);
 
   /*
   cl_context context = clCreateContextFromType(
@@ -119,11 +119,12 @@ void EncoderDecoderLoader::CreateContext()
       NULL,  // user data for callback
       NULL); // error code
   */
-  if (!context_) {
+  if (!ret) {
     printf("Error: Failed to create a compute context!\n");
     abort();
   }
 
+  return ret;
 }
 
 cl_program CreateProgram(const std::string& source,
