@@ -20,7 +20,12 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   CreateContext();
 
   cerr << "HelloWorld:" << endl;
-  ExecuteKernel("kernels/square.cl", context_, devices_[0]);
+  cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
+  ExecuteKernel(kernel, context_, devices_[0]);
+  ExecuteKernel(kernel, context_, devices_[0]);
+  ExecuteKernel(kernel, context_, devices_[0]);
+
+  ReleaseKernel(kernel);
 
   cerr << "HelloWorld2:" << endl;
   HelloWorld2();
@@ -48,7 +53,6 @@ void EncoderDecoderLoader::Load(const God &god)
 
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const
 {
-
   size_t d = deviceInfo.deviceId;
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
 

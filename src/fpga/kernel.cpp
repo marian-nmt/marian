@@ -7,7 +7,7 @@ using namespace std;
 namespace amunmt {
 namespace FPGA {
 
-int ExecuteKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device)
+cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device)
 {
   #define DATA_SIZE (1024)
   #define MAX_SOURCE_SIZE (0x100000)
@@ -21,7 +21,6 @@ int ExecuteKernel(const std::string &filePath, const cl_context &context, const 
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  cl_command_queue commands;          // compute command queue
   cl_program program;                 // compute program
   cl_kernel kernel;                   // compute kernel
 
@@ -36,15 +35,6 @@ int ExecuteKernel(const std::string &filePath, const cl_context &context, const 
   for(i = 0; i < count; i++)
       data[i] = rand() / (float)RAND_MAX;
 
-  // Create a command commands
-  //
-  commands = clCreateCommandQueue(context, device, 0, &err);
-  if (!commands)
-  {
-      printf("Error: Failed to create a command commands!\n");
-      return EXIT_FAILURE;
-  }
-
   // Create the compute program from the source buffer
   const char *fileName = filePath.c_str();
   //std::ifstream file(fileName);
@@ -54,8 +44,8 @@ int ExecuteKernel(const std::string &filePath, const cl_context &context, const 
 
   FILE *fp = fopen(fileName, "rb");
   if (!fp) {
-  		fprintf(stderr, "Failed to load kernel.\n");
-  		exit(1);
+      fprintf(stderr, "Failed to load kernel.\n");
+      exit(1);
   }
   char *source_str = (char *)malloc(MAX_SOURCE_SIZE);
   size_t source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
@@ -66,7 +56,7 @@ int ExecuteKernel(const std::string &filePath, const cl_context &context, const 
   if (!program)
   {
       printf("Error: Failed to create compute program!\n");
-      return EXIT_FAILURE;
+      exit(1);
   }
 
   // Build the program executable
@@ -90,6 +80,50 @@ int ExecuteKernel(const std::string &filePath, const cl_context &context, const 
   {
       printf("Error: Failed to create compute kernel!\n");
       exit(1);
+  }
+
+  return kernel;
+}
+
+void ReleaseKernel(cl_kernel &kernel)
+{
+  clReleaseKernel(kernel);
+}
+
+int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device)
+{
+  #define DATA_SIZE (1024)
+  #define MAX_SOURCE_SIZE (0x100000)
+
+  int err;                            // error code returned from api calls
+
+  float data[DATA_SIZE];              // original data set given to device
+  float results[DATA_SIZE];           // results returned from device
+  unsigned int correct;               // number of correct results returned
+
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  cl_command_queue commands;          // compute command queue
+
+  cl_mem input;                       // device memory used for the input array
+  cl_mem output;                      // device memory used for the output array
+
+  // Fill our data set with random float values
+
+  //
+  int i = 0;
+  unsigned int count = DATA_SIZE;
+  for(i = 0; i < count; i++)
+      data[i] = rand() / (float)RAND_MAX;
+
+  // Create a command commands
+  //
+  commands = clCreateCommandQueue(context, device, 0, &err);
+  if (!commands)
+  {
+      printf("Error: Failed to create a command commands!\n");
+      return EXIT_FAILURE;
   }
 
   // Create the input and output arrays in device memory for our calculation
@@ -173,8 +207,6 @@ int ExecuteKernel(const std::string &filePath, const cl_context &context, const 
   //
   clReleaseMemObject(input);
   clReleaseMemObject(output);
-  clReleaseProgram(program);
-  clReleaseKernel(kernel);
   clReleaseCommandQueue(commands);
   return 0;
 }
