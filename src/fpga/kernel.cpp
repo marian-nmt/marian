@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include "kernel.h"
 #include "types.h"
 
@@ -34,15 +35,13 @@ cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, c
   //cerr << "source_str=" << source_str << endl;
 
   program = clCreateProgramWithSource(context, 1, (const char **) & source_str, NULL, &err);
-  if (!program)
-  {
-      printf("Error: Failed to create compute program!\n");
-      exit(1);
-  }
+  CheckError(err);
+  assert(program);
 
   // Build the program executable
   //
-  err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+  CheckError( clBuildProgram(program, 0, NULL, NULL, NULL, NULL) );
+  /*
   if (err != CL_SUCCESS)
   {
       size_t len;
@@ -53,15 +52,13 @@ cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, c
       printf("%s\n", buffer);
       exit(1);
   }
+  */
 
   // Create the compute kernel in the program we wish to run
   //
   kernel = clCreateKernel(program, "square", &err);
-  if (!kernel || err != CL_SUCCESS)
-  {
-      printf("Error: Failed to create compute kernel!\n");
-      exit(1);
-  }
+  CheckError(err);
+  assert(kernel);
 
   return kernel;
 }
@@ -73,11 +70,8 @@ cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_i
   // Create a command commands
   //
   commands = clCreateCommandQueue(context, device, 0, &err);
-  if (!commands)
-  {
-      printf("Error: Failed to create a command commands!\n");
-      exit(1);
-  }
+  CheckError(err);
+  assert(commands);
 
   return commands;
 }
@@ -108,67 +102,40 @@ int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_
 
   // Create the input and output arrays in device memory for our calculation
   //
-  input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, NULL);
-  output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, NULL);
-  if (!input || !output)
-  {
-      printf("Error: Failed to allocate device memory!\n");
-      exit(1);
-  }
+  input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, &err);
+  CheckError(err);
+  assert(input);
+
+  output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, &err);
+  CheckError(err);
+  assert(output);
 
   // Write our data set into the input array in device memory
   //
-  err = clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(float) * count, data, 0, NULL, NULL);
-  if (err != CL_SUCCESS)
-  {
-      printf("Error: Failed to write to source array!\n");
-      exit(1);
-  }
+  CheckError( clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(float) * count, data, 0, NULL, NULL) );
 
   // Set the arguments to our compute kernel
-  //
-  err = 0;
-  err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input);
-  err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &output);
-  err |= clSetKernelArg(kernel, 2, sizeof(unsigned int), &count);
-  if (err != CL_SUCCESS)
-  {
-      printf("Error: Failed to set kernel arguments! %d\n", err);
-      exit(1);
-  }
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &input) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &count) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  err = clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL);
-  if (err != CL_SUCCESS)
-  {
-      printf("Error: Failed to retrieve kernel work group info! %d\n", err);
-      exit(1);
-  }
+  CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
   // Execute the kernel over the entire range of our 1d input data set
   // using the maximum number of work group items for this device
   //
   global = count;
-  err = clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL);
-  if (err)
-  {
-      printf("Error: Failed to execute kernel!\n");
-      return EXIT_FAILURE;
-  }
+  CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
 
   // Wait for the command commands to get serviced before reading back results
   //
-  clFinish(commands);
+  CheckError( clFinish(commands) );
 
   // Read back the results from the device to verify the output
   //
-  err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float) * count, results, 0, NULL, NULL );
-  if (err != CL_SUCCESS)
-  {
-      printf("Error: Failed to read output array! %d\n", err);
-      exit(1);
-  }
+  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float) * count, results, 0, NULL, NULL ) );
 
   // Validate our results
   //
@@ -185,8 +152,9 @@ int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_
 
   // Shutdown and cleanup
   //
-  clReleaseMemObject(input);
-  clReleaseMemObject(output);
+  CheckError( clReleaseMemObject(input) );
+  CheckError( clReleaseMemObject(output) );
+
   return 0;
 }
 
