@@ -1,5 +1,5 @@
 #include <iostream>
-#include "hello_world.h"
+#include "kernel.h"
 #include "types.h"
 
 using namespace std;
@@ -7,7 +7,7 @@ using namespace std;
 namespace amunmt {
 namespace FPGA {
 
-int HelloWorld(const std::string &filePath, const cl_context &context, const cl_device_id &device)
+int ExecuteKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device)
 {
   #define DATA_SIZE (1024)
   #define MAX_SOURCE_SIZE (0x100000)
