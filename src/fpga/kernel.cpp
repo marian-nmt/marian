@@ -85,12 +85,23 @@ cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, c
   return kernel;
 }
 
-void ReleaseKernel(cl_kernel &kernel)
+cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_id &device)
 {
-  clReleaseKernel(kernel);
+  int err;                            // error code returned from api calls
+  cl_command_queue commands;          // compute command queue
+  // Create a command commands
+  //
+  commands = clCreateCommandQueue(context, device, 0, &err);
+  if (!commands)
+  {
+      printf("Error: Failed to create a command commands!\n");
+      exit(1);
+  }
+
+  return commands;
 }
 
-int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device)
+int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
 {
   #define DATA_SIZE (1024)
   #define MAX_SOURCE_SIZE (0x100000)
@@ -104,8 +115,6 @@ int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  cl_command_queue commands;          // compute command queue
-
   cl_mem input;                       // device memory used for the input array
   cl_mem output;                      // device memory used for the output array
 
@@ -116,15 +125,6 @@ int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_
   unsigned int count = DATA_SIZE;
   for(i = 0; i < count; i++)
       data[i] = rand() / (float)RAND_MAX;
-
-  // Create a command commands
-  //
-  commands = clCreateCommandQueue(context, device, 0, &err);
-  if (!commands)
-  {
-      printf("Error: Failed to create a command commands!\n");
-      return EXIT_FAILURE;
-  }
 
   // Create the input and output arrays in device memory for our calculation
   //
@@ -207,7 +207,6 @@ int ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_
   //
   clReleaseMemObject(input);
   clReleaseMemObject(output);
-  clReleaseCommandQueue(commands);
   return 0;
 }
 

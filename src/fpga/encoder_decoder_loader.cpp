@@ -20,12 +20,15 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   CreateContext();
 
   cerr << "HelloWorld:" << endl;
-  cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
-  ExecuteKernel(kernel, context_, devices_[0]);
-  ExecuteKernel(kernel, context_, devices_[0]);
-  ExecuteKernel(kernel, context_, devices_[0]);
 
-  ReleaseKernel(kernel);
+  cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
+  cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
+  ExecuteKernel(kernel, context_, devices_[0], commands);
+  ExecuteKernel(kernel, context_, devices_[0], commands);
+  ExecuteKernel(kernel, context_, devices_[0], commands);
+
+  clReleaseCommandQueue(commands);
+  clReleaseKernel(kernel);
 
   cerr << "HelloWorld2:" << endl;
   HelloWorld2();
