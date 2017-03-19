@@ -5,6 +5,7 @@
 #include "best_hyps.h"
 #include "model.h"
 #include "common/god.h"
+#include "hello_world.h"
 
 using namespace std;
 
@@ -19,7 +20,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   CreateContext();
 
   cerr << "HelloWorld:" << endl;
-  HelloWorld("kernels/square.cl");
+  HelloWorld("kernels/square.cl", context_, devices_[0]);
 
   cerr << "HelloWorld2:" << endl;
   HelloWorld2();

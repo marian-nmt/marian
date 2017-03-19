@@ -1,11 +1,13 @@
-#include "encoder_decoder_loader.h"
+#include <iostream>
+#include "hello_world.h"
+#include "types.h"
 
 using namespace std;
 
 namespace amunmt {
 namespace FPGA {
 
-int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
+int HelloWorld(const std::string &filePath, const cl_context &context, const cl_device_id &device)
 {
   #define DATA_SIZE (1024)
   #define MAX_SOURCE_SIZE (0x100000)
@@ -36,7 +38,7 @@ int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
 
   // Create a command commands
   //
-  commands = clCreateCommandQueue(context_, devices_[0], 0, &err);
+  commands = clCreateCommandQueue(context, device, 0, &err);
   if (!commands)
   {
       printf("Error: Failed to create a command commands!\n");
@@ -60,7 +62,7 @@ int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
   fclose(fp);
   //cerr << "source_str=" << source_str << endl;
 
-  program = clCreateProgramWithSource(context_, 1, (const char **) & source_str, NULL, &err);
+  program = clCreateProgramWithSource(context, 1, (const char **) & source_str, NULL, &err);
   if (!program)
   {
       printf("Error: Failed to create compute program!\n");
@@ -76,7 +78,7 @@ int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
       char buffer[2048];
 
       printf("Error: Failed to build program executable!\n");
-      clGetProgramBuildInfo(program, devices_[0], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
+      clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
       printf("%s\n", buffer);
       exit(1);
   }
@@ -92,8 +94,8 @@ int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
 
   // Create the input and output arrays in device memory for our calculation
   //
-  input = clCreateBuffer(context_,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, NULL);
-  output = clCreateBuffer(context_, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, NULL);
+  input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, NULL);
+  output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, NULL);
   if (!input || !output)
   {
       printf("Error: Failed to allocate device memory!\n");
@@ -123,7 +125,7 @@ int EncoderDecoderLoader::HelloWorld(const std::string &filePath)
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  err = clGetKernelWorkGroupInfo(kernel, devices_[0], CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL);
+  err = clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL);
   if (err != CL_SUCCESS)
   {
       printf("Error: Failed to retrieve kernel work group info! %d\n", err);
