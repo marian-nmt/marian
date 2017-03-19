@@ -76,7 +76,7 @@ cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_i
   return commands;
 }
 
-void ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
+void HelloWorld(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
 {
   #define DATA_SIZE (1024)
 
@@ -127,6 +127,10 @@ void ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device
   // using the maximum number of work group items for this device
   //
   global = count;
+
+  cerr << "local=" << local << endl;
+  cerr << "global=" << global << endl;
+
   CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
 
   // Wait for the command commands to get serviced before reading back results
@@ -154,11 +158,6 @@ void ExecuteKernel(cl_kernel &kernel, const cl_context &context, const cl_device
   //
   CheckError( clReleaseMemObject(input) );
   CheckError( clReleaseMemObject(output) );
-
-}
-
-void HelloWorld(cl_kernel &kernel, const cl_context &context, const cl_device_id &device, cl_command_queue &commands)
-{
 
 }
 
