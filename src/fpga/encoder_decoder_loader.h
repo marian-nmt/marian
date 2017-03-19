@@ -30,7 +30,8 @@ protected:
 
   cl_context CreateContext(
       size_t maxDevices,
-      cl_device_id *devices);
+      cl_device_id *devices,
+      cl_uint &numDevices);
 
   //int HelloWorld(const std::string &filePath);
   int HelloWorld2();
