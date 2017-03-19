@@ -27,6 +27,8 @@ add_library(cpumode OBJECT
   fpga/matrix.cpp
   fpga/model.cpp
   fpga/npz_converter.cpp
+  fpga/hello_world.cpp
+  fpga/hello_world2.cpp
 )
 
 add_library(libcommon OBJECT
