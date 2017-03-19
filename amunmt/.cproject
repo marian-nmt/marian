@@ -17,7 +17,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.debug">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.debug">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug.358202666" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.719609971" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
@@ -57,10 +57,13 @@
 									<listOptionValue builtIn="false" value="z"/>
 									<listOptionValue builtIn="false" value="cuda"/>
 									<listOptionValue builtIn="false" value="cublas"/>
+									<listOptionValue builtIn="false" value="OpenCL"/>
 								</option>
 								<option id="nvcc.linker.option.paths.383556769" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/boost/lib64&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/local/cuda/lib"/>
 								</option>
+								<option id="nvcc.linker.option.linkgl.953669480" name="Link with OpenGL libraries" superClass="nvcc.linker.option.linkgl" value="false" valueType="boolean"/>
 								<inputType id="nvcc.linker.input.1752425947" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -73,9 +76,9 @@
 						</toolChain>
 					</folderInfo>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.769555163" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.746865269" name="language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/language_model.h" toolsToInvoke=""/>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.14115701" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/kenlm.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.231195644" name="class_language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/class_language_model.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.14115701" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/kenlm.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.746865269" name="language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/language_model.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="src/cpu|src/half|src/gpu/decoder/language_model.h|src/gpu/decoder/language_model.cu|src/gpu/decoder/kenlm.h|src/gpu/decoder/kenlm.cpp|src/gpu/decoder/class_language_model.h|src/gpu/decoder/ape_penalty.h|src/gpu/decoder/ape_penalty.cu|src/plugin|src/python|src/3rd_party/spdlog/fmt/bundled/ostream.cc|src/3rd_party/spdlog/fmt/bundled/format.cc|src/3rd_party/spdlog/details/format.cc|src/3rd_party/fast_align|src/3rd_party/extract_lex|src/3rd_party/blaze|plugin/nbest.h|plugin/nbest.cu|python|gpu/decoder/ape_penalty.h|gpu/decoder/ape_penalty.cu|gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -107,7 +110,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.783657058" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.783657058" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.release.783657058." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.seven_five.exe.release.984760345" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.ide.toolchain.seven_five.exe.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1014548176" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
@@ -162,10 +165,10 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Release">
+		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/amunmt"/>
 		</configuration>
-		<configuration configurationName="Debug">
+		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/amunmt"/>
 		</configuration>
 	</storageModule>

@@ -17,7 +17,7 @@ const char *KernelSource = "\n" \
 "   __global float* output,                                             \n" \
 "   const unsigned int count)                                           \n" \
 "{                                                                      \n" \
-"   int i = get_global_id(0);                                           \n" \
+"   unsigned int i = get_global_id(0);                                           \n" \
 "   if(i < count)                                                       \n" \
 "       output[i] = input[i] * input[i];                                \n" \
 "}                                                                      \n" \
@@ -27,9 +27,10 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)
 :Loader(name, config)
 {
+  cerr << "opencl start" << endl;
   CreateContext();
   HelloWorld2();
-
+  cerr << "opencl end" << endl;
 }
 
 
@@ -288,7 +289,7 @@ int EncoderDecoderLoader::HelloWorld2()
 
   // Print a brief summary detailing the results
   //
-  printf("Computed '%d/%d' correct values!\n", correct, count);
+  cerr << "Computed " << correct << "/" << count << " correct values!\n";
 
   // Shutdown and cleanup
   //
@@ -297,7 +298,6 @@ int EncoderDecoderLoader::HelloWorld2()
   clReleaseProgram(program);
   clReleaseKernel(kernel);
   clReleaseCommandQueue(commands);
-
   return 0;
 }
 
