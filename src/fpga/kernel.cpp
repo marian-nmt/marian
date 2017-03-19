@@ -53,6 +53,7 @@ cl_context CreateContext(
 
   int err;
   cl_context ret = clCreateContext(NULL, 1, devices, &pfn_notify, NULL, &err);
+  CheckError(err);
 
   /*
   cl_context context = clCreateContextFromType(
@@ -92,7 +93,6 @@ cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, c
   string str = LoadKernel(filePath);
   const char *arr[1] = {str.c_str()};
   program = clCreateProgramWithSource(context, 1, (const char **) arr, NULL, &err);
-
   CheckError(err);
   assert(program);
 
