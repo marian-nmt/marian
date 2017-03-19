@@ -1,3 +1,4 @@
+#include <vector>
 #include <fstream>
 #include <iostream>
 #include <cassert>
@@ -8,6 +9,117 @@ using namespace std;
 
 namespace amunmt {
 namespace FPGA {
+
+void DebugDeviceInfo(cl_device_id id)
+{
+  char buffer[10240];
+  cl_uint buf_uint;
+  cl_ulong buf_ulong;
+  cerr << id << ":";
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL));
+  cerr << " extension=" << buffer;
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DEVICE_VENDOR, sizeof(buffer), buffer, NULL));
+  cerr << " vendor=" << buffer;
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DEVICE_VERSION, sizeof(buffer), buffer, NULL));
+  cerr << " version=" << buffer;
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DRIVER_VERSION, sizeof(buffer), buffer, NULL));
+  cerr << " driver version=" << buffer;
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(buf_uint), &buf_uint, NULL));
+  cerr << " compute units=" << buf_uint;
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(buf_uint), &buf_uint, NULL));
+  cerr << " clock freq=" << buf_uint;
+
+  CL_CHECK(clGetDeviceInfo(id, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(buf_ulong), &buf_ulong, NULL));
+  cerr << " global mem=" << buf_ulong;
+
+  cerr << endl;
+
+}
+
+void DebugDevicesInfo(cl_device_id *devices, cl_uint numDevices)
+{
+  cerr << "numDevices=" << numDevices << endl;
+
+  for (int i=0; i<numDevices; i++)
+  {
+    DebugDeviceInfo(devices[i]);
+  }
+}
+
+void DebugDevicesInfo(cl_platform_id id)
+{
+  cl_device_id devices[100];
+  cl_uint numDevices = 0;
+  // CL_CHECK(clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 100, devices, &numDevices));
+  CL_CHECK(clGetDeviceIDs(id, CL_DEVICE_TYPE_GPU, 100, devices, &numDevices));
+  DebugDevicesInfo(devices, numDevices);
+}
+
+cl_context CreateContext(
+    size_t maxDevices,
+    cl_device_id *devices,
+    cl_uint &numDevices)
+{
+  cl_uint platformIdCount = 0;
+  CL_CHECK(clGetPlatformIDs (0, nullptr, &platformIdCount));
+
+  std::vector<cl_platform_id> platformIds (platformIdCount);
+  CL_CHECK(clGetPlatformIDs (platformIdCount, platformIds.data (), nullptr));
+
+  cerr << "platformIdCount=" << platformIdCount << endl;
+
+  for (int i=0; i<platformIdCount; i++)
+  {
+    char buffer[10240];
+    cerr << i << ":";
+
+    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, 10240, buffer, NULL));
+    cerr << " profile=" << buffer;
+
+    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_VERSION, 10240, buffer, NULL));
+    cerr << " version=" << buffer;
+
+    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, 10240, buffer, NULL));
+    cerr << " name=" << buffer;
+
+    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, 10240, buffer, NULL));
+    cerr << " vendor=" << buffer;
+
+    CL_CHECK(clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, 10240, buffer, NULL));
+    cerr << " extension=" << buffer;
+
+    DebugDevicesInfo(platformIds[i]);
+
+    cerr << endl;
+  }
+
+  // CL_CHECK(clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 100, devices, &numDevices));
+  CL_CHECK(clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices, &numDevices));
+
+  int err;
+  cl_context ret = clCreateContext(NULL, 1, devices, &pfn_notify, NULL, &err);
+
+  /*
+  cl_context context = clCreateContextFromType(
+      0,      // platform ID
+      CL_DEVICE_TYPE_GPU, // ask for a GPU
+      NULL,  // error callback
+      NULL,  // user data for callback
+      NULL); // error code
+  */
+  if (!ret) {
+    printf("Error: Failed to create a compute context!\n");
+    abort();
+  }
+
+  return ret;
+}
 
 std::string LoadKernel(const std::string &filePath)
 {
