@@ -150,6 +150,10 @@ namespace marian {
         return result;
       }
 
+      virtual bool lowerIsBetter() {
+        return false;
+      }
+
       virtual float validate(Ptr<ExpressionGraph> graph) {
         using namespace data;
         auto model = options_->get<std::string>("model");
