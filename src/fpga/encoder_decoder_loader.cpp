@@ -19,19 +19,23 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   cerr << "opencl start" << endl;
   context_ = CreateContext(100, devices_, numDevices_);
 
-  cerr << "HelloWorld:" << endl;
+  cerr << "EncoderDecoderLoader1:" << endl;
 
   cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
   cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
 
+  cerr << "EncoderDecoderLoader2:" << endl;
   HelloWorld(kernel, context_, devices_[0], commands, 1024);
-  HelloWorld(kernel, context_, devices_[0], commands, 768);
+  cerr << "EncoderDecoderLoader3:" << endl;
+  HelloWorld(kernel, context_, devices_[0], commands, 2048);
+  cerr << "EncoderDecoderLoader4:" << endl;
 
 
   clReleaseCommandQueue(commands);
+  cerr << "EncoderDecoderLoader5:" << endl;
   clReleaseKernel(kernel);
 
-  cerr << "HelloWorld2:" << endl;
+  cerr << "EncoderDecoderLoader6:" << endl;
   HelloWorld2();
 
   cerr << "opencl end" << endl;

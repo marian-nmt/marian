@@ -154,8 +154,6 @@ void HelloWorld(
   cl_mem output;                      // device memory used for the output array
 
   // Fill our data set with random float values
-
-  //
   int i = 0;
   unsigned int count = dataSize;
   for(i = 0; i < count; i++)
@@ -189,6 +187,8 @@ void HelloWorld(
   //
   global = count;
 
+  cerr << "dataSize=" << dataSize << endl;
+  cerr << "count=" << count << endl;
   cerr << "local=" << local << endl;
   cerr << "global=" << global << endl;
 
