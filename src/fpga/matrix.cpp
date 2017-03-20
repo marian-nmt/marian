@@ -41,6 +41,15 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 
 }
 
+float Matrix::Sum()
+{
+  /*
+  int err;
+  cl_mem input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * size(), NULL, &err);
+  CheckError(err);
+  assert(input);
+  */
+}
 
 std::string Matrix::Debug(bool detailed) const
 {
