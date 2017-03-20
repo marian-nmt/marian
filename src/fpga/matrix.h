@@ -26,6 +26,7 @@ public:
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
 
+  virtual std::string Debug(bool detailed = false) const;
 
 protected:
   const cl_context &context_;

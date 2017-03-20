@@ -6,6 +6,12 @@ using namespace std;
 namespace amunmt {
 namespace FPGA {
 
+NpzConverter::NpzConverter(const std::string& file)
+  : model_(cnpy::npz_load(file))
+{
+  cerr << "file=" << file << endl;
+}
+
 mblas::Matrix NpzConverter::GetMatrix(
     const cl_context &context,
     const std::string& key,
@@ -22,6 +28,8 @@ mblas::Matrix NpzConverter::GetMatrix(
     if (transpose) {
       // TODO
     }
+
+    cerr << "key=" << key << " " << matrix.Debug(true) << endl;
 
     return std::move(matrix);
   }

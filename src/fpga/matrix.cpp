@@ -41,6 +41,20 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 
 }
 
+
+std::string Matrix::Debug(bool detailed) const
+{
+  std::stringstream strm;
+  strm << BaseMatrix::Debug(detailed) << " ";
+
+  if (detailed) {
+    //float sum = Sum(data(), size());
+    //strm << "size=" << size() << " sum=" << sum << std::flush;
+  }
+
+  return strm.str();
+}
+
 }
 }
 }

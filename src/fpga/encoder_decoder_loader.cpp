@@ -22,6 +22,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
   cerr << "EncoderDecoderLoader1:" << endl;
 
+  /*
   cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
   cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
 
@@ -37,6 +38,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   clReleaseKernel(kernel);
 
   cerr << "opencl end" << endl;
+  */
 }
 
 
@@ -49,6 +51,8 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
 void EncoderDecoderLoader::Load(const God &god)
 {
   std::string path = Get<std::string>("path");
+  cerr << "path=" << path << endl;
+
   std::vector<size_t> devices = god.Get<std::vector<size_t>>("devices");
 
   size_t d = 0;

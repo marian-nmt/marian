@@ -37,10 +37,7 @@ private:
   };
 
 public:
-  NpzConverter(const std::string& file)
-    : model_(cnpy::npz_load(file))
-  {
-  }
+  NpzConverter(const std::string& file);
 
   ~NpzConverter() {
       model_.destruct();
