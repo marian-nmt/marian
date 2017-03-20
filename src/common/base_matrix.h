@@ -23,6 +23,8 @@ class BaseMatrix {
 
     virtual size_t dim(size_t i) const = 0;
 
+    virtual size_t size() const;
+
     virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) = 0;
 
     virtual std::string Debug(bool detailed = false) const;

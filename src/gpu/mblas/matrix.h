@@ -172,11 +172,6 @@ class TMatrix : public BaseMatrix {
       return data_;
     }
 
-    size_t size() const {
-      // return data_.size();
-      return cols_ * rows_ * beam_ * batches_;
-    }
-
     void swap(TMatrix &other)
     {
       std::swap(rows_, other.rows_);
