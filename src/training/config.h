@@ -4,6 +4,7 @@
 
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
+#include "common/file_stream.h"
 
 namespace marian {
 
@@ -46,11 +47,21 @@ class Config {
     void log();
     void validate(bool translate=false) const;
 
+    void OutputRec(const YAML::Node node, YAML::Emitter& out) const;
+
     template <class OStream>
     friend OStream& operator<<(OStream& out, const Config& config) {
-      out << config.config_;
+      YAML::Emitter outYaml;
+      config.OutputRec(config.get(), outYaml);
+      out << outYaml.c_str();
       return out;
     }
+
+    void save(const std::string& name) {
+      OutputFileStream out(name);
+      (std::ostream&)out << *this;
+    }
+
 
   private:
     std::string inputPath;

@@ -236,6 +236,7 @@ class AsyncGraphGroup : public GraphGroup {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model");
         builders_[0]->save(graphs_[0], name);
+        options_->save(name + ".yml");
         reporter_->save(name);
       }
       else {
@@ -246,6 +247,7 @@ class AsyncGraphGroup : public GraphGroup {
         builders_[0]->save(graphs_[0], nameOverwrite);
 
         builders_[0]->save(graphs_[0], name);
+        options_->save(name + ".yml");
         reporter_->save(name);
       }
     }

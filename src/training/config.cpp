@@ -98,7 +98,7 @@ void Config::validate(bool translate) const {
   }
 }
 
-void OutputRec(const YAML::Node node, YAML::Emitter& out) {
+void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
   // std::set<std::string> flow = { "devices" };
   std::set<std::string> sorter;
   switch (node.Type()) {
