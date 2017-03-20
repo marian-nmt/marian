@@ -43,11 +43,22 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 
 float Matrix::Sum()
 {
-  /*
   int err;
-  cl_mem input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * size(), NULL, &err);
+  /*
+  cl_mem output = clCreateBuffer(context_, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
-  assert(input);
+  assert(output);
+
+  // create kernel
+  cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
+  cl_kernel kernel = CreateKernel("kernels/sum.cl", context_, devices_[0]);
+
+  // Set the arguments to our compute kernel
+  unsigned int count = size();
+
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem_) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &count) );
   */
 }
 
