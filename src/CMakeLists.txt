@@ -28,8 +28,8 @@ add_library(cpumode OBJECT
   fpga/model.cpp
   fpga/npz_converter.cpp
   fpga/kernel.cpp
-  fpga/hello_world2.cpp
   fpga/debug-devices.cpp
+  fpga/hello_world.cpp
   
 )
 

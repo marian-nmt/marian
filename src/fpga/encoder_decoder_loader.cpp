@@ -6,6 +6,7 @@
 #include "model.h"
 #include "common/god.h"
 #include "kernel.h"
+#include "hello_world.h"
 
 using namespace std;
 
@@ -34,9 +35,6 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   clReleaseCommandQueue(commands);
   cerr << "EncoderDecoderLoader5:" << endl;
   clReleaseKernel(kernel);
-
-  cerr << "EncoderDecoderLoader6:" << endl;
-  HelloWorld2();
 
   cerr << "opencl end" << endl;
 }

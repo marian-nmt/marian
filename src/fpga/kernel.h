@@ -13,12 +13,6 @@ cl_context CreateContext(
 cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device);
 cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_id &device);
 
-void HelloWorld(
-    cl_kernel &kernel,
-    const cl_context &context,
-    const cl_device_id &device,
-    const cl_command_queue &commands,
-    size_t dataSize);
 
 
 
