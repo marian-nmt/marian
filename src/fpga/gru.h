@@ -17,7 +17,7 @@ public:
   }
 
   size_t GetStateLength() const {
-    return w_.U_.Rows();
+    return w_.U_.dim(0);
   }
 
 protected:

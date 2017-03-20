@@ -17,7 +17,7 @@ Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const std::vector<size_t>& indeces)
 {
-  Out.Resize(indeces.size(), In.Cols());
+  Out.Resize(indeces.size(), In.dim(1));
   //CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }

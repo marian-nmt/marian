@@ -21,14 +21,14 @@ class Encoder {
     {
       std::vector<size_t> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
-        if (words[i] < w_.E_.Rows()) {
+        if (words[i] < w_.E_.dim(0)) {
           knownWords[i] = words[i];
         }
       }
 
       std::vector<size_t> dKnownWords(knownWords);
 
-      Row.Resize(words.size(), w_.E_.Cols());
+      Row.Resize(words.size(), w_.E_.dim(1));
       mblas::Assemble(Row, w_.E_, dKnownWords);
 
     }

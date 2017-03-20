@@ -12,9 +12,6 @@ public:
   Matrix(const cl_context &context, size_t rows, size_t cols, float val);
   Matrix(const cl_context &context, size_t rows, size_t cols, float *val);
 
-  virtual size_t Rows() const;
-  virtual size_t Cols() const;
-
   virtual size_t dim(size_t i) const
   {
     switch (i) {

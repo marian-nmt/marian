@@ -31,17 +31,6 @@ Matrix::Matrix(const cl_context &context, size_t rows, size_t cols, float *val)
   mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * rows * cols, val, NULL);
 }
 
-
-size_t Matrix::Rows() const
-{
-  return rows_;
-}
-
-size_t Matrix::Cols() const
-{
-  return cols_;
-}
-
 void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 {
   rows_ = rows;

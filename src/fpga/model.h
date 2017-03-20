@@ -27,7 +27,7 @@ struct Weights {
       U_(model.GetMatrix(context, "encoder_U")),
       Wx_(model.GetMatrix(context, "encoder_Wx")),
       Bx1_(model.GetMatrix(context, "encoder_bx", true)),
-      Bx2_(context, Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(context, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
       Ux_(model.GetMatrix(context, "encoder_Ux"))
     { }
 
@@ -47,7 +47,7 @@ struct Weights {
       U_(model.GetMatrix(context, "encoder_r_U")),
       Wx_(model.GetMatrix(context, "encoder_r_Wx")),
       Bx1_(model.GetMatrix(context, "encoder_r_bx", true)),
-      Bx2_(context, Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(context, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
       Ux_(model.GetMatrix(context, "encoder_r_Ux"))
     {}
 
@@ -86,7 +86,7 @@ struct Weights {
       U_(model.GetMatrix(context, "decoder_U")),
       Wx_(model.GetMatrix(context, "decoder_Wx")),
       Bx1_(model.GetMatrix(context, "decoder_bx", true)),
-      Bx2_(context, Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(context, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
       Ux_(model.GetMatrix(context, "decoder_Ux"))
     {}
 
@@ -106,7 +106,7 @@ struct Weights {
       U_(model.GetMatrix(context, "decoder_U_nl")),
       Wx_(model.GetMatrix(context, "decoder_Wcx")),
       Bx2_(model.GetMatrix(context, "decoder_bx_nl", true)),
-      Bx1_(context, Bx2_.Rows(), Bx2_.Cols(), 0.0f),
+      Bx1_(context, Bx2_.dim(0), Bx2_.dim(1), 0.0f),
       Ux_(model.GetMatrix(context, "decoder_Ux_nl"))
     {}
 
