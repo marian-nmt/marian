@@ -244,7 +244,7 @@ class AsyncGraphGroup : public GraphGroup {
         nameOverwrite.replace(name.size() - 4, 4,
           ".iter" + std::to_string(reporter_->batches) + ".npz");
         builders_[0]->save(graphs_[0], nameOverwrite);
-        reporter_->save(nameOverwrite);
+
         builders_[0]->save(graphs_[0], name);
         reporter_->save(name);
       }
