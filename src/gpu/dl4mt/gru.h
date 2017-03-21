@@ -104,9 +104,15 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      // const size_t cols = GetStateLength();
       Prod(RUH_, Context, WWx_);
+      if (w_.Gamma_1_) {
+        Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);
+      }
+
       Prod(Temp_, State, UUx_);
+      if (w_.Gamma_2_) {
+        Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
+      }
 
       ElementwiseOps(NextState, State, RUH_, Temp_);
     }

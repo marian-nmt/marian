@@ -73,8 +73,7 @@ class Encoder {
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
-            }
-            else {
+            } else {
               mblas::PasteRows(Context, State_, i, 0, n);
             }
 
@@ -88,11 +87,8 @@ class Encoder {
         }
 
       private:
-        // Model matrices
         const GRU<Weights> gru_;
-
         mblas::Matrix State_;
-
         RNN(const RNN&) = delete;
     };
 

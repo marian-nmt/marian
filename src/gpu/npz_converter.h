@@ -64,9 +64,6 @@ class NpzConverter {
         matrix.Resize(np.size1(), np.size2());
         mblas::copy(np.data(), np.size(), matrix.data(), cudaMemcpyHostToDevice);
       }
-      else {
-        std::cerr << "Missing " << key << std::endl;
-      }
       return std::move(matrix);
     }
 
