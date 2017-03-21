@@ -189,9 +189,9 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
 void Config::addOptionsTraining(po::options_description& desc) {
   po::options_description training("Training options");
   training.add_options()
-    ("overwrite", po::value<bool>()->default_value(false),
+    ("overwrite", po::value<bool>()->zero_tokens()->default_value(false),
       "Overwrite model with following checkpoints")
-    ("no-reload", po::value<bool>()->default_value(false),
+    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
       "Do not load existing model specified in --model arg")
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
@@ -212,7 +212,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")
-    ("device,d", po::value<std::vector<int>>()
+    ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
@@ -263,7 +263,7 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --inputs.")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
-    ("device,d", po::value<std::vector<int>>()
+    ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for translating.")
@@ -314,6 +314,11 @@ void Config::addOptions(int argc, char** argv,
   std::string configPath;
   if(vm_.count("config")) {
     configPath = vm_["config"].as<std::string>();
+    config_ = YAML::Load(InputFileStream(configPath));
+  }
+  else if(boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml") &&
+                                    !vm_["no-reload"].as<bool>()) {
+    configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
   }
 
@@ -382,7 +387,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);
-  SET_OPTION("device", std::vector<int>);
+  SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
   SET_OPTION("max-length", size_t);

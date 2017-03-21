@@ -170,7 +170,7 @@ namespace marian {
         using namespace data;
         auto model = options_->get<std::string>("model");
 
-        builder_->save(graph, model + ".dev.npz");
+        builder_->save(graph, model + ".dev.npz", true);
 
         UTIL_THROW_IF2(!options_->has("valid-script-path"),
                        "valid-script metric but no script given");

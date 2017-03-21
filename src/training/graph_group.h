@@ -202,7 +202,7 @@ class AsyncGraphGroup : public GraphGroup {
 
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
-       devices_{options_->get<std::vector<size_t>>("device")},
+       devices_{options_->get<std::vector<size_t>>("devices")},
        pool_{devices_.size(), devices_.size()},
        shardSync_{devices_.size()} {
 
@@ -235,8 +235,7 @@ class AsyncGraphGroup : public GraphGroup {
     void save() {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model");
-        builders_[0]->save(graphs_[0], name);
-        options_->save(name + ".yml");
+        builders_[0]->save(graphs_[0], name, true);
         reporter_->save(name);
       }
       else {
@@ -246,8 +245,7 @@ class AsyncGraphGroup : public GraphGroup {
           ".iter" + std::to_string(reporter_->batches) + ".npz");
         builders_[0]->save(graphs_[0], nameOverwrite);
 
-        builders_[0]->save(graphs_[0], name);
-        options_->save(name + ".yml");
+        builders_[0]->save(graphs_[0], name, true);
         reporter_->save(name);
       }
     }
@@ -355,7 +353,7 @@ class SyncGraphGroup : public GraphGroup {
      : GraphGroup(options),
        builder_{New<Builder>(options_)} {
 
-      auto devices = options_->get<std::vector<size_t>>("device");
+      auto devices = options_->get<std::vector<size_t>>("devices");
       size_t workers = devices.size();
 
       for(auto device : devices) {
