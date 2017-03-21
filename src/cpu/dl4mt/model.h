@@ -31,6 +31,8 @@ struct Weights {
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Ux_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -40,6 +42,7 @@ struct Weights {
 
     const mblas::Matrix Wi_;
     const mblas::Matrix Bi_;
+    const mblas::Matrix Gamma_;
   };
 
   struct DecGRU2 {
@@ -52,6 +55,8 @@ struct Weights {
     const mblas::Matrix Bx2_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Ux_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecAttention {
@@ -62,6 +67,8 @@ struct Weights {
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix C_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecSoftmax {
@@ -75,6 +82,9 @@ struct Weights {
     const mblas::Matrix B3_;
     const mblas::Matrix W4_;
     const mblas::Matrix B4_;
+    const mblas::Matrix Gamma_0_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////
