@@ -53,11 +53,7 @@ void EncoderDecoderLoader::Load(const God &god)
   std::string path = Get<std::string>("path");
   cerr << "path=" << path << endl;
 
-  std::vector<size_t> devices = god.Get<std::vector<size_t>>("devices");
-
-  size_t d = 0;
-
-  Weights *weights = new Weights(context_, path, d);
+  Weights *weights = new Weights(context_, devices_[0], path);
   weights_.reset(weights);
 }
 
@@ -66,7 +62,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
   size_t d = deviceInfo.deviceId;
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
 
-  EncoderDecoder *ed = new EncoderDecoder(god, name_, config_, tab, *weights_, context_);
+  EncoderDecoder *ed = new EncoderDecoder(god, name_, config_, tab, *weights_, context_, devices_[0]);
   return ScorerPtr(ed);
 }
 

@@ -41,8 +41,8 @@ class Encoder {
   class RNN {
     public:
     public:
-      RNN(const cl_context &context, const Weights& model)
-      : gru_(context, model)
+      RNN(const cl_context &context, const cl_device_id &device, const Weights& model)
+      : gru_(context, device, model)
     {}
 
     size_t GetStateLength() const {
@@ -62,7 +62,7 @@ class Encoder {
   };
 
 public:
-  Encoder(const cl_context &context, const Weights& model);
+  Encoder(const cl_context &context, const cl_device_id &device, const Weights& model);
 
   void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context);
 
@@ -73,9 +73,11 @@ protected:
 
   // reusing memory
   std::vector<mblas::Matrix> embeddedWords_;
+  mblas::Matrix Context;
 
   const cl_context &context_;
-  mblas::Matrix Context;
+  const cl_device_id &device_;
+
 };
 
 }

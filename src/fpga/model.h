@@ -11,8 +11,8 @@ struct Weights {
   //////////////////////////////////////////////////////////////////////////////
   struct EncEmbeddings {
 
-    EncEmbeddings(cl_context &context, const NpzConverter& model)
-    : E_(model.GetMatrix(context, "Wemb"))
+    EncEmbeddings(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : E_(model.GetMatrix(context, device, "Wemb"))
     {
       std::cerr << "E_=" << E_.Debug() << std::endl;
     }
@@ -21,14 +21,14 @@ struct Weights {
   };
 
   struct EncForwardGRU {
-    EncForwardGRU(cl_context &context, const NpzConverter& model)
-    : W_(model.GetMatrix(context, "encoder_W")),
-      B_(model.GetMatrix(context, "encoder_b", true)),
-      U_(model.GetMatrix(context, "encoder_U")),
-      Wx_(model.GetMatrix(context, "encoder_Wx")),
-      Bx1_(model.GetMatrix(context, "encoder_bx", true)),
-      Bx2_(context, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
-      Ux_(model.GetMatrix(context, "encoder_Ux"))
+    EncForwardGRU(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : W_(model.GetMatrix(context, device, "encoder_W")),
+      B_(model.GetMatrix(context, device, "encoder_b", true)),
+      U_(model.GetMatrix(context, device, "encoder_U")),
+      Wx_(model.GetMatrix(context, device, "encoder_Wx")),
+      Bx1_(model.GetMatrix(context, device, "encoder_bx", true)),
+      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
+      Ux_(model.GetMatrix(context, device, "encoder_Ux"))
     { }
 
     const mblas::Matrix W_;
@@ -41,14 +41,14 @@ struct Weights {
   };
 
   struct EncBackwardGRU {
-    EncBackwardGRU(cl_context &context, const NpzConverter& model)
-    : W_(model.GetMatrix(context, "encoder_r_W")),
-      B_(model.GetMatrix(context, "encoder_r_b", true)),
-      U_(model.GetMatrix(context, "encoder_r_U")),
-      Wx_(model.GetMatrix(context, "encoder_r_Wx")),
-      Bx1_(model.GetMatrix(context, "encoder_r_bx", true)),
-      Bx2_(context, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
-      Ux_(model.GetMatrix(context, "encoder_r_Ux"))
+    EncBackwardGRU(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : W_(model.GetMatrix(context, device, "encoder_r_W")),
+      B_(model.GetMatrix(context, device, "encoder_r_b", true)),
+      U_(model.GetMatrix(context, device, "encoder_r_U")),
+      Wx_(model.GetMatrix(context, device, "encoder_r_Wx")),
+      Bx1_(model.GetMatrix(context, device, "encoder_r_bx", true)),
+      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
+      Ux_(model.GetMatrix(context, device, "encoder_r_Ux"))
     {}
 
     const mblas::Matrix W_;
@@ -62,17 +62,17 @@ struct Weights {
 
   //////////////////////////////////////////////////////////////////////////////
   struct DecEmbeddings {
-    DecEmbeddings(cl_context &context, const NpzConverter& model)
-    : E_(model.GetMatrix(context, "Wemb_dec"))
+    DecEmbeddings(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : E_(model.GetMatrix(context, device, "Wemb_dec"))
     {}
 
     const mblas::Matrix E_;
   };
 
   struct DecInit {
-    DecInit(cl_context &context, const NpzConverter& model)
-    : Wi_(model.GetMatrix(context, "ff_state_W")),
-      Bi_(model.GetMatrix(context, "ff_state_b", true))
+    DecInit(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : Wi_(model.GetMatrix(context, device, "ff_state_W")),
+      Bi_(model.GetMatrix(context, device, "ff_state_b", true))
     {}
 
     const mblas::Matrix Wi_;
@@ -80,14 +80,14 @@ struct Weights {
   };
 
   struct DecGRU1 {
-    DecGRU1(cl_context &context, const NpzConverter& model)
-    : W_(model.GetMatrix(context, "decoder_W")),
-      B_(model.GetMatrix(context, "decoder_b", true)),
-      U_(model.GetMatrix(context, "decoder_U")),
-      Wx_(model.GetMatrix(context, "decoder_Wx")),
-      Bx1_(model.GetMatrix(context, "decoder_bx", true)),
-      Bx2_(context, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
-      Ux_(model.GetMatrix(context, "decoder_Ux"))
+    DecGRU1(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : W_(model.GetMatrix(context, device, "decoder_W")),
+      B_(model.GetMatrix(context, device, "decoder_b", true)),
+      U_(model.GetMatrix(context, device, "decoder_U")),
+      Wx_(model.GetMatrix(context, device, "decoder_Wx")),
+      Bx1_(model.GetMatrix(context, device, "decoder_bx", true)),
+      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
+      Ux_(model.GetMatrix(context, device, "decoder_Ux"))
     {}
 
     const mblas::Matrix W_;
@@ -100,14 +100,14 @@ struct Weights {
   };
 
   struct DecGRU2 {
-    DecGRU2(cl_context &context, const NpzConverter& model)
-    : W_(model.GetMatrix(context, "decoder_Wc")),
-      B_(model.GetMatrix(context, "decoder_b_nl", true)),
-      U_(model.GetMatrix(context, "decoder_U_nl")),
-      Wx_(model.GetMatrix(context, "decoder_Wcx")),
-      Bx2_(model.GetMatrix(context, "decoder_bx_nl", true)),
-      Bx1_(context, Bx2_.dim(0), Bx2_.dim(1), 0.0f),
-      Ux_(model.GetMatrix(context, "decoder_Ux_nl"))
+    DecGRU2(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : W_(model.GetMatrix(context, device, "decoder_Wc")),
+      B_(model.GetMatrix(context, device, "decoder_b_nl", true)),
+      U_(model.GetMatrix(context, device, "decoder_U_nl")),
+      Wx_(model.GetMatrix(context, device, "decoder_Wcx")),
+      Bx2_(model.GetMatrix(context, device, "decoder_bx_nl", true)),
+      Bx1_(context, device, Bx2_.dim(0), Bx2_.dim(1), 0.0f),
+      Ux_(model.GetMatrix(context, device, "decoder_Ux_nl"))
     {}
 
     const mblas::Matrix W_;
@@ -120,12 +120,12 @@ struct Weights {
   };
 
   struct DecAlignment {
-    DecAlignment(cl_context &context, const NpzConverter& model)
-    : V_(model.GetMatrix(context, "decoder_U_att", true)),
-      W_(model.GetMatrix(context, "decoder_W_comb_att")),
-      B_(model.GetMatrix(context, "decoder_b_att", true)),
-      U_(model.GetMatrix(context, "decoder_Wc_att")),
-      C_(model.GetMatrix(context, "decoder_c_tt")) // scalar?
+    DecAlignment(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : V_(model.GetMatrix(context, device, "decoder_U_att", true)),
+      W_(model.GetMatrix(context, device, "decoder_W_comb_att")),
+      B_(model.GetMatrix(context, device, "decoder_b_att", true)),
+      U_(model.GetMatrix(context, device, "decoder_Wc_att")),
+      C_(model.GetMatrix(context, device, "decoder_c_tt")) // scalar?
     {}
 
     const mblas::Matrix V_;
@@ -136,15 +136,15 @@ struct Weights {
   };
 
   struct DecSoftmax {
-    DecSoftmax(cl_context &context, const NpzConverter& model)
-    : W1_(model.GetMatrix(context, "ff_logit_lstm_W")),
-      B1_(model.GetMatrix(context, "ff_logit_lstm_b", true)),
-      W2_(model.GetMatrix(context, "ff_logit_prev_W")),
-      B2_(model.GetMatrix(context, "ff_logit_prev_b", true)),
-      W3_(model.GetMatrix(context, "ff_logit_ctx_W")),
-      B3_(model.GetMatrix(context, "ff_logit_ctx_b", true)),
-      W4_(model.GetMatrix(context, "ff_logit_W")),
-      B4_(model.GetMatrix(context, "ff_logit_b", true))
+    DecSoftmax(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+    : W1_(model.GetMatrix(context, device, "ff_logit_lstm_W")),
+      B1_(model.GetMatrix(context, device, "ff_logit_lstm_b", true)),
+      W2_(model.GetMatrix(context, device, "ff_logit_prev_W")),
+      B2_(model.GetMatrix(context, device, "ff_logit_prev_b", true)),
+      W3_(model.GetMatrix(context, device, "ff_logit_ctx_W")),
+      B3_(model.GetMatrix(context, device, "ff_logit_ctx_b", true)),
+      W4_(model.GetMatrix(context, device, "ff_logit_W")),
+      B4_(model.GetMatrix(context, device, "ff_logit_b", true))
     {}
 
     const mblas::Matrix W1_;
@@ -158,8 +158,8 @@ struct Weights {
   };
 
   //////////////////////////////////////////////////////////////////////////////
-  Weights(cl_context &context, const std::string& npzFile, size_t device);
-  Weights(cl_context &context, const NpzConverter& model, size_t device);
+  Weights(cl_context &context, const cl_device_id &device, const std::string& npzFile);
+  Weights(cl_context &context, const cl_device_id &device, const NpzConverter& model);
 
   EncEmbeddings encEmbeddings_;
   DecEmbeddings decEmbeddings_;
@@ -171,7 +171,7 @@ struct Weights {
   DecAlignment decAlignment_;
   DecSoftmax decSoftmax_;
 
-  const size_t device_;
+  const cl_device_id &device_;
 
 };
 

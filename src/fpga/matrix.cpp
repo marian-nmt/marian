@@ -8,24 +8,27 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
-Matrix::Matrix(const cl_context &context)
+Matrix::Matrix(const cl_context &context, const cl_device_id &device)
 :context_(context)
+,device_(device)
 ,rows_(0)
 ,cols_(0)
 {
 
 }
 
-Matrix::Matrix(const cl_context &context, size_t rows, size_t cols, float val)
+Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float val)
 :context_(context)
+,device_(device)
 ,rows_(rows)
 ,cols_(cols)
 {
 
 }
 
-Matrix::Matrix(const cl_context &context, size_t rows, size_t cols, float *val)
+Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val)
 :context_(context)
+,device_(device)
 ,rows_(rows)
 ,cols_(cols)
 {

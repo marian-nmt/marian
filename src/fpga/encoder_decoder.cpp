@@ -23,12 +23,13 @@ EncoderDecoder::EncoderDecoder(
         const YAML::Node& config,
         size_t tab,
         const Weights& model,
-        const cl_context &context)
+        const cl_context &context,
+        const cl_device_id &device)
 :Scorer(name, config, tab)
 ,model_(model)
 ,context_(context)
-,SourceContext_(context)
-,encoder_(new Encoder(context, model_))
+,SourceContext_(context, device)
+,encoder_(new Encoder(context, device, model_))
 ,decoder_(new Decoder(god, model_))
 {
 

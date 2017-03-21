@@ -8,9 +8,9 @@ namespace mblas {
 
 class Matrix : public BaseMatrix {
 public:
-  Matrix(const cl_context &context);
-  Matrix(const cl_context &context, size_t rows, size_t cols, float val);
-  Matrix(const cl_context &context, size_t rows, size_t cols, float *val);
+  Matrix(const cl_context &context, const cl_device_id &device);
+  Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float val);
+  Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val);
 
   virtual size_t dim(size_t i) const
   {
@@ -30,6 +30,7 @@ public:
 
 protected:
   const cl_context &context_;
+  const cl_device_id &device_;
   cl_mem mem_;
   float *data_;
   size_t rows_, cols_;

@@ -3,20 +3,20 @@
 namespace amunmt {
 namespace FPGA {
 
-Weights::Weights(cl_context &context, const std::string& npzFile, size_t device)
-: Weights(context, NpzConverter(npzFile), device)
+Weights::Weights(cl_context &context, const cl_device_id &device, const std::string& npzFile)
+: Weights(context, device, NpzConverter(npzFile))
 {}
 
-Weights::Weights(cl_context &context, const NpzConverter& model, size_t device)
-: encEmbeddings_(context, model)
-, encForwardGRU_(context, model)
-, encBackwardGRU_(context, model)
-, decEmbeddings_(context, model)
-, decInit_(context, model)
-, decGru1_(context, model)
-, decGru2_(context, model)
-, decAlignment_(context, model)
-, decSoftmax_(context, model)
+Weights::Weights(cl_context &context, const cl_device_id &device, const NpzConverter& model)
+: encEmbeddings_(context, device, model)
+, encForwardGRU_(context, device, model)
+, encBackwardGRU_(context, device, model)
+, decEmbeddings_(context, device, model)
+, decInit_(context, device, model)
+, decGru1_(context, device, model)
+, decGru2_(context, device, model)
+, decAlignment_(context, device, model)
+, decSoftmax_(context, device, model)
 , device_(device)
 {
 

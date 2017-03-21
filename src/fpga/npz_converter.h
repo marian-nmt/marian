@@ -43,7 +43,11 @@ public:
       model_.destruct();
   }
 
-  mblas::Matrix GetMatrix(const cl_context &context, const std::string& key, bool transpose = false) const;
+  mblas::Matrix GetMatrix(
+		  const cl_context &context,
+		  const cl_device_id &device,
+		  const std::string& key,
+		  bool transpose = false) const;
 
 private:
   cnpy::npz_t model_;

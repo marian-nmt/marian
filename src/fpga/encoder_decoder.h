@@ -17,7 +17,8 @@ public:
                  const YAML::Node& config,
                  size_t tab,
                  const Weights& model,
-                 const cl_context &context);
+                 const cl_context &context,
+                 const cl_device_id &device);
 
   virtual void Decode(const God &god, const State& in,
                      State& out, const std::vector<size_t>& beamSizes);
