@@ -50,13 +50,13 @@ float Matrix::Sum() const
 {
   int err;
 
- cl_mem output = clCreateBuffer(context_, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
+  cl_mem output = clCreateBuffer(context_, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
   assert(output);
 
   // create kernel
   cl_command_queue commands = CreateCommandQueue(context_, device_);
-  cl_kernel kernel = CreateKernel("kernels/sum.cl", context_, device_);
+  cl_kernel kernel = CreateKernel("kernels/sum.cl", "sum", context_, device_);
 
   // Set the arguments to our compute kernel
   unsigned int count = size();

@@ -80,7 +80,7 @@ std::string LoadKernel(const std::string &filePath)
  return result;
 }
 
-cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, const cl_device_id &device)
+cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const cl_context &context, const cl_device_id &device)
 {
   #define MAX_SOURCE_SIZE (0x100000)
 
@@ -114,7 +114,7 @@ cl_kernel CreateKernel(const std::string &filePath, const cl_context &context, c
 
   // Create the compute kernel in the program we wish to run
   //
-  kernel = clCreateKernel(program, "square", &err);
+  kernel = clCreateKernel(program, kernelName.c_str(), &err);
   CheckError(err);
   assert(kernel);
 

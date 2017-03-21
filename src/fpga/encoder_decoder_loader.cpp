@@ -22,9 +22,8 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
   cerr << "EncoderDecoderLoader1:" << endl;
 
-  /*
   cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
-  cl_kernel kernel = CreateKernel("kernels/square.cl", context_, devices_[0]);
+  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", context_, devices_[0]);
 
   cerr << "EncoderDecoderLoader2:" << endl;
   HelloWorld(kernel, context_, devices_[0], commands, 1024);
@@ -38,7 +37,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
   clReleaseKernel(kernel);
 
   cerr << "opencl end" << endl;
-  */
+
 }
 
 
