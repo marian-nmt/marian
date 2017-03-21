@@ -49,6 +49,8 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 float Matrix::Sum() const
 {
   int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
 
   cl_mem output = clCreateBuffer(context_, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
@@ -64,6 +66,21 @@ float Matrix::Sum() const
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem_) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &count) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, device_, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  global = 1024;
+
+  cerr << "local=" << local << endl;
+  cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(commands) );
 
 }
 
