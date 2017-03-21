@@ -14,7 +14,7 @@ struct Weights {
     EncEmbeddings(cl_context &context, const cl_device_id &device, const NpzConverter& model)
     : E_(model.GetMatrix(context, device, "Wemb"))
     {
-      std::cerr << "E_=" << E_.Debug() << std::endl;
+      //std::cerr << "E_=" << E_.Debug() << std::endl;
     }
 
     const mblas::Matrix E_;
