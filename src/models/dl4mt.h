@@ -243,6 +243,31 @@ class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
     }
 
     void save(Ptr<ExpressionGraph> graph,
+              const std::string& name,
+              bool saveTranslatorConfig) {
+    
+      save(graph, name);
+      
+      if(saveTranslatorConfig) {
+        YAML::Node amun;
+        auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+        amun["source-vocab"] = vocabs[0];
+        amun["target-vocab"] = vocabs[1];
+        amun["devices"] = options_->get<std::vector<int>>("devices");
+        amun["normalize"] = true;
+        amun["beam-size"] = 12;
+        amun["relative-paths"] = true;
+        
+        amun["scorers"]["F0"]["path"] = name;
+        amun["scorers"]["F0"]["type"] = "Nematus";      
+        amun["weights"]["F0"] = 1.0f;
+        
+        OutputFileStream out(name + ".amun.yml");
+        (std::ostream&)out << amun;
+      }
+    }
+    
+    void save(Ptr<ExpressionGraph> graph,
               const std::string& name) {
 
       LOG(info, "Saving model to {}", name);

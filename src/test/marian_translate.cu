@@ -203,7 +203,7 @@ class Translator : public TranslatorBase {
     Translator(Ptr<Config> options)
     : options_(options),
     graph_(New<ExpressionGraph>()) {
-      auto devices = options_->get<std::vector<int>>("device");
+      auto devices = options_->get<std::vector<int>>("devices");
       graph_->setDevice(devices[0]);
     }
 

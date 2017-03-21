@@ -61,6 +61,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     for(int i = 0; i < textPaths_.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(textPaths_[i], maxVocabs[i]);
+      options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
       vocabs_.emplace_back(vocab);
     }
   }
