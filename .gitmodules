@@ -1,0 +1,3 @@
+[submodule "submodules/marian"]
+	path = submodules/marian
+	url = http://github.com/amunmt/marian
