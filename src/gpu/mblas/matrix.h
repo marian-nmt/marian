@@ -132,6 +132,11 @@ class TMatrix : public BaseMatrix {
       return cols_ * rows_;
     }
 
+
+    operator bool() const {
+      return (int)size() != 0;
+    }
+
   private:
     size_t rows_;
     size_t cols_;
