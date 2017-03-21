@@ -25,11 +25,11 @@ public:
   typedef blaze::DynamicMatrix<float, blaze::rowMajor> Parent;
 
   Matrix()
-  :Parent()
+  : Parent()
   {}
 
   Matrix(size_t rows, size_t cols)
-  :Parent(rows, cols)
+  : Parent(rows, cols)
   {}
 
   template<typename T>
@@ -376,6 +376,58 @@ MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
                      functor);
   }
   return std::move(out);
+}
+
+template<class MT>
+void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-9) {
+  size_t rows = in.rows();
+  size_t cols = in.columns();
+
+  for (int j = 0; j < rows; ++j) {
+    float sum = 0.0f;
+    for (int i = 0; i < cols; ++i) {
+      sum += in(j, i);
+    }
+
+    float mean = sum / cols;
+
+    float sigma = 0.0f;
+    for (int i = 0; i < cols; ++i) {
+      sigma += (in(j, i) - mean) * (in(j, i) - mean);
+    }
+
+    sigma = sqrt(sigma + eps);
+
+    for (int i = 0; i < cols; ++i) {
+      in(j, i) = gamma(0, j) * ( (in(j, i) - mean) / sigma) + beta(0, j);
+    }
+  }
+}
+
+template<class MT>
+void LayerNormalization(MT& in, const MT& gamma, float eps=1e-9) {
+  size_t rows = in.rows();
+  size_t cols = in.columns();
+
+  for (int j = 0; j < rows; ++j) {
+    float sum = 0.0f;
+    for (int i = 0; i < cols; ++i) {
+      sum += in(j, i);
+    }
+
+    float mean = sum / cols;
+
+    float sigma = 0.0f;
+    for (int i = 0; i < cols; ++i) {
+      sigma += (in(j, i) - mean) * (in(j, i) - mean);
+    }
+
+    sigma = sqrt(sigma + eps);
+
+    for (int i = 0; i < cols; ++i) {
+      in(j, i) = gamma(0, j) * ( (in(j, i) - mean) / sigma);
+    }
+  }
 }
 
 }
