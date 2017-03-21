@@ -1,17 +1,17 @@
 #pragma once
-#define GRAD_DROP true
-#define SPARSE_PUSH false
-#define DEBUG false
-#define TIME_CHECK true
+
 #include <thread>
-#include <future> 
+#include <future>
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
 #include "optimizers/optimizers.h"
 #include "training/training.h"
 #include "training/validator.h"
+
 #include "training/dropper.h"
+
+#define HISTORY_SIZE 8
 
 namespace marian {
 
@@ -42,7 +42,7 @@ class GraphGroup {
 template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
   private:
-    Ptr<Builder> builder_;
+    std::vector<Ptr<Builder>> builders_;
 
     std::vector<size_t> devices_;
 
@@ -51,39 +51,78 @@ class AsyncGraphGroup : public GraphGroup {
     std::mutex sync_;
     std::vector<std::mutex> shardSync_;
 
-    std::vector<Tensor> params_;
-    std::vector<Ptr<TensorAllocator> > paramsAlloc_;
+    std::vector<Tensor> params_[HISTORY_SIZE];
+    std::vector<Tensor> tmpTensor, tmpDelta;
+
 
     std::vector<Tensor> grads_;
-    std::vector<SparseTensor> sparseGrads_;
-    std::vector<SparseTensor> localSparseGrads_;
-
-    std::vector<Ptr<TensorAllocator>> gradsAlloc_;
+    std::vector<Ptr<TensorAllocator>> allocators;
 
     std::vector<Ptr<OptimizerBase>> shardOpt_;
 
     std::vector<GradientDrop> gradDropper_;
+    std::vector<std::vector<GradientDrop>> fetchDropper_;
+
+
+    std::vector<SparseTensor> localSparseGrads_;
+    std::vector<SparseTensor> sparseGrads_;
+    std::vector<SparseTensor> tmpSparseDelta;
+    std::vector<std::vector<SparseTensor>> localSparseDelta;
+
+    std::vector<int> globalVersionNumber; //version number per-shard
+
+    std::vector<std::vector<int>> localVersionNumbers; //each worker has the version number obtained from each shard
+
+
 
     int shardSize_;
 
     ThreadPool pool_;
-    long long el_1 = 0; //computation time
-    long long el_2 = 0; // grad drop time
-    long long el_3 = 0; // communication time
 
-    void fetchParams(Tensor oldParams) {
+    void sparseFetchParams(Tensor oldParams, int worker_id ) {
       if(graphs_.size() < 2)
         return;
 
       // @TODO read guard on parameters
       int pos = 0;
-      
+
       std::vector<std::thread> threads;
       for (int idx = 0; idx < devices_.size(); idx++) {
         threads.emplace_back( std::thread( [=](int idx, int pos) {
           //individual mutex per-shard
           std::lock_guard<std::mutex> guard( shardSync_[idx] );
-          oldParams->subtensor(pos , params_[idx]->size())->copyFrom(params_[idx]);
+          //obtain the delta
+          int latestVersion =  globalVersionNumber[idx] % HISTORY_SIZE;
+          int currVersion = localVersionNumbers[worker_id][idx] % HISTORY_SIZE;
+          //check if the current version is too old
+          if (globalVersionNumber[idx] - localVersionNumbers[worker_id][idx] >= HISTORY_SIZE)
+            currVersion = (1 + globalVersionNumber[idx]) % HISTORY_SIZE; //if so, pick the best you can do
+
+          //if already latest
+          if (globalVersionNumber[idx] == localVersionNumbers[worker_id][idx])
+            return;
+          
+          //printf("DOING THINGS ON GPU %d %d %d %d\n", tmpTensor[idx]->getDevice(),  params_[latestVersion][idx]->getDevice(), tmpDelta[worker_id]->getDevice(), oldParams->getDevice());
+
+          //update params. add with delta of latest param and current param
+          //get delta
+          Element(_1 = _2 - _3, tmpTensor[idx], params_[latestVersion][idx] , params_[currVersion][idx]);
+          
+          //get sparse delta  
+          fetchDropper_[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , 0.99 );
+
+          //move sparse delta
+          localSparseDelta[worker_id][idx]->copyFrom( tmpSparseDelta[idx] );
+
+          //obtain the delta
+          localSparseDelta[worker_id][idx]->toDense( tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()) , 0 );
+
+          //apply
+          Element(_1 += _2 , oldParams->subtensor(pos , grads_[idx]->size()) , 
+                             tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()));
+          
+          localVersionNumbers[worker_id][idx] =  globalVersionNumber[idx];
+
         }, idx, pos) );
 
         pos += shardSize_;
@@ -93,8 +132,78 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
+    void fetchParams(Tensor oldParams, int worker_id ) {
+      if(graphs_.size() < 2)
+        return;
 
-    void pushGradients(Tensor newGrads) {
+      // @TODO read guard on parameters
+      int pos = 0;
+
+      std::vector<std::thread> threads;
+      for (int idx = 0; idx < devices_.size(); idx++) {
+        threads.emplace_back( std::thread( [=](int idx, int pos) {
+          //individual mutex per-shard
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
+          //obtain the delta
+          int latestVersion =  globalVersionNumber[idx] % HISTORY_SIZE;
+          int currVersion = localVersionNumbers[worker_id][idx] % HISTORY_SIZE;
+          //check if the current version is too old
+          if (globalVersionNumber[idx] - localVersionNumbers[worker_id][idx] >= HISTORY_SIZE)
+            currVersion = (1 + globalVersionNumber[idx]) % HISTORY_SIZE; //if so, pick the best you can do
+
+          //if already latest
+          if (globalVersionNumber[idx] == localVersionNumbers[worker_id][idx])
+            return;
+          
+          //printf("DOING THINGS ON GPU %d %d %d %d\n", tmpTensor[idx]->getDevice(),  params_[latestVersion][idx]->getDevice(), tmpDelta[worker_id]->getDevice(), oldParams->getDevice());
+
+          //update params. add with delta of latest param and current param
+          //get delta
+          Element(_1 = _2 - _3, tmpTensor[idx], params_[latestVersion][idx] , params_[currVersion][idx]);
+          
+          //move delta
+          tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size())->copyFrom(tmpTensor[idx]);
+
+          //apply
+          Element(_1 += _2 , oldParams->subtensor(pos , grads_[idx]->size()) , 
+                             tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()));
+          
+          localVersionNumbers[worker_id][idx] =  globalVersionNumber[idx];
+
+        }, idx, pos) );
+
+        pos += shardSize_;
+      }
+      for (auto &&t : threads) {
+        t.join();
+      }
+    }
+
+    void initFetchParams(Tensor oldParams, int worker_id ) {
+      if(graphs_.size() < 2)
+        return;
+
+      // @TODO read guard on parameters
+      int pos = 0;
+
+      std::vector<std::thread> threads;
+      for (int idx = 0; idx < devices_.size(); idx++) {
+        threads.emplace_back( std::thread( [=](int idx, int pos) {
+          //individual mutex per-shard
+          std::lock_guard<std::mutex> guard( shardSync_[idx] );
+          //obtain everything
+          int latestVersion = globalVersionNumber[idx] % HISTORY_SIZE;
+          oldParams->subtensor(pos , grads_[idx]->size())->copyFrom(params_[latestVersion][idx]);
+        }, idx, pos) );
+
+        pos += shardSize_;
+      }
+      for (auto &&t : threads) {
+        t.join();
+      }
+    }
+
+    void pushGradients(Tensor newGrads, int worker_id ) {
       if(graphs_.size() < 2) {
         opt_->update(graphs_[0]);
       }
@@ -103,25 +212,18 @@ class AsyncGraphGroup : public GraphGroup {
         std::vector<std::thread> threads;
         int pos = 0;
         for (int idx = 0; idx < devices_.size(); idx++) {
-            threads.emplace_back( std::thread([=](int idx, int pos) {
+          threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
-            auto start1 = std::chrono::system_clock::now();
-            grads_[idx]->copyFrom(  newGrads->subtensor(pos , grads_[idx]->size() ) );
-            auto end1 = std::chrono::system_clock::now();
+            grads_[idx]->copyFrom( newGrads->subtensor(pos , grads_[idx]->size() ) );
 
-            auto start2 = std::chrono::system_clock::now();
-            shardOpt_[idx]->update(params_[idx], grads_[idx]);
+            // apply and increment your version number
+            int pastVersion = globalVersionNumber[idx] % HISTORY_SIZE;
+            int latestVersion =  ++globalVersionNumber[idx] % HISTORY_SIZE;
+            params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
+            shardOpt_[idx]->update(params_[ latestVersion ][idx],  grads_[idx] );
+
             cudaStreamSynchronize(0);
-            auto end2 = std::chrono::system_clock::now();
-
-            if (idx == 0 && newGrads->getDevice() == 0){
-              auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
-              auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
-              el_1 += elapsed2.count();
-              el_3 += elapsed1.count();
-            }
-
           } , idx, pos) );
 
           pos += shardSize_;
@@ -131,89 +233,39 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    void sparseFetchParams(Tensor oldParams) {
-      if(graphs_.size() < 2)
-        return;
-
-      // @TODO read guard on parameters
-      int pos = 0;
-      
-      std::vector<std::thread> threads;
-      for (int idx = 0; idx < devices_.size(); idx++) {
-        threads.emplace_back( std::thread( [=](int idx, int pos) {
-          //individual mutex per-shard
-          std::lock_guard<std::mutex> guard( shardSync_[idx] );
-
-
-            cudaStreamSynchronize(0);
-        }, idx, pos) );
-
-        pos += shardSize_;
-      }
-      for (auto &&t : threads) {
-        t.join();
-      }
-    }
-    
-    void sparsePushGradients(SparseTensor newGrads, Tensor oldParams, int wut) {
+    void sparsePush(SparseTensor newGrads, int worker_id ) {
       if(graphs_.size() < 2) {
         opt_->update(graphs_[0]);
       }
       else {
         // add instead of copy?
         std::vector<std::thread> threads;
-        
         int pos = 0;
-        if (wut == 0)
-          if (DEBUG) std::cerr<<"expected total size : "<<newGrads->size()<<std::endl;
         for (int idx = 0; idx < devices_.size(); idx++) {
-          threads.emplace_back( std::thread([=](int idx, int pos, int wut) {
+          threads.emplace_back( std::thread([=](int idx, int pos) {
             //individual mutex per-shard
-            //std::cerr<<"SPARSE PUSHING"std::endl;
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
-            auto start1 = std::chrono::system_clock::now();
+            // split to shard
             SparseTensor subGrad = newGrads->subtensor(pos , grads_[idx]->size() ,idx);
-            sparseGrads_[idx]->copyFrom( subGrad  );
-            auto end1 = std::chrono::system_clock::now();
-            auto start2 = std::chrono::system_clock::now();
-            //std::cout<<"subtensor size "<<sparseGrads_[idx]->size()<<std::endl;
-            sparseGrads_[idx]->shiftIndices( -pos );
-            sparseGrads_[idx]->toDense(grads_[idx], 0);
-            shardOpt_[idx]->update(params_[idx], grads_[idx]);
+
             cudaStreamSynchronize(0);
+            // sent
+            sparseGrads_[idx]->copyFrom(subGrad);
+      
+            cudaStreamSynchronize(0);      
+            //convert back to dense, with index offset of -pos
+            sparseGrads_[idx]->toDense(grads_[idx], -pos);
 
-            if (!SPARSE_PUSH)
-              return;
-              //now fetch
-              sparseGrads_[idx]->scatterCopyFrom( params_[idx] );
+            cudaStreamSynchronize(0);
+            
+            // apply and increment your version number
+            int pastVersion = globalVersionNumber[idx] % HISTORY_SIZE;
+            int latestVersion =  ++globalVersionNumber[idx] % HISTORY_SIZE;
+            params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
+            shardOpt_[idx]->update(params_[ latestVersion ][idx],  grads_[idx] );
 
-              if (subGrad->size() != sparseGrads_[idx]->size()){
-                if (DEBUG) std::cerr<<"LHO"<<std::endl;
-                exit(1);
-              }
-              if (wut == 0){
-                if (DEBUG) 
-                  std::cerr<<"fraction "<<idx<<"   :  "<<subGrad->size()<<" / " <<subGrad->capacity()<<"    copying "<< oldParams->size() <<std::endl;
-                //fprintf(stderr, "scatter updating %d\n", (int)oldParams->subtensor(pos, grads_[idx]->size())->size() );
-              }
-
-              auto end2 = std::chrono::system_clock::now();
-
-              auto start3 = std::chrono::system_clock::now();
-              subGrad->copyFrom(sparseGrads_[idx] , true);
-              subGrad->scatterUpdate( oldParams->subtensor(pos , params_[idx]->size()) , -pos);
-              
-              cudaStreamSynchronize(0);
-              auto end3 = std::chrono::system_clock::now();
-
-            if (idx == 0 && newGrads->getDevice() == 0){
-              auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
-              auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
-              auto elapsed3 = std::chrono::duration_cast<std::chrono::milliseconds>(end3 - start3);
-              el_1 += elapsed2.count();
-              el_3 += elapsed1.count() + elapsed3.count();
-            }
-          } , idx, pos, wut) );
+            cudaStreamSynchronize(0);
+          } , idx, pos) );
 
           pos += shardSize_;
         }
@@ -222,17 +274,32 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-      int bt = 0;
+    Tensor newTensor(int size, int device){
+      Tensor T;
+      Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+      allocator_->reserveExact(size);
+      allocator_->allocate(T, {1, size});
+      allocators.push_back(allocator_);
+
+      return T;
+    }
+
     void execute(Ptr<data::CorpusBatch> batch) {
       static bool first = true;
-      if(first) {
+      if(first && graphs_.size() > 1) {
         // initialize the parameters
-        for(auto graph : graphs_) {
-          builder_->build(graph, batch);
-          graph->forward();
+        for(size_t i = 0; i < graphs_.size(); ++i) {
+          builders_[i]->build(graphs_[i], batch);
+          graphs_[i]->forward();
+          globalVersionNumber.push_back(0);
+          std::vector<int> localVersion;
+          for (int j=0;j<graphs_.size();j++)
+            localVersion.push_back(0);
+
+          localVersionNumbers.push_back(localVersion);
         }
 
-        if(params_.size() == 0) {
+        if(params_[0].size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
           shardSize_ = ceil(totalSize / devices_.size());
 
@@ -241,112 +308,92 @@ class AsyncGraphGroup : public GraphGroup {
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-            Tensor param_;
-            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+            
+            
+            for (int h_id = 0; h_id < HISTORY_SIZE; h_id++){
+              Tensor param_ = newTensor(__size__, device);
+              param_->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
+              params_[h_id].push_back(param_);
+            }
 
-            allocator_->reserveExact(__size__);
-            allocator_->allocate(param_, {1, __size__});
-            paramsAlloc_.push_back(allocator_);
-            param_->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
-            params_.push_back(param_);
+            tmpTensor.push_back( newTensor(__size__, device) );
+
             pos += __size__;
 
           }
         }
+        
         if(grads_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
-          int sparseCap = totalSize / 10;
+          int sparseCap = totalSize / 20;
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-            Tensor grad_;
-            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
 
-            allocator_->reserveExact(__size__);
-            allocator_->allocate(grad_, {1, __size__});
-            gradsAlloc_.push_back(allocator_);
-            grads_.push_back(grad_);
+            grads_.push_back( newTensor( __size__, device  ) );
+
             //give size of 10% extra grads. even though we will use only around 1%
             sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
             localSparseGrads_.push_back( SparseTensor(new SparseTensorBase(sparseCap , device )) );
+            tmpSparseDelta.push_back( SparseTensor(new SparseTensorBase(sparseCap / devices_.size() , device )) );
+            std::vector<SparseTensor> tmp;
+            for (int i=0;i<devices_.size();i++)
+              tmp.push_back( SparseTensor(new SparseTensorBase(sparseCap / devices_.size() , device )) );
+            localSparseDelta.push_back(tmp);
           }
-        } 
+        }
 
         first = false;
-      } 
+      }
 
       auto task = [this](Ptr<data::CorpusBatch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Builder> builder;
         thread_local size_t t = 0;
+
         thread_local size_t my_id = 0;
+
 
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
+          graph = graphs_[i];
           my_id = i;
-          graph = graphs_[i++];
+          builder = builders_[i++];
 
-          fetchParams(graph->params().vals());
-          cudaStreamSynchronize(0);
+          tmpDelta.push_back( newTensor( graph->params().vals()->size() , graph->params().vals()->getDevice() ) );
         }
-        auto start4 = std::chrono::system_clock::now();
-        
-        builder_->build(graph, batch);
-        if (!GRAD_DROP || !SPARSE_PUSH)
-          fetchParams(graph->params().vals());
 
-        auto end4 = std::chrono::system_clock::now();
-
-        auto start1 = std::chrono::system_clock::now();
-
+        builder->build(graph, batch);
+        if (!t)
+          initFetchParams(graph->params().vals() , my_id );
+        else
+          //fetchParams(graph->params().vals() , my_id );
+            sparseFetchParams(graph->params().vals() , my_id );
 
         graph->forward();
         float cost = graph->topNode()->scalar();
         graph->backward();
 
         cudaStreamSynchronize(0);
-        auto end1 = std::chrono::system_clock::now();
-        auto start2 = std::chrono::system_clock::now();
-        if (GRAD_DROP)
-          gradDropper_[my_id].dropGraph(graph , localSparseGrads_[my_id] , 0.99 );
-        cudaStreamSynchronize(0);
-
-        auto end2 = std::chrono::system_clock::now();
         
-        //if (GRAD_DROP)
-        // sparsePushGradients(localSparseGrads_[my_id], graph->params().vals(), my_id );
-        //else
-          pushGradients(graph->params().grads());
-        cudaStreamSynchronize(0);
+        gradDropper_[my_id]->dropGraph(graph , localSparseGrads_[my_id] , 0.99);
+        //cudaStreamSynchronize(0);
 
+        //sparsePush
+        sparsePush(localSparseGrads_[my_id], my_id);
+        //pushGradients(graph->params().grads(), my_id);
 
         if(reporter_) {
           std::lock_guard<std::mutex> guard(sync_);
           reporter_->update(cost, batch);
           if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
             this->save();
+          size_t prevStalled = reporter_->stalled();
           reporter_->validate(graph);
-        }
-
-        if (TIME_CHECK && my_id == 0){
-          bt++;
-          auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1);
-          auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
-          auto elapsed4 = std::chrono::duration_cast<std::chrono::milliseconds>(end4 - start4);
-          el_1 += elapsed1.count();
-          el_2 += elapsed2.count();
-          el_3 += elapsed4.count();
-          if (bt == 25){
-            std::cout<<"\nTime used per "<<25<<" batches\n";
-            std::cout<<"    "<< el_1 <<"  COMP\n";
-            std::cout<<"    "<< el_2 <<"  DROP\n";
-            std::cout<<"    "<< el_3 <<"  DATA\n";
-            bt = 0;
-            el_1 = 0;
-            el_2 = 0;
-            el_3 = 0;
-          }
-
+          if(prevStalled < reporter_->stalled())
+            for(auto opt : shardOpt_)
+              opt->updateSchedule();
         }
 
         t++;
@@ -358,8 +405,9 @@ class AsyncGraphGroup : public GraphGroup {
     void load() {
       if(options_->has("init")) {
         std::string init = options_->get<std::string>("init");
+        size_t i = 0;
         for(auto graph : graphs_)
-          builder_->load(graph, init);
+          builders_[i++]->load(graph, init);
       }
     }
 
@@ -368,11 +416,9 @@ class AsyncGraphGroup : public GraphGroup {
 
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
-       builder_{New<Builder>(options_)},
        devices_{options_->get<std::vector<size_t>>("device")},
        pool_{devices_.size(), devices_.size()},
-       shardSync_{devices_.size()},
-       gradDropper_{devices_.size()} {
+       shardSync_{devices_.size()} {
 
       for(auto device : devices_) {
         auto graph = New<ExpressionGraph>();
@@ -380,6 +426,12 @@ class AsyncGraphGroup : public GraphGroup {
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
         shardOpt_.push_back(Optimizer(options_));
+        gradDropper_.push_back(GradientDrop(new GradientDropBase()));
+        std::vector<GradientDrop> tmp;
+        for (int i=0;i<devices_.size();i++)
+          tmp.push_back(GradientDrop(new GradientDropBase()));
+        fetchDropper_.push_back(tmp);
+        builders_.push_back(New<Builder>(options_));
       }
 
       load();
@@ -392,12 +444,12 @@ class AsyncGraphGroup : public GraphGroup {
     void save() {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
+        builders_[0]->save(graphs_[0], name);
       }
       else {
         std::string name = options_->get<std::string>("model")
           + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
+        builders_[0]->save(graphs_[0], name);
       }
     }
 };
