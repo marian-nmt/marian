@@ -1,6 +1,7 @@
 #include <cassert>
 #include <sstream>
 #include "matrix.h"
+#include "kernel.h"
 
 using namespace std;
 
@@ -45,17 +46,17 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 
 }
 
-float Matrix::Sum()
+float Matrix::Sum() const
 {
   int err;
 
  cl_mem output = clCreateBuffer(context_, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
   assert(output);
-/*
+
   // create kernel
-  cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
-  cl_kernel kernel = CreateKernel("kernels/sum.cl", context_, devices_[0]);
+  cl_command_queue commands = CreateCommandQueue(context_, device_);
+  cl_kernel kernel = CreateKernel("kernels/sum.cl", context_, device_);
 
   // Set the arguments to our compute kernel
   unsigned int count = size();
@@ -63,17 +64,17 @@ float Matrix::Sum()
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem_) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &count) );
-*/
+
 }
 
 std::string Matrix::Debug(bool detailed) const
 {
   std::stringstream strm;
-  strm << BaseMatrix::Debug(detailed) << " ";
+  strm << BaseMatrix::Debug(detailed) << " " << mem_;
 
   if (detailed) {
-    //float sum = Sum(data(), size());
-    //strm << "size=" << size() << " sum=" << sum << std::flush;
+    float sum = Sum();
+    strm << " size=" << size() << " sum=" << sum << std::flush;
   }
 
   return strm.str();

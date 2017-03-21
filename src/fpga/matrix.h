@@ -32,10 +32,9 @@ protected:
   const cl_context &context_;
   const cl_device_id &device_;
   cl_mem mem_;
-  float *data_;
   size_t rows_, cols_;
 
-  float Sum();
+  float Sum() const;
 
 };
 
