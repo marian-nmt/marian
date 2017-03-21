@@ -82,6 +82,12 @@ float Matrix::Sum() const
   //
   CheckError( clFinish(commands) );
 
+  // Read back the results from the device to verify the output
+  //
+  float results;
+  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float), &results, 0, NULL, NULL ) );
+
+  return results;
 }
 
 std::string Matrix::Debug(bool detailed) const
