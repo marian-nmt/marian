@@ -372,6 +372,11 @@ Matrix& Element(Functor functor,
 
 void SetColumn(Matrix& In, int noColumn, float value);
 
+void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Matrix& beta,
+                   float eps);
+
+void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
+
 } // namespace mblas
 } // namespace GPU
 }
