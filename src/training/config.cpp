@@ -189,9 +189,9 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
 void Config::addOptionsTraining(po::options_description& desc) {
   po::options_description training("Training options");
   training.add_options()
-    ("overwrite", po::value<bool>()->default_value(false),
+    ("overwrite", po::value<bool>()->zero_tokens()->default_value(false),
       "Overwrite model with following checkpoints")
-    ("no-reload", po::value<bool>()->default_value(false),
+    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
       "Do not load existing model specified in --model arg")
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
@@ -314,6 +314,11 @@ void Config::addOptions(int argc, char** argv,
   std::string configPath;
   if(vm_.count("config")) {
     configPath = vm_["config"].as<std::string>();
+    config_ = YAML::Load(InputFileStream(configPath));
+  }
+  else if(boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml") &&
+                                    !vm_["no-reload"].as<bool>()) {
+    configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
   }
 

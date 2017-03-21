@@ -104,22 +104,22 @@ class Reporter {
     }
 
     void load(const std::string& name) {
-      std::string nameYaml = name + ".progress.yml";
+      std::string nameYaml = name + ".yml";
       if(boost::filesystem::exists(nameYaml)) {
-        YAML::Node progress = YAML::LoadFile(nameYaml);
-        epochs = progress["epochs"].as<size_t>();
-        batches = progress["batches"].as<size_t>();
+        YAML::Node config = YAML::LoadFile(nameYaml);
+        epochs  = config["progress"]["epochs"].as<size_t>();
+        batches = config["progress"]["batches"].as<size_t>();
       }
     }
 
     void save(const std::string& name) {
-      YAML::Node progress;
-      progress["epochs"] = epochs;
-      progress["batches"] = batches;
+      YAML::Node config = options_->get();
+      config["progress"]["epochs"] = epochs;
+      config["progress"]["batches"] = batches;
 
-      std::string nameYaml = name + ".progress.yml";
+      std::string nameYaml = name + ".yml";
       std::ofstream fout(nameYaml);
-      fout << progress;
+      fout << config;
     }
 };
 
