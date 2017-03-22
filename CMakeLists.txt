@@ -18,7 +18,9 @@ endif(BUILD_STATIC)
 include_directories(${amunmt_SOURCE_DIR})
 
 option(CUDA "Select to compile CUDA support by default if available" ON)
-
+option(MARIAN "Select to compile with Marian library" ON)
+option(MARIAN_LIBRARY_ONLY "Automatically set when building amunmt. Don't touch this." ON)
+  
 if(CUDA)
   find_package(CUDA)
   if(CUDA_FOUND)
@@ -35,6 +37,10 @@ else(CUDA)
     message("-- Forcing compilation without CUDA.")
     add_definitions(-DNO_CUDA)
 endif(CUDA)
+
+if (MARIAN)
+  add_subdirectory(marian)
+endif(MARIAN)  
 
 find_package(Boost COMPONENTS system filesystem program_options timer iostreams python thread)
 if(Boost_FOUND)
