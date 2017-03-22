@@ -33,6 +33,15 @@ The CPU-only version will automatically be compiled if CUDA cannot be detected b
  * CMake 3.5.1
  * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions.
 
+## Git repository set-up (branch marian-integration only)
+Branch _marian-integration_ now contains marian as a sub-module. 
+
+After the initial clone or checkout of this branch, run the following command
+```bash
+git submodule update --init --recursive
+```
+If you want git to always update the submodules at git checkout, git pull, git merge, etc. (it won't by default, wich often causes confusion), copy the script ```git-hooks/post-rewrite``` into ```./git/hooks``` and make it executable.
+
 ## Compilation
 The project is a standard Cmake out-of-source build:
 
