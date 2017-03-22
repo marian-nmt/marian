@@ -10,15 +10,14 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 
-Vocab::Vocab() {
-}
+Vocab::Vocab() {}
 
 size_t Vocab::operator[](const std::string& word) const {
-    auto it = str2id_.find(word);
-    if(it != str2id_.end())
-        return it->second;
-    else
-        return UNK_ID;
+  auto it = str2id_.find(word);
+  if(it != str2id_.end())
+    return it->second;
+  else
+    return UNK_ID;
 }
 
 Words Vocab::operator()(const std::vector<std::string>& lineTokens, bool addEOS) const {

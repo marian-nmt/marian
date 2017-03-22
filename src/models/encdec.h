@@ -153,6 +153,9 @@ class Seq2SeqBase {
 
     virtual void save(Ptr<ExpressionGraph>,
                       const std::string&) = 0;
+    
+    virtual void save(Ptr<ExpressionGraph>,
+                      const std::string&, bool) = 0;
 
     virtual std::tuple<Expr, std::vector<Expr>>
     step(Expr, std::vector<Expr>, Ptr<EncoderState>, bool=false) = 0;
@@ -184,6 +187,13 @@ class Seq2Seq : public Seq2SeqBase {
       graph->load(name);
     }
 
+    virtual void save(Ptr<ExpressionGraph> graph,
+                      const std::string& name,
+                      bool saveTranslatorConfig) {
+      // ignore config for now
+      graph->save(name);
+    }
+    
     virtual void save(Ptr<ExpressionGraph> graph,
                       const std::string& name) {
       graph->save(name);

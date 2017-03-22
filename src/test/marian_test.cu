@@ -23,19 +23,19 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv, false);
 
-  std::vector<std::string> files =
-    {"../test/mini.en",
-//     "../test/mini.en",
-     "../test/mini.de"};
-
-  std::vector<std::string> vocab =
-    {"../benchmark/marian32K/train.tok.true.bpe.en.json",
-//     "../benchmark/marian32K/train.tok.true.bpe.en.yml",
-     "../benchmark/marian32K/train.tok.true.bpe.de.json"};
-
-  YAML::Node& c = options->get();
-  c["train-sets"] = files;
-  c["vocabs"] = vocab;
+//  std::vector<std::string> files =
+//    {"../test/mini.en",
+////     "../test/mini.en",
+//     "../test/mini.de"};
+//
+//  std::vector<std::string> vocab =
+//    {"../benchmark/marian32K/train.tok.true.bpe.en.yml",
+////     "../benchmark/marian32K/train.tok.true.bpe.en.yml",
+//     "../benchmark/marian32K/train.tok.true.bpe.de.yml"};
+//
+//  YAML::Node& c = options->get();
+//  c["train-sets"] = files;
+//  c["vocabs"] = vocab;
 
   auto corpus = DataSet<Corpus>(options);
   BatchGenerator<Corpus> bg(corpus, options);
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  encdec->save(graph, "test.npz");
+  encdec->save(graph, "test.npz", true);
 
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;
