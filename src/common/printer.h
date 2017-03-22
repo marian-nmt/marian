@@ -23,7 +23,6 @@ void Printer(const God &god, const History& history, OStream& out) {
   if (god.Get<bool>("return-alignment")) {
     best += GetAlignmentString(GetAlignment(bestTranslation.second));
   }
-  LOG(progress, "Best translation: {}", best);
 
   if (god.Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = god.GetScorerNames();
@@ -48,15 +47,22 @@ void Printer(const God &god, const History& history, OStream& out) {
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
       }
+      
       if(god.Get<bool>("normalize")) {
-        out << " ||| " << hypo->GetCost() / words.size() << std::endl;
+        out << " ||| " << hypo->GetCost() / words.size();
       }
       else {
-        out << " ||| " << hypo->GetCost() << std::endl;
+        out << " ||| " << hypo->GetCost();
       }
+      
+      if(i < nbl.size() - 1)
+        out << std::endl;
+      else
+        out << std::flush;
+      
     }
   } else {
-    out << best << std::endl;
+    out << best << std::flush;
   }
 }
 
