@@ -12,20 +12,20 @@ with operator overloading.
 In honour of Marian Rejewski, a Polish mathematician and
 cryptologist.
 
-# Installation
+## Installation
 ------------
 
-# Requirements:
+## Requirements:
 
 * g++ with c++11
 * CUDA
 * Boost (>= 1.56)
 
-# Compilation with `cmake > 3.5`:
+## Compilation with `cmake > 3.5`:
 
     mkdir build
     cd build
     cmake ..
     make -j
-# Acknowledgements
+## Acknowledgements
 The development of Marian received funding from the European Union's _Horizon 2020_ Research and Innovation Programm under grant agreements 688139 ([SUMMA](http://www.summa-project.eu); 2016--2019) and 645487 ([Modern MT](http://www.modernmt.eu)).
