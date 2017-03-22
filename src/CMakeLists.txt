@@ -28,18 +28,18 @@ cuda_add_library(marian_lib
 target_link_libraries(marian_lib)
 
 
-cuda_add_executable(
-  marian
-  command/marian.cu
-)
+if (NOT MARIAN_LIBRARY_ONLY)
+  cuda_add_executable(
+    marian
+    command/marian.cu
+    )
 
-cuda_add_executable(
-  marian_translate
-  test/marian_translate.cu
-)
-
-target_link_libraries(marian marian_lib)
-target_link_libraries(marian_translate marian_lib)
+  cuda_add_executable(
+    marian_translate
+    test/marian_translate.cu
+    )
+  target_link_libraries(marian marian_lib)
+  target_link_libraries(marian_translate marian_lib)
 
 foreach(exec marian marian_translate)
   target_link_libraries(${exec} ${EXT_LIBS})
@@ -85,4 +85,5 @@ foreach(exec logger_test dropout_test tensor_test marian_test bn_test)
 endforeach(exec)
 
 endif(COMPILE_TESTS)
+endif(NOT MARIAN_LIBRARY_ONLY)
 
