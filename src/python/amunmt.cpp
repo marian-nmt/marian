@@ -22,7 +22,6 @@ God god_;
 
 void init(const std::string& options) {
   god_.Init(options);
-  size_t totalThreads = ( (god_.Has("gpu-threads")) ? god_.Get<size_t>("gpu-threads") : 0 ) + god_.Get<size_t>("cpu-threads");
 }
 
 
