@@ -22,11 +22,9 @@ God god_;
 
 void init(const std::string& options) {
   god_.Init(options);
+  size_t totalThreads = ( (god_.Has("gpu-threads")) ? god_.Get<size_t>("gpu-threads") : 0 ) + god_.Get<size_t>("cpu-threads");
 }
 
-void shutdown() {
-  god_.Cleanup();
-}
 
 boost::python::list translate(boost::python::list& in)
 {
@@ -94,5 +92,4 @@ BOOST_PYTHON_MODULE(libamunmt)
 {
   boost::python::def("init", init);
   boost::python::def("translate", translate);
-  boost::python::def("shutdown", shutdown);
 }

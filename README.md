@@ -133,11 +133,3 @@ The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The
 ## Example usage
 
   * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)
-
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> d33c4e0c5cab0f97c2e9061ccb0631d9381a5383
