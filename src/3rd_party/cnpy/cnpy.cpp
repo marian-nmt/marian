@@ -184,18 +184,18 @@ cnpy::npz_t cnpy::npz_load(std::string fname) {
             if(efield_res != extra_field_len)
                 throw std::runtime_error("npz_load: failed fread");
         }
-	off_t pos = ftell(fp); // remember current position
-	NpyArray arr = load_the_npy_file(fp);
-	arrays[varname] = arr;
+        off_t pos = ftell(fp); // remember current position
+        NpyArray arr = load_the_npy_file(fp);
+        arrays[varname] = arr;
         if (arr.word_size == 0) {
-	  // This happens when a None was saved with numpy.savez().
-	  // Numpy then saves some addtional stuff after the npy header,
-	  // which we need to skip. It appears that the entire entry / file
-	  // is 210 bytes if a None was saved.
-	  fseek(fp,pos + 210, SEEK_SET); // scan forward to the end of the block
-	}
+          // This happens when a None was saved with numpy.savez().
+          // Numpy then saves some addtional stuff after the npy header,
+          // which we need to skip. 
+          unsigned int size = *(unsigned int*) &local_header[22];
+          fseek(fp, pos + size, SEEK_SET); // scan forward to the end of the block
+        }
     }
-
+    
     fclose(fp);
     return arrays;  
 }
