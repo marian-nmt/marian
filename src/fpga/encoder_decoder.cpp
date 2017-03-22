@@ -37,7 +37,7 @@ EncoderDecoder::EncoderDecoder(
 void EncoderDecoder::SetSource(const Sentences& sources)
 {
   encoder_->GetContext(sources, tab_, sourceContext_);
-  cerr << "sourceContext_=" << sourceContext_.Debug(true) << endl;
+  cerr << "FPGA sourceContext_=" << sourceContext_.Debug(true) << endl;
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
