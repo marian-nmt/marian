@@ -3,7 +3,6 @@
 #include <iostream>
 #include <cassert>
 #include "kernel.h"
-#include "types.h"
 #include "debug-devices.h"
 
 using namespace std;

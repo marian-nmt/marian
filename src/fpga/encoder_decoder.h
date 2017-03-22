@@ -1,7 +1,8 @@
 #pragma once
 #include "common/scorer.h"
+#include "encoder_decoder_state.h"
 #include "matrix.h"
-#include "types.h"
+#include "types-fpga.h"
 
 namespace amunmt {
 namespace FPGA {
@@ -11,6 +12,9 @@ class Encoder;
 class Decoder;
 
 class EncoderDecoder : public Scorer {
+private:
+  typedef EncoderDecoderState EDState;
+
 public:
   EncoderDecoder(const God &god,
            const std::string& name,
@@ -41,7 +45,7 @@ public:
 
 protected:
   const Weights& model_;
-  mblas::Matrix SourceContext_;
+  mblas::Matrix sourceContext_;
 
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;

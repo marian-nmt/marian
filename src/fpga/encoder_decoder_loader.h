@@ -1,5 +1,5 @@
 #include "common/loader.h"
-#include "types.h"
+#include "types-fpga.h"
 
 
 namespace amunmt {

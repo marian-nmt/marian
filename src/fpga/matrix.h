@@ -1,6 +1,6 @@
 #pragma once
 #include "common/base_matrix.h"
-#include "types.h"
+#include "types-fpga.h"
 
 namespace amunmt {
 namespace FPGA {

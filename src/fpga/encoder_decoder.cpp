@@ -5,7 +5,6 @@
 #include "encoder.h"
 #include "decoder.h"
 #include "model.h"
-#include "types.h"
 #include "common/god.h"
 
 using namespace std;
@@ -28,10 +27,22 @@ EncoderDecoder::EncoderDecoder(
 :Scorer(name, config, tab)
 ,model_(model)
 ,context_(context)
-,SourceContext_(context, device)
+,sourceContext_(context, device)
 ,encoder_(new Encoder(context, device, model_))
 ,decoder_(new Decoder(god, model_))
 {
+
+}
+
+void EncoderDecoder::SetSource(const Sentences& sources)
+{
+  encoder_->GetContext(sources, tab_, sourceContext_);
+  cerr << "sourceContext_=" << sourceContext_.Debug(true) << endl;
+}
+
+void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
+{
+  EDState& edState = state.get<EDState>();
 
 }
 
@@ -41,21 +52,11 @@ void EncoderDecoder::Decode(const God &god, const State& in,
 
 }
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
-{
-
-}
-
 void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out)
 {
 
-}
-
-void EncoderDecoder::SetSource(const Sentences& sources)
-{
-  encoder_->GetContext(sources, tab_, SourceContext_);
 }
 
 void EncoderDecoder::Filter(const std::vector<size_t>&)
