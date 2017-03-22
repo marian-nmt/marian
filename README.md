@@ -133,3 +133,7 @@ The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The
 ## Example usage
 
   * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)
+  
+## Acknowledgements
+
+The development of Marian received funding from the European Union's Horizon 2020 Research and Innovation Programme under grant agreements 688139 (SUMMA; 2016-2019) and 645487 (Modern MT; 2015-2017) and the Amazon Academic Research Awards program.
