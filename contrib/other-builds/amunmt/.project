@@ -521,9 +521,9 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/npz_converter.h</locationURI>
 		</link>
 		<link>
-			<name>src/fpga/types.h</name>
+			<name>src/fpga/types-fpga.h</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/types.h</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/types-fpga.h</locationURI>
 		</link>
 		<link>
 			<name>src/gpu/decoder</name>
