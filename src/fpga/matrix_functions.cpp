@@ -2,6 +2,7 @@
 #include "matrix_functions.h"
 #include "matrix.h"
 #include "kernel.h"
+#include "array.h"
 
 namespace amunmt {
 namespace FPGA {

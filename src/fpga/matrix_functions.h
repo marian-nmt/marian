@@ -1,12 +1,18 @@
 #include <vector>
 #include <stddef.h>
-#include "array.h"
+#include "types-fpga.h"
 
 namespace amunmt {
 namespace FPGA {
+
+template<typename T>
+class Array;
+
 namespace mblas {
 
 class Matrix;
+
+
 
 float Sum(
     const cl_mem &mem,

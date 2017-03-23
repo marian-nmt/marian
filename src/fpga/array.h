@@ -2,6 +2,7 @@
 #include <sstream>
 #include <vector>
 #include "types-fpga.h"
+#include "matrix_functions.h"
 
 namespace amunmt {
 namespace FPGA {
@@ -50,7 +51,7 @@ public:
     strm << size_ << " " << mem_;
 
     if (detailed) {
-      float sum = Sum();
+      float sum = mblas::Sum(mem_, size_, context_, device_);
       strm << " sum=" << sum << std::flush;
     }
 
@@ -64,11 +65,6 @@ protected:
 
   size_t size_;
   cl_mem mem_;
-
-  float Sum() const
-  {
-
-  }
 
 };
 
