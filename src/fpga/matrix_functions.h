@@ -1,5 +1,6 @@
 #include <vector>
 #include <stddef.h>
+#include "array.h"
 
 namespace amunmt {
 namespace FPGA {
@@ -9,12 +10,12 @@ class Matrix;
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const size_t* dev,
+                 const cl_mem &dev,
                  size_t numPairs);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const std::vector<size_t>& indeces);
+                 const Array<size_t>& indeces);
 
 }
 }

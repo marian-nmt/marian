@@ -27,8 +27,7 @@ class Encoder {
         }
       }
 
-      std::vector<size_t> dKnownWords(knownWords);
-      Array<size_t> dKnownWords2(context, knownWords);
+      Array<size_t> dKnownWords(context, knownWords);
 
       Row.Resize(words.size(), w_.E_.dim(1));
       mblas::Assemble(Row, w_.E_, dKnownWords);

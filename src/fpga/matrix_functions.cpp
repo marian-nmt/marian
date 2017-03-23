@@ -7,7 +7,7 @@ namespace mblas {
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const size_t* dev,
+                 const cl_mem &dev,
                  size_t numPairs)
 {
 
@@ -15,10 +15,10 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const std::vector<size_t>& indeces)
+                 const Array<size_t>& indeces)
 {
   Out.Resize(indeces.size(), In.dim(1));
-  //CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
+  CopyRows(Out, In, indeces.data(), indeces.size());
   return Out;
 }
 
