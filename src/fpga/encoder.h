@@ -18,7 +18,7 @@ class Encoder {
     : w_(model)
     {}
 
-    void Lookup(const cl_context &context, mblas::Matrix& Row, const Words& words)
+    void Lookup(const cl_context &context, const cl_device_id &device, mblas::Matrix& Row, const Words& words)
     {
       std::vector<size_t> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
@@ -27,7 +27,7 @@ class Encoder {
         }
       }
 
-      Array<size_t> dKnownWords(context, knownWords);
+      Array<size_t> dKnownWords(context, device, knownWords);
 
       Row.Resize(words.size(), w_.E_.dim(1));
       mblas::Assemble(Row, w_.E_, dKnownWords);

@@ -10,8 +10,9 @@ template<typename T>
 class Array
 {
 public:
-  Array(const cl_context &context, size_t size)
+  Array(const cl_context &context, const cl_device_id &device, size_t size)
   :context_(context)
+  ,device_(device)
   ,size_(size)
   {
     cl_int err;
@@ -19,8 +20,9 @@ public:
     CheckError(err);
   }
 
-  Array(const cl_context &context, const std::vector<T> &vec)
+  Array(const cl_context &context, const cl_device_id &device, const std::vector<T> &vec)
   :context_(context)
+  ,device_(device)
   ,size_(vec.size())
   {
     cl_int err;
@@ -58,6 +60,8 @@ public:
 
 protected:
   const cl_context &context_;
+  const cl_device_id &device_;
+
   size_t size_;
   cl_mem mem_;
 
