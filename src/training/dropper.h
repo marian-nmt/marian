@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "kernels/tensor_operators.h"
+#include "kernels/cuda_helpers.h"
 #include <thrust/sort.h>
 #include <thrust/device_ptr.h>
 #include <curand_kernel.h>
@@ -20,7 +21,7 @@ __global__ void gScatterUpdate(float* denseData, float* sparseData, int* sparseI
 	if (sparseIndices[idx] + offset >= 0 && sparseIndices[idx] + offset < denseSize)
 		denseData[ sparseIndices[idx] + offset ] = sparseData[idx];
 	else
-		printf(" ------        LHOOOO offset %d --- %d %d\n", offset, sparseIndices[idx] + offset, denseSize);
+		printf(" ------        LHOOOO offset %d --- %d %d : located at %d\n", offset, sparseIndices[idx] + offset, denseSize, idx);
 }
 
 __global__ void gScatterCopy(float* denseData, float* sparseData, int* sparseIndices, int denseSize, int sparseSize){
@@ -216,7 +217,7 @@ public:
 				if (DEBUG) printf("element2 yang mengapit posisi: %d %d %d\n",prev, tmp_dt, next);
 
 			}
-			startOffset = endOffset + 1;
+			//startOffset = endOffset + 1;
 		}
 		if (startOffset > endOffset){
 			if (DEBUG) std::cout<<" BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER BLEBER "<<std::endl;
@@ -226,7 +227,7 @@ public:
 
 		//std::cout<<"got cut: "<<startOffset<<" to "<<endOffset<<std::endl;
 
-		int subtensorSize = endOffset - startOffset + 1;
+		int subtensorSize = max(0, endOffset - startOffset + 1);
 		cudaStreamSynchronize(0);
 		return std::shared_ptr<SparseTensorBase>( new SparseTensorBase(data_ + startOffset, indices_ + startOffset, subtensorSize, device_) );
 	}
@@ -270,19 +271,18 @@ __global__ void buildIndices(float* denseData, float* denseSum, float* sparseDat
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if (idx >= denseSize)
     return;
-  
-  int t_id = (int) (denseSum[idx] + 0.2) -1;
-  if (t_id < 0){
+  int t_id = round(denseSum[idx]);
+  if (t_id <= 0){
   	return;
   }
   
-  if (idx == 0 && denseSum[idx] > 0 + 0.5){
-  	sparseIndices[ t_id ] = idx;
-  	sparseData[ t_id ] = denseData[idx];
+  if (idx == 0 &&  t_id > 0){
+  	sparseIndices[ t_id - 1] = idx;
+  	sparseData[ t_id - 1] = denseData[idx];
   }
-  else if (idx > 0 && denseSum[idx] - denseSum[idx-1] > 0.5){
-  	sparseIndices[ t_id ] = idx;
-  	sparseData[ t_id ] = denseData[idx];
+  else if (idx > 0 && t_id > round(denseSum[idx-1]) ){
+  	sparseIndices[ t_id - 1 ] = idx;
+  	sparseData[ t_id  - 1] = denseData[idx];
   }
 }
 
@@ -311,24 +311,21 @@ class GradientDropBase {
 	  cudaSetDevice(_device);
 	  grad_add_error<<<blocks, threads>>>(data, errors, len);
 	  //full sort
-	  int sortSize = len;
-	  //int sortSize = min(5000, len);
+	  //int sortSize = len;
+	  int sortSize = min(5000, len);
 	  //cudaMemcpy(tmp, data, len * sizeof(float), cudaMemcpyDeviceToDevice);
 	  int blocksSample = 1 + sortSize/threads;
-	  
 	  randomSampling<<<blocksSample, threads>>>(data, tmp, sortSize, len / sortSize, len);
 	  //full_abs<<<blocksSample, threads>>>(tmp,sortSize);
-
 	  //dont update the cut threshold every step
 	  
-		cudaSetDevice(_device);
 		thrust::device_ptr<float> dev_data_ptr(tmp);
 		thrust::sort(dev_data_ptr, dev_data_ptr + sortSize ); // OVERKILL. Too slow and need extra memory. Need to replace with faster k-th selection. (inplace Radix Select?)
 		int cut_index = sortSize * rate;
 		if (cut_index >= sortSize)
 			    cut_index = sortSize -1;
 		cudaMemcpy(&cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost);
-		//std::cout<<cut_off<<std::endl;  
+		//std::cout<<_device<<": "<<cut_off<<"  "<<cut_index<<std::endl;  
 		  
 
 		grad_drop<<<blocks, threads>>>(data, tmp, errors, cut_off, len);
@@ -346,6 +343,8 @@ class GradientDropBase {
     		 _device = t->getDevice();
     		 cudaMalloc(&feedback, sizeof(float) * t->size());
     		 cudaMalloc(&temp_d, sizeof(float) * t->size());
+    		 cudaMemset(feedback, 0, sizeof(float) * t->size());
+    		 cudaMemset(temp_d, 0, sizeof(float) * t->size());
     		 wow = 0;
     		 step = 0;
     		 std::cerr<<"MALLOC for grad Dropper GPU "<<t->getDevice()<<std::endl;

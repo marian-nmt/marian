@@ -11,7 +11,8 @@
 
 #include "training/dropper.h"
 
-#define HISTORY_SIZE 8
+#define HISTORY_SIZE 6
+#define DROP_SIZE 0.99
 
 namespace marian {
 
@@ -84,10 +85,10 @@ class AsyncGraphGroup : public GraphGroup {
         return;
 
       // @TODO read guard on parameters
-      int pos = 0;
+      int p = 0;
 
       std::vector<std::thread> threads;
-      for (int idx = 0; idx < devices_.size(); idx++) {
+      for (int i = 0; i < devices_.size(); i++) {
         threads.emplace_back( std::thread( [=](int idx, int pos) {
           //individual mutex per-shard
           std::lock_guard<std::mutex> guard( shardSync_[idx] );
@@ -102,30 +103,33 @@ class AsyncGraphGroup : public GraphGroup {
           if (globalVersionNumber[idx] == localVersionNumbers[worker_id][idx])
             return;
           
-          //printf("DOING THINGS ON GPU %d %d %d %d\n", tmpTensor[idx]->getDevice(),  params_[latestVersion][idx]->getDevice(), tmpDelta[worker_id]->getDevice(), oldParams->getDevice());
+//          printf("DOING THINGS ON GPU %d -> %d %d | %d %d %d\n", tmpTensor[idx]->getDevice(),  params_[latestVersion][idx]->getDevice(), tmpSparseDelta[idx]->getDevice(), 
+//                                                                localSparseDelta[worker_id][idx]->getDevice(), tmpDelta[worker_id]->getDevice(), oldParams->getDevice());
 
           //update params. add with delta of latest param and current param
           //get delta
           Element(_1 = _2 - _3, tmpTensor[idx], params_[latestVersion][idx] , params_[currVersion][idx]);
-          
+          cudaStreamSynchronize(0);   
           //get sparse delta  
-          fetchDropper_[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , 0.99 );
+          fetchDropper_[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , DROP_SIZE );
 
+          cudaStreamSynchronize(0);
           //move sparse delta
           localSparseDelta[worker_id][idx]->copyFrom( tmpSparseDelta[idx] );
-
+          cudaStreamSynchronize(0);
           //obtain the delta
           localSparseDelta[worker_id][idx]->toDense( tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()) , 0 );
-
+          cudaStreamSynchronize(0);
           //apply
+
           Element(_1 += _2 , oldParams->subtensor(pos , grads_[idx]->size()) , 
                              tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()));
-          
+          cudaStreamSynchronize(0);
           localVersionNumbers[worker_id][idx] =  globalVersionNumber[idx];
 
-        }, idx, pos) );
+        }, i, p) );
 
-        pos += shardSize_;
+        p += shardSize_;
       }
       for (auto &&t : threads) {
         t.join();
@@ -137,10 +141,10 @@ class AsyncGraphGroup : public GraphGroup {
         return;
 
       // @TODO read guard on parameters
-      int pos = 0;
+      int p = 0;
 
       std::vector<std::thread> threads;
-      for (int idx = 0; idx < devices_.size(); idx++) {
+      for (int i = 0; i < devices_.size(); i++) {
         threads.emplace_back( std::thread( [=](int idx, int pos) {
           //individual mutex per-shard
           std::lock_guard<std::mutex> guard( shardSync_[idx] );
@@ -160,6 +164,7 @@ class AsyncGraphGroup : public GraphGroup {
           //update params. add with delta of latest param and current param
           //get delta
           Element(_1 = _2 - _3, tmpTensor[idx], params_[latestVersion][idx] , params_[currVersion][idx]);
+
           
           //move delta
           tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size())->copyFrom(tmpTensor[idx]);
@@ -170,9 +175,9 @@ class AsyncGraphGroup : public GraphGroup {
           
           localVersionNumbers[worker_id][idx] =  globalVersionNumber[idx];
 
-        }, idx, pos) );
+        }, i, p) );
 
-        pos += shardSize_;
+        p += shardSize_;
       }
       for (auto &&t : threads) {
         t.join();
@@ -369,15 +374,15 @@ class AsyncGraphGroup : public GraphGroup {
           initFetchParams(graph->params().vals() , my_id );
         else
           //fetchParams(graph->params().vals() , my_id );
-            sparseFetchParams(graph->params().vals() , my_id );
+          sparseFetchParams(graph->params().vals() , my_id );
 
         graph->forward();
         float cost = graph->topNode()->scalar();
         graph->backward();
-
+  
         cudaStreamSynchronize(0);
         
-        gradDropper_[my_id]->dropGraph(graph , localSparseGrads_[my_id] , 0.99);
+        gradDropper_[my_id]->dropGraph(graph , localSparseGrads_[my_id] , DROP_SIZE );
         //cudaStreamSynchronize(0);
 
         //sparsePush
