@@ -28,7 +28,7 @@ cuda_add_library(marian_lib
 target_link_libraries(marian_lib)
 
 cuda_add_executable(marian_train command/marian.cu)
-#set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
+set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
 cuda_add_executable(marian_translate test/marian_translate.cu)
 
 target_link_libraries(marian_train marian_lib)
