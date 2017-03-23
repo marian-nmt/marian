@@ -51,7 +51,7 @@ public:
     strm << size_ << " " << mem_;
 
     if (detailed) {
-      float sum = mblas::Sum(mem_, size_, context_, device_);
+      float sum = mblas::SumSizet(mem_, size_, context_, device_);
       strm << " sum=" << sum << std::flush;
     }
 

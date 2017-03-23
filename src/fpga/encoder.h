@@ -28,7 +28,7 @@ class Encoder {
       }
 
       Array<size_t> dKnownWords(context, device, knownWords);
-      std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << std::endl;
+      std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << std::endl;
 
       Row.Resize(words.size(), w_.E_.dim(1));
       mblas::Assemble(Row, w_.E_, dKnownWords);
