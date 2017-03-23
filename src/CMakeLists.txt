@@ -3,7 +3,7 @@ include_directories(.)
 include_directories(3rd_party)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/common/git_version.cpp.in"
-	       "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp" @ONLY)
+               "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp" @ONLY)
 
 list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp")
 
@@ -60,7 +60,7 @@ cuda_add_executable(
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:cpumode>
-  $<TARGET_OBJECTS:libyaml-cpp>
+  $<TARGET_OBJECTS:libyaml-cpp-amun>
   $<TARGET_OBJECTS:libcnpy>
 )
 
@@ -79,7 +79,7 @@ cuda_add_library(python SHARED
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
-  $<TARGET_OBJECTS:libyaml-cpp>
+  $<TARGET_OBJECTS:libyaml-cpp-amun>
 )
 set_target_properties("python" PROPERTIES EXCLUDE_FROM_ALL 1)
 set_target_properties("python" PROPERTIES OUTPUT_NAME "amunmt")
@@ -102,7 +102,7 @@ cuda_add_library(mosesplugin STATIC
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
-  $<TARGET_OBJECTS:libyaml-cpp>
+  $<TARGET_OBJECTS:libyaml-cpp-amun>
 )
 set_target_properties("mosesplugin" PROPERTIES EXCLUDE_FROM_ALL 1)
 
@@ -115,7 +115,7 @@ add_executable(
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libcommon>
-  $<TARGET_OBJECTS:libyaml-cpp>
+  $<TARGET_OBJECTS:libyaml-cpp-amun>
 )
 
 if(PYTHONLIBS_FOUND)
@@ -125,7 +125,7 @@ add_library(python SHARED
   $<TARGET_OBJECTS:libcnpy>
   $<TARGET_OBJECTS:cpumode>
   $<TARGET_OBJECTS:libcommon>
-  $<TARGET_OBJECTS:libyaml-cpp>
+  $<TARGET_OBJECTS:libyaml-cpp-amun>
 )
 set_target_properties("python" PROPERTIES EXCLUDE_FROM_ALL 1)
 set_target_properties("python" PROPERTIES OUTPUT_NAME "amunmt")

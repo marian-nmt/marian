@@ -1,7 +1,7 @@
 include_directories(..)
 include_directories(.)
-if (NOT TARGET libyaml-cpp)
-  add_library(libyaml-cpp OBJECT
+if (NOT TARGET libyaml-cpp-amun)
+  add_library(libyaml-cpp-amun OBJECT
     regex_yaml.cpp
     nodebuilder.cpp
     scanscalar.cpp
