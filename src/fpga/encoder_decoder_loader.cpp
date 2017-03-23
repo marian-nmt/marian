@@ -50,7 +50,7 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
 void EncoderDecoderLoader::Load(const God &god)
 {
   std::string path = Get<std::string>("path");
-  cerr << "path=" << path << endl;
+  //cerr << "path=" << path << endl;
 
   Weights *weights = new Weights(context_, devices_[0], path);
   weights_.reset(weights);

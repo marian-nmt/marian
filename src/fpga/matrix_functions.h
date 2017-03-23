@@ -8,6 +8,12 @@ namespace mblas {
 
 class Matrix;
 
+float Sum(
+    const cl_mem &mem,
+    size_t size,
+    const cl_context &context,
+    const cl_device_id &device);
+
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
                  const cl_mem &dev,
