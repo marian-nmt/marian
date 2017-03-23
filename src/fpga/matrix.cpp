@@ -33,7 +33,7 @@ Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t row
 ,rows_(rows)
 ,cols_(cols)
 {
-  mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * rows * cols, val, NULL);
+  mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
 }
 
 Matrix::~Matrix()
@@ -47,7 +47,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
   cols_ = cols;
 
   cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * rows * cols, NULL, &err);
+  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
 
 }

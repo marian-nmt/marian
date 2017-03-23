@@ -4,8 +4,8 @@
 namespace amunmt {
 
 size_t BaseMatrix::size() const {
-  size_t ret = 1;
-  for (size_t i = 0; i < SHAPE_SIZE; ++i) {
+  size_t ret = dim(0);
+  for (size_t i = 1; i < SHAPE_SIZE; ++i) {
     ret *= dim(i);
   }
 
