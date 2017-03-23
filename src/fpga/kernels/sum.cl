@@ -10,3 +10,15 @@ __kernel void sum(
   (*output) = ret;
 }                                      
 
+__kernel void sum_size_t(                                                    
+   __global size_t* input, 
+   __global size_t* output,
+   const unsigned int count)
+{
+  size_t ret = 0;
+  for (size_t i = 0; i < count; ++i) {
+    ret += input[i];
+  }
+  (*output) = ret;
+}                                      
+

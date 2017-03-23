@@ -4,6 +4,7 @@
 #include "matrix.h"
 #include "matrix_functions.h"
 #include "gru.h"
+#include "array.h"
 #include "common/sentences.h"
 
 namespace amunmt {
@@ -17,7 +18,7 @@ class Encoder {
     : w_(model)
     {}
 
-    void Lookup(mblas::Matrix& Row, const Words& words)
+    void Lookup(const cl_context &context, const cl_device_id &device, mblas::Matrix& Row, const Words& words)
     {
       std::vector<size_t> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
@@ -26,10 +27,19 @@ class Encoder {
         }
       }
 
-      std::vector<size_t> dKnownWords(knownWords);
+      Array<size_t> dKnownWords(context, device, knownWords);
+      std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << std::endl;
+      for (size_t i = 0; i < knownWords.size(); ++i) {
+        std::cerr << knownWords[i] << " ";
+      }
+      std::cerr << std::endl;
 
+      //std::cerr << "Row1=" << Row.Debug(true) << std::endl;
       Row.Resize(words.size(), w_.E_.dim(1));
+      //std::cerr << "Row2=" << Row.Debug(true) << std::endl;
       mblas::Assemble(Row, w_.E_, dKnownWords);
+
+      std::cerr << "Row3=" << Row.Debug(true) << std::endl;
 
     }
 

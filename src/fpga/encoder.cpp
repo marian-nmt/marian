@@ -53,8 +53,8 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
     if (i >= embeddedWords_.size()) {
       embeddedWords_.emplace_back(context_, device_);
     }
-    embeddings_.Lookup(embeddedWords_[i], input[i]);
-    cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
+    embeddings_.Lookup(context_, device_, embeddedWords_[i], input[i]);
+    //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 
   forwardRnn_.GetContext(embeddedWords_.cbegin(),

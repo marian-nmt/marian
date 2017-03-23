@@ -381,6 +381,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/cpu/npz_converter.h</locationURI>
 		</link>
 		<link>
+			<name>src/fpga/array.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/array.h</locationURI>
+		</link>
+		<link>
 			<name>src/fpga/best_hyps.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/best_hyps.cpp</locationURI>
