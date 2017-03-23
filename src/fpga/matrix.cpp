@@ -36,19 +36,25 @@ Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t row
   mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * rows * cols, val, NULL);
 }
 
+Matrix::~Matrix()
+{
+  CheckError( clReleaseMemObject(mem_) );
+}
+
 void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 {
   rows_ = rows;
   cols_ = cols;
 
-  //clReleaseMemObject(mem_);
-  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * rows * cols, NULL, NULL);
+  cl_int err;
+  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * rows * cols, NULL, &err);
+  CheckError(err);
 
 }
 
 float Matrix::Sum() const
 {
-  int err;
+  cl_int err;
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
@@ -73,8 +79,8 @@ float Matrix::Sum() const
 
   global = 1024;
 
-  cerr << "local=" << local << endl;
-  cerr << "global=" << global << endl;
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
 
   CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
 

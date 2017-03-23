@@ -4,6 +4,7 @@
 #include "matrix.h"
 #include "matrix_functions.h"
 #include "gru.h"
+#include "array.h"
 #include "common/sentences.h"
 
 namespace amunmt {
@@ -27,6 +28,7 @@ class Encoder {
       }
 
       std::vector<size_t> dKnownWords(knownWords);
+      //Array<size_t> dKnownWords(knownWords);
 
       Row.Resize(words.size(), w_.E_.dim(1));
       mblas::Assemble(Row, w_.E_, dKnownWords);
