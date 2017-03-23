@@ -37,7 +37,6 @@ if(CUDA)
     if (MARIAN)
       execute_process(COMMAND git submodule update --init --recursive
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-       add_subdirectory(marian)
     endif(MARIAN)
 
   else(CUDA_FOUND)

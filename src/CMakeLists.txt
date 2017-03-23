@@ -42,6 +42,12 @@ add_library(libcommon OBJECT
 
 if(CUDA_FOUND)
 
+if (MARIAN)
+   #execute_process(COMMAND git submodule update --init --recursive
+#                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+   add_subdirectory(marian)
+endif(MARIAN)  
+
 set_source_files_properties( common/loader_factory.cpp
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
 
