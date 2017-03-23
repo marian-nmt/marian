@@ -80,22 +80,22 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
   }
 }
 
-void Config::validate(bool translate) const {
-  if(!translate) {
-    UTIL_THROW_IF2(!has("train-sets")
-                   || get<std::vector<std::string>>("train-sets").empty(),
-                   "No train sets given in config file or on command line");
-    if(has("vocabs")) {
-      UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size() !=
-        get<std::vector<std::string>>("train-sets").size(),
-        "There should be as many vocabularies as training sets");
+void Config::validate(bool translate) const { 
+    if(!translate) {
+      UTIL_THROW_IF2(!has("train-sets")
+                     || get<std::vector<std::string>>("train-sets").empty(),
+                     "No train sets given in config file or on command line");
+      if(has("vocabs")) {
+        UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size() !=
+          get<std::vector<std::string>>("train-sets").size(),
+          "There should be as many vocabularies as training sets");
+      }
+      if(has("valid-sets")) {
+        UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size() !=
+          get<std::vector<std::string>>("train-sets").size(),
+          "There should be as many validation sets as training sets");
+      }
     }
-    if(has("valid-sets")) {
-      UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size() !=
-        get<std::vector<std::string>>("train-sets").size(),
-        "There should be as many validation sets as training sets");
-    }
-  }
 }
 
 void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
@@ -278,36 +278,35 @@ void Config::addOptionsTranslate(po::options_description& desc) {
 void Config::addOptions(int argc, char** argv,
                         bool doValidate, bool translate) {
 
-  po::options_description cmdline_options("Allowed options");
-  addOptionsCommon(cmdline_options);
+  addOptionsCommon(cmdline_options_);
 
-  addOptionsModel(cmdline_options, translate);
+  addOptionsModel(cmdline_options_, translate);
 
   if(!translate) {
-    addOptionsTraining(cmdline_options);
-    addOptionsValid(cmdline_options);
+    addOptionsTraining(cmdline_options_);
+    addOptionsValid(cmdline_options_);
   }
   else {
-    addOptionsTranslate(cmdline_options);
+    addOptionsTranslate(cmdline_options_);
   }
 
   boost::program_options::variables_map vm_;
   try {
     po::store(po::command_line_parser(argc, argv)
-              .options(cmdline_options).run(), vm_);
+              .options(cmdline_options_).run(), vm_);
     po::notify(vm_);
   }
   catch (std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl << std::endl;
 
     std::cerr << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
-    std::cerr << cmdline_options << std::endl;
+    std::cerr << cmdline_options_ << std::endl;
     exit(1);
   }
 
   if (vm_["help"].as<bool>()) {
     std::cerr << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
-    std::cerr << cmdline_options << std::endl;
+    std::cerr << cmdline_options_ << std::endl;
     exit(0);
   }
 
@@ -380,9 +379,19 @@ void Config::addOptions(int argc, char** argv,
   }
   /** valid **/
 
-  if(doValidate)
-    validate(translate);
-
+  if(doValidate) {
+    try {
+      validate(translate);
+    }
+    catch (util::Exception& e) {
+      std::cerr << "Error: " << e.what() << std::endl << std::endl;
+  
+      std::cerr << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
+      std::cerr << cmdline_options_ << std::endl;
+      exit(1);
+    }
+  }
+  
   SET_OPTION("workspace", size_t);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
