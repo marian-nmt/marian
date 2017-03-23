@@ -145,7 +145,7 @@ foreach(exec ${EXES})
   else(CUDA_FOUND)
     target_link_libraries(${exec} ${EXT_LIBS})
   endif(CUDA_FOUND)
-  set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+  set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
 
 add_subdirectory(3rd_party)

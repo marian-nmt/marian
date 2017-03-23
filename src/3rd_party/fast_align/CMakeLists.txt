@@ -18,5 +18,5 @@ endif(OPENMP_FOUND)
 add_executable(fast_align src/fast_align.cc src/ttables.cc)
 add_executable(atools src/alignment_io.cc src/atools.cc)
 
-set_target_properties(fast_align PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set_target_properties(atools PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(fast_align PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set_target_properties(atools PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

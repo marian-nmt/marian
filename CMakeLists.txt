@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.5.1)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-project(amunn C CXX)
+project(amunmt C CXX)
+
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
@@ -29,6 +33,13 @@ if(CUDA)
     add_definitions(-DCUDA)
     SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
     message("-- Compiling with CUDA support")
+    
+    if (MARIAN)
+      execute_process(COMMAND git submodule update --init --recursive
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+       add_subdirectory(marian)
+    endif(MARIAN)
+
   else(CUDA_FOUND)
     add_definitions(-DNO_CUDA)
     message("-- Cannot find CUDA libraries. Compiling without them." )
@@ -37,10 +48,6 @@ else(CUDA)
     message("-- Forcing compilation without CUDA.")
     add_definitions(-DNO_CUDA)
 endif(CUDA)
-
-if (MARIAN)
-  add_subdirectory(marian)
-endif(MARIAN)  
 
 find_package(Boost COMPONENTS system filesystem program_options timer iostreams python thread)
 if(Boost_FOUND)
@@ -69,11 +76,11 @@ IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
   FIND_PACKAGE(Git)
   IF(GIT_FOUND)
     EXECUTE_PROCESS(
-	    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-	    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	    OUTPUT_VARIABLE "AMUNMT_BUILD_VERSION"
-	    ERROR_QUIET
-	    OUTPUT_STRIP_TRAILING_WHITESPACE)
+      COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      OUTPUT_VARIABLE "AMUNMT_BUILD_VERSION"
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
     MESSAGE( STATUS "Git version: ${AMUNMT_BUILD_VERSION}" )
   ELSE(GIT_FOUND)
     SET(AMUNMT_BUILD_VERSION 0)
