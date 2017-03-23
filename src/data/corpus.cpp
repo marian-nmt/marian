@@ -165,9 +165,6 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     for(auto& line : lines) {
       (std::ostream&)*outs[i++] << line << std::endl;
     }
-
-    std::vector<std::string> empty;
-    lines.swap(empty);
   }
 
   for(int i = 0; i < outs.size(); ++i) {
