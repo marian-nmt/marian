@@ -56,8 +56,9 @@ fi
 
 if [ ! -e "data/newstest2016.bpe.ro.output.postprocessed.dev" ]
 then
-  cat data/newstest2016.bpe.ro | ../../build/amun -c model/model.npz.amun.yml -b 12 -n --mini-batch 100 --maxi-batch 1000 \
- | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed.dev
+  cat data/newstest2016.bpe.ro \
+  | ../../build/amun -c model/model.npz.amun.yml -b 12 -n --mini-batch 100 --maxi-batch 1000 \
+  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
 fi
 
-./mosesdecoder/scripts/generic/multi-bleu.perl data/newtest2016.en < data/newtest2016.bpe.ro.output.postprocessed.dev
+./mosesdecoder/scripts/generic/multi-bleu.perl data/newtest2016.en < data/newtest2016.bpe.ro.output.postprocessed
