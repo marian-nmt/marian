@@ -13,7 +13,8 @@ class Config {
 
     static size_t seed;
 
-    Config(int argc, char** argv, bool validate=true, bool translate=false) {
+    Config(int argc, char** argv, bool validate=true, bool translate=false)
+     : cmdline_options_("Allowed options") {
       addOptions(argc, argv, validate, translate);
       log();
     }
@@ -64,6 +65,7 @@ class Config {
 
 
   private:
+    boost::program_options::options_description cmdline_options_;
     std::string inputPath;
     YAML::Node config_;
 };

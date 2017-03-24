@@ -9,6 +9,7 @@ endif(CUDA_FOUND)
 
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -Wno-unused-result -Wno-deprecated -fPIC -Wno-deprecated-gpu-targets")
 LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)  
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 find_package(ZLIB)

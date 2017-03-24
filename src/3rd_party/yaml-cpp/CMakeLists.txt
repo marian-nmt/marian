@@ -2,4 +2,6 @@ include_directories(..)
 include_directories(.)
 
 FILE(GLOB YamlCppSources *.cpp contrib/*.cpp)
-add_library(libyaml-cpp OBJECT ${YamlCppSources})
+if (NOT TARGET libyaml-cpp)
+  add_library(libyaml-cpp OBJECT ${YamlCppSources})
+endif()
