@@ -32,7 +32,7 @@ class GraphGroup {
 
     virtual void load() = 0;
 
-    virtual void save() = 0;
+    virtual void save(bool=false) = 0;
 };
 
 
@@ -232,7 +232,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    void save() {
+    void save(bool final=false) {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model");
         builders_[0]->save(graphs_[0], name, true);
@@ -240,10 +240,13 @@ class AsyncGraphGroup : public GraphGroup {
       }
       else {
         std::string name = options_->get<std::string>("model");
-        std::string nameOverwrite = name;
-        nameOverwrite.replace(name.size() - 4, 4,
-          ".iter" + std::to_string(reporter_->batches) + ".npz");
-        builders_[0]->save(graphs_[0], nameOverwrite);
+        
+        if(!final) {
+          std::string nameOverwrite = name;
+          nameOverwrite.replace(name.size() - 4, 4,
+            ".iter" + std::to_string(reporter_->batches) + ".npz");
+          builders_[0]->save(graphs_[0], nameOverwrite);
+        }
 
         builders_[0]->save(graphs_[0], name, true);
         reporter_->save(name);
@@ -375,7 +378,7 @@ class SyncGraphGroup : public GraphGroup {
         execute();
     }
 
-    void save() {
+    void save(bool final=false) {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model") + ".npz";
         builder_->save(graphs_[0], name);

@@ -152,7 +152,7 @@ void Train(Ptr<Config> options) {
       reporter->increaseEpoch();
   }
   reporter->finished();
-  model->save();
+  model->save(true);
 }
 
 }
