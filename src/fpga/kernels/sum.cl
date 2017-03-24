@@ -1,3 +1,5 @@
+#pragma once
+
 __kernel void sum(                                                    
    __global float* input, 
    __global float* output,

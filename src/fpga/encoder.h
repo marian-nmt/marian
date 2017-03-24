@@ -28,7 +28,8 @@ class Encoder {
       }
 
       Array<size_t> dKnownWords(context, device, knownWords);
-      std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << std::endl;
+
+      std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << ": ";
       for (size_t i = 0; i < knownWords.size(); ++i) {
         std::cerr << knownWords[i] << " ";
       }

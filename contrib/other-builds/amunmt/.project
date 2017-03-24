@@ -1301,6 +1301,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/cpu/mblas/simd_math_prims.h</locationURI>
 		</link>
 		<link>
+			<name>src/fpga/kernels/matrix_functions.cl</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/kernels/matrix_functions.cl</locationURI>
+		</link>
+		<link>
 			<name>src/fpga/kernels/saxpy.cl</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/kernels/saxpy.cl</locationURI>
