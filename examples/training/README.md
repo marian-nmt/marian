@@ -57,6 +57,4 @@ cat $dev | ../../build/amun -c $prefix.dev.npz.amun.yml --mini-batch 10 --maxi-b
 ## get BLEU
 ./mosesdecoder/scripts/generic/multi-bleu.perl $ref < $dev.output.postprocessed \
 | cut -f 3 -d ' ' | cut -f 1 -d ','
-
-echo $BLEU
 ```
