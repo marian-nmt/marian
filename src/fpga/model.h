@@ -27,7 +27,7 @@ struct Weights {
       U_(model.GetMatrix(context, device, "encoder_U")),
       Wx_(model.GetMatrix(context, device, "encoder_Wx")),
       Bx1_(model.GetMatrix(context, device, "encoder_bx", true)),
-      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
+      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), true),
       Ux_(model.GetMatrix(context, device, "encoder_Ux"))
     { }
 
@@ -47,7 +47,7 @@ struct Weights {
       U_(model.GetMatrix(context, device, "encoder_r_U")),
       Wx_(model.GetMatrix(context, device, "encoder_r_Wx")),
       Bx1_(model.GetMatrix(context, device, "encoder_r_bx", true)),
-      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
+      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), true),
       Ux_(model.GetMatrix(context, device, "encoder_r_Ux"))
     {}
 
@@ -86,7 +86,7 @@ struct Weights {
       U_(model.GetMatrix(context, device, "decoder_U")),
       Wx_(model.GetMatrix(context, device, "decoder_Wx")),
       Bx1_(model.GetMatrix(context, device, "decoder_bx", true)),
-      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), 0.0f),
+      Bx2_(context, device, Bx1_.dim(0), Bx1_.dim(1), true),
       Ux_(model.GetMatrix(context, device, "decoder_Ux"))
     {}
 
@@ -106,7 +106,7 @@ struct Weights {
       U_(model.GetMatrix(context, device, "decoder_U_nl")),
       Wx_(model.GetMatrix(context, device, "decoder_Wcx")),
       Bx2_(model.GetMatrix(context, device, "decoder_bx_nl", true)),
-      Bx1_(context, device, Bx2_.dim(0), Bx2_.dim(1), 0.0f),
+      Bx1_(context, device, Bx2_.dim(0), Bx2_.dim(1), true),
       Ux_(model.GetMatrix(context, device, "decoder_Ux_nl"))
     {}
 

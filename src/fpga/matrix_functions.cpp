@@ -4,6 +4,8 @@
 #include "kernel.h"
 #include "array.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace FPGA {
 namespace mblas {
@@ -104,20 +106,78 @@ size_t SumSizet(
   return results;
 }
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const cl_mem &dev,
-                 size_t numPairs)
+Matrix& CopyRows(
+	const cl_context &context,
+	const cl_device_id &device,
+	Matrix& Out,
+	const Matrix& In,
+	const cl_mem &dev,
+	size_t numPairs)
 {
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
+  CheckError(err);
+  assert(output);
+
+  // create kernel
+  cl_command_queue commands = CreateCommandQueue(context, device);
+  cl_kernel kernel = CreateKernel("kernels/sum.cl", "sum", context, device);
+
+  // Set the arguments to our compute kernel
+  size_t cols = In.dim(1);
+
+  cerr << "CopyRows1:" << Out.Debug(false) << endl;
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  cerr << "CopyRows2:" << In.Debug(false) << endl;
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  cerr << "CopyRows3" << endl;
+  CheckError( clSetKernelArg(kernel, 2, sizeof(size_t), &cols) );
+  cerr << "CopyRows4" << endl;
+  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &dev) );
+  cerr << "CopyRows5" << endl;
+  CheckError( clSetKernelArg(kernel, 4, sizeof(size_t), &numPairs) );
+  cerr << "CopyRows6" << endl;
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+  cerr << "CopyRows7" << endl;
+
+  global = 1024;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+  cerr << "CopyRows8" << endl;
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(commands) );
+  cerr << "CopyRows9" << endl;
+
+  // Read back the results from the device to verify the output
+  //
+  float results;
+  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float), &results, 0, NULL, NULL ) );
+  cerr << "CopyRows10" << endl;
+
+  return Out;
 
 }
 
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const Array<size_t>& indeces)
+Matrix& Assemble(
+		const cl_context &context,
+		const cl_device_id &device,
+		Matrix& Out,
+		 const Matrix& In,
+		 const Array<size_t>& indeces)
 {
   Out.Resize(indeces.size(), In.dim(1));
-  CopyRows(Out, In, indeces.data(), indeces.size());
+  CopyRows(context, device, Out, In, indeces.data(), indeces.size());
   return Out;
 }
 

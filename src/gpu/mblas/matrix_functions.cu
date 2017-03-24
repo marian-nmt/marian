@@ -1,6 +1,7 @@
 #include "gpu/mblas/matrix_functions.h"
-
 #include "gpu/mblas/handles.h"
+
+using namespace std;
 
 namespace amunmt {
 namespace GPU {

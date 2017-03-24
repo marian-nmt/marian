@@ -38,7 +38,7 @@ class Encoder {
       //std::cerr << "Row1=" << Row.Debug(true) << std::endl;
       Row.Resize(words.size(), w_.E_.dim(1));
       //std::cerr << "Row2=" << Row.Debug(true) << std::endl;
-      mblas::Assemble(Row, w_.E_, dKnownWords);
+      mblas::Assemble(context, device, Row, w_.E_, dKnownWords);
 
       std::cerr << "Row3=" << Row.Debug(true) << std::endl;
 

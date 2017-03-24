@@ -1,8 +1,13 @@
 #pragma once
 
-__kernel void gCopyRows(float* out, const float* in, size_t cols,
-                          const size_t* targetRowIdx, size_t numPairs) 
+__kernel void gCopyRows(
+	float* out, 
+	const float* in, 
+	size_t cols,
+    const size_t* targetRowIdx, 
+    size_t numPairs) 
 {
+  /*
   for (int bid = 0; bid < numPairs; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if (j < numPairs) {
@@ -19,6 +24,6 @@ __kernel void gCopyRows(float* out, const float* in, size_t cols,
       }
     }
   }
-
+  */
 }
   
