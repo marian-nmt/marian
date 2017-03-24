@@ -2,6 +2,8 @@
 
 Files and scripts in this folder have been adapted from the Romanian-English sample from https://github.com/rsennrich/wmt16-scripts. 
 
+To execute the complete example type:
+
 ```
 ./run-me.sh
 ```
