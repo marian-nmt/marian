@@ -19,7 +19,7 @@ TRG=en
 
 # number of merge operations. Network vocabulary should be slightly larger (to include characters),
 # or smaller if the operations are learned on the joint vocabulary
-bpe_operations=60000
+bpe_operations=40000
 
 # path to moses decoder: https://github.com/moses-smt/mosesdecoder
 mosesdecoder=mosesdecoder
@@ -28,7 +28,7 @@ mosesdecoder=mosesdecoder
 subword_nmt=subword-nmt 
 
 # tokenize
-for prefix in corpus newsdev2016
+for prefix in corpus newsdev2016 newstest2016
  do
    cat data/$prefix.$SRC | \
    $mosesdecoder/scripts/tokenizer/normalize-punctuation.perl -l $SRC | \
@@ -57,7 +57,7 @@ for prefix in corpus
  done
 
 # apply truecaser (dev/test files)
-for prefix in newsdev2016
+for prefix in newsdev2016 newstest2016
  do
   $mosesdecoder/scripts/recaser/truecase.perl -model model/truecase-model.$SRC < data/$prefix.tok.$SRC > data/$prefix.tc.$SRC
   $mosesdecoder/scripts/recaser/truecase.perl -model model/truecase-model.$TRG < data/$prefix.tok.$TRG > data/$prefix.tc.$TRG
@@ -68,7 +68,7 @@ cat data/corpus.tc.$SRC data/corpus.tc.$TRG | $subword_nmt/learn_bpe.py -s $bpe_
 
 # apply BPE
 
-for prefix in corpus newsdev2016
+for prefix in corpus newsdev2016 newstest2016
  do
   $subword_nmt/apply_bpe.py -c model/$SRC$TRG.bpe < data/$prefix.tc.$SRC > data/$prefix.bpe.$SRC
   $subword_nmt/apply_bpe.py -c model/$SRC$TRG.bpe < data/$prefix.tc.$TRG > data/$prefix.bpe.$TRG

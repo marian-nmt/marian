@@ -42,7 +42,7 @@ then
  --devices 0 \
  --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
- --dim-vocabs 50000 50000 \
+ --dim-vocabs 32000 32000 \
  --mini-batch 80 \
  --layer-normalization \
  --after-batches 90000 \
