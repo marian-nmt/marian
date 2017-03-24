@@ -60,7 +60,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(vocabPaths.empty()) {
     for(int i = 0; i < textPaths_.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
-      vocab->loadOrCreate(textPaths_[i], maxVocabs[i]);
+      vocab->loadOrCreate("", textPaths_[i], maxVocabs[i]);
       options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
       vocabs_.emplace_back(vocab);
     }
@@ -68,7 +68,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   else {
     for(int i = 0; i < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
-      vocab->load(vocabPaths[i], maxVocabs[i]);
+      vocab->loadOrCreate(vocabPaths[i], textPaths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
     }
   }

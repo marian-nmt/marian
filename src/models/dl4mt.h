@@ -256,7 +256,7 @@ class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
         amun["devices"] = options_->get<std::vector<int>>("devices");
         amun["normalize"] = true;
         amun["beam-size"] = 12;
-        amun["relative-paths"] = true;
+        amun["relative-paths"] = false;
         
         amun["scorers"]["F0"]["path"] = name;
         amun["scorers"]["F0"]["type"] = "Nematus";      

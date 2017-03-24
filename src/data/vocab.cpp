@@ -55,19 +55,27 @@ size_t Vocab::size() const {
   return id2str_.size();
 }
 
-void Vocab::loadOrCreate(const std::string& trainPath, int max)
+void Vocab::loadOrCreate(const std::string& vocabPath,
+                         const std::string& trainPath,
+                         int max)
 {
-  if(boost::filesystem::exists(trainPath + ".json")) {
-    load(trainPath + ".json", max);
-    return;
-  }
-  if(boost::filesystem::exists(trainPath + ".yml")) {
+  if(vocabPath.empty()) {
+    if(boost::filesystem::exists(trainPath + ".json")) {
+      load(trainPath + ".json", max);
+      return;
+    }
+    if(boost::filesystem::exists(trainPath + ".yml")) {
+      load(trainPath + ".yml", max);
+      return;
+    }
+    create(trainPath + ".yml", max, trainPath);
     load(trainPath + ".yml", max);
-    return;
   }
-
-  create(trainPath + ".yml", max, trainPath);
-  load(trainPath + ".yml", max);
+  else {
+    if(!boost::filesystem::exists(vocabPath))
+      create(vocabPath, max, trainPath);
+    load(vocabPath, max);
+  }
 }
 
 void Vocab::load(const std::string& vocabPath, int max)
