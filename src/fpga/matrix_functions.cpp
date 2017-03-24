@@ -123,8 +123,11 @@ Matrix& CopyRows(
   assert(output);
 
   // create kernel
+  cerr << "CopyRows1=" << endl;
   cl_command_queue commands = CreateCommandQueue(context, device);
+  cerr << "CopyRows2=" << endl;
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", context, device);
+  cerr << "CopyRows3=" << endl;
 
   // Set the arguments to our compute kernel
   size_t cols = In.dim(1);

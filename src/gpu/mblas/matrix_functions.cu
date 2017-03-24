@@ -204,6 +204,8 @@ Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indeces) {
   Out.Resize(indeces.size(), In.dim(1));
+  cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indeces.size() << endl;
+
   CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }
