@@ -49,7 +49,7 @@ Matrix& Assemble(
 		const cl_device_id &device,
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<size_t>& indeces);
+		 const Array<unsigned int>& indeces);
 
 }
 }

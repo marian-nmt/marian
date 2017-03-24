@@ -20,14 +20,14 @@ class Encoder {
 
     void Lookup(const cl_context &context, const cl_device_id &device, mblas::Matrix& Row, const Words& words)
     {
-      std::vector<size_t> knownWords(words.size(), 1);
+      std::vector<unsigned int> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
         if (words[i] < w_.E_.dim(0)) {
           knownWords[i] = words[i];
         }
       }
 
-      Array<size_t> dKnownWords(context, device, knownWords);
+      Array<unsigned int> dKnownWords(context, device, knownWords);
 
       std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << ": ";
       for (size_t i = 0; i < knownWords.size(); ++i) {

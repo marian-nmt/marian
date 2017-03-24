@@ -124,27 +124,20 @@ Matrix& CopyRows(
 
   // create kernel
   cl_command_queue commands = CreateCommandQueue(context, device);
-  cl_kernel kernel = CreateKernel("kernels/sum.cl", "sum", context, device);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", context, device);
 
   // Set the arguments to our compute kernel
   size_t cols = In.dim(1);
 
-  cerr << "CopyRows1:" << Out.Debug(false) << endl;
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  cerr << "CopyRows2:" << In.Debug(false) << endl;
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  cerr << "CopyRows3" << endl;
-  CheckError( clSetKernelArg(kernel, 2, sizeof(size_t), &cols) );
-  cerr << "CopyRows4" << endl;
+  CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &cols) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &dev) );
-  cerr << "CopyRows5" << endl;
-  CheckError( clSetKernelArg(kernel, 4, sizeof(size_t), &numPairs) );
-  cerr << "CopyRows6" << endl;
+  CheckError( clSetKernelArg(kernel, 4, sizeof(unsigned int), &numPairs) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
-  cerr << "CopyRows7" << endl;
 
   global = 1024;
 
@@ -152,12 +145,10 @@ Matrix& CopyRows(
   //cerr << "global=" << global << endl;
 
   CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
-  cerr << "CopyRows8" << endl;
 
   // Wait for the command commands to get serviced before reading back results
   //
   CheckError( clFinish(commands) );
-  cerr << "CopyRows9" << endl;
 
   // Read back the results from the device to verify the output
   //
@@ -174,7 +165,7 @@ Matrix& Assemble(
 		const cl_device_id &device,
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<size_t>& indeces)
+		 const Array<unsigned int>& indeces)
 {
   Out.Resize(indeces.size(), In.dim(1));
   CopyRows(context, device, Out, In, indeces.data(), indeces.size());
