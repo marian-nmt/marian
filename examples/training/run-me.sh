@@ -42,10 +42,10 @@ then
  --devices 0 \
  --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
- --dim-vocabs 32000 32000 \
+ --dim-vocabs 66000 50000 \
  --mini-batch 80 \
  --layer-normalization \
- --after-batches 10000 \
+ --early-stopping 5 \
  --valid-freq 10000 --save-freq 30000 --disp-freq 1000 \
  --valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en \
  --valid-metrics cross-entropy valid-script \
@@ -54,11 +54,11 @@ then
 
 fi
 
-if [ ! -e "data/newstest2016.bpe.ro.output.postprocessed.dev" ]
+if [ ! -e "data/newstest2016.bpe.ro.output.postprocessed" ]
 then
   cat data/newstest2016.bpe.ro \
   | ../../build/amun -c model/model.npz.amun.yml -b 12 -n --mini-batch 100 --maxi-batch 1000 \
   | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
 fi
 
-./mosesdecoder/scripts/generic/multi-bleu.perl data/newtest2016.en < data/newtest2016.bpe.ro.output.postprocessed
+./mosesdecoder/scripts/generic/multi-bleu.perl data/newstest2016.tok.en < data/newstest2016.bpe.ro.output.postprocessed

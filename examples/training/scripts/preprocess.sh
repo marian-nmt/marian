@@ -19,7 +19,7 @@ TRG=en
 
 # number of merge operations. Network vocabulary should be slightly larger (to include characters),
 # or smaller if the operations are learned on the joint vocabulary
-bpe_operations=40000
+bpe_operations=85000
 
 # path to moses decoder: https://github.com/moses-smt/mosesdecoder
 mosesdecoder=mosesdecoder
