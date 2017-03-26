@@ -214,7 +214,12 @@ class AsyncGraphGroup : public GraphGroup {
           if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
             this->save();
           size_t prevStalled = reporter_->stalled();
-          reporter_->validate(graph);
+          
+          if(movingAverage_)
+            reporter_->validate(movingAverageGraph_);
+          else
+            reporter_->validate(graph);
+            
           if(prevStalled < reporter_->stalled())
             for(auto opt : shardOpt_)
               opt->updateSchedule();
