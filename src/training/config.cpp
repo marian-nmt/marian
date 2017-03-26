@@ -21,7 +21,7 @@ namespace po = boost::program_options;
 
 namespace marian {
 
-size_t Config::seed = 1234;
+size_t Config::seed = (size_t) time(0);
 
 bool Config::has(const std::string& key) const {
   return config_[key];
@@ -140,8 +140,8 @@ void Config::addOptionsCommon(po::options_description& desc) {
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
-    ("seed", po::value<size_t>()->default_value(1234),
-     "Seed for all random number generators")
+    ("seed", po::value<size_t>()->default_value(0),
+     "Seed for all random number generators. 0 means initialize randomly")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
      "All paths are relative to the config file location")
     ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
@@ -226,6 +226,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Learning rate")
     ("clip-norm", po::value<double>()->default_value(1.f),
       "Clip gradient norm to  arg  (0 to disable)")
+    ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
+     "Maintain and save moving average of parameters")
+    ("moving-decay", po::value<double>()->default_value(0.999),
+     "decay factor for moving average")    
   ;
   desc.add(training);
 }
@@ -356,7 +360,10 @@ void Config::addOptions(int argc, char** argv,
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
+    
     SET_OPTION("clip-norm", double);
+    SET_OPTION("moving-average", bool);
+    SET_OPTION("moving-decay", double);
   }
   /** training **/
   else {
@@ -409,7 +416,11 @@ void Config::addOptions(int argc, char** argv,
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
-  seed = vm_["seed"].as<size_t>();
+  
+  if(vm_["seed"].as<size_t>() == 0)
+    seed = (size_t) time(0);
+  else
+    seed = vm_["seed"].as<size_t>();
 }
 
 void Config::log() {

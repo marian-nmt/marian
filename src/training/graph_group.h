@@ -44,6 +44,7 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<size_t> devices_;
 
     std::vector<Ptr<ExpressionGraph>> graphs_;
+    Ptr<ExpressionGraph> movingAverageGraph_;
 
     std::mutex sync_;
     std::vector<std::mutex> shardSync_;
@@ -57,6 +58,9 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<Ptr<OptimizerBase>> shardOpt_;
 
     int shardSize_;
+    int tau_{1};
+    bool movingAverage_{false};
+    float mvDecay_{0.999};
 
     ThreadPool pool_;
 
@@ -107,15 +111,28 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
+    void updateMovingAverage(Ptr<ExpressionGraph> graph, bool first=false) {
+      if(first) {
+        Tensor mvAvg = movingAverageGraph_->params().vals();
+        mvAvg->copyFrom(graph->params().vals());
+      }
+      else {
+        Tensor mvAvg = movingAverageGraph_->params().vals();
+        Element(_1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2),
+                mvAvg, graph->params().vals());
+      }
+    }
+    
     void execute(Ptr<data::CorpusBatch> batch) {
       static bool first = true;
       if(first && graphs_.size() > 1) {
         // initialize the parameters
         for(size_t i = 0; i < graphs_.size(); ++i) {
           builders_[i]->build(graphs_[i], batch);
-          graphs_[i]->forward();
+          graphs_[i]->params().allocateForward();
+          graphs_[i]->clear();
         }
-
+        
         if(params_.size() == 0) {
           int totalSize = graphs_[0]->params().vals()->size();
           shardSize_ = ceil(totalSize / devices_.size());
@@ -125,14 +142,14 @@ class AsyncGraphGroup : public GraphGroup {
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-            Tensor param_;
+            Tensor param;
             Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
 
             allocator_->reserveExact(__size__);
-            allocator_->allocate(param_, {1, __size__});
+            allocator_->allocate(param, {1, __size__});
             paramsAlloc_.push_back(allocator_);
-            param_->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
-            params_.push_back(param_);
+            param->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
+            params_.push_back(param);
             pos += __size__;
 
           }
@@ -153,7 +170,14 @@ class AsyncGraphGroup : public GraphGroup {
 
           }
         }
-
+      }
+      
+      if(first) {
+        if(movingAverage_) {
+          builders_[0]->build(movingAverageGraph_, batch);
+          movingAverageGraph_->params().allocateForward();
+          movingAverageGraph_->clear();
+        }
         first = false;
       }
 
@@ -162,7 +186,7 @@ class AsyncGraphGroup : public GraphGroup {
         thread_local Ptr<ExpressionGraph> graph;
         thread_local Ptr<Builder> builder;
         thread_local size_t t = 0;
-
+        
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
           graph = graphs_[i];
@@ -170,12 +194,18 @@ class AsyncGraphGroup : public GraphGroup {
         }
 
         builder->build(graph, batch);
+        
         fetchParams(graph->params().vals());
-
+        
+        if(movingAverage_ && graph == graphs_[0])
+          updateMovingAverage(graph, t == 0);
+        
         graph->forward();
         float cost = graph->topNode()->scalar();
         graph->backward();
 
+        t++;
+        
         cudaStreamSynchronize(0);
         pushGradients(graph->params().grads());
 
@@ -190,8 +220,6 @@ class AsyncGraphGroup : public GraphGroup {
             for(auto opt : shardOpt_)
               opt->updateSchedule();
         }
-
-        t++;
       };
 
       pool_.enqueue(task, batch);
@@ -204,7 +232,9 @@ class AsyncGraphGroup : public GraphGroup {
      : GraphGroup(options),
        devices_{options_->get<std::vector<size_t>>("devices")},
        pool_{devices_.size(), devices_.size()},
-       shardSync_{devices_.size()} {
+       shardSync_{devices_.size()},
+       movingAverage_{options_->get<bool>("moving-average")},
+       mvDecay_{(float)options_->get<double>("moving-decay")} {
 
       for(auto device : devices_) {
         auto graph = New<ExpressionGraph>();
@@ -213,6 +243,11 @@ class AsyncGraphGroup : public GraphGroup {
         graphs_.push_back(graph);
         shardOpt_.push_back(Optimizer(options_));
         builders_.push_back(New<Builder>(options_));
+      }
+      
+      if(movingAverage_) {
+        movingAverageGraph_ = New<ExpressionGraph>();
+        movingAverageGraph_->setDevice(graphs_[0]->getDevice());
       }
     }
 
@@ -235,20 +270,29 @@ class AsyncGraphGroup : public GraphGroup {
     void save(bool final=false) {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model");
-        builders_[0]->save(graphs_[0], name, true);
+        
+        auto saveGraph = graphs_[0];
+        if(movingAverage_)
+          saveGraph = movingAverageGraph_;
+          
+        builders_[0]->save(saveGraph, name, true);
         reporter_->save(name);
       }
       else {
         std::string name = options_->get<std::string>("model");
         
+        auto saveGraph = graphs_[0];
+        if(movingAverage_)
+          saveGraph = movingAverageGraph_;
+
         if(!final) {
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
             ".iter" + std::to_string(reporter_->batches) + ".npz");
-          builders_[0]->save(graphs_[0], nameOverwrite);
+          builders_[0]->save(saveGraph, nameOverwrite);
         }
 
-        builders_[0]->save(graphs_[0], name, true);
+        builders_[0]->save(saveGraph, name, true);
         reporter_->save(name);
       }
     }
