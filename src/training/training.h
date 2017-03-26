@@ -63,6 +63,14 @@ class Reporter {
       validators_.push_back(validator);
     }
 
+    bool validating() {
+      return (!validators_.empty() && batches % options_->get<size_t>("valid-freq") == 0);
+    }
+    
+    bool saving() {
+      return (batches % options_->get<size_t>("save-freq") == 0);
+    }
+    
     void validate(Ptr<ExpressionGraph> graph) {
       if(batches % options_->get<size_t>("valid-freq") == 0) {
         for(auto validator : validators_) {

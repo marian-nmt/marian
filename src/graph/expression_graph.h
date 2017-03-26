@@ -44,7 +44,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Contains all nodes with regard to which we want to calculate derivatives */
     std::unordered_set<Expr> topNodes_;
 
-    Parameters params_;
+    Ptr<Parameters> params_;
     Ptr<TensorAllocator> tensors_;
 
     cublasHandle_t cublasHandle_;
@@ -73,7 +73,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void setDevice(size_t device = 0) {
       device_ = device;
-      params_.init(device);
+      params_ = New<Parameters>();
+      params_->init(device);
       tensors_ = New<TensorAllocator>(device);
       cublasHandle_ = create_handle(device);
       curandGenerator_ = createCurandGenerator(device, Config::seed);
@@ -96,6 +97,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       tensors_->reserve(elements);
     }
 
+    void reuseWorkspace(Ptr<ExpressionGraph> graph) {
+      tensors_ = graph->tensors_;
+    }
+    
     /**
      * @brief Performs backpropogation on this expression graph.
      *
@@ -125,7 +130,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      */
 
     size_t forward() {
-      params_.allocateForward();
+      params_->allocateForward();
       return forward(0);
     }
 
@@ -170,8 +175,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       UTIL_THROW_IF2(topNodes_.size() > 1,
         "There are more than one top most node for backward step");
 
-      params_.allocateBackward();
-      params_.set_zero_adjoint();
+      params_->allocateBackward();
+      params_->set_zero_adjoint();
 
       for(auto&& v : topNodes_)
         v->init_dependent();
@@ -271,7 +276,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
                       Shape shape,
                       Args ...args) {
       // check first if parameter already exists
-      auto p = params_.get(name);
+      auto p = params_->get(name);
       if(p) {
         // if yes add to tape and return
         add(p);
@@ -291,7 +296,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       // add to list of parameters
       p->set_name(name);
-      params_.add(p, name);
+      params_->add(p, name);
       return p;
     }
 
@@ -362,7 +367,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return the first item in the list with the specified name, if such an item exists
      */
     Expr get(const std::string& name) {
-      auto e = params_.get(name);
+      auto e = params_->get(name);
       if(e)
         return e;
 
@@ -377,7 +382,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @return the list of all parameter nodes of this expression graph
      */
-    Parameters& params() {
+    Ptr<Parameters>& params() {
       return params_;
     }
 
@@ -390,7 +395,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return the expression node that was added to the expression graph
      */
     void add_named_node(Expr e, const std::string& name) {
-      UTIL_THROW_IF2(params_.get(name) || get(name),
+      UTIL_THROW_IF2(params_->get(name) || get(name),
                      "Node names must be unique");
 
       named_.emplace(name, e);
@@ -486,7 +491,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       std::string mode = "w";
 
       cudaSetDevice(getDevice());
-      for(auto p : params().getMap()) {
+      for(auto p : params()->getMap()) {
         std::vector<float> v;
         p.second->val() >> v;
 

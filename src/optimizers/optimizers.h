@@ -25,8 +25,8 @@ class OptimizerBase {
     }
 
     void update(Ptr<ExpressionGraph> graph) {
-      Tensor p = graph->params().vals();
-      Tensor g = graph->params().grads();
+      Tensor p = graph->params()->vals();
+      Tensor g = graph->params()->grads();
       update(p, g);
     }
 

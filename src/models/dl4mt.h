@@ -303,7 +303,7 @@ class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
 
       cudaSetDevice(graph->getDevice());
 
-      for(auto p : graph->params().getMap()) {
+      for(auto p : graph->params()->getMap()) {
         std::vector<float> v;
         p.second->val() >> v;
 
