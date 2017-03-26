@@ -45,7 +45,7 @@ then
  --dim-vocabs 66000 50000 \
  --mini-batch 80 \
  --layer-normalization --dropout-rnn 0.2 --dropout-src 0.1 --dropout-trg 0.1 \
- --early-stopping 5 \
+ --early-stopping 5 --moving-average \
  --valid-freq 10000 --save-freq 10000 --disp-freq 1000 \
  --valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en \
  --valid-metrics cross-entropy valid-script \
