@@ -39,6 +39,8 @@ class GraphGroup {
 template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
   private:
+    bool first_{true};
+    
     std::vector<Ptr<Builder>> builders_;
 
     std::vector<size_t> devices_;
@@ -123,62 +125,59 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
     
-    void execute(Ptr<data::CorpusBatch> batch) {
-      static bool first = true;
-      if(first && graphs_.size() > 1) {
-        // initialize the parameters
-        for(size_t i = 0; i < graphs_.size(); ++i) {
-          builders_[i]->build(graphs_[i], batch);
-          graphs_[i]->params().allocateForward();
-          graphs_[i]->clear();
-        }
-        
-        if(params_.size() == 0) {
-          int totalSize = graphs_[0]->params().vals()->size();
-          shardSize_ = ceil(totalSize / devices_.size());
-
-          int pos = 0;
-          //parameter sharding
-          for (auto device : devices_){
-            int __size__ = min(shardSize_, totalSize);
-            totalSize -= __size__;
-            Tensor param;
-            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
-
-            allocator_->reserveExact(__size__);
-            allocator_->allocate(param, {1, __size__});
-            paramsAlloc_.push_back(allocator_);
-            param->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
-            params_.push_back(param);
-            pos += __size__;
-
+    void execute(Ptr<data::CorpusBatch> batch) {      
+      if(first_) {
+        if(graphs_.size() > 1) {
+          // initialize the parameters
+          for(size_t i = 0; i < graphs_.size(); ++i) {
+            builders_[i]->build(graphs_[i], batch);
+            graphs_[i]->forward();
+          }
+          
+          if(params_.size() == 0) {
+            int totalSize = graphs_[0]->params().vals()->size();
+            shardSize_ = ceil(totalSize / devices_.size());
+  
+            int pos = 0;
+            //parameter sharding
+            for (auto device : devices_){
+              int __size__ = min(shardSize_, totalSize);
+              totalSize -= __size__;
+              Tensor param;
+              Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+  
+              allocator_->reserveExact(__size__);
+              allocator_->allocate(param, {1, __size__});
+              paramsAlloc_.push_back(allocator_);
+              param->copyFrom( graphs_[0]->params().vals()->subtensor( pos , __size__ ) );
+              params_.push_back(param);
+              pos += __size__;
+  
+            }
+          }
+          if(grads_.size() == 0) {
+            int totalSize = graphs_[0]->params().vals()->size();
+  
+            for (auto device : devices_){
+              int __size__ = min(shardSize_, totalSize);
+              totalSize -= __size__;
+              Tensor grad_;
+              Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+  
+              allocator_->reserveExact(__size__);
+              allocator_->allocate(grad_, {1, __size__});
+              gradsAlloc_.push_back(allocator_);
+              grads_.push_back(grad_);
+  
+            }
           }
         }
-        if(grads_.size() == 0) {
-          int totalSize = graphs_[0]->params().vals()->size();
-
-          for (auto device : devices_){
-            int __size__ = min(shardSize_, totalSize);
-            totalSize -= __size__;
-            Tensor grad_;
-            Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
-
-            allocator_->reserveExact(__size__);
-            allocator_->allocate(grad_, {1, __size__});
-            gradsAlloc_.push_back(allocator_);
-            grads_.push_back(grad_);
-
-          }
-        }
-      }
-      
-      if(first) {
         if(movingAverage_) {
           builders_[0]->build(movingAverageGraph_, batch);
           movingAverageGraph_->params().allocateForward();
           movingAverageGraph_->clear();
         }
-        first = false;
+        first_ = false;
       }
 
       auto task = [this](Ptr<data::CorpusBatch> batch) {
