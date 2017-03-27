@@ -10,33 +10,41 @@ To execute the complete example type:
 
 which downloads the Romanian-English training files and preprocesses them (tokenization, truecasing, segmentation into subwords units). 
 
+To use with a different GPU than device 0 or more GPUs (here 0 1 2 3) type:
+
+```
+./run-me.sh 0 1 2 3
+```
+
 Next it executes a training run with `marian`:
 
 ```
 ../../build/marian \
  --model model/model.npz \
- --devices 0 \
+ --devices $GPUS \
  --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
  --dim-vocabs 32000 32000 \
  --mini-batch 80 \
- --layer-normalization \
- --after-batches 10000 \
- --valid-freq 10000 --save-freq 30000 --disp-freq 1000 \
+ --layer-normalization --dropout-rnn 0.2 --dropout-src 0.1 --dropout-trg 0.1 \
+ --early-stopping 5 --moving-average \
+ --valid-freq 10000 --save-freq 10000 --disp-freq 1000 \
  --valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en \
  --valid-metrics cross-entropy valid-script \
  --valid-script-path ./scripts/validate.sh \
  --log model/train.log --valid-log model/valid.log
 ```
-After training for 90000 updates (mini-batches) the final model is used to translate the WMT2016 test set with `amun`:
+After training (the training should stop if cross-entropy on the validation set stops improving) a final model 
+`model/model.avg.npz` is created from the 4 best models on the validation sets (by element-wise averaging). This model is used to 
+translate the WMT2016 dev set and test set with `amun`:
 
 ```
 cat data/newstest2016.bpe.ro \
- | ../../build/amun -c model/model.npz.amun.yml -b 12 -n --mini-batch 100 --maxi-batch 1000 \
+ | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -b 12 -n --mini-batch 100 --maxi-batch 1000 \
  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl \
  > data/newstest2016.bpe.ro.output
 ```
-after which BLEU scores for the test set are reported. 
+after which BLEU scores for the dev and test set are reported. 
 
 ## Custom validation script
 
