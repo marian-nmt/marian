@@ -1,4 +1,12 @@
-#!/bin/bash -v
+#!/bin/bash
+
+# set chosen gpus
+GPUS=0
+if [ $# -ne 0 ]
+then
+  GPUS=$@
+fi
+echo Using gpus $GPUS
 
 if [ ! -e ../../build/amun ]
 then
@@ -12,6 +20,7 @@ then
   exit 1
 fi
 
+# download depdencies and data
 if [ ! -e "mosesdecoder" ]
 then
     git clone https://github.com/moses-smt/mosesdecoder
@@ -27,19 +36,21 @@ then
     ./scripts/download-files.sh
 fi
 
-mkdir model
+mkdir -p model
 
+# preprocess data
 if [ ! -e "data/corpus.bpe.en" ]
 then
     ./scripts/preprocess.sh
 fi
 
+# train model
 if [ ! -e "model/model.npz" ]
 then
 
 ../../build/marian \
  --model model/model.npz \
- --devices 0 --seed 0 \
+ --devices $GPUS --seed 0 \
  --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
  --dim-vocabs 66000 50000 \
@@ -54,11 +65,22 @@ then
 
 fi
 
-if [ ! -e "data/newstest2016.bpe.ro.output.postprocessed" ]
-then
-  cat data/newstest2016.bpe.ro \
-  | ../../build/amun -c model/model.npz.amun.yml -b 12 -n --mini-batch 100 --maxi-batch 1000 \
-  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
-fi
+# collect 4 best models on dev set
+MODELS=`cat model/valid.log | grep valid-script | sort -rg -k8,8 -t ' ' | cut -f 4 -d ' ' | head -n 4 | xargs -I {} echo model/model.iter{}.npz | xargs`
 
+# average 4 best models into single model
+../../scripts/average.py -m $MODELS -o model/model.avg.npz
+
+# translate dev set with averaged model
+cat data/newsdev2016.bpe.ro \
+  | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -d $GPUS -b 12 -n --mini-batch 10 --maxi-batch 1000 \
+  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newsdev2016.bpe.ro.output.postprocessed
+
+# translate test set with averaged model
+cat data/newstest2016.bpe.ro \
+  | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -d $GPUS -b 12 -n --mini-batch 10 --maxi-batch 1000 \
+  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
+
+# calculate bleu scores for dev and test set
+./mosesdecoder/scripts/generic/multi-bleu.perl data/newsdev2016.tok.en < data/newsdev2016.bpe.ro.output.postprocessed
 ./mosesdecoder/scripts/generic/multi-bleu.perl data/newstest2016.tok.en < data/newstest2016.bpe.ro.output.postprocessed
