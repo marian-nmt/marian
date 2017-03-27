@@ -132,6 +132,12 @@ Matrix& CopyRows(
   // Set the arguments to our compute kernel
   size_t cols = In.dim(1);
 
+  cerr << "Out=" << Out.Debug() << endl;
+  cerr << "In=" << In.Debug() << endl;
+  cerr << "cols=" << cols << endl;
+  cerr << "dev=" << dev << endl;
+  cerr << "numPairs=" << numPairs << endl;
+
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &cols) );

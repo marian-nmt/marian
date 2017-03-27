@@ -1301,11 +1301,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/cpu/mblas/simd_math_prims.h</locationURI>
 		</link>
 		<link>
-			<name>src/fpga/kernels/kernels</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
 			<name>src/fpga/kernels/matrix_functions.cl</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/kernels/matrix_functions.cl</locationURI>
@@ -2599,11 +2594,6 @@
 			<name>src/3rd_party/yaml-cpp/node/type.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/3rd_party/yaml-cpp/node/type.h</locationURI>
-		</link>
-		<link>
-			<name>src/fpga/kernels/kernels/matrix_functions.cl</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/kernels/matrix_functions.cl</locationURI>
 		</link>
 		<link>
 			<name>src/3rd_party/blaze/math/adaptors/Adaptors.h</name>
