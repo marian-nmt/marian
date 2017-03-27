@@ -36,14 +36,20 @@ size_t SumSizet(
     const cl_context &context,
     const cl_device_id &device);
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const cl_mem &dev,
-                 size_t numPairs);
+Matrix& CopyRows(
+	     const cl_context &context,
+		 const cl_device_id &device,
+		 Matrix& Out,
+		 const Matrix& In,
+		 const cl_mem &dev,
+		 size_t numPairs);
 
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const Array<size_t>& indeces);
+Matrix& Assemble(
+		const cl_context &context,
+		const cl_device_id &device,
+		Matrix& Out,
+		 const Matrix& In,
+		 const Array<unsigned int>& indeces);
 
 }
 }

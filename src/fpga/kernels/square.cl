@@ -1,3 +1,5 @@
+#pragma once
+
 __kernel void square(                                                    
    __global float* input, 
    __global float* output,

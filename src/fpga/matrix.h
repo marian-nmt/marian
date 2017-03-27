@@ -9,7 +9,7 @@ namespace mblas {
 class Matrix : public BaseMatrix {
 public:
   Matrix(const cl_context &context, const cl_device_id &device);
-  Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float val);
+  Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, bool zero = false);
   Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val);
   virtual ~Matrix();
 
@@ -26,6 +26,12 @@ public:
   }
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
+
+  cl_mem &data()
+  { return mem_; }
+
+  const cl_mem &data() const
+  { return mem_; }
 
   virtual std::string Debug(bool detailed = false) const;
 
