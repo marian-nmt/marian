@@ -1,6 +1,10 @@
 # Example for training with Marian
 
-Files and scripts in this folder have been adapted from the Romanian-English sample from https://github.com/rsennrich/wmt16-scripts. 
+Files and scripts in this folder have been adapted from the Romanian-English sample 
+from https://github.com/rsennrich/wmt16-scripts. We also add the back-translated data from
+http://data.statmt.org/rsennrich/wmt16_backtranslations/ as desribed in 
+http://www.aclweb.org/anthology/W16-2323. The resulting system should be competitive 
+or even slightly better than reported in the Edinburgh WMT2016 paper. 
 
 To execute the complete example type:
 
@@ -8,9 +12,11 @@ To execute the complete example type:
 ./run-me.sh
 ```
 
-which downloads the Romanian-English training files and preprocesses them (tokenization, truecasing, segmentation into subwords units). 
+which downloads the Romanian-English training files and preprocesses them (tokenization, 
+truecasing, segmentation into subwords units). 
 
-To use with a different GPU than device 0 or more GPUs (here 0 1 2 3) type:
+To use with a different GPU than device 0 or more GPUs (here 0 1 2 3) type the command below. 
+Training time of 4 GPUs should be roughly 24 hours.
 
 ```
 ./run-me.sh 0 1 2 3
