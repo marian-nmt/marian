@@ -16,7 +16,7 @@ which downloads the Romanian-English training files and preprocesses them (token
 truecasing, segmentation into subwords units). 
 
 To use with a different GPU than device 0 or more GPUs (here 0 1 2 3) type the command below. 
-Training time of 4 GPUs should be roughly 24 hours.
+Training time on 1 NVIDIA GTX 1080 GPU should be roughly 24 hours.
 
 ```
 ./run-me.sh 0 1 2 3
