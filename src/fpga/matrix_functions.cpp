@@ -26,7 +26,7 @@ float Sum(
 
   // create kernel
   cl_command_queue commands = CreateCommandQueue(context, device);
-  cl_kernel kernel = CreateKernel("kernels/sum.cl", "sum", context, device);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", context, device);
 
   // Set the arguments to our compute kernel
   unsigned int count = size;
@@ -74,7 +74,7 @@ size_t SumSizet(
 
   // create kernel
   cl_command_queue commands = CreateCommandQueue(context, device);
-  cl_kernel kernel = CreateKernel("kernels/sum.cl", "sum_size_t", context, device);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_size_t", context, device);
 
   // Set the arguments to our compute kernel
   unsigned int count = size;

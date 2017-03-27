@@ -1316,11 +1316,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/kernels/square.cl</locationURI>
 		</link>
 		<link>
-			<name>src/fpga/kernels/sum.cl</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/fpga/kernels/sum.cl</locationURI>
-		</link>
-		<link>
 			<name>src/gpu/decoder/ape_penalty.cu</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/gpu/decoder/ape_penalty.cu</locationURI>
