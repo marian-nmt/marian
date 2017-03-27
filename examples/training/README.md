@@ -30,7 +30,7 @@ Next it executes a training run with `marian`:
  --devices $GPUS \
  --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
- --dim-vocabs 32000 32000 \
+ --dim-vocabs 66000 50000 \
  --mini-batch 80 \
  --layer-normalization --dropout-rnn 0.2 --dropout-src 0.1 --dropout-trg 0.1 \
  --early-stopping 5 --moving-average \
