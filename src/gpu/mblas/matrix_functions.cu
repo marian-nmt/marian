@@ -185,13 +185,27 @@ __global__ void gCopyRows(float* out, const float* in, size_t cols,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const size_t* dev,
-                 size_t numPairs) {
+                 const DeviceVector<size_t>& indices)
+{
   float* d_out = Out.data();
   const float* d_in = In.data();
 
+  const size_t* dev = thrust::raw_pointer_cast(indices.data());
+  size_t numPairs = indices.size();
+
   int threads = std::min(MAX_THREADS, (int)In.dim(1));
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);
+
+  cerr << "Out=" << Out.Debug() << endl;
+  cerr << "In=" << In.Debug() << endl;
+  cerr << "cols=" << In.dim(1) << endl;
+
+  cerr << "dev=" << dev << ": ";
+  for (size_t i = 0; i < numPairs; ++i) {
+    cerr << indices[i] << " ";
+  }
+  cerr << endl;
+  cerr << "numPairs=" << numPairs << endl;
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (d_out, d_in, In.dim(1), dev, numPairs);
@@ -202,11 +216,11 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<size_t>& indeces) {
-  Out.Resize(indeces.size(), In.dim(1));
-  cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indeces.size() << endl;
+                 const DeviceVector<size_t>& indices) {
+  Out.Resize(indices.size(), In.dim(1));
+  cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
-  CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
+  CopyRows(Out, In, indices);
   return Out;
 }
 

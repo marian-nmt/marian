@@ -1,16 +1,21 @@
 #pragma once
 
 //////////////////////////////////////////////////////
+float sumBase(__global float *input, unsigned int count)
+{
+  float ret = 0.0f;
+  for (size_t i = 0; i < count; ++i) {
+    ret += input[i];
+  }
+  return ret;
+}
 
 __kernel void sum(                                                    
    __global float* input, 
    __global float* output,
    const unsigned int count)
 {
-  float ret = 0.0f;
-  for (size_t i = 0; i < count; ++i) {
-    ret += input[i];
-  }
+  float ret = sumBase(input, count);
   (*output) = ret;
 }                                      
 

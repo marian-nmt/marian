@@ -72,8 +72,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const size_t* devPairs,
-                 size_t numPairs);
+                 const DeviceVector<size_t>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
