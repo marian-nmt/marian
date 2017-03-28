@@ -1,4 +1,4 @@
 #!/bin/bash -v
 
 git clean -f
-rm -rf mosesdecoder subword-nmt model
+rm -rf moses-scripts subword-nmt model

@@ -1,3 +1,3 @@
 #!/bin/bash -v
 
-rm -rf mosesdecoder en-de data/*.out *.yml
+rm -rf moses-scripts en-de data/*.out *.yml

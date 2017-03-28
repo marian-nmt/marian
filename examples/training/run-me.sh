@@ -21,9 +21,9 @@ then
 fi
 
 # download depdencies and data
-if [ ! -e "mosesdecoder" ]
+if [ ! -e "moses-scripts" ]
 then
-    git clone https://github.com/moses-smt/mosesdecoder
+    git clone https://github.com/amunmt/moses-scripts
 fi
 
 if [ ! -e "subword-nmt" ]
@@ -74,13 +74,13 @@ MODELS=`cat model/valid.log | grep valid-script | sort -rg -k8,8 -t ' ' | cut -f
 # translate dev set with averaged model
 cat data/newsdev2016.bpe.ro \
   | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -d $GPUS -b 12 -n --mini-batch 10 --maxi-batch 1000 \
-  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newsdev2016.bpe.ro.output.postprocessed
+  | sed 's/\@\@ //g' | moses-scripts/scripts/recaser/detruecase.perl > data/newsdev2016.bpe.ro.output.postprocessed
 
 # translate test set with averaged model
 cat data/newstest2016.bpe.ro \
   | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -d $GPUS -b 12 -n --mini-batch 10 --maxi-batch 1000 \
-  | sed 's/\@\@ //g' | mosesdecoder/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
+  | sed 's/\@\@ //g' | moses-scripts/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
 
 # calculate bleu scores for dev and test set
-./mosesdecoder/scripts/generic/multi-bleu.perl data/newsdev2016.tok.en < data/newsdev2016.bpe.ro.output.postprocessed
-./mosesdecoder/scripts/generic/multi-bleu.perl data/newstest2016.tok.en < data/newstest2016.bpe.ro.output.postprocessed
+./moses-scripts/scripts/generic/multi-bleu.perl data/newsdev2016.tok.en < data/newsdev2016.bpe.ro.output.postprocessed
+./moses-scripts/scripts/generic/multi-bleu.perl data/newstest2016.tok.en < data/newstest2016.bpe.ro.output.postprocessed

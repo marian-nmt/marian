@@ -15,9 +15,9 @@ then
 fi
 
 # download depdencies and data
-if [ ! -e "mosesdecoder" ]
+if [ ! -e "moses-scripts" ]
 then
-    git clone https://github.com/moses-smt/mosesdecoder
+    git clone https://github.com/amunmt/moses-scripts
 fi
 
 if [ ! -e "en-de/model.npz" ]
@@ -29,15 +29,15 @@ fi
 # Translate test set with single model
 cat data/newstest2015.ende.en | \
 #preprocess
-mosesdecoder/scripts/tokenizer/normalize-punctuation.perl -l en | \
-mosesdecoder/scripts/tokenizer/tokenizer.perl -l en -penn | \
-mosesdecoder/scripts/recaser/truecase.perl -model en-de/truecase-model.en | \
+moses-scripts/scripts/tokenizer/normalize-punctuation.perl -l en | \
+moses-scripts/scripts/tokenizer/tokenizer.perl -l en -penn | \
+moses-scripts/scripts/recaser/truecase.perl -model en-de/truecase-model.en | \
 # translate
 ../../build/amun -m en-de/model.npz -s en-de/vocab.en.json -t en-de/vocab.de.json \
  --mini-batch 50 --maxi-batch 1000 -d $GPUS -b 12 -n --bpe en-de/ende.bpe  | \
 # postprocess
-mosesdecoder/scripts/recaser/detruecase.perl | \
-mosesdecoder/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.single.out
+moses-scripts/scripts/recaser/detruecase.perl | \
+moses-scripts/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.single.out
 
 # Create configuration file for model ensemble
 ../../build/amun -m en-de/model-ens?.npz -s en-de/vocab.en.json -t en-de/vocab.de.json \
@@ -47,15 +47,15 @@ mosesdecoder/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.single
 # Translate test set with ensemble
 cat data/newstest2015.ende.en | \
 #preprocess
-mosesdecoder/scripts/tokenizer/normalize-punctuation.perl -l en | \
-mosesdecoder/scripts/tokenizer/tokenizer.perl -l en -penn | \
-mosesdecoder/scripts/recaser/truecase.perl -model en-de/truecase-model.en | \
+moses-scripts/scripts/tokenizer/normalize-punctuation.perl -l en | \
+moses-scripts/scripts/tokenizer/tokenizer.perl -l en -penn | \
+moses-scripts/scripts/recaser/truecase.perl -model en-de/truecase-model.en | \
 # translate
 ../../build/amun -c ensemble.yml | \
 # postprocess
-mosesdecoder/scripts/recaser/detruecase.perl | \
-mosesdecoder/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.ensemble.out
+moses-scripts/scripts/recaser/detruecase.perl | \
+moses-scripts/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.ensemble.out
 
-mosesdecoder/scripts/generic/multi-bleu.perl data/newstest2015.ende.de < data/newstest2015.single.out
-mosesdecoder/scripts/generic/multi-bleu.perl data/newstest2015.ende.de < data/newstest2015.ensemble.out
+moses-scripts/scripts/generic/multi-bleu.perl data/newstest2015.ende.de < data/newstest2015.single.out
+moses-scripts/scripts/generic/multi-bleu.perl data/newstest2015.ende.de < data/newstest2015.ensemble.out
 

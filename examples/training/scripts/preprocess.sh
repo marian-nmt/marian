@@ -22,7 +22,7 @@ TRG=en
 bpe_operations=85000
 
 # path to moses decoder: https://github.com/moses-smt/mosesdecoder
-mosesdecoder=mosesdecoder
+mosesdecoder=moses-scripts
 
 # path to subword segmentation scripts: https://github.com/rsennrich/subword-nmt
 subword_nmt=subword-nmt 
