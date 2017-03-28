@@ -76,7 +76,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<size_t>& indeces);
+                 const DeviceVector<size_t>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,

@@ -284,21 +284,21 @@ MT Concat(const MT1& m1, const MT2& m2) {
 
 template <bool byRow, class MT, class MT1>
 MT Assemble(const MT1& in,
-            const std::vector<size_t>& indeces) {
+            const std::vector<size_t>& indices) {
   MT out;
   if(byRow) {
-    size_t rows = indeces.size();
+    size_t rows = indices.size();
     size_t cols = in.columns();
     out.resize(rows, cols);
     for(size_t i = 0; i < rows; ++i)
-      blaze::row(out, i) = blaze::row(in, indeces[i]);
+      blaze::row(out, i) = blaze::row(in, indices[i]);
   }
   else {
     size_t rows = in.rows();
-    size_t cols = indeces.size();
+    size_t cols = indices.size();
     out.resize(rows, cols);
     for(size_t i = 0; i < cols; ++i)
-      blaze::column(out, i) = blaze::column(in, indeces[i]);
+      blaze::column(out, i) = blaze::column(in, indices[i]);
   }
   return std::move(out);
 }

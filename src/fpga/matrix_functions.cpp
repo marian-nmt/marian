@@ -111,9 +111,11 @@ Matrix& CopyRows(
 	const cl_device_id &device,
 	Matrix& Out,
 	const Matrix& In,
-	const cl_mem &dev,
-	size_t numPairs)
+	const Array<unsigned int>& indices)
 {
+  const cl_mem &dev = indices.data();
+  size_t numPairs = indices.size();
+
   cl_int err;
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
@@ -174,10 +176,10 @@ Matrix& Assemble(
 		const cl_device_id &device,
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<unsigned int>& indeces)
+		 const Array<unsigned int>& indices)
 {
-  Out.Resize(indeces.size(), In.dim(1));
-  CopyRows(context, device, Out, In, indeces.data(), indeces.size());
+  Out.Resize(indices.size(), In.dim(1));
+  CopyRows(context, device, Out, In, indices);
   return Out;
 }
 
