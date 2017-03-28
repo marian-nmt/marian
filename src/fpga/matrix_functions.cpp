@@ -60,7 +60,7 @@ float Sum(
 
 unsigned int SumSizet(
     const cl_mem &mem,
-    size_t size,
+    uint size,
     const cl_context &context,
     const cl_device_id &device)
 {
@@ -77,11 +77,10 @@ unsigned int SumSizet(
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_size_t", context, device);
 
   // Set the arguments to our compute kernel
-  unsigned int count = size;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &count) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &size) );
 
   // Get the maximum work group size for executing the kernel on the device
   //

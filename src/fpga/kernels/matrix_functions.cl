@@ -1,10 +1,10 @@
 #pragma once
 
 //////////////////////////////////////////////////////
-float sumBase(__global float *input, unsigned int count)
+float sumBase(__global float *input, uint count)
 {
   float ret = 0.0f;
-  for (size_t i = 0; i < count; ++i) {
+  for (uint i = 0; i < count; ++i) {
     ret += input[i];
   }
   return ret;
@@ -13,19 +13,19 @@ float sumBase(__global float *input, unsigned int count)
 __kernel void sum(                                                    
    __global float* input, 
    __global float* output,
-   const unsigned int count)
+   const uint count)
 {
   float ret = sumBase(input, count);
   (*output) = ret;
 }                                      
 
 __kernel void sum_size_t(                                                    
-   __global unsigned int* input, 
-   __global unsigned int* output,
-   const unsigned int count)
+   __global uint* input, 
+   __global uint* output,
+   const uint count)
 {
-  size_t ret = 0;
-  for (size_t i = 0; i < count; ++i) {
+  uint ret = 0;
+  for (uint i = 0; i < count; ++i) {
     ret += input[i];
   }
   (*output) = ret;
