@@ -41,7 +41,7 @@ protected:
   cl_mem mem_;
   size_t rows_, cols_;
 
-
+  void Cleanup();
 };
 
 
