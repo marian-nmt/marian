@@ -44,14 +44,17 @@ __kernel void gCopyRows(
     uint srcId = targetRowIdx[j];    
     __global float *rowOut = out + j * cols;
 
-    __global const float *rowIn = in + srcId * cols;
-   
+    uint inOffset =  srcId * cols;
+    __global const float *rowIn = in + inOffset;
+    
   	for (uint i = 0; i < cols; ++i) {
        //rowOut[i] = srcId;  	
        //float f = rowIn[i];
-       rowOut[i] = srcId;
+       rowOut[i] = 0;
   	}
 
+    const float f = cols;
+    rowOut[0] = f;
     
   }
   
