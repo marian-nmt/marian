@@ -26,7 +26,7 @@ T Sum(const std::vector<T> &vec)
 
 float Sum(
     const cl_mem &mem,
-    size_t size,
+    uint size,
     const cl_context &context,
     const cl_device_id &device);
 
