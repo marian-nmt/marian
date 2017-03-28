@@ -41,14 +41,14 @@ Matrix& CopyRows(
 		 const cl_device_id &device,
 		 Matrix& Out,
 		 const Matrix& In,
-		 const Array<unsigned int>& indices);
+		 const Array<uint>& indices);
 
 Matrix& Assemble(
 		const cl_context &context,
 		const cl_device_id &device,
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<unsigned int>& indices);
+		 const Array<uint>& indices);
 
 }
 }

@@ -108,7 +108,7 @@ Matrix& CopyRows(
 	const cl_device_id &device,
 	Matrix& Out,
 	const Matrix& In,
-	const Array<unsigned int>& indices)
+	const Array<uint>& indices)
 {
   const cl_mem &dev = indices.data();
   size_t numPairs = indices.size();
@@ -122,6 +122,7 @@ Matrix& CopyRows(
   assert(output);
 
   // create kernel
+  cerr << endl;
   cerr << "CopyRows1=" << endl;
   cl_command_queue commands = CreateCommandQueue(context, device);
   cerr << "CopyRows2=" << endl;
@@ -139,9 +140,9 @@ Matrix& CopyRows(
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &cols) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &cols) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &dev) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(unsigned int), &numPairs) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &numPairs) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -158,8 +159,8 @@ Matrix& CopyRows(
   //
   CheckError( clFinish(commands) );
 
-  cerr << "Out2=" << Out.Debug() << endl;
-  cerr << "CopyRows10" << endl;
+  cerr << "Out2=" << Out.Debug(true) << endl;
+  //cerr << "CopyRows10" << endl;
 
   return Out;
 
@@ -170,7 +171,7 @@ Matrix& Assemble(
 		const cl_device_id &device,
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<unsigned int>& indices)
+		 const Array<uint>& indices)
 {
   cerr << "indices=" << indices.Debug(true) << endl;
 
