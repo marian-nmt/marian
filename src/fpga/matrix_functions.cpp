@@ -58,7 +58,7 @@ float Sum(
   return results;
 }
 
-size_t SumSizet(
+unsigned int SumSizet(
     const cl_mem &mem,
     size_t size,
     const cl_context &context,
@@ -100,8 +100,8 @@ size_t SumSizet(
 
   // Read back the results from the device to verify the output
   //
-  size_t results;
-  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(size_t), &results, 0, NULL, NULL ) );
+  unsigned int results;
+  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(unsigned int), &results, 0, NULL, NULL ) );
 
   return results;
 }
@@ -134,10 +134,10 @@ Matrix& CopyRows(
   // Set the arguments to our compute kernel
   size_t cols = In.dim(1);
 
-  cerr << "Out=" << Out.Debug() << endl;
+  cerr << "Out1=" << Out.Debug() << endl;
   cerr << "In=" << In.Debug() << endl;
   cerr << "cols=" << cols << endl;
-  cerr << "dev=" << dev << endl;
+  cerr << "dev=" << indices.Debug(true) << endl;
   cerr << "numPairs=" << numPairs << endl;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
@@ -161,10 +161,7 @@ Matrix& CopyRows(
   //
   CheckError( clFinish(commands) );
 
-  // Read back the results from the device to verify the output
-  //
-  float results;
-  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float), &results, 0, NULL, NULL ) );
+  cerr << "Out2=" << Out.Debug() << endl;
   cerr << "CopyRows10" << endl;
 
   return Out;
@@ -178,6 +175,8 @@ Matrix& Assemble(
 		 const Matrix& In,
 		 const Array<unsigned int>& indices)
 {
+  cerr << "indices=" << indices.Debug(true) << endl;
+
   Out.Resize(indices.size(), In.dim(1));
   CopyRows(context, device, Out, In, indices);
   return Out;

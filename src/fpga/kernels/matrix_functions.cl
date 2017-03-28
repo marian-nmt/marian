@@ -20,8 +20,8 @@ __kernel void sum(
 }                                      
 
 __kernel void sum_size_t(                                                    
-   __global size_t* input, 
-   __global size_t* output,
+   __global unsigned int* input, 
+   __global unsigned int* output,
    const unsigned int count)
 {
   size_t ret = 0;
@@ -44,10 +44,10 @@ __kernel void gCopyRows(
     unsigned int srcId = targetRowIdx[j];    
     __global float *rowOut = out + j * cols;
 
-    __global const float* rowIn = in + srcId * cols;
+    __global const float *rowIn = in + srcId * cols;
    
   	for (size_t i = 0; i < cols; ++i) {
-       //rowOut[i] = 232; //  rowIn[i];  	
+       rowOut[i] = srcId;  	
        //float f = rowIn[i];
        //rowOut[i] = f;
   	}

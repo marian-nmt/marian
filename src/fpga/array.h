@@ -29,6 +29,7 @@ public:
     cl_int err;
     mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) vec.data(), &err);
     CheckError(err);
+
   }
 
   ~Array()

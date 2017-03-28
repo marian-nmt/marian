@@ -30,7 +30,7 @@ float Sum(
     const cl_context &context,
     const cl_device_id &device);
 
-size_t SumSizet(
+unsigned int SumSizet(
     const cl_mem &mem,
     size_t size,
     const cl_context &context,
