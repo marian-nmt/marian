@@ -24,6 +24,9 @@ public:
                     const mblas::Matrix& State,
                     const mblas::Matrix& Context) const
   {
+    using namespace mblas;
+
+    Prod(RUH_, Context, WWx_);
 
   }
 

@@ -191,6 +191,13 @@ void Fill(
   CheckError( clFinish(commands) );
 }
 
+Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
+             bool transA, bool transB)
+{
+
+}
+
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {
