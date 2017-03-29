@@ -12,8 +12,7 @@ namespace FPGA {
 namespace mblas {
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo)
-:context_(openCLInfo.context)
-,device_(openCLInfo.device)
+:openCLInfo_(openCLInfo)
 ,rows_(0)
 ,cols_(0)
 ,mem_(nullptr)
@@ -28,34 +27,32 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 
 }
 
-Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, bool zero)
-:context_(context)
-,device_(device)
+Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
+:openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
 {
   cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
+  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
   //cerr << "mem_2=" << Debug() << endl;
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
-:context_(openCLInfo.context)
-,device_(openCLInfo.device)
+:openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
 {
   cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
+  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
   CheckError(err);
   //cerr << "mem_3=" << Debug() << " " << *val << endl;
 }
 
 Matrix::Matrix(const Matrix &other)
-:Matrix(other.context_, other.device_, other.rows_, other.cols_)
+:Matrix(other.openCLInfo_, other.rows_, other.cols_)
 {
-  cl_command_queue commands = CreateCommandQueue(context_, device_);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo_.context, openCLInfo_.device);
   CheckError( clEnqueueCopyBuffer(commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
 
@@ -81,7 +78,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
   cols_ = cols;
 
   cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
+  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
   //cerr << "mem_4=" << Debug() << endl;
 }
@@ -94,7 +91,7 @@ std::string Matrix::Debug(bool detailed) const
 
   if (detailed) {
     //cerr << "Debug2" << endl;
-    float sum = Sum(mem_, size(), context_, device_);
+    float sum = Sum(mem_, size(), openCLInfo_.context, openCLInfo_.device);
     //cerr << "Debug3" << endl;
     strm << " sum=" << sum << std::flush;
     //cerr << "Debug4" << endl;

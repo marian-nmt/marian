@@ -9,7 +9,7 @@ namespace mblas {
 class Matrix : public BaseMatrix {
 public:
   Matrix(const OpenCLInfo &openCLInfo);
-  Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, bool zero = false);
+  Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero = false);
   Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val);
 
   Matrix(const Matrix &other);
@@ -39,8 +39,7 @@ public:
   virtual std::string Debug(bool detailed = false) const;
 
 protected:
-  const cl_context &context_;
-  const cl_device_id &device_;
+  const OpenCLInfo &openCLInfo_;
   cl_mem mem_;
   size_t rows_, cols_;
 

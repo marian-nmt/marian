@@ -27,7 +27,7 @@ struct Weights {
       U_(model.GetMatrix(openCLInfo, "encoder_U")),
       Wx_(model.GetMatrix(openCLInfo, "encoder_Wx")),
       Bx1_(model.GetMatrix(openCLInfo, "encoder_bx", true)),
-      Bx2_(openCLInfo.context, openCLInfo.device , Bx1_.dim(0), Bx1_.dim(1), true),
+      Bx2_(openCLInfo, Bx1_.dim(0), Bx1_.dim(1), true),
       Ux_(model.GetMatrix(openCLInfo, "encoder_Ux"))
     { }
 
@@ -47,7 +47,7 @@ struct Weights {
       U_(model.GetMatrix(openCLInfo, "encoder_r_U")),
       Wx_(model.GetMatrix(openCLInfo, "encoder_r_Wx")),
       Bx1_(model.GetMatrix(openCLInfo, "encoder_r_bx", true)),
-      Bx2_(openCLInfo.context, openCLInfo.device, Bx1_.dim(0), Bx1_.dim(1), true),
+      Bx2_(openCLInfo, Bx1_.dim(0), Bx1_.dim(1), true),
       Ux_(model.GetMatrix(openCLInfo, "encoder_r_Ux"))
     {}
 
@@ -86,7 +86,7 @@ struct Weights {
       U_(model.GetMatrix(openCLInfo, "decoder_U")),
       Wx_(model.GetMatrix(openCLInfo, "decoder_Wx")),
       Bx1_(model.GetMatrix(openCLInfo, "decoder_bx", true)),
-      Bx2_(openCLInfo.context, openCLInfo.device, Bx1_.dim(0), Bx1_.dim(1), true),
+      Bx2_(openCLInfo, Bx1_.dim(0), Bx1_.dim(1), true),
       Ux_(model.GetMatrix(openCLInfo, "decoder_Ux"))
     {}
 
@@ -106,7 +106,7 @@ struct Weights {
       U_(model.GetMatrix(openCLInfo, "decoder_U_nl")),
       Wx_(model.GetMatrix(openCLInfo, "decoder_Wcx")),
       Bx2_(model.GetMatrix(openCLInfo, "decoder_bx_nl", true)),
-      Bx1_(openCLInfo.context, openCLInfo.device, Bx2_.dim(0), Bx2_.dim(1), true),
+      Bx1_(openCLInfo, Bx2_.dim(0), Bx2_.dim(1), true),
       Ux_(model.GetMatrix(openCLInfo, "decoder_Ux_nl"))
     {}
 
