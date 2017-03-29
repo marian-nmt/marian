@@ -75,6 +75,10 @@ class Encoder {
     {
       InitializeState(batchSize);
 
+      mblas::Matrix prevState(State_);
+      std::cerr << "State_=" << State_.Debug(true) << std::endl;
+      std::cerr << "prevState=" << prevState.Debug(true) << std::endl;
+
     }
 
     private:

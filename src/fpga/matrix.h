@@ -11,6 +11,9 @@ public:
   Matrix(const cl_context &context, const cl_device_id &device);
   Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, bool zero = false);
   Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val);
+
+  Matrix(const Matrix &other);
+
   virtual ~Matrix();
 
   virtual size_t dim(size_t i) const

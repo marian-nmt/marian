@@ -2,6 +2,8 @@
 #include <sstream>
 #include "matrix.h"
 #include "matrix_functions.h"
+#include "types-fpga.h"
+#include "kernel.h"
 
 using namespace std;
 
@@ -48,6 +50,13 @@ Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t row
   mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
   CheckError(err);
   //cerr << "mem_3=" << Debug() << " " << *val << endl;
+}
+
+Matrix::Matrix(const Matrix &other)
+:Matrix(other.context_, other.device_, other.rows_, other.cols_)
+{
+  cl_command_queue commands = CreateCommandQueue(context_, device_);
+  CheckError( clEnqueueCopyBuffer(commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
 
 Matrix::~Matrix()
