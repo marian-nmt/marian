@@ -38,11 +38,11 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
   return matrix;
 }
 
-void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context)
+void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& context)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
-  Context.Resize(maxSentenceLength,
+  context.Resize(maxSentenceLength,
                  forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
                  1,
                  source.size());
@@ -57,13 +57,16 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 
+  cerr << "GetContext1=" << context.Debug(true) << endl;
   forwardRnn_.GetContext(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
-                         Context, source.size(), false);
+                         context, source.size(), false);
+  cerr << "GetContext2=" << context.Debug(true) << endl;
 
   backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
-                          Context, source.size(), true);
+                          context, source.size(), true);
+  cerr << "GetContext3=" << context.Debug(true) << endl;
 
 }
 
