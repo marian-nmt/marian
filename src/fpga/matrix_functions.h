@@ -51,7 +51,7 @@ void Fill(
     Matrix& In,
     float value=0.0f);
 
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 

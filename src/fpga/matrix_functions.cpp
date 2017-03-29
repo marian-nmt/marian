@@ -181,7 +181,7 @@ void Fill(
   CheckError( clFinish(openCLInfo.commands) );
 }
 
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB)
 {
 

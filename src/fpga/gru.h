@@ -7,7 +7,8 @@ template <class Weights>
 class GRU {
 public:
   GRU(const OpenCLInfo &openCLInfo, const Weights& model)
-  : w_(model)
+  : openCLInfo_(openCLInfo)
+  , w_(model)
   , WWx_(openCLInfo)
   , UUx_(openCLInfo)
   , RUH_(openCLInfo)
@@ -26,12 +27,13 @@ public:
   {
     using namespace mblas;
 
-    Prod(RUH_, Context, WWx_);
+    Prod(openCLInfo_, RUH_, Context, WWx_);
 
   }
 
 protected:
   // Model matrices
+  const OpenCLInfo &openCLInfo_;
   const Weights& w_;
 
   // reused to avoid allocation
