@@ -196,6 +196,7 @@ Matrix& CopyRows(Matrix& Out,
   int threads = std::min(MAX_THREADS, (int)In.dim(1));
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);
 
+  /*
   cerr << "Out=" << Out.Debug() << endl;
   cerr << "In=" << In.Debug() << endl;
   cerr << "cols=" << In.dim(1) << endl;
@@ -206,6 +207,7 @@ Matrix& CopyRows(Matrix& Out,
   }
   cerr << endl;
   cerr << "numPairs=" << numPairs << endl;
+  */
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (d_out, d_in, In.dim(1), dev, numPairs);
@@ -218,7 +220,7 @@ Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indices) {
   Out.Resize(indices.size(), In.dim(1));
-  cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
+  //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
   CopyRows(Out, In, indices);
   return Out;
