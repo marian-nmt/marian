@@ -42,7 +42,7 @@ class Encoder {
       //std::cerr << "Row2=" << Row.Debug(true) << std::endl;
       mblas::Assemble(context, device, Row, w_.E_, dKnownWords);
 
-      //std::cerr << "Row3=" << Row.Debug(true) << std::endl;
+      std::cerr << "Row3=" << Row.Debug(true) << std::endl;
 
     }
 
