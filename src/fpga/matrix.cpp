@@ -40,9 +40,9 @@ Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t row
   //cerr << "mem_2=" << Debug() << endl;
 }
 
-Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val)
-:context_(context)
-,device_(device)
+Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
+:context_(openCLInfo.context)
+,device_(openCLInfo.device)
 ,rows_(rows)
 ,cols_(cols)
 {

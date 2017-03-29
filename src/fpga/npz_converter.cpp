@@ -23,7 +23,7 @@ mblas::Matrix NpzConverter::GetMatrix(
     const cnpy::NpyArray &array = it->second;
     NpyMatrixWrapper np(array);
 
-    mblas::Matrix matrix(openCLInfo.context, openCLInfo.device, np.size1(), np.size2(), np.data());
+    mblas::Matrix matrix(openCLInfo, np.size1(), np.size2(), np.data());
 
     if (transpose) {
       // TODO
