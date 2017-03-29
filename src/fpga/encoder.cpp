@@ -52,7 +52,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
     if (i >= embeddedWords_.size()) {
       embeddedWords_.emplace_back(openCLInfo_);
     }
-    embeddings_.Lookup(openCLInfo_.context, openCLInfo_.device, embeddedWords_[i], input[i]);
+    embeddings_.Lookup(openCLInfo_, embeddedWords_[i], input[i]);
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 

@@ -91,7 +91,7 @@ std::string Matrix::Debug(bool detailed) const
 
   if (detailed) {
     //cerr << "Debug2" << endl;
-    float sum = Sum(mem_, size(), openCLInfo_.context, openCLInfo_.device);
+    float sum = Sum(mem_, size(), openCLInfo_);
     //cerr << "Debug3" << endl;
     strm << " sum=" << sum << std::flush;
     //cerr << "Debug4" << endl;

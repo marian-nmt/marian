@@ -18,7 +18,7 @@ class Encoder {
     : w_(model)
     {}
 
-    void Lookup(const cl_context &context, const cl_device_id &device, mblas::Matrix& Row, const Words& words)
+    void Lookup(const OpenCLInfo &openCLInfo, mblas::Matrix& Row, const Words& words)
     {
       std::vector<uint> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
@@ -27,7 +27,7 @@ class Encoder {
         }
       }
 
-      Array<uint> dKnownWords(context, device, knownWords);
+      Array<uint> dKnownWords(openCLInfo.context, openCLInfo.device, knownWords);
 
       /*
       std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << ": ";
@@ -40,7 +40,7 @@ class Encoder {
       //std::cerr << "Row1=" << Row.Debug(true) << std::endl;
       Row.Resize(words.size(), w_.E_.dim(1));
       //std::cerr << "Row2=" << Row.Debug(true) << std::endl;
-      mblas::Assemble(context, device, Row, w_.E_, dKnownWords);
+      mblas::Assemble(openCLInfo, Row, w_.E_, dKnownWords);
 
       std::cerr << "Row3=" << Row.Debug(true) << std::endl;
 
@@ -66,7 +66,7 @@ class Encoder {
 
     void InitializeState(size_t batchSize = 1) {
       State_.Resize(batchSize, gru_.GetStateLength());
-      mblas::Fill(openCLInfo_.context, openCLInfo_.device, State_, 0.0f);
+      mblas::Fill(openCLInfo_, State_, 0.0f);
     }
 
     void GetNextState(mblas::Matrix& NextState,

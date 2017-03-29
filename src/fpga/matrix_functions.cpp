@@ -13,20 +13,19 @@ namespace mblas {
 float Sum(
     const cl_mem &mem,
     uint size,
-    const cl_context &context,
-    const cl_device_id &device)
+    const OpenCLInfo &openCLInfo)
 {
   cl_int err;
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
+  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
   assert(output);
 
   // create kernel
-  cl_command_queue commands = CreateCommandQueue(context, device);
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", context, device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo.context, openCLInfo.device);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", openCLInfo.context, openCLInfo.device);
 
   // Set the arguments to our compute kernel
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
@@ -35,7 +34,7 @@ float Sum(
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
   global = 1024;
 
@@ -104,8 +103,7 @@ unsigned int SumSizet(
 }
 
 Matrix& CopyRows(
-	const cl_context &context,
-	const cl_device_id &device,
+  const OpenCLInfo &openCLInfo,
 	Matrix& Out,
 	const Matrix& In,
 	const Array<uint>& indices)
@@ -117,16 +115,16 @@ Matrix& CopyRows(
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
+  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
   assert(output);
 
   // create kernel
   //cerr << endl;
   //cerr << "CopyRows1=" << endl;
-  cl_command_queue commands = CreateCommandQueue(context, device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo.context, openCLInfo.device);
   //cerr << "CopyRows2=" << endl;
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", context, device);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", openCLInfo.context, openCLInfo.device);
   //cerr << "CopyRows3=" << endl;
 
   // Set the arguments to our compute kernel
@@ -146,7 +144,7 @@ Matrix& CopyRows(
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
   global = 1024;
 
@@ -167,8 +165,7 @@ Matrix& CopyRows(
 }
 
 Matrix& Assemble(
-		const cl_context &context,
-		const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
 		Matrix& Out,
 		 const Matrix& In,
 		 const Array<uint>& indices)
@@ -176,17 +173,16 @@ Matrix& Assemble(
   //cerr << "indices=" << indices.Debug(true) << endl;
 
   Out.Resize(indices.size(), In.dim(1));
-  CopyRows(context, device, Out, In, indices);
+  CopyRows(openCLInfo, Out, In, indices);
   return Out;
 }
 
 void Fill(
-    const cl_context &context,
-    const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
     Matrix& In,
     float value)
 {
-  cl_command_queue commands = CreateCommandQueue(context, device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo.context, openCLInfo.device);
   CheckError( clEnqueueFillBuffer(commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
   CheckError( clFinish(commands) );
 }

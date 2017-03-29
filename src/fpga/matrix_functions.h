@@ -27,8 +27,7 @@ T Sum(const std::vector<T> &vec)
 float Sum(
     const cl_mem &mem,
     uint size,
-    const cl_context &context,
-    const cl_device_id &device);
+    const OpenCLInfo &openCLInfo);
 
 unsigned int SumSizet(
     const cl_mem &mem,
@@ -37,22 +36,19 @@ unsigned int SumSizet(
     const cl_device_id &device);
 
 Matrix& CopyRows(
-	     const cl_context &context,
-		 const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
 		 Matrix& Out,
 		 const Matrix& In,
 		 const Array<uint>& indices);
 
 Matrix& Assemble(
-		const cl_context &context,
-		const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
 		Matrix& Out,
 		 const Matrix& In,
 		 const Array<uint>& indices);
 
 void Fill(
-    const cl_context &context,
-    const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
     Matrix& In,
     float value=0.0f);
 
