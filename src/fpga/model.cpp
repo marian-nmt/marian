@@ -3,21 +3,21 @@
 namespace amunmt {
 namespace FPGA {
 
-Weights::Weights(cl_context &context, const cl_device_id &device, const std::string& npzFile)
-: Weights(context, device, NpzConverter(npzFile))
+Weights::Weights(const OpenCLInfo &openCLInfo, const std::string& npzFile)
+: Weights(openCLInfo, NpzConverter(npzFile))
 {}
 
-Weights::Weights(cl_context &context, const cl_device_id &device, const NpzConverter& model)
-: encEmbeddings_(context, device, model)
-, encForwardGRU_(context, device, model)
-, encBackwardGRU_(context, device, model)
-, decEmbeddings_(context, device, model)
-, decInit_(context, device, model)
-, decGru1_(context, device, model)
-, decGru2_(context, device, model)
-, decAlignment_(context, device, model)
-, decSoftmax_(context, device, model)
-, device_(device)
+Weights::Weights(const OpenCLInfo &openCLInfo, const NpzConverter& model)
+: encEmbeddings_(openCLInfo.context, openCLInfo.device, model)
+, encForwardGRU_(openCLInfo.context, openCLInfo.device, model)
+, encBackwardGRU_(openCLInfo.context, openCLInfo.device, model)
+, decEmbeddings_(openCLInfo.context, openCLInfo.device, model)
+, decInit_(openCLInfo.context, openCLInfo.device, model)
+, decGru1_(openCLInfo.context, openCLInfo.device, model)
+, decGru2_(openCLInfo.context, openCLInfo.device, model)
+, decAlignment_(openCLInfo.context, openCLInfo.device, model)
+, decSoftmax_(openCLInfo.context, openCLInfo.device, model)
+, openCLInfo_(openCLInfo)
 {
 
 }
