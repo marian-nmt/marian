@@ -5,13 +5,12 @@ using namespace std;
 namespace amunmt {
 namespace FPGA {
 
-Encoder::Encoder(const cl_context &context, const cl_device_id &device, const Weights& model)
+Encoder::Encoder(const OpenCLInfo &openCLInfo, const Weights& model)
 : embeddings_(model.encEmbeddings_)
-, forwardRnn_(context, device, model.encForwardGRU_)
-, backwardRnn_(context, device, model.encBackwardGRU_)
-, Context(context, device)
-, context_(context)
-, device_(device)
+, forwardRnn_(openCLInfo.context, openCLInfo.device, model.encForwardGRU_)
+, backwardRnn_(openCLInfo.context, openCLInfo.device, model.encBackwardGRU_)
+, Context(openCLInfo.context, openCLInfo.device)
+, openCLInfo_(openCLInfo)
 {
 
 }
@@ -51,9 +50,9 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
 
   for (size_t i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
-      embeddedWords_.emplace_back(context_, device_);
+      embeddedWords_.emplace_back(openCLInfo_.context, openCLInfo_.device);
     }
-    embeddings_.Lookup(context_, device_, embeddedWords_[i], input[i]);
+    embeddings_.Lookup(openCLInfo_.context, openCLInfo_.device, embeddedWords_[i], input[i]);
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 

@@ -106,7 +106,7 @@ class Encoder {
   };
 
 public:
-  Encoder(const cl_context &context, const cl_device_id &device, const Weights& model);
+  Encoder(const OpenCLInfo &openCLInfo, const Weights& model);
 
   void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context);
 
@@ -119,8 +119,7 @@ protected:
   std::vector<mblas::Matrix> embeddedWords_;
   mblas::Matrix Context;
 
-  const cl_context &context_;
-  const cl_device_id &device_;
+  const OpenCLInfo &openCLInfo_;
 
 };
 

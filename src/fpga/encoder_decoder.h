@@ -21,8 +21,7 @@ public:
                  const YAML::Node& config,
                  size_t tab,
                  const Weights& model,
-                 const cl_context &context,
-                 const cl_device_id &device);
+                 const OpenCLInfo &openCLInfo);
 
   virtual void Decode(const God &god, const State& in,
                      State& out, const std::vector<size_t>& beamSizes);
@@ -50,7 +49,7 @@ protected:
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;
 
-  const cl_context &context_;
+  const OpenCLInfo &openCLInfo_;
 };
 
 

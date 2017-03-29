@@ -19,6 +19,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 {
   cerr << "opencl start" << endl;
   openCLInfo_.context = CreateContext(100, openCLInfo_.devices, openCLInfo_.numDevices);
+  openCLInfo_.device = openCLInfo_.devices[0];
 
   cerr << "EncoderDecoderLoader1:" << endl;
 
@@ -61,7 +62,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
   size_t d = deviceInfo.deviceId;
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
 
-  EncoderDecoder *ed = new EncoderDecoder(god, name_, config_, tab, *weights_, openCLInfo_.context, openCLInfo_.devices[0]);
+  EncoderDecoder *ed = new EncoderDecoder(god, name_, config_, tab, *weights_, openCLInfo_);
   return ScorerPtr(ed);
 }
 
