@@ -20,6 +20,13 @@ public:
     return w_.U_.dim(0);
   }
 
+  void GetNextState(mblas::Matrix& NextState,
+                    const mblas::Matrix& State,
+                    const mblas::Matrix& Context) const
+  {
+
+  }
+
 protected:
   // Model matrices
   const Weights& w_;

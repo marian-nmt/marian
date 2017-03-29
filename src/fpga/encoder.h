@@ -70,6 +70,12 @@ class Encoder {
       mblas::Fill(context_, device_, State_, 0.0f);
     }
 
+    void GetNextState(mblas::Matrix& NextState,
+                      const mblas::Matrix& State,
+                      const mblas::Matrix& Embd) {
+      gru_.GetNextState(NextState, State, Embd);
+    }
+
     template <class It>
     void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert)
     {
@@ -78,6 +84,14 @@ class Encoder {
       mblas::Matrix prevState(State_);
       std::cerr << "State_=" << State_.Debug(true) << std::endl;
       std::cerr << "prevState=" << prevState.Debug(true) << std::endl;
+
+      size_t n = std::distance(it, end);
+      size_t i = 0;
+
+      while(it != end) {
+        GetNextState(State_, prevState, *it++);
+
+      }
 
     }
 
