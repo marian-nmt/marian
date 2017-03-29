@@ -23,13 +23,13 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
   cerr << "EncoderDecoderLoader1:" << endl;
 
-  cl_command_queue commands = CreateCommandQueue(openCLInfo_.context, openCLInfo_.devices[0]);
-  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", openCLInfo_.context, openCLInfo_.devices[0]);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo_.context, openCLInfo_.device);
+  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", openCLInfo_.context, openCLInfo_.device);
 
   cerr << "EncoderDecoderLoader2:" << endl;
-  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.devices[0], commands, 1024);
+  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.device, commands, 1024);
   cerr << "EncoderDecoderLoader3:" << endl;
-  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.devices[0], commands, 2048);
+  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.device, commands, 2048);
   cerr << "EncoderDecoderLoader4:" << endl;
 
 
@@ -53,7 +53,7 @@ void EncoderDecoderLoader::Load(const God &god)
   std::string path = Get<std::string>("path");
   //cerr << "path=" << path << endl;
 
-  Weights *weights = new Weights(openCLInfo_.context, openCLInfo_.devices[0], path);
+  Weights *weights = new Weights(openCLInfo_.context, openCLInfo_.device, path);
   weights_.reset(weights);
 }
 
