@@ -6,12 +6,12 @@ namespace FPGA {
 template <class Weights>
 class GRU {
 public:
-  GRU(const cl_context &context, const cl_device_id &device, const Weights& model)
+  GRU(const OpenCLInfo &openCLInfo, const Weights& model)
   : w_(model)
-  , WWx_(context, device)
-  , UUx_(context, device)
-  , RUH_(context, device)
-  , Temp_(context, device)
+  , WWx_(openCLInfo.context, openCLInfo.device)
+  , UUx_(openCLInfo.context, openCLInfo.device)
+  , RUH_(openCLInfo.context, openCLInfo.device)
+  , Temp_(openCLInfo.context, openCLInfo.device)
   {
 
   }

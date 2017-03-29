@@ -56,7 +56,7 @@ class Encoder {
     public:
       RNN(const OpenCLInfo &openCLInfo, const Weights& model)
       : openCLInfo_(openCLInfo)
-      , gru_(openCLInfo.context, openCLInfo.device, model)
+      , gru_(openCLInfo, model)
       , State_(openCLInfo.context, openCLInfo.device)
     {}
 
