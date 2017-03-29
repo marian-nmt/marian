@@ -35,7 +35,7 @@ if(CUDA)
     message("-- Compiling with CUDA support")
     
     if (MARIAN)
-      execute_process(COMMAND git submodule update --init --recursive
+      execute_process(COMMAND git submodule update --init --recursive --remote --no-fetch
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     endif(MARIAN)
 
