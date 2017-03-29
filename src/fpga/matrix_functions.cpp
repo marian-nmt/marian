@@ -180,7 +180,18 @@ Matrix& Assemble(
   return Out;
 }
 
+void Fill(
+    const cl_context &context,
+    const cl_device_id &device,
+    Matrix& In,
+    float value)
+{
+  cl_command_queue commands = CreateCommandQueue(context, device);
+  CheckError( clEnqueueFillBuffer(commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
+  CheckError( clFinish(commands) );
 }
-}
-}
+
+} // namespace mblas {
+} // namespace FPGA {
+} // namespace amunmt {
 

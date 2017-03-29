@@ -50,7 +50,16 @@ Matrix& Assemble(
 		 const Matrix& In,
 		 const Array<uint>& indices);
 
-}
-}
-}
+void Fill(
+    const cl_context &context,
+    const cl_device_id &device,
+    Matrix& In,
+    float value=0.0f);
+
+
+
+
+} // namespace mblas {
+} // namespace FPGA {
+} // namespace amunmt {
 
