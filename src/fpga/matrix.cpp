@@ -52,8 +52,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *va
 Matrix::Matrix(const Matrix &other)
 :Matrix(other.openCLInfo_, other.rows_, other.cols_)
 {
-  cl_command_queue commands = CreateCommandQueue(openCLInfo_);
-  CheckError( clEnqueueCopyBuffer(commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
+  CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
 
 Matrix::~Matrix()

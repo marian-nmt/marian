@@ -24,7 +24,6 @@ float Sum(
   assert(output);
 
   // create kernel
-  cl_command_queue commands = CreateCommandQueue(openCLInfo);
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", openCLInfo);
 
   // Set the arguments to our compute kernel
@@ -41,16 +40,16 @@ float Sum(
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
 
-  CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
 
   // Wait for the command commands to get serviced before reading back results
   //
-  CheckError( clFinish(commands) );
+  CheckError( clFinish(openCLInfo.commands) );
 
   // Read back the results from the device to verify the output
   //
   float results;
-  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float), &results, 0, NULL, NULL ) );
+  CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(float), &results, 0, NULL, NULL ) );
 
   return results;
 }
@@ -69,7 +68,6 @@ unsigned int SumSizet(
   assert(output);
 
   // create kernel
-  cl_command_queue commands = CreateCommandQueue(openCLInfo);
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_size_t", openCLInfo);
 
   // Set the arguments to our compute kernel
@@ -87,16 +85,16 @@ unsigned int SumSizet(
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
 
-  CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
 
   // Wait for the command commands to get serviced before reading back results
   //
-  CheckError( clFinish(commands) );
+  CheckError( clFinish(openCLInfo.commands) );
 
   // Read back the results from the device to verify the output
   //
   unsigned int results;
-  CheckError( clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(unsigned int), &results, 0, NULL, NULL ) );
+  CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(unsigned int), &results, 0, NULL, NULL ) );
 
   return results;
 }
@@ -120,8 +118,6 @@ Matrix& CopyRows(
 
   // create kernel
   //cerr << endl;
-  //cerr << "CopyRows1=" << endl;
-  cl_command_queue commands = CreateCommandQueue(openCLInfo);
   //cerr << "CopyRows2=" << endl;
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", openCLInfo);
   //cerr << "CopyRows3=" << endl;
@@ -150,11 +146,11 @@ Matrix& CopyRows(
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
 
-  CheckError( clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
 
   // Wait for the command commands to get serviced before reading back results
   //
-  CheckError( clFinish(commands) );
+  CheckError( clFinish(openCLInfo.commands) );
 
   //cerr << "Out2=" << Out.Debug(true) << endl;
   //cerr << "CopyRows10" << endl;
@@ -181,9 +177,8 @@ void Fill(
     Matrix& In,
     float value)
 {
-  cl_command_queue commands = CreateCommandQueue(openCLInfo);
-  CheckError( clEnqueueFillBuffer(commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
-  CheckError( clFinish(commands) );
+  CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
+  CheckError( clFinish(openCLInfo.commands) );
 }
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,

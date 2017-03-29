@@ -26,4 +26,5 @@ struct OpenCLInfo
   cl_uint numDevices;
   cl_device_id devices[100];
   cl_device_id device;
+  cl_command_queue commands;
 };
