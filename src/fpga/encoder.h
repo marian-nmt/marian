@@ -27,7 +27,7 @@ class Encoder {
         }
       }
 
-      Array<uint> dKnownWords(openCLInfo.context, openCLInfo.device, knownWords);
+      Array<uint> dKnownWords(openCLInfo, knownWords);
 
       /*
       std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << ": ";
