@@ -27,7 +27,13 @@ public:
   {
     using namespace mblas;
 
+    std::cerr << "1RUH_=" << RUH_.Debug(true) << std::endl;
+    std::cerr << "Context=" << Context.Debug(true) << std::endl;
+    std::cerr << "WWx_" << WWx_.Debug(true) << std::endl;
+
     Prod(openCLInfo_, RUH_, Context, WWx_);
+
+    std::cerr << "2RUH_=" << RUH_.Debug(true) << std::endl;
 
   }
 

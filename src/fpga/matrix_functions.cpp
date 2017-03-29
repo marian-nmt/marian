@@ -184,6 +184,10 @@ void Fill(
 Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB)
 {
+  assert(!transA);
+  assert(!transB);
+
+  C.Resize(A.dim(0), B.dim(1));
 
 }
 
