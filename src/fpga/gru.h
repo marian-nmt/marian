@@ -8,10 +8,10 @@ class GRU {
 public:
   GRU(const OpenCLInfo &openCLInfo, const Weights& model)
   : w_(model)
-  , WWx_(openCLInfo.context, openCLInfo.device)
-  , UUx_(openCLInfo.context, openCLInfo.device)
-  , RUH_(openCLInfo.context, openCLInfo.device)
-  , Temp_(openCLInfo.context, openCLInfo.device)
+  , WWx_(openCLInfo)
+  , UUx_(openCLInfo)
+  , RUH_(openCLInfo)
+  , Temp_(openCLInfo)
   {
 
   }

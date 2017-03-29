@@ -9,7 +9,7 @@ Encoder::Encoder(const OpenCLInfo &openCLInfo, const Weights& model)
 : embeddings_(model.encEmbeddings_)
 , forwardRnn_(openCLInfo, model.encForwardGRU_)
 , backwardRnn_(openCLInfo, model.encBackwardGRU_)
-, Context(openCLInfo.context, openCLInfo.device)
+, Context(openCLInfo)
 , openCLInfo_(openCLInfo)
 {
 
@@ -50,7 +50,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
 
   for (size_t i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
-      embeddedWords_.emplace_back(openCLInfo_.context, openCLInfo_.device);
+      embeddedWords_.emplace_back(openCLInfo_);
     }
     embeddings_.Lookup(openCLInfo_.context, openCLInfo_.device, embeddedWords_[i], input[i]);
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;

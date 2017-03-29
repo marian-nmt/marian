@@ -57,7 +57,7 @@ class Encoder {
       RNN(const OpenCLInfo &openCLInfo, const Weights& model)
       : openCLInfo_(openCLInfo)
       , gru_(openCLInfo, model)
-      , State_(openCLInfo.context, openCLInfo.device)
+      , State_(openCLInfo)
     {}
 
     size_t GetStateLength() const {

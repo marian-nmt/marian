@@ -11,9 +11,9 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
-Matrix::Matrix(const cl_context &context, const cl_device_id &device)
-:context_(context)
-,device_(device)
+Matrix::Matrix(const OpenCLInfo &openCLInfo)
+:context_(openCLInfo.context)
+,device_(openCLInfo.device)
 ,rows_(0)
 ,cols_(0)
 ,mem_(nullptr)

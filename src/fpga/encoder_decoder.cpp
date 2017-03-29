@@ -26,7 +26,7 @@ EncoderDecoder::EncoderDecoder(
 :Scorer(name, config, tab)
 ,model_(model)
 ,openCLInfo_(openCLInfo)
-,sourceContext_(openCLInfo.context, openCLInfo.device)
+,sourceContext_(openCLInfo)
 ,encoder_(new Encoder(openCLInfo, model_))
 ,decoder_(new Decoder(god, model_))
 {

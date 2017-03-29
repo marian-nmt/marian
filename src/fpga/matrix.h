@@ -8,7 +8,7 @@ namespace mblas {
 
 class Matrix : public BaseMatrix {
 public:
-  Matrix(const cl_context &context, const cl_device_id &device);
+  Matrix(const OpenCLInfo &openCLInfo);
   Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, bool zero = false);
   Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val);
 
