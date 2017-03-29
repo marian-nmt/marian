@@ -122,21 +122,21 @@ Matrix& CopyRows(
   assert(output);
 
   // create kernel
-  cerr << endl;
-  cerr << "CopyRows1=" << endl;
+  //cerr << endl;
+  //cerr << "CopyRows1=" << endl;
   cl_command_queue commands = CreateCommandQueue(context, device);
-  cerr << "CopyRows2=" << endl;
+  //cerr << "CopyRows2=" << endl;
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", context, device);
-  cerr << "CopyRows3=" << endl;
+  //cerr << "CopyRows3=" << endl;
 
   // Set the arguments to our compute kernel
   size_t cols = In.dim(1);
 
-  cerr << "Out1=" << Out.Debug(true) << endl;
-  cerr << "In=" << In.Debug(true) << endl;
-  cerr << "cols=" << cols << endl;
-  cerr << "dev=" << indices.Debug(true) << endl;
-  cerr << "numPairs=" << numPairs << endl;
+  //cerr << "Out1=" << Out.Debug(true) << endl;
+  //cerr << "In=" << In.Debug(true) << endl;
+  //cerr << "cols=" << cols << endl;
+  //cerr << "dev=" << indices.Debug(true) << endl;
+  //cerr << "numPairs=" << numPairs << endl;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
@@ -159,7 +159,7 @@ Matrix& CopyRows(
   //
   CheckError( clFinish(commands) );
 
-  cerr << "Out2=" << Out.Debug(true) << endl;
+  //cerr << "Out2=" << Out.Debug(true) << endl;
   //cerr << "CopyRows10" << endl;
 
   return Out;
@@ -173,7 +173,7 @@ Matrix& Assemble(
 		 const Matrix& In,
 		 const Array<uint>& indices)
 {
-  cerr << "indices=" << indices.Debug(true) << endl;
+  //cerr << "indices=" << indices.Debug(true) << endl;
 
   Out.Resize(indices.size(), In.dim(1));
   CopyRows(context, device, Out, In, indices);

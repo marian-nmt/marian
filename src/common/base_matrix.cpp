@@ -15,7 +15,8 @@ size_t BaseMatrix::size() const {
 std::string BaseMatrix::Debug(bool detailed) const
 {
   std::stringstream strm;
-  strm << dim(0) << "x" << dim(1) << "x" << dim(2) << "x" << dim(3);
+  strm << dim(0) << "x" << dim(1) << "x" << dim(2) << "x" << dim(3) << "=" << size();
+  strm << " " << this;
   return strm.str();
 }
 

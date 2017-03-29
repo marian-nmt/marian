@@ -49,12 +49,12 @@ __kernel void gCopyRows(
     
   	for (uint i = 0; i < cols; ++i) {
        //rowOut[i] = srcId;  	
-       //float f = rowIn[i];
-       rowOut[i] = 0;
+       float f = rowIn[i];
+       rowOut[i] = f;
   	}
 
-    const float f = cols;
-    rowOut[0] = f;
+    //const float f = cols;
+    //rowOut[0] = f;
     
   }
   
