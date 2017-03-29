@@ -18,17 +18,17 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 :Loader(name, config)
 {
   cerr << "opencl start" << endl;
-  context_ = CreateContext(100, devices_, numDevices_);
+  openCLInfo_.context = CreateContext(100, openCLInfo_.devices, openCLInfo_.numDevices);
 
   cerr << "EncoderDecoderLoader1:" << endl;
 
-  cl_command_queue commands = CreateCommandQueue(context_, devices_[0]);
-  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", context_, devices_[0]);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo_.context, openCLInfo_.devices[0]);
+  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", openCLInfo_.context, openCLInfo_.devices[0]);
 
   cerr << "EncoderDecoderLoader2:" << endl;
-  HelloWorld(kernel, context_, devices_[0], commands, 1024);
+  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.devices[0], commands, 1024);
   cerr << "EncoderDecoderLoader3:" << endl;
-  HelloWorld(kernel, context_, devices_[0], commands, 2048);
+  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.devices[0], commands, 2048);
   cerr << "EncoderDecoderLoader4:" << endl;
 
 
@@ -44,7 +44,7 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
 EncoderDecoderLoader::~EncoderDecoderLoader()
 {
-  clReleaseContext(context_);
+  clReleaseContext(openCLInfo_.context);
 }
 
 void EncoderDecoderLoader::Load(const God &god)
@@ -52,7 +52,7 @@ void EncoderDecoderLoader::Load(const God &god)
   std::string path = Get<std::string>("path");
   //cerr << "path=" << path << endl;
 
-  Weights *weights = new Weights(context_, devices_[0], path);
+  Weights *weights = new Weights(openCLInfo_.context, openCLInfo_.devices[0], path);
   weights_.reset(weights);
 }
 
@@ -61,7 +61,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
   size_t d = deviceInfo.deviceId;
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
 
-  EncoderDecoder *ed = new EncoderDecoder(god, name_, config_, tab, *weights_, context_, devices_[0]);
+  EncoderDecoder *ed = new EncoderDecoder(god, name_, config_, tab, *weights_, openCLInfo_.context, openCLInfo_.devices[0]);
   return ScorerPtr(ed);
 }
 

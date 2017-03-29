@@ -24,9 +24,7 @@ public:
 protected:
   std::unique_ptr<Weights> weights_;
 
-  cl_context context_;
-  cl_uint numDevices_;
-  cl_device_id devices_[100];
+  OpenCLInfo openCLInfo_;
 
   //int HelloWorld(const std::string &filePath);
   int HelloWorld2();
