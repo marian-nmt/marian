@@ -7,8 +7,8 @@ namespace FPGA {
 
 Encoder::Encoder(const OpenCLInfo &openCLInfo, const Weights& model)
 : embeddings_(model.encEmbeddings_)
-, forwardRnn_(openCLInfo.context, openCLInfo.device, model.encForwardGRU_)
-, backwardRnn_(openCLInfo.context, openCLInfo.device, model.encBackwardGRU_)
+, forwardRnn_(openCLInfo, model.encForwardGRU_)
+, backwardRnn_(openCLInfo, model.encBackwardGRU_)
 , Context(openCLInfo.context, openCLInfo.device)
 , openCLInfo_(openCLInfo)
 {

@@ -54,11 +54,10 @@ class Encoder {
   class RNN {
     public:
     public:
-      RNN(const cl_context &context, const cl_device_id &device, const Weights& model)
-      : context_(context)
-      , device_(device)
-      , gru_(context, device, model)
-      , State_(context, device)
+      RNN(const OpenCLInfo &openCLInfo, const Weights& model)
+      : openCLInfo_(openCLInfo)
+      , gru_(openCLInfo.context, openCLInfo.device, model)
+      , State_(openCLInfo.context, openCLInfo.device)
     {}
 
     size_t GetStateLength() const {
@@ -67,7 +66,7 @@ class Encoder {
 
     void InitializeState(size_t batchSize = 1) {
       State_.Resize(batchSize, gru_.GetStateLength());
-      mblas::Fill(context_, device_, State_, 0.0f);
+      mblas::Fill(openCLInfo_.context, openCLInfo_.device, State_, 0.0f);
     }
 
     void GetNextState(mblas::Matrix& NextState,
@@ -96,8 +95,7 @@ class Encoder {
     }
 
     private:
-      const cl_context &context_;
-      const cl_device_id &device_;
+      const OpenCLInfo &openCLInfo_;
 
       // Model matrices
       const GRU<Weights> gru_;
