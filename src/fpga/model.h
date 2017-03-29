@@ -12,7 +12,7 @@ struct Weights {
   struct EncEmbeddings {
 
     EncEmbeddings(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : E_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "Wemb"))
+    : E_(model.GetMatrix(openCLInfo, "Wemb"))
     {
       //std::cerr << "E_=" << E_.Debug() << std::endl;
     }
@@ -22,13 +22,13 @@ struct Weights {
 
   struct EncForwardGRU {
     EncForwardGRU(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : W_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_W")),
-      B_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_b", true)),
-      U_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_U")),
-      Wx_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_Wx")),
-      Bx1_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_bx", true)),
-      Bx2_(openCLInfo.context, openCLInfo.device, Bx1_.dim(0), Bx1_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_Ux"))
+    : W_(model.GetMatrix(openCLInfo, "encoder_W")),
+      B_(model.GetMatrix(openCLInfo, "encoder_b", true)),
+      U_(model.GetMatrix(openCLInfo, "encoder_U")),
+      Wx_(model.GetMatrix(openCLInfo, "encoder_Wx")),
+      Bx1_(model.GetMatrix(openCLInfo, "encoder_bx", true)),
+      Bx2_(openCLInfo.context, openCLInfo.device , Bx1_.dim(0), Bx1_.dim(1), true),
+      Ux_(model.GetMatrix(openCLInfo, "encoder_Ux"))
     { }
 
     const mblas::Matrix W_;
@@ -42,13 +42,13 @@ struct Weights {
 
   struct EncBackwardGRU {
     EncBackwardGRU(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : W_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_r_W")),
-      B_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_r_b", true)),
-      U_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_r_U")),
-      Wx_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_r_Wx")),
-      Bx1_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_r_bx", true)),
+    : W_(model.GetMatrix(openCLInfo, "encoder_r_W")),
+      B_(model.GetMatrix(openCLInfo, "encoder_r_b", true)),
+      U_(model.GetMatrix(openCLInfo, "encoder_r_U")),
+      Wx_(model.GetMatrix(openCLInfo, "encoder_r_Wx")),
+      Bx1_(model.GetMatrix(openCLInfo, "encoder_r_bx", true)),
       Bx2_(openCLInfo.context, openCLInfo.device, Bx1_.dim(0), Bx1_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "encoder_r_Ux"))
+      Ux_(model.GetMatrix(openCLInfo, "encoder_r_Ux"))
     {}
 
     const mblas::Matrix W_;
@@ -63,7 +63,7 @@ struct Weights {
   //////////////////////////////////////////////////////////////////////////////
   struct DecEmbeddings {
     DecEmbeddings(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : E_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "Wemb_dec"))
+    : E_(model.GetMatrix(openCLInfo, "Wemb_dec"))
     {}
 
     const mblas::Matrix E_;
@@ -71,8 +71,8 @@ struct Weights {
 
   struct DecInit {
     DecInit(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : Wi_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_state_W")),
-      Bi_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_state_b", true))
+    : Wi_(model.GetMatrix(openCLInfo, "ff_state_W")),
+      Bi_(model.GetMatrix(openCLInfo, "ff_state_b", true))
     {}
 
     const mblas::Matrix Wi_;
@@ -81,13 +81,13 @@ struct Weights {
 
   struct DecGRU1 {
     DecGRU1(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : W_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_W")),
-      B_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_b", true)),
-      U_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_U")),
-      Wx_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_Wx")),
-      Bx1_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_bx", true)),
+    : W_(model.GetMatrix(openCLInfo, "decoder_W")),
+      B_(model.GetMatrix(openCLInfo, "decoder_b", true)),
+      U_(model.GetMatrix(openCLInfo, "decoder_U")),
+      Wx_(model.GetMatrix(openCLInfo, "decoder_Wx")),
+      Bx1_(model.GetMatrix(openCLInfo, "decoder_bx", true)),
       Bx2_(openCLInfo.context, openCLInfo.device, Bx1_.dim(0), Bx1_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_Ux"))
+      Ux_(model.GetMatrix(openCLInfo, "decoder_Ux"))
     {}
 
     const mblas::Matrix W_;
@@ -101,13 +101,13 @@ struct Weights {
 
   struct DecGRU2 {
     DecGRU2(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : W_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_Wc")),
-      B_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_b_nl", true)),
-      U_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_U_nl")),
-      Wx_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_Wcx")),
-      Bx2_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_bx_nl", true)),
+    : W_(model.GetMatrix(openCLInfo, "decoder_Wc")),
+      B_(model.GetMatrix(openCLInfo, "decoder_b_nl", true)),
+      U_(model.GetMatrix(openCLInfo, "decoder_U_nl")),
+      Wx_(model.GetMatrix(openCLInfo, "decoder_Wcx")),
+      Bx2_(model.GetMatrix(openCLInfo, "decoder_bx_nl", true)),
       Bx1_(openCLInfo.context, openCLInfo.device, Bx2_.dim(0), Bx2_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_Ux_nl"))
+      Ux_(model.GetMatrix(openCLInfo, "decoder_Ux_nl"))
     {}
 
     const mblas::Matrix W_;
@@ -121,11 +121,11 @@ struct Weights {
 
   struct DecAlignment {
     DecAlignment(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : V_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_U_att", true)),
-      W_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_W_comb_att")),
-      B_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_b_att", true)),
-      U_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_Wc_att")),
-      C_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "decoder_c_tt")) // scalar?
+    : V_(model.GetMatrix(openCLInfo, "decoder_U_att", true)),
+      W_(model.GetMatrix(openCLInfo, "decoder_W_comb_att")),
+      B_(model.GetMatrix(openCLInfo, "decoder_b_att", true)),
+      U_(model.GetMatrix(openCLInfo, "decoder_Wc_att")),
+      C_(model.GetMatrix(openCLInfo, "decoder_c_tt")) // scalar?
     {}
 
     const mblas::Matrix V_;
@@ -137,14 +137,14 @@ struct Weights {
 
   struct DecSoftmax {
     DecSoftmax(const OpenCLInfo &openCLInfo, const NpzConverter& model)
-    : W1_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_lstm_W")),
-      B1_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_lstm_b", true)),
-      W2_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_prev_W")),
-      B2_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_prev_b", true)),
-      W3_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_ctx_W")),
-      B3_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_ctx_b", true)),
-      W4_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_W")),
-      B4_(model.GetMatrix(openCLInfo.context, openCLInfo.device, "ff_logit_b", true))
+    : W1_(model.GetMatrix(openCLInfo, "ff_logit_lstm_W")),
+      B1_(model.GetMatrix(openCLInfo, "ff_logit_lstm_b", true)),
+      W2_(model.GetMatrix(openCLInfo, "ff_logit_prev_W")),
+      B2_(model.GetMatrix(openCLInfo, "ff_logit_prev_b", true)),
+      W3_(model.GetMatrix(openCLInfo, "ff_logit_ctx_W")),
+      B3_(model.GetMatrix(openCLInfo, "ff_logit_ctx_b", true)),
+      W4_(model.GetMatrix(openCLInfo, "ff_logit_W")),
+      B4_(model.GetMatrix(openCLInfo, "ff_logit_b", true))
     {}
 
     const mblas::Matrix W1_;

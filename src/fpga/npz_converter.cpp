@@ -13,8 +13,7 @@ NpzConverter::NpzConverter(const std::string& file)
 }
 
 mblas::Matrix NpzConverter::GetMatrix(
-    const cl_context &context,
-    const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
     const std::string& key,
     bool transpose
     ) const
@@ -24,7 +23,7 @@ mblas::Matrix NpzConverter::GetMatrix(
     const cnpy::NpyArray &array = it->second;
     NpyMatrixWrapper np(array);
 
-    mblas::Matrix matrix(context, device, np.size1(), np.size2(), np.data());
+    mblas::Matrix matrix(openCLInfo.context, openCLInfo.device, np.size1(), np.size2(), np.data());
 
     if (transpose) {
       // TODO
