@@ -24,8 +24,8 @@ float Sum(
   assert(output);
 
   // create kernel
-  cl_command_queue commands = CreateCommandQueue(openCLInfo.context, openCLInfo.device);
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", openCLInfo.context, openCLInfo.device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", openCLInfo);
 
   // Set the arguments to our compute kernel
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
@@ -58,20 +58,19 @@ float Sum(
 unsigned int SumSizet(
     const cl_mem &mem,
     uint size,
-    const cl_context &context,
-    const cl_device_id &device)
+    const OpenCLInfo &openCLInfo)
 {
   cl_int err;
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(size_t), NULL, &err);
+  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(size_t), NULL, &err);
   CheckError(err);
   assert(output);
 
   // create kernel
-  cl_command_queue commands = CreateCommandQueue(context, device);
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_size_t", context, device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_size_t", openCLInfo);
 
   // Set the arguments to our compute kernel
 
@@ -81,7 +80,7 @@ unsigned int SumSizet(
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
   global = 1024;
 
@@ -122,9 +121,9 @@ Matrix& CopyRows(
   // create kernel
   //cerr << endl;
   //cerr << "CopyRows1=" << endl;
-  cl_command_queue commands = CreateCommandQueue(openCLInfo.context, openCLInfo.device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo);
   //cerr << "CopyRows2=" << endl;
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", openCLInfo.context, openCLInfo.device);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", openCLInfo);
   //cerr << "CopyRows3=" << endl;
 
   // Set the arguments to our compute kernel
@@ -182,7 +181,7 @@ void Fill(
     Matrix& In,
     float value)
 {
-  cl_command_queue commands = CreateCommandQueue(openCLInfo.context, openCLInfo.device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo);
   CheckError( clEnqueueFillBuffer(commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
   CheckError( clFinish(commands) );
 }

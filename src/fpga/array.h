@@ -50,7 +50,7 @@ public:
     strm << size_ << " " << mem_;
 
     if (detailed) {
-      float sum = mblas::SumSizet(mem_, size_, openCLInfo_.context, openCLInfo_.device);
+      float sum = mblas::SumSizet(mem_, size_, openCLInfo_);
       strm << " sum=" << sum << std::flush;
     }
 

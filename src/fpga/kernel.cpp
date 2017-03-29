@@ -79,7 +79,7 @@ std::string LoadKernel(const std::string &filePath)
  return result;
 }
 
-cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const cl_context &context, const cl_device_id &device)
+cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const OpenCLInfo &openCLInfo)
 {
   #define MAX_SOURCE_SIZE (0x100000)
 
@@ -91,7 +91,7 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
   // Create the compute program from the source buffer
   string str = LoadKernel(filePath);
   const char *arr[1] = {str.c_str()};
-  program = clCreateProgramWithSource(context, 1, (const char **) arr, NULL, &err);
+  program = clCreateProgramWithSource(openCLInfo.context, 1, (const char **) arr, NULL, &err);
   CheckError(err);
   assert(program);
 
@@ -120,13 +120,13 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
   return kernel;
 }
 
-cl_command_queue CreateCommandQueue(const cl_context &context, const cl_device_id &device)
+cl_command_queue CreateCommandQueue(const OpenCLInfo &openCLInfo)
 {
   int err;                            // error code returned from api calls
   cl_command_queue commands;          // compute command queue
   // Create a command commands
   //
-  commands = clCreateCommandQueue(context, device, 0, &err);
+  commands = clCreateCommandQueue(openCLInfo.context, openCLInfo.device, 0, &err);
   CheckError(err);
   assert(commands);
 

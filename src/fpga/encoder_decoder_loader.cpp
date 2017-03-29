@@ -23,13 +23,13 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
   cerr << "EncoderDecoderLoader1:" << endl;
 
-  cl_command_queue commands = CreateCommandQueue(openCLInfo_.context, openCLInfo_.device);
-  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", openCLInfo_.context, openCLInfo_.device);
+  cl_command_queue commands = CreateCommandQueue(openCLInfo_);
+  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", openCLInfo_);
 
   cerr << "EncoderDecoderLoader2:" << endl;
-  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.device, commands, 1024);
+  HelloWorld(kernel, openCLInfo_, commands, 1024);
   cerr << "EncoderDecoderLoader3:" << endl;
-  HelloWorld(kernel, openCLInfo_.context, openCLInfo_.device, commands, 2048);
+  HelloWorld(kernel, openCLInfo_, commands, 2048);
   cerr << "EncoderDecoderLoader4:" << endl;
 
 
