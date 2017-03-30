@@ -73,7 +73,8 @@ __kernel void transpose(
     for (uint col = 0; col < cols; ++col) {
       float v = in[i];
       
-      uint outInd = row * cols + col;
+      //uint outInd = row * cols + col;
+      uint outInd = col * rows + row;
       out[outInd] = v;
       
       ++i;
