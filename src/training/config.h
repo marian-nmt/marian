@@ -1,3 +1,4 @@
+// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #pragma once
 
 #include <boost/program_options.hpp>
@@ -5,8 +6,13 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 #include "common/file_stream.h"
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 namespace marian {
+
+// try to determine the with of the terminal
+uint16_t guess_terminal_width(uint16_t max_width=120);
 
 class Config {
   public:
@@ -14,7 +20,7 @@ class Config {
     static size_t seed;
 
     Config(int argc, char** argv, bool validate=true, bool translate=false)
-     : cmdline_options_("Allowed options") {
+      : cmdline_options_("Allowed options", guess_terminal_width()) {
       addOptions(argc, argv, validate, translate);
       log();
     }

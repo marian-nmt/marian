@@ -1,3 +1,4 @@
+// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #include <set>
 #include <string>
 #include <boost/algorithm/string.hpp>
@@ -20,6 +21,14 @@ do { if(vm_.count(key) > 0) { \
 namespace po = boost::program_options;
 
 namespace marian {
+
+uint16_t guess_terminal_width(uint16_t max_width) {
+  struct winsize size;
+  ioctl(STDOUT_FILENO,TIOCGWINSZ, &size);
+  if (size.ws_col == 0) // couldn't determine terminal width
+    size.ws_col = po::options_description::m_default_line_length;
+  return max_width ? std::min(size.ws_col, max_width) : size.ws_col;
+}
 
 size_t Config::seed = (size_t) time(0);
 
@@ -132,7 +141,7 @@ void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
 }
 
 void Config::addOptionsCommon(po::options_description& desc) {
-  po::options_description general("General options");
+  po::options_description general("General options", guess_terminal_width());
   general.add_options()
     ("config,c", po::value<std::string>(),
      "Configuration file")
@@ -153,7 +162,7 @@ void Config::addOptionsCommon(po::options_description& desc) {
 }
 
 void Config::addOptionsModel(po::options_description& desc, bool translate=false) {
-  po::options_description model("Model options");
+  po::options_description model("Model options", guess_terminal_width());
   model.add_options()
     ("model,m", po::value<std::string>()->default_value("model.npz"),
       "Path prefix for model to be saved/resumed")
@@ -187,7 +196,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
 }
 
 void Config::addOptionsTraining(po::options_description& desc) {
-  po::options_description training("Training options");
+  po::options_description training("Training options", guess_terminal_width());
   training.add_options()
     ("overwrite", po::value<bool>()->zero_tokens()->default_value(false),
       "Overwrite model with following checkpoints")
@@ -235,7 +244,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
 }
 
 void Config::addOptionsValid(po::options_description& desc) {
-  po::options_description valid("Validation set options");
+  po::options_description valid("Validation set options", guess_terminal_width());
   valid.add_options()
     ("valid-sets", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to validation corpora: source target")
@@ -259,7 +268,7 @@ void Config::addOptionsValid(po::options_description& desc) {
 }
 
 void Config::addOptionsTranslate(po::options_description& desc) {
-  po::options_description translate("Translator options");
+  po::options_description translate("Translator options", guess_terminal_width());
   translate.add_options()
     ("inputs,i", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to input files")
