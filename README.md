@@ -29,3 +29,5 @@ cryptologist.
     make -j
 ## Acknowledgements
 The development of Marian received funding from the European Union's _Horizon 2020 Research and Innovation Programme_ under grant agreements 688139 ([SUMMA](http://www.summa-project.eu); 2016-2019) and 645487 ([Modern MT](http://www.modernmt.eu); 2015-2017) and the Amazon Academic Research Awards program. 
+
+This software contains source code provided by NVIDIA Corporation.
