@@ -82,4 +82,18 @@ __kernel void transpose(
   }
 }
 
+//////////////////////////////////////////////////////
+
+__kernel void prod(
+  __global float* C, 
+  __global const float* A, 
+  __global const float* B, 
+  const uint rowsA,
+  const uint colsA,
+  const uint rowsB,
+  const uint colsB)
+{
   
+  
+}
+

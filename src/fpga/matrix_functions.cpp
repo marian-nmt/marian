@@ -247,9 +247,48 @@ Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Mat
 {
   assert(!transA);
   assert(!transB);
+  assert(A.dim(1) == B.dim(0));
 
   C.Resize(A.dim(0), B.dim(1));
 
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "prod", openCLInfo);
+
+  // Set the arguments to our compute kernel
+  uint rowsA = A.dim(0);
+  uint colsA = A.dim(1);
+  uint rowsB = B.dim(0);
+  uint colsB = B.dim(1);
+
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &C.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &A.data()) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &B.data()) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rowsA) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &colsA) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &rowsB) );
+  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colsB) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  global = 1024;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
+
+
+  return C;
 }
 
 
