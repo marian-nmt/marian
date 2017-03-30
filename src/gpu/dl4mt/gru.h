@@ -92,6 +92,9 @@ class FastGRU {
 
       Matrix WxT;
       Transpose(WxT, w_.Wx_);
+      std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
+      std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
+
       Concat(WWx_, WxT);
       Transpose(WWx_);
 

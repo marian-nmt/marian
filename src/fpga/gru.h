@@ -20,6 +20,11 @@ public:
     std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
     std::cerr << "WWx_=" << WWx_.Debug(1) << std::endl;
 
+    Matrix WxT(openCLInfo);
+    Transpose(openCLInfo, WxT, w_.Wx_);
+    std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
+    std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
+
   }
 
   size_t GetStateLength() const {
