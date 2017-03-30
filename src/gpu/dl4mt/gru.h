@@ -87,8 +87,8 @@ class FastGRU {
 
       using namespace mblas;
       Transpose(WWx_, w_.W_);
-      std::cerr << "w_.W_=" << w_.W_.Debug(true) << std::endl;
-      std::cerr << "WWx_=" << WWx_.Debug(true) << std::endl;
+      std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
+      std::cerr << "WWx_=" << WWx_.Debug(1) << std::endl;
 
       Matrix WxT;
       Transpose(WxT, w_.Wx_);
@@ -107,13 +107,13 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      std::cerr << "1RUH_=" << RUH_.Debug(true) << std::endl;
-      std::cerr << "Context=" << Context.Debug(true) << std::endl;
-      std::cerr << "WWx_" << WWx_.Debug(true) << std::endl;
+      std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
+      std::cerr << "Context=" << Context.Debug(1) << std::endl;
+      std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
 
       Prod(RUH_, Context, WWx_);
 
-      std::cerr << "2RUH_=" << RUH_.Debug(true) << std::endl;
+      std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
       if (w_.Gamma_1_) {
         Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);

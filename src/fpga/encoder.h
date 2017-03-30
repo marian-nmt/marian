@@ -30,19 +30,19 @@ class Encoder {
       Array<uint> dKnownWords(openCLInfo, knownWords);
 
       /*
-      std::cerr << "dKnownWords=" << dKnownWords.Debug(true) << " std::vector=" << mblas::Sum(knownWords) << ": ";
+      std::cerr << "dKnownWords=" << dKnownWords.Debug(1) << " std::vector=" << mblas::Sum(knownWords) << ": ";
       for (size_t i = 0; i < knownWords.size(); ++i) {
         std::cerr << knownWords[i] << " ";
       }
       std::cerr << std::endl;
       */
 
-      //std::cerr << "Row1=" << Row.Debug(true) << std::endl;
+      //std::cerr << "Row1=" << Row.Debug(1) << std::endl;
       Row.Resize(words.size(), w_.E_.dim(1));
-      //std::cerr << "Row2=" << Row.Debug(true) << std::endl;
+      //std::cerr << "Row2=" << Row.Debug(1) << std::endl;
       mblas::Assemble(openCLInfo, Row, w_.E_, dKnownWords);
 
-      std::cerr << "Row3=" << Row.Debug(true) << std::endl;
+      std::cerr << "Row3=" << Row.Debug(1) << std::endl;
 
     }
 
@@ -81,8 +81,8 @@ class Encoder {
       InitializeState(batchSize);
 
       mblas::Matrix prevState(State_);
-      std::cerr << "State_=" << State_.Debug(true) << std::endl;
-      std::cerr << "prevState=" << prevState.Debug(true) << std::endl;
+      std::cerr << "State_=" << State_.Debug(1) << std::endl;
+      std::cerr << "prevState=" << prevState.Debug(1) << std::endl;
 
       size_t n = std::distance(it, end);
       size_t i = 0;

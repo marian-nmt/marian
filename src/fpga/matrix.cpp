@@ -82,13 +82,13 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
   //cerr << "mem_4=" << Debug() << endl;
 }
 
-std::string Matrix::Debug(bool detailed) const
+std::string Matrix::Debug(size_t detailed) const
 {
   std::stringstream strm;
   strm << BaseMatrix::Debug(detailed) << " " << mem_;
   //cerr << "Debug1=" << strm.str() << endl;
 
-  if (detailed) {
+  if (detailed == 1) {
     //cerr << "Debug2" << endl;
     float sum = Sum(mem_, size(), openCLInfo_);
     //cerr << "Debug3" << endl;

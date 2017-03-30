@@ -36,7 +36,7 @@ public:
   const cl_mem &data() const
   { return mem_; }
 
-  virtual std::string Debug(bool detailed = false) const;
+  virtual std::string Debug(size_t detailed = 0) const;
 
 protected:
   const OpenCLInfo &openCLInfo_;

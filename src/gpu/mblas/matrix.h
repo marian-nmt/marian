@@ -138,7 +138,7 @@ class TMatrix : public BaseMatrix {
       batches_ = 1;
     }
 
-    virtual std::string Debug(bool detailed = false) const
+    virtual std::string Debug(size_t detailed = 0) const
     {
       std::stringstream strm;
       strm << BaseMatrix::Debug(detailed) << " ";
@@ -146,7 +146,7 @@ class TMatrix : public BaseMatrix {
           << arrSize_ << " "
           << std::flush;
 
-      if (detailed) {
+      if (detailed == 1) {
         float sum = Sum(data(), size());
         strm << "size=" << size() << " sum=" << sum << std::flush;
       }

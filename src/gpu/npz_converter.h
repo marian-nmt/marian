@@ -65,7 +65,7 @@ class NpzConverter {
         mblas::copy(np.data(), np.size(), matrix.data(), cudaMemcpyHostToDevice);
       }
 
-      //std::cerr << "key=" << key << " " << matrix.Debug(true) << std::endl;
+      //std::cerr << "key=" << key << " " << matrix.Debug(1) << std::endl;
       return std::move(matrix);
     }
 
@@ -81,7 +81,7 @@ class NpzConverter {
         std::cerr << "Missing " << key << std::endl;
       }
       mblas::Transpose(matrix);
-      //std::cerr << "key=" << key << " " << matrix.Debug(true) << std::endl;
+      //std::cerr << "key=" << key << " " << matrix.Debug(1) << std::endl;
       return std::move(matrix);
     }
 

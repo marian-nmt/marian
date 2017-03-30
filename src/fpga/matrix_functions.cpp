@@ -125,8 +125,8 @@ Matrix& CopyRows(
   // Set the arguments to our compute kernel
   size_t cols = In.dim(1);
 
-  //cerr << "Out1=" << Out.Debug(true) << endl;
-  //cerr << "In=" << In.Debug(true) << endl;
+  //cerr << "Out1=" << Out.Debug(1) << endl;
+  //cerr << "In=" << In.Debug(1) << endl;
   //cerr << "cols=" << cols << endl;
   //cerr << "dev=" << indices.Debug(true) << endl;
   //cerr << "numPairs=" << numPairs << endl;

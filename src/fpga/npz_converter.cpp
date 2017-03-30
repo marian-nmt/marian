@@ -29,7 +29,7 @@ mblas::Matrix NpzConverter::GetMatrix(
       // TODO
     }
 
-    //cerr << "key=" << key << " " << matrix.Debug(true) << endl;
+    //cerr << "key=" << key << " " << matrix.Debug(1) << endl;
 
     return std::move(matrix);
   }
