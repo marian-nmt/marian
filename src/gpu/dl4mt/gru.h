@@ -87,8 +87,9 @@ class FastGRU {
 
       using namespace mblas;
       Transpose(WWx_, w_.W_);
+      std::cerr << std::endl;
       std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
-      std::cerr << "WWx_=" << WWx_.Debug(1) << std::endl;
+      std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
       Matrix WxT;
       Transpose(WxT, w_.Wx_);
@@ -96,13 +97,18 @@ class FastGRU {
       std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
 
       Concat(WWx_, WxT);
+      std::cerr << "2WWx_=" << WWx_.Debug(1) << std::endl;
+
       Transpose(WWx_);
+      std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
       Transpose(UUx_, w_.U_);
       Matrix UxT;
       Transpose(UxT, w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
+
+      std::cerr << std::endl;
     }
 
     void GetNextState(mblas::Matrix& NextState,

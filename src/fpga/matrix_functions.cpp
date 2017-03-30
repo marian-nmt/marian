@@ -224,6 +224,11 @@ Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
   return Out;
 }
 
+Matrix& Concat(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
+{
+
+}
+
 
 Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB)
