@@ -105,6 +105,16 @@ std::string Matrix::Debug(size_t detailed) const
   return strm.str();
 }
 
+void Matrix::Swap(Matrix &other)
+{
+  assert(&openCLInfo_ == &other.openCLInfo_);
+  std::swap(mem_, other.mem_);
+  std::swap(rows_, other.rows_);
+  std::swap(cols_, other.cols_);
+  std::swap(arrSize_, other.arrSize_);
+
+}
+
 }
 }
 }

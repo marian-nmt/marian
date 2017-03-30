@@ -38,6 +38,8 @@ public:
 
   virtual std::string Debug(size_t detailed = 0) const;
 
+  void Swap(Matrix &other);
+
 protected:
   const OpenCLInfo &openCLInfo_;
   cl_mem mem_;

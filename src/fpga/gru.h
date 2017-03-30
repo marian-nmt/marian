@@ -29,6 +29,9 @@ public:
     Concat(openCLInfo, WWx_, WxT);
     std::cerr << "2WWx_=" << WWx_.Debug(1) << std::endl;
 
+    Transpose(openCLInfo, WWx_);
+    std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
+
     std::cerr << std::endl;
   }
 

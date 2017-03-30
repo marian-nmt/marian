@@ -181,11 +181,6 @@ void Fill(
   CheckError( clFinish(openCLInfo.commands) );
 }
 
-void TransposeInternal(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
-{
-
-}
-
 Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
 {
   Out.Resize(In.dim(1), In.dim(0));
@@ -221,6 +216,14 @@ Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
   //
   CheckError( clFinish(openCLInfo.commands) );
 
+  return Out;
+}
+
+Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out)
+{
+  Matrix Temp(openCLInfo);
+  Transpose(openCLInfo, Temp, Out);
+  Out.Swap(Temp);
   return Out;
 }
 
