@@ -42,8 +42,8 @@ protected:
   const OpenCLInfo &openCLInfo_;
   cl_mem mem_;
   size_t rows_, cols_;
+  size_t arrSize_;
 
-  void Cleanup();
 };
 
 

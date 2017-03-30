@@ -15,6 +15,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 :openCLInfo_(openCLInfo)
 ,rows_(0)
 ,cols_(0)
+,arrSize_(0)
 ,mem_(nullptr)
 {
   /*
@@ -31,6 +32,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 :openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
+,arrSize_(size())
 {
   cl_int err;
   mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
@@ -42,6 +44,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *va
 :openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
+,arrSize_(size())
 {
   cl_int err;
   mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
@@ -57,29 +60,29 @@ Matrix::Matrix(const Matrix &other)
 
 Matrix::~Matrix()
 {
-  Cleanup();
-}
-
-void Matrix::Cleanup()
-{
-  if (size()) {
-    //CheckError( clReleaseMemObject(mem_) );
-    //cerr << "Cleanup=" << this << " " << mem_ << endl;
-  }
 }
 
 void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 {
-  //cerr << "resize" << endl;
-  Cleanup();
+  cl_int err;
+  size_t newSize = cols * rows * beam * batches;
+  if (newSize > arrSize_) {
+    cl_mem newMem = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * newSize, NULL, &err);
+    CheckError(err);
+
+    size_t oldSize = size();
+    assert(newSize > oldSize);
+
+    if (oldSize) {
+      CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, mem_, newMem, 0, 0, sizeof(float) * oldSize, 0, NULL, NULL) );
+    }
+
+    mem_ = newMem;
+    arrSize_ = newSize;
+  }
 
   rows_ = rows;
   cols_ = cols;
-
-  cl_int err;
-  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
-  CheckError(err);
-  //cerr << "mem_4=" << Debug() << endl;
 }
 
 std::string Matrix::Debug(size_t detailed) const

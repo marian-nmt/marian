@@ -226,6 +226,8 @@ Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
 
 Matrix& Concat(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
 {
+  size_t oldSize = Out.size();
+  Out.Resize(Out.dim(0) + In.dim(0), Out.dim(1));
 
 }
 

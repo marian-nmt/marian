@@ -17,8 +17,9 @@ public:
     using namespace mblas;
 
     Transpose(openCLInfo, WWx_, w_.W_);
+    std::cerr << std::endl;
     std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
-    std::cerr << "WWx_=" << WWx_.Debug(1) << std::endl;
+    std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
     Matrix WxT(openCLInfo);
     Transpose(openCLInfo, WxT, w_.Wx_);
@@ -26,7 +27,9 @@ public:
     std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
 
     Concat(openCLInfo, WWx_, WxT);
+    std::cerr << "2WWx_=" << WWx_.Debug(1) << std::endl;
 
+    std::cerr << std::endl;
   }
 
   size_t GetStateLength() const {
