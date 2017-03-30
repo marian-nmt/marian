@@ -14,6 +14,11 @@ public:
   , RUH_(openCLInfo)
   , Temp_(openCLInfo)
   {
+    using namespace mblas;
+
+    Transpose(openCLInfo, WWx_, w_.W_);
+    std::cerr << "w_.W_=" << w_.W_.Debug(true) << std::endl;
+    std::cerr << "WWx_=" << WWx_.Debug(true) << std::endl;
 
   }
 

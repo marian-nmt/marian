@@ -62,3 +62,23 @@ __kernel void gCopyRows(
   
 //////////////////////////////////////////////////////
   
+__kernel void transpose(
+  __global float* out, 
+  __global const float* in, 
+  const uint rows,
+  const uint cols)
+{
+  uint i = 0;
+  for (uint row = 0; row < rows; ++row) {
+    for (uint col = 0; col < cols; ++col) {
+      float v = in[i];
+      
+      uint outInd = row * cols + col;
+      out[outInd] = v;
+      
+      ++i;
+    }
+  }
+}
+
+  

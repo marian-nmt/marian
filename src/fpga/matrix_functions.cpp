@@ -181,6 +181,57 @@ void Fill(
   CheckError( clFinish(openCLInfo.commands) );
 }
 
+void TransposeInternal(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
+{
+
+}
+
+Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
+{
+  cerr << "Transpose1" << endl;
+  Out.Resize(In.dim(1), In.dim(0));
+  cerr << "Transpose2" << endl;
+
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "transpose", openCLInfo);
+  cerr << "Transpose3" << endl;
+
+  // Set the arguments to our compute kernel
+  uint rows = In.dim(0);
+  uint cols = In.dim(1);
+
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+
+  cerr << "Transpose4" << endl;
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+  cerr << "Transpose5" << endl;
+
+  global = 1024;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+  cerr << "Transpose6" << endl;
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
+  cerr << "Transpose7" << endl;
+
+  return Out;
+}
+
+
 Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB)
 {

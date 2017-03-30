@@ -87,6 +87,9 @@ class FastGRU {
 
       using namespace mblas;
       Transpose(WWx_, w_.W_);
+      std::cerr << "w_.W_=" << w_.W_.Debug(true) << std::endl;
+      std::cerr << "WWx_=" << WWx_.Debug(true) << std::endl;
+
       Matrix WxT;
       Transpose(WxT, w_.Wx_);
       Concat(WWx_, WxT);
