@@ -226,9 +226,16 @@ Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
 
 Matrix& Concat(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
 {
-  size_t oldSize = Out.size();
+  size_t oldOutSize = Out.size();
   Out.Resize(Out.dim(0) + In.dim(0), Out.dim(1));
 
+  size_t inSize = In.size();
+  //cerr << "Concat=" << inSize << " " << oldOutSize << " " << Out.size() << endl;
+
+  CheckError( clEnqueueCopyBuffer(openCLInfo.commands, In.data(), Out.data(), 0, sizeof(float) * oldOutSize, sizeof(float) * inSize, 0, NULL, NULL) );
+  //CheckError( clFinish(openCLInfo.commands) );
+
+  return Out;
 }
 
 

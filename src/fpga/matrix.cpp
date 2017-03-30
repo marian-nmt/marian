@@ -67,6 +67,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
   cl_int err;
   size_t newSize = cols * rows * beam * batches;
   if (newSize > arrSize_) {
+    //cerr << "resize: clCreateBuffer " << newSize << endl;
     cl_mem newMem = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * newSize, NULL, &err);
     CheckError(err);
 
@@ -74,6 +75,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
     assert(newSize > oldSize);
 
     if (oldSize) {
+      //cerr << "resize: clEnqueueCopyBuffer " << oldSize << endl;
       CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, mem_, newMem, 0, 0, sizeof(float) * oldSize, 0, NULL, NULL) );
     }
 
