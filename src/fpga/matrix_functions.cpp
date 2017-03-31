@@ -100,11 +100,12 @@ unsigned int SumSizet(
 }
 
 Matrix& CopyRows(
-  const OpenCLInfo &openCLInfo,
 	Matrix& Out,
 	const Matrix& In,
 	const Array<uint>& indices)
 {
+  const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
+
   const cl_mem &dev = indices.data();
   size_t numPairs = indices.size();
 
@@ -160,29 +161,32 @@ Matrix& CopyRows(
 }
 
 Matrix& Assemble(
-    const OpenCLInfo &openCLInfo,
 		Matrix& Out,
 		 const Matrix& In,
 		 const Array<uint>& indices)
 {
   //cerr << "indices=" << indices.Debug(true) << endl;
+  const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   Out.Resize(indices.size(), In.dim(1));
-  CopyRows(openCLInfo, Out, In, indices);
+  CopyRows(Out, In, indices);
   return Out;
 }
 
 void Fill(
-    const OpenCLInfo &openCLInfo,
     Matrix& In,
     float value)
 {
+  const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
+
   CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
   CheckError( clFinish(openCLInfo.commands) );
 }
 
-Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
+Matrix& Transpose(Matrix& Out, const Matrix& In)
 {
+  const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
+
   Out.Resize(In.dim(1), In.dim(0));
 
   cl_int err;
@@ -219,16 +223,19 @@ Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
   return Out;
 }
 
-Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out)
+Matrix& Transpose(Matrix& Out)
 {
+  const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
   Matrix Temp(openCLInfo);
-  Transpose(openCLInfo, Temp, Out);
+  Transpose(Temp, Out);
   Out.Swap(Temp);
   return Out;
 }
 
-Matrix& Concat(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
+Matrix& Concat(Matrix& Out, const Matrix& In)
 {
+  const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
+
   size_t oldOutSize = Out.size();
   Out.Resize(Out.dim(0) + In.dim(0), Out.dim(1));
 
@@ -242,9 +249,11 @@ Matrix& Concat(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In)
 }
 
 
-Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB)
 {
+  const OpenCLInfo &openCLInfo = A.GetOpenCLInfo();
+
   assert(!transA);
   assert(!transB);
   assert(A.dim(1) == B.dim(0));

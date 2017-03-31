@@ -31,6 +31,9 @@ public:
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
 
+  const OpenCLInfo &GetOpenCLInfo() const
+  { return openCLInfo_; }
+
   cl_mem &data()
   { return mem_; }
 

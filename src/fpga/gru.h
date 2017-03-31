@@ -16,20 +16,20 @@ public:
   {
     using namespace mblas;
 
-    Transpose(openCLInfo, WWx_, w_.W_);
+    Transpose(WWx_, w_.W_);
     std::cerr << std::endl;
     std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
     std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
     Matrix WxT(openCLInfo);
-    Transpose(openCLInfo, WxT, w_.Wx_);
+    Transpose(WxT, w_.Wx_);
     std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
     std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
 
-    Concat(openCLInfo, WWx_, WxT);
+    Concat(WWx_, WxT);
     std::cerr << "2WWx_=" << WWx_.Debug(1) << std::endl;
 
-    Transpose(openCLInfo, WWx_);
+    Transpose(WWx_);
     std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
   }
@@ -49,7 +49,7 @@ public:
     std::cerr << "Context=" << Context.Debug(1) << std::endl;
     std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
 
-    Prod(openCLInfo_, RUH_, Context, WWx_);
+    Prod(RUH_, Context, WWx_);
 
     std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
@@ -60,7 +60,7 @@ public:
     std::cerr << "State=" << State.Debug(1) << std::endl;
     std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
 
-    Prod(openCLInfo_, Temp_, State, UUx_);
+    Prod(Temp_, State, UUx_);
     std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
 
   }

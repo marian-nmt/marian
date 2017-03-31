@@ -35,29 +35,26 @@ unsigned int SumSizet(
     const OpenCLInfo &openCLInfo);
 
 Matrix& CopyRows(
-    const OpenCLInfo &openCLInfo,
 		 Matrix& Out,
 		 const Matrix& In,
 		 const Array<uint>& indices);
 
 Matrix& Assemble(
-    const OpenCLInfo &openCLInfo,
 		Matrix& Out,
 		 const Matrix& In,
 		 const Array<uint>& indices);
 
 void Fill(
-    const OpenCLInfo &openCLInfo,
     Matrix& In,
     float value=0.0f);
 
-Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In);
+Matrix& Transpose(Matrix& Out, const Matrix& In);
 
-Matrix& Transpose(const OpenCLInfo &openCLInfo, Matrix& Out);
+Matrix& Transpose(Matrix& Out);
 
-Matrix& Concat(const OpenCLInfo &openCLInfo, Matrix& Out, const Matrix& In);
+Matrix& Concat(Matrix& Out, const Matrix& In);
 
-Matrix& Prod(const OpenCLInfo &openCLInfo, Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 inline void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)

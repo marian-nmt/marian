@@ -40,7 +40,7 @@ class Encoder {
       //std::cerr << "Row1=" << Row.Debug(1) << std::endl;
       Row.Resize(words.size(), w_.E_.dim(1));
       //std::cerr << "Row2=" << Row.Debug(1) << std::endl;
-      mblas::Assemble(openCLInfo, Row, w_.E_, dKnownWords);
+      mblas::Assemble(Row, w_.E_, dKnownWords);
 
       std::cerr << "Row3=" << Row.Debug(1) << std::endl;
 
@@ -66,7 +66,7 @@ class Encoder {
 
     void InitializeState(size_t batchSize = 1) {
       State_.Resize(batchSize, gru_.GetStateLength());
-      mblas::Fill(openCLInfo_, State_, 0.0f);
+      mblas::Fill(State_, 0.0f);
     }
 
     void GetNextState(mblas::Matrix& NextState,
