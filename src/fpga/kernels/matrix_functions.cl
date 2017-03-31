@@ -93,7 +93,19 @@ __kernel void prod(
   const uint rowsB,
   const uint colsB)
 {
-  
+  for (uint rowA = 0; rowA < rowsA; ++rowA) {
+    for (uint colB = 0; colB < colsB; ++colB) {
+      float sum = 0;
+      
+      for (uint colA = 0; colA < colsA; ++colA) {
+        float valA = A[rowA * colsA + colA];
+        float valB = B[colA * colsB + colB];
+        sum += valA * valB;
+      }
+      
+      C[rowA * colsB + colB] = sum; 
+    }
+  }
   
 }
 

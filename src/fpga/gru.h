@@ -32,7 +32,6 @@ public:
     Transpose(openCLInfo, WWx_);
     std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
-    std::cerr << std::endl;
   }
 
   size_t GetStateLength() const {
@@ -45,6 +44,7 @@ public:
   {
     using namespace mblas;
 
+    std::cerr << std::endl;
     std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
     std::cerr << "Context=" << Context.Debug(1) << std::endl;
     std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
