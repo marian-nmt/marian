@@ -28,7 +28,9 @@ struct Weights {
       Wx_(model.GetMatrix(openCLInfo, "encoder_Wx")),
       Bx1_(model.GetMatrix(openCLInfo, "encoder_bx", true)),
       Bx2_(openCLInfo, Bx1_.dim(0), Bx1_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo, "encoder_Ux"))
+      Ux_(model.GetMatrix(openCLInfo, "encoder_Ux")),
+      Gamma_1_(model.GetMatrix(openCLInfo, "encoder_gamma1")),
+      Gamma_2_(model.GetMatrix(openCLInfo, "encoder_gamma2"))
     { }
 
     const mblas::Matrix W_;
@@ -38,6 +40,8 @@ struct Weights {
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Ux_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct EncBackwardGRU {
@@ -48,7 +52,9 @@ struct Weights {
       Wx_(model.GetMatrix(openCLInfo, "encoder_r_Wx")),
       Bx1_(model.GetMatrix(openCLInfo, "encoder_r_bx", true)),
       Bx2_(openCLInfo, Bx1_.dim(0), Bx1_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo, "encoder_r_Ux"))
+      Ux_(model.GetMatrix(openCLInfo, "encoder_r_Ux")),
+      Gamma_1_(model.GetMatrix(openCLInfo, "encoder_r_gamma1")),
+      Gamma_2_(model.GetMatrix(openCLInfo, "encoder_r_gamma2"))
     {}
 
     const mblas::Matrix W_;
@@ -58,6 +64,8 @@ struct Weights {
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Ux_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -72,11 +80,13 @@ struct Weights {
   struct DecInit {
     DecInit(const OpenCLInfo &openCLInfo, const NpzConverter& model)
     : Wi_(model.GetMatrix(openCLInfo, "ff_state_W")),
-      Bi_(model.GetMatrix(openCLInfo, "ff_state_b", true))
+      Bi_(model.GetMatrix(openCLInfo, "ff_state_b", true)),
+      Gamma_(model.GetMatrix(openCLInfo, "ff_state_gamma"))
     {}
 
     const mblas::Matrix Wi_;
     const mblas::Matrix Bi_;
+    const mblas::Matrix Gamma_;
   };
 
   struct DecGRU1 {
@@ -87,7 +97,9 @@ struct Weights {
       Wx_(model.GetMatrix(openCLInfo, "decoder_Wx")),
       Bx1_(model.GetMatrix(openCLInfo, "decoder_bx", true)),
       Bx2_(openCLInfo, Bx1_.dim(0), Bx1_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo, "decoder_Ux"))
+      Ux_(model.GetMatrix(openCLInfo, "decoder_Ux")),
+      Gamma_1_(model.GetMatrix(openCLInfo, "decoder_cell1_gamma1")),
+      Gamma_2_(model.GetMatrix(openCLInfo, "decoder_cell1_gamma2"))
     {}
 
     const mblas::Matrix W_;
@@ -97,6 +109,8 @@ struct Weights {
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Ux_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecGRU2 {
@@ -107,7 +121,9 @@ struct Weights {
       Wx_(model.GetMatrix(openCLInfo, "decoder_Wcx")),
       Bx2_(model.GetMatrix(openCLInfo, "decoder_bx_nl", true)),
       Bx1_(openCLInfo, Bx2_.dim(0), Bx2_.dim(1), true),
-      Ux_(model.GetMatrix(openCLInfo, "decoder_Ux_nl"))
+      Ux_(model.GetMatrix(openCLInfo, "decoder_Ux_nl")),
+      Gamma_1_(model.GetMatrix(openCLInfo, "decoder_cell2_gamma1")),
+      Gamma_2_(model.GetMatrix(openCLInfo, "decoder_cell2_gamma2"))
     {}
 
     const mblas::Matrix W_;
@@ -117,6 +133,8 @@ struct Weights {
     const mblas::Matrix Bx2_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Ux_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecAlignment {
@@ -125,7 +143,9 @@ struct Weights {
       W_(model.GetMatrix(openCLInfo, "decoder_W_comb_att")),
       B_(model.GetMatrix(openCLInfo, "decoder_b_att", true)),
       U_(model.GetMatrix(openCLInfo, "decoder_Wc_att")),
-      C_(model.GetMatrix(openCLInfo, "decoder_c_tt")) // scalar?
+      C_(model.GetMatrix(openCLInfo, "decoder_c_tt")), // scalar?
+      Gamma_1_(model.GetMatrix(openCLInfo, "decoder_att_gamma1")),
+      Gamma_2_(model.GetMatrix(openCLInfo, "decoder_att_gamma2"))
     {}
 
     const mblas::Matrix V_;
@@ -133,6 +153,8 @@ struct Weights {
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix C_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecSoftmax {
@@ -144,7 +166,10 @@ struct Weights {
       W3_(model.GetMatrix(openCLInfo, "ff_logit_ctx_W")),
       B3_(model.GetMatrix(openCLInfo, "ff_logit_ctx_b", true)),
       W4_(model.GetMatrix(openCLInfo, "ff_logit_W")),
-      B4_(model.GetMatrix(openCLInfo, "ff_logit_b", true))
+      B4_(model.GetMatrix(openCLInfo, "ff_logit_b", true)),
+      Gamma_0_(model.GetMatrix(openCLInfo, "ff_logit_l1_gamma0")),
+      Gamma_1_(model.GetMatrix(openCLInfo, "ff_logit_l1_gamma1")),
+      Gamma_2_(model.GetMatrix(openCLInfo, "ff_logit_l1_gamma2"))
     {}
 
     const mblas::Matrix W1_;
@@ -155,6 +180,9 @@ struct Weights {
     const mblas::Matrix B3_;
     const mblas::Matrix W4_;
     const mblas::Matrix B4_;
+    const mblas::Matrix Gamma_0_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////

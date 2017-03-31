@@ -53,9 +53,9 @@ public:
 
     std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
-    //if (w_.Gamma_1_) {
+    if (w_.Gamma_1_) {
       //Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);
-    //}
+    }
 
 
   }
