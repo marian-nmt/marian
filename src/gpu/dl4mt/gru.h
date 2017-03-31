@@ -116,6 +116,7 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
+      std::cerr << std::endl;
       std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
       std::cerr << "Context=" << Context.Debug(1) << std::endl;
       std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
@@ -129,6 +130,10 @@ class FastGRU {
       }
 
       Prod(Temp_, State, UUx_);
+      std::cerr << "State=" << State.Debug(1) << std::endl;
+      std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
+      std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
+
       if (w_.Gamma_2_) {
         Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
       }
