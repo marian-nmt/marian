@@ -182,11 +182,6 @@ class TMatrix : public BaseMatrix {
       std::swap(data_, other.data_);
     }
 
-
-    operator bool() const {
-      return (int)size() != 0;
-    }
-
   private:
     size_t rows_;
     size_t cols_;
