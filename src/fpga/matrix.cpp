@@ -65,7 +65,6 @@ Matrix::Matrix(Matrix &&other)
 ,cols_(other.cols_)
 ,arrSize_(other.arrSize_)
 {
-  cerr << "Matrix move constructor=" << endl;
   other.mem_ = nullptr;
   other.rows_ = 0;
   other.cols_ = 0;
