@@ -18,24 +18,24 @@ mblas::Matrix NpzConverter::GetMatrix(
     bool transpose
     ) const
 {
+  mblas::Matrix matrix(openCLInfo);
+  //cerr << "key1=" << key << " " << matrix.Debug(1) << endl;
+
   cnpy::npz_t::const_iterator it = model_.find(key);
   if(it != model_.end()) {
     const cnpy::NpyArray &array = it->second;
     NpyMatrixWrapper np(array);
 
-    mblas::Matrix matrix(openCLInfo, np.size1(), np.size2(), np.data());
+    matrix.Resize(np.size1(), np.size2());
+    matrix.Set(np.data());
 
     if (transpose) {
       // TODO
     }
-
-    //cerr << "key=" << key << " " << matrix.Debug(1) << endl;
-
-    return std::move(matrix);
   }
-  else {
-    amunmt_UTIL_THROW2("Missing " << key);
-  }
+  //cerr << "key2=" << key << " " << matrix.Debug(1) << endl;
+
+  return std::move(matrix);
 }
 
 

@@ -13,6 +13,7 @@ public:
   Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val);
 
   Matrix(const Matrix &other);
+  Matrix(Matrix &&other);
 
   virtual ~Matrix();
 
@@ -39,6 +40,8 @@ public:
   virtual std::string Debug(size_t detailed = 0) const;
 
   void Swap(Matrix &other);
+
+  void Set(const float *data);
 
 protected:
   const OpenCLInfo &openCLInfo_;

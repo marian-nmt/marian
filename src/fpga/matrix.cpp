@@ -58,6 +58,21 @@ Matrix::Matrix(const Matrix &other)
   CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
 
+Matrix::Matrix(Matrix &&other)
+:openCLInfo_(other.openCLInfo_)
+,mem_(other.mem_)
+,rows_(other.rows_)
+,cols_(other.cols_)
+,arrSize_(other.arrSize_)
+{
+  cerr << "Matrix move constructor=" << endl;
+  other.mem_ = nullptr;
+  other.rows_ = 0;
+  other.cols_ = 0;
+  other.arrSize_ = 0;
+}
+
+
 Matrix::~Matrix()
 {
 }
@@ -112,7 +127,13 @@ void Matrix::Swap(Matrix &other)
   std::swap(rows_, other.rows_);
   std::swap(cols_, other.cols_);
   std::swap(arrSize_, other.arrSize_);
+}
 
+void Matrix::Set(const float *data)
+{
+  //cerr << "Set1=" << size() << endl;
+  CheckError( clEnqueueWriteBuffer(openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
+  //cerr << "Set2=" << size() << endl;
 }
 
 }
