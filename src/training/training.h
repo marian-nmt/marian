@@ -9,12 +9,14 @@ namespace marian {
 
 class Reporter {
   public:
+    YAML::Node progress;
+
     Ptr<Config> options_;
     std::vector<Ptr<Validator>> validators_;
 
     float costSum{0};
-    size_t epochs{1};
 
+    size_t epochs{1};
     size_t samples{0};
     size_t wordsDisp{0};
     size_t batches{0};
@@ -100,6 +102,25 @@ class Reporter {
         wordsDisp = 0;
       }
     }
+
+    void load(const std::string& name) {
+      std::string nameYaml = name + ".yml";
+      if(boost::filesystem::exists(nameYaml)) {
+        YAML::Node config = YAML::LoadFile(nameYaml);
+        epochs  = config["progress"]["epochs"].as<size_t>();
+        batches = config["progress"]["batches"].as<size_t>();
+      }
+    }
+
+    void save(const std::string& name) {
+      YAML::Node config = options_->get();
+      config["progress"]["epochs"] = epochs;
+      config["progress"]["batches"] = batches;
+
+      std::string nameYaml = name + ".yml";
+      std::ofstream fout(nameYaml);
+      fout << config;
+    }
 };
 
 template <class Model>
@@ -108,18 +129,18 @@ void Train(Ptr<Config> options) {
   using namespace keywords;
 
   auto trainCorpus = New<Corpus>(options);
-  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus,
-                                                    options);
+  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options);
   auto reporter = New<Reporter>(options);
 
-  if(options->has("valid-sets") && options->get<size_t>("valid-freq") > 0) {
-    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
-                                                                  options))
+  if((options->has("valid-sets") || options->has("valid-script-path"))
+     && options->get<size_t>("valid-freq") > 0) {
+    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options))
       reporter->addValidator(validator);
   }
 
   auto model = New<Model>(options);
   model->setReporter(reporter);
+  model->load();
 
   while(reporter->keepGoing()) {
     batchGenerator->prepare(!options->get<bool>("no-shuffle"));

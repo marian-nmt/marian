@@ -6,7 +6,7 @@ To get a feel for how it can be used, see the [Tutorial](https://github.com/jbed
 
 # Problems? #
 
-If you find a bug, post an [issue](https://github.com/jbeder/yaml-cpp/issues)! If you have questions about how to use yaml-cpp, please post it on http://stackoverflow.com and tag it `yaml-cpp`.
+If you find a bug, post an [issue](https://github.com/jbeder/yaml-cpp/issues)! If you have questions about how to use yaml-cpp, please post it on http://stackoverflow.com and tag it [`yaml-cpp`](http://stackoverflow.com/questions/tagged/yaml-cpp).
 
 # How to Build #
 
@@ -30,7 +30,7 @@ cmake [-G generator] [-DBUILD_SHARED_LIBS=ON|OFF] ..
 ```
 
   * The `generator` is whatever type of build system you'd like to use. To see a full list of generators on your platform, just run `cmake` (with no arguments). For example:
-    * On Windows, you might use "Visual Studio 12 2013" to generate a Visual Studio 2013 solution
+    * On Windows, you might use "Visual Studio 12 2013" to generate a Visual Studio 2013 solution or "Visual Studio 14 2015 Win64" to generate a 64-bit Visual Studio 2015 solution.
     * On OS X, you might use "Xcode" to generate an Xcode project
     * On a UNIX-y system, simply omit the option to generate a makefile
 

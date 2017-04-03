@@ -38,12 +38,6 @@ class CorpusBatch {
             std::cerr << w << " ";
           }
           std::cerr << std::endl;
-
-          //std::cerr << "\t m: ";
-          //for(auto w : b.second) {
-            //std::cerr << w << " ";
-          //}
-          //std::cerr << std::endl;
         }
       }
     }
@@ -99,7 +93,7 @@ class Corpus {
     std::vector<UPtr<InputFileStream>> files_;
     std::vector<Ptr<Vocab>> vocabs_;
     size_t maxLength_;
-    
+
     std::random_device rd_;
     std::mt19937 g_;
 
@@ -112,7 +106,7 @@ class Corpus {
     typedef CorpusIterator iterator;
     typedef SentenceTuple sample;
 
-    Corpus(Ptr<Config> options);
+    Corpus(Ptr<Config> options, bool translate=false);
 
     Corpus(std::vector<std::string> paths,
            std::vector<Ptr<Vocab>> vocabs,
@@ -167,9 +161,6 @@ class Corpus {
           }
         }
       }
-
-      //words -= batchSize; // subtract end of sentence token
-
       return batch_ptr(new batch_type(langs, words));
     }
 };

@@ -1,6 +1,7 @@
 
 #include <sstream>
 #include <algorithm>
+#include <unordered_map>
 
 #include "data/vocab.h"
 #include "common/utils.h"
@@ -9,15 +10,14 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 
-Vocab::Vocab() {
-}
+Vocab::Vocab() {}
 
 size_t Vocab::operator[](const std::string& word) const {
-    auto it = str2id_.find(word);
-    if(it != str2id_.end())
-        return it->second;
-    else
-        return UNK_ID;
+  auto it = str2id_.find(word);
+  if(it != str2id_.end())
+    return it->second;
+  else
+    return UNK_ID;
 }
 
 Words Vocab::operator()(const std::vector<std::string>& lineTokens, bool addEOS) const {
@@ -55,19 +55,27 @@ size_t Vocab::size() const {
   return id2str_.size();
 }
 
-void Vocab::loadOrCreate(const std::string& trainPath, int max)
+void Vocab::loadOrCreate(const std::string& vocabPath,
+                         const std::string& trainPath,
+                         int max)
 {
-  if(boost::filesystem::exists(trainPath + ".json")) {
-    load(trainPath + ".json", max);
-    return;
-  }
-  if(boost::filesystem::exists(trainPath + ".yml")) {
+  if(vocabPath.empty()) {
+    if(boost::filesystem::exists(trainPath + ".json")) {
+      load(trainPath + ".json", max);
+      return;
+    }
+    if(boost::filesystem::exists(trainPath + ".yml")) {
+      load(trainPath + ".yml", max);
+      return;
+    }
+    create(trainPath + ".yml", max, trainPath);
     load(trainPath + ".yml", max);
-    return;
   }
-
-  create(trainPath + ".yml", max, trainPath);
-  load(trainPath + ".yml", max);
+  else {
+    if(!boost::filesystem::exists(vocabPath))
+      create(vocabPath, max, trainPath);
+    load(vocabPath, max);
+  }
 }
 
 void Vocab::load(const std::string& vocabPath, int max)
@@ -77,7 +85,7 @@ void Vocab::load(const std::string& vocabPath, int max)
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();
     auto id = pair.second.as<Word>();
-    if (id < (Word)max) {
+    if(!max || id < (Word)max) {
       str2id_[str] = id;
       if(id >= id2str_.size())
         id2str_.resize(id + 1);
@@ -90,12 +98,17 @@ void Vocab::load(const std::string& vocabPath, int max)
   id2str_[UNK_ID] = UNK_STR;
 }
 
-class Vocab::VocabFreqOrderer
-{
-public:
-  bool operator()(const Vocab::Str2Id::value_type* a, const Vocab::Str2Id::value_type* b) const {
-    return a->second < b->second;
-  }
+class Vocab::VocabFreqOrderer {
+  private:
+    std::unordered_map<std::string, size_t>& counter_;
+
+  public:
+    VocabFreqOrderer(std::unordered_map<std::string, size_t>& counter)
+    : counter_(counter) {}
+
+    bool operator()(const std::string& a, const std::string& b) const {
+      return counter_[a] > counter_[b];
+    }
 };
 
 void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath)
@@ -107,36 +120,33 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
 
   InputFileStream trainStrm(trainPath);
 
-  Str2Id vocab;
   std::string line;
+  std::unordered_map<std::string, size_t> counter;
+
   while (getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
     Split(line, toks);
 
     for (const std::string &tok: toks) {
-      Str2Id::iterator iter = vocab.find(tok);
-      if (iter == vocab.end())
-        vocab[tok] = 1;
+      auto iter = counter.find(tok);
+      if (iter == counter.end())
+        counter[tok] = 1;
       else
         iter->second++;
     }
   }
 
-  // put into vector & sort
-  std::vector<const Str2Id::value_type*> vocabVec;
-  vocabVec.reserve(max);
+  std::vector<std::string> vocabVec;
+  for(auto& p: counter)
+    vocabVec.push_back(p.first);
 
-  for (const Str2Id::value_type &p: vocab)
-    vocabVec.push_back(&p);
-  std::sort(vocabVec.rbegin(), vocabVec.rend(), VocabFreqOrderer());
+  std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
 
   YAML::Node vocabYaml;
-  vocabYaml[EOS_STR] = EOS_ID;
-  vocabYaml[UNK_STR] = UNK_ID;
-  for(size_t i = 0; i < vocabVec.size(); ++i) {
-    const Str2Id::value_type *p = vocabVec[i];
-    vocabYaml[p->first] = i + 2;
-  }
+  vocabYaml.force_insert(EOS_STR, EOS_ID);
+  vocabYaml.force_insert(UNK_STR, UNK_ID);
+  for(size_t i = 0; i < vocabVec.size(); ++i)
+    vocabYaml.force_insert(vocabVec[i], i + 2);
 
   OutputFileStream vocabStrm(vocabPath);
   (std::ostream&)vocabStrm << vocabYaml;

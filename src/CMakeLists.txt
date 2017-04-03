@@ -27,14 +27,23 @@ cuda_add_library(marian_lib
 
 target_link_libraries(marian_lib)
 
+cuda_add_executable(marian_train command/marian.cu)
+set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
+target_link_libraries(marian_train marian_lib)
+
+foreach(exec marian_train)
+  target_link_libraries(${exec} ${EXT_LIBS})
+  cuda_add_cublas_to_target(${exec})
+  set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endforeach(exec)
+
+if(COMPILE_TESTS)
+cuda_add_executable(marian_translate test/marian_translate.cu)
+target_link_libraries(marian_translate marian_lib)
+
 cuda_add_executable(
   tensor_test
   test/tensor_test.cu
-)
-
-cuda_add_executable(
-  marian_translate
-  test/marian_translate.cu
 )
 
 cuda_add_executable(
@@ -48,11 +57,6 @@ cuda_add_executable(
 )
 
 cuda_add_executable(
-  marian
-  command/marian.cu
-)
-
-cuda_add_executable(
   dropout_test
   test/dropout_test.cu
 )
@@ -62,20 +66,15 @@ add_executable(
   test/logger_test.cpp
 )
 
-target_link_libraries(marian marian_lib)
 target_link_libraries(tensor_test marian_lib)
 target_link_libraries(marian_test marian_lib)
 target_link_libraries(dropout_test marian_lib)
-target_link_libraries(marian_translate marian_lib)
 target_link_libraries(bn_test marian_lib)
 
-foreach(exec dropout_test tensor_test marian_test marian_translate marian bn_test)
+foreach(exec logger_test dropout_test tensor_test marian_test bn_test marian_translate)
   target_link_libraries(${exec} ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
+endif(COMPILE_TESTS)
 
-foreach(exec logger_test)
-  target_link_libraries(${exec} ${EXT_LIBS})
-  set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-endforeach(exec)

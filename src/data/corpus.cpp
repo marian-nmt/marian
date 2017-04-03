@@ -34,12 +34,16 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
-Corpus::Corpus(Ptr<Config> options)
+Corpus::Corpus(Ptr<Config> options, bool translate)
   : options_(options),
-    textPaths_(options_->get<std::vector<std::string>>("train-sets")),
     maxLength_(options_->get<size_t>("max-length")),
     g_(rd_()) {
-  
+
+  if(!translate)
+    textPaths_ = options_->get<std::vector<std::string>>("train-sets");
+  else
+    textPaths_ = options_->get<std::vector<std::string>>("inputs");
+
   g_.seed(Config::seed);
 
   std::vector<std::string> vocabPaths;
@@ -56,14 +60,15 @@ Corpus::Corpus(Ptr<Config> options)
   if(vocabPaths.empty()) {
     for(int i = 0; i < textPaths_.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
-      vocab->loadOrCreate(textPaths_[i], maxVocabs[i]);
+      vocab->loadOrCreate("", textPaths_[i], maxVocabs[i]);
+      options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
       vocabs_.emplace_back(vocab);
     }
   }
   else {
     for(int i = 0; i < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
-      vocab->load(vocabPaths[i], maxVocabs[i]);
+      vocab->loadOrCreate(vocabPaths[i], textPaths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
     }
   }
@@ -158,11 +163,8 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   for(auto& lines : corpus) {
     size_t i = 0;
     for(auto& line : lines) {
-      (std::ostream&)*outs[i++] << line << std::endl;
+      (std::ostream&)*outs[i++] << line << '\n';
     }
-
-    std::vector<std::string> empty;
-    lines.swap(empty);
   }
 
   for(int i = 0; i < outs.size(); ++i) {

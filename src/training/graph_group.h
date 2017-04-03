@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <future>
+#include <boost/filesystem.hpp>
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
@@ -407,21 +408,12 @@ class AsyncGraphGroup : public GraphGroup {
       pool_.enqueue(task, batch);
     }
 
-    void load() {
-      if(options_->has("init")) {
-        std::string init = options_->get<std::string>("init");
-        size_t i = 0;
-        for(auto graph : graphs_)
-          builders_[i++]->load(graph, init);
-      }
-    }
-
   public:
     typedef Builder builder_type;
 
     AsyncGraphGroup(Ptr<Config> options)
      : GraphGroup(options),
-       devices_{options_->get<std::vector<size_t>>("device")},
+       devices_{options_->get<std::vector<size_t>>("devices")},
        pool_{devices_.size(), devices_.size()},
        shardSync_{devices_.size()} {
 
@@ -438,23 +430,39 @@ class AsyncGraphGroup : public GraphGroup {
         fetchDropper_.push_back(tmp);
         builders_.push_back(New<Builder>(options_));
       }
-
-      load();
     }
 
     void update(Ptr<data::CorpusBatch> batch) {
       execute(batch);
     }
 
+    void load() {
+      if(!options_->get<bool>("no-reload")) {
+        std::string init = options_->get<std::string>("model");
+        if(boost::filesystem::exists(init)) {
+          size_t i = 0;
+          reporter_->load(init);
+          for(auto graph : graphs_)
+            builders_[i++]->load(graph, init);
+        }
+      }
+    }
+
     void save() {
       if(options_->get<bool>("overwrite")) {
-        std::string name = options_->get<std::string>("model") + ".npz";
-        builders_[0]->save(graphs_[0], name);
+        std::string name = options_->get<std::string>("model");
+        builders_[0]->save(graphs_[0], name, true);
+        reporter_->save(name);
       }
       else {
-        std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->batches) + ".npz";
-        builders_[0]->save(graphs_[0], name);
+        std::string name = options_->get<std::string>("model");
+        std::string nameOverwrite = name;
+        nameOverwrite.replace(name.size() - 4, 4,
+          ".iter" + std::to_string(reporter_->batches) + ".npz");
+        builders_[0]->save(graphs_[0], nameOverwrite);
+
+        builders_[0]->save(graphs_[0], name, true);
+        reporter_->save(name);
       }
     }
 };
@@ -561,7 +569,7 @@ class SyncGraphGroup : public GraphGroup {
      : GraphGroup(options),
        builder_{New<Builder>(options_)} {
 
-      auto devices = options_->get<std::vector<size_t>>("device");
+      auto devices = options_->get<std::vector<size_t>>("devices");
       size_t workers = devices.size();
 
       for(auto device : devices) {

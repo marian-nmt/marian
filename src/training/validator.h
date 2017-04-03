@@ -34,6 +34,12 @@ namespace marian {
         return true;
       }
 
+      virtual void initLastBest() {
+        lastBest_ = lowerIsBetter() ?
+          std::numeric_limits<float>::max() :
+          std::numeric_limits<float>::lowest();
+      }
+
       size_t stalled() {
         return stalled_;
       }
@@ -47,8 +53,8 @@ namespace marian {
         batchGenerator->prepare(false);
 
         float val = validateBG(graph, batchGenerator);
-        if(lowerIsBetter() && lastBest_ > val ||
-           !lowerIsBetter() && lastBest_ < val) {
+        if((lowerIsBetter() && lastBest_ > val) ||
+           (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
         }
@@ -72,7 +78,9 @@ namespace marian {
       CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
                             Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
 
       virtual float validateBG(Ptr<ExpressionGraph> graph,
                                Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
@@ -103,7 +111,9 @@ namespace marian {
       PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
                           Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
 
       virtual float validateBG(Ptr<ExpressionGraph> graph,
                                Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
@@ -134,7 +144,9 @@ namespace marian {
       ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
                       Ptr<Config> options)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {}
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
 
       std::string exec(const std::string& cmd) {
         std::array<char, 128> buffer;
@@ -150,11 +162,15 @@ namespace marian {
         return result;
       }
 
+      virtual bool lowerIsBetter() {
+        return false;
+      }
+
       virtual float validate(Ptr<ExpressionGraph> graph) {
         using namespace data;
         auto model = options_->get<std::string>("model");
 
-        builder_->save(graph, model + ".dev.npz");
+        builder_->save(graph, model + ".dev.npz", true);
 
         UTIL_THROW_IF2(!options_->has("valid-script-path"),
                        "valid-script metric but no script given");
@@ -163,8 +179,8 @@ namespace marian {
         auto valStr = exec(command);
         float val = std::atof(valStr.c_str());
 
-        if(lowerIsBetter() && lastBest_ > val ||
-           !lowerIsBetter() && lastBest_ < val) {
+        if((lowerIsBetter() && lastBest_ > val) ||
+           (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
         }
