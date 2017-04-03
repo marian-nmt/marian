@@ -39,6 +39,7 @@ public:
     // @TODO: Join matrices and perform single GEMM --------
     Prod(Temp1_, State, w_.U_);
     Prod(Temp2_, State, w_.Ux_);
+    std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
     // -----------------------------------------------------
 
   }
