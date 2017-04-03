@@ -84,13 +84,13 @@ public:
                       const mblas::Matrix& RUH,
                       const mblas::Matrix& Temp) const
   {
-    const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
-    const size_t cols = State.dim(1);
+    const uint rows = State.dim(0) * State.dim(2) * State.dim(3);
+    const uint cols = State.dim(1);
 
     NextState.Resize(State.dim(0) * State.dim(3), cols, State.dim(2), 1);
     //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
-    mblas::ElementwiseOps(NextState, State, RUH, Temp);
+    mblas::ElementwiseOps(NextState, State, RUH, Temp, w_.B_, w_.Bx1_, w_.Bx2_, rows, cols);
 
   }
 

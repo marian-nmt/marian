@@ -7,6 +7,8 @@
 namespace amunmt {
 namespace FPGA {
 
+struct Weights;
+
 template<typename T>
 class Array;
 
@@ -63,7 +65,13 @@ inline void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, fl
 void ElementwiseOps(mblas::Matrix& NextState,
                     const mblas::Matrix& State,
                     const mblas::Matrix& RUH,
-                    const mblas::Matrix& Temp);
+                    const mblas::Matrix& Temp,
+                    const mblas::Matrix& B,
+                    const mblas::Matrix& Bx1,
+                    const mblas::Matrix& Bx2,
+                    const uint &rows,
+                    const uint &cols);
+
 
 
 

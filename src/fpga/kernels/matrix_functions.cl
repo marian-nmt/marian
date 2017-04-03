@@ -109,3 +109,18 @@ __kernel void prod(
   
 }
 
+//////////////////////////////////////////////////////
+
+__kernel void gElementwiseOps(__global float* out,
+                                __global const float* state,
+                                __global const float* ruh,
+                                __global const float* t,
+                                __global const float* b,
+                                __global const float* bx1,
+                                __global const float* bx2,
+                                uint rows, uint cols) 
+{
+
+
+}
+

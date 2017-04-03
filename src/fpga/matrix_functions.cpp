@@ -3,6 +3,7 @@
 #include "matrix.h"
 #include "kernel.h"
 #include "array.h"
+#include "model.h"
 
 using namespace std;
 
@@ -303,8 +304,47 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 void ElementwiseOps(mblas::Matrix& NextState,
                     const mblas::Matrix& State,
                     const mblas::Matrix& RUH,
-                    const mblas::Matrix& Temp)
+                    const mblas::Matrix& Temp,
+                    const mblas::Matrix& B,
+                    const mblas::Matrix& Bx1,
+                    const mblas::Matrix& Bx2,
+                    const uint &rows,
+                    const uint &cols)
 {
+  const OpenCLInfo &openCLInfo = NextState.GetOpenCLInfo();
+
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementwiseOps", openCLInfo);
+
+  // Set the arguments to our compute kernel
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &NextState.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &State.data()) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &RUH.data()) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &Temp.data()) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &B.data()) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &Bx1.data()) );
+  CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &Bx2.data()) );
+  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &rows) );
+  CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &cols) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  global = 1024;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
 
 }
 
