@@ -42,6 +42,11 @@ public:
     std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
     // -----------------------------------------------------
 
+    std::cerr << "1RU_=" << RU_.Debug(1) << std::endl;
+    std::cerr << "w_.B_=" << w_.B_.Debug(1) << std::endl;
+    BroadcastVecAdd(RU_, w_.B_); // Broadcasting row-wise
+    std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
+
   }
 
 protected:

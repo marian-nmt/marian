@@ -81,8 +81,8 @@ class Encoder {
       InitializeState(batchSize);
 
       mblas::Matrix prevState(State_);
-      std::cerr << "State_=" << State_.Debug(1) << std::endl;
-      std::cerr << "prevState=" << prevState.Debug(1) << std::endl;
+      //std::cerr << "State_=" << State_.Debug(1) << std::endl;
+      //std::cerr << "prevState=" << prevState.Debug(1) << std::endl;
 
       size_t n = std::distance(it, end);
       size_t i = 0;

@@ -345,9 +345,45 @@ void ElementwiseOps(mblas::Matrix& NextState,
   // Wait for the command commands to get serviced before reading back results
   //
   CheckError( clFinish(openCLInfo.commands) );
-
 }
 
+Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In)
+{
+  const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
+
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
+  uint cols = Out.dim(1);
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecAdd", openCLInfo);
+
+  // Set the arguments to our compute kernel
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  global = 1024;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
+
+  return Out;
+}
 
 } // namespace mblas {
 } // namespace FPGA {

@@ -121,6 +121,16 @@ __kernel void gElementwiseOps(__global float* out,
                                 uint rows, uint cols) 
 {
 
+}
+
+//////////////////////////////////////////////////////
+
+__kernel void gBroadcastVecAdd(__global float* out, 
+                              __global const float* in, 
+                              uint rows, uint cols) 
+{
+
 
 }
 
+                                

@@ -72,6 +72,7 @@ void ElementwiseOps(mblas::Matrix& NextState,
                     const uint &rows,
                     const uint &cols);
 
+Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
 
 
 

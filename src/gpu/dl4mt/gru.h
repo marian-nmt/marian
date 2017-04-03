@@ -32,7 +32,11 @@ class SlowGRU {
       // -----------------------------------------------------
 
       // @TODO: Organize into one kernel ---------------------
+      std::cerr << "1RU_=" << RU_.Debug(1) << std::endl;
+      std::cerr << "w_.B_=" << w_.B_.Debug(1) << std::endl;
       BroadcastVec(_1 + _2, RU_, w_.B_); // Broadcasting row-wise
+      std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
+
       Element(Logit(_1 + _2), RU_, Temp1_);
       Slice(R_, RU_, 0, cols);
       Slice(U_, RU_, 1, cols);
