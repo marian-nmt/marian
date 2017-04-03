@@ -62,16 +62,16 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 
-  cerr << "GetContext1=" << context.Debug(1) << endl;
+  //cerr << "GetContext1=" << context.Debug(1) << endl;
   forwardRnn_.GetContext(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
                          context, source.size(), false);
-  cerr << "GetContext2=" << context.Debug(1) << endl;
+  //cerr << "GetContext2=" << context.Debug(1) << endl;
 
   backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
                           context, source.size(), true, &dMapping);
-  cerr << "GetContext3=" << context.Debug(1) << endl;
+  //cerr << "GetContext3=" << context.Debug(1) << endl;
 }
 
 }

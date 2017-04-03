@@ -65,6 +65,8 @@ class SlowGRU {
     SlowGRU(const SlowGRU&) = delete;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 __global__ void gElementwiseOps(float* out,
                                 const float* state,
                                 const float* ruh,
@@ -179,7 +181,7 @@ class FastGRU {
 };
 
 template<class T>
-using GRU = FastGRU<T>;
+using GRU = SlowGRU<T>;
 
 }
 }

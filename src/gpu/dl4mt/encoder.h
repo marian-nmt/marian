@@ -33,7 +33,7 @@ class Encoder {
 
           Row.Resize(words.size(), w_.E_.dim(1));
           mblas::Assemble(Row, w_.E_, dKnownWords);
-          std::cerr << "Row3=" << Row.Debug(1) << std::endl;
+          //std::cerr << "Row3=" << Row.Debug(1) << std::endl;
         }
 
       private:

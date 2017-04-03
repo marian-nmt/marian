@@ -4,9 +4,33 @@ namespace amunmt {
 namespace FPGA {
 
 template <class Weights>
-class GRU {
+class SlowGRU {
 public:
-  GRU(const OpenCLInfo &openCLInfo, const Weights& model)
+  SlowGRU(const OpenCLInfo &openCLInfo, const Weights& model)
+  {
+
+  }
+
+  size_t GetStateLength() const {
+
+  }
+
+  void GetNextState(mblas::Matrix& NextState,
+                    const mblas::Matrix& State,
+                    const mblas::Matrix& Context) const
+  {
+
+  }
+
+};
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+template <class Weights>
+class FastGRU {
+public:
+  FastGRU(const OpenCLInfo &openCLInfo, const Weights& model)
   : openCLInfo_(openCLInfo)
   , w_(model)
   , WWx_(openCLInfo)
@@ -107,6 +131,9 @@ protected:
   mutable mblas::Matrix Temp_;
 
 };
+
+template<class T>
+using GRU = SlowGRU<T>;
 
 }
 }
