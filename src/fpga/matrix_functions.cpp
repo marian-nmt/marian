@@ -300,6 +300,14 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return C;
 }
 
+void ElementwiseOps(mblas::Matrix& NextState,
+                    const mblas::Matrix& State,
+                    const mblas::Matrix& RUH,
+                    const mblas::Matrix& Temp)
+{
+
+}
+
 
 } // namespace mblas {
 } // namespace FPGA {

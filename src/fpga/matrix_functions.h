@@ -60,6 +60,10 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 inline void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)
 {}
 
+void ElementwiseOps(mblas::Matrix& NextState,
+                    const mblas::Matrix& State,
+                    const mblas::Matrix& RUH,
+                    const mblas::Matrix& Temp);
 
 
 

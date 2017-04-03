@@ -32,6 +32,14 @@ public:
     Transpose(WWx_);
     std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
+    Transpose(UUx_, w_.U_);
+
+    Matrix UxT(openCLInfo);
+    Transpose(UxT, w_.Ux_);
+
+    Concat(UUx_, UxT);
+    Transpose(UUx_);
+
   }
 
   size_t GetStateLength() const {
@@ -62,6 +70,27 @@ public:
 
     Prod(Temp_, State, UUx_);
     std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
+
+    if (w_.Gamma_2_) {
+      Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
+    }
+
+    ElementwiseOps(NextState, State, RUH_, Temp_);
+
+  }
+
+  void ElementwiseOps(mblas::Matrix& NextState,
+                      const mblas::Matrix& State,
+                      const mblas::Matrix& RUH,
+                      const mblas::Matrix& Temp) const
+  {
+    const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
+    const size_t cols = State.dim(1);
+
+    NextState.Resize(State.dim(0) * State.dim(3), cols, State.dim(2), 1);
+    //std::cerr << "NextState=" << NextState.Debug() << std::endl;
+
+    mblas::ElementwiseOps(NextState, State, RUH, Temp);
 
   }
 
