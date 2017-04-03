@@ -20,3 +20,11 @@ inline void pfn_notify(const char *errinfo, const void *private_info, size_t cb,
   fprintf(stderr, "OpenCL Error (via pfn_notify): %s\n", errinfo);
 }
 
+struct OpenCLInfo
+{
+  cl_context context;
+  cl_uint numDevices;
+  cl_device_id devices[100];
+  cl_device_id device;
+  cl_command_queue commands;
+};

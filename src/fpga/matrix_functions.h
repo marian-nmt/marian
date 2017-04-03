@@ -7,6 +7,8 @@
 namespace amunmt {
 namespace FPGA {
 
+struct Weights;
+
 template<typename T>
 class Array;
 
@@ -26,32 +28,55 @@ T Sum(const std::vector<T> &vec)
 
 float Sum(
     const cl_mem &mem,
-    size_t size,
-    const cl_context &context,
-    const cl_device_id &device);
+    uint size,
+    const OpenCLInfo &openCLInfo);
 
-size_t SumSizet(
+unsigned int SumSizet(
     const cl_mem &mem,
-    size_t size,
-    const cl_context &context,
-    const cl_device_id &device);
+    uint size,
+    const OpenCLInfo &openCLInfo);
 
 Matrix& CopyRows(
-	     const cl_context &context,
-		 const cl_device_id &device,
 		 Matrix& Out,
 		 const Matrix& In,
-		 const cl_mem &dev,
-		 size_t numPairs);
+		 const Array<uint>& indices);
 
 Matrix& Assemble(
-		const cl_context &context,
-		const cl_device_id &device,
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<unsigned int>& indeces);
+		 const Array<uint>& indices);
 
-}
-}
-}
+void Fill(
+    Matrix& In,
+    float value=0.0f);
+
+Matrix& Transpose(Matrix& Out, const Matrix& In);
+
+Matrix& Transpose(Matrix& Out);
+
+Matrix& Concat(Matrix& Out, const Matrix& In);
+
+Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
+             bool transA = false, bool transB = false);
+
+inline void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)
+{}
+
+void ElementwiseOps(mblas::Matrix& NextState,
+                    const mblas::Matrix& State,
+                    const mblas::Matrix& RUH,
+                    const mblas::Matrix& Temp,
+                    const mblas::Matrix& B,
+                    const mblas::Matrix& Bx1,
+                    const mblas::Matrix& Bx2,
+                    const uint &rows,
+                    const uint &cols);
+
+Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
+
+
+
+} // namespace mblas {
+} // namespace FPGA {
+} // namespace amunmt {
 

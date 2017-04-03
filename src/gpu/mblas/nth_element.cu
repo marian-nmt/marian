@@ -243,11 +243,11 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
   }
 }
 
-__global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n)
+__global__ void gGetValueByKey(float* d_in, float* d_out, int* indices, int n)
 {
   int tid = threadIdx.x  + blockDim.x * blockIdx.x;
   if (tid < n) {
-    int index = indeces[tid];
+    int index = indices[tid];
     d_out[tid] = d_in[index];
   }
 }

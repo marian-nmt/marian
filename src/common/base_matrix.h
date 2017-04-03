@@ -25,9 +25,13 @@ class BaseMatrix {
 
     virtual size_t size() const;
 
+    operator bool() const {
+      return size() != 0;
+    }
+
     virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) = 0;
 
-    virtual std::string Debug(bool detailed = false) const;
+    virtual std::string Debug(size_t detailed = 0) const;
 };
 
 }

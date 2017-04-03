@@ -22,13 +22,12 @@ EncoderDecoder::EncoderDecoder(
         const YAML::Node& config,
         size_t tab,
         const Weights& model,
-        const cl_context &context,
-        const cl_device_id &device)
+        const OpenCLInfo &openCLInfo)
 :Scorer(name, config, tab)
 ,model_(model)
-,context_(context)
-,sourceContext_(context, device)
-,encoder_(new Encoder(context, device, model_))
+,openCLInfo_(openCLInfo)
+,sourceContext_(openCLInfo)
+,encoder_(new Encoder(openCLInfo, model_))
 ,decoder_(new Decoder(god, model_))
 {
 
@@ -37,7 +36,7 @@ EncoderDecoder::EncoderDecoder(
 void EncoderDecoder::SetSource(const Sentences& sources)
 {
   encoder_->GetContext(sources, tab_, sourceContext_);
-  cerr << "FPGA sourceContext_=" << sourceContext_.Debug(true) << endl;
+  cerr << "FPGA sourceContext_=" << sourceContext_.Debug(1) << endl;
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)

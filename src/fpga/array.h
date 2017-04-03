@@ -11,24 +11,23 @@ template<typename T>
 class Array
 {
 public:
-  Array(const cl_context &context, const cl_device_id &device, size_t size)
-  :context_(context)
-  ,device_(device)
+  Array(const OpenCLInfo &openCLInfo, size_t size)
+  :openCLInfo_(openCLInfo)
   ,size_(size)
   {
     cl_int err;
-    mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(T) * size, NULL, &err);
+    mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_READ_WRITE,  sizeof(T) * size, NULL, &err);
     CheckError(err);
   }
 
-  Array(const cl_context &context, const cl_device_id &device, const std::vector<T> &vec)
-  :context_(context)
-  ,device_(device)
+  Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
+  :openCLInfo_(openCLInfo)
   ,size_(vec.size())
   {
     cl_int err;
-    mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) vec.data(), &err);
+    mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) vec.data(), &err);
     CheckError(err);
+
   }
 
   ~Array()
@@ -51,7 +50,7 @@ public:
     strm << size_ << " " << mem_;
 
     if (detailed) {
-      float sum = mblas::SumSizet(mem_, size_, context_, device_);
+      float sum = mblas::SumSizet(mem_, size_, openCLInfo_);
       strm << " sum=" << sum << std::flush;
     }
 
@@ -60,8 +59,7 @@ public:
   }
 
 protected:
-  const cl_context &context_;
-  const cl_device_id &device_;
+  const OpenCLInfo &openCLInfo_;
 
   size_t size_;
   cl_mem mem_;

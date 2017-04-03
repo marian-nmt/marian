@@ -5,13 +5,12 @@ using namespace std;
 namespace amunmt {
 namespace FPGA {
 
-Encoder::Encoder(const cl_context &context, const cl_device_id &device, const Weights& model)
+Encoder::Encoder(const OpenCLInfo &openCLInfo, const Weights& model)
 : embeddings_(model.encEmbeddings_)
-, forwardRnn_(context, device, model.encForwardGRU_)
-, backwardRnn_(context, device, model.encBackwardGRU_)
-, Context(context, device)
-, context_(context)
-, device_(device)
+, forwardRnn_(openCLInfo, model.encForwardGRU_)
+, backwardRnn_(openCLInfo, model.encBackwardGRU_)
+, Context(openCLInfo)
+, openCLInfo_(openCLInfo)
 {
 
 }
@@ -38,11 +37,11 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
   return matrix;
 }
 
-void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context)
+void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& context)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
-  Context.Resize(maxSentenceLength,
+  context.Resize(maxSentenceLength,
                  forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
                  1,
                  source.size());
@@ -51,19 +50,22 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
 
   for (size_t i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
-      embeddedWords_.emplace_back(context_, device_);
+      embeddedWords_.emplace_back(openCLInfo_);
     }
-    embeddings_.Lookup(context_, device_, embeddedWords_[i], input[i]);
-    //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
+    embeddings_.Lookup(openCLInfo_, embeddedWords_[i], input[i]);
+    //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(1) << endl;
   }
 
+  //cerr << "GetContext1=" << context.Debug(1) << endl;
   forwardRnn_.GetContext(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
-                         Context, source.size(), false);
+                         context, source.size(), false);
+  //cerr << "GetContext2=" << context.Debug(1) << endl;
 
   backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
-                          Context, source.size(), true);
+                          context, source.size(), true);
+  //cerr << "GetContext3=" << context.Debug(1) << endl;
 
 }
 

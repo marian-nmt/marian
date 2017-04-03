@@ -44,8 +44,7 @@ public:
   }
 
   mblas::Matrix GetMatrix(
-		  const cl_context &context,
-		  const cl_device_id &device,
+      const OpenCLInfo &openCLInfo,
 		  const std::string& key,
 		  bool transpose = false) const;
 

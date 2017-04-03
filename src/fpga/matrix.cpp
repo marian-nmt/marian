@@ -2,6 +2,8 @@
 #include <sstream>
 #include "matrix.h"
 #include "matrix_functions.h"
+#include "types-fpga.h"
+#include "kernel.h"
 
 using namespace std;
 
@@ -9,64 +11,128 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
-Matrix::Matrix(const cl_context &context, const cl_device_id &device)
-:context_(context)
-,device_(device)
+Matrix::Matrix(const OpenCLInfo &openCLInfo)
+:openCLInfo_(openCLInfo)
 ,rows_(0)
 ,cols_(0)
+,arrSize_(0)
 ,mem_(nullptr)
 {
-}
-
-Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, bool zero)
-:context_(context)
-,device_(device)
-,rows_(rows)
-,cols_(cols)
-{
+  /*
   cl_int err;
   mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
+  cerr << "mem_1=" << Debug() << endl;
+  */
+  //cerr << "mem_1=" << Debug() << endl;
+
 }
 
-Matrix::Matrix(const cl_context &context, const cl_device_id &device, size_t rows, size_t cols, float *val)
-:context_(context)
-,device_(device)
+Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
+:openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
+,arrSize_(size())
 {
   cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
+  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
+  //cerr << "mem_2=" << Debug() << endl;
 }
+
+Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
+:openCLInfo_(openCLInfo)
+,rows_(rows)
+,cols_(cols)
+,arrSize_(size())
+{
+  cl_int err;
+  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
+  CheckError(err);
+  //cerr << "mem_3=" << Debug() << " " << *val << endl;
+}
+
+Matrix::Matrix(const Matrix &other)
+:Matrix(other.openCLInfo_, other.rows_, other.cols_)
+{
+  CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
+}
+
+Matrix::Matrix(Matrix &&other)
+:openCLInfo_(other.openCLInfo_)
+,mem_(other.mem_)
+,rows_(other.rows_)
+,cols_(other.cols_)
+,arrSize_(other.arrSize_)
+{
+  other.mem_ = nullptr;
+  other.rows_ = 0;
+  other.cols_ = 0;
+  other.arrSize_ = 0;
+}
+
 
 Matrix::~Matrix()
 {
-  CheckError( clReleaseMemObject(mem_) );
 }
 
 void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 {
-  rows_ = rows;
-  cols_ = cols;
-
   cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
-  CheckError(err);
+  size_t newSize = cols * rows * beam * batches;
+  if (newSize > arrSize_) {
+    //cerr << "resize: clCreateBuffer " << newSize << endl;
+    cl_mem newMem = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * newSize, NULL, &err);
+    CheckError(err);
 
-}
+    size_t oldSize = size();
+    assert(newSize > oldSize);
 
-std::string Matrix::Debug(bool detailed) const
-{
-  std::stringstream strm;
-  strm << BaseMatrix::Debug(detailed) << " " << mem_ << " " << size();
+    if (oldSize) {
+      //cerr << "resize: clEnqueueCopyBuffer " << oldSize << endl;
+      CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, mem_, newMem, 0, 0, sizeof(float) * oldSize, 0, NULL, NULL) );
+    }
 
-  if (detailed) {
-    float sum = Sum(mem_, size(), context_, device_);
-    strm << " sum=" << sum << std::flush;
+    mem_ = newMem;
+    arrSize_ = newSize;
   }
 
+  rows_ = rows;
+  cols_ = cols;
+}
+
+std::string Matrix::Debug(size_t detailed) const
+{
+  std::stringstream strm;
+  strm << BaseMatrix::Debug(detailed) << " " << mem_;
+  //cerr << "Debug1=" << strm.str() << endl;
+
+  if (detailed == 1) {
+    //cerr << "Debug2" << endl;
+    float sum = Sum(mem_, size(), openCLInfo_);
+    //cerr << "Debug3" << endl;
+    strm << " sum=" << sum << std::flush;
+    //cerr << "Debug4" << endl;
+  }
+  //cerr << "Debug5" << endl;
+
   return strm.str();
+}
+
+void Matrix::Swap(Matrix &other)
+{
+  assert(&openCLInfo_ == &other.openCLInfo_);
+  std::swap(mem_, other.mem_);
+  std::swap(rows_, other.rows_);
+  std::swap(cols_, other.cols_);
+  std::swap(arrSize_, other.arrSize_);
+}
+
+void Matrix::Set(const float *data)
+{
+  //cerr << "Set1=" << size() << endl;
+  CheckError( clEnqueueWriteBuffer(openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
+  //cerr << "Set2=" << size() << endl;
 }
 
 }

@@ -8,8 +8,7 @@ namespace FPGA {
 
 void HelloWorld(
     cl_kernel &kernel,
-    const cl_context &context,
-    const cl_device_id &device,
+    const OpenCLInfo &openCLInfo,
     const cl_command_queue &commands,
     size_t dataSize)
 {
@@ -33,11 +32,11 @@ void HelloWorld(
 
   // Create the input and output arrays in device memory for our calculation
   //
-  input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, &err);
+  input = clCreateBuffer(openCLInfo.context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, &err);
   CheckError(err);
   assert(input);
 
-  output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, &err);
+  output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, &err);
   CheckError(err);
   assert(output);
 
@@ -52,7 +51,7 @@ void HelloWorld(
 
   // Get the maximum work group size for executing the kernel on the device
   //
-  CheckError( clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
   // Execute the kernel over the entire range of our 1d input data set
   // using the maximum number of work group items for this device
