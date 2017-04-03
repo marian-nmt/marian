@@ -7,20 +7,53 @@ template <class Weights>
 class SlowGRU {
 public:
   SlowGRU(const OpenCLInfo &openCLInfo, const Weights& model)
-  {
+  : openCLInfo_(openCLInfo)
+  , w_(model)
+  , RU_(openCLInfo)
+  , H_(openCLInfo)
 
+  , Temp1_(openCLInfo)
+  , Temp2_(openCLInfo)
+  {
   }
 
   size_t GetStateLength() const {
-
+    return w_.U_.dim(0);
   }
 
   void GetNextState(mblas::Matrix& NextState,
                     const mblas::Matrix& State,
                     const mblas::Matrix& Context) const
   {
+    using namespace mblas;
+
+    const size_t cols = GetStateLength();
+
+    // @TODO: Optimization
+    // @TODO: Launch streams to perform GEMMs in parallel
+    // @TODO: Join matrices and perform single GEMM --------
+    Prod(RU_, Context, w_.W_);
+    Prod(H_,  Context, w_.Wx_);
+    // -----------------------------------------------------
+
+    // @TODO: Join matrices and perform single GEMM --------
+    Prod(Temp1_, State, w_.U_);
+    Prod(Temp2_, State, w_.Ux_);
+    // -----------------------------------------------------
 
   }
+
+protected:
+  const OpenCLInfo &openCLInfo_;
+  // Model matrices
+  const Weights& w_;
+
+  // reused to avoid allocation
+  mutable mblas::Matrix RU_;
+  mutable mblas::Matrix H_;
+
+  mutable mblas::Matrix Temp1_;
+  mutable mblas::Matrix Temp2_;
 
 };
 
@@ -119,8 +152,8 @@ public:
   }
 
 protected:
-  // Model matrices
   const OpenCLInfo &openCLInfo_;
+  // Model matrices
   const Weights& w_;
 
   // reused to avoid allocation
