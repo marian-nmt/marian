@@ -167,7 +167,18 @@ __kernel void gSlice(__global float* out,
                    uint n, uint dim,
                    uint rows, uint cols) 
 {
+  uint offset = n * dim;
 
+  for (uint row = 0; row < rows; ++row) {
+    for (uint inCol = 0; inCol < dim; ++inCol) {
+      uint outCol = offset + inCol;
+      
+      uint inInd = row * cols + inCol;
+      uint outInd = row * dim + outCol;
+      
+      out[outInd] = in[inInd];
+    }
+  }
 }
 
 
