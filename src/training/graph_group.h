@@ -13,7 +13,7 @@
 #include "training/dropper.h"
 
 #define HISTORY_SIZE 6
-#define DROP_SIZE 0.99
+#define DROP_SIZE 0.999
 
 namespace marian {
 

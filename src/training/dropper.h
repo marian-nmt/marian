@@ -312,7 +312,7 @@ class GradientDropBase {
 	  grad_add_error<<<blocks, threads>>>(data, errors, len);
 	  //full sort
 	  //int sortSize = len;
-	  int sortSize = min(5000, len);
+	  int sortSize = min(100000, len);
 	  //cudaMemcpy(tmp, data, len * sizeof(float), cudaMemcpyDeviceToDevice);
 	  int blocksSample = 1 + sortSize/threads;
 	  randomSampling<<<blocksSample, threads>>>(data, tmp, sortSize, len / sortSize, len);
@@ -397,7 +397,7 @@ class GradientDropBase {
 
     	//sanity check
     	cudaSetDevice(t->getDevice());
-	    if (wow < 10 || wow % 1000 == 0){
+	    if (wow < 10){
 	      thrust::device_ptr<float> dev_data_ptr(t->data());
 	      int x = thrust::count(dev_data_ptr, dev_data_ptr + t->size() , 0);
 	      std::cerr<<"GPU :"<< t->getDevice()<<"  |  overall dropping "<<(float)x /  t->size() <<std::endl;
