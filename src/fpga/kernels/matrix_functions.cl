@@ -129,7 +129,16 @@ __kernel void gBroadcastVecAdd(__global float* out,
                               __global const float* in, 
                               uint rows, uint cols) 
 {
-
+  for (uint noColumn = 0; noColumn < cols; ++noColumn) {
+    float vecValue = in[noColumn];
+  
+    uint index = noColumn;
+    for (uint noRow = 0; noRow < rows; ++noRow) {
+        out[index] += vecValue;
+        index += cols;
+    }
+  
+  }
 
 }
 

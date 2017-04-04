@@ -367,11 +367,17 @@ Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In)
   CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
 
+
   // Get the maximum work group size for executing the kernel on the device
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //cerr << "CL_KERNEL_WORK_GROUP_SIZE=" << CL_KERNEL_WORK_GROUP_SIZE << endl;
+  //cerr << "local=" << local << endl;
+
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
