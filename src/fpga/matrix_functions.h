@@ -76,6 +76,9 @@ Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
 
 Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
+Matrix& Slice(Matrix& Out,
+              const Matrix& In,
+              size_t n, size_t dim);
 
 } // namespace mblas {
 } // namespace FPGA {

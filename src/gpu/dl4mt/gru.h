@@ -44,6 +44,8 @@ class SlowGRU {
       std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
 
       Slice(R_, RU_, 0, cols);
+      std::cerr << "R_=" << R_.Debug(1) << std::endl;
+
       Slice(U_, RU_, 1, cols);
 
       BroadcastVec(_1 + _2, H_,    w_.Bx1_); // Broadcasting row-wise

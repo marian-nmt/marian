@@ -11,6 +11,7 @@ public:
   , w_(model)
   , RU_(openCLInfo)
   , H_(openCLInfo)
+  , R_(openCLInfo)
 
   , Temp1_(openCLInfo)
   , Temp2_(openCLInfo)
@@ -53,6 +54,9 @@ public:
     ElementLogit(RU_, Temp1_);
     std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
 
+    Slice(R_, RU_, 0, cols);
+    std::cerr << "R_=" << R_.Debug(1) << std::endl;
+
   }
 
 protected:
@@ -63,6 +67,7 @@ protected:
   // reused to avoid allocation
   mutable mblas::Matrix RU_;
   mutable mblas::Matrix H_;
+  mutable mblas::Matrix R_;
 
   mutable mblas::Matrix Temp1_;
   mutable mblas::Matrix Temp2_;

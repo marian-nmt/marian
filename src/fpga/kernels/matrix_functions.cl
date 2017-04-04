@@ -1,6 +1,7 @@
 #pragma once
 
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
 float sumBase(__global float *input, uint count)
 {
   float ret = 0.0f;
@@ -31,7 +32,7 @@ __kernel void sum_size_t(
   (*output) = ret;
 }                                      
 
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 __kernel void gCopyRows(
 	__global float* out, 
@@ -60,7 +61,7 @@ __kernel void gCopyRows(
   
 }
   
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
   
 __kernel void transpose(
   __global float* out, 
@@ -82,7 +83,7 @@ __kernel void transpose(
   }
 }
 
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 __kernel void prod(
   __global float* C, 
@@ -109,7 +110,7 @@ __kernel void prod(
   
 }
 
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 __kernel void gElementwiseOps(__global float* out,
                                 __global const float* state,
@@ -123,7 +124,7 @@ __kernel void gElementwiseOps(__global float* out,
 
 }
 
-//////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 __kernel void gBroadcastVecAdd(__global float* out, 
                               __global const float* in, 
@@ -142,6 +143,8 @@ __kernel void gBroadcastVecAdd(__global float* out,
 
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
 __kernel void gLogit(__global float* out, 
                      __global const float* in, 
                      uint rows, uint cols) 
@@ -154,7 +157,19 @@ __kernel void gLogit(__global float* out,
       out[i] = 1.0f / (1.0f + exp(-p));
       ++i;
     }
-  }
-  
-  //out[i-1] = i - 1; // - log(1/p - 1);
-}                                
+  }  
+}  
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gSlice(__global float* out, 
+                    __global const float* in,
+                   uint n, uint dim,
+                   uint rows, uint cols) 
+{
+
+}
+
+
+
+                              

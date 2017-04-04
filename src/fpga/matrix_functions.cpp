@@ -437,6 +437,16 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In)
   return Out;
 }
 
+Matrix& Slice(Matrix& Out,
+              const Matrix& In,
+              size_t n, size_t dim)
+{
+  Out.Resize(In.dim(0), dim);
+
+}
+
+
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {
