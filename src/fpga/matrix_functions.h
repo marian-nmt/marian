@@ -78,7 +78,7 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
-              size_t n, size_t dim);
+              uint n, uint dim);
 
 } // namespace mblas {
 } // namespace FPGA {

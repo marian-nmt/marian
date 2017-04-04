@@ -43,6 +43,7 @@ class SlowGRU {
       Element(Logit(_1 + _2), RU_, Temp1_);
       std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
 
+      std::cerr << "cols=" << cols << std::endl;
       Slice(R_, RU_, 0, cols);
       std::cerr << "R_=" << R_.Debug(1) << std::endl;
 
