@@ -12,6 +12,7 @@ public:
   , RU_(openCLInfo)
   , H_(openCLInfo)
   , R_(openCLInfo)
+  , U_(openCLInfo)
 
   , Temp1_(openCLInfo)
   , Temp2_(openCLInfo)
@@ -58,6 +59,9 @@ public:
     Slice(R_, RU_, 0, cols);
     std::cerr << "R_=" << R_.Debug(1) << std::endl;
 
+    Slice(U_, RU_, 1, cols);
+    std::cerr << "U_=" << U_.Debug(1) << std::endl;
+
   }
 
 protected:
@@ -69,6 +73,7 @@ protected:
   mutable mblas::Matrix RU_;
   mutable mblas::Matrix H_;
   mutable mblas::Matrix R_;
+  mutable mblas::Matrix U_;
 
   mutable mblas::Matrix Temp1_;
   mutable mblas::Matrix Temp2_;
