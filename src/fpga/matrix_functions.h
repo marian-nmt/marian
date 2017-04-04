@@ -74,6 +74,7 @@ void ElementwiseOps(mblas::Matrix& NextState,
 
 Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
 
+Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
 
 } // namespace mblas {

@@ -142,4 +142,19 @@ __kernel void gBroadcastVecAdd(__global float* out,
 
 }
 
-                                
+__kernel void gLogit(__global float* out, 
+                     __global const float* in, 
+                     uint rows, uint cols) 
+{
+  uint i = 0;
+  
+  for (uint noColumn = 0; noColumn < cols; ++noColumn) {
+    for (uint noRow = 0; noRow < rows; ++noRow) {
+      float p = out[i] + in[i];
+      out[i] = 1.0f / (1.0f + exp(-p));
+      ++i;
+    }
+  }
+  
+  //out[i-1] = i - 1; // - log(1/p - 1);
+}                                

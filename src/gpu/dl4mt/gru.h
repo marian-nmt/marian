@@ -16,6 +16,8 @@ class SlowGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
+      std::cerr << std::endl;
+
       const size_t cols = GetStateLength();
 
       // @TODO: Optimization
@@ -28,7 +30,7 @@ class SlowGRU {
       // @TODO: Join matrices and perform single GEMM --------
       Prod(Temp1_, State, w_.U_);
       Prod(Temp2_, State, w_.Ux_);
-      std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+      //std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
       // @TODO: Organize into one kernel ---------------------
@@ -37,7 +39,10 @@ class SlowGRU {
       BroadcastVec(_1 + _2, RU_, w_.B_); // Broadcasting row-wise
       std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
 
+      std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
       Element(Logit(_1 + _2), RU_, Temp1_);
+      std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
+
       Slice(R_, RU_, 0, cols);
       Slice(U_, RU_, 1, cols);
 
