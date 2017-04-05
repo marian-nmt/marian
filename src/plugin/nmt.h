@@ -1,39 +1,36 @@
 #include <iostream>
-#include <algorithm>
 #include <vector>
 #include <set>
-#include <boost/shared_ptr.hpp>
 
-#include "mblas/base_matrix.h"
 #include "nbest.h"
+#include "common/scorer.h"
 
-class Weights;
-class Vocab;
-class Encoder;
-class Decoder;
-class States;
 
-class StateInfo;
-typedef boost::shared_ptr<StateInfo> StateInfoPtr;
 
-typedef std::vector<size_t> Batch;
+typedef std::vector<int> Batch;
 typedef std::vector<Batch> Batches;
-typedef std::vector<StateInfoPtr> StateInfos;
 typedef std::vector<float> Scores;
-typedef std::vector<size_t> LastWords;
 
+namespace amunmt {
+
+class God;
 
 class NMT {
   public:
-    NMT(const boost::shared_ptr<Weights> model,
-        const boost::shared_ptr<Vocab> src,
-        const boost::shared_ptr<Vocab> trg);
+    NMT(std::vector<ScorerPtr>& scorers);
 
-    const boost::shared_ptr<Weights> GetModel() {
-      return w_;
-    }
+    static void InitGod(const std::string& configFilePath);
+
+    static std::vector<ScorerPtr> NewScorers();
+
+    static size_t GetTotalThreads();
 
     static size_t GetDevices(size_t = 1);
+
+    std::vector<ScorerPtr>& GetScorers() {
+      return scorers_;
+    }
+
     void SetDevice();
     size_t GetDevice();
 
@@ -41,42 +38,26 @@ class NMT {
       debug_ = debug;
     }
 
-    static boost::shared_ptr<Weights> NewModel(const std::string& path, size_t device = 0);
+    void ClearStates();
 
-    static boost::shared_ptr<Vocab> NewVocab(const std::string& path);
+    States NewStates() const;
 
-    void CalcSourceContext(const std::vector<std::string>& s);
-
-    StateInfoPtr EmptyState();
-
-
-    void PrintState(StateInfoPtr);
-
-    void FilterTargetVocab(const std::set<std::string>& filter, size_t topN);
+    States CalcSourceContext(const std::vector<std::string>& s);
 
     size_t TargetVocab(const std::string& str);
 
-    void BatchSteps(const Batches& batches, LastWords& lastWords,
-                    Scores& probs, Scores& unks, StateInfos& stateInfos,
-                    bool firstWord);
+    void BatchSteps(const Batches& batches,
+                    Scores& probs,
+                    Scores& unks,
+                    std::vector<States>& inputStates);
 
     void OnePhrase(
       const std::vector<std::string>& phrase,
-      const std::string& lastWord,
-      bool firstWord,
-      StateInfoPtr inputState,
-      float& prob, size_t& unks,
-      StateInfoPtr& outputState);
+      const States& inputStates,
+      float& prob,
+      size_t& unks,
+      States& outputStates);
 
-    void MakeStep(
-      const std::vector<std::string>& nextWords,
-      const std::vector<std::string>& lastWords,
-      std::vector<StateInfoPtr>& inputStates,
-      std::vector<double>& logProbs,
-      std::vector<StateInfoPtr>& nextStates,
-      std::vector<bool>& unks);
-
-    void ClearStates();
 
     std::vector<double> RescoreNBestList(
         const std::vector<std::string>& nbest,
@@ -84,18 +65,15 @@ class NMT {
 
   private:
     bool debug_;
+    static std::shared_ptr<God> god_;
 
-    const boost::shared_ptr<Weights> w_;
-    const boost::shared_ptr<Vocab> src_;
-    const boost::shared_ptr<Vocab> trg_;
+    std::vector<ScorerPtr> scorers_;
+    Words filterIndices_;
 
-    boost::shared_ptr<Encoder> encoder_;
-    boost::shared_ptr<Decoder> decoder_;
-
-    boost::shared_ptr<mblas::BaseMatrix> SourceContext_;
-
-    boost::shared_ptr<States> states_;
+    std::shared_ptr<States> states_;
     bool firstWord_;
 
     std::vector<size_t> filteredId_;
 };
+
+}
