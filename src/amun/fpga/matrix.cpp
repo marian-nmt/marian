@@ -38,6 +38,11 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
   mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
   //cerr << "mem_2=" << Debug() << endl;
+
+  if (zero) {
+    Fill(*this, 0);
+  }
+
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
