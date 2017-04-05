@@ -38,6 +38,10 @@ class TMatrix : public BaseMatrix {
 
     TMatrix(const TMatrix& m) = delete;
 
+    float GetValue(int i, int j) const {
+      return this->operator()(i, j);
+    }
+
     value_type operator()(size_t i, size_t j) const {
       return data_[i * cols_ + j];
     }

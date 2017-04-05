@@ -73,6 +73,10 @@ Matrix& CopyRow(Matrix& Out,
 
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
+Matrix& ConcatenateVectors(Matrix& Out, const std::vector<Matrix*> ins);
+
+void SplitMatrixToVectors(std::vector<Matrix*>& Outs, const Matrix& In);
+
 void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i);
 
 Matrix& CopyRows(Matrix& Out,

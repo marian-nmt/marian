@@ -116,6 +116,65 @@ Matrix& Concat(Matrix& Out, const Matrix& In) {
   return Out;
 }
 
+
+__global__ void gConcatenateVectors(float* out, const float** in, int rowsNum, int colsNum) {
+  for (int rowIdx = blockIdx.x; rowIdx < rowsNum; rowIdx += gridDim.x) {
+    const float* row = in[rowIdx];
+
+    for (int colIdx = threadIdx.x; colIdx < colsNum; colIdx += blockDim.x) {
+      out[rowIdx * blockDim.x + colIdx] = row[colIdx];
+    }
+  }
+}
+
+Matrix& ConcatenateVectors(Matrix& Out, const std::vector<Matrix*> ins) {
+  int rows = ins.size();
+  const int cols = ins[0]->Cols();
+  std::vector<const float*> inputs;
+  for (auto m : ins) {
+    inputs.push_back(m->data());
+    if (m->Cols() != cols) {
+      std::cerr << "ERROR: concatenate with diff sizes!" << std::endl;
+    }
+  }
+  Out.Resize(rows, cols);
+
+  int threadsNum = std::min(cols, MAX_THREADS);
+  int blocksNum = std::min(rows, MAX_BLOCKS);
+
+  gConcatenateVectors<<<blocksNum, threadsNum, 0, CudaStreamHandler::GetStream()>>>
+    (Out.data(), inputs.data(), rows, cols);
+
+  return Out;
+}
+
+__global__ void gSplitMatrixToVectors(float** outs, const float* in, int rowsNum, int colsNum) {
+  for (int rowIdx = blockIdx.x; rowIdx < rowsNum; rowIdx += gridDim.x) {
+    float* out = outs[rowIdx];
+
+    for (int colIdx = threadIdx.x; colIdx < colsNum; colIdx += blockDim.x) {
+      out[colIdx] = in[rowIdx * blockDim.x + colIdx];
+    }
+  }
+}
+
+void SplitMatrixToVectors(std::vector<Matrix*>& Outs, const Matrix& In) {
+  const int cols = In.Cols();
+  const int rows = In.Rows();
+  std::vector<float*> outs;
+
+  for(auto& m : Outs) {
+    m->Resize(1, cols);
+    outs.push_back(m->data());
+  }
+
+  int threadsNum = std::min(cols, MAX_THREADS);
+  int blocksNum = std::min(rows, MAX_BLOCKS);
+
+  gSplitMatrixToVectors<<<blocksNum, threadsNum, 0, CudaStreamHandler::GetStream()>>>
+    (outs.data(), In.data(), rows, cols);
+}
+
 Matrix& Copy(Matrix& Out, const Matrix& In) {
   Out.Resize(In.Rows(), In.Cols());
   mblas::copy(In.begin(), In.end(), Out.begin());

@@ -24,6 +24,16 @@ class BaseMatrix {
     virtual void Resize(size_t rows, size_t cols) = 0;
 
     virtual std::string Debug() const = 0;
+
+    virtual float GetValue(int row, int col) const = 0;
+
+    virtual std::vector<float> GetScores(const std::vector<std::pair<int, int>>& indices) {
+      std::vector<float> scores;
+      for (auto& p : indices) {
+        scores.push_back(GetValue(p.first, p.second));
+      }
+      return scores;
+    }
 };
 
 }

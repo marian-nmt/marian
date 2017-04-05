@@ -37,6 +37,10 @@ public:
     return Parent::operator=(other);
   }
 
+  virtual float GetValue(int rows, int cols) const {
+    amunmt_UTIL_THROW2("Not implemented");
+  }
+
   virtual size_t Rows() const
   { return Parent::rows(); }
 
@@ -84,6 +88,10 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
        BlazeBase temp(data_.data(), rhs.rows(), rhs.columns());
        temp = rhs;
        std::swap(temp, *(BlazeBase*)this);
+    }
+
+    virtual float GetValue(int rows, int cols) const {
+      amunmt_UTIL_THROW2("Not implemented");
     }
 
     virtual size_t Rows() const
