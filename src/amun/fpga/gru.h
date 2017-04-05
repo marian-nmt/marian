@@ -62,6 +62,12 @@ public:
     Slice(U_, RU_, 1, cols);
     std::cerr << "U_=" << U_.Debug(1) << std::endl;
 
+    BroadcastVecAdd(H_,    w_.Bx1_); // Broadcasting row-wise
+    std::cerr << "H_=" << H_.Debug(1) << std::endl;
+
+    BroadcastVecAdd(Temp2_, w_.Bx2_); // Broadcasting row-wise
+    std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+
     //abort();
   }
 
