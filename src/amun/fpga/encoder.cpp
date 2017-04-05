@@ -37,9 +37,17 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
   return matrix;
 }
 
-void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& context)
+void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& context,
+                        Array<int>& mapping)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
+
+  std::vector<int> hMapping(maxSentenceLength * source.size(), 0);
+  for (size_t i = 0; i < source.size(); ++i) {
+    for (size_t j = 0; j < source.at(i)->GetWords(tab).size(); ++j) {
+      hMapping[i * maxSentenceLength + j] = 1;
+    }
+  }
 
   context.Resize(maxSentenceLength,
                  forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),

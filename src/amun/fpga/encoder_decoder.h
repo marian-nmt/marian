@@ -2,6 +2,7 @@
 #include "common/scorer.h"
 #include "encoder_decoder_state.h"
 #include "matrix.h"
+#include "array.h"
 #include "types-fpga.h"
 
 namespace amunmt {
@@ -48,6 +49,8 @@ protected:
 
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;
+  Array<int> indices_;
+  Array<int> batchMapping_;
 
   const OpenCLInfo &openCLInfo_;
 };

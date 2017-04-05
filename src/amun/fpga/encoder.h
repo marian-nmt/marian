@@ -116,7 +116,8 @@ class Encoder {
 public:
   Encoder(const OpenCLInfo &openCLInfo, const Weights& model);
 
-  void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context);
+  void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context,
+                Array<int>& mapping);
 
 protected:
   Embeddings<Weights::EncEmbeddings> embeddings_;

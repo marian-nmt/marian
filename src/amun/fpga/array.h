@@ -11,6 +11,12 @@ template<typename T>
 class Array
 {
 public:
+  Array(const OpenCLInfo &openCLInfo)
+  :openCLInfo_(openCLInfo)
+  ,size_(0)
+  {
+  }
+
   Array(const OpenCLInfo &openCLInfo, size_t size)
   :openCLInfo_(openCLInfo)
   ,size_(size)

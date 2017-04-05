@@ -29,13 +29,15 @@ EncoderDecoder::EncoderDecoder(
 ,sourceContext_(openCLInfo)
 ,encoder_(new Encoder(openCLInfo, model_))
 ,decoder_(new Decoder(god, model_))
+,indices_(openCLInfo)
+,batchMapping_(openCLInfo)
 {
 
 }
 
 void EncoderDecoder::SetSource(const Sentences& sources)
 {
-  encoder_->GetContext(sources, tab_, sourceContext_);
+  encoder_->GetContext(sources, tab_, sourceContext_, batchMapping_);
   cerr << "FPGA sourceContext_=" << sourceContext_.Debug(1) << endl;
 }
 
