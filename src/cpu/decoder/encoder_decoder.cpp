@@ -28,12 +28,11 @@ using EDState = EncoderDecoderState;
 ////////////////////////////////////////////////
 EncoderDecoderState::EncoderDecoderState()
 {
-	//cerr << "create EncoderDecoderState" << endl;
 }
 
 std::string EncoderDecoderState::Debug() const
 {
-	return CPU::mblas::Debug(states_);
+  return CPU::mblas::Debug(states_);
 }
 
 CPU::mblas::Matrix& EncoderDecoderState::GetStates() {
@@ -52,12 +51,20 @@ const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 
+void EncoderDecoderState::JoinStates(const States& states) {
+}
+
+States EncoderDecoderState::Split() {
+}
+
+
 ////////////////////////////////////////////////
 EncoderDecoder::EncoderDecoder(const std::string& name,
                                const YAML::Node& config,
+                               const DeviceInfo& deviceInfo,
                                size_t tab,
                                const Weights& model)
-  : Scorer(name, config, tab),
+  : Scorer(name, config, deviceInfo,tab),
     model_(model),
     encoder_(new CPU::Encoder(model_)),
     decoder_(new CPU::Decoder(model_))
@@ -137,20 +144,20 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                                            const YAML::Node& config)
   : Loader(name, config) {}
 
-void EncoderDecoderLoader::Load(const God &god) {
+void EncoderDecoderLoader::Load(const God&) {
   std::string path = Get<std::string>("path");
 
   LOG(info, "Loading model {}", path);
   weights_.emplace_back(new Weights(path, 0));
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God&, const DeviceInfo &deviceInfo) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-  return ScorerPtr(new EncoderDecoder(name_, config_,
+  return ScorerPtr(new EncoderDecoder(name_, config_, deviceInfo,
                                       tab, *weights_[0]));
 }
 
-BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
+BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God&) const {
   return BestHypsBasePtr(new CPU::BestHyps());
 }
 

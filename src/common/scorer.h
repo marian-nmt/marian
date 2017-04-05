@@ -13,11 +13,17 @@ namespace amunmt {
 class God;
 class Sentences;
 
+class State;
+typedef std::shared_ptr<State> StatePtr;
+typedef std::vector<StatePtr> States;
+
+
 class State {
   public:
-	State() {}
-	State(const State &) = delete;
-	virtual ~State() {}
+    State() {}
+    State(const State &) = delete;
+
+    virtual ~State() {}
 
     template <class T>
     T& get() {
@@ -26,20 +32,20 @@ class State {
 
     template <class T>
     const T& get() const {
-      return static_cast<const T&>(*this);;
+      return static_cast<const T&>(*this);
     }
 
     virtual std::string Debug() const = 0;
 
+    virtual void JoinStates(const States& states) = 0;
+    virtual States Split() = 0;
 };
 
-typedef std::shared_ptr<State> StatePtr;
-typedef std::vector<StatePtr> States;
 
 class Scorer {
   public:
     Scorer(const std::string& name,
-           const YAML::Node& config, size_t tab);
+           const YAML::Node& config, const DeviceInfo& devInfo, size_t tab);
 
     virtual ~Scorer() {}
 
@@ -66,19 +72,24 @@ class Scorer {
       return name_;
     }
 
+    virtual const DeviceInfo& GetDeviceInfo() const {
+      return deviceInfo_;
+    }
+
     virtual BaseMatrix& GetProbs() = 0;
 
   protected:
     const std::string& name_;
     const YAML::Node& config_;
+    const DeviceInfo deviceInfo_;
     size_t tab_;
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
     SourceIndependentScorer(const std::string& name,
-                            const YAML::Node& config, size_t)
-    : Scorer(name, config, 0) {}
+                            const YAML::Node& config, const DeviceInfo& devInfo, size_t)
+    : Scorer(name, config, devInfo, 0) {}
 
     virtual ~SourceIndependentScorer() {}
 

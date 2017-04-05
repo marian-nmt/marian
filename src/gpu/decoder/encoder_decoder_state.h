@@ -10,8 +10,8 @@ namespace GPU {
 
 class EncoderDecoderState : public State {
   public:
-	EncoderDecoderState(const EncoderDecoderState&) = delete;
-	EncoderDecoderState() {}
+    EncoderDecoderState(const EncoderDecoderState&) = delete;
+    EncoderDecoderState() {}
 
     virtual std::string Debug() const;
 
@@ -20,10 +20,13 @@ class EncoderDecoderState : public State {
     const mblas::Matrix& GetStates() const;
     const mblas::Matrix& GetEmbeddings() const;
 
-  private:
+    virtual void JoinStates(const States& states);
+    virtual States Split();
+
+  protected:
     mblas::Matrix states_;
     mblas::Matrix embeddings_;
 };
 
-}
 }  // namespace GPU
+}  // namespace amunmt

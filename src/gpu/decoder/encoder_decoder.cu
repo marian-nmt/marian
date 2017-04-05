@@ -37,20 +37,54 @@ const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 
+void EncoderDecoderState::JoinStates(const States& states) {
+  std::vector<mblas::Matrix*> embMatrices;
+  std::vector<mblas::Matrix*> stateMatrices;
+
+  for (auto& statePtr : states) {
+    embMatrices.push_back(&(statePtr->get<EncoderDecoderState>().GetEmbeddings()));
+    stateMatrices.push_back(&(statePtr->get<EncoderDecoderState>().GetStates()));
+  }
+
+  ConcatenateVectors(embeddings_, embMatrices);
+  ConcatenateVectors(states_, stateMatrices);
+}
+
+States EncoderDecoderState::Split() {
+  int rows = states_.Rows();
+  int cols = states_.Cols();
+
+  States outStates(rows);
+  std::vector<mblas::Matrix*> outEmb;
+  std::vector<mblas::Matrix*> outSta;
+
+  for (auto& state : outStates) {
+    state.reset(new EncoderDecoderState());
+    outEmb.push_back(&state->get<EncoderDecoderState>().GetEmbeddings());
+    outSta.push_back(&state->get<EncoderDecoderState>().GetStates());
+  }
+
+  mblas::SplitMatrixToVectors(outEmb, embeddings_);
+  mblas::SplitMatrixToVectors(outSta, states_);
+
+  return outStates;
+}
+
 ////////////////////////////////////////////
 
 EncoderDecoder::EncoderDecoder(
-		const God &god,
-		const std::string& name,
-        const YAML::Node& config,
-        size_t tab,
-        const Weights& model)
-  : Scorer(name, config, tab),
-    model_(model),
-    encoder_(new Encoder(model_)),
-    decoder_(new Decoder(god, model_)),
-    indices_(god.Get<size_t>("beam-size")),
-    SourceContext_(new mblas::Matrix())
+    const God &god,
+    const std::string& name,
+    const YAML::Node& config,
+    const DeviceInfo& devInfo,
+    size_t tab,
+    const Weights& model)
+: Scorer(name, config, devInfo,tab),
+  model_(model),
+  encoder_(new Encoder(model_)),
+  decoder_(new Decoder(god, model_)),
+  indices_(god.Get<size_t>("beam-size")),
+  SourceContext_(new mblas::Matrix())
 {}
 
 void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
@@ -160,14 +194,14 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
   }
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God& god, const DeviceInfo& deviceInfo) const {
   //size_t i = deviceInfo.threadInd;
   size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
   //cerr << "NewScorer=" << i << " " << d << endl;
 
   HANDLE_ERROR(cudaSetDevice(d));
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-  return ScorerPtr(new EncoderDecoder(god, name_, config_,
+  return ScorerPtr(new EncoderDecoder(god, name_, config_, deviceInfo,
                                       tab, *weights_[d]));
 }
 

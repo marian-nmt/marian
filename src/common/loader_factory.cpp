@@ -16,11 +16,11 @@
 namespace amunmt {
 
 LoaderPtr LoaderFactory::Create(
-	const God &god,
+    const God &god,
     const std::string& name,
     const YAML::Node& config,
     const std::string& mode) {
-	Loader *loader;
+  Loader *loader;
 
   if (HAS_GPU_SUPPORT && (mode == "GPU")) {
     loader = CreateGPU(god, name, config);
@@ -37,8 +37,8 @@ LoaderPtr LoaderFactory::Create(
     return LoaderPtr(loader);
   }
 
-	std::string type = config["type"].as<std::string>();
-	amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
+  std::string type = config["type"].as<std::string>();
+  amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
 }
 
 #ifdef CUDA
@@ -47,7 +47,7 @@ Loader *LoaderFactory::CreateGPU(
     const std::string& name,
     const YAML::Node& config) {
   amunmt_UTIL_THROW_IF2(!config["type"],
-				 "Missing scorer type in config file");
+                        "Missing scorer type in config file");
 
   std::string type = config["type"].as<std::string>();
   IF_MATCH_RETURN(god, type, "Nematus", GPU::EncoderDecoderLoader);
@@ -70,8 +70,8 @@ Loader *LoaderFactory::CreateGPU(
 
 
 Loader *LoaderFactory::CreateCPU(
-		const God &god,
-		const std::string& name,
+    const God &god,
+    const std::string& name,
         const YAML::Node& config) {
   amunmt_UTIL_THROW_IF2(!config["type"],
          "Missing scorer type in config file");

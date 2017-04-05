@@ -23,22 +23,24 @@ class Decoder;
 
 class EncoderDecoderState : public State {
   public:
-	EncoderDecoderState();
-	EncoderDecoderState(const EncoderDecoderState&) = delete;
+    EncoderDecoderState();
+    EncoderDecoderState(const EncoderDecoderState&) = delete;
 
     virtual std::string Debug() const;
 
     CPU::mblas::Matrix& GetStates();
 
-  	CPU::mblas::Matrix& GetEmbeddings();
+    CPU::mblas::Matrix& GetEmbeddings();
 
     const CPU::mblas::Matrix& GetStates() const;
 
     const CPU::mblas::Matrix& GetEmbeddings() const;
 
-  private:
-    //EncoderDecoderState();
+    virtual void JoinStates(const States& states);
 
+    virtual States Split();
+
+  private:
     CPU::mblas::Matrix states_;
     CPU::mblas::Matrix embeddings_;
 };
@@ -51,10 +53,14 @@ class EncoderDecoder : public Scorer {
   public:
     EncoderDecoder(const std::string& name,
                    const YAML::Node& config,
+                   const DeviceInfo& devInfo,
                    size_t tab,
                    const Weights& model);
 
-    virtual void Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes);
+    virtual void Decode(const God &god,
+                        const State& in,
+                        State& out,
+                        const std::vector<size_t>& beamSizes);
 
     virtual State* NewState() const;
 

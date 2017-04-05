@@ -31,8 +31,9 @@ class EncoderDecoder : public Scorer {
 
   public:
     EncoderDecoder(const God &god,
-    			   const std::string& name,
+                   const std::string& name,
                    const YAML::Node& config,
+                   const DeviceInfo& devInfo,
                    size_t tab,
                    const Weights& model);
 
@@ -78,7 +79,7 @@ class EncoderDecoderLoader : public Loader {
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
     virtual ~EncoderDecoderLoader();
-    
+
     virtual void Load(const God &god);
 
     virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
