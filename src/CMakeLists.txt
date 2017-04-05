@@ -87,10 +87,8 @@ set_target_properties("python" PROPERTIES OUTPUT_NAME "amunmt")
 endif(PYTHONLIBS_FOUND)
 
 cuda_add_library(mosesplugin STATIC
-  plugin/hypo_info.cpp
-  #plugin/nbest.cu
-  plugin/nmt.cu
-  plugin/neural_phrase.cpp
+  plugin/nmt.cpp
+  plugin/nbest.cpp
   gpu/decoder/encoder_decoder.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
