@@ -346,7 +346,16 @@ void Config::AddOptions(size_t argc, char** argv) {
   if (Get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(config_, boost::filesystem::path{configPath}.parent_path(), false);
 
-  Validate(config_);
+  try {
+    Validate(config_);
+  }
+  catch(util::Exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl << std::endl;
+
+    std::cerr << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
+    std::cerr << cmdline_options << std::endl;
+    exit(1);
+  }
 
   if(vm_["dump-config"].as<bool>()) {
     YAML::Emitter emit;

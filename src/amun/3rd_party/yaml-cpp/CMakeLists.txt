@@ -1,0 +1,35 @@
+include_directories(..)
+include_directories(.)
+if (NOT TARGET libyaml-cpp-amun)
+  add_library(libyaml-cpp-amun OBJECT
+    regex_yaml.cpp
+    nodebuilder.cpp
+    scanscalar.cpp
+    scanner.cpp
+    parser.cpp
+    stream.cpp
+    convert.cpp
+    directives.cpp
+    singledocparser.cpp
+    memory.cpp
+    node.cpp
+    exp.cpp
+    emitter.cpp
+    emit.cpp
+    null.cpp
+    binary.cpp
+    emitfromevents.cpp
+    scantoken.cpp
+    emitterstate.cpp
+    scantag.cpp
+    simplekey.cpp
+    nodeevents.cpp
+    tag.cpp
+    contrib/graphbuilderadapter.cpp
+    contrib/graphbuilder.cpp
+    node_data.cpp
+    emitterutils.cpp
+    parse.cpp
+    ostream_wrapper.cpp
+    )
+endif()
