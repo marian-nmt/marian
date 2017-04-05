@@ -28,11 +28,11 @@
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.1524755858" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1161561942" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="nvcc.compiler.include.paths.1969488368" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/../../src/3rd_party&quot;"/>
-									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/common"/>
-									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/mblas"/>
-									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/dl4mt"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/amun"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/}/../../src/amun/3rd_party&quot;"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/amun/common"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/amun/mblas"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/amun/dl4mt"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../boost/include"/>
 								</option>
 								<option id="nvcc.compiler.cpp11option.1982513734" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
@@ -75,12 +75,19 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.726231141" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1910656954" name="language_model.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/language_model.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1177572641" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/kenlm.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.896636984" name="class_language_model.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/class_language_model.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1851792764" name="language_model.cu" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/language_model.cu" toolsToInvoke="nvcc.compiler.base.366234936.1900182396">
+						<tool id="nvcc.compiler.base.366234936.1900182396" name="NVCC Compiler" superClass="nvcc.compiler.base.366234936"/>
+					</fileInfo>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.769555163" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.746865269" name="language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/language_model.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.14115701" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/kenlm.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.231195644" name="class_language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/class_language_model.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="src/cpu|src/half|src/gpu/decoder/language_model.h|src/gpu/decoder/language_model.cu|src/gpu/decoder/kenlm.h|src/gpu/decoder/kenlm.cpp|src/gpu/decoder/class_language_model.h|src/gpu/decoder/ape_penalty.h|src/gpu/decoder/ape_penalty.cu|src/plugin|src/python|src/3rd_party/spdlog/fmt/bundled/ostream.cc|src/3rd_party/spdlog/fmt/bundled/format.cc|src/3rd_party/spdlog/details/format.cc|src/3rd_party/fast_align|src/3rd_party/extract_lex|src/3rd_party/blaze|plugin/nbest.h|plugin/nbest.cu|python|gpu/decoder/ape_penalty.h|gpu/decoder/ape_penalty.cu|gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/amun/gpu/decoder/language_model.cu|src/amun/gpu/decoder/language_model.h|src/amun/gpu/decoder/kenlm.h|src/amun/gpu/decoder/kenlm.cpp|src/amun/gpu/decoder/class_language_model.h|src/amun/gpu/decoder/ape_penalty.h|src/amun/gpu/decoder/ape_penalty.cu|src/amun/cpu|src/amun/3rd_party/fast_align|src/amun/3rd_party/extract_lex|src/amun/3rd_party/blaze|src/amun/python|src/amun/plugin|src/cpu|src/half|src/gpu/decoder/language_model.h|src/gpu/decoder/language_model.cu|src/gpu/decoder/kenlm.h|src/gpu/decoder/kenlm.cpp|src/gpu/decoder/class_language_model.h|src/gpu/decoder/ape_penalty.h|src/gpu/decoder/ape_penalty.cu|src/plugin|src/python|src/3rd_party/spdlog/fmt/bundled/ostream.cc|src/3rd_party/spdlog/fmt/bundled/format.cc|src/3rd_party/spdlog/details/format.cc|src/3rd_party/fast_align|src/3rd_party/extract_lex|src/3rd_party/blaze|plugin/nbest.h|plugin/nbest.cu|python|gpu/decoder/ape_penalty.h|gpu/decoder/ape_penalty.cu|gpu/decoder/language_model.cu|gpu/decoder/language_model.h|gpu/decoder/kenlm.h|gpu/decoder/kenlm.cpp|decoder/kenlm.h|decoder/kenlm.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -90,6 +90,16 @@ class Encoder {
       while(it != end) {
         GetNextState(State_, prevState, *it++);
 
+        if(invert) {
+          //mblas::MapMatrix(State_, *mapping, n - i - 1);
+
+        }
+        else {
+
+        }
+
+        prevState.Swap(State_);
+        ++i;
       }
 
     }
