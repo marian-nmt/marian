@@ -34,11 +34,13 @@ class Search {
     		std::shared_ptr<Histories> &histories,
     		Beam &prevHyps);
 
-    const DeviceInfo &GetDeviceInfo() const
-    { return deviceInfo_; }
+    const DeviceInfo &GetDeviceInfo() const {
+      return deviceInfo_;
+    }
 
-    const std::vector<ScorerPtr> &GetScorers() const
-    { return scorers_; }
+    const std::vector<ScorerPtr> &GetScorers() const {
+      return scorers_;
+    }
 
   private:
     Search(const Search &) = delete;
