@@ -65,8 +65,10 @@ public:
     BroadcastVecAdd(H_,    w_.Bx1_); // Broadcasting row-wise
     std::cerr << "H_=" << H_.Debug(1) << std::endl;
 
+    std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
+    std::cerr << "w_.Bx2_=" << w_.Bx2_.Debug(1) << std::endl;
     BroadcastVecAdd(Temp2_, w_.Bx2_); // Broadcasting row-wise
-    std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+    std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
     //abort();
   }
