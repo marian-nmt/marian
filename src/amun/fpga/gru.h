@@ -62,6 +62,7 @@ public:
     Slice(U_, RU_, 1, cols);
     std::cerr << "U_=" << U_.Debug(1) << std::endl;
 
+    //abort();
   }
 
 protected:
