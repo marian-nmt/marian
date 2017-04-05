@@ -138,6 +138,20 @@ __kernel void gElementTanh(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
+__kernel void gElementWhatever(__global float* out, 
+                          __global const float* in1, 
+                          __global const float* in2,
+                          uint rows, uint cols) 
+{
+  uint noElements = rows * cols;
+  for (uint i = 0; i < noElements; ++i) {
+    // (1.0 - _1) * _2 + _1 * _3
+    out[i] = (1.0f - out[i]) * in1[i] + out[i] * in2[i];
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 __kernel void gBroadcastVecAdd(__global float* out, 
                               __global const float* in, 
                               uint rows, uint cols) 
