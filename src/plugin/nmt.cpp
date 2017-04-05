@@ -4,306 +4,257 @@
 #include <string>
 #include <vector>
 #include <cmath>
-#include <boost/timer/timer.hpp>
 
 #include "nmt.h"
-#include "mblas/matrix.h"
-#include "dl4mt.h"
+#include "common/sentences.h"
 #include "common/vocab.h"
-#include "common/states.h"
+#include "common/scorer.h"
+#include "common/types.h"
+#include "common/god.h"
+#include <cuda.h>
 
-using namespace mblas;
+using namespace amunmt;
 
-NMT::NMT(const boost::shared_ptr<Weights> model,
-         const boost::shared_ptr<Vocab> src,
-         const boost::shared_ptr<Vocab> trg)
-  : debug_(false), w_(model), src_(src), trg_(trg),
-    encoder_(new Encoder(*w_)), decoder_(new Decoder(*w_)),
-    states_(new States()), firstWord_(true)
-  {
-    for(size_t i = 0; i < trg_->size(); ++i)
-      filteredId_.push_back(i);
-  }
+std::shared_ptr<God> NMT::god_ = nullptr;
 
-void NMT::PrintState(StateInfoPtr ptr) {
-  std::cerr << *ptr << std::endl;
+void NMT::InitGod(const std::string& configFilePath) {
+  std::string argv = "-c " + configFilePath;
+  god_.reset(new God());
+  god_->Init(argv);
 }
 
-size_t NMT::GetDevices(size_t maxDevices) {
-  int num_gpus = 0;   // number of CUDA GPUs
-  cudaGetDeviceCount(&num_gpus);
-  std::cerr << "Number of CUDA devices: " << num_gpus << std::endl;
+size_t NMT::GetTotalThreads()
+{
+  return god_->GetTotalThreads();
+}
 
-  for (int i = 0; i < num_gpus; i++) {
-      cudaDeviceProp dprop;
-      cudaGetDeviceProperties(&dprop, i);
-      std::cerr << i << ": " << dprop.name << std::endl;
-  }
-  return (size_t)std::min(num_gpus, (int)maxDevices);
+NMT::NMT(std::vector<ScorerPtr>& scorers)
+  : debug_(false),
+    scorers_(scorers),
+    states_(new States()),
+    firstWord_(true)
+{
+}
+
+
+void NMT::ClearStates()
+{
+  firstWord_ = true;
+  states_->clear();
 }
 
 void NMT::SetDevice() {
-  cudaSetDevice(w_->GetDevice());
-  CublasHandler::StaticHandle();
-}
-
-
-size_t NMT::GetDevice() {
-  return w_->GetDevice();
-}
-
-void NMT::ClearStates() {
-  firstWord_ = true;
-  states_->Clear();
-}
-
-boost::shared_ptr<Weights> NMT::NewModel(const std::string& path, size_t device) {
-  std::cerr << "Got device " << device << std::endl;
-  cudaSetDevice(device);
-  CublasHandler::StaticHandle();
-  boost::shared_ptr<Weights> weights(new Weights(path, device));
-  return weights;
-}
-
-boost::shared_ptr<Vocab> NMT::NewVocab(const std::string& path) {
-  boost::shared_ptr<Vocab> vocab(new Vocab(path));
-  return vocab;
-}
-
-size_t NMT::TargetVocab(const std::string& str) {
-  return (*trg_)[str];
-}
-
-void NMT::CalcSourceContext(const std::vector<std::string>& s) {
-  std::vector<size_t> words(s.size());
-  std::transform(s.begin(), s.end(), words.begin(),
-                 [&](const std::string& w) { return (*src_)[w]; });
-  words.push_back((*src_)["eos"]);
-
-  SourceContext_.reset(new Matrix());
-  Matrix& SC = *boost::static_pointer_cast<Matrix>(SourceContext_);
-  encoder_->GetContext(words, SC);
-}
-
-StateInfoPtr NMT::EmptyState() {
-  Matrix& SC = *boost::static_pointer_cast<Matrix>(SourceContext_);
-  Matrix Empty;
-  decoder_->EmptyState(Empty, SC, 1);
-  std::vector<StateInfoPtr> infos;
-  states_->SaveStates(infos, Empty);
-  return infos.back();
-}
-
-void NMT::FilterTargetVocab(const std::set<std::string>& filter, size_t topN) {
-  filteredId_.resize(topN);
-  std::set<size_t> ids(filteredId_.begin(), filteredId_.end());
-  filteredId_.resize(trg_->size(), 1); // set all to UNK
-
-  size_t k = topN;
-  for(auto& s : filter) {
-    size_t id = (*trg_)[s];
-    if(ids.count(id) == 0) {
-      ids.insert(id);
-      filteredId_[id] = k;
-      k++;
-    }
-  }
-  // eol
-  std::vector<size_t> numericFilter(ids.begin(), ids.end());
-  decoder_->Filter(numericFilter);
-}
-
-void NMT::BatchSteps(const Batches& batches, LastWords& lastWords,
-                     Scores& probsOut, Scores& unksOut, StateInfos& stateInfos,
-                     bool firstWord) {
-  Matrix& sourceContext = *boost::static_pointer_cast<Matrix>(SourceContext_);
-
-  Matrix prevEmbeddings;
-  Matrix nextEmbeddings;
-  Matrix prevStates;
-  Matrix probs;
-  Matrix nextStates;
-
-  if(firstWord) {
-    decoder_->EmptyEmbedding(prevEmbeddings, lastWords.size());
-  }
-  else {
-    // Not the first word
-    decoder_->Lookup(prevEmbeddings, lastWords);
+  const DeviceInfo& deviceInfo = scorers_[0]->GetDeviceInfo();
+  if (deviceInfo.deviceType == GPUDevice) {
+    cudaSetDevice(deviceInfo.deviceId);
   }
 
-  states_->ConstructStates(prevStates, stateInfos);
-
-  for(auto& batch : batches) {
-    decoder_->MakeStep(nextStates, probs,
-                       prevStates, prevEmbeddings, sourceContext);
-    decoder_->Lookup(nextEmbeddings, batch);
-    StateInfos tempStates;
-    states_->SaveStates(tempStates, nextStates);
-
-    for(size_t i = 0; i < batch.size(); ++i) {
-      if(batch[i] != 0) {
-        float p = probs(i, filteredId_[batch[i]]);
-        probsOut[i] += log(p);
-        stateInfos[i] = tempStates[i];
-      }
-      if(batch[i] == 1) {
-        unksOut[i]++;
-      }
-    }
-    Swap(nextStates, prevStates);
-    Swap(nextEmbeddings, prevEmbeddings);
-  }
 }
+
+
+States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
+{
+  Sentences sentences;
+  sentences.push_back(SentencePtr(new Sentence(*god_, 0, srcWords)));
+
+  size_t numScorers = scorers_.size();
+
+  ClearStates();
+
+  States states = NewStates();
+
+  for (size_t i = 0; i < scorers_.size(); ++i) {
+    scorers_[i]->SetSource(sentences);
+    scorers_[i]->BeginSentenceState(*states[i], sentences.size());
+  }
+
+  return states;
+}
+
+
+States NMT::NewStates() const
+{
+  size_t numScorers = scorers_.size();
+
+  States states(numScorers);
+  for (size_t i = 0; i < numScorers; i++) {
+    Scorer &scorer = *scorers_[i];
+    states[i].reset(scorer.NewState());
+  }
+
+  return states;
+}
+
+
+std::vector<ScorerPtr> NMT::NewScorers()
+{
+  auto deviceInfo_ = god_->GetNextDevice();
+  auto scorers = god_->GetScorers(deviceInfo_);
+  return scorers;
+}
+
+
+size_t NMT::TargetVocab(const std::string& str)
+{
+  return god_->GetTargetVocab()[str];
+}
+
 
 void NMT::OnePhrase(
   const std::vector<std::string>& phrase,
-  const std::string& lastWord,
-  bool firstWord,
-  StateInfoPtr inputState,
-  float& prob, size_t& unks,
-  StateInfoPtr& outputState) {
+  const States& inputStates,
+  float& prob,
+  size_t& unks,
+  States& outputStates)
+{
+  States prevStates = NewStates();
+  States nextStates = NewStates();
 
-  Matrix& sourceContext = *boost::static_pointer_cast<Matrix>(SourceContext_);
 
-  Matrix prevEmbeddings;
-  Matrix nextEmbeddings;
-  Matrix prevStates;
-  Matrix probs;
-  Matrix alignedSourceContext;
-  Matrix nextStates;
-
-  if(firstWord) {
-    decoder_->EmptyEmbedding(prevEmbeddings, 1);
-  }
-  else {
-    // Not the first word
-    std::vector<size_t> ids = { (*trg_)[lastWord] };
-    decoder_->Lookup(prevEmbeddings, ids);
-  }
-
-  std::vector<StateInfoPtr> inputStates = { inputState };
-  states_->ConstructStates(prevStates, inputStates);
-
-  for(auto& w : phrase) {
-    size_t id = (*trg_)[w];
-    std::vector<size_t> nextIds = { id };
-    if(id == 1)
+  for (size_t wordIdx = 0; wordIdx < phrase.size(); ++wordIdx) {
+    size_t id = god_->GetTargetVocab()[phrase[wordIdx]];
+    if(id == 1) {
       unks++;
+    }
 
-    decoder_->MakeStep(nextStates, probs,
-                       prevStates, prevEmbeddings, sourceContext);
-    decoder_->Lookup(nextEmbeddings, nextIds);
-    float p = probs(0, filteredId_[id]);
-    prob += log(p);
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      Scorer &scorer = *scorers_[i];
+      State &state = (wordIdx == 0) ? *inputStates[i] : *prevStates[i];
+      State &nextState = *nextStates[i];
 
-    Swap(nextStates, prevStates);
-    Swap(nextEmbeddings, prevEmbeddings);
+      scorer.Decode(*god_, state, nextState, {1});
+      prob += scorer.GetProbs().GetValue(0, id);
+      Beam survivor;
+      survivor.emplace_back(new Hypothesis(nullptr, id, 0, prob));
+      scorers_[i]->AssembleBeamState(*nextStates[i], survivor, state);
+    }
   }
-
-  std::vector<StateInfoPtr> outputStates;
-  states_->SaveStates(outputStates, prevStates);
-  outputState = outputStates.back();
+  std::swap(nextStates, outputStates);
 }
 
-void NMT::MakeStep(
-  const std::vector<std::string>& nextWords,
-  const std::vector<std::string>& lastWords,
-  std::vector<StateInfoPtr>& inputStates,
-  std::vector<double>& logProbs,
-  std::vector<StateInfoPtr>& outputStates,
-  std::vector<bool>& unks) {
+void NMT::BatchSteps(const Batches& batches,
+                     Scores& probsOut,
+                     Scores& unksOut,
+                     std::vector<States>& inputStates)
+{
+  States prevStates = NewStates();
+  States nextStates = NewStates();
 
-  Matrix& sourceContext = *boost::static_pointer_cast<Matrix>(SourceContext_);
-
-  Matrix lastEmbeddings;
-  if(firstWord_) {
-    firstWord_ = false;
-    // Only empty state in state cache, so this is the first word
-    decoder_->EmptyEmbedding(lastEmbeddings, lastWords.size());
-  }
-  else {
-    // Not the first word
-    std::vector<size_t> lastIds(lastWords.size());
-    std::transform(lastWords.begin(), lastWords.end(), lastIds.begin(),
-                   [&](const std::string& w) { return (*trg_)[w]; });
-    decoder_->Lookup(lastEmbeddings, lastIds);
+  std::vector<States> tmp(scorers_.size());
+  for (auto& states : inputStates) {
+    for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
+      tmp[scorerIdx].push_back(states[scorerIdx]);
+    }
   }
 
-  Matrix nextEmbeddings;
-  std::vector<size_t> nextIds(nextWords.size());
-  std::transform(nextWords.begin(), nextWords.end(), nextIds.begin(),
-                 [&](const std::string& w) { return (*trg_)[w]; });
-
-  Matrix prevStates;
-  states_->ConstructStates(prevStates, inputStates);
-
-  Matrix probs;
-  Matrix nextStates;
-
-  decoder_->MakeStep(nextStates, probs,
-                     prevStates, lastEmbeddings, sourceContext);
-  decoder_->Lookup(nextEmbeddings, nextIds);
-  states_->SaveStates(outputStates, nextStates);
-
-  for(auto id : nextIds) {
-    if(id != 1)
-      unks.push_back(true);
-    else
-      unks.push_back(false);
+  for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
+    prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
   }
 
-  for(size_t i = 0; i < nextIds.size(); ++i) {
-    float p = probs(i, filteredId_[nextIds[i]]);
-    //float p = probs(i, nextIds[i]);
-    logProbs.push_back(log(p));
+
+  bool isFirst = true;
+  for (auto& batch : batches) {
+    std::vector<std::pair<int, int>> indices;
+    for (size_t i = 0; i < batch.size(); ++i) {
+      indices.push_back(std::make_pair(i, (batch[i] == -1) ? 0 : batch[i]));
+    }
+
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      Scorer &scorer = *scorers_[i];
+      const State &state =  *prevStates[i];
+      State &nextState = *nextStates[i];
+
+      if (isFirst) {
+        scorer.Decode(*god_, state, nextState, {1});
+        isFirst = false;
+      } else {
+        scorer.Decode(*god_, state, nextState, {batch.size()});
+      }
+    }
+
+    for (auto& scorer : scorers_) {
+      auto logProbs = scorer->GetProbs().GetScores(indices);
+      for (size_t i = 0; i < batch.size(); ++i) {
+        if (batch[i] != -1) {
+          probsOut[i] += logProbs[i];
+        }
+
+        if (batch[i] == UNK_ID) {
+          unksOut[i]++;
+        }
+      }
+    }
+
+    Beam survivors;
+    for (size_t i = 0; i < batch.size(); ++i) {
+      survivors.emplace_back(new Hypothesis(nullptr, i, (batch[i] == -1) ? 0 : batch[i], 0.0f));
+    }
+
+    for (size_t i = 0; i < scorers_.size(); ++i) {
+      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
+    }
   }
+
+  // TODO: split states
 }
+
 
 std::vector<double> NMT::RescoreNBestList(
     const std::vector<std::string>& nbest,
-    const size_t maxBatchSize) {
-
-  mblas::Matrix PrevState;
-  mblas::Matrix PrevEmbedding;
-  mblas::Matrix Probs;
-  mblas::Matrix State;
-  mblas::Matrix Embedding;
-
-  NBest nBest(src_, trg_, nbest);
-
+    const size_t maxBatchSize)
+{
   std::vector<double> nBestScores;
-  for (auto& batch: nBest.DivideNBestListIntoBatches()) {
+
+  NBest nBest(nbest, god_->GetTargetVocab(), maxBatchSize);
+  for (auto& batch: nBest.SplitNBestListIntoBatches()) {
+    States prevStates = NewStates();
+    States nextStates = NewStates();
+
+    for (size_t i = 0; i < scorers_.size(); ++i) {
+      scorers_[i]->BeginSentenceState(*prevStates[i], {1});
+    }
+
     size_t batchSize = batch[0].size();
 
-    decoder_->EmptyState(
-        PrevState,
-        *boost::static_pointer_cast<Matrix>(SourceContext_),
-        batchSize);
-    decoder_->EmptyEmbedding(PrevEmbedding, batchSize);
-
     std::vector<float> scores(batch[0].size(), 0.0f);
-    size_t lengthIndex = 0;
-    for (auto& w : batch) {
-      decoder_->MakeStep(State, Probs, PrevState, PrevEmbedding,
-          *boost::static_pointer_cast<Matrix>(SourceContext_));
 
-      for (size_t j = 0; j < w.size(); ++j) {
-        if (batch[lengthIndex][j]) {
-          float p = Probs(j, w[j]);
-          scores[j] += log(p);
+    bool isFirst = true;
+    for (auto& w : batch) {
+      for (size_t i = 0; i < scorers_.size(); i++) {
+        Scorer &scorer = *scorers_[i];
+        const State &state =  *prevStates[i];
+        State &nextState = *nextStates[i];
+
+        if (isFirst) {
+          scorer.Decode(*god_, state, nextState, {1});
+          isFirst = false;
+        } else {
+          scorer.Decode(*god_, state, nextState, {batch.size()});
         }
       }
 
-      decoder_->Lookup(Embedding, w);
+      std::vector<std::pair<int, int>> indices;
+      for (size_t i = 0; i < batchSize; ++i) {
+        indices.push_back(std::make_pair(i, (w[i] == -1) ? 0 : w[i]));
+      }
 
-      mblas::Swap(State, PrevState);
-      mblas::Swap(Embedding, PrevEmbedding);
-      ++lengthIndex;
+      for (auto& scorer : scorers_) {
+        auto logProbs = scorer->GetProbs().GetScores(indices);
+        for (size_t i = 0; i < batch.size(); ++i) {
+          if (w[i] != -1) {
+            scores[i] += logProbs[i];
+          }
+        }
+      }
+
+      Beam survivors;
+      for (size_t i = 0; i < batch.size(); ++i) {
+        survivors.emplace_back(new Hypothesis(nullptr, i, (w[i] == -1) ? 0 : w[i], 0.0f));
+      }
     }
 
-    for (int i = 0; i < scores.size(); ++i) {
-      nBestScores.push_back(scores[i]);
+    for (auto score : scores) {
+      nBestScores.push_back(score);
     }
   }
   return nBestScores;
