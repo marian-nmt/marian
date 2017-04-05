@@ -60,7 +60,12 @@ class SlowGRU {
       BroadcastVec(_1 + _2, Temp2_, w_.Bx2_); // Broadcasting row-wise
       std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
+      std::cerr << "1H_=" << H_.Debug(1) << std::endl;
+      std::cerr << "R_=" << R_.Debug(1) << std::endl;
+      std::cerr << "Temp2__=" << Temp2_.Debug(1) << std::endl;
       Element(Tanh(_1 + _2 * _3), H_, R_, Temp2_);
+      std::cerr << "2H_=" << H_.Debug(1) << std::endl;
+
       Element((1.0 - _1) * _2 + _1 * _3, U_, H_, State);
       // -----------------------------------------------------
 

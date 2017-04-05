@@ -121,7 +121,19 @@ __kernel void gElementwiseOps(__global float* out,
                                 __global const float* bx2,
                                 uint rows, uint cols) 
 {
+}
 
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gElementTanh(__global float* out, 
+                          __global const float* in1, 
+                          __global const float* in2,
+                          uint rows, uint cols) 
+{
+  uint noElements = rows * cols;
+  for (uint i = 0; i < noElements; ++i) {
+    out[i] = tanh(out[i] + in1[i] * in2[i]);
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////
