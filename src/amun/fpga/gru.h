@@ -76,6 +76,12 @@ public:
     ElementTanh(H_, R_, Temp2_);
     std::cerr << "2H_=" << H_.Debug(1) << std::endl;
 
+    std::cerr << "1U_=" << U_.Debug(1) << std::endl;
+    std::cerr << "H_=" << H_.Debug(1) << std::endl;
+    std::cerr << "State=" << State.Debug(1) << std::endl;
+    ElementWhatever(U_, H_, State);
+    std::cerr << "2U_=" << H_.Debug(1) << std::endl;
+
     //abort();
   }
 

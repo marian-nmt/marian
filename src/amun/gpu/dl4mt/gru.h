@@ -66,7 +66,11 @@ class SlowGRU {
       Element(Tanh(_1 + _2 * _3), H_, R_, Temp2_);
       std::cerr << "2H_=" << H_.Debug(1) << std::endl;
 
+      std::cerr << "1U_=" << U_.Debug(1) << std::endl;
+      std::cerr << "H_=" << H_.Debug(1) << std::endl;
+      std::cerr << "State=" << State.Debug(1) << std::endl;
       Element((1.0 - _1) * _2 + _1 * _3, U_, H_, State);
+      std::cerr << "2U_=" << H_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
       Swap(NextState, U_);

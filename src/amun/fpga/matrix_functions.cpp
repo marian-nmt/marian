@@ -481,6 +481,12 @@ Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2)
 
 }
 
+Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2)
+{
+
+}
+
+
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
               uint n, uint dim)
