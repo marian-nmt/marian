@@ -1,4 +1,5 @@
 #pragma once
+#include "matrix_functions.h"
 
 namespace amunmt {
 namespace FPGA {

@@ -2,7 +2,6 @@
 
 #include "model.h"
 #include "matrix.h"
-#include "matrix_functions.h"
 #include "gru.h"
 #include "array.h"
 #include "common/sentences.h"

@@ -40,6 +40,8 @@ void EncoderDecoder::SetSource(const Sentences& source) {
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
+  cerr << "edState.GetStates()=" << edState.GetStates().Debug(1) << endl;
+
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 

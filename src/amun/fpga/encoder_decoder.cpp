@@ -28,7 +28,7 @@ EncoderDecoder::EncoderDecoder(
 ,openCLInfo_(openCLInfo)
 ,sourceContext_(openCLInfo)
 ,encoder_(new Encoder(openCLInfo, model_))
-,decoder_(new Decoder(god, model_))
+,decoder_(new Decoder(openCLInfo, god, model_))
 ,indices_(openCLInfo)
 ,batchMapping_(openCLInfo)
 {
@@ -45,6 +45,7 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
 {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
+  cerr << "edState.GetStates()=" << edState.GetStates().Debug(1) << endl;
 
 }
 
