@@ -5,13 +5,38 @@
 [![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
 
+ <p>
+  <b>AmuNMT</b> is an efficient Neural Machine Translation framework written
+  in pure C++ with minimal dependencies. It has mainly been developed at the
+  Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh. 
+  </p>
+  
+  <p>
+  It is currently being deployed in
+  multiple European projects and is the main translation and training engine
+  behind the neural MT launch at the
+  <a href="http://www.wipo.int/pressroom/en/articles/2016/article_0014.html">World Intellectual Property Organization</a>.
+  
+  </p>
 
-A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
-Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
+  <p>
+  Main features:
+  <ul>
+    <li> Fast multi-gpu training and translation </li>
+    <li> Compatible with Nematus and DL4MT </li>
+    <li> Efficient pure C++ implementation </li>
+    <li> Permissive open source license (MIT) </li>
+    <li> <a href="http://amunmt.github.io/features"> more details... </a> </li>
+  </ul>
+  </p>
 
 If you use this, please cite:
 
 Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Translation Ready for Deployment? A Case Study on 30 Translation Directions (https://arxiv.org/abs/1610.01108)
+
+## Website:
+
+More information on https://amunmt.github.io
 
 ## Recommended for GPU version:
 Tested on Ubuntu 14.04 LTS
