@@ -49,6 +49,9 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
     }
   }
 
+  Array<int> temp(mapping.GetOpenCLInfo(), hMapping);
+  temp.Swap(mapping);
+
   context.Resize(maxSentenceLength,
                  forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
                  1,

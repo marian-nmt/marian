@@ -1,6 +1,7 @@
 #pragma once
 #include <sstream>
 #include <vector>
+#include <cassert>
 #include "types-fpga.h"
 #include "matrix_functions.h"
 
@@ -50,6 +51,16 @@ public:
   const cl_mem &data() const
   { return mem_;  }
 
+  const OpenCLInfo &GetOpenCLInfo() const
+  { return openCLInfo_; }
+
+  void Swap(Array &other)
+  {
+    assert(&openCLInfo_ == &other.openCLInfo_);
+    std::swap(size_, other.size_);
+    std::swap(mem_, other.mem_);
+  }
+
   virtual std::string Debug(bool detailed = false) const
   {
     std::stringstream strm;
@@ -61,7 +72,6 @@ public:
     }
 
     return strm.str();
-
   }
 
 protected:
