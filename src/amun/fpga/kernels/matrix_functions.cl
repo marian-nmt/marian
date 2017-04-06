@@ -207,6 +207,22 @@ __kernel void gSlice(__global float* out,
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////
+//__kernel void gPasteRows()
+//{}
+
+
+__kernel void gPasteRows(__global float* d_out, 
+                    uint outRows, 
+                    uint outCols, 
+                    __global const float* d_in, 
+                    uint inRows, 
+                    uint inCols, 
+                    uint colNo, 
+                    uint sparse) 
+{
+
+}
 
 
                               

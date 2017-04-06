@@ -72,6 +72,7 @@ class Encoder {
             GetNextState(State_, prevState, *it++);
 	    
             if(invert) {
+              assert(mapping);
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
             } else {

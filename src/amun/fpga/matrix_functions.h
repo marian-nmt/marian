@@ -84,6 +84,8 @@ Matrix& Slice(Matrix& Out,
               const Matrix& In,
               uint n, uint dim);
 
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {

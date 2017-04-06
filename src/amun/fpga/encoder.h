@@ -76,7 +76,8 @@ class Encoder {
     }
 
     template <class It>
-    void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert)
+    void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
+                    const Array<int>* mapping=nullptr)
     {
       InitializeState(batchSize);
 
@@ -91,11 +92,12 @@ class Encoder {
         GetNextState(State_, prevState, *it++);
 
         if(invert) {
+          assert(mapping);
           //mblas::MapMatrix(State_, *mapping, n - i - 1);
 
         }
         else {
-
+          mblas::PasteRows(Context, State_, i, 0, n);
         }
 
         prevState.Swap(State_);

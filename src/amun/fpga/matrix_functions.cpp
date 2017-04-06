@@ -576,6 +576,58 @@ Matrix& Slice(Matrix& Out,
   return Out;
 }
 
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse)
+{
+  uint nColumns = In.dim(1);
+  uint nRows = In.dim(0);
+
+  const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
+
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gPasteRows", openCLInfo);
+
+  // Set the arguments to our compute kernel
+  uint outCols = Out.dim(1);
+  uint inRows = In.dim(0);
+  uint inCols = In.dim(1);
+  uint sparseUint = sparse;
+
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &rowNo) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &outCols) );
+
+  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &In.data()) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &inRows) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &inCols) );
+
+  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colNo) );
+  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &sparseUint) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  //cerr << "CL_KERNEL_WORK_GROUP_SIZE=" << CL_KERNEL_WORK_GROUP_SIZE << endl;
+  //cerr << "local=" << local << endl;
+
+  //global = 1024;
+  local = 1;
+  global = 1;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
+
+}
 
 
 } // namespace mblas {
