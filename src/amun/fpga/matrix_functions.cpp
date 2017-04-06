@@ -644,6 +644,7 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
   int stateLength = state.dim(1);
   int sentenceLength = mapping.size() / batchSize;
 
+  // TODO
   //cerr << "MapMatrix=" << state.Debug(1) << endl;
 
 }

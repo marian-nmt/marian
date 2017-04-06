@@ -71,7 +71,7 @@ class Encoder {
           while(it != end) {
             GetNextState(State_, prevState, *it++);
 	    
-            std::cerr << "invert=" << invert << std::endl;
+            //std::cerr << "invert=" << invert << std::endl;
             if(invert) {
               assert(mapping);
 

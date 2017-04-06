@@ -39,7 +39,7 @@ public:
 
   ~Array()
   {
-    CheckError( clReleaseMemObject(mem_) );
+    //CheckError( clReleaseMemObject(mem_) );
   }
 
   size_t size() const
