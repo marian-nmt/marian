@@ -117,7 +117,7 @@ public:
   Encoder(const OpenCLInfo &openCLInfo, const Weights& model);
 
   void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context,
-                Array<int>& mapping);
+                Array<int>& dMapping);
 
 protected:
   Embeddings<Weights::EncEmbeddings> embeddings_;
