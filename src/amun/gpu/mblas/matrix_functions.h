@@ -37,6 +37,17 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
+T Debug(const DeviceVector<T> &vec)
+{
+  T ret = 0;
+  for (size_t i = 0; i < vec.size(); ++i) {
+    ret += vec[i];
+  }
+  return ret;
+}
+
+
+template<typename T>
 void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
