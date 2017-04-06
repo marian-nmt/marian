@@ -218,7 +218,13 @@ __kernel void gPasteRows(__global float* d_out,
                     uint colNo, 
                     uint sparse) 
 {
-
+  uint maxId = inRows * inCols;
+  for (uint id = 0; id < maxId; ++id) {
+    uint inRow = id / inCols;
+    uint inCol = id % inCols;
+    uint outID = (outRows + sparse * inRow) * outCols + inCol + colNo;
+    d_out[outID] = d_in[id];
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////
