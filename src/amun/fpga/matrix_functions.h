@@ -48,7 +48,7 @@ Matrix& Assemble(
 
 void Fill(
     Matrix& In,
-    float value=0.0f);
+    float value);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
