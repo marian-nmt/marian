@@ -145,8 +145,12 @@ The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The
   
 ## Acknowledgements
 
-The development of Amunmt received funding from the European Union's Horizon 2020 Research and Innovation Programme under grant agreements 688139 (SUMMA; 2016-2019) and 645487 (Modern MT; 2015-2017) and the Amazon Academic Research Awards program.
-
+The development of AmuNMT received funding from the European Union's Horizon 2020
+Research and Innovation Programme under grant agreements 688139
+(<a href="http://www.summa-project.eu">SUMMA</a>; 2016-2019) and 645487
+(<a href="http://www.modernmt.eu">Modern MT</a>; 2015-2017), the
+Amazon Academic Research Awards program, and the World Intellectual
+Property Organization.
 
 
 
