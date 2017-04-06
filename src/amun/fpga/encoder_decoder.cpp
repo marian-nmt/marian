@@ -44,6 +44,7 @@ void EncoderDecoder::SetSource(const Sentences& sources)
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
 {
   EDState& edState = state.get<EDState>();
+  decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
 
 }
 
@@ -67,7 +68,7 @@ void EncoderDecoder::Filter(const std::vector<size_t>&)
 
 State* EncoderDecoder::NewState() const
 {
-  return new EncoderDecoderState();
+  return new EncoderDecoderState(openCLInfo_);
 }
 
 size_t EncoderDecoder::GetVocabSize() const

@@ -4,7 +4,13 @@
 #include "matrix.h"
 
 namespace amunmt {
+
+class God;
+
 namespace FPGA {
+
+template<typename T>
+class Array;
 
 class Decoder {
 
@@ -20,6 +26,11 @@ public:
 
   mblas::Matrix& GetAttention() {
   }
+
+  void EmptyState(mblas::Matrix& State,
+                  const mblas::Matrix& SourceContext,
+                  size_t batchSize,
+                  const Array<int>& batchMapping);
 
 };
 
