@@ -92,13 +92,13 @@ class Encoder {
         GetNextState(State_, prevState, *it++);
 
         std::cerr << "invert=" << invert << std::endl;
-        std::cerr << "1State_=" << State_.Debug(1) << std::endl;
+        //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
         if(invert) {
           assert(mapping);
 
-          std::cerr << "mapping=" << mapping->Debug(true) << std::endl;
+          //std::cerr << "mapping=" << mapping->Debug(true) << std::endl;
           mblas::MapMatrix(State_, *mapping, n - i - 1);
-          std::cerr << "2State_=" << State_.Debug(1) << std::endl;
+          //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
           mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
         }

@@ -29,7 +29,7 @@ public:
   {
     using namespace mblas;
 
-    std::cerr << std::endl;
+    //std::cerr << std::endl;
 
     const size_t cols = GetStateLength();
 
@@ -46,41 +46,41 @@ public:
     //std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
     // -----------------------------------------------------
 
-    std::cerr << "1RU_=" << RU_.Debug(1) << std::endl;
-    std::cerr << "w_.B_=" << w_.B_.Debug(1) << std::endl;
+    //std::cerr << "1RU_=" << RU_.Debug(1) << std::endl;
+    //std::cerr << "w_.B_=" << w_.B_.Debug(1) << std::endl;
     BroadcastVecAdd(RU_, w_.B_); // Broadcasting row-wise
-    std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
+    //std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
 
-    std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
+    //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
     ElementLogit(RU_, Temp1_);
-    std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
+    //std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
 
-    std::cerr << "cols=" << cols << std::endl;
+    //std::cerr << "cols=" << cols << std::endl;
     Slice(R_, RU_, 0, cols);
-    std::cerr << "R_=" << R_.Debug(1) << std::endl;
+    //std::cerr << "R_=" << R_.Debug(1) << std::endl;
 
     Slice(U_, RU_, 1, cols);
-    std::cerr << "U_=" << U_.Debug(1) << std::endl;
+    //std::cerr << "U_=" << U_.Debug(1) << std::endl;
 
     BroadcastVecAdd(H_,    w_.Bx1_); // Broadcasting row-wise
-    std::cerr << "H_=" << H_.Debug(1) << std::endl;
+    //std::cerr << "H_=" << H_.Debug(1) << std::endl;
 
-    std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
-    std::cerr << "w_.Bx2_=" << w_.Bx2_.Debug(1) << std::endl;
+    //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
+    //std::cerr << "w_.Bx2_=" << w_.Bx2_.Debug(1) << std::endl;
     BroadcastVecAdd(Temp2_, w_.Bx2_); // Broadcasting row-wise
-    std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
+    //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
-    std::cerr << "1H_=" << H_.Debug(1) << std::endl;
-    std::cerr << "R_=" << R_.Debug(1) << std::endl;
-    std::cerr << "Temp2__=" << Temp2_.Debug(1) << std::endl;
+    //std::cerr << "1H_=" << H_.Debug(1) << std::endl;
+    //std::cerr << "R_=" << R_.Debug(1) << std::endl;
+    //std::cerr << "Temp2__=" << Temp2_.Debug(1) << std::endl;
     ElementTanh(H_, R_, Temp2_);
-    std::cerr << "2H_=" << H_.Debug(1) << std::endl;
+    //std::cerr << "2H_=" << H_.Debug(1) << std::endl;
 
-    std::cerr << "1U_=" << U_.Debug(1) << std::endl;
-    std::cerr << "H_=" << H_.Debug(1) << std::endl;
-    std::cerr << "State=" << State.Debug(1) << std::endl;
+    //std::cerr << "1U_=" << U_.Debug(1) << std::endl;
+    //std::cerr << "H_=" << H_.Debug(1) << std::endl;
+    //std::cerr << "State=" << State.Debug(1) << std::endl;
     ElementWhatever(U_, H_, State);
-    std::cerr << "2U_=" << H_.Debug(1) << std::endl;
+    //std::cerr << "2U_=" << H_.Debug(1) << std::endl;
 
     NextState.Swap(U_);
   }
