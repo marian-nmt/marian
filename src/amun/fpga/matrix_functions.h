@@ -86,6 +86,8 @@ Matrix& Slice(Matrix& Out,
 
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
 
+void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i);
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {

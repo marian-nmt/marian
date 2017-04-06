@@ -91,10 +91,12 @@ class Encoder {
       while(it != end) {
         GetNextState(State_, prevState, *it++);
 
+        std::cerr << "invert=" << invert << std::endl;
+        std::cerr << "State_=" << State_.Debug(1) << std::endl;
         if(invert) {
           assert(mapping);
-          //mblas::MapMatrix(State_, *mapping, n - i - 1);
-
+          mblas::MapMatrix(State_, *mapping, n - i - 1);
+          mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
         }
         else {
           mblas::PasteRows(Context, State_, i, 0, n);

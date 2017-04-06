@@ -208,9 +208,6 @@ __kernel void gSlice(__global float* out,
 }
 
 /////////////////////////////////////////////////////////////////////////////
-//__kernel void gPasteRows()
-//{}
-
 
 __kernel void gPasteRows(__global float* d_out, 
                     uint outRows, 
@@ -224,5 +221,16 @@ __kernel void gPasteRows(__global float* d_out,
 
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
-                              
+__kernel void gMapMatrix(__global float* d_in, 
+                    uint numRows, 
+                    uint numCols, 
+                    uint mappingCols, 
+                    __global const int* mapping, 
+                    uint i) 
+{
+
+}
+
+          

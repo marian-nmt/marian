@@ -638,6 +638,17 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
 }
 
 
+void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
+{
+  int batchSize = state.dim(0);
+  int stateLength = state.dim(1);
+  int sentenceLength = mapping.size() / batchSize;
+
+  cerr << "MapMatrix=" << state.Debug(1) << endl;
+
+}
+
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {
