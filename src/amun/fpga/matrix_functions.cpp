@@ -581,6 +581,12 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   uint nColumns = In.dim(1);
   uint nRows = In.dim(0);
 
+  cerr << "1Out=" << Out.Debug(1) << endl;
+  cerr << "In=" << In.Debug(1) << endl;
+  cerr << "rowNo=" << rowNo << endl;
+  cerr << "colNo=" << colNo << endl;
+  cerr << "sparse=" << sparse << endl;
+
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
   cl_int err;
@@ -626,6 +632,8 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   // Wait for the command commands to get serviced before reading back results
   //
   CheckError( clFinish(openCLInfo.commands) );
+
+  cerr << "2Out=" << Out.Debug(1) << endl;
 
 }
 
