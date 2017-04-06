@@ -1,0 +1,4 @@
+[submodule "src/marian"]
+	path = src/marian
+	url = https://github.com/amunmt/marian
+	branch = amunmt-stable
