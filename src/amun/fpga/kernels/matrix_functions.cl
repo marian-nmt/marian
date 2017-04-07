@@ -239,4 +239,15 @@ __kernel void gMapMatrix(__global float* d_in,
 
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gMean(__global float* d_out, 
+                    __global const float* d_in, 
+                    __global const int* mapping,
+                    uint batchNum, uint senLen, uint stateLength) 
+{
+
+}
+
+
           

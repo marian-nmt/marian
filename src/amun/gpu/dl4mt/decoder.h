@@ -66,6 +66,8 @@ class Decoder {
           Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
           std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
+          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+          std::cerr << "mapping=" << Debug(mapping) << std::endl;
           Mean(Temp2_, SourceContext, mapping);
           std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
 
