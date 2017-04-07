@@ -38,135 +38,99 @@ Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Tran
 
 More information on https://amunmt.github.io
 
-## Recommended for GPU version:
-Tested on Ubuntu 14.04 LTS
+## Recommended software
+
+### GPU version
+
+**Ubuntu 16.04 LTS (tested and recommended).** For Ubuntu 16.04 the standard packages should work. On newer versions of Ubuntu, e.g. 16.10, there may be problems due to
+incompatibilities of the default g++ compiler and CUDA. 
+
+ * CMake 3.5.1
+ * GCC/G++ 5.4
+ * Boost 1.61
+ * CUDA 8.0
+
+**Ubuntu 14.04 LTS (tested).** A newer CMake version than the default version is
+required and can be installed from source. 
+
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * GCC/G++ 4.9
  * Boost 1.54
  * CUDA 7.5
 
-Tested on Ubuntu 16.04 LTS
- * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
- * GCC/G++ 5.4
- * Boost 1.61
- * CUDA 8.0
+### CPU version
 
-Also compiles the CPU version.
+The CPU-only version will automatically be compiled if CUDA cannot be detected by CMAKE.
+Only the translator will be compiled, the training framework is strictily GPU-based.
 
-## Recommended for CPU version:
-The CPU-only version will automatically be compiled if CUDA cannot be detected by CMAKE. Tested on different machines and distributions:
+Tested on different machines and distributions:
+
  * CMake 3.5.1
  * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions.
 
-## Git repository set-up (branch marian-integration only)
-Branch _marian-integration_ now contains marian as a sub-module. 
+## Download and Compilation
 
-After the initial clone or checkout of this branch, run the following command
-```bash
-git submodule update --init --recursive
-```
-If you want git to always update the submodules at git checkout, git pull, git merge, etc. (it won't by default, wich often causes confusion), copy the script ```git-hooks/post-rewrite``` into ```./git/hooks``` and make it executable.
+Clone a fresh copy from github:
 
-## Compilation
-The project is a standard Cmake out-of-source build:
+    git clone https://github.com/amunmt/amunmt
 
+The project is a standard CMake out-of-source build:
+
+    cd amunmt
     mkdir build
     cd build
     cmake ..
     make -j
 
-If you want to compile only CPU version on a machine with CUDA, add `-DCUDA=OFF`  flag:
-
-    cmake -DCUDA=OFF ..
-
-## Vocabulary files
-Vocabulary files (and all other config files) in AmuNMT are by default YAML files. AmuNMT also reads gzipped yml.gz files.
-
-* Vocabulary files from models trained with Nematus can be used directly as JSON is a proper subset of YAML.
-* Vocabularies for models trained with DL4MT (\*.pkl extension) need to be converted to JSON/YAML with either of the two scripts below:
-```
-python scripts/pkl2json.py vocab.en.pkl > vocab.json
-python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
-```
-
+If run for the first time, this will also download Marian -- the training
+framework for AmuNMT.
 
 ## Running AmuNMT
 
-    ./bin/amun -c config.yml <<< "This is a test ."
+### Training
 
-## Configuration files
+Marian is the training framework of AmuNMT. Assuming `corpus.en` and `corpus.ro` are
+corresponding and preprocessed files of a English-Romanian parallel corpus, the
+following command will create a Nematus-compatible neural machine translation model.
 
-An example configuration:
+    ./amunmt/build/marian \
+      --train-sets corpus.en corpus.ro \
+      --vocabs vocab.en vocab.ro \
+      --model model.npz
 
-    # Paths are relative to config file location
-    relative-paths: yes
+See the [documentation](https://amunmt.github.io/docs/#marian) for a full list of command line
+options or the [examples](https://amunmt.github.io/examples/training) for a full example of how to train
+a WMT-grade model.
 
-    # performance settings
-    beam-size: 12
-    devices: [0]
-    normalize: yes
-    gpu-threads: 1
+### Translating
 
-    # scorer configuration
-    scorers:
-      F0:
-        path: model.en-de.npz
-        type: Nematus
+If a trained model is available, run:
 
-    # scorer weights
-    weights:
-      F0: 1.0
+    ./amunmt/build/amun -m model.npz -s vocab.en -t vocab.ro <<< "This is a test ."
 
-    # vocabularies
-    source-vocab: vocab.en.yml.gz
-    target-vocab: vocab.de.yml.gz
-
-## BPE Support
-
-AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/subword-nmt). There are two option `bpe` and `debpe`. The `bpe` option receives a path to a file with BPE codes (here `bpe.codes`). To turn on desegmentation on the ouput, set `debpe` to `true`, e.g.
-
-    bpe: bpe.codes
-    debpe: true
-
-## Python Bindings
-
-Python bindings allow to run AmuNMT decoder in python scripts. The compilation of the bindings requires `python-dev` package. To compile the bindings run:
-```
-make python
-```
-
-The Python bindings consist of 3 functions: `init`, `translate`, and `shutdown`:
-
-```python
-import libamunmt
-
-libamunmt.init('-c config.yml')
-print libamunmt.translate(['this is a little test .'])
-
-libamunmt.shutdown()
-```
-
-The `init` function init the decoder and the syntax is the same as in command line. The `translate`
-function takes a list of sentences to translate. For real-world example, see the `scripts/amunmt_server.py`
-script, which uses python bindings to run REST server.
-
-The function `shutdown` is needed (and should be called at the end of your script) to avoid runtime errors
-due to the random order in which objects may be deallocated if they are not explicitly destroyed.
-
-## Using GPU/CPU threads
-AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences.
-**However, it is unlikely that CPUs used together with GPUs yield any performance improvement.
-It is probably better to only use the GPU if one or more are available.**
-
-    cpu-threads: 8
-    gpu-threads: 2
-    devices: [0, 1]
-
-The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception. 
+See the [documentation](https://amunmt.github.io/docs/#amun) for a full list of command line options
+or the [examples](https://amunmt.github.io/examples/translating) for a full example of how to use
+Edinburgh's WMT models for translation.
 
 ## Example usage
 
-  * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)
+* **[Translating with Amun](https://amunmt.github.io/examples/translating/)**:
+The files and scripts described in this section can be found in {% github_link
+amunmt/examples/translate %}. They demonstrate how to translate with Amun using
+Edinburgh's German-English WMT2016 single model and ensemble.
+* **[Training with Marian](https://amunmt.github.io/examples/training/)**: The files
+and scripts described in this section can be found in
+{% github_link amunmt/examples/training %}. They have been adapted from the
+Romanian-English sample from <https://github.com/rsennrich/wmt16-scripts>.
+We also add the back-translated data from <http://data.statmt.org/rsennrich/wmt16_backtranslations/>
+as desribed in [Edinburgh's WMT16 paper](http://www.aclweb.org/anthology/W16-2323).
+The resulting system should be competitive or even slightly better than
+reported in that paper.
+* **[Winning system of the WMT 2016 APE shared task](https://amunmt.github.io/examples/postedit/)**:
+This page provides data and model files for our shared task winning APE system
+described in [Log-linear Combinations of Monolingual and Bilingual Neural
+Machine Translation Models for Automatic
+Post-Editing](http://www.aclweb.org/anthology/W16-2378).
   
 ## Acknowledgements
 
