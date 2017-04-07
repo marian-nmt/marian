@@ -649,6 +649,11 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
 
 }
 
+void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
+{
+
+}
+
 
 } // namespace mblas {
 } // namespace FPGA {

@@ -88,6 +88,8 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0
 
 void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i);
 
+void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping);
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {

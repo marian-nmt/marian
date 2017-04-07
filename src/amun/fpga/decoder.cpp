@@ -8,7 +8,8 @@ void Decoder::EmptyState(mblas::Matrix& State,
                 size_t batchSize,
                 const Array<int>& batchMapping)
 {
-
+  rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
+  alignment_.Init(SourceContext);
 }
 
 

@@ -3,15 +3,13 @@
 #include "model.h"
 #include "matrix.h"
 #include "gru.h"
+#include "array.h"
 
 namespace amunmt {
 
 class God;
 
 namespace FPGA {
-
-template<typename T>
-class Array;
 
 class Decoder {
 
@@ -31,12 +29,35 @@ class Decoder {
   class RNNHidden {
     public:
     RNNHidden(const OpenCLInfo &openCLInfo, const Weights1& initModel, const Weights2& gruModel)
-    : w_(initModel), gru_(openCLInfo, gruModel) {}
+    : w_(initModel)
+    , gru_(openCLInfo, gruModel)
+    , Temp1_(openCLInfo)
+    , Temp2_(openCLInfo)
+    {}
+
+    void InitializeState(mblas::Matrix& State,
+                         const mblas::Matrix& SourceContext,
+                         const size_t batchSize,
+                         const Array<int>& mapping)
+    {
+      using namespace mblas;
+
+      std::cerr << "1State=" << State.Debug(1) << std::endl;
+      std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
+      Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
+      std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
+
+      Mean(Temp2_, SourceContext, mapping);
+      std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
+
+    }
 
     private:
       const Weights1& w_;
       const GRU<Weights2> gru_;
 
+      mblas::Matrix Temp1_;
+      mblas::Matrix Temp2_;
   };
 
   template <class Weights>
@@ -55,6 +76,11 @@ class Decoder {
     Alignment(const God &god, const Weights& model)
       : w_(model)
     {}
+
+    void Init(const mblas::Matrix& SourceContext)
+    {
+
+    }
 
     private:
       const Weights& w_;
