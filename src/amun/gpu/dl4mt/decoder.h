@@ -127,7 +127,7 @@ class Decoder {
           using namespace mblas;
 
           Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
-          std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
+          //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
 
           if (w_.Gamma_1_) {
             Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);

@@ -74,6 +74,8 @@ void ElementwiseOps(mblas::Matrix& NextState,
 
 Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
 
+Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In);
+
 Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
 Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2);

@@ -55,12 +55,12 @@ class Decoder {
       Prod(State, Temp2_, w_.Wi_);
       //std::cerr << "State=" << State.Debug(1) << std::endl;
 
-      //TODO
       if (w_.Gamma_) {
+        //TODO
         //Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
       }
       else {
-        //BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
+        BroadcastVecTanh(State, w_.Bi_);
       }
 
     }
@@ -96,7 +96,7 @@ class Decoder {
       using namespace mblas;
 
       Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
-      std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
+      //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
 
       // TODO
       if (w_.Gamma_1_) {
