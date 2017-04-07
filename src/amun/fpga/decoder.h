@@ -118,6 +118,24 @@ class Decoder {
       }
     }
 
+    void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+                                 const mblas::Matrix& HiddenState,
+                                 const mblas::Matrix& SourceContext,
+                                 const Array<int>& mapping,
+                                 const std::vector<size_t>& beamSizes)
+    {
+      using namespace mblas;
+
+      std::vector<int> batchMapping(HiddenState.dim(0));
+      size_t k = 0;
+      for (size_t i = 0; i < beamSizes.size(); ++i) {
+        for (size_t j = 0; j < beamSizes[i]; ++j) {
+          batchMapping[k++] = i;
+        }
+      }
+
+    }
+
     private:
       const Weights& w_;
 
@@ -142,6 +160,7 @@ class Decoder {
 public:
   Decoder(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
   : HiddenState_(openCLInfo),
+    AlignedSourceContext_(openCLInfo),
     embeddings_(model.decEmbeddings_),
     rnn1_(openCLInfo, model.decInit_, model.decGru1_),
     rnn2_(openCLInfo, model.decGru2_),
@@ -176,8 +195,15 @@ public:
                       const mblas::Matrix& PrevState,
                       const mblas::Matrix& Embedding);
 
+  void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+                                const mblas::Matrix& HiddenState,
+                                const mblas::Matrix& SourceContext,
+                                const Array<int>& mapping,
+                                const std::vector<size_t>& beamSizes);
+
 private:
   mblas::Matrix HiddenState_;
+  mblas::Matrix AlignedSourceContext_;
 
   Embeddings<Weights::DecEmbeddings> embeddings_;
   RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;

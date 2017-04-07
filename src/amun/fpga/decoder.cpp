@@ -32,6 +32,8 @@ void Decoder::Decode(mblas::Matrix& NextState,
   GetHiddenState(HiddenState_, State, Embeddings);
   std::cerr << "2HiddenState_=" << HiddenState_.Debug(1) << std::endl;
 
+  GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
+  std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
 
 }
 
@@ -41,6 +43,18 @@ void Decoder::GetHiddenState(mblas::Matrix& HiddenState,
   rnn1_.GetNextState(HiddenState, PrevState, Embedding);
 }
 
+void Decoder::GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+                              const mblas::Matrix& HiddenState,
+                              const mblas::Matrix& SourceContext,
+                              const Array<int>& mapping,
+                              const std::vector<size_t>& beamSizes)
+{
+  alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
+                                     mapping, beamSizes);
+
 }
+
+
+} // namespace
 }
 
