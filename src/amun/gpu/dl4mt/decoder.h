@@ -61,17 +61,19 @@ class Decoder {
                              const DeviceVector<int>& mapping) {
           using namespace mblas;
 
-          std::cerr << "1State=" << State.Debug(1) << std::endl;
-          std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
+          //std::cerr << "1State=" << State.Debug(1) << std::endl;
+          //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
           Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
-          std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
+          //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
-          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-          std::cerr << "mapping=" << Debug(mapping) << std::endl;
+          //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+          //std::cerr << "mapping=" << Debug(mapping) << std::endl;
           Mean(Temp2_, SourceContext, mapping);
-          std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
+          //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           Prod(State, Temp2_, w_.Wi_);
+          //std::cerr << "State=" << State.Debug(1) << std::endl;
+
           if (w_.Gamma_) {
             Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
           } else {
