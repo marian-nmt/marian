@@ -654,6 +654,7 @@ void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
   uint batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
   uint sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
   uint stateLength = Out.dim(1);
+  cerr << "batchNum=" << batchNum << " sentenceLength=" << sentenceLength << " stateLength=" << stateLength << endl;
 
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 

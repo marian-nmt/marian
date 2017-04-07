@@ -246,7 +246,23 @@ __kernel void gMean(__global float* d_out,
                     __global const int* mapping,
                     uint batchNum, uint senLen, uint stateLength) 
 {
+  for (uint id = 0; id < stateLength; ++id) {
+    float sum = 0.0f;
+    int counter = 0;
 
+      
+    for (int i = 0; i < batchNum * senLen; ++i) {
+      sum += mapping[i] * d_in[i * stateLength + id];
+      counter += mapping[i];
+
+      if ((i + 1) % senLen == 0) {
+        sum /= counter;
+        d_out[(i / senLen) * stateLength + id] = sum;
+        sum = 0.0f;
+        counter = 0;
+      }
+    }
+  }
 }
 
 
