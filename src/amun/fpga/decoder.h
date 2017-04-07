@@ -86,17 +86,28 @@ class Decoder {
   template <class Weights>
   class Alignment {
     public:
-    Alignment(const God &god, const Weights& model)
+    Alignment(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
       : w_(model)
+      , SCU_(openCLInfo)
     {}
 
     void Init(const mblas::Matrix& SourceContext)
     {
+      using namespace mblas;
 
+      Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+      std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
+
+      // TODO
+      if (w_.Gamma_1_) {
+        //Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);
+      }
     }
 
     private:
       const Weights& w_;
+
+      mblas::Matrix SCU_;
 
   };
 
@@ -119,7 +130,7 @@ public:
   : embeddings_(model.decEmbeddings_),
     rnn1_(openCLInfo, model.decInit_, model.decGru1_),
     rnn2_(openCLInfo, model.decGru2_),
-    alignment_(god, model.decAlignment_),
+    alignment_(openCLInfo, god, model.decAlignment_),
     softmax_(model.decSoftmax_)
   {}
 
