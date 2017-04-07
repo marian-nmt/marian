@@ -12,6 +12,34 @@ void Decoder::EmptyState(mblas::Matrix& State,
   alignment_.Init(SourceContext);
 }
 
+void Decoder::EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) {
+  Embedding.Resize(batchSize, embeddings_.GetCols());
+  mblas::Fill(Embedding, 0);
+}
+
+void Decoder::Decode(mblas::Matrix& NextState,
+              const mblas::Matrix& State,
+              const mblas::Matrix& Embeddings,
+              const mblas::Matrix& SourceContext,
+              const Array<int>& mapping,
+              const std::vector<size_t>& beamSizes)
+{
+  std::cerr << std::endl;
+
+  std::cerr << "1HiddenState_=" << HiddenState_.Debug(1) << std::endl;
+  std::cerr << "State=" << State.Debug(1) << std::endl;
+  std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
+  GetHiddenState(HiddenState_, State, Embeddings);
+  std::cerr << "2HiddenState_=" << HiddenState_.Debug(1) << std::endl;
+
+
+}
+
+void Decoder::GetHiddenState(mblas::Matrix& HiddenState,
+                    const mblas::Matrix& PrevState,
+                    const mblas::Matrix& Embedding) {
+  rnn1_.GetNextState(HiddenState, PrevState, Embedding);
+}
 
 }
 }

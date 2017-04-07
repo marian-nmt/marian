@@ -45,14 +45,22 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
 {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
-  cerr << "edState.GetStates()=" << edState.GetStates().Debug(1) << endl;
 
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
 void EncoderDecoder::Decode(const God &god, const State& in,
                    State& out, const std::vector<size_t>& beamSizes)
 {
+  const EDState& edIn = in.get<EDState>();
+  EDState& edOut = out.get<EDState>();
 
+  decoder_->Decode(edOut.GetStates(),
+                     edIn.GetStates(),
+                     edIn.GetEmbeddings(),
+                     sourceContext_,
+                     batchMapping_,
+                     beamSizes);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,

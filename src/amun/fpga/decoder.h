@@ -20,6 +20,14 @@ class Decoder {
     : w_(model)
     {}
 
+    size_t GetCols() {
+      return w_.E_.dim(1);
+    }
+
+    size_t GetRows() const {
+      return w_.E_.dim(0);
+    }
+
   private:
     const Weights& w_;
 
@@ -63,6 +71,12 @@ class Decoder {
         BroadcastVecTanh(State, w_.Bi_);
       }
 
+    }
+
+    void GetNextState(mblas::Matrix& NextState,
+                      const mblas::Matrix& State,
+                      const mblas::Matrix& Context) {
+      gru_.GetNextState(NextState, State, Context);
     }
 
     private:
@@ -127,7 +141,8 @@ class Decoder {
 
 public:
   Decoder(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
-  : embeddings_(model.decEmbeddings_),
+  : HiddenState_(openCLInfo),
+    embeddings_(model.decEmbeddings_),
     rnn1_(openCLInfo, model.decInit_, model.decGru1_),
     rnn2_(openCLInfo, model.decGru2_),
     alignment_(openCLInfo, god, model.decAlignment_),
@@ -148,7 +163,22 @@ public:
                   size_t batchSize,
                   const Array<int>& batchMapping);
 
+  void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1);
+
+  void Decode(mblas::Matrix& NextState,
+                const mblas::Matrix& State,
+                const mblas::Matrix& Embeddings,
+                const mblas::Matrix& SourceContext,
+                const Array<int>& mapping,
+                const std::vector<size_t>& beamSizes);
+
+  void GetHiddenState(mblas::Matrix& HiddenState,
+                      const mblas::Matrix& PrevState,
+                      const mblas::Matrix& Embedding);
+
 private:
+  mblas::Matrix HiddenState_;
+
   Embeddings<Weights::DecEmbeddings> embeddings_;
   RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
   RNNFinal<Weights::DecGRU2> rnn2_;
