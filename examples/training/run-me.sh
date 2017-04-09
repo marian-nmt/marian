@@ -48,20 +48,20 @@ fi
 if [ ! -e "model/model.npz" ]
 then
 
-../../build/marian \
+../../../marian/build/marian \
  --model model/model.npz \
  --devices $GPUS --seed 0 \
  --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
  --dim-vocabs 66000 50000 \
- --mini-batch 80 \
+ --dynamic-batching -w 3000 \
  --layer-normalization --dropout-rnn 0.2 --dropout-src 0.1 --dropout-trg 0.1 \
  --early-stopping 5 --moving-average \
- --valid-freq 10000 --save-freq 10000 --disp-freq 1000 \
+ --valid-freq 10000 --save-freq 10000 --disp-freq 100 \
  --valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en \
  --valid-metrics cross-entropy valid-script \
  --valid-script-path ./scripts/validate.sh \
- --log model/train.log --valid-log model/valid.log
+ --log model/train.log --valid-log model/valid.log 
 
 fi
 
