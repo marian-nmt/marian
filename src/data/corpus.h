@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <random>
 #include <boost/iterator/iterator_facade.hpp>
 
 #include "training/config.h"
