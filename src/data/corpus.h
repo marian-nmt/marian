@@ -53,6 +53,22 @@ class CorpusBatch {
     size_t sets() const {
       return batches_.size();
     }
+    
+    static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths, size_t batchSize) {
+      size_t words = 0;
+      std::vector<SentBatch> batches;
+      
+      for(auto l : lengths) {
+        SentBatch sb;
+        for(int i = 0; i < l; i++)
+          sb.push_back(WordMask(WordBatch(batchSize, 0), MaskBatch(batchSize, 0)));
+        
+        batches.push_back(sb);
+        words += l * batchSize;
+      }
+        
+      return New<CorpusBatch>(batches, words);
+    }
 
   private:
     std::vector<SentBatch> batches_;

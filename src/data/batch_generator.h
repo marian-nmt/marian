@@ -6,6 +6,8 @@
 #include <boost/timer/timer.hpp>
 
 #include "data/dataset.h"
+#include "data/batch_stats.h"
+#include "data/vocab.h"
 #include "training/config.h"
 
 namespace marian {
@@ -23,6 +25,7 @@ class BatchGenerator {
   private:
     Ptr<DataSet> data_;
     Ptr<Config> options_;
+    Ptr<BatchStats> stats_;
 
     typename DataSet::iterator current_;
 
@@ -45,12 +48,51 @@ class BatchGenerator {
       }
 
       samples batchVector;
+      int currentWords = 0;
+      size_t sets = 2;
+      std::vector<size_t> lengths(sets, 0);
+      int maxBatchSize = options_->get<int>("mini-batch");
+      
       while(!maxiBatch.empty()) {
         batchVector.push_back(maxiBatch.top());
+        currentWords += batchVector.back()[0].size();
         maxiBatch.pop();
-        if(batchVector.size() == options_->get<int>("mini-batch")) {
+        
+        // Batch size based on sentences
+        bool makeBatch = batchVector.size() == maxBatchSize;
+        
+        // Batch size based on words
+        int mbWords = options_->get<int>("mini-batch-words");
+        if(mbWords > 0)
+          makeBatch = currentWords > mbWords;
+        
+        // Dynamic batching
+        if(options_->get<bool>("dynamic-batching")) {
+          UTIL_THROW_IF2(!stats_, "Not batching stats given");
+          
+          for(size_t i = 0; i < sets; ++i)
+            if(batchVector.back()[i].size() > lengths[i])
+              lengths[i] = batchVector.back()[i].size();
+          
+          maxBatchSize = stats_->getBatchSize(lengths);
+          
+          if(batchVector.size() > maxBatchSize) {
+            maxiBatch.push(batchVector.back());
+            batchVector.pop_back();
+            makeBatch = true;
+          }
+          else {
+            makeBatch = batchVector.size() == maxBatchSize;
+          }
+        }
+        
+        if(makeBatch) {
+          //std::cerr << "Creating batch" << std::endl;
           bufferedBatches_.push_back(data_->toBatch(batchVector));
           batchVector.clear();
+          currentWords = 0;
+          lengths.clear();
+          lengths.resize(sets, 0);
         }
       }
       if(!batchVector.empty())
@@ -63,9 +105,11 @@ class BatchGenerator {
 
   public:
     BatchGenerator(Ptr<DataSet> data,
-                   Ptr<Config> options)
+                   Ptr<Config> options,
+                   Ptr<BatchStats> stats = nullptr)
     : data_(data),
-      options_(options) { }
+      options_(options),
+      stats_(stats) { }
 
     operator bool() const {
       return !bufferedBatches_.empty();

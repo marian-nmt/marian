@@ -129,6 +129,20 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @param batchSize       XXX Marcin, could you provide a description of this param?
      */
 
+    bool fits() {
+      try {
+        tensors_->throwAtReallocation(true);
+        backprop();
+        tensors_->throwAtReallocation(false);
+      }
+      catch (AllocationException& e) {
+        //std::cerr << e.what() << std::endl;
+        tensors_->throwAtReallocation(false);
+        return false;
+      }
+      return true;
+    }
+     
     size_t forward() {
       params_->allocateForward();
       return forward(0);

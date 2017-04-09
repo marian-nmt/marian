@@ -1,6 +1,8 @@
 #pragma once
 
 #include "data/corpus.h"
+#include "data/batch_generator.h"
+
 #include "training/config.h"
 #include "graph/expression_graph.h"
 #include "layers/rnn.h"
@@ -227,6 +229,11 @@ class Seq2Seq : public Seq2SeqBase {
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
+      //std::cerr
+      //  << (*batch)[0].size()
+      //  << "," << (*batch)[1].size()
+      //  << " " << batch->size()
+      //  << std::endl;
 
       std::vector<Expr> startStates;
       Ptr<EncoderState> encState;
@@ -247,6 +254,28 @@ class Seq2Seq : public Seq2SeqBase {
       return cost;
     }
 
+    Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {
+      auto stats = New<data::BatchStats>();
+      
+      size_t step = 10;
+      size_t maxLength = options_->get<size_t>("max-length");
+      for(size_t i = step; i <= maxLength; i += step) {
+        size_t batchSize = step;
+        std::vector<size_t> lengths = {i, i};
+        bool fits = true;
+        do {
+          auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize);
+          build(graph, batch);
+          fits = graph->fits();
+          if(fits)
+            stats->add(batch);
+          batchSize += step;
+        }
+        while(fits);
+      
+      }
+      return stats;
+    }
 };
 
 }

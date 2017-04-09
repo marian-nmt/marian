@@ -227,6 +227,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences.")
+    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
@@ -414,6 +418,8 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
+  SET_OPTION("mini-batch-words", int);
+  SET_OPTION("dynamic-batching", bool);
   SET_OPTION("maxi-batch", int);
   SET_OPTION("max-length", size_t);
 

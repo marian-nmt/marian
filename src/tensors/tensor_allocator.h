@@ -28,6 +28,13 @@
 #include "tensors/tensor.h"
 
 namespace marian {
+  
+class AllocationException : public std::exception {
+  public:
+    virtual const char* what() const throw() {
+      return "Memory re-allocation attempted";
+    }
+};
 
 class TensorAllocator {
   private:
@@ -40,6 +47,8 @@ class TensorAllocator {
     typedef std::pair<size_t, float*> Gap;
     std::set<Gap> gaps_;
     Gap lastGap_;
+    
+    bool throw_{false};
 
     std::deque<Tensor> allocated_;
 
@@ -80,6 +89,8 @@ class TensorAllocator {
     auto checkSpace(Shape shape) -> decltype(gaps_.begin()) {
       auto gapIt = getGap(shape);
       if(gapIt == gaps_.end()) {
+        if(throw_)
+          throw AllocationException();
         size_t incr = device_.capacity() - lastGap_.first + shape.elements();
         reserve(device_.capacity() + incr);
         gapIt = gaps_.find(lastGap_);
@@ -96,6 +107,10 @@ class TensorAllocator {
 
     ~TensorAllocator() {
       clear();
+    }
+    
+    void throwAtReallocation(bool throwRealloc) {
+      throw_ = throwRealloc;
     }
 
     void reserve(size_t elements = 0) {

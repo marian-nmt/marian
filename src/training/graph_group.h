@@ -9,6 +9,7 @@
 #include "optimizers/optimizers.h"
 #include "training/training.h"
 #include "training/validator.h"
+#include "data/batch_generator.h"
 
 namespace marian {
 
@@ -33,6 +34,8 @@ class GraphGroup {
     virtual void load() = 0;
 
     virtual void save(bool=false) = 0;
+    
+    virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
 template <class Builder>
@@ -149,6 +152,10 @@ class Singleton : public GraphGroup {
         builder_->save(graph_, name, true);
         reporter_->save(name);
       }
+    }
+    
+    Ptr<data::BatchStats> collectStats() {
+      return builder_->collectStats(graph_);
     }
 };
 
@@ -417,6 +424,10 @@ class AsyncGraphGroup : public GraphGroup {
         reporter_->save(name);
       }
     }
+    
+    Ptr<data::BatchStats> collectStats() {
+      return builders_[0]->collectStats(graphs_[0]);
+    }
 };
 
 
@@ -554,7 +565,10 @@ class SyncGraphGroup : public GraphGroup {
         builder_->save(graphs_[0], name);
       }
     }
-
+    
+    Ptr<data::BatchStats> collectStats() {
+      return builder_->collectStats(graphs_[0]);
+    }
 };
 
 }

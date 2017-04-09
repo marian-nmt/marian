@@ -18,6 +18,7 @@ class Reporter {
 
     size_t epochs{1};
     size_t samples{0};
+    size_t samplesDisp{0};
     size_t wordsDisp{0};
     size_t batches{0};
 
@@ -96,18 +97,20 @@ class Reporter {
     }
 
     void update(float cost, Ptr<data::CorpusBatch> batch) {
-      costSum += cost;
+      costSum += cost * batch->size();
       samples += batch->size();
+      samplesDisp += batch->size();
       wordsDisp += batch->words();
       batches++;
 
       if(batches % options_->get<size_t>("disp-freq") == 0) {
         LOG(info, "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} words/s",
-            epochs, batches, samples, costSum / options_->get<size_t>("disp-freq"),
+            epochs, batches, samples, costSum / samplesDisp,
             timer.format(2, "%ws"), wordsDisp / std::stof(timer.format(5, "%w")));
         timer.start();
         costSum = 0;
         wordsDisp = 0;
+        samplesDisp = 0;
       }
     }
 
@@ -136,8 +139,17 @@ void Train(Ptr<Config> options) {
   using namespace data;
   using namespace keywords;
 
+  auto model = New<Model>(options);
+  
+  Ptr<BatchStats> stats;
+  if(options->get<bool>("dynamic-batching")) {
+    LOG(info, "[batching] Collecting statistics for dynamic batching");
+    stats = model->collectStats();
+    LOG(info, "[batching] Done");
+  }
+  
   auto trainCorpus = New<Corpus>(options);
-  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options);
+  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options, stats);
   auto reporter = New<Reporter>(options);
 
   if((options->has("valid-sets") || options->has("valid-script-path"))
@@ -146,7 +158,6 @@ void Train(Ptr<Config> options) {
       reporter->addValidator(validator);
   }
 
-  auto model = New<Model>(options);
   model->setReporter(reporter);
   model->load();
 
