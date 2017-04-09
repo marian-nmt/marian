@@ -67,9 +67,7 @@ class BatchGenerator {
           makeBatch = currentWords > mbWords;
         
         // Dynamic batching
-        if(options_->get<bool>("dynamic-batching")) {
-          UTIL_THROW_IF2(!stats_, "Not batching stats given");
-          
+        if(stats_ && options_->get<bool>("dynamic-batching")) {
           for(size_t i = 0; i < sets; ++i)
             if(batchVector.back()[i].size() > lengths[i])
               lengths[i] = batchVector.back()[i].size();
