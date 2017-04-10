@@ -103,6 +103,7 @@ class Decoder {
     Alignment(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
       : w_(model)
       , SCU_(openCLInfo)
+      , Temp2_(openCLInfo)
     {}
 
     void Init(const mblas::Matrix& SourceContext)
@@ -125,6 +126,9 @@ class Decoder {
                                  const std::vector<size_t>& beamSizes)
     {
       using namespace mblas;
+      const OpenCLInfo &openCLInfo = HiddenState.GetOpenCLInfo();
+
+      std::cerr << "mapping=" << mapping.Debug() << std::endl;
 
       std::vector<int> batchMapping(HiddenState.dim(0));
       size_t k = 0;
@@ -133,13 +137,24 @@ class Decoder {
           batchMapping[k++] = i;
         }
       }
+      std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
+      Array<int> *tmp = new Array<int>(openCLInfo, batchMapping);
+      dBatchMapping_.reset(tmp);
+
+      const size_t srcSize = mapping.size() / beamSizes.size();
+
+      Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+      std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
     }
 
     private:
       const Weights& w_;
 
+      std::shared_ptr< Array<int> > dBatchMapping_;
+
       mblas::Matrix SCU_;
+      mblas::Matrix Temp2_;
 
   };
 

@@ -17,7 +17,7 @@ namespace mblas {
 class Matrix;
 
 template<typename T>
-T Sum(const std::vector<T> &vec)
+T Debug(const std::vector<T> &vec)
 {
   T ret = T();
   for (size_t i = 0; i < vec.size(); ++i) {

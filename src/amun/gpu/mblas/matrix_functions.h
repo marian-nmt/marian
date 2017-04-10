@@ -46,6 +46,16 @@ T Debug(const DeviceVector<T> &vec)
   return ret;
 }
 
+template<typename T>
+T Debug(const thrust::host_vector<T> &vec)
+{
+  T ret = 0;
+  for (size_t i = 0; i < vec.size(); ++i) {
+    ret += vec[i];
+  }
+  return ret;
+}
+
 
 template<typename T>
 void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {

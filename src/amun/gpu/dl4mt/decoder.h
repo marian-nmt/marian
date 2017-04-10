@@ -140,6 +140,7 @@ class Decoder {
                                      const DeviceVector<int>& mapping,
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
+          std::cerr << "mapping=" << Debug(mapping) << std::endl;
 
           thrust::host_vector<int> batchMapping(HiddenState.dim(0));
           size_t k = 0;
@@ -148,6 +149,7 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
+          std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
@@ -157,6 +159,8 @@ class Decoder {
           const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+          std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+
           if (w_.Gamma_2_) {
             Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
           } else {
