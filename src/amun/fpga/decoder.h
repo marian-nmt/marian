@@ -168,8 +168,13 @@ class Decoder {
 
       std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
       Temp1_.Reshape2D();
+      std::cerr << "3Temp1_=" << Temp1_.Debug(1) << std::endl;
 
-      Prod(A_, w_.V_, Temp1_, false, true);
+      Transpose(Temp1_);
+
+      std::cerr << "w_.V_=" << w_.V_.Debug(1) << std::endl;
+      std::cerr << "4Temp1_=" << Temp1_.Debug(1) << std::endl;
+      Prod(A_, w_.V_, Temp1_, false, false);
       std::cerr << "A_=" << A_.Debug(1) << std::endl;
 
     }
