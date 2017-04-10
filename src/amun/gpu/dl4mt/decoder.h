@@ -168,17 +168,18 @@ class Decoder {
           std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           Copy(Temp1_, SCU_);
-          std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
+          //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
 
-          //std::cerr << std::endl;
-          //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
-          //std::cerr << "1Temp1_=" << Temp1_.Debug() << std::endl;
-          //std::cerr << "Temp2_=" << Temp2_.Debug() << std::endl;
+          std::cerr << std::endl;
+          //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
+          std::cerr << "1Temp1_=" << Temp1_.Debug(1) << std::endl;
+          std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+          std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
+          std::cerr << "srcSize=" << srcSize << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
-          //std::cerr << "2Temp1_=" << Temp1_.Debug() << std::endl;
+          std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
           Temp1_.Reshape2D();
 
           //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;

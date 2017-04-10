@@ -154,7 +154,18 @@ class Decoder {
       std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
       Copy(Temp1_, SCU_);
-      std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
+      //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
+
+      std::cerr << std::endl;
+      //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
+      std::cerr << "1Temp1_=" << Temp1_.Debug(1) << std::endl;
+      std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+      std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
+      std::cerr << "srcSize=" << srcSize << std::endl;
+
+      BroadcastTanh(Temp1_, Temp2_, *dBatchMapping_.get(), srcSize);
+
+      std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
 
     }
 

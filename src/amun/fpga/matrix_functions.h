@@ -74,15 +74,18 @@ void ElementwiseOps(mblas::Matrix& NextState,
                     const uint &rows,
                     const uint &cols);
 
-Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
-
-Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In);
-
 Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
 Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2);
 
 Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2);
+
+Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
+
+Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In);
+
+Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapping, size_t srcSize);
+
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,

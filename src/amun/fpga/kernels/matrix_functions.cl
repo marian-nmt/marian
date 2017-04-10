@@ -190,6 +190,24 @@ __kernel void gBroadcastVecTanh(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
+__kernel void gBroadcastTanh(__global float* out, 
+                            __global const float* in1, 
+                            __global const float* in2,
+                            uint srcSize, 
+                            uint sumBeams, 
+                            uint cols, 
+                            __global const int* batchMapping,
+                           uint batchMappingSize, 
+                           uint outSize, 
+                           uint in1Size, 
+                           uint in2Size,
+                           uint inRows)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 __kernel void gLogit(__global float* out, 
                      __global const float* in, 
                      uint rows, uint cols) 
