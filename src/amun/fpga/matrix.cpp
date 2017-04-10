@@ -15,6 +15,8 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 :openCLInfo_(openCLInfo)
 ,rows_(0)
 ,cols_(0)
+,beam_(0)
+,batches_(0)
 ,arrSize_(0)
 ,mem_(nullptr)
 {
@@ -32,6 +34,8 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 :openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
+,beam_(1)
+,batches_(1)
 ,arrSize_(size())
 {
   cl_int err;
@@ -49,6 +53,8 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *va
 :openCLInfo_(openCLInfo)
 ,rows_(rows)
 ,cols_(cols)
+,beam_(1)
+,batches_(1)
 ,arrSize_(size())
 {
   cl_int err;
@@ -68,11 +74,15 @@ Matrix::Matrix(Matrix &&other)
 ,mem_(other.mem_)
 ,rows_(other.rows_)
 ,cols_(other.cols_)
+,beam_(other.beam_)
+,batches_(other.batches_)
 ,arrSize_(other.arrSize_)
 {
   other.mem_ = nullptr;
   other.rows_ = 0;
   other.cols_ = 0;
+  other.beam_ = 0;
+  other.batches_ = 0;
   other.arrSize_ = 0;
 }
 
@@ -104,6 +114,8 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 
   rows_ = rows;
   cols_ = cols;
+  beam_ = beam;
+  batches_ = batches;
 }
 
 std::string Matrix::Debug(size_t detailed) const
@@ -130,6 +142,8 @@ void Matrix::Swap(Matrix &other)
   std::swap(mem_, other.mem_);
   std::swap(rows_, other.rows_);
   std::swap(cols_, other.cols_);
+  std::swap(beam_, other.beam_);
+  std::swap(batches_, other.batches_);
   std::swap(arrSize_, other.arrSize_);
 }
 

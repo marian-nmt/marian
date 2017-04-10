@@ -22,8 +22,8 @@ public:
     switch (i) {
     case 0: return rows_;
     case 1: return cols_;
-    case 2: return 1;
-    case 3: return 1;
+    case 2: return beam_;
+    case 3: return batches_;
     default:
       abort();
     }
@@ -49,7 +49,7 @@ public:
 protected:
   const OpenCLInfo &openCLInfo_;
   cl_mem mem_;
-  size_t rows_, cols_;
+  size_t rows_, cols_, beam_, batches_;
   size_t arrSize_;
 
 };

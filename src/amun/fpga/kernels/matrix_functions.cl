@@ -203,7 +203,25 @@ __kernel void gBroadcastTanh(__global float* out,
                            uint in2Size,
                            uint inRows)
 {
+  uint maxId = srcSize * inRows * cols;
+  for (uint id = 0; id < maxId; ++id) {
+    int row = id / cols;
+    int stateIdx = id % cols;
 
+    int beamIdx = row / srcSize;
+    int srcId = row % srcSize;
+
+    int batchIdx = batchMapping[beamIdx];
+  
+    //assert(id < outSize);
+    //assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
+    //assert(beamIdx * cols + stateIdx < in2Size);
+  
+    float x = in1[(batchIdx * srcSize + srcId) * cols + stateIdx];
+    float y = in2[beamIdx * cols + stateIdx];
+    out[id] = tanh(x + y);
+  }
+  
 }
 
 /////////////////////////////////////////////////////////////////////////////
