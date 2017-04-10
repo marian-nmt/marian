@@ -105,6 +105,7 @@ class Decoder {
       , SCU_(openCLInfo)
       , Temp1_(openCLInfo)
       , Temp2_(openCLInfo)
+      , A_(openCLInfo)
     {}
 
     void Init(const mblas::Matrix& SourceContext)
@@ -168,6 +169,9 @@ class Decoder {
       std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
       Temp1_.Reshape2D();
 
+      Prod(A_, w_.V_, Temp1_, false, true);
+      std::cerr << "A_=" << A_.Debug(1) << std::endl;
+
     }
 
     private:
@@ -178,6 +182,7 @@ class Decoder {
       mblas::Matrix SCU_;
       mblas::Matrix Temp1_;
       mblas::Matrix Temp2_;
+      mblas::Matrix A_;
 
   };
 

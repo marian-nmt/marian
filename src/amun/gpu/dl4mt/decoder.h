@@ -186,6 +186,7 @@ class Decoder {
           //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
 
           Prod(A_, w_.V_, Temp1_, false, true);
+          std::cerr << "A_=" << A_.Debug(1) << std::endl;
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
