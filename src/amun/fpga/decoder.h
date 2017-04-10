@@ -103,6 +103,7 @@ class Decoder {
     Alignment(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
       : w_(model)
       , SCU_(openCLInfo)
+      , Temp1_(openCLInfo)
       , Temp2_(openCLInfo)
     {}
 
@@ -144,7 +145,16 @@ class Decoder {
       const size_t srcSize = mapping.size() / beamSizes.size();
 
       Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+
+      if (w_.Gamma_2_) {
+        //Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
+      } else {
+        BroadcastVecAdd(Temp2_, w_.B_/*, s_[1]*/);
+      }
       std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
+
+      Copy(Temp1_, SCU_);
+      std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
 
     }
 
@@ -154,6 +164,7 @@ class Decoder {
       std::shared_ptr< Array<int> > dBatchMapping_;
 
       mblas::Matrix SCU_;
+      mblas::Matrix Temp1_;
       mblas::Matrix Temp2_;
 
   };

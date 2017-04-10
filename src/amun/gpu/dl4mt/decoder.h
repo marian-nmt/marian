@@ -159,15 +159,16 @@ class Decoder {
           const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
-          std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           if (w_.Gamma_2_) {
             Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
           }
+          std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           Copy(Temp1_, SCU_);
+          std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
 
           //std::cerr << std::endl;
           //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;

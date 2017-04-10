@@ -36,6 +36,8 @@ unsigned int SumSizet(
     uint size,
     const OpenCLInfo &openCLInfo);
 
+Matrix& Copy(Matrix& Out, const Matrix& In);
+
 Matrix& CopyRows(
 		 Matrix& Out,
 		 const Matrix& In,

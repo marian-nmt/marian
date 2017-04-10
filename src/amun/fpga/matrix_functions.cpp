@@ -100,6 +100,16 @@ unsigned int SumSizet(
   return results;
 }
 
+Matrix& Copy(Matrix& Out, const Matrix& In)
+{
+  const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
+
+  Out.Resize(In.dim(0), In.dim(1), In.dim(2), In.dim(3));
+
+  CheckError( clEnqueueCopyBuffer(openCLInfo.commands, In.data(), Out.data(), 0, 0, sizeof(float) * In.size(), 0, NULL, NULL) );
+
+}
+
 Matrix& CopyRows(
 	Matrix& Out,
 	const Matrix& In,
