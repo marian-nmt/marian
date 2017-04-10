@@ -166,6 +166,7 @@ class Decoder {
       BroadcastTanh(Temp1_, Temp2_, *dBatchMapping_.get(), srcSize);
 
       std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
+      Temp1_.Reshape2D();
 
     }
 

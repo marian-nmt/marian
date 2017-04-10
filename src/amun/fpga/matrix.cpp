@@ -118,6 +118,14 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
   batches_ = batches;
 }
 
+void Matrix::Reshape2D()
+{
+  rows_ = rows_ * beam_ * batches_;
+  beam_ = 1;
+  batches_ = 1;
+}
+
+
 std::string Matrix::Debug(size_t detailed) const
 {
   std::stringstream strm;

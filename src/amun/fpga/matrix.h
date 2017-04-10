@@ -31,6 +31,8 @@ public:
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
 
+  void Reshape2D();
+
   const OpenCLInfo &GetOpenCLInfo() const
   { return openCLInfo_; }
 
