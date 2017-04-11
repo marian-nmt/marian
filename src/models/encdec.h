@@ -150,6 +150,7 @@ class DecoderBase {
 
 class Seq2SeqBase {
   public:
+    
     virtual void load(Ptr<ExpressionGraph>,
                       const std::string&) = 0;
 
@@ -183,22 +184,24 @@ class Seq2Seq : public Seq2SeqBase {
        decoder_(New<Decoder>(options, args...)),
        inference_(Get(keywords::inference, false, args...))
     {}
-
-     virtual void load(Ptr<ExpressionGraph> graph,
+    
+    virtual void load(Ptr<ExpressionGraph> graph,
                        const std::string& name) {
       graph->load(name);
     }
-
+    
     virtual void save(Ptr<ExpressionGraph> graph,
                       const std::string& name,
                       bool saveTranslatorConfig) {
       // ignore config for now
       graph->save(name);
+      options_->saveModelParameters(name);
     }
     
     virtual void save(Ptr<ExpressionGraph> graph,
                       const std::string& name) {
       graph->save(name);
+      options_->saveModelParameters(name);
     }
 
     virtual std::tuple<std::vector<Expr>, Ptr<EncoderState>>
@@ -229,11 +232,6 @@ class Seq2Seq : public Seq2SeqBase {
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
-      //std::cerr
-      //  << (*batch)[0].size()
-      //  << "," << (*batch)[1].size()
-      //  << " " << batch->size()
-      //  << std::endl;
 
       std::vector<Expr> startStates;
       Ptr<EncoderState> encState;
