@@ -336,8 +336,9 @@ void Config::addOptions(int argc, char** argv,
     configPath = vm_["config"].as<std::string>();
     config_ = YAML::Load(InputFileStream(configPath));
   }
-  else if(boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml") &&
-                                    !vm_["no-reload"].as<bool>()) {
+  else if(!translate &&
+          boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml") &&
+          !vm_["no-reload"].as<bool>()) {
     configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
   }

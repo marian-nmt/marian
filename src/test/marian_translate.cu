@@ -72,8 +72,8 @@ class BeamSearch {
       auto graph = hyps[0]->graph();
 
       // @TODO: not hard-coded!
-      int dimTrgEmb_ = 500;
-      int dimTrgVoc_ = 85000;
+      int dimTrgEmb_ = 512;
+      int dimTrgVoc_ = 40000;
 
       std::vector<Expr> selectedHyps;
       Expr selectedEmbs;
