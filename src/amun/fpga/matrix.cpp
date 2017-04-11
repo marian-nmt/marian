@@ -138,13 +138,13 @@ void Matrix::Reshape2D()
 }
 
 
-std::string Matrix::Debug(size_t detailed) const
+std::string Matrix::Debug(size_t verbosity) const
 {
   std::stringstream strm;
-  strm << BaseMatrix::Debug(detailed) << " " << mem_;
+  strm << BaseMatrix::Debug(verbosity) << " " << mem_;
   //cerr << "Debug1=" << strm.str() << endl;
 
-  if (detailed == 1) {
+  if (verbosity == 1) {
     //cerr << "Debug2" << endl;
     float sum = Sum(mem_, size(), openCLInfo_);
     //cerr << "Debug3" << endl;

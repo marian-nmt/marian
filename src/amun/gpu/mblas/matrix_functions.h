@@ -37,23 +37,31 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
-T Debug(const DeviceVector<T> &vec)
+std::string Debug(const DeviceVector<T> &vec)
 {
+  std::stringstream strm;
+
   T ret = 0;
   for (size_t i = 0; i < vec.size(); ++i) {
     ret += vec[i];
   }
-  return ret;
+
+  strm << "size=" << vec.size() << " sum=" << ret;
+  return strm.str();
 }
 
 template<typename T>
-T Debug(const thrust::host_vector<T> &vec)
+std::string Debug(const thrust::host_vector<T> &vec)
 {
+  std::stringstream strm;
+
   T ret = 0;
   for (size_t i = 0; i < vec.size(); ++i) {
     ret += vec[i];
   }
-  return ret;
+
+  strm << "size=" << vec.size() << " sum=" << ret;
+  return strm.str();
 }
 
 

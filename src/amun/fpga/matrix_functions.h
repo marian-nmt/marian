@@ -1,5 +1,5 @@
 #pragma once
-
+#include <sstream>
 #include <vector>
 #include <stddef.h>
 #include "types-fpga.h"
@@ -17,13 +17,17 @@ namespace mblas {
 class Matrix;
 
 template<typename T>
-T Debug(const std::vector<T> &vec)
+std::string Debug(const std::vector<T> &vec)
 {
-  T ret = T();
+  std::stringstream strm;
+
+  T ret = 0;
   for (size_t i = 0; i < vec.size(); ++i) {
     ret += vec[i];
   }
-  return ret;
+
+  strm << "size=" << vec.size() << " sum=" << ret;
+  return strm.str();
 }
 
 float Sum(

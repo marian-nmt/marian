@@ -61,12 +61,12 @@ public:
     std::swap(mem_, other.mem_);
   }
 
-  virtual std::string Debug(bool detailed = false) const
+  virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;
-    strm << size_ << " " << mem_;
+    strm << mem_ << " size=" << size_;
 
-    if (detailed) {
+    if (verbosity) {
       float sum = mblas::SumSizet(mem_, size_, openCLInfo_);
       strm << " sum=" << sum << std::flush;
     }

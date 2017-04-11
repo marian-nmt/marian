@@ -44,7 +44,7 @@ public:
   const cl_mem &data() const
   { return mem_; }
 
-  virtual std::string Debug(size_t detailed = 0) const;
+  virtual std::string Debug(size_t verbosity = 1) const;
 
   void Swap(Matrix &other);
 
