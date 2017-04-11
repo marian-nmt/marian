@@ -1,7 +1,11 @@
 #!/bin/bash
+DATAPATH=/share/bruteforce/data
 
-# set chosen gpus
-GPUS=0
+# load config
+GPUS=$(grep GPU config.txt | cut -d ' ' -f 2-)
+LR=$(grep LR config.txt | cut -d ' ' -f 2-)
+BS=$(grep BS config.txt | cut -d ' ' -f 2-)
+
 if [ $# -ne 0 ]
 then
   GPUS=$@
@@ -31,7 +35,7 @@ then
     git clone https://github.com/rsennrich/subword-nmt
 fi
 
-if [ ! -e "data/ro-en.tgz" ]
+if [ ! -e "$DATAPATH/ro-en.tgz" ]
 then
     ./scripts/download-files.sh
 fi
@@ -39,7 +43,7 @@ fi
 mkdir -p model
 
 # preprocess data
-if [ ! -e "data/corpus.bpe.en" ]
+if [ ! -e "$DATAPATH/corpus.bpe.en" ]
 then
     ./scripts/preprocess.sh
 fi
@@ -51,14 +55,15 @@ then
 ../../build/marian \
  --model model/model.npz \
  --devices $GPUS --seed 0 \
- --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
+ --train-sets $DATAPATH/corpus.bpe.ro $DATAPATH/corpus.bpe.en \
  --vocabs model/vocab.ro.yml model/vocab.en.yml \
  --dim-vocabs 66000 50000 \
- --mini-batch 80 \
+ --mini-batch $BS \
+ --learn-rate $LR \
  --layer-normalization --dropout-rnn 0.2 --dropout-src 0.1 --dropout-trg 0.1 \
- --early-stopping 5 --moving-average \
+ --early-stopping 5000 --moving-average \
  --valid-freq 10000 --save-freq 10000 --disp-freq 1000 \
- --valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en \
+ --valid-sets $DATAPATH/newsdev2016.bpe.ro $DATAPATH/newsdev2016.bpe.en \
  --valid-metrics cross-entropy valid-script \
  --valid-script-path ./scripts/validate.sh \
  --log model/train.log --valid-log model/valid.log
@@ -72,15 +77,15 @@ MODELS=`cat model/valid.log | grep valid-script | sort -rg -k8,8 -t ' ' | cut -f
 ../../scripts/average.py -m $MODELS -o model/model.avg.npz
 
 # translate dev set with averaged model
-cat data/newsdev2016.bpe.ro \
+cat $DATAPATH/newsdev2016.bpe.ro \
   | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -d $GPUS -b 12 -n --mini-batch 10 --maxi-batch 1000 \
-  | sed 's/\@\@ //g' | moses-scripts/scripts/recaser/detruecase.perl > data/newsdev2016.bpe.ro.output.postprocessed
+  | sed 's/\@\@ //g' | moses-scripts/scripts/recaser/detruecase.perl > $DATAPATH/newsdev2016.bpe.ro.output.postprocessed
 
 # translate test set with averaged model
-cat data/newstest2016.bpe.ro \
+cat $DATAPATH/newstest2016.bpe.ro \
   | ../../build/amun -c model/model.npz.amun.yml -m model/model.avg.npz -d $GPUS -b 12 -n --mini-batch 10 --maxi-batch 1000 \
-  | sed 's/\@\@ //g' | moses-scripts/scripts/recaser/detruecase.perl > data/newstest2016.bpe.ro.output.postprocessed
+  | sed 's/\@\@ //g' | moses-scripts/scripts/recaser/detruecase.perl > $DATAPATH/newstest2016.bpe.ro.output.postprocessed
 
 # calculate bleu scores for dev and test set
-./moses-scripts/scripts/generic/multi-bleu.perl data/newsdev2016.tok.en < data/newsdev2016.bpe.ro.output.postprocessed
-./moses-scripts/scripts/generic/multi-bleu.perl data/newstest2016.tok.en < data/newstest2016.bpe.ro.output.postprocessed
+./moses-scripts/scripts/generic/multi-bleu.perl $DATAPATH/newsdev2016.tok.en < $DATAPATH/newsdev2016.bpe.ro.output.postprocessed
+./moses-scripts/scripts/generic/multi-bleu.perl $DATAPATH/newstest2016.tok.en < $DATAPATH/newstest2016.bpe.ro.output.postprocessed
