@@ -278,6 +278,10 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Paths to input files")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files have to correspond to --inputs.")
+    ("beam-size", po::value<size_t>()->default_value(12),
+      "Beam size used during search")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Normalize translation score by translation length")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
     ("devices,d", po::value<std::vector<int>>()
@@ -358,7 +362,7 @@ void Config::addOptions(int argc, char** argv,
   }
   /** model **/
 
-  /** training **/
+  /** training start **/
   if(!translate) {
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
@@ -373,16 +377,21 @@ void Config::addOptions(int argc, char** argv,
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
+    SET_OPTION("mini-batch-words", int);
+    SET_OPTION("dynamic-batching", bool);
     
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
   }
-  /** training **/
+  /** training end **/
   else {
     if (!vm_["inputs"].empty()) {
       config_["inputs"] = vm_["inputs"].as<std::vector<std::string>>();
     }
+    
+    SET_OPTION("normalize", bool);
+    SET_OPTION("beam-size", size_t);
   }
 
   /** valid **/
@@ -418,8 +427,6 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
-  SET_OPTION("mini-batch-words", int);
-  SET_OPTION("dynamic-batching", bool);
   SET_OPTION("maxi-batch", int);
   SET_OPTION("max-length", size_t);
 

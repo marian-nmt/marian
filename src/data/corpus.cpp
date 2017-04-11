@@ -50,23 +50,34 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(options_->has("vocabs"))
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
-  UTIL_THROW_IF2(!vocabPaths.empty() && textPaths_.size() != vocabPaths.size(),
-                 "Number of corpus files and vocab files does not agree");
+  if(!translate) {
+    UTIL_THROW_IF2(!vocabPaths.empty() && textPaths_.size() != vocabPaths.size(),
+                   "Number of corpus files and vocab files does not agree");
+  }
 
   std::vector<int> maxVocabs =
     options_->get<std::vector<int>>("dim-vocabs");
 
-  std::vector<Vocab> vocabs;
-  if(vocabPaths.empty()) {
-    for(int i = 0; i < textPaths_.size(); ++i) {
-      Ptr<Vocab> vocab = New<Vocab>();
-      vocab->loadOrCreate("", textPaths_[i], maxVocabs[i]);
-      options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
-      vocabs_.emplace_back(vocab);
+  if(!translate) {
+    std::vector<Vocab> vocabs;
+    if(vocabPaths.empty()) {
+      for(int i = 0; i < textPaths_.size(); ++i) {
+        Ptr<Vocab> vocab = New<Vocab>();
+        vocab->loadOrCreate("", textPaths_[i], maxVocabs[i]);
+        options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
+        vocabs_.emplace_back(vocab);
+      }
+    }
+    else {
+      for(int i = 0; i < vocabPaths.size(); ++i) {
+        Ptr<Vocab> vocab = New<Vocab>();
+        vocab->loadOrCreate(vocabPaths[i], textPaths_[i], maxVocabs[i]);
+        vocabs_.emplace_back(vocab);
+      }
     }
   }
   else {
-    for(int i = 0; i < vocabPaths.size(); ++i) {
+    for(int i = 0; i < vocabPaths.size() - 1; ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], textPaths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);

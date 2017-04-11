@@ -62,25 +62,29 @@ class BatchGenerator {
         bool makeBatch = batchVector.size() == maxBatchSize;
         
         // Batch size based on words
-        int mbWords = options_->get<int>("mini-batch-words");
-        if(mbWords > 0)
-          makeBatch = currentWords > mbWords;
+        if(options_->has("mini-batch-words")) {
+          int mbWords = options_->get<int>("mini-batch-words");
+          if(mbWords > 0)
+            makeBatch = currentWords > mbWords;
+        }
         
-        // Dynamic batching
-        if(stats_ && options_->get<bool>("dynamic-batching")) {
-          for(size_t i = 0; i < sets; ++i)
-            if(batchVector.back()[i].size() > lengths[i])
-              lengths[i] = batchVector.back()[i].size();
-          
-          maxBatchSize = stats_->getBatchSize(lengths);
-          
-          if(batchVector.size() > maxBatchSize) {
-            maxiBatch.push(batchVector.back());
-            batchVector.pop_back();
-            makeBatch = true;
-          }
-          else {
-            makeBatch = batchVector.size() == maxBatchSize;
+        if(options_->has("dynamic-batching")) {
+          // Dynamic batching
+          if(stats_ && options_->get<bool>("dynamic-batching")) {
+            for(size_t i = 0; i < sets; ++i)
+              if(batchVector.back()[i].size() > lengths[i])
+                lengths[i] = batchVector.back()[i].size();
+            
+            maxBatchSize = stats_->getBatchSize(lengths);
+            
+            if(batchVector.size() > maxBatchSize) {
+              maxiBatch.push(batchVector.back());
+              batchVector.pop_back();
+              makeBatch = true;
+            }
+            else {
+              makeBatch = batchVector.size() == maxBatchSize;
+            }
           }
         }
         

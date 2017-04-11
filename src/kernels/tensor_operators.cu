@@ -617,7 +617,7 @@ void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
     float alpha = 1.0;
     float beta  = 0.0;
 
-    size_t offset = i * steps;
+    size_t offset = i * m * n;
 
     cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha, in->data() + offset, n,
                 &beta, in->data() + offset, n, out->data() + offset, m);

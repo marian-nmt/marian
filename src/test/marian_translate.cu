@@ -33,8 +33,8 @@ class BeamSearch {
   public:
     BeamSearch(Ptr<Config> options)
      : options_(options),
-       builder_(New<Builder>(options)),
-       beamSize_(12)
+       builder_(New<Builder>(options, keywords::inference=true)),
+       beamSize_(options_->get<size_t>("beam-size"))
     {}
 
     Beam toHyps(const std::vector<uint> keys,
@@ -46,7 +46,7 @@ class BeamSearch {
         int embIdx = keys[i] % vocabSize;
         int hypIdx = keys[i] / vocabSize;
         float cost = costs[i];
-
+        
         newBeam.push_back(
           New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, cost));
       }
@@ -72,8 +72,8 @@ class BeamSearch {
       auto graph = hyps[0]->graph();
 
       // @TODO: not hard-coded!
-      int dimTrgEmb_ = 512;
-      int dimTrgVoc_ = 50000;
+      int dimTrgEmb_ = 500;
+      int dimTrgVoc_ = 85000;
 
       std::vector<Expr> selectedHyps;
       Expr selectedEmbs;
@@ -138,9 +138,9 @@ class BeamSearch {
       Ptr<EncoderState> encState;
       std::tie(startStates, encState)
         = builder_->buildEncoder(graph, batch);
-
+        
       size_t pos = 0;
-      auto history = New<History>(0);
+      auto history = New<History>(0, options_->get<bool>("normalize"));
       Beam beam(1, New<Hypothesis>());
       bool first = true;
       bool final = false;
@@ -205,6 +205,9 @@ class Translator : public TranslatorBase {
     graph_(New<ExpressionGraph>()) {
       auto devices = options_->get<std::vector<int>>("devices");
       graph_->setDevice(devices[0]);
+      graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      auto model = New<Model>(options, keywords::inference=true);
+      model->load(graph_, options_->get<std::string>("model"));
     }
 
     Ptr<History> translate(Ptr<data::CorpusBatch> batch) {

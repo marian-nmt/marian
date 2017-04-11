@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
       batch->debug();
 
       auto costNode = encdec->build(graph, batch);
-      for(auto p : graph->params())
-        debug(p, p->name());
+      //for(auto p : graph->params())
+      //  debug(p, p->name());
       debug(costNode, "cost");
 
       //graph->graphviz("debug.dot");
