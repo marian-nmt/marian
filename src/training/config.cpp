@@ -166,24 +166,25 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   po::options_description model("Model options", guess_terminal_width());
   model.add_options()
     ("model,m", po::value<std::string>()->default_value("model.npz"),
-      "Path prefix for model to be saved/resumed");
+      "Path prefix for model to be saved/resumed")
+    ("type", po::value<std::string>()->default_value("dl4mt"),
+      "Model type (possible values: dl4mt, gnmt, multi-gnmt")
+    ("dim-vocabs", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
+      "Maximum items in vocabulary ordered by rank")
+    ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
+    ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
+    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
+    ("skip", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use skip connections")
+    ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable layer normalization");
+      
 
   if(!translate) {
     model.add_options()
-      ("type", po::value<std::string>()->default_value("dl4mt"),
-      "Model type (possible values: dl4mt, gnmt, multi-gnmt")
-      ("dim-vocabs", po::value<std::vector<int>>()
-        ->multitoken()
-        ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
-        "Maximum items in vocabulary ordered by rank")
-      ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
-      ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
-      ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
-      ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
-      ("skip", po::value<bool>()->zero_tokens()->default_value(false),
-       "Use skip connections")
-      ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
-       "Enable layer normalization")  
       ("dropout-rnn", po::value<float>()->default_value(0),
        "Scaling dropout along rnn layers and time (0 = no dropout)")
       ("dropout-src", po::value<float>()->default_value(0),
@@ -354,15 +355,17 @@ void Config::addOptions(int argc, char** argv,
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
+  
+  SET_OPTION("type", std::string);
+  SET_OPTION("dim-vocabs", std::vector<int>);
+  SET_OPTION("dim-emb", int);
+  SET_OPTION("dim-rnn", int);
+  SET_OPTION("layers-enc", int);
+  SET_OPTION("layers-dec", int);
+  SET_OPTION("skip", bool);
+  SET_OPTION("layer-normalization", bool);
+
   if(!translate) {
-    SET_OPTION("type", std::string);
-    SET_OPTION("dim-vocabs", std::vector<int>);
-    SET_OPTION("dim-emb", int);
-    SET_OPTION("dim-rnn", int);
-    SET_OPTION("layers-enc", int);
-    SET_OPTION("layers-dec", int);
-    SET_OPTION("skip", bool);
-    SET_OPTION("layer-normalization", bool);
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
@@ -453,7 +456,12 @@ void Config::addOptions(int argc, char** argv,
     
   if(boost::filesystem::exists(vm_["model"].as<std::string>()) &&
      (translate || !vm_["no-reload"].as<bool>())) {
-    loadModelParameters(vm_["model"].as<std::string>());
+    try {
+      loadModelParameters(vm_["model"].as<std::string>());
+    }
+    catch(std::runtime_error& e) {
+      LOG(config, "No model parameters found in model file");
+    }
   }
 }
 
