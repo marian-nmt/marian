@@ -4,6 +4,7 @@
 #include "matrix.h"
 #include "gru.h"
 #include "array.h"
+#include "common/god.h"
 
 namespace amunmt {
 
@@ -102,11 +103,16 @@ class Decoder {
     public:
     Alignment(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
       : w_(model)
+      //, dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
       , SCU_(openCLInfo)
       , Temp1_(openCLInfo)
       , Temp2_(openCLInfo)
       , A_(openCLInfo)
-    {}
+    {
+      Array<int> *tmp = new Array<int>(openCLInfo, god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0);
+      dBatchMapping_.reset(tmp);
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.get()->Debug() << std::endl;
+    }
 
     void Init(const mblas::Matrix& SourceContext)
     {
@@ -137,6 +143,8 @@ class Decoder {
           batchMapping[k++] = i;
         }
       }
+
+      std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
       Array<int> *tmp = new Array<int>(openCLInfo, batchMapping);
       dBatchMapping_.reset(tmp);
 

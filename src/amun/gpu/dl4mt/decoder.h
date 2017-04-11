@@ -119,8 +119,8 @@ class Decoder {
     class Alignment {
       public:
         Alignment(const God &god, const Weights& model)
-          : w_(model),
-            dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
+          : w_(model)
+          , dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
         {}
 
         void Init(const mblas::Matrix& SourceContext) {
@@ -148,11 +148,13 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
+          std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),
               cudaMemcpyHostToDevice);
+          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 

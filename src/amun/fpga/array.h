@@ -27,6 +27,13 @@ public:
     CheckError(err);
   }
 
+  Array(const OpenCLInfo &openCLInfo, size_t size, const T &value)
+  :Array(openCLInfo, size)
+  {
+    CheckError( clEnqueueFillBuffer(openCLInfo.commands, mem_, &value, sizeof(T), 0, size_ * sizeof(T), 0, NULL, NULL) );
+    CheckError( clFinish(openCLInfo.commands) );
+  }
+
   Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
   :openCLInfo_(openCLInfo)
   ,size_(vec.size())
