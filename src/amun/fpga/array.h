@@ -68,6 +68,12 @@ public:
     std::swap(mem_, other.mem_);
   }
 
+  void Fill(const std::vector<T> &vec)
+  {
+    CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, vec.data(), sizeof(T), 0, vec.size() * sizeof(T), 0, NULL, NULL) );
+    CheckError( clFinish(openCLInfo_.commands) );
+  }
+
   virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;

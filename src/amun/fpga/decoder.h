@@ -111,7 +111,6 @@ class Decoder {
     {
       Array<int> *tmp = new Array<int>(openCLInfo, god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0);
       dBatchMapping_.reset(tmp);
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.get()->Debug() << std::endl;
     }
 
     void Init(const mblas::Matrix& SourceContext)
@@ -145,8 +144,8 @@ class Decoder {
       }
 
       std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
-      Array<int> *tmp = new Array<int>(openCLInfo, batchMapping);
-      dBatchMapping_.reset(tmp);
+      dBatchMapping_.get()->Fill(batchMapping);
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.get()->Debug() << std::endl;
 
       const size_t srcSize = mapping.size() / beamSizes.size();
 
