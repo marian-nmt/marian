@@ -146,9 +146,26 @@ class TMatrix : public BaseMatrix {
           << arrSize_ << " "
           << std::flush;
 
-      if (verbosity == 1) {
+      if (verbosity) {
         float sum = Sum(data(), size());
         strm << "size=" << size() << " sum=" << sum << std::flush;
+
+        if (verbosity == 2) {
+          cudaStream_t& stream = CudaStreamHandler::GetStream();
+          T h_data[size()];
+
+          HANDLE_ERROR( cudaMemcpyAsync(
+              &h_data,
+              data_,
+              size() * sizeof(T),
+              cudaMemcpyDeviceToHost,
+              stream) );
+          HANDLE_ERROR( cudaStreamSynchronize(stream) );
+
+          for (size_t i = 0; i < size(); ++i) {
+            strm << " " << h_data[i];
+          }
+        }
       }
 
       return strm.str();
