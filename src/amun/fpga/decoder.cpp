@@ -24,16 +24,11 @@ void Decoder::Decode(mblas::Matrix& NextState,
               const Array<int>& mapping,
               const std::vector<size_t>& beamSizes)
 {
-  std::cerr << std::endl;
+  //std::cerr << std::endl;
 
-  std::cerr << "1HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-  std::cerr << "State=" << State.Debug(1) << std::endl;
-  std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
   GetHiddenState(HiddenState_, State, Embeddings);
-  std::cerr << "2HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-
   GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
-  std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+  //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
 
 }
 

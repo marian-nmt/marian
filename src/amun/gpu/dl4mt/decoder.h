@@ -140,7 +140,6 @@ class Decoder {
                                      const DeviceVector<int>& mapping,
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
-          std::cerr << "mapping=" << Debug(mapping) << std::endl;
 
           thrust::host_vector<int> batchMapping(HiddenState.dim(0));
           size_t k = 0;
@@ -149,7 +148,6 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
-          std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
@@ -165,38 +163,28 @@ class Decoder {
           } else {
             BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
           }
-          std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           Copy(Temp1_, SCU_);
-          //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
-
-          std::cerr << std::endl;
-          //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
-          std::cerr << "1Temp1_=" << Temp1_.Debug(1) << std::endl;
-          std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
-          std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          std::cerr << "srcSize=" << srcSize << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
-          std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
           Temp1_.Reshape2D();
 
-          std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
-          std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
-
           Prod(A_, w_.V_, Temp1_, false, true);
-          std::cerr << "A_=" << A_.Debug(1) << std::endl;
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
 
           //std::cerr << "1A_=" << A_.Debug() << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          std::cerr << "2A_=" << A_.Debug(1) << std::endl;
+
+          std::cerr << std::endl;
+          std::cerr << "1A_=" << A_.Debug(1) << std::endl;
+          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
+          std::cerr << "mapping=" << Debug(mapping) << std::endl;
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
-          std::cerr << "3A_=" << A_.Debug(1) << std::endl;
+          std::cerr << "2A_=" << A_.Debug(1) << std::endl;
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
@@ -330,19 +318,14 @@ class Decoder {
                   const mblas::Matrix& SourceContext,
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes) {
-      std::cerr << std::endl;
+      //std::cerr << std::endl;
 
-      std::cerr << "1HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-      std::cerr << "State=" << State.Debug(1) << std::endl;
-      std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
-      std::cerr << "2HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
-      std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+      //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
 
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       

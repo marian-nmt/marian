@@ -130,8 +130,6 @@ class Decoder {
       using namespace mblas;
       const OpenCLInfo &openCLInfo = HiddenState.GetOpenCLInfo();
 
-      std::cerr << "mapping=" << mapping.Debug() << std::endl;
-
       std::vector<int> batchMapping(HiddenState.dim(0));
       size_t k = 0;
       for (size_t i = 0; i < beamSizes.size(); ++i) {
@@ -139,7 +137,6 @@ class Decoder {
           batchMapping[k++] = i;
         }
       }
-      std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
       Array<int> *tmp = new Array<int>(openCLInfo, batchMapping);
       dBatchMapping_.reset(tmp);
 
@@ -152,40 +149,30 @@ class Decoder {
       } else {
         BroadcastVecAdd(Temp2_, w_.B_/*, s_[1]*/);
       }
-      std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
 
       Copy(Temp1_, SCU_);
-      //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
-
-      std::cerr << std::endl;
-      //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
-      std::cerr << "1Temp1_=" << Temp1_.Debug(1) << std::endl;
-      std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
-      std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-      std::cerr << "srcSize=" << srcSize << std::endl;
 
       BroadcastTanh(Temp1_, Temp2_, *dBatchMapping_.get(), srcSize);
 
-      std::cerr << "2Temp1_=" << Temp1_.Debug(1) << std::endl;
       Temp1_.Reshape2D();
-      std::cerr << "3Temp1_=" << Temp1_.Debug(1) << std::endl;
 
       Transpose(Temp1_);
 
-      std::cerr << "w_.V_=" << w_.V_.Debug(1) << std::endl;
-      std::cerr << "4Temp1_=" << Temp1_.Debug(1) << std::endl;
       Prod(A_, w_.V_, Temp1_, false, false);
-      std::cerr << "A_=" << A_.Debug(1) << std::endl;
 
       size_t rows1 = SourceContext.dim(0);
       size_t rows2 = HiddenState.dim(0);
 
       //std::cerr << "1A_=" << A_.Debug() << std::endl;
       A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-      std::cerr << "2A_=" << A_.Debug(1) << std::endl;
+
+      std::cerr << std::endl;
+      std::cerr << "1A_=" << A_.Debug(1) << std::endl;
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.get()->Debug() << std::endl;
+      std::cerr << "mapping=" << mapping.Debug() << std::endl;
 
       mblas::Softmax(A_, *dBatchMapping_.get(), mapping, srcSize);
-      std::cerr << "3A_=" << A_.Debug(1) << std::endl;
+      std::cerr << "2A_=" << A_.Debug(1) << std::endl;
 
     }
 
