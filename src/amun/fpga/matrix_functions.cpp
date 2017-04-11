@@ -11,10 +11,10 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
-float Sum(
+float SumFloat(
+    const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size,
-    const OpenCLInfo &openCLInfo)
+    uint size)
 {
   cl_int err;
   size_t global;                      // global domain size for our calculation
@@ -58,9 +58,9 @@ float Sum(
 }
 
 unsigned int SumSizet(
+    const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size,
-    const OpenCLInfo &openCLInfo)
+    uint size)
 {
   cl_int err;
   size_t global;                      // global domain size for our calculation

@@ -144,12 +144,16 @@ std::string Matrix::Debug(size_t verbosity) const
   strm << BaseMatrix::Debug(verbosity) << " " << mem_;
   //cerr << "Debug1=" << strm.str() << endl;
 
-  if (verbosity == 1) {
+  if (verbosity) {
     //cerr << "Debug2" << endl;
-    float sum = Sum(mem_, size(), openCLInfo_);
+    float sum = SumFloat(openCLInfo_, mem_, size());
     //cerr << "Debug3" << endl;
     strm << " sum=" << sum << std::flush;
     //cerr << "Debug4" << endl;
+
+    if (verbosity == 2) {
+      strm << OutputArray<float>(openCLInfo_, mem_, size());
+    }
   }
   //cerr << "Debug5" << endl;
 

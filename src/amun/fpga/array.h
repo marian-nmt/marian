@@ -80,7 +80,7 @@ public:
     strm << mem_ << " size=" << size_;
 
     if (verbosity) {
-      float sum = mblas::SumSizet(mem_, size_, openCLInfo_);
+      float sum = mblas::SumSizet(openCLInfo_, mem_, size_);
       strm << " sum=" << sum << std::flush;
     }
 
