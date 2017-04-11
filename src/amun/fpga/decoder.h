@@ -103,14 +103,12 @@ class Decoder {
     public:
     Alignment(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
       : w_(model)
-      //, dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
+      , dBatchMapping_(openCLInfo, god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
       , SCU_(openCLInfo)
       , Temp1_(openCLInfo)
       , Temp2_(openCLInfo)
       , A_(openCLInfo)
     {
-      Array<int> *tmp = new Array<int>(openCLInfo, god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0);
-      dBatchMapping_.reset(tmp);
     }
 
     void Init(const mblas::Matrix& SourceContext)
@@ -144,8 +142,8 @@ class Decoder {
       }
 
       std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
-      dBatchMapping_.get()->Fill(batchMapping);
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.get()->Debug() << std::endl;
+      dBatchMapping_.Fill(batchMapping);
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
 
       const size_t srcSize = mapping.size() / beamSizes.size();
 
@@ -159,7 +157,7 @@ class Decoder {
 
       Copy(Temp1_, SCU_);
 
-      BroadcastTanh(Temp1_, Temp2_, *dBatchMapping_.get(), srcSize);
+      BroadcastTanh(Temp1_, Temp2_, dBatchMapping_, srcSize);
 
       Temp1_.Reshape2D();
 
@@ -175,10 +173,10 @@ class Decoder {
 
       std::cerr << std::endl;
       std::cerr << "1A_=" << A_.Debug(1) << std::endl;
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.get()->Debug() << std::endl;
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
       std::cerr << "mapping=" << mapping.Debug(1) << std::endl;
 
-      mblas::Softmax(A_, *dBatchMapping_.get(), mapping, srcSize);
+      mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
       std::cerr << "2A_=" << A_.Debug(1) << std::endl;
 
     }
@@ -186,7 +184,7 @@ class Decoder {
     private:
       const Weights& w_;
 
-      std::shared_ptr< Array<int> > dBatchMapping_;
+      Array<int> dBatchMapping_;
 
       mblas::Matrix SCU_;
       mblas::Matrix Temp1_;
