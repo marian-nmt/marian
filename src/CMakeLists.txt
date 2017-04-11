@@ -86,7 +86,7 @@ set_target_properties("python" PROPERTIES OUTPUT_NAME "amunmt")
 
 endif(PYTHONLIBS_FOUND)
 
-cuda_add_library(mosesplugin STATIC
+cuda_add_library(mosesplugin SHARED
   plugin/nmt.cpp
   plugin/nbest.cpp
   gpu/decoder/encoder_decoder.cu
