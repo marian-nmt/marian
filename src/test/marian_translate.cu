@@ -72,14 +72,14 @@ class BeamSearch {
       auto graph = hyps[0]->graph();
 
       // @TODO: not hard-coded!
-      int dimTrgEmb_ = 512;
-      int dimTrgVoc_ = 40000;
+      int dimTrgEmb = options_->get<int>("dim-emb");
+      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
       std::vector<Expr> selectedHyps;
       Expr selectedEmbs;
       if(embIdx.empty()) {
         selectedHyps = hyps;
-        selectedEmbs = graph->constant(shape={1, dimTrgEmb_},
+        selectedEmbs = graph->constant(shape={1, dimTrgEmb},
                                        init=inits::zeros);
       }
       else {
@@ -88,7 +88,7 @@ class BeamSearch {
           selectedHyps.push_back(
             reshape(rows(h, hypIdx), {1, h->shape()[1], 1, (int)hypIdx.size()}));
 
-        auto yEmb = Embedding("Wemb_dec", dimTrgVoc_, dimTrgEmb_)(graph);
+        auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
         selectedEmbs = reshape(rows(yEmb, embIdx),
                                {1, yEmb->shape()[1], 1, (int)embIdx.size()});
       }
