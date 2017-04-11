@@ -36,7 +36,9 @@ float Sum(
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
@@ -81,7 +83,9 @@ unsigned int SumSizet(
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
@@ -153,7 +157,9 @@ Matrix& CopyRows(
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
@@ -220,7 +226,9 @@ Matrix& Transpose(Matrix& Out, const Matrix& In)
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
@@ -296,7 +304,9 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
@@ -345,7 +355,9 @@ void ElementwiseOps(mblas::Matrix& NextState,
   //
   CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
 
-  global = 1024;
+  //global = 1024;
+  local = 1;
+  global = 1;
 
   //cerr << "local=" << local << endl;
   //cerr << "global=" << global << endl;
