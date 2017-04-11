@@ -54,9 +54,8 @@ const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 void EncoderDecoderState::JoinStates(const States& states) {
 }
 
-States EncoderDecoderState::Split() {
+void EncoderDecoderState::MakeState(State& state, size_t rowNo) {
 }
-
 
 ////////////////////////////////////////////////
 EncoderDecoder::EncoderDecoder(const std::string& name,

@@ -21,9 +21,11 @@ class Decoder {
         void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
           using namespace mblas;
           thrust::host_vector<size_t> tids = ids;
-          for(auto&& id : tids)
-            if(id >= w_.E_.Rows())
+          for(auto&& id : tids) {
+            if(id >= w_.E_.Rows()) {
               id = 1;
+            }
+          }
           indices_.resize(tids.size());
           mblas::copy_n(tids.begin(), tids.size(), indices_.begin());
           Assemble(Rows, w_.E_, indices_);
@@ -285,11 +287,14 @@ class Decoder {
                   const mblas::Matrix& SourceContext,
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes) {
+      // std::cerr << ">> >> " << "GetHiddenState " << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
+      // std::cerr << ">> >> " << "GetAlignedSourceContext " << std::endl;
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
+      // std::cerr << ">> >> " << "GetNextState " << std::endl;
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
+      // std::cerr << ">> >> " << "GetProbs " << std::endl;
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
-      
     }
 
     mblas::Matrix& GetProbs() {

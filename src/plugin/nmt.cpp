@@ -12,6 +12,7 @@
 #include "common/types.h"
 #include "common/god.h"
 #include <cuda.h>
+#include <thrust/device_vector.h>
 
 using namespace amunmt;
 
@@ -28,12 +29,30 @@ size_t NMT::GetTotalThreads()
   return god_->GetTotalThreads();
 }
 
+NMT::NMT()
+: debug_(false),
+  states_(new States()),
+  firstWord_(true)
+{
+  auto deviceInfo_ = god_->GetNextDevice();
+  scorers_ = god_->GetScorers(deviceInfo_);
+}
+
+
 NMT::NMT(std::vector<ScorerPtr>& scorers)
   : debug_(false),
     scorers_(scorers),
     states_(new States()),
     firstWord_(true)
 {
+}
+
+NMT::~NMT() {
+  SetDevice();
+}
+
+void NMT::Clean() {
+  god_->Cleanup();
 }
 
 
@@ -48,7 +67,6 @@ void NMT::SetDevice() {
   if (deviceInfo.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo.deviceId);
   }
-
 }
 
 
@@ -56,10 +74,6 @@ States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
 {
   Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(*god_, 0, srcWords)));
-
-  size_t numScorers = scorers_.size();
-
-  ClearStates();
 
   States states = NewStates();
 
@@ -88,8 +102,8 @@ States NMT::NewStates() const
 
 std::vector<ScorerPtr> NMT::NewScorers()
 {
-  auto deviceInfo_ = god_->GetNextDevice();
-  auto scorers = god_->GetScorers(deviceInfo_);
+  auto deviceInfo = god_->GetNextDevice();
+  auto scorers = god_->GetScorers(deviceInfo);
   return scorers;
 }
 
@@ -137,6 +151,7 @@ void NMT::BatchSteps(const Batches& batches,
                      Scores& unksOut,
                      std::vector<States>& inputStates)
 {
+
   States prevStates = NewStates();
   States nextStates = NewStates();
 
@@ -151,51 +166,64 @@ void NMT::BatchSteps(const Batches& batches,
     prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
   }
 
+  std::vector<size_t> previousIds;
+  for (size_t i = 0; i < batches[0].size(); ++i) {
+    previousIds.push_back(i);
+  }
 
-  bool isFirst = true;
-  for (auto& batch : batches) {
-    std::vector<std::pair<int, int>> indices;
-    for (size_t i = 0; i < batch.size(); ++i) {
-      indices.push_back(std::make_pair(i, (batch[i] == -1) ? 0 : batch[i]));
-    }
 
+  for (size_t batchIdx = 0; batchIdx < batches.size(); ++batchIdx) {
     for (size_t i = 0; i < scorers_.size(); i++) {
       Scorer &scorer = *scorers_[i];
       const State &state =  *prevStates[i];
       State &nextState = *nextStates[i];
 
-      if (isFirst) {
-        scorer.Decode(*god_, state, nextState, {1});
-        isFirst = false;
-      } else {
-        scorer.Decode(*god_, state, nextState, {batch.size()});
-      }
+      scorer.Decode(*god_, state, nextState, {previousIds.size()});
+    }
+
+    std::vector<std::pair<int, int>> indices;
+    for (size_t i = 0; i < previousIds.size(); ++i) {
+      indices.push_back(std::make_pair(i, batches[batchIdx][previousIds[i]]));
     }
 
     for (auto& scorer : scorers_) {
       auto logProbs = scorer->GetProbs().GetScores(indices);
-      for (size_t i = 0; i < batch.size(); ++i) {
-        if (batch[i] != -1) {
-          probsOut[i] += logProbs[i];
-        }
-
-        if (batch[i] == UNK_ID) {
-          unksOut[i]++;
-        }
+      for (size_t i = 0; i < previousIds.size(); ++i) {
+          probsOut[previousIds[i]] += logProbs[i];
       }
     }
 
+    std::vector<size_t> nextIds;
+    std::vector<size_t> nextHypIds;
+    for (size_t i = 0; i < previousIds.size(); ++i) {
+      if (batches[batchIdx + 1][previousIds[i]] == -1) {
+        for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
+          Beam tBeam;
+          tBeam.emplace_back(new Hypothesis(nullptr, batches[batchIdx][previousIds[i]], i, 0.0f));
+          inputStates[previousIds[i]][scorerIdx].reset(scorers_[scorerIdx]->NewState());
+          scorers_[scorerIdx]->AssembleBeamState(*nextStates[scorerIdx], tBeam, *inputStates[previousIds[i]][scorerIdx]);
+        }
+      } else {
+        nextIds.push_back(previousIds[i]);
+        nextHypIds.push_back(i);
+      }
+    }
+
+    if (nextIds.empty()) {
+      break;
+    }
+
+    previousIds.swap(nextIds);
+
     Beam survivors;
-    for (size_t i = 0; i < batch.size(); ++i) {
-      survivors.emplace_back(new Hypothesis(nullptr, i, (batch[i] == -1) ? 0 : batch[i], 0.0f));
+    for (size_t i = 0; i < previousIds.size(); ++i) {
+      survivors.emplace_back(new Hypothesis(nullptr, batches[batchIdx][previousIds[i]], nextHypIds[i], 0.0f));
     }
 
     for (size_t i = 0; i < scorers_.size(); ++i) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
     }
   }
-
-  // TODO: split states
 }
 
 
@@ -210,6 +238,11 @@ std::vector<double> NMT::RescoreNBestList(
     States prevStates = NewStates();
     States nextStates = NewStates();
 
+    std::vector<size_t> previousIds;
+    for (size_t i = 0; i < batch[0].size(); ++i) {
+      previousIds.push_back(i);
+    }
+
     for (size_t i = 0; i < scorers_.size(); ++i) {
       scorers_[i]->BeginSentenceState(*prevStates[i], {1});
     }
@@ -218,42 +251,68 @@ std::vector<double> NMT::RescoreNBestList(
 
     std::vector<float> scores(batch[0].size(), 0.0f);
 
-    bool isFirst = true;
-    for (auto& w : batch) {
+    for (size_t batchIdx = 0; batchIdx < batch.size(); ++batchIdx) {
       for (size_t i = 0; i < scorers_.size(); i++) {
         Scorer &scorer = *scorers_[i];
         const State &state =  *prevStates[i];
         State &nextState = *nextStates[i];
 
-        if (isFirst) {
+        if (batchIdx == 0) {
           scorer.Decode(*god_, state, nextState, {1});
-          isFirst = false;
         } else {
-          scorer.Decode(*god_, state, nextState, {batch.size()});
+          scorer.Decode(*god_, state, nextState, {previousIds.size()});
         }
       }
 
       std::vector<std::pair<int, int>> indices;
-      for (size_t i = 0; i < batchSize; ++i) {
-        indices.push_back(std::make_pair(i, (w[i] == -1) ? 0 : w[i]));
+      for (size_t i = 0; i < previousIds.size(); ++i) {
+        if (batchIdx == 0) {
+          indices.push_back(std::make_pair(0, batch[batchIdx][previousIds[i]]));
+        } else {
+          indices.push_back(std::make_pair(i, batch[batchIdx][previousIds[i]]));
+        }
       }
 
       for (auto& scorer : scorers_) {
         auto logProbs = scorer->GetProbs().GetScores(indices);
-        for (size_t i = 0; i < batch.size(); ++i) {
-          if (w[i] != -1) {
-            scores[i] += logProbs[i];
-          }
+        for (size_t i = 0; i < previousIds.size(); ++i) {
+            scores[previousIds[i]] += logProbs[i];
         }
       }
 
+      for (size_t ii = 0; ii < scores.size(); ++ii) std::cerr << scores[ii] << " ";
+      std::cerr << std::endl;
+
+      std::vector<size_t> nextIds;
+      std::vector<size_t> nextHypIds;
+      for (size_t i = 0; i < previousIds.size(); ++i) {
+        if (batch[batchIdx + 1][previousIds[i]] != -1) {
+          nextIds.push_back(previousIds[i]);
+          nextHypIds.push_back(i);
+        }
+      }
+
+      if (nextIds.empty()) {
+        break;
+      }
+
+      previousIds.swap(nextIds);
+
       Beam survivors;
-      for (size_t i = 0; i < batch.size(); ++i) {
-        survivors.emplace_back(new Hypothesis(nullptr, i, (w[i] == -1) ? 0 : w[i], 0.0f));
+      for (size_t i = 0; i < previousIds.size(); ++i) {
+        if (batchIdx == 0) {
+          survivors.emplace_back(new Hypothesis(nullptr, batch[batchIdx][previousIds[i]], 0, 0.0f));
+        } else {
+          survivors.emplace_back(new Hypothesis(nullptr, batch[batchIdx][previousIds[i]], nextHypIds[i], 0.0f));
+        }
+      }
+
+      for (size_t i = 0; i < scorers_.size(); ++i) {
+        scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
       }
     }
 
-    for (auto score : scores) {
+    for (auto& score : scores) {
       nBestScores.push_back(score);
     }
   }

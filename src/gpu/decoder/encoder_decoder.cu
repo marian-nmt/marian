@@ -18,7 +18,7 @@ namespace GPU {
 ////////////////////////////////////////////
 std::string EncoderDecoderState::Debug() const
 {
-	return states_.Debug();
+	return "(" + states_.Debug() + ": " + embeddings_.Debug() + ")";
 }
 
 mblas::Matrix& EncoderDecoderState::GetStates() {
@@ -50,24 +50,13 @@ void EncoderDecoderState::JoinStates(const States& states) {
   ConcatenateVectors(states_, stateMatrices);
 }
 
-States EncoderDecoderState::Split() {
-  int rows = states_.Rows();
-  int cols = states_.Cols();
+void EncoderDecoderState::MakeState(State& state, size_t rowNo) {
+  EncoderDecoderState& edState = state.get<EncoderDecoderState>();
 
-  States outStates(rows);
-  std::vector<mblas::Matrix*> outEmb;
-  std::vector<mblas::Matrix*> outSta;
+  mblas::CopyRow(edState.states_, states_, rowNo, 0);
+  mblas::CopyRow(edState.embeddings_, embeddings_, rowNo, 0);
 
-  for (auto& state : outStates) {
-    state.reset(new EncoderDecoderState());
-    outEmb.push_back(&state->get<EncoderDecoderState>().GetEmbeddings());
-    outSta.push_back(&state->get<EncoderDecoderState>().GetStates());
-  }
 
-  mblas::SplitMatrixToVectors(outEmb, embeddings_);
-  mblas::SplitMatrixToVectors(outSta, states_);
-
-  return outStates;
 }
 
 ////////////////////////////////////////////

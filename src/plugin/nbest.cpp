@@ -45,6 +45,7 @@ inline NBestBatch NBest::MaskAndTransposeBatch(const NBestBatch& batch) const {
   for (auto& sentence: batch) {
     maxLength = std::max(maxLength, sentence.size());
   }
+  maxLength++;
 
   NBestBatch masked;
   for (size_t i = 0; i < maxLength; ++i) {

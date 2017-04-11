@@ -38,7 +38,7 @@ class State {
     virtual std::string Debug() const = 0;
 
     virtual void JoinStates(const States& states) = 0;
-    virtual States Split() = 0;
+    virtual void MakeState(State& state, size_t rowNo) = 0;
 };
 
 

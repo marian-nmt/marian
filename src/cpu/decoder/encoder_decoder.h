@@ -38,7 +38,7 @@ class EncoderDecoderState : public State {
 
     virtual void JoinStates(const States& states);
 
-    virtual States Split();
+    virtual void MakeState(State& state, size_t rowNo);
 
   private:
     CPU::mblas::Matrix states_;

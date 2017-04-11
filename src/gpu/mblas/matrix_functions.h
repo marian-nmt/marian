@@ -71,6 +71,7 @@ Matrix& CopyRow(Matrix& Out,
                 const size_t r = 0,
                 const size_t c = 0);
 
+
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 Matrix& ConcatenateVectors(Matrix& Out, const std::vector<Matrix*> ins);

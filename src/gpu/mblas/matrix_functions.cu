@@ -9,6 +9,9 @@ namespace mblas {
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
 thread_local CudaStreamHandler* CudaStreamHandler::instance_ = nullptr;;
 
+#define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
+        printf("Error at %s:%d\n",__FILE__,__LINE__);}} while(0)
+
 Matrix& Swap(Matrix& Out, Matrix& In) {
   size_t iRows = In.Rows();
   size_t iCols = In.Cols();
@@ -117,12 +120,10 @@ Matrix& Concat(Matrix& Out, const Matrix& In) {
 }
 
 
-__global__ void gConcatenateVectors(float* out, const float** in, int rowsNum, int colsNum) {
-  for (int rowIdx = blockIdx.x; rowIdx < rowsNum; rowIdx += gridDim.x) {
-    const float* row = in[rowIdx];
-
-    for (int colIdx = threadIdx.x; colIdx < colsNum; colIdx += blockDim.x) {
-      out[rowIdx * blockDim.x + colIdx] = row[colIdx];
+__global__ void gConcatenateVectors(float* out, const float* in, int colsNum) {
+  for (int colIdx = threadIdx.x; colIdx < colsNum; colIdx += blockDim.x) {
+    if (colIdx < colsNum) {
+      out[colIdx] = in[colIdx];
     }
   }
 }
@@ -130,30 +131,38 @@ __global__ void gConcatenateVectors(float* out, const float** in, int rowsNum, i
 Matrix& ConcatenateVectors(Matrix& Out, const std::vector<Matrix*> ins) {
   int rows = ins.size();
   const int cols = ins[0]->Cols();
-  std::vector<const float*> inputs;
-  for (auto m : ins) {
-    inputs.push_back(m->data());
-    if (m->Cols() != cols) {
-      std::cerr << "ERROR: concatenate with diff sizes!" << std::endl;
-    }
-  }
   Out.Resize(rows, cols);
 
   int threadsNum = std::min(cols, MAX_THREADS);
-  int blocksNum = std::min(rows, MAX_BLOCKS);
 
-  gConcatenateVectors<<<blocksNum, threadsNum, 0, CudaStreamHandler::GetStream()>>>
-    (Out.data(), inputs.data(), rows, cols);
+  int i = 0;
+  for (auto m : ins) {
+    gConcatenateVectors<<<1, threadsNum, 0, CudaStreamHandler::GetStream()>>>
+      (Out.data() + cols * i++, m->data(), cols);
+  }
+
+
 
   return Out;
 }
 
-__global__ void gSplitMatrixToVectors(float** outs, const float* in, int rowsNum, int colsNum) {
-  for (int rowIdx = blockIdx.x; rowIdx < rowsNum; rowIdx += gridDim.x) {
-    float* out = outs[rowIdx];
+__global__ void gGetValues(const float* d_in, int* d_indices, float* d_out, int n) {
+  for (int i = threadIdx.x; i < n; i += blockDim.x) {
+    d_out[i] = d_in[d_indices[i]];
+  }
+}
 
-    for (int colIdx = threadIdx.x; colIdx < colsNum; colIdx += blockDim.x) {
-      out[colIdx] = in[rowIdx * blockDim.x + colIdx];
+void GetValues(const float* d_in, int* d_indices, float* d_out, int n) {
+  int numThreads = min(MAX_THREADS, n);
+
+  gGetValues<<<1, numThreads, 0, CudaStreamHandler::GetStream()>>>
+    (d_in, d_indices, d_out, n);
+}
+
+__global__ void gSplitMatrixToVectors(float* out, const float* in, int colsNum) {
+  for (int colIdx = threadIdx.x; colIdx < colsNum; colIdx += blockDim.x) {
+    if (colIdx < colsNum) {
+      out[colIdx] = in[colIdx];
     }
   }
 }
@@ -161,18 +170,15 @@ __global__ void gSplitMatrixToVectors(float** outs, const float* in, int rowsNum
 void SplitMatrixToVectors(std::vector<Matrix*>& Outs, const Matrix& In) {
   const int cols = In.Cols();
   const int rows = In.Rows();
-  std::vector<float*> outs;
-
-  for(auto& m : Outs) {
-    m->Resize(1, cols);
-    outs.push_back(m->data());
-  }
 
   int threadsNum = std::min(cols, MAX_THREADS);
-  int blocksNum = std::min(rows, MAX_BLOCKS);
 
-  gSplitMatrixToVectors<<<blocksNum, threadsNum, 0, CudaStreamHandler::GetStream()>>>
-    (outs.data(), In.data(), rows, cols);
+  int i = 0;
+  for(auto& m : Outs) {
+    m->Resize(1, cols);
+    gSplitMatrixToVectors<<<1, threadsNum, 0, CudaStreamHandler::GetStream()>>>
+      (m->data(), In.data() + cols *i++, cols);
+  }
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {

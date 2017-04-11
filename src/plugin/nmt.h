@@ -17,9 +17,12 @@ class God;
 
 class NMT {
   public:
+    NMT();
     NMT(std::vector<ScorerPtr>& scorers);
+    virtual ~NMT();
 
     static void InitGod(const std::string& configFilePath);
+    static void Clean();
 
     static std::vector<ScorerPtr> NewScorers();
 

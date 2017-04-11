@@ -13,6 +13,10 @@ namespace mblas {
 
 using namespace thrust::placeholders;
 
+template<class IteratorT1, class IteratorT2>
+void copy_n(IteratorT1 inBegin, size_t size, IteratorT2 outBegin);
+
+void GetValues(const float*  in, int* d_indices, float* scores, int n);
 
 template <class VecType>
 class TMatrix : public BaseMatrix {
@@ -39,8 +43,33 @@ class TMatrix : public BaseMatrix {
     TMatrix(const TMatrix& m) = delete;
 
     float GetValue(int i, int j) const {
-      return this->operator()(i, j);
+      return data_[i * cols_ + j];
     }
+
+    // virtual std::vector<float> GetScores(const std::vector<std::pair<int, int>>& indices) {
+      // if (d_ids.size() < indices.size()) {
+        // d_ids.resize(indices.size());
+        // h_ids.resize(indices.size());
+        // d_scores.resize(indices.size());
+      // }
+      // h_scores.resize(indices.size());
+
+
+      // for (size_t i = 0; i < indices.size(); ++i) {
+        // h_ids[i] = indices[i].first * Cols() + indices[i].second;
+      // }
+      // copy_n(h_ids.begin(), indices.size(), d_ids.begin());
+
+
+      // GetValues(data(),
+                // thrust::raw_pointer_cast(d_ids.data()),
+                // thrust::raw_pointer_cast(d_scores.data()),
+                // (int)indices.size());
+      // copy_n(d_scores.begin(), indices.size(), h_scores.begin());
+
+      // return h_scores;
+
+    // }
 
     value_type operator()(size_t i, size_t j) const {
       return data_[i * cols_ + j];
@@ -74,7 +103,7 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug() const
     {
       std::stringstream strm;
-      strm << Rows() << "x" << Cols() << ":";
+      strm << Rows() << "x" << Cols() << ": ";
       for (size_t row = 0; row < Rows(); ++row) {
         float rowSum = 0;
         for (size_t col = 0; col < Cols(); ++col) {
@@ -128,11 +157,9 @@ class TMatrix : public BaseMatrix {
 
     const_iterator end() const {
       return data_.begin() + size();
-      // return data_.end();
     }
 
     size_t size() const {
-      // return data_.size();
       return cols_ * rows_;
     }
 
@@ -145,6 +172,10 @@ class TMatrix : public BaseMatrix {
     size_t rows_;
     size_t cols_;
     VecType data_;
+    thrust::device_vector<int> d_ids;
+    thrust::host_vector<int> h_ids;
+    std::vector<float> h_scores;
+    thrust::device_vector<float> d_scores;
 };
 
 typedef TMatrix<DeviceVector<float>> Matrix;
