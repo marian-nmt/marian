@@ -4,6 +4,7 @@
 #include "matrix_functions.h"
 #include "types-fpga.h"
 #include "kernel.h"
+#include "common/exception.h"
 
 using namespace std;
 
@@ -111,6 +112,17 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
     mem_ = newMem;
     arrSize_ = newSize;
   }
+
+  rows_ = rows;
+  cols_ = cols;
+  beam_ = beam;
+  batches_ = batches;
+}
+
+void Matrix::Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
+{
+  size_t newSize = cols * rows * beam * batches;
+  amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
 
   rows_ = rows;
   cols_ = cols;

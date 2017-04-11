@@ -193,9 +193,10 @@ class Decoder {
 
           //std::cerr << "1A_=" << A_.Debug() << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          //std::cerr << "2A_=" << A_.Debug() << std::endl;
+          std::cerr << "2A_=" << A_.Debug(1) << std::endl;
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
+          std::cerr << "3A_=" << A_.Debug(1) << std::endl;
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);

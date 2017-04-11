@@ -177,6 +177,16 @@ class Decoder {
       Prod(A_, w_.V_, Temp1_, false, false);
       std::cerr << "A_=" << A_.Debug(1) << std::endl;
 
+      size_t rows1 = SourceContext.dim(0);
+      size_t rows2 = HiddenState.dim(0);
+
+      //std::cerr << "1A_=" << A_.Debug() << std::endl;
+      A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
+      std::cerr << "2A_=" << A_.Debug(1) << std::endl;
+
+      mblas::Softmax(A_, *dBatchMapping_.get(), mapping, srcSize);
+      std::cerr << "3A_=" << A_.Debug(1) << std::endl;
+
     }
 
     private:

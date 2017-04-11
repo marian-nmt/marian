@@ -320,5 +320,15 @@ __kernel void gMean(__global float* d_out,
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
-          
+__kernel void gSoftMax(__global float* softMaxP, 
+                       uint rows, 
+                       uint cols,
+                       __global const int* batchID,
+                       uint batchNum,
+                       __global const int* srcMapping,
+                       uint srcNum) 
+{
+
+}                         
