@@ -1,4 +1,7 @@
+#include <sstream>
 #include "gpu/decoder/encoder_decoder_state.h"
+
+using namespace std;
 
 namespace amunmt {
 namespace GPU {
@@ -6,7 +9,9 @@ namespace GPU {
 ////////////////////////////////////////////
 std::string EncoderDecoderState::Debug() const
 {
-  return states_.Debug();
+  stringstream strm;
+  strm << "states_=" << states_.Debug(1) << " embeddings_=" << embeddings_.Debug(1);
+  return strm.str();
 }
 
 mblas::Matrix& EncoderDecoderState::GetStates() {

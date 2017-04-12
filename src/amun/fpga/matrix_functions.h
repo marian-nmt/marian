@@ -1,5 +1,5 @@
 #pragma once
-
+#include <sstream>
 #include <vector>
 #include <stddef.h>
 #include "types-fpga.h"
@@ -17,24 +17,51 @@ namespace mblas {
 class Matrix;
 
 template<typename T>
-T Sum(const std::vector<T> &vec)
+std::string Debug(const std::vector<T> &vec)
 {
-  T ret = T();
+  std::stringstream strm;
+
+  T ret = 0;
   for (size_t i = 0; i < vec.size(); ++i) {
     ret += vec[i];
   }
-  return ret;
+
+  strm << "size=" << vec.size() << " sum=" << ret;
+  return strm.str();
 }
 
-float Sum(
+template<typename T>
+std::string OutputArray(
+    const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size,
-    const OpenCLInfo &openCLInfo);
+    size_t size
+    )
+{
+  T h_mem[size];
+  CheckError( clEnqueueReadBuffer( openCLInfo.commands, mem, CL_TRUE, 0, sizeof(T) * size, h_mem, 0, NULL, NULL ) );
+
+  std::stringstream strm;
+
+  for (size_t i = 0; i < size; ++i) {
+    strm << h_mem[i] << " ";
+  }
+
+  return strm.str();
+}
+
+float SumFloat(
+    const OpenCLInfo &openCLInfo,
+    const cl_mem &mem,
+    uint size
+    );
 
 unsigned int SumSizet(
+    const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size,
-    const OpenCLInfo &openCLInfo);
+    uint size
+    );
+
+Matrix& Copy(Matrix& Out, const Matrix& In);
 
 Matrix& CopyRows(
 		 Matrix& Out,
@@ -48,7 +75,7 @@ Matrix& Assemble(
 
 void Fill(
     Matrix& In,
-    float value=0.0f);
+    float value);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -72,17 +99,35 @@ void ElementwiseOps(mblas::Matrix& NextState,
                     const uint &rows,
                     const uint &cols);
 
-Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
-
 Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
 Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2);
 
 Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2);
 
+Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
+
+Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In);
+
+Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapping, size_t srcSize);
+
+Matrix& BroadcastVecColumnAddWeighted(float weight, Matrix& Out, const Array<float>& In);
+
+
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
               uint n, uint dim);
+
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
+
+void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i);
+
+void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping);
+
+Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMapping,size_t srcSize);
+
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Array<int>& mapping);
+
 
 } // namespace mblas {
 } // namespace FPGA {

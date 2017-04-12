@@ -1,5 +1,6 @@
-#include "npz_converter.h"
 #include "common/exception.h"
+#include "npz_converter.h"
+#include "matrix_functions.h"
 
 using namespace std;
 
@@ -30,7 +31,7 @@ mblas::Matrix NpzConverter::GetMatrix(
     matrix.Set(np.data());
 
     if (transpose) {
-      // TODO
+      mblas::Transpose(matrix);
     }
   }
   //cerr << "key2=" << key << " " << matrix.Debug(1) << endl;

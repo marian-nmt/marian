@@ -171,6 +171,72 @@ __kernel void gBroadcastVecAdd(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
+__kernel void gBroadcastVecTanh(__global float* out, 
+                              __global const float* in, 
+                              uint rows, uint cols) 
+{
+  for (uint noColumn = 0; noColumn < cols; ++noColumn) {
+    float vecValue = in[noColumn];
+  
+    uint index = noColumn;
+    for (uint noRow = 0; noRow < rows; ++noRow) {
+        out[index] = tanh(out[index] + vecValue);
+        index += cols;
+    }
+  
+  }
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gBroadcastTanh(__global float* out, 
+                            __global const float* in1, 
+                            __global const float* in2,
+                            uint srcSize, 
+                            uint sumBeams, 
+                            uint cols, 
+                            __global const int* batchMapping,
+                           uint batchMappingSize, 
+                           uint outSize, 
+                           uint in1Size, 
+                           uint in2Size,
+                           uint inRows)
+{
+  uint maxId = srcSize * inRows * cols;
+  for (uint id = 0; id < maxId; ++id) {
+    int row = id / cols;
+    int stateIdx = id % cols;
+
+    int beamIdx = row / srcSize;
+    int srcId = row % srcSize;
+
+    int batchIdx = batchMapping[beamIdx];
+  
+    //assert(id < outSize);
+    //assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
+    //assert(beamIdx * cols + stateIdx < in2Size);
+  
+    float x = in1[(batchIdx * srcSize + srcId) * cols + stateIdx];
+    float y = in2[beamIdx * cols + stateIdx];
+    out[id] = tanh(x + y);
+  }
+  
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gBroadcastVecColumnAddWeighted(
+                     __global float* out, 
+                     __global const float* in, 
+                     uint rows, uint cols) 
+{
+
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
 __kernel void gLogit(__global float* out, 
                      __global const float* in, 
                      uint rows, uint cols) 
@@ -207,6 +273,119 @@ __kernel void gSlice(__global float* out,
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
+__kernel void gPasteRows(__global float* d_out, 
+                    uint outRows, 
+                    uint outCols, 
+                    __global const float* d_in, 
+                    uint inRows, 
+                    uint inCols, 
+                    uint colNo, 
+                    uint sparse) 
+{
+  uint maxId = inRows * inCols;
+  for (uint id = 0; id < maxId; ++id) {
+    uint inRow = id / inCols;
+    uint inCol = id % inCols;
+    uint outID = (outRows + sparse * inRow) * outCols + inCol + colNo;
+    d_out[outID] = d_in[id];
+  }
+}
 
-                              
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gMapMatrix(__global float* d_in, 
+                    uint numRows, 
+                    uint numCols, 
+                    uint mappingCols, 
+                    __global const int* mapping, 
+                    uint i) 
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gMean(__global float* d_out, 
+                    __global const float* d_in, 
+                    __global const int* mapping,
+                    uint batchNum, uint senLen, uint stateLength) 
+{
+  for (uint id = 0; id < stateLength; ++id) {
+    float sum = 0.0f;
+    int counter = 0;
+
+      
+    for (int i = 0; i < batchNum * senLen; ++i) {
+      sum += mapping[i] * d_in[i * stateLength + id];
+      counter += mapping[i];
+
+      if ((i + 1) % senLen == 0) {
+        sum /= counter;
+        d_out[(i / senLen) * stateLength + id] = sum;
+        sum = 0.0f;
+        counter = 0;
+      }
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gSoftMax(__global float* softMaxP, 
+                       uint rows, 
+                       uint cols,
+                       __global const int* batchID,
+                       uint batchNum,
+                       __global const int* srcMapping,
+                       uint srcNum) 
+{
+
+  // probably only work for non-batch
+  for (uint row = 0; row < rows; ++row) {
+    uint indRow = row * cols;
+
+    // EXP
+    float sumExp = 0;
+    for (uint col = 0; col < cols; ++col) {
+      float val = softMaxP[indRow + col];
+      val = exp(val);
+      
+      sumExp += val;
+      softMaxP[indRow + col] = val;
+    }
+    
+    // NORMALIZE
+    for (uint col = 0; col < cols; ++col) {
+      softMaxP[indRow + col] /= sumExp;
+    }    
+  }
+}                         
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gWeightedMean(__global float* d_out, 
+                            __global const float* weights, 
+                            __global const float* d_in, 
+                            __global const int* mapping,
+                            uint numRows, uint numCols, uint srcLen) 
+{
+
+  uint size = numRows * numCols;
+  for (uint id = 0; id < size; ++id) {
+    int rowNo = id / numCols;
+    int batchNo = mapping[rowNo];
+    int statePos = id % numCols;
+  
+    float sum = 0.0f;
+    for (int i = 0; i < srcLen; ++i) {
+      sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
+    }
+
+    d_out[id] = sum;
+  
+  }
+
+}
+

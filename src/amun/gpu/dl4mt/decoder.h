@@ -61,10 +61,19 @@ class Decoder {
                              const DeviceVector<int>& mapping) {
           using namespace mblas;
 
+          //std::cerr << "1State=" << State.Debug(1) << std::endl;
+          //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
           Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
+          //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
+
+          //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+          //std::cerr << "mapping=" << Debug(mapping) << std::endl;
           Mean(Temp2_, SourceContext, mapping);
+          //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           Prod(State, Temp2_, w_.Wi_);
+          //std::cerr << "State=" << State.Debug(1) << std::endl;
+
           if (w_.Gamma_) {
             Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
           } else {
@@ -110,14 +119,16 @@ class Decoder {
     class Alignment {
       public:
         Alignment(const God &god, const Weights& model)
-          : w_(model),
-            dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
+          : w_(model)
+          , dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
         {}
 
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
 
           Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+          //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
+
           if (w_.Gamma_1_) {
             Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);
           }
@@ -137,15 +148,18 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
+          //std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),
               cudaMemcpyHostToDevice);
+          //std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+
           if (w_.Gamma_2_) {
             Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
           } else {
@@ -154,19 +168,9 @@ class Decoder {
 
           Copy(Temp1_, SCU_);
 
-          //std::cerr << std::endl;
-          //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
-          //std::cerr << "1Temp1_=" << Temp1_.Debug() << std::endl;
-          //std::cerr << "Temp2_=" << Temp2_.Debug() << std::endl;
-
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
-          //std::cerr << "2Temp1_=" << Temp1_.Debug() << std::endl;
           Temp1_.Reshape2D();
-
-          //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
-          //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
 
           Prod(A_, w_.V_, Temp1_, false, true);
 
@@ -175,14 +179,12 @@ class Decoder {
 
           //std::cerr << "1A_=" << A_.Debug() << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          //std::cerr << "2A_=" << A_.Debug() << std::endl;
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
-          mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
-          //std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
+          mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
         }
 
         void GetAttention(mblas::Matrix& Attention) {
@@ -311,10 +313,15 @@ class Decoder {
                   const mblas::Matrix& SourceContext,
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes) {
+      //std::cerr << std::endl;
 
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
+      std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
+      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       
     }

@@ -138,17 +138,34 @@ class TMatrix : public BaseMatrix {
       batches_ = 1;
     }
 
-    virtual std::string Debug(size_t detailed = 0) const
+    virtual std::string Debug(size_t verbosity = 1) const
     {
       std::stringstream strm;
-      strm << BaseMatrix::Debug(detailed) << " ";
+      strm << BaseMatrix::Debug(verbosity) << " ";
       strm << data_ << " "
           << arrSize_ << " "
           << std::flush;
 
-      if (detailed == 1) {
+      if (verbosity) {
         float sum = Sum(data(), size());
         strm << "size=" << size() << " sum=" << sum << std::flush;
+
+        if (verbosity == 2) {
+          cudaStream_t& stream = CudaStreamHandler::GetStream();
+          T h_data[size()];
+
+          HANDLE_ERROR( cudaMemcpyAsync(
+              &h_data,
+              data_,
+              size() * sizeof(T),
+              cudaMemcpyDeviceToHost,
+              stream) );
+          HANDLE_ERROR( cudaStreamSynchronize(stream) );
+
+          for (size_t i = 0; i < size(); ++i) {
+            strm << " " << h_data[i];
+          }
+        }
       }
 
       return strm.str();

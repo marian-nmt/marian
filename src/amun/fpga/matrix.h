@@ -22,14 +22,18 @@ public:
     switch (i) {
     case 0: return rows_;
     case 1: return cols_;
-    case 2: return 1;
-    case 3: return 1;
+    case 2: return beam_;
+    case 3: return batches_;
     default:
       abort();
     }
   }
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
+
+  void Reshape(size_t rows, size_t cols, size_t beam, size_t batches);
+
+  void Reshape2D();
 
   const OpenCLInfo &GetOpenCLInfo() const
   { return openCLInfo_; }
@@ -40,7 +44,7 @@ public:
   const cl_mem &data() const
   { return mem_; }
 
-  virtual std::string Debug(size_t detailed = 0) const;
+  virtual std::string Debug(size_t verbosity = 1) const;
 
   void Swap(Matrix &other);
 
@@ -49,7 +53,7 @@ public:
 protected:
   const OpenCLInfo &openCLInfo_;
   cl_mem mem_;
-  size_t rows_, cols_;
+  size_t rows_, cols_, beam_, batches_;
   size_t arrSize_;
 
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include <sstream>
 #include <vector>
+#include <cassert>
 #include "types-fpga.h"
 #include "matrix_functions.h"
 
@@ -26,6 +27,13 @@ public:
     CheckError(err);
   }
 
+  Array(const OpenCLInfo &openCLInfo, size_t size, const T &value)
+  :Array(openCLInfo, size)
+  {
+    CheckError( clEnqueueFillBuffer(openCLInfo.commands, mem_, &value, sizeof(T), 0, size_ * sizeof(T), 0, NULL, NULL) );
+    CheckError( clFinish(openCLInfo.commands) );
+  }
+
   Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
   :openCLInfo_(openCLInfo)
   ,size_(vec.size())
@@ -38,7 +46,7 @@ public:
 
   ~Array()
   {
-    CheckError( clReleaseMemObject(mem_) );
+    //CheckError( clReleaseMemObject(mem_) );
   }
 
   size_t size() const
@@ -50,18 +58,33 @@ public:
   const cl_mem &data() const
   { return mem_;  }
 
-  virtual std::string Debug(bool detailed = false) const
+  const OpenCLInfo &GetOpenCLInfo() const
+  { return openCLInfo_; }
+
+  void Swap(Array &other)
+  {
+    assert(&openCLInfo_ == &other.openCLInfo_);
+    std::swap(size_, other.size_);
+    std::swap(mem_, other.mem_);
+  }
+
+  void Fill(const std::vector<T> &vec)
+  {
+    CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, vec.data(), sizeof(T), 0, vec.size() * sizeof(T), 0, NULL, NULL) );
+    CheckError( clFinish(openCLInfo_.commands) );
+  }
+
+  virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;
-    strm << size_ << " " << mem_;
+    strm << mem_ << " size=" << size_;
 
-    if (detailed) {
-      float sum = mblas::SumSizet(mem_, size_, openCLInfo_);
+    if (verbosity) {
+      float sum = mblas::SumSizet(openCLInfo_, mem_, size_);
       strm << " sum=" << sum << std::flush;
     }
 
     return strm.str();
-
   }
 
 protected:
@@ -71,8 +94,6 @@ protected:
   cl_mem mem_;
 
 };
-
-
 
 }
 }

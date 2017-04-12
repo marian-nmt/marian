@@ -65,7 +65,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const
 {
-  BestHyps *obj = new BestHyps();
+  BestHyps *obj = new BestHyps(god, openCLInfo_);
   return BestHypsBasePtr(obj);
 }
 

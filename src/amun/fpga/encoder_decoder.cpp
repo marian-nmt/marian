@@ -28,7 +28,7 @@ EncoderDecoder::EncoderDecoder(
 ,openCLInfo_(openCLInfo)
 ,sourceContext_(openCLInfo)
 ,encoder_(new Encoder(openCLInfo, model_))
-,decoder_(new Decoder(god, model_))
+,decoder_(new Decoder(openCLInfo, god, model_))
 ,indices_(openCLInfo)
 ,batchMapping_(openCLInfo)
 {
@@ -44,13 +44,23 @@ void EncoderDecoder::SetSource(const Sentences& sources)
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
 {
   EDState& edState = state.get<EDState>();
+  decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
 
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
 void EncoderDecoder::Decode(const God &god, const State& in,
                    State& out, const std::vector<size_t>& beamSizes)
 {
+  const EDState& edIn = in.get<EDState>();
+  EDState& edOut = out.get<EDState>();
 
+  decoder_->Decode(edOut.GetStates(),
+                     edIn.GetStates(),
+                     edIn.GetEmbeddings(),
+                     sourceContext_,
+                     batchMapping_,
+                     beamSizes);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
@@ -67,7 +77,7 @@ void EncoderDecoder::Filter(const std::vector<size_t>&)
 
 State* EncoderDecoder::NewState() const
 {
-  return new EncoderDecoderState();
+  return new EncoderDecoderState(openCLInfo_);
 }
 
 size_t EncoderDecoder::GetVocabSize() const

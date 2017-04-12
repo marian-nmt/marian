@@ -2,7 +2,6 @@
 
 #include "model.h"
 #include "matrix.h"
-#include "matrix_functions.h"
 #include "gru.h"
 #include "array.h"
 #include "common/sentences.h"
@@ -76,7 +75,8 @@ class Encoder {
     }
 
     template <class It>
-    void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert)
+    void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
+                    const Array<int>* mapping=nullptr)
     {
       InitializeState(batchSize);
 
@@ -90,12 +90,21 @@ class Encoder {
       while(it != end) {
         GetNextState(State_, prevState, *it++);
 
+        //std::cerr << "invert=" << invert << std::endl;
         if(invert) {
-          //mblas::MapMatrix(State_, *mapping, n - i - 1);
+          assert(mapping);
 
+          //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
+          //std::cerr << "mapping=" << mapping->Debug(true) << std::endl;
+          mblas::MapMatrix(State_, *mapping, n - i - 1);
+          //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
+
+          mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
         }
         else {
-
+          //std::cerr << "1Context=" << Context.Debug(1) << std::endl;
+          mblas::PasteRows(Context, State_, i, 0, n);
+          //std::cerr << "2Context=" << Context.Debug(1) << std::endl;
         }
 
         prevState.Swap(State_);
@@ -117,7 +126,7 @@ public:
   Encoder(const OpenCLInfo &openCLInfo, const Weights& model);
 
   void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context,
-                Array<int>& mapping);
+                Array<int>& dMapping);
 
 protected:
   Embeddings<Weights::EncEmbeddings> embeddings_;
