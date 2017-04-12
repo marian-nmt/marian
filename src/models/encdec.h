@@ -280,8 +280,8 @@ class EncoderDecoder : public EncoderDecoderBase {
           batchSize += step;
         }
         while(fits);
-      
       }
+      graph->clearParameters();
       return stats;
     }
 };

@@ -469,6 +469,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       hashMap_.clear();
     }
 
+    
+    void clearParameters() {
+      params_->clear();
+    }
+    
     Expr topNode() {
       return nodes_.back();
     }
