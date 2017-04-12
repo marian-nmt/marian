@@ -148,13 +148,13 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
-          std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
+          //std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),
               cudaMemcpyHostToDevice);
-          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
+          //std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 
@@ -180,19 +180,19 @@ class Decoder {
           //std::cerr << "1A_=" << A_.Debug() << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
 
-          std::cerr << std::endl;
-          std::cerr << "1A_=" << A_.Debug(2) << std::endl;
-          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
-          std::cerr << "mapping=" << Debug(mapping) << std::endl;
-          std::cerr << "srcSize=" << srcSize << std::endl;
-
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
-          std::cerr << "2A_=" << A_.Debug(2) << std::endl;
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
+
+          std::cerr << std::endl;
+          std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
+          std::cerr << "A_=" << A_.Debug(1) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
+
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
-          //std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
+          std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
         }
 
         void GetAttention(mblas::Matrix& Attention) {

@@ -350,5 +350,16 @@ __kernel void gSoftMax(__global float* softMaxP,
       softMaxP[indRow + col] /= sumExp;
     }    
   }
-
 }                         
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gWeightedMean(__global float* d_out, 
+                            __global const float* weights, 
+                            __global const float* d_in, 
+                            __global const int* mapping,
+                            int numRows, int numCols, int srcLen) 
+{
+
+}
+

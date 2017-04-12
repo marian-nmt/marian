@@ -141,9 +141,9 @@ class Decoder {
         }
       }
 
-      std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
+      //std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
       dBatchMapping_.Fill(batchMapping);
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
+      //std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
 
       const size_t srcSize = mapping.size() / beamSizes.size();
 
@@ -168,21 +168,20 @@ class Decoder {
       size_t rows1 = SourceContext.dim(0);
       size_t rows2 = HiddenState.dim(0);
 
-      //std::cerr << "1A_=" << A_.Debug() << std::endl;
       A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-
-      std::cerr << std::endl;
-      std::cerr << "1A_=" << A_.Debug(2) << std::endl;
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
-      std::cerr << "mapping=" << mapping.Debug(2) << std::endl;
-      std::cerr << "srcSize=" << srcSize << std::endl;
-
       mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
-      std::cerr << "2A_=" << A_.Debug(2) << std::endl;
 
       AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
+
+      std::cerr << std::endl;
+      std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
+      std::cerr << "A_=" << A_.Debug(1) << std::endl;
+      std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(1) << std::endl;
+
       mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
+      std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
     }
 
     private:

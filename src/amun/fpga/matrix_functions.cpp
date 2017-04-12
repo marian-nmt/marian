@@ -874,6 +874,11 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Array<int>& mapping)
 {
+  uint numRows = Weights.dim(0);
+  uint numCols = In.dim(1);
+
+  Out.Resize(numRows, numCols);
+
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
   cl_int err;
@@ -885,6 +890,9 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
 
   // Set the arguments to our compute kernel
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Weights.data()) );
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &In.data()) );
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mapping.data()) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
