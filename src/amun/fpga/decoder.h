@@ -94,6 +94,13 @@ class Decoder {
     RNNFinal(const OpenCLInfo &openCLInfo, const Weights& model)
     : gru_(openCLInfo, model) {}
 
+    void GetNextState(mblas::Matrix& NextState,
+                      const mblas::Matrix& State,
+                      const mblas::Matrix& Context)
+    {
+      gru_.GetNextState(NextState, State, Context);
+    }
+
     private:
       const GRU<Weights> gru_;
   };
@@ -173,15 +180,7 @@ class Decoder {
 
       AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
 
-      std::cerr << std::endl;
-      std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
-      std::cerr << "A_=" << A_.Debug(1) << std::endl;
-      std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(1) << std::endl;
-
       mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
-
-      std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
     }
 
     private:
@@ -253,6 +252,10 @@ public:
                                 const mblas::Matrix& SourceContext,
                                 const Array<int>& mapping,
                                 const std::vector<size_t>& beamSizes);
+
+  void GetNextState(mblas::Matrix& State,
+                    const mblas::Matrix& HiddenState,
+                    const mblas::Matrix& AlignedSourceContext);
 
 private:
   mblas::Matrix HiddenState_;

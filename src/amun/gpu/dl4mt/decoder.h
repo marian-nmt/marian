@@ -184,15 +184,7 @@ class Decoder {
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
 
-          std::cerr << std::endl;
-          std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
-          std::cerr << "A_=" << A_.Debug(1) << std::endl;
-          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
-
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
-
-          std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
         }
 
         void GetAttention(mblas::Matrix& Attention) {
@@ -325,10 +317,10 @@ class Decoder {
 
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
-      //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+      std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
 
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       
