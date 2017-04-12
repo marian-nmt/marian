@@ -281,10 +281,12 @@ void Config::addOptionsValid(po::options_description& desc) {
 void Config::addOptionsTranslate(po::options_description& desc) {
   po::options_description translate("Translator options", guess_terminal_width());
   translate.add_options()
-    ("inputs,i", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to input files")
+    ("input,i", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"stdin"}), "stdin"),
+      "Paths to input file(s), stdin by default")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --inputs.")
+      "Paths to vocabulary files have to correspond to --input.")
     ("beam-size", po::value<size_t>()->default_value(12),
       "Beam size used during search")
     ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
@@ -399,10 +401,7 @@ void Config::addOptions(int argc, char** argv,
   }
   /** training end **/
   else {
-    if (!vm_["inputs"].empty()) {
-      config_["inputs"] = vm_["inputs"].as<std::vector<std::string>>();
-    }
-    
+    SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("normalize", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);

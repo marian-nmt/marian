@@ -42,7 +42,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(!translate)
     textPaths_ = options_->get<std::vector<std::string>>("train-sets");
   else
-    textPaths_ = options_->get<std::vector<std::string>>("inputs");
+    textPaths_ = options_->get<std::vector<std::string>>("input");
 
   g_.seed(Config::seed);
 
@@ -84,9 +84,11 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     }
   }
 
-
   for(auto path : textPaths_) {
-    files_.emplace_back(new InputFileStream(path));
+    if(path == "stdin")
+      files_.emplace_back(new InputFileStream(std::cin));
+    else
+      files_.emplace_back(new InputFileStream(path));
   }
 }
 
@@ -138,7 +140,10 @@ void Corpus::shuffle() {
 void Corpus::reset() {
   files_.clear();
   for(auto& path : textPaths_) {
-    files_.emplace_back(new InputFileStream(path));
+    if(path == "stdin")
+      files_.emplace_back(new InputFileStream(std::cin));
+    else
+      files_.emplace_back(new InputFileStream(path));
   }
 }
 
