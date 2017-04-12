@@ -33,6 +33,9 @@ void Decoder::Decode(mblas::Matrix& NextState,
   GetNextState(NextState, HiddenState_, AlignedSourceContext_);
   std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
+  GetProbs(NextState, Embeddings, AlignedSourceContext_);
+
+
 }
 
 void Decoder::GetHiddenState(mblas::Matrix& HiddenState,
@@ -57,6 +60,13 @@ void Decoder::GetNextState(mblas::Matrix& State,
                   const mblas::Matrix& AlignedSourceContext)
 {
   rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
+}
+
+void Decoder::GetProbs(const mblas::Matrix& State,
+              const mblas::Matrix& Embedding,
+              const mblas::Matrix& AlignedSourceContext)
+{
+  softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
 }
 
 } // namespace

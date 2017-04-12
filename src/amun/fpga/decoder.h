@@ -265,6 +265,11 @@ public:
                     const mblas::Matrix& HiddenState,
                     const mblas::Matrix& AlignedSourceContext);
 
+  void GetProbs(const mblas::Matrix& State,
+                const mblas::Matrix& Embedding,
+                const mblas::Matrix& AlignedSourceContext);
+
+
 private:
   mblas::Matrix HiddenState_;
   mblas::Matrix AlignedSourceContext_;
