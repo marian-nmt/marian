@@ -147,15 +147,13 @@ class Train : public ModelTask {
       using namespace data;
       using namespace keywords;
     
-      auto model = New<Model>(options_);
-      
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
-        stats = model->collectStats();
+        stats = New<Model>(options_)->collectStats();
         LOG(info, "[batching] Done");
       }
-      
+          
       auto trainCorpus = New<Corpus>(options_);
       auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
       auto reporter = New<Reporter>(options_);
@@ -166,6 +164,7 @@ class Train : public ModelTask {
           reporter->addValidator(validator);
       }
     
+      auto model = New<Model>(options_);      
       model->setReporter(reporter);
       model->load();
     

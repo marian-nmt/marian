@@ -39,6 +39,9 @@ namespace marian {
 
   template<class T>
   using UPtr = std::unique_ptr<T>;
+  
+  template<class T>
+  using Weak = std::weak_ptr<T>;
 
   /** @brief Creates shared_ptr of any type, passes all arguments to any available constructor */
   template <class T, typename ...Args>

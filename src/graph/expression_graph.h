@@ -69,6 +69,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     ~ExpressionGraph() {
       clear();
+      params_->clear();
     }
 
     void setDevice(size_t device = 0) {

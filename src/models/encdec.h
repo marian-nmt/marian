@@ -281,7 +281,6 @@ class EncoderDecoder : public EncoderDecoderBase {
         }
         while(fits);
       }
-      graph->clearParameters();
       return stats;
     }
 };

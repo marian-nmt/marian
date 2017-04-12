@@ -164,8 +164,9 @@ std::string TensorBase::debug() {
 
 DeviceGPU::~DeviceGPU() {
   cudaSetDevice(device_);
-  if(data_)
+  if(data_) {
     CUDA_CHECK(cudaFree(data_));
+  }
   cudaDeviceSynchronize();
 }
 

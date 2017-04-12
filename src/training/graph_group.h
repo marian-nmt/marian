@@ -24,6 +24,8 @@ class GraphGroup {
   public:
     GraphGroup(Ptr<Config> options)
     : options_(options), opt_(Optimizer(options)) { }
+    
+    virtual ~GraphGroup() {}
 
     virtual void update(Ptr<data::CorpusBatch>) = 0;
 
