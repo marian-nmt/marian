@@ -656,6 +656,10 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   return Out;
 }
 
+Matrix& BroadcastVecColumnAddWeighted(float weight, Matrix& Out, const Array<float>& In)
+{
+
+}
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,

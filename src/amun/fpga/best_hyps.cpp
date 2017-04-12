@@ -33,6 +33,13 @@ void BestHyps::CalcBeam(
     vCosts.push_back(h->GetCost());
   }
 
+  Costs.Fill(vCosts);
+
+  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
+
+  float weight = weights_.at(scorers[0]->GetName());
+  BroadcastVecColumnAddWeighted(weight, Probs, Costs);
+
 }
 
 }
