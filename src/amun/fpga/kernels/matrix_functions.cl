@@ -358,8 +358,23 @@ __kernel void gWeightedMean(__global float* d_out,
                             __global const float* weights, 
                             __global const float* d_in, 
                             __global const int* mapping,
-                            int numRows, int numCols, int srcLen) 
+                            uint numRows, uint numCols, uint srcLen) 
 {
+
+  uint size = numRows * numCols;
+  for (uint id = 0; id < size; ++id) {
+    int rowNo = id / numCols;
+    int batchNo = mapping[rowNo];
+    int statePos = id % numCols;
+  
+    float sum = 0.0f;
+    for (int i = 0; i < srcLen; ++i) {
+      sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
+    }
+
+    d_out[id] = sum;
+  
+  }
 
 }
 
