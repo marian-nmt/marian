@@ -75,6 +75,7 @@ class BestHyps : public BestHypsBase
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
+      std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
       HostVector<float> vCosts;
       for (auto& h : prevHyps) {
@@ -90,6 +91,7 @@ class BestHyps : public BestHypsBase
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
       BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
+      std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
       for (size_t i = 1; i < scorers.size(); ++i) {
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());

@@ -226,6 +226,17 @@ __kernel void gBroadcastTanh(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
+__kernel void gBroadcastVecColumnAddWeighted(
+                     __global float* out, 
+                     __global const float* in, 
+                     uint rows, uint cols) 
+{
+
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
 __kernel void gLogit(__global float* out, 
                      __global const float* in, 
                      uint rows, uint cols) 

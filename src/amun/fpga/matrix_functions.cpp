@@ -658,6 +658,55 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
 
 Matrix& BroadcastVecColumnAddWeighted(float weight, Matrix& Out, const Array<float>& In)
 {
+  cerr << "BroadcastVecColumnAddWeighted1" << endl;
+  const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
+  cerr << "BroadcastVecColumnAddWeighted1.1" << endl;
+
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  // create kernel
+  cerr << "BroadcastVecColumnAddWeighted1.2" << endl;
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecColumnAddWeighted", openCLInfo);
+  cerr << "BroadcastVecColumnAddWeighted1.3" << endl;
+
+  // Set the arguments to our compute kernel
+  cerr << "BroadcastVecColumnAddWeighted1.4" << endl;
+  uint rows = Out.dim(0);
+  uint cols = Out.dim(1);
+  cerr << "BroadcastVecColumnAddWeighted2" << endl;
+
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  cerr << "BroadcastVecColumnAddWeighted3" << endl;
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  //cerr << "CL_KERNEL_WORK_GROUP_SIZE=" << CL_KERNEL_WORK_GROUP_SIZE << endl;
+  //cerr << "local=" << local << endl;
+
+  //global = 1024;
+  local = 1;
+  global = 1;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  cerr << "BroadcastVecColumnAddWeighted4" << endl;
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  cerr << "BroadcastVecColumnAddWeighted5" << endl;
+  CheckError( clFinish(openCLInfo.commands) );
+  cerr << "BroadcastVecColumnAddWeighted6" << endl;
+
+  return Out;
 
 }
 

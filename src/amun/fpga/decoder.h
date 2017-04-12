@@ -183,6 +183,10 @@ class Decoder {
       mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
     }
 
+    mblas::Matrix& GetAttention() {
+      return A_;
+    }
+
     private:
       const Weights& w_;
 
@@ -213,6 +217,7 @@ public:
   Decoder(const OpenCLInfo &openCLInfo, const God &god, const Weights& model)
   : HiddenState_(openCLInfo),
     AlignedSourceContext_(openCLInfo),
+    Probs_(openCLInfo),
     embeddings_(model.decEmbeddings_),
     rnn1_(openCLInfo, model.decInit_, model.decGru1_),
     rnn2_(openCLInfo, model.decGru2_),
@@ -221,12 +226,15 @@ public:
   {}
 
   size_t GetVocabSize() const {
+    return embeddings_.GetRows();
   }
 
   mblas::Matrix& GetProbs() {
+    return Probs_;
   }
 
   mblas::Matrix& GetAttention() {
+    return alignment_.GetAttention();
   }
 
   void EmptyState(mblas::Matrix& State,
@@ -260,6 +268,7 @@ public:
 private:
   mblas::Matrix HiddenState_;
   mblas::Matrix AlignedSourceContext_;
+  mblas::Matrix Probs_;
 
   Embeddings<Weights::DecEmbeddings> embeddings_;
   RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
