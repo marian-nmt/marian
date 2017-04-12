@@ -1,10 +1,11 @@
 #!/bin/bash
+DATAPATH=/share/bruteforce/data
 
 #model prefix
 prefix=model/model.npz
 
-dev=data/newsdev2016.bpe.ro
-ref=data/newsdev2016.tok.en
+dev=$DATAPATH/newsdev2016.bpe.ro
+ref=$DATAPATH/newsdev2016.tok.en
 
 # decode
 

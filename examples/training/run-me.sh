@@ -2,13 +2,14 @@
 DATAPATH=/share/bruteforce/data
 
 # load config
-GPUS=$(grep GPU config.txt | cut -d ' ' -f 2-)
-LR=$(grep LR config.txt | cut -d ' ' -f 2-)
-BS=$(grep BS config.txt | cut -d ' ' -f 2-)
 
+LR=0.0001
+BS=80
+GPUS=0
 if [ $# -ne 0 ]
 then
-  GPUS=$@
+  LR=$1
+  BS=$2
 fi
 echo Using gpus $GPUS
 
