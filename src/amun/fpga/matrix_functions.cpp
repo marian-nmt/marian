@@ -876,6 +876,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
 {
   uint numRows = Weights.dim(0);
   uint numCols = In.dim(1);
+  uint weightsCols = Weights.dim(1);
 
   Out.Resize(numRows, numCols);
 
@@ -890,9 +891,12 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
 
   // Set the arguments to our compute kernel
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Weights.data()) );
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mapping.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Weights.data()) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In.data()) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &mapping.data()) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &numRows) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &numCols) );
+  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &weightsCols) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
