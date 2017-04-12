@@ -331,4 +331,24 @@ __kernel void gSoftMax(__global float* softMaxP,
                        uint srcNum) 
 {
 
+  // probably only work for non-batch
+  for (uint row = 0; row < rows; ++row) {
+    uint indRow = row * cols;
+
+    // EXP
+    float sumExp = 0;
+    for (uint col = 0; col < cols; ++col) {
+      float val = softMaxP[indRow + col];
+      val = exp(val);
+      
+      sumExp += val;
+      softMaxP[indRow + col] = val;
+    }
+    
+    // NORMALIZE
+    for (uint col = 0; col < cols; ++col) {
+      softMaxP[indRow + col] /= sumExp;
+    }    
+  }
+
 }                         

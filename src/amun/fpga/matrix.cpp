@@ -152,7 +152,7 @@ std::string Matrix::Debug(size_t verbosity) const
     //cerr << "Debug4" << endl;
 
     if (verbosity == 2) {
-      strm << OutputArray<float>(openCLInfo_, mem_, size());
+      strm << " " << OutputArray<float>(openCLInfo_, mem_, size());
     }
   }
   //cerr << "Debug5" << endl;

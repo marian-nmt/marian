@@ -175,6 +175,7 @@ class Decoder {
       std::cerr << "1A_=" << A_.Debug(2) << std::endl;
       std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
       std::cerr << "mapping=" << mapping.Debug(2) << std::endl;
+      std::cerr << "srcSize=" << srcSize << std::endl;
 
       mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
       std::cerr << "2A_=" << A_.Debug(2) << std::endl;
