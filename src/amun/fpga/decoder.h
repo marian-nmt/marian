@@ -180,6 +180,9 @@ class Decoder {
       mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
       std::cerr << "2A_=" << A_.Debug(2) << std::endl;
 
+      AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
+      mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
+
     }
 
     private:
