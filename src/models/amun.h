@@ -7,11 +7,51 @@ namespace marian {
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
-class EncoderDL4MT : public EncoderBase {
+class EncoderStateAmun : public EncoderState {
+  private:
+    Expr context_;
+    Expr mask_;
+    
+  public:
+    EncoderStateAmun(Expr context, Expr mask)
+    : context_(context), mask_(mask) {}
+    
+    Expr getContext() { return context_; }
+    Expr getMask() { return mask_; }
+};
+
+class DecoderStateAmun : public DecoderState {
+  private:
+    Expr state_;
+    Expr probs_;
+    Ptr<EncoderState> encState_;
+    
+  public:
+    DecoderStateAmun(Expr state, Expr probs, Ptr<EncoderState> encState)
+    : state_(state), probs_(probs), encState_(encState) {}
+    
+    Ptr<EncoderState> getEncoderState() { return encState_; }
+    Expr getProbs() { return probs_; }
+    void setProbs(Expr probs) { probs_ = probs; }
+    
+    Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+      int numSelected = selIdx.size();
+      int dimState = state_->shape()[1];
+      
+      auto selectedState = reshape(rows(state_, selIdx),
+                                   {1, dimState, 1, numSelected});
+        
+      return New<DecoderStateAmun>(selectedState, probs_, encState_);
+    }
+    
+    Expr getState() { return state_; }
+};
+
+class EncoderAmun : public EncoderBase {
   public:
 
     template <class ...Args>
-    EncoderDL4MT(Ptr<Config> options, Args... args)
+    EncoderAmun(Ptr<Config> options, Args... args)
      : EncoderBase(options, args...) {}
 
     Ptr<EncoderState>
@@ -54,24 +94,39 @@ class EncoderDL4MT : public EncoderBase {
                          (x, mask=xMask);
 
       auto xContext = concatenate({xFw, xBw}, axis=1);
-      return New<EncoderState>(EncoderState{xContext, xMask});
+      
+      return New<EncoderStateAmun>(xContext, xMask);
     }
 };
 
-class DecoderDL4MT : public DecoderBase {
+class DecoderAmun : public DecoderBase {
   private:
     Ptr<GlobalAttention> attention_;
 
   public:
     template <class ...Args>
-    DecoderDL4MT(Ptr<Config> options, Args ...args)
+    DecoderAmun(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
 
-    virtual std::tuple<Expr, std::vector<Expr>>
-    step(Expr embeddings,
-         std::vector<Expr> states,
-         Ptr<EncoderState> encState,
-         bool single) {
+    virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
+      using namespace keywords;
+
+      auto meanContext = weighted_average(encState->getContext(),
+                                          encState->getMask(),
+                                          axis=2);
+
+      bool layerNorm = options_->get<bool>("layer-normalization");
+      auto start = Dense("ff_state",
+                         options_->get<int>("dim-rnn"),
+                         activation=act::tanh,
+                         normalize=layerNorm)(meanContext);
+      
+      return New<DecoderStateAmun>(start, nullptr, encState);
+    }
+     
+    virtual Ptr<DecoderState> step(Expr embeddings,
+                                   Ptr<DecoderState> state,
+                                   bool single) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -94,45 +149,42 @@ class DecoderDL4MT : public DecoderBase {
 
       if(!attention_)
         attention_ = New<GlobalAttention>("decoder",
-                                          encState,
+                                          state->getEncoderState(),
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
-      RNN<CGRU> rnnL1(graph, "decoder",
-                      dimTrgEmb, dimDecState,
-                      attention_,
-                      normalize=layerNorm,
-                      dropout_prob=dropoutRnn
-                      );
-      auto stateL1 = rnnL1(embeddings, states[0]);
+      RNN<CGRU> rnn(graph, "decoder",
+                    dimTrgEmb, dimDecState,
+                    attention_,
+                    normalize=layerNorm,
+                    dropout_prob=dropoutRnn);
+      
+      auto stateAmun = std::dynamic_pointer_cast<DecoderStateAmun>(state);
+      auto stateOut = rnn(embeddings, stateAmun->getState());
       auto alignedContext = single ?
-        rnnL1.getCell()->getLastContext() :
-        rnnL1.getCell()->getContexts();
-
-      std::vector<Expr> statesOut;
-      statesOut.push_back(stateL1);
-
-      Expr outputLn = stateL1;
+        rnn.getCell()->getLastContext() :
+        rnn.getCell()->getContexts();
 
       //// 2-layer feedforward network for outputs and cost
       auto logitsL1 = Dense("ff_logit_l1", dimTrgEmb,
                             activation=act::tanh,
                             normalize=layerNorm)
-                        (embeddings, outputLn, alignedContext);
+                        (embeddings, stateOut, alignedContext);
 
-      auto logitsL2 = Dense("ff_logit_l2", dimTrgVoc)
+      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)
                         (logitsL1);
 
-      return std::make_tuple(logitsL2, statesOut);
+      return New<DecoderStateAmun>(stateOut, logitsOut,
+                                   state->getEncoderState());
     }
 
 };
 
-class DL4MT : public Seq2Seq<EncoderDL4MT, DecoderDL4MT> {
+class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
   public:
     template <class ...Args>
-    DL4MT(Ptr<Config> options, Args ...args)
-    : Seq2Seq(options, args...) {}
+    Amun(Ptr<Config> options, Args ...args)
+    : EncoderDecoder(options, args...) {}
 
     void load(Ptr<ExpressionGraph> graph,
               const std::string& name) {

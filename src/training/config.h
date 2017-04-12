@@ -46,6 +46,14 @@ class Config {
     YAML::Node getModelParameters();
     void loadModelParameters(const std::string& name);
     void saveModelParameters(const std::string& name);
+    
+    void GetYamlFromNpz(YAML::Node&,
+                        const std::string&,
+                        const std::string&);
+
+    void AddYamlToNpz(const YAML::Node&,
+                      const std::string&,
+                      const std::string&);
 
     
     void addOptions(int argc, char** argv, bool validate, bool translate);

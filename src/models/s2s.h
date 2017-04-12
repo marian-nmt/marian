@@ -7,10 +7,59 @@ namespace marian {
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
-class EncoderGNMT : public EncoderBase {
+class EncoderStateS2S : public EncoderState {
+  private:
+    Expr context_;
+    Expr mask_;
+    
+  public:
+    EncoderStateS2S(Expr context, Expr mask)
+    : context_(context), mask_(mask) {}
+    
+    Expr getContext() { return context_; }
+    Expr getMask() { return mask_; }
+};
+
+class DecoderStateS2S : public DecoderState {
+  private:
+    std::vector<Expr> states_;
+    Expr probs_;
+    Ptr<EncoderState> encState_;
+    
+  public:
+    DecoderStateS2S(const std::vector<Expr> states,
+                     Expr probs,
+                     Ptr<EncoderState> encState)
+    : states_(states), probs_(probs), encState_(encState) {}
+    
+    
+    Ptr<EncoderState> getEncoderState() { return encState_; }
+    Expr getProbs() { return probs_; }
+    void setProbs(Expr probs) { probs_ = probs; }
+    
+    Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+      int numSelected = selIdx.size();
+      int dimState = states_[0]->shape()[1];
+      
+      std::vector<Expr> selectedStates;
+      for(auto state : states_) {
+        selectedStates.push_back(
+          reshape(rows(state, selIdx),
+                  {1, dimState, 1, numSelected})
+        );
+      }
+      
+      return New<DecoderStateS2S>(selectedStates, probs_, encState_);
+    }
+
+    
+    const std::vector<Expr>& getStates() { return states_; }
+};
+
+class EncoderS2S : public EncoderBase {
   public:
     template <class ...Args>
-    EncoderGNMT(Ptr<Config> options, Args... args)
+    EncoderS2S(Ptr<Config> options, Args... args)
      : EncoderBase(options, args...) {}
 
     Ptr<EncoderState>
@@ -67,30 +116,45 @@ class EncoderGNMT : public EncoderBase {
                        skip=skipDepth,
                        dropout_prob=dropoutRnn)
                       (xBi);
-        return New<EncoderState>(EncoderState{xContext, xMask});
+        return New<EncoderStateS2S>(xContext, xMask);
       }
       else {
         auto xContext = concatenate({xFw, xBw}, axis=1);
-        return New<EncoderState>(EncoderState{xContext, xMask});
+        return New<EncoderStateS2S>(xContext, xMask);
       }
     }
 };
 
-class DecoderGNMT : public DecoderBase {
+class DecoderS2S : public DecoderBase {
   private:
     Ptr<GlobalAttention> attention_;
 
   public:
 
     template <class ...Args>
-    DecoderGNMT(Ptr<Config> options, Args ...args)
+    DecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
 
-    virtual std::tuple<Expr, std::vector<Expr>>
-    step(Expr embeddings,
-         std::vector<Expr> states,
-         Ptr<EncoderState> encState,
-         bool single) {
+    virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
+      using namespace keywords;
+
+      auto meanContext = weighted_average(encState->getContext(),
+                                          encState->getMask(),
+                                          axis=2);
+
+      bool layerNorm = options_->get<bool>("layer-normalization");
+      auto start = Dense("ff_state",
+                         options_->get<int>("dim-rnn"),
+                         activation=act::tanh,
+                         normalize=layerNorm)(meanContext);
+      
+      std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
+      return New<DecoderStateS2S>(startStates, nullptr, encState);
+    }
+     
+    virtual Ptr<DecoderState> step(Expr embeddings,
+                                   Ptr<DecoderState> state,
+                                   bool single) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -114,7 +178,7 @@ class DecoderGNMT : public DecoderBase {
 
       if(!attention_)
         attention_ = New<GlobalAttention>("decoder",
-                                          encState,
+                                          state->getEncoderState(),
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
@@ -124,7 +188,8 @@ class DecoderGNMT : public DecoderBase {
                       dropout_prob=dropoutRnn,
                       normalize=layerNorm);
 
-      auto stateL1 = rnnL1(embeddings, states[0]);
+      auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
+      auto stateL1 = rnnL1(embeddings, stateS2S->getStates()[0]);
       auto alignedContext = single ?
         rnnL1.getCell()->getLastContext() :
         rnnL1.getCell()->getContexts();
@@ -135,8 +200,8 @@ class DecoderGNMT : public DecoderBase {
       Expr outputLn;
       if(decoderLayers > 1) {
         std::vector<Expr> statesIn;
-        for(int i = 1; i < states.size(); ++i)
-          statesIn.push_back(states[i]);
+        for(int i = 1; i < stateS2S->getStates().size(); ++i)
+          statesIn.push_back(stateS2S->getStates()[i]);
 
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = MLRNN<GRU>(graph, "decoder",
@@ -164,11 +229,12 @@ class DecoderGNMT : public DecoderBase {
       auto logitsL2 = Dense("ff_logit_l2", dimTrgVoc)
                         (logitsL1);
 
-      return std::make_tuple(logitsL2, statesOut);
+      return New<DecoderStateS2S>(statesOut, logitsL2,
+                                  state->getEncoderState());
     }
 
 };
 
-typedef Seq2Seq<EncoderGNMT, DecoderGNMT> GNMT;
+typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
 
 }

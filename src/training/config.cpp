@@ -167,8 +167,8 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   model.add_options()
     ("model,m", po::value<std::string>()->default_value("model.npz"),
       "Path prefix for model to be saved/resumed")
-    ("type", po::value<std::string>()->default_value("dl4mt"),
-      "Model type (possible values: dl4mt, gnmt, multi-gnmt")
+    ("type", po::value<std::string>()->default_value("amun"),
+      "Model type (possible values: amun, s2s, multi-s2s")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
@@ -299,6 +299,9 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Display n-best list")
+    
   ;
   desc.add(translate);
 }
@@ -401,6 +404,7 @@ void Config::addOptions(int argc, char** argv,
     }
     
     SET_OPTION("normalize", bool);
+    SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);
   }
 
@@ -501,20 +505,28 @@ YAML::Node Config::getModelParameters() {
 }
 
 void Config::loadModelParameters(const std::string& name) {
-  auto configNpy = cnpy::npz_load(name, "special:model.yml");
-  std::string configStr(configNpy.data);
-  YAML::Node config = YAML::Load(configStr);
+  YAML::Node config;
+  GetYamlFromNpz(config, "special:model.yml", name);
   override(config);
 }
 
+void Config::GetYamlFromNpz(YAML::Node& yaml,
+                            const std::string& varName,
+                            const std::string& fName) {
+  yaml = YAML::Load(cnpy::npz_load(fName, varName).data);
+}
+
 void Config::saveModelParameters(const std::string& name) {
-  std::stringstream configStrm;
-  
-  configStrm << getModelParameters();
-  std::string config = configStrm.str();
-  
-  unsigned shape[1] = { (unsigned)config.size() + 1u };
-  cnpy::npz_save(name, "special:model.yml", config.data(), shape, 1, "a");
+  AddYamlToNpz(getModelParameters(), "special:model.yml", name);
+}
+
+void Config::AddYamlToNpz(const YAML::Node& yaml,
+                          const std::string& varName,
+                          const std::string& fName) {
+  YAML::Emitter out;
+  OutputRec(yaml, out);
+  unsigned shape = out.size() + 1;
+  cnpy::npz_save(fName, varName, out.c_str(), &shape, 1, "a");
 }
 
 }
