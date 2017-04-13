@@ -56,6 +56,13 @@ class TemporaryFile {
       fd_ = MakeTemp(baseTemp);
     }
     
+    ~TemporaryFile() {
+      if (fd_ != -1 && close(fd_)) {
+        std::cerr << "Could not close file " << fd_ << std::endl;
+        std::abort();
+      }
+    }
+    
     int getFileDescriptor() {
       return fd_;
     }
