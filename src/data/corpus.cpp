@@ -176,15 +176,15 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     tempFiles_.emplace_back(new TemporaryFile(options_->get<std::string>("tempdir")));
     outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
   }
-  files_.clear();
-
+  
   for(auto& lines : corpus) {
     size_t i = 0;
     for(auto& line : lines) {
-      (std::ostream&)*outs[i++] << line << '\n';
+      (std::ostream&)*outs[i++] << line << std::endl;
     }
   }
 
+  files_.clear();
   for(int i = 0; i < outs.size(); ++i) {
     files_.emplace_back(new InputFileStream(*tempFiles_[i]));
   }
