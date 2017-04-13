@@ -128,7 +128,8 @@ class Corpus {
 
     Corpus(std::vector<std::string> paths,
            std::vector<Ptr<Vocab>> vocabs,
-           Ptr<Config> options);
+           Ptr<Config> options,
+           size_t maxLength = 0);
 
     sample next();
 

@@ -226,7 +226,7 @@ namespace marian {
         
         auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
         
-        auto corpus = New<Corpus>(validPaths, vocabs_, options_);
+        auto corpus = New<Corpus>(validPaths, vocabs_, options_, 1000);
         
         Ptr<BatchGenerator<Corpus>> batchGenerator
           = New<BatchGenerator<Corpus>>(corpus, options_);
@@ -248,23 +248,36 @@ namespace marian {
       
       virtual float validateBG(Ptr<ExpressionGraph> graph,
                                Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
-        size_t samples = 0;
-        while(*batchGenerator) {
-          auto batch = batchGenerator->next();
-          
-          auto search = New<BeamSearch<Builder>>(options_);
-          auto history = search->search(graph, batch, samples);
-    
-          std::stringstream ss;
-          Printer(options_, vocabs_.back(), history, ss);
-
-          //if(samples % 100 == 0)
-            //LOG(valid, "{} : {} : {}", type(), samples, ss.str()); 
-          
-          samples++;
-        }
         
+        TemporaryFile temp;
+        
+        {
+          OutputFileStream out(temp);
+          size_t samples = 0;
+          while(*batchGenerator) {
+            auto batch = batchGenerator->next();
+            
+            auto search = New<BeamSearch<Builder>>(options_);
+            auto history = search->search(graph, batch, samples);
+      
+            std::stringstream ss;
+            Printer(options_, vocabs_.back(), history, ss);
+  
+            (std::ostream&)out << ss.str() << std::endl;
+            
+            samples++;
+          }
+        }
         return 0;
+      
+        /*
+        std::string referencePath
+          = options_->get<std::vector<std::string>>("valid-sets").back();
+        InputFileStream reference(referencePath);
+        InputFileStream candidate(temp);
+        
+        return score("BLEU", reference, candidate);
+        */
       }
 
       virtual bool lowerIsBetter() {

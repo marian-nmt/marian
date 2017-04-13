@@ -94,11 +94,12 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options)
+               Ptr<Config> options,
+               size_t maxLength)
   : options_(options),
     textPaths_(paths),
     vocabs_(vocabs),
-    maxLength_(options_->get<size_t>("max-length")) {
+    maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
 
   UTIL_THROW_IF2(textPaths_.size() != vocabs_.size(),
                  "Number of corpus files and vocab files does not agree");
