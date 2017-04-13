@@ -323,6 +323,7 @@ class Decoder {
       std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
+      std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       
     }
 
