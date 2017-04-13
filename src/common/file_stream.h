@@ -82,10 +82,10 @@ class InputFileStream {
     }
 
     InputFileStream(TemporaryFile& tempfile)
-    : streamBuffer_(tempfile.getFileDescriptor(), io::never_close_handle)
+    : fds_(tempfile.getFileDescriptor(), io::never_close_handle)
     {
       lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-      istream_.push(streamBuffer_);
+      istream_.push(fds_, 1024);
     }
 
     InputFileStream(std::istream& strm) {
@@ -113,7 +113,7 @@ class InputFileStream {
   private:
     boost::filesystem::path file_;
     boost::filesystem::ifstream ifstream_;
-    io::stream_buffer<io::file_descriptor_source> streamBuffer_;
+    io::file_descriptor_source fds_;
     io::filtering_istream istream_;
 };
 
@@ -131,10 +131,10 @@ class OutputFileStream {
     }
     
     OutputFileStream(TemporaryFile& tempfile)
-    : streamBuffer_(tempfile.getFileDescriptor(), io::never_close_handle)
+    : fds_(tempfile.getFileDescriptor(), io::never_close_handle)
     {
       lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-      ostream_.push(streamBuffer_);
+      ostream_.push(fds_, 1024);
     }
 
     OutputFileStream(std::ostream& strm)
@@ -163,6 +163,6 @@ class OutputFileStream {
   private:
     boost::filesystem::path file_;
     boost::filesystem::ofstream ofstream_;
-    io::stream_buffer<io::file_descriptor_sink> streamBuffer_;
+    io::file_descriptor_sink fds_;
     io::filtering_ostream ostream_;
 };
