@@ -229,9 +229,18 @@ __kernel void gBroadcastTanh(__global float* out,
 __kernel void gBroadcastVecColumnAddWeighted(
                      __global float* out, 
                      __global const float* in, 
-                     uint rows, uint cols) 
+                     uint rows, uint cols,
+                     float weight) 
 {
+  for (uint noColumn = 0; noColumn < cols; ++noColumn) {
+      int index = noColumn;
+      for (int noRow = 0; noRow < rows; ++noRow) {
+        out[index] = weight * out[index] + in[noRow];
+        index += cols;
+    }
 
+  }
+  
 }
 
 

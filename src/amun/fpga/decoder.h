@@ -218,37 +218,35 @@ class Decoder {
       using namespace mblas;
 
       Prod(/*h_[0],*/ T1_, State, w_.W1_);
-      std::cerr << "1T1_=" << T1_.Debug(1) << std::endl;
 
       if (w_.Gamma_1_) {
         //Normalization(T1_, T1_, w_.Gamma_1_, w_.B1_, 1e-9);
       } else {
         BroadcastVecAdd(T1_, w_.B1_ /*,s_[0]*/);
       }
-      std::cerr << "2T1_=" << T1_.Debug(1) << std::endl;
 
       Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
-      std::cerr << "1T2_=" << T2_.Debug(1) << std::endl;
 
       if (w_.Gamma_0_) {
         //Normalization(T2_, T2_, w_.Gamma_0_, w_.B2_, 1e-9);
       } else {
         BroadcastVecAdd(T2_, w_.B2_ /*,s_[1]*/);
       }
-      std::cerr << "2T2_=" << T2_.Debug(1) << std::endl;
 
       Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
-      std::cerr << "1T3_=" << T3_.Debug(1) << std::endl;
 
       if (w_.Gamma_2_) {
         //Normalization(T3_, T3_, w_.Gamma_2_, w_.B3_, 1e-9);
       } else {
         BroadcastVecAdd(T3_, w_.B3_ /*,s_[2]*/);
       }
-      std::cerr << "2T3_=" << T3_.Debug(1) << std::endl;
 
+      std::cerr << std::endl;
+      std::cerr << "1T1_=" << T1_.Debug(1) << std::endl;
+      std::cerr << "T2_=" << T2_.Debug(1) << std::endl;
+      std::cerr << "T3_=" << T3_.Debug(1) << std::endl;
       ElementTanh(T1_, T2_, T3_);
-      std::cerr << "3T1_=" << T1_.Debug(1) << std::endl;
+      std::cerr << "2T1_=" << T1_.Debug(1) << std::endl;
 
       if(!filtered_) {
         Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
@@ -259,10 +257,9 @@ class Decoder {
         //Prod(Probs, T1_, FilteredW4_);
         //BroadcastVec(_1 + _2, Probs, FilteredB4_);
       }
-      std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
 
       mblas::LogSoftmax(Probs);
-      std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+      std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
     }
 
