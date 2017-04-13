@@ -81,7 +81,7 @@ class InputFileStream {
       istream_.push(ifstream_);
     }
 
-    InputFileStream(TemporaryFile tempfile)
+    InputFileStream(TemporaryFile& tempfile)
     : streamBuffer_(tempfile.getFileDescriptor(), io::never_close_handle)
     {
       lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
@@ -130,7 +130,7 @@ class OutputFileStream {
       ostream_.push(ofstream_);
     }
     
-    OutputFileStream(TemporaryFile tempfile)
+    OutputFileStream(TemporaryFile& tempfile)
     : streamBuffer_(tempfile.getFileDescriptor(), io::never_close_handle)
     {
       lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
