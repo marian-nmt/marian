@@ -57,7 +57,7 @@ then
         --dynamic-batching -w 3000 \
         --layer-normalization --dropout-rnn 0.2 --dropout-src 0.1 --dropout-trg 0.1 \
         --early-stopping 5 --moving-average \
-        --valid-freq 1000 --save-freq 1000 --disp-freq 100 \
+        --valid-freq 10000 --save-freq 10000 --disp-freq 1000 \
         --valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en \
         --valid-metrics cross-entropy valid-script \
         --valid-script-path ./scripts/validate.sh \
