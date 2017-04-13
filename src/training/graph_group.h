@@ -3,6 +3,8 @@
 #include <thread>
 #include <future>
 #include <boost/filesystem.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include "common/definitions.h"
 #include "3rd_party/threadpool.h"
@@ -175,6 +177,8 @@ class AsyncGraphGroup : public GraphGroup {
     
     std::mutex sync_;
     std::vector<std::mutex> shardSync_;
+    
+    boost::shared_mutex reporterMutex_;
 
     std::vector<Tensor> params_;
     std::vector<Ptr<TensorAllocator>> paramsAlloc_;
@@ -335,16 +339,21 @@ class AsyncGraphGroup : public GraphGroup {
         pushGradients(graph->params()->grads());
 
         if(reporter_) {
-          std::lock_guard<std::mutex> guard(sync_);
-          reporter_->update(cost, batch);
+          boost::upgrade_lock<boost::shared_mutex> lock(reporterMutex_);
+          {
+            boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+            reporter_->update(cost, batch);
+          }
           
           if(reporter_->saving()) {
+            boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
             if(movingAvg_)
               fetchParams(graph->params()->vals(), paramsAvg_);
             this->save(graph);
           }
            
           if(reporter_->validating()) {
+            boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
             if(movingAvg_)
               fetchParams(graph->params()->vals(), paramsAvg_);
             reporter_->validate(graph);

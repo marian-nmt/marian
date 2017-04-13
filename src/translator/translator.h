@@ -11,13 +11,13 @@
 namespace marian {
 
 template <class Search>
-class Translate : public ModelTask {
+class TranslateMultiGPU : public ModelTask {
   private:
     Ptr<Config> options_;
     std::vector<Ptr<ExpressionGraph>> graphs_;
     
   public:  
-    Translate(Ptr<Config> options)
+    TranslateMultiGPU(Ptr<Config> options)
     : options_(options) {
         
       auto devices = options_->get<std::vector<int>>("devices");
@@ -75,5 +75,57 @@ class Translate : public ModelTask {
       }
     }
 };
+
+template <class Search>
+class TranslateSingleGPU : public ModelTask {
+  private:
+    Ptr<Config> options_;
+    Ptr<ExpressionGraph> graph_;
+    
+  public:  
+    TranslateSingleGPU(Ptr<Config> options)
+    : options_(options) {
+        
+      auto devices = options_->get<std::vector<int>>("devices");
+      size_t device = devices[0];
+      
+      graph_ = New<ExpressionGraph>();
+      graph_->setDevice(device);
+      graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      
+      typedef typename Search::model_type Model;
+      auto model = New<Model>(options_, keywords::inference=true);
+      model->load(graph_, options_->get<std::string>("model"));
+    }
+    
+    void run() {
+      using namespace data;
+      
+      auto corpus = DataSet<Corpus>(options_, true);
+      BatchGenerator<Corpus> bg(corpus, options_);
+    
+      auto target = New<Vocab>();
+      auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+      target->load(vocabs.back());
+
+      auto collector = New<OutputCollector>();
+      size_t sentenceId = 0;
+      
+      bg.prepare(false);
+      while(bg) {
+        auto batch = bg.next();
+                  
+        auto search = New<Search>(options_);
+        auto history = search->search(graph_, batch, sentenceId);
+    
+        std::stringstream ss;
+        Printer(options_, target, history, ss);
+        collector->Write(history->GetLineNum(), ss.str());
+        
+        sentenceId++;
+      }
+    }
+};
+
 
 }
