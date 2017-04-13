@@ -2,7 +2,7 @@
 
 #include "models/amun.h"
 #include "models/s2s.h"
-//#include "models/multi_s2s.h"
+#include "models/multi_s2s.h"
 
 namespace marian {
   
@@ -19,8 +19,8 @@ namespace marian {
       return New<TaskName<Wrapper<Amun>>>(options);
     else if(type == "s2s")
       return New<TaskName<Wrapper<S2S>>>(options);
-    //else if(type == "multi-s2s")
-    // return New<TaskName<Wrapper<MultiS2S>>>(options);
+    else if(type == "multi-s2s")
+      return New<TaskName<Wrapper<MultiS2S>>>(options);
     else
       UTIL_THROW2("Unknown model type: " << type);
   }

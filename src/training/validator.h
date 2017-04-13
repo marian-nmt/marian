@@ -249,25 +249,22 @@ namespace marian {
       virtual float validateBG(Ptr<ExpressionGraph> graph,
                                Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
         
-        TemporaryFile temp;
+        std::vector<std::string> outputs;
         
-        {
-          OutputFileStream out(temp);
-          size_t samples = 0;
-          while(*batchGenerator) {
-            auto batch = batchGenerator->next();
-            
-            auto search = New<BeamSearch<Builder>>(options_);
-            auto history = search->search(graph, batch, samples);
-      
-            std::stringstream ss;
-            Printer(options_, vocabs_.back(), history, ss);
-  
-            (std::ostream&)out << ss.str() << std::endl;
-            
-            samples++;
-          }
+        size_t samples = 0;
+        while(*batchGenerator) {
+          auto batch = batchGenerator->next();
+          
+          auto search = New<BeamSearch<Builder>>(options_);
+          auto history = search->search(graph, batch, samples);
+    
+          std::stringstream ss;
+          Printer(options_, vocabs_.back(), history, ss);
+          outputs.push_back(ss.str());
+          
+          samples++;
         }
+      
         return 0;
       
         /*
