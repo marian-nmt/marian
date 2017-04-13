@@ -69,6 +69,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     ~ExpressionGraph() {
       clear();
+      params_->clear();
     }
 
     void setDevice(size_t device = 0) {
@@ -469,6 +470,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       hashMap_.clear();
     }
 
+    
+    void clearParameters() {
+      params_->clear();
+    }
+    
     Expr topNode() {
       return nodes_.back();
     }
@@ -482,6 +488,9 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       for(auto it : numpy) {
         auto name = it.first;
+        // skip over special parameters starting with _
+        if(name.substr(0, 8) == "special:")
+          continue;
 
         Shape shape;
         if(it.second.shape.size() == 2) {

@@ -107,6 +107,7 @@ class Corpus {
     Ptr<Config> options_;
 
     std::vector<std::string> textPaths_;
+    std::vector<UPtr<TemporaryFile>> tempFiles_;
     std::vector<UPtr<InputFileStream>> files_;
     std::vector<Ptr<Vocab>> vocabs_;
     size_t maxLength_;
@@ -127,7 +128,8 @@ class Corpus {
 
     Corpus(std::vector<std::string> paths,
            std::vector<Ptr<Vocab>> vocabs,
-           Ptr<Config> options);
+           Ptr<Config> options,
+           size_t maxLength = 0);
 
     sample next();
 

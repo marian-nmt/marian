@@ -93,6 +93,14 @@ class Parameters {
     Tensor grads() {
       return grads_->asTensor();
     }
+    
+    void clear() {
+      params_.clear();
+      named_.clear();
+
+      vals_->clear();
+      grads_->clear();
+    }
 };
 
 }

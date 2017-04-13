@@ -6,6 +6,7 @@
 #include "training/config.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "3rd_party/cnpy/cnpy.h"
 
 #define SET_OPTION(key, type) \
 do { if(!vm_[key].defaulted() || !config_[key]) { \
@@ -166,8 +167,8 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   model.add_options()
     ("model,m", po::value<std::string>()->default_value("model.npz"),
       "Path prefix for model to be saved/resumed")
-    ("type", po::value<std::string>()->default_value("dl4mt"),
-      "Model type (possible values: dl4mt, gnmt, multi-gnmt")
+    ("type", po::value<std::string>()->default_value("amun"),
+      "Model type (possible values: amun, s2s, multi-s2s")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
@@ -179,8 +180,8 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
      "Use skip connections")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
-     "Enable layer normalization")
-  ;
+     "Enable layer normalization");
+      
 
   if(!translate) {
     model.add_options()
@@ -192,6 +193,12 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
        "Dropout target words (0 = no dropout)")
     ;
   }
+  
+  modelFeatures_ = {
+    "type", "dim-vocabs", "dim-emb", "dim-rnn", "layers-enc", "layers-dec",
+    "skip", "layer-normalization"
+  };
+  
   desc.add(model);
 }
 
@@ -221,6 +228,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")
+    ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
+      "Directory for temporary (shuffled) files")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -267,6 +276,10 @@ void Config::addOptionsValid(po::options_description& desc) {
      "validation steps")
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
+    ("beam-size", po::value<size_t>()->default_value(12),
+      "Beam size used during search with validating translator")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Normalize translation score by translation length")
   ;
   desc.add(valid);
 }
@@ -274,10 +287,16 @@ void Config::addOptionsValid(po::options_description& desc) {
 void Config::addOptionsTranslate(po::options_description& desc) {
   po::options_description translate("Translator options", guess_terminal_width());
   translate.add_options()
-    ("inputs,i", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to input files")
+    ("input,i", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"stdin"}), "stdin"),
+      "Paths to input file(s), stdin by default")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --inputs.")
+      "Paths to vocabulary files have to correspond to --input.")
+    ("beam-size,b", po::value<size_t>()->default_value(12),
+      "Beam size used during search")
+    ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
+      "Normalize translation score by translation length")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
     ("devices,d", po::value<std::vector<int>>()
@@ -288,6 +307,9 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Display n-best list")
+    
   ;
   desc.add(translate);
 }
@@ -332,8 +354,9 @@ void Config::addOptions(int argc, char** argv,
     configPath = vm_["config"].as<std::string>();
     config_ = YAML::Load(InputFileStream(configPath));
   }
-  else if(boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml") &&
-                                    !vm_["no-reload"].as<bool>()) {
+  else if(!translate &&
+          boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml") &&
+          !vm_["no-reload"].as<bool>()) {
     configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
   }
@@ -343,6 +366,7 @@ void Config::addOptions(int argc, char** argv,
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
+  
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
@@ -351,6 +375,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("layers-dec", int);
   SET_OPTION("skip", bool);
   SET_OPTION("layer-normalization", bool);
+
   if(!translate) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
@@ -358,7 +383,7 @@ void Config::addOptions(int argc, char** argv,
   }
   /** model **/
 
-  /** training **/
+  /** training start **/
   if(!translate) {
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
@@ -370,19 +395,23 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("disp-freq", size_t);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
+    SET_OPTION("tempdir", std::string);
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
+    SET_OPTION("mini-batch-words", int);
+    SET_OPTION("dynamic-batching", bool);
     
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
   }
-  /** training **/
+  /** training end **/
   else {
-    if (!vm_["inputs"].empty()) {
-      config_["inputs"] = vm_["inputs"].as<std::vector<std::string>>();
-    }
+    SET_OPTION("input", std::vector<std::string>);
+    SET_OPTION("normalize", bool);
+    SET_OPTION("n-best", bool);
+    SET_OPTION("beam-size", size_t);
   }
 
   /** valid **/
@@ -396,6 +425,9 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
+    
+    SET_OPTION("normalize", bool);
+    SET_OPTION("beam-size", size_t);
   }
   /** valid **/
 
@@ -418,8 +450,6 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
-  SET_OPTION("mini-batch-words", int);
-  SET_OPTION("dynamic-batching", bool);
   SET_OPTION("maxi-batch", int);
   SET_OPTION("max-length", size_t);
 
@@ -436,11 +466,19 @@ void Config::addOptions(int argc, char** argv,
     seed = (size_t) time(0);
   else
     seed = vm_["seed"].as<size_t>();
+    
+  if(boost::filesystem::exists(vm_["model"].as<std::string>()) &&
+     (translate || !vm_["no-reload"].as<bool>())) {
+    try {
+      loadModelParameters(vm_["model"].as<std::string>());
+    }
+    catch(std::runtime_error& e) {
+      LOG(config, "No model parameters found in model file");
+    }
+  }
 }
 
 void Config::log() {
-  createLoggers(*this);
-
   YAML::Emitter out;
   OutputRec(config_, out);
   std::string conf = out.c_str();
@@ -449,6 +487,55 @@ void Config::log() {
   boost::algorithm::split(results, conf, boost::is_any_of("\n"));
   for(auto &r : results)
     LOG(config, r);
+}
+
+void Config::override(const YAML::Node& params) {
+  YAML::Emitter out;
+  OutputRec(params, out);
+  std::string conf = out.c_str();
+
+  std::vector<std::string> results;
+  boost::algorithm::split(results, conf, boost::is_any_of("\n"));
+  
+  LOG(config, "Overriding model parameters:");
+  for(auto &r : results)
+    LOG(config, r);
+  
+  for(auto& it : params) {
+    config_[it.first.as<std::string>()] = it.second;
+  }
+}
+
+YAML::Node Config::getModelParameters() {
+  YAML::Node modelParams;
+  for(auto& key : modelFeatures_)
+    modelParams[key] = config_[key];
+  return modelParams;
+}
+
+void Config::loadModelParameters(const std::string& name) {
+  YAML::Node config;
+  GetYamlFromNpz(config, "special:model.yml", name);
+  override(config);
+}
+
+void Config::GetYamlFromNpz(YAML::Node& yaml,
+                            const std::string& varName,
+                            const std::string& fName) {
+  yaml = YAML::Load(cnpy::npz_load(fName, varName).data);
+}
+
+void Config::saveModelParameters(const std::string& name) {
+  AddYamlToNpz(getModelParameters(), "special:model.yml", name);
+}
+
+void Config::AddYamlToNpz(const YAML::Node& yaml,
+                          const std::string& varName,
+                          const std::string& fName) {
+  YAML::Emitter out;
+  OutputRec(yaml, out);
+  unsigned shape = out.size() + 1;
+  cnpy::npz_save(fName, varName, out.c_str(), &shape, 1, "a");
 }
 
 }

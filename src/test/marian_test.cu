@@ -13,9 +13,9 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 
-#include "models/dl4mt.h"
-#include "models/gnmt.h"
-#include "models/multi_gnmt.h"
+#include "models/amun.h"
+#include "models/s2s.h"
+//#include "models/multi_s2s.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -44,13 +44,13 @@ int main(int argc, char** argv) {
   graph->setDevice(0);
 
   auto type = options->get<std::string>("type");
-  Ptr<Seq2SeqBase> encdec;
-  if(type == "gnmt")
-    encdec = New<GNMT>(options);
-  else if(type == "multi-gnmt")
-    encdec = New<MultiGNMT>(options);
+  Ptr<EncoderDecoderBase> encdec;
+  if(type == "s2s")
+    encdec = New<S2S>(options);
+  //else if(type == "multi-s2s")
+  //  encdec = New<MultiGNMT>(options);
   else
-    encdec = New<DL4MT>(options);
+    encdec = New<Amun>(options);
 
   //encdec->load(graph, "../benchmark/marian32K/model.160000.npz");
 
@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
       batch->debug();
 
       auto costNode = encdec->build(graph, batch);
-      for(auto p : graph->params())
-        debug(p, p->name());
+      //for(auto p : graph->params())
+      //  debug(p, p->name());
       debug(costNode, "cost");
 
       //graph->graphviz("debug.dot");

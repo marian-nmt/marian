@@ -2,6 +2,7 @@
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
+#include "models/model_task.h"
 #include "training/config.h"
 #include "training/validator.h"
 
@@ -135,43 +136,50 @@ class Reporter {
 };
 
 template <class Model>
-void Train(Ptr<Config> options) {
-  using namespace data;
-  using namespace keywords;
-
-  auto model = New<Model>(options);
+class Train : public ModelTask {
+  public:
+    Ptr<Config> options_;
+    
+  public:
+    Train(Ptr<Config> options) : options_(options) {}
   
-  Ptr<BatchStats> stats;
-  if(options->get<bool>("dynamic-batching")) {
-    LOG(info, "[batching] Collecting statistics for dynamic batching");
-    stats = model->collectStats();
-    LOG(info, "[batching] Done");
-  }
-  
-  auto trainCorpus = New<Corpus>(options);
-  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options, stats);
-  auto reporter = New<Reporter>(options);
-
-  if((options->has("valid-sets") || options->has("valid-script-path"))
-     && options->get<size_t>("valid-freq") > 0) {
-    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options))
-      reporter->addValidator(validator);
-  }
-
-  model->setReporter(reporter);
-  model->load();
-
-  while(reporter->keepGoing()) {
-    batchGenerator->prepare(!options->get<bool>("no-shuffle"));
-    while(*batchGenerator && reporter->keepGoing()) {
-      auto batch = batchGenerator->next();
-      model->update(batch);
+    void run() {
+      using namespace data;
+      using namespace keywords;
+    
+      Ptr<BatchStats> stats;
+      if(options_->get<bool>("dynamic-batching")) {
+        LOG(info, "[batching] Collecting statistics for dynamic batching");
+        stats = New<Model>(options_)->collectStats();
+        LOG(info, "[batching] Done");
+      }
+          
+      auto trainCorpus = New<Corpus>(options_);
+      auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
+      auto reporter = New<Reporter>(options_);
+    
+      if((options_->has("valid-sets") || options_->has("valid-script-path"))
+         && options_->get<size_t>("valid-freq") > 0) {
+        for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options_))
+          reporter->addValidator(validator);
+      }
+    
+      auto model = New<Model>(options_);      
+      model->setReporter(reporter);
+      model->load();
+    
+      while(reporter->keepGoing()) {
+        batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
+        while(*batchGenerator && reporter->keepGoing()) {
+          auto batch = batchGenerator->next();
+          model->update(batch);
+        }
+        if(reporter->keepGoing())
+          reporter->increaseEpoch();
+      }
+      reporter->finished();
+      model->save(true);
     }
-    if(reporter->keepGoing())
-      reporter->increaseEpoch();
-  }
-  reporter->finished();
-  model->save(true);
-}
+};
 
 }

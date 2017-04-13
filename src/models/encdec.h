@@ -13,8 +13,15 @@
 namespace marian {
 
 struct EncoderState {
-  Expr context;
-  Expr mask;
+  virtual Expr getContext() = 0;
+  virtual Expr getMask() = 0;
+};
+
+struct DecoderState {
+  virtual Ptr<EncoderState> getEncoderState() = 0;
+  virtual Expr getProbs() = 0;
+  virtual void setProbs(Expr) = 0;
+  virtual Ptr<DecoderState> select(const std::vector<size_t>&) = 0;
 };
 
 class EncoderBase {
@@ -127,29 +134,37 @@ class DecoderBase {
       return std::make_tuple(yShifted, yMask, yIdx);
     }
 
-    virtual Expr
-    buildStartState(Ptr<EncoderState> encState) {
+    virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
+    
+    virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                 const std::vector<size_t>& embIdx) {
       using namespace keywords;
+      
+      int dimTrgEmb = options_->get<int>("dim-emb");
+      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
-      auto meanContext = weighted_average(encState->context,
-                                          encState->mask,
-                                          axis=2);
-
-      bool layerNorm = options_->get<bool>("layer-normalization");
-      auto start = Dense("ff_state",
-                         options_->get<int>("dim-rnn"),
-                         activation=act::tanh,
-                         normalize=layerNorm)(meanContext);
-      return start;
+      Expr selectedEmbs;
+      if(embIdx.empty()) {
+        selectedEmbs = graph->constant(shape={1, dimTrgEmb},
+                                       init=inits::zeros);
+      }
+      else {
+        auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
+        selectedEmbs = reshape(rows(yEmb, embIdx),
+                               {1, yEmb->shape()[1], 1, (int)embIdx.size()});
+      }
+      
+      return selectedEmbs;
     }
-
-    virtual std::tuple<Expr, std::vector<Expr>>
-    step(Expr embeddings, std::vector<Expr> states,
-         Ptr<EncoderState> encState, bool single=false) = 0;
+    
+    virtual Ptr<DecoderState> step(Expr embeddings,
+                                   Ptr<DecoderState>,
+                                   bool single=false) = 0;
 };
 
-class Seq2SeqBase {
+class EncoderDecoderBase {
   public:
+    
     virtual void load(Ptr<ExpressionGraph>,
                       const std::string&) = 0;
 
@@ -159,15 +174,18 @@ class Seq2SeqBase {
     virtual void save(Ptr<ExpressionGraph>,
                       const std::string&, bool) = 0;
 
-    virtual std::tuple<Expr, std::vector<Expr>>
-    step(Expr, std::vector<Expr>, Ptr<EncoderState>, bool=false) = 0;
+    virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                  const std::vector<size_t>&) = 0;
+    
+    virtual Ptr<DecoderState>
+    step(Expr, Ptr<DecoderState>, bool=false) = 0;
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) = 0;
 };
 
 template <class Encoder, class Decoder>
-class Seq2Seq : public Seq2SeqBase {
+class EncoderDecoder : public EncoderDecoderBase {
   protected:
     Ptr<Config> options_;
     Ptr<EncoderBase> encoder_;
@@ -177,79 +195,69 @@ class Seq2Seq : public Seq2SeqBase {
   public:
 
     template <class ...Args>
-    Seq2Seq(Ptr<Config> options, Args ...args)
+    EncoderDecoder(Ptr<Config> options, Args ...args)
      : options_(options),
        encoder_(New<Encoder>(options, args...)),
        decoder_(New<Decoder>(options, args...)),
        inference_(Get(keywords::inference, false, args...))
     {}
-
-     virtual void load(Ptr<ExpressionGraph> graph,
+    
+    virtual void load(Ptr<ExpressionGraph> graph,
                        const std::string& name) {
       graph->load(name);
     }
-
+    
     virtual void save(Ptr<ExpressionGraph> graph,
                       const std::string& name,
                       bool saveTranslatorConfig) {
       // ignore config for now
       graph->save(name);
+      options_->saveModelParameters(name);
     }
     
     virtual void save(Ptr<ExpressionGraph> graph,
                       const std::string& name) {
       graph->save(name);
+      options_->saveModelParameters(name);
     }
-
-    virtual std::tuple<std::vector<Expr>, Ptr<EncoderState>>
-    buildEncoder(Ptr<ExpressionGraph> graph,
-                 Ptr<data::CorpusBatch> batch) {
-      using namespace keywords;
+    
+    virtual void clear(Ptr<ExpressionGraph> graph) {
       graph->clear();
       encoder_ = New<Encoder>(options_, keywords::inference=inference_);
       decoder_ = New<Decoder>(options_, keywords::inference=inference_);
-
-      auto encState = encoder_->build(graph, batch);
-      auto startState = decoder_->buildStartState(encState);
-
-      size_t decoderLayers = options_->get<size_t>("layers-dec");
-      std::vector<Expr> startStates(decoderLayers, startState);
-
-      return std::make_tuple(startStates, encState);
     }
 
-    virtual std::tuple<Expr, std::vector<Expr>>
+    virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
+                                         Ptr<data::CorpusBatch> batch) {
+      return decoder_->startState(encoder_->build(graph, batch));
+    }
+    
+    virtual Ptr<DecoderState>
     step(Expr embeddings,
-         std::vector<Expr> states,
-         Ptr<EncoderState> encState,
+         Ptr<DecoderState> state,
          bool single=false) {
-      return decoder_->step(embeddings, states, encState, single);
+      return decoder_->step(embeddings, state, single);
+    }
+    
+    virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                  const std::vector<size_t>& embIdx) {
+      return decoder_->selectEmbeddings(graph, embIdx);
     }
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
-      //std::cerr
-      //  << (*batch)[0].size()
-      //  << "," << (*batch)[1].size()
-      //  << " " << batch->size()
-      //  << std::endl;
 
-      std::vector<Expr> startStates;
-      Ptr<EncoderState> encState;
-      std::tie(startStates, encState) = buildEncoder(graph, batch);
-
+      clear(graph);
+      auto state = startState(graph, batch);
+      
       Expr trgEmbeddings, trgMask, trgIdx;
       std::tie(trgEmbeddings, trgMask, trgIdx) = decoder_->groundTruth(graph, batch);
-
-      Expr trgLogits;
-      std::vector<Expr> trgStates;
-      std::tie(trgLogits, trgStates) = decoder_->step(trgEmbeddings,
-                                                      startStates,
-                                                      encState);
-
-      auto cost = CrossEntropyCost("cost")(trgLogits, trgIdx,
-                                           mask=trgMask);
+      
+      auto nextState = step(trgEmbeddings, state);
+      
+      auto cost = CrossEntropyCost("cost")(nextState->getProbs(),
+                                           trgIdx, mask=trgMask);
 
       return cost;
     }
@@ -272,7 +280,6 @@ class Seq2Seq : public Seq2SeqBase {
           batchSize += step;
         }
         while(fits);
-      
       }
       return stats;
     }

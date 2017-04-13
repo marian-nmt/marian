@@ -9,6 +9,12 @@
 #include "data/corpus.h"
 #include "data/batch_generator.h"
 
+#include "translator/beam_search.h"
+#include "translator/history.h"
+#include "translator/printer.h"
+#include "translator/output_collector.h"
+
+
 namespace marian {
 
   class Validator {
@@ -53,6 +59,7 @@ namespace marian {
         batchGenerator->prepare(false);
 
         float val = validateBG(graph, batchGenerator);
+        
         if((lowerIsBetter() && lastBest_ > val) ||
            (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
@@ -199,6 +206,86 @@ namespace marian {
 
       std::string type() { return "valid-script"; }
   };
+  
+  
+  template <class Builder>
+  class S2SValidator : public Validator {
+    private:
+      Ptr<Builder> builder_;
+
+    public:
+      S2SValidator(std::vector<Ptr<Vocab>> vocabs,
+                   Ptr<Config> options)
+       : Validator(vocabs, options),
+         builder_(New<Builder>(options, keywords::inference=true)) {
+        initLastBest();
+      }
+      
+      virtual float validate(Ptr<ExpressionGraph> graph) {
+        using namespace data;
+        
+        auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+        
+        auto corpus = New<Corpus>(validPaths, vocabs_, options_, 1000);
+        
+        Ptr<BatchGenerator<Corpus>> batchGenerator
+          = New<BatchGenerator<Corpus>>(corpus, options_);
+        batchGenerator->forceBatchSize(1);
+        batchGenerator->prepare(false);
+
+        float val = validateBG(graph, batchGenerator);
+
+        if((lowerIsBetter() && lastBest_ > val) ||
+           (!lowerIsBetter() && lastBest_ < val)) {
+            stalled_ = 0;
+            lastBest_ = val;
+        }
+        else {
+          stalled_++;
+        }
+        return val;
+      };
+      
+      virtual float validateBG(Ptr<ExpressionGraph> graph,
+                               Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+        
+        TemporaryFile temp;
+        
+        {
+          OutputFileStream out(temp);
+          size_t samples = 0;
+          while(*batchGenerator) {
+            auto batch = batchGenerator->next();
+            
+            auto search = New<BeamSearch<Builder>>(options_);
+            auto history = search->search(graph, batch, samples);
+      
+            std::stringstream ss;
+            Printer(options_, vocabs_.back(), history, ss);
+  
+            (std::ostream&)out << ss.str() << std::endl;
+            
+            samples++;
+          }
+        }
+        return 0;
+      
+        /*
+        std::string referencePath
+          = options_->get<std::vector<std::string>>("valid-sets").back();
+        InputFileStream reference(referencePath);
+        InputFileStream candidate(temp);
+        
+        return score("BLEU", reference, candidate);
+        */
+      }
+
+      virtual bool lowerIsBetter() {
+        return false;
+      }
+
+      virtual std::string type() { return "s2s"; }
+  };
 
   template <class Builder>
   std::vector<Ptr<Validator>> Validators(std::vector<Ptr<Vocab>> vocabs,
@@ -218,6 +305,10 @@ namespace marian {
       }
       if(metric == "valid-script") {
         auto validator = New<ScriptValidator<Builder>>(vocabs, options);
+        validators.push_back(validator);
+      }
+      if(metric == "s2s") {
+        auto validator = New<S2SValidator<Builder>>(vocabs, options);
         validators.push_back(validator);
       }
     }

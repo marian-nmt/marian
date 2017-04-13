@@ -38,6 +38,8 @@ This source code has been modified to have optional bounded size.
 #include <functional>
 #include <stdexcept>
 
+namespace marian {
+
 class ThreadPool {
  public:
     explicit ThreadPool(size_t threads, size_t bound /* bound on size, or 0 for unbounded */ = 0);
@@ -45,7 +47,6 @@ class ThreadPool {
     template<class F, class... Args>
     auto enqueue(F&& f, Args&&... args)
         -> std::future<typename std::result_of<F(Args...)>::type>;
-        
     ~ThreadPool();
 
     size_t getNumTasks() const {
@@ -69,7 +70,7 @@ class ThreadPool {
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
   : stop(false), bound(in_bound) {
-    for (size_t i = 0; i < threads; ++i)
+    for (size_t i = 0;i<threads;++i)
       workers.emplace_back(
           [this] {
               for(;;) {
@@ -129,3 +130,6 @@ inline ThreadPool::~ThreadPool() {
     worker.join();
   }
 }
+
+}
+

@@ -19,7 +19,7 @@ class History {
     };
 
   public:
-    History(size_t lineNo);
+    History(size_t lineNo, bool normalize=false);
 
     void Add(const Beam& beam, bool last = false) {
       if (beam.back()->GetPrevHyp() != nullptr) {

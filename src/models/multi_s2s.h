@@ -120,7 +120,7 @@ class MultiAttentionCell {
 
 typedef MultiAttentionCell<GRU, GlobalAttention, GlobalAttention, GRU> MultiCGRU;
 
-class MultiDecoderGNMT : public DecoderBase {
+class MultiDecoderS2S : public DecoderBase {
   private:
     Ptr<GlobalAttention> attention1_;
     Ptr<GlobalAttention> attention2_;
@@ -128,7 +128,7 @@ class MultiDecoderGNMT : public DecoderBase {
   public:
 
     template <class ...Args>
-    MultiDecoderGNMT(Ptr<Config> options, Args ...args)
+    MultiDecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
 
     virtual Expr
@@ -244,7 +244,7 @@ class MultiDecoderGNMT : public DecoderBase {
 
 };
 
-typedef MultiEncoder<EncoderGNMT, EncoderGNMT> MultiEncoderGNMT;
-typedef Seq2Seq<MultiEncoderGNMT, MultiDecoderGNMT> MultiGNMT;
+typedef MultiEncoder<EncoderS2S, EncoderS2S> MultiEncoderS2S;
+typedef EncoderDecoder<MultiEncoderS2S, MultiDecoderS2S> MultiS2S;
 
 }

@@ -21,6 +21,7 @@ class Config {
 
     Config(int argc, char** argv, bool validate=true, bool translate=false)
       : cmdline_options_("Allowed options", guess_terminal_width()) {
+      createLoggers(*this);
       addOptions(argc, argv, validate, translate);
       log();
     }
@@ -41,6 +42,20 @@ class Config {
       return get(key);
     }
 
+    void override(const YAML::Node& params);
+    YAML::Node getModelParameters();
+    void loadModelParameters(const std::string& name);
+    void saveModelParameters(const std::string& name);
+    
+    void GetYamlFromNpz(YAML::Node&,
+                        const std::string&,
+                        const std::string&);
+
+    void AddYamlToNpz(const YAML::Node&,
+                      const std::string&,
+                      const std::string&);
+
+    
     void addOptions(int argc, char** argv, bool validate, bool translate);
 
     void addOptionsCommon(boost::program_options::options_description&);
@@ -74,6 +89,7 @@ class Config {
     boost::program_options::options_description cmdline_options_;
     std::string inputPath;
     YAML::Node config_;
+    std::vector<std::string> modelFeatures_;
 };
 
 }

@@ -26,6 +26,9 @@ class BatchGenerator {
     Ptr<DataSet> data_;
     Ptr<Config> options_;
     Ptr<BatchStats> stats_;
+    
+    bool forceBatchSize_{false};
+    int batchSize_{1};
 
     typename DataSet::iterator current_;
 
@@ -41,7 +44,12 @@ class BatchGenerator {
 
       std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
 
-      int maxSize = options_->get<int>("mini-batch") * options_->get<int>("maxi-batch");
+      int maxBatchSize = options_->get<int>("mini-batch");
+      if(forceBatchSize_)
+        maxBatchSize = batchSize_;
+        
+      int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
+      
       while(current_ != data_->end() && maxiBatch.size() < maxSize) {
         maxiBatch.push(*current_);
         current_++;
@@ -51,7 +59,6 @@ class BatchGenerator {
       int currentWords = 0;
       size_t sets = 2;
       std::vector<size_t> lengths(sets, 0);
-      int maxBatchSize = options_->get<int>("mini-batch");
       
       while(!maxiBatch.empty()) {
         batchVector.push_back(maxiBatch.top());
@@ -62,25 +69,29 @@ class BatchGenerator {
         bool makeBatch = batchVector.size() == maxBatchSize;
         
         // Batch size based on words
-        int mbWords = options_->get<int>("mini-batch-words");
-        if(mbWords > 0)
-          makeBatch = currentWords > mbWords;
+        if(!forceBatchSize_ && options_->has("mini-batch-words")) {
+          int mbWords = options_->get<int>("mini-batch-words");
+          if(mbWords > 0)
+            makeBatch = currentWords > mbWords;
+        }
         
-        // Dynamic batching
-        if(stats_ && options_->get<bool>("dynamic-batching")) {
-          for(size_t i = 0; i < sets; ++i)
-            if(batchVector.back()[i].size() > lengths[i])
-              lengths[i] = batchVector.back()[i].size();
-          
-          maxBatchSize = stats_->getBatchSize(lengths);
-          
-          if(batchVector.size() > maxBatchSize) {
-            maxiBatch.push(batchVector.back());
-            batchVector.pop_back();
-            makeBatch = true;
-          }
-          else {
-            makeBatch = batchVector.size() == maxBatchSize;
+        if(!forceBatchSize_ && options_->has("dynamic-batching")) {
+          // Dynamic batching
+          if(stats_ && options_->get<bool>("dynamic-batching")) {
+            for(size_t i = 0; i < sets; ++i)
+              if(batchVector.back()[i].size() > lengths[i])
+                lengths[i] = batchVector.back()[i].size();
+            
+            maxBatchSize = stats_->getBatchSize(lengths);
+            
+            if(batchVector.size() > maxBatchSize) {
+              maxiBatch.push(batchVector.back());
+              batchVector.pop_back();
+              makeBatch = true;
+            }
+            else {
+              makeBatch = batchVector.size() == maxBatchSize;
+            }
           }
         }
         
@@ -123,6 +134,11 @@ class BatchGenerator {
         fillBatches();
 
       return currentBatch_;
+    }
+    
+    void forceBatchSize(int batchSize) {
+      forceBatchSize_ = true;
+      batchSize_ = batchSize;
     }
 
     void prepare(bool shuffle=true) {
