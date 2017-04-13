@@ -247,6 +247,22 @@ class Decoder {
       }
       std::cerr << "2T3_=" << T3_.Debug(1) << std::endl;
 
+      ElementTanh(T1_, T2_, T3_);
+      std::cerr << "3T1_=" << T1_.Debug(1) << std::endl;
+
+      if(!filtered_) {
+        Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
+        Prod(Probs, T1_, w_.W4_);
+        BroadcastVecAdd(Probs, w_.B4_);
+      } else {
+        //Probs.Resize(T1_.dim(0), FilteredW4_.dim(1));
+        //Prod(Probs, T1_, FilteredW4_);
+        //BroadcastVec(_1 + _2, Probs, FilteredB4_);
+      }
+      std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
+
+      mblas::LogSoftmax(Probs);
+
     }
 
   private:

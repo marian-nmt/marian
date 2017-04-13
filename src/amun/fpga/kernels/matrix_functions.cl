@@ -341,7 +341,6 @@ __kernel void gSoftMax(__global float* softMaxP,
                        __global const int* srcMapping,
                        uint srcNum) 
 {
-
   // probably only work for non-batch
   for (uint row = 0; row < rows; ++row) {
     uint indRow = row * cols;
@@ -362,6 +361,22 @@ __kernel void gSoftMax(__global float* softMaxP,
     }    
   }
 }                         
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gLogSoftMax(__global float* softMaxP, 
+                       uint rows, 
+                       uint cols)
+{
+  for (uint row = 0; row < rows; ++row) {
+
+    for (uint col = 0; col < cols; ++col) {
+
+    }
+    
+  }
+  
+}
 
 /////////////////////////////////////////////////////////////////////////////
 

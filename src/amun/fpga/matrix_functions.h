@@ -126,6 +126,8 @@ void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping);
 
 Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMapping,size_t srcSize);
 
+Matrix& LogSoftmax(Matrix& Out);
+
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Array<int>& mapping);
 
 

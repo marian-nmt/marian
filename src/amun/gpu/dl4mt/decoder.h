@@ -261,6 +261,7 @@ class Decoder {
           std::cerr << "2T3_=" << T3_.Debug(1) << std::endl;
 
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
+          std::cerr << "3T1_=" << T1_.Debug(1) << std::endl;
 
           if(!filtered_) {
             Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
