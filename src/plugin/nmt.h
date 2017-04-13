@@ -27,6 +27,7 @@ class NMT {
     static std::vector<ScorerPtr> NewScorers();
 
     static size_t GetTotalThreads();
+    static size_t GetBatchSize();
 
     static size_t GetDevices(size_t = 1);
 
@@ -73,7 +74,6 @@ class NMT {
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
 
-    std::shared_ptr<States> states_;
     bool firstWord_;
 
     std::vector<size_t> filteredId_;

@@ -29,22 +29,33 @@ size_t NMT::GetTotalThreads()
   return god_->GetTotalThreads();
 }
 
+size_t NMT::GetBatchSize() {
+  return god_->Get<size_t>("beam-size");
+}
+
 NMT::NMT()
 : debug_(false),
-  states_(new States()),
   firstWord_(true)
 {
   auto deviceInfo_ = god_->GetNextDevice();
+  std::cerr << "Device ID: " << deviceInfo_.deviceId << std::endl;
+  if (deviceInfo_.deviceType == GPUDevice) {
+    cudaSetDevice(deviceInfo_.deviceId);
+  }
   scorers_ = god_->GetScorers(deviceInfo_);
 }
 
 
 NMT::NMT(std::vector<ScorerPtr>& scorers)
   : debug_(false),
-    scorers_(scorers),
-    states_(new States()),
     firstWord_(true)
 {
+  const DeviceInfo& deviceInfo = scorers[0]->GetDeviceInfo();
+  std::cerr << "Device ID: " << deviceInfo.deviceId << std::endl;
+  if (deviceInfo.deviceType == GPUDevice) {
+    cudaSetDevice(deviceInfo.deviceId);
+  }
+  scorers_ = scorers;
 }
 
 NMT::~NMT() {
@@ -59,7 +70,7 @@ void NMT::Clean() {
 void NMT::ClearStates()
 {
   firstWord_ = true;
-  states_->clear();
+  // states_->clear();
 }
 
 void NMT::SetDevice() {
@@ -279,9 +290,6 @@ std::vector<double> NMT::RescoreNBestList(
             scores[previousIds[i]] += logProbs[i];
         }
       }
-
-      for (size_t ii = 0; ii < scores.size(); ++ii) std::cerr << scores[ii] << " ";
-      std::cerr << std::endl;
 
       std::vector<size_t> nextIds;
       std::vector<size_t> nextHypIds;
