@@ -446,6 +446,7 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
+        //row[id] = exp(row[id] - max);
         row[id] = __expf(row[id] - max);
         _sum[threadIdx.x] += row[id];
       }
@@ -467,6 +468,7 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
+        //row[id] = log(row[id]/_sum[0]);
         row[id] = __logf(row[id]/_sum[0]);
       }
     }

@@ -262,6 +262,7 @@ class Decoder {
       std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
 
       mblas::LogSoftmax(Probs);
+      std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
     }
 
