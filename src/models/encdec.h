@@ -267,9 +267,10 @@ class EncoderDecoder : public EncoderDecoderBase {
       
       size_t step = 10;
       size_t maxLength = options_->get<size_t>("max-length");
+      size_t numFiles = options_->get<std::vector<std::string>>("train-sets").size();
       for(size_t i = step; i <= maxLength; i += step) {
         size_t batchSize = step;
-        std::vector<size_t> lengths = {i, i};
+        std::vector<size_t> lengths(numFiles, i);
         bool fits = true;
         do {
           auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize);
