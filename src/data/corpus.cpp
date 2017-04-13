@@ -168,11 +168,13 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   }
 
   std::shuffle(corpus.begin(), corpus.end(), g_);
+  
+  tempFiles_.clear();
 
   std::vector<UPtr<OutputFileStream>> outs;
   for(int i = 0; i < files_.size(); ++i) {
-    auto path = files_[i]->path();
-    outs.emplace_back(new OutputFileStream(path + ".shuf"));
+    tempFiles_.emplace_back(new TemporaryFile(options_->get<std::string>("tempdir")));
+    outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
   }
   files_.clear();
 
@@ -184,11 +186,9 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   }
 
   for(int i = 0; i < outs.size(); ++i) {
-    auto path = outs[i]->path();
-    outs[i].reset();
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new InputFileStream(*tempFiles_[i]));
   }
-
+  
   LOG(data, "Done");
 }
 

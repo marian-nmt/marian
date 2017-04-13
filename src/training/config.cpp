@@ -228,6 +228,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")
+    ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
+      "Directory for temporary (shuffled) files")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -287,9 +289,9 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Paths to input file(s), stdin by default")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files have to correspond to --input.")
-    ("beam-size", po::value<size_t>()->default_value(12),
+    ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search")
-    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+    ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
       "Normalize translation score by translation length")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
@@ -389,6 +391,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("disp-freq", size_t);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
+    SET_OPTION("tempdir", std::string);
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
