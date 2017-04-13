@@ -276,6 +276,10 @@ void Config::addOptionsValid(po::options_description& desc) {
      "validation steps")
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
+    ("beam-size", po::value<size_t>()->default_value(12),
+      "Beam size used during search with validating translator")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Normalize translation score by translation length")
   ;
   desc.add(valid);
 }
@@ -421,6 +425,9 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
+    
+    SET_OPTION("normalize", bool);
+    SET_OPTION("beam-size", size_t);
   }
   /** valid **/
 
