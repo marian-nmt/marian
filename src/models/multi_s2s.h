@@ -16,41 +16,7 @@ struct EncoderStateMultiS2S : public EncoderState {
   Ptr<EncoderState> enc2;
 };
 
-class DecoderStateMultiS2S : public DecoderState {
-  private:
-    std::vector<Expr> states_;
-    Expr probs_;
-    Ptr<EncoderState> encState_;
-    
-  public:
-    DecoderStateMultiS2S(const std::vector<Expr> states,
-                         Expr probs,
-                         Ptr<EncoderState> encState)
-    : states_(states), probs_(probs), encState_(encState) {}
-    
-    
-    Ptr<EncoderState> getEncoderState() { return encState_; }
-    Expr getProbs() { return probs_; }
-    void setProbs(Expr probs) { probs_ = probs; }
-    
-    Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-      int numSelected = selIdx.size();
-      int dimState = states_[0]->shape()[1];
-      
-      std::vector<Expr> selectedStates;
-      for(auto state : states_) {
-        selectedStates.push_back(
-          reshape(rows(state, selIdx),
-                  {1, dimState, 1, numSelected})
-        );
-      }
-      
-      return New<DecoderStateMultiS2S>(selectedStates, probs_, encState_);
-    }
-
-    
-    const std::vector<Expr>& getStates() { return states_; }
-};
+typedef DecoderStateS2S DecoderStateMultiS2S;
 
 template <class Encoder1, class Encoder2>
 class MultiEncoder : public EncoderBase {
