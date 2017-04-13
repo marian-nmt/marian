@@ -257,7 +257,9 @@ namespace marian {
     
           std::stringstream ss;
           Printer(options_, vocabs_.back(), history, ss);
-          std::cerr << ss.str() << std::endl;
+
+          //if(samples % 100 == 0)
+            //LOG(valid, "{} : {} : {}", type(), samples, ss.str()); 
           
           samples++;
         }

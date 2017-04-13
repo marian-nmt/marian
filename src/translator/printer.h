@@ -13,7 +13,7 @@ void Printer(Ptr<Config> options,
              Ptr<Vocab> vocab,
              Ptr<History> history,
              OStream& out) {
-  if(options->get<bool>("n-best")) {
+  if(options->has("n-best") && options->get<bool>("n-best")) {
     const auto &nbl = history->NBest(options->get<size_t>("beam-size"));
     
     for (size_t i = 0; i < nbl.size(); ++i) {
