@@ -241,12 +241,7 @@ class Decoder {
         BroadcastVecAdd(T3_, w_.B3_ /*,s_[2]*/);
       }
 
-      std::cerr << std::endl;
-      std::cerr << "1T1_=" << T1_.Debug(1) << std::endl;
-      std::cerr << "T2_=" << T2_.Debug(1) << std::endl;
-      std::cerr << "T3_=" << T3_.Debug(1) << std::endl;
       ElementTanh2(T1_, T2_, T3_);
-      std::cerr << "2T1_=" << T1_.Debug(1) << std::endl;
 
       if(!filtered_) {
         Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
@@ -259,8 +254,6 @@ class Decoder {
       }
 
       mblas::LogSoftmax(Probs);
-      std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
-
     }
 
   private:

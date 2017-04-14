@@ -254,12 +254,7 @@ class Decoder {
             BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
           }
 
-          std::cerr << std::endl;
-          std::cerr << "1T1_=" << T1_.Debug(1) << std::endl;
-          std::cerr << "T2_=" << T2_.Debug(1) << std::endl;
-          std::cerr << "T3_=" << T3_.Debug(1) << std::endl;
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
-          std::cerr << "2T1_=" << T1_.Debug(1) << std::endl;
 
           if(!filtered_) {
             Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
@@ -272,7 +267,6 @@ class Decoder {
           }
 
           mblas::LogSoftmax(Probs);
-          std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
         }
 
         void Filter(const std::vector<size_t>& ids) {
