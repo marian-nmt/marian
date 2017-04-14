@@ -61,14 +61,6 @@ namespace marian {
 
   template<class T>
   using HostVector = thrust::host_vector<T>;
-
-  /** @brief A placeholder that represents the size of a dimension, the actual value of which is to be specified at some later point.
-   *
-   * For example, in certain cases the value of one dimension in a Shape object may be used to represent batch size.
-   * In such a case, the value of batch size may not be known when the Shape object is constructed.
-   * In that case, this placeholder would be used to specify that the batch size value will be defined at some later point.
-   */
-  const int whatevs{-1};
 }
 
 

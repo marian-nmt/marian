@@ -152,4 +152,8 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta) {
 //    return gamma * (xmmju / std);
 //}
 
+Expr shift(Expr a, Shape shift) {
+  return Expression<ShiftNodeOp>(a, shift);
+}
+
 }

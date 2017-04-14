@@ -6,6 +6,8 @@
 #include "training/config.h"
 #include "training/validator.h"
 
+#include "data/filter.h"
+
 namespace marian {
 
 class Reporter {
@@ -167,11 +169,19 @@ class Train : public ModelTask {
       auto model = New<Model>(options_);      
       model->setReporter(reporter);
       model->load();
+  
+      //auto filter = New<Filter>("data/lex.s2t",
+      //                          trainCorpus->getVocabs()[0],
+      //                          trainCorpus->getVocabs()[1],
+      //                          100, 100, 1e-2);
     
       while(reporter->keepGoing()) {
         batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
         while(*batchGenerator && reporter->keepGoing()) {
           auto batch = batchGenerator->next();
+          
+          //auto indeces = filter->indeces(batch, 0, 1);
+          
           model->update(batch);
         }
         if(reporter->keepGoing())

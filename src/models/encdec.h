@@ -10,6 +10,8 @@
 #include "layers/generic.h"
 #include "common/logging.h"
 
+#include "data/filter.h"
+
 namespace marian {
 
 struct EncoderState {
@@ -77,19 +79,14 @@ class DecoderBase {
 
       std::vector<size_t> indeces;
       std::vector<float> mask;
-      std::vector<float> findeces;
 
       for(int j = 0; j < (*batch)[index].size(); ++j) {
         auto& trgWordBatch = (*batch)[index][j];
 
-        for(auto i : trgWordBatch.first) {
-          findeces.push_back((float)i);
-          if(j < (*batch)[index].size() - 1)
-            indeces.push_back(i);
-        }
-
+        for(auto i : trgWordBatch.first)
+          indeces.push_back(i);
         for(auto m : trgWordBatch.second)
-            mask.push_back(m);
+          mask.push_back(m);
       }
 
       int dimBatch = batch->size();
@@ -99,12 +96,12 @@ class DecoderBase {
       auto graph = emb->graph();
 
       auto y = reshape(rows(emb, indeces),
-                       {dimBatch, dimEmb, dimWords - 1});
+                       {dimBatch, dimEmb, dimWords});
 
       auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
                                   init=inits::from_vector(mask));
-      auto yIdx = graph->constant(shape={(int)findeces.size(), 1},
-                                  init=inits::from_vector(findeces));
+      auto yIdx = graph->constant(shape={(int)indeces.size(), 1},
+                                  init=inits::from_vector(indeces));
 
       return std::make_tuple(y, yMask, yIdx);
     }
@@ -128,9 +125,9 @@ class DecoderBase {
       Expr y, yMask, yIdx;
       size_t sets = batch->sets();
       std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, sets - 1);
-      auto yEmpty = graph->zeros(shape={dimBatch, dimTrgEmb});
-      auto yShifted = concatenate({yEmpty, y}, axis=2);
-
+      
+      auto yShifted = shift(y, {0, 0, 1, 0});
+      
       return std::make_tuple(yShifted, yMask, yIdx);
     }
 

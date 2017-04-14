@@ -141,5 +141,6 @@ Expr dropout(Expr x, Args ...args) {
   return x * mask;
 }
 
+Expr shift(Expr, Shape);
 
 }

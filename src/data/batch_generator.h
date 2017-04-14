@@ -50,14 +50,15 @@ class BatchGenerator {
         
       int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
       
+      size_t sets = 0;
       while(current_ != data_->end() && maxiBatch.size() < maxSize) {
         maxiBatch.push(*current_);
+        sets = current_->size();
         current_++;
       }
 
       samples batchVector;
       int currentWords = 0;
-      size_t sets = 2;
       std::vector<size_t> lengths(sets, 0);
       
       while(!maxiBatch.empty()) {

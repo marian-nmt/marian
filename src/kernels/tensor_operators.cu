@@ -1436,4 +1436,37 @@ void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
      adj->data(), y->data(), x->data(), gamma->data(),(beta) ?  beta->data() : nullptr, rows, cols);
 }
 
+__global__ void gShift(float* out, const float* in,
+                       int length, int offset) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      if(index - offset < 0 || index - offset >= length)
+        out[index] = 0;
+      else
+        out[index] = in[index - offset];
+    }
+  }
+}
+
+void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
+  
+  int offset = in->shape().stride(0) * shift[0]
+             + in->shape().stride(1) * shift[1]
+             + in->shape().stride(2) * shift[2]
+             + in->shape().stride(3) * shift[3];
+             
+  if(invert)
+    offset = -offset;
+  
+  cudaSetDevice(out->getDevice());
+
+  int length = out->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  gShift<<<blocks, threads>>>(out->data(), in->data(), length, offset);              
+}
+
 }  // namespace marian

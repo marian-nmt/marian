@@ -1,4 +1,4 @@
-// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
+
 #include <set>
 #include <string>
 #include <boost/algorithm/string.hpp>
@@ -274,12 +274,16 @@ void Config::addOptionsValid(po::options_description& desc) {
     ("early-stopping", po::value<size_t>()->default_value(10),
      "Stop if the first validation metric does not improve for  arg  consecutive "
      "validation steps")
+    ("keep-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Keep best model for each validation metric")
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
     ("beam-size", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
     ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
       "Normalize translation score by translation length")
+    ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
+      "Allow unknown words to appear in output")
   ;
   desc.add(valid);
 }
@@ -297,6 +301,8 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Beam size used during search")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
       "Normalize translation score by translation length")
+    ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
+      "Allow unknown words to appear in output")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
     ("devices,d", po::value<std::vector<int>>()
@@ -412,6 +418,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("normalize", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);
+    SET_OPTION("allow-unk", bool);
   }
 
   /** valid **/
@@ -424,10 +431,12 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("valid-metrics", std::vector<std::string>);
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
     SET_OPTION("early-stopping", size_t);
+    SET_OPTION("keep-best", bool);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
     
     SET_OPTION("normalize", bool);
     SET_OPTION("beam-size", size_t);
+    SET_OPTION("allow-unk", bool);
   }
   /** valid **/
 
@@ -473,7 +482,8 @@ void Config::addOptions(int argc, char** argv,
       loadModelParameters(vm_["model"].as<std::string>());
     }
     catch(std::runtime_error& e) {
-      LOG(config, "No model parameters found in model file");
+      // @TODO do this with log
+      std::cerr << "No model parameters found in model file" << std::endl;
     }
   }
 }

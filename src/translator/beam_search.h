@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "translator/nth_element.h"
+#include "translator/helpers.h"
 #include "translator/history.h"
 
 namespace marian {
@@ -123,11 +124,9 @@ class BeamSearch {
         std::vector<unsigned> outKeys;
         std::vector<float> outCosts;
 
-        // Blacklist UNK - improve this
-        for(int i = 0; i < state->getProbs()->shape()[3]; i++) {
-          state->getProbs()->val()->set(i * dimTrgVoc + 1, std::numeric_limits<float>::lowest());
-        }
-
+        if(!options_->get<bool>("allow-unk"))
+          suppressUnk(state->getProbs());
+        
         nth->getNBestList(beamSizes, state->getProbs()->val(),
                           outCosts, outKeys, first);
         first = false;

@@ -790,22 +790,6 @@ void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
-//void CudnnDropoutPrepare(Tensor in, float p,
-//                         cudnnDropoutDescriptor_t* dropDesc,
-//                         void** space, size_t* spaceSize,
-//                         void** states, size_t seed);
-//
-//void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
-//                         void* space, void* states);
-//
-//void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
-//                  void* space, size_t spaceSize,
-//                  Tensor out, Tensor in);
-//
-//void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
-//                          void* space, size_t spaceSize,
-//                          Tensor out, Tensor in);
-
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
 
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
@@ -826,5 +810,7 @@ void AttBack(Tensor gva, Tensor gContext, Tensor gState, Tensor gCoverage,
 void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps=1e-9);
 void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
                             Tensor adj, Tensor y, Tensor x, Tensor gamma, Tensor beta);
+
+void Shift(Tensor out, Tensor in, Shape shift, bool invert=false);
 
 }

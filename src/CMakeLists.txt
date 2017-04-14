@@ -21,6 +21,7 @@ cuda_add_library(marian_lib
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu
+  translator/helpers.cu
   data/vocab.cpp
   data/corpus.cpp
   $<TARGET_OBJECTS:libyaml-cpp>

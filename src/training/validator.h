@@ -36,6 +36,8 @@ namespace marian {
 
       virtual std::string type() = 0;
 
+      virtual void keepBest(Ptr<ExpressionGraph> graph) = 0;
+      
       virtual bool lowerIsBetter() {
         return true;
       }
@@ -64,6 +66,8 @@ namespace marian {
            (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
+            if(options_->get<bool>("keep-best"))
+              keepBest(graph);
         }
         else {
           stalled_++;
@@ -105,6 +109,11 @@ namespace marian {
 
         return cost / samples;
       }
+      
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
 
       std::string type() { return "cross-entropy"; }
   };
@@ -137,6 +146,11 @@ namespace marian {
         }
 
         return expf(cost / words);
+      }
+      
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
       }
 
       std::string type() { return "perplexity"; }
@@ -190,6 +204,8 @@ namespace marian {
            (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
+            if(options_->get<bool>("keep-best"))
+              keepBest(graph);
         }
         else {
           stalled_++;
@@ -204,6 +220,11 @@ namespace marian {
         return 0;
       }
 
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
+      
       std::string type() { return "valid-script"; }
   };
   
@@ -239,6 +260,8 @@ namespace marian {
            (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
+            if(options_->get<bool>("keep-best"))
+              keepBest(graph);
         }
         else {
           stalled_++;
@@ -281,6 +304,11 @@ namespace marian {
         return false;
       }
 
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
+      
       virtual std::string type() { return "s2s"; }
   };
 
