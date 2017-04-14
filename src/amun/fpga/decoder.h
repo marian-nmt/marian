@@ -245,7 +245,7 @@ class Decoder {
       std::cerr << "1T1_=" << T1_.Debug(1) << std::endl;
       std::cerr << "T2_=" << T2_.Debug(1) << std::endl;
       std::cerr << "T3_=" << T3_.Debug(1) << std::endl;
-      ElementTanh(T1_, T2_, T3_);
+      ElementTanh2(T1_, T2_, T3_);
       std::cerr << "2T1_=" << T1_.Debug(1) << std::endl;
 
       if(!filtered_) {

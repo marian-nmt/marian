@@ -103,6 +103,8 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
 Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2);
 
+Matrix& ElementTanh2(Matrix& Out, const Matrix& In1, const Matrix& In2);
+
 Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2);
 
 Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In);
