@@ -22,7 +22,7 @@ std::shared_ptr<spdlog::logger> stderrLogger(const std::string& name,
 }
 
 void createLoggers(const marian::Config& options) {
-
+      
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
   if(options.has("log")) {
