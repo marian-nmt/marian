@@ -5,20 +5,24 @@ namespace FPGA {
 
 NthElement::NthElement(const OpenCLInfo &openCLInfo, size_t maxBeamSize, size_t maxBatchSize)
 :openCLInfo_(openCLInfo)
+,NUM_BLOCKS(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
+,d_batchPosition(openCLInfo, maxBatchSize + 1)
+,d_cumBeamSizes(openCLInfo, maxBatchSize + 1)
+,d_ind(openCLInfo, maxBatchSize * NUM_BLOCKS)
+,d_out(openCLInfo, maxBatchSize * NUM_BLOCKS)
 {
-  cl_int err;
-
-  d_batchPosition = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  (maxBatchSize + 1) * sizeof(int), NULL, &err);
-  CheckError(err);
-
-  d_cumBeamSizes = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  (maxBatchSize + 1) * sizeof(int), NULL, &err);
-  CheckError(err);
 
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes)
 {
+  d_batchPosition.Fill(batchFirstElementIdxs);
+  d_cumBeamSizes.Fill(cummulatedBeamSizes);
+
+  const int numBatches = batchFirstElementIdxs.size() - 1;
+
+  mblas::MaxElement(d_out, d_ind, probs, numBatches, d_batchPosition);
 
 }
 

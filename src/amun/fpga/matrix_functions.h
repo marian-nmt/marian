@@ -136,6 +136,13 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
 
 void SetColumn(Matrix& In, int noColumn, float value);
 
+void MaxElement(
+    Array<float> &d_out,
+    const Array<int> &d_ind,
+    mblas::Matrix &d_in,
+    int numBatches,
+    const Array<int> &batchFirstElementIdxs);
+//float* d_out, int* d_ind, float* d_in, int numBatches, int* batchFirstElementIdxs
 
 } // namespace mblas {
 } // namespace FPGA {

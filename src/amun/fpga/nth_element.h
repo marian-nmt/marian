@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include "matrix.h"
+#include "array.h"
 
 
 namespace amunmt {
@@ -20,8 +21,15 @@ public:
 
 protected:
   const OpenCLInfo &openCLInfo_;
-  cl_mem d_batchPosition;
-  cl_mem d_cumBeamSizes;
+
+  const int BLOCK_SIZE = 512;
+  const int NUM_BLOCKS;
+
+  Array<int> d_ind;
+  Array<float> d_out;
+
+  Array<int> d_batchPosition;
+  Array<int> d_cumBeamSizes;
 
   void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
                                 const std::vector<int>& cummulatedBeamSizes);

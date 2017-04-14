@@ -454,3 +454,16 @@ __kernel void gWeightedMean(__global float* d_out,
 
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gMaxElement(
+								__global float* d_out, 
+								__global int* d_ind, 
+								__global float* d_in, 
+								int numBatches, 
+								__global int* batchFirstElementIdxs)
+{
+
+}
+
+
