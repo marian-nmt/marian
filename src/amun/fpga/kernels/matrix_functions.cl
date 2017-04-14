@@ -165,6 +165,19 @@ __kernel void gElementWhatever(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
+__kernel void gElementAddWeighted(__global float* out, 
+                          __global const float* in, 
+                          uint rows, uint cols, float weight) 
+{
+  uint noElements = rows * cols;
+  for (uint i = 0; i < noElements; ++i) {
+    // _1 + weights_.at(scorers[i]->GetName()) * _2
+    out[i] = out[i] + weight * in[i];
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 __kernel void gBroadcastVecAdd(__global float* out, 
                               __global const float* in, 
                               uint rows, uint cols) 

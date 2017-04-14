@@ -42,7 +42,15 @@ void BestHyps::CalcBeam(
   float weight = weights_.at(scorers[0]->GetName());
 
   BroadcastVecColumnAddWeighted(Probs, weight, Costs);
-  std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
+  std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
+
+  for (size_t i = 1; i < scorers.size(); ++i) {
+    mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+
+    float weight = weights_.at(scorers[0]->GetName());
+    ElementAddWeighted(Probs, weight, currProbs);
+  }
+  std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
 }
 
