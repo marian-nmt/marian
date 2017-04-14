@@ -199,11 +199,7 @@ bool Search::CalcBeam(
     bool returnAlignment = god.Get<bool>("return-alignment");
     size_t batchSize = sentences.size();
 
-    cerr << "1beams=" << beams.size() << endl;
-    cerr << "1beamSizes=" << beamSizes.size() << endl;
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
-    cerr << "2beams=" << beams.size() << endl;
-    cerr << "2beamSizes=" << beamSizes.size() << endl;
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {

@@ -28,28 +28,20 @@ void BestHyps::CalcBeam(
 {
   using namespace mblas;
 
-  cerr << "CalcBeam0" << endl;
-
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
-  cerr << "Probs=" << Probs.Debug(1) << endl;
 
-  cerr << "CalcBeam1" << endl;
   std::vector<float> vCosts;
   for (auto& h : prevHyps) {
     vCosts.push_back(h->GetCost());
   }
-  cerr << "CalcBeam2" << endl;
 
   Costs.Fill(vCosts);
-  cerr << "CalcBeam3" << endl;
 
   const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
   float weight = weights_.at(scorers[0]->GetName());
-  cerr << "CalcBeam4" << endl;
 
   BroadcastVecColumnAddWeighted(weight, Probs, Costs);
-  std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
 }
 

@@ -229,9 +229,18 @@ __kernel void gBroadcastTanh(__global float* out,
 __kernel void gBroadcastVecColumnAddWeighted(
                      __global float* out, 
                      __global const float* in, 
-                     uint rows, uint cols) 
+                     uint rows, uint cols,
+                     float weight) 
 {
+  for (uint noColumn = 0; noColumn < cols; ++noColumn) {
+      int index = noColumn;
+      for (int noRow = 0; noRow < rows; ++noRow) {
+        out[index] = weight * out[index] + in[noRow];
+        index += cols;
+    }
 
+  }
+  
 }
 
 
@@ -341,7 +350,6 @@ __kernel void gSoftMax(__global float* softMaxP,
                        __global const int* srcMapping,
                        uint srcNum) 
 {
-
   // probably only work for non-batch
   for (uint row = 0; row < rows; ++row) {
     uint indRow = row * cols;
@@ -362,6 +370,37 @@ __kernel void gSoftMax(__global float* softMaxP,
     }    
   }
 }                         
+
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gLogSoftMax(__global float* softMaxP, 
+                       uint rows, 
+                       uint cols)
+{
+  // probably only work for non-batch
+  for (uint row = 0; row < rows; ++row) {
+    uint indRow = row * cols;
+
+    // EXP
+    float sumExp = 0;
+    for (uint col = 0; col < cols; ++col) {
+      float val = softMaxP[indRow + col];
+      val = exp(val);
+      
+      sumExp += val;
+      softMaxP[indRow + col] = val;
+    }
+    
+    // NORMALIZE
+    for (uint col = 0; col < cols; ++col) {
+      float val = softMaxP[indRow + col];
+      val /= sumExp;
+      
+      softMaxP[indRow + col] = log(val);
+    }    
+  }
+  
+}
 
 /////////////////////////////////////////////////////////////////////////////
 

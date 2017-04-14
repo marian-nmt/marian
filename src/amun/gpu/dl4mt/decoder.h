@@ -239,6 +239,7 @@ class Decoder {
           }
 
           Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
+
           if (w_.Gamma_0_) {
             Normalization(T2_, T2_, w_.Gamma_0_, w_.B2_, 1e-9);
           } else {
@@ -246,13 +247,19 @@ class Decoder {
           }
 
           Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+
           if (w_.Gamma_2_) {
             Normalization(T3_, T3_, w_.Gamma_2_, w_.B3_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
           }
 
+          std::cerr << std::endl;
+          std::cerr << "1T1_=" << T1_.Debug(1) << std::endl;
+          std::cerr << "T2_=" << T2_.Debug(1) << std::endl;
+          std::cerr << "T3_=" << T3_.Debug(1) << std::endl;
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
+          std::cerr << "2T1_=" << T1_.Debug(1) << std::endl;
 
           if(!filtered_) {
             Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
@@ -265,6 +272,7 @@ class Decoder {
           }
 
           mblas::LogSoftmax(Probs);
+          std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
         }
 
         void Filter(const std::vector<size_t>& ids) {
@@ -323,6 +331,7 @@ class Decoder {
       std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
+      std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       
     }
 
