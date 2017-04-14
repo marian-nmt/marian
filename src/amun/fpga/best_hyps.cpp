@@ -9,7 +9,7 @@ namespace amunmt {
 namespace FPGA {
 
 BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
-: nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
+: nthElement_(openCLInfo, god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
   keys(openCLInfo, god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
   Costs(openCLInfo, god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
   weights_(god.GetScorerWeights())
@@ -27,7 +27,7 @@ void BestHyps::FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Pr
                std::vector<unsigned>& outKeys,
                const bool isFirst)
 {
-
+  nthElement_.getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
 }
 
 void BestHyps::CalcBeam(
