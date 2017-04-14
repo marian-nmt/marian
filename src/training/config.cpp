@@ -479,6 +479,8 @@ void Config::addOptions(int argc, char** argv,
 }
 
 void Config::log() {
+  createLoggers(*this);
+  
   YAML::Emitter out;
   OutputRec(config_, out);
   std::string conf = out.c_str();
@@ -490,16 +492,16 @@ void Config::log() {
 }
 
 void Config::override(const YAML::Node& params) {
-  YAML::Emitter out;
-  OutputRec(params, out);
-  std::string conf = out.c_str();
-
-  std::vector<std::string> results;
-  boost::algorithm::split(results, conf, boost::is_any_of("\n"));
-  
-  LOG(config, "Overriding model parameters:");
-  for(auto &r : results)
-    LOG(config, r);
+  //YAML::Emitter out;
+  //OutputRec(params, out);
+  //std::string conf = out.c_str();
+  //
+  //std::vector<std::string> results;
+  //boost::algorithm::split(results, conf, boost::is_any_of("\n"));
+  //
+  //LOG(config, "Overriding model parameters:");
+  //for(auto &r : results)
+  //  LOG(config, r);
   
   for(auto& it : params) {
     config_[it.first.as<std::string>()] = it.second;

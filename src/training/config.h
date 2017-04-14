@@ -21,7 +21,6 @@ class Config {
 
     Config(int argc, char** argv, bool validate=true, bool translate=false)
       : cmdline_options_("Allowed options", guess_terminal_width()) {
-      createLoggers(*this);
       addOptions(argc, argv, validate, translate);
       log();
     }
