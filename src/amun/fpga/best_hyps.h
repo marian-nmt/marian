@@ -2,6 +2,7 @@
 #include <map>
 #include "common/base_best_hyps.h"
 #include "array.h"
+#include "nth_element.h"
 
 namespace amunmt {
 namespace FPGA {
@@ -29,6 +30,8 @@ public:
       );
 
 protected:
+  NthElement nthElement_;
+
   Array<unsigned> keys;
   Array<float> Costs;
   const std::map<std::string, float>& weights_;

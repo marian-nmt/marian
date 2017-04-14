@@ -26,6 +26,7 @@ add_library(cpumode OBJECT
   fpga/matrix_functions.cpp
   fpga/matrix.cpp
   fpga/model.cpp
+  fpga/nth_element.cpp
   fpga/npz_converter.cpp
   fpga/kernel.cpp
   fpga/debug-devices.cpp
