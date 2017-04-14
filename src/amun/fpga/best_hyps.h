@@ -11,6 +11,13 @@ class BestHyps : public BestHypsBase
 public:
   BestHyps(const God &god, const OpenCLInfo &openCLInfo);
 
+  void DisAllowUNK(mblas::Matrix& Prob);
+
+  void FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+                 std::vector<float>& outCosts,
+                 std::vector<unsigned>& outKeys,
+                 const bool isFirst);
+
   virtual void CalcBeam(
       const God &god,
       const Beam& prevHyps,

@@ -134,6 +134,8 @@ Matrix& LogSoftmax(Matrix& Out);
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Array<int>& mapping);
 
+void SetColumn(Matrix& In, int noColumn, float value);
+
 
 } // namespace mblas {
 } // namespace FPGA {

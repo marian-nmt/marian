@@ -16,6 +16,19 @@ BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
   //std::cerr << "BestHyps::BestHyps" << std::endl;
 }
 
+void BestHyps::DisAllowUNK(mblas::Matrix& Prob)
+{
+  SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
+}
+
+void BestHyps::FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+               std::vector<float>& outCosts,
+               std::vector<unsigned>& outKeys,
+               const bool isFirst)
+{
+
+}
+
 void BestHyps::CalcBeam(
     const God &god,
     const Beam& prevHyps,
@@ -51,6 +64,17 @@ void BestHyps::CalcBeam(
     ElementAddWeighted(Probs, weight, currProbs);
   }
   std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+
+  if (!god.Get<bool>("allow-unk")) {
+    DisAllowUNK(Probs);
+  }
+
+  size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
+
+  std::vector<float> bestCosts;
+  std::vector<unsigned> bestKeys;
+
+  FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
 
 }
 

@@ -1098,6 +1098,11 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
   CheckError( clFinish(openCLInfo.commands) );
 }
 
+void SetColumn(Matrix& In, int noColumn, float value)
+{
+  // TODO
+}
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {
