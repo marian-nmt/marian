@@ -41,7 +41,8 @@ void BestHyps::CalcBeam(
 
   float weight = weights_.at(scorers[0]->GetName());
 
-  BroadcastVecColumnAddWeighted(weight, Probs, Costs);
+  BroadcastVecColumnAddWeighted(Probs, weight, Costs);
+  std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
 }
 

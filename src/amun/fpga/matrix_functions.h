@@ -113,7 +113,7 @@ Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In);
 
 Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapping, size_t srcSize);
 
-Matrix& BroadcastVecColumnAddWeighted(float weight, Matrix& Out, const Array<float>& In);
+Matrix& BroadcastVecColumnAddWeighted(Matrix& Out, float weight, const Array<float>& In);
 
 
 Matrix& Slice(Matrix& Out,
