@@ -158,7 +158,8 @@ class Train : public ModelTask {
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
-        stats = New<Model>(options_, keywords::filter=filter)->collectStats();
+        // @TODO, better fake batch with vocabulary
+        stats = New<Model>(options_)->collectStats();
         LOG(info, "[batching] Done");
       }
     
