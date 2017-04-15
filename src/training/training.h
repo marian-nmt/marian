@@ -150,10 +150,12 @@ class Train : public ModelTask {
               
       auto trainCorpus = New<Corpus>(options_);
       
-      auto filter = New<Filter>("data/lex.s2t",
-                                trainCorpus->getVocabs()[0],
-                                trainCorpus->getVocabs()[1],
-                                100, 100, 1e-3);
+      Ptr<Filter> filter;
+      if(options_->has("filter"))
+        filter = New<Filter>(options_->get<std::string>("filter"),
+                             trainCorpus->getVocabs()[0],
+                             trainCorpus->getVocabs()[1],
+                             100, 100, 0.0);
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
@@ -178,7 +180,7 @@ class Train : public ModelTask {
         batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
         while(*batchGenerator && reporter->keepGoing()) {
           auto batch = batchGenerator->next();
-              
+
           model->update(batch);
         }
         if(reporter->keepGoing())

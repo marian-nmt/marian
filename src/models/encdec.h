@@ -100,7 +100,7 @@ class DecoderBase {
         
       Expr yIdx;
       if(filterInfo_) {
-        yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
+        yIdx = graph->constant(shape={(int)filterInfo_->mappedIndeces().size(), 1},
                                init=inits::from_vector(filterInfo_->mappedIndeces()));
       }
       else {
