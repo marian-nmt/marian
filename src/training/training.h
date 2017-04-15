@@ -152,10 +152,9 @@ class Train : public ModelTask {
       
       Ptr<Filter> filter;
       if(options_->has("filter"))
-        filter = New<Filter>(options_->get<std::string>("filter"),
+        filter = New<Filter>(options_,
                              trainCorpus->getVocabs()[0],
-                             trainCorpus->getVocabs()[1],
-                             100, 100, 0.0);
+                             trainCorpus->getVocabs()[1]);
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");

@@ -252,8 +252,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.999),
      "decay factor for moving average")
-    ("filter", po::value<std::string>(),
-     "Path to lexical filter file")
+    ("filter", po::value<std::vector<std::string>>()->multitoken(),                                                                                 
+     "Filter vocabulary: path [N first words] [M best alignments] [T threshold]")
   ;
   desc.add(training);
 }
@@ -413,7 +413,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-    SET_OPTION_NONDEFAULT("filter", std::string);
+    SET_OPTION_NONDEFAULT("filter", std::vector<std::string>);
   }
   /** training end **/
   else {

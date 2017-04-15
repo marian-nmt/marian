@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include "training/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 
@@ -24,6 +25,7 @@ class FilterInfo {
   
 class Filter {
   private:
+    Ptr<Config> options_;
     Ptr<Vocab> srcVocab_;
     Ptr<Vocab> trgVocab_;
     
@@ -73,14 +75,23 @@ class Filter {
     }
     
   public:
-    Filter(const std::string& fname,
+    
+    Filter(Ptr<Config> options,
            Ptr<Vocab> srcVocab,
-           Ptr<Vocab> trgVocab,
-           size_t firstNum, size_t bestNum,
-           float threshold=0.f)
-     : srcVocab_(srcVocab), trgVocab_(trgVocab),
-       firstNum_(firstNum), bestNum_(bestNum)
+           Ptr<Vocab> trgVocab)
+    : options_(options),
+      srcVocab_(srcVocab), trgVocab_(trgVocab)
     {
+      std::vector<std::string> vals
+        = options_->get<std::vector<std::string>>("filter");
+      
+      UTIL_THROW_IF2(vals.empty(), "No path to filter path given");
+      std::string fname = vals[0];
+      
+      firstNum_ = vals.size() > 1 ? std::stoi(vals[1]) : 100;
+      bestNum_ = vals.size() > 2 ? std::stoi(vals[2]) : 100;
+      float threshold = vals.size() > 3 ? std::stof(vals[3]) : 0;
+      
       load(fname);
       prune(threshold);
     }
