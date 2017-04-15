@@ -284,6 +284,7 @@ namespace marian {
         
         if(mask)
           ce = ce * mask;
+        debug(ce, "CE");
 
         auto cost = mean(sum(ce, keywords::axis=2),
                          keywords::axis=0);

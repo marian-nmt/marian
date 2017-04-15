@@ -552,17 +552,17 @@ void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) 
 
 /////////////
 
-__global__ void gCopyCols(float* out, const float* in, size_t rows,
-                          const size_t* sourceColIdx, size_t cols) {
+__global__ void gCopyCols(float* out, const float* in, size_t rows, size_t colsIn,
+                          const size_t* sourceColIdx, size_t colsOut) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn = in + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
+      const float* rowIn = in + j * colsIn;
+      float* rowOut = out + j * colsOut;
+      
+      for(int tid = 0; tid < colsOut; tid += blockDim.x) {
         int i = tid + threadIdx.x;
-        if(i < cols)
+        if(i < colsOut)
           rowOut[i] = rowIn[sourceColIdx[i]];
       }
     }
@@ -573,6 +573,7 @@ void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
   cudaSetDevice(out->getDevice());
 
   size_t rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  size_t cols = in->shape()[1];
   size_t colsToCopy = indeces.size();
 
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
@@ -583,24 +584,23 @@ void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
   CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), colsToCopy * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gCopyCols<<<blocks, threads>>>(out->data(), in->data(), rows,
-                                 d_indeces,
-                                 colsToCopy);
+  gCopyCols<<<blocks, threads>>>(out->data(), in->data(), rows, cols,
+                                 d_indeces, colsToCopy);
 
   CUDA_CHECK(cudaFree(d_indeces));
 }
 
-__global__ void gPasteCols(float* out, const float* in, size_t rows,
-                           const size_t* targetColIdx, size_t cols) {
+__global__ void gPasteCols(float* out, const float* in, size_t rows, size_t colsOut,
+                           const size_t* targetColIdx, size_t colsIn) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn = in + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
+      const float* rowIn = in + j * colsIn;
+      float* rowOut = out + j * colsOut;
+      
+      for(int tid = 0; tid < colsIn; tid += blockDim.x) {
         int i = tid + threadIdx.x;
-        if(i < cols)
+        if(i < colsIn)
           rowOut[targetColIdx[i]] = rowIn[i];
       }
     }
@@ -610,7 +610,8 @@ __global__ void gPasteCols(float* out, const float* in, size_t rows,
 void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
   cudaSetDevice(out->getDevice());
 
-  size_t rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  size_t rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  size_t cols = out->shape()[1];
   size_t colsToCopy = indeces.size();
 
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
@@ -621,9 +622,8 @@ void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) 
   CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), colsToCopy * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gPasteCols<<<blocks, threads>>>(out->data(), in->data(), rows,
-                                  d_indeces,
-                                  colsToCopy);
+  gPasteCols<<<blocks, threads>>>(out->data(), in->data(), rows, cols,
+                                  d_indeces, colsToCopy);
 
   CUDA_CHECK(cudaFree(d_indeces));
 }
