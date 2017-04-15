@@ -171,9 +171,10 @@ class DecoderAmun : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, stateOut, alignedContext);
 
-      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)
-                        (logitsL1);
-
+      auto logitsOut = filterInfo_ ?
+        DenseWithFilter("ff_logit_l2", dimTrgVoc, filterInfo_->indeces())(logitsL1) :
+        Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+        
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());
     }
@@ -184,7 +185,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
   public:
     template <class ...Args>
     Amun(Ptr<Config> options, Args ...args)
-    : EncoderDecoder(options, args...) {}
+    : EncoderDecoder(options, args...) { }
 
     void load(Ptr<ExpressionGraph> graph,
               const std::string& name) {

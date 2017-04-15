@@ -64,12 +64,15 @@ class EncoderBase {
 class DecoderBase {
   protected:
     Ptr<Config> options_;
+    Ptr<Filter> filter_;
+    Ptr<FilterInfo> filterInfo_;
     bool inference_{false};
-
+    
   public:
     template <class ...Args>
     DecoderBase(Ptr<Config> options, Args ...args)
      : options_(options),
+       filter_(Get(keywords::filter, nullptr, args...)),
        inference_(Get(keywords::inference, false, args...)) {}
 
     virtual std::tuple<Expr, Expr, Expr>
@@ -91,8 +94,19 @@ class DecoderBase {
 
       auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
-      auto yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
-                                  init=inits::from_vector(subBatch->indeces()));
+      
+      if(filter_)
+        filterInfo_ = filter_->createInfo((*batch)[0], subBatch);
+        
+      Expr yIdx;
+      if(filterInfo_) {
+        yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
+                               init=inits::from_vector(filterInfo_->mappedIndeces()));
+      }
+      else {
+        yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
+                               init=inits::from_vector(subBatch->indeces()));
+      }
       
       auto yShifted = shift(y, {0, 0, 1, 0});
       
@@ -155,6 +169,7 @@ class EncoderDecoder : public EncoderDecoderBase {
     Ptr<Config> options_;
     Ptr<EncoderBase> encoder_;
     Ptr<DecoderBase> decoder_;
+    Ptr<Filter> filter_;
     bool inference_{false};
 
   public:
@@ -164,8 +179,9 @@ class EncoderDecoder : public EncoderDecoderBase {
      : options_(options),
        encoder_(New<Encoder>(options, args...)),
        decoder_(New<Decoder>(options, args...)),
+       filter_(Get(keywords::filter, nullptr, args...)),
        inference_(Get(keywords::inference, false, args...))
-    {}
+    { }
     
     virtual void load(Ptr<ExpressionGraph> graph,
                        const std::string& name) {
@@ -188,8 +204,12 @@ class EncoderDecoder : public EncoderDecoderBase {
     
     virtual void clear(Ptr<ExpressionGraph> graph) {
       graph->clear();
-      encoder_ = New<Encoder>(options_, keywords::inference=inference_);
-      decoder_ = New<Decoder>(options_, keywords::inference=inference_);
+      encoder_ = New<Encoder>(options_,
+                              keywords::filter=filter_,
+                              keywords::inference=inference_);
+      decoder_ = New<Decoder>(options_,
+                              keywords::filter=filter_,
+                              keywords::inference=inference_);
     }
 
     virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,

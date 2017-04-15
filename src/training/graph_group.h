@@ -100,7 +100,8 @@ class Singleton : public GraphGroup {
   public:
     typedef Builder builder_type;
 
-    Singleton(Ptr<Config> options)
+    template <class ...Args>
+    Singleton(Ptr<Config> options, Args ...args)
      : GraphGroup(options),
        mvAvg_{options_->get<bool>("moving-average")},
        mvDecay_{(float)options_->get<double>("moving-decay")} {
@@ -111,7 +112,8 @@ class Singleton : public GraphGroup {
       graph_->setDevice(device);
       graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       opt_ = Optimizer(options_);
-      builder_ = New<Builder>(options_); 
+      
+      builder_ = New<Builder>(options_, args...); 
     }
 
     void update(Ptr<data::CorpusBatch> batch) {
@@ -367,7 +369,8 @@ class AsyncGraphGroup : public GraphGroup {
   public:
     typedef Builder builder_type;
 
-    AsyncGraphGroup(Ptr<Config> options)
+    template <class ...Args>
+    AsyncGraphGroup(Ptr<Config> options, Args ...args)
      : GraphGroup(options),
        devices_{options_->get<std::vector<size_t>>("devices")},
        pool_{devices_.size(), devices_.size()},
@@ -381,7 +384,7 @@ class AsyncGraphGroup : public GraphGroup {
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
         shardOpt_.push_back(Optimizer(options_));
-        builders_.push_back(New<Builder>(options_));
+        builders_.push_back(New<Builder>(options_, args...));
       }
     }
 

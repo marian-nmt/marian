@@ -8,6 +8,20 @@
 
 namespace marian {
   
+class FilterInfo {
+  private:
+    std::vector<Word> indeces_;
+    std::vector<Word> mappedIndeces_;
+    
+  public:
+    FilterInfo(const std::vector<Word>& indeces,
+               const std::vector<Word>& mappedIndeces)
+    : indeces_(indeces), mappedIndeces_(mappedIndeces) { }
+    
+    std::vector<Word>& indeces() { return indeces_; }
+    std::vector<Word>& mappedIndeces() { return mappedIndeces_; }
+};
+  
 class Filter {
   private:
     Ptr<Vocab> srcVocab_;
@@ -71,16 +85,13 @@ class Filter {
       prune(threshold);
     }
     
-    std::vector<Word> indeces(Ptr<data::CorpusBatch> batch,
-                              size_t srcIdx = 0, size_t trgIdx = 1) {
+    Ptr<FilterInfo> createInfo(Ptr<data::SubBatch> srcBatch,
+                               Ptr<data::SubBatch> trgBatch) {
       
       // add firstNum most frequent words
       std::unordered_set<Word> idxSet;
       for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
         idxSet.insert(i);
-      
-      auto srcBatch = (*batch)[srcIdx];
-      auto trgBatch = (*batch)[trgIdx];
       
       // add all words from ground truth
       for(auto i : trgBatch->indeces())
@@ -96,7 +107,16 @@ class Filter {
       
       std::vector<Word> idx(idxSet.begin(), idxSet.end());
       std::sort(idx.begin(), idx.end());
-      return idx;
+      
+      std::unordered_map<Word, Word> pos;
+      for(Word i = 0; i < idx.size(); ++i)
+        pos[idx[i]] = i;
+      
+      std::vector<Word> mapped;
+      for(auto i : trgBatch->indeces())
+        mapped.push_back(pos[i]);
+      
+      return New<FilterInfo>(idx, mapped);
     }
 };
 

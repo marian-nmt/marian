@@ -361,11 +361,19 @@ class GRU {
                                 keywords::init=inits::glorot_uniform);
       auto bx = graph->param(prefix + "_bx", {1, dimState},
                                 keywords::init=inits::zeros);
-
+      
       U_ = concatenate({U, Ux}, keywords::axis=1);
       W_ = concatenate({W, Wx}, keywords::axis=1);
       b_ = concatenate({b, bx}, keywords::axis=1);
 
+      // @TODO use this and adjust Amun model type saving and loading      
+      //U_ = graph->param(prefix + "_U", {dimState, 3 * dimState},
+      //                  keywords::init=inits::glorot_uniform);
+      //W_ = graph->param(prefix + "_W", {dimInput, 3 * dimState},
+      //                  keywords::init=inits::glorot_uniform);
+      //b_ = graph->param(prefix + "_b", {1, 3 * dimState},
+      //                  keywords::init=inits::zeros);
+      
       final_ = Get(keywords::final, false, args...);
       layerNorm_ = Get(keywords::normalize, false, args...);
 
