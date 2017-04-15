@@ -86,10 +86,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
-                            Ptr<Config> options)
+                            Ptr<Config> options,
+                            Args ...args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
 
@@ -124,10 +126,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
-                          Ptr<Config> options)
+                          Ptr<Config> options,
+                          Args ...args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
 
@@ -162,10 +166,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
-                      Ptr<Config> options)
+                      Ptr<Config> options,
+                      Args ...args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
 
@@ -235,10 +241,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       S2SValidator(std::vector<Ptr<Vocab>> vocabs,
-                   Ptr<Config> options)
+                   Ptr<Config> options,
+                   Args ... args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
       
@@ -312,28 +320,29 @@ namespace marian {
       virtual std::string type() { return "s2s"; }
   };
 
-  template <class Builder>
+  template <class Builder, class ...Args>
   std::vector<Ptr<Validator>> Validators(std::vector<Ptr<Vocab>> vocabs,
-                                         Ptr<Config> options) {
+                                         Ptr<Config> options,
+                                         Args ...args) {
     std::vector<Ptr<Validator>> validators;
 
     auto validMetrics = options->get<std::vector<std::string>>("valid-metrics");
 
     for(auto metric : validMetrics) {
       if(metric == "cross-entropy") {
-        auto validator = New<CrossEntropyValidator<Builder>>(vocabs, options);
+        auto validator = New<CrossEntropyValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
       if(metric == "perplexity") {
-        auto validator = New<PerplexityValidator<Builder>>(vocabs, options);
+        auto validator = New<PerplexityValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
       if(metric == "valid-script") {
-        auto validator = New<ScriptValidator<Builder>>(vocabs, options);
+        auto validator = New<ScriptValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
       if(metric == "s2s") {
-        auto validator = New<S2SValidator<Builder>>(vocabs, options);
+        auto validator = New<S2SValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
     }
