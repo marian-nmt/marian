@@ -25,11 +25,9 @@ class SubBatch {
     int words_;
     
   public:
-    SubBatch(const std::vector<Word> indeces,
-             const std::vector<float> mask,
-             int size, int width, int words)
-    : indeces_(indeces), mask_(mask),
-      size_(size), width_(width), words_(words)
+    SubBatch(int size, int width)
+    : indeces_(size * width, 0), mask_(size * width, 0),
+      size_(size), width_(width), words_(0)
     { }
     
     std::vector<Word>& indeces() { return indeces_; }
@@ -39,6 +37,9 @@ class SubBatch {
     int batchWidth() { return width_; };
     int batchWords()  { return words_; }
     
+    void setWords(size_t words) {
+      words_ = words;
+    }
 };
 
 class CorpusBatch {
@@ -58,11 +59,11 @@ class CorpusBatch {
       size_t i = 0;
       for(auto sb : batches_) {
         std::cerr << "input " << i++ << ": " << std::endl;
-        for(size_t i = 0; i < sb->batchSize(); i++) {
+        for(size_t i = 0; i < sb->batchWidth(); i++) {
           std::cerr << "\t w: ";
-          for(size_t j = 0; j < sb->batchWidth(); j++) {
-            Word w = sb->indeces()[i * sb->batchWidth() + j];
-            std::cerr << w << " ";
+          for(size_t j = 0; j < sb->batchSize(); j++) {
+            Word w = sb->indeces()[i * sb->batchSize() + j];
+            std::cerr << w << " ";        
           }
           std::cerr << std::endl;
         }
@@ -85,9 +86,7 @@ class CorpusBatch {
       std::vector<Ptr<SubBatch>> batches;
       
       for(auto len : lengths) {
-        std::vector<Word> indeces(batchSize * len, 0);
-        std::vector<float> mask(batchSize * len, 0);
-        auto sb = New<SubBatch>(indeces, mask, batchSize, len, batchSize * len);
+        auto sb = New<SubBatch>(batchSize, len);
         batches.push_back(sb);
       }
         
@@ -180,31 +179,28 @@ class Corpus {
           maxDims.resize(ex.size(), 0);
         for(int i = 0; i < ex.size(); ++i) {
           if(ex[i].size() > maxDims[i])
-          maxDims[i] = ex[i].size();
+            maxDims[i] = ex[i].size();
         }
       }
 
       std::vector<Ptr<SubBatch>> subBatches;
-      size_t i = 0;
-      for(auto width : maxDims) {
-        std::vector<Word> indeces(batchSize * width, 0);
-        std::vector<float> mask(batchSize * width, 0);
-        
-        int words = 0;
-        auto itInd = indeces.begin();
-        auto itMsk = mask.begin();
-        for(auto& sample : batchVector) {
-          auto& line = sample[i];
-          std::copy(line.begin(), line.end(), itInd);
-          std::fill(itMsk, itMsk + width, 1.f);
-          words += line.size();
-          
-          itInd += width;
-          itMsk += width;
-        }
-        subBatches.push_back(New<SubBatch>(indeces, mask, batchSize, width, words));
-        i++;
+      for(auto m : maxDims) {
+        subBatches.emplace_back(New<SubBatch>(batchSize, m));
       }
+      
+      std::vector<size_t> words(maxDims.size(), 0);
+      for(int i = 0; i < batchSize; ++i) {
+        for(int j = 0; j < maxDims.size(); ++j) {
+          for(int k = 0; k < batchVector[i][j].size(); ++k) {
+            subBatches[j]->indeces()[k * batchSize + i] = batchVector[i][j][k];
+            subBatches[j]->mask()[k * batchSize + i] = 1.f;
+            words[j]++;
+          }
+        }
+      }
+      
+      for(size_t j = 0; j < maxDims.size(); ++j)
+        subBatches[j]->setWords(words[j]);
       
       return batch_ptr(new batch_type(subBatches));
     }
