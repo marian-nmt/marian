@@ -790,6 +790,10 @@ void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
+void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
+
+void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
+
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
 
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);

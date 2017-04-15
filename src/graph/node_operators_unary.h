@@ -555,6 +555,61 @@ struct RowsNodeOp : public UnaryNodeOp {
   std::vector<size_t> indeces_;
 };
 
+struct ColsNodeOp : public UnaryNodeOp {
+  template <typename ...Args>
+  ColsNodeOp(Expr a, const std::vector<size_t>& indeces, Args ...args)
+    : UnaryNodeOp(a, keywords::shape=newShape(a, indeces), args...),
+      indeces_(indeces) {
+  }
+
+  NodeOps forwardOps() {
+    // @TODO: solve this with a tensor!
+
+    return {
+      NodeOp(CopyCols(val_,
+                      children_[0]->val(),
+                      indeces_))
+    };
+  }
+
+  NodeOps backwardOps() {
+    return {
+      NodeOp(PasteCols(children_[0]->grad(),
+                       adj_,
+                       indeces_))
+    };
+  }
+
+  template <class ...Args>
+  Shape newShape(Expr a, const std::vector<size_t>& indeces) {
+    Shape shape = a->shape();
+    shape.set(1, indeces.size());
+    return shape;
+  }
+
+  const std::string type() {
+    return "cols";
+  }
+
+  const std::string color() {
+    return "orange";
+  }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      for(auto i : indeces_)
+        boost::hash_combine(seed, i);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+
+  std::vector<size_t> indeces_;
+};
+
+
 struct TransposeNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   TransposeNodeOp(Expr a, Args ...args)

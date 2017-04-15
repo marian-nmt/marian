@@ -30,7 +30,7 @@ class BatchStats {
     void add(Ptr<data::CorpusBatch> batch) {
       std::vector<size_t> lengths;
       for(int i = 0; i < batch->sets(); ++i)
-        lengths.push_back((*batch)[i].size());
+        lengths.push_back((*batch)[i]->batchWidth());
       size_t batchSize = batch->size();
       
       if(map_[lengths] < batchSize)

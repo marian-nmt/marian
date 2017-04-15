@@ -83,14 +83,12 @@ class Filter {
       auto trgBatch = (*batch)[trgIdx];
       
       // add all words from ground truth
-      for(auto& wordBatch : trgBatch)
-        for(auto i : wordBatch.first)
-          idxSet.insert(i);
+      for(auto i : trgBatch->indeces())
+        idxSet.insert(i);
       
       std::unordered_set<Word> srcSet;
-      for(auto& wordBatch : srcBatch)
-        for(auto i : wordBatch.first)
-          srcSet.insert(i);
+      for(auto i : srcBatch->indeces())
+        srcSet.insert(i);
       
       for(auto i : srcSet)
         for(auto& it : data_[i])

@@ -468,64 +468,6 @@ void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
               n, m, k, &alpha, B->data(), ldb, A->data(), lda, &beta, C->data(), ldc);
 }
 
-//void CudnnDropoutPrepare(Tensor in, float p,
-//                         cudnnDropoutDescriptor_t* dropDesc,
-//                         void** space, size_t* spaceSize,
-//                         void** states, size_t seed) {
-//  size_t statesSize;
-//  cudnnDropoutGetStatesSize(cudnnHandle, &statesSize);
-//  auto inGpu = static_cast<TensorGPU*>(in.get());
-//  cudnnDropoutGetReserveSpaceSize(inGpu->cudnn(), spaceSize);
-//
-//  cudaMalloc((void**)states, statesSize);
-//  cudaMalloc((void**)space, *spaceSize);
-//
-//  cudnnCreateDropoutDescriptor(dropDesc);
-//  cudnnSetDropoutDescriptor(*dropDesc,
-//                            cudnnHandle,
-//                            p,
-//                            (void*)*states,
-//                            statesSize,
-//                            seed);
-//}
-//
-//void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
-//                         void* space, void* states) {
-//  cudnnDestroyDropoutDescriptor(dropDesc);
-//  cudaFree(space);
-//  cudaFree(states);
-//}
-//
-//void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
-//                  void* space, size_t spaceSize,
-//                  Tensor out, Tensor in) {
-//  auto inGpu = static_cast<TensorGPU*>(in.get());
-//  auto outGpu = static_cast<TensorGPU*>(out.get());
-//  cudnnDropoutForward(cudnnHandle,
-//                      dropoutDesc,
-//                      inGpu->cudnn(),
-//                      inGpu->data(),
-//                      outGpu->cudnn(),
-//                      outGpu->data(),
-//                      space,
-//                      spaceSize);
-//}
-//
-//void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
-//                          void* space, size_t spaceSize,
-//                          Tensor out, Tensor in) {
-//  auto inGpu = static_cast<TensorGPU*>(in.get());
-//  auto outGpu = static_cast<TensorGPU*>(out.get());
-//  cudnnDropoutBackward(cudnnHandle,
-//                      dropoutDesc,
-//                      inGpu->cudnn(),
-//                      inGpu->data(),
-//                      outGpu->cudnn(),
-//                      outGpu->data(),
-//                      space,
-//                      spaceSize);
-//}
-
 __global__ void gCopyRows(float* out, const float* in, size_t cols,
                           const size_t* sourceRowIdx, size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -607,6 +549,85 @@ void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) 
                                   rowsToCopy);
   CUDA_CHECK(cudaFree(d_indeces));
 }
+
+/////////////
+
+__global__ void gCopyCols(float* out, const float* in, size_t rows,
+                          const size_t* sourceColIdx, size_t cols) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+      const float* rowIn = in + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[i] = rowIn[sourceColIdx[i]];
+      }
+    }
+  }
+}
+
+void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
+  cudaSetDevice(out->getDevice());
+
+  size_t rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  size_t colsToCopy = indeces.size();
+
+  int threads = std::min(MAX_THREADS, (int)colsToCopy);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, colsToCopy * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), colsToCopy * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+
+  gCopyCols<<<blocks, threads>>>(out->data(), in->data(), rows,
+                                 d_indeces,
+                                 colsToCopy);
+
+  CUDA_CHECK(cudaFree(d_indeces));
+}
+
+__global__ void gPasteCols(float* out, const float* in, size_t rows,
+                           const size_t* targetColIdx, size_t cols) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+      const float* rowIn = in + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[targetColIdx[i]] = rowIn[i];
+      }
+    }
+  }
+}
+
+void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
+  cudaSetDevice(out->getDevice());
+
+  size_t rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  size_t colsToCopy = indeces.size();
+
+  int threads = std::min(MAX_THREADS, (int)colsToCopy);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, colsToCopy * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), colsToCopy * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+
+  gPasteCols<<<blocks, threads>>>(out->data(), in->data(), rows,
+                                  d_indeces,
+                                  colsToCopy);
+
+  CUDA_CHECK(cudaFree(d_indeces));
+}
+//////////////
 
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
   cudaSetDevice(out->getDevice());

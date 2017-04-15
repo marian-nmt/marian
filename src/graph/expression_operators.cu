@@ -39,6 +39,10 @@ Expr rows(Expr a, const std::vector<size_t>& indeces) {
   return Expression<RowsNodeOp>(a, indeces);
 }
 
+Expr cols(Expr a, const std::vector<size_t>& indeces) {
+  return Expression<ColsNodeOp>(a, indeces);
+}
+
 Expr logit(Expr a) {
   return Expression<LogitNodeOp>(a);
 }

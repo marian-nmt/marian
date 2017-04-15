@@ -13,29 +13,55 @@
 namespace marian {
 namespace data {
 
-typedef std::vector<size_t> WordBatch;
-typedef std::vector<float> MaskBatch;
-typedef std::pair<WordBatch, MaskBatch> WordMask;
-typedef std::vector<WordMask> SentBatch;
-
 typedef std::vector<Words> SentenceTuple;
+
+class SubBatch {
+  private:
+    std::vector<Word> indeces_;
+    std::vector<float> mask_;
+    
+    int size_;
+    int width_;
+    int words_;
+    
+  public:
+    SubBatch(const std::vector<Word> indeces,
+             const std::vector<float> mask,
+             int size, int width, int words)
+    : indeces_(indeces), mask_(mask),
+      size_(size), width_(width), words_(words)
+    { }
+    
+    std::vector<Word>& indeces() { return indeces_; }
+    std::vector<float>& mask()   { return mask_; }
+    
+    int batchSize()   { return size_; }
+    int batchWidth() { return width_; };
+    int batchWords()  { return words_; }
+    
+};
 
 class CorpusBatch {
   public:
-    CorpusBatch(const std::vector<SentBatch>& batches, size_t words = 0)
-    : batches_(batches), words_(words) {}
+    CorpusBatch(const std::vector<Ptr<SubBatch>>& batches)
+    : batches_(batches) {}
 
-    const SentBatch& operator[](size_t i) const {
+    Ptr<SubBatch> operator[](size_t i) const {
       return batches_[i];
+    }
+    
+    Ptr<SubBatch> back() {
+      return batches_.back();
     }
 
     void debug() {
       size_t i = 0;
-      for(auto l : batches_) {
+      for(auto sb : batches_) {
         std::cerr << "input " << i++ << ": " << std::endl;
-        for(auto b : l) {
+        for(size_t i = 0; i < sb->batchSize(); i++) {
           std::cerr << "\t w: ";
-          for(auto w : b.first) {
+          for(size_t j = 0; j < sb->batchWidth(); j++) {
+            Word w = sb->indeces()[i * sb->batchWidth() + j];
             std::cerr << w << " ";
           }
           std::cerr << std::endl;
@@ -44,11 +70,11 @@ class CorpusBatch {
     }
 
     size_t size() const {
-      return batches_[0][0].first.size();
+      return batches_[0]->batchSize();
     }
 
     size_t words() const {
-      return words_;
+      return batches_[0]->batchWords();
     }
 
     size_t sets() const {
@@ -56,24 +82,20 @@ class CorpusBatch {
     }
     
     static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths, size_t batchSize) {
-      size_t words = 0;
-      std::vector<SentBatch> batches;
+      std::vector<Ptr<SubBatch>> batches;
       
-      for(auto l : lengths) {
-        SentBatch sb;
-        for(int i = 0; i < l; i++)
-          sb.push_back(WordMask(WordBatch(batchSize, 0), MaskBatch(batchSize, 0)));
-        
+      for(auto len : lengths) {
+        std::vector<Word> indeces(batchSize * len, 0);
+        std::vector<float> mask(batchSize * len, 0);
+        auto sb = New<SubBatch>(indeces, mask, batchSize, len, batchSize * len);
         batches.push_back(sb);
-        words += l * batchSize;
       }
         
-      return New<CorpusBatch>(batches, words);
+      return New<CorpusBatch>(batches);
     }
 
   private:
-    std::vector<SentBatch> batches_;
-    size_t words_;
+    std::vector<Ptr<SubBatch>> batches_;
 };
 
 class Corpus;
@@ -151,7 +173,6 @@ class Corpus {
 
     batch_ptr toBatch(const std::vector<sample>& batchVector) {
       int batchSize = batchVector.size();
-      size_t words = 0;
 
       std::vector<int> maxDims;
       for(auto& ex : batchVector) {
@@ -163,24 +184,29 @@ class Corpus {
         }
       }
 
-      std::vector<SentBatch> langs;
-      for(auto m : maxDims) {
-        langs.push_back(SentBatch(m,
-                                  { WordBatch(batchSize, 0),
-                                    MaskBatch(batchSize, 0) } ));
-      }
-
-      for(int i = 0; i < batchSize; ++i) {
-        for(int j = 0; j < maxDims.size(); ++j) {
-          for(int k = 0; k < batchVector[i][j].size(); ++k) {
-            langs[j][k].first[i] = batchVector[i][j][k];
-            langs[j][k].second[i] = 1.f;
-            if(j == 0)
-              words++;
-          }
+      std::vector<Ptr<SubBatch>> subBatches;
+      size_t i = 0;
+      for(auto width : maxDims) {
+        std::vector<Word> indeces(batchSize * width, 0);
+        std::vector<float> mask(batchSize * width, 0);
+        
+        int words = 0;
+        auto itInd = indeces.begin();
+        auto itMsk = mask.begin();
+        for(auto& sample : batchVector) {
+          auto& line = sample[i];
+          std::copy(line.begin(), line.end(), itInd);
+          std::fill(itMsk, itMsk + width, 1.f);
+          words += line.size();
+          
+          itInd += width;
+          itMsk += width;
         }
+        subBatches.push_back(New<SubBatch>(indeces, mask, batchSize, width, words));
+        i++;
       }
-      return batch_ptr(new batch_type(langs, words));
+      
+      return batch_ptr(new batch_type(subBatches));
     }
 };
 

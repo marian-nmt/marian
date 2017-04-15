@@ -35,24 +35,17 @@ class EncoderBase {
     virtual std::tuple<Expr, Expr>
     prepareSource(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
       using namespace keywords;
-      std::vector<size_t> indeces;
-      std::vector<float> mask;
-
-      for(auto& word : (*batch)[index]) {
-        for(auto i: word.first)
-          indeces.push_back(i);
-        for(auto m: word.second)
-          mask.push_back(m);
-      }
-
-      int dimBatch = batch->size();
+      
+      auto subBatch = (*batch)[index];
+      
+      int dimBatch = subBatch->batchSize();
       int dimEmb = emb->shape()[1];
-      int dimWords = (int)(*batch)[index].size();
+      int dimWords = subBatch->batchWidth();
 
       auto graph = emb->graph();
-      auto x = reshape(rows(emb, indeces), {dimBatch, dimEmb, dimWords});
+      auto x = reshape(rows(emb, subBatch->indeces()), {dimBatch, dimEmb, dimWords});
       auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
-                                   init=inits::from_vector(mask));
+                                   init=inits::from_vector(subBatch->mask()));
       return std::make_tuple(x, xMask);
     }
 
@@ -73,39 +66,6 @@ class DecoderBase {
     Ptr<Config> options_;
     bool inference_{false};
 
-    virtual std::tuple<Expr, Expr, Expr>
-    prepareTarget(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
-      using namespace keywords;
-
-      std::vector<size_t> indeces;
-      std::vector<float> mask;
-
-      for(int j = 0; j < (*batch)[index].size(); ++j) {
-        auto& trgWordBatch = (*batch)[index][j];
-
-        for(auto i : trgWordBatch.first)
-          indeces.push_back(i);
-        for(auto m : trgWordBatch.second)
-          mask.push_back(m);
-      }
-
-      int dimBatch = batch->size();
-      int dimEmb = emb->shape()[1];
-      int dimWords = (int)(*batch)[index].size();
-
-      auto graph = emb->graph();
-
-      auto y = reshape(rows(emb, indeces),
-                       {dimBatch, dimEmb, dimWords});
-
-      auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
-                                  init=inits::from_vector(mask));
-      auto yIdx = graph->constant(shape={(int)indeces.size(), 1},
-                                  init=inits::from_vector(indeces));
-
-      return std::make_tuple(y, yMask, yIdx);
-    }
-
   public:
     template <class ...Args>
     DecoderBase(Ptr<Config> options, Args ...args)
@@ -117,14 +77,22 @@ class DecoderBase {
                 Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
-      int dimBatch  = batch->size();
-      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      int dimTrgEmb = options_->get<int>("dim-emb");
+      int dimVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+      int dimEmb = options_->get<int>("dim-emb");
 
-      auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
-      Expr y, yMask, yIdx;
-      size_t sets = batch->sets();
-      std::tie(y, yMask, yIdx) = prepareTarget(yEmb, batch, sets - 1);
+      auto yEmb = Embedding("Wemb_dec", dimVoc, dimEmb)(graph);
+      
+      auto subBatch = batch->back();
+      int dimBatch = subBatch->batchSize();
+      int dimWords = subBatch->batchWidth();
+
+      auto y = reshape(rows(yEmb, subBatch->indeces()),
+                       {dimBatch, dimEmb, dimWords});
+
+      auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
+                                   init=inits::from_vector(subBatch->mask()));
+      auto yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
+                                  init=inits::from_vector(subBatch->indeces()));
       
       auto yShifted = shift(y, {0, 0, 1, 0});
       
