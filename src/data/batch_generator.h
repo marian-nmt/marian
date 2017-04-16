@@ -5,7 +5,6 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "data/dataset.h"
 #include "data/batch_stats.h"
 #include "data/vocab.h"
 #include "training/config.h"

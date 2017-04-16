@@ -34,6 +34,10 @@ class BeamSearch {
         int hypIdx = keys[i] / vocabSize;
         float cost = costs[i];
         
+        auto filterInfo = builder_->getDecoder()->getFilterInfo();
+        if(filterInfo)
+          embIdx = filterInfo->reverseMap(embIdx);
+        
         newBeam.push_back(
           New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, cost));
       }

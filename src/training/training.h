@@ -154,12 +154,13 @@ class Train : public ModelTask {
       if(options_->has("filter"))
         filter = New<Filter>(options_,
                              trainCorpus->getVocabs()[0],
-                             trainCorpus->getVocabs()[1]);
+                             trainCorpus->getVocabs().back());
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
         // @TODO, better fake batch with vocabulary
-        stats = New<Model>(options_)->collectStats();
+        stats = New<Model>(options_,
+                           keywords::filter=nullptr)->collectStats();
         LOG(info, "[batching] Done");
       }
     

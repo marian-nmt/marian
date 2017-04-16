@@ -15,10 +15,23 @@ class TranslateMultiGPU : public ModelTask {
   private:
     Ptr<Config> options_;
     std::vector<Ptr<ExpressionGraph>> graphs_;
+    Ptr<data::Corpus> corpus_;
+    Ptr<Vocab> trgVocab_;
+    Ptr<Filter> filter_;
     
   public:  
     TranslateMultiGPU(Ptr<Config> options)
-    : options_(options) {
+    : options_(options),
+      corpus_(New<data::Corpus>(options_, true)),
+      trgVocab_(New<Vocab>()) {
+      
+      auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+      trgVocab_->load(vocabs.back());
+
+      if(options_->has("filter"))
+        filter_ = New<Filter>(options_,
+                              corpus_->getVocabs()[0],
+                              trgVocab_);
         
       auto devices = options_->get<std::vector<int>>("devices");
       for(auto& device : devices) {
@@ -28,22 +41,18 @@ class TranslateMultiGPU : public ModelTask {
         graphs_.push_back(graph);
         
         typedef typename Search::model_type Model;
-        auto model = New<Model>(options_, keywords::inference=true);
+        auto model = New<Model>(options_,
+                                keywords::inference=true,
+                                keywords::filter=filter_);
         model->load(graph, options_->get<std::string>("model"));
       }
       
     }
     
     void run() {
-      using namespace data;
       
-      auto corpus = DataSet<Corpus>(options_, true);
-      BatchGenerator<Corpus> bg(corpus, options_);
-    
-      auto target = New<Vocab>();
-      auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-      target->load(vocabs.back());
-
+      data::BatchGenerator<data::Corpus> bg(corpus_, options_);
+      
       auto devices = options_->get<std::vector<int>>("devices");
       ThreadPool threadPool(devices.size(), devices.size());
       
@@ -65,7 +74,7 @@ class TranslateMultiGPU : public ModelTask {
           auto history = search->search(graph, batch, id);
       
           std::stringstream ss;
-          Printer(options_, target, history, ss);
+          Printer(options_, trgVocab_, history, ss);
           collector->Write(history->GetLineNum(), ss.str());
         };
         
@@ -81,10 +90,23 @@ class TranslateSingleGPU : public ModelTask {
   private:
     Ptr<Config> options_;
     Ptr<ExpressionGraph> graph_;
+    Ptr<data::Corpus> corpus_;
+    Ptr<Vocab> trgVocab_;
+    Ptr<Filter> filter_;
     
   public:  
     TranslateSingleGPU(Ptr<Config> options)
-    : options_(options) {
+    : options_(options),
+      corpus_(New<data::Corpus>(options_, true)),
+      trgVocab_(New<Vocab>()) {
+        
+      auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+      trgVocab_->load(vocabs.back());
+
+      if(options_->has("filter"))
+        filter_ = New<Filter>(options_,
+                              corpus_->getVocabs()[0],
+                              trgVocab_);
         
       auto devices = options_->get<std::vector<int>>("devices");
       size_t device = devices[0];
@@ -94,20 +116,15 @@ class TranslateSingleGPU : public ModelTask {
       graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       
       typedef typename Search::model_type Model;
-      auto model = New<Model>(options_, keywords::inference=true);
+      auto model = New<Model>(options_,
+                              keywords::inference=true,
+                              keywords::filter=filter_);
       model->load(graph_, options_->get<std::string>("model"));
     }
     
     void run() {
-      using namespace data;
+      data::BatchGenerator<data::Corpus> bg(corpus_, options_);
       
-      auto corpus = DataSet<Corpus>(options_, true);
-      BatchGenerator<Corpus> bg(corpus, options_);
-    
-      auto target = New<Vocab>();
-      auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-      target->load(vocabs.back());
-
       auto collector = New<OutputCollector>();
       size_t sentenceId = 0;
       
@@ -119,7 +136,7 @@ class TranslateSingleGPU : public ModelTask {
         auto history = search->search(graph_, batch, sentenceId);
     
         std::stringstream ss;
-        Printer(options_, target, history, ss);
+        Printer(options_, trgVocab_, history, ss);
         collector->Write(history->GetLineNum(), ss.str());
         
         sentenceId++;

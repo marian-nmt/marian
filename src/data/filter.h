@@ -13,14 +13,19 @@ class FilterInfo {
   private:
     std::vector<Word> indeces_;
     std::vector<Word> mappedIndeces_;
+    std::unordered_map<Word, Word> reverseMap_;
     
   public:
     FilterInfo(const std::vector<Word>& indeces,
-               const std::vector<Word>& mappedIndeces)
-    : indeces_(indeces), mappedIndeces_(mappedIndeces) { }
+               const std::vector<Word>& mappedIndeces,
+               const std::unordered_map<Word, Word>& reverseMap)
+    : indeces_(indeces),
+      mappedIndeces_(mappedIndeces),
+      reverseMap_(reverseMap) { }
     
     std::vector<Word>& indeces() { return indeces_; }
     std::vector<Word>& mappedIndeces() { return mappedIndeces_; }
+    Word reverseMap(Word idx) { return reverseMap_[idx]; }
 };
   
 class Filter {
@@ -108,26 +113,35 @@ class Filter {
       for(auto i : trgBatch->indeces())
         idxSet.insert(i);
       
+      // collect unique words form source
       std::unordered_set<Word> srcSet;
       for(auto i : srcBatch->indeces())
         srcSet.insert(i);
       
+      // add aligned target words
       for(auto i : srcSet)
         for(auto& it : data_[i])
           idxSet.insert(it.first);
       
+      // turn into vector and sort (slected indeces)
       std::vector<Word> idx(idxSet.begin(), idxSet.end());
       std::sort(idx.begin(), idx.end());
       
+      // assign new shifted position
       std::unordered_map<Word, Word> pos;
       for(Word i = 0; i < idx.size(); ++i)
         pos[idx[i]] = i;
       
       std::vector<Word> mapped;
-      for(auto i : trgBatch->indeces())
+      std::unordered_map<Word, Word> reverseMap;
+      for(auto i : trgBatch->indeces()) {
+        // mapped postions for cross-entropy
         mapped.push_back(pos[i]);
+        // reverse mapping to original indeces
+        reverseMap[pos[i]] = i;
+      }
       
-      return New<FilterInfo>(idx, mapped);
+      return New<FilterInfo>(idx, mapped, reverseMap);
     }
 };
 

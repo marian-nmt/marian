@@ -136,6 +136,14 @@ class DecoderBase {
       return selectedEmbs;
     }
     
+    virtual Ptr<Filter> getFilter() {
+      return filter_;
+    }
+    
+    virtual Ptr<FilterInfo> getFilterInfo() {
+      return filterInfo_;
+    }
+    
     virtual Ptr<DecoderState> step(Expr embeddings,
                                    Ptr<DecoderState>,
                                    bool single=false) = 0;
@@ -161,6 +169,9 @@ class EncoderDecoderBase {
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) = 0;
+    
+    virtual Ptr<EncoderBase> getEncoder() = 0;
+    virtual Ptr<DecoderBase> getDecoder() = 0;
 };
 
 template <class Encoder, class Decoder>
@@ -182,6 +193,14 @@ class EncoderDecoder : public EncoderDecoderBase {
        filter_(Get(keywords::filter, nullptr, args...)),
        inference_(Get(keywords::inference, false, args...))
     { }
+    
+    Ptr<EncoderBase> getEncoder() {
+      return encoder_;
+    }
+
+    Ptr<DecoderBase> getDecoder() {
+      return decoder_;
+    }
     
     virtual void load(Ptr<ExpressionGraph> graph,
                        const std::string& name) {
