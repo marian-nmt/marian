@@ -317,6 +317,8 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
+    ("filter", po::value<std::vector<std::string>>()->multitoken(),                                                                                 
+     "Filter vocabulary: path [N first words] [M best alignments] [T threshold]")
     
   ;
   desc.add(translate);
@@ -422,6 +424,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("allow-unk", bool);
+    SET_OPTION_NONDEFAULT("filter", std::vector<std::string>);
   }
 
   /** valid **/
