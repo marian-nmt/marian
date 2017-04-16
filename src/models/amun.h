@@ -177,7 +177,7 @@ class DecoderAmun : public DecoderBase {
         DenseWithFilter("ff_logit_l2", dimTrgVoc, filterInfo_->indeces())(logitsL1) :
         Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
       
-      debug(logitsOut, "logits");
+      //debug(logitsOut, "logits");
       
       if(filterInfo_) {
         auto cshape = state->getEncoderState()->getContext()->shape();
@@ -195,14 +195,14 @@ class DecoderAmun : public DecoderBase {
           auto aln = alignmentsVec.back();
           auto sc = log(scalar_product(lexProbs, aln, axis=2));
           sc = reshape(sc, {dimBatch, dimVocNew});
-          debug(sc, "sc");
+          //debug(sc, "sc");
           logitsOut = logitsOut + sc;
         }
         else {
           auto aln = concatenate(alignmentsVec, axis=3);
           auto sc = log(scalar_product(lexProbs, aln, axis=2));
           sc = reshape(sc, {dimBatch, dimVocNew, dimTrgWords});
-          debug(sc, "sc");
+          //debug(sc, "sc");
           logitsOut = logitsOut + sc;
         }
       }
