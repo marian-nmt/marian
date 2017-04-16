@@ -13,12 +13,12 @@ class FilterInfo {
   private:
     std::vector<Word> indeces_;
     std::vector<Word> mappedIndeces_;
-    std::unordered_map<Word, Word> reverseMap_;
+    std::vector<Word> reverseMap_;
     
   public:
     FilterInfo(const std::vector<Word>& indeces,
                const std::vector<Word>& mappedIndeces,
-               const std::unordered_map<Word, Word>& reverseMap)
+               const std::vector<Word>& reverseMap)
     : indeces_(indeces),
       mappedIndeces_(mappedIndeces),
       reverseMap_(reverseMap) { }
@@ -129,16 +129,17 @@ class Filter {
       
       // assign new shifted position
       std::unordered_map<Word, Word> pos;
-      for(Word i = 0; i < idx.size(); ++i)
+      std::vector<Word> reverseMap;
+      
+      for(Word i = 0; i < idx.size(); ++i) {
         pos[idx[i]] = i;
+        reverseMap.push_back(idx[i]);
+      }
       
       std::vector<Word> mapped;
-      std::unordered_map<Word, Word> reverseMap;
       for(auto i : trgBatch->indeces()) {
         // mapped postions for cross-entropy
         mapped.push_back(pos[i]);
-        // reverse mapping to original indeces
-        reverseMap[pos[i]] = i;
       }
       
       return New<FilterInfo>(idx, mapped, reverseMap);
