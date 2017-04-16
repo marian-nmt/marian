@@ -74,7 +74,7 @@ class DecoderBase {
      : options_(options),
        filter_(Get(keywords::filter, nullptr, args...)),
        inference_(Get(keywords::inference, false, args...)) {}
-
+    
     virtual std::tuple<Expr, Expr, Expr>
     groundTruth(Ptr<ExpressionGraph> graph,
                 Ptr<data::CorpusBatch> batch) {
@@ -94,10 +94,7 @@ class DecoderBase {
 
       auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
-      
-      if(filter_)
-        filterInfo_ = filter_->createInfo((*batch)[0], subBatch);
-        
+          
       Expr yIdx;
       if(filterInfo_) {
         yIdx = graph->constant(shape={(int)filterInfo_->mappedIndeces().size(), 1},
@@ -136,6 +133,11 @@ class DecoderBase {
       return selectedEmbs;
     }
     
+    void createFilterInfo(Ptr<data::CorpusBatch> batch) {
+      if(filter_)
+        filterInfo_ = filter_->createInfo((*batch)[0], batch->back()); 
+    }
+
     virtual Ptr<Filter> getFilter() {
       return filter_;
     }
@@ -233,6 +235,7 @@ class EncoderDecoder : public EncoderDecoderBase {
 
     virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                          Ptr<data::CorpusBatch> batch) {
+      decoder_->createFilterInfo(batch);
       return decoder_->startState(encoder_->build(graph, batch));
     }
     
