@@ -188,7 +188,8 @@ class DecoderAmun : public DecoderBase {
         
         auto& probs = filterInfo_->probs();
         auto lexProbs = graph->constant(shape={dimBatch, dimVocNew, dimSrcWords},
-                                        init=inits::from_vector(probs));
+                                        init=inits::from_sparse_vector(probs));
+        //debug(lexProbs, "lexProbs");
         
         auto alignmentsVec = rnn.getCell()->getAttention()->getAlignments();
         if(single) {

@@ -84,6 +84,9 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
     void set(float value);
 
     void set(const std::vector<float> &v);
+    
+    void setSparse(const std::vector<size_t> &k,
+                   const std::vector<float> &v);
 
     void copyFrom(Tensor);
 

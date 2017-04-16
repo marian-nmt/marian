@@ -115,6 +115,15 @@ std::function<void(Tensor)> from_vector(const std::vector<size_t>& v) {
   return from_vector(vf);
 }
 
+std::function<void(Tensor)> from_sparse_vector(
+  std::pair<std::vector<size_t>, std::vector<float>>& v) {
+
+  return [v](Tensor t) {
+    t->set(1e-6);
+    t->setSparse(v.first, v.second);
+  };
+}
+
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   size_t size = 1;

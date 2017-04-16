@@ -817,4 +817,8 @@ void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
 
 void Shift(Tensor out, Tensor in, Shape shift, bool invert=false);
 
+void SetSparse(float*, const
+               std::vector<size_t>& indeces,
+               const std::vector<float>& values);
+
 }

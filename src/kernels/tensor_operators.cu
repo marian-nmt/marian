@@ -1488,6 +1488,45 @@ void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
   gShift<<<blocks, threads>>>(out->data(), in->data(), length, offset);              
+}  
+
+__global__ void gSetSparse(float* out,
+                           const size_t* indeces,
+                           const float* values,
+                           int length) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      out[indeces[index]] = values[index];
+    }
+  }
 }
+
+void SetSparse(float *out,
+               const std::vector<size_t>& indeces,
+               const std::vector<float>& values) {
+  
+  int length = indeces.size();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, length * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), length * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+  
+  float* d_values;
+  CUDA_CHECK(cudaMalloc(&d_values, length * sizeof(float)));
+  CUDA_CHECK(cudaMemcpy(d_values, values.data(), length * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  
+  gSetSparse<<<blocks, threads>>>(out, d_indeces, d_values, length);
+  
+  cudaFree(d_indeces);
+  cudaFree(d_values);
+
+}
+
 
 }  // namespace marian

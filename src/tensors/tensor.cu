@@ -63,6 +63,14 @@ void TensorBase::set(const std::vector<float> &v) {
   cudaStreamSynchronize(0);
 }
 
+void TensorBase::setSparse(const std::vector<size_t> &k,
+                           const std::vector<float> &v) {
+  cudaSetDevice(device_);
+  SetSparse(data_, k, v);
+  cudaStreamSynchronize(0);
+}
+
+
 void TensorBase::copyFrom(Tensor in) {
     cudaSetDevice(device_);
     CUDA_CHECK(cudaMemcpy(data_ , in->data() , in->size() * sizeof(float),
