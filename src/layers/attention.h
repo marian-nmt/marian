@@ -194,6 +194,10 @@ class GlobalAttention {
     std::vector<Expr>& getContexts() {
       return contexts_;
     }
+    
+    std::vector<Expr>& getAlignments() {
+      return alignments_;
+    }
 
     int outputDim() {
       return encState_->getContext()->shape()[1];

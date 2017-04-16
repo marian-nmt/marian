@@ -23,24 +23,30 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv, false);
 
-  auto corpus = DataSet<Corpus>(options);
+  auto corpus = New<Corpus>(options);
   BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
+  Ptr<Filter> filter;
+  if(options->has("filter"))
+    filter = New<Filter>(options,
+                          corpus->getVocabs().front(),
+                          corpus->getVocabs().back());
+  
   auto type = options->get<std::string>("type");
   Ptr<EncoderDecoderBase> encdec;
   if(type == "s2s")
-    encdec = New<S2S>(options);
+    encdec = New<S2S>(options, keywords::filter=filter);
   else if(type == "multi-s2s")
-    encdec = New<MultiS2S>(options);
+    encdec = New<MultiS2S>(options, keywords::filter=filter);
   else
-    encdec = New<Amun>(options);
+    encdec = New<Amun>(options, keywords::filter=filter);
 
-  encdec->load(graph, "../benchmark/marian32K/model.160000.npz");
+  encdec->load(graph, options->get<std::string>("model"));
 
-  graph->reserveWorkspaceMB(128);
+  graph->reserveWorkspaceMB(options->get<size_t>("workspace"));
 
   boost::timer::cpu_timer timer;
   //size_t batches = 1;

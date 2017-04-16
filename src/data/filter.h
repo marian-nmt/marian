@@ -14,18 +14,22 @@ class FilterInfo {
     std::vector<Word> indeces_;
     std::vector<Word> mappedIndeces_;
     std::vector<Word> reverseMap_;
+    std::vector<float> probs_;
     
   public:
     FilterInfo(const std::vector<Word>& indeces,
                const std::vector<Word>& mappedIndeces,
-               const std::vector<Word>& reverseMap)
+               const std::vector<Word>& reverseMap,
+               const std::vector<float>& probs)
     : indeces_(indeces),
       mappedIndeces_(mappedIndeces),
-      reverseMap_(reverseMap) { }
+      reverseMap_(reverseMap),
+      probs_(probs) { }
     
     std::vector<Word>& indeces() { return indeces_; }
     std::vector<Word>& mappedIndeces() { return mappedIndeces_; }
     Word reverseMap(Word idx) { return reverseMap_[idx]; }
+    std::vector<float>& probs() { return probs_; }
 };
   
 class Filter {
@@ -142,7 +146,23 @@ class Filter {
         mapped.push_back(pos[i]);
       }
       
-      return New<FilterInfo>(idx, mapped, reverseMap);
+      std::vector<float> probs;
+      float eps = 1e-5 / srcBatch->batchWidth();
+      for(int i = 0; i < srcBatch->batchWidth(); ++i) {
+        for(int j = 0; j < srcBatch->batchSize(); ++j) {
+          auto srcWord = srcBatch->indeces()[i * srcBatch->batchSize() + j];
+          for(auto v : idx) {
+            if(v <= 1)
+              probs.push_back(1);
+            else if(data_[srcWord].count(v))
+              probs.push_back(data_[srcWord][v] + eps);
+            else
+              probs.push_back(eps);
+          }
+        }
+      }
+      
+      return New<FilterInfo>(idx, mapped, reverseMap, probs);
     }
 };
 
