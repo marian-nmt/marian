@@ -70,7 +70,8 @@ class TranslateMultiGPU : public ModelTask {
             cudaSetDevice(graph->getDevice());
           }
           
-          auto search = New<Search>(options_);
+          auto search = New<Search>(options_,
+                                    keywords::filter=filter_);
           auto history = search->search(graph, batch, id);
       
           std::stringstream ss;
@@ -132,7 +133,8 @@ class TranslateSingleGPU : public ModelTask {
       while(bg) {
         auto batch = bg.next();
                   
-        auto search = New<Search>(options_);
+        auto search = New<Search>(options_,
+                                  keywords::filter=filter_);
         auto history = search->search(graph_, batch, sentenceId);
     
         std::stringstream ss;

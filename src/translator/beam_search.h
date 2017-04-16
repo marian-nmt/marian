@@ -18,9 +18,10 @@ class BeamSearch {
   public:
     typedef Builder model_type;    
     
-    BeamSearch(Ptr<Config> options)
+    template <class ...Args>
+    BeamSearch(Ptr<Config> options, Args ...args)
      : options_(options),
-       builder_(New<Builder>(options, keywords::inference=true)),
+       builder_(New<Builder>(options, keywords::inference=true, args...)),
        beamSize_(options_->get<size_t>("beam-size"))
     {}
 
