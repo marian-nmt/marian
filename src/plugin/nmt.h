@@ -33,33 +33,13 @@ class NeuralExtention {
 class NMT {
   public:
     NMT();
-    NMT(std::vector<ScorerPtr>& scorers);
     virtual ~NMT();
 
     static void InitGod(const std::string& configFilePath);
     static void Clean();
 
-    static std::vector<ScorerPtr> NewScorers();
-
     static size_t GetTotalThreads();
     static size_t GetBatchSize();
-
-    static size_t GetDevices(size_t = 1);
-
-    std::vector<ScorerPtr>& GetScorers() {
-      return scorers_;
-    }
-
-    void SetDevice();
-    size_t GetDevice();
-
-    void SetDebug(bool debug) {
-      debug_ = debug;
-    }
-
-    void ClearStates();
-
-    States NewStates() const;
 
     States CalcSourceContext(const std::vector<std::string>& s);
 
@@ -74,19 +54,20 @@ class NMT {
         const std::vector<std::string>& nbest,
         const size_t maxBatchSize=64);
 
-    std::vector<NeuralExtention> GetNeuralExtentions(std::vector<States>& inputStates);
+    std::vector<NeuralExtention> GetNeuralExtentions(
+            const std::vector<States>& inputStates);
+
+  protected:
+    void SetDevice();
+
+    States NewStates() const;
 
   private:
-    bool debug_;
     static std::shared_ptr<God> god_;
 
     std::vector<ScorerPtr> scorers_;
     BestHypsBasePtr bestHyps_;
-    Words filterIndices_;
 
-    bool firstWord_;
-
-    std::vector<size_t> filteredId_;
 };
 
 }
