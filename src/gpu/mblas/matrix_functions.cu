@@ -12,6 +12,9 @@ thread_local CudaStreamHandler* CudaStreamHandler::instance_ = nullptr;;
 #define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
         printf("Error at %s:%d\n",__FILE__,__LINE__);}} while(0)
 
+#define CUBLAS_CALL(x) do { if((x) != CUBLAS_STATUS_SUCCESS) { \
+        printf("Error at %s:%d\n",__FILE__,__LINE__);}} while(0)
+
 Matrix& Swap(Matrix& Out, Matrix& In) {
   size_t iRows = In.Rows();
   size_t iCols = In.Cols();
@@ -99,8 +102,8 @@ Matrix& Transpose(Matrix& Out, const Matrix& In) {
   float alpha = 1.0;
   float beta  = 0.0;
 
-  cublasSgeam(CublasHandler::GetHandle(), CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha, In.data(), n,
-              &beta, In.data(), n, Out.data(), m);
+  CUBLAS_CALL( cublasSgeam(CublasHandler::GetHandle(), CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha,
+                           In.data(), n, &beta, In.data(), n, Out.data(), m) );
 
   return Out;
 }
@@ -333,8 +336,8 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  cublasSgemm(handle, opB, opA,
-              n, m, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
+  CUBLAS_CALL( cublasSgemm(handle, opB, opA,
+              n, m, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc) );
   return C;
 }
 

@@ -46,30 +46,30 @@ class TMatrix : public BaseMatrix {
       return data_[i * cols_ + j];
     }
 
-    // virtual std::vector<float> GetScores(const std::vector<std::pair<int, int>>& indices) {
-      // if (d_ids.size() < indices.size()) {
-        // d_ids.resize(indices.size());
-        // h_ids.resize(indices.size());
-        // d_scores.resize(indices.size());
-      // }
-      // h_scores.resize(indices.size());
+    virtual std::vector<float> GetScores(const std::vector<std::pair<int, int>>& indices) {
+      if (d_ids.size() < indices.size()) {
+        d_ids.resize(indices.size());
+        h_ids.resize(indices.size());
+        d_scores.resize(indices.size());
+      }
+      h_scores.resize(indices.size());
 
 
-      // for (size_t i = 0; i < indices.size(); ++i) {
-        // h_ids[i] = indices[i].first * Cols() + indices[i].second;
-      // }
-      // copy_n(h_ids.begin(), indices.size(), d_ids.begin());
+      for (size_t i = 0; i < indices.size(); ++i) {
+        h_ids[i] = indices[i].first * Cols() + indices[i].second;
+      }
+      copy_n(h_ids.begin(), indices.size(), d_ids.begin());
 
 
-      // GetValues(data(),
-                // thrust::raw_pointer_cast(d_ids.data()),
-                // thrust::raw_pointer_cast(d_scores.data()),
-                // (int)indices.size());
-      // copy_n(d_scores.begin(), indices.size(), h_scores.begin());
+      GetValues(data(),
+                thrust::raw_pointer_cast(d_ids.data()),
+                thrust::raw_pointer_cast(d_scores.data()),
+                (int)indices.size());
+      copy_n(d_scores.begin(), indices.size(), h_scores.begin());
 
-      // return h_scores;
+      return h_scores;
 
-    // }
+    }
 
     value_type operator()(size_t i, size_t j) const {
       return data_[i * cols_ + j];

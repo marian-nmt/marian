@@ -125,6 +125,8 @@ class Decoder {
                                      const DeviceVector<int>& mapping,
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
+          // std::cerr << "SC: "<< SourceContext.Rows() << " x " << SourceContext.Cols() << ": "  << SourceContext.Debug() << std::endl;
+          // std::cerr << "HS: "<< HiddenState.Rows() << " x " << HiddenState.Cols() << ": "  << HiddenState.Debug() << std::endl;
 
           thrust::host_vector<int> batchMapping(HiddenState.Rows());
           size_t k = 0;
@@ -133,6 +135,10 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
+
+          // for (auto v: batchMapping) std::cerr << v << " ";
+
+          // std::cerr << "batch mapping: " << batchMapping.size() << " " << dBatchMapping_.size() << std::endl;
 
           mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
           const size_t srcSize = mapping.size() / beamSizes.size();
@@ -143,10 +149,14 @@ class Decoder {
           } else {
             BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
           }
+          // std::cerr << "T2: "<< Temp2_.Rows() << " x " << Temp2_.Cols() << ": "  << Temp2_.Debug() << std::endl;
 
           Copy(Temp1_, SCU_);
+          // std::cerr << "T1: "<< Temp1_.Rows() << " x " << Temp1_.Cols() << ": "  << Temp1_.Debug() << std::endl;
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
+          // std::cerr << "T1: "<< Temp1_.Rows() << " x " << Temp1_.Cols() << ": "  << Temp1_.Debug() << std::endl;
           Prod(A_, w_.V_, Temp1_, false, true);
+          // std::cerr << "A: "<< A_.Rows() << " x " << A_.Cols() << ": "  << A_.Debug() << std::endl;
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
@@ -154,6 +164,7 @@ class Decoder {
           Element(_1 + WC_, A_);
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
+          // std::cerr << "A: "<< A_.Rows() << " x " << A_.Cols() << ": "  << A_.Debug() << std::endl;
 
           AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
@@ -203,8 +214,13 @@ class Decoder {
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
+          // std::cerr << "AAAA\n";
+          // std::cerr << State.Rows() << " " << State.Cols() << " " << State(0,0) << std::endl;
+          // std::cerr << Embedding.Rows() << " " << Embedding.Cols() << " " << Embedding(0,0) << std::endl;
+          // std::cerr << AlignedSourceContext.Rows() << " " << AlignedSourceContext.Cols() << " " << AlignedSourceContext(0,0) << std::endl;
 
           Prod(/*h_[0],*/ T1_, State, w_.W1_);
+          // std::cerr << T1_.Rows() << " " << T1_.Cols() << " " << T1_(0,0) << std::endl;
 
           if (w_.Gamma_1_) {
             Normalization(T1_, T1_, w_.Gamma_1_, w_.B1_, 1e-9);
@@ -238,6 +254,7 @@ class Decoder {
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
 
+          // std::cerr << Probs(0,0) << std::endl;
           mblas::LogSoftmax(Probs);
         }
 
@@ -288,10 +305,15 @@ class Decoder {
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes) {
       // std::cerr << ">> >> " << "GetHiddenState " << std::endl;
+      // std::cerr << State.Rows() << " x " << State.Cols() << ": " << State(0,0) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
+
       // std::cerr << ">> >> " << "GetAlignedSourceContext " << std::endl;
+      // std::cerr << HiddenState_.Rows() << " x " << HiddenState_.Cols() << ": " << HiddenState_.Debug() << std::endl;
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
+
       // std::cerr << ">> >> " << "GetNextState " << std::endl;
+      // std::cerr << AlignedSourceContext_.Rows() << " x " << AlignedSourceContext_.Cols() << ": " << AlignedSourceContext_(0,0) << std::endl;
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       // std::cerr << ">> >> " << "GetProbs " << std::endl;
       GetProbs(NextState, Embeddings, AlignedSourceContext_);

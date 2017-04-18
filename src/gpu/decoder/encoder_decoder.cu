@@ -175,9 +175,12 @@ void EncoderDecoderLoader::Load(const God &god) {
 EncoderDecoderLoader::~EncoderDecoderLoader()
 {
   for (size_t d = 0; d < weights_.size(); ++d) {
+    std::cerr << "checking " << d << std::endl;
     const Weights *weights = weights_[d].get();
     if (weights) {
+      std::cerr << "Releasing " << d << std::endl;
       HANDLE_ERROR(cudaSetDevice(d));
+      std::cerr << "Resetting " << d << std::endl;
       weights_[d].reset(nullptr);
     }
   }

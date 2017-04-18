@@ -13,6 +13,12 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/handles.h"
 
+#define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
+        printf("Error at %s:%d\n",__FILE__,__LINE__);}} while(0)
+
+#define CUBLAS_CALL(x) do { if((x) != CUBLAS_STATUS_SUCCESS) { \
+        printf("Error at %s:%d\n",__FILE__,__LINE__);}} while(0)
+
 namespace amunmt {
 namespace GPU {
 namespace mblas {
@@ -178,16 +184,22 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
 
   thread_local static Matrix Temp;
   Temp.Resize(rows, cols);
+  // std::cerr << "Temp: "<< Temp.Rows() << " x " << Temp.Cols() << ": "  << Temp.Debug() << std::endl;
 
   float* d_out = Temp.data();
   const float* d_in1 = Out.data();
   const float* d_in2 = In.data();
 
+  const size_t inRows = In.Rows();
+
   int threads = 512;
   int blocks  = (Temp.size() / threads) + 1;
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()));
+    (functor, d_out, d_in1, d_in2, srcSize, inRows, cols, thrust::raw_pointer_cast(batchMapping.data()));
+
+  // CUDA_CALL( cudaPeekAtLastError() );
+  // CUDA_CALL( cudaDeviceSynchronize() );
 
   Swap(Out, Temp);
   return Out;

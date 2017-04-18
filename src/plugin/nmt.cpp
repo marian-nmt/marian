@@ -59,10 +59,12 @@ NMT::NMT(std::vector<ScorerPtr>& scorers)
 }
 
 NMT::~NMT() {
+  std::cerr << "Cleaning NMT~~" << std::endl;
   SetDevice();
 }
 
 void NMT::Clean() {
+  std::cerr << "Cleaning GOD from NMT" << std::endl;
   god_->Cleanup();
 }
 
@@ -83,6 +85,7 @@ void NMT::SetDevice() {
 
 States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
 {
+  // std::cerr << "Setting SRC " << std::endl;
   Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(*god_, 0, srcWords)));
 
@@ -162,7 +165,8 @@ void NMT::BatchSteps(const Batches& batches,
                      Scores& unksOut,
                      std::vector<States>& inputStates)
 {
-
+  SetDevice();
+  // std::cerr << "BatchStesp " << std::endl;
   States prevStates = NewStates();
   States nextStates = NewStates();
 
@@ -173,9 +177,12 @@ void NMT::BatchSteps(const Batches& batches,
     }
   }
 
+  // std::cerr << "joining steps " << std::endl;
   for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
     prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
   }
+
+  // std::cerr _<< prevStates[0]->Debug() << std::endl;
 
   std::vector<size_t> previousIds;
   for (size_t i = 0; i < batches[0].size(); ++i) {
@@ -189,20 +196,32 @@ void NMT::BatchSteps(const Batches& batches,
       const State &state =  *prevStates[i];
       State &nextState = *nextStates[i];
 
-      scorer.Decode(*god_, state, nextState, {previousIds.size()});
+      // std::cerr << "Decoding " << std::endl;
+      std::vector<size_t> beamSizes(1, previousIds.size());
+      scorer.Decode(*god_, state, nextState, beamSizes);
+      // std::cerr << "Decoding DONE" << std::endl;
     }
 
     std::vector<std::pair<int, int>> indices;
     for (size_t i = 0; i < previousIds.size(); ++i) {
-      indices.push_back(std::make_pair(i, batches[batchIdx][previousIds[i]]));
+      if (batches[batchIdx][previousIds[i]] >= scorers_[0]->GetVocabSize()) {
+        indices.push_back(std::make_pair(i, 1));
+      } else {
+        indices.push_back(std::make_pair(i, batches[batchIdx][previousIds[i]]));
+      }
+      // std::cerr << "(" << i << " : " << batches[batchIdx][previousIds[i]] << ") " ;
     }
+    // std::cerr << std::endl;
 
     for (auto& scorer : scorers_) {
+    // std::cerr << "GETTING SCORES: " <<scorer->GetProbs().Rows() << " " << scorer->GetProbs().Cols() << std::endl;
       auto logProbs = scorer->GetProbs().GetScores(indices);
+      // std::cerr << "Got log scores" << std::endl;
       for (size_t i = 0; i < previousIds.size(); ++i) {
           probsOut[previousIds[i]] += logProbs[i];
       }
     }
+    // std::cerr << "GETTING SCORES: DONE" << std::endl;
 
     std::vector<size_t> nextIds;
     std::vector<size_t> nextHypIds;
@@ -242,10 +261,12 @@ std::vector<double> NMT::RescoreNBestList(
     const std::vector<std::string>& nbest,
     const size_t maxBatchSize)
 {
+  // std::cerr << "RESCORING" << std::endl;
   std::vector<double> nBestScores;
 
-  NBest nBest(nbest, god_->GetTargetVocab(), maxBatchSize);
+  NBest nBest(nbest, god_->GetTargetVocab(), GetBatchSize());
   for (auto& batch: nBest.SplitNBestListIntoBatches()) {
+    // std::cerr << "REscoging batch" << std::endl;
     States prevStates = NewStates();
     States nextStates = NewStates();
 
@@ -263,11 +284,15 @@ std::vector<double> NMT::RescoreNBestList(
     std::vector<float> scores(batch[0].size(), 0.0f);
 
     for (size_t batchIdx = 0; batchIdx < batch.size(); ++batchIdx) {
+      // std::cerr << "REscoging " << batchIdx << "/" << batch.size() << std::endl;
       for (size_t i = 0; i < scorers_.size(); i++) {
         Scorer &scorer = *scorers_[i];
         const State &state =  *prevStates[i];
         State &nextState = *nextStates[i];
 
+        // std::cerr << "Decoding ... " << previousIds.size() << std::endl;
+        // for (auto v : previousIds) std::cerr <<v << " ";
+        // std::cerr << std::endl;
         if (batchIdx == 0) {
           scorer.Decode(*god_, state, nextState, {1});
         } else {
@@ -275,6 +300,7 @@ std::vector<double> NMT::RescoreNBestList(
         }
       }
 
+      // std::cerr << "Filling indices" << std::endl;
       std::vector<std::pair<int, int>> indices;
       for (size_t i = 0; i < previousIds.size(); ++i) {
         if (batchIdx == 0) {
@@ -284,6 +310,7 @@ std::vector<double> NMT::RescoreNBestList(
         }
       }
 
+      // std::cerr << "Getting scores" << std::endl;
       for (auto& scorer : scorers_) {
         auto logProbs = scorer->GetProbs().GetScores(indices);
         for (size_t i = 0; i < previousIds.size(); ++i) {
@@ -315,6 +342,7 @@ std::vector<double> NMT::RescoreNBestList(
         }
       }
 
+      // std::cerr << "Assembling..." << std::endl;
       for (size_t i = 0; i < scorers_.size(); ++i) {
         scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
       }
@@ -324,5 +352,6 @@ std::vector<double> NMT::RescoreNBestList(
       nBestScores.push_back(score);
     }
   }
+  // std::cerr << "RESCORING DONE" << std::endl;
   return nBestScores;
 }
