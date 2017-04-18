@@ -476,7 +476,38 @@ void insertValue(
                 uint insertInd)
 {
   uint ind = count;
-  for (uint i = 0; i < count; ++i) {
+  for (uint i = 1; i < count; ++i) {
+    if (val <= bestCost[i]) {
+      ind = i;
+      break;
+    }
+  }
+  
+  // shift everything up 1
+  for (uint i = ind; i < count; ++i) {
+    bestCost[i+1] = bestCost[i];
+    bestInd[i+1] = bestInd[i];
+  }
+  
+  // insert value into place
+  bestCost[ind] = val;
+  bestInd[ind] = insertInd;
+}
+
+void replaceValueOrDiscard(
+                __global float *bestCost,
+                __global int *bestInd,
+                uint count,
+                float val,
+                uint insertInd)
+{
+  if (val < bestCost[0]) {
+    // too low
+    return;
+  }
+  
+  uint ind = count;
+  for (uint i = 1; i < count; ++i) {
     if (val <= bestCost[i]) {
       ind = i - 1;
       break;
@@ -515,9 +546,7 @@ __kernel void gNthElement(
     
   for (uint col = maxBeamSize; col < cols; ++col) {
     float cost = prob[col];
-    if (cost > bestCost[0]) {
-      insertValue(bestCost, bestInd, maxBeamSize, cost, col);
-    }
+    replaceValueOrDiscard(bestCost, bestInd, maxBeamSize, cost, col);
   }
   
 }
