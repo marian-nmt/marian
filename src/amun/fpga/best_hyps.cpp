@@ -1,3 +1,4 @@
+#include <numeric>
 #include <vector>
 #include "best_hyps.h"
 #include "matrix.h"
