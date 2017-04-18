@@ -468,6 +468,33 @@ __kernel void gMaxElement(
 
 /////////////////////////////////////////////////////////////////////////////
 
+void insertValue(
+                __global float *bestCost,
+                __global int *bestInd,
+                uint count,
+                float val,
+                uint insertInd)
+{
+  uint ind = count;
+  for (uint i = 0; i < count; ++i) {
+    if (val <= bestCost[i]) {
+      ind = i - 1;
+      break;
+    }
+  }
+  
+  // shift lowest value out of the array
+  for (uint i = 0; i < ind; ++i) {
+    bestCost[i] = bestCost[i+1];
+    bestInd[i] = bestInd[i+1];
+  }
+  
+  // insert value into place
+  bestCost[ind] = val;
+  bestInd[ind] = insertInd;
+}
+
+
 __kernel void gNthElement(
                 __global float *prob,
                 uint rows, uint cols,
@@ -477,23 +504,22 @@ __kernel void gNthElement(
                 __global int *bestInd
                 )
 {
-  //assert(rows == 1);
-  //assert(cols > 0);
-  
-  float maxCost = prob[0];
-  uint maxInd = 0;
-  for (uint col = 1; col < cols; ++col) {
+  //assert(rows == maxBatchSize);
+  //assert(cols > maxBeamSize);
+
+  // init arrays
+  for (uint i = 0; i < maxBeamSize; ++i) {
+    float val = prob[i];
+    insertValue(bestCost, bestInd, i, val, i);
+  }
+    
+  for (uint col = maxBeamSize; col < cols; ++col) {
     float cost = prob[col];
-    if (cost > maxCost) {
-      maxCost = cost;
-      maxInd = col;
+    if (cost > bestCost[0]) {
+      insertValue(bestCost, bestInd, maxBeamSize, cost, col);
     }
   }
   
-  
-  // set output
-  bestCost[0] = maxCost;
-  bestInd[0] = maxInd;
 }
 
 
