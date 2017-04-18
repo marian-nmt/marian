@@ -468,9 +468,32 @@ __kernel void gMaxElement(
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gNthElement()
+__kernel void gNthElement(
+                __global float *prob,
+                uint rows, uint cols,
+                uint maxBeamSize,
+                uint maxBatchSize,
+                __global float *bestCost,
+                __global int *bestInd
+                )
 {
-
+  //assert(rows == 1);
+  //assert(cols > 0);
+  
+  float maxCost = prob[0];
+  uint maxInd = 0;
+  for (uint col = 1; col < cols; ++col) {
+    float cost = prob[col];
+    if (cost > maxCost) {
+      maxCost = cost;
+      maxInd = col;
+    }
+  }
+  
+  
+  // set output
+  bestCost[0] = maxCost;
+  bestInd[0] = maxInd;
 }
 
 

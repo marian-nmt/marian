@@ -1165,7 +1165,18 @@ void NthElement(
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gNthElement", openCLInfo);
 
   // Set the arguments to our compute kernel
-  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_out.data()) );
+  uint ProbsRows = Probs.dim(0);
+  uint ProbsCols = Probs.dim(1);
+  uint maxBeamSizeUint = maxBeamSize;
+  uint maxBatchSizeUint = maxBatchSize;
+
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &ProbsRows) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &ProbsCols) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &maxBatchSizeUint) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_out.data()) );
+  CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_ind.data()) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
