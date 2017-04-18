@@ -4,6 +4,7 @@
 
 #include "nbest.h"
 #include "common/scorer.h"
+#include "common/base_best_hyps.h"
 
 
 
@@ -14,6 +15,20 @@ typedef std::vector<float> Scores;
 namespace amunmt {
 
 class God;
+
+class NeuralExtention {
+  public:
+    NeuralExtention(const std::vector<size_t>& phrase, float score, const std::vector<size_t>& coverage,
+                    size_t prevIndex)
+      : phrase_(phrase), score_(score), coverage_(coverage), prevIndex_(prevIndex)
+    {}
+
+  protected:
+    std::vector<size_t> phrase_;
+    float score_;
+    std::vector<size_t> coverage_;
+    size_t prevIndex_;
+};
 
 class NMT {
   public:
@@ -55,23 +70,18 @@ class NMT {
                     Scores& unks,
                     std::vector<States>& inputStates);
 
-    void OnePhrase(
-      const std::vector<std::string>& phrase,
-      const States& inputStates,
-      float& prob,
-      size_t& unks,
-      States& outputStates);
-
-
     std::vector<double> RescoreNBestList(
         const std::vector<std::string>& nbest,
         const size_t maxBatchSize=64);
+
+    std::vector<NeuralExtention> GetNeuralExtentions(std::vector<States>& inputStates);
 
   private:
     bool debug_;
     static std::shared_ptr<God> god_;
 
     std::vector<ScorerPtr> scorers_;
+    BestHypsBasePtr bestHyps_;
     Words filterIndices_;
 
     bool firstWord_;

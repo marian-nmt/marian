@@ -11,6 +11,7 @@
 #include "common/scorer.h"
 #include "common/types.h"
 #include "common/god.h"
+#include "common/history.h"
 #include <cuda.h>
 #include <thrust/device_vector.h>
 
@@ -43,6 +44,7 @@ NMT::NMT()
     cudaSetDevice(deviceInfo_.deviceId);
   }
   scorers_ = god_->GetScorers(deviceInfo_);
+  bestHyps_ = god_->GetBestHyps(deviceInfo_);
 }
 
 
@@ -127,38 +129,6 @@ size_t NMT::TargetVocab(const std::string& str)
   return god_->GetTargetVocab()[str];
 }
 
-
-void NMT::OnePhrase(
-  const std::vector<std::string>& phrase,
-  const States& inputStates,
-  float& prob,
-  size_t& unks,
-  States& outputStates)
-{
-  States prevStates = NewStates();
-  States nextStates = NewStates();
-
-
-  for (size_t wordIdx = 0; wordIdx < phrase.size(); ++wordIdx) {
-    size_t id = god_->GetTargetVocab()[phrase[wordIdx]];
-    if(id == 1) {
-      unks++;
-    }
-
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      Scorer &scorer = *scorers_[i];
-      State &state = (wordIdx == 0) ? *inputStates[i] : *prevStates[i];
-      State &nextState = *nextStates[i];
-
-      scorer.Decode(*god_, state, nextState, {1});
-      prob += scorer.GetProbs().GetValue(0, id);
-      Beam survivor;
-      survivor.emplace_back(new Hypothesis(nullptr, id, 0, prob));
-      scorers_[i]->AssembleBeamState(*nextStates[i], survivor, state);
-    }
-  }
-  std::swap(nextStates, outputStates);
-}
 
 void NMT::BatchSteps(const Batches& batches,
                      Scores& probsOut,
@@ -354,4 +324,67 @@ std::vector<double> NMT::RescoreNBestList(
   }
   // std::cerr << "RESCORING DONE" << std::endl;
   return nBestScores;
+}
+
+std::vector<NeuralExtention> NMT::GetNeuralExtentions(std::vector<States>& inputStates) {
+  std::vector<NeuralExtention> output;
+  States prevStates = NewStates();
+  States nextStates = NewStates();
+
+  size_t batchSize = inputStates.size();
+
+  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
+
+  std::vector<States> tmp(scorers_.size());
+  for (auto& states : inputStates) {
+    for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
+      tmp[scorerIdx].push_back(states[scorerIdx]);
+    }
+  }
+
+  for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
+    prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
+  }
+
+  const size_t maxExtensionLength = 1;
+  for (size_t step = 0; step < maxExtensionLength; ++step) {
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      Scorer &scorer = *scorers_[i];
+      const State &state =  *prevStates[i];
+      State &nextState = *nextStates[i];
+
+      scorer.Decode(*god_, state, nextState, {inputStates.size()});
+    }
+
+    bool returnAlignment = true;
+
+    Beams beams;
+    std::vector<size_t> beamSizes = {batchSize};
+    bestHyps_->CalcBeam(*god_, prevHyps, scorers_, filterIndices_,
+                        returnAlignment, beams, beamSizes);
+
+    for (auto& beam: beams) {
+      for (auto& hyp : beam) {
+        float cost = hyp->GetCost();
+
+        std::vector<size_t> phrase;
+        auto iter = hyp;
+        while (iter != nullptr) {
+            phrase.push_back(iter->GetWord());
+            iter = iter->GetPrevHyp();
+        }
+
+        std::vector<size_t> align;
+        auto alignment = hyp->GetAlignment(0);
+        for (size_t i = 0; i < alignment->size(); ++i) {
+            if (alignment->at(i) >= 0.3f) {
+                align.push_back(i);
+            }
+        }
+        output.emplace_back(phrase, cost, align);
+      }
+    }
+  }
+
+  return output;
 }

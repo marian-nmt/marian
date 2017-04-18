@@ -193,7 +193,6 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
 
   States states = NewStates();
 
-  // calc
   PreProcess(god, sentences, histories, prevHyps);
   Encode(sentences, states);
   Decode(god, sentences, states, histories, prevHyps);
