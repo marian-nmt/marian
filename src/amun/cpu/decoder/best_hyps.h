@@ -5,6 +5,7 @@
 
 #include "common/scorer.h"
 #include "common/god.h"
+#include "common/utils.h"
 #include "common/exception.h"
 #include "cpu/mblas/matrix.h"
 
@@ -76,6 +77,9 @@ public:
       bestKeys[i] = keys[i];
       bestCosts[i] = Probs.data()[keys[i]];
     }
+
+    std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+    std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
     std::vector<std::vector<float>> breakDowns;
     bool doBreakdown = god.Get<bool>("n-best");

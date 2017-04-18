@@ -322,10 +322,6 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
 
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
 
-  cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
-  cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << " " << endl;
-  cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;
-
   GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 }
 

@@ -6,6 +6,7 @@
 #include "common/scorer.h"
 #include "common/exception.h"
 #include "common/god.h"
+#include "common/utils.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/nth_element.h"
 
@@ -109,6 +110,8 @@ class BestHyps : public BestHypsBase
       std::vector<unsigned> bestKeys;
 
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+      std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+      std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = god.Get<bool>("n-best");
