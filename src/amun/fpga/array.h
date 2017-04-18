@@ -80,6 +80,11 @@ public:
     CheckError( clFinish(openCLInfo_.commands) );
   }
 
+  void Read(T *arr, size_t size) const
+  {
+    CheckError( clEnqueueReadBuffer( openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(T) * size, arr, 0, NULL, NULL ) );
+  }
+
   virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;
@@ -92,7 +97,7 @@ public:
 
     if (verbosity == 2) {
       T results[size_];
-      CheckError( clEnqueueReadBuffer( openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(T) * size_, &results, 0, NULL, NULL ) );
+      Read(results, size_);
 
       for (size_t i = 0; i < size_; ++i) {
         strm << " " << results[i];

@@ -1,4 +1,5 @@
 #include "nth_element.h"
+#include "common/utils.h"
 
 using namespace std;
 
@@ -56,6 +57,15 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   mblas::NthElement(d_out, d_ind, Probs, maxBeamSize_, maxBatchSize_);
   cerr << "d_out=" << d_out.Debug(2) << endl;
   cerr << "d_ind=" << d_ind.Debug(2) << endl;
+
+  outCosts.resize(maxBeamSize_);
+  outKeys.resize(maxBeamSize_);
+  d_out.Read(outCosts.data(), outCosts.size());
+  //d_ind.Read(outKeys.data(), outKeys.size());
+
+  cerr << "outCosts=" << Debug(outCosts, 2) << endl;
+  cerr << "outKeys=" << Debug(outKeys, 2) << endl;
+
 
 }
 
