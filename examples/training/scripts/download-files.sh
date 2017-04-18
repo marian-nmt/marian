@@ -4,18 +4,18 @@
 
 if [ ! -f data/ro-en.tgz ];
 then
-  wget http://www.statmt.org/europarl/v7/ro-en.tgz -O data/ro-en.tgz
+    wget http://www.statmt.org/europarl/v7/ro-en.tgz -O data/ro-en.tgz
 fi
 
 if [ ! -f data/SETIMES2.ro-en.txt.zip ];
 then
-  wget http://opus.lingfil.uu.se/download.php?f=SETIMES2/en-ro.txt.zip -O data/SETIMES2.ro-en.txt.zip
+    wget http://opus.lingfil.uu.se/download.php?f=SETIMES2/en-ro.txt.zip -O data/SETIMES2.ro-en.txt.zip
 fi
 
 if [ ! -f data/corpus.bt.ro-en.en.gz ];
 then
-  wget http://data.statmt.org/rsennrich/wmt16_backtranslations/ro-en/corpus.bt.ro-en.en.gz -O data/corpus.bt.ro-en.en.gz
-  wget http://data.statmt.org/rsennrich/wmt16_backtranslations/ro-en/corpus.bt.ro-en.ro.gz -O data/corpus.bt.ro-en.ro.gz
+    wget http://data.statmt.org/rsennrich/wmt16_backtranslations/ro-en/corpus.bt.ro-en.en.gz -O data/corpus.bt.ro-en.en.gz
+    wget http://data.statmt.org/rsennrich/wmt16_backtranslations/ro-en/corpus.bt.ro-en.ro.gz -O data/corpus.bt.ro-en.ro.gz
 fi
 
 cd data/

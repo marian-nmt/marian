@@ -8,15 +8,15 @@
  <p>
   <b>AmuNMT</b> is an efficient Neural Machine Translation framework written
   in pure C++ with minimal dependencies. It has mainly been developed at the
-  Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh. 
+  Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh.
   </p>
-  
+
   <p>
   It is currently being deployed in
   multiple European projects and is the main translation and training engine
   behind the neural MT launch at the
   <a href="http://www.wipo.int/pressroom/en/articles/2016/article_0014.html">World Intellectual Property Organization</a>.
-  
+
   </p>
 
   <p>
@@ -32,7 +32,20 @@
 
 If you use this, please cite:
 
-Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Translation Ready for Deployment? A Case Study on 30 Translation Directions (https://arxiv.org/abs/1610.01108)
+Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine
+Translation Ready for Deployment? A Case Study on 30 Translation Directions
+(https://arxiv.org/abs/1610.01108)
+
+    @InProceedings{junczys2016neural,
+      title     = {Is Neural Machine Translation Ready for Deployment? A Case Study
+                   on 30 Translation Directions},
+      author    = {Junczys-Dowmunt, Marcin and Dwojak, Tomasz and Hoang, Hieu},
+      booktitle = {Proceedings of the 9th International Workshop on Spoken Language
+      Translation (IWSLT)},
+      year      = {2016},
+      address   = {Seattle, WA},
+      url       = {http://workshop2016.iwslt.org/downloads/IWSLT_2016_paper_4.pdf}
+    }
 
 ## Website:
 
@@ -42,8 +55,9 @@ More information on https://amunmt.github.io
 
 ### GPU version
 
-**Ubuntu 16.04 LTS (tested and recommended).** For Ubuntu 16.04 the standard packages should work. On newer versions of Ubuntu, e.g. 16.10, there may be problems due to
-incompatibilities of the default g++ compiler and CUDA. 
+**Ubuntu 16.04 LTS (tested and recommended).** For Ubuntu 16.04 the standard
+packages should work. On newer versions of Ubuntu, e.g. 16.10, there may be
+problems due to incompatibilities of the default g++ compiler and CUDA.
 
  * CMake 3.5.1
  * GCC/G++ 5.4
@@ -51,7 +65,7 @@ incompatibilities of the default g++ compiler and CUDA.
  * CUDA 8.0
 
 **Ubuntu 14.04 LTS (tested).** A newer CMake version than the default version is
-required and can be installed from source. 
+required and can be installed from source.
 
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * GCC/G++ 4.9
@@ -60,7 +74,7 @@ required and can be installed from source.
 
 ### CPU version
 
-The CPU-only version will automatically be compiled if CUDA cannot be detected by CMAKE.
+The CPU-only version will automatically be compiled if CUDA cannot be detected by CMake.
 Only the translator will be compiled, the training framework is strictily GPU-based.
 
 Tested on different machines and distributions:
@@ -98,9 +112,10 @@ following command will create a Nematus-compatible neural machine translation mo
       --vocabs vocab.en vocab.ro \
       --model model.npz
 
-See the [documentation](https://amunmt.github.io/docs/#marian) for a full list of command line
-options or the [examples](https://amunmt.github.io/examples/training) for a full example of how to train
-a WMT-grade model.
+See the [documentation](https://amunmt.github.io/docs/#marian) for a full list
+of command line options or the
+[examples](https://amunmt.github.io/examples/training) for a full example of
+how to train a WMT-grade model.
 
 ### Translating
 
@@ -108,19 +123,20 @@ If a trained model is available, run:
 
     ./amunmt/build/amun -m model.npz -s vocab.en -t vocab.ro <<< "This is a test ."
 
-See the [documentation](https://amunmt.github.io/docs/#amun) for a full list of command line options
-or the [examples](https://amunmt.github.io/examples/translating) for a full example of how to use
-Edinburgh's WMT models for translation.
+See the [documentation](https://amunmt.github.io/docs/#amun) for a full list of
+command line options or the
+[examples](https://amunmt.github.io/examples/translating) for a full example of
+how to use Edinburgh's WMT models for translation.
 
 ## Example usage
 
 * **[Translating with Amun](https://amunmt.github.io/examples/translating/)**:
-The files and scripts described in this section can be found in {% github_link
-amunmt/examples/translate %}. They demonstrate how to translate with Amun using
+The files and scripts described in this section can be found in
+`amunmt/examples/translate`. They demonstrate how to translate with Amun using
 Edinburgh's German-English WMT2016 single model and ensemble.
 * **[Training with Marian](https://amunmt.github.io/examples/training/)**: The files
 and scripts described in this section can be found in
-{% github_link amunmt/examples/training %}. They have been adapted from the
+`amunmt/examples/training`. They have been adapted from the
 Romanian-English sample from <https://github.com/rsennrich/wmt16-scripts>.
 We also add the back-translated data from <http://data.statmt.org/rsennrich/wmt16_backtranslations/>
 as desribed in [Edinburgh's WMT16 paper](http://www.aclweb.org/anthology/W16-2323).
@@ -131,7 +147,7 @@ This page provides data and model files for our shared task winning APE system
 described in [Log-linear Combinations of Monolingual and Bilingual Neural
 Machine Translation Models for Automatic
 Post-Editing](http://www.aclweb.org/anthology/W16-2378).
-  
+
 ## Acknowledgements
 
 The development of AmuNMT received funding from the European Union's Horizon 2020
@@ -140,7 +156,4 @@ Research and Innovation Programme under grant agreements 688139
 (<a href="http://www.modernmt.eu">Modern MT</a>; 2015-2017), the
 Amazon Academic Research Awards program, and the World Intellectual
 Property Organization.
-
-
-
 
