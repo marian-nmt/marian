@@ -84,6 +84,15 @@ public:
       strm << " sum=" << sum << std::flush;
     }
 
+    if (verbosity == 2) {
+      T results[size_];
+      CheckError( clEnqueueReadBuffer( openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(T) * size_, &results, 0, NULL, NULL ) );
+
+      for (size_t i = 0; i < size_; ++i) {
+        strm << " " << results[i];
+      }
+    }
+
     return strm.str();
   }
 

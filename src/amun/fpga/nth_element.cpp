@@ -1,5 +1,7 @@
 #include "nth_element.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace FPGA {
 
@@ -49,6 +51,8 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   */
 
   mblas::NthElement(d_out, d_ind, Probs, maxBeamSize_, maxBatchSize_);
+  cerr << "d_out=" << d_out.Debug(2) << endl;
+  cerr << "d_ind=" << d_ind.Debug(2) << endl;
 
 }
 
