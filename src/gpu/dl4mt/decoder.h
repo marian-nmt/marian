@@ -125,8 +125,6 @@ class Decoder {
                                      const DeviceVector<int>& mapping,
                                      const std::vector<size_t>& beamSizes) {
           using namespace mblas;
-          // std::cerr << "SC: "<< SourceContext.Rows() << " x " << SourceContext.Cols() << ": "  << SourceContext.Debug() << std::endl;
-          // std::cerr << "HS: "<< HiddenState.Rows() << " x " << HiddenState.Cols() << ": "  << HiddenState.Debug() << std::endl;
 
           thrust::host_vector<int> batchMapping(HiddenState.Rows());
           size_t k = 0;
@@ -135,10 +133,6 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
-
-          // for (auto v: batchMapping) std::cerr << v << " ";
-
-          // std::cerr << "batch mapping: " << batchMapping.size() << " " << dBatchMapping_.size() << std::endl;
 
           mblas::copy(batchMapping.begin(), batchMapping.end(), dBatchMapping_.begin());
           const size_t srcSize = mapping.size() / beamSizes.size();
@@ -149,14 +143,9 @@ class Decoder {
           } else {
             BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
           }
-          // std::cerr << "T2: "<< Temp2_.Rows() << " x " << Temp2_.Cols() << ": "  << Temp2_.Debug() << std::endl;
-
           Copy(Temp1_, SCU_);
-          // std::cerr << "T1: "<< Temp1_.Rows() << " x " << Temp1_.Cols() << ": "  << Temp1_.Debug() << std::endl;
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
-          // std::cerr << "T1: "<< Temp1_.Rows() << " x " << Temp1_.Cols() << ": "  << Temp1_.Debug() << std::endl;
           Prod(A_, w_.V_, Temp1_, false, true);
-          // std::cerr << "A: "<< A_.Rows() << " x " << A_.Cols() << ": "  << A_.Debug() << std::endl;
 
           size_t rows1 = SourceContext.Rows();
           size_t rows2 = HiddenState.Rows();
@@ -164,7 +153,6 @@ class Decoder {
           Element(_1 + WC_, A_);
 
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
-          // std::cerr << "A: "<< A_.Rows() << " x " << A_.Cols() << ": "  << A_.Debug() << std::endl;
 
           AlignedSourceContext.Resize(A_.Rows(), SourceContext.Cols());
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
