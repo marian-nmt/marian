@@ -130,6 +130,14 @@ void MaxElement(
     const Array<int> &batchFirstElementIdxs);
 //float* d_out, int* d_ind, float* d_in, int numBatches, int* batchFirstElementIdxs
 
+void NthElement(
+    Array<float>& d_out,
+    Array<int> &d_ind,
+    const mblas::Matrix &Probs,
+    size_t maxBeamSize,
+    size_t maxBatchSize);
+
+
 } // namespace mblas {
 } // namespace FPGA {
 } // namespace amunmt {

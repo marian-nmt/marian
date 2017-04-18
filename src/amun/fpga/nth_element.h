@@ -31,6 +31,9 @@ protected:
   Array<int> d_batchPosition;
   Array<int> d_cumBeamSizes;
 
+  size_t maxBeamSize_;
+  size_t maxBatchSize_;
+
   void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
                                 const std::vector<int>& cummulatedBeamSizes);
 

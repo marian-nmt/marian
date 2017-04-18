@@ -10,6 +10,8 @@ NthElement::NthElement(const OpenCLInfo &openCLInfo, size_t maxBeamSize, size_t 
 ,d_cumBeamSizes(openCLInfo, maxBatchSize + 1)
 ,d_ind(openCLInfo, maxBatchSize * NUM_BLOCKS)
 ,d_out(openCLInfo, maxBatchSize * NUM_BLOCKS)
+,maxBeamSize_(maxBeamSize)
+,maxBatchSize_(maxBatchSize)
 {
 
 }
@@ -30,6 +32,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst)
 {
+  /*
   std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1);
   std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
@@ -43,6 +46,9 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   getNBestList(Probs, batchFirstElementIdxs, cummulatedBeamSizes);
+  */
+
+  mblas::NthElement(d_out, d_ind, Probs, maxBeamSize_, maxBatchSize_);
 
 }
 
