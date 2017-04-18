@@ -1,6 +1,8 @@
-#include "gpu/mblas/nth_element.h"
 #include <iostream>
+#include "gpu/mblas/nth_element.h"
+#include "common/utils.h"
 
+using namespace std;
 
 namespace amunmt {
 namespace GPU {
@@ -319,6 +321,10 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
+
+  cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
+  cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << " " << endl;
+  cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;
 
   GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 }

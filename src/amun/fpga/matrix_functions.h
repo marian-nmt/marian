@@ -17,20 +17,6 @@ namespace mblas {
 class Matrix;
 
 template<typename T>
-std::string Debug(const std::vector<T> &vec)
-{
-  std::stringstream strm;
-
-  T ret = 0;
-  for (size_t i = 0; i < vec.size(); ++i) {
-    ret += vec[i];
-  }
-
-  strm << "size=" << vec.size() << " sum=" << ret;
-  return strm.str();
-}
-
-template<typename T>
 std::string OutputArray(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
