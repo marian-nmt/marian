@@ -38,8 +38,6 @@ class EncoderDecoderState : public State {
 
     virtual void JoinStates(const States& states);
 
-    virtual void MakeState(State& state, size_t rowNo);
-
   private:
     CPU::mblas::Matrix states_;
     CPU::mblas::Matrix embeddings_;
@@ -78,6 +76,9 @@ class EncoderDecoder : public Scorer {
     size_t GetVocabSize() const;
 
     BaseMatrix& GetProbs();
+
+    virtual std::vector<float> GetScores(
+            const std::vector<std::pair<size_t, size_t>>& ids);
 
     void Filter(const std::vector<size_t>& filterIds);
 

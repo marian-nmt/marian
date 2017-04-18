@@ -60,6 +60,8 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
+    virtual std::vector<float> GetScores(const std::vector<std::pair<size_t, size_t>>& ids);
+
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;

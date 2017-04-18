@@ -38,7 +38,6 @@ class State {
     virtual std::string Debug() const = 0;
 
     virtual void JoinStates(const States& states) = 0;
-    virtual void MakeState(State& state, size_t rowNo) = 0;
 };
 
 
@@ -77,6 +76,7 @@ class Scorer {
     }
 
     virtual BaseMatrix& GetProbs() = 0;
+    virtual std::vector<float> GetScores(const std::vector<std::pair<size_t, size_t>>& ids) = 0;
 
   protected:
     const std::string& name_;

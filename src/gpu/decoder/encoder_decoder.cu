@@ -50,15 +50,6 @@ void EncoderDecoderState::JoinStates(const States& states) {
   ConcatenateVectors(states_, stateMatrices);
 }
 
-void EncoderDecoderState::MakeState(State& state, size_t rowNo) {
-  EncoderDecoderState& edState = state.get<EncoderDecoderState>();
-
-  mblas::CopyRow(edState.states_, states_, rowNo, 0);
-  mblas::CopyRow(edState.embeddings_, embeddings_, rowNo, 0);
-
-
-}
-
 ////////////////////////////////////////////
 
 EncoderDecoder::EncoderDecoder(
@@ -144,7 +135,31 @@ void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
 
 EncoderDecoder::~EncoderDecoder() {}
 
+std::vector<float> EncoderDecoder::GetScores(const std::vector<std::pair<size_t, size_t>>& ids) {
+  thrust::device_vector<int> d_ids(ids.size());
+  thrust::host_vector<int> h_ids(ids.size());
+
+  thrust::device_vector<float> d_scores(ids.size());
+  std::vector<float> h_scores(ids.size());
+
+  for (size_t i = 0; i < ids.size(); ++i) {
+    h_ids[i] = ids[i].first * GetVocabSize() + ids[i].second;
+  }
+
+  mblas::copy_n(h_ids.begin(), ids.size(), d_ids.begin());
+
+
+  mblas::GetValues(decoder_->GetProbs().data(),
+                   thrust::raw_pointer_cast(d_ids.data()),
+                   thrust::raw_pointer_cast(d_scores.data()),
+                   (int)ids.size());
+  mblas::copy_n(d_scores.begin(), ids.size(), h_scores.begin());
+
+  return h_scores;
+}
+
 ////////////////////////////////////////////
+
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)
  : Loader(name, config) {}

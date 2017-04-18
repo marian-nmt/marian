@@ -52,10 +52,9 @@ const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 }
 
 void EncoderDecoderState::JoinStates(const States& states) {
+    std::cerr << "EncoderDecoderState::JoinStates: NOT Implemented " << std::endl;
 }
 
-void EncoderDecoderState::MakeState(State& state, size_t rowNo) {
-}
 
 ////////////////////////////////////////////////
 EncoderDecoder::EncoderDecoder(const std::string& name,
@@ -135,6 +134,11 @@ Decoder& EncoderDecoder::GetDecoder() {
 
 BaseMatrix& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
+}
+
+std::vector<float> EncoderDecoder::GetScores(const std::vector<std::pair<size_t, size_t>>& ids) {
+    std::cerr << "EncoderDecoder::GetScores: NOT IMPLEMENTED" << std::endl;
+    return std::vector<float>(ids.size(), 0.0f);
 }
 
 
