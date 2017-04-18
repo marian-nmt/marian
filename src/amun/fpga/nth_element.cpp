@@ -50,6 +50,9 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   getNBestList(Probs, batchFirstElementIdxs, cummulatedBeamSizes);
   */
 
+  //d_out.Fill(666);
+  //d_ind.Fill(666);
+
   mblas::NthElement(d_out, d_ind, Probs, maxBeamSize_, maxBatchSize_);
   cerr << "d_out=" << d_out.Debug(2) << endl;
   cerr << "d_ind=" << d_ind.Debug(2) << endl;

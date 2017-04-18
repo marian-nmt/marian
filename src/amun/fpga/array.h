@@ -68,6 +68,12 @@ public:
     std::swap(mem_, other.mem_);
   }
 
+  void Fill(const T &val)
+  {
+    CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
+    CheckError( clFinish(openCLInfo_.commands) );
+  }
+
   void Fill(const std::vector<T> &vec)
   {
     CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, vec.data(), sizeof(T), 0, vec.size() * sizeof(T), 0, NULL, NULL) );

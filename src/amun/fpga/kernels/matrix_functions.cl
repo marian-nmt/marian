@@ -506,7 +506,7 @@ void replaceValueOrDiscard(
     return;
   }
   
-  uint ind = count;
+  uint ind = count - 1;
   for (uint i = 1; i < count; ++i) {
     if (val <= bestCost[i]) {
       ind = i - 1;
@@ -543,7 +543,8 @@ __kernel void gNthElement(
     float val = prob[i];
     insertValue(bestCost, bestInd, i, val, i);
   }
-    
+   
+  
   for (uint col = maxBeamSize; col < cols; ++col) {
     float cost = prob[col];
     replaceValueOrDiscard(bestCost, bestInd, maxBeamSize, cost, col);
