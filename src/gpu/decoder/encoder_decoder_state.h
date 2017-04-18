@@ -21,7 +21,6 @@ class EncoderDecoderState : public State {
     const mblas::Matrix& GetEmbeddings() const;
 
     virtual void JoinStates(const States& states);
-    virtual void MakeState(State& state, size_t rowNo);
 
   protected:
     mblas::Matrix states_;

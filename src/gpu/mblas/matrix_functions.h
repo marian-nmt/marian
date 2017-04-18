@@ -23,6 +23,8 @@ namespace amunmt {
 namespace GPU {
 namespace mblas {
 
+void GetValues(const float*  in, int* d_indices, float* scores, int n);
+
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 8) {
   std::cerr << m.Rows() << " " << m.Cols() << std::endl;
