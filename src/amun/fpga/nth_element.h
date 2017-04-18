@@ -25,17 +25,11 @@ protected:
   const int BLOCK_SIZE = 512;
   const int NUM_BLOCKS;
 
-  Array<int> d_ind;
+  Array<unsigned> d_ind;
   Array<float> d_out;
-
-  Array<int> d_batchPosition;
-  Array<int> d_cumBeamSizes;
 
   size_t maxBeamSize_;
   size_t maxBatchSize_;
-
-  void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
-                                const std::vector<int>& cummulatedBeamSizes);
 
 };
 

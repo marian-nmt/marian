@@ -470,7 +470,7 @@ __kernel void gMaxElement(
 
 void insertValue(
                 __global float *bestCost,
-                __global int *bestInd,
+                __global unsigned *bestInd,
                 uint count,
                 float val,
                 uint insertInd)
@@ -496,7 +496,7 @@ void insertValue(
 
 void replaceValueOrDiscard(
                 __global float *bestCost,
-                __global int *bestInd,
+                __global unsigned *bestInd,
                 uint count,
                 float val,
                 uint insertInd)
@@ -532,7 +532,7 @@ __kernel void gNthElement(
                 uint maxBeamSize,
                 uint maxBatchSize,
                 __global float *bestCost,
-                __global int *bestInd
+                __global unsigned *bestInd
                 )
 {
   //assert(rows == maxBatchSize);

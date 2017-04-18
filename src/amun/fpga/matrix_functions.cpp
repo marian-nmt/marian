@@ -1150,7 +1150,7 @@ void MaxElement(
 
 void NthElement(
     Array<float>& d_out,
-    Array<int> &d_ind,
+    Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
     size_t maxBeamSize,
     size_t maxBatchSize)
