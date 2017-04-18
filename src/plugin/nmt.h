@@ -45,14 +45,9 @@ class NMT {
 
     size_t TargetVocab(const std::string& str);
 
-    void BatchSteps(const Batches& batches,
-                    Scores& probs,
-                    Scores& unks,
-                    std::vector<States>& inputStates);
+    void BatchSteps(const Batches& batches, Scores& probs, std::vector<States>& inputStates);
 
-    std::vector<double> RescoreNBestList(
-        const std::vector<std::string>& nbest,
-        const size_t maxBatchSize=64);
+    std::vector<double> RescoreNBestList(const std::vector<std::string>& nbest);
 
     std::vector<NeuralExtention> GetNeuralExtentions(
             const std::vector<States>& inputStates);
@@ -62,12 +57,9 @@ class NMT {
 
     States NewStates() const;
 
-  private:
     static std::shared_ptr<God> god_;
-
     std::vector<ScorerPtr> scorers_;
     BestHypsBasePtr bestHyps_;
-
 };
 
-}
+}  // namespace amunnmt

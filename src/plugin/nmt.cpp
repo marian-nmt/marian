@@ -100,7 +100,6 @@ size_t NMT::TargetVocab(const std::string& str)
 
 void NMT::BatchSteps(const Batches& batches,
                      Scores& probsOut,
-                     Scores& unksOut,
                      std::vector<States>& inputStates)
 {
   SetDevice();
@@ -184,9 +183,7 @@ void NMT::BatchSteps(const Batches& batches,
 }
 
 
-std::vector<double> NMT::RescoreNBestList(
-    const std::vector<std::string>& nbest,
-    const size_t maxBatchSize)
+std::vector<double> NMT::RescoreNBestList(const std::vector<std::string>& nbest)
 {
   std::vector<double> nBestScores;
 
@@ -203,8 +200,6 @@ std::vector<double> NMT::RescoreNBestList(
     for (size_t i = 0; i < scorers_.size(); ++i) {
       scorers_[i]->BeginSentenceState(*prevStates[i], {1});
     }
-
-    size_t batchSize = batch[0].size();
 
     std::vector<float> scores(batch[0].size(), 0.0f);
 
@@ -325,11 +320,11 @@ std::vector<NeuralExtention> NMT::GetNeuralExtentions(const std::vector<States>&
         std::vector<size_t> align;
         auto alignment = hyp->GetAlignment(0);
         for (size_t i = 0; i < alignment->size(); ++i) {
-            if ((*alignment)[i] >= 0.3f) {
-                align.push_back(i);
-            }
+          if ((*alignment)[i] >= 0.3f) {
+            align.push_back(i);
+          }
         }
-        output.emplace_back(phrase, cost, align, 0); // TODO: fix 0 to correct index
+        output.emplace_back(phrase, cost, align, hyp->GetPrevStateIndex()); // TODO: fix 0 to correct index
       }
     }
   }
