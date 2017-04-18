@@ -76,6 +76,19 @@ void BestHyps::CalcBeam(
   std::vector<unsigned> bestKeys;
 
   FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+  std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+  std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
+
+  std::vector<std::vector<float>> breakDowns;
+  bool doBreakdown = god.Get<bool>("n-best");
+  if (doBreakdown) {
+    breakDowns.push_back(bestCosts);
+    for (size_t i = 1; i < scorers.size(); ++i) {
+      std::vector<float> modelCosts(beamSizeSum);
+      mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+
+    }
+  }
 
 }
 
