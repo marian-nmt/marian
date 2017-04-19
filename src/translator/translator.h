@@ -7,6 +7,7 @@
 #include "translator/printer.h"
 #include "translator/output_collector.h"
 #include "3rd_party/threadpool.h"
+#include "models/lex_probs.h"
 
 namespace marian {
 
@@ -93,7 +94,7 @@ class TranslateSingleGPU : public ModelTask {
     Ptr<ExpressionGraph> graph_;
     Ptr<data::Corpus> corpus_;
     Ptr<Vocab> trgVocab_;
-    //Ptr<Filter> filter_;
+    Ptr<LexProbs> lexProbs_;
     
   public:  
     TranslateSingleGPU(Ptr<Config> options)
@@ -104,13 +105,15 @@ class TranslateSingleGPU : public ModelTask {
       auto vocabs = options_->get<std::vector<std::string>>("vocabs");
       trgVocab_->load(vocabs.back());
 
-      //if(options_->has("filter"))
-      //  filter_ = New<Filter>(options_,
-      //                        corpus_->getVocabs()[0],
-      //                        trgVocab_);
-        
       auto devices = options_->get<std::vector<int>>("devices");
       size_t device = devices[0];
+      
+      Ptr<LexProbs> lexProbs;
+      if(options_->has("lexical-table"))
+        lexProbs = New<LexProbs>(options_,
+                             corpus_->getVocabs().front(),
+                             trgVocab_,
+                             device);
       
       graph_ = New<ExpressionGraph>();
       graph_->setDevice(device);
@@ -118,8 +121,8 @@ class TranslateSingleGPU : public ModelTask {
       
       typedef typename Search::model_type Model;
       auto model = New<Model>(options_,
-                              keywords::inference=true
-                              /*keywords::filter=filter_*/);
+                              keywords::inference=true,
+                              keywords::lex_probs=lexProbs);
       model->load(graph_, options_->get<std::string>("model"));
     }
     
