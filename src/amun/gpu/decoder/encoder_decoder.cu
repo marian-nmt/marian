@@ -61,7 +61,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
                                State& out) {
   std::vector<size_t> beamWords;
   std::vector<size_t> beamStateIds;
-  for (auto h : beam) {
+  for (const HypothesisPtr &h : beam) {
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
   }
