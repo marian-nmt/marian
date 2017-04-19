@@ -49,7 +49,7 @@ protected:
 
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;
-  Array<int> indices_;
+  Array<uint> indices_;
   Array<int> batchMapping_;
 
   const OpenCLInfo &openCLInfo_;

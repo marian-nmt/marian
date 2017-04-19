@@ -69,6 +69,12 @@ void Decoder::GetProbs(const mblas::Matrix& State,
   softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
 }
 
+void Decoder::Lookup(mblas::Matrix& Embedding,
+            const std::vector<uint>& w)
+{
+  embeddings_.Lookup(Embedding, w);
+}
+
 } // namespace
 }
 

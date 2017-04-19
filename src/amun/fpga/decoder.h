@@ -17,9 +17,24 @@ class Decoder {
   template <class Weights>
   class Embeddings {
   public:
-    Embeddings(const Weights& model)
+    Embeddings(const OpenCLInfo &openCLInfo, const Weights& model)
     : w_(model)
+    , indices_(openCLInfo)
     {}
+
+    void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids)
+    {
+      using namespace mblas;
+      std::vector<uint> tids = ids;
+      for(auto&& id : tids)
+        if(id >= w_.E_.dim(0))
+          id = 1;
+      indices_.resize(tids.size());
+
+      indices_.Fill(tids);
+
+      Assemble(Rows, w_.E_, indices_);
+    }
 
     size_t GetCols() {
       return w_.E_.dim(1);
@@ -31,6 +46,7 @@ class Decoder {
 
   private:
     const Weights& w_;
+    Array<uint> indices_;
 
   };
 
@@ -271,7 +287,7 @@ public:
   : HiddenState_(openCLInfo),
     AlignedSourceContext_(openCLInfo),
     Probs_(openCLInfo),
-    embeddings_(model.decEmbeddings_),
+    embeddings_(openCLInfo, model.decEmbeddings_),
     rnn1_(openCLInfo, model.decInit_, model.decGru1_),
     rnn2_(openCLInfo, model.decGru2_),
     alignment_(openCLInfo, god, model.decAlignment_),
@@ -322,6 +338,8 @@ public:
                 const mblas::Matrix& Embedding,
                 const mblas::Matrix& AlignedSourceContext);
 
+  void Lookup(mblas::Matrix& Embedding,
+              const std::vector<uint>& w);
 
 private:
   mblas::Matrix HiddenState_;
