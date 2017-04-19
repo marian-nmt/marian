@@ -78,7 +78,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "indices_=" << mblas::Debug(indices_) << endl;
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
-  cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
+  cerr << endl << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
 
   cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);

@@ -30,9 +30,6 @@ class Decoder {
               tids.size(),
               thrust::raw_pointer_cast(indices_.data()),
               cudaMemcpyHostToDevice);
-          std::cerr << "tids=" << Debug(tids, 2) << std::endl;
-          std::cerr << "indices_=" << Debug(indices_, 2) << std::endl;
-          std::cerr << "w_.E_=" << w_.E_.Debug() << std::endl;
 
           Assemble(Rows, w_.E_, indices_);
         }

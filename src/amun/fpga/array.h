@@ -76,7 +76,18 @@ public:
 
   void Fill(const std::vector<T> &vec)
   {
-    CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, vec.data(), sizeof(T), 0, vec.size() * sizeof(T), 0, NULL, NULL) );
+    assert(vec.size() <= size_);
+    size_t bytes = vec.size() * sizeof(T);
+    CheckError( clEnqueueWriteBuffer(
+                    openCLInfo_.commands,
+                    mem_,
+                    CL_TRUE,
+                    0,
+                    bytes,
+                    vec.data(),
+                    0,
+                    NULL,
+                    NULL) );
     CheckError( clFinish(openCLInfo_.commands) );
   }
 
