@@ -59,9 +59,9 @@ More information on https://amunmt.github.io
 packages should work. On newer versions of Ubuntu, e.g. 16.10, there may be
 problems due to incompatibilities of the default g++ compiler and CUDA.
 
- * CMake 3.5.1
- * GCC/G++ 5.4
- * Boost 1.61
+ * CMake 3.5.1 (default)
+ * GCC/G++ 5.4 (default)
+ * Boost 1.58 (default)
  * CUDA 8.0
 
 **Ubuntu 14.04 LTS (tested).** A newer CMake version than the default version is
