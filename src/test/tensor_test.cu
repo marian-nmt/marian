@@ -1,86 +1,69 @@
 #include <iostream>
+#include <map>
 #include <boost/timer/timer.hpp>
 
+#include "data/corpus.h"
+#include "training/config.h"
 #include "tensors/tensor_allocator.h"
-#include "tensors/tensor.h"
-#include "kernels/tensor_operators.h"
-#include "kernels/thrust_functions.h"
+
+#include "graph/expression_operators.h"
 #include "common/logging.h"
 
-using namespace marian;
+#include "models/lex_probs.h"
 
-int main() {
-  Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v")};
+int main(int argc, char** argv) {
+  using namespace marian;
+  
+  marian::Config config(argc, argv);
+  
+  auto srcVocab = New<Vocab>();
+  auto trgVocab = New<Vocab>();
+  
+  srcVocab->load("model/vocab.ro.yml");
+  trgVocab->load("model/vocab.en.yml");
+  
+  int srcDim = 50;
+  int trgDim = 50;
 
-  Ptr<TensorAllocator> params = New<TensorAllocator>(0);
+  auto probs = New<LexProbs>("data/lex.s2t",
+                             srcVocab, trgVocab,
+                             srcDim, trgDim);
+  
+  TensorAllocator ta(0);
+  
+  int batchSize = 1;
+  int srcWords = 6;
+  int trgWords = 2;
 
-  cublasHandle_t handle = create_handle(0);
+  
+  std::vector<Ptr<data::SubBatch>> batches;
+  batches.push_back(New<data::SubBatch>(batchSize, srcWords));
+  batches.back()->indeces() = { 3, 4, 0, 1, 2, 0 };
+  
+  auto batch = New<data::CorpusBatch>(batches);
+  
+  Tensor att, logits;
+  Tensor lf, lfa;
+  
+  ta.allocate(att, {batchSize, 1, srcWords, trgWords});
+  ta.allocate(logits, {batchSize, trgDim, trgWords});
+  ta.allocate(lf, {batchSize, trgDim, srcWords, 1});
+  ta.allocate(lfa, {batchSize, trgDim, trgWords});
+  
+  logits->set(0);
 
-  int words = 64;
-  int batch = 128;
-  int hidden = 4096;
-
-  Tensor mappedState;
-  params->allocate(mappedState, {batch, hidden, 1});
-  mappedState->set(0.001);
-
-  Tensor mappedContext;
-  params->allocate(mappedContext, {batch, hidden, words});
-  mappedContext->set(0.001);
-
-  Tensor va;
-  params->allocate(va, {hidden, 1});
-  va->set(0.001);
-
-  Tensor out1;
-  params->allocate(out1, {batch, hidden, words});
-  out1->set(0);
-
-  Tensor gMappedState;
-  params->allocate(gMappedState, {batch, hidden, 1});
-  gMappedState->set(0);
-
-  Tensor gMappedContext;
-  params->allocate(gMappedContext, {batch, hidden, words});
-  gMappedContext->set(0.001);
-
-  Tensor gVa;
-  params->allocate(gVa, {hidden, 1});
-  va->set(0.001);
-
-  Tensor gOut1;
-  params->allocate(gOut1, {batch, hidden, words});
-  out1->set(0);
-
-  Tensor out2;
-  params->allocate(out2, {batch, 1, words});
-  out2->set(0);
-
-  boost::timer::cpu_timer timer;
-  for(int i = 0; i < 5000; ++i) {
-    Element(_1 = Tanh(_2 + _3), out1, mappedState, mappedContext);
-    Prod(handle, out2, out1, va, false, false, 0);
-    Prod(handle, gOut1, out2, va, false, true, 1.0f);
-    Prod(handle, gVa, out1, out2, true, false, 1.0f);
-    Add(_1 * (1.f - (_2 *_2)), gMappedState, out1, out1);
-    Add(_1 * (1.f - (_2 *_2)), gMappedContext, out1, out1);
-    cudaStreamSynchronize(0);
-
-    if(i % 100 == 0)
-      std::cout << "." << std::flush;
-  }
-  std::cout << timer.format(5, "%ws") << std::endl;
-
-  boost::timer::cpu_timer timer2;
-  for(int i = 0; i < 5000; ++i) {
-    Att(va, out2, mappedContext, mappedState, nullptr);
-    AttBack(gVa, gMappedContext, gMappedState, nullptr,
-        va, mappedContext, mappedState, out2, nullptr);
-    cudaStreamSynchronize(0);
-    if(i % 100 == 0)
-      std::cout << "." << std::flush;
-  }
-  std::cout << timer2.format(5, "%ws") << std::endl;
-
+  auto slf = probs->Lf(batch);
+  slf->toTensor(lf);
+  std::cerr << lf->debug() << std::endl;
+  
+  std::vector<float> av = { 0.9, 0.05, 0.02, 0.01, 0.01, 0.01,
+                            0.9, 0.05, 0.02, 0.01, 0.01, 0.01 };
+  att->set(av);
+  std::cerr << att->debug() << std::endl;
+  
+  sparse::LfaForward(lfa, logits, att, slf);
+  std::cerr << lfa->debug() << std::endl;
+  
+  
   return 0;
 }

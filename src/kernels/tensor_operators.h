@@ -11,8 +11,8 @@
 namespace marian {
 
 using namespace thrust::placeholders;
-#define MAX_THREADS 512
-#define MAX_BLOCKS 65535
+const int MAX_THREADS = 512;
+const int MAX_BLOCKS = 65535;
 
 class TensorGPU;
 

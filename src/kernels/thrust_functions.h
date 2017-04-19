@@ -167,6 +167,28 @@ namespace thrust
                        make_actor(_1),
                        make_actor(_2));
       }
+      
+      template<typename T>
+      struct binary_prune : public thrust::binary_function<T, T, T> {
+        __host__ __device__
+        T operator()(const T &x, const T &eps) const { return abs(x) >= eps ? x : 0; }
+      };
+
+      template<typename T1, typename T2>
+      __host__ __device__
+      actor<
+        composite<
+          binary_operator<binary_prune>,
+          actor<T1>,
+          typename as_actor<T2>::type
+        >
+      >
+      Prune(const actor<T1> &_1, const T2 &_2)
+      {
+        return compose(binary_operator<binary_prune>(),
+                       make_actor(_1),
+                       make_actor(_2));
+      }
 
       template<typename T>
       struct binary_pow : public thrust::binary_function<T, T, T> {

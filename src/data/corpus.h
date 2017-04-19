@@ -51,6 +51,10 @@ class CorpusBatch {
       return batches_[i];
     }
     
+    Ptr<SubBatch> front() {
+      return batches_.front();
+    }
+    
     Ptr<SubBatch> back() {
       return batches_.back();
     }

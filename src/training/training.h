@@ -6,8 +6,6 @@
 #include "training/config.h"
 #include "training/validator.h"
 
-#include "data/filter.h"
-
 namespace marian {
 
 class Reporter {
@@ -150,17 +148,17 @@ class Train : public ModelTask {
               
       auto trainCorpus = New<Corpus>(options_);
       
-      Ptr<Filter> filter;
-      if(options_->has("filter"))
-        filter = New<Filter>(options_,
-                             trainCorpus->getVocabs()[0],
-                             trainCorpus->getVocabs().back());
+      Ptr<LexProbs> lexProbs;
+      if(options_->has("lexical-table"))
+        lexProbs = New<LexProbs>(options_,
+                                 trainCorpus->getVocabs()[0],
+                                 trainCorpus->getVocabs().back());
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
         // @TODO, better fake batch with vocabulary
         stats = New<Model>(options_,
-                           keywords::filter=nullptr)->collectStats();
+                           keywords::lex_probs=nullptr)->collectStats();
         LOG(info, "[batching] Done");
       }
     
@@ -171,11 +169,11 @@ class Train : public ModelTask {
          && options_->get<size_t>("valid-freq") > 0) {
         for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
                                                                       options_,
-                                                                      keywords::filter=filter))
+                                                                      keywords::lex_probs=lexProbs))
           reporter->addValidator(validator);
       }
                               
-      auto model = New<Model>(options_, keywords::filter=filter);
+      auto model = New<Model>(options_, keywords::lex_probs=lexProbs);
       model->setReporter(reporter);
       model->load();  
     

@@ -173,39 +173,19 @@ class DecoderAmun : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, stateOut, alignedContext);
 
-      auto logitsOut = filterInfo_ ?
-        DenseWithFilter("ff_logit_l2", dimTrgVoc, filterInfo_->indeces())(logitsL1) :
-        Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
       
-      //debug(logitsOut, "logits");
-      
-      if(filterInfo_) {
-        auto cshape = state->getEncoderState()->getContext()->shape();
-        auto dimBatch = cshape[0];
-        auto dimVocNew = logitsOut->shape()[1];
-        auto dimSrcWords = cshape[2];
-        auto dimTrgWords = logitsOut->shape()[2];
-        
-        auto& probs = filterInfo_->probs();
-        auto lexProbs = graph->constant(shape={dimBatch, dimVocNew, dimSrcWords},
-                                        init=inits::from_sparse_vector(probs));
-        //debug(lexProbs, "lexProbs");
-        
+      if(lf_) {  
         auto alignmentsVec = rnn.getCell()->getAttention()->getAlignments();
+        Expr aln;
         if(single) {
-          auto aln = alignmentsVec.back();
-          auto sc = log(scalar_product(lexProbs, aln, axis=2));
-          sc = reshape(sc, {dimBatch, dimVocNew});
-          //debug(sc, "sc");
-          logitsOut = logitsOut + sc;
+          aln = alignmentsVec.back();
         }
         else {
-          auto aln = concatenate(alignmentsVec, axis=3);
-          auto sc = log(scalar_product(lexProbs, aln, axis=2));
-          sc = reshape(sc, {dimBatch, dimVocNew, dimTrgWords});
-          //debug(sc, "sc");
-          logitsOut = logitsOut + sc;
+          aln = concatenate(alignmentsVec, axis=3);
         }
+        
+        logitsOut = lexical_bias(logitsOut, aln, lf_);
       }
         
       return New<DecoderStateAmun>(stateOut, logitsOut,

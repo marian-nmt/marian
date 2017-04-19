@@ -1,5 +1,6 @@
 #pragma once
 #include "graph/expression_graph.h"
+#include "kernels/sparse.h"
 
 namespace marian {
 
@@ -9,13 +10,6 @@ Expr inference(Expr a);
 
 Expr debug(Expr a, const std::string& message = "");
 
-/**
- * @brief Associates a name with an Expr object and adds that object to the associated ExpressionGraph.
- *
- * @param a An expression object
- *
- * @return the provided Expr, after it has been named and added to the graph
- */
 Expr name(Expr a, const std::string& name);
 
 Expr rows(Expr a, const std::vector<size_t>& indeces);
@@ -37,21 +31,6 @@ Expr tanh(Args ...args) {
 Expr relu(Expr a);
 Expr relu(const std::vector<Expr>&);
 
-/**
- * Constructs a DropoutNodeOp object from the provided Expr object,
- *     wraps the <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a> node in a shared pointer,
- *     adds it to the associated ExpressionGraph,
- *     and returns the shared pointer to the dropout node
- *
- * @arg a An expression object
- *
- * @see <a href="https://en.wikipedia.org/wiki/Dropout_(neural_networks)">dropout</a>
- */
-//template <typename ...Args>
-//Expr dropout(Expr a, Args ...args) {
-//  return Expression<DropoutNodeOp>(a, args...);
-//}
-
 Expr log(Expr a);
 
 Expr exp(Expr a);
@@ -61,16 +40,12 @@ Expr operator-(Expr a);
 /*********************************************************/
 
 Expr operator+(Expr a, Expr b);
-//Expr operator+=(Expr a, Expr b);
 
 Expr operator-(Expr a, Expr b);
-//Expr operator-=(Expr a, Expr b);
 
 Expr operator*(Expr a, Expr b);
-//Expr operator*=(Expr a, Expr b);
 
 Expr operator/(Expr a, Expr b);
-//Expr operator/=(Expr a, Expr b);
 
 Expr dot(Expr a, Expr b);
 
@@ -104,8 +79,6 @@ Expr mean(Expr a, Args ...args) {
 
 Expr cross_entropy(Expr a, Expr b);
 
-//Expr tanh(Expr a, Expr b, Expr c);
-
 Expr affine(Expr a, Expr b, Expr c);
 
 template <typename ...Args>
@@ -126,7 +99,6 @@ Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
 
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr);
-//Expr batch_norm(Expr x, Expr gamma, Expr beta = nullptr);
 
 template <typename ...Args>
 Expr dropout(Expr x, Args ...args) {
@@ -144,4 +116,6 @@ Expr dropout(Expr x, Args ...args) {
 
 Expr shift(Expr, Shape);
 
+Expr lexical_bias(Expr logits, Expr att, Ptr<sparse::CSR> lf);
+  
 }

@@ -29,22 +29,22 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  Ptr<Filter> filter;
-  if(options->has("filter"))
-    filter = New<Filter>(options,
-                          corpus->getVocabs().front(),
-                          corpus->getVocabs().back());
+  Ptr<LexProbs> lexProbs;
+  if(options->has("lexical-table"))
+    lexProbs = New<LexProbs>(options,
+                             corpus->getVocabs().front(),
+                             corpus->getVocabs().back());
   
   auto type = options->get<std::string>("type");
   Ptr<EncoderDecoderBase> encdec;
   if(type == "s2s")
-    encdec = New<S2S>(options, keywords::filter=filter);
+    encdec = New<S2S>(options);
   else if(type == "multi-s2s")
-    encdec = New<MultiS2S>(options, keywords::filter=filter);
+    encdec = New<MultiS2S>(options);
   else
-    encdec = New<Amun>(options, keywords::filter=filter);
+    encdec = New<Amun>(options, keywords::lex_probs=lexProbs);
 
-  encdec->load(graph, options->get<std::string>("model"));
+  //encdec->load(graph, options->get<std::string>("model"));
 
   graph->reserveWorkspaceMB(options->get<size_t>("workspace"));
 
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
       //graph->graphviz("debug.dot");
 
       graph->forward();
-      //graph->backward();
+      graph->backward();
       break;
     }
   }

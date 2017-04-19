@@ -241,9 +241,7 @@ class MultiDecoderS2S : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, outputLn, alignedContext);
 
-      auto logitsOut = filterInfo_ ?
-        DenseWithFilter("ff_logit_l2", dimTrgVoc, filterInfo_->indeces())(logitsL1) :
-        Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
 
       return New<DecoderStateMultiS2S>(statesOut, logitsOut,
                                        state->getEncoderState());

@@ -5,7 +5,7 @@ set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/local/cuda-8.0/lib64)
 project(marian CXX)
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
-    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY})
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
 endif(CUDA_FOUND)
 
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -Wno-unused-result -Wno-deprecated -fPIC -Wno-deprecated-gpu-targets")

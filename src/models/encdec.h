@@ -9,8 +9,7 @@
 #include "layers/param_initializers.h"
 #include "layers/generic.h"
 #include "common/logging.h"
-
-#include "data/filter.h"
+#include "models/lex_probs.h"
 
 namespace marian {
 
@@ -64,15 +63,15 @@ class EncoderBase {
 class DecoderBase {
   protected:
     Ptr<Config> options_;
-    Ptr<Filter> filter_;
-    Ptr<FilterInfo> filterInfo_;
+    Ptr<LexProbs> lexProbs_;
+    Ptr<sparse::CSR> lf_;
     bool inference_{false};
     
   public:
     template <class ...Args>
     DecoderBase(Ptr<Config> options, Args ...args)
      : options_(options),
-       filter_(Get(keywords::filter, nullptr, args...)),
+       lexProbs_(Get(keywords::lex_probs, nullptr, args...)),
        inference_(Get(keywords::inference, false, args...)) {}
     
     virtual std::tuple<Expr, Expr, Expr>
@@ -95,21 +94,19 @@ class DecoderBase {
       auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
           
-      Expr yIdx;
-      if(filterInfo_) {
-        yIdx = graph->constant(shape={(int)filterInfo_->mappedIndeces().size(), 1},
-                               init=inits::from_vector(filterInfo_->mappedIndeces()));
-      }
-      else {
-        yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
-                               init=inits::from_vector(subBatch->indeces()));
-      }
-      
+      auto yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
+                                  init=inits::from_vector(subBatch->indeces()));
+    
       auto yShifted = shift(y, {0, 0, 1, 0});
       
       return std::make_tuple(yShifted, yMask, yIdx);
     }
 
+    virtual void setLexicalProbabilites(Ptr<data::CorpusBatch> batch) {
+      if(lexProbs_)
+        lf_ = lexProbs_->Lf(batch);
+    }
+    
     virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
     
     virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
@@ -133,17 +130,8 @@ class DecoderBase {
       return selectedEmbs;
     }
     
-    void createFilterInfo(Ptr<data::CorpusBatch> batch) {
-      if(filter_)
-        filterInfo_ = filter_->createInfo((*batch)[0], batch->back()); 
-    }
-
-    virtual Ptr<Filter> getFilter() {
-      return filter_;
-    }
-    
-    virtual Ptr<FilterInfo> getFilterInfo() {
-      return filterInfo_;
+    virtual Ptr<LexProbs> getLexProbs() {
+      return lexProbs_;
     }
     
     virtual Ptr<DecoderState> step(Expr embeddings,
@@ -182,7 +170,7 @@ class EncoderDecoder : public EncoderDecoderBase {
     Ptr<Config> options_;
     Ptr<EncoderBase> encoder_;
     Ptr<DecoderBase> decoder_;
-    Ptr<Filter> filter_;
+    Ptr<LexProbs> lexProbs_;
     bool inference_{false};
 
   public:
@@ -192,7 +180,7 @@ class EncoderDecoder : public EncoderDecoderBase {
      : options_(options),
        encoder_(New<Encoder>(options, args...)),
        decoder_(New<Decoder>(options, args...)),
-       filter_(Get(keywords::filter, nullptr, args...)),
+       lexProbs_(Get(keywords::lex_probs, nullptr, args...)),
        inference_(Get(keywords::inference, false, args...))
     { }
     
@@ -226,16 +214,16 @@ class EncoderDecoder : public EncoderDecoderBase {
     virtual void clear(Ptr<ExpressionGraph> graph) {
       graph->clear();
       encoder_ = New<Encoder>(options_,
-                              keywords::filter=filter_,
+                              keywords::lex_probs=lexProbs_,
                               keywords::inference=inference_);
       decoder_ = New<Decoder>(options_,
-                              keywords::filter=filter_,
+                              keywords::lex_probs=lexProbs_,
                               keywords::inference=inference_);
     }
 
     virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                          Ptr<data::CorpusBatch> batch) {
-      decoder_->createFilterInfo(batch);
+      decoder_->setLexicalProbabilites(batch);
       return decoder_->startState(encoder_->build(graph, batch));
     }
     

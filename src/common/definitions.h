@@ -83,7 +83,7 @@ namespace marian {
   class RunBase;
   typedef Ptr<RunBase> RunBasePtr;
 
-  class Filter;
+  class LexProbs;
   
   // An enumeration of activations
   enum struct act { linear, tanh, logit, ReLU };
@@ -125,7 +125,7 @@ namespace marian {
     KEY(coverage, Expr);
     KEY(max_epochs, int);
     KEY(valid, Ptr<RunBase>);
-    KEY(filter, Ptr<Filter>);
+    KEY(lex_probs, Ptr<LexProbs>);
   }
 
 }

@@ -4,6 +4,7 @@
 #include "tensors/tensor.h"
 #include "kernels/tensor_operators.h"
 #include "kernels/thrust_functions.h"
+#include "kernels/sparse.h"
 
 namespace marian {
 
@@ -799,6 +800,52 @@ struct ShiftNodeOp : public UnaryNodeOp {
 
 
   Shape shift_;
+};
+
+struct LexicalProbNodeOp : public NaryNodeOp {
+  template <typename ...Args>
+  LexicalProbNodeOp(Expr logits, Expr att, Ptr<sparse::CSR> lf, Args ...args)
+    : NaryNodeOp({logits, att}, keywords::shape=logits->shape(), args...),
+      lf_(lf) {
+  }
+
+  NodeOps forwardOps() {
+    return {
+      NodeOp(
+        sparse::LfaForward(val_,
+                           children_[0]->val(),
+                           children_[1]->val(),
+                           lf_, 1e-9);
+      )
+    };
+  }
+
+  NodeOps backwardOps() {
+    return {
+      NodeOp(Add(_1, children_[0]->grad(), adj_)),
+      NodeOp(sparse::LfaBackward(children_[1]->grad(),
+                                 children_[0]->val(),
+                                 children_[1]->val(),
+                                 adj_, lf_, 1e-6)
+      )
+    };
+  }
+
+  const std::string type() {
+    return "lexical_prob";
+  }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      boost::hash_combine(seed, (size_t)lf_.get());
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+
+  Ptr<sparse::CSR> lf_;
 };
 
 }

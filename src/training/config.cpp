@@ -252,8 +252,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.999),
      "decay factor for moving average")
-    ("filter", po::value<std::vector<std::string>>()->multitoken(),                                                                                 
-     "Filter vocabulary: path [N first words] [M best alignments] [T threshold]")
+    ("lexical-table", po::value<std::string>(),
+     "Load lexical table")
   ;
   desc.add(training);
 }
@@ -317,8 +317,8 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
-    ("filter", po::value<std::vector<std::string>>()->multitoken(),                                                                                 
-     "Filter vocabulary: path [N first words] [M best alignments] [T threshold]")
+    ("lexical-table", po::value<std::string>(),                                                                                 
+     "Path to lexical table")
     
   ;
   desc.add(translate);
@@ -415,7 +415,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-    SET_OPTION_NONDEFAULT("filter", std::vector<std::string>);
+    SET_OPTION_NONDEFAULT("lexical-table", std::string);
   }
   /** training end **/
   else {
@@ -424,7 +424,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("allow-unk", bool);
-    SET_OPTION_NONDEFAULT("filter", std::vector<std::string>);
+    SET_OPTION_NONDEFAULT("lexical-table", std::string);
   }
 
   /** valid **/

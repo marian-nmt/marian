@@ -14,6 +14,7 @@ cuda_add_library(marian_lib
   tensors/tensor.cu
   kernels/tensor_operators.cu
   kernels/dropout.cu
+  kernels/sparse.cu
   layers/param_initializers.cpp
   common/utils.cpp
   common/logging.cpp
