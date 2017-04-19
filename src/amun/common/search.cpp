@@ -118,6 +118,7 @@ void Search::Decode(
   std::vector<size_t> beamSizes(batchSize, 1);
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+    cerr << endl;
 	  bool hasSurvivors = Decode(
 			  god,
 			  sentences,
@@ -200,7 +201,7 @@ bool Search::CalcBeam(
     size_t batchSize = sentences.size();
 
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
-    //std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << std::endl;
+    std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << std::endl;
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
