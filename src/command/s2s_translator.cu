@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv, true, true);
-  WrapModelType<TranslateMultiGPU, BeamSearch>(options)->run();
+  WrapModelType<TranslateSingleGPU, BeamSearch>(options)->run();
   
   return 0;
 

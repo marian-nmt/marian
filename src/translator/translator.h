@@ -108,9 +108,8 @@ class TranslateSingleGPU : public ModelTask {
       auto devices = options_->get<std::vector<int>>("devices");
       size_t device = devices[0];
       
-      Ptr<LexProbs> lexProbs;
       if(options_->has("lexical-table"))
-        lexProbs = New<LexProbs>(options_,
+        lexProbs_ = New<LexProbs>(options_,
                              corpus_->getVocabs().front(),
                              trgVocab_,
                              device);
@@ -122,7 +121,7 @@ class TranslateSingleGPU : public ModelTask {
       typedef typename Search::model_type Model;
       auto model = New<Model>(options_,
                               keywords::inference=true,
-                              keywords::lex_probs=lexProbs);
+                              keywords::lex_probs=lexProbs_);
       model->load(graph_, options_->get<std::string>("model"));
     }
     
@@ -136,8 +135,8 @@ class TranslateSingleGPU : public ModelTask {
       while(bg) {
         auto batch = bg.next();
                   
-        auto search = New<Search>(options_
-                                  /*keywords::filter=filter_*/);
+        auto search = New<Search>(options_,
+                                  keywords::lex_probs=lexProbs_);
         auto history = search->search(graph_, batch, sentenceId);
     
         std::stringstream ss;
