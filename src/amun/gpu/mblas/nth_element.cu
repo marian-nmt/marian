@@ -343,7 +343,8 @@ void NthElement::GetPairs(size_t number,
   lastN = number;
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
+void NthElement::getValueByKey(std::vector<float>& out, float* d_in) const
+{
   gGetValueByKey<<<1, lastN, 0, stream_>>>
     (d_in, d_breakdown, h_res_idx, lastN);
 

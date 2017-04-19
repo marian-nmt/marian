@@ -26,7 +26,7 @@ class NthElement {
                   std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues);
 
-    void getValueByKey(std::vector<float>& out, float* d_in);
+    void getValueByKey(std::vector<float>& out, float* d_in) const;
 
   private:
     const int BLOCK_SIZE = 512;

@@ -115,6 +115,8 @@ class BestHyps : public BestHypsBase
 
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = god.Get<bool>("n-best");
+      std::cerr << "doBreakdown=" << doBreakdown << std::endl;
+
       if (doBreakdown) {
           breakDowns.push_back(bestCosts);
           for (size_t i = 1; i < scorers.size(); ++i) {
@@ -122,11 +124,14 @@ class BestHyps : public BestHypsBase
             mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
             nthElement_.getValueByKey(modelCosts, currProbs.data());
+            //std::cerr << "modelCosts=" << amunmt::Debug(modelCosts, 1) << std::endl;
+
             breakDowns.push_back(modelCosts);
           }
       }
 
       bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
+      std::cerr << "filter=" << filter << std::endl;
 
       std::map<size_t, size_t> batchMap;
       size_t tmp = 0;

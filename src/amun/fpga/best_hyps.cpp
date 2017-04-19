@@ -83,12 +83,41 @@ void BestHyps::CalcBeam(
   std::vector<std::vector<float>> breakDowns;
   bool doBreakdown = god.Get<bool>("n-best");
   if (doBreakdown) {
-    breakDowns.push_back(bestCosts);
-    for (size_t i = 1; i < scorers.size(); ++i) {
-      std::vector<float> modelCosts(beamSizeSum);
-      mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+    // TODO
+  }
 
+  bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
+
+  std::map<size_t, size_t> batchMap;
+  size_t tmp = 0;
+  for (size_t batchID = 0; batchID < beamSizes.size(); ++batchID) {
+    for (size_t t = 0; t < beamSizes[batchID]; ++t) {
+      batchMap[tmp++] = batchID;
     }
+  }
+
+  for (size_t i = 0; i < beamSizeSum; i++) {
+    size_t wordIndex = bestKeys[i] % Probs.dim(1);
+    if (filter) {
+      wordIndex = filterIndices[wordIndex];
+    }
+
+    size_t hypIndex  = bestKeys[i] / Probs.dim(1);
+    float cost = bestCosts[i];
+
+    HypothesisPtr hyp;
+    if (returnAlignment) {
+      //hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
+      //                         GetAlignments(scorers, hypIndex)));
+    } else {
+      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
+    }
+
+    if(doBreakdown) {
+      // TODO
+    }
+
+    beams[batchMap[i]].push_back(hyp);
   }
 
 }
