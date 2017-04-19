@@ -110,8 +110,8 @@ class BestHyps : public BestHypsBase
       std::vector<unsigned> bestKeys;
 
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
-      std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
-      std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
+      //std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+      //std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = god.Get<bool>("n-best");

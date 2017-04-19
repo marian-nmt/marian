@@ -79,9 +79,13 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   indices_.resize(beamStateIds.size());
 
   indices_.Fill(beamStateIds);
+  cerr << "indices_=" << indices_.Debug() << endl;
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
+  cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
+
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
+  cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
 void EncoderDecoder::Filter(const std::vector<size_t>&)

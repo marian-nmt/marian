@@ -75,9 +75,13 @@ void EncoderDecoder::AssembleBeamState(const State& in,
       beamStateIds.size(),
       thrust::raw_pointer_cast(indices_.data()),
       cudaMemcpyHostToDevice);
+  cerr << "indices_=" << mblas::Debug(indices_) << endl;
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
+  cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
+
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
+  cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {

@@ -319,13 +319,13 @@ class Decoder {
 
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
-      std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+      //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
 
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
-      std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
+      //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       
     }
 

@@ -200,7 +200,7 @@ bool Search::CalcBeam(
     size_t batchSize = sentences.size();
 
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
-    std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << std::endl;
+    //std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << std::endl;
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
