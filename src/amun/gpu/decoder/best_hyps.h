@@ -115,7 +115,7 @@ class BestHyps : public BestHypsBase
 
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = god.Get<bool>("n-best");
-      std::cerr << "doBreakdown=" << doBreakdown << std::endl;
+      //std::cerr << "doBreakdown=" << doBreakdown << std::endl;
 
       if (doBreakdown) {
           breakDowns.push_back(bestCosts);
@@ -131,7 +131,7 @@ class BestHyps : public BestHypsBase
       }
 
       bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
-      std::cerr << "filter=" << filter << std::endl;
+      //std::cerr << "filter=" << filter << std::endl;
 
       std::map<size_t, size_t> batchMap;
       size_t tmp = 0;
