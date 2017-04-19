@@ -85,6 +85,11 @@ public:
     CheckError( clEnqueueReadBuffer( openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(T) * size, arr, 0, NULL, NULL ) );
   }
 
+  virtual void resize(size_t newSize)
+  {
+
+  }
+
   virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;
