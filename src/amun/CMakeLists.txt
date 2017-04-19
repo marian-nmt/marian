@@ -42,6 +42,7 @@ add_library(libcommon OBJECT
   common/filter.cpp
   common/god.cpp
   common/history.cpp
+  common/hypothesis.cpp
   common/loader.cpp
   common/logging.cpp
   common/output_collector.cpp
