@@ -37,30 +37,50 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
-std::string Debug(const DeviceVector<T> &vec)
+std::string Debug(const DeviceVector<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
-  T ret = 0;
-  for (size_t i = 0; i < vec.size(); ++i) {
-    ret += vec[i];
+  strm << "size=" << vec.size();
+
+  if (verbosity) {
+    T sum = 0;
+    for (size_t i = 0; i < vec.size(); ++i) {
+      sum += vec[i];
+    }
+    strm << " sum=" << sum;
   }
 
-  strm << "size=" << vec.size() << " sum=" << ret;
+  if (verbosity == 2) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+      strm << " " << vec[i];
+    }
+  }
+
   return strm.str();
 }
 
 template<typename T>
-std::string Debug(const thrust::host_vector<T> &vec)
+std::string Debug(const thrust::host_vector<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
-  T ret = 0;
-  for (size_t i = 0; i < vec.size(); ++i) {
-    ret += vec[i];
+  strm << "size=" << vec.size();
+
+  if (verbosity) {
+    T sum = 0;
+    for (size_t i = 0; i < vec.size(); ++i) {
+      sum += vec[i];
+    }
+    strm << " sum=" << sum;
   }
 
-  strm << "size=" << vec.size() << " sum=" << ret;
+  if (verbosity == 2) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+      strm << " " << vec[i];
+    }
+  }
+
   return strm.str();
 }
 

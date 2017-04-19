@@ -32,6 +32,9 @@ class Decoder {
       indices_.resize(tids.size());
 
       indices_.Fill(tids);
+      std::cerr << "tids=" << Debug(tids, 2) << std::endl;
+      std::cerr << "indices_=" << indices_.Debug(2) << std::endl;
+      std::cerr << "w_.E_=" << w_.E_.Debug() << std::endl;
 
       Assemble(Rows, w_.E_, indices_);
     }
