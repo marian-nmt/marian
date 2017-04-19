@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
   if(options->has("lexical-table"))
     lexProbs = New<LexProbs>(options,
                              corpus->getVocabs().front(),
-                             corpus->getVocabs().back());
+                             corpus->getVocabs().back(), 0);
   
   auto type = options->get<std::string>("type");
   Ptr<EncoderDecoderBase> encdec;

@@ -14,6 +14,7 @@ class CSR {
     int nnz_{0};
     int rows_{0};
     int cols_{0};
+    size_t device_{0};
 
     cusparseHandle_t handle_{0};
     cusparseMatDescr_t descr_{0};
@@ -23,8 +24,9 @@ class CSR {
     float* values_{0};
     
   public:
-    CSR(int rows, int cols)
-    : rows_(rows), cols_(cols) {
+    CSR(int rows, int cols, size_t device)
+    : rows_(rows), cols_(cols), device_(device) {
+      cudaSetDevice(device);
       CUSPARSE_CHECK(cusparseCreate(&handle_));
       CUSPARSE_CHECK(cusparseCreateMatDescr(&descr_));
       CUSPARSE_CHECK(cusparseSetMatType(descr_, CUSPARSE_MATRIX_TYPE_GENERAL));
@@ -34,8 +36,10 @@ class CSR {
     CSR(int rows, int cols,
         const std::vector<float>& values,
         const std::vector<int>& rowIndices,
-        const std::vector<int>& colIndices)
-    : nnz_(values.size()), rows_(rows), cols_(cols) {
+        const std::vector<int>& colIndices,
+        size_t device)
+    : nnz_(values.size()), rows_(rows), cols_(cols), device_(device) {
+      cudaSetDevice(device);
       CUSPARSE_CHECK(cusparseCreate(&handle_));
       CUSPARSE_CHECK(cusparseCreateMatDescr(&descr_));
       CUSPARSE_CHECK(cusparseSetMatType(descr_, CUSPARSE_MATRIX_TYPE_GENERAL));
@@ -59,7 +63,9 @@ class CSR {
       CUDA_CHECK(cudaFree(cooRowIndices));
     }
     
-    CSR(Tensor dense) {
+    CSR(Tensor dense)
+    : device_(dense->getDevice()) {
+      cudaSetDevice(dense->getDevice());
       rows_ = dense->shape()[0] * dense->shape()[2] * dense->shape()[3]; 
       cols_ = dense->shape()[1];
       
@@ -84,6 +90,7 @@ class CSR {
     }
     
     ~CSR() {
+      cudaSetDevice(device_);
       if(values_) CUDA_CHECK(cudaFree(values_));
       if(rowIndices_) CUDA_CHECK(cudaFree(rowIndices_));
       if(colIndices_) CUDA_CHECK(cudaFree(colIndices_));
@@ -93,6 +100,7 @@ class CSR {
     }
     
     void toTensor(Tensor dense) {
+      cudaSetDevice(device_);
       UTIL_THROW_IF2(dense->size() != rows_ * cols_, "Matrix sizes do not match");
       
       cusparseScsc2dense(handle_, cols_, rows_, descr_,
@@ -110,7 +118,10 @@ class CSR {
     int* rowIndices() { return rowIndices_; }
     int* colIndices() { return colIndices_; }
     
+    size_t getDevice() { return device_; }
+    
     void allocValues(int nnz=0) {
+      cudaSetDevice(device_);
       if(nnz > 0)
         nnz_ = nnz;
       if(values_)
@@ -119,6 +130,7 @@ class CSR {
     }
     
     void allocRowIndices(int rows=0) {
+      cudaSetDevice(device_);
       if(rows > 0)
         rows_ = rows;
       if(rowIndices_)
@@ -127,6 +139,7 @@ class CSR {
     }
     
     void allocColIndices(int nnz=0) {
+      cudaSetDevice(device_);
       if(nnz > 0)
         nnz_ = nnz;
       if(colIndices_)

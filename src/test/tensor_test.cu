@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
   auto probs = New<LexProbs>("data/lex.s2t",
                              srcVocab, trgVocab,
-                             srcDim, trgDim);
+                             srcDim, trgDim, 0);
   
   TensorAllocator ta(0);
   

@@ -13,14 +13,16 @@ class LexProbs {
     Ptr<sparse::CSR> lexProbs_;
     size_t srcDim_;
     size_t trgDim_;
+    size_t device_;
     
   public:    
     LexProbs(const std::string& fname,
              Ptr<Vocab> srcVocab,
              Ptr<Vocab> trgVocab,
              size_t srcDim,
-             size_t trgDim)
-    : srcDim_(srcDim), trgDim_(trgDim) {
+             size_t trgDim,
+             size_t device)
+    : srcDim_(srcDim), trgDim_(trgDim), device_(device) {
       
       InputFileStream in(fname);
   
@@ -72,17 +74,19 @@ class LexProbs {
         }
       }
       
-      lexProbs_ = New<sparse::CSR>(srcDim, trgDim, values, rowIndices, colIndices);
+      lexProbs_ = New<sparse::CSR>(srcDim, trgDim, values, rowIndices, colIndices, device_);
     }
     
     LexProbs(Ptr<Config> options,
              Ptr<Vocab> srcVocab,
-             Ptr<Vocab> trgVocab)
+             Ptr<Vocab> trgVocab,
+             size_t device)
     : LexProbs(
         options->get<std::string>("lexical-table"),
         srcVocab, trgVocab, 
         options->get<std::vector<int>>("dim-vocabs").front(),
-        options->get<std::vector<int>>("dim-vocabs").back())
+        options->get<std::vector<int>>("dim-vocabs").back(),
+        device)
     {}
     
     Ptr<sparse::CSR> Lf(Ptr<data::CorpusBatch> batch) {
@@ -104,8 +108,9 @@ class LexProbs {
       auto lookup = New<sparse::CSR>(rows, srcDim_,
                                      values,
                                      rowIndices,
-                                     colIndices);
-      auto sent = New<sparse::CSR>(rows, lexProbs_->cols());
+                                     colIndices,
+                                     device_);
+      auto sent = New<sparse::CSR>(rows, lexProbs_->cols(), device_);
       sparse::multiply(sent, lookup, lexProbs_);  
       return sent;
     }
