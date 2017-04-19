@@ -87,7 +87,21 @@ public:
 
   virtual void resize(size_t newSize)
   {
+    if (newSize > size_) {
+      cl_int err;
 
+      cl_mem newMem = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(T) * newSize, NULL, &err);
+      CheckError(err);
+
+      if (size_) {
+        //cerr << "resize: clEnqueueCopyBuffer " << oldSize << endl;
+        CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, mem_, newMem, 0, 0, sizeof(T) * size_, 0, NULL, NULL) );
+      }
+
+      mem_ = newMem;
+    }
+
+    size_ = newSize;
   }
 
   virtual std::string Debug(size_t verbosity = 1) const
