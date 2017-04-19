@@ -200,6 +200,7 @@ bool Search::CalcBeam(
     bool returnAlignment = god.Get<bool>("return-alignment");
     size_t batchSize = sentences.size();
 
+    std::cerr << "prevHyps=" << amunmt::Debug(prevHyps, 2) << std::endl;
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
     std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << std::endl;
     std::cerr << "beams=" << amunmt::Debug(beams, 2) << std::endl;

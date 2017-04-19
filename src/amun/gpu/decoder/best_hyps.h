@@ -76,6 +76,7 @@ class BestHyps : public BestHypsBase
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
+      std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
       HostVector<float> vCosts;
       for (auto& h : prevHyps) {
