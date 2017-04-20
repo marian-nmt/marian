@@ -116,6 +116,6 @@ Expr dropout(Expr x, Args ...args) {
 
 Expr shift(Expr, Shape);
 
-Expr lexical_bias(Expr logits, Expr att, Expr exp, Ptr<sparse::CSR> lf);
+Expr lexical_bias(Expr logits, Expr att, float exp, Ptr<sparse::CSR> lf);
   
 }
