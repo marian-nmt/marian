@@ -68,13 +68,13 @@ public:
     std::swap(mem_, other.mem_);
   }
 
-  void Fill(const T &val)
+  void Set(const T &val)
   {
     CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
     CheckError( clFinish(openCLInfo_.commands) );
   }
 
-  void Fill(const std::vector<T> &vec)
+  void Set(const std::vector<T> &vec)
   {
     assert(vec.size() <= size_);
     size_t bytes = vec.size() * sizeof(T);
@@ -91,7 +91,7 @@ public:
     CheckError( clFinish(openCLInfo_.commands) );
   }
 
-  void Read(T *arr, size_t size) const
+  void Get(T *arr, size_t size) const
   {
     CheckError( clEnqueueReadBuffer( openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(T) * size, arr, 0, NULL, NULL ) );
   }
@@ -127,7 +127,7 @@ public:
 
     if (verbosity == 2) {
       T results[size_];
-      Read(results, size_);
+      Get(results, size_);
 
       for (size_t i = 0; i < size_; ++i) {
         strm << " " << results[i];

@@ -51,7 +51,7 @@ void BestHyps::CalcBeam(
     vCosts.push_back(h->GetCost());
   }
 
-  Costs.Fill(vCosts);
+  Costs.Set(vCosts);
   //cerr << "Costs=" << Costs.Debug(1) << endl;
 
   const bool isFirst = (vCosts[0] == 0.0f) ? true : false;

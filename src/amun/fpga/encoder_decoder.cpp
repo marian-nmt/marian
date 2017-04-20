@@ -80,7 +80,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   EDState& edOut = out.get<EDState>();
   indices_.resize(beamStateIds.size());
 
-  indices_.Fill(beamStateIds);
+  indices_.Set(beamStateIds);
   //cerr << "indices_=" << indices_.Debug(2) << endl;
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);

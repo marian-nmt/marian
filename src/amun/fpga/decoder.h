@@ -31,7 +31,7 @@ class Decoder {
           id = 1;
       indices_.resize(tids.size());
 
-      indices_.Fill(tids);
+      indices_.Set(tids);
 
       Assemble(Rows, w_.E_, indices_);
     }
@@ -165,7 +165,7 @@ class Decoder {
       }
 
       //std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
-      dBatchMapping_.Fill(batchMapping);
+      dBatchMapping_.Set(batchMapping);
       //std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
 
       const size_t srcSize = mapping.size() / beamSizes.size();

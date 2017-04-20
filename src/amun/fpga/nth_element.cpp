@@ -36,8 +36,8 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
 
   outCosts.resize(beamSize);
   outKeys.resize(beamSize);
-  d_out.Read(outCosts.data(), outCosts.size());
-  d_ind.Read(outKeys.data(), outKeys.size());
+  d_out.Get(outCosts.data(), outCosts.size());
+  d_ind.Get(outKeys.data(), outKeys.size());
 
   //cerr << "outCosts=" << Debug(outCosts, 2) << endl;
   //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
