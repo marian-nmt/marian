@@ -45,17 +45,25 @@ class NMT {
 
     size_t TargetVocab(const std::string& str);
 
-    void BatchSteps(const Batches& batches, Scores& probs, std::vector<States>& inputStates);
+    void RescorePhrases(
+        const std::vector<std::vector<std::string>>& phrases,
+        std::vector<States>& inputStates,
+        Scores& probs);
 
-    std::vector<double> RescoreNBestList(const std::vector<std::string>& nbest);
+    std::vector<float> RescoreNBestList(const std::vector<std::string>& nbest);
+    void BatchSteps(const Batches& batches, Scores& probsOut, std::vector<States>& inputStates);
 
     std::vector<NeuralExtention> GetNeuralExtentions(
             const std::vector<States>& inputStates);
 
   protected:
+    std::vector<float> Rescore(NBest& nBest, bool returnFinalStates=false);
     void SetDevice();
 
     States NewStates() const;
+    Beam GetSurvivors(RescoreBatch& rescoreBatch, size_t step);
+    States JoinStates(const std::vector<States>& states);
+    void SaveFinalStates(const States& inStates, size_t step, RescoreBatch& rescoreBatch);
 
     static std::shared_ptr<God> god_;
     std::vector<ScorerPtr> scorers_;
