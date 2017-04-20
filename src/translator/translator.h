@@ -134,7 +134,6 @@ class TranslateSingleGPU : public ModelTask {
       bg.prepare(false);
       while(bg) {
         auto batch = bg.next();
-        batch->debug();
                   
         auto search = New<Search>(options_,
                                   keywords::lex_probs=lexProbs_);

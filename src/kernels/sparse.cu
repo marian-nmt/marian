@@ -154,15 +154,7 @@ void LfaBackward(Tensor gradAtt, Tensor adj, Ptr<CSR> sparseLf) {
   Tensor expandAttGrad(new TensorBase(expandAttGradBuffer,
                                       {batch * trgWords, batch * srcWords}, 0));  
   CollapseAtt(gradAtt, expandAttGrad);
-  //std::cerr << expandAttGrad->debug() << std::endl;
   CUDA_CHECK(cudaFree(expandAttGradBuffer));
-  
-  //// Don't explode (too much)!
-  //float l2Norm = L2Norm(gradAtt);
-  //float t = 1000.f;
-  //if(l2Norm >= t) {
-  //  Element(_1 = (t / l2Norm) * _1, gradAtt);
-  //}
 }
 
 }
