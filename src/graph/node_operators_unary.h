@@ -804,31 +804,28 @@ struct ShiftNodeOp : public UnaryNodeOp {
 
 struct LexicalProbNodeOp : public NaryNodeOp {
   template <typename ...Args>
-  LexicalProbNodeOp(Expr logits, Expr att, Ptr<sparse::CSR> lf, Args ...args)
-    : NaryNodeOp({logits, att}, keywords::shape=logits->shape(), args...),
+  LexicalProbNodeOp(Expr logits, Expr att, Expr exp, Ptr<sparse::CSR> lf, Args ...args)
+    : NaryNodeOp({logits, att, exp}, keywords::shape=logits->shape(), args...),
       lf_(lf) {
   }
 
-  NodeOps forwardOps() {
-    return {
-      NodeOp(
-        sparse::LfaForward(val_,
-                           children_[0]->val(),
-                           children_[1]->val(),
-                           lf_, 1e-3);
-      )
-    };
+  void forward() {
+    sparse::LfaForward(val_,
+                       children_[0]->val(),
+                       children_[1]->val(),
+                       lf_);
+    // val = x + ln(p + eps + 1e-9)
+    Element(_1 = (Log(_1 + _3 + 1e-9) + _2),
+            val_, children_[0]->val(), children_[2]->val());
   }
-
-  NodeOps backwardOps() {
-    return {
-      NodeOp(Add(_1, children_[0]->grad(), adj_)),
-      NodeOp(sparse::LfaBackward(children_[1]->grad(),
-                                 children_[0]->val(),
-                                 children_[1]->val(),
-                                 adj_, lf_, 1e-3)
-      )
-    };
+  
+  void backward() {
+      Add(_1, children_[0]->grad(), adj_);
+      // adj' = adj / ( p + eps + 1e-9) = adj / exp(val - x)
+      Element(_1 = _1 / Exp(_2 - _3),
+              adj_, val_, children_[0]->val()); 
+      sparse::LfaBackward(children_[1]->grad(), adj_, lf_);
+      Add(_1, children_[2]->grad(), adj_);
   }
 
   const std::string type() {

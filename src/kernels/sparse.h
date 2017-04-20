@@ -163,11 +163,9 @@ class CSR {
 
 void multiply(Ptr<CSR>, const Ptr<CSR>, const Ptr<CSR>, bool=false, bool=false);
 
-void LfaForward(Tensor out, Tensor logits, Tensor att,
-                Ptr<CSR> sparseLf, float eps=1e-6);
+void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf);
 
-void LfaBackward(Tensor grad, Tensor val1, Tensor val2, Tensor adj,
-                 Ptr<CSR> sparseLf, float eps=1e-6);
+void LfaBackward(Tensor grad, Tensor adj, Ptr<CSR> sparseLf);
 
 }
 

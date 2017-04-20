@@ -175,7 +175,17 @@ class DecoderAmun : public DecoderBase {
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
       
-      if(lf_) {  
+      if(lf_) {
+        
+        //auto eps = logit(graph->param("lex_eps", {1, logitsOut->shape()[1]},
+        //                            init=inits::from_value(0)));
+        //
+        auto eps = logit(graph->param("lex_eps", {1, 1},
+                                      init=inits::from_value(0)));
+        
+        
+        
+        
         auto alignmentsVec = rnn.getCell()->getAttention()->getAlignments();
         Expr aln;
         if(single) {
@@ -185,9 +195,9 @@ class DecoderAmun : public DecoderBase {
           aln = concatenate(alignmentsVec, axis=3);
         }
         
-        logitsOut = lexical_bias(logitsOut, aln, lf_);
+        logitsOut = lexical_bias(logitsOut, aln, eps, lf_);
       }
-        
+          
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());
     }

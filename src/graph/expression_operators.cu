@@ -140,8 +140,8 @@ Expr shift(Expr a, Shape shift) {
   return Expression<ShiftNodeOp>(a, shift);
 }
 
-Expr lexical_bias(Expr logits, Expr att, Ptr<sparse::CSR> lf) {
-  return Expression<LexicalProbNodeOp>(logits, att, lf);
+Expr lexical_bias(Expr logits, Expr att, Expr exp, Ptr<sparse::CSR> lf) {
+  return Expression<LexicalProbNodeOp>(logits, att, exp, lf);
 }
 
 }

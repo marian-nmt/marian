@@ -61,8 +61,7 @@ void multiply(Ptr<CSR> C, const Ptr<CSR> A, const Ptr<CSR> B,
 //}
 
 
-void LfaForward(Tensor out, Tensor logits, Tensor att,
-                Ptr<CSR> sparseLf, float eps) {
+void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf) {
   cudaSetDevice(out->getDevice());
   
   int batch    = att->shape()[0];
@@ -98,8 +97,6 @@ void LfaForward(Tensor out, Tensor logits, Tensor att,
   multiply(sparseLfa, sparseAtt, sparseLf);
   
   sparseLfa->toTensor(out);
-  
-  Element(_1 = (Log(_1 + eps) + _2), out, logits);
 }
 
 __global__ void gCollapseAtt(float* out,
@@ -133,10 +130,7 @@ void CollapseAtt(Tensor out, Tensor in) {
 }
 
 
-void LfaBackward(Tensor gradAtt,
-                 Tensor valLogits, Tensor valAtt,
-                 Tensor adj,
-                 Ptr<CSR> sparseLf, float eps) {
+void LfaBackward(Tensor gradAtt, Tensor adj, Ptr<CSR> sparseLf) {
   cudaSetDevice(adj->getDevice());
   
   int batch    = gradAtt->shape()[0];
@@ -144,9 +138,7 @@ void LfaBackward(Tensor gradAtt,
   int trgWords = gradAtt->shape()[3];
   int nonzeros = gradAtt->shape().elements();
   
-  int dimTrgVoc = valLogits->shape()[1];
-  
-  Element(_1 = _2 / (_1 + eps), valLogits, adj);
+  int dimTrgVoc = adj->shape()[1];
   
   float* expandAttGradBuffer;
   CUDA_CHECK(cudaMalloc(&expandAttGradBuffer, sizeof(float) * batch * srcWords * batch * trgWords));
@@ -157,18 +149,20 @@ void LfaBackward(Tensor gradAtt,
     CUSPARSE_OPERATION_NON_TRANSPOSE,
     sparseLf->rows(), batch * trgWords, sparseLf->cols(), sparseLf->nnz(), &alpha,
     sparseLf->description(), sparseLf->values(), sparseLf->rowIndices(), sparseLf->colIndices(),
-    valLogits->data(), dimTrgVoc, &beta, expandAttGradBuffer, batch * srcWords));
+    adj->data(), dimTrgVoc, &beta, expandAttGradBuffer, batch * srcWords));
   
   Tensor expandAttGrad(new TensorBase(expandAttGradBuffer,
                                       {batch * trgWords, batch * srcWords}, 0));  
   CollapseAtt(gradAtt, expandAttGrad);
+  //std::cerr << expandAttGrad->debug() << std::endl;
   CUDA_CHECK(cudaFree(expandAttGradBuffer));
   
-  // Don't explode!
-  float l2Norm = L2Norm(gradAtt);
-  if(l2Norm >= 10.f) {
-    Element(_1 = (10.f / l2Norm) * _1, gradAtt);
-  }
+  //// Don't explode (too much)!
+  //float l2Norm = L2Norm(gradAtt);
+  //float t = 1000.f;
+  //if(l2Norm >= t) {
+  //  Element(_1 = (t / l2Norm) * _1, gradAtt);
+  //}
 }
 
 }
