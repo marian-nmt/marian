@@ -15,7 +15,7 @@
 
 #include "training/dropper.h"
 
-#define HISTORY_SIZE 6
+#define HISTORY_SIZE 6 
 #define DROP_SIZE 0.99
 
 
@@ -196,7 +196,8 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<int> globalVersionNumber; //version number per-shard
 
     std::vector<std::vector<int>> localVersionNumbers; //each worker has the version number obtained from each shard
-
+    
+    std::vector<std::vector<GradientDrop>> fetchDropper;
     std::vector<Tensor> tmpTensor, tmpDelta;
 
     std::vector<Tensor> params_[HISTORY_SIZE];
@@ -283,7 +284,7 @@ class AsyncGraphGroup : public GraphGroup {
     }
 
 
-    void sparseFetchParams(Tensor oldParams, std::vector<GradientDrop> fetchDropper, int worker_id ) {
+    void sparseFetchParams(Tensor oldParams, int worker_id ) {
       if(graphs_.size() < 2)
         return;
 
@@ -307,12 +308,13 @@ class AsyncGraphGroup : public GraphGroup {
           if (globalVersionNumber[idx] == localVersionNumbers[worker_id][idx])
             return;
 
+
           //get delta : param latest version - current param (locally)
           Element(_1 = _2 - _3, tmpTensor[idx], params_[latestVersion][idx] , params_[currVersion][idx]);
           cudaStreamSynchronize(0);
 
           //get sparse delta  
-          fetchDropper[idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , DROP_SIZE );
+          fetchDropper[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , DROP_SIZE );
           cudaStreamSynchronize(0);
 
           //move sparse delta
@@ -416,16 +418,19 @@ class AsyncGraphGroup : public GraphGroup {
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-            Tensor param;
-            Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
+           
 
             for (int h_id = 0; h_id < HISTORY_SIZE; h_id++){
-              allocator->reserveExact(__size__);
+              Tensor param; 
+	      Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
+	      allocator->reserveExact(__size__);
               allocator->allocate(param, {1, __size__});
               paramsAlloc_.push_back(allocator);
               param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__ ));
               params_[h_id].push_back(param);
             }
+
+	    if (DROP_SIZE) tmpTensor.push_back( newTensor(__size__, device));
             pos += __size__;
           }
         }
@@ -444,6 +449,7 @@ class AsyncGraphGroup : public GraphGroup {
             grads_.push_back(grad_);
           }
         }
+	std::cout<<"ALLOC AVG"<<std::endl;
         if(movingAvg_) {
           if(paramsAvg_.size() == 0) {
             int totalSize = graphs_[0]->params()->vals()->size();
@@ -466,12 +472,15 @@ class AsyncGraphGroup : public GraphGroup {
           }
         }
         
-        
-        if(DROP_SIZE && !first_) {
+//        std::cout<<"ALLOC DROPPER "<<DROPSIZE && !first<<std::endl;
+        if(DROP_SIZE && first_) {
           int totalSize = graphs_[0]->params()->vals()->size();
           int sparseCap = totalSize / 10;
+	  std::cout<<"INnnnnnnnnnnnnnnnnnnnnnnn"<<std::endl;
           for (auto device : devices_){
-            sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
+		
+            std::cout<<device<<std::endl;
+	    sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
             localSparseGrads_.push_back( SparseTensor(new SparseTensorBase(sparseCap , device )) );
             tmpSparseDelta.push_back( SparseTensor(new SparseTensorBase(sparseCap / devices_.size() , device )) );
             std::vector<SparseTensor> tmp;
@@ -480,6 +489,8 @@ class AsyncGraphGroup : public GraphGroup {
             localSparseDelta.push_back(tmp);
           }
         }
+
+	std::cout<<"DONE"<<std::endl;
 
         first_ = false;
       }
@@ -492,23 +503,34 @@ class AsyncGraphGroup : public GraphGroup {
 
         //gradient drop purpose
         thread_local GradientDrop dropper;
-        thread_local std::vector<GradientDrop> fetchDropper(devices_.size());
+        
 
         thread_local size_t my_id = 0;
         
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
-          graph = graphs_[i];
+          my_id = i;
+	  graph = graphs_[i];
           builder = builders_[i++];
 
           if (DROP_SIZE)
             tmpDelta.push_back( newTensor( graph->params()->vals()->size() , graph->params()->vals()->getDevice() ) );
         }
 
+	if(!dropper) {
+		std::lock_guard<std::mutex> lock(sync_);
+		std::cout<<"init dropper"<<std::endl;
+		dropper = GradientDrop(new GradientDropBase());
+		std::vector<GradientDrop> tmp;
+		for (int i=0;i<devices_.size();i++)
+			tmp.push_back(GradientDrop(new GradientDropBase()));
+		fetchDropper.push_back(tmp);
+	}
+
         builder->build(graph, batch);
         
-        if (DROP_SIZE && t > 0)
-          sparseFetchParams(graph->params()->vals(), fetchDropper, my_id );
+        if (DROP_SIZE && t > 0 )
+          sparseFetchParams(graph->params()->vals(), my_id );
         else
           fetchParams(graph->params()->vals(), params_[globalVersionNumber[my_id] % HISTORY_SIZE]);
         
@@ -520,8 +542,11 @@ class AsyncGraphGroup : public GraphGroup {
         
         cudaStreamSynchronize(0);
         if (DROP_SIZE){
+//	  std::cout<<"mau push "<<dropper<<"  "<<localSparseGrads_.size()<<std::endl;
+//
           dropper->dropGraph(graph->params()->grads() , localSparseGrads_[my_id] , DROP_SIZE );
           sparsePush(localSparseGrads_[my_id]);
+//	  std::cout<<"dah push"<<std::endl;
         }
         else
           pushGradients(graph->params()->grads());

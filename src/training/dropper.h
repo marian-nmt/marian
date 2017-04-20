@@ -86,7 +86,7 @@ public:
 
 
 
-    	if (DEBUG) std::cout<<"INITIATE SPARSE TENSOR HOLDER AT GPU "<<device<<" capacity "<<capacity<<std::endl;
+    	std::cout<<"INITIATE SPARSE TENSOR HOLDER AT GPU "<<device<<" capacity "<<capacity<<std::endl;
 	}
 
 	SparseTensorBase(float* data, int* indices, int size, size_t device){
@@ -311,8 +311,8 @@ class GradientDropBase {
 	  cudaSetDevice(_device);
 	  grad_add_error<<<blocks, threads>>>(data, errors, len);
 	  //full sort
-	  //int sortSize = len;
-	  int sortSize = min(100000, len);
+	  int sortSize = len;
+	  //int sortSize = min(100000, len);
 	  //cudaMemcpy(tmp, data, len * sizeof(float), cudaMemcpyDeviceToDevice);
 	  int blocksSample = 1 + sortSize/threads;
 	  randomSampling<<<blocksSample, threads>>>(data, tmp, sortSize, len / sortSize, len);
@@ -336,7 +336,6 @@ class GradientDropBase {
 
     int wow;
     void dropGraph(Tensor t, SparseTensor destination, double rate = 0.99) {
-
     	
     	cudaSetDevice(t->getDevice());
     	if(!feedback){
@@ -347,7 +346,7 @@ class GradientDropBase {
     		 cudaMemset(temp_d, 0, sizeof(float) * t->size());
     		 wow = 0;
     		 step = 0;
-    		 std::cerr<<"MALLOC for grad Dropper GPU "<<t->getDevice()<<std::endl;
+    		 std::cerr<<"MALLOC for grad Dropper GPU "<<t->getDevice()<<" "<< destination->getDevice()<< std::endl;
     	}
  		/*
     	if (partial)
