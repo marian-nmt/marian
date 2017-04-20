@@ -21,15 +21,21 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst)
 {
+  assert(beamSizes.size() == 1);
+  size_t beamSize = beamSizes[0];
+  cerr << "beamSize=" << beamSize << endl;
+  cerr << "maxBeamSize_=" << maxBeamSize_ << endl;
+  cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
+
   //d_out.Fill(666);
   //d_ind.Fill(666);
 
-  mblas::NthElement(d_out, d_ind, Probs, maxBeamSize_, maxBatchSize_);
+  mblas::NthElement(d_out, d_ind, Probs, beamSize, maxBatchSize_);
   //cerr << "d_out=" << d_out.Debug(2) << endl;
   //cerr << "d_ind=" << d_ind.Debug(2) << endl;
 
-  outCosts.resize(maxBeamSize_);
-  outKeys.resize(maxBeamSize_);
+  outCosts.resize(beamSize);
+  outKeys.resize(beamSize);
   d_out.Read(outCosts.data(), outCosts.size());
   d_ind.Read(outKeys.data(), outKeys.size());
 
