@@ -227,8 +227,8 @@ bool Search::CalcBeam(
 
     for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
-      cerr << "nextStates=" << nextStates[i]->Debug() << endl;
-      cerr << "states=" << states[i]->Debug() << endl;
+      //cerr << "nextStates=" << nextStates[i]->Debug() << endl;
+      //cerr << "states=" << states[i]->Debug() << endl;
     }
 
     prevHyps.swap(survivors);

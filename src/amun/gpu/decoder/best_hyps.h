@@ -88,18 +88,19 @@ class BestHyps : public BestHypsBase
           vCosts.size(),
           thrust::raw_pointer_cast(Costs.data()),
           cudaMemcpyHostToDevice);
+      std::cerr << "Costs=" << mblas::Debug(Costs) << std::endl;
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
       BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
-      //std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
+      std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
 
       for (size_t i = 1; i < scorers.size(); ++i) {
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
         Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
       }
-      //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+      std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
       if (!god.Get<bool>("allow-unk")) {
         DisAllowUNK(Probs);
@@ -111,8 +112,8 @@ class BestHyps : public BestHypsBase
       std::vector<unsigned> bestKeys;
 
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
-      //std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
-      //std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
+      std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+      std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = god.Get<bool>("n-best");

@@ -73,22 +73,22 @@ void EncoderDecoder::AssembleBeamState(const State& in,
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
   }
-  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
   indices_.resize(beamStateIds.size());
 
   indices_.Fill(beamStateIds);
-  cerr << "indices_=" << indices_.Debug(2) << endl;
+  //cerr << "indices_=" << indices_.Debug(2) << endl;
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
-  cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
+  //cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
 
-  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
-  cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
+  //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
 void EncoderDecoder::Filter(const std::vector<size_t>&)

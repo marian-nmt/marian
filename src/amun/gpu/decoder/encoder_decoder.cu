@@ -65,8 +65,8 @@ void EncoderDecoder::AssembleBeamState(const State& in,
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
   }
-  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
@@ -77,14 +77,14 @@ void EncoderDecoder::AssembleBeamState(const State& in,
       beamStateIds.size(),
       thrust::raw_pointer_cast(indices_.data()),
       cudaMemcpyHostToDevice);
-  cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
+  //cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
-  cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
+  //cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
 
-  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
-  cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
+  //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {

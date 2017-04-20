@@ -52,13 +52,14 @@ void BestHyps::CalcBeam(
   }
 
   Costs.Fill(vCosts);
+  cerr << "Costs=" << Costs.Debug(1) << endl;
 
   const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
   float weight = weights_.at(scorers[0]->GetName());
 
   BroadcastVecColumnAddWeighted(Probs, weight, Costs);
-  //std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
+  std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
 
   for (size_t i = 1; i < scorers.size(); ++i) {
     mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
@@ -66,7 +67,7 @@ void BestHyps::CalcBeam(
     float weight = weights_.at(scorers[0]->GetName());
     ElementAddWeighted(Probs, weight, currProbs);
   }
-  //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+  std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
   if (!god.Get<bool>("allow-unk")) {
     DisAllowUNK(Probs);
@@ -78,8 +79,8 @@ void BestHyps::CalcBeam(
   std::vector<unsigned> bestKeys;
 
   FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
-  //std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
-  //std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
+  std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+  std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
   std::vector<std::vector<float>> breakDowns;
   bool doBreakdown = god.Get<bool>("n-best");
