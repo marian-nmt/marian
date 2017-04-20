@@ -18,7 +18,7 @@ class TranslateMultiGPU : public ModelTask {
     std::vector<Ptr<ExpressionGraph>> graphs_;
     Ptr<data::Corpus> corpus_;
     Ptr<Vocab> trgVocab_;
-    //Ptr<Filter> filter_;
+    Ptr<LexProbs> lexProbs_;
     
   public:  
     TranslateMultiGPU(Ptr<Config> options)
@@ -29,10 +29,10 @@ class TranslateMultiGPU : public ModelTask {
       auto vocabs = options_->get<std::vector<std::string>>("vocabs");
       trgVocab_->load(vocabs.back());
 
-      //if(options_->has("filter"))
-      //  filter_ = New<Filter>(options_,
-      //                        corpus_->getVocabs()[0],
-      //                        trgVocab_);
+      if(options_->has("lexical-table"))
+        lexProbs_ = New<LexProbs>(options_,
+                             corpus_->getVocabs().front(),
+                             trgVocab_);
         
       auto devices = options_->get<std::vector<int>>("devices");
       for(auto& device : devices) {
@@ -43,8 +43,8 @@ class TranslateMultiGPU : public ModelTask {
         
         typedef typename Search::model_type Model;
         auto model = New<Model>(options_,
-                                keywords::inference=true
-                                /*keywords::filter=filter_*/);
+                                keywords::inference=true,
+                                keywords::lex_probs=lexProbs_);
         model->load(graph, options_->get<std::string>("model"));
       }
       
@@ -71,8 +71,8 @@ class TranslateMultiGPU : public ModelTask {
             cudaSetDevice(graph->getDevice());
           }
           
-          auto search = New<Search>(options_
-                                    /*keywords::filter=filter_*/);
+          auto search = New<Search>(options_,
+                                    keywords::lex_probs=lexProbs_);
           auto history = search->search(graph, batch, id);
       
           std::stringstream ss;
@@ -111,8 +111,7 @@ class TranslateSingleGPU : public ModelTask {
       if(options_->has("lexical-table"))
         lexProbs_ = New<LexProbs>(options_,
                              corpus_->getVocabs().front(),
-                             trgVocab_,
-                             device);
+                             trgVocab_);
       
       graph_ = New<ExpressionGraph>();
       graph_->setDevice(device);

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "marian.h"
+#include "common/definitions.h"
 #include "graph/expression_graph.h"
-#include "layers/rnn.h"
+#include "graph/expression_operators.h"
+#include "models/states.h"
 
 namespace marian {
 
@@ -76,17 +77,7 @@ struct AttentionNodeOp : public NaryNodeOp {
   }
 };
 
-Expr attOps(Expr va, Expr context, Expr state, Expr coverage=nullptr) {
-  std::vector<Expr> nodes{va, context, state};
-  if(coverage)
-    nodes.push_back(coverage);
-
-  int dimBatch = context->shape()[0];
-  int dimWords = context->shape()[2];
-  int dimBeam  = state->shape()[3];
-  return reshape(Expression<AttentionNodeOp>(nodes),
-                 {dimWords, dimBatch, 1, dimBeam});
-}
+Expr attOps(Expr va, Expr context, Expr state, Expr coverage=nullptr);
 
 class GlobalAttention {
   private:

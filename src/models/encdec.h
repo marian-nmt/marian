@@ -5,25 +5,13 @@
 
 #include "training/config.h"
 #include "graph/expression_graph.h"
-#include "layers/rnn.h"
 #include "layers/param_initializers.h"
 #include "layers/generic.h"
 #include "common/logging.h"
+#include "models/states.h"
 #include "models/lex_probs.h"
 
 namespace marian {
-
-struct EncoderState {
-  virtual Expr getContext() = 0;
-  virtual Expr getMask() = 0;
-};
-
-struct DecoderState {
-  virtual Ptr<EncoderState> getEncoderState() = 0;
-  virtual Expr getProbs() = 0;
-  virtual void setProbs(Expr) = 0;
-  virtual Ptr<DecoderState> select(const std::vector<size_t>&) = 0;
-};
 
 class EncoderBase {
   protected:
@@ -63,16 +51,15 @@ class EncoderBase {
 class DecoderBase {
   protected:
     Ptr<Config> options_;
-    Ptr<LexProbs> lexProbs_;
-    Ptr<sparse::CSR> lf_;
     bool inference_{false};
+    Ptr<LexProbs> lexProbs_;
     
   public:
     template <class ...Args>
     DecoderBase(Ptr<Config> options, Args ...args)
      : options_(options),
-       lexProbs_(Get(keywords::lex_probs, nullptr, args...)),
-       inference_(Get(keywords::inference, false, args...)) {}
+       inference_(Get(keywords::inference, false, args...)),
+       lexProbs_(Get(keywords::lex_probs, nullptr, args...)) {}
     
     virtual std::tuple<Expr, Expr, Expr>
     groundTruth(Ptr<ExpressionGraph> graph,
@@ -102,9 +89,10 @@ class DecoderBase {
       return std::make_tuple(yShifted, yMask, yIdx);
     }
 
-    virtual void setLexicalProbabilites(Ptr<data::CorpusBatch> batch) {
+    virtual void setLexicalProbabilites(Ptr<ExpressionGraph> graph,
+                                        Ptr<data::CorpusBatch> batch) {
       if(lexProbs_)
-        lf_ = lexProbs_->Lf(batch);
+        lexProbs_->resetLf(graph, batch);
     }
     
     virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
@@ -223,7 +211,7 @@ class EncoderDecoder : public EncoderDecoderBase {
 
     virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                          Ptr<data::CorpusBatch> batch) {
-      decoder_->setLexicalProbabilites(batch);
+      decoder_->setLexicalProbabilites(graph, batch);
       return decoder_->startState(encoder_->build(graph, batch));
     }
     

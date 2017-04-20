@@ -243,20 +243,11 @@ class MultiDecoderS2S : public DecoderBase {
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
 
-      if(lf_) {        
-        auto alignmentsVec = rnnL1.getCell()->getAttention1()->getAlignments();
-        Expr aln;
-        if(single) {
-          aln = alignmentsVec.back();
-        }
-        else {
-          aln = concatenate(alignmentsVec, axis=3);
-        }
-        
-        logitsOut = lexical_bias(logitsOut, aln, 1e-3, lf_);
-      }
+      if(lexProbs_)
+        logitsOut = LexicalBias(lexProbs_->getLf(),
+                                rnnL1.getCell()->getAttention1(),
+                                1e-3, single)(logitsOut);
           
-      
       return New<DecoderStateMultiS2S>(statesOut, logitsOut,
                                        state->getEncoderState());
     }

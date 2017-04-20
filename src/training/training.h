@@ -151,9 +151,8 @@ class Train : public ModelTask {
       Ptr<LexProbs> lexProbs;
       if(options_->has("lexical-table"))
         lexProbs = New<LexProbs>(options_,
-                                 trainCorpus->getVocabs()[0],
-                                 trainCorpus->getVocabs().back(),
-                                 options_->get<std::vector<size_t>>("devices").front());
+                                 trainCorpus->getVocabs().front(),
+                                 trainCorpus->getVocabs().back());
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");

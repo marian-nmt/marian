@@ -2,6 +2,7 @@
 
 #include "models/encdec.h"
 #include "layers/attention.h"
+#include "layers/rnn.h"
 
 namespace marian {
 
@@ -162,7 +163,7 @@ class DecoderAmun : public DecoderBase {
       auto stateAmun = std::dynamic_pointer_cast<DecoderStateAmun>(state);
       auto stateOut = rnn(embeddings, stateAmun->getState());
       
-      auto alignedContextsVec = rnn.getCell()->getAttention()->getContexts();
+      auto alignedContextsVec = attention_->getContexts();
       auto alignedContext = single ?
         alignedContextsVec.back() :
         concatenate(alignedContextsVec, keywords::axis=2);
@@ -175,18 +176,10 @@ class DecoderAmun : public DecoderBase {
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
       
-      if(lf_) {        
-        auto alignmentsVec = rnn.getCell()->getAttention()->getAlignments();
-        Expr aln;
-        if(single) {
-          aln = alignmentsVec.back();
-        }
-        else {
-          aln = concatenate(alignmentsVec, axis=3);
-        }
-        
-        logitsOut = lexical_bias(logitsOut, aln, 1e-3, lf_);
-      }
+      if(lexProbs_)
+        logitsOut = LexicalBias(lexProbs_->getLf(),
+                                attention_,
+                                1e-3, single)(logitsOut);
           
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());

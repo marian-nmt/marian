@@ -5,24 +5,29 @@
 #include "data/vocab.h"
 #include "kernels/sparse.h"
 #include "training/config.h"
+#include "layers/attention.h"
 
 namespace marian {
 
 class LexProbs {
   private:
-    Ptr<sparse::CSR> lexProbs_;
+    static thread_local Ptr<sparse::CSR> lexProbs_;
+    static thread_local Ptr<sparse::CSR> lf_;
+    
     size_t srcDim_;
     size_t trgDim_;
-    size_t device_;
+    
+    std::vector<float> values_;
+    std::vector<int> rowIndices_;
+    std::vector<int> colIndices_;
     
   public:    
     LexProbs(const std::string& fname,
              Ptr<Vocab> srcVocab,
              Ptr<Vocab> trgVocab,
              size_t srcDim,
-             size_t trgDim,
-             size_t device)
-    : srcDim_(srcDim), trgDim_(trgDim), device_(device) {
+             size_t trgDim)
+    : srcDim_(srcDim), trgDim_(trgDim) {
       
       InputFileStream in(fname);
   
@@ -37,7 +42,7 @@ class LexProbs {
         size_t sid = (*srcVocab)[src];
         size_t tid = (*trgVocab)[trg];
             
-        if(sid < srcDim && tid < trgDim && prob > 0.001) {
+        if(sid < srcDim_ && tid < trgDim_ && prob > 0.001) {
           if(data.size() <= sid)
             data.resize(sid + 1);
           if(data[sid].count(tid) == 0) {
@@ -52,9 +57,9 @@ class LexProbs {
       data[0][0] = 1;
       nonzeros++;
       
-      std::vector<float> values(nonzeros);
-      std::vector<int> rowIndices(nonzeros);
-      std::vector<int> colIndices(nonzeros);
+      values_.resize(nonzeros);
+      rowIndices_.resize(nonzeros);
+      colIndices_.resize(nonzeros);
       
       std::cerr << "nnz: " << nonzeros << std::endl;
       
@@ -64,32 +69,40 @@ class LexProbs {
           size_t tid = it.first;
           float val = it.second;
           
-          if(tid >= trgDim)
+          if(tid >= trgDim_)
             break;
           
-          rowIndices[ind] = sid;
-          colIndices[ind] = tid;
-          values[ind] = val;
+          rowIndices_[ind] = sid;
+          colIndices_[ind] = tid;
+          values_[ind] = val;
           ind++;
         }
       }
-      
-      lexProbs_ = New<sparse::CSR>(srcDim, trgDim, values, rowIndices, colIndices, device_);
     }
     
     LexProbs(Ptr<Config> options,
              Ptr<Vocab> srcVocab,
-             Ptr<Vocab> trgVocab,
-             size_t device)
+             Ptr<Vocab> trgVocab)
     : LexProbs(
         options->get<std::string>("lexical-table"),
         srcVocab, trgVocab, 
         options->get<std::vector<int>>("dim-vocabs").front(),
-        options->get<std::vector<int>>("dim-vocabs").back(),
-        device)
+        options->get<std::vector<int>>("dim-vocabs").back())
     {}
     
-    Ptr<sparse::CSR> Lf(Ptr<data::CorpusBatch> batch) {
+    void buildProbs(size_t device) {
+      if(!lexProbs_) {
+        std::cerr << "building probs" << std::endl;
+        lexProbs_ = New<sparse::CSR>(srcDim_, trgDim_,
+                                     values_, rowIndices_, colIndices_,
+                                     device);
+      }
+    }
+    
+    void resetLf(Ptr<ExpressionGraph> graph,
+                 Ptr<data::CorpusBatch> batch) {
+      buildProbs(graph->getDevice());
+      
       auto srcBatch = batch->front();
       auto& indices = srcBatch->indeces();
       
@@ -110,15 +123,36 @@ class LexProbs {
                                      values,
                                      rowIndices,
                                      colIndices,
-                                     device_);
-      auto sent = New<sparse::CSR>(rows, lexProbs_->cols(), device_);
-      sparse::multiply(sent, lookup, lexProbs_);  
-      return sent;
+                                     graph->getDevice());
+      lf_ = New<sparse::CSR>(rows, lexProbs_->cols(), graph->getDevice());
+      sparse::multiply(lf_, lookup, lexProbs_);  
     }
     
     Ptr<sparse::CSR> getProbs() {
       return lexProbs_;
     }
+    
+    Ptr<sparse::CSR> getLf() {
+      return lf_;
+    }
+};
+
+class LexicalBias {
+  private:
+    Ptr<sparse::CSR> sentLexProbs_;
+    Ptr<GlobalAttention> attention_;
+    float eps_;
+    bool single_;
+    
+  public:
+    LexicalBias(Ptr<sparse::CSR> sentLexProbs,
+                Ptr<GlobalAttention> attention,
+                float eps, bool single)
+    : sentLexProbs_(sentLexProbs), attention_(attention),
+      eps_(eps), single_(single)
+    { }
+    
+    Expr operator()(Expr logits);
 };
 
 }
