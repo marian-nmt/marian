@@ -163,6 +163,12 @@ void LfaBackward(Tensor gradAtt,
                                       {batch * trgWords, batch * srcWords}, 0));  
   CollapseAtt(gradAtt, expandAttGrad);
   CUDA_CHECK(cudaFree(expandAttGradBuffer));
+  
+  // Don't explode!
+  float l2Norm = L2Norm(gradAtt);
+  if(l2Norm >= 10.f) {
+    Element(_1 = (10.f / l2Norm) * _1, gradAtt);
+  }
 }
 
 }
