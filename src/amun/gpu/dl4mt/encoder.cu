@@ -38,6 +38,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
                          DeviceVector<int>& dMapping) {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
+  //cerr << "1dMapping=" << mblas::Debug(dMapping, 2) << endl;
   thrust::host_vector<int> hMapping(maxSentenceLength * source.size(), 0);
   for (size_t i = 0; i < source.size(); ++i) {
     for (size_t j = 0; j < source.at(i)->GetWords(tab).size(); ++j) {
@@ -46,7 +47,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
   }
 
   dMapping = hMapping;
-  cerr << "dMapping=" << mblas::Debug(dMapping) << endl;
+  cerr << "dMapping=" << mblas::Debug(dMapping, 2) << endl;
 
   cerr << "GetContext1=" << context.Debug(1) << endl;
   context.Resize(maxSentenceLength,

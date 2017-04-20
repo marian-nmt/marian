@@ -51,6 +51,7 @@ protected:
   std::unique_ptr<Decoder> decoder_;
   Array<uint> indices_;
   Array<int> batchMapping_;
+    // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 
   const OpenCLInfo &openCLInfo_;
 };

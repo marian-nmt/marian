@@ -52,7 +52,7 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
   Array<int> temp(dMapping.GetOpenCLInfo(), hMapping);
   temp.Swap(dMapping);
 
-  cerr << "dMapping=" << dMapping.Debug() << endl;
+  cerr << "dMapping=" << dMapping.Debug(2) << endl;
 
   cerr << "GetContext1=" << context.Debug(1) << endl;
   context.Resize(maxSentenceLength,
