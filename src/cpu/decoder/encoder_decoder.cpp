@@ -68,12 +68,16 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>&) {
+void EncoderDecoder::Decode(const God &god, const State& in, State& out) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
   decoder_->Decode(edOut.GetStates(), edIn.GetStates(),
                      edIn.GetEmbeddings(), SourceContext_);
+}
+
+void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>&) {
+  Decode(god, in, out);
 }
 
 State* EncoderDecoder::NewState() const {

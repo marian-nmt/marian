@@ -51,6 +51,8 @@ class Scorer {
     virtual void Decode(const God &god, const State& in,
                        State& out, const std::vector<size_t>& beamSizes) = 0;
 
+    virtual void Decode(const God &god, const State& in, State& out) = 0;
+
     virtual void BeginSentenceState(State& state, size_t batchSize=1) = 0;
 
     virtual void AssembleBeamState(const State& in,
