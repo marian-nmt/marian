@@ -543,8 +543,9 @@ __kernel void gNthElement(
     float val = prob[i];
     insertValue(bestCost, bestInd, i, val, i);
   }
-   
-  for (uint col = maxBeamSize; col < cols; ++col) {
+
+  uint probSize = rows * cols;
+  for (uint col = maxBeamSize; col < probSize; ++col) {
     float cost = prob[col];
     replaceValueOrDiscard(bestCost, bestInd, maxBeamSize, cost, col);
   }
