@@ -229,7 +229,7 @@ class Decoder {
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
     }
 
-    BaseMatrix& GetProbs() {
+    mblas::ArrayMatrix& GetProbs() {
       return Probs_;
     }
 

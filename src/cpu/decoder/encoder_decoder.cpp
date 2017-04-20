@@ -52,7 +52,18 @@ const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 }
 
 void EncoderDecoderState::JoinStates(const States& states) {
-    std::cerr << "EncoderDecoderState::JoinStates: NOT Implemented " << std::endl;
+  size_t rows = states.size();
+  size_t stateCols = states[0]->get<EDState>().GetStates().Cols();
+  size_t embCols = states[0]->get<EDState>().GetEmbeddings().Cols();
+
+  states_.resize(rows, stateCols);
+  embeddings_.resize(rows, embCols);
+
+  for (size_t i = 0; i < rows; ++i) {
+    const EncoderDecoderState& inState = states[i]->get<EncoderDecoderState>();
+    blaze::row(states_, i) = blaze::row(inState.GetStates(), 0);
+    blaze::row(embeddings_, i) = blaze::row(inState.GetEmbeddings(), 0);
+  }
 }
 
 
@@ -141,8 +152,15 @@ BaseMatrix& EncoderDecoder::GetProbs() {
 }
 
 std::vector<float> EncoderDecoder::GetScores(const std::vector<std::pair<size_t, size_t>>& ids) {
-    std::cerr << "EncoderDecoder::GetScores: NOT IMPLEMENTED" << std::endl;
-    return std::vector<float>(ids.size(), 0.0f);
+    std::vector<float> scores;
+    for (auto id : ids) {
+      if (id.second < GetVocabSize()) {
+        scores.push_back(decoder_->GetProbs()(id.first, id.second));
+      } else {
+        scores.push_back(decoder_->GetProbs()(id.first, 1));
+      }
+    }
+    return scores;
 }
 
 
