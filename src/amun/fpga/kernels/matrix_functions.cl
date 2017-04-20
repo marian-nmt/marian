@@ -337,7 +337,16 @@ __kernel void gMapMatrix(__global float* d_in,
                     __global const int* mapping, 
                     uint i) 
 {
-
+  for (uint batchIdx = 0; batchIdx < numRows; ++batchIdx) {
+    int isWord = mapping[mappingCols * batchIdx + i];
+    if (isWord == 0) {
+      // blank out word
+      for (uint j = 0; j < numCols; ++j) {
+        uint ind = batchIdx * numCols + j;
+        d_in[ind] = 0;
+      }
+    }
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -905,12 +905,49 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
 
 void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
 {
-  int batchSize = state.dim(0);
-  int stateLength = state.dim(1);
-  int sentenceLength = mapping.size() / batchSize;
+  // blank out rows in the state matrix where the word position i does not exist
+  // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
 
-  // TODO
-  //cerr << "MapMatrix=" << state.Debug(1) << endl;
+  uint batchSize = state.dim(0);
+  uint stateLength = state.dim(1);
+  uint sentenceLength = mapping.size() / batchSize;
+
+  const OpenCLInfo &openCLInfo = state.GetOpenCLInfo();
+
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gMapMatrix", openCLInfo);
+
+  // Set the arguments to our compute kernel
+  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &state.data()) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &batchSize) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &stateLength) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &sentenceLength) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &mapping.data()) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &i) );
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  //cerr << "CL_KERNEL_WORK_GROUP_SIZE=" << CL_KERNEL_WORK_GROUP_SIZE << endl;
+  //cerr << "local=" << local << endl;
+
+  //global = 1024;
+  local = 1;
+  global = 1;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
 
 }
 

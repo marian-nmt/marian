@@ -533,7 +533,11 @@ void gMapMatrix(float* d_in, int numRows, int numCols, int mappingCols, const in
   }
 }
 
-void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
+void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
+{
+  // blank out rows in the state matrix where the word position i does not exist
+  // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
+
   int batchSize = state.dim(0);
   int stateLength = state.dim(1);
   int sentenceLength = mapping.size() / batchSize;
