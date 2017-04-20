@@ -105,6 +105,7 @@ class LexProbs {
         rowIndices[i] = i;
         colIndices[i] = indices[i];
       }
+      
       auto lookup = New<sparse::CSR>(rows, srcDim_,
                                      values,
                                      rowIndices,
