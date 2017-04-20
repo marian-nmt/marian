@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -64,6 +65,7 @@ void NMT::SetDevice() {
 
 States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
 {
+  std::cerr << "Setting source sentence..." << std::endl;
   Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(*god_, 0, srcWords)));
 
@@ -74,6 +76,7 @@ States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
     scorers_[i]->BeginSentenceState(*states[i], sentences.size());
   }
 
+  std::cerr << "Setting source sentence... DONE" << std::endl;
   return states;
 }
 
@@ -185,46 +188,54 @@ void NMT::BatchSteps(const Batches& batches,
 
 std::vector<float> NMT::RescoreNBestList(const std::vector<std::string>& nbest)
 {
+  std::cerr << "Rescoring N-Best list..." << std::endl;
   States states = NewStates();
   for (size_t i = 0; i < scorers_.size(); ++i) {
     scorers_[i]->BeginSentenceState(*states[i], {1});
   }
-  NBest nBest(nbest, states, god_->GetTargetVocab(), GetBatchSize());
+
+  std::vector<States> inputStates(nbest.size(), states);
+  NBest nBest(nbest, inputStates, god_->GetTargetVocab(), GetBatchSize());
   return Rescore(nBest, false);
 }
 
 void NMT::RescorePhrases(const std::vector<std::vector<std::string>>& phrases, std::vector<States>& inputStates, Scores& probs)
 {
+  std::cerr << "Rescoring Phrases..." << std::endl;
   NBest nBest(phrases, inputStates, god_->GetTargetVocab(), GetBatchSize());
-  Rescore(nBest, true);
+  auto scores = Rescore(nBest, true);
+  std::swap(probs, scores);
+  std::cerr << "Rescoring Phrases..." << std::endl;
 }
 
-States NMT::JoinStates(const std::vector<States>& states)
+States NMT::JoinStates(const std::vector<States*>& inStates)
 {
-    States prevStates = NewStates();
-    std::vector<States> tmp(scorers_.size());
-    for (auto& states : states) {
-      for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
-        tmp[scorerIdx].push_back(states[scorerIdx]);
-      }
-    }
-
+  std::cerr << "Join States..." << std::endl;
+  States prevStates = NewStates();
+  std::vector<States> tmp(scorers_.size());
+  for (auto& states : inStates) {
     for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
-      prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
+      tmp[scorerIdx].push_back(states->at(scorerIdx));
     }
-    return prevStates;
+  }
+
+  for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
+    prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
+  }
+  return prevStates;
 }
 
 Beam NMT::GetSurvivors(RescoreBatch& rescoreBatch, size_t step) {
+  std::cerr << "Get survivors..." << std::endl;
   Beam survivors;
   std::vector<size_t> nextHyps;
   for (size_t i = 0; i < rescoreBatch.prevIds[step].size(); ++i) {
-    if (rescoreBatch.data[step +1][rescoreBatch.prevIds[step][i]] != -1) {
+    if (rescoreBatch.data[step + 1][rescoreBatch.prevIds[step][i]] != -1) {
       nextHyps.push_back(i);
     }
   }
 
-  for (size_t i = 0; i < rescoreBatch.prevIds[step + 1].size(); ++i) {
+  for (size_t i = 0; i < nextHyps.size(); ++i) {
      survivors.emplace_back(new Hypothesis(nullptr,
                                            rescoreBatch.data[step][rescoreBatch.prevIds[step + 1][i]],
                                            nextHyps[i],
@@ -236,12 +247,14 @@ Beam NMT::GetSurvivors(RescoreBatch& rescoreBatch, size_t step) {
 
 
 void NMT::SaveFinalStates(const States& inStates, size_t step, RescoreBatch& rescoreBatch) {
-  for (size_t i = 0; i < rescoreBatch.prevIds[step].size(); ++i) {
+  for (auto i : rescoreBatch.completed[step]) {
     for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
       size_t outStateId = rescoreBatch.prevIds[step][i];
-      auto& outState = rescoreBatch.states[outStateId][scorerIdx];
+      size_t lastWord = rescoreBatch.data[step][outStateId];
+      auto& outState = rescoreBatch.states[outStateId]->at(scorerIdx);
+
       Beam tBeam;
-      tBeam.emplace_back(new Hypothesis(nullptr, rescoreBatch.data[step][rescoreBatch.prevIds[step][i]], i, 0.0f));
+      tBeam.emplace_back(new Hypothesis(nullptr, lastWord, i, 0.0f));
 
       outState.reset(scorers_[scorerIdx]->NewState());
       scorers_[scorerIdx]->AssembleBeamState(*inStates[scorerIdx], tBeam, *outState);
@@ -250,20 +263,25 @@ void NMT::SaveFinalStates(const States& inStates, size_t step, RescoreBatch& res
 }
 
 std::vector<float> NMT::Rescore(NBest& nBest, bool returnFinalStates) {
+  std::cerr << "Rescoring..." << std::endl;
   std::vector<float> scores;
   for (auto& rescoreBatch: nBest.SplitNBestListIntoBatches()) {
+    std::cerr << "Start sentence batch..." << std::endl;
     States prevStates = JoinStates(rescoreBatch.states);
     States nextStates = NewStates();
     std::vector<float> probs(rescoreBatch.data[0].size());
 
-    for (size_t stepIdx = 0; stepIdx < rescoreBatch.data.size(); ++stepIdx) {
+    for (size_t stepIdx = 0; stepIdx < rescoreBatch.length(); ++stepIdx) {
+      std::cerr << "Step: " << stepIdx << std::endl;
       for (size_t ii = 0; ii < scorers_.size(); ii++) {
         Scorer &scorer = *scorers_[ii];
         const State &state =  *prevStates[ii];
         State &nextState = *nextStates[ii];
 
+        std::cerr << "Decoding" << std::endl;
         scorer.Decode(state, nextState);
 
+        std::cerr << "Getting scores" << std::endl;
         auto logProbs = scorer.GetScores(rescoreBatch.indices[stepIdx]);
         for (size_t i = 0; i < rescoreBatch.prevIds[stepIdx].size(); ++i) {
           probs[rescoreBatch.prevIds[stepIdx][i]] += logProbs[i];
@@ -271,11 +289,18 @@ std::vector<float> NMT::Rescore(NBest& nBest, bool returnFinalStates) {
       }
 
       if (returnFinalStates) {
+          std::cerr << "Saving states..." << std::endl;
           SaveFinalStates(nextStates, stepIdx, rescoreBatch);
       }
 
       Beam survivors = GetSurvivors(rescoreBatch, stepIdx);
+
+      if (survivors.empty()) {
+        break;
+      }
+
       for (size_t i = 0; i < scorers_.size(); ++i) {
+        std::cerr << "Assembling..." << std::endl;
         scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
       }
     }

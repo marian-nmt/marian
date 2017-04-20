@@ -15,13 +15,16 @@ class Vocab;
 
 class RescoreBatch {
   public:
-    RescoreBatch(std::vector<std::vector<int>>& data, std::vector<States>& states);
+    RescoreBatch(std::vector<std::vector<int>>& data, std::vector<States*>& states);
 
     std::vector<std::vector<int>> data;
-    std::vector<States> states;
+    std::vector<States*> states;
     std::vector<std::vector<std::pair<size_t, size_t>>> indices;
     std::vector<std::vector<size_t>> prevIds;
     std::vector<std::vector<size_t>> completed;
+
+    size_t length() const;
+    size_t size() const;
 
   protected:
     void ComputePrevIds();
@@ -33,13 +36,13 @@ class NBest {
   public:
     NBest(
       const std::vector<std::string>& nBestList,
-      const States& states,
+      std::vector<States>& states,
       Vocab& trgVocab,
       const size_t maxBatchSize=64);
 
     NBest(
       const std::vector<std::vector<std::string>>& nBestList,
-      const std::vector<States>& states,
+      std::vector<States>& states,
       Vocab& trgVocab,
       const size_t maxBatchSize=64);
 
@@ -50,7 +53,7 @@ class NBest {
 
   protected:
     std::vector<std::vector<int>> data_;
-    std::vector<States> states_;
+    std::vector<States>& states_;
     const size_t maxBatchSize_;
 };
 

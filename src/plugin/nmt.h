@@ -62,7 +62,7 @@ class NMT {
 
     States NewStates() const;
     Beam GetSurvivors(RescoreBatch& rescoreBatch, size_t step);
-    States JoinStates(const std::vector<States>& states);
+    States JoinStates(const std::vector<States*>& states);
     void SaveFinalStates(const States& inStates, size_t step, RescoreBatch& rescoreBatch);
 
     static std::shared_ptr<God> god_;
