@@ -1,7 +1,8 @@
-#include "sentence.h"
-#include "god.h"
-#include "utils.h"
+#include "common/sentence.h"
+
+#include "common/god.h"
 #include "common/vocab.h"
+#include "common/utils.h"
 
 namespace amunmt {
 
