@@ -148,7 +148,7 @@ class TMatrix : public BaseMatrix {
 
       if (verbosity) {
         float sum = Sum(data(), size());
-        strm << "size=" << size() << " sum=" << sum << std::flush;
+        strm << "sum=" << sum << std::flush;
 
         if (verbosity == 2) {
           cudaStream_t& stream = CudaStreamHandler::GetStream();
