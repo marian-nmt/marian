@@ -6,27 +6,16 @@
 
 Google group for commit messages: https://groups.google.com/forum/#!forum/mariannmt
 
-A C++ gpu-specific parallel automatic differentiation library
-with operator overloading.
+Marian is a C++ gpu-specific parallel automatic differentiation library
+with operator overloading. It is the training framework used in the AmuNMT toolkit.
 
-In honour of Marian Rejewski, a Polish mathematician and
+Named in honour of Marian Rejewski, a Polish mathematician and
 cryptologist.
 
-## Installation
-------------
+## Website:
 
-## Requirements:
-
-* g++ with c++11
-* CUDA
-* Boost (>= 1.56)
-
-## Compilation with `cmake > 3.5`:
-
-    mkdir build
-    cd build
-    cmake ..
-    make -j
+More information on https://amunmt.github.io
+    
 ## Acknowledgements
 The development of Marian received funding from the European Union's _Horizon 2020 Research and Innovation Programme_ under grant agreements 688139 ([SUMMA](http://www.summa-project.eu); 2016-2019) and 645487 ([Modern MT](http://www.modernmt.eu); 2015-2017) and the Amazon Academic Research Awards program. 
 

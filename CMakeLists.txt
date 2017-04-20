@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/local/cuda-8.0/lib64)
 
 project(marian CXX)
 find_package(CUDA "8.0" REQUIRED)
@@ -20,7 +21,7 @@ else(ZLIB_FOUND)
     message(SEND_ERROR "Cannot find zlib" )
 endif(ZLIB_FOUND)
 
-find_package(Boost COMPONENTS system timer iostreams filesystem chrono program_options)
+find_package(Boost COMPONENTS system timer iostreams filesystem chrono program_options thread)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})

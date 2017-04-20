@@ -406,10 +406,6 @@ class GradientDropBase {
 	    step++;
 	    wow++;
     }
-
-    void dropGraph(Ptr<ExpressionGraph> graph, SparseTensor destination, double rate = 0.99){
-    	dropGraph(graph->params().grads(), destination, rate );
-    }
 };
 
 

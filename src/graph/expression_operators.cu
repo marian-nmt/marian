@@ -39,6 +39,10 @@ Expr rows(Expr a, const std::vector<size_t>& indeces) {
   return Expression<RowsNodeOp>(a, indeces);
 }
 
+Expr cols(Expr a, const std::vector<size_t>& indeces) {
+  return Expression<ColsNodeOp>(a, indeces);
+}
+
 Expr logit(Expr a) {
   return Expression<LogitNodeOp>(a);
 }
@@ -151,5 +155,9 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta) {
 //  else
 //    return gamma * (xmmju / std);
 //}
+
+Expr shift(Expr a, Shape shift) {
+  return Expression<ShiftNodeOp>(a, shift);
+}
 
 }

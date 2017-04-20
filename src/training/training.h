@@ -2,8 +2,11 @@
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
+#include "models/model_task.h"
 #include "training/config.h"
 #include "training/validator.h"
+
+#include "data/filter.h"
 
 namespace marian {
 
@@ -18,6 +21,7 @@ class Reporter {
 
     size_t epochs{1};
     size_t samples{0};
+    size_t samplesDisp{0};
     size_t wordsDisp{0};
     size_t batches{0};
 
@@ -63,6 +67,14 @@ class Reporter {
       validators_.push_back(validator);
     }
 
+    bool validating() {
+      return (!validators_.empty() && batches % options_->get<size_t>("valid-freq") == 0);
+    }
+    
+    bool saving() {
+      return (batches % options_->get<size_t>("save-freq") == 0);
+    }
+    
     void validate(Ptr<ExpressionGraph> graph) {
       if(batches % options_->get<size_t>("valid-freq") == 0) {
         for(auto validator : validators_) {
@@ -88,18 +100,20 @@ class Reporter {
     }
 
     void update(float cost, Ptr<data::CorpusBatch> batch) {
-      costSum += cost;
+      costSum += cost * batch->size();
       samples += batch->size();
+      samplesDisp += batch->size();
       wordsDisp += batch->words();
       batches++;
 
       if(batches % options_->get<size_t>("disp-freq") == 0) {
         LOG(info, "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} words/s",
-            epochs, batches, samples, costSum / options_->get<size_t>("disp-freq"),
+            epochs, batches, samples, costSum / samplesDisp,
             timer.format(2, "%ws"), wordsDisp / std::stof(timer.format(5, "%w")));
         timer.start();
         costSum = 0;
         wordsDisp = 0;
+        samplesDisp = 0;
       }
     }
 
@@ -124,35 +138,60 @@ class Reporter {
 };
 
 template <class Model>
-void Train(Ptr<Config> options) {
-  using namespace data;
-  using namespace keywords;
+class Train : public ModelTask {
+  public:
+    Ptr<Config> options_;
+    
+  public:
+    Train(Ptr<Config> options) : options_(options) {}
+  
+    void run() {
+      using namespace data;
+              
+      auto trainCorpus = New<Corpus>(options_);
+      
+      Ptr<Filter> filter;
+      if(options_->has("filter"))
+        filter = New<Filter>(options_,
+                             trainCorpus->getVocabs()[0],
+                             trainCorpus->getVocabs().back());
+      Ptr<BatchStats> stats;
+      if(options_->get<bool>("dynamic-batching")) {
+        LOG(info, "[batching] Collecting statistics for dynamic batching");
+        // @TODO, better fake batch with vocabulary
+        stats = New<Model>(options_,
+                           keywords::filter=nullptr)->collectStats();
+        LOG(info, "[batching] Done");
+      }
+    
+      auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
+      auto reporter = New<Reporter>(options_);
+    
+      if((options_->has("valid-sets") || options_->has("valid-script-path"))
+         && options_->get<size_t>("valid-freq") > 0) {
+        for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
+                                                                      options_,
+                                                                      keywords::filter=filter))
+          reporter->addValidator(validator);
+      }
+                              
+      auto model = New<Model>(options_, keywords::filter=filter);
+      model->setReporter(reporter);
+      model->load();  
+    
+      while(reporter->keepGoing()) {
+        batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
+        while(*batchGenerator && reporter->keepGoing()) {
+          auto batch = batchGenerator->next();
 
-  auto trainCorpus = New<Corpus>(options);
-  auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options);
-  auto reporter = New<Reporter>(options);
-
-  if((options->has("valid-sets") || options->has("valid-script-path"))
-     && options->get<size_t>("valid-freq") > 0) {
-    for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options))
-      reporter->addValidator(validator);
-  }
-
-  auto model = New<Model>(options);
-  model->setReporter(reporter);
-  model->load();
-
-  while(reporter->keepGoing()) {
-    batchGenerator->prepare(!options->get<bool>("no-shuffle"));
-    while(*batchGenerator && reporter->keepGoing()) {
-      auto batch = batchGenerator->next();
-      model->update(batch);
+          model->update(batch);
+        }
+        if(reporter->keepGoing())
+          reporter->increaseEpoch();
+      }
+      reporter->finished();
+      model->save(true);
     }
-    if(reporter->keepGoing())
-      reporter->increaseEpoch();
-  }
-  reporter->finished();
-  model->save();
-}
+};
 
 }

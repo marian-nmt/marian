@@ -8,6 +8,8 @@
 #include<algorithm>
 #include<cstring>
 #include<iomanip>
+#include <sstream>
+#include <exception>
 
 char cnpy::BigEndianTest() {
     unsigned char x[] = {1,0};
@@ -228,8 +230,16 @@ cnpy::NpyArray cnpy::npz_load(std::string fname, std::string varname) {
     }
 
     fclose(fp);
-    printf("npz_load: Error! Variable name %s not found in %s!\n",varname.c_str(),fname.c_str());
-    abort();
+
+    std::stringstream ss;
+    ss << "npz_load: Error! Variable name " 
+       << varname 
+       << " not found in " 
+       << fname 
+       <<  "!" 
+       << std::endl;
+
+    throw std::runtime_error(ss.str());
 }
 
 cnpy::NpyArray cnpy::npy_load(std::string fname) {

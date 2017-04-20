@@ -110,6 +110,12 @@ std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
   };
 }
 
+std::function<void(Tensor)> from_vector(const std::vector<size_t>& v) {
+  std::vector<float> vf(v.begin(), v.end());
+  return from_vector(vf);
+}
+
+
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   size_t size = 1;
   for(int i = 0; i < np.shape.size(); ++i) {

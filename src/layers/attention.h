@@ -117,13 +117,13 @@ class GlobalAttention {
               int dimDecState,
               Args ...args)
      : encState_(encState),
-       contextDropped_(encState->context),
+       contextDropped_(encState->getContext()),
        layerNorm_(Get(keywords::normalize, false, args...)),
        cov_(Get(keywords::coverage, nullptr, args...)) {
 
-      int dimEncState = encState_->context->shape()[1];
+      int dimEncState = encState_->getContext()->shape()[1];
 
-      auto graph = encState_->context->graph();
+      auto graph = encState_->getContext()->graph();
 
       Wa_ = graph->param(prefix + "_W_comb_att", {dimDecState, dimEncState},
                          keywords::init=inits::glorot_uniform);
@@ -155,7 +155,7 @@ class GlobalAttention {
         mappedContext_ = affine(contextDropped_, Ua_, ba_);
       }
 
-      auto softmaxMask = encState_->mask;
+      auto softmaxMask = encState_->getMask();
       if(softmaxMask) {
         Shape shape = { softmaxMask->shape()[2],
                         softmaxMask->shape()[0] };
@@ -184,7 +184,7 @@ class GlobalAttention {
                        {dimBatch, 1, srcWords, dimBeam});
       // <- horrible
 
-      auto alignedSource = weighted_average(encState_->context, e, axis=2);
+      auto alignedSource = weighted_average(encState_->getContext(), e, axis=2);
 
       contexts_.push_back(alignedSource);
       alignments_.push_back(e);
@@ -196,7 +196,7 @@ class GlobalAttention {
     }
 
     int outputDim() {
-      return encState_->context->shape()[1];
+      return encState_->getContext()->shape()[1];
     }
 };
 

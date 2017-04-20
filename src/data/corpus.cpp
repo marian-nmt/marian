@@ -42,7 +42,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(!translate)
     textPaths_ = options_->get<std::vector<std::string>>("train-sets");
   else
-    textPaths_ = options_->get<std::vector<std::string>>("inputs");
+    textPaths_ = options_->get<std::vector<std::string>>("input");
 
   g_.seed(Config::seed);
 
@@ -50,42 +50,56 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(options_->has("vocabs"))
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
-  UTIL_THROW_IF2(!vocabPaths.empty() && textPaths_.size() != vocabPaths.size(),
-                 "Number of corpus files and vocab files does not agree");
+  if(!translate) {
+    UTIL_THROW_IF2(!vocabPaths.empty() && textPaths_.size() != vocabPaths.size(),
+                   "Number of corpus files and vocab files does not agree");
+  }
 
   std::vector<int> maxVocabs =
     options_->get<std::vector<int>>("dim-vocabs");
 
-  std::vector<Vocab> vocabs;
-  if(vocabPaths.empty()) {
-    for(int i = 0; i < textPaths_.size(); ++i) {
-      Ptr<Vocab> vocab = New<Vocab>();
-      vocab->loadOrCreate("", textPaths_[i], maxVocabs[i]);
-      options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
-      vocabs_.emplace_back(vocab);
+  if(!translate) {
+    std::vector<Vocab> vocabs;
+    if(vocabPaths.empty()) {
+      for(int i = 0; i < textPaths_.size(); ++i) {
+        Ptr<Vocab> vocab = New<Vocab>();
+        vocab->loadOrCreate("", textPaths_[i], maxVocabs[i]);
+        options_->get()["vocabs"].push_back(textPaths_[i] + ".yml");
+        vocabs_.emplace_back(vocab);
+      }
+    }
+    else {
+      for(int i = 0; i < vocabPaths.size(); ++i) {
+        Ptr<Vocab> vocab = New<Vocab>();
+        vocab->loadOrCreate(vocabPaths[i], textPaths_[i], maxVocabs[i]);
+        vocabs_.emplace_back(vocab);
+      }
     }
   }
   else {
-    for(int i = 0; i < vocabPaths.size(); ++i) {
+    for(int i = 0; i < vocabPaths.size() - 1; ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], textPaths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
     }
   }
 
-
   for(auto path : textPaths_) {
-    files_.emplace_back(new InputFileStream(path));
+    if(path == "stdin")
+      files_.emplace_back(new InputFileStream(std::cin));
+    else
+      files_.emplace_back(new InputFileStream(path));
   }
 }
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options)
+               Ptr<Config> options,
+               size_t maxLength)
   : options_(options),
     textPaths_(paths),
     vocabs_(vocabs),
-    maxLength_(options_->get<size_t>("max-length")) {
+    maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
 
   UTIL_THROW_IF2(textPaths_.size() != vocabs_.size(),
                  "Number of corpus files and vocab files does not agree");
@@ -127,7 +141,10 @@ void Corpus::shuffle() {
 void Corpus::reset() {
   files_.clear();
   for(auto& path : textPaths_) {
-    files_.emplace_back(new InputFileStream(path));
+    if(path == "stdin")
+      files_.emplace_back(new InputFileStream(std::cin));
+    else
+      files_.emplace_back(new InputFileStream(path));
   }
 }
 
@@ -152,27 +169,27 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   }
 
   std::shuffle(corpus.begin(), corpus.end(), g_);
+  
+  tempFiles_.clear();
 
   std::vector<UPtr<OutputFileStream>> outs;
   for(int i = 0; i < files_.size(); ++i) {
-    auto path = files_[i]->path();
-    outs.emplace_back(new OutputFileStream(path + ".shuf"));
+    tempFiles_.emplace_back(new TemporaryFile(options_->get<std::string>("tempdir")));
+    outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
   }
-  files_.clear();
-
+  
   for(auto& lines : corpus) {
     size_t i = 0;
     for(auto& line : lines) {
-      (std::ostream&)*outs[i++] << line << '\n';
+      (std::ostream&)*outs[i++] << line << std::endl;
     }
   }
 
+  files_.clear();
   for(int i = 0; i < outs.size(); ++i) {
-    auto path = outs[i]->path();
-    outs[i].reset();
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new InputFileStream(*tempFiles_[i]));
   }
-
+  
   LOG(data, "Done");
 }
 

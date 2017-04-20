@@ -9,6 +9,12 @@
 #include "data/corpus.h"
 #include "data/batch_generator.h"
 
+#include "translator/beam_search.h"
+#include "translator/history.h"
+#include "translator/printer.h"
+#include "translator/output_collector.h"
+
+
 namespace marian {
 
   class Validator {
@@ -30,6 +36,8 @@ namespace marian {
 
       virtual std::string type() = 0;
 
+      virtual void keepBest(Ptr<ExpressionGraph> graph) = 0;
+      
       virtual bool lowerIsBetter() {
         return true;
       }
@@ -53,10 +61,13 @@ namespace marian {
         batchGenerator->prepare(false);
 
         float val = validateBG(graph, batchGenerator);
+        
         if((lowerIsBetter() && lastBest_ > val) ||
            (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
+            if(options_->get<bool>("keep-best"))
+              keepBest(graph);
         }
         else {
           stalled_++;
@@ -75,10 +86,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
-                            Ptr<Config> options)
+                            Ptr<Config> options,
+                            Args ...args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
 
@@ -98,6 +111,11 @@ namespace marian {
 
         return cost / samples;
       }
+      
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
 
       std::string type() { return "cross-entropy"; }
   };
@@ -108,10 +126,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
-                          Ptr<Config> options)
+                          Ptr<Config> options,
+                          Args ...args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
 
@@ -131,6 +151,11 @@ namespace marian {
 
         return expf(cost / words);
       }
+      
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
 
       std::string type() { return "perplexity"; }
   };
@@ -141,10 +166,12 @@ namespace marian {
       Ptr<Builder> builder_;
 
     public:
+      template <class ...Args>
       ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
-                      Ptr<Config> options)
+                      Ptr<Config> options,
+                      Args ...args)
        : Validator(vocabs, options),
-         builder_(New<Builder>(options, keywords::inference=true)) {
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
         initLastBest();
       }
 
@@ -183,6 +210,8 @@ namespace marian {
            (!lowerIsBetter() && lastBest_ < val)) {
             stalled_ = 0;
             lastBest_ = val;
+            if(options_->get<bool>("keep-best"))
+              keepBest(graph);
         }
         else {
           stalled_++;
@@ -197,27 +226,123 @@ namespace marian {
         return 0;
       }
 
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
+      
       std::string type() { return "valid-script"; }
   };
-
+  
+  
   template <class Builder>
+  class S2SValidator : public Validator {
+    private:
+      Ptr<Builder> builder_;
+
+    public:
+      template <class ...Args>
+      S2SValidator(std::vector<Ptr<Vocab>> vocabs,
+                   Ptr<Config> options,
+                   Args ... args)
+       : Validator(vocabs, options),
+         builder_(New<Builder>(options, keywords::inference=true, args...)) {
+        initLastBest();
+      }
+      
+      virtual float validate(Ptr<ExpressionGraph> graph) {
+        using namespace data;
+        
+        auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+        
+        auto corpus = New<Corpus>(validPaths, vocabs_, options_, 1000);
+        
+        Ptr<BatchGenerator<Corpus>> batchGenerator
+          = New<BatchGenerator<Corpus>>(corpus, options_);
+        batchGenerator->forceBatchSize(1);
+        batchGenerator->prepare(false);
+
+        float val = validateBG(graph, batchGenerator);
+
+        if((lowerIsBetter() && lastBest_ > val) ||
+           (!lowerIsBetter() && lastBest_ < val)) {
+            stalled_ = 0;
+            lastBest_ = val;
+            if(options_->get<bool>("keep-best"))
+              keepBest(graph);
+        }
+        else {
+          stalled_++;
+        }
+        return val;
+      };
+      
+      virtual float validateBG(Ptr<ExpressionGraph> graph,
+                               Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+        
+        std::vector<std::string> outputs;
+        
+        size_t samples = 0;
+        while(*batchGenerator) {
+          auto batch = batchGenerator->next();
+          
+          auto search = New<BeamSearch<Builder>>(options_);
+          auto history = search->search(graph, batch, samples);
+    
+          std::stringstream ss;
+          Printer(options_, vocabs_.back(), history, ss);
+          outputs.push_back(ss.str());
+          
+          samples++;
+        }
+      
+        return 0;
+      
+        /*
+        std::string referencePath
+          = options_->get<std::vector<std::string>>("valid-sets").back();
+        InputFileStream reference(referencePath);
+        InputFileStream candidate(temp);
+        
+        return score("BLEU", reference, candidate);
+        */
+      }
+
+      virtual bool lowerIsBetter() {
+        return false;
+      }
+
+      virtual void keepBest(Ptr<ExpressionGraph> graph) {
+        auto model = options_->get<std::string>("model");
+        builder_->save(graph, model + ".best-" + type() + ".npz", true);
+      }
+      
+      virtual std::string type() { return "s2s"; }
+  };
+
+  template <class Builder, class ...Args>
   std::vector<Ptr<Validator>> Validators(std::vector<Ptr<Vocab>> vocabs,
-                                         Ptr<Config> options) {
+                                         Ptr<Config> options,
+                                         Args ...args) {
     std::vector<Ptr<Validator>> validators;
 
     auto validMetrics = options->get<std::vector<std::string>>("valid-metrics");
 
     for(auto metric : validMetrics) {
       if(metric == "cross-entropy") {
-        auto validator = New<CrossEntropyValidator<Builder>>(vocabs, options);
+        auto validator = New<CrossEntropyValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
       if(metric == "perplexity") {
-        auto validator = New<PerplexityValidator<Builder>>(vocabs, options);
+        auto validator = New<PerplexityValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
       if(metric == "valid-script") {
-        auto validator = New<ScriptValidator<Builder>>(vocabs, options);
+        auto validator = New<ScriptValidator<Builder>>(vocabs, options, args...);
+        validators.push_back(validator);
+      }
+      if(metric == "s2s") {
+        auto validator = New<S2SValidator<Builder>>(vocabs, options, args...);
         validators.push_back(validator);
       }
     }

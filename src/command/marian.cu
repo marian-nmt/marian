@@ -1,21 +1,15 @@
-
 #include "marian.h"
-#include "models/dl4mt.h"
-#include "models/gnmt.h"
-#include "models/multi_gnmt.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv);;
-  auto type = options->get<std::string>("type");
+  auto devices = options->get<std::vector<size_t>>("devices");
   
-  if(type == "gnmt")
-    Train<AsyncGraphGroup<GNMT>>(options);
-  else if(type == "multi-gnmt")
-    Train<AsyncGraphGroup<MultiGNMT>>(options);
+  if(devices.size() > 1)
+    WrapModelType<Train, AsyncGraphGroup>(options)->run();
   else
-    Train<AsyncGraphGroup<DL4MT>>(options);
-
+    WrapModelType<Train, Singleton>(options)->run();
+  
   return 0;
 }

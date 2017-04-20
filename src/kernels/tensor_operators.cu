@@ -468,64 +468,6 @@ void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
               n, m, k, &alpha, B->data(), ldb, A->data(), lda, &beta, C->data(), ldc);
 }
 
-//void CudnnDropoutPrepare(Tensor in, float p,
-//                         cudnnDropoutDescriptor_t* dropDesc,
-//                         void** space, size_t* spaceSize,
-//                         void** states, size_t seed) {
-//  size_t statesSize;
-//  cudnnDropoutGetStatesSize(cudnnHandle, &statesSize);
-//  auto inGpu = static_cast<TensorGPU*>(in.get());
-//  cudnnDropoutGetReserveSpaceSize(inGpu->cudnn(), spaceSize);
-//
-//  cudaMalloc((void**)states, statesSize);
-//  cudaMalloc((void**)space, *spaceSize);
-//
-//  cudnnCreateDropoutDescriptor(dropDesc);
-//  cudnnSetDropoutDescriptor(*dropDesc,
-//                            cudnnHandle,
-//                            p,
-//                            (void*)*states,
-//                            statesSize,
-//                            seed);
-//}
-//
-//void CudnnDropoutDestroy(cudnnDropoutDescriptor_t dropDesc,
-//                         void* space, void* states) {
-//  cudnnDestroyDropoutDescriptor(dropDesc);
-//  cudaFree(space);
-//  cudaFree(states);
-//}
-//
-//void CudnnDropoutForward(cudnnDropoutDescriptor_t dropoutDesc,
-//                  void* space, size_t spaceSize,
-//                  Tensor out, Tensor in) {
-//  auto inGpu = static_cast<TensorGPU*>(in.get());
-//  auto outGpu = static_cast<TensorGPU*>(out.get());
-//  cudnnDropoutForward(cudnnHandle,
-//                      dropoutDesc,
-//                      inGpu->cudnn(),
-//                      inGpu->data(),
-//                      outGpu->cudnn(),
-//                      outGpu->data(),
-//                      space,
-//                      spaceSize);
-//}
-//
-//void CudnnDropoutBackward(cudnnDropoutDescriptor_t dropoutDesc,
-//                          void* space, size_t spaceSize,
-//                          Tensor out, Tensor in) {
-//  auto inGpu = static_cast<TensorGPU*>(in.get());
-//  auto outGpu = static_cast<TensorGPU*>(out.get());
-//  cudnnDropoutBackward(cudnnHandle,
-//                      dropoutDesc,
-//                      inGpu->cudnn(),
-//                      inGpu->data(),
-//                      outGpu->cudnn(),
-//                      outGpu->data(),
-//                      space,
-//                      spaceSize);
-//}
-
 __global__ void gCopyRows(float* out, const float* in, size_t cols,
                           const size_t* sourceRowIdx, size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -608,6 +550,85 @@ void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces) 
   CUDA_CHECK(cudaFree(d_indeces));
 }
 
+/////////////
+
+__global__ void gCopyCols(float* out, const float* in, size_t rows, size_t colsIn,
+                          const size_t* sourceColIdx, size_t colsOut) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      const float* rowIn = in + j * colsIn;
+      float* rowOut = out + j * colsOut;
+      
+      for(int tid = 0; tid < colsOut; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < colsOut)
+          rowOut[i] = rowIn[sourceColIdx[i]];
+      }
+    }
+  }
+}
+
+void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
+  cudaSetDevice(out->getDevice());
+
+  size_t rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  size_t cols = in->shape()[1];
+  size_t colsToCopy = indeces.size();
+
+  int threads = std::min(MAX_THREADS, (int)colsToCopy);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, colsToCopy * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), colsToCopy * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+
+  gCopyCols<<<blocks, threads>>>(out->data(), in->data(), rows, cols,
+                                 d_indeces, colsToCopy);
+
+  CUDA_CHECK(cudaFree(d_indeces));
+}
+
+__global__ void gPasteCols(float* out, const float* in, size_t rows, size_t colsOut,
+                           const size_t* targetColIdx, size_t colsIn) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      const float* rowIn = in + j * colsIn;
+      float* rowOut = out + j * colsOut;
+      
+      for(int tid = 0; tid < colsIn; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < colsIn)
+          rowOut[targetColIdx[i]] = rowIn[i];
+      }
+    }
+  }
+}
+
+void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces) {
+  cudaSetDevice(out->getDevice());
+
+  size_t rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  size_t cols = out->shape()[1];
+  size_t colsToCopy = indeces.size();
+
+  int threads = std::min(MAX_THREADS, (int)colsToCopy);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+
+  size_t* d_indeces;
+  CUDA_CHECK(cudaMalloc(&d_indeces, colsToCopy * sizeof(size_t)));
+  CUDA_CHECK(cudaMemcpy(d_indeces, indeces.data(), colsToCopy * sizeof(size_t),
+                        cudaMemcpyHostToDevice));
+
+  gPasteCols<<<blocks, threads>>>(out->data(), in->data(), rows, cols,
+                                  d_indeces, colsToCopy);
+
+  CUDA_CHECK(cudaFree(d_indeces));
+}
+//////////////
+
 void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
   cudaSetDevice(out->getDevice());
   size_t steps = in->shape()[2] * in->shape()[3];
@@ -617,7 +638,7 @@ void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
     float alpha = 1.0;
     float beta  = 0.0;
 
-    size_t offset = i * steps;
+    size_t offset = i * m * n;
 
     cublasSgeam(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha, in->data() + offset, n,
                 &beta, in->data() + offset, n, out->data() + offset, m);
@@ -1434,6 +1455,39 @@ void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
   gLayerNormalizationGrad<<<blocks, threads, shared>>>
     (gradX->data(), gradGamma->data(), (gradBeta) ? gradBeta->data() : nullptr,
      adj->data(), y->data(), x->data(), gamma->data(),(beta) ?  beta->data() : nullptr, rows, cols);
+}
+
+__global__ void gShift(float* out, const float* in,
+                       int length, int offset) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < length) {
+      if(index - offset < 0 || index - offset >= length)
+        out[index] = 0;
+      else
+        out[index] = in[index - offset];
+    }
+  }
+}
+
+void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
+  
+  int offset = in->shape().stride(0) * shift[0]
+             + in->shape().stride(1) * shift[1]
+             + in->shape().stride(2) * shift[2]
+             + in->shape().stride(3) * shift[3];
+             
+  if(invert)
+    offset = -offset;
+  
+  cudaSetDevice(out->getDevice());
+
+  int length = out->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
+
+  gShift<<<blocks, threads>>>(out->data(), in->data(), length, offset);              
 }
 
 }  // namespace marian

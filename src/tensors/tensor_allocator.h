@@ -1,26 +1,5 @@
 #pragma once
 
-// This file is part of the Marian toolkit.
-
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 #include <set>
 #include <deque>
 
@@ -28,6 +7,13 @@
 #include "tensors/tensor.h"
 
 namespace marian {
+  
+class AllocationException : public std::exception {
+  public:
+    virtual const char* what() const throw() {
+      return "Memory re-allocation attempted";
+    }
+};
 
 class TensorAllocator {
   private:
@@ -40,6 +26,8 @@ class TensorAllocator {
     typedef std::pair<size_t, float*> Gap;
     std::set<Gap> gaps_;
     Gap lastGap_;
+    
+    bool throw_{false};
 
     std::deque<Tensor> allocated_;
 
@@ -80,6 +68,8 @@ class TensorAllocator {
     auto checkSpace(Shape shape) -> decltype(gaps_.begin()) {
       auto gapIt = getGap(shape);
       if(gapIt == gaps_.end()) {
+        if(throw_)
+          throw AllocationException();
         size_t incr = device_.capacity() - lastGap_.first + shape.elements();
         reserve(device_.capacity() + incr);
         gapIt = gaps_.find(lastGap_);
@@ -96,6 +86,10 @@ class TensorAllocator {
 
     ~TensorAllocator() {
       clear();
+    }
+    
+    void throwAtReallocation(bool throwRealloc) {
+      throw_ = throwRealloc;
     }
 
     void reserve(size_t elements = 0) {

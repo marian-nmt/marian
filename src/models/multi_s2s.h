@@ -1,18 +1,22 @@
 #pragma once
 
-#include "models/gnmt.h"
+#include "models/s2s.h"
 #include "models/encdec.h"
 
 namespace marian {
 
-struct MultiEncoderState : public EncoderState {
-  MultiEncoderState(Ptr<EncoderState> e1,
-                    Ptr<EncoderState> e2)
+struct EncoderStateMultiS2S : public EncoderState {
+  EncoderStateMultiS2S(Ptr<EncoderState> e1, Ptr<EncoderState> e2)
   : enc1(e1), enc2(e2) {}
+  
+  virtual Expr getContext() { return nullptr; }
+  virtual Expr getMask() { return nullptr; }
 
   Ptr<EncoderState> enc1;
   Ptr<EncoderState> enc2;
 };
+
+typedef DecoderStateS2S DecoderStateMultiS2S;
 
 template <class Encoder1, class Encoder2>
 class MultiEncoder : public EncoderBase {
@@ -35,7 +39,7 @@ class MultiEncoder : public EncoderBase {
       auto encState1 = encoder1_->build(graph, batch, 0);
       auto encState2 = encoder2_->build(graph, batch, 1);
 
-      return New<MultiEncoderState>(encState1, encState2);
+      return New<EncoderStateMultiS2S>(encState1, encState2);
     }
 };
 
@@ -120,7 +124,7 @@ class MultiAttentionCell {
 
 typedef MultiAttentionCell<GRU, GlobalAttention, GlobalAttention, GRU> MultiCGRU;
 
-class MultiDecoderGNMT : public DecoderBase {
+class MultiDecoderS2S : public DecoderBase {
   private:
     Ptr<GlobalAttention> attention1_;
     Ptr<GlobalAttention> attention2_;
@@ -128,21 +132,20 @@ class MultiDecoderGNMT : public DecoderBase {
   public:
 
     template <class ...Args>
-    MultiDecoderGNMT(Ptr<Config> options, Args ...args)
+    MultiDecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
 
-    virtual Expr
-    buildStartState(Ptr<EncoderState> encState) {
+    virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
       using namespace keywords;
 
-      auto multiEncState = std::static_pointer_cast<MultiEncoderState>(encState);
+      auto mEncState = std::static_pointer_cast<EncoderStateMultiS2S>(encState);
 
-      auto meanContext1 = weighted_average(multiEncState->enc1->context,
-                                           multiEncState->enc1->mask,
+      auto meanContext1 = weighted_average(mEncState->enc1->getContext(),
+                                           mEncState->enc1->getMask(),
                                            axis=2);
 
-      auto meanContext2 = weighted_average(multiEncState->enc2->context,
-                                           multiEncState->enc2->mask,
+      auto meanContext2 = weighted_average(mEncState->enc2->getContext(),
+                                           mEncState->enc2->getMask(),
                                            axis=2);
 
       bool layerNorm = options_->get<bool>("layer-normalization");
@@ -151,14 +154,14 @@ class MultiDecoderGNMT : public DecoderBase {
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext1, meanContext2);
-      return start;
+      
+      std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
+      return New<DecoderStateMultiS2S>(startStates, nullptr, mEncState);
     }
 
-    virtual std::tuple<Expr, std::vector<Expr>>
-    step(Expr embeddings,
-         std::vector<Expr> states,
-         Ptr<EncoderState> encState,
-         bool single) {
+    virtual Ptr<DecoderState> step(Expr embeddings,
+                                   Ptr<DecoderState> state,
+                                   bool single) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -179,16 +182,17 @@ class MultiDecoderGNMT : public DecoderBase {
         embeddings = dropout(embeddings, mask=trgWordDrop);
       }
 
-      auto multiEncState = std::static_pointer_cast<MultiEncoderState>(encState);
+      auto mEncState
+        = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
 
       if(!attention1_)
         attention1_ = New<GlobalAttention>("decoder_att1",
-                                           multiEncState->enc1,
+                                           mEncState->enc1,
                                            dimDecState,
                                            normalize=layerNorm);
       if(!attention2_)
         attention2_ = New<GlobalAttention>("decoder_att2",
-                                           multiEncState->enc2,
+                                           mEncState->enc2,
                                            dimDecState,
                                            normalize=layerNorm);
 
@@ -198,7 +202,8 @@ class MultiDecoderGNMT : public DecoderBase {
                            normalize=layerNorm,
                            dropout_prob=dropoutRnn);
 
-      auto stateL1 = rnnL1(embeddings, states[0]);
+      auto decState = std::dynamic_pointer_cast<DecoderStateMultiS2S>(state);
+      auto stateL1 = rnnL1(embeddings, decState->getStates()[0]);
 
       auto alignedContext = single ?
         rnnL1.getCell()->getLastContext() :
@@ -210,8 +215,8 @@ class MultiDecoderGNMT : public DecoderBase {
       Expr outputLn;
       if(decoderLayers > 1) {
         std::vector<Expr> statesIn;
-        for(int i = 1; i < states.size(); ++i)
-          statesIn.push_back(states[i]);
+        for(int i = 1; i < decState->getStates().size(); ++i)
+          statesIn.push_back(decState->getStates()[i]);
 
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = MLRNN<GRU>(graph, "decoder",
@@ -236,15 +241,17 @@ class MultiDecoderGNMT : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, outputLn, alignedContext);
 
-      auto logitsL2 = Dense("ff_logit_l2", dimTrgVoc)
-                        (logitsL1);
+      auto logitsOut = filterInfo_ ?
+        DenseWithFilter("ff_logit_l2", dimTrgVoc, filterInfo_->indeces())(logitsL1) :
+        Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
 
-      return std::make_tuple(logitsL2, statesOut);
+      return New<DecoderStateMultiS2S>(statesOut, logitsOut,
+                                       state->getEncoderState());
     }
 
 };
 
-typedef MultiEncoder<EncoderGNMT, EncoderGNMT> MultiEncoderGNMT;
-typedef Seq2Seq<MultiEncoderGNMT, MultiDecoderGNMT> MultiGNMT;
+typedef MultiEncoder<EncoderS2S, EncoderS2S> MultiEncoderS2S;
+typedef EncoderDecoder<MultiEncoderS2S, MultiDecoderS2S> MultiS2S;
 
 }

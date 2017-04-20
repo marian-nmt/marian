@@ -39,6 +39,9 @@ namespace marian {
 
   template<class T>
   using UPtr = std::unique_ptr<T>;
+  
+  template<class T>
+  using Weak = std::weak_ptr<T>;
 
   /** @brief Creates shared_ptr of any type, passes all arguments to any available constructor */
   template <class T, typename ...Args>
@@ -58,14 +61,6 @@ namespace marian {
 
   template<class T>
   using HostVector = thrust::host_vector<T>;
-
-  /** @brief A placeholder that represents the size of a dimension, the actual value of which is to be specified at some later point.
-   *
-   * For example, in certain cases the value of one dimension in a Shape object may be used to represent batch size.
-   * In such a case, the value of batch size may not be known when the Shape object is constructed.
-   * In that case, this placeholder would be used to specify that the batch size value will be defined at some later point.
-   */
-  const int whatevs{-1};
 }
 
 
@@ -88,6 +83,8 @@ namespace marian {
   class RunBase;
   typedef Ptr<RunBase> RunBasePtr;
 
+  class Filter;
+  
   // An enumeration of activations
   enum struct act { linear, tanh, logit, ReLU };
 
@@ -128,6 +125,7 @@ namespace marian {
     KEY(coverage, Expr);
     KEY(max_epochs, int);
     KEY(valid, Ptr<RunBase>);
+    KEY(filter, Ptr<Filter>);
   }
 
 }
