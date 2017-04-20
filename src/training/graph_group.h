@@ -14,10 +14,7 @@
 #include "data/batch_generator.h"
 
 #include "training/dropper.h"
-
-#define HISTORY_SIZE 6 
-#define DROP_SIZE 0.99
-
+#include "training/sparse_tensor.h"
 
 namespace marian {
 
@@ -200,7 +197,7 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<std::vector<GradientDrop>> fetchDropper;
     std::vector<Tensor> tmpTensor, tmpDelta;
 
-    std::vector<Tensor> params_[HISTORY_SIZE];
+    std::vector<std::vector<Tensor>> params_;
     std::vector<Ptr<TensorAllocator>> paramsAlloc_;
   
     std::vector<Tensor> grads_;
@@ -218,6 +215,8 @@ class AsyncGraphGroup : public GraphGroup {
 
     ThreadPool pool_;
 
+    double drop_rate_{0};
+    int history_size_{1};
 
     std::vector<Ptr<TensorAllocator>> allocators;
     Tensor newTensor(int size, int device){
@@ -262,9 +261,9 @@ class AsyncGraphGroup : public GraphGroup {
           // apply and increment your version number, if history is enabled
           int latestVersion = 0;
 
-          if (HISTORY_SIZE > 1){
-            int pastVersion = globalVersionNumber[idx] % HISTORY_SIZE;
-            latestVersion =  ++globalVersionNumber[idx] % HISTORY_SIZE;
+          if (history_size_ > 1){
+            int pastVersion = globalVersionNumber[idx] % history_size_;
+            latestVersion =  ++globalVersionNumber[idx] % history_size_;
             params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
           }
 
@@ -297,12 +296,12 @@ class AsyncGraphGroup : public GraphGroup {
           //individual mutex per-shard
           std::lock_guard<std::mutex> guard( shardSync_[idx] );
           //obtain the delta
-          int latestVersion =  globalVersionNumber[idx] % HISTORY_SIZE;
-          int currVersion = localVersionNumbers[worker_id][idx] % HISTORY_SIZE;
+          int latestVersion =  globalVersionNumber[idx] % history_size_;
+          int currVersion = localVersionNumbers[worker_id][idx] % history_size_;
 
           //check if the current version is too old
-          if (globalVersionNumber[idx] - localVersionNumbers[worker_id][idx] >= HISTORY_SIZE)
-            currVersion = (1 + globalVersionNumber[idx]) % HISTORY_SIZE; //if so, pick the best you can do
+          if (globalVersionNumber[idx] - localVersionNumbers[worker_id][idx] >= history_size_)
+            currVersion = (1 + globalVersionNumber[idx]) % history_size_; //if so, pick the best you can do
 
           //if already latest
           if (globalVersionNumber[idx] == localVersionNumbers[worker_id][idx])
@@ -314,7 +313,7 @@ class AsyncGraphGroup : public GraphGroup {
           cudaStreamSynchronize(0);
 
           //get sparse delta  
-          fetchDropper[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , DROP_SIZE );
+          fetchDropper[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , drop_rate_ );
           cudaStreamSynchronize(0);
 
           //move sparse delta
@@ -369,8 +368,8 @@ class AsyncGraphGroup : public GraphGroup {
             cudaStreamSynchronize(0);
             
             // apply and increment your version number
-            int pastVersion = globalVersionNumber[idx] % HISTORY_SIZE;
-            int latestVersion =  ++globalVersionNumber[idx] % HISTORY_SIZE;
+            int pastVersion = globalVersionNumber[idx] % history_size_;
+            int latestVersion =  ++globalVersionNumber[idx] % history_size_;
             params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
             shardOpt_[idx]->update(params_[ latestVersion ][idx],  grads_[idx] );
 
@@ -420,7 +419,7 @@ class AsyncGraphGroup : public GraphGroup {
             totalSize -= __size__;
            
 
-            for (int h_id = 0; h_id < HISTORY_SIZE; h_id++){
+            for (int h_id = 0; h_id < history_size_; h_id++){
               Tensor param; 
 	      Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
 	      allocator->reserveExact(__size__);
@@ -430,7 +429,7 @@ class AsyncGraphGroup : public GraphGroup {
               params_[h_id].push_back(param);
             }
 
-	    if (DROP_SIZE) tmpTensor.push_back( newTensor(__size__, device));
+	    if (drop_rate_) tmpTensor.push_back( newTensor(__size__, device));
             pos += __size__;
           }
         }
@@ -449,7 +448,6 @@ class AsyncGraphGroup : public GraphGroup {
             grads_.push_back(grad_);
           }
         }
-	std::cout<<"ALLOC AVG"<<std::endl;
         if(movingAvg_) {
           if(paramsAvg_.size() == 0) {
             int totalSize = graphs_[0]->params()->vals()->size();
@@ -472,15 +470,11 @@ class AsyncGraphGroup : public GraphGroup {
           }
         }
         
-//        std::cout<<"ALLOC DROPPER "<<DROPSIZE && !first<<std::endl;
-        if(DROP_SIZE && first_) {
+        if(drop_rate_ && first_) {
           int totalSize = graphs_[0]->params()->vals()->size();
           int sparseCap = totalSize / 10;
-	  std::cout<<"INnnnnnnnnnnnnnnnnnnnnnnn"<<std::endl;
           for (auto device : devices_){
-		
-            std::cout<<device<<std::endl;
-	    sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
+		        sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
             localSparseGrads_.push_back( SparseTensor(new SparseTensorBase(sparseCap , device )) );
             tmpSparseDelta.push_back( SparseTensor(new SparseTensorBase(sparseCap / devices_.size() , device )) );
             std::vector<SparseTensor> tmp;
@@ -490,7 +484,6 @@ class AsyncGraphGroup : public GraphGroup {
           }
         }
 
-	std::cout<<"DONE"<<std::endl;
 
         first_ = false;
       }
@@ -513,13 +506,12 @@ class AsyncGraphGroup : public GraphGroup {
 	  graph = graphs_[i];
           builder = builders_[i++];
 
-          if (DROP_SIZE)
+          if (drop_rate_)
             tmpDelta.push_back( newTensor( graph->params()->vals()->size() , graph->params()->vals()->getDevice() ) );
         }
 
 	if(!dropper) {
 		std::lock_guard<std::mutex> lock(sync_);
-		std::cout<<"init dropper"<<std::endl;
 		dropper = GradientDrop(new GradientDropBase());
 		std::vector<GradientDrop> tmp;
 		for (int i=0;i<devices_.size();i++)
@@ -529,10 +521,10 @@ class AsyncGraphGroup : public GraphGroup {
 
         builder->build(graph, batch);
         
-        if (DROP_SIZE && t > 0 )
+        if (drop_rate_ && t > 0 )
           sparseFetchParams(graph->params()->vals(), my_id );
         else
-          fetchParams(graph->params()->vals(), params_[globalVersionNumber[my_id] % HISTORY_SIZE]);
+          fetchParams(graph->params()->vals(), params_[globalVersionNumber[my_id] % history_size_]);
         
         graph->forward();
         float cost = graph->topNode()->scalar();
@@ -541,12 +533,9 @@ class AsyncGraphGroup : public GraphGroup {
         t++;
         
         cudaStreamSynchronize(0);
-        if (DROP_SIZE){
-//	  std::cout<<"mau push "<<dropper<<"  "<<localSparseGrads_.size()<<std::endl;
-//
-          dropper->dropGraph(graph->params()->grads() , localSparseGrads_[my_id] , DROP_SIZE );
+        if (drop_rate_){
+          dropper->dropGraph(graph->params()->grads() , localSparseGrads_[my_id] , drop_rate_ );
           sparsePush(localSparseGrads_[my_id]);
-//	  std::cout<<"dah push"<<std::endl;
         }
         else
           pushGradients(graph->params()->grads());
@@ -587,8 +576,14 @@ class AsyncGraphGroup : public GraphGroup {
        pool_{devices_.size(), devices_.size()},
        shardSync_{devices_.size()},
        movingAvg_{options_->get<bool>("moving-average")},
-       mvDecay_{(float)options_->get<double>("moving-decay")} {
+       mvDecay_{(float)options_->get<double>("moving-decay")},
+       drop_rate_{options_->get<double>("drop-rate")} {
 
+      if (drop_rate_ > 0.0){
+          history_size_ = devices_.size() * 1.5;
+      }
+      for (int i=0;i<history_size_;i++)
+        params_.push_back(std::vector<Tensor>());
       for(auto device : devices_) {
         auto graph = New<ExpressionGraph>();
         graph->setDevice(device);

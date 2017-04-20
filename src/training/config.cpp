@@ -254,6 +254,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "decay factor for moving average")
     ("filter", po::value<std::vector<std::string>>()->multitoken(),                                                                                 
      "Filter vocabulary: path [N first words] [M best alignments] [T threshold]")
+    ("drop-rate", po::value<double>()->default_value(0),
+     "gradient drop ratio. (read: https://arxiv.org/abs/1704.05021") 
   ;
   desc.add(training);
 }
