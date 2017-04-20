@@ -417,6 +417,8 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
+    SET_OPTION("drop-rate", double);
+
     SET_OPTION_NONDEFAULT("filter", std::vector<std::string>);
   }
   /** training end **/
