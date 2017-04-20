@@ -54,12 +54,12 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
 
   //cerr << "dMapping=" << dMapping.Debug(2) << endl;
 
-  cerr << "GetContext1=" << context.Debug(1) << endl;
+  //cerr << "GetContext1=" << context.Debug(1) << endl;
   context.Resize(maxSentenceLength,
                  forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
                  1,
                  source.size());
-  cerr << "GetContext2=" << context.Debug(1) << endl;
+  //cerr << "GetContext2=" << context.Debug(1) << endl;
 
   auto input = GetBatchInput(source, tab, maxSentenceLength);
 
@@ -71,18 +71,18 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& con
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(1) << endl;
   }
 
-  cerr << "GetContext3=" << context.Debug(1) << endl;
+  //cerr << "GetContext3=" << context.Debug(1) << endl;
   forwardRnn_.GetContext(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
                          context, source.size(), false);
-  cerr << "GetContext4=" << context.Debug(1) << endl;
+  //cerr << "GetContext4=" << context.Debug(1) << endl;
 
   backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
                           context, source.size(),
                           true,
                           &dMapping);
-  cerr << "GetContext5=" << context.Debug(1) << endl;
+  //cerr << "GetContext5=" << context.Debug(1) << endl;
 
 }
 
