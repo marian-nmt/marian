@@ -70,6 +70,9 @@ public:
       blaze::column(Probs, UNK_ID) = std::numeric_limits<float>::lowest();
     }
 
+    std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+    std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << " " << std::endl;
+
     std::nth_element(keys.begin(), keys.begin() + beamSize, keys.end(),
                  ProbCompare(Probs.data()));
 
@@ -78,8 +81,8 @@ public:
       bestCosts[i] = Probs.data()[keys[i]];
     }
 
-    //std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
-    //std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
+    std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
+    std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
     std::vector<std::vector<float>> breakDowns;
     bool doBreakdown = god.Get<bool>("n-best");

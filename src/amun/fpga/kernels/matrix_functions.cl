@@ -544,12 +544,11 @@ __kernel void gNthElement(
     insertValue(bestCost, bestInd, i, val, i);
   }
    
-  
   for (uint col = maxBeamSize; col < cols; ++col) {
     float cost = prob[col];
     replaceValueOrDiscard(bestCost, bestInd, maxBeamSize, cost, col);
   }
-  
+    
 }
 
 

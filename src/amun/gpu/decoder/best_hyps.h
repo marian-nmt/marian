@@ -109,7 +109,11 @@ class BestHyps : public BestHypsBase
       size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
       std::vector<float> bestCosts;
+
       std::vector<unsigned> bestKeys;
+
+      std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << " " << std::endl;
+      std::cerr << "isFirst=" << isFirst << " " << std::endl;
 
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
       std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
