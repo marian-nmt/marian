@@ -397,6 +397,14 @@ class AsyncGraphGroup : public GraphGroup {
         for(size_t i = 0; i < graphs_.size(); ++i) {
           builders_[i]->build(graphs_[i], batch);
           graphs_[i]->forward();
+
+          globalVersionNumber.push_back(0);
+          std::vector<int> localVersion;
+          for (int j=0;j<graphs_.size();j++)
+            localVersion.push_back(0);
+
+          localVersionNumbers.push_back(localVersion);
+
         }
         
         if(params_[0].size() == 0) {
@@ -487,7 +495,6 @@ class AsyncGraphGroup : public GraphGroup {
         thread_local std::vector<GradientDrop> fetchDropper(devices_.size());
 
         thread_local size_t my_id = 0;
-
         
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
