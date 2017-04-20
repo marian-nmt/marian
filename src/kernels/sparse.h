@@ -147,6 +147,17 @@ class CSR {
       CUDA_CHECK(cudaMalloc(&colIndices_, sizeof(int) * nnz_));
     }
     
+    std::string debug() {
+      float* buffer;
+      cudaMalloc(&buffer, sizeof(float) * rows() * cols());
+      
+      Tensor tensor(new TensorBase(buffer, {rows(), cols()}, device_));
+      toTensor(tensor);
+      std::string temp = tensor->debug();
+      
+      cudaFree(buffer);
+      return temp;
+    }
     
 };
 

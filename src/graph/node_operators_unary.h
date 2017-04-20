@@ -815,7 +815,7 @@ struct LexicalProbNodeOp : public NaryNodeOp {
         sparse::LfaForward(val_,
                            children_[0]->val(),
                            children_[1]->val(),
-                           lf_, 1e-9);
+                           lf_, 1e-3);
       )
     };
   }
@@ -826,7 +826,7 @@ struct LexicalProbNodeOp : public NaryNodeOp {
       NodeOp(sparse::LfaBackward(children_[1]->grad(),
                                  children_[0]->val(),
                                  children_[1]->val(),
-                                 adj_, lf_, 1e-6)
+                                 adj_, lf_, 1e-3)
       )
     };
   }

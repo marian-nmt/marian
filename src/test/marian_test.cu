@@ -27,13 +27,14 @@ int main(int argc, char** argv) {
   BatchGenerator<Corpus> bg(corpus, options);
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(0);
+  auto device = options->get<std::vector<size_t>>("devices").front();
+  graph->setDevice(device);
 
   Ptr<LexProbs> lexProbs;
   if(options->has("lexical-table"))
     lexProbs = New<LexProbs>(options,
                              corpus->getVocabs().front(),
-                             corpus->getVocabs().back(), 0);
+                             corpus->getVocabs().back(), device);
   
   auto type = options->get<std::string>("type");
   Ptr<EncoderDecoderBase> encdec;
@@ -44,7 +45,9 @@ int main(int argc, char** argv) {
   else
     encdec = New<Amun>(options, keywords::lex_probs=lexProbs);
 
-  //encdec->load(graph, options->get<std::string>("model"));
+  auto model = options->get<std::string>("model");
+  if(boost::filesystem::exists(model))
+    encdec->load(graph, model);
 
   graph->reserveWorkspaceMB(options->get<size_t>("workspace"));
 

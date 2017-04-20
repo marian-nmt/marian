@@ -31,13 +31,43 @@ void multiply(Ptr<CSR> C, const Ptr<CSR> A, const Ptr<CSR> B,
                    C->description(), C->values(), C->rowIndices(), C->colIndices()));
 }
 
+//__global__ void gExpandAtt(float* out,
+//                           const float* in,
+//                           int batch,
+//                           int srcWords,
+//                           int nonzeros) {
+//  
+//  for(int bid = 0; bid < nonzeros; bid += blockDim.x * gridDim.x) {
+//    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+//    if (index < nonzeros) {
+//      int r = (index % batch) + (index / (srcWords * batch)) * batch;
+//      int c = index % (srcWords * batch);
+//      out[r * srcWords * batch + c] = in[index];
+//    }
+//  }
+//}
+//
+//
+//void ExpandAtt(Tensor out, Tensor in) {
+//  cudaSetDevice(in->getDevice());
+//  int nonzeros = in->shape().elements();
+//  int batch = in->shape()[0];
+//  int srcWords = in->shape()[2]; 
+//
+//  int threads = std::min(MAX_THREADS, nonzeros);
+//  int blocks  = std::min(MAX_BLOCKS, nonzeros / threads  + (nonzeros % threads != 0));
+//
+//  gCollapseAtt<<<blocks, threads>>>(out->data(), in->data(), batch, srcWords, nonzeros);
+//}
+
+
 void LfaForward(Tensor out, Tensor logits, Tensor att,
                 Ptr<CSR> sparseLf, float eps) {
   cudaSetDevice(out->getDevice());
   
-  size_t batch    = att->shape()[0];
-  size_t srcWords = att->shape()[2];
-  size_t trgWords = att->shape()[3];
+  int batch    = att->shape()[0];
+  int srcWords = att->shape()[2];
+  int trgWords = att->shape()[3];
   
   std::vector<float> values;
   att->get(values);
@@ -68,8 +98,40 @@ void LfaForward(Tensor out, Tensor logits, Tensor att,
   multiply(sparseLfa, sparseAtt, sparseLf);
   
   sparseLfa->toTensor(out);
+  
   Element(_1 = (Log(_1 + eps) + _2), out, logits);
 }
+
+__global__ void gCollapseAtt(float* out,
+                             const float* in,
+                             int batch,
+                             int srcWords,
+                             int nonzeros) {
+  
+  for(int bid = 0; bid < nonzeros; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if (index < nonzeros) {
+      int r = (index % batch) + (index / (srcWords * batch)) * batch;
+      int c = index % (srcWords * batch);
+      float val = in[r * srcWords * batch + c];
+      out[index] += val;
+    }
+  }
+}
+
+
+void CollapseAtt(Tensor out, Tensor in) {
+  cudaSetDevice(out->getDevice());
+  int nonzeros = out->shape().elements();
+  int batch = out->shape()[0];
+  int srcWords = out->shape()[2]; 
+
+  int threads = std::min(MAX_THREADS, nonzeros);
+  int blocks  = std::min(MAX_BLOCKS, nonzeros / threads  + (nonzeros % threads != 0));
+
+  gCollapseAtt<<<blocks, threads>>>(out->data(), in->data(), batch, srcWords, nonzeros);
+}
+
 
 void LfaBackward(Tensor gradAtt,
                  Tensor valLogits, Tensor valAtt,
@@ -77,32 +139,30 @@ void LfaBackward(Tensor gradAtt,
                  Ptr<CSR> sparseLf, float eps) {
   cudaSetDevice(adj->getDevice());
   
-  //int batch    = gradAtt->shape()[0];
-  //int srcWords = gradAtt->shape()[2];
-  //int trgWords = gradAtt->shape()[3];
-  //int nonzeros = gradAtt->shape().elements();
-  //
-  //int dimTrgVoc = valLogits->shape()[1];
-  //
-  //Element(_1 = _2 / (_1 + eps), valLogits, adj);
-  //
-  //std::cerr << valLogits->debug() << std::endl;
-  //
-  //float* buffer;
-  //CUDA_CHECK(cudaMalloc(&buffer, sizeof(float) * batch * srcWords * batch * trgWords));
-  //
-  //float alpha = 1, beta = 0;
-  //CUSPARSE_CHECK(cusparseScsrmm2(sparseLf->handle(),
-  //  CUSPARSE_OPERATION_NON_TRANSPOSE,
-  //  CUSPARSE_OPERATION_NON_TRANSPOSE,
-  //  sparseLf->rows(), batch * trgWords, sparseLf->cols(), sparseLf->nnz(), &alpha,
-  //  sparseLf->description(), sparseLf->values(), sparseLf->rowIndices(), sparseLf->colIndices(),
-  //  adj->data(), dimTrgVoc, &beta, buffer, batch * srcWords));
-  //
-  //Tensor b(new TensorBase(buffer, {batch * trgWords, batch * srcWords}, 0));
-  //std::cerr << b->debug() << std::endl;
-  //
-  //CUDA_CHECK(cudaFree(buffer));
+  int batch    = gradAtt->shape()[0];
+  int srcWords = gradAtt->shape()[2];
+  int trgWords = gradAtt->shape()[3];
+  int nonzeros = gradAtt->shape().elements();
+  
+  int dimTrgVoc = valLogits->shape()[1];
+  
+  Element(_1 = _2 / (_1 + eps), valLogits, adj);
+  
+  float* expandAttGradBuffer;
+  CUDA_CHECK(cudaMalloc(&expandAttGradBuffer, sizeof(float) * batch * srcWords * batch * trgWords));
+  
+  float alpha = 1, beta = 0;
+  CUSPARSE_CHECK(cusparseScsrmm2(sparseLf->handle(),
+    CUSPARSE_OPERATION_NON_TRANSPOSE,
+    CUSPARSE_OPERATION_NON_TRANSPOSE,
+    sparseLf->rows(), batch * trgWords, sparseLf->cols(), sparseLf->nnz(), &alpha,
+    sparseLf->description(), sparseLf->values(), sparseLf->rowIndices(), sparseLf->colIndices(),
+    valLogits->data(), dimTrgVoc, &beta, expandAttGradBuffer, batch * srcWords));
+  
+  Tensor expandAttGrad(new TensorBase(expandAttGradBuffer,
+                                      {batch * trgWords, batch * srcWords}, 0));  
+  CollapseAtt(gradAtt, expandAttGrad);
+  CUDA_CHECK(cudaFree(expandAttGradBuffer));
 }
 
 }
