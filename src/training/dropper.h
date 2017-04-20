@@ -77,12 +77,12 @@ class GradientDropBase {
 
 
     	//sanity check
-    	cudaSetDevice(t->getDevice());
+    	/*cudaSetDevice(t->getDevice());
 	    if (step < 10){
 	      thrust::device_ptr<float> dev_data_ptr(t->data());
 	      int x = thrust::count(dev_data_ptr, dev_data_ptr + t->size() , 0);
 	      std::cerr<<"GPU :"<< t->getDevice()<<"  |  overall dropping "<<(float)x /  t->size() <<std::endl;
-	    }
+	    }*/
 	    step++;
     }
 };
