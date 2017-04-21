@@ -84,7 +84,7 @@ class BeamSearch {
       Ptr<DecoderState> selectedState
         = hypIndeces.empty() ? state : state->select(hypIndeces);
       
-      builder_->selectEmbeddings(graph, state, embIndeces, position);
+      builder_->selectEmbeddings(graph, selectedState, embIndeces, position);
 
       selectedState->setSingleStep(true);
       
