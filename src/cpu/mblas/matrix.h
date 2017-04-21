@@ -54,9 +54,17 @@ public:
 
   virtual std::string Debug() const
   {
-    amunmt_UTIL_THROW2("Not implemented");
+    std::stringstream strm;
+    strm << "(" << Rows() << " x " << Cols() << ")" << std::endl;
+    for (int i = 0; i < this->rows(); ++i) {
+      float sum  = 0.0f;
+      for (int j = 0; j < this->columns(); ++j) {
+        sum += (*this)(i, j);
+      }
+      strm << sum << " ";
+    }
+    return strm.str();
   }
-
 };
 
 
@@ -388,6 +396,9 @@ MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
 
 template<class MT>
 void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-9) {
+  // std::cerr << "B: IN: " << in.Debug() << std::endl;
+  // std::cerr << "B: GAMMA: " << gamma.rows() << "  x " << gamma.columns() << std::endl;
+
   size_t rows = in.rows();
   size_t cols = in.columns();
 
@@ -414,6 +425,8 @@ void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-9)
 
 template<class MT>
 void LayerNormalization(MT& in, const MT& gamma, float eps=1e-9) {
+  // std::cerr << "IN: " << in.Debug() << std::endl;
+  // std::cerr << "GAMMA: " << gamma.rows() << "  x " << gamma.columns() << std::endl;
   size_t rows = in.rows();
   size_t cols = in.columns();
 
@@ -422,20 +435,26 @@ void LayerNormalization(MT& in, const MT& gamma, float eps=1e-9) {
     for (int i = 0; i < cols; ++i) {
       sum += in(j, i);
     }
+    // std::cerr << "sum : " << sum << " ";
 
     float mean = sum / cols;
+    // std::cerr << "mean: " << mean << " ";
 
     float sigma = 0.0f;
     for (int i = 0; i < cols; ++i) {
       sigma += (in(j, i) - mean) * (in(j, i) - mean);
     }
+    sigma /= cols;
+
+    // std::cerr << "sigma: " << sigma << " ";
 
     sigma = sqrt(sigma + eps);
 
     for (int i = 0; i < cols; ++i) {
-      in(j, i) = gamma(0, j) * ( (in(j, i) - mean) / sigma);
+      in(j, i) = gamma(i, 0) * ( (in(j, i) - mean) / sigma);
     }
   }
+  // std::cerr << "OUT: " << in.Debug() << std::endl;
 }
 
 }
