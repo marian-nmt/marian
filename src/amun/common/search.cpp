@@ -100,8 +100,10 @@ void Search::Encode(const Sentences& sentences, States& states) {
   for (size_t i = 0; i < scorers_.size(); i++) {
     Scorer &scorer = *scorers_[i];
     scorer.SetSource(sentences);
+    State& state = *states[i];
 
-    scorer.BeginSentenceState(*states[i], sentences.size());
+    scorer.BeginSentenceState(state, sentences.size());
+    cerr << "BeginSentenceState state=" << state.Debug(1) << endl;
   }
 }
 
