@@ -140,7 +140,12 @@ class Decoder {
                                      const mblas::Matrix& HiddenState,
                                      const mblas::Matrix& SourceContext,
                                      const DeviceVector<int>& mapping,
-                                     const std::vector<size_t>& beamSizes) {
+                                     const std::vector<size_t>& beamSizes)
+        {
+          // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
+          // batchMapping = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
+          // dBatchMapping_ = fixed length (batch*beam) version of dBatchMapping_
+
           using namespace mblas;
 
           thrust::host_vector<int> batchMapping(HiddenState.dim(0));
@@ -150,13 +155,14 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
-          //std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
 
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),
               cudaMemcpyHostToDevice);
-          //std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
+          //std::cerr << "mapping=" << Debug(mapping, 2) << std::endl;
+          //std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
+          //std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_, 2) << std::endl;
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 
@@ -195,7 +201,7 @@ class Decoder {
           std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
           std::cerr << "A_=" << A_.Debug() << std::endl;
           std::cerr << "SourceContext=" << SourceContext.Debug() << std::endl;
-          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_) << std::endl;
+          std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_, 2) << std::endl;
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
           std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
         }

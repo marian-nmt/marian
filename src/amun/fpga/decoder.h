@@ -155,6 +155,10 @@ class Decoder {
                                  const Array<int>& mapping,
                                  const std::vector<size_t>& beamSizes)
     {
+      // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
+      // batchMapping = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
+      // dBatchMapping_ = fixed length (batch*beam) version of dBatchMapping_
+
       using namespace mblas;
       const OpenCLInfo &openCLInfo = HiddenState.GetOpenCLInfo();
 
@@ -168,7 +172,9 @@ class Decoder {
 
       //std::cerr << "batchMapping=" << Debug(batchMapping) << std::endl;
       dBatchMapping_.Set(batchMapping);
-      //std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
+      //std::cerr << "mapping=" << mapping.Debug(2) << std::endl;
+      //std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
+      //std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(2) << std::endl;
 
       const size_t srcSize = mapping.size() / beamSizes.size();
 
@@ -209,7 +215,7 @@ class Decoder {
       std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
       std::cerr << "A_=" << A_.Debug() << std::endl;
       std::cerr << "SourceContext=" << SourceContext.Debug() << std::endl;
-      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug() << std::endl;
+      std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(2) << std::endl;
       mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
       std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
     }
