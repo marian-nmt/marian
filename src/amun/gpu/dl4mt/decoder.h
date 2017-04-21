@@ -64,21 +64,23 @@ class Decoder {
           //std::cerr << "1State=" << State.Debug(1) << std::endl;
           //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
           Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
-          //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
+          std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
-          //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-          //std::cerr << "mapping=" << Debug(mapping) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+          std::cerr << "mapping=" << Debug(mapping) << std::endl;
           Mean(Temp2_, SourceContext, mapping);
-          //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
+          std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           Prod(State, Temp2_, w_.Wi_);
-          //std::cerr << "State=" << State.Debug(1) << std::endl;
+          std::cerr << "2State=" << State.Debug(1) << std::endl;
 
           if (w_.Gamma_) {
             Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
           } else {
             BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
           }
+          std::cerr << "3State=" << State.Debug(1) << std::endl;
+
         }
 
         void GetNextState(mblas::Matrix& NextState,
@@ -316,19 +318,19 @@ class Decoder {
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes)
     {
-      std::cerr << "State=" << State.Debug(1) << std::endl;
-      std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
+      //std::cerr << "State=" << State.Debug(1) << std::endl;
+      //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
-      std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
+      //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
 
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
-      std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+      //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
 
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
 
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
-      std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
+      //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       
     }
 
