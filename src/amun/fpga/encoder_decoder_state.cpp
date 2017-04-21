@@ -29,10 +29,10 @@ const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 
-std::string EncoderDecoderState::Debug() const
+std::string EncoderDecoderState::Debug(size_t verbosity) const
 {
   stringstream strm;
-  strm << "states_=" << states_.Debug(1) << " embeddings_=" << embeddings_.Debug(1);
+  strm << "states_=" << states_.Debug(verbosity) << " embeddings_=" << embeddings_.Debug(verbosity);
   return strm.str();
 }
 

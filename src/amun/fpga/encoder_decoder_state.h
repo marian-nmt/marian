@@ -14,7 +14,7 @@ public:
   const mblas::Matrix& GetStates() const;
   const mblas::Matrix& GetEmbeddings() const;
 
-  virtual std::string Debug() const;
+  virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
   mblas::Matrix states_;

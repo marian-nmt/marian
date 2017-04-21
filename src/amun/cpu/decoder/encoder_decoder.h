@@ -26,7 +26,7 @@ class EncoderDecoderState : public State {
 	EncoderDecoderState();
 	EncoderDecoderState(const EncoderDecoderState&) = delete;
 
-    virtual std::string Debug() const;
+    virtual std::string Debug(size_t verbosity = 1) const;
 
     CPU::mblas::Matrix& GetStates();
 

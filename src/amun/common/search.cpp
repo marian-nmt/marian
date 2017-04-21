@@ -147,42 +147,46 @@ bool Search::Decode(
 		std::vector<size_t> &beamSizes
 		)
 {
-   size_t batchSize = sentences.size();
+  std::cerr << std::endl;
 
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      Scorer &scorer = *scorers_[i];
-      const State &state = *states[i];
-      State &nextState = *nextStates[i];
+  size_t batchSize = sentences.size();
 
-      scorer.Decode(god, state, nextState, beamSizes);
+  for (size_t i = 0; i < scorers_.size(); i++) {
+    Scorer &scorer = *scorers_[i];
+    const State &state = *states[i];
+    State &nextState = *nextStates[i];
+
+    std::cerr << "state=" << state.Debug() << std::endl;
+    scorer.Decode(god, state, nextState, beamSizes);
+    std::cerr << "nextState=" << nextState.Debug() << std::endl;
+  }
+
+  if (decoderStep == 0) {
+    for (auto& beamSize : beamSizes) {
+    beamSize = god.Get<size_t>("beam-size");
     }
+  }
 
-    if (decoderStep == 0) {
-      for (auto& beamSize : beamSizes) {
-      beamSize = god.Get<size_t>("beam-size");
-      }
-    }
+  Beams beams(batchSize);
+  Beam survivors;
 
-    Beams beams(batchSize);
-    Beam survivors;
+  bool hasSurvivors = CalcBeam(
+      god,
+      prevHyps,
+      beams,
+      beamSizes,
+      histories,
+      sentences,
+      survivors,
+      states,
+      nextStates
+      );
 
-    bool hasSurvivors = CalcBeam(
-    		god,
-    		prevHyps,
-    		beams,
-    		beamSizes,
-    		histories,
-    		sentences,
-    		survivors,
-    		states,
-    		nextStates
-    		);
+  if (!hasSurvivors) {
+    return false;
+  }
 
-    if (!hasSurvivors) {
-    	return false;
-    }
-
-    return true;
+  return true;
 }
 
 bool Search::CalcBeam(

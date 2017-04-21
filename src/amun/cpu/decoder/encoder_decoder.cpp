@@ -31,7 +31,7 @@ EncoderDecoderState::EncoderDecoderState()
 	//cerr << "create EncoderDecoderState" << endl;
 }
 
-std::string EncoderDecoderState::Debug() const
+std::string EncoderDecoderState::Debug(size_t verbosity) const
 {
 	return CPU::mblas::Debug(states_);
 }

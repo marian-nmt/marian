@@ -29,7 +29,7 @@ class State {
       return static_cast<const T&>(*this);;
     }
 
-    virtual std::string Debug() const = 0;
+    virtual std::string Debug(size_t verbosity = 1) const = 0;
 
 };
 
