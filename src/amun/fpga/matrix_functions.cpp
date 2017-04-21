@@ -277,7 +277,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   assert(!transB);
   assert(A.dim(1) == B.dim(0));
 
-  C.Resize(A.dim(0), B.dim(1));
+  C.Resize(A.dim(0), B.dim(1), A.dim(2), A.dim(3));
   //Fill(C, 0);
   //cerr << "C=" << C.Debug(1) << endl;
 
@@ -289,9 +289,9 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "prod", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint rowsA = A.dim(0);
+  uint rowsA = A.dim(0) * A.dim(2) * A.dim(3);
   uint colsA = A.dim(1);
-  uint rowsB = B.dim(0);
+  uint rowsB = B.dim(0) * B.dim(2) * B.dim(3);
   uint colsB = B.dim(1);
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &C.data()) );
