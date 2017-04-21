@@ -278,6 +278,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   assert(A.dim(1) == B.dim(0));
 
   C.Resize(A.dim(0), B.dim(1));
+  //Fill(C, 0);
+  //cerr << "C=" << C.Debug(1) << endl;
 
   cl_int err;
   size_t global;                      // global domain size for our calculation

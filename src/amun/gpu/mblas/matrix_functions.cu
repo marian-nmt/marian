@@ -293,6 +293,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
     ldc = B.dim(0);
 
   C.Resize(m, n, A.dim(2), A.dim(3));
+  //cerr << "C=" << C.Debug(1) << endl;
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
