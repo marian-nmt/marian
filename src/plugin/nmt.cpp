@@ -38,7 +38,7 @@ size_t NMT::GetBatchSize() {
 NMT::NMT()
 {
   auto deviceInfo_ = god_->GetNextDevice();
-  std::cerr << "Device ID: " << deviceInfo_.deviceId << std::endl;
+  // std::cerr << "Device ID: " << deviceInfo_.deviceId << std::endl;
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
@@ -65,7 +65,7 @@ void NMT::SetDevice() {
 
 States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
 {
-  std::cerr << "Setting source sentence..." << std::endl;
+  // std::cerr << "Setting source sentence..." << std::endl;
   Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(*god_, 0, srcWords)));
 
@@ -74,9 +74,10 @@ States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
   for (size_t i = 0; i < scorers_.size(); ++i) {
     scorers_[i]->SetSource(sentences);
     scorers_[i]->BeginSentenceState(*states[i], sentences.size());
+    // std::cerr << "SRC: " << states[i]->Debug() << std::endl;
   }
 
-  std::cerr << "Setting source sentence... DONE" << std::endl;
+  // std::cerr << "Setting source sentence... DONE" << std::endl;
   return states;
 }
 
@@ -188,7 +189,7 @@ void NMT::BatchSteps(const Batches& batches,
 
 std::vector<float> NMT::RescoreNBestList(const std::vector<std::string>& nbest)
 {
-  std::cerr << "Rescoring N-Best list..." << std::endl;
+  // std::cerr << "Rescoring N-Best list..." << std::endl;
   States states = NewStates();
   for (size_t i = 0; i < scorers_.size(); ++i) {
     scorers_[i]->BeginSentenceState(*states[i], {1});
@@ -201,16 +202,16 @@ std::vector<float> NMT::RescoreNBestList(const std::vector<std::string>& nbest)
 
 void NMT::RescorePhrases(const std::vector<std::vector<std::string>>& phrases, std::vector<States>& inputStates, Scores& probs)
 {
-  std::cerr << "Rescoring Phrases..." << std::endl;
+  // std::cerr << "Rescoring Phrases..." << std::endl;
   NBest nBest(phrases, inputStates, god_->GetTargetVocab(), GetBatchSize());
   auto scores = Rescore(nBest, true);
   std::swap(probs, scores);
-  std::cerr << "Rescoring Phrases..." << std::endl;
+  // std::cerr << "Rescoring Phrases..." << std::endl;
 }
 
 States NMT::JoinStates(const std::vector<States*>& inStates)
 {
-  std::cerr << "Join States..." << std::endl;
+  // std::cerr << "Join States..." << std::endl;
   States prevStates = NewStates();
   std::vector<States> tmp(scorers_.size());
   for (auto& states : inStates) {
@@ -226,7 +227,6 @@ States NMT::JoinStates(const std::vector<States*>& inStates)
 }
 
 Beam NMT::GetSurvivors(RescoreBatch& rescoreBatch, size_t step) {
-  std::cerr << "Get survivors..." << std::endl;
   Beam survivors;
   std::vector<size_t> nextHyps;
   for (size_t i = 0; i < rescoreBatch.prevIds[step].size(); ++i) {
@@ -262,26 +262,22 @@ void NMT::SaveFinalStates(const States& inStates, size_t step, RescoreBatch& res
   }
 }
 
+
 std::vector<float> NMT::Rescore(NBest& nBest, bool returnFinalStates) {
-  std::cerr << "Rescoring..." << std::endl;
   std::vector<float> scores;
   for (auto& rescoreBatch: nBest.SplitNBestListIntoBatches()) {
-    std::cerr << "Start sentence batch..." << std::endl;
     States prevStates = JoinStates(rescoreBatch.states);
     States nextStates = NewStates();
     std::vector<float> probs(rescoreBatch.data[0].size());
 
     for (size_t stepIdx = 0; stepIdx < rescoreBatch.length(); ++stepIdx) {
-      std::cerr << "Step: " << stepIdx << std::endl;
       for (size_t ii = 0; ii < scorers_.size(); ii++) {
         Scorer &scorer = *scorers_[ii];
         const State &state =  *prevStates[ii];
         State &nextState = *nextStates[ii];
 
-        std::cerr << "Decoding" << std::endl;
         scorer.Decode(state, nextState);
 
-        std::cerr << "Getting scores" << std::endl;
         auto logProbs = scorer.GetScores(rescoreBatch.indices[stepIdx]);
         for (size_t i = 0; i < rescoreBatch.prevIds[stepIdx].size(); ++i) {
           probs[rescoreBatch.prevIds[stepIdx][i]] += logProbs[i];
@@ -289,7 +285,6 @@ std::vector<float> NMT::Rescore(NBest& nBest, bool returnFinalStates) {
       }
 
       if (returnFinalStates) {
-          std::cerr << "Saving states..." << std::endl;
           SaveFinalStates(nextStates, stepIdx, rescoreBatch);
       }
 
@@ -300,7 +295,6 @@ std::vector<float> NMT::Rescore(NBest& nBest, bool returnFinalStates) {
       }
 
       for (size_t i = 0; i < scorers_.size(); ++i) {
-        std::cerr << "Assembling..." << std::endl;
         scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
       }
     }
