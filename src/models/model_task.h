@@ -3,6 +3,7 @@
 #include "models/amun.h"
 #include "models/s2s.h"
 #include "models/multi_s2s.h"
+#include "models/hardatt.h"
 
 namespace marian {
   
@@ -21,6 +22,8 @@ namespace marian {
       return New<TaskName<Wrapper<S2S>>>(options);
     else if(type == "multi-s2s")
       return New<TaskName<Wrapper<MultiS2S>>>(options);
+    else if(type == "hard-att")
+      return New<TaskName<Wrapper<HardAtt>>>(options);
     else
       UTIL_THROW2("Unknown model type: " << type);
   }

@@ -55,8 +55,12 @@ class BeamSearch {
     step(Ptr<ExpressionGraph> graph,
          Ptr<DecoderState> state,
          size_t position) {
-      auto nullEmbedding = builder_->selectEmbeddings(graph, {}, position);
-      auto nextState = builder_->step(nullEmbedding, state, true);
+      
+      builder_->selectEmbeddings(graph, state, {}, position);
+      
+      state->setSingleStep(true);
+      
+      auto nextState = builder_->step(state);
       nextState->setProbs(logsoftmax(nextState->getProbs()));
       return nextState;
     }
@@ -79,9 +83,12 @@ class BeamSearch {
 
       Ptr<DecoderState> selectedState
         = hypIndeces.empty() ? state : state->select(hypIndeces);
-      auto selectedEmbeddings = builder_->selectEmbeddings(graph, embIndeces, position);
       
-      auto nextState = builder_->step(selectedEmbeddings, selectedState, true);
+      builder_->selectEmbeddings(graph, state, embIndeces, position);
+
+      selectedState->setSingleStep(true);
+      
+      auto nextState = builder_->step(selectedState);
 
       auto costs = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
                                    keywords::init=inits::from_vector(beamCosts));

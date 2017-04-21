@@ -81,8 +81,9 @@ class DecoderBase {
        inference_(Get(keywords::inference, false, args...)),
        lexProbs_(Get(keywords::lex_probs, nullptr, args...)) {}
     
-    virtual std::tuple<Expr, Expr, Expr>
-    groundTruth(Ptr<ExpressionGraph> graph,
+    virtual std::tuple<Expr, Expr>
+    groundTruth(Ptr<DecoderState> state,
+                Ptr<ExpressionGraph> graph,
                 Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
@@ -124,7 +125,9 @@ class DecoderBase {
     
       auto yShifted = shift(y, {0, 0, 1, 0});
       
-      return std::make_tuple(yShifted, yMask, yIdx);
+      state->setTargetEmbeddings(yShifted);
+      
+      return std::make_tuple(yMask, yIdx);
     }
 
     virtual void setLexicalProbabilites(Ptr<ExpressionGraph> graph,
@@ -135,7 +138,8 @@ class DecoderBase {
     
     virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
     
-    virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
+    virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                  Ptr<DecoderState> state,
                                   const std::vector<size_t>& embIdx,
                                   size_t position=0) {
       using namespace keywords;
@@ -157,11 +161,14 @@ class DecoderBase {
           int dimMax = options_->get<size_t>("max-length");
           auto yPos = Embedding("Wpos_dec", dimMax + 1, dimPosEmb)(graph);
           
+          if(position > dimMax)
+            position = dimMax;
+          
           std::vector<size_t> positions(embIdx.size(), position);
           auto selectedPositions = rows(yPos, positions);
           
           selectedEmbs = concatenate({selectedEmbs, selectedPositions},
-                                     axis=1);
+                                      axis=1);
           dimTrgEmb += dimPosEmb;
         }
         
@@ -170,16 +177,14 @@ class DecoderBase {
         
       }
       
-      return selectedEmbs;
+      state->setTargetEmbeddings(selectedEmbs);
     }
     
     virtual Ptr<LexProbs> getLexProbs() {
       return lexProbs_;
     }
     
-    virtual Ptr<DecoderState> step(Expr embeddings,
-                                   Ptr<DecoderState>,
-                                   bool single=false) = 0;
+    virtual Ptr<DecoderState> step(Ptr<DecoderState>) = 0;
 };
 
 class EncoderDecoderBase {
@@ -194,12 +199,13 @@ class EncoderDecoderBase {
     virtual void save(Ptr<ExpressionGraph>,
                       const std::string&, bool) = 0;
 
-    virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
+    virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                  Ptr<DecoderState> state,
                                   const std::vector<size_t>&,
                                   size_t position) = 0;
     
     virtual Ptr<DecoderState>
-    step(Expr, Ptr<DecoderState>, bool=false) = 0;
+    step(Ptr<DecoderState>) = 0;
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch) = 0;
@@ -272,16 +278,15 @@ class EncoderDecoder : public EncoderDecoderBase {
     }
     
     virtual Ptr<DecoderState>
-    step(Expr embeddings,
-         Ptr<DecoderState> state,
-         bool single=false) {
-      return decoder_->step(embeddings, state, single);
+    step(Ptr<DecoderState> state) {
+      return decoder_->step(state);
     }
     
-    virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
+    virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                  Ptr<DecoderState> state,
                                   const std::vector<size_t>& embIdx,
                                   size_t position) {
-      return decoder_->selectEmbeddings(graph, embIdx, position);
+      return decoder_->selectEmbeddings(graph, state, embIdx, position);
     }
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
@@ -291,10 +296,10 @@ class EncoderDecoder : public EncoderDecoderBase {
       clear(graph);
       auto state = startState(graph, batch);
       
-      Expr trgEmbeddings, trgMask, trgIdx;
-      std::tie(trgEmbeddings, trgMask, trgIdx) = decoder_->groundTruth(graph, batch);
+      Expr trgMask, trgIdx;
+      std::tie(trgMask, trgIdx) = decoder_->groundTruth(state, graph, batch);
       
-      auto nextState = step(trgEmbeddings, state);
+      auto nextState = step(state);
       
       auto cost = CrossEntropyCost("cost")(nextState->getProbs(),
                                            trgIdx, mask=trgMask);

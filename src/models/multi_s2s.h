@@ -159,9 +159,7 @@ class MultiDecoderS2S : public DecoderBase {
       return New<DecoderStateMultiS2S>(startStates, nullptr, mEncState);
     }
 
-    virtual Ptr<DecoderState> step(Expr embeddings,
-                                   Ptr<DecoderState> state,
-                                   bool single) {
+    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -177,6 +175,12 @@ class MultiDecoderS2S : public DecoderBase {
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
+      auto mEncState
+        = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
+      
+      auto decState = std::dynamic_pointer_cast<DecoderStateMultiS2S>(state);
+      
+      auto embeddings = decState->getTargetEmbeddings();
       auto graph = embeddings->graph();
 
       if(dropoutTrg) {
@@ -184,10 +188,7 @@ class MultiDecoderS2S : public DecoderBase {
         auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
         embeddings = dropout(embeddings, mask=trgWordDrop);
       }
-
-      auto mEncState
-        = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
-
+      
       if(!attention1_)
         attention1_ = New<GlobalAttention>("decoder_att1",
                                            mEncState->enc1,
@@ -205,9 +206,10 @@ class MultiDecoderS2S : public DecoderBase {
                            normalize=layerNorm,
                            dropout_prob=dropoutRnn);
 
-      auto decState = std::dynamic_pointer_cast<DecoderStateMultiS2S>(state);
       auto stateL1 = rnnL1(embeddings, decState->getStates()[0]);
 
+      bool single = decState->doSingleStep();
+      
       auto alignedContext = single ?
         rnnL1.getCell()->getLastContext() :
         rnnL1.getCell()->getContexts();

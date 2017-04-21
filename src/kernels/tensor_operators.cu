@@ -1,23 +1,3 @@
-// This file is part of the Marian toolkit.
-
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
 
 #include "kernels/tensor_operators.h"
 #include "kernels/cuda_helpers.h"
@@ -679,13 +659,90 @@ __global__ void gInsertCols(float* out, const float* in,
   }
 }
 
-// this probably does not work for tensors with more than 2
-// dimensions, verify this!
+__global__ void gConcatenateAx1(float* out,
+                                size_t rows,
+                                const float* in1, const float* in2,
+                                size_t colsIn1, size_t colsIn2) {
+  size_t cols = colsIn1 + colsIn2;
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+      const float* rowIn1 = in1 + j * colsIn1;
+      const float* rowIn2 = in2 + j * colsIn2;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < colsIn1)
+          rowOut[i] = rowIn1[i];
+        else if(i >= colsIn1 && i < colsIn1 + colsIn2)
+          rowOut[i] = rowIn2[i - colsIn1];
+      }
+    }
+  }
+}
+
+__global__ void gConcatenateAx1(float* out,
+                                size_t rows,
+                                const float* in1, const float* in2, const float* in3,
+                                size_t colsIn1, size_t colsIn2, size_t colsIn3) {
+  size_t cols = colsIn1 + colsIn2 + colsIn3;
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+      const float* rowIn1 = in1 + j * colsIn1;
+      const float* rowIn2 = in2 + j * colsIn2;
+      const float* rowIn3 = in3 + j * colsIn3;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < colsIn1)
+          rowOut[i] = rowIn1[i];
+        else if(i >= colsIn1 && i < colsIn1 + colsIn2)
+          rowOut[i] = rowIn2[i - colsIn1];
+        else if(i >= colsIn1 + colsIn2 && i < colsIn1 + colsIn2 + colsIn3)
+          rowOut[i] = rowIn3[i - colsIn1 - colsIn2];
+      }
+    }
+  }
+}
+
+
 void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaSetDevice(out->getDevice());
 
-  size_t offset = 0;
   int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  if(inputs.size() == 2) {
+    int cols = out->shape()[1];
+    int blocks  = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols);
+    gConcatenateAx1<<<blocks, threads>>>(
+      out->data(),
+      rows,
+      inputs[0]->data(),
+      inputs[1]->data(),
+      inputs[0]->shape()[1],
+      inputs[1]->shape()[1]);
+    return;
+  }
+  if(inputs.size() == 3) {
+    int cols = out->shape()[1];
+    int blocks  = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols);
+    gConcatenateAx1<<<blocks, threads>>>(
+      out->data(),
+      rows,
+      inputs[0]->data(),
+      inputs[1]->data(),
+      inputs[2]->data(),
+      inputs[0]->shape()[1],
+      inputs[1]->shape()[1],
+      inputs[2]->shape()[1]);
+    return;
+  }
+  
+  size_t offset = 0;
   int cols_out = out->shape()[1];
 
   for(auto in : inputs) {

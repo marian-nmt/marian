@@ -10,11 +10,30 @@ struct EncoderState {
   virtual Expr getMask() = 0;
 };
 
-struct DecoderState {
-  virtual Ptr<EncoderState> getEncoderState() = 0;
-  virtual Expr getProbs() = 0;
-  virtual void setProbs(Expr) = 0;
-  virtual Ptr<DecoderState> select(const std::vector<size_t>&) = 0;
+class DecoderState {
+  private:
+    Expr targetEmbeddings_;
+    bool singleStep_{false};
+  
+  public:
+    virtual Ptr<EncoderState> getEncoderState() = 0;
+    
+    virtual Expr getProbs() = 0;
+    virtual void setProbs(Expr) = 0;
+    
+    virtual Expr getTargetEmbeddings() { return targetEmbeddings_; };
+    
+    virtual void setTargetEmbeddings(Expr targetEmbeddings) {
+      targetEmbeddings_ = targetEmbeddings;
+    }
+    
+    virtual bool doSingleStep() { return singleStep_; };
+    
+    virtual void setSingleStep(bool singleStep=true) {
+      singleStep_ = singleStep;  
+    }
+    
+    virtual Ptr<DecoderState> select(const std::vector<size_t>&) = 0;
 };
 
 }

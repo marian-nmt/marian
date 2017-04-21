@@ -38,7 +38,7 @@ Words Vocab::operator()(const std::string& line, bool addEOS) const {
 std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS) const {
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
-    if(sentence[i] != EOS_ID || !ignoreEOS) {
+    if((sentence[i] != EOS_ID || !ignoreEOS) && sentence[i] != STEP_ID) {
       decoded.push_back((*this)[sentence[i]]);
     }
   }
@@ -82,8 +82,13 @@ void Vocab::load(const std::string& vocabPath, int max)
 {
   LOG(data, "Loading vocabulary from {} (max: {})", vocabPath, max);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
+  
+  bool hasStep = false;
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();
+    if(str == STEP_STR)
+      hasStep = true;
+      
     auto id = pair.second.as<Word>();
     if(!max || id < (Word)max) {
       str2id_[str] = id;
@@ -94,8 +99,10 @@ void Vocab::load(const std::string& vocabPath, int max)
   }
   UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << vocabPath);
 
+  
   id2str_[EOS_ID] = EOS_STR;
   id2str_[UNK_ID] = UNK_STR;
+  id2str_[STEP_ID] = STEP_STR;
 }
 
 class Vocab::VocabFreqOrderer {
@@ -123,11 +130,15 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   std::string line;
   std::unordered_map<std::string, size_t> counter;
 
+  bool hasStep = false;
   while (getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
     Split(line, toks);
 
-    for (const std::string &tok: toks) {
+    for(const std::string &tok: toks) {
+      if(tok == STEP_STR)
+        hasStep = true;
+        
       auto iter = counter.find(tok);
       if (iter == counter.end())
         counter[tok] = 1;
@@ -145,8 +156,11 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   YAML::Node vocabYaml;
   vocabYaml.force_insert(EOS_STR, EOS_ID);
   vocabYaml.force_insert(UNK_STR, UNK_ID);
+  if(hasStep)
+    vocabYaml.force_insert(STEP_STR, STEP_ID);
+  
   for(size_t i = 0; i < vocabVec.size(); ++i)
-    vocabYaml.force_insert(vocabVec[i], i + 2);
+    vocabYaml.force_insert(vocabVec[i], i + 2 + hasStep);
 
   OutputFileStream vocabStrm(vocabPath);
   (std::ostream&)vocabStrm << vocabYaml;

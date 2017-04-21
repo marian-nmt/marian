@@ -163,9 +163,7 @@ class DecoderS2S : public DecoderBase {
       return New<DecoderStateS2S>(startStates, nullptr, encState);
     }
      
-    virtual Ptr<DecoderState> step(Expr embeddings,
-                                   Ptr<DecoderState> state,
-                                   bool single) {
+    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -181,6 +179,9 @@ class DecoderS2S : public DecoderBase {
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
+      auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
+      
+      auto embeddings = stateS2S->getTargetEmbeddings();
       auto graph = embeddings->graph();
 
       if(dropoutTrg) {
@@ -202,7 +203,8 @@ class DecoderS2S : public DecoderBase {
                       dropout_prob=dropoutRnn,
                       normalize=layerNorm);
 
-      auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
+      bool single = stateS2S->doSingleStep();
+                      
       auto stateL1 = rnnL1(embeddings, stateS2S->getStates()[0]);
       auto alignedContext = single ?
         rnnL1.getCell()->getLastContext() :

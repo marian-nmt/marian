@@ -25,6 +25,8 @@ class DecoderStateAmun : public DecoderState {
   private:
     Expr state_;
     Expr probs_;
+    Expr targetEmbeddings_;
+    
     Ptr<EncoderState> encState_;
     
   public:
@@ -125,9 +127,7 @@ class DecoderAmun : public DecoderBase {
       return New<DecoderStateAmun>(start, nullptr, encState);
     }
      
-    virtual Ptr<DecoderState> step(Expr embeddings,
-                                   Ptr<DecoderState> state,
-                                   bool single) {
+    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -140,6 +140,9 @@ class DecoderAmun : public DecoderBase {
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
+      auto stateAmun = std::dynamic_pointer_cast<DecoderStateAmun>(state);
+      auto embeddings = stateAmun->getTargetEmbeddings();
+      
       auto graph = embeddings->graph();
 
       if(dropoutTrg) {
@@ -160,8 +163,9 @@ class DecoderAmun : public DecoderBase {
                     normalize=layerNorm,
                     dropout_prob=dropoutRnn);
       
-      auto stateAmun = std::dynamic_pointer_cast<DecoderStateAmun>(state);
       auto stateOut = rnn(embeddings, stateAmun->getState());
+      
+      bool single = stateAmun->doSingleStep();
       
       auto alignedContextsVec = attention_->getContexts();
       auto alignedContext = single ?

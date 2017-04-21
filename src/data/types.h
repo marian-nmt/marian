@@ -9,6 +9,8 @@ typedef std::vector<Word> Words;
 
 const Word EOS_ID = 0;
 const Word UNK_ID = 1;
+const Word STEP_ID = 3;
 
 const std::string EOS_STR = "</s>";
 const std::string UNK_STR = "<unk>";
+const std::string STEP_STR = "<step>";
