@@ -174,6 +174,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
       "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
+    ("dim-pos", po::value<int>()->default_value(0), "Size of position embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
     ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
     ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
@@ -195,8 +196,9 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   }
   
   modelFeatures_ = {
-    "type", "dim-vocabs", "dim-emb", "dim-rnn", "layers-enc", "layers-dec",
-    "skip", "layer-normalization"
+    "type", "dim-vocabs", "dim-emb", "dim-pos", "dim-rnn",
+    "layers-enc", "layers-dec", "skip", "layer-normalization"
+    /*"lexical-table", "vocabs"*/
   };
   
   desc.add(model);
@@ -380,6 +382,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
+  SET_OPTION("dim-pos", int);
   SET_OPTION("dim-rnn", int);
   SET_OPTION("layers-enc", int);
   SET_OPTION("layers-dec", int);

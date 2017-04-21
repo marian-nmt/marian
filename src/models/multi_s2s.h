@@ -165,7 +165,10 @@ class MultiDecoderS2S : public DecoderBase {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      int dimTrgEmb = options_->get<int>("dim-emb");
+      
+      int dimTrgEmb = options_->get<int>("dim-emb")
+                    + options_->get<int>("dim-pos");
+                    
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");

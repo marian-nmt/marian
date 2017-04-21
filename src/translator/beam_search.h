@@ -53,8 +53,9 @@ class BeamSearch {
 
     Ptr<DecoderState>
     step(Ptr<ExpressionGraph> graph,
-         Ptr<DecoderState> state) {
-      auto nullEmbedding = builder_->selectEmbeddings(graph, {});
+         Ptr<DecoderState> state,
+         size_t position) {
+      auto nullEmbedding = builder_->selectEmbeddings(graph, {}, position);
       auto nextState = builder_->step(nullEmbedding, state, true);
       nextState->setProbs(logsoftmax(nextState->getProbs()));
       return nextState;
@@ -63,7 +64,8 @@ class BeamSearch {
     Ptr<DecoderState>
     step(Ptr<ExpressionGraph> graph,
          Ptr<DecoderState> state,
-         const Beam& beam) {
+         const Beam& beam,
+         size_t position) {
 
       std::vector<size_t> hypIndeces;
       std::vector<size_t> embIndeces;
@@ -77,7 +79,7 @@ class BeamSearch {
 
       Ptr<DecoderState> selectedState
         = hypIndeces.empty() ? state : state->select(hypIndeces);
-      auto selectedEmbeddings = builder_->selectEmbeddings(graph, embIndeces);
+      auto selectedEmbeddings = builder_->selectEmbeddings(graph, embIndeces, position);
       
       auto nextState = builder_->step(selectedEmbeddings, selectedState, true);
 
@@ -111,11 +113,11 @@ class BeamSearch {
       do {
 
         if(first) {
-          state = step(graph, startState);
+          state = step(graph, startState, history->size() - 1);
           pos = graph->forward();
         }
         else {
-          state = step(graph, state, beam);
+          state = step(graph, state, beam, history->size() - 1);
           beamSizes[0] = beam.size();
           pos = graph->forward(pos);
         }

@@ -73,7 +73,7 @@ class EncoderAmun : public EncoderBase {
       auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
       Expr x, xMask;
-      std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
+      std::tie(x, xMask) = prepareSource(xEmb, nullptr, batch, batchIdx);
 
       if(dropoutSrc) {
         int srcWords = x->shape()[2];
@@ -175,11 +175,6 @@ class DecoderAmun : public DecoderBase {
                         (embeddings, stateOut, alignedContext);
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
-      
-      if(lexProbs_)
-        logitsOut = LexicalBias(lexProbs_->getLf(),
-                                attention_,
-                                1e-3, single)(logitsOut);
           
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());

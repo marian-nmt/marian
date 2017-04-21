@@ -251,8 +251,11 @@ class AsyncGraphGroup : public GraphGroup {
       if(first_) {
         // initialize the parameters
         for(size_t i = 0; i < graphs_.size(); ++i) {
-          builders_[i]->build(graphs_[i], batch);
-          graphs_[i]->forward();
+          // takes care of thead_local stuff
+          THREAD_GUARD(
+            builders_[i]->build(graphs_[i], batch);
+            graphs_[i]->forward();
+          );
         }
         
         if(params_.size() == 0) {

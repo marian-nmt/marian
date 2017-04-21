@@ -157,8 +157,8 @@ class Train : public ModelTask {
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
         // @TODO, better fake batch with vocabulary
-        stats = New<Model>(options_,
-                           keywords::lex_probs=nullptr)->collectStats();
+        auto model = New<Model>(options_, keywords::lex_probs=lexProbs);
+        THREAD_GUARD(stats = model->collectStats());
         LOG(info, "[batching] Done");
       }
     

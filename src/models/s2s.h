@@ -71,6 +71,10 @@ class EncoderS2S : public EncoderBase {
 
       int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
       int dimSrcEmb = options_->get<int>("dim-emb");
+      
+      int dimPosEmb = options_->get<int>("dim-pos");
+      int dimMaxPos = options_->get<size_t>("max-length");
+      
       int dimEncState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -80,9 +84,16 @@ class EncoderS2S : public EncoderBase {
       float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
       auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
+      
+      Expr xEmbPos;
+      if(dimPosEmb) {
+        // Maximum position embedding is max-length + 1
+        xEmbPos = Embedding(prefix_ + "_Wpos", dimMaxPos + 1, dimPosEmb)(graph);
+        dimSrcEmb += dimPosEmb;
+      }
 
       Expr x, xMask;
-      std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
+      std::tie(x, xMask) = prepareSource(xEmb, xEmbPos, batch, batchIdx);
 
       if(dropoutSrc) {
         int dimBatch = x->shape()[0];
@@ -158,7 +169,10 @@ class DecoderS2S : public DecoderBase {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      int dimTrgEmb = options_->get<int>("dim-emb");
+      
+      int dimTrgEmb = options_->get<int>("dim-emb")
+                    + options_->get<int>("dim-pos");
+                    
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");

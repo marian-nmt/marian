@@ -20,17 +20,37 @@ class EncoderBase {
     bool inference_{false};
 
     virtual std::tuple<Expr, Expr>
-    prepareSource(Expr emb, Ptr<data::CorpusBatch> batch, size_t index) {
+    prepareSource(Expr srcEmbeddings,
+                  Expr posEmbeddings,
+                  Ptr<data::CorpusBatch> batch, size_t index) {
       using namespace keywords;
       
       auto subBatch = (*batch)[index];
       
       int dimBatch = subBatch->batchSize();
-      int dimEmb = emb->shape()[1];
+      int dimEmb = srcEmbeddings->shape()[1];
       int dimWords = subBatch->batchWidth();
 
-      auto graph = emb->graph();
-      auto x = reshape(rows(emb, subBatch->indeces()), {dimBatch, dimEmb, dimWords});
+      auto graph = srcEmbeddings->graph();
+      auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indeces());
+      
+      if(posEmbeddings) {
+        int dimPos = options_->get<int>("dim-pos");
+        int dimMax = options_->get<size_t>("max-length");
+        
+        std::vector<size_t> positions(subBatch->indeces().size());
+        for(int i = 0; i < positions.size(); ++i) {
+          int pos = i / dimBatch;
+          positions[i] = pos < dimMax ? pos : dimMax;
+        }
+        
+        auto chosenPositions = rows(posEmbeddings, positions);
+        chosenEmbeddings = concatenate({chosenEmbeddings, chosenPositions},
+                                       axis=1);
+        dimEmb += dimPos;
+      }
+      
+      auto x = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
       auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
       return std::make_tuple(x, xMask);
@@ -68,15 +88,33 @@ class DecoderBase {
 
       int dimVoc = options_->get<std::vector<int>>("dim-vocabs").back();
       int dimEmb = options_->get<int>("dim-emb");
-
+      int dimPos = options_->get<int>("dim-pos");
+      
       auto yEmb = Embedding("Wemb_dec", dimVoc, dimEmb)(graph);
       
       auto subBatch = batch->back();
       int dimBatch = subBatch->batchSize();
       int dimWords = subBatch->batchWidth();
 
-      auto y = reshape(rows(yEmb, subBatch->indeces()),
-                       {dimBatch, dimEmb, dimWords});
+      auto chosenEmbeddings = rows(yEmb, subBatch->indeces());
+      
+      if(dimPos) {
+        int dimMax = options_->get<size_t>("max-length");
+        std::vector<size_t> positions(subBatch->indeces().size());
+        for(int i = 0; i < positions.size(); ++i) {
+          int pos = i / dimBatch;
+          positions[i] = pos < dimMax ? pos : dimMax;
+        }
+        
+        auto yEmbPos = Embedding("Wpos_dec", dimMax + 1, dimPos)(graph);
+        
+        auto chosenPositions = rows(yEmbPos, positions);
+        chosenEmbeddings = concatenate({chosenEmbeddings, chosenPositions},
+                                       axis=1);
+        dimEmb += dimPos;
+      }
+      
+      auto y = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
 
       auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
@@ -98,21 +136,38 @@ class DecoderBase {
     virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
     
     virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                 const std::vector<size_t>& embIdx) {
+                                  const std::vector<size_t>& embIdx,
+                                  size_t position=0) {
       using namespace keywords;
       
       int dimTrgEmb = options_->get<int>("dim-emb");
+      int dimPosEmb = options_->get<int>("dim-pos");
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
       Expr selectedEmbs;
       if(embIdx.empty()) {
-        selectedEmbs = graph->constant(shape={1, dimTrgEmb},
+        selectedEmbs = graph->constant(shape={1, dimTrgEmb + dimPosEmb},
                                        init=inits::zeros);
       }
       else {
         auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
-        selectedEmbs = reshape(rows(yEmb, embIdx),
-                               {1, yEmb->shape()[1], 1, (int)embIdx.size()});
+        selectedEmbs = rows(yEmb, embIdx);
+        
+        if(dimPosEmb) {
+          int dimMax = options_->get<size_t>("max-length");
+          auto yPos = Embedding("Wpos_dec", dimMax + 1, dimPosEmb)(graph);
+          
+          std::vector<size_t> positions(embIdx.size(), position);
+          auto selectedPositions = rows(yPos, positions);
+          
+          selectedEmbs = concatenate({selectedEmbs, selectedPositions},
+                                     axis=1);
+          dimTrgEmb += dimPosEmb;
+        }
+        
+        selectedEmbs = reshape(selectedEmbs,
+                               {1, dimTrgEmb, 1, (int)embIdx.size()});
+        
       }
       
       return selectedEmbs;
@@ -140,7 +195,8 @@ class EncoderDecoderBase {
                       const std::string&, bool) = 0;
 
     virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                  const std::vector<size_t>&) = 0;
+                                  const std::vector<size_t>&,
+                                  size_t position) = 0;
     
     virtual Ptr<DecoderState>
     step(Expr, Ptr<DecoderState>, bool=false) = 0;
@@ -223,8 +279,9 @@ class EncoderDecoder : public EncoderDecoderBase {
     }
     
     virtual Expr selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                  const std::vector<size_t>& embIdx) {
-      return decoder_->selectEmbeddings(graph, embIdx);
+                                  const std::vector<size_t>& embIdx,
+                                  size_t position) {
+      return decoder_->selectEmbeddings(graph, embIdx, position);
     }
 
     virtual Expr build(Ptr<ExpressionGraph> graph,

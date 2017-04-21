@@ -61,7 +61,7 @@ class LexProbs {
       rowIndices_.resize(nonzeros);
       colIndices_.resize(nonzeros);
       
-      std::cerr << "nnz: " << nonzeros << std::endl;
+      LOG(info, "Building dictionary of {} pairs from lexical table", nonzeros);
       
       size_t ind = 0;
       for(size_t sid = 0; sid < data.size() && sid < srcDim; ++sid) {
@@ -92,7 +92,7 @@ class LexProbs {
     
     void buildProbs(size_t device) {
       if(!lexProbs_) {
-        std::cerr << "building probs" << std::endl;
+        LOG(info, "Building sparse matrix for lexical probabilities");
         lexProbs_ = New<sparse::CSR>(srcDim_, trgDim_,
                                      values_, rowIndices_, colIndices_,
                                      device);
