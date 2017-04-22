@@ -1016,6 +1016,12 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
   uint outCols = Out.dim(1);
   uint batchIdsSize = batchIds.size();
   uint srcSizeUint = srcSize;
+  cerr << "Softmax="
+      << outRows << " "
+      << outCols << " "
+      << batchIdsSize << " "
+      << srcSizeUint << " "
+      << endl;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &outRows) );
@@ -1095,7 +1101,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
   uint numRows = Weights.dim(0);
   uint numCols = In.dim(1);
   uint weightsCols = Weights.dim(1);
-  cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
+  //cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
 
   Out.Resize(numRows, numCols);
 

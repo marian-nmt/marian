@@ -380,23 +380,32 @@ __kernel void gMean(__global float* d_out,
 __kernel void gSoftMax(__global float* softMaxP, 
                        uint rows, 
                        uint cols,
-                       __global const int* batchID,
+                       __global const int* batchIds,
                        uint batchNum,
                        __global const int* srcMapping,
                        uint srcNum) 
 {
-  // probably only work for non-batch
   for (uint row = 0; row < rows; ++row) {
     uint indRow = row * cols;
-
+    
+    int batchId = batchIds[row];
+    uint startBatchInd = batchId * srcNum;
+     
     // EXP
     float sumExp = 0;
     for (uint col = 0; col < cols; ++col) {
-      float val = softMaxP[indRow + col];
-      val = exp(val);
+      int wordExist = srcMapping[startBatchInd + col];
       
-      sumExp += val;
-      softMaxP[indRow + col] = val;
+      if (wordExist) {
+        float val = softMaxP[indRow + col];
+        val = exp(val);
+        
+        sumExp += val;
+        softMaxP[indRow + col] = val;
+      }
+      else {
+        softMaxP[indRow + col] = 0;
+      }
     }
     
     // NORMALIZE
