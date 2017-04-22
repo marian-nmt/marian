@@ -116,6 +116,7 @@ class DecoderHardAtt : public DecoderBase {
         trgEmbeddings = dropout(trgEmbeddings, mask=trgWordDrop);
       }
       
+
       auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});
       auto attendedContext = rows(flatContext, stateHardAtt->getAttentionIndices());
       attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords});
@@ -208,13 +209,18 @@ class DecoderHardAtt : public DecoderBase {
       
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
       
+      int dimSrcWords = state->getEncoderState()->getContext()->shape()[2];
+
       if(embIdx.empty()) {
         stateHardAtt->setAttentionIndices({0});  
       }
       else {
         for(size_t i = 0; i < embIdx.size(); ++i)
-          if(embIdx[i] == STEP_ID)
-            stateHardAtt->getAttentionIndices()[i]++;    
+          if(embIdx[i] == STEP_ID) {
+            stateHardAtt->getAttentionIndices()[i]++;
+            if(stateHardAtt->getAttentionIndices()[i] >= dimSrcWords)
+              stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;
+          }
       }
     }
 
