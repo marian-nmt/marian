@@ -57,10 +57,11 @@ class BeamSearch {
          size_t position) {
       
       builder_->selectEmbeddings(graph, state, {}, position);
+      debug(state->getTargetEmbeddings(), "embFirst");
       
       state->setSingleStep(true);
-      
       auto nextState = builder_->step(state);
+      
       nextState->setProbs(logsoftmax(nextState->getProbs()));
       return nextState;
     }
@@ -85,14 +86,15 @@ class BeamSearch {
         = hypIndeces.empty() ? state : state->select(hypIndeces);
       
       builder_->selectEmbeddings(graph, selectedState, embIndeces, position);
-
+      debug(selectedState->getTargetEmbeddings(), "embNext");
+      
       selectedState->setSingleStep(true);
       
       auto nextState = builder_->step(selectedState);
 
       auto costs = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
                                    keywords::init=inits::from_vector(beamCosts));
-      auto totalCosts = logsoftmax(nextState->getProbs()) + costs;
+      auto totalCosts = logsoftmax(debug(nextState->getProbs(), "probs")) + costs;
       
       nextState->setProbs(totalCosts);
       

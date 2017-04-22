@@ -95,7 +95,7 @@ std::string TensorBase::debug() {
   get(values);
 
 
-  size_t dispCols = 10;
+  size_t dispCols = 5;
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');
   for(size_t l = 0; l < shape()[3]; ++l) {
     for(size_t k = 0; k < shape()[2]; ++k) {

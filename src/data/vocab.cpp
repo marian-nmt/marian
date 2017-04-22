@@ -138,12 +138,13 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
     for(const std::string &tok: toks) {
       if(tok == STEP_STR)
         hasStep = true;
-        
-      auto iter = counter.find(tok);
-      if (iter == counter.end())
-        counter[tok] = 1;
-      else
-        iter->second++;
+      else {  
+        auto iter = counter.find(tok);
+        if (iter == counter.end())
+          counter[tok] = 1;
+        else
+          iter->second++;
+      }
     }
   }
 

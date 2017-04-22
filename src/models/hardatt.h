@@ -16,7 +16,8 @@ class DecoderStateHardAtt : public DecoderState {
     DecoderStateHardAtt(const std::vector<Expr> states,
                      Expr probs,
                      Ptr<EncoderState> encState)
-    : states_(states), probs_(probs), encState_(encState) {}
+    : states_(states), probs_(probs), encState_(encState),
+      attentionIndices_({0}) {}
     
     
     Ptr<EncoderState> getEncoderState() { return encState_; }
@@ -180,14 +181,15 @@ class DecoderHardAtt : public DecoderBase {
       int dimBatch = subBatch->batchSize();
       int dimWords = subBatch->batchWidth();
       
-      std::vector<size_t> attentionIndices;
+      std::vector<size_t> attentionIndices(dimBatch, 0);
       std::vector<size_t> currentPos(dimBatch, 0);
+      std::iota(currentPos.begin(), currentPos.end(), 0);
 
-      for(int i = 0; i < dimWords; ++i) {
+      for(int i = 0; i < dimWords - 1; ++i) {
         for(int j = 0; j < dimBatch; ++j) {
           size_t word = subBatch->indeces()[i * dimBatch + j];
           if(word == STEP_ID)
-            currentPos[j]++;
+            currentPos[j] += dimBatch;
           attentionIndices.push_back(currentPos[j]);
         }
       }
@@ -213,6 +215,17 @@ class DecoderHardAtt : public DecoderBase {
           if(embIdx[i] == STEP_ID)
             stateHardAtt->getAttentionIndices()[i]++;    
       }
+      
+      std::cerr << "emb: ";
+      for(auto i : embIdx)
+        std::cerr << i << " ";
+      
+      
+      std::cerr << "att: ";
+      for(auto i : stateHardAtt->getAttentionIndices())
+        std::cerr << i << " ";
+    
+      std::cerr << std::endl;
     }
 
 };
