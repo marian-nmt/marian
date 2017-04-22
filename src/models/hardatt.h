@@ -15,9 +15,10 @@ class DecoderStateHardAtt : public DecoderState {
   public:
     DecoderStateHardAtt(const std::vector<Expr> states,
                      Expr probs,
-                     Ptr<EncoderState> encState)
+                     Ptr<EncoderState> encState,
+                     const std::vector<size_t>& attentionIndices)
     : states_(states), probs_(probs), encState_(encState),
-      attentionIndices_({0}) {}
+      attentionIndices_(attentionIndices) {}
     
     
     Ptr<EncoderState> getEncoderState() { return encState_; }
@@ -36,14 +37,12 @@ class DecoderStateHardAtt : public DecoderState {
         );
       }
       
-      auto ret = New<DecoderStateHardAtt>(selectedStates, probs_, encState_);
-      
       std::vector<size_t> selectedAttentionIndices;
       for(auto i : selIdx)
         selectedAttentionIndices.push_back(attentionIndices_[i]);
-      ret->setAttentionIndices(selectedAttentionIndices);
       
-      return ret;
+      return New<DecoderStateHardAtt>(selectedStates, probs_, encState_,
+                                      selectedAttentionIndices);
     }
 
     void setAttentionIndices(const std::vector<size_t>& attentionIndices) {
@@ -79,7 +78,8 @@ class DecoderHardAtt : public DecoderBase {
                          normalize=layerNorm)(meanContext);
       
       std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
-      return New<DecoderStateHardAtt>(startStates, nullptr, encState);
+      return New<DecoderStateHardAtt>(startStates, nullptr, encState,
+                                      std::vector<size_t>({0}));
     }
      
     virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
@@ -165,7 +165,8 @@ class DecoderHardAtt : public DecoderBase {
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);    
       
       return New<DecoderStateHardAtt>(statesOut, logitsOut,
-                                      state->getEncoderState());
+                                      stateHardAtt->getEncoderState(),
+                                      stateHardAtt->getAttentionIndices());
     }
     
     
@@ -215,17 +216,6 @@ class DecoderHardAtt : public DecoderBase {
           if(embIdx[i] == STEP_ID)
             stateHardAtt->getAttentionIndices()[i]++;    
       }
-      
-      std::cerr << "emb: ";
-      for(auto i : embIdx)
-        std::cerr << i << " ";
-      
-      
-      std::cerr << "att: ";
-      for(auto i : stateHardAtt->getAttentionIndices())
-        std::cerr << i << " ";
-    
-      std::cerr << std::endl;
     }
 
 };
