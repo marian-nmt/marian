@@ -448,12 +448,12 @@ __kernel void gWeightedMean(__global float* d_out,
 
   uint size = numRows * numCols;
   for (uint id = 0; id < size; ++id) {
-    int rowNo = id / numCols;
-    int batchNo = mapping[rowNo];
-    int statePos = id % numCols;
+    uint rowNo = id / numCols;
+    uint batchNo = mapping[rowNo];
+    uint statePos = id % numCols;
   
     float sum = 0.0f;
-    for (int i = 0; i < srcLen; ++i) {
+    for (uint i = 0; i < srcLen; ++i) {
       sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
     }
 

@@ -1095,6 +1095,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
   uint numRows = Weights.dim(0);
   uint numCols = In.dim(1);
   uint weightsCols = Weights.dim(1);
+  cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
 
   Out.Resize(numRows, numCols);
 

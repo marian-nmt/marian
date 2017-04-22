@@ -58,7 +58,7 @@ __global__ void gWeightedMean(float* d_out, const float* weights, const float* d
     int statePos = id % numCols;
 
     float sum = 0.0f;
-    for (int i = 0; i < srcLen; ++i) {
+    for (uint i = 0; i < srcLen; ++i) {
       sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
     }
 
@@ -69,6 +69,8 @@ __global__ void gWeightedMean(float* d_out, const float* weights, const float* d
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
   int numRows = Weights.dim(0);
   int numCols = In.dim(1);
+  int weightsCols = Weights.dim(1);
+  cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
 
   Out.Resize(numRows, numCols);
 
@@ -77,7 +79,8 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), Weights.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
-     numRows, numCols, Weights.dim(1));
+     numRows, numCols, weightsCols);
+  HANDLE_ERROR( cudaStreamSynchronize(0) );
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
