@@ -228,6 +228,10 @@ class DecoderHardAtt : public DecoderBase {
 
 typedef EncoderDecoder<EncoderS2S, DecoderHardAtt> HardAtt;
 
+
+/******************************************************************************/
+
+
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
 class DecoderHardSoftAtt : public DecoderHardAtt {

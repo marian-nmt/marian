@@ -86,24 +86,34 @@ int main(int argc, char **argv) {
   while(std::getline(srcStrm, source) && std::getline(trgStrm, target)
         && std::getline(alnStrm, alignment)) {
     
-    auto srcToks = split(source, "\\s|-");
+    //std::cout << source << std::endl;
+    //std::cout << target << std::endl;
+    //std::cout << alignment << std::endl;
+    
+    
+    auto srcToks = split(source, "\\s");
     auto trgToks = split(target, "\\s");
     auto alnToks = split(alignment, "\\s|-");
     
     // add start
-    Alignment alignment = {{0, 0}};
+    Alignment alignment;
     for(int i = 0; i < alnToks.size(); i += 2) 
       alignment.emplace_back(std::stoi(alnToks[i+1]), std::stoi(alnToks[i]));
       
     // add end
+    //std::cout << trgToks.size() << " " << srcToks.size() << std::endl;
     alignment.emplace_back(trgToks.size(), srcToks.size());
     
     auto shortest = shortestPath(alignment);
     
     int cTrg = 0, cSrc = 0;
     for(auto& p : shortest) {
+        
       for(int i = cTrg; i < p.first; ++i)
         std::cout << trgToks[i] << " ";
+      
+      //std::cout << p.first << "-" << p.second << " ";
+      
       for(int i = cSrc; i < p.second; ++i)
         std::cout << "<step> ";
       
