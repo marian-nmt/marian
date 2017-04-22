@@ -1016,12 +1016,6 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
   uint outCols = Out.dim(1);
   uint batchIdsSize = batchIds.size();
   uint srcSizeUint = srcSize;
-  cerr << "Softmax="
-      << outRows << " "
-      << outCols << " "
-      << batchIdsSize << " "
-      << srcSizeUint << " "
-      << endl;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &outRows) );
