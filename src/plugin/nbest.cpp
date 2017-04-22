@@ -21,31 +21,18 @@ RescoreBatch::RescoreBatch(std::vector<std::vector<int>>& data, std::vector<Stat
   : data(data),
     states(states)
 {
-  // std::cerr << "data: " << std::endl;
-  // for (auto tt : data) {
-    // for (auto id : tt) {
-      // std::cerr << id << " ";
-    // }
-    // std::cerr << std::endl;
-  // }
     ComputePrevIds();
     ComputeIndices();
 }
 
 
 void RescoreBatch::ComputePrevIds() {
-  std::cerr << "Computlint prevIds" << std::endl;
   std::vector<size_t> ids;
   for (size_t i = 0; i < size(); ++i) {
     ids.push_back(i);
   }
 
   prevIds.push_back(ids);
-  // std::cerr << "prev init: " << std::endl;
-  // for (auto id : ids) {
-    // std::cerr << std::setw(6) << id << "   ";
-  // }
-  // std::cerr << std::endl;
 
   for (size_t step = 0; step < length() - 1; ++step) {
     std::vector<size_t> nextIds;
@@ -57,35 +44,17 @@ void RescoreBatch::ComputePrevIds() {
         compIds.push_back(i);
       }
     }
-    // std::cerr << "prev: " << std::endl;
-    // for (auto id : nextIds) {
-      // std::cerr << std::setw(6) << id << "   ";
-    // }
-    // std::cerr << std::endl;
     prevIds.emplace_back(std::move(nextIds));
-
-    // std::cerr << "Completed:" << std::endl;
-    // for (auto id : compIds) {
-      // std::cerr << std::setw(6) << id << "   ";
-    // }
-    // std::cerr << std::endl;
     completed.emplace_back(std::move(compIds));
   }
 }
 
 void RescoreBatch::ComputeIndices() {
-  std::cerr << "Computlint indices to check" << std::endl;
   for (size_t step = 0; step < data.size(); ++step) {
     std::vector<std::pair<size_t, size_t>> ids;
     for (size_t i = 0; i < prevIds[step].size(); ++i) {
       ids.push_back(std::make_pair(i, data[step][prevIds[step][i]]));
     }
-    // std::cerr << "Indices:" << std::endl;
-    // for (auto id : ids) {
-      // std::cerr << std::setw(6) << id.second << "   ";
-    // }
-    // std::cerr << std::endl;
-
     indices.emplace_back(std::move(ids));
   }
 }
@@ -118,16 +87,11 @@ NBest::NBest(
     : maxBatchSize_(maxBatchSize),
       states_(states)
 {
-  std::cerr << "Creating NBest..." << std::endl;
   for (auto& tokens : nBestList) {
     std::vector<int> ids;
     for (auto token : trgVocab(tokens, false)) {
       ids.push_back((int)token);
     }
-    // for (auto id : ids) {
-      // std::cerr << std::setw(6) << id << "   ";
-    // }
-    // std::cerr << std::endl;
     data_.push_back(ids);
   }
 }
