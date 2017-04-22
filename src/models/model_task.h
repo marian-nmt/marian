@@ -24,6 +24,8 @@ namespace marian {
       return New<TaskName<Wrapper<MultiS2S>>>(options);
     else if(type == "hard-att")
       return New<TaskName<Wrapper<HardAtt>>>(options);
+    else if(type == "hard-soft-att")
+      return New<TaskName<Wrapper<HardSoftAtt>>>(options);
     else
       UTIL_THROW2("Unknown model type: " << type);
   }
