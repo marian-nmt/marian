@@ -199,11 +199,11 @@ class Decoder {
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
 
           std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
-          std::cerr << "A_=" << A_.Debug() << std::endl;
-          std::cerr << "SourceContext=" << SourceContext.Debug() << std::endl;
+          std::cerr << "A_=" << A_.Debug(2) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(2) << std::endl;
           std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_, 2) << std::endl;
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
-          std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
+          std::cerr << "2AlignedSourceContext=" << AlignedSourceContext.Debug(2) << std::endl;
         }
 
         void GetAttention(mblas::Matrix& Attention) {
