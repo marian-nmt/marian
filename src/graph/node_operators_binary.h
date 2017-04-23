@@ -32,8 +32,8 @@ struct DotNodeOp : public NaryNodeOp {
     return {
       NodeOp(Prod(getCublasHandle(),
                   val_,
-                  children_[0]->val(),
-                  children_[1]->val(),
+                  child(0)->val(),
+                  child(1)->val(),
                   false, false))
     };
   }
@@ -46,13 +46,13 @@ struct DotNodeOp : public NaryNodeOp {
     // to sum gradients from different graph parts
     return {
       NodeOp(Prod(getCublasHandle(),
-                  children_[0]->grad(),
+                  child(0)->grad(),
                   adj_,
-                  children_[1]->val(),
+                  child(1)->val(),
                   false, true, 1.0)),
       NodeOp(Prod(getCublasHandle(),
-                  children_[1]->grad(),
-                  children_[0]->val(),
+                  child(1)->grad(),
+                  child(0)->val(),
                   adj_,
                   true, false, 1.0))
     };
@@ -97,20 +97,20 @@ struct ScalarProductNodeOp : public NaryNodeOp {
     return {
       NodeOp(Reduce(_1 * _2,
                     val_,
-                    children_[0]->val(),
-                    children_[1]->val()))
+                    child(0)->val(),
+                    child(1)->val()))
     };
   }
 
   NodeOps backwardOps() {
     return {
       NodeOp(Add(_1 * _2,
-             children_[0]->grad(),
-             children_[1]->val(),
+             child(0)->grad(),
+             child(1)->val(),
              adj_)),
       NodeOp(Add(_1 * _2,
-             children_[1]->grad(),
-             children_[0]->val(),
+             child(1)->grad(),
+             child(0)->val(),
              adj_))
     };
   }
@@ -159,15 +159,15 @@ struct PlusNodeOp : public ElementBinaryNodeOp {
     return {
       NodeOp(Element(_1 = _2 + _3,
                      val_,
-                     children_[0]->val(),
-                     children_[1]->val()))
+                     child(0)->val(),
+                     child(1)->val()))
     };
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Add(_1, children_[0]->grad(), adj_)),
-      NodeOp(Add(_1, children_[1]->grad(), adj_))
+      NodeOp(Add(_1, child(0)->grad(), adj_)),
+      NodeOp(Add(_1, child(1)->grad(), adj_))
     };
   }
 
@@ -185,14 +185,14 @@ struct MinusNodeOp : public ElementBinaryNodeOp {
   NodeOps forwardOps() {
     return {
       NodeOp(Element(_1 = _2 - _3,
-                     val_, children_[0]->val(), children_[1]->val()))
+                     val_, child(0)->val(), child(1)->val()))
     };
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Add( _1, children_[0]->grad(), adj_)),
-      NodeOp(Add(-_1, children_[1]->grad(), adj_))
+      NodeOp(Add( _1, child(0)->grad(), adj_)),
+      NodeOp(Add(-_1, child(1)->grad(), adj_))
     };
   }
 
@@ -211,15 +211,15 @@ struct MultNodeOp : public ElementBinaryNodeOp {
     return {
       NodeOp(Element(_1 = _2 * _3,
                      val_,
-                     children_[0]->val(),
-                     children_[1]->val()))
+                     child(0)->val(),
+                     child(1)->val()))
     };
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Add(_1 * _2, children_[0]->grad(), adj_, children_[1]->val())),
-      NodeOp(Add(_1 * _2, children_[1]->grad(), adj_, children_[0]->val()))
+      NodeOp(Add(_1 * _2, child(0)->grad(), adj_, child(1)->val())),
+      NodeOp(Add(_1 * _2, child(1)->grad(), adj_, child(0)->val()))
     };
   }
 
@@ -237,22 +237,22 @@ struct DivNodeOp : public ElementBinaryNodeOp {
     return {
       NodeOp(Element(_1 = _2 / _3,
                      val_,
-                     children_[0]->val(),
-                     children_[1]->val()))
+                     child(0)->val(),
+                     child(1)->val()))
     };
   }
 
   NodeOps backwardOps() {
     return {
       NodeOp(Add(_1 * 1.0f / _2,
-                 children_[0]->grad(),
+                 child(0)->grad(),
                  adj_,
-                 children_[1]->val())),
+                 child(1)->val())),
       NodeOp(Add(-_1 * _2 / (_3 * _3),
-                 children_[1]->grad(),
+                 child(1)->grad(),
                  adj_,
-                 children_[0]->val(),
-                 children_[1]->val()))
+                 child(0)->val(),
+                 child(1)->val()))
     };
   }
 
@@ -280,18 +280,18 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
     // C = sum(-logsoftmax(A) * delta(y', y))
     return {
       NodeOp(CrossEntropyPick(val_,
-                              children_[0]->val(),
-                              children_[1]->val()))
+                              child(0)->val(),
+                              child(1)->val()))
     };
   }
 
 
   NodeOps backwardOps() {
     return {
-      NodeOp(CrossEntropyPickBackward(children_[0]->grad(),
+      NodeOp(CrossEntropyPickBackward(child(0)->grad(),
                                       adj_,
-                                      children_[0]->val(),
-                                      children_[1]->val()))
+                                      child(0)->val(),
+                                      child(1)->val()))
     };
   }
 
@@ -319,16 +319,17 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   void forward() {
     std::vector<Tensor> concatenees;
-    for(auto child : children_)
-      concatenees.push_back(child->val());
+    for(int i = 0; i < children_.size(); ++i)
+      concatenees.push_back(child(i)->val());
     Concatenate(val_, concatenees, ax_);
   }
 
   void backward() {
     std::vector<Tensor> deconcatenees;
-    for(auto child : children_) {
-      child->set_zero_adjoint(); // @TODO: this is a hotfix, do this properly
-      deconcatenees.push_back(child->grad());
+    for(int i = 0; i < children_.size(); ++i) {
+      auto childPtr = child(i);
+      childPtr->set_zero_adjoint(); // @TODO: this is a hotfix, do this properly
+      deconcatenees.push_back(childPtr->grad());
     }
     Deconcatenate(deconcatenees, adj_, ax_);
   }
@@ -367,16 +368,17 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
   void forward() {
     Element(_1 = Tanh(_2 + _3 + _4),
             val_,
-            children_[0]->val(),
-            children_[1]->val(),
-            children_[2]->val());
+            child(0)->val(),
+            child(1)->val(),
+            child(2)->val());
   }
 
   void backward() {
-    for(auto&& child : children_)
+    for(auto&& child : children_) {
       if(child->trainable())
         Add((1.f - _1 * _1) * _2,
             child->grad(), val_, adj_);
+    }
   }
 
   const std::string type() {
@@ -403,10 +405,10 @@ struct AffineNodeOp : public NaryNodeOp {
       NodeOp(
         Prod(getCublasHandle(),
              val_,
-             children_[0]->val(),
-             children_[1]->val(),
+             child(0)->val(),
+             child(1)->val(),
              false, false);
-        Add(_1, val_, children_[2]->val());
+        Add(_1, val_, child(2)->val());
       )
     };
   }
@@ -420,16 +422,16 @@ struct AffineNodeOp : public NaryNodeOp {
 
     return {
       NodeOp(Prod(getCublasHandle(),
-                  children_[0]->grad(),
+                  child(0)->grad(),
                   adj_,
-                  children_[1]->val(),
+                  child(1)->val(),
                   false, true, 1.0)),
       NodeOp(Prod(getCublasHandle(),
-                  children_[1]->grad(),
-                  children_[0]->val(),
+                  child(1)->grad(),
+                  child(0)->val(),
                   adj_,
                   true, false, 1.0)),
-      NodeOp(Add(_1, children_[2]->grad(), adj_))
+      NodeOp(Add(_1, child(2)->grad(), adj_))
     };
   }
 
@@ -446,17 +448,17 @@ struct LayerNormalizationOp : public NaryNodeOp {
     return {
       NodeOp(
           LayerNormalization(val_,
-                             children_[0]->val(),
-                             children_[1]->val(),
-                             (children_.size() == 3) ? children_[2]->val() : nullptr))
+                             child(0)->val(),
+                             child(1)->val(),
+                             (children_.size() == 3) ? child(2)->val() : nullptr))
       };
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(LayerNormalizationGrad(children_[0]->grad(), children_[1]->grad(), (children_.size() == 3) ? children_[2]->grad() : nullptr,
-                                    adj_, val_, children_[0]->val(), children_[1]->val(),
-                                    (children_.size() == 3) ? children_[2]->val() : nullptr))
+      NodeOp(LayerNormalizationGrad(child(0)->grad(), child(1)->grad(), (children_.size() == 3) ? child(2)->grad() : nullptr,
+                                    adj_, val_, child(0)->val(), child(1)->val(),
+                                    (children_.size() == 3) ? child(2)->val() : nullptr))
     };
   }
 

@@ -105,6 +105,7 @@ class EncoderAmun : public EncoderBase {
 class DecoderAmun : public DecoderBase {
   private:
     Ptr<GlobalAttention> attention_;
+    Ptr<RNN<CGRU>> rnn;
 
   public:
     template <class ...Args>
@@ -157,13 +158,14 @@ class DecoderAmun : public DecoderBase {
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
-      RNN<CGRU> rnn(graph, "decoder",
-                    dimTrgEmb, dimDecState,
-                    attention_,
-                    normalize=layerNorm,
-                    dropout_prob=dropoutRnn);
-      
-      auto stateOut = rnn(embeddings, stateAmun->getState());
+        
+      if(!rnn)
+        rnn = New<RNN<CGRU>>(graph, "decoder",
+                             dimTrgEmb, dimDecState,
+                             attention_,
+                             dropout_prob=dropoutRnn,
+                             normalize=layerNorm);
+      auto stateOut = (*rnn)(embeddings, stateAmun->getState());
       
       bool single = stateAmun->doSingleStep();
       

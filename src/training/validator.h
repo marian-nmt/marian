@@ -102,10 +102,10 @@ namespace marian {
 
         while(*batchGenerator) {
           auto batch = batchGenerator->next();
-          builder_->build(graph, batch);
+          auto costNode = builder_->build(graph, batch);
           graph->forward();
 
-          cost += graph->topNode()->scalar() * batch->size();
+          cost += costNode->scalar() * batch->size();
           samples += batch->size();
         }
 
@@ -142,10 +142,10 @@ namespace marian {
 
         while(*batchGenerator) {
           auto batch = batchGenerator->next();
-          builder_->build(graph, batch);
+          auto costNode = builder_->build(graph, batch);
           graph->forward();
 
-          cost += graph->topNode()->scalar() * batch->size();
+          cost += costNode->scalar() * batch->size();
           words += batch->words();
         }
 

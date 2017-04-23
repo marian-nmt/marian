@@ -106,7 +106,6 @@ class BeamSearch {
       builder_->clear(graph);
       auto startState = builder_->startState(graph, batch);
         
-      size_t pos = 0;
       auto history = New<History>(sentenceId, options_->get<bool>("normalize"));
       Beam beam(1, New<Hypothesis>());
       bool first = true;
@@ -121,12 +120,12 @@ class BeamSearch {
 
         if(first) {
           state = step(graph, startState, history->size() - 1);
-          pos = graph->forward();
+          graph->forward();
         }
         else {
           state = step(graph, state, beam, history->size() - 1);
           beamSizes[0] = beam.size();
-          pos = graph->forward(pos);
+          graph->forwardNext();
         }
 
         size_t dimTrgVoc = state->getProbs()->shape()[1];

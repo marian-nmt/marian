@@ -34,7 +34,7 @@ class Node : public Chainable<Tensor>,
 
   public:
     template <typename ...Args>
-    Node(ExpressionGraphPtr graph, Args ...args)
+    Node(Ptr<ExpressionGraph> graph, Args ...args)
      : Keywords(args...),
        graph_(graph),
        shape_(Get(keywords::shape, {1, 1, 1, 1}))
@@ -53,7 +53,7 @@ class Node : public Chainable<Tensor>,
     virtual void runBackward(const NodeOps& ops) {
       size_t i = 0;
       for(auto&& op : ops)
-        if(children()[i++]->trainable())
+        if(child(i++)->trainable())
           op();
     }
 
@@ -158,26 +158,36 @@ class Node : public Chainable<Tensor>,
     virtual std::vector<Expr>& children() {
       return children_;
     }
+    
+    virtual Expr child(size_t i) {
+      return children_[i];
+    }
+    
 
     cublasHandle_t getCublasHandle();
 };
 
 struct NaryNodeOp : public Node {
   size_t hash_{0};
-  std::vector<Expr> children_;
-
+  
   template <typename ...Args>
   NaryNodeOp(const std::vector<Expr>& nodes, Args ...args)
    : Node(nodes.front()->graph(),
       keywords::shape=keywords::Get(keywords::shape, nodes.front()->shape(), args...),
-      args...), children_(nodes)
+      args...)
   {
+    children_.resize(nodes.size());
+    for(int i = 0; i < nodes.size(); ++i)
+      children_[i] = nodes[i];
+      
     setTrainable(std::any_of(nodes.begin(), nodes.end(),
                              [](Expr a) { return a->trainable(); } ));
     remove_children_from_top_nodes();
   }
 
-  ~NaryNodeOp() {}
+  ~NaryNodeOp() {
+    free();
+  }
 
   std::vector<Expr>& children() {
     return children_;
@@ -187,8 +197,8 @@ struct NaryNodeOp : public Node {
     if(!hash_) {
       std::size_t seed = boost::hash<std::string>()(name());
       boost::hash_combine(seed, type());
-      for(auto child : children())
-        boost::hash_combine(seed, child->hash());
+      for(int i = 0; i < children_.size(); ++i)
+        boost::hash_combine(seed, child(i)->hash());
       hash_ = seed;
     }
     return hash_;

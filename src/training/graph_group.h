@@ -58,10 +58,10 @@ class Singleton : public GraphGroup {
     }
     
     void execute(Ptr<data::CorpusBatch> batch) {          
-      builder_->build(graph_, batch);
+      auto costNode = builder_->build(graph_, batch);
       
       graph_->forward();
-      float cost = graph_->topNode()->scalar();
+      float cost = costNode->scalar();
       graph_->backward();
 
       opt_->update(graph_);
@@ -330,12 +330,12 @@ class AsyncGraphGroup : public GraphGroup {
           builder = builders_[i++];
         }
 
-        builder->build(graph, batch);
+        auto costNode = builder->build(graph, batch);
         
         fetchParams(graph->params()->vals(), params_);
         
         graph->forward();
-        float cost = graph->topNode()->scalar();
+        float cost = costNode->scalar();
         graph->backward();
 
         t++;
@@ -508,9 +508,9 @@ class SyncGraphGroup : public GraphGroup {
           j = i;
         auto localGraph = this->graphs_[j];
 
-        builder_->build(localGraph, batch);
+        auto costNode = builder_->build(localGraph, batch);
         localGraph->forward();
-        float cost = localGraph->topNode()->scalar();
+        float cost = costNode->scalar();
         localGraph->backward();
 
         if(reporter_) {

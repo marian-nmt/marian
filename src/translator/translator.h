@@ -36,7 +36,7 @@ class TranslateMultiGPU : public ModelTask {
         
       auto devices = options_->get<std::vector<int>>("devices");
       for(auto& device : devices) {
-        auto graph = New<ExpressionGraph>();
+        auto graph = New<ExpressionGraph>(true);
         graph->setDevice(device);
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
@@ -113,7 +113,7 @@ class TranslateSingleGPU : public ModelTask {
                              corpus_->getVocabs().front(),
                              trgVocab_);
       
-      graph_ = New<ExpressionGraph>();
+      graph_ = New<ExpressionGraph>(true);
       graph_->setDevice(device);
       graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       

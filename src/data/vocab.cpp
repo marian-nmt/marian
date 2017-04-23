@@ -2,6 +2,7 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "data/vocab.h"
 #include "common/utils.h"
@@ -38,7 +39,7 @@ Words Vocab::operator()(const std::string& line, bool addEOS) const {
 std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS) const {
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
-    if((sentence[i] != EOS_ID || !ignoreEOS) && sentence[i] != STEP_ID) {
+    if((sentence[i] != EOS_ID || !ignoreEOS)) {
       decoded.push_back((*this)[sentence[i]]);
     }
   }
@@ -83,12 +84,8 @@ void Vocab::load(const std::string& vocabPath, int max)
   LOG(data, "Loading vocabulary from {} (max: {})", vocabPath, max);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
   
-  bool hasStep = false;
   for(auto&& pair : vocab) {
-    auto str = pair.first.as<std::string>();
-    if(str == STEP_STR)
-      hasStep = true;
-      
+    auto str = pair.first.as<std::string>();    
     auto id = pair.second.as<Word>();
     if(!max || id < (Word)max) {
       str2id_[str] = id;
@@ -102,7 +99,9 @@ void Vocab::load(const std::string& vocabPath, int max)
   
   id2str_[EOS_ID] = EOS_STR;
   id2str_[UNK_ID] = UNK_STR;
-  id2str_[STEP_ID] = STEP_STR;
+  id2str_[STP_ID] = STP_STR;
+  id2str_[CPY_ID] = CPY_STR;
+  id2str_[DEL_ID] = DEL_STR;
 }
 
 class Vocab::VocabFreqOrderer {
@@ -130,21 +129,23 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   std::string line;
   std::unordered_map<std::string, size_t> counter;
 
-  bool hasStep = false;
+  std::unordered_set<std::string> special = {
+    EOS_STR, UNK_STR, STP_STR, CPY_STR, DEL_STR
+  };
+  
   while (getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
     Split(line, toks);
 
     for(const std::string &tok: toks) {
-      if(tok == STEP_STR)
-        hasStep = true;
-      else {  
-        auto iter = counter.find(tok);
-        if (iter == counter.end())
-          counter[tok] = 1;
-        else
-          iter->second++;
-      }
+      if(special.count(tok))
+        continue;
+      
+      auto iter = counter.find(tok);
+      if (iter == counter.end())
+        counter[tok] = 1;
+      else
+        iter->second++;
     }
   }
 
@@ -157,11 +158,12 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   YAML::Node vocabYaml;
   vocabYaml.force_insert(EOS_STR, EOS_ID);
   vocabYaml.force_insert(UNK_STR, UNK_ID);
-  if(hasStep)
-    vocabYaml.force_insert(STEP_STR, STEP_ID);
+  vocabYaml.force_insert(STP_STR, STP_ID);
+  vocabYaml.force_insert(CPY_STR, CPY_ID);
+  vocabYaml.force_insert(DEL_STR, DEL_ID);
   
   for(size_t i = 0; i < vocabVec.size(); ++i)
-    vocabYaml.force_insert(vocabVec[i], i + 2 + hasStep);
+    vocabYaml.force_insert(vocabVec[i], i + 5);
 
   OutputFileStream vocabStrm(vocabPath);
   (std::ostream&)vocabStrm << vocabYaml;

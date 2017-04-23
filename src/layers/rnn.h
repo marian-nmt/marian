@@ -22,7 +22,7 @@ class Tanh {
   public:
     template <typename ...Args>
     void initialize(
-        ExpressionGraphPtr graph,
+        Ptr<ExpressionGraph> graph,
         const std::string prefix,
         int dimInput,
         int dimState,
@@ -280,8 +280,8 @@ struct GRUFastNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
-    for(auto child : children_)
-      inputs.push_back(child->val());
+    for(int i = 0; i < children_.size(); ++i)
+      inputs.push_back(child(i)->val());
 
     return {
       NodeOp(GRUFastForward(val_, inputs, final_))
@@ -343,7 +343,7 @@ class GRU {
   public:
 
     template <typename ...Args>
-    GRU(ExpressionGraphPtr graph,
+    GRU(Ptr<ExpressionGraph> graph,
         const std::string prefix,
         int dimInput,
         int dimState,

@@ -14,10 +14,12 @@ size_t Node::allocate() {
 }
 
 void Node::free() {
-  if(val_)
-    graph()->free(val_);
-  if(adj_)
-    graph()->free(adj_);
+  if(graph()) {
+    if(val_)
+      graph()->free(val_);
+    if(adj_)
+      graph()->free(adj_);
+  }
 }
 
 void Node::init_dependent() {

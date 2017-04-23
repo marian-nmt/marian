@@ -139,6 +139,8 @@ class EncoderS2S : public EncoderBase {
 class DecoderS2S : public DecoderBase {
   private:
     Ptr<GlobalAttention> attention_;
+    Ptr<RNN<CGRU>> rnnL1;
+    Ptr<MLRNN<GRU>> rnnLn;
 
   public:
 
@@ -197,18 +199,19 @@ class DecoderS2S : public DecoderBase {
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
-      RNN<CGRU> rnnL1(graph, "decoder",
-                      dimTrgEmb, dimDecState,
-                      attention_,
-                      dropout_prob=dropoutRnn,
-                      normalize=layerNorm);
-
+        
+      if(!rnnL1)
+        rnnL1 = New<RNN<CGRU>>(graph, "decoder",
+                               dimTrgEmb, dimDecState,
+                               attention_,
+                               dropout_prob=dropoutRnn,
+                               normalize=layerNorm);
+      auto stateL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
+      
       bool single = stateS2S->doSingleStep();
-                      
-      auto stateL1 = rnnL1(embeddings, stateS2S->getStates()[0]);
       auto alignedContext = single ?
-        rnnL1.getCell()->getLastContext() :
-        rnnL1.getCell()->getContexts();
+        rnnL1->getCell()->getLastContext() :
+        rnnL1->getCell()->getContexts();
 
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);
@@ -219,15 +222,17 @@ class DecoderS2S : public DecoderBase {
         for(int i = 1; i < stateS2S->getStates().size(); ++i)
           statesIn.push_back(stateS2S->getStates()[i]);
 
+        if(!rnnLn)
+          rnnLn = New<MLRNN<GRU>>(graph, "decoder",
+                                  decoderLayers - 1,
+                                  dimDecState, dimDecState,
+                                  normalize=layerNorm,
+                                  dropout_prob=dropoutRnn,
+                                  skip=skipDepth,
+                                  skip_first=skipDepth);
+        
         std::vector<Expr> statesLn;
-        std::tie(outputLn, statesLn) = MLRNN<GRU>(graph, "decoder",
-                                                  decoderLayers - 1,
-                                                  dimDecState, dimDecState,
-                                                  normalize=layerNorm,
-                                                  dropout_prob=dropoutRnn,
-                                                  skip=skipDepth,
-                                                  skip_first=skipDepth)
-                                                 (stateL1, statesIn);
+        std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
         statesOut.insert(statesOut.end(),
                          statesLn.begin(), statesLn.end());
@@ -246,7 +251,7 @@ class DecoderS2S : public DecoderBase {
 
       if(lexProbs_)
         logitsOut = LexicalBias(lexProbs_->getLf(),
-                                rnnL1.getCell()->getAttention(),
+                                rnnL1->getCell()->getAttention(),
                                 1e-3, single)(logitsOut);
           
       

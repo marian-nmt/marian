@@ -31,15 +31,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     size_t count_{0};
 
-    std::vector<Expr> nodes_;
-    std::vector<std::vector<Expr>> tapes_;
-    std::map<Expr, size_t> tapeMap_;
+    std::list<Expr> nodesForward_;
+    std::list<Expr> nodesBackward_;
 
     /** @brief Maps from name to expression node. */
-    std::map<std::string, Expr> named_;
-
-    /** @brief List of all input nodes of this expression graph. */
-    std::vector<Expr> inputs_;
+    std::map<std::string, WExpr> named_;
 
     /** @brief Contains all nodes with regard to which we want to calculate derivatives */
     std::unordered_set<Expr> topNodes_;
@@ -51,21 +47,21 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     curandGenerator_t curandGenerator_;
     size_t device_{0};
 
-    std::unordered_map<size_t, Expr> hashMap_;
+    std::unordered_map<size_t, WExpr> hashMap_;
+    
+    bool inferenceOnly_{false};
 
   protected:
-    /** @brief Constructs a new expression graph
-     * Constructor is protected to force use of New<ExpressionGraph>()
-    */
-    ExpressionGraph() { }
-
     // delete copy and move constructors
     ExpressionGraph(const ExpressionGraph&) = delete;
     ExpressionGraph(ExpressionGraph&&) = delete;
 
-    friend Ptr<ExpressionGraph> New<ExpressionGraph>();
-
   public:
+    /** @brief Constructs a new expression graph
+     * Constructor is protected to force use of New<ExpressionGraph>()
+    */
+    ExpressionGraph(bool inference = false) : inferenceOnly_(inference) { }
+
 
     ~ExpressionGraph() {
       clear();
@@ -144,34 +140,31 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       return true;
     }
      
-    size_t forward() {
+    void forward() {
       params_->allocateForward();
-      return forward(0);
+      forwardNext();
     }
 
-    size_t forward(size_t pos) {
+    void forwardNext() {
       // @TODO: check if allocation works properly
 
-      auto it = nodes_.begin() + pos;
-      while(it != nodes_.end()) {
-        auto v = *it;
+      hashMap_.clear();
+      
+      while(!nodesForward_.empty()) {
+        auto v = nodesForward_.front();
         v->allocate();
         v->init();
         v->forward();
-
-        // @TODO: should be done in node
-        for(auto&& child : v->children()) {
-          v->decreaseEdges(1);
-          child->decreaseEdges(1);
-        }
 
         if(v->marked_for_debug()) {
           std::cerr << "Debug: " << v->debug_message() << std::endl;
           std::cerr << v->val()->debug() << std::endl;
         }
-        it++;
+        
+        if(inferenceOnly_)
+          v->children().clear();
+        nodesForward_.pop_front();
       }
-      return std::distance(nodes_.begin(), it);
     }
 
     /**
@@ -195,31 +188,28 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       for(auto&& v : topNodes_)
         v->init_dependent();
+        
+      named_.clear();
+      topNodes_.clear();
+      hashMap_.clear();
 
-      auto it = nodes_.rbegin();
-      while(it != nodes_.rend()) {
-        auto v = *it;
+      while(!nodesBackward_.empty()) {
+        auto v = nodesBackward_.back();
+        nodesBackward_.pop_back();
 
-        for(auto&& child: v->children())
+        for(auto&& child: v->children()) {
           if(child->trainable())
             child->set_zero_adjoint();
+        }
         if(v->trainable())
           v->backward();
-        for(auto&& child : v->children()) {
-          v->decreaseEdges(1);
-          child->decreaseEdges(1);
-        }
-
+        
         if(v->trainable() && v->marked_for_debug()) {
           std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
           std::cerr << v->grad()->debug() << std::endl;
         }
-
-        // delete unnamed nodes
-        if(v->edges() == 0 && v->name() == "none")
-          v->free();
-
-        it++;
+        
+        v->children().clear();
       }
     }
 
@@ -236,8 +226,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       //ss << "graph[splines=ortho]" << std::endl;
       ss << "rankdir=LR" << std::endl;
 
-      auto it = nodes_.rbegin();
-      while(it != nodes_.rend()) {
+      auto it = nodesForward_.rbegin();
+      while(it != nodesForward_.rend()) {
         auto v = *it;
         ss << v->graphviz();
         it++;
@@ -258,23 +248,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     /*********************************************************/
-
-    /**
-     * @brief Constructs a new node representing an input in an expression graph.
-     *
-     * This method records the input node in a list of input nodes,
-     *    but does not attach the new input node to any existing expression graph.
-     *
-     * @param args           XXX Marcin, what are args here?
-     *
-     * @return a newly constructed input node
-     */
-    template <typename ...Args>
-    inline Expr input(Args ...args) {
-      auto e = Expression<InputNode>(shared_from_this(), args...);
-      inputs_.emplace_back(e);
-      return e;
-    }
 
     /**
      * @brief Constructs a new node representing a parameter in an expression graph.
@@ -389,7 +362,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       auto it = named_.find(name);
       if(it == named_.end())
         return Expr();
-      return it->second;
+      return it->second.lock();
     }
 
     /**
@@ -417,27 +390,19 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     Expr add(Expr node) {
-      size_t group = 0;
+      //size_t group = 0;
 
       size_t hash = node->hash();
       auto it = hashMap_.find(hash);
       if(it != hashMap_.end())
-        return it->second;
+        return it->second.lock();
 
       hashMap_[hash] = node;
 
       node->setId(count_++);
-
-      for(auto& child: node->children()) {
-        group = std::max(group, tapeMap_[child] + 1);
-        child->increaseEdges(2);
-        node->increaseEdges(2);
-      }
-      tapeMap_[node] = group;
-      if(group >= tapes_.size())
-        tapes_.resize(group + 1);
-      tapes_[group].push_back(node);
-      nodes_.push_back(node);
+      
+      nodesForward_.push_back(node);
+      nodesBackward_.push_back(node);
       topNodes_.insert(node);
 
       return node;
@@ -453,21 +418,20 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     }
 
     void free(Tensor& t) {
-      tensors_->free(t);
+      if(tensors_)
+        tensors_->free(t);
     }
 
     void clear() {
       // clear everything apart from parameters
       count_ = 0;
-      nodes_.clear();
-      tapes_.clear();
-      tapeMap_.clear();
-
+      nodesForward_.clear();
+      nodesBackward_.clear();
+     
       named_.clear();
-      inputs_.clear();
       topNodes_.clear();
+      hashMap_.clear(); 
       tensors_->clear();
-      hashMap_.clear();
     }
 
     
@@ -475,10 +439,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       params_->clear();
     }
     
-    Expr topNode() {
-      return nodes_.back();
-    }
-
     void load(const std::string& name) {
       using namespace keywords;
 

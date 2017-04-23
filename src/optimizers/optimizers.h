@@ -16,14 +16,6 @@ class OptimizerBase {
     : clipper_(Get(keywords::clip, nullptr, args...)),
       eta_(eta) {}
 
-    float backpropUpdate(Ptr<ExpressionGraph> graph) {
-      graph->forward();
-      float cost = graph->topNode()->scalar();
-      graph->backprop();
-      update(graph);
-      return cost;
-    }
-
     void update(Ptr<ExpressionGraph> graph) {
       Tensor p = graph->params()->vals();
       Tensor g = graph->params()->grads();
