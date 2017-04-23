@@ -34,7 +34,7 @@ class BeamSearch {
         int embIdx = keys[i] % vocabSize;
         int hypIdx = keys[i] / vocabSize;
         float cost = costs[i];
-          
+        
         newBeam.push_back(
           New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, cost));
       }

@@ -8,6 +8,7 @@ namespace marian {
 struct EncoderState {
   virtual Expr getContext() = 0;
   virtual Expr getMask() = 0;
+  virtual const std::vector<size_t>& getSourceWords() = 0;
 };
 
 class DecoderState {
@@ -34,6 +35,10 @@ class DecoderState {
     }
     
     virtual Ptr<DecoderState> select(const std::vector<size_t>&) = 0;
+    
+    virtual const std::vector<size_t>& getSourceWords() {
+      return getEncoderState()->getSourceWords();
+    }
 };
 
 }

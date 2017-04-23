@@ -11,13 +11,19 @@ class EncoderStateS2S : public EncoderState {
   private:
     Expr context_;
     Expr mask_;
+    Ptr<data::CorpusBatch> batch_;
     
   public:
-    EncoderStateS2S(Expr context, Expr mask)
-    : context_(context), mask_(mask) {}
+    EncoderStateS2S(Expr context, Expr mask,
+                    Ptr<data::CorpusBatch> batch)
+    : context_(context), mask_(mask), batch_(batch) {}
     
     Expr getContext() { return context_; }
     Expr getMask() { return mask_; }
+    
+    virtual const std::vector<size_t>& getSourceWords() {
+      return batch_->front()->indeces();
+    }
 };
 
 class DecoderStateS2S : public DecoderState {
@@ -127,11 +133,11 @@ class EncoderS2S : public EncoderBase {
                        skip=skipDepth,
                        dropout_prob=dropoutRnn)
                       (xBi);
-        return New<EncoderStateS2S>(xContext, xMask);
+        return New<EncoderStateS2S>(xContext, xMask, batch);
       }
       else {
         auto xContext = concatenate({xFw, xBw}, axis=1);
-        return New<EncoderStateS2S>(xContext, xMask);
+        return New<EncoderStateS2S>(xContext, xMask, batch);
       }
     }
 };

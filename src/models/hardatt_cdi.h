@@ -2,30 +2,32 @@
 
 #include "models/encdec.h"
 #include "models/s2s.h"
+#include "models/hardatt.h"
 
 namespace marian {
 
-class DecoderStateHardAttCDI : public DecoderState {
+class DecoderStateHardAttCDI : public DecoderStateHardAtt {
   private:
-    std::vector<Expr> states_;
-    Expr probs_;
-    Ptr<EncoderState> encState_;
-    std::vector<size_t> attentionIndices_;
-    
+    std::vector<size_t> embeddingIndices_;
+  
   public:
     DecoderStateHardAttCDI(const std::vector<Expr> states,
-                     Expr probs,
-                     Ptr<EncoderState> encState,
-                     const std::vector<size_t>& attentionIndices)
-    : states_(states), probs_(probs), encState_(encState),
-      attentionIndices_(attentionIndices) {}
+                           Expr probs,
+                           Ptr<EncoderState> encState,
+                           const std::vector<size_t>& attentionIndices,
+                           const std::vector<size_t>& embeddingIndices)
+    : DecoderStateHardAtt(states, probs, encState, attentionIndices),
+      embeddingIndices_(embeddingIndices) {}
+
+    virtual void setTargetEmbeddingIndeces(const std::vector<size_t>& embIndices) {
+      embeddingIndices_ = embIndices;
+    }
     
+    virtual std::vector<size_t>& getTargetEmbeddingIndices() {
+      return embeddingIndices_;
+    }
     
-    Ptr<EncoderState> getEncoderState() { return encState_; }
-    Expr getProbs() { return probs_; }
-    void setProbs(Expr probs) { probs_ = probs; }
-    
-    Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+    virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
       int numSelected = selIdx.size();
       int dimState = states_[0]->shape()[1];
       
@@ -38,23 +40,16 @@ class DecoderStateHardAttCDI : public DecoderState {
       }
       
       std::vector<size_t> selectedAttentionIndices;
-      for(auto i : selIdx)
-        selectedAttentionIndices.push_back(attentionIndices_[i]);
+      std::vector<size_t> selectedEmbs;
       
-      return New<DecoderStateHardAtt>(selectedStates, probs_, encState_,
-                                      selectedAttentionIndices);
+      for(auto i : selIdx) {
+        selectedAttentionIndices.push_back(attentionIndices_[i]);
+        selectedEmbs.push_back(embeddingIndices_[i]);
+      }
+      
+      return New<DecoderStateHardAttCDI>(selectedStates, probs_, encState_,
+                                        selectedAttentionIndices, selectedEmbs);
     }
-
-    void setAttentionIndices(const std::vector<size_t>& attentionIndices) {
-      attentionIndices_ = attentionIndices;
-    }
-    
-    std::vector<size_t>& getAttentionIndices() {
-      UTIL_THROW_IF2(attentionIndices_.empty(), "Empty attention indices");
-      return attentionIndices_;
-    }
-    
-    const std::vector<Expr>& getStates() { return states_; }
 };
 
 class DecoderHardAttCDI : public DecoderBase {
@@ -82,8 +77,9 @@ class DecoderHardAttCDI : public DecoderBase {
                          normalize=layerNorm)(meanContext);
       
       std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
-      return New<DecoderStateHardAtt>(startStates, nullptr, encState,
-                                      std::vector<size_t>({0}));
+      return New<DecoderStateHardAttCDI>(startStates, nullptr, encState,
+                                         std::vector<size_t>({0}),
+                                         std::vector<size_t>({0}));
     }
      
     virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
@@ -103,7 +99,7 @@ class DecoderHardAttCDI : public DecoderBase {
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
-      auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
+      auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAttCDI>(state);
       
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
       auto graph = trgEmbeddings->graph();
@@ -171,9 +167,10 @@ class DecoderHardAttCDI : public DecoderBase {
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);    
       
-      return New<DecoderStateHardAtt>(statesOut, logitsOut,
+      return New<DecoderStateHardAttCDI>(statesOut, logitsOut,
                                       stateHardAtt->getEncoderState(),
-                                      stateHardAtt->getAttentionIndices());
+                                      stateHardAtt->getAttentionIndices(),
+                                      stateHardAtt->getTargetEmbeddingIndices());
     }
     
     
@@ -234,11 +231,6 @@ class DecoderHardAttCDI : public DecoderBase {
         }
       }
       
-      //for(int i = 0; i < transformedIndices.size(); ++i) {
-      //  std::cerr << subBatch->indeces()[i] << " "
-      //    << transformedIndices[i] << " " << actionIndices[0] << std::endl;
-      //}
-      
       // ***********************************************************************
       
       auto yEmb = Embedding("Wemb_dec", dimVoc, dimEmb)(graph);
@@ -259,12 +251,14 @@ class DecoderHardAttCDI : public DecoderBase {
     
       auto yShifted = shift(y, {0, 0, 1, 0});
       
+      //state->setTargetEmbeddingsIndices ???
+      
       state->setTargetEmbeddings(yShifted);
       
       
       // ***********************************************************************
       
-      std::dynamic_pointer_cast<DecoderStateHardAtt>(state)->setAttentionIndices(attentionIndices);
+      std::dynamic_pointer_cast<DecoderStateHardAttCDI>(state)->setAttentionIndices(attentionIndices);
             
       return std::make_tuple(yMask, yIdx);
     }
@@ -273,23 +267,68 @@ class DecoderHardAttCDI : public DecoderBase {
                                   Ptr<DecoderState> state,
                                   const std::vector<size_t>& embIdx,
                                   size_t position=0) {
-      DecoderBase::selectEmbeddings(graph, state, embIdx, position);
+
+      //************************************************************************
       
-      auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
+      using namespace keywords;
       
+      int dimTrgEmb = options_->get<int>("dim-emb");
+      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+      int dimAct = 16;
+    
+      auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAttCDI>(state);
       int dimSrcWords = state->getEncoderState()->getContext()->shape()[2];
 
+      
+      Expr selectedEmbs;
       if(embIdx.empty()) {
-        stateHardAtt->setAttentionIndices({0});  
+        selectedEmbs = graph->constant(shape={1, dimTrgEmb + dimAct},
+                                       init=inits::zeros);
+        stateHardAtt->setAttentionIndices({0});
+        stateHardAtt->setTargetEmbeddingIndeces({0});
       }
       else {
-        for(size_t i = 0; i < embIdx.size(); ++i)
+        
+        std::vector<size_t> transformedIdx;
+        std::vector<size_t> actionIdx;
+        
+        for(size_t i = 0; i < embIdx.size(); ++i) {
+          if(embIdx[i] == CPY_ID) {
+            size_t attIndex = stateHardAtt->getAttentionIndices()[i];
+            transformedIdx.push_back(stateHardAtt->getSourceWords()[attIndex]);
+            actionIdx.push_back(1);
+          }
+          else if(embIdx[i] == DEL_ID) {
+            transformedIdx.push_back(stateHardAtt->getTargetEmbeddingIndices()[i]);
+            actionIdx.push_back(2);
+          }
+          else {
+            transformedIdx.push_back(embIdx[i]);
+            actionIdx.push_back(0);
+          }
+          
           if(embIdx[i] == CPY_ID || embIdx[i] == DEL_ID) {
             stateHardAtt->getAttentionIndices()[i]++;
             if(stateHardAtt->getAttentionIndices()[i] >= dimSrcWords)
               stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;
           }
+          
+        }        
+          
+        auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
+        selectedEmbs = rows(yEmb, transformedIdx);
+      
+        auto actEmb = Embedding("Wact_dec", 3, dimAct)(graph);
+        auto selectedActions = rows(actEmb, actionIdx);
+        
+        selectedEmbs = concatenate({selectedActions, selectedEmbs}, axis=1);
+        selectedEmbs = reshape(selectedEmbs,
+                               {1, dimTrgEmb + dimAct, 1, (int)transformedIdx.size()});
+        
+        stateHardAtt->setTargetEmbeddingIndeces(transformedIdx);
       }
+      
+      state->setTargetEmbeddings(selectedEmbs);
     }
 
 };

@@ -12,13 +12,19 @@ class EncoderStateAmun : public EncoderState {
   private:
     Expr context_;
     Expr mask_;
+    Ptr<data::CorpusBatch> batch_;
     
   public:
-    EncoderStateAmun(Expr context, Expr mask)
-    : context_(context), mask_(mask) {}
+    EncoderStateAmun(Expr context, Expr mask,
+                     Ptr<data::CorpusBatch> batch)
+    : context_(context), mask_(mask), batch_(batch) {}
     
     Expr getContext() { return context_; }
     Expr getMask() { return mask_; }
+    
+    virtual const std::vector<size_t>& getSourceWords() {
+      return batch_->front()->indeces();
+    }
 };
 
 class DecoderStateAmun : public DecoderState {
@@ -98,7 +104,7 @@ class EncoderAmun : public EncoderBase {
 
       auto xContext = concatenate({xFw, xBw}, axis=1);
       
-      return New<EncoderStateAmun>(xContext, xMask);
+      return New<EncoderStateAmun>(xContext, xMask, batch);
     }
 };
 

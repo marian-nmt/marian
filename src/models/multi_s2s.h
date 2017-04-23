@@ -14,6 +14,10 @@ struct EncoderStateMultiS2S : public EncoderState {
 
   Ptr<EncoderState> enc1;
   Ptr<EncoderState> enc2;
+  
+  virtual const std::vector<size_t>& getSourceWords() {
+    return enc1->getSourceWords();
+  }
 };
 
 typedef DecoderStateS2S DecoderStateMultiS2S;

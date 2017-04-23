@@ -6,7 +6,7 @@
 namespace marian {
 
 class DecoderStateHardAtt : public DecoderState {
-  private:
+  protected:
     std::vector<Expr> states_;
     Expr probs_;
     Ptr<EncoderState> encState_;
@@ -21,11 +21,11 @@ class DecoderStateHardAtt : public DecoderState {
       attentionIndices_(attentionIndices) {}
     
     
-    Ptr<EncoderState> getEncoderState() { return encState_; }
-    Expr getProbs() { return probs_; }
-    void setProbs(Expr probs) { probs_ = probs; }
+    virtual Ptr<EncoderState> getEncoderState() { return encState_; }
+    virtual Expr getProbs() { return probs_; }
+    virtual void setProbs(Expr probs) { probs_ = probs; }
     
-    Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+    virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
       int numSelected = selIdx.size();
       int dimState = states_[0]->shape()[1];
       
@@ -45,16 +45,16 @@ class DecoderStateHardAtt : public DecoderState {
                                       selectedAttentionIndices);
     }
 
-    void setAttentionIndices(const std::vector<size_t>& attentionIndices) {
+    virtual void setAttentionIndices(const std::vector<size_t>& attentionIndices) {
       attentionIndices_ = attentionIndices;
     }
     
-    std::vector<size_t>& getAttentionIndices() {
+    virtual std::vector<size_t>& getAttentionIndices() {
       UTIL_THROW_IF2(attentionIndices_.empty(), "Empty attention indices");
       return attentionIndices_;
     }
     
-    const std::vector<Expr>& getStates() { return states_; }
+    virtual const std::vector<Expr>& getStates() { return states_; }
 };
 
 class DecoderHardAtt : public DecoderBase {
