@@ -25,14 +25,13 @@ while(<STDIN>) {
   my @seq; 
   traverse_balanced(
       \@trg, \@src,
-      {   MATCH => sub { push(@seq, "<step>", $trg[$_[0]]); },
+      {   MATCH => sub { push(@seq, "<c>", $trg[$_[0]]); },
           DISCARD_A => sub { push(@seq, $trg[$_[0]]); },
-          DISCARD_B => sub { push(@seq, "<step>"); },
-          CHANGE    => sub { push(@seq, "<step>", $trg[$_[0]]); },
+          DISCARD_B => sub { push(@seq, "<d>"); },
+          CHANGE    => sub { push(@seq, "<d>", $trg[$_[0]]); },
       }
   );
   
-  shift(@seq);
   pop(@seq);
   print join(" ", @seq), "\n";
   

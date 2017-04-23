@@ -180,6 +180,7 @@ class DecoderHardAttCDI : public DecoderBase {
                 Ptr<data::CorpusBatch> batch) {
       using namespace keywords;
 
+      
       // ***********************************************************************
 
       int dimVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -205,7 +206,7 @@ class DecoderHardAttCDI : public DecoderBase {
           // copy from source and move attention position
           if(word == CPY_ID) {
             transformedIndices.push_back(srcBatch->indeces()[currentPos[j]]);
-            actionIndices.push_back(1);
+            actionIndices.push_back(2);
             currentPos[j] += dimBatch;
           }
           // reuse last word and move attention position
@@ -218,13 +219,16 @@ class DecoderHardAttCDI : public DecoderBase {
               transformedIndices.push_back(prev);
             }
               
-            actionIndices.push_back(2);
+            actionIndices.push_back(3);
             currentPos[j] += dimBatch;
           }
           // insert target word
           else {
             transformedIndices.push_back(word);
-            actionIndices.push_back(0);
+            if(word == 0)
+              actionIndices.push_back(0);
+            else
+              actionIndices.push_back(1);
           }
           
           attentionIndices.push_back(currentPos[j]);
@@ -233,11 +237,20 @@ class DecoderHardAttCDI : public DecoderBase {
       
       // ***********************************************************************
       
+      //for(auto i : transformedIndices)
+      //  std::cerr << i << " ";
+      //std::cerr << std::endl;
+      
       auto yEmb = Embedding("Wemb_dec", dimVoc, dimEmb)(graph);
       auto chosenEmbeddings = rows(yEmb, transformedIndices);
     
-      auto actEmb = Embedding("Wact_dec", 3, dimAct)(graph);
+      auto actEmb = Embedding("Wact_dec", 4, dimAct)(graph);
       auto chosenActions = rows(actEmb, actionIndices);
+      
+      //batch->debug();
+      //debug(chosenActions, "act");
+      //debug(chosenEmbeddings, "emb");
+      
       chosenEmbeddings = concatenate({chosenActions, chosenEmbeddings}, axis=1);
       dimEmb += dimAct;
       
@@ -296,15 +309,18 @@ class DecoderHardAttCDI : public DecoderBase {
           if(embIdx[i] == CPY_ID) {
             size_t attIndex = stateHardAtt->getAttentionIndices()[i];
             transformedIdx.push_back(stateHardAtt->getSourceWords()[attIndex]);
-            actionIdx.push_back(1);
+            actionIdx.push_back(2);
           }
           else if(embIdx[i] == DEL_ID) {
             transformedIdx.push_back(stateHardAtt->getTargetEmbeddingIndices()[i]);
-            actionIdx.push_back(2);
+            actionIdx.push_back(3);
           }
           else {
             transformedIdx.push_back(embIdx[i]);
-            actionIdx.push_back(0);
+            if(embIdx[i] == 0)
+              actionIdx.push_back(0);
+            else
+              actionIdx.push_back(1);
           }
           
           if(embIdx[i] == CPY_ID || embIdx[i] == DEL_ID) {
@@ -318,7 +334,7 @@ class DecoderHardAttCDI : public DecoderBase {
         auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
         selectedEmbs = rows(yEmb, transformedIdx);
       
-        auto actEmb = Embedding("Wact_dec", 3, dimAct)(graph);
+        auto actEmb = Embedding("Wact_dec", 4, dimAct)(graph);
         auto selectedActions = rows(actEmb, actionIdx);
         
         selectedEmbs = concatenate({selectedActions, selectedEmbs}, axis=1);
