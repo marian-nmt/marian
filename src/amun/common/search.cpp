@@ -149,7 +149,7 @@ bool Search::Decode(
 		std::vector<size_t> &beamSizes
 		)
 {
-  std::cerr << std::endl;
+  //std::cerr << std::endl;
 
   size_t batchSize = sentences.size();
 
@@ -158,9 +158,9 @@ bool Search::Decode(
     const State &state = *states[i];
     State &nextState = *nextStates[i];
 
-    std::cerr << "state=" << state.Debug() << std::endl;
+    //std::cerr << "state=" << state.Debug() << std::endl;
     scorer.Decode(god, state, nextState, beamSizes);
-    std::cerr << "nextState=" << nextState.Debug() << std::endl;
+    //std::cerr << "nextState=" << nextState.Debug() << std::endl;
   }
 
   if (decoderStep == 0) {
