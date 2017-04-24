@@ -135,6 +135,18 @@ class BeamSearch {
         if(!options_->get<bool>("allow-unk"))
           suppressUnk(state->getProbs());
         
+        auto attState = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
+        if(attState) {
+          auto attentionIdx = attState->getAttentionIndices();
+          int dimVoc = state->getProbs()->shape()[1];
+          for(int i = 0; i < attentionIdx.size(); i++) {
+            if(batch->front()->indeces()[attentionIdx[i]] != 0) {                
+              attState->getProbs()->val()->set(i * dimVoc + EOS_ID,
+                                               std::numeric_limits<float>::lowest());
+            }
+          }
+        }
+        
         nth->getNBestList(beamSizes, state->getProbs()->val(),
                           outCosts, outKeys, first);
         first = false;

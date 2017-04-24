@@ -6,4 +6,6 @@ namespace marian {
 
 void suppressUnk(Expr);
 
+void suppressWord(Expr);
+
 }

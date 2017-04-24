@@ -31,5 +31,9 @@ void suppressUnk(Expr probs) {
   SetColumn(probs->val(), UNK_ID, std::numeric_limits<float>::lowest());
 }
 
+void suppressWord(Expr probs, Word id) {
+  SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
+}
+
 }
 
