@@ -181,7 +181,6 @@ class Train : public ModelTask {
         batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
         while(*batchGenerator && reporter->keepGoing()) {
           auto batch = batchGenerator->next();
-
           model->update(batch);
         }
         if(reporter->keepGoing())

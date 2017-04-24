@@ -42,8 +42,7 @@ std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
     if((sentence[i] != EOS_ID || !ignoreEOS)) {
-      if(!SYM2SPEC.count(sentence[i]))
-        decoded.push_back((*this)[sentence[i]]);
+      decoded.push_back((*this)[sentence[i]]);
     }
   }
   return decoded;
@@ -93,7 +92,7 @@ void Vocab::load(const std::string& vocabPath, int max)
     auto str = pair.first.as<std::string>();    
     auto id = pair.second.as<Word>();
     
-    if(SYM2SPEC.count(id)) {
+    if(SPEC2SYM.count(str)) {
       seenSpecial.insert(id);
     }
     
