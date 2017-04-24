@@ -1193,6 +1193,7 @@ void NthElement(
     Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
     size_t maxBeamSize,
+    const Array<uint> &beamSizes,
     size_t maxBatchSize)
 {
   const OpenCLInfo &openCLInfo = d_out.GetOpenCLInfo();
@@ -1213,7 +1214,10 @@ void NthElement(
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &ProbsRows) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &ProbsCols) );
+
   CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
+
   CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &maxBatchSizeUint) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_out.data()) );
   CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_ind.data()) );
