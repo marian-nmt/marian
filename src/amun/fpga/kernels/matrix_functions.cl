@@ -491,7 +491,8 @@ void insertValue(
                 __global unsigned *bestInd,
                 uint count,
                 float val,
-                uint insertInd)
+                uint insertInd,
+                uint probStart)
 {
   uint ind = count;
   for (uint i = 1; i < count; ++i) {
@@ -509,7 +510,7 @@ void insertValue(
   
   // insert value into place
   bestCost[ind] = val;
-  bestInd[ind] = insertInd;
+  bestInd[ind] = insertInd + probStart;
 }
 
 void replaceValueOrDiscard(
@@ -517,7 +518,8 @@ void replaceValueOrDiscard(
                 __global unsigned *bestInd,
                 uint count,
                 float val,
-                uint insertInd)
+                uint insertInd,
+                uint probStart)
 {
   if (val < bestCost[0]) {
     // too low
@@ -540,7 +542,7 @@ void replaceValueOrDiscard(
   
   // insert value into place
   bestCost[ind] = val;
-  bestInd[ind] = insertInd;
+  bestInd[ind] = insertInd + probStart;
 }
 
 
@@ -559,19 +561,22 @@ __kernel void gNthElement(
   uint offset = 0;
   for (uint batchId = 0; batchId < beamSizesSize; ++batchId) {
     uint maxBeamSize = beamSizes[batchId];
+    uint probStart = d_batchFirstElementIdxs[batchId];
+    uint probEnd = d_batchFirstElementIdxs[batchId + 1];
+    uint numElements = probEnd - probStart;
+    
     //assert(rows == maxBatchSize);
     //assert(cols > maxBeamSize);
   
     // init arrays
     for (uint i = 0; i < maxBeamSize; ++i) {
-      float val = prob[i];
-      insertValue(bestCost + offset, bestInd + offset, i, val, i);
+      float val = prob[probStart + i];
+      insertValue(bestCost + offset, bestInd + offset, i, val, i, probStart);
     }
   
-    uint probSize = rows * cols;
-    for (uint i = maxBeamSize; i < probSize; ++i) {
-      float cost = prob[i];
-      replaceValueOrDiscard(bestCost + offset, bestInd + offset, maxBeamSize, cost, i);
+    for (uint i = maxBeamSize; i < numElements; ++i) {
+      float val = prob[probStart + i];
+      replaceValueOrDiscard(bestCost + offset, bestInd + offset, maxBeamSize, val, i, probStart);
     }
     
     offset += maxBeamSize;
