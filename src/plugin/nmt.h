@@ -1,4 +1,6 @@
+#pragma once
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <set>
 
@@ -18,12 +20,27 @@ class God;
 
 class NeuralExtention {
   public:
+    friend std::ostream& operator<<(std::ostream& stream, const NeuralExtention& ne) {
+      stream << "cost: " <<std::setw(6) << ne.score_ << ";  phrase: ";
+      for (auto word : ne.phrase_)  {
+        stream << word << " ";
+      }
+
+      stream << " Align: ";
+      for (auto word : ne.coverage_)  {
+        stream << word << " ";
+      }
+
+      stream << " PREV: " << ne.prevIndex_;
+      return stream;
+    }
+
     NeuralExtention(const std::vector<size_t>& phrase, float score, const std::vector<size_t>& coverage,
                     size_t prevIndex)
       : phrase_(phrase), score_(score), coverage_(coverage), prevIndex_(prevIndex)
     {}
 
-  protected:
+  public:
     std::vector<size_t> phrase_;
     float score_;
     std::vector<size_t> coverage_;
@@ -51,10 +68,8 @@ class NMT {
         Scores& probs);
 
     std::vector<float> RescoreNBestList(const std::vector<std::string>& nbest);
-    void BatchSteps(const Batches& batches, Scores& probsOut, std::vector<States>& inputStates);
 
-    std::vector<NeuralExtention> GetNeuralExtentions(
-            const std::vector<States>& inputStates);
+    std::vector<NeuralExtention> ExtendHyps( const std::vector<States>& inputStates);
 
   protected:
     std::vector<float> Rescore(NBest& nBest, bool returnFinalStates=false);

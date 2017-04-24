@@ -20,6 +20,23 @@ using namespace amunmt;
 
 std::shared_ptr<God> NMT::god_ = nullptr;
 
+std::ostream& operator<< (std::ostream& stream, const NeuralExtention& ne)
+{
+  stream << "cost: " <<std::setw(6) << ne.score_ << ";  phrase: ";
+  for (auto word : ne.phrase_)  {
+    stream << word << " ";
+  }
+
+  stream << " Align: ";
+  for (auto word : ne.coverage_)  {
+    stream << word << " ";
+  }
+
+  stream << " PREV: " << ne.prevIndex_;
+  return stream;
+
+}
+
 void NMT::InitGod(const std::string& configFilePath) {
   std::string argv = "-c " + configFilePath;
   god_.reset(new God());
@@ -102,89 +119,6 @@ size_t NMT::TargetVocab(const std::string& str)
 }
 
 
-void NMT::BatchSteps(const Batches& batches,
-                     Scores& probsOut,
-                     std::vector<States>& inputStates)
-{
-  SetDevice();
-  States prevStates = NewStates();
-  States nextStates = NewStates();
-
-  std::vector<States> tmp(scorers_.size());
-  for (auto& states : inputStates) {
-    for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
-      tmp[scorerIdx].push_back(states[scorerIdx]);
-    }
-  }
-
-  for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
-    prevStates[scorerIdx]->JoinStates(tmp[scorerIdx]);
-  }
-
-  std::vector<size_t> previousIds;
-  for (size_t i = 0; i < batches[0].size(); ++i) {
-    previousIds.push_back(i);
-  }
-
-
-  for (size_t batchIdx = 0; batchIdx < batches.size(); ++batchIdx) {
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      Scorer &scorer = *scorers_[i];
-      const State &state =  *prevStates[i];
-      State &nextState = *nextStates[i];
-
-      std::vector<size_t> beamSizes(1, previousIds.size());
-      scorer.Decode(state, nextState, beamSizes);
-    }
-
-    std::vector<std::pair<size_t, size_t>> indices;
-    for (size_t i = 0; i < previousIds.size(); ++i) {
-      if (batches[batchIdx][previousIds[i]] >= (int)scorers_[0]->GetVocabSize()) {
-        indices.push_back(std::make_pair(i, 1));
-      } else {
-        indices.push_back(std::make_pair(i, batches[batchIdx][previousIds[i]]));
-      }
-    }
-
-    for (auto& scorer : scorers_) {
-      auto logProbs = scorer->GetScores(indices);
-      for (size_t i = 0; i < previousIds.size(); ++i) {
-          probsOut[previousIds[i]] += logProbs[i];
-      }
-    }
-
-    std::vector<size_t> nextIds;
-    std::vector<size_t> nextHypIds;
-    for (size_t i = 0; i < previousIds.size(); ++i) {
-      if (batches[batchIdx + 1][previousIds[i]] == -1) {
-        for (size_t scorerIdx = 0; scorerIdx < scorers_.size(); ++scorerIdx) {
-          Beam tBeam;
-          tBeam.emplace_back(new Hypothesis(nullptr, batches[batchIdx][previousIds[i]], i, 0.0f));
-          inputStates[previousIds[i]][scorerIdx].reset(scorers_[scorerIdx]->NewState());
-          scorers_[scorerIdx]->AssembleBeamState(*nextStates[scorerIdx], tBeam, *inputStates[previousIds[i]][scorerIdx]);
-        }
-      } else {
-        nextIds.push_back(previousIds[i]);
-        nextHypIds.push_back(i);
-      }
-    }
-
-    if (nextIds.empty()) {
-      break;
-    }
-
-    previousIds.swap(nextIds);
-
-    Beam survivors;
-    for (size_t i = 0; i < previousIds.size(); ++i) {
-      survivors.emplace_back(new Hypothesis(nullptr, batches[batchIdx][previousIds[i]], nextHypIds[i], 0.0f));
-    }
-
-    for (size_t i = 0; i < scorers_.size(); ++i) {
-      scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *prevStates[i]);
-    }
-  }
-}
 
 
 std::vector<float> NMT::RescoreNBestList(const std::vector<std::string>& nbest)
@@ -308,14 +242,15 @@ std::vector<float> NMT::Rescore(NBest& nBest, bool returnFinalStates) {
 
 
 
-std::vector<NeuralExtention> NMT::GetNeuralExtentions(const std::vector<States>& inputStates) {
+std::vector<NeuralExtention> NMT::ExtendHyps(const std::vector<States>& inputStates) {
+  std::cerr << "Extending hyps..." << std::endl;
   std::vector<NeuralExtention> output;
   States prevStates = NewStates();
   States nextStates = NewStates();
 
-  size_t batchSize = inputStates.size();
+  size_t beamSize = inputStates.size();
 
-  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
+  Beam prevHyps(beamSize, HypothesisPtr(new Hypothesis()));
 
   std::vector<States> tmp(scorers_.size());
   for (auto& states : inputStates) {
@@ -340,8 +275,8 @@ std::vector<NeuralExtention> NMT::GetNeuralExtentions(const std::vector<States>&
 
     bool returnAlignment = true;
 
-    Beams beams;
-    std::vector<size_t> beamSizes = {batchSize};
+    Beams beams(1);
+    std::vector<size_t> beamSizes = {beamSize};
     std::vector<size_t> filterIndices;
 
     bestHyps_->CalcBeam(*god_, prevHyps, scorers_, filterIndices,
@@ -353,7 +288,7 @@ std::vector<NeuralExtention> NMT::GetNeuralExtentions(const std::vector<States>&
 
         std::vector<size_t> phrase;
         auto iter = hyp;
-        while (iter != nullptr) {
+        while (iter->GetPrevHyp() != nullptr) {
             phrase.push_back(iter->GetWord());
             iter = iter->GetPrevHyp();
         }
@@ -365,7 +300,8 @@ std::vector<NeuralExtention> NMT::GetNeuralExtentions(const std::vector<States>&
             align.push_back(i);
           }
         }
-        output.emplace_back(phrase, cost, align, hyp->GetPrevStateIndex());
+        output.emplace_back(phrase, cost, align,
+                            hyp->GetPrevStateIndex());
       }
     }
   }
