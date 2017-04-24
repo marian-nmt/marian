@@ -136,6 +136,8 @@ if(PYTHONLIBS_FOUND)
 SET(EXES ${EXES} "python")
 endif(PYTHONLIBS_FOUND)
 
+SET(EXES ${EXES} "mosesplugin")
+
 foreach(exec ${EXES})
   if(CUDA_FOUND)
     target_link_libraries(${exec} ${EXT_LIBS})
