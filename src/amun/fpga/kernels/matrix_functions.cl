@@ -554,22 +554,23 @@ __kernel void gNthElement(
                 __global unsigned *bestInd
                 )
 {
-  uint maxBeamSize = beamSizes[0];
-  //assert(rows == maxBatchSize);
-  //assert(cols > maxBeamSize);
-
-  // init arrays
-  for (uint i = 0; i < maxBeamSize; ++i) {
-    float val = prob[i];
-    insertValue(bestCost, bestInd, i, val, i);
-  }
-
-  uint probSize = rows * cols;
-  for (uint i = maxBeamSize; i < probSize; ++i) {
-    float cost = prob[i];
-    replaceValueOrDiscard(bestCost, bestInd, maxBeamSize, cost, i);
-  }
-    
+  for (uint batchId = 0; batchId < beamSizesSize; ++batchId) {
+    uint maxBeamSize = beamSizes[batchId];
+    //assert(rows == maxBatchSize);
+    //assert(cols > maxBeamSize);
+  
+    // init arrays
+    for (uint i = 0; i < maxBeamSize; ++i) {
+      float val = prob[i];
+      insertValue(bestCost, bestInd, i, val, i);
+    }
+  
+    uint probSize = rows * cols;
+    for (uint i = maxBeamSize; i < probSize; ++i) {
+      float cost = prob[i];
+      replaceValueOrDiscard(bestCost, bestInd, maxBeamSize, cost, i);
+    }
+  }    
 }
 
 
