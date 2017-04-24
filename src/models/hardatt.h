@@ -61,12 +61,19 @@ class DecoderHardAtt : public DecoderBase {
   private:
     Ptr<RNN<GRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
+    std::unordered_set<Word> specialSymbols_;
   
   public:
 
     template <class ...Args>
     DecoderHardAtt(Ptr<Config> options, Args ...args)
-     : DecoderBase(options, args...) {}
+     : DecoderBase(options, args...) {
+    
+      if(options->has("special-vocab")) {
+        auto spec = options->get<std::vector<size_t>>("special-vocab");
+        specialSymbols_.insert(spec.begin(), spec.end());
+      }
+    }
 
     virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
       using namespace keywords;
@@ -196,7 +203,7 @@ class DecoderHardAtt : public DecoderBase {
       for(int i = 0; i < dimWords - 1; ++i) {
         for(int j = 0; j < dimBatch; ++j) {
           size_t word = subBatch->indeces()[i * dimBatch + j];
-          if(SYM2SPEC.count(word))
+          if(specialSymbols_.count(word))
             currentPos[j] += dimBatch;
           attentionIndices.push_back(currentPos[j]);
         }
@@ -222,7 +229,7 @@ class DecoderHardAtt : public DecoderBase {
       }
       else {
         for(size_t i = 0; i < embIdx.size(); ++i)
-          if(SYM2SPEC.count(embIdx[i])) {
+          if(specialSymbols_.count(embIdx[i])) {
             stateHardAtt->getAttentionIndices()[i]++;
             if(stateHardAtt->getAttentionIndices()[i] >= dimSrcWords)
               stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;

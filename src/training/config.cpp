@@ -181,7 +181,9 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
      "Use skip connections")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
-     "Enable layer normalization");
+     "Enable layer normalization")
+    ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
+     "Model-specific special vocabulary ids");
       
 
   if(!translate) {
@@ -197,7 +199,8 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   
   modelFeatures_ = {
     "type", "dim-vocabs", "dim-emb", "dim-pos", "dim-rnn",
-    "layers-enc", "layers-dec", "skip", "layer-normalization"
+    "layers-enc", "layers-dec", "skip", "layer-normalization",
+    "special-vocab"
     /*"lexical-table", "vocabs"*/
   };
   
@@ -388,7 +391,8 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("layers-dec", int);
   SET_OPTION("skip", bool);
   SET_OPTION("layer-normalization", bool);
-
+  SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
+  
   if(!translate) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
