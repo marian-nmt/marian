@@ -108,7 +108,6 @@ void Vocab::load(const std::string& vocabPath, int max)
 
   id2str_[EOS_ID] = EOS_STR;
   id2str_[UNK_ID] = UNK_STR;
-  
   for(auto id : seenSpecial)
     id2str_[id] = SYM2SPEC.at(id);
 }
@@ -170,8 +169,13 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   for(auto word : seenSpecial) 
     vocabYaml.force_insert(SYM2SPEC.at(word), word);
   
+  Word maxSpec = 1;
+  for(auto i : seenSpecial)
+    if(i > maxSpec)
+      maxSpec = i;
+  
   for(size_t i = 0; i < vocabVec.size(); ++i)
-    vocabYaml.force_insert(vocabVec[i], i + 2 + seenSpecial.size());
+    vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
   OutputFileStream vocabStrm(vocabPath);
   (std::ostream&)vocabStrm << vocabYaml;
