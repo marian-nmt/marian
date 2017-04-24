@@ -11,6 +11,8 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 
+namespace marian {
+
 Vocab::Vocab() {}
 
 size_t Vocab::operator[](const std::string& word) const {
@@ -40,7 +42,8 @@ std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
     if((sentence[i] != EOS_ID || !ignoreEOS)) {
-      decoded.push_back((*this)[sentence[i]]);
+      if(!SYM2SPEC.count(sentence[i]))
+        decoded.push_back((*this)[sentence[i]]);
     }
   }
   return decoded;
@@ -84,9 +87,16 @@ void Vocab::load(const std::string& vocabPath, int max)
   LOG(data, "Loading vocabulary from {} (max: {})", vocabPath, max);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
   
+  std::unordered_set<Word> seenSpecial;
+  
   for(auto&& pair : vocab) {
     auto str = pair.first.as<std::string>();    
     auto id = pair.second.as<Word>();
+    
+    if(SYM2SPEC.count(id)) {
+      seenSpecial.insert(id);
+    }
+    
     if(!max || id < (Word)max) {
       str2id_[str] = id;
       if(id >= id2str_.size())
@@ -96,12 +106,11 @@ void Vocab::load(const std::string& vocabPath, int max)
   }
   UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << vocabPath);
 
-  
   id2str_[EOS_ID] = EOS_STR;
   id2str_[UNK_ID] = UNK_STR;
-  id2str_[STP_ID] = STP_STR;
-  id2str_[CPY_ID] = CPY_STR;
-  id2str_[DEL_ID] = DEL_STR;
+  
+  for(auto id : seenSpecial)
+    id2str_[id] = SYM2SPEC.at(id);
 }
 
 class Vocab::VocabFreqOrderer {
@@ -117,8 +126,7 @@ class Vocab::VocabFreqOrderer {
     }
 };
 
-void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath)
-{
+void Vocab::create(const std::string& vocabPath, int max, const std::string& trainPath) {
   LOG(data,"Creating vocabulary {} from {} (max: {})", vocabPath, trainPath, max);
 
   UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
@@ -128,18 +136,18 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
 
   std::string line;
   std::unordered_map<std::string, size_t> counter;
-
-  std::unordered_set<std::string> special = {
-    EOS_STR, UNK_STR, STP_STR, CPY_STR, DEL_STR
-  };
+  
+  std::unordered_set<Word> seenSpecial;
   
   while (getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
     Split(line, toks);
 
     for(const std::string &tok: toks) {
-      if(special.count(tok))
+      if(SPEC2SYM.count(tok)) {
+        seenSpecial.insert(SPEC2SYM.at(tok));
         continue;
+      }
       
       auto iter = counter.find(tok);
       if (iter == counter.end())
@@ -158,13 +166,15 @@ void Vocab::create(const std::string& vocabPath, int max, const std::string& tra
   YAML::Node vocabYaml;
   vocabYaml.force_insert(EOS_STR, EOS_ID);
   vocabYaml.force_insert(UNK_STR, UNK_ID);
-  vocabYaml.force_insert(STP_STR, STP_ID);
-  vocabYaml.force_insert(CPY_STR, CPY_ID);
-  vocabYaml.force_insert(DEL_STR, DEL_ID);
+  
+  for(auto word : seenSpecial) 
+    vocabYaml.force_insert(SYM2SPEC.at(word), word);
   
   for(size_t i = 0; i < vocabVec.size(); ++i)
-    vocabYaml.force_insert(vocabVec[i], i + 5);
+    vocabYaml.force_insert(vocabVec[i], i + 2 + seenSpecial.size());
 
   OutputFileStream vocabStrm(vocabPath);
   (std::ostream&)vocabStrm << vocabYaml;
+}
+
 }

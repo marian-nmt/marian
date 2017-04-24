@@ -6,6 +6,8 @@
 
 #include "data/types.h"
 
+namespace marian {
+
 class Vocab {
   public:
     Vocab();
@@ -35,3 +37,5 @@ class Vocab {
 
     class VocabFreqOrderer;
 };
+
+}

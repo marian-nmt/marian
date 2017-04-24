@@ -28,10 +28,11 @@ while(<STDIN>) {
       {   MATCH => sub { push(@seq, "<c>", $trg[$_[0]]); },
           DISCARD_A => sub { push(@seq, $trg[$_[0]]); },
           DISCARD_B => sub { push(@seq, "<d>"); },
-          CHANGE    => sub { push(@seq, "<d>", $trg[$_[0]]); },
+          CHANGE    => sub { push(@seq, "<r>", $trg[$_[0]]); },
       }
   );
   
+  shift(@seq);
   pop(@seq);
   print join(" ", @seq), "\n";
   

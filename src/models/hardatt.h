@@ -196,7 +196,7 @@ class DecoderHardAtt : public DecoderBase {
       for(int i = 0; i < dimWords - 1; ++i) {
         for(int j = 0; j < dimBatch; ++j) {
           size_t word = subBatch->indeces()[i * dimBatch + j];
-          if(word == STP_ID | word == CPY_ID | word == DEL_ID)
+          if(SYM2SPEC.count(word))
             currentPos[j] += dimBatch;
           attentionIndices.push_back(currentPos[j]);
         }
@@ -222,7 +222,7 @@ class DecoderHardAtt : public DecoderBase {
       }
       else {
         for(size_t i = 0; i < embIdx.size(); ++i)
-          if(embIdx[i] == STP_ID || embIdx[i] == CPY_ID || embIdx[i] == DEL_ID) {
+          if(SYM2SPEC.count(embIdx[i])) {
             stateHardAtt->getAttentionIndices()[i]++;
             if(stateHardAtt->getAttentionIndices()[i] >= dimSrcWords)
               stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;

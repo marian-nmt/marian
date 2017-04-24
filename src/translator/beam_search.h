@@ -85,7 +85,6 @@ class BeamSearch {
         = hypIndeces.empty() ? state : state->select(hypIndeces);
       
       builder_->selectEmbeddings(graph, selectedState, embIndeces, position);
-      
       selectedState->setSingleStep(true);
       
       auto nextState = builder_->step(selectedState);
