@@ -157,7 +157,11 @@ std::vector<float> EncoderDecoder::GetScores(const std::vector<std::pair<size_t,
   std::vector<float> h_scores(ids.size());
 
   for (size_t i = 0; i < ids.size(); ++i) {
-    h_ids[i] = ids[i].first * GetVocabSize() + ids[i].second;
+    if (ids[i].second < GetVocabSize()) {
+      h_ids[i] = ids[i].first * GetVocabSize() + ids[i].second;
+    } else {
+      h_ids[i] = ids[i].first * GetVocabSize() + UNK_ID;
+    }
   }
 
   mblas::copy_n(h_ids.begin(), ids.size(), d_ids.begin());
