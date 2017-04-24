@@ -549,6 +549,8 @@ __kernel void gNthElement(
                 uint rows, uint cols,
                 __global uint *beamSizes,
                 uint beamSizesSize,
+                __global uint *d_cummulatedBeamSizes,
+                __global uint *d_batchFirstElementIdxs,
                 uint maxBatchSize,
                 __global float *bestCost,
                 __global unsigned *bestInd

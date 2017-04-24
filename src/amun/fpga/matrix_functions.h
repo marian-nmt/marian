@@ -135,7 +135,9 @@ void NthElement(
     Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
     const Array<uint> &beamSizes,
-    size_t maxBatchSize);
+    size_t maxBatchSize,
+    const Array<uint> &d_cummulatedBeamSizes,
+    const Array<uint> &d_batchFirstElementIdxs);
 
 
 } // namespace mblas {

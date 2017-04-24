@@ -21,12 +21,30 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst)
 {
+  const OpenCLInfo &openCLInfo = Probs.GetOpenCLInfo();
+
   assert(beamSizes.size());
   size_t totalBeamSize = beamSizes[0];
   for (size_t i = 1; i < beamSizes.size(); ++i) {
     totalBeamSize += beamSizes[i];
   }
   cerr << "totalBeamSize=" << totalBeamSize << endl;
+
+  std::vector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
+  std::vector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
+  cummulatedBeamSizes[0] = 0;
+  batchFirstElementIdxs[0] = 0;
+
+  const size_t vocabSize = Probs.dim(1);
+  for (size_t i = 0; i < beamSizes.size(); ++i) {
+
+    cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
+    batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
+  }
+
+  Array<uint> d_cummulatedBeamSizes(openCLInfo, cummulatedBeamSizes);
+  Array<uint> d_batchFirstElementIdxs(openCLInfo, batchFirstElementIdxs);
+
   //cerr << "Probs=" << Probs.Debug() << endl;
   //assert(Probs.dim(0) == totalBeamSize);
 
@@ -36,7 +54,6 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   //cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
 
   // create device vector of beamSizes
-  const OpenCLInfo &openCLInfo = Probs.GetOpenCLInfo();
   vector<uint> beamSizesUint(beamSizes.size());
   std::copy(beamSizes.begin(), beamSizes.end(), beamSizesUint.begin());
   Array<uint> d_beamSizesUint(openCLInfo, beamSizesUint);
@@ -45,7 +62,9 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   cerr << "Probs=" << Probs.Debug(1) << endl;
   cerr << "d_beamSizesUint=" << d_beamSizesUint.Debug(2) << endl;
   cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
-  mblas::NthElement(d_out, d_ind, Probs, d_beamSizesUint, maxBatchSize_);
+  cerr << "d_cummulatedBeamSizes=" << d_cummulatedBeamSizes.Debug(2) << endl;
+  cerr << "d_batchFirstElementIdxs=" << d_batchFirstElementIdxs.Debug(2) << endl;
+  mblas::NthElement(d_out, d_ind, Probs, d_beamSizesUint, maxBatchSize_, d_cummulatedBeamSizes, d_batchFirstElementIdxs);
   cerr << "d_out=" << d_out.Debug(1) << endl;
   cerr << "d_ind=" << d_ind.Debug(1) << endl;
 

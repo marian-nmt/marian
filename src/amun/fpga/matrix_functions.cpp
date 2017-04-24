@@ -1193,7 +1193,9 @@ void NthElement(
     Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
     const Array<uint> &beamSizes,
-    size_t maxBatchSize)
+    size_t maxBatchSize,
+    const Array<uint> &d_cummulatedBeamSizes,
+    const Array<uint> &d_batchFirstElementIdxs)
 {
   const OpenCLInfo &openCLInfo = d_out.GetOpenCLInfo();
 
@@ -1218,9 +1220,12 @@ void NthElement(
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
   CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &beamSizesSize) );
 
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &maxBatchSizeUint) );
-  CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_out.data()) );
-  CheckError( clSetKernelArg(kernel, 7, sizeof(cl_mem), &d_ind.data()) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_cummulatedBeamSizes.data()) );
+  CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_batchFirstElementIdxs.data()) );
+
+  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &maxBatchSizeUint) );
+  CheckError( clSetKernelArg(kernel, 8, sizeof(cl_mem), &d_out.data()) );
+  CheckError( clSetKernelArg(kernel, 9, sizeof(cl_mem), &d_ind.data()) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
