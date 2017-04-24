@@ -1215,8 +1215,8 @@ void NthElement(
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &ProbsRows) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &ProbsCols) );
 
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
-  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
 
   CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &maxBatchSizeUint) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_out.data()) );

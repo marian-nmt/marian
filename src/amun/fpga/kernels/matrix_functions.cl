@@ -547,13 +547,14 @@ void replaceValueOrDiscard(
 __kernel void gNthElement(
                 __global float *prob,
                 uint rows, uint cols,
-                uint maxBeamSize,
-                //__global uint *beamSizes,
+                //uint maxBeamSize,
+                __global uint *beamSizes,
                 uint maxBatchSize,
                 __global float *bestCost,
                 __global unsigned *bestInd
                 )
 {
+  uint maxBeamSize = beamSizes[0];
   //assert(rows == maxBatchSize);
   //assert(cols > maxBeamSize);
 

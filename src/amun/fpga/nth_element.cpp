@@ -23,18 +23,22 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
 {
   //assert(beamSizes.size() == 1);
   size_t beamSize = beamSizes[0];
-  cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
-  cerr << "beamSize=" << beamSize << endl;
-  cerr << "maxBeamSize_=" << maxBeamSize_ << endl;
-  cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
+
+  //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
+  //cerr << "beamSize=" << beamSize << endl;
+  //cerr << "maxBeamSize_=" << maxBeamSize_ << endl;
+  //cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
 
   // create device vector of beamSizes
   const OpenCLInfo &openCLInfo = Probs.GetOpenCLInfo();
   vector<uint> beamSizesUint(beamSizes.size());
   std::copy(beamSizes.begin(), beamSizes.end(), beamSizesUint.begin());
   Array<uint> d_beamSizesUint(openCLInfo, beamSizesUint);
-  cerr << "d_beamSizesUint=" << d_beamSizesUint.Debug(2) << endl;
 
+  cerr << "Probs=" << Probs.Debug(1) << endl;
+  cerr << "beamSize=" << beamSize << endl;
+  cerr << "d_beamSizesUint=" << d_beamSizesUint.Debug(2) << endl;
+  cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
   mblas::NthElement(d_out, d_ind, Probs, beamSize, d_beamSizesUint, maxBatchSize_);
   cerr << "d_out=" << d_out.Debug(1) << endl;
   cerr << "d_ind=" << d_ind.Debug(1) << endl;
