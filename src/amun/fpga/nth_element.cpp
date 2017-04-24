@@ -27,6 +27,9 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
     totalBeamSize += beamSizes[i];
   }
   cerr << "totalBeamSize=" << totalBeamSize << endl;
+  //cerr << "Probs=" << Probs.Debug() << endl;
+  //assert(Probs.dim(0) == totalBeamSize);
+
   //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
   //cerr << "beamSize=" << beamSize << endl;
   //cerr << "maxBeamSize_=" << maxBeamSize_ << endl;
