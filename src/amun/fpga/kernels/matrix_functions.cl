@@ -547,8 +547,8 @@ void replaceValueOrDiscard(
 __kernel void gNthElement(
                 __global float *prob,
                 uint rows, uint cols,
-                //uint maxBeamSize,
                 __global uint *beamSizes,
+                uint beamSizesSize,
                 uint maxBatchSize,
                 __global float *bestCost,
                 __global unsigned *bestInd

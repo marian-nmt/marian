@@ -134,7 +134,6 @@ void NthElement(
     Array<float>& d_out,
     Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
-    size_t maxBeamSize,
     const Array<uint> &beamSizes,
     size_t maxBatchSize);
 
