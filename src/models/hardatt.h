@@ -121,6 +121,7 @@ class DecoderHardAtt : public DecoderBase {
       
       int dimBatch = context->shape()[0];
       int dimTrgWords = trgEmbeddings->shape()[2];
+      int dimBeam = trgEmbeddings->shape()[3];
             
       if(dropoutTrg) {
         auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, dimTrgWords});
@@ -129,10 +130,11 @@ class DecoderHardAtt : public DecoderBase {
       
       auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});
       auto attendedContext = rows(flatContext, stateHardAtt->getAttentionIndices());
-      attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords});
+      attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords, dimBeam});
       
       auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis=1);
       int dimInput = rnnInputs->shape()[1];
+    
       
       if(!rnnL1)
         rnnL1 = New<RNN<GRU>>(graph, "decoder",
@@ -286,6 +288,7 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
       
       int dimBatch = context->shape()[0];
       int dimTrgWords = trgEmbeddings->shape()[2];
+      int dimBeam = trgEmbeddings->shape()[3];
             
       if(dropoutTrg) {
         auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, dimTrgWords});
@@ -295,7 +298,7 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
 
       auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});
       auto attendedContext = rows(flatContext, stateHardAtt->getAttentionIndices());
-      attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords});
+      attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords, dimBeam});
       
       auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis=1);
       int dimInput = rnnInputs->shape()[1];

@@ -29,6 +29,7 @@ class BeamSearch {
                 const std::vector<float> costs,
                 size_t vocabSize,
                 const Beam& beam) {
+      
       Beam newBeam;
       for(int i = 0; i < keys.size(); ++i) {
         int embIdx = keys[i] % vocabSize;
@@ -142,6 +143,10 @@ class BeamSearch {
           for(int i = 0; i < attentionIdx.size(); i++) {
             if(batch->front()->indeces()[attentionIdx[i]] != 0) {                
               attState->getProbs()->val()->set(i * dimVoc + EOS_ID,
+                                               std::numeric_limits<float>::lowest());
+            }
+            else {                
+              attState->getProbs()->val()->set(i * dimVoc + STP_ID,
                                                std::numeric_limits<float>::lowest());
             }
           }
