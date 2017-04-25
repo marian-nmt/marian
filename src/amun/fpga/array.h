@@ -52,8 +52,8 @@ public:
   size_t size() const
   { return size_; }
 
-  cl_mem &data()
-  { return mem_;  }
+  const uint &sizeUInt() const
+  { return size_; }
 
   const cl_mem &data() const
   { return mem_;  }
@@ -140,7 +140,7 @@ public:
 protected:
   const OpenCLInfo &openCLInfo_;
 
-  size_t size_;
+  uint size_;
   cl_mem mem_;
 
 };

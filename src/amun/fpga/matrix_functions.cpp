@@ -121,9 +121,6 @@ Matrix& CopyRows(
 {
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
-  const cl_mem &dev = indices.data();
-  size_t numPairs = indices.size();
-
   cl_int err;
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
@@ -150,8 +147,8 @@ Matrix& CopyRows(
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &cols) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &dev) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &numPairs) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &indices.data()) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &indices.sizeUInt()) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -706,7 +703,6 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
 
   // Set the arguments to our compute kernel
   uint srcSizeUint = srcSize;
-  uint batchSize = batchMapping.size();
   uint tempSize = Temp.size();
   uint outSize = Out.size();
   uint inSize = In.size();
@@ -716,10 +712,10 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In.data()) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &srcSizeUint) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchSize) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchMapping.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &cols) );
   CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &batchMapping.data()) );
-  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &batchSize) );
+  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &batchMapping.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &tempSize) );
   CheckError( clSetKernelArg(kernel, 9, sizeof(uint), &outSize) );
   CheckError( clSetKernelArg(kernel, 10, sizeof(uint), &inSize) );
@@ -912,7 +908,7 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
 
   uint batchSize = state.dim(0);
   uint stateLength = state.dim(1);
-  uint sentenceLength = mapping.size() / batchSize;
+  uint sentenceLength = mapping.sizeUInt() / batchSize;
 
   const OpenCLInfo &openCLInfo = state.GetOpenCLInfo();
 
@@ -1014,14 +1010,13 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
   // Set the arguments to our compute kernel
   uint outRows = Out.dim(0);
   uint outCols = Out.dim(1);
-  uint batchIdsSize = batchIds.size();
   uint srcSizeUint = srcSize;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &outRows) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &outCols) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &batchIds.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchIdsSize) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchIds.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &srcMapping.data()) );
   CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &srcSizeUint) );
 
@@ -1210,7 +1205,6 @@ void NthElement(
   uint ProbsRows = Probs.dim(0);
   uint ProbsCols = Probs.dim(1);
   uint maxBatchSizeUint = maxBatchSize;
-  uint beamSizesSize = beamSizes.size();
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &ProbsRows) );
@@ -1218,7 +1212,7 @@ void NthElement(
 
   //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &beamSizesSize) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &beamSizes.sizeUInt()) );
 
   CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_cummulatedBeamSizes.data()) );
   CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_batchFirstElementIdxs.data()) );
