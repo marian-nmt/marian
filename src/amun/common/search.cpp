@@ -103,7 +103,7 @@ void Search::Encode(const Sentences& sentences, States& states) {
     State& state = *states[i];
 
     scorer.BeginSentenceState(state, sentences.size());
-    cerr << "BeginSentenceState state=" << state.Debug(1) << endl;
+    //cerr << "BeginSentenceState state=" << state.Debug(1) << endl;
   }
 }
 

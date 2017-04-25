@@ -44,7 +44,7 @@ void BestHyps::CalcBeam(
   using namespace mblas;
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
-  cerr << "Probs=" << Probs.Debug(1) << endl;
+  //cerr << "Probs=" << Probs.Debug(1) << endl;
 
   std::vector<float> vCosts;
   for (auto& h : prevHyps) {

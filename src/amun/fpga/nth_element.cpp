@@ -28,7 +28,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   for (size_t i = 1; i < beamSizes.size(); ++i) {
     totalBeamSize += beamSizes[i];
   }
-  cerr << "totalBeamSize=" << totalBeamSize << endl;
+  //cerr << "totalBeamSize=" << totalBeamSize << endl;
 
   std::vector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
   std::vector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
@@ -58,23 +58,23 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   std::copy(beamSizes.begin(), beamSizes.end(), beamSizesUint.begin());
   Array<uint> d_beamSizesUint(openCLInfo, beamSizesUint);
 
-  cerr << endl;
-  cerr << "Probs=" << Probs.Debug(1) << endl;
-  cerr << "d_beamSizesUint=" << d_beamSizesUint.Debug(2) << endl;
-  cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
-  cerr << "d_cummulatedBeamSizes=" << d_cummulatedBeamSizes.Debug(2) << endl;
-  cerr << "d_batchFirstElementIdxs=" << d_batchFirstElementIdxs.Debug(2) << endl;
+  //cerr << endl;
+  //cerr << "Probs=" << Probs.Debug(1) << endl;
+  //cerr << "d_beamSizesUint=" << d_beamSizesUint.Debug(2) << endl;
+  //cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
+  //cerr << "d_cummulatedBeamSizes=" << d_cummulatedBeamSizes.Debug(2) << endl;
+  //cerr << "d_batchFirstElementIdxs=" << d_batchFirstElementIdxs.Debug(2) << endl;
   mblas::NthElement(d_out, d_ind, Probs, d_beamSizesUint, maxBatchSize_, d_cummulatedBeamSizes, d_batchFirstElementIdxs);
-  cerr << "d_out=" << d_out.Debug(1) << endl;
-  cerr << "d_ind=" << d_ind.Debug(1) << endl;
+  //cerr << "d_out=" << d_out.Debug(1) << endl;
+  //cerr << "d_ind=" << d_ind.Debug(1) << endl;
 
   outCosts.resize(totalBeamSize);
   outKeys.resize(totalBeamSize);
   d_out.Get(outCosts.data(), outCosts.size());
   d_ind.Get(outKeys.data(), outKeys.size());
 
-  cerr << "outCosts=" << Debug(outCosts, 2) << endl;
-  cerr << "outKeys=" << Debug(outKeys, 2) << endl;
+  //cerr << "outCosts=" << Debug(outCosts, 2) << endl;
+  //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
 
 
 }

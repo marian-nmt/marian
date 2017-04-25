@@ -320,21 +320,21 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
     batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
 
-  cerr << endl;
-  cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
-  cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
-  cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;
-  cerr << "1Probs=" << Probs.Debug() << endl;
+  //cerr << endl;
+  //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
+  //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
+  //cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;
+  //cerr << "1Probs=" << Probs.Debug() << endl;
 
   getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
 
-  cerr << "2Probs=" << Probs.Debug() << endl;
+  //cerr << "2Probs=" << Probs.Debug() << endl;
   //cerr << "cummulatedBeamSizes.back()=" << cummulatedBeamSizes.back() << endl;
   //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
   GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 
-  cerr << "outCosts=" << Debug(outCosts, 2) << endl;
-  cerr << "outKeys=" << Debug(outKeys, 2) << endl;
+  //cerr << "outCosts=" << Debug(outCosts, 2) << endl;
+  //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
 }
 
 void NthElement::GetPairs(size_t number,
