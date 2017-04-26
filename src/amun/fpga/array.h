@@ -15,12 +15,14 @@ public:
   Array(const OpenCLInfo &openCLInfo)
   :openCLInfo_(openCLInfo)
   ,size_(0)
+  ,arrSize_(0)
   {
   }
 
   Array(const OpenCLInfo &openCLInfo, size_t size)
   :openCLInfo_(openCLInfo)
   ,size_(size)
+  ,arrSize_(0)
   {
     cl_int err;
     mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_READ_WRITE,  sizeof(T) * size, NULL, &err);
@@ -37,6 +39,7 @@ public:
   Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
   :openCLInfo_(openCLInfo)
   ,size_(vec.size())
+  ,arrSize_(vec.size())
   {
     cl_int err;
     mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) vec.data(), &err);
@@ -65,6 +68,7 @@ public:
   {
     assert(&openCLInfo_ == &other.openCLInfo_);
     std::swap(size_, other.size_);
+    std::swap(arrSize_, other.arrSize_);
     std::swap(mem_, other.mem_);
   }
 
@@ -98,7 +102,8 @@ public:
 
   virtual void resize(size_t newSize)
   {
-    if (newSize > size_) {
+    if (newSize > arrSize_) {
+      // create new, bigger buffer and copy old data to it
       cl_int err;
 
       cl_mem newMem = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(T) * newSize, NULL, &err);
@@ -110,6 +115,7 @@ public:
       }
 
       mem_ = newMem;
+      arrSize_ = newSize;
     }
 
     size_ = newSize;
@@ -118,7 +124,7 @@ public:
   virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;
-    strm << mem_ << " size=" << size_;
+    strm << mem_ << " size_=" << size_ << " arrSize_=" << arrSize_;
 
     if (verbosity) {
       float sum = mblas::SumSizet(openCLInfo_, mem_, size_);
@@ -141,6 +147,7 @@ protected:
   const OpenCLInfo &openCLInfo_;
 
   uint size_;
+  uint arrSize_;
   cl_mem mem_;
 
 };
