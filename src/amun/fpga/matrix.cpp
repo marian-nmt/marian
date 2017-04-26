@@ -16,16 +16,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 :openCLInfo_(openCLInfo)
 ,dims_({0, 0, 0, 0})
 ,arrSize_(0)
-,mem_(nullptr)
 {
-  /*
-  cl_int err;
-  mem_ = clCreateBuffer(context_,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
-  CheckError(err);
-  cerr << "mem_1=" << Debug() << endl;
-  */
-  //cerr << "mem_1=" << Debug() << endl;
-
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
@@ -62,17 +53,9 @@ Matrix::Matrix(const Matrix &other)
 }
 
 Matrix::Matrix(Matrix &&other)
-:openCLInfo_(other.openCLInfo_)
-,mem_(other.mem_)
-,arrSize_(other.arrSize_)
+:Matrix(other.GetOpenCLInfo())
 {
-  for (size_t i = 0; i < SHAPE_SIZE; ++i) {
-    dims_[i] = other.dims_[i];
-    other.dims_[i] = 0;
-  }
-
-  other.mem_ = nullptr;
-  other.arrSize_ = 0;
+  Swap(other);
 }
 
 

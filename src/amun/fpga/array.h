@@ -78,21 +78,26 @@ public:
     CheckError( clFinish(openCLInfo_.commands) );
   }
 
-  void Set(const std::vector<T> &vec)
+  void Set(const T *arr, size_t size)
   {
-    assert(vec.size() <= size_);
-    size_t bytes = vec.size() * sizeof(T);
+    size_t bytes = size * sizeof(T);
     CheckError( clEnqueueWriteBuffer(
                     openCLInfo_.commands,
                     mem_,
                     CL_TRUE,
                     0,
                     bytes,
-                    vec.data(),
+                    arr,
                     0,
                     NULL,
                     NULL) );
     CheckError( clFinish(openCLInfo_.commands) );
+  }
+
+  void Set(const std::vector<T> &vec)
+  {
+    assert(vec.size() <= size_);
+    Set(vec.data(), vec.size());
   }
 
   void Get(T *arr, size_t size) const
