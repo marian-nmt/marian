@@ -19,14 +19,7 @@ public:
 
   virtual size_t dim(size_t i) const
   {
-    switch (i) {
-    case 0: return rows_;
-    case 1: return cols_;
-    case 2: return beam_;
-    case 3: return batches_;
-    default:
-      abort();
-    }
+    return dims_[i];
   }
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
@@ -53,7 +46,7 @@ public:
 protected:
   const OpenCLInfo &openCLInfo_;
   cl_mem mem_;
-  size_t rows_, cols_, beam_, batches_;
+  uint dims_[SHAPE_SIZE];
   size_t arrSize_;
 
 };

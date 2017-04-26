@@ -14,10 +14,7 @@ namespace mblas {
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo)
 :openCLInfo_(openCLInfo)
-,rows_(0)
-,cols_(0)
-,beam_(0)
-,batches_(0)
+,dims_({0, 0, 0, 0})
 ,arrSize_(0)
 ,mem_(nullptr)
 {
@@ -33,10 +30,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
 :openCLInfo_(openCLInfo)
-,rows_(rows)
-,cols_(cols)
-,beam_(1)
-,batches_(1)
+,dims_({rows, cols, 1, 1})
 ,arrSize_(size())
 {
   cl_int err;
@@ -52,10 +46,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
 :openCLInfo_(openCLInfo)
-,rows_(rows)
-,cols_(cols)
-,beam_(1)
-,batches_(1)
+,dims_({rows, cols, 1, 1})
 ,arrSize_(size())
 {
   cl_int err;
@@ -65,7 +56,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *va
 }
 
 Matrix::Matrix(const Matrix &other)
-:Matrix(other.openCLInfo_, other.rows_, other.cols_)
+:Matrix(other.openCLInfo_, other.dims_[0], other.dims_[1])
 {
   CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
@@ -73,17 +64,14 @@ Matrix::Matrix(const Matrix &other)
 Matrix::Matrix(Matrix &&other)
 :openCLInfo_(other.openCLInfo_)
 ,mem_(other.mem_)
-,rows_(other.rows_)
-,cols_(other.cols_)
-,beam_(other.beam_)
-,batches_(other.batches_)
 ,arrSize_(other.arrSize_)
 {
+  for (size_t i = 0; i < SHAPE_SIZE; ++i) {
+    dims_[i] = other.dims_[i];
+    other.dims_[i] = 0;
+  }
+
   other.mem_ = nullptr;
-  other.rows_ = 0;
-  other.cols_ = 0;
-  other.beam_ = 0;
-  other.batches_ = 0;
   other.arrSize_ = 0;
 }
 
@@ -113,10 +101,10 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
     arrSize_ = newSize;
   }
 
-  rows_ = rows;
-  cols_ = cols;
-  beam_ = beam;
-  batches_ = batches;
+  dims_[0] = rows;
+  dims_[1] = cols;
+  dims_[2] = beam;
+  dims_[3] = batches;
 }
 
 void Matrix::Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
@@ -124,17 +112,17 @@ void Matrix::Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
   size_t newSize = cols * rows * beam * batches;
   amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
 
-  rows_ = rows;
-  cols_ = cols;
-  beam_ = beam;
-  batches_ = batches;
+  dims_[0] = rows;
+  dims_[1] = cols;
+  dims_[2] = beam;
+  dims_[3] = batches;
 }
 
 void Matrix::Reshape2D()
 {
-  rows_ = rows_ * beam_ * batches_;
-  beam_ = 1;
-  batches_ = 1;
+  dims_[0] = dims_[0] * dims_[2] * dims_[3];
+  dims_[2] = 1;
+  dims_[3] = 1;
 }
 
 
@@ -164,10 +152,7 @@ void Matrix::Swap(Matrix &other)
 {
   assert(&openCLInfo_ == &other.openCLInfo_);
   std::swap(mem_, other.mem_);
-  std::swap(rows_, other.rows_);
-  std::swap(cols_, other.cols_);
-  std::swap(beam_, other.beam_);
-  std::swap(batches_, other.batches_);
+  std::swap(dims_, other.dims_);
   std::swap(arrSize_, other.arrSize_);
 }
 
