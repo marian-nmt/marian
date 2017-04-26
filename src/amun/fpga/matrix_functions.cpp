@@ -136,8 +136,6 @@ Matrix& CopyRows(
   //cerr << "CopyRows3=" << endl;
 
   // Set the arguments to our compute kernel
-  size_t cols = In.dim(1);
-
   //cerr << "Out1=" << Out.Debug(1) << endl;
   //cerr << "In=" << In.Debug(1) << endl;
   //cerr << "cols=" << cols << endl;
@@ -146,7 +144,7 @@ Matrix& CopyRows(
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &cols) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(1)) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &indices.data()) );
   CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &indices.sizeUInt()) );
 
@@ -211,13 +209,10 @@ Matrix& Transpose(Matrix& Out, const Matrix& In)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "transpose", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint rows = In.dim(0);
-  uint cols = In.dim(1);
-
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &In.dimUInt(1)) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -286,10 +281,10 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "prod", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint rowsA = A.dim(0) * A.dim(2) * A.dim(3);
-  uint colsA = A.dim(1);
-  uint rowsB = B.dim(0) * B.dim(2) * B.dim(3);
-  uint colsB = B.dim(1);
+  uint rowsA = A.dimUInt(0) * A.dimUInt(2) * A.dimUInt(3);
+  uint colsA = A.dimUInt(1);
+  uint rowsB = B.dimUInt(0) * B.dimUInt(2) * B.dimUInt(3);
+  uint colsB = B.dimUInt(1);
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &C.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &A.data()) );
@@ -377,8 +372,8 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gLogit", openCLInfo);
@@ -421,8 +416,8 @@ Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementTanh", openCLInfo);
@@ -466,8 +461,8 @@ Matrix& ElementTanh2(Matrix& Out, const Matrix& In1, const Matrix& In2)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementTanh2", openCLInfo);
@@ -512,8 +507,8 @@ Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementWhatever", openCLInfo);
@@ -557,8 +552,8 @@ Matrix& ElementAddWeighted(Matrix& Out, float weight, const Matrix& In)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementAddWeighted", openCLInfo);
@@ -602,8 +597,8 @@ Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecAdd", openCLInfo);
@@ -647,8 +642,8 @@ Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In)
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation
 
-  uint rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint cols = Out.dim(1);
+  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint cols = Out.dimUInt(1);
 
   // create kernel
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecTanh", openCLInfo);
@@ -706,7 +701,6 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   uint tempSize = Temp.size();
   uint outSize = Out.size();
   uint inSize = In.size();
-  uint inRows = In.dim(0);
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Temp.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Out.data()) );
@@ -719,7 +713,7 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &tempSize) );
   CheckError( clSetKernelArg(kernel, 9, sizeof(uint), &outSize) );
   CheckError( clSetKernelArg(kernel, 10, sizeof(uint), &inSize) );
-  CheckError( clSetKernelArg(kernel, 11, sizeof(uint), &inRows) );
+  CheckError( clSetKernelArg(kernel, 11, sizeof(uint), &In.dimUInt(0)) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -757,13 +751,10 @@ Matrix& BroadcastVecColumnAddWeighted(Matrix& Out, float weight, const Array<flo
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecColumnAddWeighted", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint rows = Out.dim(0);
-  uint cols = Out.dim(1);
-
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &Out.dimUInt(1)) );
   CheckError( clSetKernelArg(kernel, 4, sizeof(float), &weight) );
 
   // Get the maximum work group size for executing the kernel on the device
@@ -806,15 +797,12 @@ Matrix& Slice(Matrix& Out,
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gSlice", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint rows = In.dim(0);
-  uint cols = In.dim(1);
-
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &n) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &dim) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &cols) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &In.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &In.dimUInt(1)) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -841,9 +829,9 @@ Matrix& Slice(Matrix& Out,
 
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse)
 {
+  /*
   uint nColumns = In.dim(1);
   uint nRows = In.dim(0);
-  /*
   cerr << "1Out=" << Out.Debug(1) << endl;
   cerr << "In=" << In.Debug(1) << endl;
   cerr << "rowNo=" << rowNo << endl;
@@ -860,18 +848,15 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gPasteRows", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint outCols = Out.dim(1);
-  uint inRows = In.dim(0);
-  uint inCols = In.dim(1);
   uint sparseUint = sparse;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &rowNo) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &outCols) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
 
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &inRows) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &inCols) );
+  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &In.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &In.dimUInt(1)) );
 
   CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colNo) );
   CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &sparseUint) );
@@ -907,7 +892,6 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
 
   uint batchSize = state.dim(0);
-  uint stateLength = state.dim(1);
   uint sentenceLength = mapping.sizeUInt() / batchSize;
 
   const OpenCLInfo &openCLInfo = state.GetOpenCLInfo();
@@ -922,7 +906,7 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
   // Set the arguments to our compute kernel
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &state.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &batchSize) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &stateLength) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &state.dimUInt(1)) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &sentenceLength) );
   CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &mapping.data()) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &i) );
@@ -951,9 +935,9 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
 
 void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
 {
-  uint batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  uint sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
-  uint stateLength = Out.dim(1);
+  uint batchNum = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  uint sentenceLength = (In.dimUInt(0) * In.dimUInt(2) * In.dimUInt(3)) / batchNum;
+  uint stateLength = Out.dimUInt(1);
   //cerr << "batchNum=" << batchNum << " sentenceLength=" << sentenceLength << " stateLength=" << stateLength << endl;
 
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
@@ -966,7 +950,6 @@ void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gMean", openCLInfo);
 
   // Set the arguments to our compute kernel
-
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &mapping.data()) );
@@ -1008,13 +991,11 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gSoftMax", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint outRows = Out.dim(0);
-  uint outCols = Out.dim(1);
   uint srcSizeUint = srcSize;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &outRows) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &outCols) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &batchIds.data()) );
   CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchIds.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &srcMapping.data()) );
@@ -1055,12 +1036,9 @@ Matrix& LogSoftmax(Matrix& Out)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gLogSoftMax", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint outRows = Out.dim(0);
-  uint outCols = Out.dim(1);
-
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &outRows) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &outCols) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1087,9 +1065,9 @@ Matrix& LogSoftmax(Matrix& Out)
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Array<int>& mapping)
 {
-  uint numRows = Weights.dim(0);
-  uint numCols = In.dim(1);
-  uint weightsCols = Weights.dim(1);
+  uint numRows = Weights.dimUInt(0);
+  uint numCols = In.dimUInt(1);
+  uint weightsCols = Weights.dimUInt(1);
   //cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
 
   Out.Resize(numRows, numCols);
@@ -1202,13 +1180,11 @@ void NthElement(
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gNthElement", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint ProbsRows = Probs.dim(0);
-  uint ProbsCols = Probs.dim(1);
   uint maxBatchSizeUint = maxBatchSize;
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &ProbsRows) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &ProbsCols) );
+  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Probs.dimUInt(0)) );
+  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Probs.dimUInt(1)) );
 
   //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
   CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );

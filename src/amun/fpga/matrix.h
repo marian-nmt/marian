@@ -22,6 +22,11 @@ public:
     return dims_[i];
   }
 
+  const uint &dimUInt(size_t i) const
+  {
+    return dims_[i];
+  }
+
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
 
   void Reshape(size_t rows, size_t cols, size_t beam, size_t batches);
