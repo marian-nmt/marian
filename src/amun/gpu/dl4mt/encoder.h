@@ -24,14 +24,14 @@ class Encoder {
         void Lookup(mblas::Matrix& Row, const Words& words) {
           thrust::host_vector<size_t> knownWords(words.size(), 1);
           for (size_t i = 0; i < words.size(); ++i) {
-            if (words[i] < w_.E_.Rows()) {
+            if (words[i] < w_.E_.dim(0)) {
               knownWords[i] = words[i];
             }
           }
 
           DeviceVector<size_t> dKnownWords(knownWords);
 
-          Row.Resize(words.size(), w_.E_.Cols());
+          Row.Resize(words.size(), w_.E_.dim(1));
           mblas::Assemble(Row, w_.E_, dKnownWords);
         }
 
@@ -63,16 +63,21 @@ class Encoder {
                         const DeviceVector<int>* mapping=nullptr) {
           InitializeState(batchSize);
 
+          mblas::Matrix prevState(State_);
           size_t n = std::distance(it, end);
           size_t i = 0;
+
           while(it != end) {
-            GetNextState(State_, State_, *it++);
+            GetNextState(State_, prevState, *it++);
+	    
             if(invert) {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
             } else {
               mblas::PasteRows(Context, State_, i, 0, n);
             }
+
+            prevState.swap(State_);
             ++i;
           }
         }
@@ -90,7 +95,7 @@ class Encoder {
   public:
     Encoder(const Weights& model);
 
-    void GetContext(const Sentences& words, size_t tab, mblas::Matrix& Context,
+    void GetContext(const Sentences& words, size_t tab, mblas::Matrix& context,
                     DeviceVector<int>& mapping);
 
   private:

@@ -2,10 +2,13 @@
 
 #include <memory>
 #include <sstream>
+#include <thrust/execution_policy.h>
+#include <thrust/functional.h>
 
+#include "common/exception.h"
 #include "common/base_matrix.h"
-
 #include "gpu/types-gpu.h"
+#include "handles.h"
 
 namespace amunmt {
 namespace GPU {
@@ -13,123 +16,175 @@ namespace mblas {
 
 using namespace thrust::placeholders;
 
+float Sum(const float *data, size_t count);
 
-template <class VecType>
+
+template <typename T>
 class TMatrix : public BaseMatrix {
   public:
-    typedef typename VecType::value_type value_type;
-    typedef typename VecType::iterator iterator;
-    typedef typename VecType::const_iterator const_iterator;
+    typedef T value_type;
 
     TMatrix()
-    : rows_(0), cols_(0)
-    {}
+    : rows_(0)
+    , cols_(0)
+    , beam_(0)
+    , batches_(0)
+    , arrSize_(0)
+    , data_(nullptr)
+    {
+    }
 
-    TMatrix(size_t rows, size_t cols)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_)
-    {}
-
-    TMatrix(size_t rows, size_t cols, value_type val)
-    : rows_(rows), cols_(cols), data_(rows_ * cols_, val)
-    {}
+    TMatrix(size_t rows, size_t cols, size_t beam, size_t batches, bool zero = false)
+    : rows_(rows)
+    , cols_(cols)
+    , beam_(1)
+    , batches_(1)
+    , arrSize_(size())
+    {
+      HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
+      if (zero) {
+        HANDLE_ERROR( cudaMemset(data_, 0, arrSize_ * sizeof(T)) );
+      }
+    }
 
     TMatrix(TMatrix&& m)
-    : rows_(m.rows_), cols_(m.cols_), data_(std::move(m.data_)) {}
-
-    TMatrix(const TMatrix& m) = delete;
-
-    value_type operator()(size_t i, size_t j) const {
-      return data_[i * cols_ + j];
+    : TMatrix()
+    {
+      swap(m);
     }
 
-    void Set(size_t i, size_t j, float value)  {
-      data_[i * cols_ + j] = value;
+    TMatrix(const TMatrix& m)
+    : rows_(m.rows_)
+    , cols_(m.cols_)
+    , beam_(m.beam_)
+    , batches_(m.batches_)
+    , arrSize_(m.arrSize_)
+    {
+      HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
+      HANDLE_ERROR( cudaMemcpyAsync(
+          data_,
+          m.data_,
+          arrSize_ * sizeof(T),
+          cudaMemcpyDeviceToDevice,
+          CudaStreamHandler::GetStream()) );
     }
 
-    size_t Rows() const {
-      return rows_;
+    ~TMatrix()
+    {
+      Clear();
     }
 
-    size_t Cols() const {
-      return cols_;
+    virtual size_t dim(size_t i) const
+    {
+    	switch (i) {
+    	case 0: return rows_;
+    	case 1: return cols_;
+    	case 2: return beam_;
+    	case 3: return batches_;
+    	default:
+    		abort();
+    	}
     }
 
-    void Resize(size_t rows, size_t cols) {
-      if (cols * rows > data_.size()) {
-        data_.resize(rows * cols);
+    void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
+      size_t newSize = cols * rows * beam * batches;
+      if (data_) {
+        if (newSize > arrSize_) {
+          T *newData;
+          HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
+
+          //size_t count = std::min(arrSize_, newSize);
+
+          HANDLE_ERROR( cudaMemcpyAsync(
+              newData,
+              data_,
+              size() * sizeof(T),
+              cudaMemcpyDeviceToDevice,
+              CudaStreamHandler::GetStream()) );
+
+          HANDLE_ERROR(cudaFree(data_));
+          data_ = newData;
+          arrSize_ = newSize;
+        }
+        else if (rows == 0 || cols == 0) {
+          Clear();
+        }
       }
+      else {
+        HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
+        arrSize_ = newSize;
+      }
+
       rows_ = rows;
       cols_ = cols;
+      beam_ = beam;
+      batches_ = batches;
     }
 
-    void Reshape(size_t rows, size_t cols) {
+    void Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
+    {
+      size_t newSize = cols * rows * beam * batches;
+      amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
+
       rows_ = rows;
       cols_ = cols;
+      beam_ = beam;
+      batches_ = batches;
     }
 
-    virtual std::string Debug() const
+    void Reshape2D() {
+      rows_ = rows_ * beam_ * batches_;
+      beam_ = 1;
+      batches_ = 1;
+    }
+
+    virtual std::string Debug(bool detailed = false) const
     {
       std::stringstream strm;
-      strm << Rows() << "x" << Cols() << ":";
-      for (size_t row = 0; row < Rows(); ++row) {
-        float rowSum = 0;
-        for (size_t col = 0; col < Cols(); ++col) {
-          rowSum += (*this)(row, col);
-        }
-        strm << rowSum << " ";
+      strm << BaseMatrix::Debug(detailed) << " ";
+      strm << data_ << " "
+          << arrSize_ << " "
+          << std::flush;
+
+      if (detailed) {
+        float sum = Sum(data(), size());
+        strm << "size=" << size() << " sum=" << sum << std::flush;
       }
+
       return strm.str();
     }
 
-    void Purge() {
-      Clear();
-      VecType temp;
-      data_.swap(temp);
-    }
-
     void Clear() {
-      data_.clear();
+      HANDLE_ERROR(cudaFree(data_));
+      data_ = nullptr;
       rows_ = 0;
       cols_ = 0;
-    }
-
-    VecType& GetVec() {
-      return data_;
-    }
-
-    const VecType& GetVec() const {
-      return data_;
+      beam_ = 0;
+      batches_ = 0;
+      arrSize_ = 0;
     }
 
     value_type* data() {
-      return thrust::raw_pointer_cast(data_.data());
+      return data_;
     }
 
     const value_type* data() const {
-      return thrust::raw_pointer_cast(data_.data());
-    }
-
-    iterator begin() {
-      return data_.begin();
-    }
-
-    iterator end() {
-      return data_.begin() + size();
-      // return data_.end();
-    }
-
-    const_iterator begin() const{
-      return data_.begin();
-    }
-
-    const_iterator end() const {
-      return data_.begin() + size();
-      // return data_.end();
+      return data_;
     }
 
     size_t size() const {
       // return data_.size();
-      return cols_ * rows_;
+      return cols_ * rows_ * beam_ * batches_;
+    }
+
+    void swap(TMatrix &other)
+    {
+      std::swap(rows_, other.rows_);
+      std::swap(cols_, other.cols_);
+      std::swap(beam_, other.beam_);
+      std::swap(batches_, other.batches_);
+      std::swap(arrSize_, other.arrSize_);
+      std::swap(data_, other.data_);
     }
 
 
@@ -140,11 +195,14 @@ class TMatrix : public BaseMatrix {
   private:
     size_t rows_;
     size_t cols_;
-    VecType data_;
+    size_t beam_;
+    size_t batches_;
+    size_t arrSize_;
+    T *data_;
 };
 
-typedef TMatrix<DeviceVector<float>> Matrix;
-typedef TMatrix<DeviceVector<int>> IMatrix;
+typedef TMatrix<float> Matrix;
+typedef TMatrix<int> IMatrix;
 
 
 }  // namespace mblas

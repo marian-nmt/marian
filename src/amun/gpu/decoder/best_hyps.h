@@ -44,12 +44,18 @@ class BestHyps : public BestHypsBase
       std::vector<SoftAlignmentPtr> alignments;
       for (auto& scorer : scorers) {
         if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
-          auto& attention = encdec->GetAttention();
-          size_t attLength = attention.Cols();
+          const mblas::Matrix &attention = encdec->GetAttention();
+          size_t attLength = attention.dim(1);
 
-          alignments.emplace_back(new SoftAlignment(
-                attention.begin() + hypIndex * attLength,
-                attention.begin() + (hypIndex + 1) * attLength));
+          SoftAlignment *softAlignment = new SoftAlignment(attLength);
+          mblas::copy(
+              attention.data() + hypIndex * attLength,
+              attLength,
+              thrust::raw_pointer_cast(softAlignment->data()),
+              cudaMemcpyDeviceToHost
+          );
+
+          alignments.emplace_back(softAlignment);
         } else {
           amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
         }
@@ -74,7 +80,12 @@ class BestHyps : public BestHypsBase
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
       }
-      mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+
+      mblas::copy(
+          thrust::raw_pointer_cast(vCosts.data()),
+          vCosts.size(),
+          thrust::raw_pointer_cast(Costs.data()),
+          cudaMemcpyHostToDevice);
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
@@ -121,12 +132,12 @@ class BestHyps : public BestHypsBase
       }
 
       for (size_t i = 0; i < beamSizeSum; i++) {
-        size_t wordIndex = bestKeys[i] % Probs.Cols();
+        size_t wordIndex = bestKeys[i] % Probs.dim(1);
         if (filter) {
           wordIndex = filterIndices[wordIndex];
         }
 
-        size_t hypIndex  = bestKeys[i] / Probs.Cols();
+        size_t hypIndex  = bestKeys[i] / Probs.dim(1);
         float cost = bestCosts[i];
 
         HypothesisPtr hyp;

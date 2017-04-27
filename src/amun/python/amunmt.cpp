@@ -24,6 +24,9 @@ void init(const std::string& options) {
   god_.Init(options);
 }
 
+void shutdown() {
+  god_.Cleanup();
+}
 
 boost::python::list translate(boost::python::list& in)
 {
@@ -91,4 +94,5 @@ BOOST_PYTHON_MODULE(libamunmt)
 {
   boost::python::def("init", init);
   boost::python::def("translate", translate);
+  boost::python::def("shutdown", shutdown);
 }

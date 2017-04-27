@@ -2,7 +2,10 @@
 
 #include "common/scorer.h"
 #include "common/logging.h"
+
+#ifdef HAS_CPU
 #include "cpu/decoder/encoder_decoder_loader.h"
+#endif
 
 #ifdef CUDA
 #include "gpu/decoder/encoder_decoder.h"
@@ -22,7 +25,8 @@ LoaderPtr LoaderFactory::Create(
     const std::string& mode) {
 	Loader *loader;
 
-  if (HAS_GPU_SUPPORT && (mode == "GPU")) {
+#ifdef CUDA
+  if (mode == "GPU") {
     loader = CreateGPU(god, name, config);
     if (loader) {
       return LoaderPtr(loader);
@@ -30,12 +34,16 @@ LoaderPtr LoaderFactory::Create(
       LOG(info, "No GPU scorer type. Switching to CPU");
     }
   }
+#endif
 
-
-  loader = CreateCPU(god, name, config);
-  if (loader) {
-    return LoaderPtr(loader);
+#ifdef HAS_CPU
+  if (mode == "CPU") {
+    loader = CreateCPU(god, name, config);
+    if (loader) {
+      return LoaderPtr(loader);
+    }
   }
+#endif
 
 	std::string type = config["type"].as<std::string>();
 	amunmt_UTIL_THROW2("Unknown scorer in config file: " << type);
@@ -69,6 +77,7 @@ Loader *LoaderFactory::CreateGPU(
 #endif
 
 
+#ifdef HAS_CPU
 Loader *LoaderFactory::CreateCPU(
 		const God &god,
 		const std::string& name,
@@ -83,6 +92,7 @@ Loader *LoaderFactory::CreateCPU(
 
   return NULL;
 }
+#endif
 
 }
 

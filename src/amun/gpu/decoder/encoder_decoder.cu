@@ -15,30 +15,6 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
-////////////////////////////////////////////
-std::string EncoderDecoderState::Debug() const
-{
-	return states_.Debug();
-}
-
-mblas::Matrix& EncoderDecoderState::GetStates() {
-  return states_;
-}
-
-mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
-  return embeddings_;
-}
-
-const mblas::Matrix& EncoderDecoderState::GetStates() const {
-  return states_;
-}
-
-const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
-  return embeddings_;
-}
-
-////////////////////////////////////////////
-
 EncoderDecoder::EncoderDecoder(
 		const God &god,
 		const std::string& name,
@@ -49,9 +25,22 @@ EncoderDecoder::EncoderDecoder(
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(god, model_)),
-    indices_(god.Get<size_t>("beam-size")),
-    SourceContext_(new mblas::Matrix())
+    indices_(god.Get<size_t>("beam-size"))
 {}
+
+State* EncoderDecoder::NewState() const {
+  return new EDState();
+}
+
+void EncoderDecoder::SetSource(const Sentences& source) {
+  encoder_->GetContext(source, tab_, sourceContext_, batchMapping_);
+}
+
+void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+  EDState& edState = state.get<EDState>();
+  decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+}
 
 void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>& beamSizes) {
   const EDState& edIn = in.get<EDState>();
@@ -60,23 +49,9 @@ void EncoderDecoder::Decode(const God &god, const State& in, State& out, const s
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
-                     *SourceContext_,
+                     sourceContext_,
                      batchMapping_,
                      beamSizes);
-}
-
-State* EncoderDecoder::NewState() const {
-  return new EDState();
-}
-
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
-  EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_);
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
-}
-
-void EncoderDecoder::SetSource(const Sentences& source) {
-  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
 }
 
 void EncoderDecoder::AssembleBeamState(const State& in,
@@ -93,7 +68,11 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   EDState& edOut = out.get<EDState>();
   indices_.resize(beamStateIds.size());
   thrust::host_vector<size_t> tmp = beamStateIds;
-  mblas::copy_n(tmp.begin(), beamStateIds.size(), indices_.begin());
+
+  mblas::copy(thrust::raw_pointer_cast(tmp.data()),
+      beamStateIds.size(),
+      thrust::raw_pointer_cast(indices_.data()),
+      cudaMemcpyHostToDevice);
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
@@ -163,7 +142,6 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
   //size_t i = deviceInfo.threadInd;
   size_t d = deviceInfo.deviceId; // TODO what is not using gpu0?
-  //cerr << "NewScorer=" << i << " " << d << endl;
 
   HANDLE_ERROR(cudaSetDevice(d));
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;

@@ -311,7 +311,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 
-  const size_t vocabSize = Probs.Cols();
+  const size_t vocabSize = Probs.dim(1);
   for (size_t i = 0; i < beamSizes.size(); ++i) {
 
     cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
@@ -331,7 +331,7 @@ void NthElement::GetPairs(size_t number,
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
                                 cudaMemcpyDeviceToHost, stream_) );
-  cudaStreamSynchronize(stream_);
+  HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
   for (size_t i = 0; i < number; ++i) {
     outKeys.push_back(h_res_idx[i]);

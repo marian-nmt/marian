@@ -32,7 +32,7 @@ struct Weights {
       U_(model["encoder_U"]),
       Wx_(model["encoder_Wx"]),
       Bx1_(model("encoder_bx", true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
       Ux_(model["encoder_Ux"]),
       Gamma_1_(model["encoder_gamma1"]),
       Gamma_2_(model["encoder_gamma2"])
@@ -58,7 +58,7 @@ struct Weights {
       U_(model["encoder_r_U"]),
       Wx_(model["encoder_r_Wx"]),
       Bx1_(model("encoder_r_bx", true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
       Ux_(model["encoder_r_Ux"]),
       Gamma_1_(model["encoder_r_gamma1"]),
       Gamma_2_(model["encoder_r_gamma2"])
@@ -110,7 +110,7 @@ struct Weights {
       U_(model["decoder_U"]),
       Wx_(model["decoder_Wx"]),
       Bx1_(model("decoder_bx", true)),
-      Bx2_(Bx1_.Rows(), Bx1_.Cols(), 0.0f),
+      Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
       Ux_(model["decoder_Ux"]),
       Gamma_1_(model["decoder_cell1_gamma1"]),
       Gamma_2_(model["decoder_cell1_gamma2"])
@@ -136,7 +136,7 @@ struct Weights {
       U_(model["decoder_U_nl"]),
       Wx_(model["decoder_Wcx"]),
       Bx2_(model("decoder_bx_nl", true)),
-      Bx1_(Bx2_.Rows(), Bx2_.Cols(), 0.0f),
+      Bx1_(Bx2_.dim(0), Bx2_.dim(1), Bx2_.dim(2), Bx2_.dim(3), true),
       Ux_(model["decoder_Ux_nl"]),
       Gamma_1_(model["decoder_cell2_gamma1"]),
       Gamma_2_(model["decoder_cell2_gamma2"])

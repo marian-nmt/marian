@@ -20,6 +20,7 @@ add_library(cpumode OBJECT
 
 add_library(libcommon OBJECT
   ${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp
+  common/base_matrix.cpp
   common/config.cpp
   common/exception.cpp
   common/filter.cpp
@@ -55,8 +56,10 @@ cuda_add_executable(
   amun
   common/decoder_main.cpp
   gpu/decoder/encoder_decoder.cu
+  gpu/decoder/encoder_decoder_state.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
+  gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/npz_converter.cu
@@ -75,6 +78,8 @@ cuda_add_library(python SHARED
   python/amunmt.cpp
   # gpu/decoder/ape_penalty.cu
   gpu/decoder/encoder_decoder.cu
+  gpu/decoder/encoder_decoder_state.cu
+  gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/dl4mt/encoder.cu
@@ -98,6 +103,8 @@ cuda_add_library(mosesplugin STATIC
   plugin/nmt.cu
   plugin/neural_phrase.cpp
   gpu/decoder/encoder_decoder.cu
+  gpu/decoder/encoder_decoder_state.cu
+  gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/dl4mt/encoder.cu
