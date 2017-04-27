@@ -22,7 +22,8 @@ class EncoderBase {
     virtual std::tuple<Expr, Expr>
     prepareSource(Expr srcEmbeddings,
                   Expr posEmbeddings,
-                  Ptr<data::CorpusBatch> batch, size_t index) {
+                  Ptr<data::CorpusBatch> batch,
+                  size_t index) {
       using namespace keywords;
       
       auto subBatch = (*batch)[index];
