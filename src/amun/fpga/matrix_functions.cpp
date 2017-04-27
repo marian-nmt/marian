@@ -698,9 +698,6 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
 
   // Set the arguments to our compute kernel
   uint srcSizeUint = srcSize;
-  uint tempSize = Temp.size();
-  uint outSize = Out.size();
-  uint inSize = In.size();
 
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Temp.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Out.data()) );
@@ -710,9 +707,9 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &cols) );
   CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &batchMapping.data()) );
   CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &batchMapping.sizeUInt()) );
-  CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &tempSize) );
-  CheckError( clSetKernelArg(kernel, 9, sizeof(uint), &outSize) );
-  CheckError( clSetKernelArg(kernel, 10, sizeof(uint), &inSize) );
+  CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &Temp.sizeUInt()) );
+  CheckError( clSetKernelArg(kernel, 9, sizeof(uint), &Out.sizeUInt()) );
+  CheckError( clSetKernelArg(kernel, 10, sizeof(uint), &In.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 11, sizeof(uint), &In.dimUInt(0)) );
 
   // Get the maximum work group size for executing the kernel on the device
