@@ -30,10 +30,8 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
 :dims_({rows, cols, 1, 1})
-,arr_(openCLInfo, size())
+,arr_(openCLInfo, size(), val)
 {
-  arr_.Set(val, size());
-  //cerr << "mem_3=" << Debug() << " " << *val << endl;
 }
 
 Matrix::Matrix(const Matrix &other)
