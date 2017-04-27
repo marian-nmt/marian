@@ -35,15 +35,20 @@ public:
     Set(value);
   }
 
-  Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
+  Array(const OpenCLInfo &openCLInfo, size_t size, const T *arr)
   :openCLInfo_(openCLInfo)
-  ,size_(vec.size())
-  ,arrSize_(vec.size())
+  ,size_(size)
+  ,arrSize_(size)
   {
     cl_int err;
-    mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) vec.data(), &err);
+    mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) arr, &err);
     CheckError(err);
 
+  }
+
+  Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
+  :Array(openCLInfo, vec.size(), vec.data())
+  {
   }
 
   Array(const Array &other)
