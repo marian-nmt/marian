@@ -151,7 +151,7 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       
       auto recCost = CrossEntropyCost("recScore")(nextRecState->getProbs(),
                                                   srcIdx, mask=srcMask);
-          
+      /*
       auto srcA = concatenate(std::dynamic_pointer_cast<DecoderS2S>(decoder_)->getAlignments(), axis=3);
       auto trgA = concatenate(attention_->getAlignments(), axis=3);
       
@@ -161,8 +161,8 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       auto symmetricAlignment = mean(scalar_product(reshape(srcA, {dimBatch, 1, dimSrcTrg}),
                                                     reshape(trgA, {dimBatch, 1, dimSrcTrg}),
                                                     axis=2), axis=0);
-      
-      return cost + recCost + symmetricAlignment;
+      */
+      return cost + recCost /*+ symmetricAlignment*/;
     }
 };
 
