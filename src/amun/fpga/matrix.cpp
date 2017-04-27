@@ -13,21 +13,19 @@ namespace FPGA {
 namespace mblas {
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo)
-:openCLInfo_(openCLInfo)
-,dims_({0, 0, 0, 0})
+:dims_({0, 0, 0, 0})
 ,arrSize_(0)
 ,arr_(openCLInfo)
 {
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
-:openCLInfo_(openCLInfo)
-,dims_({rows, cols, 1, 1})
+:dims_({rows, cols, 1, 1})
 ,arrSize_(size())
 ,arr_(openCLInfo, arrSize_)
 {
   cl_int err;
-  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
+  mem_ = clCreateBuffer(arr_.GetOpenCLInfo().context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
   CheckError(err);
   //cerr << "mem_2=" << Debug() << endl;
 
@@ -38,21 +36,20 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
-:openCLInfo_(openCLInfo)
-,dims_({rows, cols, 1, 1})
+:dims_({rows, cols, 1, 1})
 ,arrSize_(size())
 ,arr_(openCLInfo, arrSize_)
 {
   cl_int err;
-  mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
+  mem_ = clCreateBuffer(arr_.GetOpenCLInfo().context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
   CheckError(err);
   //cerr << "mem_3=" << Debug() << " " << *val << endl;
 }
 
 Matrix::Matrix(const Matrix &other)
-:Matrix(other.openCLInfo_, other.dims_[0], other.dims_[1])
+:Matrix(other.arr_.GetOpenCLInfo(), other.dims_[0], other.dims_[1])
 {
-  CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
+  CheckError( clEnqueueCopyBuffer(arr_.GetOpenCLInfo().commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
 
 Matrix::Matrix(Matrix &&other)
@@ -72,7 +69,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
   size_t newSize = cols * rows * beam * batches;
   if (newSize > arrSize_) {
     //cerr << "resize: clCreateBuffer " << newSize << endl;
-    cl_mem newMem = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * newSize, NULL, &err);
+    cl_mem newMem = clCreateBuffer(arr_.GetOpenCLInfo().context,  CL_MEM_READ_WRITE,  sizeof(float) * newSize, NULL, &err);
     CheckError(err);
 
     size_t oldSize = size();
@@ -80,7 +77,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 
     if (oldSize) {
       //cerr << "resize: clEnqueueCopyBuffer " << oldSize << endl;
-      CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, mem_, newMem, 0, 0, sizeof(float) * oldSize, 0, NULL, NULL) );
+      CheckError( clEnqueueCopyBuffer(arr_.GetOpenCLInfo().commands, mem_, newMem, 0, 0, sizeof(float) * oldSize, 0, NULL, NULL) );
     }
 
     mem_ = newMem;
@@ -120,13 +117,13 @@ std::string Matrix::Debug(size_t verbosity) const
 
   if (verbosity) {
     //cerr << "Debug2" << endl;
-    float sum = SumFloat(openCLInfo_, mem_, size());
+    float sum = SumFloat(arr_.GetOpenCLInfo(), mem_, size());
     //cerr << "Debug3" << endl;
     strm << " sum=" << sum << std::flush;
     //cerr << "Debug4" << endl;
 
     if (verbosity == 2) {
-      strm << " " << OutputArray<float>(openCLInfo_, mem_, size());
+      strm << " " << OutputArray<float>(arr_.GetOpenCLInfo(), mem_, size());
     }
   }
   //cerr << "Debug5" << endl;
@@ -136,7 +133,7 @@ std::string Matrix::Debug(size_t verbosity) const
 
 void Matrix::Swap(Matrix &other)
 {
-  assert(&openCLInfo_ == &other.openCLInfo_);
+  assert(&arr_.GetOpenCLInfo() == &other.arr_.GetOpenCLInfo());
   std::swap(mem_, other.mem_);
   std::swap(dims_, other.dims_);
   std::swap(arrSize_, other.arrSize_);
@@ -145,7 +142,7 @@ void Matrix::Swap(Matrix &other)
 void Matrix::Set(const float *data)
 {
   //cerr << "Set1=" << size() << endl;
-  CheckError( clEnqueueWriteBuffer(openCLInfo_.commands, mem_, CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
+  CheckError( clEnqueueWriteBuffer(arr_.GetOpenCLInfo().commands, mem_, CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
   //cerr << "Set2=" << size() << endl;
 }
 

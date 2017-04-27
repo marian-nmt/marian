@@ -35,7 +35,7 @@ public:
   void Reshape2D();
 
   const OpenCLInfo &GetOpenCLInfo() const
-  { return openCLInfo_; }
+  { return arr_.GetOpenCLInfo(); }
 
   cl_mem &data()
   { return mem_; }
@@ -50,7 +50,6 @@ public:
   void Set(const float *data);
 
 protected:
-  const OpenCLInfo &openCLInfo_;
   cl_mem mem_;
   uint dims_[SHAPE_SIZE];
   size_t arrSize_;
