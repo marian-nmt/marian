@@ -142,16 +142,27 @@ public:
     strm << mem_ << " size_=" << size_ << " arrSize_=" << arrSize_;
 
     if (verbosity) {
-      float sum = mblas::SumSizet(openCLInfo_, mem_, size_);
-      strm << " sum=" << sum << std::flush;
-    }
+      // sum
+      if (typeid(T) == typeid(uint)) {
+        uint sum = mblas::SumUInt(openCLInfo_, mem_, size_);
+        strm << " sum=" << sum << std::flush;
+      }
+      else if (typeid(T) == typeid(float)) {
+        float sum = mblas::SumFloat(openCLInfo_, mem_, size_);
+        strm << " sum=" << sum << std::flush;
+      }
+      else {
+        strm << " unknown typeid=" << typeid(T).name();
+      }
 
-    if (verbosity == 2) {
-      T results[size_];
-      Get(results, size_);
+      // output all elements in array
+      if (verbosity == 2) {
+        T results[size_];
+        Get(results, size_);
 
-      for (size_t i = 0; i < size_; ++i) {
-        strm << " " << results[i];
+        for (size_t i = 0; i < size_; ++i) {
+          strm << " " << results[i];
+        }
       }
     }
 

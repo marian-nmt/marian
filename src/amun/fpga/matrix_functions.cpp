@@ -25,7 +25,7 @@ float SumFloat(
   assert(output);
 
   // create kernel
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum", openCLInfo);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_float", openCLInfo);
 
   // Set the arguments to our compute kernel
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
@@ -57,7 +57,7 @@ float SumFloat(
   return results;
 }
 
-unsigned int SumSizet(
+unsigned int SumUInt(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
     uint size)
@@ -71,7 +71,7 @@ unsigned int SumSizet(
   assert(output);
 
   // create kernel
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_size_t", openCLInfo);
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_uint", openCLInfo);
 
   // Set the arguments to our compute kernel
 

@@ -16,32 +16,13 @@ namespace mblas {
 
 class Matrix;
 
-template<typename T>
-std::string OutputArray(
-    const OpenCLInfo &openCLInfo,
-    const cl_mem &mem,
-    size_t size
-    )
-{
-  T h_mem[size];
-  CheckError( clEnqueueReadBuffer( openCLInfo.commands, mem, CL_TRUE, 0, sizeof(T) * size, h_mem, 0, NULL, NULL ) );
-
-  std::stringstream strm;
-
-  for (size_t i = 0; i < size; ++i) {
-    strm << h_mem[i] << " ";
-  }
-
-  return strm.str();
-}
-
 float SumFloat(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
     uint size
     );
 
-unsigned int SumSizet(
+unsigned int SumUInt(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
     uint size

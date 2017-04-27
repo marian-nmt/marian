@@ -81,19 +81,6 @@ std::string Matrix::Debug(size_t verbosity) const
   strm << BaseMatrix::Debug(verbosity) << " " << arr_.Debug(verbosity);
   //cerr << "Debug1=" << strm.str() << endl;
 
-  if (verbosity) {
-    //cerr << "Debug2" << endl;
-    float sum = SumFloat(arr_.GetOpenCLInfo(), arr_.data(), size());
-    //cerr << "Debug3" << endl;
-    strm << " sum=" << sum << std::flush;
-    //cerr << "Debug4" << endl;
-
-    if (verbosity == 2) {
-      strm << " " << OutputArray<float>(arr_.GetOpenCLInfo(), arr_.data(), size());
-    }
-  }
-  //cerr << "Debug5" << endl;
-
   return strm.str();
 }
 

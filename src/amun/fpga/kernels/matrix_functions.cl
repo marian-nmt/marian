@@ -11,7 +11,7 @@ float sumBase(__global float *input, uint count)
   return ret;
 }
 
-__kernel void sum(                                                    
+__kernel void sum_float(                                                    
    __global float* input, 
    __global float* output,
    const uint count)
@@ -20,7 +20,7 @@ __kernel void sum(
   (*output) = ret;
 }                                      
 
-__kernel void sum_size_t(                                                    
+__kernel void sum_uint(                                                    
    __global uint* input, 
    __global uint* output,
    const uint count)
