@@ -237,10 +237,11 @@ Matrix& Transpose(Matrix& Out, const Matrix& In)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "transpose", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &In.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &In.dimUInt(1)) );
+  SetKernelArg(kernel, 0, Out.data(), In.data(), In.dimUInt(0), In.dimUInt(1));
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -314,13 +315,21 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   uint rowsB = B.dimUInt(0) * B.dimUInt(2) * B.dimUInt(3);
   uint colsB = B.dimUInt(1);
 
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &C.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &A.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &B.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rowsA) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &colsA) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &rowsB) );
-  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colsB) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &C.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &A.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &B.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rowsA) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &colsA) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &rowsB) );
+  //CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colsB) );
+  SetKernelArg(kernel, 0,
+      C.data(),
+      A.data(),
+      B.data(),
+      rowsA,
+      colsA,
+      rowsB,
+      colsB);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -363,15 +372,26 @@ void ElementwiseOps(mblas::Matrix& NextState,
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementwiseOps", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &NextState.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &State.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &RUH.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &Temp.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &B.data()) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &Bx1.data()) );
-  CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &Bx2.data()) );
-  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &cols) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &NextState.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &State.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &RUH.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &Temp.data()) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &B.data()) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &Bx1.data()) );
+  //CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &Bx2.data()) );
+  //CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 8, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0,
+      NextState.data(),
+      State.data(),
+      RUH.data(),
+      Temp.data(),
+      B.data(),
+      Bx1.data(),
+      Bx2.data(),
+      rows,
+      cols
+      );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -407,11 +427,11 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gLogit", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
-
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0, Out.data(), In.data(), rows, cols);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -451,11 +471,12 @@ Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementTanh", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In1.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In2.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &cols) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In1.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In2.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0, Out.data(), In1.data(), In2.data(), rows, cols);
 
 
   // Get the maximum work group size for executing the kernel on the device
@@ -496,12 +517,12 @@ Matrix& ElementTanh2(Matrix& Out, const Matrix& In1, const Matrix& In2)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementTanh2", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In1.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In2.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &cols) );
-
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In1.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In2.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0, Out.data(), In1.data(), In2.data(), rows, cols);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -542,12 +563,12 @@ Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementWhatever", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In1.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In2.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &cols) );
-
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In1.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In2.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0, Out.data(), In1.data(), In2.data(), rows, cols);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -587,11 +608,12 @@ Matrix& ElementAddWeighted(Matrix& Out, float weight, const Matrix& In)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gElementAddWeighted", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(float), &weight) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(float), &weight) );
+  SetKernelArg(kernel, 0, Out.data(), In.data(), rows, cols);
 
 
   // Get the maximum work group size for executing the kernel on the device
@@ -632,11 +654,11 @@ Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecAdd", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
-
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0, Out.data(), In.data(), rows, cols);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -677,10 +699,11 @@ Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecTanh", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &rows) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &cols) );
+  SetKernelArg(kernel, 0, Out.data(), In.data(), rows, cols);
 
 
   // Get the maximum work group size for executing the kernel on the device
