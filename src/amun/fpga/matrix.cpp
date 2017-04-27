@@ -66,18 +66,12 @@ void Matrix::Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
 {
   size_t newSize = cols * rows * beam * batches;
   amunmt_UTIL_THROW_IF2(newSize > arr_.size(), "Must reshape to same or smaller size");
-
-  dims_[0] = rows;
-  dims_[1] = cols;
-  dims_[2] = beam;
-  dims_[3] = batches;
+  Resize(rows, cols, beam, batches);
 }
 
 void Matrix::Reshape2D()
 {
-  dims_[0] = dims_[0] * dims_[2] * dims_[3];
-  dims_[2] = 1;
-  dims_[3] = 1;
+  Reshape(dims_[0] * dims_[2] * dims_[3], dims_[1], 1, 1);
 }
 
 
