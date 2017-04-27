@@ -14,35 +14,25 @@ namespace mblas {
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo)
 :dims_({0, 0, 0, 0})
-,arrSize_(0)
 ,arr_(openCLInfo)
 {
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
 :dims_({rows, cols, 1, 1})
-,arrSize_(size())
-,arr_(openCLInfo, arrSize_)
+,arr_(openCLInfo, size())
 {
-  cl_int err;
-  mem_ = clCreateBuffer(arr_.GetOpenCLInfo().context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
-  CheckError(err);
-  //cerr << "mem_2=" << Debug() << endl;
-
   if (zero) {
-    Fill(*this, 0);
+    arr_.Set(0);
   }
 
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
 :dims_({rows, cols, 1, 1})
-,arrSize_(size())
-,arr_(openCLInfo, arrSize_)
+,arr_(openCLInfo, size())
 {
-  cl_int err;
-  mem_ = clCreateBuffer(arr_.GetOpenCLInfo().context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);
-  CheckError(err);
+  arr_.Set(val, size());
   //cerr << "mem_3=" << Debug() << " " << *val << endl;
 }
 
@@ -65,24 +55,8 @@ Matrix::~Matrix()
 
 void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 {
-  cl_int err;
   size_t newSize = cols * rows * beam * batches;
-  if (newSize > arrSize_) {
-    //cerr << "resize: clCreateBuffer " << newSize << endl;
-    cl_mem newMem = clCreateBuffer(arr_.GetOpenCLInfo().context,  CL_MEM_READ_WRITE,  sizeof(float) * newSize, NULL, &err);
-    CheckError(err);
-
-    size_t oldSize = size();
-    assert(newSize > oldSize);
-
-    if (oldSize) {
-      //cerr << "resize: clEnqueueCopyBuffer " << oldSize << endl;
-      CheckError( clEnqueueCopyBuffer(arr_.GetOpenCLInfo().commands, mem_, newMem, 0, 0, sizeof(float) * oldSize, 0, NULL, NULL) );
-    }
-
-    mem_ = newMem;
-    arrSize_ = newSize;
-  }
+  arr_.resize(newSize);
 
   dims_[0] = rows;
   dims_[1] = cols;
@@ -93,7 +67,7 @@ void Matrix::Resize(size_t rows, size_t cols, size_t beam, size_t batches)
 void Matrix::Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
 {
   size_t newSize = cols * rows * beam * batches;
-  amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
+  amunmt_UTIL_THROW_IF2(newSize > arr_.size(), "Must reshape to same or smaller size");
 
   dims_[0] = rows;
   dims_[1] = cols;
@@ -112,18 +86,18 @@ void Matrix::Reshape2D()
 std::string Matrix::Debug(size_t verbosity) const
 {
   std::stringstream strm;
-  strm << BaseMatrix::Debug(verbosity) << " " << mem_;
+  strm << BaseMatrix::Debug(verbosity) << " " << arr_.Debug(verbosity);
   //cerr << "Debug1=" << strm.str() << endl;
 
   if (verbosity) {
     //cerr << "Debug2" << endl;
-    float sum = SumFloat(arr_.GetOpenCLInfo(), mem_, size());
+    float sum = SumFloat(arr_.GetOpenCLInfo(), arr_.data(), size());
     //cerr << "Debug3" << endl;
     strm << " sum=" << sum << std::flush;
     //cerr << "Debug4" << endl;
 
     if (verbosity == 2) {
-      strm << " " << OutputArray<float>(arr_.GetOpenCLInfo(), mem_, size());
+      strm << " " << OutputArray<float>(arr_.GetOpenCLInfo(), arr_.data(), size());
     }
   }
   //cerr << "Debug5" << endl;
@@ -134,15 +108,14 @@ std::string Matrix::Debug(size_t verbosity) const
 void Matrix::Swap(Matrix &other)
 {
   assert(&arr_.GetOpenCLInfo() == &other.arr_.GetOpenCLInfo());
-  std::swap(mem_, other.mem_);
   std::swap(dims_, other.dims_);
-  std::swap(arrSize_, other.arrSize_);
+  arr_.Swap(other.arr_);
 }
 
 void Matrix::Set(const float *data)
 {
   //cerr << "Set1=" << size() << endl;
-  CheckError( clEnqueueWriteBuffer(arr_.GetOpenCLInfo().commands, mem_, CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
+  CheckError( clEnqueueWriteBuffer(arr_.GetOpenCLInfo().commands, arr_.data(), CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
   //cerr << "Set2=" << size() << endl;
 }
 

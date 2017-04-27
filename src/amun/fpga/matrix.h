@@ -38,10 +38,10 @@ public:
   { return arr_.GetOpenCLInfo(); }
 
   cl_mem &data()
-  { return mem_; }
+  { return arr_.data(); }
 
   const cl_mem &data() const
-  { return mem_; }
+  { return arr_.data(); }
 
   virtual std::string Debug(size_t verbosity = 1) const;
 
@@ -50,9 +50,7 @@ public:
   void Set(const float *data);
 
 protected:
-  cl_mem mem_;
   uint dims_[SHAPE_SIZE];
-  size_t arrSize_;
   Array<float> arr_;
 
 };

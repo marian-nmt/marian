@@ -58,6 +58,9 @@ public:
   const uint &sizeUInt() const
   { return size_; }
 
+  cl_mem &data()
+  { return mem_;  }
+
   const cl_mem &data() const
   { return mem_;  }
 
