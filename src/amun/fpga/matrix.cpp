@@ -112,9 +112,7 @@ void Matrix::Swap(Matrix &other)
 
 void Matrix::Set(const float *data)
 {
-  //cerr << "Set1=" << size() << endl;
-  CheckError( clEnqueueWriteBuffer(arr_.GetOpenCLInfo().commands, arr_.data(), CL_TRUE, 0, sizeof(float) * size(), data, 0, NULL, NULL) );
-  //cerr << "Set2=" << size() << endl;
+  arr_.Set(data, size());
 }
 
 }
