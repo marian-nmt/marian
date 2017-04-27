@@ -11,6 +11,24 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
+//////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+void SetKernelArg(cl_kernel kernel, cl_uint argNum, T t)
+{
+  std::cerr << "arg" << argNum << "=" << t << std::endl ;
+  CheckError( clSetKernelArg(kernel, argNum, sizeof(T), &t) );
+}
+
+template<typename T, typename... Args>
+void SetKernelArg(cl_kernel kernel, cl_uint argNum, T t, Args... args) // recursive variadic function
+{
+  std::cerr << "arg" << argNum << "=" << t << std::endl ;
+  CheckError( clSetKernelArg(kernel, argNum, sizeof(T), &t) );
+
+  SetKernelArg(kernel, argNum + 1, args...) ;
+}
+//////////////////////////////////////////////////////////////////////////////////////
+
 float SumFloat(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
@@ -28,9 +46,10 @@ float SumFloat(
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_float", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &size) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &size) );
+  SetKernelArg(kernel, 0, mem, output, size);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -106,6 +125,8 @@ unsigned int SumUInt(
 
 Matrix& Copy(Matrix& Out, const Matrix& In)
 {
+  cerr << "Out=" << Out.Debug() << endl;
+
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   Out.Resize(In.dim(0), In.dim(1), In.dim(2), In.dim(3));
@@ -119,6 +140,8 @@ Matrix& CopyRows(
 	const Matrix& In,
 	const Array<uint>& indices)
 {
+  cerr << "Out=" << Out.Debug() << endl;
+
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   cl_int err;
