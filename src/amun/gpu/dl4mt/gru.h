@@ -117,20 +117,20 @@ class FastGRU {
 
       using namespace mblas;
       Transpose(WWx_, w_.W_);
-      std::cerr << std::endl;
-      std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
-      std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
+      //std::cerr << std::endl;
+      //std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
+      //std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
       Matrix WxT;
       Transpose(WxT, w_.Wx_);
-      std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
-      std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
+      //std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
+      //std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
 
       Concat(WWx_, WxT);
-      std::cerr << "2WWx_=" << WWx_.Debug(1) << std::endl;
+      //std::cerr << "2WWx_=" << WWx_.Debug(1) << std::endl;
 
       Transpose(WWx_);
-      std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
+      //std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
       Transpose(UUx_, w_.U_);
       Matrix UxT;
@@ -138,7 +138,7 @@ class FastGRU {
       Concat(UUx_, UxT);
       Transpose(UUx_);
 
-      std::cerr << std::endl;
+      //std::cerr << std::endl;
     }
 
     void GetNextState(mblas::Matrix& NextState,
@@ -146,23 +146,23 @@ class FastGRU {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      std::cerr << std::endl;
-      std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
-      std::cerr << "Context=" << Context.Debug(1) << std::endl;
-      std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
+      //std::cerr << std::endl;
+      //std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
+      //std::cerr << "Context=" << Context.Debug(1) << std::endl;
+      //std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
 
       Prod(RUH_, Context, WWx_);
 
-      std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
+      //std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
       if (w_.Gamma_1_) {
         Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);
       }
 
       Prod(Temp_, State, UUx_);
-      std::cerr << "State=" << State.Debug(1) << std::endl;
-      std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
-      std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
+      //std::cerr << "State=" << State.Debug(1) << std::endl;
+      //std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
+      //std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
 
       if (w_.Gamma_2_) {
         Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
@@ -209,7 +209,8 @@ class FastGRU {
 };
 
 template<class T>
-using GRU = SlowGRU<T>;
+//using GRU = SlowGRU<T>;
+using GRU = FastGRU<T>;
 
 }
 }

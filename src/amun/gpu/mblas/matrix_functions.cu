@@ -655,7 +655,6 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
     (out.data(), in.data(), alpha.data(), nullptr, rows, cols, eps);
 }
 
-
 }  // namespace mblas
 }  // namespace GPU
 }  // namespace amunmt
