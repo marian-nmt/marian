@@ -18,15 +18,14 @@ public:
 
   virtual ~Matrix();
 
+  //virtual size_t size() const
+  //{ return arr_.size(); }
+
   virtual size_t dim(size_t i) const
-  {
-    return dims_[i];
-  }
+  { return dims_[i]; }
 
   const uint &dimUInt(size_t i) const
-  {
-    return dims_[i];
-  }
+  { return dims_[i]; }
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
 
@@ -36,9 +35,6 @@ public:
 
   const OpenCLInfo &GetOpenCLInfo() const
   { return arr_.GetOpenCLInfo(); }
-
-  cl_mem &data()
-  { return arr_.data(); }
 
   const cl_mem &data() const
   { return arr_.data(); }
