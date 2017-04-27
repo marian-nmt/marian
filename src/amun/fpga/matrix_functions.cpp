@@ -13,16 +13,16 @@ namespace mblas {
 
 //////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-void SetKernelArg(cl_kernel kernel, cl_uint argNum, T t)
+void SetKernelArg(cl_kernel kernel, cl_uint argNum, const T &t)
 {
-  std::cerr << "arg" << argNum << "=" << t << std::endl ;
+  //std::cerr << "arg" << argNum << "=" << t << std::endl ;
   CheckError( clSetKernelArg(kernel, argNum, sizeof(T), &t) );
 }
 
 template<typename T, typename... Args>
-void SetKernelArg(cl_kernel kernel, cl_uint argNum, T t, Args... args) // recursive variadic function
+void SetKernelArg(cl_kernel kernel, cl_uint argNum, const T &t, Args... args) // recursive variadic function
 {
-  std::cerr << "arg" << argNum << "=" << t << std::endl ;
+  //std::cerr << "arg" << argNum << "=" << t << std::endl ;
   CheckError( clSetKernelArg(kernel, argNum, sizeof(T), &t) );
 
   SetKernelArg(kernel, argNum + 1, args...) ;
@@ -94,9 +94,10 @@ unsigned int SumUInt(
 
   // Set the arguments to our compute kernel
 
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &size) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &size) );
+  SetKernelArg(kernel, 0, mem, output, size);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -125,8 +126,7 @@ unsigned int SumUInt(
 
 Matrix& Copy(Matrix& Out, const Matrix& In)
 {
-  cerr << "Out=" << Out.Debug() << endl;
-
+  //cerr << "Out=" << Out.Debug() << endl;
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   Out.Resize(In.dim(0), In.dim(1), In.dim(2), In.dim(3));
@@ -140,8 +140,7 @@ Matrix& CopyRows(
 	const Matrix& In,
 	const Array<uint>& indices)
 {
-  cerr << "Out=" << Out.Debug() << endl;
-
+  //cerr << "Out=" << Out.Debug() << endl;
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   cl_int err;
@@ -165,11 +164,17 @@ Matrix& CopyRows(
   //cerr << "dev=" << indices.Debug(true) << endl;
   //cerr << "numPairs=" << numPairs << endl;
 
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(1)) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &indices.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &indices.sizeUInt()) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &indices.data()) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &indices.sizeUInt()) );
+  SetKernelArg(kernel, 0,
+      Out.data(),
+      In.data(),
+      In.dimUInt(1),
+      indices.data(),
+      indices.sizeUInt());
 
   // Get the maximum work group size for executing the kernel on the device
   //
