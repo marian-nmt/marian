@@ -20,7 +20,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
 :dims_({rows, cols, 1, 1})
-,arr_(openCLInfo, size())
+,arr_(openCLInfo, rows * cols)
 {
   if (zero) {
     arr_.Set(0);
@@ -30,7 +30,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
 :dims_({rows, cols, 1, 1})
-,arr_(openCLInfo, size(), val)
+,arr_(openCLInfo, rows * cols, val)
 {
 }
 

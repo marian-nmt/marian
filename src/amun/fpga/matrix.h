@@ -18,8 +18,11 @@ public:
 
   virtual ~Matrix();
 
-  //virtual size_t size() const
-  //{ return arr_.size(); }
+  virtual size_t size() const
+  { return arr_.size(); }
+
+  const uint &sizeUInt() const
+  { return arr_.sizeUInt(); }
 
   virtual size_t dim(size_t i) const
   { return dims_[i]; }
