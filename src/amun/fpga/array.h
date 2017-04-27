@@ -22,7 +22,7 @@ public:
   Array(const OpenCLInfo &openCLInfo, size_t size)
   :openCLInfo_(openCLInfo)
   ,size_(size)
-  ,arrSize_(0)
+  ,arrSize_(size_)
   {
     cl_int err;
     mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_READ_WRITE,  sizeof(T) * size, NULL, &err);
@@ -32,8 +32,7 @@ public:
   Array(const OpenCLInfo &openCLInfo, size_t size, const T &value)
   :Array(openCLInfo, size)
   {
-    CheckError( clEnqueueFillBuffer(openCLInfo.commands, mem_, &value, sizeof(T), 0, size_ * sizeof(T), 0, NULL, NULL) );
-    CheckError( clFinish(openCLInfo.commands) );
+    Set(value);
   }
 
   Array(const OpenCLInfo &openCLInfo, const std::vector<T> &vec)
@@ -45,6 +44,12 @@ public:
     mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_COPY_HOST_PTR,  sizeof(T) * size_, (void*) vec.data(), &err);
     CheckError(err);
 
+  }
+
+  Array(const Array &other)
+  :Array(other.openCLInfo_, other.size())
+  {
+    CheckError( clEnqueueCopyBuffer(openCLInfo_.commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
   }
 
   ~Array()

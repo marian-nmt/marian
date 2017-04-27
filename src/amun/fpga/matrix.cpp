@@ -37,9 +37,9 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *va
 }
 
 Matrix::Matrix(const Matrix &other)
-:Matrix(other.arr_.GetOpenCLInfo(), other.dims_[0], other.dims_[1])
+:dims_({other.dims_[0], other.dims_[1], other.dims_[2], other.dims_[3]})
+,arr_(other.arr_)
 {
-  CheckError( clEnqueueCopyBuffer(arr_.GetOpenCLInfo().commands, other.data(), data(), 0, 0, sizeof(float) * size(), 0, NULL, NULL) );
 }
 
 Matrix::Matrix(Matrix &&other)
