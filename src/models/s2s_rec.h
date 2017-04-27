@@ -24,7 +24,7 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       int dimEmb = options_->get<int>("dim-emb");
       int dimPos = options_->get<int>("dim-pos");
       
-      auto rEmb = Embedding("Wemb", dimVoc, dimEmb)(graph);
+      auto rEmb = Embedding("encoder_Wemb", dimVoc, dimEmb)(graph);
       
       auto subBatch = batch->front();
       int dimBatch = subBatch->batchSize();
@@ -151,8 +151,18 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       
       auto recCost = CrossEntropyCost("recScore")(nextRecState->getProbs(),
                                                   srcIdx, mask=srcMask);
-                                         
-      return cost + recCost;
+          
+      auto srcA = concatenate(std::dynamic_pointer_cast<DecoderS2S>(decoder_)->getAlignments(), axis=3);
+      auto trgA = concatenate(attention_->getAlignments(), axis=3);
+      
+      int dimBatch = srcA->shape()[0];
+      int dimSrcTrg = srcA->shape()[2] * srcA->shape()[3];
+      
+      auto symmetricAlignment = mean(scalar_product(reshape(srcA, {dimBatch, 1, dimSrcTrg}),
+                                                    reshape(trgA, {dimBatch, 1, dimSrcTrg}),
+                                                    axis=2), axis=0);
+      
+      return cost + recCost + symmetricAlignment;
     }
 };
 

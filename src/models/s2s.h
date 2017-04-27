@@ -150,6 +150,10 @@ class DecoderS2S : public DecoderBase {
 
   public:
 
+    const std::vector<Expr>& getAlignments() {
+      return attention_->getAlignments();
+    }
+  
     template <class ...Args>
     DecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
