@@ -16,6 +16,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 :openCLInfo_(openCLInfo)
 ,dims_({0, 0, 0, 0})
 ,arrSize_(0)
+,arr_(openCLInfo)
 {
 }
 
@@ -23,6 +24,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 :openCLInfo_(openCLInfo)
 ,dims_({rows, cols, 1, 1})
 ,arrSize_(size())
+,arr_(openCLInfo, arrSize_)
 {
   cl_int err;
   mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
@@ -39,6 +41,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *va
 :openCLInfo_(openCLInfo)
 ,dims_({rows, cols, 1, 1})
 ,arrSize_(size())
+,arr_(openCLInfo, arrSize_)
 {
   cl_int err;
   mem_ = clCreateBuffer(openCLInfo_.context,  CL_MEM_COPY_HOST_PTR,  sizeof(float) * size(), val, NULL);

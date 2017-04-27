@@ -1,6 +1,7 @@
 #pragma once
 #include "common/base_matrix.h"
 #include "types-fpga.h"
+#include "array.h"
 
 namespace amunmt {
 namespace FPGA {
@@ -53,6 +54,7 @@ protected:
   cl_mem mem_;
   uint dims_[SHAPE_SIZE];
   size_t arrSize_;
+  Array<float> arr_;
 
 };
 
