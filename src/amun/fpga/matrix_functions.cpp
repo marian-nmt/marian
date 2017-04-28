@@ -131,61 +131,14 @@ Matrix& CopyRows(
   //cerr << "indices=" << indices.Debug() << endl;
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
-  cl_int err;
-  size_t global;                      // global domain size for our calculation
-  size_t local;                       // local domain size for our calculation
-
-  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
-  CheckError(err);
-  assert(output);
-
-  // create kernel
-  //cerr << endl;
-  //cerr << "CopyRows2=" << endl;
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gCopyRows", openCLInfo);
-  //cerr << "CopyRows3=" << endl;
-
-  // Set the arguments to our compute kernel
-  //cerr << "Out1=" << Out.Debug(1) << endl;
-  //cerr << "In=" << In.Debug(1) << endl;
-  //cerr << "cols=" << cols << endl;
-  //cerr << "dev=" << indices.Debug(true) << endl;
-  //cerr << "numPairs=" << numPairs << endl;
-
-  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(1)) );
-  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &indices.data()) );
-  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &indices.sizeUInt()) );
-  SetKernelArg(kernel, 0,
+  CallOpenCL("kernels/matrix_functions.cl", "gCopyRows", openCLInfo,
       Out.data(),
       In.data(),
       In.dimUInt(1),
       indices.data(),
       indices.sizeUInt());
 
-  // Get the maximum work group size for executing the kernel on the device
-  //
-  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
-
-  //global = 1024;
-  local = 1;
-  global = 1;
-
-  //cerr << "local=" << local << endl;
-  //cerr << "global=" << global << endl;
-
-  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
-
-  // Wait for the command commands to get serviced before reading back results
-  //
-  CheckError( clFinish(openCLInfo.commands) );
-
-  //cerr << "Out2=" << Out.Debug(true) << endl;
-  //cerr << "CopyRows10" << endl;
-
   return Out;
-
 }
 
 Matrix& Assemble(
@@ -217,36 +170,8 @@ Matrix& Transpose(Matrix& Out, const Matrix& In)
 
   Out.Resize(In.dim(1), In.dim(0));
 
-  cl_int err;
-  size_t global;                      // global domain size for our calculation
-  size_t local;                       // local domain size for our calculation
-
-  // create kernel
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "transpose", openCLInfo);
-
-  // Set the arguments to our compute kernel
-  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &In.dimUInt(0)) );
-  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &In.dimUInt(1)) );
-  SetKernelArg(kernel, 0, Out.data(), In.data(), In.dimUInt(0), In.dimUInt(1));
-
-  // Get the maximum work group size for executing the kernel on the device
-  //
-  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
-
-  //global = 1024;
-  local = 1;
-  global = 1;
-
-  //cerr << "local=" << local << endl;
-  //cerr << "global=" << global << endl;
-
-  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
-
-  // Wait for the command commands to get serviced before reading back results
-  //
-  CheckError( clFinish(openCLInfo.commands) );
+  CallOpenCL("kernels/matrix_functions.cl", "transpose", openCLInfo,
+      Out.data(), In.data(), In.dimUInt(0), In.dimUInt(1));
 
   return Out;
 }
