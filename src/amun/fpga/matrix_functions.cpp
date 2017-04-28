@@ -748,7 +748,6 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastTanh", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint srcSizeUint = srcSize;
   /*
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Temp.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Out.data()) );
@@ -767,7 +766,7 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
       Temp.data(),
       Out.data(),
       In.data(),
-      srcSizeUint,
+      (uint) srcSize,
       batchMapping.sizeUInt(),
       cols,
       batchMapping.data(),
@@ -1091,8 +1090,6 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gSoftMax", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint srcSizeUint = srcSize;
-
   //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
   //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
   //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
@@ -1107,7 +1104,7 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
       batchIds.data(),
       batchIds.sizeUInt(),
       srcMapping.data(),
-      srcSizeUint);
+      (uint) srcSize);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1306,8 +1303,6 @@ void NthElement(
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gNthElement", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint maxBatchSizeUint = maxBatchSize;
-
   //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
   //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Probs.dimUInt(0)) );
   //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Probs.dimUInt(1)) );
@@ -1330,7 +1325,7 @@ void NthElement(
               beamSizes.sizeUInt(),
               d_cummulatedBeamSizes.data(),
               d_batchFirstElementIdxs.data(),
-              maxBatchSizeUint,
+              (uint) maxBatchSize,
               d_out.data(),
               d_ind.data());
 
