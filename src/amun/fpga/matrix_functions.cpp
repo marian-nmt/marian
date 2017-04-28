@@ -990,14 +990,19 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gMapMatrix", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &state.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &batchSize) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &state.dimUInt(1)) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &sentenceLength) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &mapping.data()) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &i) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &state.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &batchSize) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &state.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &sentenceLength) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &mapping.data()) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &i) );
   SetKernelArg(kernel, 0,
               state.data(),
+              batchSize,
+              state.dimUInt(1),
+              sentenceLength,
+              mapping.data(),
+              (uint) i);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1038,12 +1043,19 @@ void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gMean", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &mapping.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &batchNum) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &sentenceLength) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &stateLength) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &mapping.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &batchNum) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &sentenceLength) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &stateLength) );
+  SetKernelArg(kernel, 0,
+              Out.data(),
+              In.data(),
+              mapping.data(),
+              batchNum,
+              sentenceLength,
+              stateLength);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1081,13 +1093,21 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
   // Set the arguments to our compute kernel
   uint srcSizeUint = srcSize;
 
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &batchIds.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchIds.sizeUInt()) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &srcMapping.data()) );
-  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &srcSizeUint) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &batchIds.data()) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &batchIds.sizeUInt()) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &srcMapping.data()) );
+  //CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &srcSizeUint) );
+  SetKernelArg(kernel, 0,
+      Out.data(),
+      Out.dimUInt(0),
+      Out.dimUInt(1),
+      batchIds.data(),
+      batchIds.sizeUInt(),
+      srcMapping.data(),
+      srcSizeUint);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1124,9 +1144,13 @@ Matrix& LogSoftmax(Matrix& Out)
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gLogSoftMax", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Out.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
+  SetKernelArg(kernel, 0,
+              Out.data(),
+              Out.dimUInt(0),
+              Out.dimUInt(1));
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1170,13 +1194,21 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gWeightedMean", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Weights.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &mapping.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &numRows) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &numCols) );
-  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &weightsCols) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Weights.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &mapping.data()) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &numRows) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &numCols) );
+  //CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &weightsCols) );
+  SetKernelArg(kernel, 0,
+              Out.data(),
+              Weights.data(),
+              In.data(),
+              mapping.data(),
+              numRows,
+              numCols,
+              weightsCols);
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1221,11 +1253,17 @@ void MaxElement(
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gMaxElement", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_ind.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_in.data()) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(int), &numBatches) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &batchFirstElementIdxs.data()) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_ind.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_in.data()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(int), &numBatches) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &batchFirstElementIdxs.data()) );
+  SetKernelArg(kernel, 0,
+              d_out.data(),
+              d_ind.data(),
+              d_in.data(),
+              numBatches,
+              batchFirstElementIdxs.data());
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -1270,20 +1308,31 @@ void NthElement(
   // Set the arguments to our compute kernel
   uint maxBatchSizeUint = maxBatchSize;
 
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Probs.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Probs.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Probs.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &Probs.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Probs.dimUInt(1)) );
 
   //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &maxBeamSizeUint) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &beamSizes.sizeUInt()) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &beamSizes.data()) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &beamSizes.sizeUInt()) );
 
-  CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_cummulatedBeamSizes.data()) );
-  CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_batchFirstElementIdxs.data()) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(cl_mem), &d_cummulatedBeamSizes.data()) );
+  //CheckError( clSetKernelArg(kernel, 6, sizeof(cl_mem), &d_batchFirstElementIdxs.data()) );
 
-  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &maxBatchSizeUint) );
-  CheckError( clSetKernelArg(kernel, 8, sizeof(cl_mem), &d_out.data()) );
-  CheckError( clSetKernelArg(kernel, 9, sizeof(cl_mem), &d_ind.data()) );
+  //CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &maxBatchSizeUint) );
+  //CheckError( clSetKernelArg(kernel, 8, sizeof(cl_mem), &d_out.data()) );
+  //CheckError( clSetKernelArg(kernel, 9, sizeof(cl_mem), &d_ind.data()) );
+  SetKernelArg(kernel, 0,
+              Probs.data(),
+              Probs.dimUInt(0),
+              Probs.dimUInt(1),
+              beamSizes.data(),
+              beamSizes.sizeUInt(),
+              d_cummulatedBeamSizes.data(),
+              d_batchFirstElementIdxs.data(),
+              maxBatchSizeUint,
+              d_out.data(),
+              d_ind.data());
 
   // Get the maximum work group size for executing the kernel on the device
   //
