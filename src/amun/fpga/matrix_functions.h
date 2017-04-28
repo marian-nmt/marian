@@ -22,7 +22,7 @@ float SumFloat(
     uint size
     );
 
-unsigned int SumUInt(
+uint SumUInt(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
     uint size

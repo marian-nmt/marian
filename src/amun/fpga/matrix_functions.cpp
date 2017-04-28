@@ -28,8 +28,10 @@ void SetKernelArg(cl_kernel kernel, cl_uint argNum, const T &t, Args... args) //
   SetKernelArg(kernel, argNum + 1, args...) ;
 }
 
-template<typename T, typename... Args>
+template<typename... Args>
 void CallOpenCL(
+    const std::string &filePath,
+    const std::string &kernelName,
     const OpenCLInfo &openCLInfo,
     Args... args
     )
@@ -43,7 +45,7 @@ void CallOpenCL(
   assert(output);
 
   // create kernel
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_uint", openCLInfo);
+  cl_kernel kernel = CreateKernel(filePath, kernelName, openCLInfo);
 
   // Set the arguments to our compute kernel
   SetKernelArg(kernel, 0, args...);
@@ -74,95 +76,38 @@ float SumFloat(
     const cl_mem &mem,
     uint size)
 {
-  cerr << "SumFloat="<< endl;
-
   cl_int err;
-  size_t global;                      // global domain size for our calculation
-  size_t local;                       // local domain size for our calculation
-
   cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
   CheckError(err);
   assert(output);
 
-  // create kernel
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_float", openCLInfo);
-
-  // Set the arguments to our compute kernel
-  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
-  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
-  //CheckError( clSetKernelArg(kernel, 2, sizeof(unsigned int), &size) );
-  SetKernelArg(kernel, 0, mem, output, size);
-
-  // Get the maximum work group size for executing the kernel on the device
-  //
-  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
-
-  //global = 1024;
-  local = 1;
-  global = 1;
-
-  //cerr << "local=" << local << endl;
-  //cerr << "global=" << global << endl;
-
-  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
-
-  // Wait for the command commands to get serviced before reading back results
-  //
-  CheckError( clFinish(openCLInfo.commands) );
+  CallOpenCL("kernels/matrix_functions.cl", "sum_float", openCLInfo,
+      mem, output, size);
 
   // Read back the results from the device to verify the output
   //
   float results;
   CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(float), &results, 0, NULL, NULL ) );
-
   return results;
 }
 
-unsigned int SumUInt(
+uint SumUInt(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
     uint size)
 {
   cl_int err;
-  size_t global;                      // global domain size for our calculation
-  size_t local;                       // local domain size for our calculation
-
-  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(size_t), NULL, &err);
+  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(uint), NULL, &err);
   CheckError(err);
   assert(output);
 
-  // create kernel
-  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_uint", openCLInfo);
-
-  // Set the arguments to our compute kernel
-
-  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &mem) );
-  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &output) );
-  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &size) );
-  SetKernelArg(kernel, 0, mem, output, size);
-
-  // Get the maximum work group size for executing the kernel on the device
-  //
-  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
-
-  //global = 1024;
-  local = 1;
-  global = 1;
-
-  //cerr << "local=" << local << endl;
-  //cerr << "global=" << global << endl;
-
-  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
-
-  // Wait for the command commands to get serviced before reading back results
-  //
-  CheckError( clFinish(openCLInfo.commands) );
+  CallOpenCL("kernels/matrix_functions.cl", "sum_uint", openCLInfo,
+      mem, output, size);
 
   // Read back the results from the device to verify the output
   //
-  unsigned int results;
-  CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(unsigned int), &results, 0, NULL, NULL ) );
-
+  uint results;
+  CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(uint), &results, 0, NULL, NULL ) );
   return results;
 }
 
@@ -183,6 +128,7 @@ Matrix& CopyRows(
 	const Array<uint>& indices)
 {
   //cerr << "Out=" << Out.Debug() << endl;
+  //cerr << "indices=" << indices.Debug() << endl;
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   cl_int err;
