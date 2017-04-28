@@ -27,6 +27,46 @@ void SetKernelArg(cl_kernel kernel, cl_uint argNum, const T &t, Args... args) //
 
   SetKernelArg(kernel, argNum + 1, args...) ;
 }
+
+template<typename T, typename... Args>
+void CallOpenCL(
+    const OpenCLInfo &openCLInfo,
+    Args... args
+    )
+{
+  cl_int err;
+  size_t global;                      // global domain size for our calculation
+  size_t local;                       // local domain size for our calculation
+
+  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(size_t), NULL, &err);
+  CheckError(err);
+  assert(output);
+
+  // create kernel
+  cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "sum_uint", openCLInfo);
+
+  // Set the arguments to our compute kernel
+  SetKernelArg(kernel, 0, args...);
+
+  // Get the maximum work group size for executing the kernel on the device
+  //
+  CheckError( clGetKernelWorkGroupInfo(kernel, openCLInfo.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL) );
+
+  //global = 1024;
+  local = 1;
+  global = 1;
+
+  //cerr << "local=" << local << endl;
+  //cerr << "global=" << global << endl;
+
+  CheckError( clEnqueueNDRangeKernel(openCLInfo.commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL) );
+
+  // Wait for the command commands to get serviced before reading back results
+  //
+  CheckError( clFinish(openCLInfo.commands) );
+
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 
 float SumFloat(
@@ -34,6 +74,8 @@ float SumFloat(
     const cl_mem &mem,
     uint size)
 {
+  cerr << "SumFloat="<< endl;
+
   cl_int err;
   size_t global;                      // global domain size for our calculation
   size_t local;                       // local domain size for our calculation

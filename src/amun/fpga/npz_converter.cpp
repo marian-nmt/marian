@@ -24,6 +24,7 @@ mblas::Matrix NpzConverter::GetMatrix(
 
   cnpy::npz_t::const_iterator it = model_.find(key);
   if(it != model_.end()) {
+    cerr << key << " found" << endl;
     const cnpy::NpyArray &array = it->second;
     NpyMatrixWrapper np(array);
 
@@ -34,7 +35,10 @@ mblas::Matrix NpzConverter::GetMatrix(
       mblas::Transpose(matrix);
     }
   }
-  //cerr << "key2=" << key << " " << matrix.Debug(1) << endl;
+  else {
+    cerr << key << " NOT found" << endl;
+  }
+  cerr << "key2=" << key << " " << matrix.Debug(1) << endl;
 
   return std::move(matrix);
 }

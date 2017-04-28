@@ -141,7 +141,7 @@ public:
     std::stringstream strm;
     strm << mem_ << " size_=" << size_ << " arrSize_=" << arrSize_;
 
-    if (verbosity) {
+    if (size_ && verbosity) {
       // sum
       if (typeid(T) == typeid(uint)) {
         uint sum = mblas::SumUInt(openCLInfo_, mem_, size_);
