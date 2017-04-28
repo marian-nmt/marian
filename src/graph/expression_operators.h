@@ -40,12 +40,20 @@ Expr operator-(Expr a);
 /*********************************************************/
 
 Expr operator+(Expr a, Expr b);
+Expr operator+(float a, Expr b);
+Expr operator+(Expr a, float b);
 
 Expr operator-(Expr a, Expr b);
+Expr operator-(float a, Expr b);
+Expr operator-(Expr a, float b);
 
 Expr operator*(Expr a, Expr b);
+Expr operator*(float a, Expr b);
+Expr operator*(Expr a, float b);
 
 Expr operator/(Expr a, Expr b);
+Expr operator/(float a, Expr b);
+Expr operator/(Expr a, float b);
 
 Expr dot(Expr a, Expr b);
 
@@ -117,5 +125,5 @@ Expr dropout(Expr x, Args ...args) {
 Expr shift(Expr, Shape);
 
 Expr lexical_bias(Expr logits, Expr att, float exp, Ptr<sparse::CSR> lf);
-  
+
 }

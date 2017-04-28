@@ -58,18 +58,18 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       bool layerNorm = options_->get<bool>("layer-normalization");
 
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-      float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
+      float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
       
       auto embeddings = stateS2S->getTargetEmbeddings();
       auto graph = embeddings->graph();
 
-      if(dropoutTrg) {
+      if(dropoutSrc) {
         int dimBatch = embeddings->shape()[0];
-        int trgWords = embeddings->shape()[2];
-        auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, trgWords});
-        embeddings = dropout(embeddings, mask=trgWordDrop);
+        int srcWords = embeddings->shape()[2];
+        auto srcWordDrop = graph->dropout(dropoutSrc, {dimBatch, 1, srcWords});
+        embeddings = dropout(embeddings, mask=srcWordDrop);
       }
 
       auto context = state->getEncoderState()->getContext();
@@ -109,7 +109,7 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
                         (embeddings, outputLn, alignedContext);
 
       auto logitsOut = Dense("ff_logit_l2_rec", dimTrgVoc)(logitsL1);    
-      
+
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
     }
@@ -128,7 +128,6 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       
       auto cost = CrossEntropyCost("cost")(nextDecState->getProbs(),
                                            trgIdx, mask=trgMask);
-
                         
       auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(nextDecState);                   
       auto recContext = stateS2S->getStates().back();
@@ -154,23 +153,43 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
       
       auto srcA = concatenate(std::dynamic_pointer_cast<DecoderS2S>(decoder_)->getAlignments(), axis=3);
       auto trgA = concatenate(attention_->getAlignments(), axis=3);
-      
+        
       int dimBatch = srcA->shape()[0];
       int dimSrc = srcA->shape()[2];
       int dimTrg = srcA->shape()[3];
-      int dimSrcTrg = dimSrc * dimTrg;
+      int dimSrcTrg = dimSrc * dimTrg; 
       
       std::vector<size_t> reorder;
       for(int j = 0; j < dimTrg; ++j)
         for(int i = 0; i < dimSrc; ++i)
           reorder.push_back(i * dimTrg + j);
+
+      //if(dimBatch == 1) {
+      //  srcA = reshape(srcA, {dimTrg, dimSrc});
+      //  trgA = reshape(trgA, {dimSrc, dimTrg});
+      //}
+      //else {
+      //  srcA = reshape(srcA, {dimSrc, dimBatch, dimTrg});
+      //  trgA = reshape(trgA, {dimTrg, dimBatch, dimSrc});  
+      //}
+      //debug(srcA, "srcA");
+      //debug(trgA, "trgA");
           
       trgA = rows(reshape(trgA, {dimSrcTrg, dimBatch}), reorder);
+      
+      //if(dimBatch == 1)
+      //  trgA = reshape(trgA, {dimTrg, dimSrc});
+      //else
+      //  trgA = reshape(trgA, {dimSrc, dimBatch, dimTrg});
+      //
+      //debug(trgA, "reordered");
       
       auto symmetricAlignment = mean(scalar_product(reshape(srcA, {dimBatch, 1, dimSrcTrg}),
                                                     reshape(trgA, {dimBatch, 1, dimSrcTrg}),
                                                     axis=2), axis=0);
-      return cost + recCost - symmetricAlignment;
+//      return cost + recCost - debug(symmetricAlignment, "trace");
+      float gamma = 1.f;
+      return cost + recCost - gamma * symmetricAlignment;
     }
 };
 

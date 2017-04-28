@@ -69,6 +69,38 @@ Expr operator/(Expr a, Expr b) {
   return Expression<DivNodeOp>(a, b);
 }
 
+/*********************************************************/
+
+Expr operator+(Expr a, float b) {
+  return Expression<ScalarAddNodeOp>(a, b);
+}
+
+Expr operator+(float a, Expr b) {
+  return Expression<ScalarAddNodeOp>(b, a);
+}
+
+Expr operator-(Expr a, float b) {
+  return Expression<ScalarAddNodeOp>(a, -b);
+}
+
+Expr operator-(float a, Expr b) {
+  return Expression<ScalarAddNodeOp>(-b, a);
+}
+
+Expr operator*(float a, Expr b) {
+  return Expression<ScalarMultNodeOp>(b, a);  
+}
+
+Expr operator*(Expr a, float b) {
+  return Expression<ScalarMultNodeOp>(a, b);  
+}
+
+Expr operator/(Expr a, float b) {
+  return Expression<ScalarMultNodeOp>(a, 1.f / b);  
+}
+
+/*********************************************************/
+
 Expr dot(Expr a, Expr b) {
   return Expression<DotNodeOp>(a, b);
 }

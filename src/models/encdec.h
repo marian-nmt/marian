@@ -54,6 +54,7 @@ class EncoderBase {
       auto x = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
       auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
+      
       return std::make_tuple(x, xMask);
     }
 

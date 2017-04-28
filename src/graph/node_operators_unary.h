@@ -20,6 +20,64 @@ struct UnaryNodeOp : public NaryNodeOp {
     }
 };
 
+struct ScalarAddNodeOp : public UnaryNodeOp {
+  private:
+    float scalar_{0};
+  
+  public:     
+    template <typename ...Args>
+    ScalarAddNodeOp(Expr a, float scalar, Args ...args)
+    : UnaryNodeOp(a, args...), scalar_{scalar} {  }
+  
+    NodeOps forwardOps() {
+      return {
+        NodeOp(Element(_1 = _2 + scalar_,
+                       val_,
+                       child(0)->val()))
+      };
+    }
+  
+    NodeOps backwardOps() {
+      return {
+        NodeOp(Add(_1, child(0)->grad(), adj_))
+      };
+    }
+  
+    const std::string type() {
+      return "scalar_add";
+      }
+};
+
+struct ScalarMultNodeOp : public UnaryNodeOp {
+  private:
+    float scalar_{0};
+  
+  public:
+    
+    template <typename ...Args>
+    ScalarMultNodeOp(Expr a, float scalar, Args ...args)
+    : UnaryNodeOp(a, args...), scalar_{scalar} {  }
+  
+    NodeOps forwardOps() {
+      return {
+        NodeOp(Element(_1 = scalar_ * _2,
+                       val_,
+                       child(0)->val()))
+      };
+    }
+  
+    NodeOps backwardOps() {
+      return {
+        NodeOp(Add(scalar_ * _1, child(0)->grad(), adj_))
+      };
+    }
+  
+    const std::string type() {
+      return "scalar_add";
+    }
+};
+
+
 struct LogitNodeOp : public UnaryNodeOp {
   template <typename ...Args>
   LogitNodeOp(Args ...args)

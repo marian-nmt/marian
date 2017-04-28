@@ -205,8 +205,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           v->backward();
         
         if(v->trainable() && v->marked_for_debug()) {
-          std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-          std::cerr << v->grad()->debug() << std::endl;
+          //std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+          //std::cerr << v->grad()->debug() << std::endl;
         }
         
         v->children().clear();
