@@ -767,7 +767,6 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
       Out.data(),
       In.data(),
       (uint) srcSize,
-      batchMapping.sizeUInt(),
       cols,
       batchMapping.data(),
       batchMapping.sizeUInt(),
