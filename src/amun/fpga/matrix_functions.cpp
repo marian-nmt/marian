@@ -749,7 +749,7 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
 
   // Set the arguments to our compute kernel
   uint srcSizeUint = srcSize;
-
+  /*
   CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Temp.data()) );
   CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &Out.data()) );
   CheckError( clSetKernelArg(kernel, 2, sizeof(cl_mem), &In.data()) );
@@ -762,6 +762,21 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   CheckError( clSetKernelArg(kernel, 9, sizeof(uint), &Out.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 10, sizeof(uint), &In.sizeUInt()) );
   CheckError( clSetKernelArg(kernel, 11, sizeof(uint), &In.dimUInt(0)) );
+  */
+  SetKernelArg(kernel, 0,
+      Temp.data(),
+      Out.data(),
+      In.data(),
+      srcSizeUint,
+      batchMapping.sizeUInt(),
+      cols,
+      batchMapping.data(),
+      batchMapping.sizeUInt(),
+      Temp.sizeUInt(),
+      Out.sizeUInt(),
+      In.sizeUInt(),
+      In.dimUInt(0)
+  );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -799,11 +814,18 @@ Matrix& BroadcastVecColumnAddWeighted(Matrix& Out, float weight, const Array<flo
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gBroadcastVecColumnAddWeighted", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &Out.dimUInt(1)) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(float), &weight) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &Out.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(float), &weight) );
+  SetKernelArg(kernel, 0,
+      Out.data(),
+      In.data(),
+      Out.dimUInt(0),
+      Out.dimUInt(1),
+      weight
+      );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -845,12 +867,20 @@ Matrix& Slice(Matrix& Out,
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gSlice", openCLInfo);
 
   // Set the arguments to our compute kernel
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &n) );
-  CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &dim) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &In.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &In.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &n) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &dim) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &In.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &In.dimUInt(1)) );
+  SetKernelArg(kernel, 0,
+      Out.data(),
+      In.data(),
+      n,
+      dim,
+      In.dimUInt(0),
+      In.dimUInt(1)
+      );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -896,18 +926,26 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   cl_kernel kernel = CreateKernel("kernels/matrix_functions.cl", "gPasteRows", openCLInfo);
 
   // Set the arguments to our compute kernel
-  uint sparseUint = sparse;
+  //CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
+  //CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &rowNo) );
+  //CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
 
-  CheckError( clSetKernelArg(kernel, 0, sizeof(cl_mem), &Out.data()) );
-  CheckError( clSetKernelArg(kernel, 1, sizeof(uint), &rowNo) );
-  CheckError( clSetKernelArg(kernel, 2, sizeof(uint), &Out.dimUInt(1)) );
+  //CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &In.data()) );
+  //CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &In.dimUInt(0)) );
+  //CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &In.dimUInt(1)) );
 
-  CheckError( clSetKernelArg(kernel, 3, sizeof(cl_mem), &In.data()) );
-  CheckError( clSetKernelArg(kernel, 4, sizeof(uint), &In.dimUInt(0)) );
-  CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &In.dimUInt(1)) );
-
-  CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colNo) );
-  CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &sparseUint) );
+  //CheckError( clSetKernelArg(kernel, 6, sizeof(uint), &colNo) );
+  //CheckError( clSetKernelArg(kernel, 7, sizeof(uint), &sparseUint) );
+  SetKernelArg(kernel, 0,
+      Out.data(),
+      (uint) rowNo,
+      Out.dimUInt(1),
+      In.data(),
+      In.dimUInt(0),
+      In.dimUInt(1),
+      (uint) colNo,
+      (uint) sparse
+      );
 
   // Get the maximum work group size for executing the kernel on the device
   //
@@ -958,6 +996,8 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
   CheckError( clSetKernelArg(kernel, 3, sizeof(uint), &sentenceLength) );
   CheckError( clSetKernelArg(kernel, 4, sizeof(cl_mem), &mapping.data()) );
   CheckError( clSetKernelArg(kernel, 5, sizeof(uint), &i) );
+  SetKernelArg(kernel, 0,
+              state.data(),
 
   // Get the maximum work group size for executing the kernel on the device
   //
