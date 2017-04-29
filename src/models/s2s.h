@@ -71,15 +71,12 @@ class EncoderS2S : public EncoderBase {
     Ptr<EncoderState>
     build(Ptr<ExpressionGraph> graph,
           Ptr<data::CorpusBatch> batch,
-          size_t batchIdx = 0) {
+          size_t batchIdx) {
 
       using namespace keywords;
 
       int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
       int dimSrcEmb = options_->get<int>("dim-emb");
-      
-      int dimPosEmb = options_->get<int>("dim-pos");
-      int dimMaxPos = options_->get<size_t>("max-length");
       
       int dimEncState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
@@ -91,15 +88,8 @@ class EncoderS2S : public EncoderBase {
 
       auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
       
-      Expr xEmbPos;
-      if(dimPosEmb) {
-        // Maximum position embedding is max-length + 1
-        xEmbPos = Embedding(prefix_ + "_Wpos", dimMaxPos + 1, dimPosEmb)(graph);
-        dimSrcEmb += dimPosEmb;
-      }
-
       Expr x, xMask;
-      std::tie(x, xMask) = prepareSource(xEmb, xEmbPos, batch, batchIdx);
+      std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
 
       if(dropoutSrc) {
         int dimBatch = x->shape()[0];
@@ -166,7 +156,7 @@ class DecoderS2S : public DecoderBase {
                                           axis=2);
 
       bool layerNorm = options_->get<bool>("layer-normalization");
-      auto start = Dense("ff_state",
+      auto start = Dense(prefix_ + "_ff_state",
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext);
@@ -204,14 +194,14 @@ class DecoderS2S : public DecoderBase {
       }
 
       if(!attention_)
-        attention_ = New<GlobalAttention>("decoder",
+        attention_ = New<GlobalAttention>(prefix_,
                                           state->getEncoderState(),
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
         
       if(!rnnL1)
-        rnnL1 = New<RNN<CGRU>>(graph, "decoder",
+        rnnL1 = New<RNN<CGRU>>(graph, prefix_,
                                dimTrgEmb, dimDecState,
                                attention_,
                                dropout_prob=dropoutRnn,
@@ -233,7 +223,7 @@ class DecoderS2S : public DecoderBase {
           statesIn.push_back(stateS2S->getStates()[i]);
 
         if(!rnnLn)
-          rnnLn = New<MLRNN<GRU>>(graph, "decoder",
+          rnnLn = New<MLRNN<GRU>>(graph, prefix_,
                                   decoderLayers - 1,
                                   dimDecState, dimDecState,
                                   normalize=layerNorm,
@@ -252,23 +242,16 @@ class DecoderS2S : public DecoderBase {
       }
 
       //// 2-layer feedforward network for outputs and cost
-      auto logitsL1 = Dense("ff_logit_l1", dimTrgEmb,
+      auto logitsL1 = Dense(prefix_ + "_ff_logit_l1", dimTrgEmb,
                             activation=act::tanh,
                             normalize=layerNorm)
                         (embeddings, outputLn, alignedContext);
 
-      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
-
-      if(lexProbs_)
-        logitsOut = LexicalBias(lexProbs_->getLf(),
-                                rnnL1->getCell()->getAttention(),
-                                1e-3, single)(logitsOut);
-          
+      auto logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);          
       
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
     }
-
 };
 
 typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;

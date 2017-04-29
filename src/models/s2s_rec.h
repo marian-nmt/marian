@@ -115,14 +115,18 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
     }
     
     virtual Expr build(Ptr<ExpressionGraph> graph,
-                       Ptr<data::CorpusBatch> batch) {
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph=true) {
       using namespace keywords;
 
-      clear(graph);
+      if(clearGraph)
+        clear(graph);
+        
       auto decState = startState(graph, batch);
       
       Expr trgMask, trgIdx;
-      std::tie(trgMask, trgIdx) = decoder_->groundTruth(decState, graph, batch);
+      std::tie(trgMask, trgIdx) = decoder_->groundTruth(decState, graph, batch,
+                                                        batchIndices_.back());
       
       auto nextDecState = step(decState);
       
@@ -188,7 +192,7 @@ class EncoderDecoderRec : public EncoderDecoder<EncoderS2S, DecoderS2S> {
                                                     reshape(trgA, {dimBatch, 1, dimSrcTrg}),
                                                     axis=2), axis=0);
 //      return cost + recCost - debug(symmetricAlignment, "trace");
-      float gamma = 1.f;
+      float gamma = 0.5;
       return cost + recCost - gamma * symmetricAlignment;
     }
 };

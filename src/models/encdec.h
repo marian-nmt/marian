@@ -9,7 +9,6 @@
 #include "layers/generic.h"
 #include "common/logging.h"
 #include "models/states.h"
-#include "models/lex_probs.h"
 
 namespace marian {
 
@@ -21,7 +20,6 @@ class EncoderBase {
 
     virtual std::tuple<Expr, Expr>
     prepareSource(Expr srcEmbeddings,
-                  Expr posEmbeddings,
                   Ptr<data::CorpusBatch> batch,
                   size_t index) {
       using namespace keywords;
@@ -35,22 +33,6 @@ class EncoderBase {
       auto graph = srcEmbeddings->graph();
       auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indeces());
       
-      if(posEmbeddings) {
-        int dimPos = options_->get<int>("dim-pos");
-        int dimMax = options_->get<size_t>("max-length");
-        
-        std::vector<size_t> positions(subBatch->indeces().size());
-        for(int i = 0; i < positions.size(); ++i) {
-          int pos = i / dimBatch;
-          positions[i] = pos < dimMax ? pos : dimMax;
-        }
-        
-        auto chosenPositions = rows(posEmbeddings, positions);
-        chosenEmbeddings = concatenate({chosenEmbeddings, chosenPositions},
-                                       axis=1);
-        dimEmb += dimPos;
-      }
-      
       auto x = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
       auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
@@ -58,64 +40,53 @@ class EncoderBase {
       return std::make_tuple(x, xMask);
     }
 
-  public:
+  public:    
     template <class ...Args>
-    EncoderBase(Ptr<Config> options, Args ...args)
+    EncoderBase(Ptr<Config> options,
+                Args ...args)
      : options_(options),
        prefix_(Get(keywords::prefix, "encoder", args...)),
        inference_(Get(keywords::inference, false, args...))
       {}
 
     virtual Ptr<EncoderState>
-    build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, size_t = 0) = 0;
+    build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, size_t) = 0;
 };
 
 class DecoderBase {
   protected:
     Ptr<Config> options_;
+    std::string prefix_{"decoder"};
+    
     bool inference_{false};
-    Ptr<LexProbs> lexProbs_;
     
   public:
+    
     template <class ...Args>
-    DecoderBase(Ptr<Config> options, Args ...args)
+    DecoderBase(Ptr<Config> options,
+                Args ...args)
      : options_(options),
-       inference_(Get(keywords::inference, false, args...)),
-       lexProbs_(Get(keywords::lex_probs, nullptr, args...)) {}
+       prefix_(Get(keywords::prefix, "decoder", args...)),
+       inference_(Get(keywords::inference, false, args...))
+    {}
     
     virtual std::tuple<Expr, Expr>
     groundTruth(Ptr<DecoderState> state,
                 Ptr<ExpressionGraph> graph,
-                Ptr<data::CorpusBatch> batch) {
+                Ptr<data::CorpusBatch> batch,
+                size_t index) {
       using namespace keywords;
 
       int dimVoc = options_->get<std::vector<int>>("dim-vocabs").back();
       int dimEmb = options_->get<int>("dim-emb");
-      int dimPos = options_->get<int>("dim-pos");
       
-      auto yEmb = Embedding("Wemb_dec", dimVoc, dimEmb)(graph);
+      auto yEmb = Embedding(prefix_ + "_Wemb", dimVoc, dimEmb)(graph);
       
-      auto subBatch = batch->back();
+      auto subBatch = (*batch)[index];
       int dimBatch = subBatch->batchSize();
       int dimWords = subBatch->batchWidth();
 
       auto chosenEmbeddings = rows(yEmb, subBatch->indeces());
-      
-      if(dimPos) {
-        int dimMax = options_->get<size_t>("max-length");
-        std::vector<size_t> positions(subBatch->indeces().size());
-        for(int i = 0; i < positions.size(); ++i) {
-          int pos = i / dimBatch;
-          positions[i] = pos < dimMax ? pos : dimMax;
-        }
-        
-        auto yEmbPos = Embedding("Wpos_dec", dimMax + 1, dimPos)(graph);
-        
-        auto chosenPositions = rows(yEmbPos, positions);
-        chosenEmbeddings = concatenate({chosenEmbeddings, chosenPositions},
-                                       axis=1);
-        dimEmb += dimPos;
-      }
       
       auto y = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
 
@@ -130,12 +101,6 @@ class DecoderBase {
       state->setTargetEmbeddings(yShifted);
       
       return std::make_tuple(yMask, yIdx);
-    }
-
-    virtual void setLexicalProbabilites(Ptr<ExpressionGraph> graph,
-                                        Ptr<data::CorpusBatch> batch) {
-      if(lexProbs_)
-        lexProbs_->resetLf(graph, batch);
     }
     
     virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
@@ -156,12 +121,12 @@ class DecoderBase {
                                        init=inits::zeros);
       }
       else {
-        auto yEmb = Embedding("Wemb_dec", dimTrgVoc, dimTrgEmb)(graph);
+        auto yEmb = Embedding(prefix_ + "_Wemb", dimTrgVoc, dimTrgEmb)(graph);
         selectedEmbs = rows(yEmb, embIdx);
         
         if(dimPosEmb) {
           int dimMax = options_->get<size_t>("max-length");
-          auto yPos = Embedding("Wpos_dec", dimMax + 1, dimPosEmb)(graph);
+          auto yPos = Embedding(prefix_ + "_Wpos", dimMax + 1, dimPosEmb)(graph);
           
           if(position > dimMax)
             position = dimMax;
@@ -181,11 +146,7 @@ class DecoderBase {
       
       state->setTargetEmbeddings(selectedEmbs);
     }
-    
-    virtual Ptr<LexProbs> getLexProbs() {
-      return lexProbs_;
-    }
-    
+        
     virtual Ptr<DecoderState> step(Ptr<DecoderState>) = 0;
 };
 
@@ -210,7 +171,8 @@ class EncoderDecoderBase {
     step(Ptr<DecoderState>) = 0;
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
-                       Ptr<data::CorpusBatch> batch) = 0;
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph=true) = 0;
     
     virtual Ptr<EncoderBase> getEncoder() = 0;
     virtual Ptr<DecoderBase> getDecoder() = 0;
@@ -220,21 +182,38 @@ template <class Encoder, class Decoder>
 class EncoderDecoder : public EncoderDecoderBase {
   protected:
     Ptr<Config> options_;
+    std::string prefix_;
+    
     Ptr<EncoderBase> encoder_;
     Ptr<DecoderBase> decoder_;
-    Ptr<LexProbs> lexProbs_;
+    
+    std::vector<size_t> batchIndices_;
+    
     bool inference_{false};
 
   public:
 
     template <class ...Args>
     EncoderDecoder(Ptr<Config> options, Args ...args)
+     : EncoderDecoder(options, {0, 1}, args...)
+    { }
+    
+    template <class ...Args>
+    EncoderDecoder(Ptr<Config> options,
+                   const std::vector<size_t>& batchIndices,
+                   Args ...args)
      : options_(options),
-       encoder_(New<Encoder>(options, args...)),
-       decoder_(New<Decoder>(options, args...)),
-       lexProbs_(Get(keywords::lex_probs, nullptr, args...)),
+       batchIndices_(batchIndices),
+       prefix_(Get(keywords::prefix, "", args...)),
+       encoder_(New<Encoder>(options,
+                             keywords::prefix=prefix_ + "encoder",
+                             args...)),
+       decoder_(New<Decoder>(options,
+                             keywords::prefix=prefix_ + "decoder",
+                             args...)),
        inference_(Get(keywords::inference, false, args...))
     { }
+    
     
     Ptr<EncoderBase> getEncoder() {
       return encoder_;
@@ -266,17 +245,17 @@ class EncoderDecoder : public EncoderDecoderBase {
     virtual void clear(Ptr<ExpressionGraph> graph) {
       graph->clear();
       encoder_ = New<Encoder>(options_,
-                              keywords::lex_probs=lexProbs_,
+                              keywords::prefix=prefix_ + "encoder",
                               keywords::inference=inference_);
+      
       decoder_ = New<Decoder>(options_,
-                              keywords::lex_probs=lexProbs_,
+                              keywords::prefix=prefix_ + "decoder",
                               keywords::inference=inference_);
     }
 
     virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                          Ptr<data::CorpusBatch> batch) {
-      decoder_->setLexicalProbabilites(graph, batch);
-      return decoder_->startState(encoder_->build(graph, batch));
+      return decoder_->startState(encoder_->build(graph, batch, batchIndices_.front()));
     }
     
     virtual Ptr<DecoderState>
@@ -292,19 +271,22 @@ class EncoderDecoder : public EncoderDecoderBase {
     }
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
-                       Ptr<data::CorpusBatch> batch) {
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph=true) {
       using namespace keywords;
 
-      clear(graph);
+      if(clearGraph)
+        clear(graph);
       auto state = startState(graph, batch);
       
       Expr trgMask, trgIdx;
-      std::tie(trgMask, trgIdx) = decoder_->groundTruth(state, graph, batch);
+      std::tie(trgMask, trgIdx) = decoder_->groundTruth(state, graph, batch,
+                                                        batchIndices_.back());
       
       auto nextState = step(state);
       
-      auto cost = CrossEntropyCost("cost")(nextState->getProbs(),
-                                           trgIdx, mask=trgMask);
+      auto cost = CrossEntropyCost(prefix_ + "cost")
+                    (nextState->getProbs(), trgIdx, mask=trgMask);
 
       return cost;
     }

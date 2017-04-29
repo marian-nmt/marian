@@ -177,7 +177,8 @@ class DecoderHardAttCDI : public DecoderBase {
     virtual std::tuple<Expr, Expr>
     groundTruth(Ptr<DecoderState> state,
                 Ptr<ExpressionGraph> graph,
-                Ptr<data::CorpusBatch> batch) {
+                Ptr<data::CorpusBatch> batch,
+                size_t index) {
       using namespace keywords;
 
       
@@ -188,7 +189,7 @@ class DecoderHardAttCDI : public DecoderBase {
       int dimAct = 16;
       
       auto srcBatch = batch->front();
-      auto subBatch = batch->back();
+      auto subBatch = (*batch)[index];
       int dimBatch = subBatch->batchSize();
       int dimWords = subBatch->batchWidth();
       

@@ -254,11 +254,6 @@ class MultiDecoderS2S : public DecoderBase {
                         (embeddings, outputLn, alignedContext);
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
-
-      if(lexProbs_)
-        logitsOut = LexicalBias(lexProbs_->getLf(),
-                                rnnL1->getCell()->getAttention1(),
-                                1e-3, single)(logitsOut);
           
       return New<DecoderStateMultiS2S>(statesOut, logitsOut,
                                        state->getEncoderState());

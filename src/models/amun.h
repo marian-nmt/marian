@@ -81,7 +81,7 @@ class EncoderAmun : public EncoderBase {
       auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
       Expr x, xMask;
-      std::tie(x, xMask) = prepareSource(xEmb, nullptr, batch, batchIdx);
+      std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
 
       if(dropoutSrc) {
         int srcWords = x->shape()[2];
