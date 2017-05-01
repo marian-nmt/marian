@@ -59,7 +59,7 @@ class DecoderStateHardAtt : public DecoderState {
 };
 
 class DecoderHardAtt : public DecoderBase {
-  private:
+  protected:
     Ptr<RNN<GRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
     std::unordered_set<Word> specialSymbols_;
@@ -516,6 +516,32 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
       return New<DecoderStateHardAtt>(statesOut, logitsOut,
                                       stateHardAtt->getEncoderState(),
                                       stateHardAtt->getAttentionIndices());
+    }
+    
+    virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
+                                  Ptr<DecoderState> state,
+                                  const std::vector<size_t>& embIdx,
+                                  size_t position=0) {
+      DecoderBase::selectEmbeddings(graph, state, embIdx, position);
+      
+      auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
+      
+       auto mEncState
+        = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
+      
+      int dimSrcWords = mEncState->enc1->getContext()->shape()[2];
+
+      if(embIdx.empty()) {
+        stateHardAtt->setAttentionIndices({0});  
+      }
+      else {
+        for(size_t i = 0; i < embIdx.size(); ++i)
+          if(specialSymbols_.count(embIdx[i])) {
+            stateHardAtt->getAttentionIndices()[i]++;
+            if(stateHardAtt->getAttentionIndices()[i] >= dimSrcWords)
+              stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;
+          }
+      }
     }
 };
 
