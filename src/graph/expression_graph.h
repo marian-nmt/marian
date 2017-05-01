@@ -402,7 +402,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       node->setId(count_++);
       
       nodesForward_.push_back(node);
-      nodesBackward_.push_back(node);
+      if(!inferenceOnly_)
+        nodesBackward_.push_back(node);
       topNodes_.insert(node);
 
       return node;
