@@ -259,6 +259,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "decay factor for moving average")
     ("lexical-table", po::value<std::string>(),
      "Load lexical table")
+    ("guided-alignment", po::value<std::string>(),
+     "Use guided alignment to guide attention")
   ;
   desc.add(training);
 }
@@ -423,6 +425,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
     SET_OPTION_NONDEFAULT("lexical-table", std::string);
+    SET_OPTION_NONDEFAULT("guided-alignment", std::string);
   }
   /** training end **/
   else {

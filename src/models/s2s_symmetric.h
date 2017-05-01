@@ -52,6 +52,17 @@ class EncoderDecoderSymmetric : public EncDec {
         for(int j = 0; j < dimTrg; ++j)
           for(int i = 0; i < dimSrc; ++i)
             reorder.push_back(i * dimTrg + j);
+            
+        if(dimBatch == 1) {
+          srcA = reshape(srcA, {dimTrg, dimSrc});
+          trgA = reshape(trgA, {dimSrc, dimTrg});
+        }
+        else {
+          srcA = reshape(srcA, {dimSrc, dimBatch, dimTrg});
+          trgA = reshape(trgA, {dimTrg, dimBatch, dimSrc});  
+        }
+        debug(srcA, "srcA");
+        debug(trgA, "trgA");
         
         int dimSrcTrg = dimSrc * dimTrg; 
         trgA = rows(reshape(trgA, {dimSrcTrg, dimBatch}), reorder);

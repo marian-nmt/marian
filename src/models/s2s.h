@@ -254,6 +254,42 @@ class DecoderS2S : public DecoderBase {
     }
 };
 
-typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
+
+class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
+  public:
+    
+    template <class ...Args>
+    S2S(Ptr<Config> options, Args ...args)
+    : EncoderDecoder(options, args...) {}
+  
+    virtual Expr build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph=true) {
+      
+      auto cost = EncoderDecoder::build(graph, batch, clearGraph);
+      
+      if(options_->has("guided-alignment")) {
+        using namespace keywords;
+        
+        auto dec = std::dynamic_pointer_cast<DecoderS2S>(EncoderDecoder::decoder_);
+        auto att = concatenate(dec->getAlignments(), axis=3);
+          
+        int dimBatch = att->shape()[0];
+        int dimSrc = att->shape()[2];
+        int dimTrg = att->shape()[3];
+          
+        auto aln = graph->constant(shape={dimBatch, 1, dimSrc, dimTrg},
+                                   keywords::init=inits::from_vector(batch->getGuidedAlignment()));
+          
+        float factor = 1.f / (dimBatch * dimTrg);
+        auto alnCost = factor * sum(flatten(square(att - aln)));
+        
+        return cost + alnCost;
+      }
+      else {
+        return cost;
+      }
+    }
+};
 
 }

@@ -287,7 +287,7 @@ class EncoderDecoder : public EncoderDecoderBase {
       
       auto cost = CrossEntropyCost(prefix_ + "cost")
                     (nextState->getProbs(), trgIdx, mask=trgMask);
-
+    
       return cost;
     }
 

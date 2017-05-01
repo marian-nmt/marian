@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <random>
+#include <regex>
 #include <boost/iterator/iterator_facade.hpp>
 
 #include "training/config.h"
@@ -13,7 +14,50 @@
 namespace marian {
 namespace data {
 
-typedef std::vector<Words> SentenceTuple;
+class SentenceTuple {
+  private:
+    size_t id_;
+    std::vector<Words> tuple_;
+    
+  public:
+    SentenceTuple(size_t id) : id_(id) {}
+    
+    ~SentenceTuple() {
+      tuple_.clear();
+    }
+    
+    void push_back(const Words& words) {
+      tuple_.push_back(words);
+    }
+    
+    size_t size() const {
+      return tuple_.size();
+    }
+    
+    Words& operator[](size_t i) {
+      return tuple_[i];  
+    }
+    
+    const Words& operator[](size_t i) const {
+      return tuple_[i];  
+    }
+    
+    bool empty() const {
+      return tuple_.empty();
+    }
+    
+    auto begin() -> decltype(tuple_.begin()) {
+      return tuple_.begin();
+    }
+    
+    auto end() -> decltype(tuple_.end()) {
+      return tuple_.end();
+    }
+    
+    size_t getId() const {
+      return id_;
+    }
+};
 
 class SubBatch {
   private:
@@ -43,6 +87,11 @@ class SubBatch {
 };
 
 class CorpusBatch {
+  private:
+    std::vector<Ptr<SubBatch>> batches_;
+    std::vector<size_t> sentenceIds_;
+    std::vector<float> guidedAlignment_;
+    
   public:
     CorpusBatch(const std::vector<Ptr<SubBatch>>& batches)
     : batches_(batches) {}
@@ -61,6 +110,12 @@ class CorpusBatch {
 
     void debug() {
       size_t i = 0;
+      if(!sentenceIds_.empty()) {
+        for(auto i : sentenceIds_)
+          std::cerr << i << " ";
+        std::cerr << std::endl;
+      }
+        
       for(auto sb : batches_) {
         std::cerr << "input " << i++ << ": " << std::endl;
         for(size_t i = 0; i < sb->batchWidth(); i++) {
@@ -96,9 +151,22 @@ class CorpusBatch {
         
       return New<CorpusBatch>(batches);
     }
+    
+    std::vector<float>& getGuidedAlignment() {
+      return guidedAlignment_;
+    }
 
-  private:
-    std::vector<Ptr<SubBatch>> batches_;
+    void setGuidedAlignment(const std::vector<float>& aln) {
+      guidedAlignment_ = aln;
+    }
+    
+    const std::vector<size_t>& getSentenceIds() const {
+      return sentenceIds_;
+    }
+    
+    void setSentenceIds(const std::vector<size_t>& ids) {
+      sentenceIds_ = ids;
+    }
 };
 
 class Corpus;
@@ -127,6 +195,61 @@ class CorpusIterator
     long long int pos_;
 };
 
+class WordAlignment {
+  private:
+    typedef std::pair<int, int> Point;
+    typedef std::vector<Point> Alignment;
+    
+    std::vector<Alignment> data_;
+    
+  public:
+    
+    WordAlignment(const std::string& fname) {
+      InputFileStream aStream(fname);
+      std::string line;
+      size_t c = 0;
+      while(std::getline((std::istream&)aStream, line)) {
+        data_.emplace_back();
+        std::vector<std::string> atok = split(line, R"(\s|-)");;
+        for(int i = 0; i < atok.size(); i += 2)
+          data_.back().emplace_back(std::stoi(atok[i]),
+                                    std::stoi(atok[i + 1]));
+        c++;
+        if(c % 100000 == 0)
+          std::cerr << c << std::endl;
+      }
+    }
+      
+    std::vector<std::string> split(const std::string& input,
+                                   const std::string& regex) {
+      std::regex re(regex);
+      std::sregex_token_iterator first{input.begin(), input.end(), re, -1}, last;
+      return {first, last};
+    }
+    
+    void guidedAlignment(Ptr<CorpusBatch> batch) {
+      
+      int srcWords = batch->front()->batchWidth();
+      int trgWords = batch->back()->batchWidth();
+
+      int dimBatch = batch->getSentenceIds().size();
+      std::vector<float> guided(dimBatch * srcWords * trgWords, 0.f);
+      
+      for(int b = 0; b < dimBatch; ++b) {
+        auto& alignment = data_[batch->getSentenceIds()[b]];
+        for(auto& p : alignment) {
+          int sid, tid;
+          std::tie(sid, tid) = p;
+          
+          size_t idx = b + sid * dimBatch + tid * srcWords * dimBatch;
+          guided[idx] = 1.f;
+        }
+      }
+      batch->setGuidedAlignment(guided);
+    }
+    
+};
+
 class Corpus {
   private:
     Ptr<Config> options_;
@@ -139,6 +262,10 @@ class Corpus {
 
     std::random_device rd_;
     std::mt19937 g_;
+    std::vector<size_t> ids_;
+    size_t pos_{0};
+    
+    Ptr<WordAlignment> wordAlignment_;
 
     void shuffleFiles(const std::vector<std::string>& paths);
 
@@ -173,10 +300,12 @@ class Corpus {
     std::vector<Ptr<Vocab>>& getVocabs() {
       return vocabs_;
     }
-
+    
     batch_ptr toBatch(const std::vector<sample>& batchVector) {
       int batchSize = batchVector.size();
 
+      std::vector<size_t> sentenceIds;
+      
       std::vector<int> maxDims;
       for(auto& ex : batchVector) {
         if(maxDims.size() < ex.size())
@@ -185,6 +314,7 @@ class Corpus {
           if(ex[i].size() > maxDims[i])
             maxDims[i] = ex[i].size();
         }
+        sentenceIds.push_back(ex.getId());
       }
 
       std::vector<Ptr<SubBatch>> subBatches;
@@ -206,7 +336,14 @@ class Corpus {
       for(size_t j = 0; j < maxDims.size(); ++j)
         subBatches[j]->setWords(words[j]);
       
-      return batch_ptr(new batch_type(subBatches));
+      auto ret = batch_ptr(new batch_type(subBatches));
+      
+      ret->setSentenceIds(sentenceIds);
+      
+      if(options_->has("guided-alignment"))
+        wordAlignment_->guidedAlignment(ret);
+      
+      return ret;
     }
 };
 

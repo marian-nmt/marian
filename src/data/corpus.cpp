@@ -10,14 +10,11 @@ typedef std::vector<float> MaskBatch;
 typedef std::pair<WordBatch, MaskBatch> WordMask;
 typedef std::vector<WordMask> SentBatch;
 
-typedef std::vector<Words> SentenceTuple;
-
-CorpusIterator::CorpusIterator() : pos_(-1) {}
+CorpusIterator::CorpusIterator() : pos_(-1), tup_(0) {}
 
 CorpusIterator::CorpusIterator(Corpus& corpus)
- : corpus_(&corpus), pos_(0) {
-  tup_ = corpus_->next();
-}
+ : corpus_(&corpus), pos_(0), tup_(corpus_->next())
+ {}
 
 void CorpusIterator::increment() {
   tup_ = corpus_->next();
@@ -90,6 +87,9 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     else
       files_.emplace_back(new InputFileStream(path));
   }
+  
+  if(options_->has("guided-alignment"))
+    wordAlignment_ = New<WordAlignment>(options_->get<std::string>("guided-alignment"));
 }
 
 Corpus::Corpus(std::vector<std::string> paths,
@@ -113,8 +113,12 @@ Corpus::Corpus(std::vector<std::string> paths,
 SentenceTuple Corpus::next() {
   bool cont = true;
   while(cont) {
-    SentenceTuple tup;
-    for(int i = 0; i < files_.size(); ++i) {
+    size_t curId = pos_;
+    if(pos_ < ids_.size())
+      curId = ids_[pos_++];
+    
+    SentenceTuple tup(curId);
+    for(int i = 0; i < files_.size(); ++i) {  
       std::string line;
       if(std::getline((std::istream&)*files_[i], line)) {
         Words words = (*vocabs_[i])(line);
@@ -123,6 +127,7 @@ SentenceTuple Corpus::next() {
         tup.push_back(words);
       }
     }
+    
     cont = tup.size() == files_.size();
     if(cont && std::all_of(tup.begin(), tup.end(),
                            [=](const Words& words) {
@@ -131,7 +136,7 @@ SentenceTuple Corpus::next() {
                             }))
       return tup;
   }
-  return SentenceTuple();
+  return SentenceTuple(0);
 }
 
 void Corpus::shuffle() {
@@ -140,6 +145,8 @@ void Corpus::shuffle() {
 
 void Corpus::reset() {
   files_.clear();
+  ids_.clear();
+  pos_ = 0;
   for(auto& path : textPaths_) {
     if(path == "stdin")
       files_.emplace_back(new InputFileStream(std::cin));
@@ -150,6 +157,7 @@ void Corpus::reset() {
 
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   LOG(data, "Shuffling files");
+  
   std::vector<std::vector<std::string>> corpus;
 
   files_.clear();
@@ -168,7 +176,10 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
       corpus.push_back(lines);
   }
 
-  std::shuffle(corpus.begin(), corpus.end(), g_);
+  pos_ = 0;
+  ids_.resize(corpus.size());
+  std::iota(ids_.begin(), ids_.end(), 0);
+  std::shuffle(ids_.begin(), ids_.end(), g_);
   
   tempFiles_.clear();
 
@@ -178,7 +189,8 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
   }
   
-  for(auto& lines : corpus) {
+  for(auto id : ids_) {
+    auto& lines = corpus[id];
     size_t i = 0;
     for(auto& line : lines) {
       (std::ostream&)*outs[i++] << line << std::endl;

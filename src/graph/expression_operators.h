@@ -69,6 +69,13 @@ Expr reshape(Expr a, Shape shape, Args ...args) {
   return Expression<ReshapeNodeOp>(a, shape, args...);
 }
 
+template <typename ...Args>
+Expr flatten(Expr a, Args ...args) {
+  Shape shape = {a->shape().elements()};
+  return Expression<ReshapeNodeOp>(a, shape, args...);
+}
+
+
 /*********************************************************/
 
 template <typename ...Args>
