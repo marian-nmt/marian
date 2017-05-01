@@ -280,9 +280,8 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
           
         auto aln = graph->constant(shape={dimBatch, 1, dimSrc, dimTrg},
                                    keywords::init=inits::from_vector(batch->getGuidedAlignment()));
-          
-        float factor = 1.f / (dimBatch * dimTrg);
-        auto alnCost = factor * sum(flatten(square(att - aln)));
+        
+        auto alnCost = dimTrg - (sum(flatten(att * aln)) / dimBatch);
         
         return cost + alnCost;
       }
