@@ -35,13 +35,13 @@ class NeuralExtention {
       return stream;
     }
 
-    NeuralExtention(const std::vector<size_t>& phrase, float score, const std::vector<size_t>& coverage,
+    NeuralExtention(const std::vector<std::string>& phrase, float score, const std::vector<size_t>& coverage,
                     size_t prevIndex)
       : phrase_(phrase), score_(score), coverage_(coverage), prevIndex_(prevIndex)
     {}
 
   public:
-    std::vector<size_t> phrase_;
+    std::vector<std::string> phrase_;
     float score_;
     std::vector<size_t> coverage_;
     size_t prevIndex_;

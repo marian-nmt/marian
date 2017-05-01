@@ -82,7 +82,6 @@ void NMT::SetDevice() {
 
 States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
 {
-  // std::cerr << "Setting source sentence..." << std::endl;
   Sentences sentences;
   sentences.push_back(SentencePtr(new Sentence(*god_, 0, srcWords)));
 
@@ -91,10 +90,8 @@ States NMT::CalcSourceContext(const std::vector<std::string>& srcWords)
   for (size_t i = 0; i < scorers_.size(); ++i) {
     scorers_[i]->SetSource(sentences);
     scorers_[i]->BeginSentenceState(*states[i], sentences.size());
-    // std::cerr << "SRC: " << states[i]->Debug() << std::endl;
   }
 
-  // std::cerr << "Setting source sentence... DONE" << std::endl;
   return states;
 }
 
@@ -286,10 +283,10 @@ std::vector<NeuralExtention> NMT::ExtendHyps(const std::vector<States>& inputSta
       for (auto& hyp : beam) {
         float cost = hyp->GetCost();
 
-        std::vector<size_t> phrase;
+        std::vector<std::string> phrase;
         auto iter = hyp;
         while (iter->GetPrevHyp() != nullptr) {
-            phrase.push_back(iter->GetWord());
+            phrase.push_back(NMT::god_->GetTargetVocab()[iter->GetWord()]);
             iter = iter->GetPrevHyp();
         }
 
