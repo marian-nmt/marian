@@ -29,6 +29,8 @@ namespace marian {
       return New<TaskName<Wrapper<HardAtt>>>(options);
     else if(type == "hard-soft-att")
       return New<TaskName<Wrapper<HardSoftAtt>>>(options);
+    else if(type == "multi-hard-att")
+      return New<TaskName<Wrapper<MultiHardSoftAtt>>>(options);
     else if(type == "hard-att-cdi")
       return New<TaskName<Wrapper<HardAttCDI>>>(options);
     else if(type == "s2s-rec")
