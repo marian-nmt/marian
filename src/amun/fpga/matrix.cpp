@@ -13,13 +13,13 @@ namespace FPGA {
 namespace mblas {
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo)
-:dims_({0, 0, 0, 0})
+:dims_{0, 0, 0, 0}
 ,arr_(openCLInfo)
 {
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
-:dims_({rows, cols, 1, 1})
+:dims_{(uint)rows, (uint)cols, 1, 1}
 ,arr_(openCLInfo, rows * cols)
 {
   if (zero) {
@@ -29,13 +29,13 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
-:dims_({rows, cols, 1, 1})
+:dims_{(uint)rows, (uint)cols, 1, 1}
 ,arr_(openCLInfo, rows * cols, val)
 {
 }
 
 Matrix::Matrix(const Matrix &other)
-:dims_({other.dims_[0], other.dims_[1], other.dims_[2], other.dims_[3]})
+:dims_{other.dims_[0], other.dims_[1], other.dims_[2], other.dims_[3]}
 ,arr_(other.arr_)
 {
 }
