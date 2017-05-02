@@ -46,6 +46,7 @@ class Hypothesis {
     const size_t prevIndex_;
     const size_t word_;
     const float cost_;
+    
     std::vector<float> costBreakdown_;
 };
 

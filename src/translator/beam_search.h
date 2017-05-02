@@ -28,7 +28,8 @@ class BeamSearch {
     Beam toHyps(const std::vector<uint> keys,
                 const std::vector<float> costs,
                 size_t vocabSize,
-                const Beam& beam) {
+                const Beam& beam,
+                Ptr<DecoderState> state) {
       
       Beam newBeam;
       for(int i = 0; i < keys.size(); ++i) {
@@ -36,8 +37,30 @@ class BeamSearch {
         int hypIdx = keys[i] / vocabSize;
         float cost = costs[i];
         
+        auto breakDown = state->breakDown(keys[i]);
+        
+        int scores = breakDown.size();
+        beam[hypIdx]->GetCostBreakdown().resize(scores, 0);
+        
+        std::vector<float> weights(1, 1);
+        weights.resize(scores, 0);
+        
+        //std::vector<float> weights = options_->get<std::vector<float>>("weights");
+        //weights.resize(scores, 0);
+        
+        //std::vector<float> weights = { 0.724739, -0.0248948, 0.121632, 0.00900556, -0.119728 };
+        //std::vector<float> weights = { 0.476082, 0.0476081, 0.0141789, 0.200336, -0.261795 };
+        
+        float totalCost = 0;
+        for(int i = 0; i < scores; ++i) {
+          breakDown[i] += beam[hypIdx]->GetCostBreakdown()[i];
+          totalCost += weights[i] * breakDown[i];
+        }
+        
         newBeam.push_back(
-          New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, cost));
+          New<Hypothesis>(beam[hypIdx], embIdx, hypIdx, totalCost));
+        
+        newBeam.back()->GetCostBreakdown() = breakDown;
       }
       return newBeam;
     }
@@ -74,12 +97,10 @@ class BeamSearch {
 
       std::vector<size_t> hypIndeces;
       std::vector<size_t> embIndeces;
-      std::vector<float> beamCosts;
-
+     
       for(auto hyp : beam) {
         hypIndeces.push_back(hyp->GetPrevStateIndex());
         embIndeces.push_back(hyp->GetWord());
-        beamCosts.push_back(hyp->GetCost());
       }
 
       Ptr<DecoderState> selectedState
@@ -89,13 +110,7 @@ class BeamSearch {
       selectedState->setSingleStep(true);
       
       auto nextState = builder_->step(selectedState);
-
-      auto costs = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
-                                   keywords::init=inits::from_vector(beamCosts));
-      auto totalCosts = logsoftmax(nextState->getProbs()) + costs;
-      
-      nextState->setProbs(totalCosts);
-      
+      nextState->setProbs(logsoftmax(nextState->getProbs()));
       return nextState;
     }
 
@@ -118,45 +133,62 @@ class BeamSearch {
       Ptr<DecoderState> state;
       do {
 
+        Expr totalCosts;
         if(first) {
           state = step(graph, startState, history->size() - 1);
+          auto probs = state->getProbs();
+          
+          auto costs = graph->constant(keywords::shape={1, 1, 1, 1},
+                                       keywords::init=inits::from_value(0));
+          totalCosts = probs + costs;
           graph->forward();
         }
         else {
           state = step(graph, state, beam, history->size() - 1);
           beamSizes[0] = beam.size();
+        
+          auto probs = state->getProbs();
+          std::vector<float> beamCosts;
+          for(auto hyp : beam)
+            beamCosts.push_back(hyp->GetCost());
+          auto costs = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
+                                       keywords::init=inits::from_vector(beamCosts));
+          totalCosts = probs + costs;
+          
           graph->forwardNext();
         }
 
-        size_t dimTrgVoc = state->getProbs()->shape()[1];
-
+        
         std::vector<unsigned> outKeys;
         std::vector<float> outCosts;
 
         if(!options_->get<bool>("allow-unk"))
-          suppressUnk(state->getProbs());
+          suppressUnk(totalCosts);
         
         auto attState = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
         if(attState) {
           auto attentionIdx = attState->getAttentionIndices();
-          int dimVoc = state->getProbs()->shape()[1];
+          int dimVoc = totalCosts->shape()[1];
           for(int i = 0; i < attentionIdx.size(); i++) {
             if(batch->front()->indeces()[attentionIdx[i]] != 0) {                
-              attState->getProbs()->val()->set(i * dimVoc + EOS_ID,
-                                               std::numeric_limits<float>::lowest());
+              totalCosts->val()->set(i * dimVoc + EOS_ID,
+                                     std::numeric_limits<float>::lowest());
             }
             else {                
-              attState->getProbs()->val()->set(i * dimVoc + STP_ID,
-                                               std::numeric_limits<float>::lowest());
+              totalCosts->val()->set(i * dimVoc + STP_ID,
+                                     std::numeric_limits<float>::lowest());
             }
           }
         }
         
-        nth->getNBestList(beamSizes, state->getProbs()->val(),
+        nth->getNBestList(beamSizes, totalCosts->val(),
                           outCosts, outKeys, first);
         first = false;
 
-        beam = toHyps(outKeys, outCosts, dimTrgVoc, beam);
+        int dimTrgVoc = totalCosts->shape()[1];
+        beam = toHyps(outKeys, outCosts, dimTrgVoc, beam, state);
+        
+        
         final = history->size() >= 3 * batch->words();
         history->Add(beam, final);
         beam = pruneBeam(beam);

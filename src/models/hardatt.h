@@ -56,6 +56,32 @@ class DecoderStateHardAtt : public DecoderState {
     }
     
     virtual const std::vector<Expr>& getStates() { return states_; }
+    
+    virtual const std::vector<float> breakDown(size_t i) {
+      auto costs = DecoderState::breakDown(i);
+      costs.resize(5, 0);
+      
+      int vocabSize = getProbs()->shape()[1];
+      int e = i % vocabSize;
+      int h = i / vocabSize;
+      
+      int a = attentionIndices_[h];
+      
+      auto& words = getEncoderState()->getSourceWords();
+      
+      if(e != 2) {
+        costs[1] = 1;
+        
+        if(words[a] == e)
+          costs[2] = 1;
+        else
+          costs[3] = 1;
+          
+        costs[4] = std::find(words.begin(), words.end(), e) == words.end();
+      }
+      
+      return costs;
+    }
 };
 
 class DecoderHardAtt : public DecoderBase {

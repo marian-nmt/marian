@@ -24,7 +24,16 @@ void Printer(Ptr<Config> options,
       std::string translation = Join((*vocab)(words));
       
       out << history->GetLineNum() << " ||| " << translation << " |||";
-      out << " F0=" << hypo->GetCost();
+      
+      if(hypo->GetCostBreakdown().empty()) {
+        out << " F0=" << hypo->GetCost();  
+      }
+      else {
+        for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
+          out << " F" << j << "= " << hypo->GetCostBreakdown()[j];
+        }
+      }
+      
       
       if(options->get<bool>("normalize")) {
         out << " ||| " << hypo->GetCost() / words.size();

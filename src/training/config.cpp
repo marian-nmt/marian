@@ -326,6 +326,10 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Display n-best list")
     ("lexical-table", po::value<std::string>(),                                                                                 
      "Path to lexical table")
+    ("weights", po::value<std::vector<float>>()
+      ->multitoken()
+      ->default_value(std::vector<float>({1}), "1"),
+      "Scorer weights")
     
   ;
   desc.add(translate);
