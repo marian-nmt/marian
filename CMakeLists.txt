@@ -33,7 +33,7 @@ endif(CPU)
 
 if(FPGA)
     add_definitions(-DHAS_FPGA)
-endif(CPU)
+endif(FPGA)
   
 if(CUDA)
   find_package(CUDA)
