@@ -153,7 +153,7 @@ bool Search::Decode(
       const State &state = *states[i];
       State &nextState = *nextStates[i];
 
-      scorer.Decode(god, state, nextState, beamSizes);
+      scorer.Decode(state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {

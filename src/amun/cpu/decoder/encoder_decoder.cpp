@@ -63,7 +63,7 @@ EncoderDecoder::EncoderDecoder(const std::string& name,
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<size_t>&) {
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<size_t>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
