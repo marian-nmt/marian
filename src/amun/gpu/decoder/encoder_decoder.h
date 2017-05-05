@@ -20,13 +20,14 @@ class Decoder;
 class Weights;
 
 ////////////////////////////////////////////
+//
 class EncoderDecoder : public Scorer {
   private:
     typedef EncoderDecoderState EDState;
 
   public:
     EncoderDecoder(const God &god,
-    			   const std::string& name,
+                   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
                    const Weights& model);
@@ -67,16 +68,17 @@ class EncoderDecoder : public Scorer {
 };
 
 ////////////////////////////////////////////
+
 class EncoderDecoderLoader : public Loader {
   public:
     EncoderDecoderLoader(const EncoderDecoderLoader&) = delete;
     EncoderDecoderLoader(const std::string name,
                          const YAML::Node& config);
     virtual ~EncoderDecoderLoader();
-    
+
     virtual void Load(const God &god);
 
-    virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
+    virtual ScorerPtr NewScorer(const God& god, const DeviceInfo& deviceInfo) const;
     virtual BestHypsBasePtr GetBestHyps(const God &god) const;
 
   private:

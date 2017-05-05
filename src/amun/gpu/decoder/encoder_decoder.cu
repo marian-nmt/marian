@@ -16,11 +16,11 @@ namespace amunmt {
 namespace GPU {
 
 EncoderDecoder::EncoderDecoder(
-		const God &god,
-		const std::string& name,
-        const YAML::Node& config,
-        size_t tab,
-        const Weights& model)
+    const God &god,
+    const std::string& name,
+    const YAML::Node& config,
+    size_t tab,
+    const Weights& model)
   : Scorer(name, config, tab),
     model_(model),
     encoder_(new Encoder(model_)),
@@ -47,25 +47,29 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<size_
   EDState& edOut = out.get<EDState>();
 
   decoder_->Decode(edOut.GetStates(),
-                     edIn.GetStates(),
-                     edIn.GetEmbeddings(),
-                     sourceContext_,
-                     batchMapping_,
-                     beamSizes);
+                   edIn.GetStates(),
+                   edIn.GetEmbeddings(),
+                   sourceContext_,
+                   batchMapping_,
+                   beamSizes);
 }
 
-void EncoderDecoder::AssembleBeamState(const State& in,
-                               const Beam& beam,
-                               State& out) {
+void EncoderDecoder::AssembleBeamState(
+    const State& in,
+    const Beam& beam,
+    State& out)
+{
   std::vector<size_t> beamWords;
   std::vector<size_t> beamStateIds;
-  for (auto h : beam) {
+
+  for (auto& h : beam) {
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
   }
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
+
   indices_.resize(beamStateIds.size());
   thrust::host_vector<size_t> tmp = beamStateIds;
 
@@ -98,12 +102,16 @@ void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
-EncoderDecoder::~EncoderDecoder() {}
+EncoderDecoder::~EncoderDecoder()
+{}
 
 ////////////////////////////////////////////
-EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
-                     const YAML::Node& config)
- : Loader(name, config) {}
+
+EncoderDecoderLoader::EncoderDecoderLoader(
+    const std::string name,
+    const YAML::Node& config)
+  : Loader(name, config)
+{}
 
 void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");

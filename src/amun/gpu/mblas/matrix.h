@@ -18,7 +18,6 @@ using namespace thrust::placeholders;
 
 float Sum(const float *data, size_t count);
 
-
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
@@ -93,8 +92,6 @@ class TMatrix : public BaseMatrix {
           T *newData;
           HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
 
-          //size_t count = std::min(arrSize_, newSize);
-
           HANDLE_ERROR( cudaMemcpyAsync(
               newData,
               data_,
@@ -105,8 +102,7 @@ class TMatrix : public BaseMatrix {
           HANDLE_ERROR(cudaFree(data_));
           data_ = newData;
           arrSize_ = newSize;
-        }
-        else if (rows == 0 || cols == 0) {
+        } else if (rows == 0 || cols == 0) {
           Clear();
         }
       }
@@ -173,7 +169,6 @@ class TMatrix : public BaseMatrix {
     }
 
     size_t size() const {
-      // return data_.size();
       return cols_ * rows_ * beam_ * batches_;
     }
 
@@ -198,7 +193,7 @@ class TMatrix : public BaseMatrix {
     size_t beam_;
     size_t batches_;
     size_t arrSize_;
-    T *data_;
+    T* data_;
 };
 
 typedef TMatrix<float> Matrix;

@@ -254,7 +254,8 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n)
 
 NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream)
     : stream_(stream),
-      NUM_BLOCKS(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
+      NUM_BLOCKS(std::min(500, int((maxBeamSize * 85000) / (2 * BLOCK_SIZE))
+                                   + int((maxBeamSize * 85000) % (2 * BLOCK_SIZE) != 0)))
 {
   HANDLE_ERROR( cudaMalloc((void**)&d_ind, maxBatchSize * NUM_BLOCKS * sizeof(int)) );
 
@@ -313,7 +314,6 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
 
   const size_t vocabSize = Probs.dim(1);
   for (size_t i = 0; i < beamSizes.size(); ++i) {
-
     cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
     batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
@@ -323,10 +323,11 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 }
 
-void NthElement::GetPairs(size_t number,
-                    std::vector<unsigned>& outKeys,
-                    std::vector<float>& outValues) {
-
+void NthElement::GetPairs(
+    size_t number,
+    std::vector<unsigned>& outKeys,
+    std::vector<float>& outValues)
+{
   HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, number * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
@@ -337,7 +338,6 @@ void NthElement::GetPairs(size_t number,
     outKeys.push_back(h_res_idx[i]);
     outValues.push_back(h_res[i]);
   }
-
   lastN = number;
 }
 

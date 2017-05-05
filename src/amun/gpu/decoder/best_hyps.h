@@ -17,25 +17,27 @@ namespace GPU {
 class BestHyps : public BestHypsBase
 {
   public:
-    BestHyps(const BestHyps &copy) = delete;
+    BestHyps(const BestHyps&) = delete;
+
     BestHyps(const God &god)
-    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"),
-                  mblas::CudaStreamHandler::GetStream()),
-      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-      weights_(god.GetScorerWeights())
+      : nthElement_(god.Get<size_t>("beam-size"),
+                    god.Get<size_t>("mini-batch"),
+                    mblas::CudaStreamHandler::GetStream()),
+        keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        weights_(god.GetScorerWeights())
     {
-      //std::cerr << "BestHyps::BestHyps" << std::endl;
     }
 
     void DisAllowUNK(mblas::Matrix& Prob) {
       SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
     }
 
-    void FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+    void FindBests(const std::vector<size_t>& beamSizes,
+                   mblas::Matrix& Probs,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
-                   const bool isFirst) {
+                   bool isFirst) {
       nthElement_.getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
     }
 
@@ -87,7 +89,7 @@ class BestHyps : public BestHypsBase
           thrust::raw_pointer_cast(Costs.data()),
           cudaMemcpyHostToDevice);
 
-      const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
+      bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
       BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
 
