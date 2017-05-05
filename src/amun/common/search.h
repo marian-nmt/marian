@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <set>
+
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "common/base_best_hyps.h"
@@ -48,8 +50,8 @@ class Search {
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;
-
     DeviceInfo deviceInfo_;
+    bool normalize_;
 
     bool Decode(
     		const God &god,

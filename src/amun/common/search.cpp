@@ -15,17 +15,22 @@ Search::Search(const God &god)
   deviceInfo_ = god.GetNextDevice();
   scorers_ = god.GetScorers(deviceInfo_);
   bestHyps_ = god.GetBestHyps(deviceInfo_);
+  normalize_ = god.Get<bool>("normalize");
 }
 
 Search::~Search()
 {
+
 #ifdef CUDA
+
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
+
 #endif
+
 }
-  
+
 States Search::NewStates() const
 {
   size_t numScorers = scorers_.size();
@@ -50,7 +55,7 @@ size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t
 std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  std::shared_ptr<Histories> histories(new Histories(god, sentences));
+  std::shared_ptr<Histories> histories(new Histories(sentences));
 
   size_t batchSize = sentences.size();
   size_t numScorers = scorers_.size();

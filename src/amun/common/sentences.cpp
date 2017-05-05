@@ -1,6 +1,5 @@
 #include <algorithm>
 #include "sentences.h"
-#include "god.h"
 #include "translation_task.h"
 
 namespace amunmt {
