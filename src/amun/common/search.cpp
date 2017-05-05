@@ -20,25 +20,27 @@ Search::Search(const God &god)
 
 Search::~Search()
 {
-
 #ifdef CUDA
-
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
-
 #endif
+}
+const DeviceInfo& Search::GetDeviceInfo() const
+{
+  return deviceInfo_;
+}
 
+const std::vector<ScorerPtr>& Search::GetScorers() const
+{
+  return scorers_;
 }
 
 States Search::NewStates() const
 {
-  size_t numScorers = scorers_.size();
-
-  States states(numScorers);
-  for (size_t i = 0; i < numScorers; i++) {
-    Scorer &scorer = *scorers_[i];
-    states[i].reset(scorer.NewState());
+  States states;
+  for (auto& scorer : scorers_) {
+    states.emplace_back(scorer->NewState());
   }
 
   return states;
@@ -58,7 +60,6 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
   std::shared_ptr<Histories> histories(new Histories(sentences));
 
   size_t batchSize = sentences.size();
-  size_t numScorers = scorers_.size();
 
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
@@ -83,8 +84,7 @@ void Search::PreProcess(
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
   for (size_t i = 0; i < histories->size(); ++i) {
-    History &history = *histories->at(i).get();
-    history.Add(prevHyps);
+    histories->at(i)->Add(prevHyps);
   }
 
   bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
@@ -98,12 +98,11 @@ void Search::PreProcess(
     }
     vocabSize = MakeFilter(god, srcWords, vocabSize);
   }
-
 }
 
 void Search::Encode(const Sentences& sentences, States& states) {
   for (size_t i = 0; i < scorers_.size(); i++) {
-    Scorer &scorer = *scorers_[i];
+    Scorer& scorer = *scorers_[i];
     scorer.SetSource(sentences);
 
     scorer.BeginSentenceState(*states[i], sentences.size());
@@ -132,7 +131,7 @@ void Search::Decode(
 			  decoderStep,
 			  nextStates,
 			  beamSizes
-	  	  	  );
+	  	);
 
 	    if (!hasSurvivors) {
 	    	break;
@@ -163,7 +162,7 @@ bool Search::Decode(
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-      beamSize = god.Get<size_t>("beam-size");
+        beamSize = god.Get<size_t>("beam-size");
       }
     }
 

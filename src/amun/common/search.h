@@ -12,47 +12,24 @@ namespace amunmt {
 
 class Search {
   public:
-    Search(const God &god);
+    Search(const God& god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
+    std::shared_ptr<Histories> Process(const God& god, const Sentences& sentences);
 
-    States NewStates() const;
-
-    void PreProcess(
-    		const God &god,
-    		const Sentences& sentences,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps);
-
-    void PostProcess();
-
-    void Encode(const Sentences& sentences, States& states);
-
-    void Decode(
-    		const God &god,
-    		const Sentences& sentences,
-    		States &states,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps);
-
-    const DeviceInfo &GetDeviceInfo() const
-    { return deviceInfo_; }
-
-    const std::vector<ScorerPtr> &GetScorers() const
-    { return scorers_; }
-
-  private:
-    Search(const Search &) = delete;
-
-    size_t MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize);
-
+  protected:
     std::vector<ScorerPtr> scorers_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;
     DeviceInfo deviceInfo_;
     bool normalize_;
 
+  protected:
+    Search(const Search&) = delete;
+
+    States NewStates() const;
+
+    size_t MakeFilter(const God& god, const std::set<Word>& srcWords, size_t vocabSize);
     bool Decode(
     		const God &god,
     		const Sentences& sentences,
@@ -76,6 +53,26 @@ class Search {
 
     		);
 
+    void PreProcess(
+    		const God &god,
+    		const Sentences& sentences,
+    		std::shared_ptr<Histories> &histories,
+    		Beam &prevHyps);
+
+    void PostProcess();
+
+    void Encode(const Sentences& sentences, States& states);
+
+    void Decode(
+    		const God &god,
+    		const Sentences& sentences,
+    		States &states,
+    		std::shared_ptr<Histories> &histories,
+    		Beam &prevHyps);
+
+    const DeviceInfo& GetDeviceInfo() const;
+
+    const std::vector<ScorerPtr>& GetScorers() const;
 };
 
 }
