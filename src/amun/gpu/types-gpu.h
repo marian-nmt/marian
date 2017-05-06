@@ -1,28 +1,25 @@
 #pragma once
 
+#include <vector>
+
 #ifndef NO_CUDA
-
-#include <thrust/device_vector.h>
-
-/////////////////////////////////////////////////////////////////////////////////////
 
 void HandleError(cudaError_t err, const char *file, int line );
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-/////////////////////////////////////////////////////////////////////////////////////
+
+#include "gpu/mblas/device_vector.h"
 
 template<class T>
-using DeviceVector = thrust::device_vector<T>;
+using DeviceVector = amunmt::GPU::mblas::device_vector<T>;
 
 template<class T>
-using HostVector = thrust::host_vector<T>;
+using HostVector = std::vector<T>;
 
-namespace algo = thrust;
-namespace iteralgo = thrust;
+
 #else
 
-#include <vector>
 #include <algorithm>
 
 template<class T>

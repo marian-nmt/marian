@@ -71,11 +71,11 @@ void EncoderDecoder::AssembleBeamState(
   EDState& edOut = out.get<EDState>();
 
   indices_.resize(beamStateIds.size());
-  thrust::host_vector<size_t> tmp = beamStateIds;
+  HostVector<size_t> tmp = beamStateIds;
 
-  mblas::copy(thrust::raw_pointer_cast(tmp.data()),
+  mblas::copy(tmp.data(),
       beamStateIds.size(),
-      thrust::raw_pointer_cast(indices_.data()),
+      indices_.data(),
       cudaMemcpyHostToDevice);
 
   mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);

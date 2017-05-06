@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <sstream>
-#include <thrust/execution_policy.h>
+// #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 
 #include "common/exception.h"
@@ -24,21 +24,20 @@ class TMatrix : public BaseMatrix {
     typedef T value_type;
 
     TMatrix()
-    : rows_(0)
-    , cols_(0)
-    , beam_(0)
-    , batches_(0)
-    , arrSize_(0)
-    , data_(nullptr)
-    {
-    }
+      : rows_(0)
+      , cols_(0)
+      , beam_(0)
+      , batches_(0)
+      , arrSize_(0)
+      , data_(nullptr)
+    {}
 
     TMatrix(size_t rows, size_t cols, size_t beam, size_t batches, bool zero = false)
-    : rows_(rows)
-    , cols_(cols)
-    , beam_(1)
-    , batches_(1)
-    , arrSize_(size())
+      : rows_(rows)
+      , cols_(cols)
+      , beam_(1)
+      , batches_(1)
+      , arrSize_(size())
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       if (zero) {
@@ -47,7 +46,7 @@ class TMatrix : public BaseMatrix {
     }
 
     TMatrix(TMatrix&& m)
-    : TMatrix()
+      : TMatrix()
     {
       swap(m);
     }
@@ -75,14 +74,13 @@ class TMatrix : public BaseMatrix {
 
     virtual size_t dim(size_t i) const
     {
-    	switch (i) {
-    	case 0: return rows_;
-    	case 1: return cols_;
-    	case 2: return beam_;
-    	case 3: return batches_;
-    	default:
-    		abort();
-    	}
+      switch (i) {
+        case 0: return rows_;
+        case 1: return cols_;
+        case 2: return beam_;
+        case 3: return batches_;
+        default: abort();
+      }
     }
 
     void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
@@ -139,12 +137,12 @@ class TMatrix : public BaseMatrix {
       std::stringstream strm;
       strm << BaseMatrix::Debug(detailed) << " ";
       strm << data_ << " "
-          << arrSize_ << " "
+           << arrSize_ << " "
           << std::flush;
 
       if (detailed) {
-        float sum = Sum(data(), size());
-        strm << "size=" << size() << " sum=" << sum << std::flush;
+        // float sum = Sum(data(), size());
+        // strm << "size=" << size() << " sum=" << sum << std::flush;
       }
 
       return strm.str();
@@ -160,15 +158,15 @@ class TMatrix : public BaseMatrix {
       arrSize_ = 0;
     }
 
-    value_type* data() {
+    virtual value_type* data() {
       return data_;
     }
 
-    const value_type* data() const {
+    virtual const value_type* data() const {
       return data_;
     }
 
-    size_t size() const {
+    virtual size_t size() const {
       return cols_ * rows_ * beam_ * batches_;
     }
 
@@ -187,7 +185,7 @@ class TMatrix : public BaseMatrix {
       return (int)size() != 0;
     }
 
-  private:
+  protected:
     size_t rows_;
     size_t cols_;
     size_t beam_;

@@ -5,7 +5,6 @@
 #include "common/hypothesis.h"
 #include "common/soft_alignment.h"
 #include "common/exception.h"
-#include "gpu/types-gpu.h"
 
 #include "blaze/Math.h"
 

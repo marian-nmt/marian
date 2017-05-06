@@ -53,7 +53,7 @@ class BestHyps : public BestHypsBase
           mblas::copy(
               attention.data() + hypIndex * attLength,
               attLength,
-              thrust::raw_pointer_cast(softAlignment->data()),
+              softAlignment->data(),
               cudaMemcpyDeviceToHost
           );
 
@@ -84,9 +84,9 @@ class BestHyps : public BestHypsBase
       }
 
       mblas::copy(
-          thrust::raw_pointer_cast(vCosts.data()),
+          vCosts.data(),
           vCosts.size(),
-          thrust::raw_pointer_cast(Costs.data()),
+          Costs.data(),
           cudaMemcpyHostToDevice);
 
       bool isFirst = (vCosts[0] == 0.0f) ? true : false;

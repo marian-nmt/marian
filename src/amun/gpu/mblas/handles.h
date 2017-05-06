@@ -2,6 +2,9 @@
 
 #include <cuda.h>
 #include <cublas_v2.h>
+#include <memory>
+
+#include <assert.h>
 
 namespace amunmt {
 namespace GPU {
@@ -57,6 +60,6 @@ class CublasHandler {
     static thread_local cublasHandle_t* handle_;
 };
 
-} // namespace mblas
-} // namespace GPU
-}
+}  // namespace mblas
+}  // namespace GPU
+}  // namespace amunmt
