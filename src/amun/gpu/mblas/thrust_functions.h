@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cmath>
-#include <cublas_v2.h>   
-#include <thrust/device_vector.h>
+#include <cublas_v2.h>
+// #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 
 
@@ -12,7 +12,7 @@ namespace thrust
   {
     namespace functional
     {
-    
+
       template<typename T>
       struct unary_exp : public thrust::unary_function<T,T> {
         __host__ __device__

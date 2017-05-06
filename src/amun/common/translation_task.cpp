@@ -31,13 +31,13 @@ std::shared_ptr<Histories> TranslationTask(const God &god, std::shared_ptr<Sente
     //cerr << "histories=" << histories->size() << endl;
     return histories;
   }
-#ifdef CUDA
-  catch(thrust::system_error &e)
-  {
-    std::cerr << "CUDA error during some_function: " << e.what() << std::endl;
-    abort();
-  }
-#endif
+// #ifdef CUDA
+  // catch(thrust::system_error &e)
+  // {
+    // std::cerr << "CUDA error during some_function: " << e.what() << std::endl;
+    // abort();
+  // }
+// #endif
   catch(std::bad_alloc &e)
   {
     std::cerr << "Bad memory allocation during some_function: " << e.what() << std::endl;
@@ -48,9 +48,9 @@ std::shared_ptr<Histories> TranslationTask(const God &god, std::shared_ptr<Sente
     std::cerr << "Runtime error during some_function: " << e.what() << std::endl;
     abort();
   }
-  catch(...)
+  catch(std::exception& e)
   {
-    std::cerr << "Some other kind of error during some_function" << std::endl;
+    std::cerr << "Some other kind of error during some_function"<< e.what() << std::endl;
     abort();
   }
 

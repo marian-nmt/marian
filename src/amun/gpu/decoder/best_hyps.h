@@ -74,6 +74,7 @@ class BestHyps : public BestHypsBase
           std::vector<size_t>& beamSizes
           )
     {
+        std::cerr << "CALC BEAM" << std::endl;
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
@@ -108,7 +109,10 @@ class BestHyps : public BestHypsBase
       std::vector<float> bestCosts;
       std::vector<unsigned> bestKeys;
 
+        std::cerr << "Find BEST" << std::endl;
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+        std::cerr << "Find BEST DONE" << std::endl;
+        std::cerr << "Find BEST DONE" << bestCosts.size() << " " << bestKeys.size() << std::endl;
 
       std::vector<HostVector<float>> breakDowns;
       bool doBreakdown = god.Get<bool>("n-best");
@@ -143,6 +147,7 @@ class BestHyps : public BestHypsBase
         float cost = bestCosts[i];
 
         HypothesisPtr hyp;
+        std::cerr << "ADDING HYPS" << std::endl;
         if (returnAlignment) {
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
                                    GetAlignments(scorers, hypIndex)));

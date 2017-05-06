@@ -44,7 +44,7 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
 
   gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (Out.data(), In.data(), mapping.data(),
+    (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      batchNum, sentenceLength, stateLength);
 }
 
@@ -75,7 +75,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   int nBlocks =  (Out.size() / 512) + ((Out.size() % 512 == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Weights.data(), In.data(), mapping.data(),
+    (Out.data(), Weights.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      numRows, numCols, Weights.dim(1));
 }
 
@@ -203,7 +203,7 @@ Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indeces) {
   Out.Resize(indeces.size(), In.dim(1));
-  CopyRows(Out, In, indeces.data(), indeces.size());
+  CopyRows(Out, In, thrust::raw_pointer_cast(indeces.data()), indeces.size());
   return Out;
 }
 
@@ -373,8 +373,8 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (Out.data(), Out.dim(0), Out.dim(1),
-     batchIds.data(), batchIds.size(),
-     srcMapping.data(), srcSize);
+     thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
+     thrust::raw_pointer_cast(srcMapping.data()), srcSize);
   return Out;
 }
 
@@ -512,7 +512,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i) {
   int numBlocks = (state.size() / numThreads) + 1;
 
   float* d_in = state.data();
-  const int* d_mapping = mapping.data();
+  const int* d_mapping = thrust::raw_pointer_cast(mapping.data());
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (d_in, batchSize, stateLength, sentenceLength, d_mapping, i);

@@ -6,6 +6,10 @@
 #include "common/filter.h"
 #include "common/base_matrix.h"
 
+#ifdef CUDA
+#include <cuda.h>
+#endif
+
 using namespace std;
 
 namespace amunmt {
@@ -22,7 +26,7 @@ Search::~Search()
 {
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
-    cudaSetDevice(deviceInfo_.deviceId);
+    // cudaSetDevice(deviceInfo_.deviceId);
   }
 #endif
 }
@@ -30,7 +34,6 @@ const DeviceInfo& Search::GetDeviceInfo() const
 {
   return deviceInfo_;
 }
-
 const std::vector<ScorerPtr>& Search::GetScorers() const
 {
   return scorers_;
@@ -102,9 +105,11 @@ void Search::PreProcess(
 
 void Search::Encode(const Sentences& sentences, States& states) {
   for (size_t i = 0; i < scorers_.size(); i++) {
-    Scorer& scorer = *scorers_[i];
+    Scorer &scorer = *scorers_[i];
+    std::cerr << "Set Source" << std::endl;
     scorer.SetSource(sentences);
 
+    std::cerr << "BEgin Sentencs State" << std::endl;
     scorer.BeginSentenceState(*states[i], sentences.size());
   }
 }
@@ -157,6 +162,7 @@ bool Search::Decode(
       const State &state = *states[i];
       State &nextState = *nextStates[i];
 
+      std::cerr << "Decode" << std::endl;
       scorer.Decode(state, nextState, beamSizes);
     }
 
@@ -203,14 +209,20 @@ bool Search::CalcBeam(
     bool returnAlignment = god.Get<bool>("return-alignment");
     size_t batchSize = sentences.size();
 
+    std::cerr << "Calc Beam" << std::endl;
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
+    std::cerr << "DONE" << std::endl;
 
+    std::cerr << "ADD to historues" << std::endl;
+    std::cerr << beams.size() << std::endl;
+    std::cerr << histories->size() << " " << sentences.size() << std::endl;
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
         histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
       }
     }
 
+    std::cerr << "Surivors" << std::endl;
     for (size_t batchID = 0; batchID < batchSize; ++batchID) {
       for (auto& h : beams[batchID]) {
         if (h->GetWord() != EOS_ID) {
@@ -225,6 +237,7 @@ bool Search::CalcBeam(
       return false;
     }
 
+    std::cerr << "Assemble" << std::endl;
     for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
     }

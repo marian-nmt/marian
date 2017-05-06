@@ -23,7 +23,7 @@ class Sentences {
   }
 
   auto end() const -> decltype(coll_.cend()) {
-    return coll_.begin();
+    return coll_.cend();
   }
 
   SentencePtr at(size_t id) const {

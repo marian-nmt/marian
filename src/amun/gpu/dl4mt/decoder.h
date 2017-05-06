@@ -117,9 +117,12 @@ class Decoder {
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
 
+          std::cerr << "INIT PROD" << std::endl;
           Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
           if (w_.Gamma_1_) {
+            std::cerr << "INIT NORM" << std::endl;
             Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);
+            std::cerr << "INIT NORM DONE" << std::endl;
           }
         }
 
@@ -137,52 +140,63 @@ class Decoder {
               batchMapping[k++] = i;
             }
           }
+          for (auto i : batchMapping) std::cerr << i << " ";
+          std::cerr << std::endl;
 
+          std::cerr << "COPY" << std::endl;
           mblas::copy(batchMapping.data(),
               batchMapping.size(),
               dBatchMapping_.data(),
               cudaMemcpyHostToDevice);
 
           const size_t srcSize = mapping.size() / beamSizes.size();
+          std::cerr << srcSize << std::endl;
 
+          std::cerr << "TEMP2: " << std::endl;
+          Temp2_.debugDim();
+          std::cerr << "HP: " << std::endl;
+          HiddenState.debugDim();
+          std::cerr << "WW: " << std::endl;
+          w_.W_.debugDim();
+          // std::cerr << "HS: " << HiddenState.debugDim() << std::endl;
+          // std::cerr << "WW: " << w_.W_.debugDim() << std::endl;
+          std::cerr << "PROD" << std::endl;
           Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+          std::cerr << "PROD DONE" << std::endl;
           if (w_.Gamma_2_) {
+            std::cerr << "NORM" << std::endl;
             Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
           } else {
+            std::cerr << "BROD" << std::endl;
             BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
           }
 
+          std::cerr << "COPY" << std::endl;
           Copy(Temp1_, SCU_);
 
-          //std::cerr << std::endl;
-          //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          //std::cerr << "SCU_=" << SCU_.Debug() << std::endl;
-          //std::cerr << "1Temp1_=" << Temp1_.Debug() << std::endl;
-          //std::cerr << "Temp2_=" << Temp2_.Debug() << std::endl;
-
+          std::cerr << "BROD" << std::endl;
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
-          //std::cerr << "2Temp1_=" << Temp1_.Debug() << std::endl;
+          std::cerr << "RESHAPE" << std::endl;
           Temp1_.Reshape2D();
 
-          //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
-          //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
-
+          std::cerr << "PROD" << std::endl;
           Prod(A_, w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
 
-          //std::cerr << "1A_=" << A_.Debug() << std::endl;
+          std::cerr << "RESHAPE" << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          //std::cerr << "2A_=" << A_.Debug() << std::endl;
 
+          std::cerr << "SOFTMAX" << std::endl;
           mblas::Softmax(A_, dBatchMapping_, mapping, srcSize);
 
+          std::cerr << "RESIZE" << std::endl;
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
-          mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
-          //std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
+          std::cerr << "WEIGHTED MEAN" << std::endl;
+          mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
         }
 
         void GetAttention(mblas::Matrix& Attention) {
@@ -312,11 +326,14 @@ class Decoder {
                   const DeviceVector<int>& mapping,
                   const std::vector<size_t>& beamSizes) {
 
+      std::cerr << "Get Hidden State" << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
+      std::cerr << "Get Aligned Source Context" << std::endl;
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
+      std::cerr << "Get Next State" << std::endl;
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
+      std::cerr << "Get Get Probs" << std::endl;
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
-      
     }
 
     mblas::Matrix& GetProbs() {
@@ -327,12 +344,17 @@ class Decoder {
                     const mblas::Matrix& SourceContext,
                     size_t batchSize,
                     const DeviceVector<int>& batchMapping) {
+        std::cerr << "EMPTY STATE" << std::endl;
       rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
+        std::cerr << "ALIGN INItk" << std::endl;
       alignment_.Init(SourceContext);
+        std::cerr << "ALIGN INItk DONE" << std::endl;
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
-      Embedding.Clear();
+        std::cerr << "BATCH SIZE: " << batchSize << std::endl;
+      // Embedding.Clear();
+        std::cerr << embeddings_.GetCols() << std::endl;
       Embedding.Resize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }

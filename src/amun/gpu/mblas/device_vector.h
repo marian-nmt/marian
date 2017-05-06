@@ -70,17 +70,22 @@ class device_vector
       if (newSize > realSize_) {
         if (data_ == nullptr) {
           HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
+          realSize_ = newSize;
+          size_ = newSize;
         } else {
-        T* newData_;
-        HANDLE_ERROR( cudaMalloc((void**)&newData_, newSize * sizeof(T)) );
-        HANDLE_ERROR( cudaMemcpyAsync(
-            newData_,
-            data_,
-            size_ * sizeof(T),
-            cudaMemcpyDeviceToDevice,
-            CudaStreamHandler::GetStream())
-        );
-        HANDLE_ERROR( cudaFree(data_) );
+          T* newData;
+          HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
+          HANDLE_ERROR( cudaMemcpyAsync(
+                newData,
+                data_,
+                size_ * sizeof(T),
+                cudaMemcpyDeviceToDevice,
+                CudaStreamHandler::GetStream())
+          );
+          HANDLE_ERROR( cudaFree(data_) );
+          data_ = newData;
+          realSize_ = newSize;
+          size_ = newSize;
         }
       }
       size_ = newSize;
@@ -96,6 +101,12 @@ class device_vector
 
     T* data() const {
       return data_;
+    }
+
+    ~device_vector() {
+      if (data_) {
+        HANDLE_ERROR( cudaFree(data_) );
+      }
     }
 
   protected:

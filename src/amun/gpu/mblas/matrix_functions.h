@@ -5,7 +5,6 @@
 
 #include <cmath>
 #include <cublas_v2.h>
-#include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 #include <iostream>
 
@@ -31,8 +30,6 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
       std::cerr << m.GetVec()[i * m.dim(1) + j] << " ";
     }
     std::cerr << std::endl;
-    // if(i == 4)
-      // break;
   }
 }
 
@@ -180,20 +177,8 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   int threads = 512;
   int blocks  = (Temp.size() / threads) + 1;
 
-  /*
-  std::cerr << "\nTemp=" << Temp.Debug() << std::endl;
-  std::cerr << "Out=" << Out.Debug() << std::endl;
-  std::cerr << "In=" << In.Debug() << std::endl;
-  std::cerr << "srcSize=" << srcSize << std::endl;
-
-  std::cerr << "batchMapping=" << batchMapping.size() << ":";
-  for (size_t i = 0; i < batchMapping.size(); ++i) {
-    std::cerr << batchMapping[i] << " ";
-  }
-  std::cerr << std::endl;
-  */
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()),
+    (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, batchMapping.data(),
         batchMapping.size(), Temp.size(), Out.size(), In.size(), In.dim(0)
     );
 
@@ -238,7 +223,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<floa
   size_t cols = Out.dim(1);
 
   float* d_out = Out.data();
-  const float* d_in = thrust::raw_pointer_cast(In.data());
+  const float* d_in = In.data();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + (cols % threads != 0);

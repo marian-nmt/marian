@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <sstream>
-// #include <thrust/execution_policy.h>
+#include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 
 #include "common/exception.h"
@@ -18,26 +18,28 @@ using namespace thrust::placeholders;
 
 float Sum(const float *data, size_t count);
 
+
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
     typedef T value_type;
 
     TMatrix()
-      : rows_(0)
-      , cols_(0)
-      , beam_(0)
-      , batches_(0)
-      , arrSize_(0)
-      , data_(nullptr)
-    {}
+    : rows_(0)
+    , cols_(0)
+    , beam_(0)
+    , batches_(0)
+    , arrSize_(0)
+    , data_(nullptr)
+    {
+    }
 
     TMatrix(size_t rows, size_t cols, size_t beam, size_t batches, bool zero = false)
-      : rows_(rows)
-      , cols_(cols)
-      , beam_(1)
-      , batches_(1)
-      , arrSize_(size())
+    : rows_(rows)
+    , cols_(cols)
+    , beam_(1)
+    , batches_(1)
+    , arrSize_(size())
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       if (zero) {
@@ -46,7 +48,7 @@ class TMatrix : public BaseMatrix {
     }
 
     TMatrix(TMatrix&& m)
-      : TMatrix()
+    : TMatrix()
     {
       swap(m);
     }
@@ -59,6 +61,10 @@ class TMatrix : public BaseMatrix {
     , arrSize_(m.arrSize_)
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
+          std::cerr << m.data_ << std::endl;
+          std::cerr << data_ << std::endl;
+
+          std::cerr << "COPY: " << size() << " " << m.size() << std::endl;
       HANDLE_ERROR( cudaMemcpyAsync(
           data_,
           m.data_,
@@ -74,33 +80,40 @@ class TMatrix : public BaseMatrix {
 
     virtual size_t dim(size_t i) const
     {
-      switch (i) {
-        case 0: return rows_;
-        case 1: return cols_;
-        case 2: return beam_;
-        case 3: return batches_;
-        default: abort();
-      }
+    	switch (i) {
+    	case 0: return rows_;
+    	case 1: return cols_;
+    	case 2: return beam_;
+    	case 3: return batches_;
+    	default:
+    		abort();
+    	}
     }
 
     void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
       size_t newSize = cols * rows * beam * batches;
       if (data_) {
         if (newSize > arrSize_) {
-          T *newData;
+          T* newData;
           HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
 
+          std::cerr << newData << std::endl;
+          std::cerr << data_ << std::endl;
+
+          std::cerr << "RESIZE: " << size() << " " << newSize << std::endl;
           HANDLE_ERROR( cudaMemcpyAsync(
               newData,
               data_,
               size() * sizeof(T),
               cudaMemcpyDeviceToDevice,
-              CudaStreamHandler::GetStream()) );
+              CudaStreamHandler::GetStream())
+          );
 
           HANDLE_ERROR(cudaFree(data_));
           data_ = newData;
           arrSize_ = newSize;
-        } else if (rows == 0 || cols == 0) {
+        }
+        else if (rows == 0 || cols == 0) {
           Clear();
         }
       }
@@ -137,12 +150,12 @@ class TMatrix : public BaseMatrix {
       std::stringstream strm;
       strm << BaseMatrix::Debug(detailed) << " ";
       strm << data_ << " "
-           << arrSize_ << " "
+          << arrSize_ << " "
           << std::flush;
 
       if (detailed) {
-        // float sum = Sum(data(), size());
-        // strm << "size=" << size() << " sum=" << sum << std::flush;
+        float sum = Sum(data(), size());
+        strm << "size=" << size() << " sum=" << sum << std::flush;
       }
 
       return strm.str();
@@ -158,16 +171,24 @@ class TMatrix : public BaseMatrix {
       arrSize_ = 0;
     }
 
-    virtual value_type* data() {
+    value_type* data() {
       return data_;
     }
 
-    virtual const value_type* data() const {
+    const value_type* data() const {
       return data_;
     }
 
-    virtual size_t size() const {
+    size_t size() const {
+      // return data_.size();
       return cols_ * rows_ * beam_ * batches_;
+    }
+
+    void debugDim() const {
+        std::cerr << "Rows: " << rows_ << std::endl;
+        std::cerr << "Cols: " << cols_ << std::endl;
+        std::cerr << "Beam: " << beam_ << std::endl;
+        std::cerr << "Bathces: " << batches_ << std::endl;
     }
 
     void swap(TMatrix &other)
@@ -185,13 +206,13 @@ class TMatrix : public BaseMatrix {
       return (int)size() != 0;
     }
 
-  protected:
+  private:
     size_t rows_;
     size_t cols_;
     size_t beam_;
     size_t batches_;
     size_t arrSize_;
-    T* data_;
+    T *data_;
 };
 
 typedef TMatrix<float> Matrix;

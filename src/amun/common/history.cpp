@@ -69,6 +69,7 @@ Histories::Histories(const Sentences& sentences, bool normalize)
 {
   for (const auto& sentence : sentences) {
     coll_.emplace_back(new History(sentence->GetLineNum(), normalize));
+    std::cerr <<  "SIZE: " << size() << std::endl;
   }
 }
 
