@@ -16,7 +16,9 @@ Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &key
   Wx_(model[keys.at(3)]),
   Bx1_(model(keys.at(4), true)),
   Bx2_(Bx1_.rows(), Bx1_.columns()),
-  Ux_(model[keys.at(5)])
+  Ux_(model[keys.at(5)]),
+  Gamma_1_(model[keys.at(6)]),
+  Gamma_2_(model[keys.at(7)])
 {
     const_cast<mblas::Matrix&>(Bx2_) = 0.0f;
 }
