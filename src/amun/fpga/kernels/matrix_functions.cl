@@ -1,4 +1,3 @@
-#pragma once
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -12,8 +11,8 @@ float sumBase(__global float *input, uint count)
 }
 
 __kernel void sum_float(                                                    
-   __global float* input, 
-   __global float* output,
+   __global float* restrict input, 
+   __global float* restrict output,
    const uint count)
 {
   float ret = sumBase(input, count);
@@ -21,8 +20,8 @@ __kernel void sum_float(
 }                                      
 
 __kernel void sum_uint(                                                    
-   __global uint* input, 
-   __global uint* output,
+   __global uint* restrict input, 
+   __global uint* restrict output,
    const uint count)
 {
   uint ret = 0;
@@ -35,10 +34,10 @@ __kernel void sum_uint(
 /////////////////////////////////////////////////////////////////////////////
 
 __kernel void gCopyRows(
-	__global float* out, 
-	__global const float* in, 
+	__global float* restrict out, 
+	__global const float* restrict in, 
 	const uint cols,
-  __global const uint* targetRowIdx,
+  __global const uint* restrict targetRowIdx,
   const uint numPairs) 
 {
   for (uint j = 0; j < numPairs; ++j) {
@@ -64,8 +63,8 @@ __kernel void gCopyRows(
 /////////////////////////////////////////////////////////////////////////////
   
 __kernel void transpose(
-  __global float* out, 
-  __global const float* in, 
+  __global float* restrict out, 
+  __global const float* restrict in, 
   const uint rows,
   const uint cols)
 {
@@ -86,9 +85,9 @@ __kernel void transpose(
 /////////////////////////////////////////////////////////////////////////////
 
 __kernel void prod(
-  __global float* C, 
-  __global const float* A, 
-  __global const float* B, 
+  __global float* restrict C, 
+  __global const float* restrict A, 
+  __global const float* restrict B, 
   const uint rowsA,
   const uint colsA,
   const uint rowsB,
@@ -112,22 +111,22 @@ __kernel void prod(
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gElementwiseOps(__global float* out,
-                                __global const float* state,
-                                __global const float* ruh,
-                                __global const float* t,
-                                __global const float* b,
-                                __global const float* bx1,
-                                __global const float* bx2,
+__kernel void gElementwiseOps(__global float* restrict out,
+                                __global const float* restrict state,
+                                __global const float* restrict ruh,
+                                __global const float* restrict t,
+                                __global const float* restrict b,
+                                __global const float* restrict bx1,
+                                __global const float* restrict bx2,
                                 uint rows, uint cols) 
 {
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gElementTanh(__global float* out, 
-                          __global const float* in1, 
-                          __global const float* in2,
+__kernel void gElementTanh(__global float* restrict out, 
+                          __global const float* restrict in1, 
+                          __global const float* restrict in2,
                           uint rows, uint cols) 
 {
   uint noElements = rows * cols;
@@ -138,9 +137,9 @@ __kernel void gElementTanh(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gElementTanh2(__global float* out, 
-                          __global const float* in1, 
-                          __global const float* in2,
+__kernel void gElementTanh2(__global float* restrict out, 
+                          __global const float* restrict in1, 
+                          __global const float* restrict in2,
                           uint rows, uint cols) 
 {
   uint noElements = rows * cols;
@@ -151,9 +150,9 @@ __kernel void gElementTanh2(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gElementWhatever(__global float* out, 
-                          __global const float* in1, 
-                          __global const float* in2,
+__kernel void gElementWhatever(__global float* restrict out, 
+                          __global const float* restrict in1, 
+                          __global const float* restrict in2,
                           uint rows, uint cols) 
 {
   uint noElements = rows * cols;
@@ -165,8 +164,8 @@ __kernel void gElementWhatever(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gElementAddWeighted(__global float* out, 
-                          __global const float* in, 
+__kernel void gElementAddWeighted(__global float* restrict out, 
+                          __global const float* restrict in, 
                           uint rows, uint cols, float weight) 
 {
   uint noElements = rows * cols;
@@ -178,8 +177,8 @@ __kernel void gElementAddWeighted(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gBroadcastVecAdd(__global float* out, 
-                              __global const float* in, 
+__kernel void gBroadcastVecAdd(__global float* restrict out, 
+                              __global const float* restrict in, 
                               uint rows, uint cols) 
 {
   for (uint noColumn = 0; noColumn < cols; ++noColumn) {
@@ -197,8 +196,8 @@ __kernel void gBroadcastVecAdd(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gBroadcastVecTanh(__global float* out, 
-                              __global const float* in, 
+__kernel void gBroadcastVecTanh(__global float* restrict out, 
+                              __global const float* restrict in, 
                               uint rows, uint cols) 
 {
   for (uint noColumn = 0; noColumn < cols; ++noColumn) {
@@ -216,12 +215,12 @@ __kernel void gBroadcastVecTanh(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gBroadcastTanh(__global float* out, 
-                            __global const float* in1, 
-                            __global const float* in2,
+__kernel void gBroadcastTanh(__global float* restrict out, 
+                            __global const float* restrict in1, 
+                            __global const float* restrict in2,
                             uint srcSize, 
                             uint cols, 
-                            __global const int* batchMapping,
+                            __global const int* restrict batchMapping,
                            uint batchMappingSize, 
                            uint outSize, 
                            uint in1Size, 
@@ -252,8 +251,8 @@ __kernel void gBroadcastTanh(__global float* out,
 /////////////////////////////////////////////////////////////////////////////
 
 __kernel void gBroadcastVecColumnAddWeighted(
-                     __global float* out, 
-                     __global const float* in, 
+                     __global float* restrict out, 
+                     __global const float* restrict in, 
                      uint rows, uint cols,
                      float weight) 
 {
@@ -271,8 +270,8 @@ __kernel void gBroadcastVecColumnAddWeighted(
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gLogit(__global float* out, 
-                     __global const float* in, 
+__kernel void gLogit(__global float* restrict out, 
+                     __global const float* restrict in, 
                      uint rows, uint cols) 
 {
   uint i = 0;
@@ -288,8 +287,8 @@ __kernel void gLogit(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gSlice(__global float* out, 
-                    __global const float* in,
+__kernel void gSlice(__global float* restrict out, 
+                    __global const float* restrict in,
                    uint n, uint dim,
                    uint rows, uint cols) 
 {
@@ -309,10 +308,10 @@ __kernel void gSlice(__global float* out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gPasteRows(__global float* d_out, 
+__kernel void gPasteRows(__global float* restrict d_out, 
                     uint outRows, 
                     uint outCols, 
-                    __global const float* d_in, 
+                    __global const float* restrict d_in, 
                     uint inRows, 
                     uint inCols, 
                     uint colNo, 
@@ -329,11 +328,11 @@ __kernel void gPasteRows(__global float* d_out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gMapMatrix(__global float* d_in, 
+__kernel void gMapMatrix(__global float* restrict d_in, 
                     uint numRows, 
                     uint numCols, 
                     uint mappingCols, 
-                    __global const int* mapping, 
+                    __global const int* restrict mapping, 
                     uint i) 
 {
   for (uint batchIdx = 0; batchIdx < numRows; ++batchIdx) {
@@ -350,9 +349,9 @@ __kernel void gMapMatrix(__global float* d_in,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gMean(__global float* d_out, 
-                    __global const float* d_in, 
-                    __global const int* mapping,
+__kernel void gMean(__global float* restrict d_out, 
+                    __global const float* restrict d_in, 
+                    __global const int* restrict mapping,
                     uint batchNum, uint senLen, uint stateLength) 
 {
   for (uint id = 0; id < stateLength; ++id) {
@@ -376,12 +375,12 @@ __kernel void gMean(__global float* d_out,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gSoftMax(__global float* softMaxP, 
+__kernel void gSoftMax(__global float* restrict softMaxP, 
                        uint rows, 
                        uint cols,
-                       __global const int* batchIds,
+                       __global const int* restrict batchIds,
                        uint batchNum,
-                       __global const int* srcMapping,
+                       __global const int* restrict srcMapping,
                        uint srcNum) 
 {
   for (uint row = 0; row < rows; ++row) {
@@ -416,7 +415,7 @@ __kernel void gSoftMax(__global float* softMaxP,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gLogSoftMax(__global float* softMaxP, 
+__kernel void gLogSoftMax(__global float* restrict softMaxP, 
                        uint rows, 
                        uint cols)
 {
@@ -447,10 +446,10 @@ __kernel void gLogSoftMax(__global float* softMaxP,
 
 /////////////////////////////////////////////////////////////////////////////
 
-__kernel void gWeightedMean(__global float* d_out, 
-                            __global const float* weights, 
-                            __global const float* d_in, 
-                            __global const int* mapping,
+__kernel void gWeightedMean(__global float* restrict d_out, 
+                            __global const float* restrict weights, 
+                            __global const float* restrict d_in, 
+                            __global const int* restrict mapping,
                             uint numRows, uint numCols, uint srcLen) 
 {
 
@@ -474,11 +473,11 @@ __kernel void gWeightedMean(__global float* d_out,
 /////////////////////////////////////////////////////////////////////////////
 
 __kernel void gMaxElement(
-								__global float* d_out, 
-								__global int* d_ind, 
-								__global float* d_in, 
+								__global float* restrict d_out, 
+								__global int* restrict d_ind, 
+								__global float* restrict d_in, 
 								int numBatches, 
-								__global int* batchFirstElementIdxs)
+								__global int* restrict batchFirstElementIdxs)
 {
 
 }
@@ -486,8 +485,8 @@ __kernel void gMaxElement(
 /////////////////////////////////////////////////////////////////////////////
 
 void insertValue(
-                __global float *bestCost,
-                __global unsigned *bestInd,
+                __global float* restrict bestCost,
+                __global unsigned* restrict bestInd,
                 uint count,
                 float val,
                 uint insertInd,
@@ -513,8 +512,8 @@ void insertValue(
 }
 
 void replaceValueOrDiscard(
-                __global float *bestCost,
-                __global unsigned *bestInd,
+                __global float* restrict bestCost,
+                __global unsigned* restrict bestInd,
                 uint count,
                 float val,
                 uint insertInd,
@@ -546,15 +545,15 @@ void replaceValueOrDiscard(
 
 
 __kernel void gNthElement(
-                __global float *prob,
+                __global float* restrict prob,
                 uint rows, uint cols,
-                __global uint *beamSizes,
+                __global uint* restrict beamSizes,
                 uint beamSizesSize,
-                __global uint *d_cummulatedBeamSizes,
-                __global uint *d_batchFirstElementIdxs,
+                __global uint* restrict d_cummulatedBeamSizes,
+                __global uint* restrict d_batchFirstElementIdxs,
                 uint maxBatchSize,
-                __global float *bestCost,
-                __global unsigned *bestInd
+                __global float* restrict bestCost,
+                __global unsigned* restrict bestInd
                 )
 {
   uint offset = 0;
