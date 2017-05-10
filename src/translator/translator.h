@@ -13,22 +13,43 @@
 
 namespace marian {
 
+std::vector<Ptr<Scorer>>
+createScorers(Ptr<Config> options) {
+  std::vector<Ptr<Scorer>> scorers;
+  
+  auto models = options->get<std::vector<std::string>>("models");
+  
+  int dimVocab = options->get<std::vector<int>>("dim-vocabs").back();
+  
+  int i = 0;
+  for(auto model : models) {
+    std::string fname = "F" + std::to_string(i++);
+    
+    auto mOptions = New<Config>(*options);
+    mOptions->loadModelParameters(model);
+    scorers.push_back(New<ScorerWrapper<MultiHardSoftAtt>>(fname, 1.0f, model, mOptions));
+  }
+  
+  //scorers.push_back(New<WordPenalty>("F2", weights[1], dimVocab));
+  //scorers.push_back(New<UnseenWordPenalty>("F3", weights[2], dimVocab, 0));
+  
+  return scorers;
+}
+
 template <class Search>
 class TranslateMultiGPU : public ModelTask {
   private:
     Ptr<Config> options_;
     std::vector<Ptr<ExpressionGraph>> graphs_;
-    std::vector<Ptr<Scorer>> scorers_;
+    std::vector<std::vector<Ptr<Scorer>>> scorers_;
     
     Ptr<data::Corpus> corpus_;
     Ptr<Vocab> trgVocab_;
     //Ptr<LexProbs> lexProbs_;
     
   public:  
-    TranslateMultiGPU(Ptr<Config> options,
-                      const std::vector<Ptr<Scorer>>& scorers)
+    TranslateMultiGPU(Ptr<Config> options)
     : options_(options),
-      scorers_(scorers),
       corpus_(New<data::Corpus>(options_, true)),
       trgVocab_(New<Vocab>()) {
       
@@ -47,8 +68,10 @@ class TranslateMultiGPU : public ModelTask {
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
         
-        for(auto scorer : scorers_)
+        auto scorers = createScorers(options);    
+        for(auto scorer : scorers)
           scorer->init(graph);
+        scorers_.push_back(scorers);
       }
       
     }
@@ -69,12 +92,15 @@ class TranslateMultiGPU : public ModelTask {
         
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
+          thread_local std::vector<Ptr<Scorer>> scorers;
+          
           if(!graph) {
             graph = graphs_[id % devices.size()];
             cudaSetDevice(graph->getDevice());
+            scorers = scorers_[id % devices.size()];
           }
           
-          auto search = New<Search>(options_, scorers_);
+          auto search = New<Search>(options_, scorers);
           auto history = search->search(graph, batch, id);
       
           std::stringstream ss;
