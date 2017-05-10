@@ -57,31 +57,31 @@ class DecoderStateHardAtt : public DecoderState {
     
     virtual const std::vector<Expr>& getStates() { return states_; }
     
-    virtual const std::vector<float> breakDown(size_t i) {
-      auto costs = DecoderState::breakDown(i);
-      costs.resize(5, 0);
-      
-      int vocabSize = getProbs()->shape()[1];
-      int e = i % vocabSize;
-      int h = i / vocabSize;
-      
-      int a = attentionIndices_[h];
-      
-      auto& words = getEncoderState()->getSourceWords();
-      
-      if(e != 2) {
-        costs[1] = 1;
-        
-        if(words[a] == e)
-          costs[2] = 1;
-        else
-          costs[3] = 1;
-          
-        costs[4] = std::find(words.begin(), words.end(), e) == words.end();
-      }
-      
-      return costs;
-    }
+    //virtual const std::vector<float> breakDown(size_t i) {
+    //  auto costs = DecoderState::breakDown(i);
+    //  costs.resize(5, 0);
+    //  
+    //  int vocabSize = getProbs()->shape()[1];
+    //  int e = i % vocabSize;
+    //  int h = i / vocabSize;
+    //  
+    //  int a = attentionIndices_[h];
+    //  
+    //  auto& words = getEncoderState()->getSourceWords();
+    //  
+    //  if(e != 2) {
+    //    costs[1] = 1;
+    //    
+    //    if(words[a] == e)
+    //      costs[2] = 1;
+    //    else
+    //      costs[3] = 1;
+    //      
+    //    costs[4] = std::find(words.begin(), words.end(), e) == words.end();
+    //  }
+    //  
+    //  return costs;
+    //}
 };
 
 class DecoderHardAtt : public DecoderBase {
@@ -120,7 +120,8 @@ class DecoderHardAtt : public DecoderBase {
                                       std::vector<size_t>({0}));
     }
      
-    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -140,7 +141,6 @@ class DecoderHardAtt : public DecoderBase {
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
       
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
-      auto graph = trgEmbeddings->graph();
       
       auto context = stateHardAtt->getEncoderState()->getContext();
       int dimContext = context->shape()[1];
@@ -162,7 +162,6 @@ class DecoderHardAtt : public DecoderBase {
       auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis=1);
       int dimInput = rnnInputs->shape()[1];
     
-      
       if(!rnnL1)
         rnnL1 = New<RNN<GRU>>(graph, "decoder",
                               dimInput, dimDecState,
@@ -246,9 +245,8 @@ class DecoderHardAtt : public DecoderBase {
     
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
-                                  const std::vector<size_t>& embIdx,
-                                  size_t position=0) {
-      DecoderBase::selectEmbeddings(graph, state, embIdx, position);
+                                  const std::vector<size_t>& embIdx) {
+      DecoderBase::selectEmbeddings(graph, state, embIdx);
       
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
       
@@ -288,7 +286,8 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
     DecoderHardSoftAtt(Ptr<Config> options, Args ...args)
      : DecoderHardAtt(options, args...) {}
     
-    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -308,7 +307,6 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
       
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
-      auto graph = trgEmbeddings->graph();
       
       auto context = stateHardAtt->getEncoderState()->getContext();
       int dimContext = context->shape()[1];
@@ -433,7 +431,8 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
                                       std::vector<size_t>({0}));
     }
     
-    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -456,7 +455,6 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
       
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
-      auto graph = trgEmbeddings->graph();
       
       auto context = mEncState->enc1->getContext();
       int dimContext = context->shape()[1];
@@ -546,9 +544,8 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
     
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
-                                  const std::vector<size_t>& embIdx,
-                                  size_t position=0) {
-      DecoderBase::selectEmbeddings(graph, state, embIdx, position);
+                                  const std::vector<size_t>& embIdx) {
+      DecoderBase::selectEmbeddings(graph, state, embIdx);
       
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
       

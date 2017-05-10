@@ -165,7 +165,8 @@ class DecoderS2S : public DecoderBase {
       return New<DecoderStateS2S>(startStates, nullptr, encState);
     }
      
-    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -184,7 +185,6 @@ class DecoderS2S : public DecoderBase {
       auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
       
       auto embeddings = stateS2S->getTargetEmbeddings();
-      auto graph = embeddings->graph();
 
       if(dropoutTrg) {
         int dimBatch = embeddings->shape()[0];

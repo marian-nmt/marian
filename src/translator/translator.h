@@ -9,6 +9,8 @@
 #include "3rd_party/threadpool.h"
 #include "models/lex_probs.h"
 
+#include "translator/scorers.h"
+
 namespace marian {
 
 template <class Search>
@@ -16,23 +18,27 @@ class TranslateMultiGPU : public ModelTask {
   private:
     Ptr<Config> options_;
     std::vector<Ptr<ExpressionGraph>> graphs_;
+    std::vector<Ptr<Scorer>> scorers_;
+    
     Ptr<data::Corpus> corpus_;
     Ptr<Vocab> trgVocab_;
-    Ptr<LexProbs> lexProbs_;
+    //Ptr<LexProbs> lexProbs_;
     
   public:  
-    TranslateMultiGPU(Ptr<Config> options)
+    TranslateMultiGPU(Ptr<Config> options,
+                      const std::vector<Ptr<Scorer>>& scorers)
     : options_(options),
+      scorers_(scorers),
       corpus_(New<data::Corpus>(options_, true)),
       trgVocab_(New<Vocab>()) {
       
       auto vocabs = options_->get<std::vector<std::string>>("vocabs");
       trgVocab_->load(vocabs.back());
 
-      if(options_->has("lexical-table"))
-        lexProbs_ = New<LexProbs>(options_,
-                             corpus_->getVocabs().front(),
-                             trgVocab_);
+      //if(options_->has("lexical-table"))
+      //  lexProbs_ = New<LexProbs>(options_,
+      //                       corpus_->getVocabs().front(),
+      //                       trgVocab_);
         
       auto devices = options_->get<std::vector<int>>("devices");
       for(auto& device : devices) {
@@ -41,11 +47,8 @@ class TranslateMultiGPU : public ModelTask {
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_.push_back(graph);
         
-        typedef typename Search::model_type Model;
-        auto model = New<Model>(options_,
-                                keywords::inference=true,
-                                keywords::lex_probs=lexProbs_);
-        model->load(graph, options_->get<std::string>("model"));
+        for(auto scorer : scorers_)
+          scorer->init(graph);
       }
       
     }
@@ -71,8 +74,7 @@ class TranslateMultiGPU : public ModelTask {
             cudaSetDevice(graph->getDevice());
           }
           
-          auto search = New<Search>(options_,
-                                    keywords::lex_probs=lexProbs_);
+          auto search = New<Search>(options_, scorers_);
           auto history = search->search(graph, batch, id);
       
           std::stringstream ss;

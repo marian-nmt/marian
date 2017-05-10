@@ -24,6 +24,11 @@ class Config {
       addOptions(argc, argv, validate, translate);
       log();
     }
+    
+    Config(const Config& other)
+     : config_(YAML::Clone(other.config_)),
+       modelFeatures_(other.modelFeatures_)
+    {}
 
     bool has(const std::string& key) const;
 
@@ -86,7 +91,6 @@ class Config {
 
   private:
     boost::program_options::options_description cmdline_options_;
-    std::string inputPath;
     YAML::Node config_;
     std::vector<std::string> modelFeatures_;
 };

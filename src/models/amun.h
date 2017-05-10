@@ -134,7 +134,8 @@ class DecoderAmun : public DecoderBase {
       return New<DecoderStateAmun>(start, nullptr, encState);
     }
      
-    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -149,8 +150,6 @@ class DecoderAmun : public DecoderBase {
 
       auto stateAmun = std::dynamic_pointer_cast<DecoderStateAmun>(state);
       auto embeddings = stateAmun->getTargetEmbeddings();
-      
-      auto graph = embeddings->graph();
 
       if(dropoutTrg) {
         int trgWords = embeddings->shape()[2];

@@ -39,12 +39,6 @@ class DecoderState {
     virtual const std::vector<size_t>& getSourceWords() {
       return getEncoderState()->getSourceWords();
     }
-    
-    virtual const std::vector<float> breakDown(size_t i) {
-      std::vector<float> costs(1, 0);
-      costs[0] = getProbs()->val()->get(i);
-      return costs;
-    }
 };
 
 }

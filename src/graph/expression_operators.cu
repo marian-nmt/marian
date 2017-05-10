@@ -9,12 +9,6 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
-Expr name(Expr a, const std::string& name) {
-  a->set_name(name);
-  a->graph()->add_named_node(a, name);
-  return a;
-}
-
 Expr rows(Expr a, const std::vector<size_t>& indeces) {
   return Expression<RowsNodeOp>(a, indeces);
 }

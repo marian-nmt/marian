@@ -10,8 +10,6 @@ Expr inference(Expr a);
 
 Expr debug(Expr a, const std::string& message = "");
 
-Expr name(Expr a, const std::string& name);
-
 Expr rows(Expr a, const std::vector<size_t>& indeces);
 Expr cols(Expr a, const std::vector<size_t>& indeces);
 

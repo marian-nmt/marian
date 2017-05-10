@@ -286,11 +286,11 @@ namespace marian {
         while(*batchGenerator) {
           auto batch = batchGenerator->next();
           
-          auto search = New<BeamSearch<Builder>>(options_);
-          auto history = search->search(graph, batch, samples);
+          //auto search = New<BeamSearch<Builder>>(options_);
+          //auto history = search->search(graph, batch, samples);
     
           std::stringstream ss;
-          Printer(options_, vocabs_.back(), history, ss);
+          //Printer(options_, vocabs_.back(), history, ss);
           outputs.push_back(ss.str());
           
           samples++;

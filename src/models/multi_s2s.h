@@ -165,7 +165,8 @@ class MultiDecoderS2S : public DecoderBase {
       return New<DecoderStateMultiS2S>(startStates, nullptr, mEncState);
     }
 
-    virtual Ptr<DecoderState> step(Ptr<DecoderState> state) {
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
@@ -187,7 +188,6 @@ class MultiDecoderS2S : public DecoderBase {
       auto decState = std::dynamic_pointer_cast<DecoderStateMultiS2S>(state);
       
       auto embeddings = decState->getTargetEmbeddings();
-      auto graph = embeddings->graph();
 
       if(dropoutTrg) {
         int trgWords = embeddings->shape()[2];

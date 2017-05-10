@@ -351,7 +351,6 @@ namespace marian {
 
         auto cost = mean(sum(ce, keywords::axis=2),
                          keywords::axis=0);
-        name(cost, name_);
         return cost;
       }
 

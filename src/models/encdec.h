@@ -107,8 +107,7 @@ class DecoderBase {
     
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
-                                  const std::vector<size_t>& embIdx,
-                                  size_t position=0) {
+                                  const std::vector<size_t>& embIdx) {
       using namespace keywords;
       
       int dimTrgEmb = options_->get<int>("dim-emb");
@@ -123,31 +122,14 @@ class DecoderBase {
       else {
         auto yEmb = Embedding(prefix_ + "_Wemb", dimTrgVoc, dimTrgEmb)(graph);
         selectedEmbs = rows(yEmb, embIdx);
-        
-        if(dimPosEmb) {
-          int dimMax = options_->get<size_t>("max-length");
-          auto yPos = Embedding(prefix_ + "_Wpos", dimMax + 1, dimPosEmb)(graph);
-          
-          if(position > dimMax)
-            position = dimMax;
-          
-          std::vector<size_t> positions(embIdx.size(), position);
-          auto selectedPositions = rows(yPos, positions);
-          
-          selectedEmbs = concatenate({selectedEmbs, selectedPositions},
-                                      axis=1);
-          dimTrgEmb += dimPosEmb;
-        }
-        
+                
         selectedEmbs = reshape(selectedEmbs,
                                {1, dimTrgEmb, 1, (int)embIdx.size()});
-        
       }
-      
       state->setTargetEmbeddings(selectedEmbs);
     }
-        
-    virtual Ptr<DecoderState> step(Ptr<DecoderState>) = 0;
+             
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 };
 
 class EncoderDecoderBase {
@@ -164,11 +146,16 @@ class EncoderDecoderBase {
 
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
-                                  const std::vector<size_t>&,
-                                  size_t position) = 0;
+                                  const std::vector<size_t>&) = 0;
     
     virtual Ptr<DecoderState>
-    step(Ptr<DecoderState>) = 0;
+    step(Ptr<ExpressionGraph> graph,
+         Ptr<DecoderState>,
+         const std::vector<size_t>&,
+         const std::vector<size_t>&) = 0;
+
+    virtual Ptr<DecoderState>
+    step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
@@ -259,15 +246,29 @@ class EncoderDecoder : public EncoderDecoderBase {
     }
     
     virtual Ptr<DecoderState>
-    step(Ptr<DecoderState> state) {
-      return decoder_->step(state);
+    step(Ptr<ExpressionGraph> graph,
+         Ptr<DecoderState> state) {
+      return decoder_->step(graph, state);
+    }
+    
+    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state,
+                                   const std::vector<size_t>& hypIndices,
+                                   const std::vector<size_t>& embIndices) {
+
+      auto selectedState = hypIndices.empty() ? state : state->select(hypIndices);
+      
+      selectEmbeddings(graph, selectedState, embIndices);    
+      selectedState->setSingleStep(true);
+      auto nextState = step(graph, selectedState);
+      nextState->setProbs(logsoftmax(nextState->getProbs()));
+      return nextState;
     }
     
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
-                                  const std::vector<size_t>& embIdx,
-                                  size_t position) {
-      return decoder_->selectEmbeddings(graph, state, embIdx, position);
+                                  const std::vector<size_t>& embIdx) {
+      return decoder_->selectEmbeddings(graph, state, embIdx);
     }
 
     virtual Expr build(Ptr<ExpressionGraph> graph,
@@ -283,7 +284,7 @@ class EncoderDecoder : public EncoderDecoderBase {
       std::tie(trgMask, trgIdx) = decoder_->groundTruth(state, graph, batch,
                                                         batchIndices_.back());
       
-      auto nextState = step(state);
+      auto nextState = step(graph, state);
       
       auto cost = CrossEntropyCost(prefix_ + "cost")
                     (nextState->getProbs(), trgIdx, mask=trgMask);

@@ -4,9 +4,9 @@
 #include "models/s2s.h"
 #include "models/multi_s2s.h"
 #include "models/hardatt.h"
-#include "models/hardatt_cdi.h"
-#include "models/s2s_rec.h"
-#include "models/s2s_symmetric.h"
+//#include "models/hardatt_cdi.h"
+//#include "models/s2s_rec.h"
+//#include "models/s2s_symmetric.h"
 
 namespace marian {
   
@@ -31,12 +31,6 @@ namespace marian {
       return New<TaskName<Wrapper<HardSoftAtt>>>(options);
     else if(type == "multi-hard-att")
       return New<TaskName<Wrapper<MultiHardSoftAtt>>>(options);
-    else if(type == "hard-att-cdi")
-      return New<TaskName<Wrapper<HardAttCDI>>>(options);
-    else if(type == "s2s-rec")
-      return New<TaskName<Wrapper<EncoderDecoderRec>>>(options);   
-    else if(type == "s2s-symm")
-      return New<TaskName<Wrapper<SymmetricS2S>>>(options);   
     else
       UTIL_THROW2("Unknown model type: " << type);
   }

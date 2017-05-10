@@ -164,9 +164,21 @@ void Config::addOptionsCommon(po::options_description& desc) {
 
 void Config::addOptionsModel(po::options_description& desc, bool translate=false) {
   po::options_description model("Model options", guess_terminal_width());
+  
+  if(!translate) {
+    model.add_options()
+      ("model,m", po::value<std::string>()->default_value("model.npz"),
+      "Path prefix for model to be saved/resumed");
+  }
+  else {
+    model.add_options()
+    ("models,m", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"model.npz"}), "model.npz"),
+      "Paths to model(s) to be loaded");
+  }
+  
   model.add_options()
-    ("model,m", po::value<std::string>()->default_value("model.npz"),
-      "Path prefix for model to be saved/resumed")
     ("type", po::value<std::string>()->default_value("amun"),
       "Model type (possible values: amun, s2s, multi-s2s)")
     ("dim-vocabs", po::value<std::vector<int>>()
@@ -383,7 +395,14 @@ void Config::addOptions(int argc, char** argv,
   }
 
   /** model **/
-  SET_OPTION("model", std::string);
+  
+  if(!translate) {
+    SET_OPTION("model", std::string);
+  }
+  else {
+    SET_OPTION("models", std::vector<std::string>);    
+  }
+  
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
@@ -495,15 +514,17 @@ void Config::addOptions(int argc, char** argv,
     seed = (size_t) time(0);
   else
     seed = vm_["seed"].as<size_t>();
-    
-  if(boost::filesystem::exists(vm_["model"].as<std::string>()) &&
-     (translate || !vm_["no-reload"].as<bool>())) {
-    try {
-      loadModelParameters(vm_["model"].as<std::string>());
-    }
-    catch(std::runtime_error& e) {
-      // @TODO do this with log
-      std::cerr << "No model parameters found in model file" << std::endl;
+  
+  if(!translate) {
+    if(boost::filesystem::exists(vm_["model"].as<std::string>()) &&
+       (translate || !vm_["no-reload"].as<bool>())) {
+      try {
+        loadModelParameters(vm_["model"].as<std::string>());
+      }
+      catch(std::runtime_error& e) {
+        // @TODO do this with log
+        std::cerr << "No model parameters found in model file" << std::endl;
+      }
     }
   }
 }

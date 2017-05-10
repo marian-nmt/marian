@@ -35,12 +35,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::list<Expr> nodesBackward_;
 
     /** @brief Maps from name to expression node. */
-    std::map<std::string, WExpr> named_;
+    //std::map<std::string, WExpr> named_;
 
     /** @brief Contains all nodes with regard to which we want to calculate derivatives */
     std::unordered_set<Expr> topNodes_;
 
     Ptr<Parameters> params_;
+    
     Ptr<TensorAllocator> tensors_;
 
     cublasHandle_t cublasHandle_;
@@ -50,6 +51,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::unordered_map<size_t, WExpr> hashMap_;
     
     bool inferenceOnly_{false};
+    std::string namespace_;
 
   protected:
     // delete copy and move constructors
@@ -70,8 +72,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void setDevice(size_t device = 0) {
       device_ = device;
+      
       params_ = New<Parameters>();
-      params_->init(device);
+      params_->init(device_);
+      
       tensors_ = New<TensorAllocator>(device);
       cublasHandle_ = create_handle(device);
       curandGenerator_ = createCurandGenerator(device, Config::seed);
@@ -87,6 +91,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     size_t getDevice() {
       return device_;
+    }
+    
+    void switchParams(const std::string& newNamespace) {
+      namespace_ = newNamespace;
     }
 
     void reserveWorkspaceMB(size_t num) {
@@ -133,7 +141,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
         tensors_->throwAtReallocation(false);
       }
       catch (AllocationException& e) {
-        //std::cerr << e.what() << std::endl;
         tensors_->throwAtReallocation(false);
         return false;
       }
@@ -155,14 +162,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
         v->allocate();
         v->init();
         v->forward();
-
+        
         if(v->marked_for_debug()) {
           std::cerr << "Debug: " << v->debug_message() << std::endl;
           std::cerr << v->val()->debug() << std::endl;
         }
         
-        if(inferenceOnly_)
-          v->children().clear();
+        //if(inferenceOnly_)
+        //  v->children().clear();
         nodesForward_.pop_front();
       }
     }
@@ -185,11 +192,11 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       params_->allocateBackward();
       params_->set_zero_adjoint();
-
+      
       for(auto&& v : topNodes_)
         v->init_dependent();
         
-      named_.clear();
+      //named_.clear();
       topNodes_.clear();
       hashMap_.clear();
 
@@ -243,10 +250,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       dot.close();
     }
 
-    void dump(const std::string& filename) {
-      std::cerr << "Saving not yet implemented" << std::endl;
-    }
-
     /*********************************************************/
 
     /**
@@ -260,9 +263,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed parameter node
      */
     template <typename ...Args>
-    inline Expr param(const std::string& name,
+    inline Expr param(std::string name,
                       Shape shape,
                       Args ...args) {
+      
+      if(!namespace_.empty())
+        name = namespace_ + "::" + name;
+      
       // check first if parameter already exists
       auto p = params_->get(name);
       if(p) {
@@ -354,15 +361,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      *
      * @return the first item in the list with the specified name, if such an item exists
      */
-    Expr get(const std::string& name) {
+    Expr get(std::string name) {
+      if(!namespace_.empty())
+        name = namespace_ + "::" + name;
+      
       auto e = params_->get(name);
       if(e)
         return e;
-
-      auto it = named_.find(name);
-      if(it == named_.end())
-        return Expr();
-      return it->second.lock();
+      return Expr();
     }
 
     /**
@@ -374,28 +380,14 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       return params_;
     }
 
-    /**
-     * @brief Inserts an expression node with a specified name into the expression graph.
-     *
-     * @param e an expression node
-     * @param name name of the expression node
-     *
-     * @return the expression node that was added to the expression graph
-     */
-    void add_named_node(Expr e, const std::string& name) {
-      UTIL_THROW_IF2(params_->get(name) || get(name),
-                     "Node names must be unique");
-
-      named_.emplace(name, e);
-    }
-
     Expr add(Expr node) {
       //size_t group = 0;
 
       size_t hash = node->hash();
       auto it = hashMap_.find(hash);
-      if(it != hashMap_.end())
+      if(it != hashMap_.end()) {
         return it->second.lock();
+      }
 
       hashMap_[hash] = node;
 
@@ -429,7 +421,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       nodesForward_.clear();
       nodesBackward_.clear();
      
-      named_.clear();
       topNodes_.clear();
       hashMap_.clear(); 
       tensors_->clear();
@@ -476,6 +467,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       cudaSetDevice(getDevice());
       for(auto p : params()->getMap()) {
+        std::string pName = p.first;
+        
+        if(!namespace_.empty()) {
+          if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
+            pName = pName.substr(namespace_.size() + 2); 
+        }
+        
         std::vector<float> v;
         p.second->val() >> v;
 
@@ -489,7 +487,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           shape[1] = p.second->shape()[1];
           dim = 2;
         }
-        std::string pName = p.first;
         cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
         mode = "a";
       }
