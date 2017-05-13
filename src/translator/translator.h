@@ -13,25 +13,70 @@
 
 namespace marian {
 
+Ptr<Scorer> wrapScorer(std::string fname, float weight,
+                       std::string model, Ptr<Config> options) {
+  
+  std::string type = options->get<std::string>("type");
+  
+  std::cerr << type << std::endl;
+  
+  if(type == "s2s") {
+    
+    // hacky hack
+    std::vector<size_t> idx = {0, 2};
+      
+    if(fname == "F5")
+      idx = {1, 2};
+    
+    return New<ScorerWrapper<S2S>>(fname, weight,
+                                   model, options,
+                                   idx);
+  }
+  else if(type == "multi-att") {
+    return New<ScorerWrapper<MultiS2S>>(fname, weight,
+                                         model, options,
+                                         std::vector<size_t>({0, 1, 2}));
+  }
+  else if(type == "hard-att") {
+    return New<ScorerWrapper<HardAtt>>(fname, weight,
+                                       model, options);
+  }
+  else if(type == "hard-soft-att") {
+    return New<ScorerWrapper<HardSoftAtt>>(fname, weight,
+                                           model, options);
+  }
+  else if(type == "multi-hard-att") {
+    return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight,
+                                                model, options,
+                                                std::vector<size_t>({0, 1, 2}));
+  }
+  else {
+    return New<ScorerWrapper<S2S>>(fname, weight,
+                                   model, options);
+  }
+}
+
 std::vector<Ptr<Scorer>>
 createScorers(Ptr<Config> options) {
   std::vector<Ptr<Scorer>> scorers;
   
   auto models = options->get<std::vector<std::string>>("models");
-  
   int dimVocab = options->get<std::vector<int>>("dim-vocabs").back();
+  
+  std::vector<float> weights = { 1, 1, 1, 1, 0, 0, 0, 0 };
   
   int i = 0;
   for(auto model : models) {
-    std::string fname = "F" + std::to_string(i++);
+    std::string fname = "F" + std::to_string(i);
     
     auto mOptions = New<Config>(*options);
     mOptions->loadModelParameters(model);
-    scorers.push_back(New<ScorerWrapper<MultiHardSoftAtt>>(fname, 1.0f, model, mOptions));
+    scorers.push_back(wrapScorer(fname, weights[i], model, mOptions));
+    i++;
   }
   
-  //scorers.push_back(New<WordPenalty>("F2", weights[1], dimVocab));
-  //scorers.push_back(New<UnseenWordPenalty>("F3", weights[2], dimVocab, 0));
+  scorers.push_back(New<WordPenalty>("F6", weights[i++], dimVocab));
+  scorers.push_back(New<UnseenWordPenalty>("F7", weights[i++], dimVocab, 0));
   
   return scorers;
 }

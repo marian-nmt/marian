@@ -64,7 +64,20 @@ class ScorerWrapper : public Scorer {
                   const std::string& fname,
                   Ptr<Config> options, Args ...args)
     : Scorer(name, weight),
-      encdec_(New<EncoderDecoder>(options, keywords::inference=true, args...)),
+      encdec_(New<EncoderDecoder>(options, std::vector<size_t>({0, 1}),
+                                  keywords::inference=true, args...)),
+      fname_(fname)
+    {}
+
+    template <class ...Args>
+    ScorerWrapper(const std::string& name, float weight,
+                  const std::string& fname,
+                  Ptr<Config> options,
+                  const std::vector<size_t>& batchIndices,
+                  Args ...args)
+    : Scorer(name, weight),
+      encdec_(New<EncoderDecoder>(options, batchIndices,
+                                  keywords::inference=true, args...)),
       fname_(fname)
     {}
     
