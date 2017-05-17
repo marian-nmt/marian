@@ -423,15 +423,15 @@ class AsyncGraphGroup : public GraphGroup {
 
             for (int h_id = 0; h_id < history_size_; h_id++){
               Tensor param; 
-	      Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
-	      allocator->reserveExact(__size__);
+        Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
+        allocator->reserveExact(__size__);
               allocator->allocate(param, {1, __size__});
               paramsAlloc_.push_back(allocator);
               param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__ ));
               params_[h_id].push_back(param);
             }
 
-	    if (drop_rate_) tmpTensor.push_back( newTensor(__size__, device));
+      if (drop_rate_) tmpTensor.push_back( newTensor(__size__, device));
             pos += __size__;
           }
         }
@@ -476,7 +476,7 @@ class AsyncGraphGroup : public GraphGroup {
           int totalSize = graphs_[0]->params()->vals()->size();
           int sparseCap = totalSize / 10;
           for (auto device : devices_){
-		        sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
+            sparseGrads_.push_back( SparseTensor(new SparseTensorBase( sparseCap, device )) );
             localSparseGrads_.push_back( SparseTensor(new SparseTensorBase(sparseCap , device )) );
             tmpSparseDelta.push_back( SparseTensor(new SparseTensorBase(sparseCap / devices_.size() , device )) );
             std::vector<SparseTensor> tmp;
