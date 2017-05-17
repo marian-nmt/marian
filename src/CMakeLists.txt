@@ -17,7 +17,6 @@ cuda_add_library(marian_lib
   kernels/sparse.cu
   layers/param_initializers.cpp
   layers/attention.cu
-  models/lex_probs.cu
   common/utils.cpp
   common/logging.cpp
   training/config.cpp

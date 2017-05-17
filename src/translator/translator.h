@@ -7,7 +7,7 @@
 #include "translator/printer.h"
 #include "translator/output_collector.h"
 #include "3rd_party/threadpool.h"
-#include "models/lex_probs.h"
+//#include "models/lex_probs.h"
 
 #include "translator/scorers.h"
 

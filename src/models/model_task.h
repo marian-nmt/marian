@@ -4,9 +4,6 @@
 #include "models/s2s.h"
 #include "models/multi_s2s.h"
 #include "models/hardatt.h"
-//#include "models/hardatt_cdi.h"
-//#include "models/s2s_rec.h"
-//#include "models/s2s_symmetric.h"
 
 namespace marian {
   
