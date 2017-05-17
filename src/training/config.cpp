@@ -269,10 +269,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.999),
      "decay factor for moving average")
-    ("lexical-table", po::value<std::string>(),
-     "Load lexical table")
-    ("guided-alignment", po::value<std::string>(),
-     "Use guided alignment to guide attention")
+    //("lexical-table", po::value<std::string>(),
+    // "Load lexical table")
+    //("guided-alignment", po::value<std::string>(),
+    // "Use guided alignment to guide attention")
   ;
   desc.add(training);
 }
@@ -339,8 +339,7 @@ void Config::addOptionsTranslate(po::options_description& desc) {
     ("lexical-table", po::value<std::string>(),                                                                                 
      "Path to lexical table")
     ("weights", po::value<std::vector<float>>()
-      ->multitoken()
-      ->default_value(std::vector<float>({1}), "1"),
+      ->multitoken(),
       "Scorer weights")
     
   ;
@@ -447,8 +446,8 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-    SET_OPTION_NONDEFAULT("lexical-table", std::string);
-    SET_OPTION_NONDEFAULT("guided-alignment", std::string);
+    //SET_OPTION_NONDEFAULT("lexical-table", std::string);
+    //SET_OPTION_NONDEFAULT("guided-alignment", std::string);
   }
   /** training end **/
   else {
@@ -457,7 +456,8 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("allow-unk", bool);
-    SET_OPTION_NONDEFAULT("lexical-table", std::string);
+    SET_OPTION_NONDEFAULT("weights", std::vector<float>);
+    //SET_OPTION_NONDEFAULT("lexical-table", std::string);
   }
 
   /** valid **/

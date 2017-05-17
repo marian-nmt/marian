@@ -186,4 +186,63 @@ class UnseenWordPenalty : public Scorer {
     }
 };
 
+Ptr<Scorer> scorerByType(std::string fname, float weight,
+                         std::string model, Ptr<Config> options) {
+  
+  std::string type = options->get<std::string>("type");
+  
+  if(type == "s2s") {
+    return New<ScorerWrapper<S2S>>(fname, weight,
+                                   model, options);
+  }
+  if(type == "amun") {
+    return New<ScorerWrapper<Amun>>(fname, weight,
+                                   model, options);
+  }
+  else if(type == "multi-s2s") {
+    return New<ScorerWrapper<MultiS2S>>(fname, weight,
+                                         model, options);
+  }
+  else if(type == "hard-att") {
+    return New<ScorerWrapper<HardAtt>>(fname, weight,
+                                       model, options);
+  }
+  else if(type == "hard-soft-att") {
+    return New<ScorerWrapper<HardSoftAtt>>(fname, weight,
+                                           model, options);
+  }
+  else if(type == "multi-hard-att") {
+    return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight,
+                                                model, options);
+  }
+  else {
+    return New<ScorerWrapper<S2S>>(fname, weight,
+                                   model, options);
+  }
+}
+
+std::vector<Ptr<Scorer>>
+createScorers(Ptr<Config> options) {
+  std::vector<Ptr<Scorer>> scorers;
+  
+  auto models = options->get<std::vector<std::string>>("models");
+  int dimVocab = options->get<std::vector<int>>("dim-vocabs").back();
+  
+  std::vector<float> weights(models.size(), 1.f);
+  if(options->has("weights"))
+    weights = options->get<std::vector<float>>("weights");
+  
+  int i = 0;
+  for(auto model : models) {
+    std::string fname = "F" + std::to_string(i);
+    auto modelOptions = New<Config>(*options);
+    modelOptions->loadModelParameters(model);
+    scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
+    i++;
+  }
+  
+  return scorers;
+}
+
+
 }
