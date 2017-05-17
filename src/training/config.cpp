@@ -273,6 +273,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
     // "Load lexical table")
     //("guided-alignment", po::value<std::string>(),
     // "Use guided alignment to guide attention")
+    ("drop-rate", po::value<double>()->default_value(0),
+     "gradient drop ratio. (read: https://arxiv.org/abs/1704.05021") 
   ;
   desc.add(training);
 }
@@ -448,6 +450,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("moving-decay", double);
     //SET_OPTION_NONDEFAULT("lexical-table", std::string);
     //SET_OPTION_NONDEFAULT("guided-alignment", std::string);
+    SET_OPTION("drop-rate", double);
   }
   /** training end **/
   else {
