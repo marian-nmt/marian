@@ -260,7 +260,6 @@ class Corpus {
     std::vector<Ptr<Vocab>> vocabs_;
     size_t maxLength_;
 
-    std::random_device rd_;
     std::mt19937 g_;
     std::vector<size_t> ids_;
     size_t pos_{0};
