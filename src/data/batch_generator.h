@@ -35,7 +35,9 @@ class BatchGenerator {
 
     std::deque<BatchPtr> bufferedBatches_;
     BatchPtr currentBatch_;
-
+    
+    std::mt19937 g_;
+    
     void fillBatches(bool shuffle=true) {
       auto cmp = [](const sample& a, const sample& b) {
         return a[0].size() < b[0].size();
@@ -108,7 +110,7 @@ class BatchGenerator {
         bufferedBatches_.push_back(data_->toBatch(batchVector));
 
       if(shuffle) {
-        std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
+        std::shuffle(bufferedBatches_.begin(), bufferedBatches_.end(), g_);
       }
     }
 
@@ -118,7 +120,8 @@ class BatchGenerator {
                    Ptr<BatchStats> stats = nullptr)
     : data_(data),
       options_(options),
-      stats_(stats) { }
+      stats_(stats),
+      g_(Config::seed)  { }
 
     operator bool() const {
       return !bufferedBatches_.empty();
