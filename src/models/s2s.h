@@ -284,14 +284,15 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
         std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
 
         Expr alnCost;
+        float eps = 1e-6;
         if(guidedCostType == "mse") {
           alnCost = sum(flatten(square(att - aln))) / (2 * dimBatch);
         }
         else if(guidedCostType == "mult") {
-          alnCost = -log(sum(flatten(att * aln))) / dimBatch;
+          alnCost = -log(sum(flatten(att * aln)) + eps) / dimBatch;
         }
         else if(guidedCostType == "ce") {
-          alnCost = -sum(flatten(aln * log(att))) / dimBatch;
+          alnCost = -sum(flatten(aln * log(att + eps))) / dimBatch;
         }
         else {
           UTIL_THROW2("Unknown alignment cost type");
