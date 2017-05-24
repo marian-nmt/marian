@@ -217,6 +217,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Use WIPO specific n-best-list format and non-buffering single-threading")
     ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return alignment.")
+    ("return-soft-alignment", po::value<bool>()->zero_tokens()->default_value(false),
+     "If true, return soft alignment.")
     ("max-length", po::value<size_t>()->default_value(500),
       "Maximum length of input sentences. Anything above this is truncated. 0=no max length")
     ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
@@ -289,6 +291,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("normalize", bool);
   SET_OPTION("wipo", bool);
   SET_OPTION("return-alignment", bool);
+  SET_OPTION("return-soft-alignment", bool);
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
   SET_OPTION("no-debpe", bool);

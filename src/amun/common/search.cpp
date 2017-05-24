@@ -147,7 +147,7 @@ bool Search::CalcBeam(
 		States &nextStates
 		)
 {
-    bool returnAlignment = god.Get<bool>("return-alignment");
+    bool returnAlignment = god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment");
     size_t batchSize = sentences.size();
 
     bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
