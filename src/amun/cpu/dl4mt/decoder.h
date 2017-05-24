@@ -59,9 +59,14 @@ class Decoder {
 
           State = Temp2_ * w_.Wi_;
 
-          AddBiasVector<byRow>(State, w_.Bi_);
+          if (w_.Gamma_.rows()) {
+            LayerNormalization(State, w_.Gamma_);
+            AddBiasVector<byRow>(State, w_.Bi_);
+          } else {
+            AddBiasVector<byRow>(State, w_.Bi_);
+            State = blaze::forEach(State, Tanh());
+          }
 
-          State = blaze::forEach(State, Tanh());
         }
 
         void GetNextState(mblas::Matrix& NextState,
@@ -108,6 +113,9 @@ class Decoder {
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
           SCU_ = SourceContext * w_.U_;
+          if (w_.Gamma_1_.rows()) {
+            LayerNormalization(SCU_, w_.Gamma_1_);
+          }
           AddBiasVector<byRow>(SCU_, w_.B_);
         }
 
@@ -117,11 +125,10 @@ class Decoder {
           using namespace mblas;
 
           Temp2_ = HiddenState * w_.W_;
+          if (w_.Gamma_2_.rows()) {
+            LayerNormalization(Temp2_, w_.Gamma_2_);
+          }
 
-          // For batching: create an A across different sentences,
-          // maybe by mapping and looping. In the and join different
-          // alignment matrices into one
-          // Or masking?
           Temp1_ = Broadcast<Matrix>(Tanh(), SCU_, Temp2_);
 
           A_.resize(Temp1_.rows(), 1);
@@ -171,12 +178,23 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          T1_ = State * w_.W1_;
-          T2_ = Embedding * w_.W2_;
-          T3_ = AlignedSourceContext * w_.W3_;
 
+          T1_ = State * w_.W1_;
+          if (w_.Gamma_1_.rows()) {
+            LayerNormalization(T1_, w_.Gamma_1_);
+          }
           AddBiasVector<byRow>(T1_, w_.B1_);
+
+          T2_ = Embedding * w_.W2_;
+          if (w_.Gamma_0_.rows()) {
+            LayerNormalization(T2_, w_.Gamma_0_);
+          }
           AddBiasVector<byRow>(T2_, w_.B2_);
+
+          T3_ = AlignedSourceContext * w_.W3_;
+          if (w_.Gamma_2_.rows()) {
+            LayerNormalization(T3_, w_.Gamma_2_);
+          }
           AddBiasVector<byRow>(T3_, w_.B3_);
 
           auto t = blaze::forEach(T1_ + T2_ + T3_, Tanh());
@@ -229,7 +247,7 @@ class Decoder {
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
     }
 
-    BaseMatrix& GetProbs() {
+    mblas::ArrayMatrix& GetProbs() {
       return Probs_;
     }
 
