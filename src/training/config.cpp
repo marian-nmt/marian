@@ -90,7 +90,7 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
   }
 }
 
-void Config::validate(bool translate) const { 
+void Config::validate(bool translate) const {
     if(!translate) {
       UTIL_THROW_IF2(!has("train-sets")
                      || get<std::vector<std::string>>("train-sets").empty(),
@@ -164,7 +164,7 @@ void Config::addOptionsCommon(po::options_description& desc) {
 
 void Config::addOptionsModel(po::options_description& desc, bool translate=false) {
   po::options_description model("Model options", guess_terminal_width());
-  
+
   if(!translate) {
     model.add_options()
       ("model,m", po::value<std::string>()->default_value("model.npz"),
@@ -177,7 +177,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
       ->default_value(std::vector<std::string>({"model.npz"}), "model.npz"),
       "Paths to model(s) to be loaded");
   }
-  
+
   model.add_options()
     ("type", po::value<std::string>()->default_value("amun"),
       "Model type (possible values: amun, s2s, multi-s2s)")
@@ -196,7 +196,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
      "Enable layer normalization")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
      "Model-specific special vocabulary ids");
-      
+
 
   if(!translate) {
     model.add_options()
@@ -208,14 +208,14 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
        "Dropout target words (0 = no dropout)")
     ;
   }
-  
+
   modelFeatures_ = {
     "type", "dim-vocabs", "dim-emb", "dim-pos", "dim-rnn",
     "layers-enc", "layers-dec", "skip", "layer-normalization",
     "special-vocab"
     /*"lexical-table", "vocabs"*/
   };
-  
+
   desc.add(model);
 }
 
@@ -268,13 +268,18 @@ void Config::addOptionsTraining(po::options_description& desc) {
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.999),
-     "decay factor for moving average")
+     "Decay factor for moving average")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
-    //("guided-alignment", po::value<std::string>(),
-    // "Use guided alignment to guide attention")
+    ("guided-alignment", po::value<std::string>(),
+     "Use guided alignment to guide attention")
+    ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
+     "Cost type for guided alignment. Possible values: ce (cross-entropy), "
+     "mse (mean square error), mult (multiplication).")
+    ("guided-alignment-weight", po::value<double>()->default_value(1),
+     "Weight for guided alignment cost")
     ("drop-rate", po::value<double>()->default_value(0),
-     "gradient drop ratio. (read: https://arxiv.org/abs/1704.05021") 
+     "Gradient drop ratio. (read: https://arxiv.org/abs/1704.05021)")
   ;
   desc.add(training);
 }
@@ -338,12 +343,12 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
-    ("lexical-table", po::value<std::string>(),                                                                                 
+    ("lexical-table", po::value<std::string>(),
      "Path to lexical table")
     ("weights", po::value<std::vector<float>>()
       ->multitoken(),
       "Scorer weights")
-    
+
   ;
   desc.add(translate);
 }
@@ -396,18 +401,18 @@ void Config::addOptions(int argc, char** argv,
   }
 
   /** model **/
-  
+
   if(!translate) {
     SET_OPTION("model", std::string);
   }
   else {
-    SET_OPTION("models", std::vector<std::string>);    
+    SET_OPTION("models", std::vector<std::string>);
   }
-  
+
   if (!vm_["vocabs"].empty()) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
-  
+
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
@@ -418,7 +423,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("skip", bool);
   SET_OPTION("layer-normalization", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
-  
+
   if(!translate) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
@@ -444,12 +449,15 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("learn-rate", double);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
-    
+
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
     //SET_OPTION_NONDEFAULT("lexical-table", std::string);
-    //SET_OPTION_NONDEFAULT("guided-alignment", std::string);
+
+    SET_OPTION_NONDEFAULT("guided-alignment", std::string);
+    SET_OPTION("guided-alignment-cost", std::string);
+    SET_OPTION("guided-alignment-weight", double);
     SET_OPTION("drop-rate", double);
   }
   /** training end **/
@@ -475,7 +483,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("early-stopping", size_t);
     SET_OPTION("keep-best", bool);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
-    
+
     SET_OPTION("normalize", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("allow-unk", bool);
@@ -488,13 +496,13 @@ void Config::addOptions(int argc, char** argv,
     }
     catch (util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
-  
+
       std::cerr << "Usage: " + std::string(argv[0]) +  " [options]" << std::endl;
       std::cerr << cmdline_options_ << std::endl;
       exit(1);
     }
   }
-  
+
   SET_OPTION("workspace", size_t);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
@@ -512,12 +520,12 @@ void Config::addOptions(int argc, char** argv,
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
-  
+
   if(vm_["seed"].as<size_t>() == 0)
     seed = (size_t) time(0);
   else
     seed = vm_["seed"].as<size_t>();
-  
+
   if(!translate) {
     if(boost::filesystem::exists(vm_["model"].as<std::string>()) &&
        (translate || !vm_["no-reload"].as<bool>())) {
@@ -534,7 +542,7 @@ void Config::addOptions(int argc, char** argv,
 
 void Config::log() {
   createLoggers(*this);
-  
+
   YAML::Emitter out;
   OutputRec(config_, out);
   std::string conf = out.c_str();
@@ -556,7 +564,7 @@ void Config::override(const YAML::Node& params) {
   //LOG(config, "Overriding model parameters:");
   //for(auto &r : results)
   //  LOG(config, r);
-  
+
   for(auto& it : params) {
     config_[it.first.as<std::string>()] = it.second;
   }

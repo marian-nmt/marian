@@ -147,6 +147,8 @@ class Train : public ModelTask {
       using namespace data;
               
       auto trainCorpus = New<Corpus>(options_);
+      if(options_->has("guided-alignment"))
+        trainCorpus->setWordAlignment(options_->get<std::string>("guided-alignment"));
       
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {

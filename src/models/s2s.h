@@ -12,15 +12,15 @@ class EncoderStateS2S : public EncoderState {
     Expr context_;
     Expr mask_;
     Ptr<data::CorpusBatch> batch_;
-    
+
   public:
     EncoderStateS2S(Expr context, Expr mask,
                     Ptr<data::CorpusBatch> batch)
     : context_(context), mask_(mask), batch_(batch) {}
-    
+
     Expr getContext() { return context_; }
     Expr getMask() { return mask_; }
-    
+
     virtual const std::vector<size_t>& getSourceWords() {
       return batch_->front()->indeces();
     }
@@ -31,22 +31,22 @@ class DecoderStateS2S : public DecoderState {
     std::vector<Expr> states_;
     Expr probs_;
     Ptr<EncoderState> encState_;
-    
+
   public:
     DecoderStateS2S(const std::vector<Expr> states,
                      Expr probs,
                      Ptr<EncoderState> encState)
     : states_(states), probs_(probs), encState_(encState) {}
-    
-    
+
+
     Ptr<EncoderState> getEncoderState() { return encState_; }
     Expr getProbs() { return probs_; }
     void setProbs(Expr probs) { probs_ = probs; }
-    
+
     Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
       int numSelected = selIdx.size();
       int dimState = states_[0]->shape()[1];
-      
+
       std::vector<Expr> selectedStates;
       for(auto state : states_) {
         selectedStates.push_back(
@@ -54,11 +54,11 @@ class DecoderStateS2S : public DecoderState {
                   {1, dimState, 1, numSelected})
         );
       }
-      
+
       return New<DecoderStateS2S>(selectedStates, probs_, encState_);
     }
 
-    
+
     const std::vector<Expr>& getStates() { return states_; }
 };
 
@@ -77,7 +77,7 @@ class EncoderS2S : public EncoderBase {
 
       int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
       int dimSrcEmb = options_->get<int>("dim-emb");
-      
+
       int dimEncState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -87,7 +87,7 @@ class EncoderS2S : public EncoderBase {
       float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
       auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
-      
+
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
 
@@ -143,7 +143,7 @@ class DecoderS2S : public DecoderBase {
     const std::vector<Expr>& getAlignments() {
       return attention_->getAlignments();
     }
-  
+
     template <class ...Args>
     DecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
@@ -160,20 +160,20 @@ class DecoderS2S : public DecoderBase {
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext);
-      
+
       std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
       return New<DecoderStateS2S>(startStates, nullptr, encState);
     }
-     
+
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      
+
       int dimTrgEmb = options_->get<int>("dim-emb")
                     + options_->get<int>("dim-pos");
-                    
+
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -183,7 +183,7 @@ class DecoderS2S : public DecoderBase {
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
-      
+
       auto embeddings = stateS2S->getTargetEmbeddings();
 
       if(dropoutTrg) {
@@ -199,7 +199,7 @@ class DecoderS2S : public DecoderBase {
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
-        
+
       if(!rnnL1)
         rnnL1 = New<RNN<CGRU>>(graph, prefix_,
                                dimTrgEmb, dimDecState,
@@ -207,7 +207,7 @@ class DecoderS2S : public DecoderBase {
                                dropout_prob=dropoutRnn,
                                normalize=layerNorm);
       auto stateL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
-      
+
       bool single = stateS2S->doSingleStep();
       auto alignedContext = single ?
         rnnL1->getCell()->getLastContext() :
@@ -230,7 +230,7 @@ class DecoderS2S : public DecoderBase {
                                   dropout_prob=dropoutRnn,
                                   skip=skipDepth,
                                   skip_first=skipDepth);
-        
+
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
@@ -247,8 +247,8 @@ class DecoderS2S : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, outputLn, alignedContext);
 
-      auto logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);          
-      
+      auto logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
+
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
     }
@@ -257,33 +257,48 @@ class DecoderS2S : public DecoderBase {
 
 class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
   public:
-    
+
     template <class ...Args>
     S2S(Ptr<Config> options, Args ...args)
     : EncoderDecoder(options, args...) {}
-  
+
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph=true) {
-      
+
       auto cost = EncoderDecoder::build(graph, batch, clearGraph);
-      
+
       if(options_->has("guided-alignment") && !inference_) {
         using namespace keywords;
-        
+
         auto dec = std::dynamic_pointer_cast<DecoderS2S>(EncoderDecoder::decoder_);
         auto att = concatenate(dec->getAlignments(), axis=3);
-          
+
         int dimBatch = att->shape()[0];
         int dimSrc = att->shape()[2];
         int dimTrg = att->shape()[3];
-          
+
         auto aln = graph->constant(shape={dimBatch, 1, dimSrc, dimTrg},
                                    keywords::init=inits::from_vector(batch->getGuidedAlignment()));
-        
-        auto alnCost = dimTrg - (sum(flatten(att * aln)) / dimBatch);
-        
-        return cost + alnCost;
+
+        std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
+
+        Expr alnCost;
+        if(guidedCostType == "mse") {
+          alnCost = sum(flatten(square(att - aln))) / (2 * dimBatch);
+        }
+        else if(guidedCostType == "mult") {
+          alnCost = -log(sum(flatten(att * aln))) / dimBatch;
+        }
+        else if(guidedCostType == "ce") {
+          alnCost = -sum(flatten(aln * log(att))) / dimBatch;
+        }
+        else {
+          UTIL_THROW2("Unknown alignment cost type");
+        }
+
+        float guidedScalar = options_->get<float>("guided-alignment-weight");
+        return cost + guidedScalar * alnCost;
       }
       else {
         return cost;

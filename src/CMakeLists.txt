@@ -47,12 +47,12 @@ foreach(exec marian_train marian_translate)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
 
-add_executable(
-  align2steps
-  tools/align2steps.cpp
-)
+#add_executable(
+#  align2steps
+#  tools/align2steps.cpp
+#)
 
-set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+#set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 if(COMPILE_TESTS)
 cuda_add_executable(
