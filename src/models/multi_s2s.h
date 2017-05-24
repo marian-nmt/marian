@@ -8,13 +8,13 @@ namespace marian {
 struct EncoderStateMultiS2S : public EncoderState {
   EncoderStateMultiS2S(Ptr<EncoderState> e1, Ptr<EncoderState> e2)
   : enc1(e1), enc2(e2) {}
-  
+
   virtual Expr getContext() { return nullptr; }
   virtual Expr getMask() { return nullptr; }
 
   Ptr<EncoderState> enc1;
   Ptr<EncoderState> enc2;
-  
+
   virtual const std::vector<size_t>& getSourceWords() {
     return enc1->getSourceWords();
   }
@@ -39,7 +39,6 @@ class MultiEncoder : public EncoderBase {
     build(Ptr<ExpressionGraph> graph,
           Ptr<data::CorpusBatch> batch,
           size_t batchIdx = 0) {
-
       auto encState1 = encoder1_->build(graph, batch, 0);
       auto encState2 = encoder2_->build(graph, batch, 1);
 
@@ -160,7 +159,7 @@ class MultiDecoderS2S : public DecoderBase {
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext1, meanContext2);
-      
+
       std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
       return New<DecoderStateMultiS2S>(startStates, nullptr, mEncState);
     }
@@ -170,10 +169,10 @@ class MultiDecoderS2S : public DecoderBase {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      
+
       int dimTrgEmb = options_->get<int>("dim-emb")
                     + options_->get<int>("dim-pos");
-                    
+
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -184,9 +183,9 @@ class MultiDecoderS2S : public DecoderBase {
 
       auto mEncState
         = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
-      
+
       auto decState = std::dynamic_pointer_cast<DecoderStateMultiS2S>(state);
-      
+
       auto embeddings = decState->getTargetEmbeddings();
 
       if(dropoutTrg) {
@@ -194,7 +193,7 @@ class MultiDecoderS2S : public DecoderBase {
         auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
         embeddings = dropout(embeddings, mask=trgWordDrop);
       }
-      
+
       if(!attention1_)
         attention1_ = New<GlobalAttention>("decoder_att1",
                                            mEncState->enc1,
@@ -213,12 +212,12 @@ class MultiDecoderS2S : public DecoderBase {
                                     dropout_prob=dropoutRnn,
                                     normalize=layerNorm);
       auto stateL1 = (*rnnL1)(embeddings, decState->getStates()[0]);
-      
+
       bool single = decState->doSingleStep();
       auto alignedContext = single ?
         rnnL1->getCell()->getLastContext() :
         rnnL1->getCell()->getContexts();
-                                           
+
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);
 
@@ -236,7 +235,7 @@ class MultiDecoderS2S : public DecoderBase {
                                   dropout_prob=dropoutRnn,
                                   skip=skipDepth,
                                   skip_first=skipDepth);
-        
+
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
@@ -254,7 +253,7 @@ class MultiDecoderS2S : public DecoderBase {
                         (embeddings, outputLn, alignedContext);
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
-          
+
       return New<DecoderStateMultiS2S>(statesOut, logitsOut,
                                        state->getEncoderState());
     }
@@ -262,6 +261,13 @@ class MultiDecoderS2S : public DecoderBase {
 };
 
 typedef MultiEncoder<EncoderS2S, EncoderS2S> MultiEncoderS2S;
-typedef EncoderDecoder<MultiEncoderS2S, MultiDecoderS2S> MultiS2S;
+
+class MultiS2S : public EncoderDecoder<MultiEncoderS2S, MultiDecoderS2S> {
+  public:
+    template <class ...Args>
+    MultiS2S(Ptr<Config> options, Args ...args)
+      : EncoderDecoder(options, {0, 1, 2}, args...)
+    {}
+};
 
 }
