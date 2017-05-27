@@ -13,15 +13,15 @@ class EncoderStateAmun : public EncoderState {
     Expr context_;
     Expr mask_;
     Ptr<data::CorpusBatch> batch_;
-    
+
   public:
     EncoderStateAmun(Expr context, Expr mask,
                      Ptr<data::CorpusBatch> batch)
     : context_(context), mask_(mask), batch_(batch) {}
-    
+
     Expr getContext() { return context_; }
     Expr getMask() { return mask_; }
-    
+
     virtual const std::vector<size_t>& getSourceWords() {
       return batch_->front()->indeces();
     }
@@ -32,27 +32,27 @@ class DecoderStateAmun : public DecoderState {
     Expr state_;
     Expr probs_;
     Expr targetEmbeddings_;
-    
+
     Ptr<EncoderState> encState_;
-    
+
   public:
     DecoderStateAmun(Expr state, Expr probs, Ptr<EncoderState> encState)
     : state_(state), probs_(probs), encState_(encState) {}
-    
+
     Ptr<EncoderState> getEncoderState() { return encState_; }
     Expr getProbs() { return probs_; }
     void setProbs(Expr probs) { probs_ = probs; }
-    
+
     Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
       int numSelected = selIdx.size();
       int dimState = state_->shape()[1];
-      
+
       auto selectedState = reshape(rows(state_, selIdx),
                                    {1, dimState, 1, numSelected});
-        
+
       return New<DecoderStateAmun>(selectedState, probs_, encState_);
     }
-    
+
     Expr getState() { return state_; }
 };
 
@@ -103,7 +103,7 @@ class EncoderAmun : public EncoderBase {
                          (x, mask=xMask);
 
       auto xContext = concatenate({xFw, xBw}, axis=1);
-      
+
       return New<EncoderStateAmun>(xContext, xMask, batch);
     }
 };
@@ -130,10 +130,10 @@ class DecoderAmun : public DecoderBase {
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext);
-      
+
       return New<DecoderStateAmun>(start, nullptr, encState);
     }
-     
+
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state) {
       using namespace keywords;
@@ -163,7 +163,7 @@ class DecoderAmun : public DecoderBase {
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
-        
+
       if(!rnn)
         rnn = New<RNN<CGRU>>(graph, "decoder",
                              dimTrgEmb, dimDecState,
@@ -171,9 +171,9 @@ class DecoderAmun : public DecoderBase {
                              dropout_prob=dropoutRnn,
                              normalize=layerNorm);
       auto stateOut = (*rnn)(embeddings, stateAmun->getState());
-      
+
       bool single = stateAmun->doSingleStep();
-      
+
       auto alignedContextsVec = attention_->getContexts();
       auto alignedContext = single ?
         alignedContextsVec.back() :
@@ -186,7 +186,7 @@ class DecoderAmun : public DecoderBase {
                         (embeddings, stateOut, alignedContext);
 
       auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
-          
+
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());
     }
@@ -259,6 +259,9 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
           parameters.push_back(p);
 
       std::map<std::string, std::string> nameMap = {
+        {"Wemb", "encoder_Wemb"},
+        {"Wemb_dec", "decoder_Wemb"},
+
         {"decoder_U", "decoder_cell1_U"},
         {"decoder_W", "decoder_cell1_W"},
         {"decoder_b", "decoder_cell1_b"},
@@ -310,9 +313,9 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
     void save(Ptr<ExpressionGraph> graph,
               const std::string& name,
               bool saveTranslatorConfig) {
-    
+
       save(graph, name);
-      
+
       if(saveTranslatorConfig) {
         YAML::Node amun;
         auto vocabs = options_->get<std::vector<std::string>>("vocabs");
@@ -322,16 +325,16 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
         amun["normalize"] = true;
         amun["beam-size"] = 12;
         amun["relative-paths"] = false;
-        
+
         amun["scorers"]["F0"]["path"] = name;
-        amun["scorers"]["F0"]["type"] = "Nematus";      
+        amun["scorers"]["F0"]["type"] = "Nematus";
         amun["weights"]["F0"] = 1.0f;
-        
+
         OutputFileStream out(name + ".amun.yml");
         (std::ostream&)out << amun;
       }
     }
-    
+
     void save(Ptr<ExpressionGraph> graph,
               const std::string& name) {
 
@@ -341,6 +344,9 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
       std::string mode = "w";
 
       std::map<std::string, std::string> nameMap = {
+        {"encoder_Wemb", "Wemb"},
+        {"decoder_Wemb", "Wemb_dec"},
+
         {"decoder_cell1_U", "decoder_U"},
         {"decoder_cell1_W", "decoder_W"},
         {"decoder_cell1_b", "decoder_b"},
