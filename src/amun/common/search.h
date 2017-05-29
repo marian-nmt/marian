@@ -13,14 +13,18 @@ class Search {
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
+    std::shared_ptr<Histories> Process(const God& god, const Sentences& sentences);
 
+    const DeviceInfo& GetDeviceInfo() const;
+
+    const std::vector<ScorerPtr>& GetScorers() const;
+
+  protected:
     States NewStates() const;
 
     void PreProcess(
-    		const God &god,
     		const Sentences& sentences,
-    		std::shared_ptr<Histories> &histories,
+    		std::shared_ptr<Histories>& histories,
     		Beam &prevHyps);
 
     void PostProcess();
@@ -30,50 +34,34 @@ class Search {
     void Decode(
     		const God &god,
     		const Sentences& sentences,
-    		States &states,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps);
+    		States& states,
+    		std::shared_ptr<Histories>& histories,
+    		Beam& prevHyps);
 
-    const DeviceInfo &GetDeviceInfo() const
-    { return deviceInfo_; }
+    size_t MakeFilter(const std::set<Word>& srcWords, size_t vocabSize);
 
-    const std::vector<ScorerPtr> &GetScorers() const
-    { return scorers_; }
+    bool CalcBeam(
+    		const God& god,
+    		Beam& prevHyps,
+    		Beams& beams,
+    		std::vector<size_t>& beamSizes,
+    		std::shared_ptr<Histories>& histories,
+    		const Sentences& sentences,
+    		States& states,
+    		States& nextStates);
 
-  private:
-    Search(const Search &) = delete;
+    Search(const Search&) = delete;
 
-    size_t MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize);
-
+  protected:
     std::vector<ScorerPtr> scorers_;
+    std::shared_ptr<const Filter> filter_;
+    const size_t maxBeamSize_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;
 
+    bool returnAlignment_;
+
     DeviceInfo deviceInfo_;
-
-    bool Decode(
-    		const God &god,
-    		const Sentences& sentences,
-    		States &states,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps,
-    		size_t decoderStep,
-    		States &nextStates,
-    		std::vector<size_t> &beamSizes);
-
-    bool CalcBeam(
-    		const God &god,
-    		Beam &prevHyps,
-    		Beams &beams,
-    		std::vector<size_t> &beamSizes,
-    		std::shared_ptr<Histories> &histories,
-    		const Sentences& sentences,
-    		Beam &survivors,
-    		States &states,
-    		States &nextStates
-
-    		);
-
 };
 
 }

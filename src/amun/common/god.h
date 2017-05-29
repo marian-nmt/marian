@@ -56,7 +56,7 @@ class God {
     std::istream& GetInputStream() const;
     OutputCollector& GetOutputCollector() const;
 
-    const Filter& GetFilter() const;
+    std::shared_ptr<const Filter>& GetFilter() const;
 
     BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 
@@ -88,7 +88,7 @@ class God {
     mutable std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
     mutable std::unique_ptr<Vocab> targetVocab_;
 
-    std::unique_ptr<const Filter> filter_;
+    std::shared_ptr<const Filter> filter_;
 
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;

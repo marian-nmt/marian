@@ -11,11 +11,15 @@ using namespace std;
 namespace amunmt {
 
 Search::Search(const God &god)
+  : maxBeamSize_(god.Get<size_t>("beam-size"))
 {
   deviceInfo_ = god.GetNextDevice();
   scorers_ = god.GetScorers(deviceInfo_);
   bestHyps_ = god.GetBestHyps(deviceInfo_);
+  filter_ = god.Get<std::vector<std::string>>("softmax-filter").size();
+  returnAlignment_ = god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment");
 }
+
 
 Search::~Search()
 {
@@ -25,7 +29,18 @@ Search::~Search()
   }
 #endif
 }
-  
+
+const DeviceInfo& Search::GetDeviceInfo() const
+{
+  return deviceInfo_;
+}
+
+
+const std::vector<ScorerPtr>& Search::GetScorers() const
+{
+  return scorers_;
+}
+
 States Search::NewStates() const
 {
   size_t numScorers = scorers_.size();
@@ -39,8 +54,8 @@ States Search::NewStates() const
   return states;
 }
 
-size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize) {
-  filterIndices_ = god.GetFilter().GetFilteredVocab(srcWords, vocabSize);
+size_t Search::MakeFilter(const std::set<Word>& srcWords, size_t vocabSize) {
+  filterIndices_ = filter_->GetFilteredVocab(srcWords, vocabSize);
   for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Filter(filterIndices_);
   }
@@ -57,11 +72,11 @@ void Search::Encode(const Sentences& sentences, States& states) {
 }
 
 void Search::Decode(
-		const God &god,
+		const God& god,
 		const Sentences& sentences,
-		States &states,
-		std::shared_ptr<Histories> &histories,
-		Beam &prevHyps)
+		States& states,
+		std::shared_ptr<Histories>& histories,
+		Beam& prevHyps)
 {
   States nextStates = NewStates();
 
@@ -69,52 +84,21 @@ void Search::Decode(
   std::vector<size_t> beamSizes(batchSize, 1);
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-	  bool hasSurvivors = Decode(
-			  god,
-			  sentences,
-			  states,
-			  histories,
-			  prevHyps,
-			  decoderStep,
-			  nextStates,
-			  beamSizes
-	  	  	  );
-
-	    if (!hasSurvivors) {
-	    	break;
-	    }
-  }
-}
-
-bool Search::Decode(
-		const God &god,
-		const Sentences& sentences,
-		States &states,
-		std::shared_ptr<Histories> &histories,
-		Beam &prevHyps,
-		size_t decoderStep,
-		States &nextStates,
-		std::vector<size_t> &beamSizes
-		)
-{
-   size_t batchSize = sentences.size();
-
     for (size_t i = 0; i < scorers_.size(); i++) {
-      Scorer &scorer = *scorers_[i];
-      const State &state = *states[i];
-      State &nextState = *nextStates[i];
+      Scorer& scorer = *scorers_[i];
+      const State& state = *states[i];
+      State& nextState = *nextStates[i];
 
       scorer.Decode(god, state, nextState, beamSizes);
     }
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-      beamSize = god.Get<size_t>("beam-size");
+        beamSize = maxBeamSize_;
       }
     }
 
     Beams beams(batchSize);
-    Beam survivors;
 
     bool hasSurvivors = CalcBeam(
     		god,
@@ -123,47 +107,46 @@ bool Search::Decode(
     		beamSizes,
     		histories,
     		sentences,
-    		survivors,
     		states,
     		nextStates
-    		);
+    );
 
     if (!hasSurvivors) {
-    	return false;
+      break;
     }
-
-    return true;
+  }
 }
 
+
 bool Search::CalcBeam(
-		const God &god,
-		Beam &prevHyps,
-		Beams &beams,
-		std::vector<size_t> &beamSizes,
-		std::shared_ptr<Histories> &histories,
+		const God& god,
+		Beam& prevHyps,
+		Beams& beams,
+		std::vector<size_t>& beamSizes,
+		std::shared_ptr<Histories>& histories,
 		const Sentences& sentences,
-		Beam &survivors,
-		States &states,
-		States &nextStates
+		States& states,
+		States& nextStates
 		)
 {
-    bool returnAlignment = god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment");
+    Beam survivors;
     size_t batchSize = sentences.size();
 
-    bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
+    bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment_, beams, beamSizes);
 
     for (size_t i = 0; i < batchSize; ++i) {
       if (!beams[i].empty()) {
-        histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+        histories->at(i)->Add(beams[i],
+                              histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
       }
     }
 
-    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
-      for (auto& h : beams[batchID]) {
+    for (size_t batchId = 0; batchId < batchSize; ++batchId) {
+      for (auto& h : beams[batchId]) {
         if (h->GetWord() != EOS_ID) {
           survivors.push_back(h);
         } else {
-          --beamSizes[batchID];
+          --beamSizes[batchId];
         }
       }
     }
@@ -181,20 +164,19 @@ bool Search::CalcBeam(
     return true;
 }
 
-std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
+std::shared_ptr<Histories> Search::Process(const God& god, const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   std::shared_ptr<Histories> histories(new Histories(god, sentences));
 
   size_t batchSize = sentences.size();
-  size_t numScorers = scorers_.size();
 
   Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
 
   States states = NewStates();
 
   // calc
-  PreProcess(god, sentences, histories, prevHyps);
+  PreProcess(sentences, histories, prevHyps);
   Encode(sentences, states);
   Decode(god, sentences, states, histories, prevHyps);
   PostProcess();
@@ -204,30 +186,27 @@ std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sent
 }
 
 void Search::PreProcess(
-		const God &god,
 		const Sentences& sentences,
-		std::shared_ptr<Histories> &histories,
-		Beam &prevHyps)
+		std::shared_ptr<Histories>& histories,
+		Beam& prevHyps)
 {
   size_t vocabSize = scorers_[0]->GetVocabSize();
 
   for (size_t i = 0; i < histories->size(); ++i) {
-    History &history = *histories->at(i).get();
+    History& history = *histories->at(i).get();
     history.Add(prevHyps);
   }
 
-  bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
-  if (filter) {
+  if (filter_ != nullptr) {
     std::set<Word> srcWords;
     for (size_t i = 0; i < sentences.size(); ++i) {
-      const Sentence &sentence = *sentences.at(i);
+      const Sentence& sentence = *sentences.at(i);
       for (const auto& srcWord : sentence.GetWords()) {
         srcWords.insert(srcWord);
       }
     }
-    vocabSize = MakeFilter(god, srcWords, vocabSize);
+    vocabSize = MakeFilter(srcWords, vocabSize);
   }
-
 }
 
 void Search::PostProcess()
