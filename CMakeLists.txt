@@ -8,9 +8,12 @@ if(CUDA_FOUND)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
 endif(CUDA_FOUND)
 
+option(COMPILE_EXAMPLES "Compile examples" OFF)
+option(COMPILE_TESTS "Compile tests" OFF)
+
 SET(CMAKE_CXX_FLAGS " -std=c++11 -g -O3 -Wno-unused-result -Wno-deprecated -fPIC -Wno-deprecated-gpu-targets")
 LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
-LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)  
+LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 find_package(ZLIB)
@@ -35,7 +38,8 @@ add_subdirectory(src)
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doc
         ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

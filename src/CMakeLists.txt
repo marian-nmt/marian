@@ -92,3 +92,6 @@ foreach(exec logger_test dropout_test tensor_test marian_test bn_test)
 endforeach(exec)
 endif(COMPILE_TESTS)
 
+if(COMPILE_EXAMPLES)
+  add_subdirectory(examples)
+endif(COMPILE_EXAMPLES)
