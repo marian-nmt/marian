@@ -107,7 +107,8 @@ class Batch {
     }
 };
 
-//typedef std::shared_ptr<Batch> BatchPtr;
+// FIXME
+typedef std::shared_ptr<Batch> BatchPtr;
 
 class DataBase {
   public:
