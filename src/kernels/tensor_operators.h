@@ -438,8 +438,65 @@ void Reduce(Functor functor,
   Add(functor, out, in1, in2, in3);
 }
 
+template <int B, class T>
+struct BroadcastView {
+  T* ptr;
+  Shape shape;
 
+  template <>
+  inline T& at<0b0000>(size_t i) {
+    return ptr[i];
+  }
 
+  template <>
+  inline T& at<0b0001>(size_t i) {
+    return ptr[i % shape[3]];
+  }
+
+  template <>
+  inline T& at<0b0010>(size_t i) {
+    return ptr[i % shape[2]];
+  }
+
+  template <>
+  inline T& at<0b0011>(size_t i) {
+    return ptr[i % (shape[2] * shape[3])];
+  }
+
+  template <>
+  inline T& at<0b0100>(size_t i) {
+    return ptr[i % shape[1]];
+  }
+
+  template <>
+  inline T& at<0b0101>(size_t i) {
+    return ptr[i % (shape[1] * shape[3])];
+  }
+
+  template <>
+  inline T& at<0b0110>(size_t i) {
+    return ptr[i % (shape[1] * shape[2])];
+  }
+
+  template <>
+  inline T& at<0b0111>(size_t i) {
+    return ptr[i % (shape[1] * shape[2] * shape[3])];
+  }
+
+  template <>
+  inline T& at<0b1111>(size_t i) {
+    return ptr[0];
+  }
+
+  template <>
+  inline T& at<0b1000>(size_t i) {
+    return ptr[i % shape[0]];
+  }
+
+  T& operator[](size_t i) {
+    return at<B>(i);
+  }
+};
 
 template <class Functor>
 __global__ void gElement(Functor functor,
