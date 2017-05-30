@@ -420,11 +420,12 @@ void LayerNormalization(MT& in, const MT& gamma, float eps=1e-9) {
     for (int i = 0; i < cols; ++i) {
       sigma += (in(j, i) - mean) * (in(j, i) - mean);
     }
+    sigma /= cols;
 
     sigma = sqrt(sigma + eps);
 
     for (int i = 0; i < cols; ++i) {
-      in(j, i) = gamma(0, j) * ( (in(j, i) - mean) / sigma);
+      in(j, i) = gamma(i, 0) * ( (in(j, i) - mean) / sigma);
     }
   }
 }

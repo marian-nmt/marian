@@ -13,6 +13,7 @@ namespace amunmt {
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 
 std::string GetAlignmentString(const std::vector<size_t>& alignment);
+std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
 
 template <class OStream>
 void Printer(const God &god, const History& history, OStream& out) {
@@ -22,6 +23,9 @@ void Printer(const God &god, const History& history, OStream& out) {
   std::string best = Join(bestSentenceWords);
   if (god.Get<bool>("return-alignment")) {
     best += GetAlignmentString(GetAlignment(bestTranslation.second));
+  }
+  if (god.Get<bool>("return-soft-alignment")) {
+    best += GetSoftAlignmentString(bestTranslation.second);
   }
 
   if (god.Get<bool>("n-best")) {

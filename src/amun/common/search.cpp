@@ -203,7 +203,7 @@ bool Search::CalcBeam(
 		States &nextStates
 		)
 {
-    bool returnAlignment = god.Get<bool>("return-alignment");
+    bool returnAlignment = god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment");
     size_t batchSize = sentences.size();
 
     //std::cerr << "prevHyps=" << amunmt::Debug(prevHyps, 2) << std::endl;
