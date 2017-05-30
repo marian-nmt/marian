@@ -195,7 +195,7 @@ Vocab& God::GetTargetVocab() const {
   return *targetVocab_;
 }
 
-std::shared_ptr<const Filter>& God::GetFilter() const {
+std::shared_ptr<const Filter> God::GetFilter() const {
   return filter_;
 }
 

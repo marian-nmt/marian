@@ -56,7 +56,7 @@ class God {
     std::istream& GetInputStream() const;
     OutputCollector& GetOutputCollector() const;
 
-    std::shared_ptr<const Filter>& GetFilter() const;
+    std::shared_ptr<const Filter> GetFilter() const;
 
     BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 

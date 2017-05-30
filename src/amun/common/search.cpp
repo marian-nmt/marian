@@ -16,7 +16,7 @@ Search::Search(const God &god)
   deviceInfo_ = god.GetNextDevice();
   scorers_ = god.GetScorers(deviceInfo_);
   bestHyps_ = god.GetBestHyps(deviceInfo_);
-  filter_ = god.Get<std::vector<std::string>>("softmax-filter").size();
+  filter_ = god.GetFilter();
   returnAlignment_ = god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment");
 }
 

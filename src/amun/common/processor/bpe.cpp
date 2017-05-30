@@ -6,6 +6,7 @@
 
 #include "utf8/utf8.h"
 #include "common/utils.h"
+#include "common/logging.h"
 
 namespace amunmt {
 
@@ -36,7 +37,14 @@ BPE::BPE(std::ifstream&& file, const std::string sep)
   : sep_(sep) {
   std::string inputLine;
   size_t index = 0;
+  bool firstLine = true;
   while (std::getline(file, inputLine)) {
+    if (firstLine) {
+      firstLine = false;
+      if (inputLine.find("#version: 0.2") != std::string::npos) {
+        LOG(info, "WARNING! BPE VERSION 0.2 IS NOT SUPPORTED!");
+      }
+    }
     std::vector<std::string> code;
     Split(inputLine, code);
     bpeCodes_[make_pair(code[0], code[1])] = index++;
