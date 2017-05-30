@@ -168,8 +168,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           std::cerr << v->val()->debug() << std::endl;
         }
 
-        //if(inferenceOnly_)
-        //  v->children().clear();
+        if(inferenceOnly_)
+          v->children().clear();
         nodesForward_.pop_front();
       }
     }
