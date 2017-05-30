@@ -277,7 +277,7 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
 
       auto cost = EncoderDecoder::build(graph, batch, clearGraph);
 
-      if(options_->has("guided-alignment") && !inference_) {
+      if(options_->get<bool>("guided-alignment") && !inference_) {
         using namespace keywords;
 
         auto dec = std::dynamic_pointer_cast<DecoderS2S>(EncoderDecoder::decoder_);

@@ -212,7 +212,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   modelFeatures_ = {
     "type", "dim-vocabs", "dim-emb", "dim-pos", "dim-rnn",
     "layers-enc", "layers-dec", "skip", "layer-normalization",
-    "special-vocab"
+    "special-vocab", "tied-embeddings"
     /*"lexical-table", "vocabs"*/
   };
 
@@ -273,7 +273,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Decay factor for moving average")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
-    ("guided-alignment", po::value<std::string>(),
+    ("guided-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
      "Cost type for guided alignment. Possible values: ce (cross-entropy), "
@@ -458,7 +458,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("moving-decay", double);
     //SET_OPTION_NONDEFAULT("lexical-table", std::string);
 
-    SET_OPTION_NONDEFAULT("guided-alignment", std::string);
+    SET_OPTION("guided-alignment", bool);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
     SET_OPTION("drop-rate", double);
