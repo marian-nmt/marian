@@ -23,7 +23,7 @@ namespace marian {
         return name_;
       }
   };
-  
+
   class DenseNew : public Layer {
     private:
       int outDim_;
@@ -48,11 +48,11 @@ namespace marian {
         std::vector<Expr> inputs{args...};
 
         UTIL_THROW_IF2(inputs.empty(), "No inputs");
-        
+
         auto g = inputs.back()->graph();
-        
+
         auto in = concatenate(inputs, keywords::axis=1);
-        
+
         auto W = g->param(name_ + "_W", {in->shape()[1], outDim_},
                           keywords::init=inits::glorot_uniform);
         auto b = g->param(name_ + "_b", {1, outDim_},
@@ -86,7 +86,7 @@ namespace marian {
         }
       }
   };
-  
+
 
   class Dense : public Layer {
     private:
@@ -191,7 +191,65 @@ namespace marian {
 
       }
   };
-  
+
+
+  class DenseTied : public Layer {
+    private:
+      Expr tiedWeights_;
+      int outDim_;
+      act activation_;
+      bool layerNorm_;
+
+    public:
+      template <class ...Args>
+      DenseTied(const std::string name,
+                Expr tiedWeights,
+                int outDim,
+                Args ...args)
+       : Layer(name),
+         tiedWeights_(tiedWeights),
+         outDim_(outDim),
+         activation_(Get(keywords::activation,
+                         act::linear,
+                         args...)),
+         layerNorm_(Get(keywords::normalize,
+                        false, args...)) {}
+
+      Expr operator()(Expr in) {
+        auto g = in->graph();
+
+        auto b = g->param(name_ + "_b", {1, outDim_},
+                            keywords::init=inits::zeros);
+
+        params_ = { tiedWeights_, b };
+
+        Expr out;
+        if(layerNorm_) {
+          auto gamma = g->param(name_ + "_gamma", {1, outDim_},
+                                keywords::init=inits::from_value(1.0));
+
+          params_.push_back(gamma);
+          out = layer_norm(dot(in, tiedWeights_), gamma, b);
+        }
+        else {
+          out = affine(in, tiedWeights_, b);
+        }
+
+        switch (activation_) {
+          case act::linear :
+            return out;
+          case act::tanh :
+            return tanh(out);
+          case act::logit :
+            return logit(out);
+          case act::ReLU :
+            return relu(out);
+          default:
+            return out;
+        }
+      }
+  };
+
   class DenseWithFilter : public Layer {
     private:
       int outDim_;
@@ -216,7 +274,7 @@ namespace marian {
 
       Expr operator()(Expr in) {
         auto g = in->graph();
-        
+
         auto W = cols(g->param(name_ + "_W", {in->shape()[1], outDim_},
                                keywords::init=inits::glorot_uniform),
                       filter_);
@@ -273,7 +331,7 @@ namespace marian {
                                  {1, outDim_},
                                  keywords::init=inits::zeros),
                         filter_);
-          
+
           params_.push_back(W);
           params_.push_back(b);
 
@@ -345,7 +403,7 @@ namespace marian {
         auto mask = Get(keywords::mask, nullptr, args...);
 
         auto ce = cross_entropy(in, picks);
-        
+
         if(mask)
           ce = ce * mask;
 

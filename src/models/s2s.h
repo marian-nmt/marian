@@ -137,6 +137,7 @@ class DecoderS2S : public DecoderBase {
     Ptr<GlobalAttention> attention_;
     Ptr<RNN<CGRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
+    Expr tiedOutputWeights_;
 
   public:
 
@@ -247,7 +248,15 @@ class DecoderS2S : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, outputLn, alignedContext);
 
-      auto logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
+      Expr logitsOut;
+      if(options_->get<bool>("tied-embeddings")) {
+        if(!tiedOutputWeights_)
+          tiedOutputWeights_ = transpose(graph->get(prefix_ + "_Wemb"));
+
+        logitsOut = DenseTied(prefix_ + "_ff_logit_l2", tiedOutputWeights_, dimTrgVoc)(logitsL1);
+      }
+      else
+        logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
 
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());

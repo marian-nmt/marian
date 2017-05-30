@@ -257,6 +257,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Set mini-batch size based on words instead of sentences.")
     ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie target embeddings and output embeddings in output layer")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
@@ -449,6 +451,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("learn-rate", double);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("tied-embeddings", bool);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
