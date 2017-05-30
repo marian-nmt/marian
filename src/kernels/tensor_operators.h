@@ -438,6 +438,7 @@ void Reduce(Functor functor,
   Add(functor, out, in1, in2, in3);
 }
 
+/*
 template <int B, class T>
 struct BroadcastView {
   T* ptr;
@@ -497,6 +498,7 @@ struct BroadcastView {
     return at<B>(i);
   }
 };
+*/
 
 template <class Functor>
 __global__ void gElement(Functor functor,
