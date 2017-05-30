@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     auto yLogitsL2 = Dense("ff_logit_l2", 50000)
                          (yLogitsL1);
 
-    auto idx = graph->constant(shape={(int)indeces.size(), 1},
+    auto idx = graph->constant({(int)indeces.size(), 1},
                                init=inits::from_vector(indeces));
     auto ce = cross_entropy(yLogitsL2, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
     auto y2 = tanh(layer_norm(dot(y, w), gamma, beta));
 
-    auto idx = graph->constant(shape={(int)indeces.size(), 1},
+    auto idx = graph->constant({(int)indeces.size(), 1},
                                init=inits::from_vector(indeces));
     auto ce = cross_entropy(y2, idx);
     auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);

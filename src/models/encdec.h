@@ -35,7 +35,7 @@ class EncoderBase {
       auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indeces());
 
       auto x = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
-      auto xMask = graph->constant(shape={dimBatch, 1, dimWords},
+      auto xMask = graph->constant({dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
 
       return std::make_tuple(x, xMask);
@@ -91,10 +91,10 @@ class DecoderBase {
 
       auto y = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
 
-      auto yMask = graph->constant(shape={dimBatch, 1, dimWords},
+      auto yMask = graph->constant({dimBatch, 1, dimWords},
                                    init=inits::from_vector(subBatch->mask()));
 
-      auto yIdx = graph->constant(shape={(int)subBatch->indeces().size(), 1},
+      auto yIdx = graph->constant({(int)subBatch->indeces().size(), 1},
                                   init=inits::from_vector(subBatch->indeces()));
 
       auto yShifted = shift(y, {0, 0, 1, 0});
@@ -117,7 +117,7 @@ class DecoderBase {
 
       Expr selectedEmbs;
       if(embIdx.empty()) {
-        selectedEmbs = graph->constant(shape={1, dimTrgEmb + dimPosEmb},
+        selectedEmbs = graph->constant({1, dimTrgEmb + dimPosEmb},
                                        init=inits::zeros);
       }
       else {
