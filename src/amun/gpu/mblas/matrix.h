@@ -212,6 +212,164 @@ typedef TMatrix<float> Matrix;
 typedef TMatrix<int> IMatrix;
 
 
+////////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+class TMatrixWrapper
+{
+public:
+  TMatrixWrapper(const TMatrix<T> &matrix)
+  {
+    dim_[0] = matrix.dim(0);
+    dim_[1] = matrix.dim(1);
+    dim_[2] = matrix.dim(2);
+    dim_[3] = matrix.dim(3);
+
+    data_ = nullptr;
+    dataConst_ = matrix.data();
+  }
+
+  TMatrixWrapper(TMatrix<T> &matrix)
+  {
+    dim_[0] = matrix.dim(0);
+    dim_[1] = matrix.dim(1);
+    dim_[2] = matrix.dim(2);
+    dim_[3] = matrix.dim(3);
+
+    data_ = matrix.data();
+    dataConst_ = data_;
+  }
+
+  TMatrixWrapper(const size_t *dim)
+  { // test constructor
+    dim_[0] = dim[0];
+    dim_[1] = dim[1];
+    dim_[2] = dim[2];
+    dim_[3] = dim[3];
+  }
+
+  __device__ __host__
+  size_t dim(size_t i) const
+  {  return dim_[i]; }
+
+  __device__ __host__
+  size_t size(size_t maxDim = SHAPE_SIZE) const
+  {
+    //assert(maxDim >= 1);
+
+    size_t ret = 1;
+    for (size_t i = 0; i < maxDim; ++i) {
+      ret *= dim_[i];
+    }
+    return ret;
+  }
+
+  __device__
+  T* data()
+  {
+    assert(data_);
+    return data_;
+  }
+
+  __device__
+  const T* data() const
+  {
+    assert(dataConst_);
+    return dataConst_;
+  }
+
+  __device__
+  const T &operator[](size_t i) const
+  {
+    assert(i < size());
+    return data()[i];
+  }
+
+  __device__
+  T &operator[](size_t i)
+  {
+  	assert(i < size());
+    return data()[i];
+  }
+
+  __device__
+  const T &get(size_t indices[SHAPE_SIZE]) const
+  {
+    size_t id = indices2Id(indices);
+    assert(id < size());
+    return data()[id];
+  }
+
+  /*
+  __device__
+  T &operator[](size_t indices[SHAPE_SIZE])
+  {
+    size_t id = indices2Id(indices);
+    return data()[id];
+  }
+  */
+  __device__ __host__
+  void id2MatrixInd(size_t id, size_t out[SHAPE_SIZE]) const
+  {
+    assert(id < size());
+
+    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
+      size_t thisSize = size(i);
+      size_t ind = (id / thisSize) % dim_[i];
+      assert(ind < dim_[i]);
+
+      out[i] = ind;
+    }
+  }
+
+  __device__ __host__
+  size_t indices2Id(size_t indices[SHAPE_SIZE]) const
+  {
+    size_t ind = 0;
+    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
+      ind += indices[i] * size(i);
+    }
+    assert(ind < size());
+    return ind;
+  }
+
+protected:
+  size_t dim_[SHAPE_SIZE];
+
+  T *data_;
+  const T *dataConst_;
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+inline void testidToMatrixInd()
+{
+  size_t dim[4] = {2, 4, 3, 5};
+  TMatrixWrapper<float> matrix(dim);
+
+  std::cerr << "size=" << matrix.size() << std::endl;
+  std::cerr << "size0=" << matrix.size(0) << std::endl;
+  std::cerr << "size1=" << matrix.size(1) << std::endl;
+  std::cerr << "size2=" << matrix.size(2) << std::endl;
+  std::cerr << "size3=" << matrix.size(3) << std::endl;
+  std::cerr << "size4=" << matrix.size(4) << std::endl;
+
+  for (size_t i = 0; i < matrix.size(); ++i) {
+    matrix.id2MatrixInd(i, dim);
+
+    std::cerr << i << "=";
+    for (size_t j = 0; j < SHAPE_SIZE; ++j) {
+      std::cerr << " " << dim[j];
+    }
+
+    std::cerr << " = " << matrix.indices2Id(dim);
+    std::cerr << std::endl;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+
 }  // namespace mblas
 }  // namespace GPU
 }
