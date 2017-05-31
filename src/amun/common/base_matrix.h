@@ -25,8 +25,8 @@ class BaseMatrix {
 
     virtual size_t size() const;
 
-    operator bool() const {
-      return size() != 0;
+    bool empty() const {
+      return size() == 0;
     }
 
     virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) = 0;

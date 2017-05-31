@@ -155,7 +155,7 @@ class FastGRU {
 
       //std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
-      if (w_.Gamma_1_) {
+      if (w_.Gamma_1_.size()) {
         Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);
       }
 
@@ -164,7 +164,7 @@ class FastGRU {
       //std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
       //std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
 
-      if (w_.Gamma_2_) {
+      if (w_.Gamma_2_.size()) {
         Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
       }
 
