@@ -1,8 +1,9 @@
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <iomanip>
 #include <string>
-#include <cstdio>
+
 #include <boost/timer/timer.hpp>
 
 #include "marian.h"

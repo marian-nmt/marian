@@ -5,11 +5,84 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "data/dataset.h"
+#include "examples/mnist/dataset.h"
 
 
 namespace marian {
 namespace data {
+
+class Input {
+  private:
+    Shape shape_;
+    DataPtr data_;
+
+  public:
+    typedef Data::iterator iterator;
+    typedef Data::const_iterator const_iterator;
+
+    /** @brief Constructs a new Input object with the specified Shape */
+    Input(const Shape& shape)
+    : shape_(shape),
+      data_(new Data(shape_.elements(), 0.0f)) {}
+
+    Data::iterator begin() {
+      return data_->begin();
+    }
+    Data::iterator end() {
+      return data_->end();
+    }
+
+    Data::const_iterator begin() const {
+      return data_->cbegin();
+    }
+    Data::const_iterator end() const {
+      return data_->cend();
+    }
+
+    /** @brief Returns a reference to this object's underlying ::Data. */
+    Data& data() {
+      return *data_;
+    }
+
+    /** @brief Gets this object's underlying Shape. */
+    Shape shape() const {
+      return shape_;
+    }
+
+    /** @brief Returns the number underlying values in this object's ::Data. */
+    size_t size() const {
+      return data_->size();
+    }
+};
+
+class Batch {
+  private:
+    std::vector<Input> inputs_;
+
+  public:
+    std::vector<Input>& inputs() {
+      return inputs_;
+    }
+
+    const std::vector<Input>& inputs() const {
+      return inputs_;
+    }
+
+    void push_back(Input input) {
+      inputs_.push_back(input);
+    }
+
+    int dim() const {
+      return inputs_[0].shape()[0];
+    }
+
+    size_t size() const {
+      return inputs_.size();
+    }
+};
+
+typedef std::shared_ptr<Batch> BatchPtr;
+
 
 template <class DataSet>
 class MNISTBatchGenerator {
@@ -17,7 +90,7 @@ class MNISTBatchGenerator {
     typedef typename DataSet::batch_ptr BatchPtr;
 
   private:
-    std::shared_ptr<DataSet> data_;
+    Ptr<DataSet> data_;
     ExampleIterator current_;
 
     size_t batchSize_;
@@ -51,13 +124,10 @@ class MNISTBatchGenerator {
         bufferedBatches_.push_back(data_->toBatch(batchVector));
 
       std::random_shuffle(bufferedBatches_.begin(), bufferedBatches_.end());
-      //std::cerr << "Total: " << total.format(5, "%ws") << std::endl;
     }
 
   public:
-    MNISTBatchGenerator(std::shared_ptr<DataSet> data,
-                   size_t batchSize=80,
-                   size_t maxiBatchNum=20)
+    MNISTBatchGenerator(Ptr<DataSet> data, size_t batchSize=80, size_t maxiBatchNum=20)
     : data_(data),
       batchSize_(batchSize),
       maxiBatchSize_(batchSize * maxiBatchNum),
@@ -80,15 +150,12 @@ class MNISTBatchGenerator {
     }
 
     void prepare(bool shuffle=true) {
-      //boost::timer::cpu_timer total;
       if(shuffle)
         data_->shuffle();
-      //std::cerr << "shuffle: " << total.format(5, "%ws") << std::endl;
       current_ = data_->begin();
       fillBatches();
     }
 };
 
 }
-
 }

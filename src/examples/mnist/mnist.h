@@ -7,8 +7,9 @@
 #include <cassert>
 #include <algorithm>
 
-#include "data/dataset.h"
+#include "examples/mnist/dataset.h"
 #include "examples/mnist/batch_generator.h"
+
 
 namespace marian {
 namespace data {

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "graph/expression_graph.h"
-#include "data/dataset.h"
+#include "examples/mnist/batch_generator.h"
 
 using namespace marian;
 using namespace data;
 using namespace keywords;
+
 
 namespace marian {
 namespace models {
