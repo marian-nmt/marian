@@ -185,8 +185,8 @@ class FastGRU {
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
-        (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_.data(),
-         w_.Bx2_.data(), rows, cols);
+        (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_->data(),
+         w_.Bx2_->data(), rows, cols);
     }
 
     size_t GetStateLength() const {
