@@ -81,7 +81,7 @@ class Decoder {
       Prod(State, Temp2_, w_.Wi_);
       //std::cerr << "2State=" << State.Debug(1) << std::endl;
 
-      if (w_.Gamma_) {
+      if (w_.Gamma_.size()) {
         //TODO
         //Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
       }
@@ -144,7 +144,7 @@ class Decoder {
       //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
 
       // TODO
-      if (w_.Gamma_1_) {
+      if (w_.Gamma_1_.size()) {
         //Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);
       }
     }
@@ -181,7 +181,7 @@ class Decoder {
       Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
       //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
 
-      if (w_.Gamma_2_) {
+      if (w_.Gamma_2_.size()) {
         //Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
       } else {
         BroadcastVecAdd(Temp2_, w_.B_/*, s_[1]*/);
@@ -254,7 +254,7 @@ class Decoder {
 
       Prod(/*h_[0],*/ T1_, State, w_.W1_);
 
-      if (w_.Gamma_1_) {
+      if (w_.Gamma_1_.size()) {
         //Normalization(T1_, T1_, w_.Gamma_1_, w_.B1_, 1e-9);
       } else {
         BroadcastVecAdd(T1_, w_.B1_ /*,s_[0]*/);
@@ -262,7 +262,7 @@ class Decoder {
 
       Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
 
-      if (w_.Gamma_0_) {
+      if (w_.Gamma_0_.size()) {
         //Normalization(T2_, T2_, w_.Gamma_0_, w_.B2_, 1e-9);
       } else {
         BroadcastVecAdd(T2_, w_.B2_ /*,s_[1]*/);
@@ -270,7 +270,7 @@ class Decoder {
 
       Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
 
-      if (w_.Gamma_2_) {
+      if (w_.Gamma_2_.size()) {
         //Normalization(T3_, T3_, w_.Gamma_2_, w_.B3_, 1e-9);
       } else {
         BroadcastVecAdd(T3_, w_.B3_ /*,s_[2]*/);
