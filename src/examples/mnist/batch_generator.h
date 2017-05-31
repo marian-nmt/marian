@@ -77,7 +77,8 @@ class Batch {
     }
 
     size_t size() const {
-      return inputs_.size();
+      //return inputs_.size();
+      return dim();
     }
 };
 
@@ -138,8 +139,7 @@ class MNISTBatchGenerator {
     }
 
     BatchPtr next() {
-      UTIL_THROW_IF2(bufferedBatches_.empty(),
-                     "No batches to fetch");
+      UTIL_THROW_IF2(bufferedBatches_.empty(), "No batches to fetch");
       currentBatch_ = bufferedBatches_.front();
       bufferedBatches_.pop_front();
 

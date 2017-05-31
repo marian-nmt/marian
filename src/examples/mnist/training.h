@@ -1,32 +1,34 @@
 #pragma once
 
-#include "data/batch_generator.h"
-#include "data/corpus.h"
 #include "models/model_task.h"
 #include "training/config.h"
-#include "training/validator.h"
+//#include "training/validator.h"
+
+#include "examples/mnist/batch_generator.h"
+#include "examples/mnist/mnist.h"
+#include "examples/mnist/validator.h"
+
 
 namespace marian {
 
-class Reporter {
+class MNISTReporter {
   public:
     YAML::Node progress;
 
     Ptr<Config> options_;
-    std::vector<Ptr<Validator>> validators_;
+    std::vector<Ptr<MNISTValidator>> validators_;
 
     float costSum{0};
 
     size_t epochs{1};
     size_t samples{0};
     size_t samplesDisp{0};
-    size_t wordsDisp{0};
     size_t batches{0};
 
     boost::timer::cpu_timer timer;
 
   public:
-    Reporter(Ptr<Config> options) : options_(options) {}
+    MNISTReporter(Ptr<Config> options) : options_(options) {}
 
     bool keepGoing() {
       // stop if it reached the maximum number of epochs
@@ -61,7 +63,7 @@ class Reporter {
       LOG(info, "Training finshed");
     }
 
-    void addValidator(Ptr<Validator> validator) {
+    void addValidator(Ptr<MNISTValidator> validator) {
       validators_.push_back(validator);
     }
 
@@ -77,7 +79,6 @@ class Reporter {
       if(batches % options_->get<size_t>("valid-freq") == 0) {
         for(auto validator : validators_) {
           if(validator) {
-            size_t stalledPrev = validator->stalled();
             float value = validator->validate(graph);
             if(validator->stalled() > 0)
               LOG(valid, "{} : {} : {} : stalled {} times", batches,
@@ -97,77 +98,72 @@ class Reporter {
       return 0;
     }
 
-    void update(float cost, Ptr<data::CorpusBatch> batch) {
+    void update(float cost, Ptr<data::Batch> batch) {
       costSum += cost * batch->size();
       samples += batch->size();
       samplesDisp += batch->size();
-      wordsDisp += batch->words();
       batches++;
 
       if(batches % options_->get<size_t>("disp-freq") == 0) {
-        LOG(info, "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} words/s",
-            epochs, batches, samples, costSum / samplesDisp,
-            timer.format(2, "%ws"), wordsDisp / std::stof(timer.format(5, "%w")));
+        LOG(info, "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {}",
+            epochs, batches, samples, costSum / samplesDisp, timer.format(2, "%ws"));
         timer.start();
         costSum = 0;
-        wordsDisp = 0;
         samplesDisp = 0;
       }
     }
 
     void load(const std::string& name) {
-      std::string nameYaml = name + ".yml";
-      if(boost::filesystem::exists(nameYaml)) {
-        YAML::Node config = YAML::LoadFile(nameYaml);
-        epochs  = config["progress"]["epochs"].as<size_t>();
-        batches = config["progress"]["batches"].as<size_t>();
-      }
+      LOG("Loading not supported...");
     }
 
     void save(const std::string& name) {
-      YAML::Node config = options_->get();
-      config["progress"]["epochs"] = epochs;
-      config["progress"]["batches"] = batches;
-
-      std::string nameYaml = name + ".yml";
-      std::ofstream fout(nameYaml);
-      fout << config;
+      LOG("Saving not supported...");
     }
 };
 
 template <class Model>
-class Train : public ModelTask {
+class MNISTTrain : public ModelTask {
   public:
     Ptr<Config> options_;
 
+    std::string featuresPath_;
+    std::string labelsPath_;
+
   public:
-    Train(Ptr<Config> options) : options_(options) {}
+    MNISTTrain(Ptr<Config> options)
+               //const std::string& featuresPath,
+               //const std::string& labelsPath)
+      : options_(options),
+        featuresPath_("../src/examples/mnist/train-images-idx3-ubyte"),
+        labelsPath_("../src/examples/mnist/train-labels-idx1-ubyte") {}
 
     void run() {
       using namespace data;
 
-      auto trainCorpus = New<Corpus>(options_);
-      if(options_->has("guided-alignment"))
-        trainCorpus->setWordAlignment(options_->get<std::string>("guided-alignment"));
+      auto trainCorpus = New<MNIST>(featuresPath_, labelsPath_);
 
-      Ptr<BatchStats> stats;
-      if(options_->get<bool>("dynamic-batching")) {
-        LOG(info, "[batching] Collecting statistics for dynamic batching");
-        // @TODO, better fake batch with vocabulary
-        auto model = New<Model>(options_);
-        THREAD_GUARD(stats = model->collectStats());
-        LOG(info, "[batching] Done");
-      }
+      //Ptr<BatchStats> stats;
+      //if(options_->get<bool>("dynamic-batching")) {
+        //LOG(info, "[batching] Collecting statistics for dynamic batching");
+        //// @TODO, better fake batch with vocabulary
+        //auto model = New<Model>(options_);
+        //THREAD_GUARD(stats = model->collectStats());
+        //LOG(info, "[batching] Done");
+      //}
 
-      auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
-      auto reporter = New<Reporter>(options_);
+      auto batchGenerator = New<MNISTBatchGenerator<MNIST>>(trainCorpus, 200, 20);
+      auto reporter = New<MNISTReporter>(options_);
 
-      if((options_->has("valid-sets") || options_->has("valid-script-path"))
-         && options_->get<size_t>("valid-freq") > 0) {
-        for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
-                                                                      options_))
-          reporter->addValidator(validator);
-      }
+      //if((options_->has("valid-sets") || options_->has("valid-script-path"))
+         //&& options_->get<size_t>("valid-freq") > 0) {
+        //for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
+                                                                      //options_))
+          //reporter->addValidator(validator);
+      //}
+
+      auto validator = New<MNISTAccuracyValidator<typename Model::builder_type>>(options_);
+      reporter->addValidator(validator);
 
       auto model = New<Model>(options_);
       model->setReporter(reporter);
@@ -182,8 +178,11 @@ class Train : public ModelTask {
         if(reporter->keepGoing())
           reporter->increaseEpoch();
       }
+      // FIXME
       reporter->finished();
+      LOG(info, "MNISTTrain after finished");
       model->save(true);
+      LOG(info, "MNISTTrain after saving");
     }
 };
 

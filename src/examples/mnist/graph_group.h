@@ -9,36 +9,37 @@
 
 #include "3rd_party/threadpool.h"
 #include "common/definitions.h"
-#include "data/batch_generator.h"
+//#include "data/batch_generator.h"
 #include "optimizers/optimizers.h"
 #include "training/dropper.h"
 #include "training/sparse_tensor.h"
-#include "training/training.h"
-#include "training/validator.h"
+//#include "training/training.h"
+//#include "training/validator.h"
 
+#include "examples/mnist/batch_generator.h"
+#include "examples/mnist/training.h"
+#include "examples/mnist/validator.h"
 
-// @TODO:
-// - rename Builder/builder_ --> Model/model_ to be consistent with Train class
 
 namespace marian {
 
-class GraphGroup {
+class MNISTGraphGroup {
   protected:
     Ptr<Config> options_;
-    Ptr<Reporter> reporter_;
+    Ptr<MNISTReporter> reporter_;
     Ptr<OptimizerBase> opt_;
 
     std::vector<Ptr<ExpressionGraph>> graphs_;
 
   public:
-    GraphGroup(Ptr<Config> options)
+    MNISTGraphGroup(Ptr<Config> options)
     : options_(options), opt_(Optimizer(options)) { }
 
-    virtual ~GraphGroup() {}
+    virtual ~MNISTGraphGroup() {}
 
-    virtual void update(Ptr<data::CorpusBatch>) = 0;
+    virtual void update(Ptr<data::Batch>) = 0;
 
-    virtual void setReporter(Ptr<Reporter> reporter) {
+    virtual void setReporter(Ptr<MNISTReporter> reporter) {
       reporter_ = reporter;
     }
 
@@ -46,11 +47,11 @@ class GraphGroup {
 
     virtual void save(bool=false) = 0;
 
-    virtual Ptr<data::BatchStats> collectStats() = 0;
+    //virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
 template <class Builder>
-class Singleton : public GraphGroup {
+class MNISTSingleton : public MNISTGraphGroup {
   private:
     Ptr<Builder> builder_;
     Ptr<ExpressionGraph> graph_;
@@ -64,7 +65,7 @@ class Singleton : public GraphGroup {
               mvAvgParams, params);
     }
 
-    void execute(Ptr<data::CorpusBatch> batch) {
+    void execute(Ptr<data::Batch> batch) {
       auto costNode = builder_->build(graph_, batch);
 
       graph_->forward();
@@ -96,11 +97,12 @@ class Singleton : public GraphGroup {
         if(reporter_->saving())
           this->save();
 
-        if(reporter_->validating())
+        if(reporter_->validating()) {
           if(mvAvg_)
             reporter_->validate(mvAvgGraph_);
           else
             reporter_->validate(graph_);
+        }
       }
     }
 
@@ -108,8 +110,8 @@ class Singleton : public GraphGroup {
     typedef Builder builder_type;
 
     template <class ...Args>
-    Singleton(Ptr<Config> options, Args ...args)
-     : GraphGroup(options),
+    MNISTSingleton(Ptr<Config> options, Args ...args)
+     : MNISTGraphGroup(options),
        mvAvg_{options_->get<bool>("moving-average")},
        mvDecay_{(float)options_->get<double>("moving-decay")} {
 
@@ -123,17 +125,16 @@ class Singleton : public GraphGroup {
       builder_ = New<Builder>(options_, args...);
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       execute(batch);
     }
 
     void load() {
       if(!options_->get<bool>("no-reload")) {
-        std::string name = options_->get<std::string>("model");
-
-        if(boost::filesystem::exists(name)) {
-          reporter_->load(name);
-          builder_->load(graph_, name);
+        std::string init = options_->get<std::string>("model");
+        if(boost::filesystem::exists(init)) {
+          reporter_->load(init);
+          builder_->load(graph_, init);
         }
       }
     }
@@ -147,35 +148,42 @@ class Singleton : public GraphGroup {
     }
 
     void save(Ptr<ExpressionGraph> graph, bool final=false) {
+      //FIXME
+      LOG(info, "Singl.save 1");
       if(options_->get<bool>("overwrite")) {
+        LOG(info, "  Singl.save overwrite");
         std::string name = options_->get<std::string>("model");
 
         builder_->save(graph_, name, true);
         reporter_->save(name);
       }
       else {
+        LOG(info, "  Singl.save not to overwrite");
         std::string name = options_->get<std::string>("model");
 
         if(!final) {
+          LOG(info, "   Singl.save not final");
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
             ".iter" + std::to_string(reporter_->batches) + ".npz");
           builder_->save(graph_, nameOverwrite);
         }
 
+        LOG(info, "Singl.save 2");
         builder_->save(graph_, name, true);
+        LOG(info, "Singl.save 3");
         reporter_->save(name);
       }
     }
 
-    Ptr<data::BatchStats> collectStats() {
-      return builder_->collectStats(graph_);
-    }
+    //Ptr<data::BatchStats> collectStats() {
+      //return builder_->collectStats(graph_);
+    //}
 };
 
 
 template <class Builder>
-class AsyncGraphGroup : public GraphGroup {
+class MNISTAsyncGraphGroup : public MNISTGraphGroup {
   private:
     bool first_{true};
 
@@ -399,7 +407,7 @@ class AsyncGraphGroup : public GraphGroup {
                 paramsAvg, params);
     }
 
-    void execute(Ptr<data::CorpusBatch> batch) {
+    void execute(Ptr<data::Batch> batch) {
       if(first_) {
         // initialize the parameters
         for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -499,7 +507,7 @@ class AsyncGraphGroup : public GraphGroup {
         first_ = false;
       }
 
-      auto task = [this](Ptr<data::CorpusBatch> batch) {
+      auto task = [this](Ptr<data::Batch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
         thread_local Ptr<Builder> builder;
@@ -581,8 +589,8 @@ class AsyncGraphGroup : public GraphGroup {
     typedef Builder builder_type;
 
     template <class ...Args>
-    AsyncGraphGroup(Ptr<Config> options, Args ...args)
-     : GraphGroup(options),
+    MNISTAsyncGraphGroup(Ptr<Config> options, Args ...args)
+     : MNISTGraphGroup(options),
        devices_{options_->get<std::vector<size_t>>("devices")},
        pool_{devices_.size(), devices_.size()},
        shardSync_{devices_.size()},
@@ -605,7 +613,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       execute(batch);
     }
 
@@ -656,150 +664,10 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    Ptr<data::BatchStats> collectStats() {
-      return builders_[0]->collectStats(graphs_[0]);
-    }
+    //Ptr<data::BatchStats> collectStats() {
+      //return builders_[0]->collectStats(graphs_[0]);
+    //}
 };
 
-
-template <class Builder>
-class SyncGraphGroup : public GraphGroup {
-  private:
-    Ptr<Builder> builder_;
-    std::vector<Ptr<data::CorpusBatch>> batches_;
-
-    bool first_{true};
-
-    void accumulateGradients(Ptr<ExpressionGraph> master,
-                             std::vector<Ptr<ExpressionGraph>> graphs) {
-      if(graphs_.size() < 2) {
-        return;
-      }
-
-      Tensor grads = master->params()->grads();
-      Tensor tempGrads;
-      master->tensor(tempGrads, grads->shape());
-
-      for(auto graph : graphs) {
-        if(graph != master) {
-          Tensor remoteGrads = graph->params()->grads();
-          tempGrads->copyFrom(remoteGrads);
-          Element(_1 += _2, grads, tempGrads);
-        }
-      }
-
-      float denom = graphs_.size();
-      Element(_1 /= denom, grads);
-    }
-
-    void distributeParameters(Ptr<ExpressionGraph> master,
-                              std::vector<Ptr<ExpressionGraph>> graphs) {
-      if(graphs_.size() < 2)
-        return;
-
-      Tensor params = master->params()->vals();
-      for(auto graph : graphs) {
-        if(graph != master) {
-          graph->params()->vals()->copyFrom(params);
-        }
-      }
-    }
-
-    void execute() {
-      if(first_) {
-        for(auto graph : graphs_) {
-          builder_->build(graph, batches_[0]);
-          graph->forward();
-        }
-        distributeParameters(graphs_[0], graphs_);
-        first_ = false;
-      }
-
-      auto task = [this](int i,
-                         Ptr<data::CorpusBatch> batch) {
-        thread_local int j = -1;
-        if(j == -1)
-          j = i;
-        auto localGraph = this->graphs_[j];
-
-        auto costNode = builder_->build(localGraph, batch);
-        localGraph->forward();
-        float cost = costNode->scalar();
-        localGraph->backward();
-
-        if(reporter_) {
-          reporter_->update(cost, batch);
-          if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
-            this->save();
-        }
-      };
-
-      {
-        size_t workers = graphs_.size();
-        ThreadPool pool(workers, workers);
-
-        for(int i = 0; i < batches_.size(); ++i)
-          pool.enqueue(task, i % (int)workers, batches_[i]);
-      }
-      accumulateGradients(graphs_[0], graphs_);
-      opt_->update(graphs_[0]);
-      distributeParameters(graphs_[0], graphs_);
-
-      batches_.clear();
-    }
-
-    void load() {
-      if(options_->has("init")) {
-        std::string init = options_->get<std::string>("init");
-        for(auto graph : graphs_)
-        builder_->load(graph, init);
-      }
-    }
-
-  public:
-    typedef Builder builder_type;
-
-    SyncGraphGroup(Ptr<Config> options)
-     : GraphGroup(options),
-       builder_{New<Builder>(options_)} {
-
-      auto devices = options_->get<std::vector<size_t>>("devices");
-      size_t workers = devices.size();
-
-      for(auto device : devices) {
-        graphs_.emplace_back(New<ExpressionGraph>());
-        graphs_.back()->setDevice(device);
-        graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      }
-
-      load();
-    }
-
-    ~SyncGraphGroup() {
-      execute();
-    }
-
-    void update(Ptr<data::CorpusBatch> batch) {
-      batches_.push_back(batch);
-      if(batches_.size() == graphs_.size())
-        execute();
-    }
-
-    void save(bool final=false) {
-      if(options_->get<bool>("overwrite")) {
-        std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-      else {
-        std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->batches) + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-    }
-
-    Ptr<data::BatchStats> collectStats() {
-      return builder_->collectStats(graphs_[0]);
-    }
-};
 
 }
