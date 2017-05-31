@@ -114,11 +114,11 @@ class MNISTReporter {
     }
 
     void load(const std::string& name) {
-      LOG("Loading not supported...");
+      LOG(info, "Loading not supported...");
     }
 
     void save(const std::string& name) {
-      LOG("Saving not supported...");
+      LOG(info, "Saving not supported...");
     }
 };
 
@@ -180,9 +180,7 @@ class MNISTTrain : public ModelTask {
       }
       // FIXME
       reporter->finished();
-      LOG(info, "MNISTTrain after finished");
       model->save(true);
-      LOG(info, "MNISTTrain after saving");
     }
 };
 

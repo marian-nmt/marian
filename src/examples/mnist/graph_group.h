@@ -151,27 +151,22 @@ class MNISTSingleton : public MNISTGraphGroup {
       //FIXME
       LOG(info, "Singl.save 1");
       if(options_->get<bool>("overwrite")) {
-        LOG(info, "  Singl.save overwrite");
         std::string name = options_->get<std::string>("model");
 
         builder_->save(graph_, name, true);
         reporter_->save(name);
       }
       else {
-        LOG(info, "  Singl.save not to overwrite");
         std::string name = options_->get<std::string>("model");
 
         if(!final) {
-          LOG(info, "   Singl.save not final");
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
             ".iter" + std::to_string(reporter_->batches) + ".npz");
           builder_->save(graph_, nameOverwrite);
         }
 
-        LOG(info, "Singl.save 2");
         builder_->save(graph_, name, true);
-        LOG(info, "Singl.save 3");
         reporter_->save(name);
       }
     }
