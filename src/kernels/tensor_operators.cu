@@ -184,7 +184,7 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
                                           out->shape(),
                                           in->data(),
                                           0);
-  cudaStreamSynchronize(0);
+  //cudaStreamSynchronize(0);
 }
 
 __global__ void gLogSoftmax(float* out,
