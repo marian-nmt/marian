@@ -28,8 +28,8 @@ class SlowGRU {
       // -----------------------------------------------------
 
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(Temp1_, State, w_.U_);
-      Prod(Temp2_, State, w_.Ux_);
+      Prod(Temp1_, State, *w_.U_);
+      Prod(Temp2_, State, *w_.Ux_);
       //std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
@@ -116,13 +116,13 @@ class FastGRU {
       }*/
 
       using namespace mblas;
-      Transpose(WWx_, w_.W_);
+      Transpose(WWx_, *w_.W_);
       //std::cerr << std::endl;
       //std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
       //std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
       Matrix WxT;
-      Transpose(WxT, w_.Wx_);
+      Transpose(WxT, *w_.Wx_);
       //std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
       //std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
 
@@ -132,9 +132,9 @@ class FastGRU {
       Transpose(WWx_);
       //std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
-      Transpose(UUx_, w_.U_);
+      Transpose(UUx_, *w_.U_);
       Matrix UxT;
-      Transpose(UxT, w_.Ux_);
+      Transpose(UxT, *w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
 
@@ -155,8 +155,8 @@ class FastGRU {
 
       //std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
-      if (w_.Gamma_1_.size()) {
-        Normalization(RUH_, RUH_, w_.Gamma_1_, 1e-9);
+      if (w_.Gamma_1_->size()) {
+        Normalization(RUH_, RUH_, *w_.Gamma_1_, 1e-9);
       }
 
       Prod(Temp_, State, UUx_);
@@ -164,8 +164,8 @@ class FastGRU {
       //std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
       //std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
 
-      if (w_.Gamma_2_.size()) {
-        Normalization(Temp_, Temp_, w_.Gamma_2_, 1e-9);
+      if (w_.Gamma_2_->size()) {
+        Normalization(Temp_, Temp_, *w_.Gamma_2_, 1e-9);
       }
 
       ElementwiseOps(NextState, State, RUH_, Temp_);
@@ -185,12 +185,12 @@ class FastGRU {
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
-        (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_.data(), w_.Bx1_.data(),
+        (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_.data(),
          w_.Bx2_.data(), rows, cols);
     }
 
     size_t GetStateLength() const {
-      return w_.U_.dim(0);
+      return w_.U_->dim(0);
     }
 
 

@@ -27,52 +27,52 @@ struct Weights {
     EncForwardGRU(const EncForwardGRU&) = delete;
 
     EncForwardGRU(const NpzConverter& model)
-    : W_(model.get("encoder_W")),
-      B_(model.get("encoder_b", true)),
-      U_(model.get("encoder_U")),
-      Wx_(model.get("encoder_Wx")),
+    : W_(model.getPtr("encoder_W")),
+      B_(model.getPtr("encoder_b", true)),
+      U_(model.getPtr("encoder_U")),
+      Wx_(model.getPtr("encoder_Wx")),
       Bx1_(model.get("encoder_bx", true)),
       Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
-      Ux_(model.get("encoder_Ux")),
-      Gamma_1_(model.get("encoder_gamma1")),
-      Gamma_2_(model.get("encoder_gamma2"))
+      Ux_(model.getPtr("encoder_Ux")),
+      Gamma_1_(model.getPtr("encoder_gamma1")),
+      Gamma_2_(model.getPtr("encoder_gamma2"))
     { }
 
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix Wx_;
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
-    const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
   struct EncBackwardGRU {
     EncBackwardGRU(const EncBackwardGRU&) = delete;
 
     EncBackwardGRU(const NpzConverter& model)
-    : W_(model.get("encoder_r_W")),
-      B_(model.get("encoder_r_b", true)),
-      U_(model.get("encoder_r_U")),
-      Wx_(model.get("encoder_r_Wx")),
+    : W_(model.getPtr("encoder_r_W")),
+      B_(model.getPtr("encoder_r_b", true)),
+      U_(model.getPtr("encoder_r_U")),
+      Wx_(model.getPtr("encoder_r_Wx")),
       Bx1_(model.get("encoder_r_bx", true)),
       Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
-      Ux_(model.get("encoder_r_Ux")),
-      Gamma_1_(model.get("encoder_r_gamma1")),
-      Gamma_2_(model.get("encoder_r_gamma2"))
+      Ux_(model.getPtr("encoder_r_Ux")),
+      Gamma_1_(model.getPtr("encoder_r_gamma1")),
+      Gamma_2_(model.getPtr("encoder_r_gamma2"))
     {}
 
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix Wx_;
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
-    const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -105,52 +105,52 @@ struct Weights {
     DecGRU1(const DecGRU1&) = delete;
 
     DecGRU1(const NpzConverter& model)
-    : W_(model.get("decoder_W")),
-      B_(model.get("decoder_b", true)),
-      U_(model.get("decoder_U")),
-      Wx_(model.get("decoder_Wx")),
+    : W_(model.getPtr("decoder_W")),
+      B_(model.getPtr("decoder_b", true)),
+      U_(model.getPtr("decoder_U")),
+      Wx_(model.getPtr("decoder_Wx")),
       Bx1_(model.get("decoder_bx", true)),
       Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
-      Ux_(model.get("decoder_Ux")),
-      Gamma_1_(model.get("decoder_cell1_gamma1")),
-      Gamma_2_(model.get("decoder_cell1_gamma2"))
+      Ux_(model.getPtr("decoder_Ux")),
+      Gamma_1_(model.getPtr("decoder_cell1_gamma1")),
+      Gamma_2_(model.getPtr("decoder_cell1_gamma2"))
     {}
 
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix Wx_;
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
-    const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
   struct DecGRU2 {
     DecGRU2(const DecGRU2&) = delete;
 
     DecGRU2(const NpzConverter& model)
-    : W_(model.get("decoder_Wc")),
-      B_(model.get("decoder_b_nl", true)),
-      U_(model.get("decoder_U_nl")),
-      Wx_(model.get("decoder_Wcx")),
+    : W_(model.getPtr("decoder_Wc")),
+      B_(model.getPtr("decoder_b_nl", true)),
+      U_(model.getPtr("decoder_U_nl")),
+      Wx_(model.getPtr("decoder_Wcx")),
       Bx2_(model.get("decoder_bx_nl", true)),
       Bx1_(Bx2_.dim(0), Bx2_.dim(1), Bx2_.dim(2), Bx2_.dim(3), true),
-      Ux_(model.get("decoder_Ux_nl")),
-      Gamma_1_(model.get("decoder_cell2_gamma1")),
-      Gamma_2_(model.get("decoder_cell2_gamma2"))
+      Ux_(model.getPtr("decoder_Ux_nl")),
+      Gamma_1_(model.getPtr("decoder_cell2_gamma1")),
+      Gamma_2_(model.getPtr("decoder_cell2_gamma2"))
     {}
 
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix Wx_;
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Bx1_;
-    const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
   struct DecAlignment {
