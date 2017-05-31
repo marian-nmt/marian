@@ -17,7 +17,7 @@ struct Weights {
     EncEmbeddings(const EncEmbeddings&) = delete;
 
     EncEmbeddings(const NpzConverter& model)
-    : E_(model["Wemb"])
+    : E_(model.get("Wemb"))
     {}
 
     const mblas::Matrix E_;
@@ -27,15 +27,15 @@ struct Weights {
     EncForwardGRU(const EncForwardGRU&) = delete;
 
     EncForwardGRU(const NpzConverter& model)
-    : W_(model["encoder_W"]),
-      B_(model("encoder_b", true)),
-      U_(model["encoder_U"]),
-      Wx_(model["encoder_Wx"]),
-      Bx1_(model("encoder_bx", true)),
+    : W_(model.get("encoder_W")),
+      B_(model.get("encoder_b", true)),
+      U_(model.get("encoder_U")),
+      Wx_(model.get("encoder_Wx")),
+      Bx1_(model.get("encoder_bx", true)),
       Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
-      Ux_(model["encoder_Ux"]),
-      Gamma_1_(model["encoder_gamma1"]),
-      Gamma_2_(model["encoder_gamma2"])
+      Ux_(model.get("encoder_Ux")),
+      Gamma_1_(model.get("encoder_gamma1")),
+      Gamma_2_(model.get("encoder_gamma2"))
     { }
 
     const mblas::Matrix W_;
@@ -53,15 +53,15 @@ struct Weights {
     EncBackwardGRU(const EncBackwardGRU&) = delete;
 
     EncBackwardGRU(const NpzConverter& model)
-    : W_(model["encoder_r_W"]),
-      B_(model("encoder_r_b", true)),
-      U_(model["encoder_r_U"]),
-      Wx_(model["encoder_r_Wx"]),
-      Bx1_(model("encoder_r_bx", true)),
+    : W_(model.get("encoder_r_W")),
+      B_(model.get("encoder_r_b", true)),
+      U_(model.get("encoder_r_U")),
+      Wx_(model.get("encoder_r_Wx")),
+      Bx1_(model.get("encoder_r_bx", true)),
       Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
-      Ux_(model["encoder_r_Ux"]),
-      Gamma_1_(model["encoder_r_gamma1"]),
-      Gamma_2_(model["encoder_r_gamma2"])
+      Ux_(model.get("encoder_r_Ux")),
+      Gamma_1_(model.get("encoder_r_gamma1")),
+      Gamma_2_(model.get("encoder_r_gamma2"))
     {}
 
     const mblas::Matrix W_;
@@ -81,7 +81,7 @@ struct Weights {
     DecEmbeddings(const DecEmbeddings&) = delete;
 
     DecEmbeddings(const NpzConverter& model)
-    : E_(model["Wemb_dec"])
+    : E_(model.get("Wemb_dec"))
     {}
 
     const mblas::Matrix E_;
@@ -91,9 +91,9 @@ struct Weights {
     DecInit(const DecInit&) = delete;
 
     DecInit(const NpzConverter& model)
-    : Wi_(model["ff_state_W"]),
-      Bi_(model("ff_state_b", true)),
-      Gamma_(model["ff_state_gamma"])
+    : Wi_(model.get("ff_state_W")),
+      Bi_(model.get("ff_state_b", true)),
+      Gamma_(model.get("ff_state_gamma"))
     {}
 
     const mblas::Matrix Wi_;
@@ -105,15 +105,15 @@ struct Weights {
     DecGRU1(const DecGRU1&) = delete;
 
     DecGRU1(const NpzConverter& model)
-    : W_(model["decoder_W"]),
-      B_(model("decoder_b", true)),
-      U_(model["decoder_U"]),
-      Wx_(model["decoder_Wx"]),
-      Bx1_(model("decoder_bx", true)),
+    : W_(model.get("decoder_W")),
+      B_(model.get("decoder_b", true)),
+      U_(model.get("decoder_U")),
+      Wx_(model.get("decoder_Wx")),
+      Bx1_(model.get("decoder_bx", true)),
       Bx2_(Bx1_.dim(0), Bx1_.dim(1), Bx1_.dim(2), Bx1_.dim(3), true),
-      Ux_(model["decoder_Ux"]),
-      Gamma_1_(model["decoder_cell1_gamma1"]),
-      Gamma_2_(model["decoder_cell1_gamma2"])
+      Ux_(model.get("decoder_Ux")),
+      Gamma_1_(model.get("decoder_cell1_gamma1")),
+      Gamma_2_(model.get("decoder_cell1_gamma2"))
     {}
 
     const mblas::Matrix W_;
@@ -131,15 +131,15 @@ struct Weights {
     DecGRU2(const DecGRU2&) = delete;
 
     DecGRU2(const NpzConverter& model)
-    : W_(model["decoder_Wc"]),
-      B_(model("decoder_b_nl", true)),
-      U_(model["decoder_U_nl"]),
-      Wx_(model["decoder_Wcx"]),
-      Bx2_(model("decoder_bx_nl", true)),
+    : W_(model.get("decoder_Wc")),
+      B_(model.get("decoder_b_nl", true)),
+      U_(model.get("decoder_U_nl")),
+      Wx_(model.get("decoder_Wcx")),
+      Bx2_(model.get("decoder_bx_nl", true)),
       Bx1_(Bx2_.dim(0), Bx2_.dim(1), Bx2_.dim(2), Bx2_.dim(3), true),
-      Ux_(model["decoder_Ux_nl"]),
-      Gamma_1_(model["decoder_cell2_gamma1"]),
-      Gamma_2_(model["decoder_cell2_gamma2"])
+      Ux_(model.get("decoder_Ux_nl")),
+      Gamma_1_(model.get("decoder_cell2_gamma1")),
+      Gamma_2_(model.get("decoder_cell2_gamma2"))
     {}
 
     const mblas::Matrix W_;
@@ -157,13 +157,13 @@ struct Weights {
     DecAlignment(const DecAlignment&) = delete;
 
     DecAlignment(const NpzConverter& model)
-    : V_(model("decoder_U_att", true)),
-      W_(model["decoder_W_comb_att"]),
-      B_(model("decoder_b_att", true)),
-      U_(model["decoder_Wc_att"]),
-      C_(model["decoder_c_tt"]), // scalar?
-      Gamma_1_(model["decoder_att_gamma1"]),
-      Gamma_2_(model["decoder_att_gamma2"])
+    : V_(model.get("decoder_U_att", true)),
+      W_(model.get("decoder_W_comb_att")),
+      B_(model.get("decoder_b_att", true)),
+      U_(model.get("decoder_Wc_att")),
+      C_(model.get("decoder_c_tt")), // scalar?
+      Gamma_1_(model.get("decoder_att_gamma1")),
+      Gamma_2_(model.get("decoder_att_gamma2"))
     {}
 
     const mblas::Matrix V_;
@@ -179,17 +179,17 @@ struct Weights {
     DecSoftmax(const DecSoftmax&) = delete;
 
     DecSoftmax(const NpzConverter& model)
-    : W1_(model["ff_logit_lstm_W"]),
-      B1_(model("ff_logit_lstm_b", true)),
-      W2_(model["ff_logit_prev_W"]),
-      B2_(model("ff_logit_prev_b", true)),
-      W3_(model["ff_logit_ctx_W"]),
-      B3_(model("ff_logit_ctx_b", true)),
-      W4_(model["ff_logit_W"]),
-      B4_(model("ff_logit_b", true)),
-      Gamma_0_(model["ff_logit_l1_gamma0"]),
-      Gamma_1_(model["ff_logit_l1_gamma1"]),
-      Gamma_2_(model["ff_logit_l1_gamma2"])
+    : W1_(model.get("ff_logit_lstm_W")),
+      B1_(model.get("ff_logit_lstm_b", true)),
+      W2_(model.get("ff_logit_prev_W")),
+      B2_(model.get("ff_logit_prev_b", true)),
+      W3_(model.get("ff_logit_ctx_W")),
+      B3_(model.get("ff_logit_ctx_b", true)),
+      W4_(model.get("ff_logit_W")),
+      B4_(model.get("ff_logit_b", true)),
+      Gamma_0_(model.get("ff_logit_l1_gamma0")),
+      Gamma_1_(model.get("ff_logit_l1_gamma1")),
+      Gamma_2_(model.get("ff_logit_l1_gamma2"))
     {}
 
     const mblas::Matrix W1_;
