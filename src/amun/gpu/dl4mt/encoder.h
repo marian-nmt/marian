@@ -24,15 +24,15 @@ class Encoder {
         void Lookup(mblas::Matrix& Row, const Words& words) {
           thrust::host_vector<size_t> knownWords(words.size(), 1);
           for (size_t i = 0; i < words.size(); ++i) {
-            if (words[i] < w_.E_.dim(0)) {
+            if (words[i] < w_.E_->dim(0)) {
               knownWords[i] = words[i];
             }
           }
 
           DeviceVector<size_t> dKnownWords(knownWords);
 
-          Row.Resize(words.size(), w_.E_.dim(1));
-          mblas::Assemble(Row, w_.E_, dKnownWords);
+          Row.Resize(words.size(), w_.E_->dim(1));
+          mblas::Assemble(Row, *w_.E_, dKnownWords);
           //std::cerr << "Row3=" << Row.Debug(1) << std::endl;
         }
 

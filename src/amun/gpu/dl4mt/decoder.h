@@ -22,7 +22,7 @@ class Decoder {
           using namespace mblas;
           thrust::host_vector<size_t> tids = ids;
           for(auto&& id : tids)
-            if(id >= w_.E_.dim(0))
+            if(id >= w_.E_->dim(0))
               id = 1;
           indices_.resize(tids.size());
 
@@ -31,15 +31,15 @@ class Decoder {
               thrust::raw_pointer_cast(indices_.data()),
               cudaMemcpyHostToDevice);
 
-          Assemble(Rows, w_.E_, indices_);
+          Assemble(Rows, *w_.E_, indices_);
         }
 
         size_t GetCols() {
-          return w_.E_.dim(1);
+          return w_.E_->dim(1);
         }
 
         size_t GetRows() const {
-          return w_.E_.dim(0);
+          return w_.E_->dim(0);
         }
 
       private:
@@ -72,13 +72,13 @@ class Decoder {
           //std::cerr << "1State=" << State.Debug(1) << std::endl;
           //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
           //std::cerr << "w_.Wi_=" << w_.Wi_.Debug(1) << std::endl;
-          Prod(State, Temp2_, w_.Wi_);
+          Prod(State, Temp2_, *w_.Wi_);
           //std::cerr << "2State=" << State.Debug(1) << std::endl;
 
           if (w_.Gamma_) {
-            Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
+            Normalization(State, State, *w_.Gamma_, *w_.Bi_, 1e-9);
           } else {
-            BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
+            BroadcastVec(Tanh(_1 + _2), State, *w_.Bi_);
           }
           //std::cerr << "3State=" << State.Debug(1) << std::endl;
         }

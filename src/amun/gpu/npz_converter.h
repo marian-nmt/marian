@@ -76,6 +76,30 @@ class NpzConverter {
       return std::move(matrix);
     }
 
+    std::shared_ptr<mblas::Matrix> getPtr(const std::string& key, bool transpose = false) const {
+
+      std::shared_ptr<mblas::Matrix> ret;
+      auto it = model_.find(key);
+      if(it != model_.end()) {
+        NpyMatrixWrapper np(it->second);
+        mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
+        mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+
+        if (transpose) {
+      	  mblas::Transpose(*matrix);
+        }
+
+        ret.reset(matrix);
+      }
+      else {
+        std::cerr << "Missing " << key << std::endl;
+      }
+
+
+      //std::cerr << "key=" << key << " " << matrix.Debug(1) << std::endl;
+      return ret;
+    }
+
   private:
     cnpy::npz_t model_;
     bool destructed_;

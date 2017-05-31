@@ -17,10 +17,10 @@ struct Weights {
     EncEmbeddings(const EncEmbeddings&) = delete;
 
     EncEmbeddings(const NpzConverter& model)
-    : E_(model.get("Wemb"))
+    : E_(model.getPtr("Wemb"))
     {}
 
-    const mblas::Matrix E_;
+    const std::shared_ptr<mblas::Matrix> E_;
   };
 
   struct EncForwardGRU {
@@ -81,24 +81,24 @@ struct Weights {
     DecEmbeddings(const DecEmbeddings&) = delete;
 
     DecEmbeddings(const NpzConverter& model)
-    : E_(model.get("Wemb_dec"))
+    : E_(model.getPtr("Wemb_dec"))
     {}
 
-    const mblas::Matrix E_;
+    const std::shared_ptr<mblas::Matrix> E_;
   };
 
   struct DecInit {
     DecInit(const DecInit&) = delete;
 
     DecInit(const NpzConverter& model)
-    : Wi_(model.get("ff_state_W")),
-      Bi_(model.get("ff_state_b", true)),
-      Gamma_(model.get("ff_state_gamma"))
+    : Wi_(model.getPtr("ff_state_W")),
+      Bi_(model.getPtr("ff_state_b", true)),
+      Gamma_(model.getPtr("ff_state_gamma"))
     {}
 
-    const mblas::Matrix Wi_;
-    const mblas::Matrix Bi_;
-    const mblas::Matrix Gamma_;
+    const std::shared_ptr<mblas::Matrix> Wi_;
+    const std::shared_ptr<mblas::Matrix> Bi_;
+    const std::shared_ptr<mblas::Matrix> Gamma_;
   };
 
   struct DecGRU1 {
