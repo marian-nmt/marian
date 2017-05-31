@@ -151,7 +151,7 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
 }
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
-  return BestHypsBasePtr(new CPU::BestHyps());
+  return BestHypsBasePtr(new CPU::BestHyps(god));
 }
 
 }

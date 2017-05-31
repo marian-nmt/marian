@@ -10,7 +10,6 @@
 
 namespace amunmt {
 
-class God;
 class Sentences;
 
 class State {
@@ -45,11 +44,9 @@ class Scorer {
 
     virtual void Decode(const State& in, State& out, const std::vector<size_t>& beamSizes) = 0;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize=1) = 0;
+    virtual void BeginSentenceState(State& state, size_t batchSize = 1) = 0;
 
-    virtual void AssembleBeamState(const State& in,
-                                   const Beam& beam,
-                                   State& out) = 0;
+    virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
     virtual void SetSource(const Sentences& sources) = 0;
 
