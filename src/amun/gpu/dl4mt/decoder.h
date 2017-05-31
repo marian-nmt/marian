@@ -128,11 +128,11 @@ class Decoder {
         void Init(const mblas::Matrix& SourceContext) {
           using namespace mblas;
 
-          Prod(/*h_[0],*/ SCU_, SourceContext, w_.U_);
+          Prod(/*h_[0],*/ SCU_, SourceContext, *w_.U_);
           //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
 
-          if (w_.Gamma_1_.size()) {
-            Normalization(SCU_, SCU_, w_.Gamma_1_, w_.B_, 1e-9);
+          if (w_.Gamma_1_->size()) {
+            Normalization(SCU_, SCU_, *w_.Gamma_1_, *w_.B_, 1e-9);
           }
         }
 
@@ -166,13 +166,13 @@ class Decoder {
 
           const size_t srcSize = mapping.size() / beamSizes.size();
 
-          Prod(/*h_[1],*/ Temp2_, HiddenState, w_.W_);
+          Prod(/*h_[1],*/ Temp2_, HiddenState, *w_.W_);
           //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
 
-          if (w_.Gamma_2_.size()) {
-            Normalization(Temp2_, Temp2_, w_.Gamma_2_, 1e-9);
+          if (w_.Gamma_2_->size()) {
+            Normalization(Temp2_, Temp2_, *w_.Gamma_2_, 1e-9);
           } else {
-            BroadcastVec(_1 + _2, Temp2_, w_.B_/*, s_[1]*/);
+            BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
           //std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
 
@@ -186,7 +186,7 @@ class Decoder {
 
           //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
-          Prod(A_, w_.V_, Temp1_, false, true);
+          Prod(A_, *w_.V_, Temp1_, false, true);
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);

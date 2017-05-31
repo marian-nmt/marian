@@ -157,22 +157,22 @@ struct Weights {
     DecAlignment(const DecAlignment&) = delete;
 
     DecAlignment(const NpzConverter& model)
-    : V_(model.get("decoder_U_att", true)),
-      W_(model.get("decoder_W_comb_att")),
-      B_(model.get("decoder_b_att", true)),
-      U_(model.get("decoder_Wc_att")),
-      C_(model.get("decoder_c_tt")), // scalar?
-      Gamma_1_(model.get("decoder_att_gamma1")),
-      Gamma_2_(model.get("decoder_att_gamma2"))
+    : V_(model.getPtr("decoder_U_att", true)),
+      W_(model.getPtr("decoder_W_comb_att")),
+      B_(model.getPtr("decoder_b_att", true)),
+      U_(model.getPtr("decoder_Wc_att")),
+      C_(model.getPtr("decoder_c_tt")), // scalar?
+      Gamma_1_(model.getPtr("decoder_att_gamma1")),
+      Gamma_2_(model.getPtr("decoder_att_gamma2"))
     {}
 
-    const mblas::Matrix V_;
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix C_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const std::shared_ptr<mblas::Matrix> V_;
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> C_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
   struct DecSoftmax {
