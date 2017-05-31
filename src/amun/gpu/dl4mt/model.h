@@ -179,30 +179,30 @@ struct Weights {
     DecSoftmax(const DecSoftmax&) = delete;
 
     DecSoftmax(const NpzConverter& model)
-    : W1_(model.get("ff_logit_lstm_W")),
-      B1_(model.get("ff_logit_lstm_b", true)),
-      W2_(model.get("ff_logit_prev_W")),
-      B2_(model.get("ff_logit_prev_b", true)),
-      W3_(model.get("ff_logit_ctx_W")),
-      B3_(model.get("ff_logit_ctx_b", true)),
-      W4_(model.get("ff_logit_W")),
-      B4_(model.get("ff_logit_b", true)),
-      Gamma_0_(model.get("ff_logit_l1_gamma0")),
-      Gamma_1_(model.get("ff_logit_l1_gamma1")),
-      Gamma_2_(model.get("ff_logit_l1_gamma2"))
+    : W1_(model.getPtr("ff_logit_lstm_W")),
+      B1_(model.getPtr("ff_logit_lstm_b", true)),
+      W2_(model.getPtr("ff_logit_prev_W")),
+      B2_(model.getPtr("ff_logit_prev_b", true)),
+      W3_(model.getPtr("ff_logit_ctx_W")),
+      B3_(model.getPtr("ff_logit_ctx_b", true)),
+      W4_(model.getPtr("ff_logit_W")),
+      B4_(model.getPtr("ff_logit_b", true)),
+      Gamma_0_(model.getPtr("ff_logit_l1_gamma0")),
+      Gamma_1_(model.getPtr("ff_logit_l1_gamma1")),
+      Gamma_2_(model.getPtr("ff_logit_l1_gamma2"))
     {}
 
-    const mblas::Matrix W1_;
-    const mblas::Matrix B1_;
-    const mblas::Matrix W2_;
-    const mblas::Matrix B2_;
-    const mblas::Matrix W3_;
-    const mblas::Matrix B3_;
-    const mblas::Matrix W4_;
-    const mblas::Matrix B4_;
-    const mblas::Matrix Gamma_0_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const std::shared_ptr<mblas::Matrix> W1_;
+    const std::shared_ptr<mblas::Matrix> B1_;
+    const std::shared_ptr<mblas::Matrix> W2_;
+    const std::shared_ptr<mblas::Matrix> B2_;
+    const std::shared_ptr<mblas::Matrix> W3_;
+    const std::shared_ptr<mblas::Matrix> B3_;
+    const std::shared_ptr<mblas::Matrix> W4_;
+    const std::shared_ptr<mblas::Matrix> B4_;
+    const std::shared_ptr<mblas::Matrix> Gamma_0_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
   Weights(const std::string& npzFile, size_t device)

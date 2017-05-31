@@ -237,8 +237,8 @@ class Decoder {
         Softmax(const Weights& model)
         : w_(model), filtered_(false)
         {
-          mblas::Transpose(TempW4, w_.W4_);
-          mblas::Transpose(TempB4, w_.B4_);
+          mblas::Transpose(TempW4, *w_.W4_);
+          mblas::Transpose(TempB4, *w_.B4_);
         }
 
         void GetProbs(mblas::Matrix& Probs,
@@ -247,36 +247,36 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          Prod(/*h_[0],*/ T1_, State, w_.W1_);
+          Prod(/*h_[0],*/ T1_, State, *w_.W1_);
 
-          if (w_.Gamma_1_.size()) {
-            Normalization(T1_, T1_, w_.Gamma_1_, w_.B1_, 1e-9);
+          if (w_.Gamma_1_->size()) {
+            Normalization(T1_, T1_, *w_.Gamma_1_, *w_.B1_, 1e-9);
           } else {
-            BroadcastVec(_1 + _2, T1_, w_.B1_ /*,s_[0]*/);
+            BroadcastVec(_1 + _2, T1_, *w_.B1_ /*,s_[0]*/);
           }
 
-          Prod(/*h_[1],*/ T2_, Embedding, w_.W2_);
+          Prod(/*h_[1],*/ T2_, Embedding, *w_.W2_);
 
-          if (w_.Gamma_0_.size()) {
-            Normalization(T2_, T2_, w_.Gamma_0_, w_.B2_, 1e-9);
+          if (w_.Gamma_0_->size()) {
+            Normalization(T2_, T2_, *w_.Gamma_0_, *w_.B2_, 1e-9);
           } else {
-            BroadcastVec(_1 + _2, T2_, w_.B2_ /*,s_[1]*/);
+            BroadcastVec(_1 + _2, T2_, *w_.B2_ /*,s_[1]*/);
           }
 
-          Prod(/*h_[2],*/ T3_, AlignedSourceContext, w_.W3_);
+          Prod(/*h_[2],*/ T3_, AlignedSourceContext, *w_.W3_);
 
-          if (w_.Gamma_2_.size()) {
-            Normalization(T3_, T3_, w_.Gamma_2_, w_.B3_, 1e-9);
+          if (w_.Gamma_2_->size()) {
+            Normalization(T3_, T3_, *w_.Gamma_2_, *w_.B3_, 1e-9);
           } else {
-            BroadcastVec(_1 + _2, T3_, w_.B3_ /*,s_[2]*/);
+            BroadcastVec(_1 + _2, T3_, *w_.B3_ /*,s_[2]*/);
           }
 
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
-            Probs.Resize(T1_.dim(0), w_.W4_.dim(1));
-            Prod(Probs, T1_, w_.W4_);
-            BroadcastVec(_1 + _2, Probs, w_.B4_);
+            Probs.Resize(T1_.dim(0), w_.W4_->dim(1));
+            Prod(Probs, T1_, *w_.W4_);
+            BroadcastVec(_1 + _2, Probs, *w_.B4_);
           } else {
             Probs.Resize(T1_.dim(0), FilteredW4_.dim(1));
             Prod(Probs, T1_, FilteredW4_);
