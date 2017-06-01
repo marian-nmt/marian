@@ -35,7 +35,7 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   graph->clear();
 
   // Define the input layer
-  auto x = graph->constant(shape={N, NUM_FEATURES}, init=inits::from_vector(inputData));
+  auto x = graph->constant({N, NUM_FEATURES}, init=inits::from_vector(inputData));
 
   // Define the hidden layer
   auto W1 = graph->param("W1", {NUM_FEATURES, 5}, init=inits::uniform());
@@ -48,7 +48,7 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   auto o = affine(h, W2, b2);
 
   if (train) {
-    auto y = graph->constant(shape={N, 1}, init=inits::from_vector(outputData));
+    auto y = graph->constant({N, 1}, init=inits::from_vector(outputData));
     /* Define cross entropy cost on the output layer.
      *
      * It can be also defined directly as:

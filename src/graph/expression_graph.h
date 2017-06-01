@@ -41,7 +41,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     std::unordered_set<Expr> topNodes_;
 
     Ptr<Parameters> params_;
-    
+
     Ptr<TensorAllocator> tensors_;
 
     cublasHandle_t cublasHandle_;
@@ -49,7 +49,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     size_t device_{0};
 
     std::unordered_map<size_t, WExpr> hashMap_;
-    
+
     bool inferenceOnly_{false};
     std::string namespace_;
 
@@ -72,10 +72,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     void setDevice(size_t device = 0) {
       device_ = device;
-      
+
       params_ = New<Parameters>();
       params_->init(device_);
-      
+
       tensors_ = New<TensorAllocator>(device);
       cublasHandle_ = create_handle(device);
       curandGenerator_ = createCurandGenerator(device, Config::seed);
@@ -92,7 +92,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     size_t getDevice() {
       return device_;
     }
-    
+
     void switchParams(const std::string& newNamespace) {
       namespace_ = newNamespace;
     }
@@ -105,7 +105,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     void reuseWorkspace(Ptr<ExpressionGraph> graph) {
       tensors_ = graph->tensors_;
     }
-    
+
     /**
      * @brief Performs backpropogation on this expression graph.
      *
@@ -146,7 +146,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       }
       return true;
     }
-     
+
     void forward() {
       params_->allocateForward();
       forwardNext();
@@ -156,20 +156,20 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       // @TODO: check if allocation works properly
 
       hashMap_.clear();
-      
+
       while(!nodesForward_.empty()) {
         auto v = nodesForward_.front();
         v->allocate();
         v->init();
         v->forward();
-        
+
         if(v->marked_for_debug()) {
           std::cerr << "Debug: " << v->debug_message() << std::endl;
           std::cerr << v->val()->debug() << std::endl;
         }
-        
-        //if(inferenceOnly_)
-        //  v->children().clear();
+
+        if(inferenceOnly_)
+          v->children().clear();
         nodesForward_.pop_front();
       }
     }
@@ -192,10 +192,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
       params_->allocateBackward();
       params_->set_zero_adjoint();
-      
+
       for(auto&& v : topNodes_)
         v->init_dependent();
-        
+
       //named_.clear();
       topNodes_.clear();
       hashMap_.clear();
@@ -210,12 +210,12 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
         }
         if(v->trainable())
           v->backward();
-        
+
         if(v->trainable() && v->marked_for_debug()) {
           //std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
           //std::cerr << v->grad()->debug() << std::endl;
         }
-        
+
         v->children().clear();
       }
     }
@@ -266,10 +266,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     inline Expr param(std::string name,
                       Shape shape,
                       Args ...args) {
-      
+
       if(!namespace_.empty())
         name = namespace_ + "::" + name;
-      
+
       // check first if parameter already exists
       auto p = params_->get(name);
       if(p) {
@@ -303,8 +303,10 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed constant node
      */
     template <typename ...Args>
-    inline Expr constant(Args ...args) {
-      return Expression<ConstantNode>(shared_from_this(), args...);
+    inline Expr constant(Shape shape, Args ...args) {
+      return Expression<ConstantNode>(shared_from_this(),
+                                      keywords::shape=shape,
+                                      args...);
     }
 
     /**
@@ -364,7 +366,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     Expr get(std::string name) {
       if(!namespace_.empty())
         name = namespace_ + "::" + name;
-      
+
       auto e = params_->get(name);
       if(e)
         return e;
@@ -392,7 +394,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       hashMap_[hash] = node;
 
       node->setId(count_++);
-      
+
       nodesForward_.push_back(node);
       if(!inferenceOnly_)
         nodesBackward_.push_back(node);
@@ -420,17 +422,17 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       count_ = 0;
       nodesForward_.clear();
       nodesBackward_.clear();
-     
+
       topNodes_.clear();
-      hashMap_.clear(); 
+      hashMap_.clear();
       tensors_->clear();
     }
 
-    
+
     void clearParameters() {
       params_->clear();
     }
-    
+
     void load(const std::string& name) {
       using namespace keywords;
 
@@ -468,12 +470,12 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       cudaSetDevice(getDevice());
       for(auto p : params()->getMap()) {
         std::string pName = p.first;
-        
+
         if(!namespace_.empty()) {
           if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
-            pName = pName.substr(namespace_.size() + 2); 
+            pName = pName.substr(namespace_.size() + 2);
         }
-        
+
         std::vector<float> v;
         p.second->val() >> v;
 

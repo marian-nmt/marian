@@ -37,11 +37,8 @@ void TensorBase::set(size_t i, float value) {
 void TensorBase::get(std::vector<float> &v) {
   CUDA_CHECK(cudaSetDevice(device_));
   v.resize(size());
-  CUDA_CHECK(cudaHostRegister(v.data(), v.size() * sizeof(float),
-                              cudaHostRegisterPortable));
   CUDA_CHECK(cudaMemcpy(v.data(), data_, size() * sizeof(float),
              cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaHostUnregister(v.data()));
   cudaStreamSynchronize(0);
 }
 
@@ -55,11 +52,8 @@ void TensorBase::set(float value) {
 
 void TensorBase::set(const std::vector<float> &v) {
   CUDA_CHECK(cudaSetDevice(device_));
-  CUDA_CHECK(cudaHostRegister(const_cast<float*>(v.data()), v.size() * sizeof(float),
-                              cudaHostRegisterPortable));
   CUDA_CHECK(cudaMemcpy(data_, v.data(), v.size() * sizeof(float),
              cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaHostUnregister(const_cast<float*>(v.data())));
   cudaStreamSynchronize(0);
 }
 

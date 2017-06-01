@@ -212,7 +212,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   modelFeatures_ = {
     "type", "dim-vocabs", "dim-emb", "dim-pos", "dim-rnn",
     "layers-enc", "layers-dec", "skip", "layer-normalization",
-    "special-vocab"
+    "special-vocab", "tied-embeddings"
     /*"lexical-table", "vocabs"*/
   };
 
@@ -339,6 +339,8 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for translating.")
+    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie target embeddings and output embeddings in output layer")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -423,6 +425,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("layers-enc", int);
   SET_OPTION("layers-dec", int);
   SET_OPTION("skip", bool);
+  SET_OPTION("tied-embeddings", bool);
   SET_OPTION("layer-normalization", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
@@ -451,7 +454,6 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("learn-rate", double);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
-    SET_OPTION("tied-embeddings", bool);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);

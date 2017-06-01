@@ -19,13 +19,13 @@ class TensorGPU;
 cublasHandle_t create_handle(size_t);
 
 template <class Functor>
-__global__ void gAdd(Functor functor,
-                     float* out,
-                     Shape outShape,
-                     const float* in1,
-                     const Shape in1Shape,
-                     const Shape full,
-                     float scale = 1.0) {
+__global__ void gAddR2(Functor functor,
+                       float* out,
+                       Shape outShape,
+                       const float* in1,
+                       const Shape in1Shape,
+                       const Shape full,
+                       float scale = 1.0) {
 
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
@@ -70,13 +70,13 @@ __global__ void gAdd(Functor functor,
 }
 
 template <class Functor>
-__global__ void gAdd1(Functor functor,
-                      float* out,
-                      Shape outShape,
-                      const float* in1,
-                      const Shape in1Shape,
-                      const Shape full,
-                      float scale = 1.0) {
+__global__ void gAdd1R2(Functor functor,
+                        float* out,
+                        Shape outShape,
+                        const float* in1,
+                        const Shape in1Shape,
+                        const Shape full,
+                        float scale = 1.0) {
 
   int rows = full[0] * full[2] * full[3];
   int cols = full[1];
@@ -149,20 +149,20 @@ void Add(Functor functor,
     int threads = std::min(MAX_THREADS, (int) k);
     int shared = sizeof(float) * threads * 2;
 
-    gAdd1<<<blocks, threads, shared>>>(functor,
-                                       out->data(), out->shape(),
-                                       in->data(), in->shape(),
-                                       full, scale);
+    gAdd1R2<<<blocks, threads, shared>>>(functor,
+                                         out->data(), out->shape(),
+                                         in->data(), in->shape(),
+                                         full, scale);
   }
   else {
 
     int threads = std::min(MAX_THREADS, length);
     int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
-    gAdd<<<blocks, threads>>>(functor,
-                              out->data(), out->shape(),
-                              in->data(), in->shape(),
-                              full, scale);
+    gAddR2<<<blocks, threads>>>(functor,
+                                out->data(), out->shape(),
+                                in->data(), in->shape(),
+                                full, scale);
   }
 }
 
@@ -174,15 +174,15 @@ void Reduce(Functor functor,
 }
 
 template <class Functor>
-__global__ void gAdd(Functor functor,
-                     float* out,
-                     Shape outShape,
-                     const float* in1,
-                     const Shape in1Shape,
-                     const float* in2,
-                     const Shape in2Shape,
-                     const Shape full,
-                     float scale = 1.0) {
+__global__ void gAddR3(Functor functor,
+                       float* out,
+                       Shape outShape,
+                       const float* in1,
+                       const Shape in1Shape,
+                       const float* in2,
+                       const Shape in2Shape,
+                       const Shape full,
+                       float scale = 1.0) {
 
   int outLength = outShape.elements();
 
@@ -327,11 +327,11 @@ void Add(Functor functor,
     int threads = std::min(MAX_THREADS, length);
     int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
-    gAdd<<<blocks, threads>>>(functor,
-                              out->data(), out->shape(),
-                              in1->data(), in1->shape(),
-                              in2->data(), in2->shape(),
-                              full, scale);
+    gAddR3<<<blocks, threads>>>(functor,
+                                out->data(), out->shape(),
+                                in1->data(), in1->shape(),
+                                in2->data(), in2->shape(),
+                                full, scale);
   //}
 }
 
@@ -345,16 +345,16 @@ void Reduce(Functor functor,
 
 
 template <class Functor>
-__global__ void gAdd(Functor functor,
-                     float* out,
-                     Shape outShape,
-                     const float* in1,
-                     const Shape in1Shape,
-                     const float* in2,
-                     const Shape in2Shape,
-                     const float* in3,
-                     const Shape in3Shape,
-                     const Shape full) {
+__global__ void gAddR4(Functor functor,
+                       float* out,
+                       Shape outShape,
+                       const float* in1,
+                       const Shape in1Shape,
+                       const float* in2,
+                       const Shape in2Shape,
+                       const float* in3,
+                       const Shape in3Shape,
+                       const Shape full) {
 
   int outLength = outShape.elements();
 
@@ -421,12 +421,12 @@ void Add(Functor functor,
   int threads = std::min(MAX_THREADS, length);
   int blocks  = std::min(MAX_BLOCKS, length / threads  + (length % threads != 0));
 
-  gAdd<<<blocks, threads>>>(functor,
-                            out->data(), out->shape(),
-                            in1->data(), in1->shape(),
-                            in2->data(), in2->shape(),
-                            in3->data(), in3->shape(),
-                            full);
+  gAddR4<<<blocks, threads>>>(functor,
+                              out->data(), out->shape(),
+                              in1->data(), in1->shape(),
+                              in2->data(), in2->shape(),
+                              in3->data(), in3->shape(),
+                              full);
 
 }
 

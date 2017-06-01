@@ -287,7 +287,7 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
         int dimSrc = att->shape()[2];
         int dimTrg = att->shape()[3];
 
-        auto aln = graph->constant(shape={dimBatch, 1, dimSrc, dimTrg},
+        auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
                                    keywords::init=inits::from_vector(batch->getGuidedAlignment()));
 
         std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
