@@ -62,10 +62,9 @@ namespace marian {
 
       virtual float validate(Ptr<ExpressionGraph> graph) {
         using namespace data;
-        //auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-        auto corpus = New<MNIST>(
-                   "../src/examples/mnist/t10k-images-idx3-ubyte",
-                   "../src/examples/mnist/t10k-labels-idx1-ubyte");
+
+        auto paths = options_->get<std::vector<std::string>>("valid-sets");
+        auto corpus = New<MNIST>(paths);
 
         auto batchGenerator = New<MNISTBatchGenerator<MNIST>>(corpus, 200, 20);
         batchGenerator->prepare(false);

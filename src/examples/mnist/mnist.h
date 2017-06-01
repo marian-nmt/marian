@@ -33,21 +33,21 @@ class MNIST : public DataBase {
      * @brief Constructs a DataBase using <a
      * href="http://yann.lecun.com/exdb/mnist/">MNIST</a> data.
      *
-     * @param featuresPath Path to file containing MNIST feature values
-     * @param labelsPath   Path to file containing MNIST labels
+     * @param paths Paths to two files containing MNIST features and labels
      */
-    MNIST(const std::string& featuresPath,
-          const std::string& labelsPath)
+    MNIST(std::vector<std::string> paths)
     : IMAGE_MAGIC_NUMBER(2051),
       LABEL_MAGIC_NUMBER(2049)
     {
-      auto features = ReadImages(featuresPath);
-      auto labels = ReadLabels(labelsPath);
+      UTIL_THROW_IF2(paths.size() != 2,
+                     "Paths to MNIST data files are not specified");
 
+      auto features = ReadImages(paths[0]);
+      auto labels = ReadLabels(paths[1]);
       UTIL_THROW_IF2(features.size() != labels.size(),
                      "Features do not match labels");
 
-      for(int i = 0; i < features.size(); ++i)
+      for(size_t i = 0; i < features.size(); ++i)
         examples_.emplace_back(new Example({ features[i], labels[i] }));
     }
 
@@ -70,8 +70,8 @@ class MNIST : public DataBase {
       for(auto& ex : batchVector) {
         if(maxDims.size() < ex->size())
           maxDims.resize(ex->size(), 0);
-        for(int i = 0; i < ex->size(); ++i) {
-          if((*ex)[i]->size() > maxDims[i])
+        for(size_t i = 0; i < ex->size(); ++i) {
+          if((*ex)[i]->size() > (size_t)maxDims[i])
             maxDims[i] = (*ex)[i]->size();
         }
       }

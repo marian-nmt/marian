@@ -127,21 +127,14 @@ class MNISTTrain : public ModelTask {
   public:
     Ptr<Config> options_;
 
-    std::string featuresPath_;
-    std::string labelsPath_;
-
   public:
-    MNISTTrain(Ptr<Config> options)
-               //const std::string& featuresPath,
-               //const std::string& labelsPath)
-      : options_(options),
-        featuresPath_("../src/examples/mnist/train-images-idx3-ubyte"),
-        labelsPath_("../src/examples/mnist/train-labels-idx1-ubyte") {}
+    MNISTTrain(Ptr<Config> options) : options_(options) {}
 
     void run() {
       using namespace data;
 
-      auto trainCorpus = New<MNIST>(featuresPath_, labelsPath_);
+      auto paths = options_->get<std::vector<std::string>>("train-sets");
+      auto trainCorpus = New<MNIST>(paths);
 
       //Ptr<BatchStats> stats;
       //if(options_->get<bool>("dynamic-batching")) {

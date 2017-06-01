@@ -38,6 +38,11 @@ class Config {
     T get(const std::string& key) const {
       return config_[key].as<T>();
     }
+    
+    template <typename T>
+    void set(const std::string& key, const T& value) {
+      config_[key] = value;
+    }
 
     const YAML::Node& get() const;
     YAML::Node& get();
