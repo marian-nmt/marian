@@ -188,15 +188,16 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-pos", po::value<int>()->default_value(0), "Size of position embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
-    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers")
-    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers")
+    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers (s2s)")
+    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers (s2s)")
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
-     "Use skip connections")
+     "Use skip connections (s2s)")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
      "Enable layer normalization")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
-     "Model-specific special vocabulary ids");
-
+     "Model-specific special vocabulary ids")
+    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie target embeddings and output embeddings in output layer (s2s)");
 
   if(!translate) {
     model.add_options()
@@ -257,8 +258,6 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Set mini-batch size based on words instead of sentences.")
     ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
-    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
-     "Tie target embeddings and output embeddings in output layer")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
@@ -308,12 +307,12 @@ void Config::addOptionsValid(po::options_description& desc) {
       "Keep best model for each validation metric")
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
-    ("beam-size", po::value<size_t>()->default_value(12),
+    /*("beam-size", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
     ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
       "Normalize translation score by translation length")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
-      "Allow unknown words to appear in output")
+      "Allow unknown words to appear in output")*/
   ;
   desc.add(valid);
 }
@@ -347,8 +346,8 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
-    ("lexical-table", po::value<std::string>(),
-     "Path to lexical table")
+    //("lexical-table", po::value<std::string>(),
+    // "Path to lexical table")
     ("weights", po::value<std::vector<float>>()
       ->multitoken(),
       "Scorer weights")
@@ -489,9 +488,9 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("keep-best", bool);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
 
-    SET_OPTION("normalize", bool);
-    SET_OPTION("beam-size", size_t);
-    SET_OPTION("allow-unk", bool);
+    //SET_OPTION("normalize", bool);
+    //SET_OPTION("beam-size", size_t);
+    //SET_OPTION("allow-unk", bool);
   }
   /** valid **/
 
@@ -539,7 +538,7 @@ void Config::addOptions(int argc, char** argv,
       }
       catch(std::runtime_error& e) {
         // @TODO do this with log
-        std::cerr << "No model parameters found in model file" << std::endl;
+        std::cerr << "No model settings found in model file" << std::endl;
       }
     }
   }

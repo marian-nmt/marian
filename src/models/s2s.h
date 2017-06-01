@@ -141,10 +141,6 @@ class DecoderS2S : public DecoderBase {
 
   public:
 
-    const std::vector<Expr>& getAlignments() {
-      return attention_->getAlignments();
-    }
-
     template <class ...Args>
     DecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
@@ -261,6 +257,10 @@ class DecoderS2S : public DecoderBase {
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
     }
+    
+    const std::vector<Expr> getAlignments() {
+      return attention_->getAlignments();
+    }
 };
 
 
@@ -275,44 +275,8 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph=true) {
 
-      auto cost = EncoderDecoder::build(graph, batch, clearGraph);
-
-      if(options_->has("guided-alignment") && !inference_) {
-        using namespace keywords;
-
-        auto dec = std::dynamic_pointer_cast<DecoderS2S>(EncoderDecoder::decoder_);
-        auto att = concatenate(dec->getAlignments(), axis=3);
-
-        int dimBatch = att->shape()[0];
-        int dimSrc = att->shape()[2];
-        int dimTrg = att->shape()[3];
-
-        auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
-                                   keywords::init=inits::from_vector(batch->getGuidedAlignment()));
-
-        std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
-
-        Expr alnCost;
-        float eps = 1e-6;
-        if(guidedCostType == "mse") {
-          alnCost = sum(flatten(square(att - aln))) / (2 * dimBatch);
-        }
-        else if(guidedCostType == "mult") {
-          alnCost = -log(sum(flatten(att * aln)) + eps) / dimBatch;
-        }
-        else if(guidedCostType == "ce") {
-          alnCost = -sum(flatten(aln * log(att + eps))) / dimBatch;
-        }
-        else {
-          UTIL_THROW2("Unknown alignment cost type");
-        }
-
-        float guidedScalar = options_->get<float>("guided-alignment-weight");
-        return cost + guidedScalar * alnCost;
-      }
-      else {
-        return cost;
-      }
+      return EncoderDecoder::build(graph, batch, clearGraph);
+  
     }
 };
 

@@ -131,6 +131,8 @@ class DecoderBase {
     }
 
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
+    
+    virtual const std::vector<Expr> getAlignments() = 0;
 };
 
 class EncoderDecoderBase {
@@ -290,7 +292,41 @@ class EncoderDecoder : public EncoderDecoderBase {
       auto cost = CrossEntropyCost(prefix_ + "cost")
                     (nextState->getProbs(), trgIdx, mask=trgMask);
 
-      return cost;
+      if(options_->has("guided-alignment") && !inference_) {
+        using namespace keywords;
+
+        auto att = concatenate(decoder_->getAlignments(), axis=3);
+
+        int dimBatch = att->shape()[0];
+        int dimSrc = att->shape()[2];
+        int dimTrg = att->shape()[3];
+
+        auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
+                                   keywords::init=inits::from_vector(batch->getGuidedAlignment()));
+
+        std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
+
+        Expr alnCost;
+        float eps = 1e-6;
+        if(guidedCostType == "mse") {
+          alnCost = sum(flatten(square(att - aln))) / (2 * dimBatch);
+        }
+        else if(guidedCostType == "mult") {
+          alnCost = -log(sum(flatten(att * aln)) + eps) / dimBatch;
+        }
+        else if(guidedCostType == "ce") {
+          alnCost = -sum(flatten(aln * log(att + eps))) / dimBatch;
+        }
+        else {
+          UTIL_THROW2("Unknown alignment cost type");
+        }
+
+        float guidedScalar = options_->get<float>("guided-alignment-weight");
+        return cost + guidedScalar * alnCost;
+      }
+      else {
+        return cost;
+      }
     }
 
     Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {

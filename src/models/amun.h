@@ -189,6 +189,10 @@ class DecoderAmun : public DecoderBase {
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());
     }
+    
+    const std::vector<Expr> getAlignments() {
+      return attention_->getAlignments();
+    }
 
 };
 
@@ -314,6 +318,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
               bool saveTranslatorConfig) {
 
       save(graph, name);
+      options_->saveModelParameters(name);
 
       if(saveTranslatorConfig) {
         YAML::Node amun;

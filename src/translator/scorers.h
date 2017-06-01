@@ -233,14 +233,16 @@ createScorers(Ptr<Config> options) {
   int i = 0;
   for(auto model : models) {
     std::string fname = "F" + std::to_string(i);
-    if(options->get<std::string>("type") == "amun") {
-      scorers.push_back(scorerByType(fname, weights[i], model, options));
-    }
-    else {
-      auto modelOptions = New<Config>(*options);
+    auto modelOptions = New<Config>(*options);
+    
+    try {
       modelOptions->loadModelParameters(model);
-      scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
     }
+    catch(std::runtime_error& e) {
+      LOG(info, "No model settings found in model file");
+    }
+    
+    scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
     i++;
   }
 
