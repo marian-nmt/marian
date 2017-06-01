@@ -292,21 +292,21 @@ public:
   }
 
   __device__
-  const T &get(size_t indices[SHAPE_SIZE]) const
+  const T &operator[](size_t indices[SHAPE_SIZE]) const
   {
     size_t id = indices2Id(indices);
     assert(id < size());
     return data()[id];
   }
 
-  /*
   __device__
   T &operator[](size_t indices[SHAPE_SIZE])
   {
     size_t id = indices2Id(indices);
+    assert(id < size());
     return data()[id];
   }
-  */
+
   __device__ __host__
   void id2MatrixInd(size_t id, size_t out[SHAPE_SIZE]) const
   {

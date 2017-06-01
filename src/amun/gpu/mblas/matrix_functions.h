@@ -355,7 +355,9 @@ template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out, const float* in1, const float* in2,
                          size_t rows, size_t cols,
-                         TMatrixWrapper<float> outWrap, TMatrixWrapper<float> in1Wrap, TMatrixWrapper<float> in2Wrap)
+                         TMatrixWrapper<float> outWrap,
+                         const TMatrixWrapper<float> in1Wrap,
+                         const TMatrixWrapper<float> in2Wrap)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -367,7 +369,13 @@ __global__ void gElement(Functor functor,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i]);
+          size_t indices[SHAPE_SIZE] = {j, i, 0, 0};
+          float &out = outWrap[indices];
+          const float &in1 = in1Wrap[indices];
+          const float &in2 = in2Wrap[indices];
+          out = functor(out, in1, in2);
+
+          //rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i]);
         }
       }
     }
@@ -405,10 +413,10 @@ Matrix& Element(Functor functor,
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   cudaStream_t& stream = CudaStreamHandler::GetStream();
 
-  std::cerr << "Element3=" << Out.Debug(0) << std::endl;
+  //std::cerr << "Element3=" << Out.Debug(0) << std::endl;
   TMatrixWrapper<float> outWrap(Out);
-  TMatrixWrapper<float> in1Wrap(In1);
-  TMatrixWrapper<float> in2Wrap(In2);
+  const TMatrixWrapper<float> in1Wrap(In1);
+  const TMatrixWrapper<float> in2Wrap(In2);
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, d_out, d_in1, d_in2, Out.dim(0), Out.dim(1),
