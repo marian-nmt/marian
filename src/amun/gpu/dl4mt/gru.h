@@ -23,8 +23,8 @@ class SlowGRU {
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(RU_, Context, w_.W_);
-      Prod(H_,  Context, w_.Wx_);
+      Prod(RU_, Context, *w_.W_);
+      Prod(H_,  Context, *w_.Wx_);
       // -----------------------------------------------------
 
       // @TODO: Join matrices and perform single GEMM --------
@@ -36,7 +36,7 @@ class SlowGRU {
       // @TODO: Organize into one kernel ---------------------
       //std::cerr << "1RU_=" << RU_.Debug(1) << std::endl;
       //std::cerr << "w_.B_=" << w_.B_.Debug(1) << std::endl;
-      BroadcastVec(_1 + _2, RU_, w_.B_); // Broadcasting row-wise
+      BroadcastVec(_1 + _2, RU_, *w_.B_); // Broadcasting row-wise
       //std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
 
       //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
@@ -50,12 +50,12 @@ class SlowGRU {
       Slice(U_, RU_, 1, cols);
       //std::cerr << "U_=" << U_.Debug(1) << std::endl;
 
-      BroadcastVec(_1 + _2, H_,    w_.Bx1_); // Broadcasting row-wise
+      BroadcastVec(_1 + _2, H_,    *w_.Bx1_); // Broadcasting row-wise
       //std::cerr << "H_=" << H_.Debug(1) << std::endl;
 
       //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
       //std::cerr << "w_.Bx2_=" << w_.Bx2_.Debug(1) << std::endl;
-      BroadcastVec(_1 + _2, Temp2_, w_.Bx2_); // Broadcasting row-wise
+      BroadcastVec(_1 + _2, Temp2_, *w_.Bx2_); // Broadcasting row-wise
       //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
       //std::cerr << "1H_=" << H_.Debug(1) << std::endl;
@@ -75,7 +75,7 @@ class SlowGRU {
     }
 
     size_t GetStateLength() const {
-      return w_.U_.dim(0);
+      return w_.U_->dim(0);
     }
 
   private:
@@ -209,8 +209,8 @@ class FastGRU {
 };
 
 template<class T>
-//using GRU = SlowGRU<T>;
-using GRU = FastGRU<T>;
+using GRU = SlowGRU<T>;
+//using GRU = FastGRU<T>;
 
 }
 }
