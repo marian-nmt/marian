@@ -1,15 +1,17 @@
 #pragma once
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <random>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
-#include "training/config.h"
-#include "common/definitions.h"
+#include "data/batch.h"
 #include "data/vocab.h"
+#include "common/definitions.h"
 #include "common/file_stream.h"
+#include "training/config.h"
 
 namespace marian {
 namespace data {
@@ -86,7 +88,8 @@ class SubBatch {
     }
 };
 
-class CorpusBatch {
+//FIXME
+class CorpusBatch : public Batch {
   private:
     std::vector<Ptr<SubBatch>> batches_;
     std::vector<size_t> sentenceIds_;

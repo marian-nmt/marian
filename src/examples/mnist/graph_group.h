@@ -20,6 +20,8 @@
 #include "examples/mnist/training.h"
 #include "examples/mnist/validator.h"
 
+#include "data/batch.h"
+
 
 namespace marian {
 

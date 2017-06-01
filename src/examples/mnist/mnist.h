@@ -26,7 +26,7 @@ class MNIST : public DataBase {
 
   public:
 
-    typedef Batch batch_type;
+    typedef MNISTBatch batch_type;
     typedef std::shared_ptr<batch_type> batch_ptr;
 
     /**
@@ -76,7 +76,7 @@ class MNIST : public DataBase {
         }
       }
 
-      batch_ptr batch(new Batch());
+      batch_ptr batch(new MNISTBatch());
       std::vector<Input::iterator> iterators;
       for(auto& m : maxDims) {
         batch->push_back(Shape({batchSize, m}));

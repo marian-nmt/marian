@@ -6,6 +6,7 @@
 #include <boost/timer/timer.hpp>
 
 #include "examples/mnist/dataset.h"
+#include "data/batch.h"
 
 
 namespace marian {
@@ -55,7 +56,7 @@ class Input {
     }
 };
 
-class Batch {
+class MNISTBatch : public Batch {
   private:
     std::vector<Input> inputs_;
 
@@ -72,17 +73,15 @@ class Batch {
       inputs_.push_back(input);
     }
 
-    int dim() const {
+    size_t dim() const {
       return inputs_[0].shape()[0];
     }
 
     size_t size() const {
       //return inputs_.size();
-      return dim();
+      return inputs_[0].shape()[0];
     }
 };
-
-typedef std::shared_ptr<Batch> BatchPtr;
 
 
 template <class DataSet>

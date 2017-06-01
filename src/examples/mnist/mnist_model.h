@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <iomanip>
+#include <memory>
+
 #include <boost/timer/timer.hpp>
 
 #include "common/definitions.h"
@@ -28,16 +30,16 @@ class MNISTModel {
         inference_(Get(keywords::inference, false, args...))
     { }
 
+    Expr build(Ptr<ExpressionGraph> graph, Ptr<data::Batch> batch) {
+      return FeedforwardClassifier(graph, dims_, batch, inference_);
+    }
+
     void load(Ptr<ExpressionGraph> graph, const std::string& name) {
       LOG(info, "Loading MNIST model is not supported");
     }
 
     void save(Ptr<ExpressionGraph> graph, const std::string& name, bool foo=true) {
       LOG(info, "Saving MNIST model is not supported");
-    }
-
-    Expr build(Ptr<ExpressionGraph> graph, Ptr<data::Batch> batch) {
-      return FeedforwardClassifier(graph, dims_, batch, inference_);
     }
 
   private:
@@ -53,7 +55,7 @@ class MNISTModel {
    */
   Expr FeedforwardClassifier(Ptr<ExpressionGraph> g,
                              const std::vector<int>& dims,
-                             data::BatchPtr batch,
+                             Ptr<data::Batch> batch,
                              bool inference=false) {
     using namespace keywords;
 
@@ -62,8 +64,8 @@ class MNISTModel {
 
     // Create an input layer of shape batchSize x numFeatures and populate it
     // with training features
-    auto features = batch->inputs()[0].data();
-    auto x = g->constant({(int)batch->dim(), dims[0]},
+    auto features = std::static_pointer_cast<MNISTBatch>(batch)->inputs()[0].data();
+    auto x = g->constant({(int)batch->size(), dims[0]},
                          init=inits::from_vector(features));
 
     // Construct hidden layers
@@ -103,7 +105,7 @@ class MNISTModel {
 
     if(! inference) {
       // Create an output layer of shape batchSize x 1 and populate it with labels
-      auto labels = batch->inputs()[1].data();
+      auto labels = std::static_pointer_cast<MNISTBatch>(batch)->inputs()[1].data();
       auto y = g->constant({(int)batch->dim(), 1}, init=inits::from_vector(labels));
 
       // Define a top-level node for training
