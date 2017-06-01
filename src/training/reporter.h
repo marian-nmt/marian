@@ -9,7 +9,7 @@ class ReporterBase {
   public:
     virtual bool keepGoing() = 0;
     virtual void increaseEpoch() = 0;
-    virtual size_t batches() = 0;
+    virtual size_t numberOfBatches() = 0;
 
     virtual size_t stalled() = 0;
     virtual void finished() = 0;
@@ -27,7 +27,7 @@ class ReporterBase {
 
 //template <class Validator>
 class Reporter {
-  public:
+  private:
     YAML::Node progress;
 
     Ptr<Config> options_;
@@ -150,6 +150,10 @@ class Reporter {
       std::string nameYaml = name + ".yml";
       std::ofstream fout(nameYaml);
       fout << config;
+    }
+
+    size_t numberOfBatches() {
+      return batches;
     }
 };
 

@@ -159,7 +159,7 @@ class Singleton : public GraphGroup {
         if(!final) {
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
-            ".iter" + std::to_string(reporter_->batches) + ".npz");
+            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
           builder_->save(graph_, nameOverwrite);
         }
 
@@ -647,7 +647,7 @@ class AsyncGraphGroup : public GraphGroup {
         if(!final) {
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
-            ".iter" + std::to_string(reporter_->batches) + ".npz");
+            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
           builders_[idx]->save(graphs_[idx], nameOverwrite);
         }
 
@@ -729,7 +729,7 @@ class SyncGraphGroup : public GraphGroup {
 
         if(reporter_) {
           reporter_->update(cost, batch);
-          if(reporter_->batches % options_->get<size_t>("save-freq") == 0)
+          if(reporter_->numberOfBatches() % options_->get<size_t>("save-freq") == 0)
             this->save();
         }
       };
@@ -792,7 +792,7 @@ class SyncGraphGroup : public GraphGroup {
       }
       else {
         std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->batches) + ".npz";
+          + "." + std::to_string(reporter_->numberOfBatches()) + ".npz";
         builder_->save(graphs_[0], name);
       }
     }
