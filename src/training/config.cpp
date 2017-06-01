@@ -338,8 +338,6 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for translating.")
-    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
-     "Tie target embeddings and output embeddings in output layer")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
