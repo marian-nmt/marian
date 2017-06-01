@@ -272,6 +272,14 @@ class EncoderDecoder : public EncoderDecoderBase {
       return decoder_->selectEmbeddings(graph, state, embIdx);
     }
 
+    //FIXME
+    virtual Expr build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph=true) {
+      auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+      return build(graph, corpusBatch, clearGraph);
+    }
+
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph=true) {

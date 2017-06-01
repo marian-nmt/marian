@@ -36,7 +36,7 @@ class GraphGroup {
 
     virtual ~GraphGroup() {}
 
-    virtual void update(Ptr<data::CorpusBatch>) = 0;
+    virtual void update(Ptr<data::Batch>) = 0;
 
     virtual void setReporter(Ptr<Reporter> reporter) {
       reporter_ = reporter;
@@ -64,7 +64,7 @@ class Singleton : public GraphGroup {
               mvAvgParams, params);
     }
 
-    void execute(Ptr<data::CorpusBatch> batch) {
+    void execute(Ptr<data::Batch> batch) {
       auto costNode = builder_->build(graph_, batch);
 
       graph_->forward();
@@ -123,7 +123,7 @@ class Singleton : public GraphGroup {
       builder_ = New<Builder>(options_, args...);
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       execute(batch);
     }
 
@@ -399,7 +399,7 @@ class AsyncGraphGroup : public GraphGroup {
                 paramsAvg, params);
     }
 
-    void execute(Ptr<data::CorpusBatch> batch) {
+    void execute(Ptr<data::Batch> batch) {
       if(first_) {
         // initialize the parameters
         for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -499,7 +499,7 @@ class AsyncGraphGroup : public GraphGroup {
         first_ = false;
       }
 
-      auto task = [this](Ptr<data::CorpusBatch> batch) {
+      auto task = [this](Ptr<data::Batch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
         thread_local Ptr<Builder> builder;
@@ -605,7 +605,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       execute(batch);
     }
 
@@ -666,7 +666,7 @@ template <class Builder>
 class SyncGraphGroup : public GraphGroup {
   private:
     Ptr<Builder> builder_;
-    std::vector<Ptr<data::CorpusBatch>> batches_;
+    std::vector<Ptr<data::Batch>> batches_;
 
     bool first_{true};
 
@@ -716,7 +716,7 @@ class SyncGraphGroup : public GraphGroup {
       }
 
       auto task = [this](int i,
-                         Ptr<data::CorpusBatch> batch) {
+                         Ptr<data::Batch> batch) {
         thread_local int j = -1;
         if(j == -1)
           j = i;
@@ -779,7 +779,7 @@ class SyncGraphGroup : public GraphGroup {
       execute();
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       batches_.push_back(batch);
       if(batches_.size() == graphs_.size())
         execute();

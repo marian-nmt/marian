@@ -271,11 +271,13 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
     S2S(Ptr<Config> options, Args ...args)
     : EncoderDecoder(options, args...) {}
 
+    //FIXME
     virtual Expr build(Ptr<ExpressionGraph> graph,
-                       Ptr<data::CorpusBatch> batch,
+                       Ptr<data::Batch> batch,
                        bool clearGraph=true) {
 
-      auto cost = EncoderDecoder::build(graph, batch, clearGraph);
+      auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+      auto cost = EncoderDecoder::build(graph, corpusBatch, clearGraph);
 
       if(options_->has("guided-alignment") && !inference_) {
         using namespace keywords;
@@ -288,7 +290,7 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
         int dimTrg = att->shape()[3];
 
         auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
-                                   keywords::init=inits::from_vector(batch->getGuidedAlignment()));
+                                   keywords::init=inits::from_vector(corpusBatch->getGuidedAlignment()));
 
         std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
 
