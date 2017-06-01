@@ -370,10 +370,7 @@ __global__ void gElement(Functor functor,
         int i = tid + threadIdx.x;
         if(i < cols) {
           size_t indices[SHAPE_SIZE] = {j, i, 0, 0};
-          float &out = outWrap[indices];
-          const float &in1 = in1Wrap[indices];
-          const float &in2 = in2Wrap[indices];
-          out = functor(out, in1, in2);
+          outWrap[indices] = functor(outWrap[indices], in1Wrap[indices], in2Wrap[indices]);
 
           //rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i]);
         }
