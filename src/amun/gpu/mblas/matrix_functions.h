@@ -335,7 +335,10 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out, const float* in,
-                         size_t rows, size_t cols) {
+                         size_t rows, size_t cols,
+                         TMatrixWrapper<float> outWrap,
+                         const TMatrixWrapper<float> inWrap)
+{
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -344,8 +347,12 @@ __global__ void gElement(Functor functor,
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn[i]);;
+        if(i < cols) {
+          size_t indices[SHAPE_SIZE] = {j, i, 0, 0};
+          outWrap[indices] = functor(outWrap[indices], inWrap[indices]);
+
+          //rowOut[i] = functor(rowOut[i], rowIn[i]);;
+        }
       }
     }
   }
@@ -353,26 +360,21 @@ __global__ void gElement(Functor functor,
 
 template <class Functor>
 __global__ void gElement(Functor functor,
-                         float* out, const float* in1, const float* in2,
-                         size_t rows, size_t cols,
                          TMatrixWrapper<float> outWrap,
                          const TMatrixWrapper<float> in1Wrap,
                          const TMatrixWrapper<float> in2Wrap)
 {
+  size_t rows  = outWrap.dim(0);
+  size_t cols = outWrap.dim(1);
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn1 = in1 + j * cols;
-      const float* rowIn2 = in2 + j * cols;
-
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
           size_t indices[SHAPE_SIZE] = {j, i, 0, 0};
           outWrap[indices] = functor(outWrap[indices], in1Wrap[indices], in2Wrap[indices]);
-
-          //rowOut[i] = functor(rowOut[i], rowIn1[i], rowIn2[i]);
         }
       }
     }
@@ -389,8 +391,13 @@ Matrix& Element(Functor functor,
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   cudaStream_t& stream = CudaStreamHandler::GetStream();
 
+  TMatrixWrapper<float> outWrap(Out);
+  const TMatrixWrapper<float> inWrap(In);
+
+  std::cerr << "Element2=" << Out.Debug(0) << std::endl;
   gElement<<<blocks, threads, 0, stream>>>
-    (functor, d_out, d_in, Out.dim(0), Out.dim(1));
+    (functor, d_out, d_in, Out.dim(0), Out.dim(1),
+        outWrap, inWrap);
 
   return Out;
 }
@@ -402,10 +409,6 @@ Matrix& Element(Functor functor,
   assert(In1.dim(2) == 1);
   assert(In1.dim(3) == 1);
 
-  float* d_out = Out.data();
-  const float* d_in1 = In1.data();
-  const float* d_in2 = In2.data();
-
   int blocks  = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   cudaStream_t& stream = CudaStreamHandler::GetStream();
@@ -416,8 +419,7 @@ Matrix& Element(Functor functor,
   const TMatrixWrapper<float> in2Wrap(In2);
 
   gElement<<<blocks, threads, 0, stream>>>
-    (functor, d_out, d_in1, d_in2, Out.dim(0), Out.dim(1),
-        outWrap, in1Wrap, in2Wrap);
+    (functor, outWrap, in1Wrap, in2Wrap);
 
   return Out;
 }
