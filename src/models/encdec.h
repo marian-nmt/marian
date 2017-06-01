@@ -7,6 +7,7 @@
 #include "graph/expression_graph.h"
 #include "layers/param_initializers.h"
 #include "layers/generic.h"
+#include "layers/guided_alignment.h"
 #include "common/logging.h"
 #include "models/states.h"
 
@@ -273,7 +274,7 @@ class EncoderDecoder : public EncoderDecoderBase {
                                   const std::vector<size_t>& embIdx) {
       return decoder_->selectEmbeddings(graph, state, embIdx);
     }
-
+    
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph=true) {
@@ -293,36 +294,8 @@ class EncoderDecoder : public EncoderDecoderBase {
                     (nextState->getProbs(), trgIdx, mask=trgMask);
 
       if(options_->has("guided-alignment") && !inference_) {
-        using namespace keywords;
-
         auto att = concatenate(decoder_->getAlignments(), axis=3);
-
-        int dimBatch = att->shape()[0];
-        int dimSrc = att->shape()[2];
-        int dimTrg = att->shape()[3];
-
-        auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
-                                   keywords::init=inits::from_vector(batch->getGuidedAlignment()));
-
-        std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");
-
-        Expr alnCost;
-        float eps = 1e-6;
-        if(guidedCostType == "mse") {
-          alnCost = sum(flatten(square(att - aln))) / (2 * dimBatch);
-        }
-        else if(guidedCostType == "mult") {
-          alnCost = -log(sum(flatten(att * aln)) + eps) / dimBatch;
-        }
-        else if(guidedCostType == "ce") {
-          alnCost = -sum(flatten(aln * log(att + eps))) / dimBatch;
-        }
-        else {
-          UTIL_THROW2("Unknown alignment cost type");
-        }
-
-        float guidedScalar = options_->get<float>("guided-alignment-weight");
-        return cost + guidedScalar * alnCost;
+        return cost + guidedAlignmentCost(graph, batch, options_, att);
       }
       else {
         return cost;
@@ -340,7 +313,8 @@ class EncoderDecoder : public EncoderDecoderBase {
         std::vector<size_t> lengths(numFiles, i);
         bool fits = true;
         do {
-          auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize);
+          auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize,
+                                                    options_->has("guided-alignment"));
           build(graph, batch);
           fits = graph->fits();
           if(fits)
