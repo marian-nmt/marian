@@ -78,11 +78,11 @@ class EncoderAmun : public EncoderBase {
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
-      auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
+      auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
-
+      
       if(dropoutSrc) {
         int srcWords = x->shape()[2];
         auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
@@ -103,7 +103,6 @@ class EncoderAmun : public EncoderBase {
                          (x, mask=xMask);
 
       auto xContext = concatenate({xFw, xBw}, axis=1);
-
       return New<EncoderStateAmun>(xContext, xMask, batch);
     }
 };

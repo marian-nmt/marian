@@ -233,9 +233,14 @@ createScorers(Ptr<Config> options) {
   int i = 0;
   for(auto model : models) {
     std::string fname = "F" + std::to_string(i);
-    auto modelOptions = New<Config>(*options);
-    modelOptions->loadModelParameters(model);
-    scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
+    if(options->get<std::string>("type") == "amun") {
+      scorers.push_back(scorerByType(fname, weights[i], model, options));
+    }
+    else {
+      auto modelOptions = New<Config>(*options);
+      modelOptions->loadModelParameters(model);
+      scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
+    }
     i++;
   }
 
