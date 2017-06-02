@@ -3,12 +3,11 @@
 #include <memory>
 #include <iostream>
 #include <thread>
-#include <cublas_v2.h>
 
 #include "common/keywords.h"
-#include "tensors/tensor.h"
 #include "graph/chainable.h"
-
+#include "tensors/tensor.h"
+#include "graph/backend.h"
 
 namespace marian {
 
@@ -163,8 +162,7 @@ class Node : public Chainable<Tensor>,
       return children_[i];
     }
     
-
-    cublasHandle_t getCublasHandle();
+    Ptr<Backend> getBackend();
 };
 
 struct NaryNodeOp : public Node {

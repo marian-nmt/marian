@@ -257,8 +257,8 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n)
   }
 }
 
-NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t stream)
-    : stream_(stream) ,
+NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize/*, cudaStream_t stream*/)
+    : /*stream_(stream) ,*/
       NUM_BLOCKS(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
 {
   //std::cerr << "NthElement::NthElement" << std::endl;
@@ -297,16 +297,16 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
                               const std::vector<int>& cummulatedBeamSizes)
 {
   HANDLE_ERROR( cudaMemcpyAsync(d_batchPosition, batchFirstElementIdxs.data(), batchFirstElementIdxs.size() * sizeof(int),
-                                cudaMemcpyHostToDevice, stream_) );
+                                cudaMemcpyHostToDevice, /* stream_ */ 0) );
   HANDLE_ERROR( cudaMemcpyAsync(d_cumBeamSizes, cummulatedBeamSizes.data(), cummulatedBeamSizes.size() * sizeof(int),
-                                cudaMemcpyHostToDevice, stream_) );
+                                cudaMemcpyHostToDevice, /* stream_ */ 0) );
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
 
-  gMaxElement<<<NUM_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+  gMaxElement<<<NUM_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), /* stream_ */ 0>>>
     (d_out, d_ind, probs, numBatches, d_batchPosition);
 
-  gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+  gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), /* stream_ */ 0>>>
     (d_out, d_ind, probs, d_batchPosition, d_res, d_res_idx, d_cumBeamSizes, NUM_BLOCKS);
 }
 
@@ -333,10 +333,10 @@ void NthElement::GetPairs(size_t number,
                     std::vector<float>& outValues) {
 
   HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, number * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
+                                cudaMemcpyDeviceToHost, /* stream_ */ 0) );
   HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
-                                cudaMemcpyDeviceToHost, stream_) );
-  cudaStreamSynchronize(stream_);
+                                cudaMemcpyDeviceToHost, /* stream_ */ 0) );
+  cudaStreamSynchronize(/* stream_ */ 0);
 
   for (size_t i = 0; i < number; ++i) {
     outKeys.push_back(h_res_idx[i]);
@@ -347,12 +347,12 @@ void NthElement::GetPairs(size_t number,
 }
 
 void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
-  gGetValueByKey<<<1, lastN, 0, stream_>>>
+  gGetValueByKey<<<1, lastN, 0, /* stream_ */ 0>>>
     (d_in, d_breakdown, h_res_idx, lastN);
 
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaStreamSynchronize(stream_));
+                                cudaMemcpyDeviceToHost, /* stream_ */ 0) );
+  HANDLE_ERROR( cudaStreamSynchronize(/* stream_ */ 0));
 }
 
 }

@@ -1,6 +1,9 @@
 #include "graph/expression_operators.h"
-#include "graph/node_operators.h"
+#include "kernels/sparse.h"
+
 #include "graph/node_operators_unary.h"
+#include "graph/node_operators_binary.h"
+#include "graph/node_operators.h"
 
 namespace marian {
 
@@ -94,6 +97,39 @@ Expr operator/(Expr a, float b) {
 }
 
 /*********************************************************/
+
+Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {
+  return Expression<ConcatenateNodeOp>(concats, ax);
+}
+
+Expr reshape(Expr a, Shape shape) {
+  return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr flatten(Expr a) {
+  Shape shape = {a->shape().elements()};
+  return Expression<ReshapeNodeOp>(a, shape);
+}
+
+
+Expr sum(Expr a, keywords::axis_k ax) {
+  return Expression<SumNodeOp>(a, ax);
+}
+
+Expr mean(Expr a, keywords::axis_k ax) {
+  return Expression<MeanNodeOp>(a, ax);
+}
+
+Expr scalar_product(Expr a, Expr b, keywords::axis_k ax) {
+  return Expression<ScalarProductNodeOp>(a, b, ax);
+}
+
+Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
+  auto p = scalar_product(in, weights, ax);
+  auto s = sum(weights, ax);
+  return p / s;
+}
+
 
 Expr dot(Expr a, Expr b) {
   return Expression<DotNodeOp>(a, b);

@@ -7,6 +7,7 @@
 #include <thrust/pair.h>
 
 #include "tensors/tensor.h"
+#include "kernels/shape_gpu.h"
 
 namespace marian {
 
@@ -21,10 +22,10 @@ cublasHandle_t create_handle(size_t);
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
-                       Shape outShape,
+                       ShapeGPU outShape,
                        const float* in1,
-                       const Shape in1Shape,
-                       const Shape full,
+                       const ShapeGPU in1Shape,
+                       const ShapeGPU full,
                        float scale = 1.0) {
 
   int outLength = outShape.elements();
@@ -71,9 +72,9 @@ __global__ void gAddR2(Functor functor,
 template <class Functor>
 __global__ void gAddR2Eq(Functor functor,
                          float* out,
-                         Shape outShape,
+                         ShapeGPU outShape,
                          const float* in1,
-                         const Shape inShape1,
+                         const ShapeGPU inShape1,
                          float scale,
                          bool broadcast) {
   
@@ -95,10 +96,10 @@ __global__ void gAddR2Eq(Functor functor,
 template <class Functor>
 __global__ void gAdd1R2(Functor functor,
                         float* out,
-                        Shape outShape,
+                        ShapeGPU outShape,
                         const float* in1,
-                        const Shape in1Shape,
-                        const Shape full,
+                        const ShapeGPU in1Shape,
+                        const ShapeGPU full,
                         float scale = 1.0) {
 
   int rows = full[0] * full[2] * full[3];
@@ -205,12 +206,12 @@ void Reduce(Functor functor,
 template <class Functor>
 __global__ void gAddR3(Functor functor,
                        float* out,
-                       Shape outShape,
+                       ShapeGPU outShape,
                        const float* in1,
-                       const Shape in1Shape,
+                       const ShapeGPU in1Shape,
                        const float* in2,
-                       const Shape in2Shape,
-                       const Shape full,
+                       const ShapeGPU in2Shape,
+                       const ShapeGPU full,
                        float scale = 1.0) {
 
   int outLength = outShape.elements();
@@ -261,11 +262,11 @@ __global__ void gAddR3(Functor functor,
 template <class Functor>
 __global__ void gAddR3Eq(Functor functor,
                          float* out,
-                         Shape outShape,
+                         ShapeGPU outShape,
                          const float* in1,
-                         const Shape inShape1,
+                         const ShapeGPU inShape1,
                          const float* in2,
-                         const Shape inShape2,
+                         const ShapeGPU inShape2,
                          float scale,
                          bool broadcast) {
   
@@ -289,12 +290,12 @@ __global__ void gAddR3Eq(Functor functor,
 template <class Functor>
 __global__ void gAdd1R3(Functor functor,
                         float* out,
-                        Shape outShape,
+                        ShapeGPU outShape,
                         const float* in1,
-                        const Shape in1Shape,
+                        const ShapeGPU in1Shape,
                         const float* in2,
-                        const Shape in2Shape,
-                        const Shape full,
+                        const ShapeGPU in2Shape,
+                        const ShapeGPU full,
                         float scale = 1.0) {
 
   int rows = full[0] * full[2] * full[3];
@@ -411,14 +412,14 @@ void Reduce(Functor functor,
 template <class Functor>
 __global__ void gAddR4(Functor functor,
                        float* out,
-                       Shape outShape,
+                       ShapeGPU outShape,
                        const float* in1,
-                       const Shape in1Shape,
+                       const ShapeGPU in1Shape,
                        const float* in2,
-                       const Shape in2Shape,
+                       const ShapeGPU in2Shape,
                        const float* in3,
-                       const Shape in3Shape,
-                       const Shape full) {
+                       const ShapeGPU in3Shape,
+                       const ShapeGPU full) {
 
   int outLength = outShape.elements();
 
@@ -470,14 +471,14 @@ __global__ void gAddR4(Functor functor,
 template <class Functor>
 __global__ void gAdd1R4(Functor functor,
                         float* out,
-                        Shape outShape,
+                        ShapeGPU outShape,
                         const float* in1,
-                        const Shape in1Shape,
+                        const ShapeGPU in1Shape,
                         const float* in2,
-                        const Shape in2Shape,
+                        const ShapeGPU in2Shape,
                         const float* in3,
-                        const Shape in3Shape,
-                        const Shape full) {
+                        const ShapeGPU in3Shape,
+                        const ShapeGPU full) {
 
   int rows = full[0] * full[2] * full[3];
   int cols = full[1];
@@ -540,13 +541,13 @@ __global__ void gAdd1R4(Functor functor,
 template <class Functor>
 __global__ void gAddR4Eq(Functor functor,
                          float* out,
-                         Shape outShape,
+                         ShapeGPU outShape,
                          const float* in1,
-                         const Shape inShape1,
+                         const ShapeGPU inShape1,
                          const float* in2,
-                         const Shape inShape2,
+                         const ShapeGPU inShape2,
                          const float* in3,
-                         const Shape inShape3,
+                         const ShapeGPU inShape3,
                          bool broadcast) {
   
   int length = outShape.elements();
@@ -632,7 +633,7 @@ void Reduce(Functor functor,
 template <int B, class T>
 struct BroadcastView {
   T* ptr;
-  Shape shape;
+  ShapeGPU shape;
 
   template <>
   inline T& at<0b0000>(size_t i) {
@@ -693,9 +694,9 @@ struct BroadcastView {
 template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out,
-                         Shape outShape,
+                         ShapeGPU outShape,
                          const float* in,
-                         const Shape inShape,
+                         const ShapeGPU inShape,
                          bool broadcast) {
   int length = outShape.elements();
   int dims[4];
@@ -732,11 +733,11 @@ void Element(Functor functor,
 template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out,
-                         Shape outShape,
+                         ShapeGPU outShape,
                          const float* in1,
-                         const Shape inShape1,
+                         const ShapeGPU inShape1,
                          const float* in2,
-                         const Shape inShape2,
+                         const ShapeGPU inShape2,
                          bool broadcast) {
   int length = outShape.elements();
   int dims[4];
@@ -777,13 +778,13 @@ void Element(Functor functor,
 template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out,
-                         Shape outShape,
+                         ShapeGPU outShape,
                          const float* in1,
-                         const Shape inShape1,
+                         const ShapeGPU inShape1,
                          const float* in2,
-                         const Shape inShape2,
+                         const ShapeGPU inShape2,
                          const float* in3,
-                         const Shape inShape3,
+                         const ShapeGPU inShape3,
                          bool broadcast) {
   int length = outShape.elements();
   int dims[4];
@@ -857,7 +858,7 @@ void Element(Functor functor, T1 out) {
 template <class Functor>
 __global__ void gPick(Functor functor,
                       float* out,
-                      Shape outShape,
+                      ShapeGPU outShape,
                       const float* pick) {
   int length = outShape.elements();
   int dims[4];
@@ -891,9 +892,9 @@ void Pick(Functor functor, T1 out, const T2 picks) {
 template <class Functor>
 __global__ void gPick(Functor functor,
                       float* out,
-                      Shape outShape,
+                      ShapeGPU outShape,
                       const float* in,
-                      const Shape inShape,
+                      const ShapeGPU inShape,
                       const float* pick) {
   int length = outShape.elements();
   int dims[4];
@@ -928,9 +929,9 @@ void Pick(Functor functor, T1 out, const T2 in, const T3 picks) {
 template <class Functor>
 __global__ void gPickReduce(Functor functor,
                       float* out,
-                      Shape outShape,
+                      ShapeGPU outShape,
                       const float* in,
-                      const Shape inShape,
+                      const ShapeGPU inShape,
                       const float* pick) {
   int length = inShape.elements();
   int dims[4];
@@ -970,11 +971,11 @@ void PickReduce(Functor functor, T1 out, const T2 in, const T3 picks) {
 template <class Functor>
 __global__ void gPick(Functor functor,
                       float* out,
-                      Shape outShape,
+                      ShapeGPU outShape,
                       const float* in1,
-                      const Shape inShape1,
+                      const ShapeGPU inShape1,
                       const float* in2,
-                      const Shape inShape2,
+                      const ShapeGPU inShape2,
                       const float* pick) {
   int length = outShape.elements();
   int dims[4];
@@ -1030,7 +1031,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick);
 void Argmax(Tensor Out, const Tensor In);
 
 void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
-             bool transA, bool transB, Float beta = 0);
+             bool transA, bool transB, float beta = 0);
 
 void CopyRowsByIndex(Tensor out, const Tensor in,
                      thrust::pair<size_t, size_t>* ipair, size_t length);
@@ -1064,7 +1065,7 @@ void LayerNormalization(Tensor out, Tensor in, Tensor gamma, Tensor beta, float 
 void LayerNormalizationGrad(Tensor gradX, Tensor gradGamma, Tensor gradBeta,
                             Tensor adj, Tensor y, Tensor x, Tensor gamma, Tensor beta);
 
-void Shift(Tensor out, Tensor in, Shape shift, bool invert=false);
+void Shift(Tensor out, Tensor in, ShapeGPU shift, bool invert=false);
 
 void SetSparse(float*, const
                std::vector<size_t>& indeces,

@@ -1,28 +1,11 @@
 #pragma once
 
 #include "marian.h"
-#include "translator/nth_element.h"
-#include "translator/helpers.h"
 #include "translator/history.h"
 #include "translator/scorers.h"
 
-/*
-
-scorers:
-  F0:
-    type: multi-hard-att
-    path: model.npz
-  F1:
-    type: word-penalty
-  F2:
-    type: unseen-word-penalty
-
-weights:
-  F0: 0.487743
-  F1: 0.227358
-  F2: 0.284900
-
-*/
+#include "translator/nth_element.h"
+#include "translator/helpers.h"
 
 namespace marian {
 
@@ -31,7 +14,6 @@ class BeamSearch {
     Ptr<Config> options_;
     std::vector<Ptr<Scorer>> scorers_;
     size_t beamSize_;
-    cudaStream_t stream_{0};
 
   public:
     template <class ...Args>
@@ -88,7 +70,7 @@ class BeamSearch {
       bool first = true;
       bool final = false;
       std::vector<size_t> beamSizes(1, beamSize_);
-      auto nth = New<NthElement>(beamSize_, batch->size(), stream_);
+      auto nth = New<NthElement>(beamSize_, batch->size());
       history->Add(beam);
 
       std::vector<Ptr<ScorerState>> states;

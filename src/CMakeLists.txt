@@ -17,6 +17,9 @@ cuda_add_library(marian_lib
   kernels/sparse.cu
   layers/param_initializers.cpp
   layers/attention.cu
+  layers/rnn.cu
+  optimizers/clippers.cu
+  optimizers/optimizers.cu
   common/utils.cpp
   common/logging.cpp
   training/config.cpp
@@ -27,6 +30,7 @@ cuda_add_library(marian_lib
   data/vocab.cpp
   data/corpus.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
+  SHARED
 )
 
 target_link_libraries(marian_lib)
@@ -35,11 +39,9 @@ cuda_add_executable(marian_train command/marian.cu)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
 target_link_libraries(marian_train marian_lib)
 
-cuda_add_executable(marian_translate command/s2s_translator.cu)
+add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
 target_link_libraries(marian_translate marian_lib)
-
-
 
 foreach(exec marian_train marian_translate)
   target_link_libraries(${exec} ${EXT_LIBS})

@@ -85,7 +85,7 @@ std::string TensorBase::debug() {
 
   // values
   size_t totSize = shape_.elements();
-  std::vector<Float> values(totSize);
+  std::vector<float> values(totSize);
   get(values);
 
 

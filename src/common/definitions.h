@@ -5,9 +5,6 @@
 #include <string>
 #include <functional>
 #include <memory>
-#include <cuda.h>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
 
 #include "shape.h"
 #include "common/logging.h"
@@ -36,14 +33,6 @@ namespace marian {
   Ptr<T> New(Ptr<T> p) {
     return Ptr<T>(p);
   }
-
-  typedef float Float;
-
-  template<class T>
-  using DeviceVector = thrust::device_vector<T>;
-
-  template<class T>
-  using HostVector = thrust::host_vector<T>;
 }
 
 

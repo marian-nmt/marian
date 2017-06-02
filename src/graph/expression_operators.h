@@ -1,12 +1,7 @@
 #pragma once
 #include "graph/expression_graph.h"
-#include "kernels/sparse.h"
 
 namespace marian {
-
-Expr training(Expr a);
-
-Expr inference(Expr a);
 
 Expr debug(Expr a, const std::string& message = "");
 
@@ -23,7 +18,7 @@ Expr tanh(const std::vector<Expr>&);
 template <typename ...Args>
 Expr tanh(Args ...args) {
   std::vector<Expr> nodes{args...};
-  return Expression<TanhNodeOp>(nodes);
+  return tanh(nodes);
 }
 
 Expr relu(Expr a);
@@ -57,54 +52,29 @@ Expr dot(Expr a, Expr b);
 
 Expr transpose(Expr a);
 
-template <typename ...Args>
-Expr concatenate(const std::vector<Expr>& concats, Args ...args) {
-  return Expression<ConcatenateNodeOp>(concats, args...);
-}
+Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
 
-template <typename ...Args>
-Expr reshape(Expr a, Shape shape, Args ...args) {
-  return Expression<ReshapeNodeOp>(a, shape, args...);
-}
+Expr reshape(Expr a, Shape shape);
 
-template <typename ...Args>
-Expr flatten(Expr a, Args ...args) {
-  Shape shape = {a->shape().elements()};
-  return Expression<ReshapeNodeOp>(a, shape, args...);
-}
-
+Expr flatten(Expr a);
 
 /*********************************************************/
 
-template <typename ...Args>
-Expr sum(Expr a, Args ...args) {
-  return Expression<SumNodeOp>(a, args...);
-}
+Expr sum(Expr a, keywords::axis_k ax = 0);
 
 Expr softmax(Expr a, Expr mask = nullptr);
 
 Expr logsoftmax(Expr a);
 
-template <typename ...Args>
-Expr mean(Expr a, Args ...args) {
-  return Expression<MeanNodeOp>(a, args...);
-}
+Expr mean(Expr a, keywords::axis_k ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 
 Expr affine(Expr a, Expr b, Expr c);
 
-template <typename ...Args>
-Expr scalar_product(Expr a, Expr b, Args ...args) {
-  return Expression<ScalarProductNodeOp>(a, b, args...);
-}
+Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
 
-template <typename ...Args>
-Expr weighted_average(Expr in, Expr weights, Args ...args) {
-  auto p = scalar_product(in, weights, args...);
-  auto s = sum(weights, args...);
-  return p / s;
-}
+Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax = 0);
 
 Expr step(Expr a, size_t step);
 
@@ -128,7 +98,5 @@ Expr dropout(Expr x, Args ...args) {
 }
 
 Expr shift(Expr, Shape);
-
-Expr lexical_bias(Expr logits, Expr att, float exp, Ptr<sparse::CSR> lf);
 
 }

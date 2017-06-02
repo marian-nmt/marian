@@ -3,7 +3,7 @@
 #include <map>
 #include <memory>
 
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor.h"
 
 namespace marian {
 
@@ -22,9 +22,7 @@ class Elementwise : public ClipperBase {
   public:
     Elementwise(float c=10.0) : c_(c) {}
 
-    void clip(Tensor t) {
-      Element(_1 = Clip(_1, c_), t);
-    }
+    void clip(Tensor t);
 
   private:
     float c_;
@@ -34,16 +32,11 @@ class Norm : public ClipperBase {
   public:
     Norm(float c=1.0) : c_(c) {}
 
-    void clip(Tensor t) {
-      float l2Norm = L2Norm(t);
-      if(l2Norm >= c_)
-        Element(_1 = (c_ / l2Norm) * _1, t);
-    }
+    void clip(Tensor t);
 
   private:
     float c_;
 };
-
 
 template <class Algorithm, typename ...Args>
 ClipperBasePtr Clipper(Args&& ...args) {

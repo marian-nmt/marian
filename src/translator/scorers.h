@@ -2,6 +2,11 @@
 
 #include "marian.h"
 
+#include "models/amun.h"
+#include "models/s2s.h"
+#include "models/hardatt.h"
+#include "models/multi_s2s.h"
+
 namespace marian {
 
 class ScorerState {

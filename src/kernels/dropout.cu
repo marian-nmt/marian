@@ -14,21 +14,6 @@
 
 namespace marian {
 
-curandGenerator_t createCurandGenerator(size_t device,
-                                        size_t seed) {
-  cudaSetDevice(device);
-  curandGenerator_t generator;
-  CURAND_CALL(curandCreateGenerator(&generator,
-                                    CURAND_RNG_PSEUDO_DEFAULT));
-  CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
-
-  //cudaStream_t stream = 0;
-  //CURAND_CALL(curandSetStream(generator, stream));
-  //CURAND_CALL(curandDestroyGenerator(generator));
-  return generator;
-}
-
-
 __global__
 void gScale(float* data, int n, float p) {
   int index = threadIdx.x + blockIdx.x * blockDim.x;

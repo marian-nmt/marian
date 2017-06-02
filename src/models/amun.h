@@ -1,8 +1,8 @@
 #pragma once
 
+#include "marian.h"
+
 #include "models/encdec.h"
-#include "layers/attention.h"
-#include "layers/rnn.h"
 
 namespace marian {
 
@@ -375,7 +375,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
         {"ff_logit_l2_b", "ff_logit_b"}
       };
 
-      cudaSetDevice(graph->getDevice());
+      graph->getBackend()->setDevice(graph->getDevice());
 
       for(auto p : graph->params()->getMap()) {
         std::vector<float> v;
