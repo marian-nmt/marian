@@ -223,6 +223,7 @@ public:
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
+    calcStride();
 
     data_ = nullptr;
     dataConst_ = matrix.data();
@@ -234,6 +235,7 @@ public:
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
+    calcStride();
 
     data_ = matrix.data();
     dataConst_ = data_;
@@ -245,6 +247,7 @@ public:
     dim_[1] = dim[1];
     dim_[2] = dim[2];
     dim_[3] = dim[3];
+    calcStride();
   }
 
   __device__ __host__
@@ -252,15 +255,26 @@ public:
   {  return dim_[i]; }
 
   __device__ __host__
-  size_t size(size_t maxDim = SHAPE_SIZE) const
+  size_t size() const
+  {
+    return stride_[SHAPE_SIZE - 1];
+  }
+
+  __device__ __host__
+  size_t size(size_t i) const
+  {
+    return stride_[i];
+  }
+
+  void calcStride()
   {
     //assert(maxDim >= 1);
 
     size_t ret = 1;
-    for (size_t i = 0; i < maxDim; ++i) {
+    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
       ret *= dim_[i];
+      stride_[i] = ret;
     }
-    return ret;
   }
 
   __device__
@@ -351,6 +365,7 @@ public:
 
 protected:
   size_t dim_[SHAPE_SIZE];
+  size_t stride_[SHAPE_SIZE];
 
   T *data_;
   const T *dataConst_;

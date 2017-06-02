@@ -406,7 +406,7 @@ Matrix& Element(Functor functor,
   TMatrixWrapper<float> outWrap(Out);
   const TMatrixWrapper<float> in1Wrap(In1);
   const TMatrixWrapper<float> in2Wrap(In2);
-  std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
+  //std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, d_out, d_in1, d_in2, Out.dim(0), Out.dim(1),
