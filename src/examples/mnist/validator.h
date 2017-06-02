@@ -7,7 +7,6 @@
 #include "training/config.h"
 #include "graph/expression_graph.h"
 //#include "data/corpus.h"
-//#include "data/batch_generator.h"
 
 #include "translator/beam_search.h"
 #include "translator/history.h"
@@ -15,8 +14,6 @@
 #include "translator/output_collector.h"
 
 #include "examples/mnist/mnist.h"
-#include "examples/mnist/dataset.h"
-#include "examples/mnist/batch_generator.h"
 
 
 using namespace marian;
@@ -66,7 +63,7 @@ namespace marian {
         auto paths = options_->get<std::vector<std::string>>("valid-sets");
         auto corpus = New<MNIST>(paths);
 
-        auto batchGenerator = New<MNISTBatchGenerator<MNIST>>(corpus, 200, 20);
+        auto batchGenerator = New<BatchGenerator<MNIST>>(corpus, options_, nullptr);
         batchGenerator->prepare(false);
 
         float val = validateBG(graph, batchGenerator);
@@ -85,7 +82,7 @@ namespace marian {
       };
 
       virtual float validateBG(Ptr<ExpressionGraph>,
-                               Ptr<MNISTBatchGenerator<MNIST>>) = 0;
+                               Ptr<BatchGenerator<MNIST>>) = 0;
 
   };
 
@@ -106,7 +103,7 @@ namespace marian {
       }
 
       virtual float validateBG(Ptr<ExpressionGraph> graph,
-                               Ptr<MNISTBatchGenerator<MNIST>> batchGenerator) {
+                               Ptr<BatchGenerator<MNIST>> batchGenerator) {
         float cor = 0;
         size_t samples = 0;
 

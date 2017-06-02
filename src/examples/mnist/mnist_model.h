@@ -10,8 +10,6 @@
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
 
-#include "examples/mnist/batch_generator.h"
-
 
 namespace marian {
 namespace models {
@@ -40,6 +38,11 @@ class MNISTModel {
 
     void save(Ptr<ExpressionGraph> graph, const std::string& name, bool foo=true) {
       LOG(info, "Saving MNIST model is not supported");
+    }
+
+    Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {
+      LOG(info, "Collecting stats in MNIST model is not supported");
+      return nullptr;
     }
 
   private:

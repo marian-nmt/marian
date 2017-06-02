@@ -9,14 +9,12 @@
 
 #include "3rd_party/threadpool.h"
 #include "common/definitions.h"
-//#include "data/batch_generator.h"
 #include "optimizers/optimizers.h"
 #include "training/dropper.h"
 #include "training/sparse_tensor.h"
 //#include "training/training.h"
 //#include "training/validator.h"
 
-#include "examples/mnist/batch_generator.h"
 #include "examples/mnist/training.h"
 #include "examples/mnist/validator.h"
 
@@ -49,7 +47,7 @@ class MNISTGraphGroup {
 
     virtual void save(bool=false) = 0;
 
-    //virtual Ptr<data::BatchStats> collectStats() = 0;
+    virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
 template <class Builder>
@@ -173,9 +171,9 @@ class MNISTSingleton : public MNISTGraphGroup {
       }
     }
 
-    //Ptr<data::BatchStats> collectStats() {
-      //return builder_->collectStats(graph_);
-    //}
+    Ptr<data::BatchStats> collectStats() {
+      return builder_->collectStats(graph_);
+    }
 };
 
 
@@ -661,9 +659,9 @@ class MNISTAsyncGraphGroup : public MNISTGraphGroup {
       }
     }
 
-    //Ptr<data::BatchStats> collectStats() {
-      //return builders_[0]->collectStats(graphs_[0]);
-    //}
+    Ptr<data::BatchStats> collectStats() {
+      return builders_[0]->collectStats(graphs_[0]);
+    }
 };
 
 

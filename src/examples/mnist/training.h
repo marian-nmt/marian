@@ -4,7 +4,6 @@
 #include "training/config.h"
 //#include "training/validator.h"
 
-#include "examples/mnist/batch_generator.h"
 #include "examples/mnist/mnist.h"
 #include "examples/mnist/validator.h"
 
@@ -145,7 +144,7 @@ class MNISTTrain : public ModelTask {
         //LOG(info, "[batching] Done");
       //}
 
-      auto batchGenerator = New<MNISTBatchGenerator<MNIST>>(trainCorpus, 200, 20);
+      auto batchGenerator = New<BatchGenerator<MNIST>>(trainCorpus, options_, nullptr);
       auto reporter = New<MNISTReporter>(options_);
 
       //if((options_->has("valid-sets") || options_->has("valid-script-path"))
