@@ -3,7 +3,7 @@ add_subdirectory(3rd_party)
 include_directories(.)
 include_directories(3rd_party)
 
-cuda_add_library(marian_lib
+cuda_add_library(marian
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
@@ -30,18 +30,19 @@ cuda_add_library(marian_lib
   data/vocab.cpp
   data/corpus.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
-  SHARED
+  STATIC
 )
 
-target_link_libraries(marian_lib)
+#target_link_libraries(marian)
+set_target_properties(marian PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 cuda_add_executable(marian_train command/marian.cu)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
-target_link_libraries(marian_train marian_lib)
+target_link_libraries(marian_train marian)
 
 add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
-target_link_libraries(marian_translate marian_lib)
+target_link_libraries(marian_translate marian)
 
 foreach(exec marian_train marian_translate)
   target_link_libraries(${exec} ${EXT_LIBS})
