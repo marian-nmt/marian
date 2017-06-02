@@ -8,13 +8,17 @@ namespace marian {
 OutputCollector::OutputCollector()
  : nextId_(0), outStrm_(new OutputFileStream(std::cout)) {}
 
-void OutputCollector::Write(long sourceId, const std::string& output)
+void OutputCollector::Write(long sourceId, const std::string& best1, const std::string& bestn, bool nbest)
 {
   boost::mutex::scoped_lock lock(mutex_);
   if (sourceId == nextId_) {
-    LOG(translate, "Best translation {} : {}", sourceId, output);
-    ((std::ostream&)*outStrm_) << output << std::endl;
-    
+    LOG(translate, "Best translation {} : {}", sourceId, best1);
+
+    if(nbest)
+      ((std::ostream&)*outStrm_) << bestn << std::endl;
+    else
+      ((std::ostream&)*outStrm_) << best1 << std::endl;
+
     ++nextId_;
 
     Outputs::const_iterator iter, iterNext;
@@ -24,9 +28,12 @@ void OutputCollector::Write(long sourceId, const std::string& output)
 
       if (currId == nextId_) {
         // 1st element in the map is the next
-        const std::string &currOutput = iter->second;
-        LOG(translate, "Best translation {} : {}", currId, currOutput);
-        ((std::ostream&)*outStrm_) << currOutput << std::endl;
+        const auto &currOutput = iter->second;
+        LOG(translate, "Best translation {} : {}", currId, currOutput.first);
+        if(nbest)
+          ((std::ostream&)*outStrm_) << currOutput.second << std::endl;
+        else
+          ((std::ostream&)*outStrm_) << currOutput.first << std::endl;
 
         ++nextId_;
 
@@ -46,9 +53,8 @@ void OutputCollector::Write(long sourceId, const std::string& output)
   }
   else {
     // save for later
-    outputs_[sourceId] = output;
+    outputs_[sourceId] = std::make_pair(best1, bestn);
   }
 }
 
 }
-

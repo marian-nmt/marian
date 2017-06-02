@@ -24,7 +24,7 @@ class Config {
       addOptions(argc, argv, validate, translate);
       log();
     }
-    
+
     Config(const Config& other)
      : config_(YAML::Clone(other.config_)),
        modelFeatures_(other.modelFeatures_)
@@ -50,7 +50,7 @@ class Config {
     YAML::Node getModelParameters();
     void loadModelParameters(const std::string& name);
     void saveModelParameters(const std::string& name);
-    
+
     void GetYamlFromNpz(YAML::Node&,
                         const std::string&,
                         const std::string&);
@@ -59,10 +59,10 @@ class Config {
                       const std::string&,
                       const std::string&);
 
-    
+
     void addOptions(int argc, char** argv, bool validate, bool translate);
 
-    void addOptionsCommon(boost::program_options::options_description&);
+    void addOptionsCommon(boost::program_options::options_description&, bool);
     void addOptionsModel(boost::program_options::options_description&, bool);
     void addOptionsTraining(boost::program_options::options_description&);
     void addOptionsValid(boost::program_options::options_description&);
