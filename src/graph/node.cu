@@ -1,6 +1,6 @@
 #include "graph/expression_graph.h"
 #include "graph/node.h"
-#include "kernels/tensor_operators.h"
+#include "graph/backend_gpu.h"
 
 namespace marian {
 
@@ -40,9 +40,8 @@ float Node::scalar() {
   return val_->scalar();
 }
 
-
-cublasHandle_t Node::getCublasHandle() {
-  return graph()->getCublasHandle();
+Ptr<Backend> Node::getBackend() {
+  return graph()->getBackend();
 }
 
 void NaryNodeOp::remove_children_from_top_nodes() {

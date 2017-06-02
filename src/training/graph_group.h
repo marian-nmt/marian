@@ -436,7 +436,6 @@ class AsyncGraphGroup : public GraphGroup {
 
             for (int h_id = 0; h_id < history_size_; h_id++){
               Tensor param;
-
               Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
               allocator->reserveExact(__size__);
               allocator->allocate(param, {1, __size__});
@@ -666,6 +665,5 @@ class AsyncGraphGroup : public GraphGroup {
       return builders_[0]->collectStats(graphs_[0]);
     }
 };
-
 
 }

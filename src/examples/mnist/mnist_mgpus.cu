@@ -9,7 +9,6 @@
 #include "marian.h"
 
 #include "examples/mnist/training.h"
-//#include "examples/mnist/graph_group.h"
 #include "examples/mnist/mnist_model.h"
 #include "training/graph_group.h"
 

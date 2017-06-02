@@ -1,8 +1,8 @@
-cuda_add_executable(iris_example iris/iris.cu)
+add_executable(iris_example iris/iris.cpp)
 cuda_add_executable(mnist_example mnist/mnist_mgpus.cu)
 
-target_link_libraries(iris_example marian_lib)
-target_link_libraries(mnist_example marian_lib)
+target_link_libraries(iris_example marian)
+target_link_libraries(mnist_example marian)
 
 foreach(exec iris_example mnist_example)
   target_link_libraries(${exec} ${EXT_LIBS})

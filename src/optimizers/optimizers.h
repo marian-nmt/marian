@@ -3,8 +3,10 @@
 #include <map>
 #include <memory>
 
-#include "kernels/tensor_operators.h"
 #include "training/config.h"
+
+#include "tensors/tensor.h"
+#include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
 
 namespace marian {
@@ -48,9 +50,7 @@ class Sgd : public OptimizerBase {
     : OptimizerBase(eta, args...) {}
 
   private:
-    void updateImpl(Tensor params, Tensor grads) {
-      Element(_1 -= eta_ * _2, params, grads);
-    }
+    void updateImpl(Tensor params, Tensor grads);
 };
 
 // @TODO: Add serialization for historic gradients and parameters
@@ -63,23 +63,7 @@ class Adagrad : public OptimizerBase {
     {}
 
   private:
-    void updateImpl(Tensor params, Tensor grads) {
-      if(!alloc_)
-        alloc_ = New<TensorAllocator>(params->getDevice());
-
-      if(!gt_) {
-        int totalSize = params->size();
-        alloc_->reserveExact(totalSize);
-        alloc_->allocate(gt_, {1, totalSize});
-        gt_->set(0);
-      }
-
-      Element(_1 += (_2 * _2),
-              gt_, grads);
-
-      Element(_1 -= (eta_ / (Sqrt(_2) + eps_)) * _3,
-              params, gt_, grads);
-    }
+    void updateImpl(Tensor params, Tensor grads);
 
     float eps_;
     Ptr<TensorAllocator> alloc_;
@@ -100,36 +84,7 @@ class Adam : public OptimizerBase {
       t_(0)
     {}
 
-    void updateImpl(Tensor params, Tensor grads) {
-
-      if(!mtAlloc_)
-        mtAlloc_ = New<TensorAllocator>(params->getDevice());
-      if(!vtAlloc_)
-        vtAlloc_ = New<TensorAllocator>(params->getDevice());
-
-      if(!mt_) {
-        int totalSize = params->size();
-        mtAlloc_->reserveExact(totalSize);
-        mtAlloc_->allocate(mt_, {1, totalSize});
-        mt_->set(0);
-
-        vtAlloc_->reserveExact(totalSize);
-        vtAlloc_->allocate(vt_, {1, totalSize});
-        vt_->set(0);
-      }
-
-      t_++;
-      float denom1 = 1 - std::pow(beta1_, t_);
-      float denom2 = 1 - std::pow(beta2_, t_);
-
-      Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2),
-              mt_, grads);
-      Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)),
-              vt_, grads);
-
-      Element(_1 -= eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
-              params, mt_, vt_);
-    }
+    void updateImpl(Tensor params, Tensor grads);
 
   private:
     float beta1_;
@@ -144,33 +99,10 @@ class Adam : public OptimizerBase {
 };
 
 template <class Algorithm, typename ...Args>
-Ptr<OptimizerBase> Optimizer(Args&& ...args) {
-  return Ptr<OptimizerBase>(new Algorithm(args...));
+Ptr<OptimizerBase> Optimizer(float eta, Args&& ...args) {
+  return Ptr<OptimizerBase>(new Algorithm(eta, args...));
 }
 
-Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
-
-  Ptr<ClipperBase> clipper = nullptr;
-  float clipNorm = options->get<double>("clip-norm");
-  if(clipNorm > 0)
-    clipper = Clipper<Norm>(clipNorm);
-
-  float lrate = options->get<double>("learn-rate");
-
-  std::string opt = options->get<std::string>("optimizer");
-
-  if(opt == "sgd") {
-    return Optimizer<Sgd>(lrate, keywords::clip=clipper);
-  }
-  else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(lrate, keywords::clip=clipper);
-  }
-  else if(opt == "adam") {
-    return Optimizer<Adam>(lrate, keywords::clip=clipper);
-  }
-  else {
-    UTIL_THROW2("Unknown optimizer: " << opt);
-  }
-}
+Ptr<OptimizerBase> Optimizer(Ptr<Config> options);
 
 }

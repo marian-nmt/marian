@@ -17,7 +17,6 @@ namespace marian {
 #define NodeOp(op) [=]() { op ; }
 typedef std::vector<std::function<void()>> NodeOps;
 
-
 template <class DataType>
 class Chainable;
 /** @brief Defines a convenience type to represent a shared pointer to a Chainable<Tensor> object. */
@@ -87,15 +86,5 @@ struct Chainable {
 
     virtual size_t hash() = 0;
 };
-
-/**
- * @brief Defines a convenience type to represent an ordered collection items.
- *
- * Conceptually, the items in this collection are pointers to nodes in an expression graph.
- *
- * Naumann (2012) uses "tape" to refer to this data structure.
- * -- The Art of Differentiating Computer Programs: An Introduction to Algorithmic Differentiation, Naumann (2012)
- */
-typedef std::vector<Expr> Tape;
 
 }

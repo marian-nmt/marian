@@ -6,15 +6,21 @@
 
 #include "common/definitions.h"
 #include "training/config.h"
-#include "graph/chainable.h"
-#include "graph/parameters.h"
-#include "graph/node_operators.h"
+
 #include "data/batch_generator.h"
+
+#include "graph/chainable.h"
+#include "graph/backend.h"
+#include "graph/parameters.h"
+
 #include "tensors/tensor_allocator.h"
+
 #include "layers/param_initializers.h"
-#include "kernels/dropout.h"
+
 #include "3rd_party/threadpool.h"
 #include "3rd_party/cnpy/cnpy.h"
+
+#include "graph/node_operators.h"
 
 namespace marian {
 
@@ -30,7 +36,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief The full list of nodes */
 
     size_t count_{0};
-
+    
     std::list<Expr> nodesForward_;
     std::list<Expr> nodesBackward_;
 
@@ -44,9 +50,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
     Ptr<TensorAllocator> tensors_;
 
-    cublasHandle_t cublasHandle_;
-    curandGenerator_t curandGenerator_;
-    size_t device_{0};
+    size_t device_;
+    Ptr<Backend> backend_;
 
     std::unordered_map<size_t, WExpr> hashMap_;
 
@@ -62,35 +67,22 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
     /** @brief Constructs a new expression graph
      * Constructor is protected to force use of New<ExpressionGraph>()
     */
-    ExpressionGraph(bool inference = false) : inferenceOnly_(inference) { }
-
+    
+    ExpressionGraph(bool inference = false);
 
     ~ExpressionGraph() {
       clear();
       params_->clear();
     }
 
-    void setDevice(size_t device = 0) {
-      device_ = device;
-
-      params_ = New<Parameters>();
-      params_->init(device_);
-
-      tensors_ = New<TensorAllocator>(device);
-      cublasHandle_ = create_handle(device);
-      curandGenerator_ = createCurandGenerator(device, Config::seed);
-    }
-
-    cublasHandle_t getCublasHandle() {
-      return cublasHandle_;
-    }
-
-    curandGenerator_t getCurandGenerator() {
-      return curandGenerator_;
-    }
+    void setDevice(size_t device = 0);
 
     size_t getDevice() {
       return device_;
+    }
+    
+    Ptr<Backend> getBackend() {
+      return backend_;
     }
 
     void switchParams(const std::string& newNamespace) {
@@ -212,8 +204,8 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
           v->backward();
 
         if(v->trainable() && v->marked_for_debug()) {
-          //std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-          //std::cerr << v->grad()->debug() << std::endl;
+          std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+          std::cerr << v->grad()->debug() << std::endl;
         }
 
         v->children().clear();
@@ -263,7 +255,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed parameter node
      */
     template <typename ...Args>
-    inline Expr param(std::string name,
+    Expr param(std::string name,
                       Shape shape,
                       Args ...args) {
 
@@ -303,7 +295,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed constant node
      */
     template <typename ...Args>
-    inline Expr constant(Shape shape, Args ...args) {
+    Expr constant(Shape shape, Args ...args) {
       return Expression<ConstantNode>(shared_from_this(),
                                       keywords::shape=shape,
                                       args...);
@@ -319,7 +311,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed constant node
      */
     template <typename ...Args>
-    inline Expr ones(Args ...args) {
+    Expr ones(Args ...args) {
       return Expression<ConstantNode>(shared_from_this(),
                                       keywords::init=inits::ones,
                                       args...);
@@ -335,22 +327,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
      * @return a newly constructed constant node
      */
     template <typename ...Args>
-    inline Expr zeros(Args ...args) {
+    Expr zeros(Args ...args) {
       return Expression<ConstantNode>(shared_from_this(),
                                       keywords::init=inits::zeros,
                                       args...);
     }
 
-    template <typename ...Args>
-    inline Expr dropout(float prob, Shape shape) {
-      auto dropoutInit = [prob, this](Tensor t) {
-        Dropout(t, prob, getCurandGenerator());
-      };
-
-      return Expression<ConstantNode>(shared_from_this(),
-                                      keywords::init=dropoutInit,
-                                      keywords::shape=shape);
-    }
+    Expr dropout(float prob, Shape shape);
 
     /*********************************************************/
 
@@ -467,7 +450,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
       unsigned shape[2];
       std::string mode = "w";
 
-      cudaSetDevice(getDevice());
+      backend_->setDevice(getDevice());
       for(auto p : params()->getMap()) {
         std::string pName = p.first;
 

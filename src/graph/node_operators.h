@@ -1,9 +1,7 @@
 #pragma once
 
 #include "graph/node.h"
-#include "graph/node_operators_unary.h"
-#include "graph/node_operators_binary.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor.h"
 
 namespace marian {
 

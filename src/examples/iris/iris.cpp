@@ -11,6 +11,7 @@
 #include <cuda.h>
 
 #include "marian.h"
+#include "optimizers/optimizers.h"
 
 using namespace marian;
 using namespace data;

@@ -1,5 +1,8 @@
 #include "marian.h"
 
+#include "models/model_task.h"
+#include "training/graph_group.h"
+
 int main(int argc, char** argv) {
   using namespace marian;
 

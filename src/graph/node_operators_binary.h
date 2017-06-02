@@ -5,6 +5,7 @@
 #include "graph/node.h"
 #include "kernels/thrust_functions.h"
 #include "kernels/tensor_operators.h"
+#include "graph/backend_gpu.h"
 
 namespace marian {
 
@@ -30,7 +31,7 @@ struct DotNodeOp : public NaryNodeOp {
   NodeOps forwardOps() {
     // C = A*B
     return {
-      NodeOp(Prod(getCublasHandle(),
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                   val_,
                   child(0)->val(),
                   child(1)->val(),
@@ -45,12 +46,12 @@ struct DotNodeOp : public NaryNodeOp {
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
     return {
-      NodeOp(Prod(getCublasHandle(),
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                   child(0)->grad(),
                   adj_,
                   child(1)->val(),
                   false, true, 1.0)),
-      NodeOp(Prod(getCublasHandle(),
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                   child(1)->grad(),
                   child(0)->val(),
                   adj_,
@@ -347,6 +348,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   int ax_;
 };
 
+/*
 struct TanhPlus3NodeOp : public NaryNodeOp {
   TanhPlus3NodeOp(const std::vector<Expr>& nodes)
     : NaryNodeOp(nodes, keywords::shape=newShape(nodes)) { }
@@ -386,6 +388,7 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
   }
 
 };
+*/
 
 struct AffineNodeOp : public NaryNodeOp {
   AffineNodeOp(const std::vector<Expr>& nodes)
@@ -403,7 +406,7 @@ struct AffineNodeOp : public NaryNodeOp {
   NodeOps forwardOps() {
     return {
       NodeOp(
-        Prod(getCublasHandle(),
+        Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
              val_,
              child(0)->val(),
              child(1)->val(),
@@ -421,12 +424,12 @@ struct AffineNodeOp : public NaryNodeOp {
     // to sum gradients from different graph parts
 
     return {
-      NodeOp(Prod(getCublasHandle(),
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                   child(0)->grad(),
                   adj_,
                   child(1)->val(),
                   false, true, 1.0)),
-      NodeOp(Prod(getCublasHandle(),
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                   child(1)->grad(),
                   child(0)->val(),
                   adj_,

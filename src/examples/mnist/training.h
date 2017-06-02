@@ -2,6 +2,7 @@
 
 #include "models/model_task.h"
 #include "training/config.h"
+#include "training/reporter.h"
 
 #include "examples/mnist/mnist.h"
 #include "examples/mnist/validator.h"

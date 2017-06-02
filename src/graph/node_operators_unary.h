@@ -5,6 +5,7 @@
 #include "kernels/tensor_operators.h"
 #include "kernels/thrust_functions.h"
 #include "kernels/sparse.h"
+#include "graph/backend_gpu.h"
 
 namespace marian {
 
@@ -676,14 +677,14 @@ struct TransposeNodeOp : public UnaryNodeOp {
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Transpose(getCublasHandle(),
+      NodeOp(Transpose(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                        val_, child(0)->val()))
     };
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Transpose(getCublasHandle(),
+      NodeOp(Transpose(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                        child(0)->grad(), adj_))
     };
   }

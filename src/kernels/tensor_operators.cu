@@ -6,14 +6,6 @@
 
 namespace marian {
 
-
-cublasHandle_t create_handle(size_t device) {
-  cudaSetDevice(device);
-  cublasHandle_t cublasHandle;
-  cublasCreate(&cublasHandle);
-  return cublasHandle;
-}
-
 //static cudnnHandle_t create_handle_dnn() {
 //  cudnnHandle_t cudnnHandle;
 //  cudnnCreate(&cudnnHandle);
@@ -93,7 +85,7 @@ cublasHandle_t create_handle(size_t device) {
 //}
 
 __global__ void gSoftmax(float* out,
-                         const Shape outShape,
+                         const ShapeGPU outShape,
                          const float* in,
                          const float* mask) {
   int rows = outShape[0] * outShape[2] * outShape[3];
@@ -188,7 +180,7 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
 }
 
 __global__ void gLogSoftmax(float* out,
-                            const Shape outShape,
+                            const ShapeGPU outShape,
                             const float* in) {
   int rows = outShape[0] * outShape[2] * outShape[3];
   int cols = outShape[1];
@@ -420,9 +412,9 @@ __global__ void gArgmax(float *out, const float *data, size_t rows, size_t cols)
 ///////////////////////////////////////////////////////
 
 void Prod(cublasHandle_t handle, Tensor C, const Tensor A, const Tensor B,
-             bool transA, bool transB, Float beta) {
+             bool transA, bool transB, float beta) {
   cudaSetDevice(C->getDevice());
-  Float alpha = 1.0;
+  float alpha = 1.0;
 
   size_t m = A->shape()[0] * A->shape()[2] * A->shape()[3];
   size_t k = A->shape()[1];
@@ -987,9 +979,9 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 }
 
 __global__ void gCrossEntropyPick(float* out,
-                                  const Shape outShape,
+                                  const ShapeGPU outShape,
                                   const float* in,
-                                  const Shape inShape,
+                                  const ShapeGPU inShape,
                                   const float* pick) {
 
   int rows = inShape[0];
@@ -1074,7 +1066,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
-                                          const Shape outShape,
+                                          const ShapeGPU outShape,
                                           const float* adj,
                                           const float* in,
                                           const float* pick) {
@@ -1527,7 +1519,7 @@ __global__ void gShift(float* out, const float* in,
   }
 }
 
-void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
+void Shift(Tensor out, Tensor in, ShapeGPU shift, bool invert) {
   
   int offset = in->shape().stride(0) * shift[0]
              + in->shape().stride(1) * shift[1]
