@@ -318,8 +318,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
               bool saveTranslatorConfig) {
 
       save(graph, name);
-      options_->saveModelParameters(name);
-
+      
       if(saveTranslatorConfig) {
         YAML::Node amun;
         auto vocabs = options_->get<std::vector<std::string>>("vocabs");
@@ -404,6 +403,8 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
       float ctt = 0;
       shape[0] = 1;
       cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
+      
+      options_->saveModelParameters(name);
     }
 };
 

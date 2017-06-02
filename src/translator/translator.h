@@ -64,6 +64,7 @@ class TranslateMultiGPU : public ModelTask {
       size_t sentenceId = 0;
       
       bg.prepare(false);
+      
       while(bg) {
         auto batch = bg.next();
         
