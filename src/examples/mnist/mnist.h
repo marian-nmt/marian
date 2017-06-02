@@ -18,7 +18,6 @@ namespace marian {
 namespace data {
 
 
-
 typedef std::vector<float> Data;
 typedef Ptr<Data> DataPtr;
 
@@ -26,7 +25,6 @@ typedef std::vector<Data> Example;
 typedef std::vector<Example> Examples;
 
 typedef Examples::const_iterator ExampleIterator;
-
 
 
 class Input {
@@ -73,6 +71,7 @@ class Input {
     }
 };
 
+
 class MNISTBatch : public Batch {
   private:
     std::vector<Input> inputs_;
@@ -100,8 +99,8 @@ class MNISTBatch : public Batch {
     }
 };
 
-class MNIST {
 
+class MNIST {
   private:
     const int IMAGE_MAGIC_NUMBER;
     const int LABEL_MAGIC_NUMBER;
@@ -118,8 +117,7 @@ class MNIST {
 
     MNIST(std::vector<std::string> paths,
           std::vector<Ptr<Vocab>> vocabs,
-          Ptr<Config> options,
-          size_t maxLength)
+          Ptr<Config> options)
       : MNIST(paths) { }
 
     MNIST(std::vector<std::string> paths)

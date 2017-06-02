@@ -17,6 +17,7 @@
 
 namespace marian {
 
+  template<class DataSet>
   class Validator {
     protected:
       Ptr<Config> options_;
@@ -55,9 +56,9 @@ namespace marian {
       virtual float validate(Ptr<ExpressionGraph> graph) {
         using namespace data;
         auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-        auto corpus = New<Corpus>(validPaths, vocabs_, options_);
-        Ptr<BatchGenerator<Corpus>> batchGenerator
-          = New<BatchGenerator<Corpus>>(corpus, options_);
+        auto corpus = New<DataSet>(validPaths, vocabs_, options_);
+        Ptr<BatchGenerator<DataSet>> batchGenerator
+          = New<BatchGenerator<DataSet>>(corpus, options_);
         batchGenerator->prepare(false);
 
         float val = validateBG(graph, batchGenerator);
@@ -76,12 +77,12 @@ namespace marian {
       };
 
       virtual float validateBG(Ptr<ExpressionGraph>,
-                               Ptr<data::BatchGenerator<data::Corpus>>) = 0;
+                               Ptr<data::BatchGenerator<DataSet>>) = 0;
 
   };
 
   template <class Builder>
-  class CrossEntropyValidator : public Validator {
+  class CrossEntropyValidator : public Validator<data::Corpus> {
     private:
       Ptr<Builder> builder_;
 
@@ -121,7 +122,7 @@ namespace marian {
   };
 
   template <class Builder>
-  class PerplexityValidator : public Validator {
+  class PerplexityValidator : public Validator<data::Corpus> {
     private:
       Ptr<Builder> builder_;
 
@@ -161,7 +162,7 @@ namespace marian {
   };
 
   template <class Builder>
-  class ScriptValidator : public Validator {
+  class ScriptValidator : public Validator<data::Corpus> {
     private:
       Ptr<Builder> builder_;
 
@@ -236,7 +237,7 @@ namespace marian {
   
   
   template <class Builder>
-  class S2SValidator : public Validator {
+  class S2SValidator : public Validator<data::Corpus> {
     private:
       Ptr<Builder> builder_;
 
@@ -321,10 +322,10 @@ namespace marian {
   };
 
   template <class Builder, class ...Args>
-  std::vector<Ptr<Validator>> Validators(std::vector<Ptr<Vocab>> vocabs,
+  std::vector<Ptr<Validator<data::Corpus>>> Validators(std::vector<Ptr<Vocab>> vocabs,
                                          Ptr<Config> options,
                                          Args ...args) {
-    std::vector<Ptr<Validator>> validators;
+    std::vector<Ptr<Validator<data::Corpus>>> validators;
 
     auto validMetrics = options->get<std::vector<std::string>>("valid-metrics");
 

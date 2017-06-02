@@ -25,10 +25,7 @@ namespace marian {
 class GraphGroup {
   protected:
     Ptr<Config> options_;
-    Ptr<Reporter> reporter_;
     Ptr<OptimizerBase> opt_;
-
-    std::vector<Ptr<ExpressionGraph>> graphs_;
 
   public:
     GraphGroup(Ptr<Config> options)
@@ -38,10 +35,6 @@ class GraphGroup {
 
     virtual void update(Ptr<data::Batch>) = 0;
 
-    virtual void setReporter(Ptr<Reporter> reporter) {
-      reporter_ = reporter;
-    }
-
     virtual void load() = 0;
 
     virtual void save(bool=false) = 0;
@@ -49,9 +42,16 @@ class GraphGroup {
     virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
-template <class Builder>
+template <class Builder, class DataSet>
 class Singleton : public GraphGroup {
+  //FIXME
+  public:
+    Ptr<Reporter<DataSet>> reporter_;
+    virtual void setReporter(Ptr<Reporter<DataSet>> reporter) {
+      reporter_ = reporter;
+    }
   private:
+
     Ptr<Builder> builder_;
     Ptr<ExpressionGraph> graph_;
 
@@ -174,8 +174,14 @@ class Singleton : public GraphGroup {
 };
 
 
-template <class Builder>
+template <class Builder, class DataSet>
 class AsyncGraphGroup : public GraphGroup {
+  //FIXME
+  public:
+    Ptr<Reporter<DataSet>> reporter_;
+    virtual void setReporter(Ptr<Reporter<DataSet>> reporter) {
+      reporter_ = reporter;
+    }
   private:
     bool first_{true};
 
@@ -661,145 +667,5 @@ class AsyncGraphGroup : public GraphGroup {
     }
 };
 
-
-template <class Builder>
-class SyncGraphGroup : public GraphGroup {
-  private:
-    Ptr<Builder> builder_;
-    std::vector<Ptr<data::Batch>> batches_;
-
-    bool first_{true};
-
-    void accumulateGradients(Ptr<ExpressionGraph> master,
-                             std::vector<Ptr<ExpressionGraph>> graphs) {
-      if(graphs_.size() < 2) {
-        return;
-      }
-
-      Tensor grads = master->params()->grads();
-      Tensor tempGrads;
-      master->tensor(tempGrads, grads->shape());
-
-      for(auto graph : graphs) {
-        if(graph != master) {
-          Tensor remoteGrads = graph->params()->grads();
-          tempGrads->copyFrom(remoteGrads);
-          Element(_1 += _2, grads, tempGrads);
-        }
-      }
-
-      float denom = graphs_.size();
-      Element(_1 /= denom, grads);
-    }
-
-    void distributeParameters(Ptr<ExpressionGraph> master,
-                              std::vector<Ptr<ExpressionGraph>> graphs) {
-      if(graphs_.size() < 2)
-        return;
-
-      Tensor params = master->params()->vals();
-      for(auto graph : graphs) {
-        if(graph != master) {
-          graph->params()->vals()->copyFrom(params);
-        }
-      }
-    }
-
-    void execute() {
-      if(first_) {
-        for(auto graph : graphs_) {
-          builder_->build(graph, batches_[0]);
-          graph->forward();
-        }
-        distributeParameters(graphs_[0], graphs_);
-        first_ = false;
-      }
-
-      auto task = [this](int i,
-                         Ptr<data::Batch> batch) {
-        thread_local int j = -1;
-        if(j == -1)
-          j = i;
-        auto localGraph = this->graphs_[j];
-
-        auto costNode = builder_->build(localGraph, batch);
-        localGraph->forward();
-        float cost = costNode->scalar();
-        localGraph->backward();
-
-        if(reporter_) {
-          reporter_->update(cost, batch);
-          if(reporter_->numberOfBatches() % options_->get<size_t>("save-freq") == 0)
-            this->save();
-        }
-      };
-
-      {
-        size_t workers = graphs_.size();
-        ThreadPool pool(workers, workers);
-
-        for(int i = 0; i < batches_.size(); ++i)
-          pool.enqueue(task, i % (int)workers, batches_[i]);
-      }
-      accumulateGradients(graphs_[0], graphs_);
-      opt_->update(graphs_[0]);
-      distributeParameters(graphs_[0], graphs_);
-
-      batches_.clear();
-    }
-
-    void load() {
-      if(options_->has("init")) {
-        std::string init = options_->get<std::string>("init");
-        for(auto graph : graphs_)
-        builder_->load(graph, init);
-      }
-    }
-
-  public:
-    typedef Builder builder_type;
-
-    SyncGraphGroup(Ptr<Config> options)
-     : GraphGroup(options),
-       builder_{New<Builder>(options_)} {
-
-      auto devices = options_->get<std::vector<size_t>>("devices");
-      size_t workers = devices.size();
-
-      for(auto device : devices) {
-        graphs_.emplace_back(New<ExpressionGraph>());
-        graphs_.back()->setDevice(device);
-        graphs_.back()->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      }
-
-      load();
-    }
-
-    ~SyncGraphGroup() {
-      execute();
-    }
-
-    void update(Ptr<data::Batch> batch) {
-      batches_.push_back(batch);
-      if(batches_.size() == graphs_.size())
-        execute();
-    }
-
-    void save(bool final=false) {
-      if(options_->get<bool>("overwrite")) {
-        std::string name = options_->get<std::string>("model") + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-      else {
-        std::string name = options_->get<std::string>("model")
-          + "." + std::to_string(reporter_->numberOfBatches()) + ".npz";
-        builder_->save(graphs_[0], name);
-      }
-    }
-
-    Ptr<data::BatchStats> collectStats() {
-      return builder_->collectStats(graphs_[0]);
-    }
-};
 
 }

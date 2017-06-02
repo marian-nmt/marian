@@ -5,33 +5,15 @@
 
 namespace marian {
 
-class ReporterBase {
-  public:
-    virtual bool keepGoing() = 0;
-    virtual void increaseEpoch() = 0;
-    virtual size_t numberOfBatches() = 0;
 
-    virtual size_t stalled() = 0;
-    virtual void finished() = 0;
-    virtual void update(float cost, Ptr<data::Batch> batch) = 0;
-
-    virtual bool validating() const = 0;
-    virtual void validate(Ptr<ExpressionGraph> graph) = 0;
-
-    virtual bool saving() const = 0;
-    virtual void save(const std::string& name) = 0;
-
-    virtual void load(const std::string& name) = 0;
-};
-
-
-//template <class Validator>
+  //TODO: or just class Validator?
+template <class DataSet>
 class Reporter {
   private:
     YAML::Node progress;
 
     Ptr<Config> options_;
-    std::vector<Ptr<Validator>> validators_;
+    std::vector<Ptr<Validator<DataSet>>> validators_;
 
     float costSum{0};
 
@@ -79,7 +61,7 @@ class Reporter {
       LOG(info, "Training finshed");
     }
 
-    void addValidator(Ptr<Validator> validator) {
+    void addValidator(Ptr<Validator<DataSet>> validator) {
       validators_.push_back(validator);
     }
 

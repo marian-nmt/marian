@@ -34,7 +34,7 @@ class Train : public ModelTask {
       }
 
       auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
-      auto reporter = New<Reporter>(options_);
+      auto reporter = New<Reporter<data::Corpus>>(options_);
 
       if((options_->has("valid-sets") || options_->has("valid-script-path"))
          && options_->get<size_t>("valid-freq") > 0) {
