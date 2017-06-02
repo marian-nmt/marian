@@ -10,7 +10,7 @@
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
 
-#include "examples/mnist/mnist.h"
+#include "examples/mnist/dataset.h"
 
 
 namespace marian {
@@ -23,6 +23,7 @@ class MNISTModel {
     std::vector<int> dims_{784, 2048, 2048, 10};
 
   public:
+    typedef data::MNIST dataset_type;
 
     template <class ...Args>
     MNISTModel(Ptr<Config> options, Args ...args)
@@ -69,7 +70,7 @@ class MNISTModel {
 
     // Create an input layer of shape batchSize x numFeatures and populate it
     // with training features
-    auto features = std::static_pointer_cast<data::MNISTBatch>(batch)->inputs()[0].data();
+    auto features = std::static_pointer_cast<data::DataBatch>(batch)->features();
     auto x = g->constant({(int)batch->size(), dims[0]},
                          init=inits::from_vector(features));
 
@@ -110,8 +111,8 @@ class MNISTModel {
 
     if(! inference) {
       // Create an output layer of shape batchSize x 1 and populate it with labels
-      auto labels = std::static_pointer_cast<data::MNISTBatch>(batch)->inputs()[1].data();
-      auto y = g->constant({(int)batch->dim(), 1}, init=inits::from_vector(labels));
+      auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
+      auto y = g->constant({(int)batch->size(), 1}, init=inits::from_vector(labels));
 
       // Define a top-level node for training
       return mean(cross_entropy(last, y), axis=0);

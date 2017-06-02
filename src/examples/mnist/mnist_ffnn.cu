@@ -9,7 +9,7 @@
 #include "marian.h"
 
 #include "examples/mnist/training.h"
-#include "examples/mnist/mnist_model.h"
+#include "examples/mnist/model.h"
 #include "training/graph_group.h"
 
 
@@ -36,9 +36,9 @@ int main(int argc, char** argv) {
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if (devices.size() > 1)
-    New<MNISTTrain<AsyncGraphGroup<models::MNISTModel, data::MNIST>>>(options)->run();
+    New<TrainMNIST<AsyncGraphGroup<models::MNISTModel>>>(options)->run();
   else
-    New<MNISTTrain<Singleton<models::MNISTModel, data::MNIST>>>(options)->run();
+    New<TrainMNIST<Singleton<models::MNISTModel>>>(options)->run();
 
   return 0;
 }

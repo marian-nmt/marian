@@ -11,7 +11,7 @@ namespace marian {
 
 template <class Model>
 class Train : public ModelTask {
-  public:
+  private:
     Ptr<Config> options_;
 
   public:
@@ -20,9 +20,11 @@ class Train : public ModelTask {
     void run() {
       using namespace data;
 
-      auto trainCorpus = New<Corpus>(options_);
-      if(options_->has("guided-alignment"))
-        trainCorpus->setWordAlignment(options_->get<std::string>("guided-alignment"));
+      typedef typename Model::builder_type builder_type;
+      typedef typename Model::dataset_type dataset_type;
+
+      auto dataset = New<dataset_type>(options_);
+      dataset->prepare();
 
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
@@ -33,13 +35,13 @@ class Train : public ModelTask {
         LOG(info, "[batching] Done");
       }
 
-      auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
-      auto reporter = New<Reporter<data::Corpus>>(options_);
+      auto batchGenerator
+        = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
+      auto reporter = New<Reporter<dataset_type>>(options_);
 
       if((options_->has("valid-sets") || options_->has("valid-script-path"))
          && options_->get<size_t>("valid-freq") > 0) {
-        for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(),
-                                                                      options_))
+        for(auto validator : Validators<builder_type>(dataset->getVocabs(), options_))
           reporter->addValidator(validator);
       }
 
@@ -48,7 +50,8 @@ class Train : public ModelTask {
       model->load();
 
       while(reporter->keepGoing()) {
-        batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
+        auto shuffle = !options_->get<bool>("no-shuffle");
+        batchGenerator->prepare(shuffle);
         while(*batchGenerator && reporter->keepGoing()) {
           auto batch = batchGenerator->next();
           model->update(batch);

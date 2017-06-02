@@ -19,6 +19,7 @@
 
 // @TODO:
 // - rename Builder/builder_ --> Model/model_ to be consistent with Train class
+// - rename Singleton --> SingleGraph
 
 namespace marian {
 
@@ -42,14 +43,17 @@ class GraphGroup {
     virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
-template <class Builder, class DataSet>
+template <class Builder>
 class Singleton : public GraphGroup {
-  //FIXME
   public:
-    Ptr<Reporter<DataSet>> reporter_;
-    virtual void setReporter(Ptr<Reporter<DataSet>> reporter) {
+    typedef Builder builder_type;
+    typedef typename Builder::dataset_type dataset_type;
+
+    Ptr<Reporter<dataset_type>> reporter_;
+    virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
       reporter_ = reporter;
     }
+
   private:
 
     Ptr<Builder> builder_;
@@ -105,8 +109,6 @@ class Singleton : public GraphGroup {
     }
 
   public:
-    typedef Builder builder_type;
-
     template <class ...Args>
     Singleton(Ptr<Config> options, Args ...args)
      : GraphGroup(options),
@@ -174,14 +176,17 @@ class Singleton : public GraphGroup {
 };
 
 
-template <class Builder, class DataSet>
+template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
-  //FIXME
   public:
-    Ptr<Reporter<DataSet>> reporter_;
-    virtual void setReporter(Ptr<Reporter<DataSet>> reporter) {
+    typedef Builder builder_type;
+    typedef typename Builder::dataset_type dataset_type;
+
+    Ptr<Reporter<dataset_type>> reporter_;
+    virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
       reporter_ = reporter;
     }
+
   private:
     bool first_{true};
 
@@ -583,8 +588,6 @@ class AsyncGraphGroup : public GraphGroup {
     }
 
   public:
-    typedef Builder builder_type;
-
     template <class ...Args>
     AsyncGraphGroup(Ptr<Config> options, Args ...args)
      : GraphGroup(options),

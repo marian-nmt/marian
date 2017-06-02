@@ -7,10 +7,11 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
-#include "data/batch.h"
-#include "data/vocab.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "data/batch.h"
+#include "data/dataset.h"
+#include "data/vocab.h"
 #include "training/config.h"
 
 namespace marian {
@@ -88,7 +89,6 @@ class SubBatch {
     }
 };
 
-//FIXME
 class CorpusBatch : public Batch {
   private:
     std::vector<Ptr<SubBatch>> batches_;
@@ -265,11 +265,10 @@ class WordAlignment {
 
 };
 
-class Corpus {
+class Corpus : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
   private:
     Ptr<Config> options_;
 
-    std::vector<std::string> textPaths_;
     std::vector<UPtr<TemporaryFile>> tempFiles_;
     std::vector<UPtr<InputFileStream>> files_;
     std::vector<Ptr<Vocab>> vocabs_;
@@ -284,12 +283,6 @@ class Corpus {
     void shuffleFiles(const std::vector<std::string>& paths);
 
   public:
-    typedef CorpusBatch batch_type;
-    typedef Ptr<batch_type> batch_ptr;
-
-    typedef CorpusIterator iterator;
-    typedef SentenceTuple sample;
-
     Corpus(Ptr<Config> options, bool translate=false);
 
     Corpus(std::vector<std::string> paths,
@@ -313,10 +306,6 @@ class Corpus {
 
     std::vector<Ptr<Vocab>>& getVocabs() {
       return vocabs_;
-    }
-
-    void setWordAlignment(const std::string& path) {
-      wordAlignment_ = New<WordAlignment>(path);
     }
 
     batch_ptr toBatch(const std::vector<sample>& batchVector) {
@@ -363,6 +352,18 @@ class Corpus {
 
       return ret;
     }
+
+    void prepare() {
+      if(options_->has("guided-alignment"))
+        setWordAlignment(options_->get<std::string>("guided-alignment"));
+    }
+
+  private:
+
+    void setWordAlignment(const std::string& path) {
+      wordAlignment_ = New<WordAlignment>(path);
+    }
+
 };
 
 }

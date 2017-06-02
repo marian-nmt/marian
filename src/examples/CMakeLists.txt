@@ -1,5 +1,5 @@
 add_executable(iris_example iris/iris.cpp)
-cuda_add_executable(mnist_example mnist/mnist_mgpus.cu)
+cuda_add_executable(mnist_example mnist/mnist_ffnn.cu)
 
 target_link_libraries(iris_example marian)
 target_link_libraries(mnist_example marian)

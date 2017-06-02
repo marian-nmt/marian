@@ -5,7 +5,7 @@
 #include "training/config.h"
 #include "training/validator.h"
 
-#include "examples/mnist/mnist.h"
+#include "examples/mnist/dataset.h"
 
 
 using namespace marian;
@@ -19,17 +19,16 @@ class AccuracyValidator : public Validator<data::MNIST> {
 
   public:
     template <class ...Args>
-    AccuracyValidator(std::vector<Ptr<Vocab>> vocabs,
-                      Ptr<Config> options,
+    AccuracyValidator(Ptr<Config> options,
                       Args ...args)
-     : Validator(vocabs, options),
+     : Validator(std::vector<Ptr<Vocab>>(), options),
        builder_(New<Builder>(options, keywords::inference=true, args...)) {
       initLastBest();
     }
 
     virtual float validateBG(Ptr<ExpressionGraph> graph,
                              Ptr<data::BatchGenerator<data::MNIST>> batchGenerator) {
-      float cor = 0;
+      float correct = 0;
       size_t samples = 0;
 
       while(*batchGenerator) {
@@ -40,15 +39,16 @@ class AccuracyValidator : public Validator<data::MNIST> {
         std::vector<float> scores;
         probs->val()->get(scores);
 
-        cor += countCorrect(scores, batch->inputs()[1].data());
+        correct += countCorrect(scores, batch->labels());
         samples += batch->size();
       }
 
-      return cor / float(samples);
+      return correct / float(samples);
     }
 
     virtual void keepBest(Ptr<ExpressionGraph> graph) {
-      // not supported
+      auto model = options_->get<std::string>("model");
+      builder_->save(graph, model + ".best-" + type() + ".npz", true);
     }
 
     bool lowerIsBetter() {
@@ -58,8 +58,8 @@ class AccuracyValidator : public Validator<data::MNIST> {
     std::string type() { return "accuracy"; }
 
   private:
-
-    float countCorrect(const std::vector<float>& probs, const std::vector<float>& labels) {
+    float countCorrect(const std::vector<float>& probs,
+                       const std::vector<float>& labels) {
       size_t numLabels = probs.size() / labels.size();
       float numCorrect = 0;
       for (size_t i = 0; i < probs.size(); i += numLabels) {
