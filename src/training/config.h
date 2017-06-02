@@ -12,7 +12,7 @@
 namespace marian {
 
 // try to determine the with of the terminal
-uint16_t guess_terminal_width(uint16_t max_width=120);
+uint16_t guess_terminal_width(uint16_t max_width=180);
 
 class Config {
   public:
