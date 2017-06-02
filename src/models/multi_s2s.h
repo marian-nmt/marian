@@ -258,6 +258,10 @@ class MultiDecoderS2S : public DecoderBase {
                                        state->getEncoderState());
     }
 
+    const std::vector<Expr> getAlignments() {
+      return attention1_->getAlignments();
+    }
+    
 };
 
 typedef MultiEncoder<EncoderS2S, EncoderS2S> MultiEncoderS2S;

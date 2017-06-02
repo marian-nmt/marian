@@ -78,11 +78,11 @@ class EncoderAmun : public EncoderBase {
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
-      auto xEmb = Embedding("Wemb", dimSrcVoc, dimSrcEmb)(graph);
+      auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
-
+      
       if(dropoutSrc) {
         int srcWords = x->shape()[2];
         auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
@@ -103,7 +103,6 @@ class EncoderAmun : public EncoderBase {
                          (x, mask=xMask);
 
       auto xContext = concatenate({xFw, xBw}, axis=1);
-
       return New<EncoderStateAmun>(xContext, xMask, batch);
     }
 };
@@ -189,6 +188,10 @@ class DecoderAmun : public DecoderBase {
 
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());
+    }
+    
+    const std::vector<Expr> getAlignments() {
+      return attention_->getAlignments();
     }
 
 };
@@ -315,7 +318,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
               bool saveTranslatorConfig) {
 
       save(graph, name);
-
+      
       if(saveTranslatorConfig) {
         YAML::Node amun;
         auto vocabs = options_->get<std::vector<std::string>>("vocabs");
@@ -400,6 +403,8 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
       float ctt = 0;
       shape[0] = 1;
       cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
+      
+      options_->saveModelParameters(name);
     }
 };
 

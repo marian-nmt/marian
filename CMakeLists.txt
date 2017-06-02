@@ -11,12 +11,12 @@ endif(CUDA_FOUND)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -g -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
-set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -pg")
+set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
-LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -g; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
 LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 

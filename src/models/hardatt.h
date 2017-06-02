@@ -264,7 +264,10 @@ class DecoderHardAtt : public DecoderBase {
           }
       }
     }
-
+    
+    const std::vector<Expr> getAlignments() {
+      return {};
+    }
 };
 
 typedef EncoderDecoder<EncoderS2S, DecoderHardAtt> HardAtt;
@@ -389,6 +392,10 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
       return New<DecoderStateHardAtt>(statesOut, logitsOut,
                                       stateHardAtt->getEncoderState(),
                                       stateHardAtt->getAttentionIndices());
+    }
+    
+    const std::vector<Expr> getAlignments() {
+      return attention_->getAlignments();
     }
 };
 
@@ -565,6 +572,10 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
               stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;
           }
       }
+    }
+    
+    const std::vector<Expr> getAlignments() {
+      return attention1_->getAlignments();
     }
 };
 

@@ -9,9 +9,9 @@ int main(int argc, char** argv) {
   
   auto task = New<TranslateMultiGPU<BeamSearch>>(options);
   
+  boost::timer::cpu_timer timer;
   task->run();
-  
-  //WrapModelType<TranslateMultiGPU, BeamSearch>(options)->run();
+  LOG(info, "Total time: {}", timer.format());
   
   return 0;
 

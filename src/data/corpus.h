@@ -144,7 +144,8 @@ class CorpusBatch : public Batch {
       return batches_.size();
     }
 
-    static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths, size_t batchSize) {
+    static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths, size_t batchSize,
+                                      bool guidedAlignment = false) {
       std::vector<Ptr<SubBatch>> batches;
 
       for(auto len : lengths) {
@@ -152,7 +153,14 @@ class CorpusBatch : public Batch {
         batches.push_back(sb);
       }
 
-      return New<CorpusBatch>(batches);
+      auto batch = New<CorpusBatch>(batches);
+      
+      if(guidedAlignment) {
+        std::vector<float> guided(batchSize * lengths.front() * lengths.back(), 0.f);
+        batch->setGuidedAlignment(guided);
+      }
+      
+      return batch;
     }
 
     std::vector<float>& getGuidedAlignment() {
