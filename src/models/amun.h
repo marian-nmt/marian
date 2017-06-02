@@ -74,6 +74,11 @@ class EncoderAmun : public EncoderBase {
       int dimSrcEmb = options_->get<int>("dim-emb");
       int dimEncState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
+      
+      UTIL_THROW_IF2(options_->get<int>("layers-enc") > 1,
+        "--type amun does not currently support multiple encoder layers, use --type s2s");
+      UTIL_THROW_IF2(options_->get<bool>("skip"),
+        "--type amun does not currently support skip connections, use --type s2s");
 
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
@@ -141,9 +146,14 @@ class DecoderAmun : public DecoderBase {
       int dimTrgEmb = options_->get<int>("dim-emb");
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
-      bool skipDepth = options_->get<bool>("skip");
-      size_t decoderLayers = options_->get<size_t>("layers-dec");
 
+      UTIL_THROW_IF2(options_->get<bool>("skip"),
+        "--type amun does not currently support skip connections, use --type s2s");
+      UTIL_THROW_IF2(options_->get<int>("layers-dec") > 1,
+        "--type amun does not currently support multiple decoder layers, use --type s2s");
+      UTIL_THROW_IF2(options_->get<bool>("tied-embeddings"),
+        "--type amun does not currently support tied embeddings, use --type s2s");
+      
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 

@@ -33,8 +33,8 @@ cuda_add_library(marian
   STATIC
 )
 
-#target_link_libraries(marian)
-set_target_properties(marian PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 cuda_add_executable(marian_train command/marian.cu)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
