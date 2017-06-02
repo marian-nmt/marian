@@ -335,34 +335,35 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out, const float* in,
-                         size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn = in + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowOut[i], rowIn[i]);;
-      }
-    }
+                         size_t rows, size_t cols,
+                         TMatrixWrapper<float> outWrap,
+                         const TMatrixWrapper<float> inWrap)
+{
+  size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
+  if (ind < outWrap.size()) {
+    outWrap[ind] = functor(outWrap[ind], inWrap[ind]);
   }
 }
 
 template <class Functor>
 Matrix& Element(Functor functor,
-                Matrix& Out, const Matrix& In) {
+                Matrix& Out, const Matrix& In)
+{
+  assert(Out.size() == In.size());
+
   float* d_out = Out.data();
   const float* d_in = In.data();
 
-  int blocks  = std::min(MAX_BLOCKS, (int)Out.dim(0));
-  int threads = std::min(MAX_THREADS, (int)Out.dim(1));
+  int threads = MAX_THREADS;
+  int blocks  = Out.size() / threads + 1;
   cudaStream_t& stream = CudaStreamHandler::GetStream();
 
+  TMatrixWrapper<float> outWrap(Out);
+  const TMatrixWrapper<float> inWrap(In);
+
   gElement<<<blocks, threads, 0, stream>>>
-    (functor, d_out, d_in, Out.dim(0), Out.dim(1));
+    (functor, d_out, d_in, Out.dim(0), Out.dim(1),
+        outWrap, inWrap);
 
   return Out;
 }
@@ -387,8 +388,8 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In1, const Matrix& In2)
 {
-  assert(In1.dim(2) == 1);
-  assert(In1.dim(3) == 1);
+  assert(Out.size() == In1.size());
+  assert(Out.size() == In2.size());
 
   float* d_out = Out.data();
   const float* d_in1 = In1.data();
