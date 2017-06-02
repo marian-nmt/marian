@@ -332,6 +332,23 @@ public:
     return ind;
   }
 
+  virtual std::string Debug() const
+  {
+    std::stringstream strm;
+
+    strm << "dim=";
+    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
+      strm << dim_[i] << " ";
+    }
+
+    strm << "size=";
+    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
+      strm << size(i) << " ";
+    }
+
+    return strm.str();
+  }
+
 protected:
   size_t dim_[SHAPE_SIZE];
 

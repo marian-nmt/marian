@@ -209,8 +209,8 @@ class FastGRU {
 };
 
 template<class T>
-//using GRU = SlowGRU<T>;
-using GRU = FastGRU<T>;
+using GRU = SlowGRU<T>;
+//using GRU = FastGRU<T>;
 
 }
 }
