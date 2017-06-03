@@ -206,11 +206,11 @@ Ptr<Scorer> scorerByType(std::string fname, float weight,
   }
   if(type == "amun") {
     return New<ScorerWrapper<Amun>>(fname, weight,
-                                   model, options);
+                                    model, options);
   }
   else if(type == "multi-s2s") {
     return New<ScorerWrapper<MultiS2S>>(fname, weight,
-                                         model, options);
+                                        model, options);
   }
   else if(type == "hard-att") {
     return New<ScorerWrapper<HardAtt>>(fname, weight,

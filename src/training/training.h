@@ -68,11 +68,11 @@ class Reporter {
     bool validating() {
       return (!validators_.empty() && batches % options_->get<size_t>("valid-freq") == 0);
     }
-    
+
     bool saving() {
       return (batches % options_->get<size_t>("save-freq") == 0);
     }
-    
+
     void validate(Ptr<ExpressionGraph> graph) {
       if(batches % options_->get<size_t>("valid-freq") == 0) {
         for(auto validator : validators_) {
@@ -139,17 +139,17 @@ template <class Model>
 class Train : public ModelTask {
   public:
     Ptr<Config> options_;
-    
+
   public:
     Train(Ptr<Config> options) : options_(options) {}
-  
+
     void run() {
       using namespace data;
-              
+
       auto trainCorpus = New<Corpus>(options_);
       if(options_->has("guided-alignment"))
         trainCorpus->setWordAlignment(options_->get<std::string>("guided-alignment"));
-      
+
       Ptr<BatchStats> stats;
       if(options_->get<bool>("dynamic-batching")) {
         LOG(info, "[batching] Collecting statistics for dynamic batching");
@@ -158,20 +158,20 @@ class Train : public ModelTask {
         THREAD_GUARD(stats = model->collectStats());
         LOG(info, "[batching] Done");
       }
-    
+
       auto batchGenerator = New<BatchGenerator<Corpus>>(trainCorpus, options_, stats);
       auto reporter = New<Reporter>(options_);
-    
+
       if((options_->has("valid-sets") || options_->has("valid-script-path"))
          && options_->get<size_t>("valid-freq") > 0) {
         for(auto validator : Validators<typename Model::builder_type>(trainCorpus->getVocabs(), options_))
           reporter->addValidator(validator);
       }
-                              
+
       auto model = New<Model>(options_);
       model->setReporter(reporter);
-      model->load();  
-    
+      model->load();
+
       while(reporter->keepGoing()) {
         batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
         while(*batchGenerator && reporter->keepGoing()) {

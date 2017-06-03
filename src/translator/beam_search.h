@@ -92,7 +92,8 @@ class BeamSearch {
         Expr prevCosts;
         if(first) {
           // no cost
-          prevCosts = graph->constant({1, 1, 1, 1}, keywords::init=inits::from_value(0));
+          prevCosts = graph->constant({1, 1, 1, 1},
+                                      keywords::init=inits::from_value(0));
         }
         else {
           std::vector<float> beamCosts;

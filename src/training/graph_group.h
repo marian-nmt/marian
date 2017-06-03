@@ -29,7 +29,7 @@ class GraphGroup {
   public:
     GraphGroup(Ptr<Config> options)
     : options_(options), opt_(Optimizer(options)) { }
-    
+
     virtual ~GraphGroup() {}
 
     virtual void update(Ptr<data::CorpusBatch>) = 0;
@@ -41,7 +41,7 @@ class GraphGroup {
     virtual void load() = 0;
 
     virtual void save(bool=false) = 0;
-    
+
     virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
@@ -50,34 +50,34 @@ class Singleton : public GraphGroup {
   private:
     Ptr<Builder> builder_;
     Ptr<ExpressionGraph> graph_;
-    
+
     Ptr<ExpressionGraph> mvAvgGraph_;
     bool mvAvg_{false};
     float mvDecay_{0.999};
-    
+
     void updateMovingAverage(Tensor mvAvgParams, Tensor params) {
       Element(_1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2),
               mvAvgParams, params);
     }
-    
-    void execute(Ptr<data::CorpusBatch> batch) {          
+
+    void execute(Ptr<data::CorpusBatch> batch) {
       auto costNode = builder_->build(graph_, batch);
-      
+
       graph_->forward();
       float cost = costNode->scalar();
       graph_->backward();
 
       opt_->update(graph_);
-      
+
       if(mvAvg_) {
         if(!mvAvgGraph_) {
           mvAvgGraph_ = New<ExpressionGraph>();
           mvAvgGraph_->setDevice(graph_->getDevice());
           mvAvgGraph_->reuseWorkspace(graph_);
-          
+
           builder_->build(mvAvgGraph_, batch);
           mvAvgGraph_->forward();
-          
+
           mvAvgGraph_->params()->vals()->copyFrom(graph_->params()->vals());
         }
         else {
@@ -85,18 +85,19 @@ class Singleton : public GraphGroup {
                               graph_->params()->vals());
         }
       }
-      
+
       if(reporter_) {
         reporter_->update(cost, batch);
-        
+
         if(reporter_->saving())
           this->save();
-         
-        if(reporter_->validating())
+
+        if(reporter_->validating()) {
           if(mvAvg_)
             reporter_->validate(mvAvgGraph_);
           else
             reporter_->validate(graph_);
+        }
       }
     }
 
@@ -110,13 +111,13 @@ class Singleton : public GraphGroup {
        mvDecay_{(float)options_->get<double>("moving-decay")} {
 
       size_t device = options_->get<std::vector<size_t>>("devices")[0];
-       
+
       graph_ = New<ExpressionGraph>();
       graph_->setDevice(device);
       graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       opt_ = Optimizer(options_);
-      
-      builder_ = New<Builder>(options_, args...); 
+
+      builder_ = New<Builder>(options_, args...);
     }
 
     void update(Ptr<data::CorpusBatch> batch) {
@@ -132,19 +133,19 @@ class Singleton : public GraphGroup {
         }
       }
     }
-    
+
     void save(bool final=false) {
       auto saveGraph = graph_;
       if(mvAvg_)
         saveGraph = mvAvgGraph_;
-        
+
       save(saveGraph, final);
     }
-    
+
     void save(Ptr<ExpressionGraph> graph, bool final=false) {
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model");
-          
+
         builder_->save(graph_, name, true);
         reporter_->save(name);
       }
@@ -162,7 +163,7 @@ class Singleton : public GraphGroup {
         reporter_->save(name);
       }
     }
-    
+
     Ptr<data::BatchStats> collectStats() {
       return builder_->collectStats(graph_);
     }
@@ -173,18 +174,18 @@ template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
   private:
     bool first_{true};
-    
+
     std::vector<Ptr<Builder>> builders_;
 
     std::vector<size_t> devices_;
 
     std::vector<Ptr<ExpressionGraph>> graphs_;
-    
+
     std::mutex sync_;
     std::vector<std::mutex> shardSync_;
-    
+
     boost::shared_mutex reporterMutex_;
-    
+
     std::vector<SparseTensor> localSparseGrads_;
     std::vector<SparseTensor> sparseGrads_;
     std::vector<SparseTensor> tmpSparseDelta;
@@ -193,13 +194,13 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<int> globalVersionNumber; //version number per-shard
 
     std::vector<std::vector<int>> localVersionNumbers; //each worker has the version number obtained from each shard
-    
+
     std::vector<std::vector<GradientDrop>> fetchDropper;
     std::vector<Tensor> tmpTensor, tmpDelta;
 
     std::vector<std::vector<Tensor>> params_;
     std::vector<Ptr<TensorAllocator>> paramsAlloc_;
-  
+
     std::vector<Tensor> grads_;
     std::vector<Ptr<TensorAllocator>> gradsAlloc_;
 
@@ -207,7 +208,7 @@ class AsyncGraphGroup : public GraphGroup {
 
     int shardSize_;
     int tau_{1};
-  
+
     std::vector<Tensor> paramsAvg_;
     std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
     bool movingAvg_{false};
@@ -272,14 +273,14 @@ class AsyncGraphGroup : public GraphGroup {
 
           if(movingAvg_)
             updateMovingAverage(paramsAvg_[idx], params_[latestVersion][idx]);
-          
+
           cudaStreamSynchronize(0);
         }, idx, pos));
 
         pos += shardSize_;
       }
       for(auto&& t : threads)
-        t.join();    
+        t.join();
     }
 
 
@@ -312,20 +313,20 @@ class AsyncGraphGroup : public GraphGroup {
           Element(_1 = _2 - _3, tmpTensor[idx], params_[latestVersion][idx] , params_[currVersion][idx]);
           cudaStreamSynchronize(0);
 
-          //get sparse delta  
+          //get sparse delta
           fetchDropper[worker_id][idx]->dropGraph(tmpTensor[idx] , tmpSparseDelta[idx] , drop_rate_ );
           cudaStreamSynchronize(0);
 
           //move sparse delta
           localSparseDelta[worker_id][idx]->copyFrom( tmpSparseDelta[idx] );
           cudaStreamSynchronize(0);
-          
+
           //reobtain dense delta
           localSparseDelta[worker_id][idx]->toDense( tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()) , 0 );
           cudaStreamSynchronize(0);
 
           //apply
-          Element(_1 += _2 , oldParams->subtensor(pos , grads_[idx]->size()) , 
+          Element(_1 += _2 , oldParams->subtensor(pos , grads_[idx]->size()) ,
                              tmpDelta[worker_id]->subtensor(pos , grads_[idx]->size()));
           cudaStreamSynchronize(0);
           localVersionNumbers[worker_id][idx] =  globalVersionNumber[idx];
@@ -353,7 +354,7 @@ class AsyncGraphGroup : public GraphGroup {
             //individual mutex per-shard
             std::lock_guard<std::mutex> guard( shardSync_[idx] );
 
-            
+
 
             // split to shard
             SparseTensor subGrad = newGrads->subtensor(pos , grads_[idx]->size() ,idx);
@@ -361,12 +362,12 @@ class AsyncGraphGroup : public GraphGroup {
 
             // sent
             sparseGrads_[idx]->copyFrom(subGrad);
-            cudaStreamSynchronize(0);      
+            cudaStreamSynchronize(0);
 
             //convert back to dense, with index offset of -pos
             sparseGrads_[idx]->toDense(grads_[idx], -pos);
             cudaStreamSynchronize(0);
-            
+
             // apply and increment your version number
             int pastVersion = globalVersionNumber[idx] % history_size_;
             int latestVersion =  ++globalVersionNumber[idx] % history_size_;
@@ -391,8 +392,8 @@ class AsyncGraphGroup : public GraphGroup {
         Element(_1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2),
                 paramsAvg, params);
     }
-    
-    void execute(Ptr<data::CorpusBatch> batch) {      
+
+    void execute(Ptr<data::CorpusBatch> batch) {
       if(first_) {
         // initialize the parameters
         for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -409,7 +410,7 @@ class AsyncGraphGroup : public GraphGroup {
 
           localVersionNumbers.push_back(localVersion);
         }
-        
+
         if(params_[0].size() == 0) {
           int totalSize = graphs_[0]->params()->vals()->size();
           shardSize_ = ceil(totalSize / devices_.size());
@@ -419,10 +420,10 @@ class AsyncGraphGroup : public GraphGroup {
           for (auto device : devices_){
             int __size__ = min(shardSize_, totalSize);
             totalSize -= __size__;
-           
+
 
             for (int h_id = 0; h_id < history_size_; h_id++){
-              Tensor param; 
+              Tensor param;
               Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
               allocator->reserveExact(__size__);
               allocator->allocate(param, {1, __size__});
@@ -454,25 +455,25 @@ class AsyncGraphGroup : public GraphGroup {
         if(movingAvg_) {
           if(paramsAvg_.size() == 0) {
             int totalSize = graphs_[0]->params()->vals()->size();
-            
+
             int i = 0;
             for(auto device : devices_){
               int __size__ = min(shardSize_, totalSize);
               totalSize -= __size__;
               Tensor paramAvg;
               Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
-  
+
               allocator->reserveExact(__size__);
               allocator->allocate(paramAvg, {1, __size__});
-              
+
               paramAvg->copyFrom(params_[0][i++]);
-              
+
               paramsAllocAvg_.push_back(allocator);
               paramsAvg_.push_back(paramAvg);
             }
           }
         }
-        
+
         if(drop_rate_ && first_) {
           int totalSize = graphs_[0]->params()->vals()->size();
           int sparseCap = totalSize / 10;
@@ -499,10 +500,10 @@ class AsyncGraphGroup : public GraphGroup {
 
         //gradient drop purpose
         thread_local GradientDrop dropper;
-        
+
 
         thread_local size_t my_id = 0;
-        
+
         if(!graph) {
           std::lock_guard<std::mutex> lock(sync_);
           my_id = i;
@@ -513,7 +514,7 @@ class AsyncGraphGroup : public GraphGroup {
             tmpDelta.push_back( newTensor( graph->params()->vals()->size() , graph->params()->vals()->getDevice() ) );
         }
 
-        
+
         if(!dropper) {
           std::lock_guard<std::mutex> lock(sync_);
           dropper = GradientDrop(new GradientDropBase());
@@ -524,18 +525,18 @@ class AsyncGraphGroup : public GraphGroup {
         }
 
         auto costNode = builder->build(graph, batch);
-        
+
         if (drop_rate_ && t > 0 )
           sparseFetchParams(graph->params()->vals(), my_id );
         else
           fetchParams(graph->params()->vals(), params_[globalVersionNumber[my_id] % history_size_]);
-        
+
         graph->forward();
         float cost = costNode->scalar();
         graph->backward();
 
         t++;
-        
+
         cudaStreamSynchronize(0);
         if (drop_rate_){
           dropper->dropGraph(graph->params()->grads() , localSparseGrads_[my_id] , drop_rate_ );
@@ -550,14 +551,14 @@ class AsyncGraphGroup : public GraphGroup {
             boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
             reporter_->update(cost, batch);
           }
-          
+
           if(reporter_->saving()) {
             boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
             if(movingAvg_)
               fetchParams(graph->params()->vals(), paramsAvg_);
             this->save(graph);
           }
-           
+
           if(reporter_->validating()) {
             boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
             if(movingAvg_)
@@ -613,13 +614,13 @@ class AsyncGraphGroup : public GraphGroup {
         }
       }
     }
-    
-    void save(bool final=false) {      
+
+    void save(bool final=false) {
       save(graphs_[0], final);
     }
-    
+
     void save(Ptr<ExpressionGraph> graph, bool final=false) {
-      
+
       int idx = 0;
       for(int i = 0; i < graphs_.size(); ++i) {
         if(graph == graphs_[i]) {
@@ -627,10 +628,10 @@ class AsyncGraphGroup : public GraphGroup {
           break;
         }
       }
-      
+
       if(options_->get<bool>("overwrite")) {
         std::string name = options_->get<std::string>("model");
-          
+
         builders_[idx]->save(graphs_[idx], name, true);
         reporter_->save(name);
       }
@@ -648,7 +649,7 @@ class AsyncGraphGroup : public GraphGroup {
         reporter_->save(name);
       }
     }
-    
+
     Ptr<data::BatchStats> collectStats() {
       return builders_[0]->collectStats(graphs_[0]);
     }
