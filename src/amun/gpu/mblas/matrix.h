@@ -223,7 +223,7 @@ public:
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
-    calcStride();
+    updateStrides();
 
     data_ = nullptr;
     dataConst_ = matrix.data();
@@ -235,7 +235,7 @@ public:
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
-    calcStride();
+    updateStrides();
 
     data_ = matrix.data();
     dataConst_ = data_;
@@ -247,7 +247,7 @@ public:
     dim_[1] = dim[1];
     dim_[2] = dim[2];
     dim_[3] = dim[3];
-    calcStride();
+    updateStrides();
   }
 
   __device__ __host__
@@ -257,24 +257,23 @@ public:
   __device__ __host__
   size_t size() const
   {
-    return stride_[SHAPE_SIZE - 1];
+    return size_;
   }
 
   __device__ __host__
-  size_t size(size_t i) const
+  size_t stride(size_t i) const
   {
     return stride_[i];
   }
 
-  void calcStride()
+  void updateStrides()
   {
-    //assert(maxDim >= 1);
+    stride_[0] = dim_[1];
+    stride_[1] = 1;
+    stride_[2] = dim_[0] * dim_[1];
+    stride_[3] = dim_[0] * dim_[1] * dim_[2];
 
-    size_t ret = 1;
-    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
-      ret *= dim_[i];
-      stride_[i] = ret;
-    }
+    size_ = stride_[3] * dim_[3];
   }
 
   __device__
@@ -322,17 +321,21 @@ public:
   }
 
   __device__ __host__
-  void id2MatrixInd(size_t id, size_t out[SHAPE_SIZE]) const
+  void id2Indices(size_t id, size_t out[SHAPE_SIZE]) const
   {
     assert(id < size());
 
-    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
-      size_t thisSize = size(i);
-      size_t ind = (id / thisSize) % dim_[i];
-      assert(ind < dim_[i]);
+    out[3] = id / stride(3);
+    id = id % stride(3);
 
-      out[i] = ind;
-    }
+    out[2] = id / stride(2);
+    id = id % stride(2);
+
+    out[0] = id / stride(0);
+    id = id % stride(0);
+
+    out[1] = id / stride(1);
+    id = id % stride(1);
   }
 
   __device__ __host__
@@ -340,7 +343,7 @@ public:
   {
     size_t ind = 0;
     for (size_t i = 0; i < SHAPE_SIZE; ++i) {
-      ind += indices[i] * size(i);
+      ind += indices[i] * stride(i);
     }
     assert(ind < size());
     return ind;
@@ -354,10 +357,11 @@ public:
     for (size_t i = 0; i < SHAPE_SIZE; ++i) {
       strm << dim_[i] << " ";
     }
+    strm << "=" << size_;
 
-    strm << "size=";
+    strm << "stride=";
     for (size_t i = 0; i < SHAPE_SIZE; ++i) {
-      strm << size(i) << " ";
+      strm << stride(i) << " ";
     }
 
     return strm.str();
@@ -366,6 +370,7 @@ public:
 protected:
   size_t dim_[SHAPE_SIZE];
   size_t stride_[SHAPE_SIZE];
+  size_t size_;
 
   T *data_;
   const T *dataConst_;
@@ -379,15 +384,10 @@ inline void testidToMatrixInd()
   size_t dim[4] = {2, 4, 3, 5};
   TMatrixWrapper<float> matrix(dim);
 
-  std::cerr << "size=" << matrix.size() << std::endl;
-  std::cerr << "size0=" << matrix.size(0) << std::endl;
-  std::cerr << "size1=" << matrix.size(1) << std::endl;
-  std::cerr << "size2=" << matrix.size(2) << std::endl;
-  std::cerr << "size3=" << matrix.size(3) << std::endl;
-  std::cerr << "size4=" << matrix.size(4) << std::endl;
+  std::cerr << "matrix=" << matrix.Debug() << std::endl;
 
   for (size_t i = 0; i < matrix.size(); ++i) {
-    matrix.id2MatrixInd(i, dim);
+    matrix.id2Indices(i, dim);
 
     std::cerr << i << "=";
     for (size_t j = 0; j < SHAPE_SIZE; ++j) {

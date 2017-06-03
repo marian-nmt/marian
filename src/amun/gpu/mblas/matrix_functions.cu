@@ -44,9 +44,30 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   int nThreads = 512;
   int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
 
+  TMatrixWrapper<float> outWrap(Out);
+  TMatrixWrapper<float> inWrap(In);
+
   gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      batchNum, sentenceLength, stateLength);
+  testidToMatrixInd();
+
+  HANDLE_ERROR( cudaDeviceSynchronize());
+  cerr << "nBlocks=" << nBlocks << endl;
+  cerr << "batchNum=" << batchNum << endl;
+  cerr << "stateLength=" << stateLength << endl;
+  cerr << "sentenceLength=" << sentenceLength << endl;
+
+  cerr << "Out=" << Out.Debug(1) << endl;
+  cerr << "In=" << In.Debug(1) << endl;
+  cerr << "outWrap=" << outWrap.Debug() << endl;
+    cerr << "inWrap=" << inWrap.Debug() << endl;
+
+  cerr << "mapping=" << mapping.size() << endl;
+  for (size_t i = 0; i < mapping.size(); ++i) {
+    cerr << " " << mapping[i];
+  }
+  cerr << endl;
 }
 
 __global__ void gWeightedMean(float* d_out, const float* weights, const float* d_in, const int* mapping,
