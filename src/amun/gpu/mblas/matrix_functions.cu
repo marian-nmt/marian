@@ -40,7 +40,7 @@ __global__ void gMean2(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
                       const MatrixWrapper<int>  mapping)
 {
-  // in = max length, whatever, 1, batches
+  // in = max sentence length, whatever, 1, batches
   // out = in, dim(0 = 1
   // mapping = max length * batches
 
@@ -55,11 +55,16 @@ __global__ void gMean2(MatrixWrapper<float> out,
     size_t batch = indices[3];
     size_t startMapInd = batch * in.dim(0);
 
+    size_t mapIndices[SHAPE_SIZE];
+    mapIndices[1] = batch;
+    mapIndices[2] = 0;
+    mapIndices[3] = 0;
+
     float sum = 0.0f;
     float counter = 0.0f;
     for (size_t row = 0; row < in.dim(0); ++row) {
-      size_t mapOffset = startMapInd + row;
-      int isWord = mapping[mapOffset];
+      mapIndices[0] = row;
+      int isWord = mapping[mapIndices];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
 
       indices[0] = row;
@@ -98,7 +103,9 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
-  MatrixWrapper<int> mappingWrap(mapping);
+
+  size_t vecDim[SHAPE_SIZE] = {sentenceLength, batchNum, 1, 1};
+  MatrixWrapper<int> mappingWrap(mapping, vecDim);
 
   int threads = MAX_THREADS;
   int blocks =  (outWrap.size() / threads) + 1; //((outWrap.size() % threads == 0) ?  0 : 1);
