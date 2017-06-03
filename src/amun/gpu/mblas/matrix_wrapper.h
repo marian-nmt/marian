@@ -135,17 +135,17 @@ public:
   }
 
   __device__
-  const T &operator[](const size_t *indices) const
+  const T &operator()(size_t a, size_t b, size_t c, size_t d) const
   {
-    size_t id = indices2Id(indices);
+    size_t id = indices2Id(a, b, c, d);
     assert(id < size());
     return data()[id];
   }
 
   __device__
-  T &operator[](const size_t *indices)
+  T &operator()(size_t a, size_t b, size_t c, size_t d)
   {
-    size_t id = indices2Id(indices);
+    size_t id = indices2Id(a, b, c, d);
     assert(id < size());
     return data()[id];
   }
@@ -169,12 +169,14 @@ public:
   }
 
   __device__ __host__
-  size_t indices2Id(const size_t *indices) const
+  size_t indices2Id(size_t a, size_t b, size_t c, size_t d) const
   {
     size_t ind = 0;
-    for (size_t i = 0; i < SHAPE_SIZE; ++i) {
-      ind += indices[i] * stride(i);
-    }
+    ind += a * stride(0);
+    ind += b * stride(1);
+    ind += c * stride(2);
+    ind += d * stride(3);
+
     assert(ind < size());
     return ind;
   }
@@ -224,7 +226,7 @@ inline void testidToMatrixInd()
       std::cerr << " " << dim[j];
     }
 
-    std::cerr << " = " << matrix.indices2Id(dim);
+    std::cerr << " = " << matrix.indices2Id(dim[0], dim[1], dim[2], dim[3]);
     std::cerr << std::endl;
   }
 }

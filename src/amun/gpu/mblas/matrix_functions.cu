@@ -19,6 +19,7 @@ __global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
                       const MatrixWrapper<int>  mapping)
 {
+  assert(out.dim(0) == 1);
   // in = max sentence length, whatever, 1, batches
   // out = in, dim(0 = 1
   // mapping = max length * batches
@@ -29,33 +30,26 @@ __global__ void gMean(MatrixWrapper<float> out,
   if (id < out.size()) {
     size_t indices[SHAPE_SIZE];
     out.id2Indices(id, indices);
+    assert(indices[0] == 0);
     //printf("%d -> %lu %lu %lu %lu \n", id, indices[0], indices[1], indices[2], indices[3]);
 
     size_t batch = indices[3];
     size_t startMapInd = batch * in.dim(0);
 
-    size_t mapIndices[SHAPE_SIZE];
-    mapIndices[1] = batch;
-    mapIndices[2] = 0;
-    mapIndices[3] = 0;
-
     float sum = 0.0f;
     float counter = 0.0f;
     for (size_t row = 0; row < in.dim(0); ++row) {
-      mapIndices[0] = row;
-      int isWord = mapping[mapIndices];
+      int isWord = mapping(row, batch, 0, 0);
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
       if (isWord) {
-        indices[0] = row;
-        sum += in[indices];
+        sum += in(row, indices[1], indices[2], indices[3]);
         ++counter;
       }
     }
 
     sum /= counter;
 
-    indices[0] = 0;
-    out[indices] = sum;
+    out[id] = sum;
   }
 }
 
