@@ -33,7 +33,7 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(size_t other[SHAPE_SIZE])
+  MatrixWrapper(const size_t *other)
   { // test constructor
     dim_[0] = other[0];
     dim_[1] = other[1];
@@ -60,7 +60,7 @@ public:
     dim_[1] = dim[1];
     dim_[2] = dim[2];
     dim_[3] = dim[3];
-    updateStrides();
+    updateStridesRowMajor();
 
     assert(size() == vec.size());
 
@@ -89,6 +89,17 @@ public:
   {
     stride_[0] = dim_[1];
     stride_[1] = 1;
+    stride_[2] = dim_[0] * dim_[1];
+    stride_[3] = dim_[0] * dim_[1] * dim_[2];
+
+    size_ = stride_[3] * dim_[3];
+  }
+
+  __host__
+  void updateStridesRowMajor()
+  {
+    stride_[0] = 1;
+    stride_[1] = dim_[0];
     stride_[2] = dim_[0] * dim_[1];
     stride_[3] = dim_[0] * dim_[1] * dim_[2];
 
@@ -178,7 +189,7 @@ public:
     }
     strm << "=" << size_;
 
-    strm << "stride=";
+    strm << " stride=";
     for (size_t i = 0; i < SHAPE_SIZE; ++i) {
       strm << stride(i) << " ";
     }

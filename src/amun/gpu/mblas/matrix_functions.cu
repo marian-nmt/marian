@@ -66,11 +66,11 @@ __global__ void gMean2(MatrixWrapper<float> out,
       mapIndices[0] = row;
       int isWord = mapping[mapIndices];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
-
-      indices[0] = row;
-      sum += in[indices];
-      counter += isWord;
-
+      if (isWord) {
+        indices[0] = row;
+        sum += in[indices];
+        ++counter;
+      }
     }
 
     sum /= counter;
