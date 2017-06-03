@@ -1,12 +1,12 @@
 
-# AmuNMT
+# Marian
 [![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
 
  <p>
-  <b>AmuNMT</b> is an efficient Neural Machine Translation framework written
+  <b>Marian</b> is an efficient Neural Machine Translation framework written
   in pure C++ with minimal dependencies. It has mainly been developed at the
   Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh.
   </p>
@@ -49,7 +49,7 @@ Translation Ready for Deployment? A Case Study on 30 Translation Directions
 
 ## Website:
 
-More information on https://amunmt.github.io
+More information on https://marian-nmt.github.io
 
 ## Recommended software
 
@@ -97,52 +97,52 @@ The project is a standard CMake out-of-source build:
     make -j
 
 If run for the first time, this will also download Marian -- the training
-framework for AmuNMT.
+framework for Marian.
 
-## Running AmuNMT
+## Running Marian
 
 ### Training
 
-Marian is the training framework of AmuNMT. Assuming `corpus.en` and `corpus.ro` are
+Assuming `corpus.en` and `corpus.ro` are
 corresponding and preprocessed files of a English-Romanian parallel corpus, the
 following command will create a Nematus-compatible neural machine translation model.
 
-    ./amunmt/build/marian \
+    ./marian/build/marian \
       --train-sets corpus.en corpus.ro \
       --vocabs vocab.en vocab.ro \
       --model model.npz
 
-See the [documentation](https://amunmt.github.io/docs/#marian) for a full list
+See the [documentation](https://marian-nmt.github.io/docs/#marian) for a full list
 of command line options or the
-[examples](https://amunmt.github.io/examples/training) for a full example of
+[examples](https://marian-nmt.github.io/examples/training) for a full example of
 how to train a WMT-grade model.
 
 ### Translating
 
 If a trained model is available, run:
 
-    ./amunmt/build/amun -m model.npz -s vocab.en -t vocab.ro <<< "This is a test ."
+    ./marian/build/amun -m model.npz -s vocab.en -t vocab.ro <<< "This is a test ."
 
-See the [documentation](https://amunmt.github.io/docs/#amun) for a full list of
+See the [documentation](https://marian-nmt.github.io/docs/#amun) for a full list of
 command line options or the
-[examples](https://amunmt.github.io/examples/translating) for a full example of
+[examples](https://marian-nmt.github.io/examples/translating) for a full example of
 how to use Edinburgh's WMT models for translation.
 
 ## Example usage
 
-* **[Translating with Amun](https://amunmt.github.io/examples/translating/)**:
+* **[Translating with Amun](https://marian-nmt.github.io/examples/translating/)**:
 The files and scripts described in this section can be found in
 `amunmt/examples/translate`. They demonstrate how to translate with Amun using
 Edinburgh's German-English WMT2016 single model and ensemble.
-* **[Training with Marian](https://amunmt.github.io/examples/training/)**: The files
+* **[Training with Marian](https://marian-nmt.github.io/examples/training/)**: The files
 and scripts described in this section can be found in
-`amunmt/examples/training`. They have been adapted from the
+`marian/examples/training`. They have been adapted from the
 Romanian-English sample from <https://github.com/rsennrich/wmt16-scripts>.
 We also add the back-translated data from <http://data.statmt.org/rsennrich/wmt16_backtranslations/>
 as desribed in [Edinburgh's WMT16 paper](http://www.aclweb.org/anthology/W16-2323).
 The resulting system should be competitive or even slightly better than
 reported in that paper.
-* **[Winning system of the WMT 2016 APE shared task](https://amunmt.github.io/examples/postedit/)**:
+* **[Winning system of the WMT 2016 APE shared task](https://marian-nmt.github.io/examples/postedit/)**:
 This page provides data and model files for our shared task winning APE system
 described in [Log-linear Combinations of Monolingual and Bilingual Neural
 Machine Translation Models for Automatic
@@ -150,7 +150,7 @@ Post-Editing](http://www.aclweb.org/anthology/W16-2378).
 
 ## Acknowledgements
 
-The development of AmuNMT received funding from the European Union's Horizon 2020
+The development of Marian received funding from the European Union's Horizon 2020
 Research and Innovation Programme under grant agreements 688139
 (<a href="http://www.summa-project.eu">SUMMA</a>; 2016-2019) and 645487
 (<a href="http://www.modernmt.eu">Modern MT</a>; 2015-2017), the
