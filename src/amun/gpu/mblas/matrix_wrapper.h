@@ -33,7 +33,7 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(const size_t *other)
+  MatrixWrapper(size_t other[SHAPE_SIZE])
   { // test constructor
     dim_[0] = other[0];
     dim_[1] = other[1];

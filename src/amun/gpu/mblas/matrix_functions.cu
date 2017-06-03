@@ -15,28 +15,7 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
   return Out;
 }
 
-__global__ void gMean(float* d_out, const float* d_in, const int* mapping,
-                      int batchNum, int senLen, int stateLength) {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < stateLength) {
-    float sum = 0.0f;
-    int counter = 0;
-
-    for (int i = 0; i < batchNum * senLen; ++i) {
-      sum += mapping[i] * d_in[i * stateLength + id];
-      counter += mapping[i];
-
-      if ((i + 1) % senLen == 0) {
-        sum /= counter;
-        d_out[(i / senLen) * stateLength + id] = sum;
-        sum = 0.0f;
-        counter = 0;
-      }
-    }
-  }
-}
-
-__global__ void gMean2(MatrixWrapper<float> out,
+__global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
                       const MatrixWrapper<int>  mapping)
 {
@@ -81,25 +60,9 @@ __global__ void gMean2(MatrixWrapper<float> out,
 }
 
 void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
-  int batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  int stateLength = Out.dim(1);
-  int sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
-
-  int nThreads = 512;
-  int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
-
-  gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
-     batchNum, sentenceLength, stateLength);
-
-  HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
-  //testidToMatrixInd();
-  cerr << "nBlocks=" << nBlocks << endl;
-  cerr << "batchNum=" << batchNum << endl;
-  cerr << "stateLength=" << stateLength << endl;
-  cerr << "sentenceLength=" << sentenceLength << endl;
-  cerr << "Out=" << Out.Debug(1) << endl;
-  cerr << "In=" << In.Debug(1) << endl;
+  size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
+  size_t stateLength = Out.dim(1);
+  size_t sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
@@ -107,25 +70,12 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   size_t vecDim[SHAPE_SIZE] = {sentenceLength, batchNum, 1, 1};
   MatrixWrapper<int> mappingWrap(mapping, vecDim);
 
-  int threads = MAX_THREADS;
-  int blocks =  (outWrap.size() / threads) + 1; //((outWrap.size() % threads == 0) ?  0 : 1);
-  //blocks = 4;
+  size_t threads = MAX_THREADS;
+  size_t blocks =  (outWrap.size() / threads) + ((outWrap.size() % threads == 0) ?  0 : 1);
 
-  gMean2<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+  gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, mappingWrap);
 
-  HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
-  cerr << "Out2=" << Out.Debug(1) << endl;
-  cerr << "In2=" << In.Debug(1) << endl;
-  cerr << "outWrap=" << outWrap.Debug() << endl;
-  cerr << "inWrap=" << inWrap.Debug() << endl;
-  cerr << "mappingWrap=" << mappingWrap.Debug() << endl;
-
-  cerr << "mapping=" << mapping.size() << endl;
-  for (size_t i = 0; i < mapping.size(); ++i) {
-    cerr << " " << mapping[i];
-  }
-  cerr << endl;
 }
 
 __global__ void gWeightedMean(float* d_out, const float* weights, const float* d_in, const int* mapping,
