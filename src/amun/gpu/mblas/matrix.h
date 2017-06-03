@@ -241,12 +241,12 @@ public:
     dataConst_ = data_;
   }
 
-  TMatrixWrapper(const size_t *dim)
+  TMatrixWrapper(size_t other[SHAPE_SIZE])
   { // test constructor
-    dim_[0] = dim[0];
-    dim_[1] = dim[1];
-    dim_[2] = dim[2];
-    dim_[3] = dim[3];
+    dim_[0] = other[0];
+    dim_[1] = other[1];
+    dim_[2] = other[2];
+    dim_[3] = other[3];
     updateStrides();
   }
 
@@ -266,6 +266,7 @@ public:
     return stride_[i];
   }
 
+  __host__
   void updateStrides()
   {
     stride_[0] = dim_[1];
@@ -349,7 +350,7 @@ public:
     return ind;
   }
 
-  virtual std::string Debug() const
+  std::string Debug() const
   {
     std::stringstream strm;
 
