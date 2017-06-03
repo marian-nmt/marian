@@ -337,8 +337,8 @@ template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out, const float* in,
                          size_t rows, size_t cols,
-                         TMatrixWrapper<float> outWrap,
-                         const TMatrixWrapper<float> inWrap)
+                         MatrixWrapper<float> outWrap,
+                         const MatrixWrapper<float> inWrap)
 {
   size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
@@ -359,8 +359,8 @@ Matrix& Element(Functor functor,
   int blocks  = Out.size() / threads + 1;
   cudaStream_t& stream = CudaStreamHandler::GetStream();
 
-  TMatrixWrapper<float> outWrap(Out);
-  const TMatrixWrapper<float> inWrap(In);
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> inWrap(In);
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, d_out, d_in, Out.dim(0), Out.dim(1),
@@ -373,9 +373,9 @@ template <class Functor>
 __global__ void gElement(Functor functor,
                          float* out, const float* in1, const float* in2,
                          size_t rows, size_t cols,
-                         TMatrixWrapper<float> outWrap,
-                         const TMatrixWrapper<float> in1Wrap,
-                         const TMatrixWrapper<float> in2Wrap)
+                         MatrixWrapper<float> outWrap,
+                         const MatrixWrapper<float> in1Wrap,
+                         const MatrixWrapper<float> in2Wrap)
 {
   //printf("gridDim.x=%i blockDim.x=%i blockIdx=%i threadIdx.x=%i:\n ", gridDim.x, blockDim.x, blockIdx.x, threadIdx.x);
 
@@ -404,9 +404,9 @@ Matrix& Element(Functor functor,
   //std::cerr << "Element3=" << In1.Debug(0) << std::endl;
   //std::cerr << "Element3=" << In2.Debug(0) << std::endl;
   //std::cerr << std::endl;
-  TMatrixWrapper<float> outWrap(Out);
-  const TMatrixWrapper<float> in1Wrap(In1);
-  const TMatrixWrapper<float> in2Wrap(In2);
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> in1Wrap(In1);
+  const MatrixWrapper<float> in2Wrap(In2);
   //std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
 
   gElement<<<blocks, threads, 0, stream>>>

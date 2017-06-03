@@ -6,10 +6,10 @@ namespace GPU {
 namespace mblas {
 
 template <typename T>
-class TMatrixWrapper
+class MatrixWrapper
 {
 public:
-  TMatrixWrapper(const TMatrix<T> &matrix)
+  MatrixWrapper(const TMatrix<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
@@ -21,7 +21,7 @@ public:
     dataConst_ = matrix.data();
   }
 
-  TMatrixWrapper(TMatrix<T> &matrix)
+  MatrixWrapper(TMatrix<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
@@ -33,13 +33,25 @@ public:
     dataConst_ = data_;
   }
 
-  TMatrixWrapper(size_t other[SHAPE_SIZE])
+  MatrixWrapper(size_t other[SHAPE_SIZE])
   { // test constructor
     dim_[0] = other[0];
     dim_[1] = other[1];
     dim_[2] = other[2];
     dim_[3] = other[3];
     updateStrides();
+  }
+
+  MatrixWrapper(const DeviceVector<T> &vec)
+  {
+    dim_[0] = vec.size();
+    dim_[1] = 1;
+    dim_[2] = 1;
+    dim_[3] = 1;
+    updateStrides();
+
+    data_ = nullptr;
+    dataConst_ = thrust::raw_pointer_cast(vec.data());
   }
 
   __device__ __host__
@@ -175,7 +187,7 @@ protected:
 inline void testidToMatrixInd()
 {
   size_t dim[4] = {2, 4, 3, 5};
-  TMatrixWrapper<float> matrix(dim);
+  MatrixWrapper<float> matrix(dim);
 
   std::cerr << "matrix=" << matrix.Debug() << std::endl;
 
