@@ -36,6 +36,42 @@ __global__ void gMean(float* d_out, const float* d_in, const int* mapping,
   }
 }
 
+__global__ void gMean2(TMatrixWrapper<float> out,
+                      const TMatrixWrapper<float> in,
+                      const TMatrixWrapper<float> otherDim,
+                      const int* mapping)
+{
+  // dim = max length, whatever, 1, batches
+  // mapping = max length * batches
+
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < otherDim.size()) {
+    size_t indices[SHAPE_SIZE];
+    otherDim.id2Indices(id, indices);
+    printf("otherDim = %d %d %d %d, %d -> %d %d %d %d \n", otherDim.dim(0), otherDim.dim(1), otherDim.dim(2), otherDim.dim(3),
+                                                           id, indices[0], indices[1], indices[2], indices[3]);
+
+    size_t batch = otherDim.dim(3);
+    size_t startMapInd = batch * in.dim(0);
+
+    float sum = 0;
+    float counter = 0;
+    for (size_t row = 0; row < in.dim(0); ++row) {
+      int isWord = mapping[startMapInd + row];
+      if (isWord) {
+        indices[0] = row;
+        sum += in[indices];
+        counter += 1;
+      }
+    }
+
+    sum /= counter;
+
+    indices[0] = 0;
+    out[indices] = sum;
+  }
+}
+
 void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   int batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
   int stateLength = Out.dim(1);
@@ -44,24 +80,39 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   int nThreads = 512;
   int nBlocks =  (stateLength / 512) + ((stateLength % 512 == 0) ?  0 : 1);
 
-  TMatrixWrapper<float> outWrap(Out);
-  TMatrixWrapper<float> inWrap(In);
 
   gMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
      batchNum, sentenceLength, stateLength);
-  testidToMatrixInd();
 
-  HANDLE_ERROR( cudaDeviceSynchronize());
+  HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
+  //testidToMatrixInd();
   cerr << "nBlocks=" << nBlocks << endl;
   cerr << "batchNum=" << batchNum << endl;
   cerr << "stateLength=" << stateLength << endl;
   cerr << "sentenceLength=" << sentenceLength << endl;
-
   cerr << "Out=" << Out.Debug(1) << endl;
   cerr << "In=" << In.Debug(1) << endl;
+
+  TMatrixWrapper<float> outWrap(Out);
+  TMatrixWrapper<float> inWrap(In);
+
+  size_t dim[SHAPE_SIZE] = {1, outWrap.dim(1), outWrap.dim(2), outWrap.dim(3)};
+  TMatrixWrapper<float> otherDim(dim);
+
+  int threads = MAX_THREADS;
+  int blocks =  (otherDim.size() / threads) + ((otherDim.size() % threads == 0) ?  0 : 1);
+  blocks = 4;
+
+  gMean2<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (outWrap, inWrap, otherDim, thrust::raw_pointer_cast(mapping.data()));
+
+  HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
+  cerr << "Out2=" << Out.Debug(1) << endl;
+  cerr << "In2=" << In.Debug(1) << endl;
   cerr << "outWrap=" << outWrap.Debug() << endl;
-    cerr << "inWrap=" << inWrap.Debug() << endl;
+  cerr << "inWrap=" << inWrap.Debug() << endl;
+  cerr << "otherDim=" << otherDim.Debug() << endl;
 
   cerr << "mapping=" << mapping.size() << endl;
   for (size_t i = 0; i < mapping.size(); ++i) {
