@@ -11,6 +11,7 @@
 
 #include "gpu/mblas/thrust_functions.h"
 #include "gpu/mblas/matrix.h"
+#include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
 
 namespace amunmt {
