@@ -6,7 +6,7 @@
 [![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
 
  <p>
-  <b>Marian</b> is an efficient Neural Machine Translation framework written
+  <b>Marian</b> (formerly known as AmuNMT) is an efficient Neural Machine Translation framework written
   in pure C++ with minimal dependencies. It has mainly been developed at the
   Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh.
   </p>
