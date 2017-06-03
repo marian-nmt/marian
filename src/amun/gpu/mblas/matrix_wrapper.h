@@ -33,12 +33,12 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(const size_t *other)
+  MatrixWrapper(size_t a, size_t b, size_t c, size_t d)
   { // test constructor
-    dim_[0] = other[0];
-    dim_[1] = other[1];
-    dim_[2] = other[2];
-    dim_[3] = other[3];
+    dim_[0] = a;
+    dim_[1] = b;
+    dim_[2] = c;
+    dim_[3] = d;
     updateStrides();
   }
 
@@ -54,12 +54,12 @@ public:
     dataConst_ = thrust::raw_pointer_cast(vec.data());
   }
 
-  MatrixWrapper(const DeviceVector<T> &vec, const size_t *dim)
+  MatrixWrapper(const DeviceVector<T> &vec, size_t a, size_t b, size_t c, size_t d)
   {
-    dim_[0] = dim[0];
-    dim_[1] = dim[1];
-    dim_[2] = dim[2];
-    dim_[3] = dim[3];
+    dim_[0] = a;
+    dim_[1] = b;
+    dim_[2] = c;
+    dim_[3] = d;
     updateStridesRowMajor();
 
     assert(size() == vec.size());
@@ -213,12 +213,12 @@ protected:
 
 inline void testidToMatrixInd()
 {
-  size_t dim[4] = {2, 4, 3, 5};
-  MatrixWrapper<float> matrix(dim);
+  MatrixWrapper<float> matrix(2, 4, 3, 5);
 
   std::cerr << "matrix=" << matrix.Debug() << std::endl;
 
   for (size_t i = 0; i < matrix.size(); ++i) {
+    size_t dim[SHAPE_SIZE];
     matrix.id2Indices(i, dim);
 
     std::cerr << i << "=";
