@@ -12,7 +12,7 @@ class DecoderStateHardAtt : public DecoderState {
     Expr probs_;
     Ptr<EncoderState> encState_;
     std::vector<size_t> attentionIndices_;
-    
+
   public:
     DecoderStateHardAtt(const std::vector<Expr> states,
                      Expr probs,
@@ -20,16 +20,16 @@ class DecoderStateHardAtt : public DecoderState {
                      const std::vector<size_t>& attentionIndices)
     : states_(states), probs_(probs), encState_(encState),
       attentionIndices_(attentionIndices) {}
-    
-    
+
+
     virtual Ptr<EncoderState> getEncoderState() { return encState_; }
     virtual Expr getProbs() { return probs_; }
     virtual void setProbs(Expr probs) { probs_ = probs; }
-    
+
     virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
       int numSelected = selIdx.size();
       int dimState = states_[0]->shape()[1];
-      
+
       std::vector<Expr> selectedStates;
       for(auto state : states_) {
         selectedStates.push_back(
@@ -37,11 +37,11 @@ class DecoderStateHardAtt : public DecoderState {
                   {1, dimState, 1, numSelected})
         );
       }
-      
+
       std::vector<size_t> selectedAttentionIndices;
       for(auto i : selIdx)
         selectedAttentionIndices.push_back(attentionIndices_[i]);
-      
+
       return New<DecoderStateHardAtt>(selectedStates, probs_, encState_,
                                       selectedAttentionIndices);
     }
@@ -49,39 +49,29 @@ class DecoderStateHardAtt : public DecoderState {
     virtual void setAttentionIndices(const std::vector<size_t>& attentionIndices) {
       attentionIndices_ = attentionIndices;
     }
-    
+
     virtual std::vector<size_t>& getAttentionIndices() {
       UTIL_THROW_IF2(attentionIndices_.empty(), "Empty attention indices");
       return attentionIndices_;
     }
-    
+
     virtual const std::vector<Expr>& getStates() { return states_; }
-    
-    //virtual const std::vector<float> breakDown(size_t i) {
-    //  auto costs = DecoderState::breakDown(i);
-    //  costs.resize(5, 0);
-    //  
-    //  int vocabSize = getProbs()->shape()[1];
-    //  int e = i % vocabSize;
-    //  int h = i / vocabSize;
-    //  
-    //  int a = attentionIndices_[h];
-    //  
-    //  auto& words = getEncoderState()->getSourceWords();
-    //  
-    //  if(e != 2) {
-    //    costs[1] = 1;
-    //    
-    //    if(words[a] == e)
-    //      costs[2] = 1;
-    //    else
-    //      costs[3] = 1;
-    //      
-    //    costs[4] = std::find(words.begin(), words.end(), e) == words.end();
-    //  }
-    //  
-    //  return costs;
-    //}
+
+    virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
+      auto attentionIdx = getAttentionIndices();
+      int dimVoc = totalCosts->shape()[1];
+      for(int i = 0; i < attentionIdx.size(); i++) {
+        if(batch->front()->indeces()[attentionIdx[i]] != 0) {
+          totalCosts->val()->set(i * dimVoc + EOS_ID,
+                                 std::numeric_limits<float>::lowest());
+        }
+        else {
+          totalCosts->val()->set(i * dimVoc + STP_ID,
+                                 std::numeric_limits<float>::lowest());
+        }
+      }
+
+    }
 };
 
 class DecoderHardAtt : public DecoderBase {
@@ -89,13 +79,13 @@ class DecoderHardAtt : public DecoderBase {
     Ptr<RNN<GRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
     std::unordered_set<Word> specialSymbols_;
-  
+
   public:
 
     template <class ...Args>
     DecoderHardAtt(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {
-    
+
       if(options->has("special-vocab")) {
         auto spec = options->get<std::vector<size_t>>("special-vocab");
         specialSymbols_.insert(spec.begin(), spec.end());
@@ -114,22 +104,22 @@ class DecoderHardAtt : public DecoderBase {
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext);
-      
+
       std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
       return New<DecoderStateHardAtt>(startStates, nullptr, encState,
                                       std::vector<size_t>({0}));
     }
-     
+
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      
+
       int dimTrgEmb = options_->get<int>("dim-emb")
                     + options_->get<int>("dim-pos");
-      
-                    
+
+
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -139,29 +129,29 @@ class DecoderHardAtt : public DecoderBase {
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
-      
+
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
-      
+
       auto context = stateHardAtt->getEncoderState()->getContext();
       int dimContext = context->shape()[1];
       int dimSrcWords = context->shape()[2];
-      
+
       int dimBatch = context->shape()[0];
       int dimTrgWords = trgEmbeddings->shape()[2];
       int dimBeam = trgEmbeddings->shape()[3];
-            
+
       if(dropoutTrg) {
         auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, dimTrgWords});
         trgEmbeddings = dropout(trgEmbeddings, mask=trgWordDrop);
       }
-      
+
       auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});
       auto attendedContext = rows(flatContext, stateHardAtt->getAttentionIndices());
       attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords, dimBeam});
-      
+
       auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis=1);
       int dimInput = rnnInputs->shape()[1];
-    
+
       if(!rnnL1)
         rnnL1 = New<RNN<GRU>>(graph, "decoder",
                               dimInput, dimDecState,
@@ -169,7 +159,7 @@ class DecoderHardAtt : public DecoderBase {
                               normalize=layerNorm);
 
       auto stateL1 = (*rnnL1)(rnnInputs, stateHardAtt->getStates()[0]);
-      
+
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);
 
@@ -179,7 +169,7 @@ class DecoderHardAtt : public DecoderBase {
         for(int i = 1; i < stateHardAtt->getStates().size(); ++i)
           statesIn.push_back(stateHardAtt->getStates()[i]);
 
-        if(!rnnLn) 
+        if(!rnnLn)
           rnnLn = New<MLRNN<GRU>>(graph, "decoder",
                                   decoderLayers - 1,
                                   dimDecState, dimDecState,
@@ -187,7 +177,7 @@ class DecoderHardAtt : public DecoderBase {
                                   dropout_prob=dropoutRnn,
                                   skip=skipDepth,
                                   skip_first=skipDepth);
-        
+
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
@@ -204,14 +194,14 @@ class DecoderHardAtt : public DecoderBase {
                             normalize=layerNorm)
                         (rnnInputs, outputLn);
 
-      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);    
-      
+      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+
       return New<DecoderStateHardAtt>(statesOut, logitsOut,
                                       stateHardAtt->getEncoderState(),
                                       stateHardAtt->getAttentionIndices());
     }
-    
-    
+
+
     virtual std::tuple<Expr, Expr>
     groundTruth(Ptr<DecoderState> state,
                 Ptr<ExpressionGraph> graph,
@@ -220,11 +210,11 @@ class DecoderHardAtt : public DecoderBase {
       using namespace keywords;
 
       auto ret = DecoderBase::groundTruth(state, graph, batch, index);
-      
+
       auto subBatch = (*batch)[index];
       int dimBatch = subBatch->batchSize();
       int dimWords = subBatch->batchWidth();
-      
+
       std::vector<size_t> attentionIndices(dimBatch, 0);
       std::vector<size_t> currentPos(dimBatch, 0);
       std::iota(currentPos.begin(), currentPos.end(), 0);
@@ -237,23 +227,23 @@ class DecoderHardAtt : public DecoderBase {
           attentionIndices.push_back(currentPos[j]);
         }
       }
-      
+
       std::dynamic_pointer_cast<DecoderStateHardAtt>(state)->setAttentionIndices(attentionIndices);
-            
+
       return ret;
     }
-    
+
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
                                   const std::vector<size_t>& embIdx) {
       DecoderBase::selectEmbeddings(graph, state, embIdx);
-      
+
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
-      
+
       int dimSrcWords = state->getEncoderState()->getContext()->shape()[2];
 
       if(embIdx.empty()) {
-        stateHardAtt->setAttentionIndices({0});  
+        stateHardAtt->setAttentionIndices({0});
       }
       else {
         for(size_t i = 0; i < embIdx.size(); ++i)
@@ -264,7 +254,7 @@ class DecoderHardAtt : public DecoderBase {
           }
       }
     }
-    
+
     const std::vector<Expr> getAlignments() {
       return {};
     }
@@ -283,22 +273,22 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
     Ptr<GlobalAttention> attention_;
     Ptr<RNN<CGRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
-    
+
   public:
     template <class ...Args>
     DecoderHardSoftAtt(Ptr<Config> options, Args ...args)
      : DecoderHardAtt(options, args...) {}
-    
+
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      
+
       int dimTrgEmb = options_->get<int>("dim-emb")
                     + options_->get<int>("dim-pos");
-      
-                    
+
+
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -308,37 +298,37 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
-      
+
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
-      
+
       auto context = stateHardAtt->getEncoderState()->getContext();
       int dimContext = context->shape()[1];
       int dimSrcWords = context->shape()[2];
-      
+
       int dimBatch = context->shape()[0];
       int dimTrgWords = trgEmbeddings->shape()[2];
       int dimBeam = trgEmbeddings->shape()[3];
-            
+
       if(dropoutTrg) {
         auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, dimTrgWords});
         trgEmbeddings = dropout(trgEmbeddings, mask=trgWordDrop);
       }
-      
+
 
       auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});
       auto attendedContext = rows(flatContext, stateHardAtt->getAttentionIndices());
       attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords, dimBeam});
-      
+
       auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis=1);
       int dimInput = rnnInputs->shape()[1];
-      
+
       if(!attention_)
         attention_ = New<GlobalAttention>("decoder",
                                           state->getEncoderState(),
                                           dimDecState,
                                           dropout_prob=dropoutRnn,
                                           normalize=layerNorm);
-      
+
       if(!rnnL1)
         rnnL1 = New<RNN<CGRU>>(graph, "decoder",
                                dimInput, dimDecState,
@@ -347,12 +337,12 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
                                normalize=layerNorm);
 
       auto stateL1 = (*rnnL1)(rnnInputs, stateHardAtt->getStates()[0]);
-      
-      bool single = stateHardAtt->doSingleStep();  
+
+      bool single = stateHardAtt->doSingleStep();
       auto alignedContext = single ?
         rnnL1->getCell()->getLastContext() :
         rnnL1->getCell()->getContexts();
-      
+
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);
 
@@ -362,7 +352,7 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
         for(int i = 1; i < stateHardAtt->getStates().size(); ++i)
           statesIn.push_back(stateHardAtt->getStates()[i]);
 
-        if(!rnnLn) 
+        if(!rnnLn)
           rnnLn = New<MLRNN<GRU>>(graph, "decoder",
                                   decoderLayers - 1,
                                   dimDecState, dimDecState,
@@ -370,7 +360,7 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
                                   dropout_prob=dropoutRnn,
                                   skip=skipDepth,
                                   skip_first=skipDepth);
-        
+
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
@@ -387,13 +377,13 @@ class DecoderHardSoftAtt : public DecoderHardAtt {
                             normalize=layerNorm)
                         (rnnInputs, outputLn, alignedContext);
 
-      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);    
-      
+      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+
       return New<DecoderStateHardAtt>(statesOut, logitsOut,
                                       stateHardAtt->getEncoderState(),
                                       stateHardAtt->getAttentionIndices());
     }
-    
+
     const std::vector<Expr> getAlignments() {
       return attention_->getAlignments();
     }
@@ -407,12 +397,12 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
     Ptr<GlobalAttention> attention2_;
     Ptr<RNN<MultiCGRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
-    
+
   public:
     template <class ...Args>
     MultiDecoderHardSoftAtt(Ptr<Config> options, Args ...args)
      : DecoderHardSoftAtt(options, args...) {}
-    
+
      virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
       using namespace keywords;
 
@@ -432,22 +422,22 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
                          options_->get<int>("dim-rnn"),
                          activation=act::tanh,
                          normalize=layerNorm)(meanContext1, meanContext2);
-      
+
       std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
       return New<DecoderStateHardAtt>(startStates, nullptr, encState,
                                       std::vector<size_t>({0}));
     }
-    
+
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state) {
       using namespace keywords;
 
       int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-      
+
       int dimTrgEmb = options_->get<int>("dim-emb")
                     + options_->get<int>("dim-pos");
-      
-                    
+
+
       int dimDecState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
       bool skipDepth = options_->get<bool>("skip");
@@ -458,19 +448,19 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
 
       auto mEncState
         = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
-      
+
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
-      
+
       auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
-      
+
       auto context = mEncState->enc1->getContext();
       int dimContext = context->shape()[1];
       int dimSrcWords = context->shape()[2];
-      
+
       int dimBatch = context->shape()[0];
       int dimTrgWords = trgEmbeddings->shape()[2];
       int dimBeam = trgEmbeddings->shape()[3];
-            
+
       if(dropoutTrg) {
         auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, dimTrgWords});
         trgEmbeddings = dropout(trgEmbeddings, mask=trgWordDrop);
@@ -479,10 +469,10 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
       auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});
       auto attendedContext = rows(flatContext, stateHardAtt->getAttentionIndices());
       attendedContext = reshape(attendedContext, {dimBatch, dimContext, dimTrgWords, dimBeam});
-      
+
       auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis=1);
       int dimInput = rnnInputs->shape()[1];
-      
+
       if(!attention1_)
         attention1_ = New<GlobalAttention>("decoder_att1",
                                            mEncState->enc1,
@@ -493,7 +483,7 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
                                            mEncState->enc2,
                                            dimDecState,
                                            normalize=layerNorm);
-      
+
       if(!rnnL1)
         rnnL1 = New<RNN<MultiCGRU>>(graph, "decoder",
                                     dimInput, dimDecState,
@@ -502,12 +492,12 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
                                     normalize=layerNorm);
 
       auto stateL1 = (*rnnL1)(rnnInputs, stateHardAtt->getStates()[0]);
-      
-      bool single = stateHardAtt->doSingleStep();  
+
+      bool single = stateHardAtt->doSingleStep();
       auto alignedContext = single ?
         rnnL1->getCell()->getLastContext() :
         rnnL1->getCell()->getContexts();
-      
+
       std::vector<Expr> statesOut;
       statesOut.push_back(stateL1);
 
@@ -517,7 +507,7 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
         for(int i = 1; i < stateHardAtt->getStates().size(); ++i)
           statesIn.push_back(stateHardAtt->getStates()[i]);
 
-        if(!rnnLn) 
+        if(!rnnLn)
           rnnLn = New<MLRNN<GRU>>(graph, "decoder",
                                   decoderLayers - 1,
                                   dimDecState, dimDecState,
@@ -525,7 +515,7 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
                                   dropout_prob=dropoutRnn,
                                   skip=skipDepth,
                                   skip_first=skipDepth);
-        
+
         std::vector<Expr> statesLn;
         std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
@@ -542,27 +532,27 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
                             normalize=layerNorm)
                         (rnnInputs, outputLn, alignedContext);
 
-      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);    
-      
+      auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+
       return New<DecoderStateHardAtt>(statesOut, logitsOut,
                                       stateHardAtt->getEncoderState(),
                                       stateHardAtt->getAttentionIndices());
     }
-    
+
     virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state,
                                   const std::vector<size_t>& embIdx) {
       DecoderBase::selectEmbeddings(graph, state, embIdx);
-      
+
       auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
-      
+
        auto mEncState
         = std::static_pointer_cast<EncoderStateMultiS2S>(state->getEncoderState());
-      
+
       int dimSrcWords = mEncState->enc1->getContext()->shape()[2];
 
       if(embIdx.empty()) {
-        stateHardAtt->setAttentionIndices({0});  
+        stateHardAtt->setAttentionIndices({0});
       }
       else {
         for(size_t i = 0; i < embIdx.size(); ++i)
@@ -573,7 +563,7 @@ class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
           }
       }
     }
-    
+
     const std::vector<Expr> getAlignments() {
       return attention1_->getAlignments();
     }

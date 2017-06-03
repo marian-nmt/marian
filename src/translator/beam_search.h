@@ -92,7 +92,8 @@ class BeamSearch {
         Expr prevCosts;
         if(first) {
           // no cost
-          prevCosts = graph->constant({1, 1, 1, 1}, keywords::init=inits::from_value(0));
+          prevCosts = graph->constant({1, 1, 1, 1},
+                                      keywords::init=inits::from_value(0));
         }
         else {
           std::vector<float> beamCosts;
@@ -112,8 +113,6 @@ class BeamSearch {
         for(int i = 0; i < scorers_.size(); ++i) {
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices);
           totalCosts = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
-          //debug(states[i]->getProbs(), "p" + std::to_string(i));
-          //debug(totalCosts, "total");
         }
 
         if(first)
@@ -125,23 +124,8 @@ class BeamSearch {
         // suppress specific symbols if not at right positions
         if(!options_->get<bool>("allow-unk"))
           suppressUnk(totalCosts);
-        for(auto state : states) {
-          auto attState = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
-          if(attState) {
-            auto attentionIdx = attState->getAttentionIndices();
-            int dimVoc = totalCosts->shape()[1];
-            for(int i = 0; i < attentionIdx.size(); i++) {
-              if(batch->front()->indeces()[attentionIdx[i]] != 0) {
-                totalCosts->val()->set(i * dimVoc + EOS_ID,
-                                       std::numeric_limits<float>::lowest());
-              }
-              else {
-                totalCosts->val()->set(i * dimVoc + STP_ID,
-                                       std::numeric_limits<float>::lowest());
-              }
-            }
-          }
-        }
+        for(auto state : states)
+          state->blacklist(totalCosts, batch);
 
         //**********************************************************************
         // perform beam search and pruning

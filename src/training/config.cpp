@@ -141,12 +141,12 @@ void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
   }
 }
 
-void Config::addOptionsCommon(po::options_description& desc) {
+void Config::addOptionsCommon(po::options_description& desc, bool translate=false) {
   po::options_description general("General options", guess_terminal_width());
   general.add_options()
     ("config,c", po::value<std::string>(),
      "Configuration file")
-    ("workspace,w", po::value<size_t>()->default_value(2048),
+    ("workspace,w", po::value<size_t>()->default_value(translate ? 512 : 2048),
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
@@ -357,7 +357,7 @@ void Config::addOptionsTranslate(po::options_description& desc) {
 void Config::addOptions(int argc, char** argv,
                         bool doValidate, bool translate) {
 
-  addOptionsCommon(cmdline_options_);
+  addOptionsCommon(cmdline_options_, translate);
 
   addOptionsModel(cmdline_options_, translate);
 
@@ -543,7 +543,7 @@ void Config::addOptions(int argc, char** argv,
 }
 
 void Config::log() {
-  createLoggers(*this);
+  createLoggers(this);
 
   YAML::Emitter out;
   OutputRec(config_, out);

@@ -16,6 +16,8 @@ class ScorerState {
     virtual float breakDown(size_t i) {
       return getProbs()->val()->get(i);
     }
+
+    virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {};
 };
 
 class Scorer {
@@ -54,6 +56,10 @@ class ScorerWrapperState : public ScorerState {
     virtual Expr getProbs() {
       return state_->getProbs();
     };
+
+    virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
+      state_->blacklist(totalCosts, batch);
+    }
 };
 
 
@@ -200,11 +206,11 @@ Ptr<Scorer> scorerByType(std::string fname, float weight,
   }
   if(type == "amun") {
     return New<ScorerWrapper<Amun>>(fname, weight,
-                                   model, options);
+                                    model, options);
   }
   else if(type == "multi-s2s") {
     return New<ScorerWrapper<MultiS2S>>(fname, weight,
-                                         model, options);
+                                        model, options);
   }
   else if(type == "hard-att") {
     return New<ScorerWrapper<HardAtt>>(fname, weight,
@@ -239,14 +245,14 @@ createScorers(Ptr<Config> options) {
   for(auto model : models) {
     std::string fname = "F" + std::to_string(i);
     auto modelOptions = New<Config>(*options);
-    
+
     try {
       modelOptions->loadModelParameters(model);
     }
     catch(std::runtime_error& e) {
       LOG(info, "No model settings found in model file");
     }
-    
+
     scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
     i++;
   }

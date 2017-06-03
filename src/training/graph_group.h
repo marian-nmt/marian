@@ -100,11 +100,12 @@ class Singleton : public GraphGroup {
         if(reporter_->saving())
           this->save();
 
-        if(reporter_->validating())
+        if(reporter_->validating()) {
           if(mvAvg_)
             reporter_->validate(mvAvgGraph_);
           else
             reporter_->validate(graph_);
+        }
       }
     }
 

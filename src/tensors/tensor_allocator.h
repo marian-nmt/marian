@@ -7,7 +7,7 @@
 #include "tensors/tensor.h"
 
 namespace marian {
-  
+
 class AllocationException : public std::exception {
   public:
     virtual const char* what() const throw() {
@@ -26,7 +26,7 @@ class TensorAllocator {
     typedef std::pair<size_t, float*> Gap;
     std::set<Gap> gaps_;
     Gap lastGap_;
-    
+
     bool throw_{false};
 
     std::deque<Tensor> allocated_;
@@ -78,6 +78,7 @@ class TensorAllocator {
     }
 
   public:
+
     TensorAllocator(size_t device)
      : device_(device) {
       lastGap_ = { device_.capacity(), device_.data() };
@@ -87,7 +88,7 @@ class TensorAllocator {
     ~TensorAllocator() {
       clear();
     }
-    
+
     void throwAtReallocation(bool throwRealloc) {
       throw_ = throwRealloc;
     }
@@ -95,7 +96,7 @@ class TensorAllocator {
     void reserve(size_t elements = 0) {
       float mult = elements / FLOATS + 1;
       LOG(memory, "Extending reserved space to {} MB (device {})",
-	  mult * CHUNK, device_.getDevice());
+        mult * CHUNK, device_.getDevice());
 
       size_t old = device_.capacity();
       float* oldStart = device_.data();
@@ -106,7 +107,7 @@ class TensorAllocator {
     void reserveExact(size_t elements = 0) {
       size_t mbytes = (elements * sizeof(float)) / MBYTE;
       LOG(memory, "Reserving space for {} floats ({} MB, device {})",
-	  elements, mbytes, device_.getDevice());
+        elements, mbytes, device_.getDevice());
 
       size_t old = device_.capacity();
       float* oldStart = device_.data();

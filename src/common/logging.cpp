@@ -21,17 +21,17 @@ std::shared_ptr<spdlog::logger> stderrLogger(const std::string& name,
   return logger;
 }
 
-void createLoggers(const marian::Config& options) {
-      
+void createLoggers(const marian::Config* options) {
+
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
-  if(options.has("log")) {
-    generalLogs.push_back(options.get<std::string>("log"));
-    validLogs.push_back(options.get<std::string>("log"));
+  if(options && options->has("log")) {
+    generalLogs.push_back(options->get<std::string>("log"));
+    validLogs.push_back(options->get<std::string>("log"));
   }
 
-  if(options.has("valid-log")) {
-    validLogs.push_back(options.get<std::string>("valid-log"));
+  if(options && options->has("valid-log")) {
+    validLogs.push_back(options->get<std::string>("valid-log"));
   }
 
   Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs)};

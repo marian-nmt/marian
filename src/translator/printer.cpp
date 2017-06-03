@@ -1,6 +1,6 @@
 #include "printer.h"
 
-namespace amunmt {
+namespace marian {
 
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis) {
   std::vector<SoftAlignment> aligns;
@@ -35,4 +35,3 @@ std::string GetAlignmentString(const std::vector<size_t>& alignment) {
 }
 
 }
-
