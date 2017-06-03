@@ -33,7 +33,7 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(size_t other[SHAPE_SIZE])
+  MatrixWrapper(const size_t *other)
   { // test constructor
     dim_[0] = other[0];
     dim_[1] = other[1];
@@ -135,7 +135,7 @@ public:
   }
 
   __device__
-  const T &operator[](size_t indices[SHAPE_SIZE]) const
+  const T &operator[](const size_t *indices) const
   {
     size_t id = indices2Id(indices);
     assert(id < size());
@@ -143,7 +143,7 @@ public:
   }
 
   __device__
-  T &operator[](size_t indices[SHAPE_SIZE])
+  T &operator[](const size_t *indices)
   {
     size_t id = indices2Id(indices);
     assert(id < size());
@@ -151,7 +151,7 @@ public:
   }
 
   __device__ __host__
-  void id2Indices(size_t id, size_t out[SHAPE_SIZE]) const
+  void id2Indices(size_t id, size_t *out) const
   {
     assert(id < size());
 
@@ -169,7 +169,7 @@ public:
   }
 
   __device__ __host__
-  size_t indices2Id(size_t indices[SHAPE_SIZE]) const
+  size_t indices2Id(const size_t *indices) const
   {
     size_t ind = 0;
     for (size_t i = 0; i < SHAPE_SIZE; ++i) {
