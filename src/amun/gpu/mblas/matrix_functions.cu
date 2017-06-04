@@ -70,15 +70,33 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
 
 }
 
-__global__ void gWeightedMean(MatrixWrapper<float> outWrap,
-                              const MatrixWrapper<float> weightWrap,
-                              const MatrixWrapper<float> inWrap,
+__global__ void gWeightedMeanOld(float* d_out, const float* weights, const float* d_in, const int* mapping,
+                              int numRows, int numCols, int srcLen) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < numRows * numCols) {
+    int rowNo = id / numCols;
+    int batchNo = mapping[rowNo];
+    int statePos = id % numCols;
+
+    float sum = 0.0f;
+    for (int i = 0; i < srcLen; ++i) {
+      sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
+    }
+
+    d_out[id] = sum;
+  }
+}
+
+
+__global__ void gWeightedMean(MatrixWrapper<float> out,
+                              const MatrixWrapper<float> weight,
+                              const MatrixWrapper<float> in,
                               const MatrixWrapper<int> mapping
                               )
 {
-  int batches = weightWrap.dim(0);
-  int numCols = inWrap.dim(1);
-  int srcLen = weightWrap.dim(1);
+  int batches = weight.dim(0);
+  int numCols = in.dim(1);
+  int srcLen = weight.dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < batches * numCols) {
@@ -88,10 +106,10 @@ __global__ void gWeightedMean(MatrixWrapper<float> outWrap,
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weightWrap[rowNo * srcLen + i] * inWrap[batchNo * srcLen * numCols + (i * numCols) + statePos];
+      sum += weight[rowNo * srcLen + i] * in[batchNo * srcLen * numCols + (i * numCols) + statePos];
     }
 
-    outWrap[id] = sum;
+    out[id] = sum;
   }
 }
 
