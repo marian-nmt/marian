@@ -5,6 +5,8 @@
 #include "models/multi_s2s.h"
 #include "models/hardatt.h"
 
+#include "data/corpus.h"
+
 namespace marian {
   
   struct ModelTask {

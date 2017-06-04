@@ -141,6 +141,10 @@ class DecoderS2S : public DecoderBase {
 
   public:
 
+    const std::vector<Expr>& getAlignments() {
+      return attention_->getAlignments();
+    }
+
     template <class ...Args>
     DecoderS2S(Ptr<Config> options, Args ...args)
      : DecoderBase(options, args...) {}
@@ -257,10 +261,6 @@ class DecoderS2S : public DecoderBase {
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
     }
-    
-    const std::vector<Expr> getAlignments() {
-      return attention_->getAlignments();
-    }
 };
 
 
@@ -271,13 +271,6 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
     S2S(Ptr<Config> options, Args ...args)
     : EncoderDecoder(options, args...) {}
 
-    virtual Expr build(Ptr<ExpressionGraph> graph,
-                       Ptr<data::CorpusBatch> batch,
-                       bool clearGraph=true) {
-
-      return EncoderDecoder::build(graph, batch, clearGraph);
-  
-    }
 };
 
 }

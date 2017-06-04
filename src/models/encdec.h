@@ -7,7 +7,6 @@
 #include "graph/expression_graph.h"
 #include "layers/param_initializers.h"
 #include "layers/generic.h"
-#include "layers/guided_alignment.h"
 #include "common/logging.h"
 #include "models/states.h"
 
@@ -132,8 +131,6 @@ class DecoderBase {
     }
 
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
-    
-    virtual const std::vector<Expr> getAlignments() = 0;
 };
 
 class EncoderDecoderBase {
@@ -183,6 +180,7 @@ class EncoderDecoder : public EncoderDecoderBase {
     bool inference_{false};
 
   public:
+    typedef data::Corpus dataset_type;
 
     template <class ...Args>
     EncoderDecoder(Ptr<Config> options, Args ...args)
@@ -274,7 +272,7 @@ class EncoderDecoder : public EncoderDecoderBase {
                                   const std::vector<size_t>& embIdx) {
       return decoder_->selectEmbeddings(graph, state, embIdx);
     }
-    
+
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph=true) {
@@ -293,13 +291,14 @@ class EncoderDecoder : public EncoderDecoderBase {
       auto cost = CrossEntropyCost(prefix_ + "cost")
                     (nextState->getProbs(), trgIdx, mask=trgMask);
 
-      if(options_->has("guided-alignment") && !inference_) {
-        auto att = concatenate(decoder_->getAlignments(), axis=3);
-        return cost + guidedAlignmentCost(graph, batch, options_, att);
-      }
-      else {
-        return cost;
-      }
+      return cost;
+    }
+
+    virtual Expr build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph=true) {
+      auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+      return build(graph, corpusBatch, clearGraph);
     }
 
     Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {
@@ -313,8 +312,7 @@ class EncoderDecoder : public EncoderDecoderBase {
         std::vector<size_t> lengths(numFiles, i);
         bool fits = true;
         do {
-          auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize,
-                                                    options_->has("guided-alignment"));
+          auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize);
           build(graph, batch);
           fits = graph->fits();
           if(fits)
