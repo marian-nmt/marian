@@ -83,24 +83,26 @@ class MultiAttentionCell {
                           args...);
     }
 
-    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
-      return apply2(apply1(input), state, mask);
+    std::vector<Expr> apply(std::vector<Expr> inputs, std::vector<Expr> states,
+                            Expr mask = nullptr) {
+      return applyState(applyInput(inputs), states, mask);
     }
 
-    Expr apply1(Expr input) {
-      return cell1_->apply1(input);
+    std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+      return cell1_->applyInput(inputs);
     }
 
-    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto hidden = cell1_->apply2(xW, state, mask);
+    std::vector<Expr> applyState(std::vector<Expr> xWs, std::vector<Expr> states,
+                                 Expr mask = nullptr) {
+      auto hidden = cell1_->applyState(xWs, states, mask);
 
-      auto alignedSourceContext1 = att1_->apply(hidden);
-      auto alignedSourceContext2 = att2_->apply(hidden);
+      auto alignedSourceContext1 = att1_->apply(hidden.front());
+      auto alignedSourceContext2 = att2_->apply(hidden.front());
 
       auto alignedSourceContext = concatenate({alignedSourceContext1, alignedSourceContext2},
                                               keywords::axis=1);
 
-      return cell2_->apply(alignedSourceContext, hidden, mask);
+      return cell2_->apply({alignedSourceContext}, hidden, mask);
     }
 
     Ptr<Attention1> getAttention1() {
@@ -261,7 +263,7 @@ class MultiDecoderS2S : public DecoderBase {
     const std::vector<Expr> getAlignments() {
       return attention1_->getAlignments();
     }
-    
+
 };
 
 typedef MultiEncoder<EncoderS2S, EncoderS2S> MultiEncoderS2S;

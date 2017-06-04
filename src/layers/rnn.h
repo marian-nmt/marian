@@ -13,45 +13,6 @@
 
 namespace marian {
 
-class Tanh {
-  private:
-    Expr U_, W_, b_;
-
-  public:
-    template <typename ...Args>
-    void initialize(
-        Ptr<ExpressionGraph> graph,
-        const std::string prefix,
-        int dimInput,
-        int dimState,
-        Args ...args) {
-      U_ = graph->param(prefix + "_U", {dimState, dimState},
-                        keywords::init=inits::glorot_uniform);
-      W_ = graph->param(prefix + "_W", {dimInput, dimState},
-                        keywords::init=inits::glorot_uniform);
-      b_ = graph->param(prefix + "_b", {1, dimState},
-                        keywords::init=inits::zeros);
-    }
-
-    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
-      return apply2(apply1(input), state, mask);
-    }
-
-    Expr apply1(Expr input) {
-      return dot(input, W_);
-    }
-
-    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto output = tanh(xW, dot(state, U_), b_);
-      if(mask)
-        return output * mask;
-      else
-        return output;
-    }
-};
-
-/***************************************************************/
-
 template <class Cell>
 class RNN : public Layer {
   public:
@@ -81,25 +42,30 @@ class RNN : public Layer {
 
     std::vector<Expr> apply(const Expr input, const Expr initialState,
                             const Expr mask = nullptr, bool reverse = false) {
-      auto xW = cell_->apply1(input);
+      auto xWs = cell_->applyInput({input});
+
       std::vector<Expr> outputs;
-      auto state = initialState;
+      std::vector<Expr> states = { initialState };
       for(size_t i = 0; i < input->shape()[2]; ++i) {
         int j = i;
         if(reverse)
           j = input->shape()[2] - i - 1;
 
+        std::vector<Expr> steps(xWs.size());
+        std::transform(xWs.begin(), xWs.end(), steps.begin(),
+                       [j](Expr e) { return step(e, j); });
+
         if(mask)
-          state = cell_->apply2(step(xW, j), state, step(mask, j));
+          states = cell_->applyState(steps, states, step(mask, j));
         else
-          state = cell_->apply2(step(xW, j), state);
-        outputs.push_back(state);
+          states = cell_->applyState(steps, states);
+        outputs.push_back(states.front());
       }
       return outputs;
     }
 
     Expr apply(Ptr<Cell> cell, Expr input, Expr state) {
-      return cell_->apply(input, state);
+      return cell_->apply(input, state).front();
     }
 
     template <typename ...Args>
@@ -267,6 +233,54 @@ class BiRNN : public Layer {
 
 /***************************************************************/
 
+class Tanh {
+  private:
+    Expr U_, W_, b_;
+
+  public:
+    template <typename ...Args>
+    Tanh(Ptr<ExpressionGraph> graph,
+         const std::string prefix,
+         int dimInput,
+         int dimState,
+         Args ...args) {
+      U_ = graph->param(prefix + "_U", {dimState, dimState},
+                        keywords::init=inits::glorot_uniform);
+      W_ = graph->param(prefix + "_W", {dimInput, dimState},
+                        keywords::init=inits::glorot_uniform);
+      b_ = graph->param(prefix + "_b", {1, dimState},
+                        keywords::init=inits::zeros);
+    }
+
+    std::vector<Expr> apply(std::vector<Expr> inputs, std::vector<Expr> states, Expr mask = nullptr) {
+      return applyState(applyInput(inputs), states, mask);
+    }
+
+    std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+      Expr input;
+      if(inputs.size() > 1)
+        input = concatenate(inputs, keywords::axis=1);
+      else
+        input = inputs.front();
+      return { dot(input, W_) };
+    }
+
+    std::vector<Expr> applyState(std::vector<Expr> xWs, std::vector<Expr> states, Expr mask = nullptr) {
+      Expr state;
+      if(states.size() > 1)
+        state = concatenate(states, keywords::axis=1);
+      else
+        state = states.front();
+
+      auto xW = xWs.front();
+      auto output = tanh(xW, dot(state, U_), b_);
+      if(mask)
+        return {output * mask};
+      else
+        return {output};
+    }
+};
+
 Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
 class GRU {
@@ -294,30 +308,30 @@ class GRU {
         Args ...args) : prefix_(prefix) {
 
       auto U = graph->param(prefix + "_U", {dimState, 2 * dimState},
-                               keywords::init=inits::glorot_uniform);
+                            keywords::init=inits::glorot_uniform);
       auto W = graph->param(prefix + "_W", {dimInput, 2 * dimState},
-                               keywords::init=inits::glorot_uniform);
+                            keywords::init=inits::glorot_uniform);
       auto b = graph->param(prefix + "_b", {1, 2 * dimState},
-                               keywords::init=inits::zeros);
+                            keywords::init=inits::zeros);
       auto Ux = graph->param(prefix + "_Ux", {dimState, dimState},
-                                keywords::init=inits::glorot_uniform);
+                             keywords::init=inits::glorot_uniform);
       auto Wx = graph->param(prefix + "_Wx", {dimInput, dimState},
-                                keywords::init=inits::glorot_uniform);
+                             keywords::init=inits::glorot_uniform);
       auto bx = graph->param(prefix + "_bx", {1, dimState},
-                                keywords::init=inits::zeros);
-      
+                             keywords::init=inits::zeros);
+
       U_ = concatenate({U, Ux}, keywords::axis=1);
       W_ = concatenate({W, Wx}, keywords::axis=1);
       b_ = concatenate({b, bx}, keywords::axis=1);
 
-      // @TODO use this and adjust Amun model type saving and loading      
+      // @TODO use this and adjust Amun model type saving and loading
       //U_ = graph->param(prefix + "_U", {dimState, 3 * dimState},
       //                  keywords::init=inits::glorot_uniform);
       //W_ = graph->param(prefix + "_W", {dimInput, 3 * dimState},
       //                  keywords::init=inits::glorot_uniform);
       //b_ = graph->param(prefix + "_b", {1, 3 * dimState},
       //                  keywords::init=inits::zeros);
-      
+
       final_ = Get(keywords::final, false, args...);
       layerNorm_ = Get(keywords::normalize, false, args...);
 
@@ -335,12 +349,18 @@ class GRU {
       }
     }
 
-    Expr apply(Expr input, Expr state,
-               Expr mask = nullptr) {
-      return apply2(apply1(input), state, mask);
+    std::vector<Expr> apply(std::vector<Expr> inputs, std::vector<Expr> states,
+                            Expr mask = nullptr) {
+      return applyState(applyInput(inputs), states, mask);
     }
 
-    Expr apply1(Expr input) {
+    std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+      Expr input;
+      if(inputs.size() > 1)
+        input = concatenate(inputs, keywords::axis=1);
+      else
+        input = inputs.front();
+
       if(dropMaskX_)
         input = dropout(input, keywords::mask=dropMaskX_);
 
@@ -348,11 +368,17 @@ class GRU {
 
       if(layerNorm_)
         xW = layer_norm(xW, gamma1_);
-      return xW;
+      return { xW };
     }
 
-    Expr apply2(Expr xW, Expr state,
-                Expr mask = nullptr) {
+    std::vector<Expr> applyState(std::vector<Expr> xWs, std::vector<Expr> states,
+                                 Expr mask = nullptr) {
+
+      Expr state;
+      if(states.size() > 1)
+        state = concatenate(states, keywords::axis=1);
+      else
+        state = states.front();
 
       auto stateDropped = state;
       if(dropMaskS_)
@@ -363,11 +389,13 @@ class GRU {
       if(layerNorm_)
         sU = layer_norm(sU, gamma2_);
 
+      auto xW = xWs.front();
+
       auto output = mask ?
         gruOps({state, xW, sU, b_, mask}, final_) :
         gruOps({state, xW, sU, b_}, final_);
 
-      return output;
+      return {output};
     }
 };
 
@@ -408,18 +436,20 @@ class AttentionCell {
                           args...);
     }
 
-    Expr apply(Expr input, Expr state, Expr mask = nullptr) {
-      return apply2(apply1(input), state, mask);
+    std::vector<Expr> apply(std::vector<Expr> inputs, std::vector<Expr> states,
+                            Expr mask = nullptr) {
+      return applyState(applyInput(inputs), states, mask);
     }
 
-    Expr apply1(Expr input) {
-      return cell1_->apply1(input);
+    std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+      return cell1_->applyInput(inputs);
     }
 
-    Expr apply2(Expr xW, Expr state, Expr mask = nullptr) {
-      auto hidden = cell1_->apply2(xW, state, mask);
-      auto alignedSourceContext = att_->apply(hidden);
-      return cell2_->apply(alignedSourceContext, hidden, mask);
+    std::vector<Expr> applyState(std::vector<Expr> xWs, std::vector<Expr> states,
+                                 Expr mask = nullptr) {
+      auto hidden = cell1_->applyState(xWs, states, mask);
+      auto alignedSourceContext = att_->apply(hidden.front());
+      return cell2_->apply({alignedSourceContext}, hidden, mask);
     }
 
     Ptr<Attention> getAttention() {
