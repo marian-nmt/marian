@@ -5,8 +5,6 @@
 
 namespace marian {
 
-typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
-
 class EncoderStateS2S : public EncoderState {
   private:
     Expr context_;
@@ -264,13 +262,6 @@ class DecoderS2S : public DecoderBase {
 };
 
 
-class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
-  public:
-
-    template <class ...Args>
-    S2S(Ptr<Config> options, Args ...args)
-    : EncoderDecoder(options, args...) {}
-
-};
+typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
 
 }

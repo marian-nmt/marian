@@ -10,6 +10,7 @@
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
 #include "layers/generic.h"
+#include "layers/attention.h"
 
 namespace marian {
 
@@ -90,9 +91,6 @@ class RNN : public Layer {
           return states.back();
         else
           return concatenate(states, keywords::axis=2);
-      }
-      else if(direction_ == dir::bidirect) {
-        UTIL_THROW2("Use BiRNN for bidirectional RNNs");
       }
       else { // assuming dir::forward
         auto states = apply(input, state, mask, false);
@@ -179,63 +177,19 @@ class MLRNN : public Layer {
     }
 };
 
-template <class Cell>
-class BiRNN : public Layer {
-  public:
-    int layers_;
-    int dimState_;
-
-    Ptr<RNN<Cell>> rnn1_;
-    Ptr<RNN<Cell>> rnn2_;
-
-    template <typename ...Args>
-    BiRNN(Ptr<ExpressionGraph> graph,
-          const std::string& name,
-          int layers,
-          int dimInput,
-          int dimState,
-          Args ...args)
-    : Layer(name),
-      dimState_{dimState},
-      rnn1_(New<MLRNN<Cell>>(graph, name, layers, dimInput, dimState,
-                             keywords::direction=dir::forward,
-                             args...)),
-      rnn2_(New<MLRNN<Cell>>(graph, name + "_r", layers, dimInput, dimState,
-                             keywords::direction=dir::backward,
-                             args...)) {}
-
-    template <typename ...Args>
-    std::vector<Expr> operator()(Expr input, Args ...args) {
-      Expr mask = Get(keywords::mask, nullptr, args...);
-      auto statesfw = (*rnn1_)(input);
-      auto statesbw = (*rnn2_)(input, keywords::mask=mask);
-
-      std::vector<Expr> outStates;
-      for(int i = 0; i < layers_; ++i)
-        outStates.push_back(concatenate({statesfw[i], statesbw[i]},
-                                        keywords::axis=1));
-      return outStates;
-    }
-
-    template <typename ...Args>
-    std::vector<Expr> operator()(Expr input, std::vector<Expr> states, Args ...args) {
-      Expr mask = Get(keywords::mask, nullptr, args...);
-      auto statesfw = (*rnn1_)(input, states);
-      auto statesbw = (*rnn2_)(input, states, keywords::mask=mask);
-
-      std::vector<Expr> outStates;
-      for(int i = 0; i < layers_; ++i)
-        outStates.push_back(concatenate({statesfw[i], statesbw[i]},
-                                        keywords::axis=1));
-      return outStates;
-    }
-};
-
 /***************************************************************/
 
 class Tanh {
   private:
     Expr U_, W_, b_;
+    Expr gamma1_;
+    Expr gamma2_;
+
+    bool layerNorm_;
+    float dropout_;
+
+    Expr dropMaskX_;
+    Expr dropMaskS_;
 
   public:
     template <typename ...Args>
@@ -250,6 +204,21 @@ class Tanh {
                         keywords::init=inits::glorot_uniform);
       b_ = graph->param(prefix + "_b", {1, dimState},
                         keywords::init=inits::zeros);
+
+      layerNorm_ = Get(keywords::normalize, false, args...);
+
+      dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
+      if(dropout_> 0.0f) {
+        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+        dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+      }
+
+      if(layerNorm_) {
+        gamma1_ = graph->param(prefix + "_gamma1", {1, 3 * dimState},
+                               keywords::init=inits::from_value(1.f));
+        gamma2_ = graph->param(prefix + "_gamma2", {1, 3 * dimState},
+                               keywords::init=inits::from_value(1.f));
+      }
     }
 
     std::vector<Expr> apply(std::vector<Expr> inputs, std::vector<Expr> states, Expr mask = nullptr) {
@@ -262,18 +231,37 @@ class Tanh {
         input = concatenate(inputs, keywords::axis=1);
       else
         input = inputs.front();
-      return { dot(input, W_) };
+
+      if(dropMaskX_)
+        input = dropout(input, keywords::mask=dropMaskX_);
+
+      auto xW = dot(input, W_);
+
+      if(layerNorm_)
+        xW = layer_norm(xW, gamma1_);
+
+      return { xW };
     }
 
-    std::vector<Expr> applyState(std::vector<Expr> xWs, std::vector<Expr> states, Expr mask = nullptr) {
+    std::vector<Expr> applyState(std::vector<Expr> xWs, std::vector<Expr> states,
+                                 Expr mask = nullptr) {
+
       Expr state;
       if(states.size() > 1)
         state = concatenate(states, keywords::axis=1);
       else
         state = states.front();
 
+      auto stateDropped = state;
+      if(dropMaskS_)
+        stateDropped = dropout(state, keywords::mask=dropMaskS_);
+      auto sU = dot(stateDropped, U_);
+      if(layerNorm_)
+        sU = layer_norm(sU, gamma2_);
+
       auto xW = xWs.front();
-      auto output = tanh(xW, dot(state, U_), b_);
+
+      auto output = tanh(xW, sU, b_);
       if(mask)
         return {output * mask};
       else
@@ -464,5 +452,7 @@ class AttentionCell {
       return att_->getContexts().back();
     }
 };
+
+typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 
 }

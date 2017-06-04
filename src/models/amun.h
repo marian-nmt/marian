@@ -74,7 +74,7 @@ class EncoderAmun : public EncoderBase {
       int dimSrcEmb = options_->get<int>("dim-emb");
       int dimEncState = options_->get<int>("dim-rnn");
       bool layerNorm = options_->get<bool>("layer-normalization");
-      
+
       UTIL_THROW_IF2(options_->get<int>("layers-enc") > 1,
         "--type amun does not currently support multiple encoder layers, use --type s2s");
       UTIL_THROW_IF2(options_->get<bool>("skip"),
@@ -87,7 +87,7 @@ class EncoderAmun : public EncoderBase {
 
       Expr x, xMask;
       std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
-      
+
       if(dropoutSrc) {
         int srcWords = x->shape()[2];
         auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
@@ -153,7 +153,7 @@ class DecoderAmun : public DecoderBase {
         "--type amun does not currently support multiple decoder layers, use --type s2s");
       UTIL_THROW_IF2(options_->get<bool>("tied-embeddings"),
         "--type amun does not currently support tied embeddings, use --type s2s");
-      
+
       float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
       float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
@@ -199,7 +199,7 @@ class DecoderAmun : public DecoderBase {
       return New<DecoderStateAmun>(stateOut, logitsOut,
                                    state->getEncoderState());
     }
-    
+
     const std::vector<Expr> getAlignments() {
       return attention_->getAlignments();
     }
@@ -328,7 +328,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
               bool saveTranslatorConfig) {
 
       save(graph, name);
-      
+
       if(saveTranslatorConfig) {
         YAML::Node amun;
         auto vocabs = options_->get<std::vector<std::string>>("vocabs");
@@ -413,7 +413,7 @@ class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
       float ctt = 0;
       shape[0] = 1;
       cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
-      
+
       options_->saveModelParameters(name);
     }
 };
