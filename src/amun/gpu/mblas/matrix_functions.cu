@@ -240,7 +240,7 @@ Matrix& CopyRow(Matrix& Out,
   return Out;
 }
 
-__global__ void gCopyRows(MatrixWrapper<float> outWrap,
+__global__ void gCopyRowsOld(MatrixWrapper<float> outWrap,
                           const MatrixWrapper<float> inWrap,
                           const MatrixWrapper<size_t> indicesWrap,
                           float* out, const float* in)
@@ -263,6 +263,26 @@ __global__ void gCopyRows(MatrixWrapper<float> outWrap,
           rowOut[i] = rowIn[i];
       }
     }
+  }
+}
+
+__global__ void gCopyRows(MatrixWrapper<float> outWrap,
+                          const MatrixWrapper<float> inWrap,
+                          const MatrixWrapper<size_t> indicesWrap,
+                          float* out, const float* in)
+{
+  size_t numPairs = indicesWrap.size();
+  size_t cols = inWrap.dim(1);
+  size_t indicesInd = blockIdx.x;
+  size_t outRow =indicesWrap[indicesInd];
+
+  float* rowOut = out + dstId * cols;
+  const float* rowIn = in + srcId * cols;
+
+  for(int tid = 0; tid < cols; tid += blockDim.x) {
+    int i = tid + threadIdx.x;
+    if(i < cols)
+      rowOut[i] = rowIn[i];
   }
 }
 
