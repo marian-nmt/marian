@@ -196,11 +196,9 @@ __global__ void gPasteRows(  MatrixWrapper<float> outWrap,
 
     int inRow = id / inCols;
     int inCol = id % inCols;
-    int outID = (outRows + sparse * inRow) * outCols + inCol + colNo;
-    //printf("outRows=%d inRows=% colNo=%d inCol=%d \n", outRows, inRows, colNo, inCol );
 
     //outWrap[outID] = inWrap[id];
-    outWrap[outID] = inWrap(inRow, inCol, 0, 0);
+    outWrap(outRows, inCol + colNo, 0, inRow) = inWrap(inRow, inCol, 0, 0);
   }
 }
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse)
@@ -215,7 +213,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
     (outWrap, inWrap,
         rowNo, colNo, sparse);
 
-  ///*
+  /*
   cerr << "nBlocks=" << nBlocks << endl;
   cerr << "rowNo=" << rowNo << endl;
   cerr << "colNo=" << colNo << endl;
@@ -224,7 +222,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   cerr << "Out=" << outWrap.Debug() << endl;
   cerr << "In=" << inWrap.Debug() << endl;
   cerr << endl;
-  //*/
+  */
 
 }
 
