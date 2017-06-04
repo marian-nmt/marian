@@ -70,8 +70,16 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
 
 }
 
-__global__ void gWeightedMean(float* d_out, const float* weights, const float* d_in, const int* mapping,
-                              int numRows, int numCols, int srcLen) {
+__global__ void gWeightedMean(MatrixWrapper<float> outWrap,
+                              const MatrixWrapper<float> weightWrap,
+                              const MatrixWrapper<float> inWrap,
+                              const MatrixWrapper<int> mapping
+                              )
+{
+  int numRows = weightWrap.dim(0);
+  int numCols = inWrap.dim(1);
+  int srcLen = weightWrap.dim(1);
+
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < numRows * numCols) {
     int rowNo = id / numCols;
@@ -80,28 +88,40 @@ __global__ void gWeightedMean(float* d_out, const float* weights, const float* d
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
+      sum += weightWrap[rowNo * srcLen + i] * inWrap[batchNo * srcLen * numCols + (i * numCols) + statePos];
     }
 
-    d_out[id] = sum;
+    outWrap[id] = sum;
   }
 }
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
   int numRows = Weights.dim(0);
   int numCols = In.dim(1);
-  int weightsCols = Weights.dim(1);
-  //cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
 
   Out.Resize(numRows, numCols);
+
+  MatrixWrapper<float> outWrap(Out);
+  MatrixWrapper<float> weightWrap(Weights);
+  MatrixWrapper<float> inWrap(In);
+  MatrixWrapper<int> mappingWrap(mapping);
 
   int nThreads = 512;
   int nBlocks =  (Out.size() / 512) + ((Out.size() % 512 == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Weights.data(), In.data(), thrust::raw_pointer_cast(mapping.data()),
-     numRows, numCols, weightsCols);
-  HANDLE_ERROR( cudaStreamSynchronize(0) );
+    (outWrap, weightWrap, inWrap, mappingWrap);
+
+  cerr << "nBlocks=" << nBlocks << endl;
+
+  cerr << "Out=" << Out.Debug(0) << endl;
+  cerr << "Weights=" << Weights.Debug(0) << endl;
+  cerr << "In=" << In.Debug(0) << endl;
+  cerr << "mapping=" << mapping.size() << endl;
+  for (size_t i = 0; i < mapping.size(); ++i) {
+    cerr << mapping[i] << " ";
+  }
+  cerr << endl << endl;
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
