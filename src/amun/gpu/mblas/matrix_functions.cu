@@ -249,10 +249,10 @@ __global__ void gCopyRows(MatrixWrapper<float> outWrap,
   size_t cols = inWrap.dim(1);
 
   for (int bid = 0; bid < numPairs; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if (j < numPairs) {
-      size_t dstId = j;
-      size_t srcId = indicesWrap[j];
+    int indicesInd = bid + blockIdx.x;
+    if (indicesInd < numPairs) {
+      size_t dstId = indicesInd;
+      size_t srcId = indicesWrap[indicesInd];
 
       float* rowOut = out + dstId * cols;
       const float* rowIn = in + srcId * cols;
