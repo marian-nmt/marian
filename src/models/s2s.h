@@ -5,8 +5,6 @@
 
 namespace marian {
 
-typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
-
 class EncoderStateS2S : public EncoderState {
   private:
     Expr context_;
@@ -257,7 +255,7 @@ class DecoderS2S : public DecoderBase {
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
     }
-    
+
     const std::vector<Expr> getAlignments() {
       return attention_->getAlignments();
     }
@@ -276,7 +274,7 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
                        bool clearGraph=true) {
 
       return EncoderDecoder::build(graph, batch, clearGraph);
-  
+
     }
 };
 
