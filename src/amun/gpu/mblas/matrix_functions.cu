@@ -94,19 +94,20 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const MatrixWrapper<int> mapping
                               )
 {
-  int batches = weight.dim(0);
+  int numHypos = weight.dim(0);
   int states = in.dim(1);
   int srcLen = weight.dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < batches * states) {
+  if (id < numHypos * states) {
     int mappingInd = id / states;
-    int batchInd = mapping[mappingInd];
+    int hypoInd = mapping[mappingInd];
     int stateInd = id % states;
+    //printf("mappingInd=%d hypoInd=%d stateInd=%d \n", mappingInd, hypoInd, stateInd);
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weight[mappingInd * srcLen + i] * in[batchInd * srcLen * states + (i * states) + stateInd];
+      sum += weight[mappingInd * srcLen + i] * in[hypoInd * srcLen * states + (i * states) + stateInd];
     }
 
     out[id] = sum;
@@ -114,23 +115,22 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 }
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
-  int batches = Weights.dim(0);
+  int numHypos = Weights.dim(0);
   int states = In.dim(1);
 
-  Out.Resize(batches, states);
+  Out.Resize(numHypos, states);
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> weightWrap(Weights);
   MatrixWrapper<float> inWrap(In);
   MatrixWrapper<int> mappingWrap(mapping);
 
-  int nThreads = 512;
-  int nBlocks =  (Out.size() / 512) + ((Out.size() % 512 == 0) ?  0 : 1);
+  int nThreads = MAX_THREADS;
+  int nBlocks =  (Out.size() / MAX_THREADS) + ((Out.size() % MAX_THREADS == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, weightWrap, inWrap, mappingWrap);
 
-  /*
   cerr << "nBlocks=" << nBlocks << endl;
 
   cerr << "Out=" << Out.Debug(0) << endl;
@@ -141,8 +141,6 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
     cerr << mapping[i] << " ";
   }
   cerr << endl << endl;
-  */
-
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
