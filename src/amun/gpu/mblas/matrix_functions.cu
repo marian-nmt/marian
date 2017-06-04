@@ -76,12 +76,12 @@ __global__ void gWeightedMean(MatrixWrapper<float> outWrap,
                               const MatrixWrapper<int> mapping
                               )
 {
-  int numRows = weightWrap.dim(0);
+  int batches = weightWrap.dim(0);
   int numCols = inWrap.dim(1);
   int srcLen = weightWrap.dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < numRows * numCols) {
+  if (id < batches * numCols) {
     int rowNo = id / numCols;
     int batchNo = mapping[rowNo];
     int statePos = id % numCols;
