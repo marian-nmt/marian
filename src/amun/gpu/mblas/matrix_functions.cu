@@ -89,14 +89,14 @@ __global__ void gWeightedMeanOld(float* d_out, const float* weights, const float
 
 
 __global__ void gWeightedMean(MatrixWrapper<float> out,
-                              const MatrixWrapper<float> weight,
+                              const MatrixWrapper<float> weights,
                               const MatrixWrapper<float> in,
                               const MatrixWrapper<int> mapping
                               )
 {
-  int numHypos = weight.dim(0);
+  int numHypos = weights.dim(0);
   int states = in.dim(1);
-  int srcLen = weight.dim(1);
+  int srcLen = weights.dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < numHypos * states) {
@@ -107,7 +107,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weight(hypoInd, i, 0, 0) * in(i, stateInd, 0, batchInd);
+      sum += weights(hypoInd, i, 0, 0) * in(i, stateInd, 0, batchInd);
     }
 
     out[id] = sum;
@@ -121,7 +121,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   Out.Resize(numHypos, states);
 
   MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> weightWrap(Weights);
+  MatrixWrapper<float> weightsWrap(Weights);
   MatrixWrapper<float> inWrap(In);
   MatrixWrapper<int> mappingWrap(mapping);
 
@@ -129,12 +129,12 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   int nBlocks =  (Out.size() / MAX_THREADS) + ((Out.size() % MAX_THREADS == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, weightWrap, inWrap, mappingWrap);
+    (outWrap, weightsWrap, inWrap, mappingWrap);
   /*
   cerr << "nBlocks=" << nBlocks << endl;
 
   cerr << "Out=" << outWrap.Debug() << endl;
-  cerr << "Weights=" << weightWrap.Debug() << endl;
+  cerr << "Weights=" << weightsWrap.Debug() << endl;
   cerr << "In=" << inWrap.Debug() << endl;
   cerr << "mapping=" << mapping.size() << endl;
   for (size_t i = 0; i < mapping.size(); ++i) {
