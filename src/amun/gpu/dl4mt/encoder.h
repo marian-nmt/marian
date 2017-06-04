@@ -80,11 +80,11 @@ class Encoder {
               mblas::MapMatrix(State_, *mapping, n - i - 1);
               //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
-              mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
+              mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength());
             }
             else {
               //std::cerr << "1Context=" << Context.Debug(1) << std::endl;
-              mblas::PasteRows(Context, State_, i, 0, n);
+              mblas::PasteRows(Context, State_, i, 0);
               //std::cerr << "2Context=" << Context.Debug(1) << std::endl;
             }
 

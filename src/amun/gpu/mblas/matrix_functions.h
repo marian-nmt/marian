@@ -109,7 +109,7 @@ Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
                  const size_t r = 0,
                  const size_t c = 0);
-void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0);
 
 Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,

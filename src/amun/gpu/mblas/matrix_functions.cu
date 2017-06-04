@@ -185,7 +185,7 @@ Matrix& Copy(Matrix& Out, const Matrix& In) {
 
 __global__ void gPasteRows(  MatrixWrapper<float> outWrap,
                           const MatrixWrapper<float> inWrap,
-                          int outRows, int colNo, int sparse)
+                          int rowNo, int colNo)
 {
   int inRows = inWrap.dim(0);
   int inCols = inWrap.dim(1);
@@ -198,10 +198,11 @@ __global__ void gPasteRows(  MatrixWrapper<float> outWrap,
     int inCol = id % inCols;
 
     //outWrap[outID] = inWrap[id];
-    outWrap(outRows, inCol + colNo, 0, inRow) = inWrap(inRow, inCol, 0, 0);
+    outWrap(rowNo, inCol + colNo, 0, inRow) = inWrap(inRow, inCol, 0, 0);
   }
 }
-void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse)
+
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
 {
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
@@ -210,8 +211,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   int nBlocks =  (In.size() / 512) + ((In.size() % 512 == 0) ?  0 : 1);
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap,
-        rowNo, colNo, sparse);
+    (outWrap, inWrap, rowNo, colNo);
 
   /*
   cerr << "nBlocks=" << nBlocks << endl;
