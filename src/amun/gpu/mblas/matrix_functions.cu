@@ -107,7 +107,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weight(hypoInd, i, 0, 0) * in[batchInd * srcLen * states + (i * states) + stateInd];
+      sum += weight(hypoInd, i, 0, 0) * in(i, stateInd, 0, batchInd);
     }
 
     out[id] = sum;
