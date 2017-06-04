@@ -107,7 +107,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weight[mappingInd * srcLen + i] * in[hypoInd * srcLen * states + (i * states) + stateInd];
+      sum += weight(mappingInd, i, 0, 0) * in[hypoInd * srcLen * states + (i * states) + stateInd];
     }
 
     out[id] = sum;
@@ -133,9 +133,9 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
 
   cerr << "nBlocks=" << nBlocks << endl;
 
-  cerr << "Out=" << Out.Debug(0) << endl;
-  cerr << "Weights=" << Weights.Debug(0) << endl;
-  cerr << "In=" << In.Debug(0) << endl;
+  cerr << "Out=" << outWrap.Debug() << endl;
+  cerr << "Weights=" << weightWrap.Debug() << endl;
+  cerr << "In=" << inWrap.Debug() << endl;
   cerr << "mapping=" << mapping.size() << endl;
   for (size_t i = 0; i < mapping.size(); ++i) {
     cerr << mapping[i] << " ";
