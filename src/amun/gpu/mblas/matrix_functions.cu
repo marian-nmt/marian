@@ -100,14 +100,14 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < numHypos * states) {
-    int mappingInd = id / states;
-    int hypoInd = mapping[mappingInd];
+    int hypoInd = id / states;
+    int batchInd = mapping[hypoInd];
     int stateInd = id % states;
-    //printf("mappingInd=%d hypoInd=%d stateInd=%d \n", mappingInd, hypoInd, stateInd);
+    //printf("hypoInd=%d batchInd=%d stateInd=%d \n", hypoInd, batchInd, stateInd);
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weight(mappingInd, i, 0, 0) * in[hypoInd * srcLen * states + (i * states) + stateInd];
+      sum += weight(hypoInd, i, 0, 0) * in[batchInd * srcLen * states + (i * states) + stateInd];
     }
 
     out[id] = sum;
