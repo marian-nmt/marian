@@ -132,7 +132,7 @@ class DecoderBase {
     }
 
     virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
-    
+
     virtual const std::vector<Expr> getAlignments() = 0;
 };
 
@@ -183,6 +183,7 @@ class EncoderDecoder : public EncoderDecoderBase {
     bool inference_{false};
 
   public:
+    typedef data::Corpus dataset_type;
 
     template <class ...Args>
     EncoderDecoder(Ptr<Config> options, Args ...args)
@@ -274,7 +275,7 @@ class EncoderDecoder : public EncoderDecoderBase {
                                   const std::vector<size_t>& embIdx) {
       return decoder_->selectEmbeddings(graph, state, embIdx);
     }
-    
+
     virtual Expr build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph=true) {
@@ -300,6 +301,13 @@ class EncoderDecoder : public EncoderDecoderBase {
       else {
         return cost;
       }
+    }
+
+    virtual Expr build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph=true) {
+      auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+      return build(graph, corpusBatch, clearGraph);
     }
 
     Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {

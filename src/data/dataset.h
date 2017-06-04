@@ -1,40 +1,49 @@
 #pragma once
 
-#include <memory>
+#include "common/definitions.h"
+#include "data/batch.h"
+#include "data/vocab.h"
+
 
 namespace marian {
-
-
-/**
- * @brief Namespace for code related to managing user data in Marian
- */
 namespace data {
 
-/** @brief Defines a convenience type to represent an ordered collection of floating point data. */
+template <class Sample, class Iterator, class Batch>
+class DatasetBase {
+  protected:
+    std::vector<std::string> paths_;
+
+  public:
+    typedef Batch batch_type;
+    typedef Ptr<Batch> batch_ptr;
+    typedef Iterator iterator;
+    typedef Sample sample;
+
+    DatasetBase() {}
+    DatasetBase(std::vector<std::string> paths) : paths_(paths) {}
+
+    virtual Iterator begin() = 0;
+    virtual Iterator end() = 0;
+    virtual void shuffle() = 0;
+
+    virtual batch_ptr toBatch(const std::vector<sample>&) = 0;
+
+    virtual void reset() {}
+    virtual void prepare() {}
+};
+
+
 typedef std::vector<float> Data;
+typedef std::vector<Data> Example;
+typedef std::vector<Example> Examples;
 
-/** @brief Defines a convenience type to represent a shared pointer to an ordered collection of floating point data. */
-typedef std::shared_ptr<Data> DataPtr;
-
-/** @brief Defines a convenience type to represent an ordered collection of ::DataPtr objects. */
-typedef std::vector<DataPtr> Example;
-
-/** @brief Defines a convenience type to represent a shared pointer to an ordered collection of ::DataPtr objects. */
-typedef std::shared_ptr<Example> ExamplePtr;
-
-/** @brief Defines a convenience type to represent an ordered collection of ::ExamplePtr objects. */
-typedef std::vector<ExamplePtr> Examples;
-
-/**
- * @brief Defines a convenience type to represent a const_iterator over the ::ExamplePtr objects
- *           stored in an ::Examples object.
- */
 typedef Examples::const_iterator ExampleIterator;
+
 
 class Input {
   private:
     Shape shape_;
-    DataPtr data_;
+    Ptr<Data> data_;
 
   public:
     typedef Data::iterator iterator;
@@ -45,22 +54,16 @@ class Input {
     : shape_(shape),
       data_(new Data(shape_.elements(), 0.0f)) {}
 
-    /** @brief Gets an iterator pointing to the beginning of this object's ::Data */
     Data::iterator begin() {
       return data_->begin();
     }
-
-    /** @brief Gets an iterator pointing to the end of this object's ::Data */
     Data::iterator end() {
       return data_->end();
     }
 
-    /** @brief Gets a const iterator pointing to the beginning of this object's ::Data */
     Data::const_iterator begin() const {
       return data_->cbegin();
     }
-
-    /** @brief Gets a const iterator pointing to the end of this object's ::Data. */
     Data::const_iterator end() const {
       return data_->cend();
     }
@@ -81,7 +84,8 @@ class Input {
     }
 };
 
-class Batch {
+
+class DataBatch : public Batch {
   private:
     std::vector<Input> inputs_;
 
@@ -98,64 +102,72 @@ class Batch {
       inputs_.push_back(input);
     }
 
-    int dim() const {
-      return inputs_[0].shape()[0];
+    Data& features() {
+      return inputs_[0].data();
+    }
+
+    Data& labels() {
+      return inputs_.back().data();
     }
 
     size_t size() const {
-      return inputs_.size();
+      return inputs_.front().shape()[0];
     }
 };
 
-//typedef std::shared_ptr<Batch> BatchPtr;
 
-class DataBase {
+class Dataset : public DatasetBase<Example, ExampleIterator, DataBatch> {
+  protected:
+    Examples examples_;
+
   public:
+    Dataset(std::vector<std::string> paths)
+      : DatasetBase(paths) { }
 
-    /** @brief Returns an iterator pointing to the beginning of this object's underlying data. */
-    virtual ExampleIterator begin() const = 0;
+    virtual void loadData() = 0;
 
-    /** @brief Returns an iterator pointing to the end of this object's underlying data. */
-    virtual ExampleIterator end() const = 0;
+    iterator begin() {
+      return ExampleIterator(examples_.begin());
+    }
 
-    /** @brief Randomly shuffles the elements of this object's underlying data. */
-    virtual void shuffle() = 0;
+    iterator end() {
+      return ExampleIterator(examples_.end());
+    }
 
-    //virtual BatchPtr toBatch(const Examples&) = 0;
+    void shuffle() {
+      std::random_shuffle(examples_.begin(), examples_.end());
+    }
 
-    /**
-     * @brief Returns the size of the <em>i</em>-th dimension of the data.
-     *
-     * When an individual data point from this DataSet is used in the construction of an ExpressionGraph,
-     *   the value returned by this method can be interpreted as the size of the <em>i</em>-th input to the graph.
-     *
-     * For example, given a DataBase of MNIST data points.
-     * Each such data point contains 784 values (representing the pixel values for each of 784 pixels),
-     * and a label consisting of one of 10 labels.
-     * If the labels are interpreted as a one-hot vector of length 10,
-     * then dim(0) would return 784,
-     * and dim(1) would return 10.
-     */
-    virtual int dim(size_t i) {
-      return (*begin())->at(i)->size();
+    batch_ptr toBatch(const Examples& batchVector) {
+      int batchSize = batchVector.size();
+
+      std::vector<int> maxDims;
+      for(auto& ex : batchVector) {
+        if(maxDims.size() < ex.size())
+          maxDims.resize(ex.size(), 0);
+        for(size_t i = 0; i < ex.size(); ++i) {
+          if(ex[i].size() > (size_t)maxDims[i])
+            maxDims[i] = ex[i].size();
+        }
+      }
+
+      batch_ptr batch(new DataBatch());
+      std::vector<Input::iterator> iterators;
+      for(auto& m : maxDims) {
+        batch->push_back(Shape({batchSize, m}));
+        iterators.push_back(batch->inputs().back().begin());
+      }
+
+      for(auto& ex : batchVector) {
+        for(size_t i = 0; i < ex.size(); ++i) {
+          Data d = ex[i];
+          d.resize(maxDims[i], 0.0f);
+          iterators[i] = std::copy(d.begin(), d.end(), iterators[i]);
+        }
+      }
+      return batch;
     }
 };
-
-/**
- * @brief Convenience function to construct a new DataBase object and return a shared pointer to that object.
- *
- * The template parameters for this function specify two main pieces of information:
- * -# The first template parameter specifies the type of DataBase object to be constructed
- * -# Any subsequent template parameters specify the type(s) of any arguments to that DataBase object constructor
- *
- * @arg args An optional list of parameters which will be passed to the DataBase constructor
- *
- * @return a shared pointer to a newly constructed DataBase object
- */
-template <class Set, typename ...Args>
-Ptr<Set> DataSet(Args&& ...args) {
-  return Ptr<Set>(new Set(std::forward<Args>(args)...));
-}
 
 }
 }

@@ -2,29 +2,31 @@
 
 #include <thread>
 #include <future>
+
 #include <boost/filesystem.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#include "common/definitions.h"
 #include "3rd_party/threadpool.h"
-#include "optimizers/optimizers.h"
-#include "training/training.h"
-#include "training/validator.h"
+#include "common/definitions.h"
 #include "data/batch_generator.h"
-
+#include "optimizers/optimizers.h"
 #include "training/dropper.h"
 #include "training/sparse_tensor.h"
+#include "training/training.h"
+#include "training/validator.h"
+
+
+// @TODO:
+// - rename Builder/builder_ --> Model/model_ to be consistent with Train class
+// - rename Singleton --> SingleGraph
 
 namespace marian {
 
 class GraphGroup {
   protected:
     Ptr<Config> options_;
-    Ptr<Reporter> reporter_;
     Ptr<OptimizerBase> opt_;
-
-    std::vector<Ptr<ExpressionGraph>> graphs_;
 
   public:
     GraphGroup(Ptr<Config> options)
@@ -32,11 +34,7 @@ class GraphGroup {
 
     virtual ~GraphGroup() {}
 
-    virtual void update(Ptr<data::CorpusBatch>) = 0;
-
-    virtual void setReporter(Ptr<Reporter> reporter) {
-      reporter_ = reporter;
-    }
+    virtual void update(Ptr<data::Batch>) = 0;
 
     virtual void load() = 0;
 
@@ -47,7 +45,17 @@ class GraphGroup {
 
 template <class Builder>
 class Singleton : public GraphGroup {
+  public:
+    typedef Builder builder_type;
+    typedef typename Builder::dataset_type dataset_type;
+
+    Ptr<Reporter<dataset_type>> reporter_;
+    virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
+      reporter_ = reporter;
+    }
+
   private:
+
     Ptr<Builder> builder_;
     Ptr<ExpressionGraph> graph_;
 
@@ -60,7 +68,7 @@ class Singleton : public GraphGroup {
               mvAvgParams, params);
     }
 
-    void execute(Ptr<data::CorpusBatch> batch) {
+    void execute(Ptr<data::Batch> batch) {
       auto costNode = builder_->build(graph_, batch);
 
       graph_->forward();
@@ -102,8 +110,6 @@ class Singleton : public GraphGroup {
     }
 
   public:
-    typedef Builder builder_type;
-
     template <class ...Args>
     Singleton(Ptr<Config> options, Args ...args)
      : GraphGroup(options),
@@ -120,16 +126,17 @@ class Singleton : public GraphGroup {
       builder_ = New<Builder>(options_, args...);
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       execute(batch);
     }
 
     void load() {
       if(!options_->get<bool>("no-reload")) {
-        std::string init = options_->get<std::string>("model");
-        if(boost::filesystem::exists(init)) {
-          reporter_->load(init);
-          builder_->load(graph_, init);
+        std::string name = options_->get<std::string>("model");
+
+        if(boost::filesystem::exists(name)) {
+          reporter_->load(name);
+          builder_->load(graph_, name);
         }
       }
     }
@@ -155,7 +162,7 @@ class Singleton : public GraphGroup {
         if(!final) {
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
-            ".iter" + std::to_string(reporter_->batches) + ".npz");
+            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
           builder_->save(graph_, nameOverwrite);
         }
 
@@ -172,6 +179,15 @@ class Singleton : public GraphGroup {
 
 template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
+  public:
+    typedef Builder builder_type;
+    typedef typename Builder::dataset_type dataset_type;
+
+    Ptr<Reporter<dataset_type>> reporter_;
+    virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
+      reporter_ = reporter;
+    }
+
   private:
     bool first_{true};
 
@@ -191,9 +207,11 @@ class AsyncGraphGroup : public GraphGroup {
     std::vector<SparseTensor> tmpSparseDelta;
     std::vector<std::vector<SparseTensor>> localSparseDelta;
 
-    std::vector<int> globalVersionNumber; //version number per-shard
+    //version number per-shard
+    std::vector<int> globalVersionNumber;
 
-    std::vector<std::vector<int>> localVersionNumbers; //each worker has the version number obtained from each shard
+    //each worker has the version number obtained from each shard
+    std::vector<std::vector<int>> localVersionNumbers;
 
     std::vector<std::vector<GradientDrop>> fetchDropper;
     std::vector<Tensor> tmpTensor, tmpDelta;
@@ -393,7 +411,7 @@ class AsyncGraphGroup : public GraphGroup {
                 paramsAvg, params);
     }
 
-    void execute(Ptr<data::CorpusBatch> batch) {
+    void execute(Ptr<data::Batch> batch) {
       if(first_) {
         // initialize the parameters
         for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -428,6 +446,7 @@ class AsyncGraphGroup : public GraphGroup {
               allocator->reserveExact(__size__);
               allocator->allocate(param, {1, __size__});
               paramsAlloc_.push_back(allocator);
+
               param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__ ));
               params_[h_id].push_back(param);
             }
@@ -488,11 +507,10 @@ class AsyncGraphGroup : public GraphGroup {
           }
         }
 
-
         first_ = false;
       }
 
-      auto task = [this](Ptr<data::CorpusBatch> batch) {
+      auto task = [this](Ptr<data::Batch> batch) {
         static size_t i = 0;
         thread_local Ptr<ExpressionGraph> graph;
         thread_local Ptr<Builder> builder;
@@ -500,7 +518,6 @@ class AsyncGraphGroup : public GraphGroup {
 
         //gradient drop purpose
         thread_local GradientDrop dropper;
-
 
         thread_local size_t my_id = 0;
 
@@ -572,8 +589,6 @@ class AsyncGraphGroup : public GraphGroup {
     }
 
   public:
-    typedef Builder builder_type;
-
     template <class ...Args>
     AsyncGraphGroup(Ptr<Config> options, Args ...args)
      : GraphGroup(options),
@@ -599,7 +614,7 @@ class AsyncGraphGroup : public GraphGroup {
       }
     }
 
-    void update(Ptr<data::CorpusBatch> batch) {
+    void update(Ptr<data::Batch> batch) {
       execute(batch);
     }
 
@@ -641,7 +656,7 @@ class AsyncGraphGroup : public GraphGroup {
         if(!final) {
           std::string nameOverwrite = name;
           nameOverwrite.replace(name.size() - 4, 4,
-            ".iter" + std::to_string(reporter_->batches) + ".npz");
+            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
           builders_[idx]->save(graphs_[idx], nameOverwrite);
         }
 

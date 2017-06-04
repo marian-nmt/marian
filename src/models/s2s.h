@@ -262,20 +262,6 @@ class DecoderS2S : public DecoderBase {
 };
 
 
-class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
-  public:
-
-    template <class ...Args>
-    S2S(Ptr<Config> options, Args ...args)
-    : EncoderDecoder(options, args...) {}
-
-    virtual Expr build(Ptr<ExpressionGraph> graph,
-                       Ptr<data::CorpusBatch> batch,
-                       bool clearGraph=true) {
-
-      return EncoderDecoder::build(graph, batch, clearGraph);
-
-    }
-};
+typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
 
 }

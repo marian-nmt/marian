@@ -8,8 +8,6 @@
 #include <sstream>
 #include <functional>
 
-#include <cuda.h>
-
 #include "marian.h"
 
 using namespace marian;
@@ -75,7 +73,7 @@ float calculateAccuracy(const std::vector<float> probs, const std::vector<float>
 
 int main(int argc, char** argv) {
   // Initialize global settings
-  auto options = New<Config>(argc, argv, false);
+  createLoggers();
 
   // Read data set (all 150 examples)
   std::vector<float> trainX;
