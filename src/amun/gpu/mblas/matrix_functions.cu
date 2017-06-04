@@ -222,6 +222,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
 
   cerr << "Out=" << outWrap.Debug() << endl;
   cerr << "In=" << inWrap.Debug() << endl;
+  cerr << endl;
   //*/
 
 }
