@@ -130,7 +130,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, weightWrap, inWrap, mappingWrap);
-
+  /*
   cerr << "nBlocks=" << nBlocks << endl;
 
   cerr << "Out=" << outWrap.Debug() << endl;
@@ -141,6 +141,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
     cerr << mapping[i] << " ";
   }
   cerr << endl << endl;
+  */
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
