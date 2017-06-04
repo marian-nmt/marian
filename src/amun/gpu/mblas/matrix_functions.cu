@@ -195,20 +195,22 @@ __global__ void gPasteRows(float* d_out, int outRows, int outCols, const float* 
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse) {
   int nColumns = In.dim(1);
   int nRows = In.dim(0);
-  int nThreads = 512;
+
+  MatrixWrapper<float> outWrap(Out);
+  MatrixWrapper<float> in(In);
+
+  int nThreads = MAX_THREADS;
   int nBlocks =  (In.size() / 512) + ((In.size() % 512 == 0) ?  0 : 1);
 
-  /*
-  cerr << "1Out=" << Out.Debug(1) << endl;
-  cerr << "In=" << In.Debug(1) << endl;
-  cerr << "rowNo=" << rowNo << endl;
-  cerr << "colNo=" << colNo << endl;
-  cerr << "sparse=" << sparse << endl;
-  */
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (Out.data(), rowNo, Out.dim(1), In.data(), In.dim(0), In.dim(1), colNo, sparse);
 
-  //cerr << "2Out=" << Out.Debug(1) << endl;
+  /*
+  cerr << "nBlocks=" << nBlocks << endl;
+
+  cerr << "Out=" << outWrap.Debug() << endl;
+  cerr << "In=" << inWrap.Debug() << endl;
+  */
 
 }
 
