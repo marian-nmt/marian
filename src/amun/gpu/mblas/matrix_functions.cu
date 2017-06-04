@@ -95,18 +95,18 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
                               )
 {
   int batches = weight.dim(0);
-  int numCols = in.dim(1);
+  int states = in.dim(1);
   int srcLen = weight.dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < batches * numCols) {
-    int rowNo = id / numCols;
-    int batchNo = mapping[rowNo];
-    int statePos = id % numCols;
+  if (id < batches * states) {
+    int mappingInd = id / states;
+    int batchInd = mapping[mappingInd];
+    int stateInd = id % states;
 
     float sum = 0.0f;
     for (uint i = 0; i < srcLen; ++i) {
-      sum += weight[rowNo * srcLen + i] * in[batchNo * srcLen * numCols + (i * numCols) + statePos];
+      sum += weight[mappingInd * srcLen + i] * in[batchInd * srcLen * states + (i * states) + stateInd];
     }
 
     out[id] = sum;
@@ -114,10 +114,10 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 }
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
-  int numRows = Weights.dim(0);
-  int numCols = In.dim(1);
+  int batches = Weights.dim(0);
+  int states = In.dim(1);
 
-  Out.Resize(numRows, numCols);
+  Out.Resize(batches, states);
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> weightWrap(Weights);
@@ -130,6 +130,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, weightWrap, inWrap, mappingWrap);
 
+  /*
   cerr << "nBlocks=" << nBlocks << endl;
 
   cerr << "Out=" << Out.Debug(0) << endl;
@@ -140,6 +141,8 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
     cerr << mapping[i] << " ";
   }
   cerr << endl << endl;
+  */
+
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
