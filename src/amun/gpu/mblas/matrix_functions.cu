@@ -213,22 +213,12 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, rowNo, colNo);
 
-  /*
-  cerr << "nBlocks=" << nBlocks << endl;
-  cerr << "rowNo=" << rowNo << endl;
-  cerr << "colNo=" << colNo << endl;
-  cerr << "sparse=" << sparse << endl;
-
-  cerr << "Out=" << outWrap.Debug() << endl;
-  cerr << "In=" << inWrap.Debug() << endl;
-  cerr << endl;
-  */
-
 }
 
 Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
-                 const size_t r, const size_t c) {
+                 const size_t r, const size_t c)
+{
   size_t start = r * Out.dim(1) + c;
 
   mblas::copy(In.data(), In.size(), Out.data() + start, cudaMemcpyDeviceToDevice);
@@ -250,13 +240,17 @@ Matrix& CopyRow(Matrix& Out,
   return Out;
 }
 
-__global__ void gCopyRows(float* out, const float* in, size_t cols,
-                          const size_t* targetRowIdx, size_t numPairs) {
+__global__ void gCopyRows(MatrixWrapper<float> outWrap,
+                          const MatrixWrapper<float> inWrap,
+                          const MatrixWrapper<size_t> indicesWrap,
+                          float* out, const float* in, size_t cols,
+                          size_t numPairs)
+{
   for (int bid = 0; bid < numPairs; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if (j < numPairs) {
       size_t dstId = j;
-      size_t srcId = targetRowIdx[j];
+      size_t srcId = indicesWrap[j];
 
       float* rowOut = out + dstId * cols;
       const float* rowIn = in + srcId * cols;
@@ -277,27 +271,27 @@ Matrix& CopyRows(Matrix& Out,
   float* d_out = Out.data();
   const float* d_in = In.data();
 
-  const size_t* dev = thrust::raw_pointer_cast(indices.data());
   size_t numPairs = indices.size();
+
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> inWrap(In);
+  const MatrixWrapper<size_t> indicesWrap(indices);
 
   int threads = std::min(MAX_THREADS, (int)In.dim(1));
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);
 
-  /*
-  cerr << "Out=" << Out.Debug() << endl;
-  cerr << "In=" << In.Debug() << endl;
-  cerr << "cols=" << In.dim(1) << endl;
+  gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (outWrap, inWrap, indicesWrap, d_out, d_in, In.dim(1), numPairs);
 
-  cerr << "dev=" << dev << ": ";
-  for (size_t i = 0; i < numPairs; ++i) {
+  cerr << "nBlocks=" << blocks << endl;
+  cerr << "Out=" << outWrap.Debug() << endl;
+  cerr << "In=" << inWrap.Debug() << endl;
+  cerr << "indices=" << indices.size() << endl;
+  for (size_t i = 0; i < indices.size(); ++i) {
     cerr << indices[i] << " ";
   }
-  cerr << endl;
-  cerr << "numPairs=" << numPairs << endl;
-  */
+  cerr << endl << endl;
 
-  gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (d_out, d_in, In.dim(1), dev, numPairs);
 
   return Out;
 }
