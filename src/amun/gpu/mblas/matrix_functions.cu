@@ -197,13 +197,12 @@ __global__ void gPasteRows(  MatrixWrapper<float> outWrap,
     int inRow = id / inCols;
     int inCol = id % inCols;
     int outID = (outRows + sparse * inRow) * outCols + inCol + colNo;
+    //outWrap[outID] = inWrap[id];
     outWrap[outID] = inWrap[id];
   }
 }
-void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse) {
-  int nColumns = In.dim(1);
-  int nRows = In.dim(0);
-
+void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse)
+{
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
 
