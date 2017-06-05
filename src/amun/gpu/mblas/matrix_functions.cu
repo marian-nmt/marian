@@ -473,15 +473,12 @@ __global__ void gSoftMax(float* softMaxP,
   extern __shared__ float _share[];
 
   size_t rows = outWrap.dim(0);
-    // # hypos (max = batches * beam)
   size_t cols = outWrap.dim(1);
-    // max length
+  int srcNum = cols;
 
   int rowIdx =  blockIdx.x;
 
   while (rowIdx < rows) {
-    int batch = batchIdsWrap[rowIdx];
-
     float* row = softMaxP + rowIdx * cols;
 
     float* _max = _share;
@@ -490,8 +487,7 @@ __global__ void gSoftMax(float* softMaxP,
       int id = tid + threadIdx.x;
       if (id < cols) {
         float value = row[id];
-        value *= srcMappingWrap(batch, id, 0, 0);
-        //value *= srcMappingWrap[batch * cols + id];
+        value *= srcMappingWrap[ batchIdsWrap[rowIdx] * srcNum + id ];
         if (value > _max[threadIdx.x]) {
           _max[threadIdx.x] = value;
         }
@@ -519,8 +515,7 @@ __global__ void gSoftMax(float* softMaxP,
       int id = tid + threadIdx.x;
       if (id < cols) {
         row[id] = __expf(row[id] - max);
-        row[id] *= srcMappingWrap(batch, id, 0, 0);
-        //row[id] *= srcMappingWrap[batch * cols + id];
+        row[id] *= srcMappingWrap[ batchIdsWrap[rowIdx] * srcNum + id ];
         _sum[threadIdx.x] += row[id];
       }
     }
