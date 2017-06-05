@@ -11,7 +11,11 @@ Main code style rules:
 * no space between control statements and opening brackets
 
 Alternatively, use the provided `.clang-format` file for
-[ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) to format new code fragments, e.g.
+[ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) to format new code
+fragments, e.g.
 
-  clang-format-3.8 -style=./contrib/.clang-format <source-or-header-file>
+  clang-format-3.8 <path_to_file>
 
+*Notice*: If you want to merge your changes from the repository cloned before
+autoformatting on all files in the _master_ repository, you may want to use the
+`autoformat.sh` script on your files before the merge.
