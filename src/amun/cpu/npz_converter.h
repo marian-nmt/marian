@@ -79,7 +79,7 @@ class NpzConverter {
       return std::move(ret);
     }
 
-    mblas::Matrix operator[](const std::vector<std::pair<std::string, bool>> keys) const {
+    mblas::Matrix getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys) const {
       BlazeWrapper matrix;
       for (auto key : keys) {
         auto it = model_.find(key.first);

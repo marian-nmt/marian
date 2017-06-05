@@ -81,8 +81,8 @@ struct Weights {
     DecEmbeddings(const DecEmbeddings&) = delete;
 
     DecEmbeddings(const NpzConverter& model)
-    : E_(model[{std::make_pair("Wemb_dec", false),
-                std::make_pair("Wemb", false)}])
+    : E_(model.getFirstOfMany({std::make_pair("Wemb_dec", false),
+                               std::make_pair("Wemb", false)}))
     {}
 
     const mblas::Matrix E_;
@@ -186,8 +186,8 @@ struct Weights {
       B2_(model("ff_logit_prev_b", true)),
       W3_(model["ff_logit_ctx_W"]),
       B3_(model("ff_logit_ctx_b", true)),
-      W4_(model[{std::make_pair(std::string("ff_logit_W"), false),
-                std::make_pair(std::string("Wemb_dec"), true)}]),
+      W4_(model.getFirstOfMany({std::make_pair(std::string("ff_logit_W"), false),
+                                std::make_pair(std::string("Wemb_dec"), true)})),
       B4_(model("ff_logit_b", true)),
       Gamma_0_(model["ff_logit_l1_gamma0"]),
       Gamma_1_(model["ff_logit_l1_gamma1"]),
