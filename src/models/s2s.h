@@ -74,6 +74,14 @@ public:
     bool skipDepth = options_->get<bool>("skip");
     size_t encoderLayers = options_->get<size_t>("layers-enc");
 
+    bool amun = options_->get<std::string>("type") == "amun";
+    UTIL_THROW_IF2(amun && options_->get<int>("layers-enc") > 1,
+                   "--type amun does not currently support multiple encoder "
+                   "layers, use --type s2s");
+    UTIL_THROW_IF2(amun && options_->get<bool>("skip"),
+                   "--type amun does not currently support skip connections, "
+                   "use --type s2s");
+
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
@@ -169,6 +177,17 @@ public:
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
+
+    bool amun = options_->get<std::string>("type") == "amun";
+    UTIL_THROW_IF2(options_->get<bool>("skip"),
+                   "--type amun does not currently support skip connections, "
+                   "use --type s2s");
+    UTIL_THROW_IF2(options_->get<int>("layers-dec") > 1,
+                   "--type amun does not currently support multiple decoder "
+                   "layers, use --type s2s");
+    UTIL_THROW_IF2(options_->get<bool>("tied-embeddings"),
+                   "--type amun does not currently support tied embeddings, "
+                   "use --type s2s");
 
     auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
 

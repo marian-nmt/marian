@@ -2,217 +2,14 @@
 
 #include "marian.h"
 
-#include "models/encdec.h"
+#include "models/s2s.h"
 
 namespace marian {
 
-typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
-
-class EncoderStateAmun : public EncoderState {
-private:
-  Expr context_;
-  Expr mask_;
-  Ptr<data::CorpusBatch> batch_;
-
-public:
-  EncoderStateAmun(Expr context, Expr mask, Ptr<data::CorpusBatch> batch)
-      : context_(context), mask_(mask), batch_(batch) {}
-
-  Expr getContext() { return context_; }
-  Expr getMask() { return mask_; }
-
-  virtual const std::vector<size_t>& getSourceWords() {
-    return batch_->front()->indeces();
-  }
-};
-
-class DecoderStateAmun : public DecoderState {
-private:
-  Expr state_;
-  Expr probs_;
-  Expr targetEmbeddings_;
-
-  Ptr<EncoderState> encState_;
-
-public:
-  DecoderStateAmun(Expr state, Expr probs, Ptr<EncoderState> encState)
-      : state_(state), probs_(probs), encState_(encState) {}
-
-  Ptr<EncoderState> getEncoderState() { return encState_; }
-  Expr getProbs() { return probs_; }
-  void setProbs(Expr probs) { probs_ = probs; }
-
-  Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-    int numSelected = selIdx.size();
-    int dimState = state_->shape()[1];
-
-    auto selectedState
-        = reshape(rows(state_, selIdx), {1, dimState, 1, numSelected});
-
-    return New<DecoderStateAmun>(selectedState, probs_, encState_);
-  }
-
-  Expr getState() { return state_; }
-};
-
-class EncoderAmun : public EncoderBase {
+class Amun : public S2S {
 public:
   template <class... Args>
-  EncoderAmun(Ptr<Config> options, Args... args)
-      : EncoderBase(options, args...) {}
-
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch,
-                          size_t batchIdx = 0) {
-    using namespace keywords;
-
-    int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
-    int dimSrcEmb = options_->get<int>("dim-emb");
-    int dimEncState = options_->get<int>("dim-rnn");
-    bool layerNorm = options_->get<bool>("layer-normalization");
-
-    UTIL_THROW_IF2(options_->get<int>("layers-enc") > 1,
-                   "--type amun does not currently support multiple encoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<bool>("skip"),
-                   "--type amun does not currently support skip connections, "
-                   "use --type s2s");
-
-    float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-    float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
-
-    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
-
-    Expr x, xMask;
-    std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
-
-    if(dropoutSrc) {
-      int srcWords = x->shape()[2];
-      auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
-      x = dropout(x, mask = srcWordDrop);
-    }
-
-    auto xFw = RNN<GRU>(graph,
-                        prefix_,
-                        dimSrcEmb,
-                        dimEncState,
-                        normalize = layerNorm,
-                        dropout_prob = dropoutRnn)(x);
-
-    auto xBw = RNN<GRU>(graph,
-                        prefix_ + "_r",
-                        dimSrcEmb,
-                        dimEncState,
-                        normalize = layerNorm,
-                        direction = dir::backward,
-                        dropout_prob = dropoutRnn)(x, mask = xMask);
-
-    auto xContext = concatenate({xFw, xBw}, axis = 1);
-    return New<EncoderStateAmun>(xContext, xMask, batch);
-  }
-};
-
-class DecoderAmun : public DecoderBase {
-private:
-  Ptr<GlobalAttention> attention_;
-  Ptr<RNN<CGRU>> rnn;
-
-public:
-  template <class... Args>
-  DecoderAmun(Ptr<Config> options, Args... args)
-      : DecoderBase(options, args...) {}
-
-  virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
-    using namespace keywords;
-
-    auto meanContext = weighted_average(
-        encState->getContext(), encState->getMask(), axis = 2);
-
-    bool layerNorm = options_->get<bool>("layer-normalization");
-    auto start = Dense("ff_state",
-                       options_->get<int>("dim-rnn"),
-                       activation = act::tanh,
-                       normalize = layerNorm)(meanContext);
-
-    return New<DecoderStateAmun>(start, nullptr, encState);
-  }
-
-  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                 Ptr<DecoderState> state) {
-    using namespace keywords;
-
-    int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-    int dimTrgEmb = options_->get<int>("dim-emb");
-    int dimDecState = options_->get<int>("dim-rnn");
-    bool layerNorm = options_->get<bool>("layer-normalization");
-
-    UTIL_THROW_IF2(options_->get<bool>("skip"),
-                   "--type amun does not currently support skip connections, "
-                   "use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("layers-dec") > 1,
-                   "--type amun does not currently support multiple decoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<bool>("tied-embeddings"),
-                   "--type amun does not currently support tied embeddings, "
-                   "use --type s2s");
-
-    float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-    float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
-
-    auto stateAmun = std::dynamic_pointer_cast<DecoderStateAmun>(state);
-    auto embeddings = stateAmun->getTargetEmbeddings();
-
-    if(dropoutTrg) {
-      int trgWords = embeddings->shape()[2];
-      auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
-      embeddings = dropout(embeddings, mask = trgWordDrop);
-    }
-
-    if(!attention_)
-      attention_ = New<GlobalAttention>("decoder",
-                                        state->getEncoderState(),
-                                        dimDecState,
-                                        dropout_prob = dropoutRnn,
-                                        normalize = layerNorm);
-
-    if(!rnn)
-      rnn = New<RNN<CGRU>>(graph,
-                           "decoder",
-                           dimTrgEmb,
-                           dimDecState,
-                           attention_,
-                           dropout_prob = dropoutRnn,
-                           normalize = layerNorm);
-    auto stateOut = (*rnn)(embeddings, stateAmun->getState());
-
-    bool single = stateAmun->doSingleStep();
-
-    auto alignedContextsVec = attention_->getContexts();
-    auto alignedContext
-        = single ? alignedContextsVec.back() :
-                   concatenate(alignedContextsVec, keywords::axis = 2);
-
-    //// 2-layer feedforward network for outputs and cost
-    auto logitsL1
-        = Dense("ff_logit_l1",
-                dimTrgEmb,
-                activation = act::tanh,
-                normalize = layerNorm)(embeddings, stateOut, alignedContext);
-
-    auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
-
-    return New<DecoderStateAmun>(stateOut, logitsOut, state->getEncoderState());
-  }
-
-  const std::vector<Expr> getAlignments() {
-    return attention_->getAlignments();
-  }
-};
-
-class Amun : public EncoderDecoder<EncoderAmun, DecoderAmun> {
-public:
-  template <class... Args>
-  Amun(Ptr<Config> options, Args... args) : EncoderDecoder(options, args...) {}
+  Amun(Ptr<Config> options, Args... args) : S2S(options, args...) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& name) {
     using namespace keywords;
@@ -221,116 +18,56 @@ public:
 
     auto numpy = cnpy::npz_load(name);
 
-    std::vector<std::string> parameters = {
-        // Source word embeddings
-        "Wemb",
-
-        // GRU in encoder
-        "encoder_U",
-        "encoder_W",
-        "encoder_b",
-        "encoder_Ux",
-        "encoder_Wx",
-        "encoder_bx",
-
-        // GRU in encoder, reversed
-        "encoder_r_U",
-        "encoder_r_W",
-        "encoder_r_b",
-        "encoder_r_Ux",
-        "encoder_r_Wx",
-        "encoder_r_bx",
-
-        // Transformation of decoder input state
-        "ff_state_W",
-        "ff_state_b",
-
-        // Target word embeddings
-        "Wemb_dec",
-
-        // GRU layer 1 in decoder
-        "decoder_U",
-        "decoder_W",
-        "decoder_b",
-        "decoder_Ux",
-        "decoder_Wx",
-        "decoder_bx",
-
-        // Attention
-        "decoder_W_comb_att",
-        "decoder_b_att",
-        "decoder_Wc_att",
-        "decoder_U_att",
-
-        // GRU layer 2 in decoder
-        "decoder_U_nl",
-        "decoder_Wc",
-        "decoder_b_nl",
-        "decoder_Ux_nl",
-        "decoder_Wcx",
-        "decoder_bx_nl",
-
-        // Read out
-        "ff_logit_lstm_W",
-        "ff_logit_lstm_b",
-        "ff_logit_prev_W",
-        "ff_logit_prev_b",
-        "ff_logit_ctx_W",
-        "ff_logit_ctx_b",
-        "ff_logit_W",
-        "ff_logit_b",
-    };
-
-    std::vector<std::string> parametersNorm = {"decoder_att_gamma1",
-                                               "decoder_att_gamma2",
-                                               "decoder_cell1_gamma1",
-                                               "decoder_cell1_gamma2",
-                                               "decoder_cell2_gamma1",
-                                               "decoder_cell2_gamma2",
-                                               "encoder_gamma1",
-                                               "encoder_gamma2",
-                                               "encoder_r_gamma1",
-                                               "encoder_r_gamma2",
-                                               "ff_logit_l1_gamma0",
-                                               "ff_logit_l1_gamma1",
-                                               "ff_logit_l1_gamma2",
-                                               "ff_state_gamma"};
-
-    if(options_->get<bool>("layer-normalization"))
-      for(auto& p : parametersNorm)
-        parameters.push_back(p);
-
     std::map<std::string, std::string> nameMap
-        = {{"Wemb", "encoder_Wemb"},
-           {"Wemb_dec", "decoder_Wemb"},
-
-           {"decoder_U", "decoder_cell1_U"},
-           {"decoder_W", "decoder_cell1_W"},
-           {"decoder_b", "decoder_cell1_b"},
+        = {{"decoder_U", "decoder_cell1_U"},
            {"decoder_Ux", "decoder_cell1_Ux"},
+           {"decoder_W", "decoder_cell1_W"},
            {"decoder_Wx", "decoder_cell1_Wx"},
+           {"decoder_b", "decoder_cell1_b"},
            {"decoder_bx", "decoder_cell1_bx"},
-
+           {"decoder_cell1_gamma1", "decoder_cell1_gamma1"},
+           {"decoder_cell1_gamma2", "decoder_cell1_gamma2"},
            {"decoder_U_nl", "decoder_cell2_U"},
-           {"decoder_Wc", "decoder_cell2_W"},
-           {"decoder_b_nl", "decoder_cell2_b"},
            {"decoder_Ux_nl", "decoder_cell2_Ux"},
+           {"decoder_Wc", "decoder_cell2_W"},
            {"decoder_Wcx", "decoder_cell2_Wx"},
+           {"decoder_b_nl", "decoder_cell2_b"},
            {"decoder_bx_nl", "decoder_cell2_bx"},
+           {"ff_logit_prev_W", "decoder_ff_logit_l1_W0"},
+           {"ff_logit_lstm_W", "decoder_ff_logit_l1_W1"},
+           {"ff_logit_ctx_W", "decoder_ff_logit_l1_W2"},
+           {"ff_logit_prev_b", "decoder_ff_logit_l1_b0"},
+           {"ff_logit_lstm_b", "decoder_ff_logit_l1_b1"},
+           {"ff_logit_ctx_b", "decoder_ff_logit_l1_b2"},
+           {"ff_logit_l1_gamma0", "decoder_ff_logit_l1_gamma0"},
+           {"ff_logit_l1_gamma1", "decoder_ff_logit_l1_gamma1"},
+           {"ff_logit_l1_gamma2", "decoder_ff_logit_l1_gamma2"},
+           {"ff_logit_W", "decoder_ff_logit_l2_W"},
+           {"ff_logit_b", "decoder_ff_logit_l2_b"},
+           {"ff_state_W", "decoder_ff_state_W"},
+           {"ff_state_b", "decoder_ff_state_b"},
+           {"ff_state_gamma", "decoder_ff_state_gamma"},
+           {"Wemb_dec", "decoder_Wemb"},
+           {"Wemb", "encoder_Wemb"},
+           {"encoder_U", "encoder_bi_U"},
+           {"encoder_Ux", "encoder_bi_Ux"},
+           {"encoder_W", "encoder_bi_W"},
+           {"encoder_Wx", "encoder_bi_Wx"},
+           {"encoder_b", "encoder_bi_b"},
+           {"encoder_bx", "encoder_bi_bx"},
+           {"encoder_gamma1", "encoder_bi_gamma1"},
+           {"encoder_gamma2", "encoder_bi_gamma2"},
+           {"encoder_r_U", "encoder_bi_r_U"},
+           {"encoder_r_Ux", "encoder_bi_r_Ux"},
+           {"encoder_r_W", "encoder_bi_r_W"},
+           {"encoder_r_Wx", "encoder_bi_r_Wx"},
+           {"encoder_r_b", "encoder_bi_r_b"},
+           {"encoder_r_bx", "encoder_bi_r_bx"},
+           {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
+           {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
 
-           {"ff_logit_prev_W", "ff_logit_l1_W0"},
-           {"ff_logit_prev_b", "ff_logit_l1_b0"},
-           {"ff_logit_lstm_W", "ff_logit_l1_W1"},
-           {"ff_logit_lstm_b", "ff_logit_l1_b1"},
-           {"ff_logit_ctx_W", "ff_logit_l1_W2"},
-           {"ff_logit_ctx_b", "ff_logit_l1_b2"},
-
-           {"ff_logit_W", "ff_logit_l2_W"},
-           {"ff_logit_b", "ff_logit_l2_b"}};
-
-    for(auto name : parameters) {
-      UTIL_THROW_IF2(numpy.count(name) == 0,
-                     "Parameter " << name << " does not exist.");
+    for(auto it : numpy) {
+      auto name = it.first;
 
       Shape shape;
       if(numpy[name].shape.size() == 2) {
@@ -380,32 +117,50 @@ public:
     std::string mode = "w";
 
     std::map<std::string, std::string> nameMap
-        = {{"encoder_Wemb", "Wemb"},
-           {"decoder_Wemb", "Wemb_dec"},
-
-           {"decoder_cell1_U", "decoder_U"},
-           {"decoder_cell1_W", "decoder_W"},
-           {"decoder_cell1_b", "decoder_b"},
+        = {{"decoder_cell1_U", "decoder_U"},
            {"decoder_cell1_Ux", "decoder_Ux"},
+           {"decoder_cell1_W", "decoder_W"},
            {"decoder_cell1_Wx", "decoder_Wx"},
+           {"decoder_cell1_b", "decoder_b"},
            {"decoder_cell1_bx", "decoder_bx"},
-
            {"decoder_cell2_U", "decoder_U_nl"},
-           {"decoder_cell2_W", "decoder_Wc"},
-           {"decoder_cell2_b", "decoder_b_nl"},
            {"decoder_cell2_Ux", "decoder_Ux_nl"},
+           {"decoder_cell2_W", "decoder_Wc"},
            {"decoder_cell2_Wx", "decoder_Wcx"},
+           {"decoder_cell2_b", "decoder_b_nl"},
            {"decoder_cell2_bx", "decoder_bx_nl"},
-
-           {"ff_logit_l1_W0", "ff_logit_prev_W"},
-           {"ff_logit_l1_b0", "ff_logit_prev_b"},
-           {"ff_logit_l1_W1", "ff_logit_lstm_W"},
-           {"ff_logit_l1_b1", "ff_logit_lstm_b"},
-           {"ff_logit_l1_W2", "ff_logit_ctx_W"},
-           {"ff_logit_l1_b2", "ff_logit_ctx_b"},
-
-           {"ff_logit_l2_W", "ff_logit_W"},
-           {"ff_logit_l2_b", "ff_logit_b"}};
+           {"decoder_ff_logit_l1_W0", "ff_logit_prev_W"},
+           {"decoder_ff_logit_l1_W1", "ff_logit_lstm_W"},
+           {"decoder_ff_logit_l1_W2", "ff_logit_ctx_W"},
+           {"decoder_ff_logit_l1_b0", "ff_logit_prev_b"},
+           {"decoder_ff_logit_l1_b1", "ff_logit_lstm_b"},
+           {"decoder_ff_logit_l1_b2", "ff_logit_ctx_b"},
+           {"decoder_ff_logit_l1_gamma0", "ff_logit_l1_gamma0"},
+           {"decoder_ff_logit_l1_gamma1", "ff_logit_l1_gamma1"},
+           {"decoder_ff_logit_l1_gamma2", "ff_logit_l1_gamma2"},
+           {"decoder_ff_logit_l2_W", "ff_logit_W"},
+           {"decoder_ff_logit_l2_b", "ff_logit_b"},
+           {"decoder_ff_state_W", "ff_state_W"},
+           {"decoder_ff_state_b", "ff_state_b"},
+           {"decoder_ff_state_gamma", "ff_state_gamma"},
+           {"decoder_Wemb", "Wemb_dec"},
+           {"encoder_Wemb", "Wemb"},
+           {"encoder_bi_U", "encoder_U"},
+           {"encoder_bi_Ux", "encoder_Ux"},
+           {"encoder_bi_W", "encoder_W"},
+           {"encoder_bi_Wx", "encoder_Wx"},
+           {"encoder_bi_b", "encoder_b"},
+           {"encoder_bi_bx", "encoder_bx"},
+           {"encoder_bi_gamma1", "encoder_gamma1"},
+           {"encoder_bi_gamma2", "encoder_gamma2"},
+           {"encoder_bi_r_U", "encoder_r_U"},
+           {"encoder_bi_r_Ux", "encoder_r_Ux"},
+           {"encoder_bi_r_W", "encoder_r_W"},
+           {"encoder_bi_r_Wx", "encoder_r_Wx"},
+           {"encoder_bi_r_b", "encoder_r_b"},
+           {"encoder_bi_r_bx", "encoder_r_bx"},
+           {"encoder_bi_r_gamma1", "encoder_r_gamma1"},
+           {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
     graph->getBackend()->setDevice(graph->getDevice());
 
