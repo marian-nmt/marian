@@ -17,6 +17,7 @@ struct Weights {
 
   struct Embeddings {
     Embeddings(const NpzConverter& model, const std::string &key);
+    Embeddings(const NpzConverter& model, const std::vector<std::pair<std::string, bool>> keys);
 
     const mblas::Matrix E_;
   };

@@ -1,67 +1,48 @@
 #pragma once
 
 #include <memory>
+#include <set>
+
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "common/base_best_hyps.h"
-#include "common/history.h"
 
 namespace amunmt {
+
+class Histories;
+class Filter;
 
 class Search {
   public:
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Process(const God& god, const Sentences& sentences);
-
-    const DeviceInfo& GetDeviceInfo() const;
-
-    const std::vector<ScorerPtr>& GetScorers() const;
+    std::shared_ptr<Histories> Translate(const Sentences& sentences);
 
   protected:
     States NewStates() const;
-
-    void PreProcess(
-    		const Sentences& sentences,
-    		std::shared_ptr<Histories>& histories,
-    		Beam &prevHyps);
-
-    void PostProcess();
-
-    void Encode(const Sentences& sentences, States& states);
-
-    void Decode(
-    		const God &god,
-    		const Sentences& sentences,
-    		States& states,
-    		std::shared_ptr<Histories>& histories,
-    		Beam& prevHyps);
-
-    size_t MakeFilter(const std::set<Word>& srcWords, size_t vocabSize);
+    void FilterTargetVocab(const Sentences& sentences);
+    States SetSource(const Sentences& sentences);
+    std::shared_ptr<Histories> Decode(const Sentences& sentences);
+    void CleanAfterTranslation();
 
     bool CalcBeam(
-    		const God& god,
-    		Beam& prevHyps,
-    		Beams& beams,
-    		std::vector<size_t>& beamSizes,
     		std::shared_ptr<Histories>& histories,
-    		const Sentences& sentences,
+    		std::vector<size_t>& beamSizes,
+        Beam& prevHyps,
     		States& states,
     		States& nextStates);
 
     Search(const Search&) = delete;
 
   protected:
+    DeviceInfo deviceInfo_;
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const Filter> filter_;
     const size_t maxBeamSize_;
+    bool normalizeScore_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;
-
-    bool returnAlignment_;
-
-    DeviceInfo deviceInfo_;
 };
 
 }

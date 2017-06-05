@@ -79,6 +79,29 @@ class NpzConverter {
       return std::move(ret);
     }
 
+    mblas::Matrix operator[](const std::vector<std::pair<std::string, bool>> keys) const {
+      BlazeWrapper matrix;
+      for (auto key : keys) {
+        auto it = model_.find(key.first);
+        if(it != model_.end()) {
+          NpyMatrixWrapper np(it->second);
+          matrix = BlazeWrapper(np.data(), np.size1(), np.size2());
+          mblas::Matrix ret;
+          if (key.second) {
+            const auto matrix2 = blaze::trans(matrix);
+            ret = matrix2;
+          } else {
+            ret = matrix;
+          }
+          return std::move(ret);
+        }
+      }
+      std::cerr << "Matrix not found: " << keys[0].first << "\n";
+
+      mblas::Matrix ret;
+      return std::move(ret);
+    }
+
     mblas::Matrix operator()(const std::string& key,
                                    bool transpose) const {
       BlazeWrapper matrix;

@@ -6,19 +6,23 @@ namespace amunmt {
 namespace CPU {
 
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
-: E_(model[key])
+  : E_(model[key])
+{}
+
+Weights::Embeddings::Embeddings(const NpzConverter& model, const std::vector<std::pair<std::string, bool>> keys)
+  : E_(model[keys])
 {}
 
 Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &keys)
-: W_(model[keys.at(0)]),
-  B_(model(keys.at(1), true)),
-  U_(model[keys.at(2)]),
-  Wx_(model[keys.at(3)]),
-  Bx1_(model(keys.at(4), true)),
-  Bx2_(Bx1_.rows(), Bx1_.columns()),
-  Ux_(model[keys.at(5)]),
-  Gamma_1_(model[keys.at(6)]),
-  Gamma_2_(model[keys.at(7)])
+  : W_(model[keys.at(0)]),
+    B_(model(keys.at(1), true)),
+    U_(model[keys.at(2)]),
+    Wx_(model[keys.at(3)]),
+    Bx1_(model(keys.at(4), true)),
+    Bx2_(Bx1_.rows(), Bx1_.columns()),
+    Ux_(model[keys.at(5)]),
+    Gamma_1_(model[keys.at(6)]),
+    Gamma_2_(model[keys.at(7)])
 {
     const_cast<mblas::Matrix&>(Bx2_) = 0.0f;
 }
@@ -26,9 +30,9 @@ Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &key
 //////////////////////////////////////////////////////////////////////////////
 
 Weights::DecInit::DecInit(const NpzConverter& model)
-: Wi_(model["ff_state_W"]),
-  Bi_(model("ff_state_b", true)),
-  Gamma_(model["ff_state_gamma"])
+  : Wi_(model["ff_state_W"]),
+    Bi_(model("ff_state_b", true)),
+    Gamma_(model["ff_state_gamma"])
 {}
 
 Weights::DecGRU2::DecGRU2(const NpzConverter& model)
@@ -62,7 +66,8 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
   B2_(model("ff_logit_prev_b", true)),
   W3_(model["ff_logit_ctx_W"]),
   B3_(model("ff_logit_ctx_b", true)),
-  W4_(model["ff_logit_W"]),
+  W4_(model[{std::make_pair(std::string("ff_logit_W"), false),
+             std::make_pair(std::string("Wemb_dec"), true)}]),
   B4_(model("ff_logit_b", true)),
   Gamma_0_(model["ff_logit_l1_gamma0"]),
   Gamma_1_(model["ff_logit_l1_gamma1"]),
@@ -77,7 +82,8 @@ Weights::Weights(const NpzConverter& model, size_t)
                          "encoder_Ux", "encoder_gamma1", "encoder_gamma2"}),
   encBackwardGRU_(model, {"encoder_r_W", "encoder_r_b", "encoder_r_U", "encoder_r_Wx",
                           "encoder_r_bx", "encoder_r_Ux", "encoder_r_gamma1", "encoder_r_gamma2"}),
-  decEmbeddings_(model, "Wemb_dec"),
+  decEmbeddings_(model, {std::make_pair(std::string("Wemb_dec"), false),
+                         std::make_pair(std::string("Wemb"), false)}),
   decInit_(model),
   decGru1_(model, {"decoder_W", "decoder_b", "decoder_U", "decoder_Wx", "decoder_bx", "decoder_Ux",
                    "decoder_cell1_gamma1", "decoder_cell1_gamma2"}),

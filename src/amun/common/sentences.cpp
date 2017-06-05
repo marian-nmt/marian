@@ -1,7 +1,6 @@
-#include <algorithm>
 #include "sentences.h"
-#include "god.h"
-#include "translation_task.h"
+
+#include <algorithm>
 
 namespace amunmt {
 
@@ -11,6 +10,18 @@ Sentences::Sentences()
 
 Sentences::~Sentences()
 {}
+
+SentencePtr Sentences::at(size_t id) const {
+  return coll_.at(id);
+}
+
+size_t Sentences::size() const {
+  return coll_.size();
+}
+
+size_t Sentences::GetMaxLength() const {
+  return maxLength_;
+}
 
 void Sentences::push_back(SentencePtr sentence) {
   const Words &words = sentence->GetWords(0);

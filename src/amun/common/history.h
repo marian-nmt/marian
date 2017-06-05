@@ -1,8 +1,8 @@
 #pragma once
 
 #include <queue>
+#include <algorithm>
 
-#include "god.h"
 #include "hypothesis.h"
 
 namespace amunmt {
@@ -21,15 +21,15 @@ class History {
       float cost;
     };
 
-    History(const God &god, const History &) = delete;
+    History(const History&) = delete;
 
   public:
-    History(const God &god, size_t lineNo);
+    History(size_t lineNo, bool normalizeScore, size_t maxLength);
 
-    void Add(const Beam& beam, bool last = false) {
+    void Add(const Beam& beam) {
       if (beam.back()->GetPrevHyp() != nullptr) {
         for (size_t j = 0; j < beam.size(); ++j)
-          if(beam[j]->GetWord() == EOS_ID || last) {
+          if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {
             float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
             topHyps_.push({ history_.size(), j, cost });
           }
@@ -39,6 +39,10 @@ class History {
 
     size_t size() const {
       return history_.size();
+    }
+
+    Beam& front() {
+      return history_.front();
     }
 
     NBestList NBest(size_t n) const {
@@ -76,31 +80,45 @@ class History {
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
     size_t lineNo_;
-
+    size_t maxLength_;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-//typedef std::vector<History> Histories;
+
 class Histories {
- public:
-  Histories() {} // for all histories in translation task
-  Histories(const God &god, const Sentences& sentences);
+  public:
+    Histories() {} // for all histories in translation task
+    Histories(const Sentences& sentences, bool normalizeScore);
 
-  std::shared_ptr<History> at(size_t id) const {
-    return coll_.at(id);
-  }
+    std::shared_ptr<History> at(size_t id) const {
+      return coll_.at(id);
+    }
 
-  size_t size() const {
-    return coll_.size();
-  }
+    size_t size() const {
+      return coll_.size();
+    }
 
-  void SortByLineNum();
-  void Append(const Histories &other);
+    void Add(const Beams& beams) {
+      for (size_t i = 0; i < size(); ++i) {
+        if (!beams[i].empty()) {
+          coll_[i]->Add(beams[i]);
+        }
+      }
+    }
 
- protected:
-  std::vector< std::shared_ptr<History> > coll_;
+    void SortByLineNum();
+    void Append(const Histories &other);
 
-  Histories(const Histories &) = delete;
+    Beam GetFirstHyps() {
+      Beam beam;
+      for (auto& history : coll_) {
+        beam.emplace_back(history->front()[0]);
+      }
+      return beam;
+    }
+
+  protected:
+    std::vector<std::shared_ptr<History>> coll_;
+    Histories(const Histories &) = delete;
 };
 
 }

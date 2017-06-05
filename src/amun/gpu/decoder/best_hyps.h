@@ -19,13 +19,17 @@ class BestHyps : public BestHypsBase
   public:
     BestHyps(const BestHyps &copy) = delete;
     BestHyps(const God &god)
-    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"),
-                  mblas::CudaStreamHandler::GetStream()),
-      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-      weights_(god.GetScorerWeights())
+      : BestHypsBase(
+          !god.Get<bool>("allow-unk"),
+          god.Get<bool>("n-best"),
+          god.Get<std::vector<std::string>>("softmax-filter").size(),
+          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
+          god.GetScorerWeights()),
+        nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"),
+                    mblas::CudaStreamHandler::GetStream()),
+        keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
     {
-      //std::cerr << "BestHyps::BestHyps" << std::endl;
     }
 
     void DisAllowUNK(mblas::Matrix& Prob) {
@@ -57,14 +61,12 @@ class BestHyps : public BestHypsBase
       return alignments;
     }
 
-    void CalcBeam(const God &god,
-          const Beam& prevHyps,
-          const std::vector<ScorerPtr>& scorers,
-          const Words& filterIndices,
-          bool returnAlignment,
-          std::vector<Beam>& beams,
-          std::vector<size_t>& beamSizes
-          )
+    void CalcBeam(
+        const Beam& prevHyps,
+        const std::vector<ScorerPtr>& scorers,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<size_t>& beamSizes)
     {
       using namespace mblas;
 
@@ -86,7 +88,7 @@ class BestHyps : public BestHypsBase
         Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
       }
 
-      if (!god.Get<bool>("allow-unk")) {
+      if (forbidUNK_) {
         DisAllowUNK(Probs);
       }
 
@@ -98,8 +100,7 @@ class BestHyps : public BestHypsBase
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
 
       std::vector<HostVector<float>> breakDowns;
-      bool doBreakdown = god.Get<bool>("n-best");
-      if (doBreakdown) {
+      if (returnNBestList_) {
           breakDowns.push_back(bestCosts);
           for (size_t i = 1; i < scorers.size(); ++i) {
             std::vector<float> modelCosts(beamSizeSum);
@@ -109,8 +110,6 @@ class BestHyps : public BestHypsBase
             breakDowns.push_back(modelCosts);
           }
       }
-
-      bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
 
       std::map<size_t, size_t> batchMap;
       size_t tmp = 0;
@@ -122,7 +121,7 @@ class BestHyps : public BestHypsBase
 
       for (size_t i = 0; i < beamSizeSum; i++) {
         size_t wordIndex = bestKeys[i] % Probs.Cols();
-        if (filter) {
+        if (isInputFiltered_) {
           wordIndex = filterIndices[wordIndex];
         }
 
@@ -130,14 +129,14 @@ class BestHyps : public BestHypsBase
         float cost = bestCosts[i];
 
         HypothesisPtr hyp;
-        if (returnAlignment) {
+        if (returnAttentionWeights_) {
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
                                    GetAlignments(scorers, hypIndex)));
         } else {
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         }
 
-        if(doBreakdown) {
+        if(returnAttentionWeights_) {
           hyp->GetCostBreakdown().resize(scorers.size());
           float sum = 0;
           for (size_t j = 0; j < scorers.size(); ++j) {
@@ -166,7 +165,6 @@ class BestHyps : public BestHypsBase
     NthElement nthElement_;
     DeviceVector<unsigned> keys;
     DeviceVector<float> Costs;
-    const std::map<std::string, float>& weights_;
 };
 
 }
