@@ -375,21 +375,14 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return ret;
 }
 
-__global__ void gSoftMax(float* softMaxP,
-                         MatrixWrapper<float> outWrap,
-                         const MatrixWrapper<int> batchIdsWrap,
-                         const MatrixWrapper<int> srcMappingWrap
-                             )
-{
+__global__ void gSoftMaxOld(float* softMaxP, size_t rows, size_t cols,
+                         const int* batchID,
+                         int batchNum,
+                         const int* srcMapping,
+                         int srcNum) {
   extern __shared__ float _share[];
 
-  size_t rows = outWrap.dim(0);
-    // # hypos (max = batches * beam)
-  size_t cols = outWrap.dim(1);
-    // max length
-
   int rowIdx =  blockIdx.x;
-  int batch = batchIdsWrap[rowIdx];
 
   while (rowIdx < rows) {
     float* row = softMaxP + rowIdx * cols;
@@ -400,7 +393,7 @@ __global__ void gSoftMax(float* softMaxP,
       int id = tid + threadIdx.x;
       if (id < cols) {
         float value = row[id];
-        value *= srcMappingWrap[ batch * cols + id ];
+        value *= srcMapping[ batchID[rowIdx] * srcNum + id ];
         if (value > _max[threadIdx.x]) {
           _max[threadIdx.x] = value;
         }
@@ -428,7 +421,106 @@ __global__ void gSoftMax(float* softMaxP,
       int id = tid + threadIdx.x;
       if (id < cols) {
         row[id] = __expf(row[id] - max);
-        row[id] *= srcMappingWrap[ batch * cols + id ];
+        row[id] *= srcMapping[ batchID[rowIdx] * srcNum + id ];
+        _sum[threadIdx.x] += row[id];
+      }
+    }
+
+    __syncthreads();
+
+    len = blockDim.x;
+    while (len != 1) {
+      __syncthreads();
+
+      int skip = (len + 1) >> 1;
+      if (threadIdx.x < (len >> 1)) {
+        _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+      }
+      len = (len + 1) >> 1;
+    }
+
+    __syncthreads();
+
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] /= _sum[0];
+      }
+    }
+    __syncthreads();
+    rowIdx += gridDim.x;
+  }
+}
+
+Matrix& SoftmaxOld(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping,size_t srcSize) {
+  int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
+  int threads = std::min(MAX_THREADS, (int)Out.dim(1));
+  int shared = sizeof(float) * threads * 2;
+
+  gSoftMaxOld<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
+    (Out.data(), Out.dim(0), Out.dim(1),
+     thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
+     thrust::raw_pointer_cast(srcMapping.data()), srcSize);
+  return Out;
+}
+
+__global__ void gSoftMax(float* softMaxP,
+                         MatrixWrapper<float> outWrap,
+                         const MatrixWrapper<int> batchIdsWrap,
+                         const MatrixWrapper<int> srcMappingWrap
+                             )
+{
+  extern __shared__ float _share[];
+
+  size_t rows = outWrap.dim(0);
+    // # hypos (max = batches * beam)
+  size_t cols = outWrap.dim(1);
+    // max length
+
+  int rowIdx =  blockIdx.x;
+
+  while (rowIdx < rows) {
+    int batch = batchIdsWrap[rowIdx];
+
+    float* row = softMaxP + rowIdx * cols;
+
+    float* _max = _share;
+    _max[threadIdx.x] = row[threadIdx.x];
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        float value = row[id];
+        value *= srcMappingWrap(batch, id, 0, 0);
+        //value *= srcMappingWrap[batch * cols + id];
+        if (value > _max[threadIdx.x]) {
+          _max[threadIdx.x] = value;
+        }
+      }
+    }
+
+    int len = blockDim.x;
+    while (len != 1) {
+      __syncthreads();
+
+      int skip = (len + 1) >> 1;
+      if (threadIdx.x < (len >> 1)) {
+        if(_max[threadIdx.x + skip] > _max[threadIdx.x])
+          _max[threadIdx.x] = _max[threadIdx.x + skip];
+      }
+      len = (len + 1) >> 1;
+    }
+    __syncthreads();
+    float max = _max[0];
+    __syncthreads();
+
+    float* _sum = _share;// + blockDim.x;
+    _sum[threadIdx.x] = 0.0f;
+    for (int tid = 0; tid < cols; tid += blockDim.x) {
+      int id = tid + threadIdx.x;
+      if (id < cols) {
+        row[id] = __expf(row[id] - max);
+        row[id] *= srcMappingWrap(batch, id, 0, 0);
+        //row[id] *= srcMappingWrap[batch * cols + id];
         _sum[threadIdx.x] += row[id];
       }
     }
@@ -483,6 +575,7 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   cerr << "batchIds=" << Debug(batchIds, 2) << endl;
   cerr << "srcMapping=" << Debug(srcMapping, 2) << endl;
   cerr << "srcSize=" << srcSize << endl;
+  cerr << "batchSize=" << batchSize << endl;
   cerr << std::endl;
 
   cudaDeviceSynchronize();

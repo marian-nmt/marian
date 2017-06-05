@@ -194,7 +194,8 @@ class Decoder {
 
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          mblas::Softmax(A_, dBatchMapping_, mapping, batchSize);
+          //mblas::Softmax(A_, dBatchMapping_, mapping, batchSize);
+          mblas::SoftmaxOld(A_, dBatchMapping_, mapping, srcSize);
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
 
