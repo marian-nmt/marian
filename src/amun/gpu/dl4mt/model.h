@@ -17,7 +17,7 @@ struct Weights {
     EncEmbeddings(const EncEmbeddings&) = delete;
 
     EncEmbeddings(const NpzConverter& model)
-    : E_(model["Wemb"])
+      : E_(model["Wemb"])
     {}
 
     const mblas::Matrix E_;
@@ -81,7 +81,8 @@ struct Weights {
     DecEmbeddings(const DecEmbeddings&) = delete;
 
     DecEmbeddings(const NpzConverter& model)
-    : E_(model["Wemb_dec"])
+    : E_(model[{std::make_pair("Wemb_dec", false),
+                std::make_pair("Wemb", false)}])
     {}
 
     const mblas::Matrix E_;

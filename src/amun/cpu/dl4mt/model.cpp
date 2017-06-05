@@ -9,6 +9,10 @@ Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &ke
   : E_(model[key])
 {}
 
+Weights::Embeddings::Embeddings(const NpzConverter& model, const std::vector<std::pair<std::string, bool>> keys)
+  : E_(model[keys])
+{}
+
 Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &keys)
   : W_(model[keys.at(0)]),
     B_(model(keys.at(1), true)),
@@ -78,7 +82,8 @@ Weights::Weights(const NpzConverter& model, size_t)
                          "encoder_Ux", "encoder_gamma1", "encoder_gamma2"}),
   encBackwardGRU_(model, {"encoder_r_W", "encoder_r_b", "encoder_r_U", "encoder_r_Wx",
                           "encoder_r_bx", "encoder_r_Ux", "encoder_r_gamma1", "encoder_r_gamma2"}),
-  decEmbeddings_(model, "Wemb_dec"),
+  decEmbeddings_(model, {std::make_pair(std::string("Wemb_dec"), false),
+                         std::make_pair(std::string("Wemb"), false)}),
   decInit_(model),
   decGru1_(model, {"decoder_W", "decoder_b", "decoder_U", "decoder_Wx", "decoder_bx", "decoder_Ux",
                    "decoder_cell1_gamma1", "decoder_cell1_gamma2"}),
