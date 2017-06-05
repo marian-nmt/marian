@@ -384,9 +384,9 @@ __global__ void gSoftMax(float* softMaxP,
   extern __shared__ float _share[];
 
   size_t rows = outWrap.dim(0);
+    // # hypos (max = batches * beam)
   size_t cols = outWrap.dim(1);
-  // rows = # hypos (max = batches * beam)
-  // cols = max length
+    // max length
 
   int rowIdx =  blockIdx.x;
   int batch = batchIdsWrap[rowIdx];
