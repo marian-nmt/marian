@@ -1,13 +1,13 @@
-#include <iostream>
 #include <cuda.h>
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <iostream>
+#include <iostream>
+#include <iterator>
+#include <random>
 #include <string>
 #include <vector>
-#include <cmath>
-#include <random>
-#include <algorithm>
-#include <iterator>
-#include <iostream>
-#include <functional>
 
 #include "layers/generic.h"
 #include "marian.h"
@@ -40,24 +40,23 @@ int main(int argc, char** argv) {
     graph->setDevice(0);
     graph->reserveWorkspaceMB(128);
 
-    auto x = graph->param("x", {batchSize, 3072}, init=inits::from_vector(temp));
-    auto gamma = graph->param("gamma", {1, 3072}, init=inits::from_value(2.0));
-    auto beta = graph->param("beta", {1, 3072}, init=inits::zeros);
+    auto x
+        = graph->param("x", {batchSize, 3072}, init = inits::from_vector(temp));
+    auto gamma
+        = graph->param("gamma", {1, 3072}, init = inits::from_value(2.0));
+    auto beta = graph->param("beta", {1, 3072}, init = inits::zeros);
 
     auto y = layer_norm(x, gamma, beta);
 
-    auto yLogitsL1 = Dense("ff_logit_l1", 512,
-                             activation=act::tanh,
-                             normalize=true)
-                         (y, y, y);
+    auto yLogitsL1 = Dense(
+        "ff_logit_l1", 512, activation = act::tanh, normalize = true)(y, y, y);
 
-    auto yLogitsL2 = Dense("ff_logit_l2", 50000)
-                         (yLogitsL1);
+    auto yLogitsL2 = Dense("ff_logit_l2", 50000)(yLogitsL1);
 
     auto idx = graph->constant({(int)indeces.size(), 1},
-                               init=inits::from_vector(indeces));
+                               init = inits::from_vector(indeces));
     auto ce = cross_entropy(yLogitsL2, idx);
-    auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
+    auto cost = mean(sum(ce, keywords::axis = 2), keywords::axis = 0);
 
     debug(x, "x");
     debug(gamma, "gamma");
@@ -72,7 +71,8 @@ int main(int argc, char** argv) {
     graph->setDevice(0);
     graph->reserveWorkspaceMB(128);
 
-    auto x = graph->param("x", {batchSize, 3072}, init=inits::from_vector(temp));
+    auto x = graph->param("x", {batchSize, 3072},
+  init=inits::from_vector(temp));
     auto gamma = graph->param("gamma", {1, 3072}, init=inits::from_value(2.0));
     auto beta = graph->param("beta", {1, 3072}, init=inits::zeros);
 

@@ -1,6 +1,6 @@
+#include "graph/backend_gpu.h"
 #include "graph/expression_graph.h"
 #include "graph/node.h"
-#include "graph/backend_gpu.h"
 
 namespace marian {
 
@@ -48,5 +48,4 @@ void NaryNodeOp::remove_children_from_top_nodes() {
   for(auto child : children_)
     graph()->remove_top_node(child);
 }
-
 }

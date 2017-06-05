@@ -8,20 +8,16 @@ namespace marian {
 struct GRUFastNodeOp : public NaryNodeOp {
   bool final_;
 
-  template <typename ...Args>
-  GRUFastNodeOp(const std::vector<Expr>& nodes, bool final, Args ...args)
-    : NaryNodeOp(nodes,
-                 args...),
-      final_(final) {}
+  template <typename... Args>
+  GRUFastNodeOp(const std::vector<Expr>& nodes, bool final, Args... args)
+      : NaryNodeOp(nodes, args...), final_(final) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
     for(int i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
 
-    return {
-      NodeOp(GRUFastForward(val_, inputs, final_))
-    };
+    return {NodeOp(GRUFastForward(val_, inputs, final_))};
   }
 
   NodeOps backwardOps() {
@@ -35,9 +31,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
         outputs.push_back(nullptr);
     }
 
-    return {
-      NodeOp(GRUFastBackward(outputs, inputs, adj_, final_))
-    };
+    return {NodeOp(GRUFastBackward(outputs, inputs, adj_, final_))};
   }
 
   // do not check if node is trainable
@@ -46,17 +40,12 @@ struct GRUFastNodeOp : public NaryNodeOp {
       op();
   }
 
-  const std::string type() {
-    return "GRU-ops";
-  }
+  const std::string type() { return "GRU-ops"; }
 
-  const std::string color() {
-    return "yellow";
-  }
+  const std::string color() { return "yellow"; }
 };
 
 Expr gruOps(const std::vector<Expr>& nodes, bool final) {
   return Expression<GRUFastNodeOp>(nodes, final);
 }
-
 }

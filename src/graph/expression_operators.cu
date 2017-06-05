@@ -1,9 +1,9 @@
 #include "graph/expression_operators.h"
 #include "kernels/sparse.h"
 
-#include "graph/node_operators_unary.h"
-#include "graph/node_operators_binary.h"
 #include "graph/node_operators.h"
+#include "graph/node_operators_binary.h"
+#include "graph/node_operators_unary.h"
 
 namespace marian {
 
@@ -85,15 +85,15 @@ Expr operator-(float a, Expr b) {
 }
 
 Expr operator*(float a, Expr b) {
-  return Expression<ScalarMultNodeOp>(b, a);  
+  return Expression<ScalarMultNodeOp>(b, a);
 }
 
 Expr operator*(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, b);  
+  return Expression<ScalarMultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, 1.f / b);  
+  return Expression<ScalarMultNodeOp>(a, 1.f / b);
 }
 
 /*********************************************************/
@@ -110,7 +110,6 @@ Expr flatten(Expr a) {
   Shape shape = {a->shape().elements()};
   return Expression<ReshapeNodeOp>(a, shape);
 }
-
 
 Expr sum(Expr a, keywords::axis_k ax) {
   return Expression<SumNodeOp>(a, ax);
@@ -129,7 +128,6 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
   auto s = sum(weights, ax);
   return p / s;
 }
-
 
 Expr dot(Expr a, Expr b) {
   return Expression<DotNodeOp>(a, b);
@@ -187,7 +185,7 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta) {
   return Expression<LayerNormalizationOp>(nodes);
 }
 
-//Expr batch_norm(Expr x, Expr gamma, Expr beta) {
+// Expr batch_norm(Expr x, Expr gamma, Expr beta) {
 //  auto mju = mean(x, keywords::axis=0);
 //  auto xmmju = x - mju;
 //  auto std = sqrt(mean(square(xmmju), keywords::axis=0), 1e-9);
@@ -205,5 +203,4 @@ Expr shift(Expr a, Shape shift) {
 Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
   return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 }
-
 }

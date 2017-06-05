@@ -1,14 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <cuda.h>
 #include <curand.h>
-#include <vector>
-#include <boost/timer/timer.hpp>
+#include <stdio.h>
+#include <stdlib.h>
 #include <boost/chrono.hpp>
+#include <boost/timer/timer.hpp>
+#include <vector>
 
-#include "training/config.h"
-#include "marian.h"
 #include "layers/param_initializers.h"
+#include "marian.h"
+#include "training/config.h"
 
 using namespace marian;
 using namespace keywords;

@@ -1,17 +1,17 @@
 #include <algorithm>
+#include <boost/chrono.hpp>
+#include <boost/timer/timer.hpp>
 #include <chrono>
+#include <cstdio>
 #include <iomanip>
 #include <string>
-#include <cstdio>
-#include <boost/timer/timer.hpp>
-#include <boost/chrono.hpp>
 
-#include "marian.h"
-#include "training/config.h"
-#include "optimizers/optimizers.h"
-#include "optimizers/clippers.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
+#include "marian.h"
+#include "optimizers/clippers.h"
+#include "optimizers/optimizers.h"
+#include "training/config.h"
 
 #include "models/amun.h"
 #include "models/s2s.h"
@@ -34,8 +34,9 @@ int main(int argc, char** argv) {
   if(options->has("lexical-table"))
     lexProbs = New<LexProbs>(options,
                              corpus->getVocabs().front(),
-                             corpus->getVocabs().back(), device);
-  
+                             corpus->getVocabs().back(),
+                             device);
+
   auto type = options->get<std::string>("type");
   Ptr<EncoderDecoderBase> encdec;
   if(type == "s2s")
@@ -43,7 +44,7 @@ int main(int argc, char** argv) {
   else if(type == "multi-s2s")
     encdec = New<MultiS2S>(options);
   else
-    encdec = New<Amun>(options, keywords::lex_probs=lexProbs);
+    encdec = New<Amun>(options, keywords::lex_probs = lexProbs);
 
   auto model = options->get<std::string>("model");
   if(boost::filesystem::exists(model))
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
   graph->reserveWorkspaceMB(options->get<size_t>("workspace"));
 
   boost::timer::cpu_timer timer;
-  //size_t batches = 1;
+  // size_t batches = 1;
   for(int i = 0; i < 1; ++i) {
     bg.prepare(false);
     while(bg) {
@@ -60,12 +61,12 @@ int main(int argc, char** argv) {
       batch->debug();
 
       auto costNode = encdec->build(graph, batch);
-      //for(auto p : graph->params())
+      // for(auto p : graph->params())
       //  debug(p, p->name());
-      
+
       debug(costNode, "cost");
 
-      //graph->graphviz("debug.dot");
+      // graph->graphviz("debug.dot");
 
       graph->forward();
       graph->backward();
@@ -73,7 +74,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  //encdec->save(graph, "test.npz", true);
+  // encdec->save(graph, "test.npz", true);
 
   std::cout << std::endl;
   std::cout << timer.format(5, "%ws") << std::endl;
