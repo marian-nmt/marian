@@ -375,12 +375,16 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return ret;
 }
 
-__global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
-                         const int* batchID,
-                         int batchNum,
-                         const int* srcMapping,
-                         int srcNum) {
+__global__ void gSoftMax(float* softMaxP,
+                         MatrixWrapper<float> outWrap,
+                         const MatrixWrapper<int> batchIdsWrap,
+                         const MatrixWrapper<int> srcMappingWrap
+                             )
+{
   extern __shared__ float _share[];
+
+  size_t rows = outWrap.dim(0);
+  size_t cols = outWrap.dim(1);
 
   int rowIdx =  blockIdx.x;
 
@@ -393,7 +397,7 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
       int id = tid + threadIdx.x;
       if (id < cols) {
         float value = row[id];
-        value *= srcMapping[ batchID[rowIdx] * srcNum + id ];
+        value *= srcMappingWrap[ batchIdsWrap[rowIdx] * cols + id ];
         if (value > _max[threadIdx.x]) {
           _max[threadIdx.x] = value;
         }
@@ -421,7 +425,7 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
       int id = tid + threadIdx.x;
       if (id < cols) {
         row[id] = __expf(row[id] - max);
-        row[id] *= srcMapping[ batchID[rowIdx] * srcNum + id ];
+        row[id] *= srcMappingWrap[ batchIdsWrap[rowIdx] * cols + id ];
         _sum[threadIdx.x] += row[id];
       }
     }
@@ -452,8 +456,10 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping,size_t srcSize)
+Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping)
 {
+  size_t srcSize = Out.dim(1);
+
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<int> batchIdsWrap(batchIds);
   const MatrixWrapper<int> srcMappingWrap(srcMapping);
@@ -463,9 +469,9 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   int shared = sizeof(float) * threads * 2;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Out.dim(0), Out.dim(1),
-     thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
-     thrust::raw_pointer_cast(srcMapping.data()), srcSize);
+    (Out.data(),
+     outWrap, batchIdsWrap, srcMappingWrap
+    );
 
   cerr << "nBlocks=" << blocks << endl;
   cerr << "threads=" << threads << endl;
