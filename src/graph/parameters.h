@@ -1,8 +1,8 @@
 #pragma once
 
+#include <fstream>
 #include <map>
 #include <unordered_set>
-#include <fstream>
 
 #include "common/definitions.h"
 #include "tensors/tensor_allocator.h"
@@ -10,97 +10,81 @@
 namespace marian {
 
 class Parameters {
-  private:
-    /** @brief List of all parameter nodes of this expression graph. */
-    std::vector<Expr> params_;
-    std::map<std::string, Expr> named_;
+private:
+  /** @brief List of all parameter nodes of this expression graph. */
+  std::vector<Expr> params_;
+  std::map<std::string, Expr> named_;
 
-    Ptr<TensorAllocator> vals_;
-    Ptr<TensorAllocator> grads_;
+  Ptr<TensorAllocator> vals_;
+  Ptr<TensorAllocator> grads_;
 
-  public:
-    void init(size_t device) {
-      vals_  = New<TensorAllocator>(device);
-      grads_ = New<TensorAllocator>(device);
+public:
+  void init(size_t device) {
+    vals_ = New<TensorAllocator>(device);
+    grads_ = New<TensorAllocator>(device);
+  }
+
+  auto begin() -> decltype(params_.begin()) { return params_.begin(); }
+
+  auto end() -> decltype(params_.begin()) { return params_.end(); }
+
+  auto getMap() -> decltype(named_)& { return named_; }
+
+  Expr get(const std::string& name) {
+    auto it = named_.find(name);
+    if(it != named_.end()) {
+      return it->second;
+    } else {
+      return Expr();
     }
+  }
 
-    auto begin() -> decltype(params_.begin()) {
-      return params_.begin();
-    }
+  size_t size() { return params_.size(); }
 
-    auto end() -> decltype(params_.begin()) {
-      return params_.end();
-    }
+  size_t totalSize() {
+    size_t sum = 0;
+    for(auto p : params_)
+      sum += p->shape().elements();
+    return sum;
+  }
 
-    auto getMap() -> decltype(named_)& {
-      return named_;
-    }
+  void add(Expr p, const std::string& name) {
+    params_.push_back(p);
+    UTIL_THROW_IF2(named_.count(name),
+                   "Parameter " << name << "already exists");
+    named_[name] = p;
+  }
 
-    Expr get(const std::string& name) {
-      auto it = named_.find(name);
-      if(it != named_.end()) {
-        return it->second;
-      }
-      else {
-        return Expr();
-      }
-    }
-
-    size_t size() {
-      return params_.size();
-    }
-
-    size_t totalSize() {
-      size_t sum = 0;
+  void allocateForward() {
+    if(vals_->capacity() == 0) {
+      vals_->reserveExact(totalSize());
       for(auto p : params_)
-        sum += p->shape().elements();
-      return sum;
+        if(!p->val())
+          vals_->allocate(p->val(), p->shape());
     }
+  }
 
-    void add(Expr p, const std::string& name) {
-      params_.push_back(p);
-      UTIL_THROW_IF2(named_.count(name),
-                     "Parameter " << name << "already exists");
-      named_[name] = p;
+  void allocateBackward() {
+    if(grads_->capacity() == 0) {
+      grads_->reserveExact(totalSize());
+      for(auto p : params_)
+        if(!p->grad())
+          grads_->allocate(p->grad(), p->shape());
     }
+  }
 
-    void allocateForward() {
-      if(vals_->capacity() == 0) {
-        vals_->reserveExact(totalSize());
-        for(auto p: params_)
-          if(!p->val())
-            vals_->allocate(p->val(), p->shape());
-      }
-    }
+  void set_zero_adjoint() { grads()->set(0); }
 
-    void allocateBackward() {
-      if(grads_->capacity() == 0) {
-        grads_->reserveExact(totalSize());
-        for(auto p: params_)
-          if(!p->grad())
-            grads_->allocate(p->grad(), p->shape());
-      }
-    }
+  Tensor vals() { return vals_->asTensor(); }
 
-    void set_zero_adjoint() {
-      grads()->set(0);
-    }
+  Tensor grads() { return grads_->asTensor(); }
 
-    Tensor vals() {
-      return vals_->asTensor();
-    }
+  void clear() {
+    params_.clear();
+    named_.clear();
 
-    Tensor grads() {
-      return grads_->asTensor();
-    }
-    
-    void clear() {
-      params_.clear();
-      named_.clear();
-
-      vals_->clear();
-      grads_->clear();
-    }
+    vals_->clear();
+    grads_->clear();
+  }
 };
-
 }

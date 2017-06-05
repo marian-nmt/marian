@@ -2,41 +2,38 @@
 
 #include <thread>
 
-#include "graph/node.h"
-#include "kernels/thrust_functions.h"
-#include "kernels/tensor_operators.h"
 #include "graph/backend_gpu.h"
+#include "graph/node.h"
+#include "kernels/tensor_operators.h"
+#include "kernels/thrust_functions.h"
 
 namespace marian {
 
 struct DotNodeOp : public NaryNodeOp {
-  template <typename ...Args>
-  DotNodeOp(Expr a, Expr b, Args ...args)
-  : NaryNodeOp({a, b},
-               keywords::shape=newShape(a, b),
-               args...) { }
+  template <typename... Args>
+  DotNodeOp(Expr a, Expr b, Args... args)
+      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b), args...) {}
 
   Shape newShape(Expr a, Expr b) {
-
     auto shapeA = a->shape();
     auto shapeB = b->shape();
 
     Shape outShape = shapeA;
     outShape.set(1, shapeB[1]);
     UTIL_THROW_IF2(shapeA[1] != shapeB[0],
-                 "matrix product requires dimensions to match");
+                   "matrix product requires dimensions to match");
     return outShape;
   }
 
   NodeOps forwardOps() {
     // C = A*B
-    return {
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-                  val_,
-                  child(0)->val(),
-                  child(1)->val(),
-                  false, false))
-    };
+    return {NodeOp(Prod(
+        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        false,
+        false))};
   }
 
   NodeOps backwardOps() {
@@ -45,38 +42,37 @@ struct DotNodeOp : public NaryNodeOp {
     // df/dB += A.T*D
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
-    return {
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-                  child(0)->grad(),
-                  adj_,
-                  child(1)->val(),
-                  false, true, 1.0)),
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-                  child(1)->grad(),
-                  child(0)->val(),
-                  adj_,
-                  true, false, 1.0))
-    };
+    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(0)->grad(),
+                        adj_,
+                        child(1)->val(),
+                        false,
+                        true,
+                        1.0)),
+            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(1)->grad(),
+                        child(0)->val(),
+                        adj_,
+                        true,
+                        false,
+                        1.0))};
   }
 
-  const std::string type() {
-    return "•";
-  }
+  const std::string type() { return "•"; }
 
-  const std::string color() {
-    return "orange";
-  }
+  const std::string color() { return "orange"; }
 };
 
 struct ScalarProductNodeOp : public NaryNodeOp {
-  template <typename ...Args>
-  ScalarProductNodeOp(Expr a, Expr b, Args ...args)
-  : NaryNodeOp({a, b},
-               keywords::shape=newShape(a, b, args...),
-               args...) { }
+  template <typename... Args>
+  ScalarProductNodeOp(Expr a, Expr b, Args... args)
+      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b, args...), args...) {
+  }
 
-  template <typename ...Args>
-  Shape newShape(Expr a, Expr b, Args ...args) {
+  template <typename... Args>
+  Shape newShape(Expr a, Expr b, Args... args) {
     int ax = keywords::Get(keywords::axis, -1, args...);
     Shape full = a->shape();
     for(int i = 0; i < b->shape().size(); ++i)
@@ -84,8 +80,7 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 
     if(ax != -1) {
       full.set(ax, 1);
-    }
-    else {
+    } else {
       full.set(0, 1);
       full.set(1, 1);
       full.set(2, 1);
@@ -95,44 +90,23 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   }
 
   NodeOps forwardOps() {
-    return {
-      NodeOp(Reduce(_1 * _2,
-                    val_,
-                    child(0)->val(),
-                    child(1)->val()))
-    };
+    return {NodeOp(Reduce(_1 * _2, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
-    return {
-      NodeOp(Add(_1 * _2,
-             child(0)->grad(),
-             child(1)->val(),
-             adj_)),
-      NodeOp(Add(_1 * _2,
-             child(1)->grad(),
-             child(0)->val(),
-             adj_))
-    };
+    return {NodeOp(Add(_1 * _2, child(0)->grad(), child(1)->val(), adj_)),
+            NodeOp(Add(_1 * _2, child(1)->grad(), child(0)->val(), adj_))};
   }
 
-  const std::string type() {
-    return "scalar-product";
-  }
+  const std::string type() { return "scalar-product"; }
 
-  const std::string color() {
-    return "orange";
-  }
-
+  const std::string color() { return "orange"; }
 };
 
-
 struct ElementBinaryNodeOp : public NaryNodeOp {
-  template <typename ...Args>
-  ElementBinaryNodeOp(Expr a, Expr b, Args ...args)
-   : NaryNodeOp({a, b},
-                keywords::shape=newShape(a, b),
-                args...) {}
+  template <typename... Args>
+  ElementBinaryNodeOp(Expr a, Expr b, Args... args)
+      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b), args...) {}
 
   Shape newShape(Expr a, Expr b) {
     Shape shape1 = a->shape();
@@ -145,131 +119,87 @@ struct ElementBinaryNodeOp : public NaryNodeOp {
     return shape1;
   }
 
-  const std::string color() {
-    return "yellow";
-  }
-
+  const std::string color() { return "yellow"; }
 };
 
 struct PlusNodeOp : public ElementBinaryNodeOp {
-  template <typename ...Args>
-  PlusNodeOp(Args ...args)
-    : ElementBinaryNodeOp(args...) { }
+  template <typename... Args>
+  PlusNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Element(_1 = _2 + _3,
-                     val_,
-                     child(0)->val(),
-                     child(1)->val()))
-    };
+        NodeOp(Element(_1 = _2 + _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
-    return {
-      NodeOp(Add(_1, child(0)->grad(), adj_)),
-      NodeOp(Add(_1, child(1)->grad(), adj_))
-    };
+    return {NodeOp(Add(_1, child(0)->grad(), adj_)),
+            NodeOp(Add(_1, child(1)->grad(), adj_))};
   }
 
-  const std::string type() {
-    return "+";
-  }
-
+  const std::string type() { return "+"; }
 };
 
 struct MinusNodeOp : public ElementBinaryNodeOp {
-  template <typename ...Args>
-  MinusNodeOp(Args ...args)
-    : ElementBinaryNodeOp(args...) { }
+  template <typename... Args>
+  MinusNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Element(_1 = _2 - _3,
-                     val_, child(0)->val(), child(1)->val()))
-    };
+        NodeOp(Element(_1 = _2 - _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
-    return {
-      NodeOp(Add( _1, child(0)->grad(), adj_)),
-      NodeOp(Add(-_1, child(1)->grad(), adj_))
-    };
+    return {NodeOp(Add(_1, child(0)->grad(), adj_)),
+            NodeOp(Add(-_1, child(1)->grad(), adj_))};
   }
 
-  const std::string type() {
-    return "-";
-  }
-
+  const std::string type() { return "-"; }
 };
 
 struct MultNodeOp : public ElementBinaryNodeOp {
-  template <typename ...Args>
-  MultNodeOp(Args ...args)
-    : ElementBinaryNodeOp(args...) { }
+  template <typename... Args>
+  MultNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Element(_1 = _2 * _3,
-                     val_,
-                     child(0)->val(),
-                     child(1)->val()))
-    };
+        NodeOp(Element(_1 = _2 * _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
-    return {
-      NodeOp(Add(_1 * _2, child(0)->grad(), adj_, child(1)->val())),
-      NodeOp(Add(_1 * _2, child(1)->grad(), adj_, child(0)->val()))
-    };
+    return {NodeOp(Add(_1 * _2, child(0)->grad(), adj_, child(1)->val())),
+            NodeOp(Add(_1 * _2, child(1)->grad(), adj_, child(0)->val()))};
   }
 
-  const std::string type() {
-    return "×";
-  }
+  const std::string type() { return "×"; }
 };
 
 struct DivNodeOp : public ElementBinaryNodeOp {
-  template <typename ...Args>
-  DivNodeOp(Args ...args)
-    : ElementBinaryNodeOp(args...) { }
+  template <typename... Args>
+  DivNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Element(_1 = _2 / _3,
-                     val_,
-                     child(0)->val(),
-                     child(1)->val()))
-    };
+        NodeOp(Element(_1 = _2 / _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
     return {
-      NodeOp(Add(_1 * 1.0f / _2,
-                 child(0)->grad(),
-                 adj_,
-                 child(1)->val())),
-      NodeOp(Add(-_1 * _2 / (_3 * _3),
-                 child(1)->grad(),
-                 adj_,
-                 child(0)->val(),
-                 child(1)->val()))
-    };
+        NodeOp(Add(_1 * 1.0f / _2, child(0)->grad(), adj_, child(1)->val())),
+        NodeOp(Add(-_1 * _2 / (_3 * _3),
+                   child(1)->grad(),
+                   adj_,
+                   child(0)->val(),
+                   child(1)->val()))};
   }
 
-  const std::string type() {
-    return "÷";
-  }
-
+  const std::string type() { return "÷"; }
 };
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  template <typename ...Args>
-    CrossEntropyNodeOp(Expr a, Expr b, Args ...args)
-    : NaryNodeOp({a, b},
-                 keywords::shape=newShape(a),
-                 args...) { }
+  template <typename... Args>
+  CrossEntropyNodeOp(Expr a, Expr b, Args... args)
+      : NaryNodeOp({a, b}, keywords::shape = newShape(a), args...) {}
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();
@@ -279,42 +209,32 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() {
     // C = sum(-logsoftmax(A) * delta(y', y))
-    return {
-      NodeOp(CrossEntropyPick(val_,
-                              child(0)->val(),
-                              child(1)->val()))
-    };
+    return {NodeOp(CrossEntropyPick(val_, child(0)->val(), child(1)->val()))};
   }
-
 
   NodeOps backwardOps() {
-    return {
-      NodeOp(CrossEntropyPickBackward(child(0)->grad(),
-                                      adj_,
-                                      child(0)->val(),
-                                      child(1)->val()))
-    };
+    return {NodeOp(CrossEntropyPickBackward(
+        child(0)->grad(), adj_, child(0)->val(), child(1)->val()))};
   }
 
-
-  const std::string type() {
-    return "x-ent";
-  }
+  const std::string type() { return "x-ent"; }
 };
 
 struct ConcatenateNodeOp : public NaryNodeOp {
-  template <typename ...Args>
-  ConcatenateNodeOp(const std::vector<Expr>& nodes, Args ...args)
-    : NaryNodeOp(nodes,
-                 keywords::shape=newShape(nodes, keywords::Get(keywords::axis, 0, args...)),
-                 args...), ax_(keywords::Get(keywords::axis, 0, args...)) { }
+  template <typename... Args>
+  ConcatenateNodeOp(const std::vector<Expr>& nodes, Args... args)
+      : NaryNodeOp(nodes,
+                   keywords::shape
+                   = newShape(nodes, keywords::Get(keywords::axis, 0, args...)),
+                   args...),
+        ax_(keywords::Get(keywords::axis, 0, args...)) {}
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
     shape.set(ax, 0);
     for(auto child : nodes)
       shape.set(ax, shape[ax] + child->shape()[ax]);
-    //std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
+    // std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
     return shape;
   }
 
@@ -329,7 +249,8 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> deconcatenees;
     for(int i = 0; i < children_.size(); ++i) {
       auto childPtr = child(i);
-      childPtr->set_zero_adjoint(); // @TODO: this is a hotfix, do this properly
+      childPtr
+          ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
       deconcatenees.push_back(childPtr->grad());
     }
     Deconcatenate(deconcatenees, adj_, ax_);
@@ -341,9 +262,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     return seed;
   }
 
-  const std::string type() {
-    return "concat";
-  }
+  const std::string type() { return "concat"; }
 
   int ax_;
 };
@@ -392,7 +311,7 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
 
 struct AffineNodeOp : public NaryNodeOp {
   AffineNodeOp(const std::vector<Expr>& nodes)
-    : NaryNodeOp(nodes, keywords::shape=newShape(nodes)) { }
+      : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}
 
   Shape newShape(const std::vector<Expr>& nodes) {
     Shape shape1 = nodes[0]->shape();
@@ -405,14 +324,14 @@ struct AffineNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() {
     return {
-      NodeOp(
-        Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-             val_,
-             child(0)->val(),
-             child(1)->val(),
-             false, false);
-        Add(_1, val_, child(2)->val());
-      )
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                      ->getCublasHandle(),
+                  val_,
+                  child(0)->val(),
+                  child(1)->val(),
+                  false,
+                  false);
+             Add(_1, val_, child(2)->val());)
     };
   }
 
@@ -423,53 +342,51 @@ struct AffineNodeOp : public NaryNodeOp {
     // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
     // to sum gradients from different graph parts
 
-    return {
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-                  child(0)->grad(),
-                  adj_,
-                  child(1)->val(),
-                  false, true, 1.0)),
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-                  child(1)->grad(),
-                  child(0)->val(),
-                  adj_,
-                  true, false, 1.0)),
-      NodeOp(Add(_1, child(2)->grad(), adj_))
-    };
+    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(0)->grad(),
+                        adj_,
+                        child(1)->val(),
+                        false,
+                        true,
+                        1.0)),
+            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(1)->grad(),
+                        child(0)->val(),
+                        adj_,
+                        true,
+                        false,
+                        1.0)),
+            NodeOp(Add(_1, child(2)->grad(), adj_))};
   }
 
-  const std::string type() {
-    return "affine";
-  }
+  const std::string type() { return "affine"; }
 };
 
 struct LayerNormalizationOp : public NaryNodeOp {
-  LayerNormalizationOp(const std::vector<Expr>& nodes)
-    : NaryNodeOp(nodes) {}
+  LayerNormalizationOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 
   NodeOps forwardOps() {
-    return {
-      NodeOp(
-          LayerNormalization(val_,
-                             child(0)->val(),
-                             child(1)->val(),
-                             (children_.size() == 3) ? child(2)->val() : nullptr))
-      };
+    return {NodeOp(LayerNormalization(
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        (children_.size() == 3) ? child(2)->val() : nullptr))};
   }
 
   NodeOps backwardOps() {
-    return {
-      NodeOp(LayerNormalizationGrad(child(0)->grad(), child(1)->grad(), (children_.size() == 3) ? child(2)->grad() : nullptr,
-                                    adj_, val_, child(0)->val(), child(1)->val(),
-                                    (children_.size() == 3) ? child(2)->val() : nullptr))
-    };
+    return {NodeOp(LayerNormalizationGrad(
+        child(0)->grad(),
+        child(1)->grad(),
+        (children_.size() == 3) ? child(2)->grad() : nullptr,
+        adj_,
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        (children_.size() == 3) ? child(2)->val() : nullptr))};
   }
 
-  const std::string type() {
-    return "layer_normalization";
-  }
-
+  const std::string type() { return "layer_normalization"; }
 };
-
-
 }

@@ -6,9 +6,8 @@
 namespace marian {
 
 struct InputNode : public Node {
-  template <typename ...Args>
-  InputNode(Args ...args)
-  : Node(args...) {
+  template <typename... Args>
+  InputNode(Args... args) : Node(args...) {
     UTIL_THROW_IF2(!Has(keywords::shape),
                    "Data items require shape information");
     setTrainable(false);
@@ -16,27 +15,19 @@ struct InputNode : public Node {
 
   ~InputNode() {}
 
-  const std::string type() {
-    return "input";
-  }
+  const std::string type() { return "input"; }
 
-  const std::string form() {
-    return "circle";
-  }
+  const std::string form() { return "circle"; }
 
-  const std::string color() {
-    return "white";
-  }
-
+  const std::string color() { return "white"; }
 };
 
 struct ConstantNode : public Node {
-  template <typename ...Args>
-  ConstantNode(Args ...args)
-  : Node(args...),
-    init_(Get(keywords::init, [](Tensor){ })),
-    initialized_(false)
-  {
+  template <typename... Args>
+  ConstantNode(Args... args)
+      : Node(args...),
+        init_(Get(keywords::init, [](Tensor) {})),
+        initialized_(false) {
     UTIL_THROW_IF2(!Has(keywords::shape),
                    "Constant items require shape information");
     setTrainable(false);
@@ -47,35 +38,28 @@ struct ConstantNode : public Node {
   virtual size_t allocate();
   virtual void init();
 
-  const std::string type() {
-    return "const";
-  }
+  const std::string type() { return "const"; }
 
-  const std::string form() {
-    return "diamond";
-  }
+  const std::string form() { return "diamond"; }
 
-  const std::string color() {
-    return "white";
-  }
+  const std::string color() { return "white"; }
 
   virtual size_t hash() {
     // @TODO: think of something better for constant nodes
-    return boost::hash<size_t>()((size_t)this);
+    return boost::hash<size_t>()((size_t) this);
   }
 
-  private:
-    std::function<void(Tensor)> init_;
-    bool initialized_;
+private:
+  std::function<void(Tensor)> init_;
+  bool initialized_;
 };
 
 struct ParamNode : public Node {
-  template <typename ...Args>
-  ParamNode(Args ...args)
-  : Node(args...),
-    init_(Get(keywords::init, [](Tensor){ })),
-    initialized_(false)
-  {
+  template <typename... Args>
+  ParamNode(Args... args)
+      : Node(args...),
+        init_(Get(keywords::init, [](Tensor) {})),
+        initialized_(false) {
     UTIL_THROW_IF2(!Has(keywords::shape),
                    "Param items require shape information");
     setTrainable(true);
@@ -87,25 +71,16 @@ struct ParamNode : public Node {
 
   virtual void init();
 
-  const std::string type() {
-    return "param";
-  }
+  const std::string type() { return "param"; }
 
-  const std::string form() {
-    return "hexagon";
-  }
+  const std::string form() { return "hexagon"; }
 
-  const std::string color() {
-    return "orangered";
-  }
+  const std::string color() { return "orangered"; }
 
-  virtual size_t hash() {
-    return boost::hash<size_t>()((size_t)this);
-  }
+  virtual size_t hash() { return boost::hash<size_t>()((size_t) this); }
 
-  private:
-    std::function<void(Tensor&)> init_;
-    bool initialized_;
+private:
+  std::function<void(Tensor&)> init_;
+  bool initialized_;
 };
-
 }

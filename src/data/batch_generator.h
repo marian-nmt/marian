@@ -15,145 +15,137 @@ namespace data {
 
 template <class DataSet>
 class BatchGenerator {
-  public:
-    typedef typename DataSet::batch_ptr BatchPtr;
+public:
+  typedef typename DataSet::batch_ptr BatchPtr;
 
-    typedef typename DataSet::sample sample;
-    typedef std::vector<sample> samples;
+  typedef typename DataSet::sample sample;
+  typedef std::vector<sample> samples;
 
-  private:
-    Ptr<DataSet> data_;
-    Ptr<Config> options_;
-    Ptr<BatchStats> stats_;
-    
-    bool forceBatchSize_{false};
-    int batchSize_{1};
+private:
+  Ptr<DataSet> data_;
+  Ptr<Config> options_;
+  Ptr<BatchStats> stats_;
 
-    typename DataSet::iterator current_;
+  bool forceBatchSize_{false};
+  int batchSize_{1};
 
-    size_t maxiBatchSize_;
+  typename DataSet::iterator current_;
 
-    std::deque<BatchPtr> bufferedBatches_;
-    BatchPtr currentBatch_;
-    
-    std::mt19937 g_;
-    
-    void fillBatches(bool shuffle=true) {
-      auto cmp = [](const sample& a, const sample& b) {
-        return a[0].size() < b[0].size();
-      };
+  size_t maxiBatchSize_;
 
-      std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
+  std::deque<BatchPtr> bufferedBatches_;
+  BatchPtr currentBatch_;
 
-      int maxBatchSize = options_->get<int>("mini-batch");
-      if(forceBatchSize_)
-        maxBatchSize = batchSize_;
-        
-      int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
-      
-      size_t sets = 0;
-      while(current_ != data_->end() && maxiBatch.size() < maxSize) {
-        maxiBatch.push(*current_);
-        sets = current_->size();
-        current_++;
+  std::mt19937 g_;
+
+  void fillBatches(bool shuffle = true) {
+    auto cmp = [](const sample& a, const sample& b) {
+      return a[0].size() < b[0].size();
+    };
+
+    std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
+
+    int maxBatchSize = options_->get<int>("mini-batch");
+    if(forceBatchSize_)
+      maxBatchSize = batchSize_;
+
+    int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
+
+    size_t sets = 0;
+    while(current_ != data_->end() && maxiBatch.size() < maxSize) {
+      maxiBatch.push(*current_);
+      sets = current_->size();
+      current_++;
+    }
+
+    samples batchVector;
+    int currentWords = 0;
+    std::vector<size_t> lengths(sets, 0);
+
+    while(!maxiBatch.empty()) {
+      batchVector.push_back(maxiBatch.top());
+      currentWords += batchVector.back()[0].size();
+      maxiBatch.pop();
+
+      // Batch size based on sentences
+      bool makeBatch = batchVector.size() == maxBatchSize;
+
+      // Batch size based on words
+      if(!forceBatchSize_ && options_->has("mini-batch-words")) {
+        int mbWords = options_->get<int>("mini-batch-words");
+        if(mbWords > 0)
+          makeBatch = currentWords > mbWords;
       }
 
-      samples batchVector;
-      int currentWords = 0;
-      std::vector<size_t> lengths(sets, 0);
-      
-      while(!maxiBatch.empty()) {
-        batchVector.push_back(maxiBatch.top());
-        currentWords += batchVector.back()[0].size();
-        maxiBatch.pop();
-        
-        // Batch size based on sentences
-        bool makeBatch = batchVector.size() == maxBatchSize;
-        
-        // Batch size based on words
-        if(!forceBatchSize_ && options_->has("mini-batch-words")) {
-          int mbWords = options_->get<int>("mini-batch-words");
-          if(mbWords > 0)
-            makeBatch = currentWords > mbWords;
-        }
-        
-        if(!forceBatchSize_ && options_->has("dynamic-batching")) {
-          // Dynamic batching
-          if(stats_ && options_->get<bool>("dynamic-batching")) {
-            for(size_t i = 0; i < sets; ++i)
-              if(batchVector.back()[i].size() > lengths[i])
-                lengths[i] = batchVector.back()[i].size();
-            
-            maxBatchSize = stats_->getBatchSize(lengths);
-            
-            if(batchVector.size() > maxBatchSize) {
-              maxiBatch.push(batchVector.back());
-              batchVector.pop_back();
-              makeBatch = true;
-            }
-            else {
-              makeBatch = batchVector.size() == maxBatchSize;
-            }
+      if(!forceBatchSize_ && options_->has("dynamic-batching")) {
+        // Dynamic batching
+        if(stats_ && options_->get<bool>("dynamic-batching")) {
+          for(size_t i = 0; i < sets; ++i)
+            if(batchVector.back()[i].size() > lengths[i])
+              lengths[i] = batchVector.back()[i].size();
+
+          maxBatchSize = stats_->getBatchSize(lengths);
+
+          if(batchVector.size() > maxBatchSize) {
+            maxiBatch.push(batchVector.back());
+            batchVector.pop_back();
+            makeBatch = true;
+          } else {
+            makeBatch = batchVector.size() == maxBatchSize;
           }
         }
-        
-        if(makeBatch) {
-          //std::cerr << "Creating batch" << std::endl;
-          bufferedBatches_.push_back(data_->toBatch(batchVector));
-          batchVector.clear();
-          currentWords = 0;
-          lengths.clear();
-          lengths.resize(sets, 0);
-        }
       }
-      if(!batchVector.empty())
+
+      if(makeBatch) {
+        // std::cerr << "Creating batch" << std::endl;
         bufferedBatches_.push_back(data_->toBatch(batchVector));
-
-      if(shuffle) {
-        std::shuffle(bufferedBatches_.begin(), bufferedBatches_.end(), g_);
+        batchVector.clear();
+        currentWords = 0;
+        lengths.clear();
+        lengths.resize(sets, 0);
       }
     }
+    if(!batchVector.empty())
+      bufferedBatches_.push_back(data_->toBatch(batchVector));
 
-  public:
-    BatchGenerator(Ptr<DataSet> data,
-                   Ptr<Config> options,
-                   Ptr<BatchStats> stats = nullptr)
-    : data_(data),
-      options_(options),
-      stats_(stats),
-      g_(Config::seed)  { }
-
-    operator bool() const {
-      return !bufferedBatches_.empty();
+    if(shuffle) {
+      std::shuffle(bufferedBatches_.begin(), bufferedBatches_.end(), g_);
     }
+  }
 
-    BatchPtr next() {
-      UTIL_THROW_IF2(bufferedBatches_.empty(),
-                     "No batches to fetch, run prepare()");
-      currentBatch_ = bufferedBatches_.front();
-      bufferedBatches_.pop_front();
+public:
+  BatchGenerator(Ptr<DataSet> data,
+                 Ptr<Config> options,
+                 Ptr<BatchStats> stats = nullptr)
+      : data_(data), options_(options), stats_(stats), g_(Config::seed) {}
 
-      if(bufferedBatches_.empty())
-        fillBatches();
+  operator bool() const { return !bufferedBatches_.empty(); }
 
-      return currentBatch_;
-    }
-    
-    void forceBatchSize(int batchSize) {
-      forceBatchSize_ = true;
-      batchSize_ = batchSize;
-    }
+  BatchPtr next() {
+    UTIL_THROW_IF2(bufferedBatches_.empty(),
+                   "No batches to fetch, run prepare()");
+    currentBatch_ = bufferedBatches_.front();
+    bufferedBatches_.pop_front();
 
-    void prepare(bool shuffle=true) {
-      if(shuffle)
-        data_->shuffle();
-      else
-        data_->reset();
-      current_ = data_->begin();
-      fillBatches(shuffle);
-    }
+    if(bufferedBatches_.empty())
+      fillBatches();
+
+    return currentBatch_;
+  }
+
+  void forceBatchSize(int batchSize) {
+    forceBatchSize_ = true;
+    batchSize_ = batchSize;
+  }
+
+  void prepare(bool shuffle = true) {
+    if(shuffle)
+      data_->shuffle();
+    else
+      data_->reset();
+    current_ = data_->begin();
+    fillBatches(shuffle);
+  }
 };
-
 }
-
 }

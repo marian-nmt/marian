@@ -1,267 +1,259 @@
 #pragma once
 
-#include "models/encdec.h"
 #include "layers/attention.h"
+#include "models/encdec.h"
 
 namespace marian {
 
 class EncoderStateS2S : public EncoderState {
-  private:
-    Expr context_;
-    Expr mask_;
-    Ptr<data::CorpusBatch> batch_;
+private:
+  Expr context_;
+  Expr mask_;
+  Ptr<data::CorpusBatch> batch_;
 
-  public:
-    EncoderStateS2S(Expr context, Expr mask,
-                    Ptr<data::CorpusBatch> batch)
-    : context_(context), mask_(mask), batch_(batch) {}
+public:
+  EncoderStateS2S(Expr context, Expr mask, Ptr<data::CorpusBatch> batch)
+      : context_(context), mask_(mask), batch_(batch) {}
 
-    Expr getContext() { return context_; }
-    Expr getMask() { return mask_; }
+  Expr getContext() { return context_; }
+  Expr getMask() { return mask_; }
 
-    virtual const std::vector<size_t>& getSourceWords() {
-      return batch_->front()->indeces();
-    }
+  virtual const std::vector<size_t>& getSourceWords() {
+    return batch_->front()->indeces();
+  }
 };
 
 class DecoderStateS2S : public DecoderState {
-  private:
-    std::vector<Expr> states_;
-    Expr probs_;
-    Ptr<EncoderState> encState_;
+private:
+  std::vector<Expr> states_;
+  Expr probs_;
+  Ptr<EncoderState> encState_;
 
-  public:
-    DecoderStateS2S(const std::vector<Expr> states,
-                     Expr probs,
-                     Ptr<EncoderState> encState)
-    : states_(states), probs_(probs), encState_(encState) {}
+public:
+  DecoderStateS2S(const std::vector<Expr> states,
+                  Expr probs,
+                  Ptr<EncoderState> encState)
+      : states_(states), probs_(probs), encState_(encState) {}
 
+  Ptr<EncoderState> getEncoderState() { return encState_; }
+  Expr getProbs() { return probs_; }
+  void setProbs(Expr probs) { probs_ = probs; }
 
-    Ptr<EncoderState> getEncoderState() { return encState_; }
-    Expr getProbs() { return probs_; }
-    void setProbs(Expr probs) { probs_ = probs; }
+  Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+    int numSelected = selIdx.size();
+    int dimState = states_[0]->shape()[1];
 
-    Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-      int numSelected = selIdx.size();
-      int dimState = states_[0]->shape()[1];
-
-      std::vector<Expr> selectedStates;
-      for(auto state : states_) {
-        selectedStates.push_back(
-          reshape(rows(state, selIdx),
-                  {1, dimState, 1, numSelected})
-        );
-      }
-
-      return New<DecoderStateS2S>(selectedStates, probs_, encState_);
+    std::vector<Expr> selectedStates;
+    for(auto state : states_) {
+      selectedStates.push_back(
+          reshape(rows(state, selIdx), {1, dimState, 1, numSelected}));
     }
 
+    return New<DecoderStateS2S>(selectedStates, probs_, encState_);
+  }
 
-    const std::vector<Expr>& getStates() { return states_; }
+  const std::vector<Expr>& getStates() { return states_; }
 };
 
 class EncoderS2S : public EncoderBase {
-  public:
-    template <class ...Args>
-    EncoderS2S(Ptr<Config> options, Args... args)
-     : EncoderBase(options, args...) {}
+public:
+  template <class... Args>
+  EncoderS2S(Ptr<Config> options, Args... args)
+      : EncoderBase(options, args...) {}
 
-    Ptr<EncoderState>
-    build(Ptr<ExpressionGraph> graph,
-          Ptr<data::CorpusBatch> batch,
-          size_t batchIdx) {
+  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                          Ptr<data::CorpusBatch> batch,
+                          size_t batchIdx) {
+    using namespace keywords;
 
-      using namespace keywords;
+    int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
+    int dimSrcEmb = options_->get<int>("dim-emb");
 
-      int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
-      int dimSrcEmb = options_->get<int>("dim-emb");
+    int dimEncState = options_->get<int>("dim-rnn");
+    bool layerNorm = options_->get<bool>("layer-normalization");
+    bool skipDepth = options_->get<bool>("skip");
+    size_t encoderLayers = options_->get<size_t>("layers-enc");
 
-      int dimEncState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("layer-normalization");
-      bool skipDepth = options_->get<bool>("skip");
-      size_t encoderLayers = options_->get<size_t>("layers-enc");
+    float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+    float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
 
-      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-      float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
+    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
 
-      auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
+    Expr x, xMask;
+    std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
 
-      Expr x, xMask;
-      std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
-
-      if(dropoutSrc) {
-        int dimBatch = x->shape()[0];
-        int srcWords = x->shape()[2];
-        auto srcWordDrop = graph->dropout(dropoutSrc, {dimBatch, 1, srcWords});
-        x = dropout(x, mask=srcWordDrop);
-      }
-
-      auto xFw = RNN<GRU>(graph, prefix_ + "_bi",
-                          dimSrcEmb, dimEncState,
-                          normalize=layerNorm,
-                          dropout_prob=dropoutRnn)
-                         (x);
-
-      auto xBw = RNN<GRU>(graph, prefix_ + "_bi_r",
-                          dimSrcEmb, dimEncState,
-                          normalize=layerNorm,
-                          direction=dir::backward,
-                          dropout_prob=dropoutRnn)
-                         (x, mask=xMask);
-
-      if(encoderLayers > 1) {
-        auto xBi = concatenate({xFw, xBw}, axis=1);
-
-        Expr xContext;
-        std::vector<Expr> states;
-        std::tie(xContext, states)
-          = MLRNN<GRU>(graph, prefix_, encoderLayers - 1,
-                       2 * dimEncState, dimEncState,
-                       normalize=layerNorm,
-                       skip=skipDepth,
-                       dropout_prob=dropoutRnn)
-                      (xBi);
-        return New<EncoderStateS2S>(xContext, xMask, batch);
-      }
-      else {
-        auto xContext = concatenate({xFw, xBw}, axis=1);
-        return New<EncoderStateS2S>(xContext, xMask, batch);
-      }
+    if(dropoutSrc) {
+      int dimBatch = x->shape()[0];
+      int srcWords = x->shape()[2];
+      auto srcWordDrop = graph->dropout(dropoutSrc, {dimBatch, 1, srcWords});
+      x = dropout(x, mask = srcWordDrop);
     }
+
+    auto xFw = RNN<GRU>(graph,
+                        prefix_ + "_bi",
+                        dimSrcEmb,
+                        dimEncState,
+                        normalize = layerNorm,
+                        dropout_prob = dropoutRnn)(x);
+
+    auto xBw = RNN<GRU>(graph,
+                        prefix_ + "_bi_r",
+                        dimSrcEmb,
+                        dimEncState,
+                        normalize = layerNorm,
+                        direction = dir::backward,
+                        dropout_prob = dropoutRnn)(x, mask = xMask);
+
+    if(encoderLayers > 1) {
+      auto xBi = concatenate({xFw, xBw}, axis = 1);
+
+      Expr xContext;
+      std::vector<Expr> states;
+      std::tie(xContext, states) = MLRNN<GRU>(graph,
+                                              prefix_,
+                                              encoderLayers - 1,
+                                              2 * dimEncState,
+                                              dimEncState,
+                                              normalize = layerNorm,
+                                              skip = skipDepth,
+                                              dropout_prob = dropoutRnn)(xBi);
+      return New<EncoderStateS2S>(xContext, xMask, batch);
+    } else {
+      auto xContext = concatenate({xFw, xBw}, axis = 1);
+      return New<EncoderStateS2S>(xContext, xMask, batch);
+    }
+  }
 };
 
 class DecoderS2S : public DecoderBase {
-  private:
-    Ptr<GlobalAttention> attention_;
-    Ptr<RNN<CGRU>> rnnL1;
-    Ptr<MLRNN<GRU>> rnnLn;
-    Expr tiedOutputWeights_;
+private:
+  Ptr<GlobalAttention> attention_;
+  Ptr<RNN<CGRU>> rnnL1;
+  Ptr<MLRNN<GRU>> rnnLn;
+  Expr tiedOutputWeights_;
 
-  public:
+public:
+  template <class... Args>
+  DecoderS2S(Ptr<Config> options, Args... args)
+      : DecoderBase(options, args...) {}
 
-    template <class ...Args>
-    DecoderS2S(Ptr<Config> options, Args ...args)
-     : DecoderBase(options, args...) {}
+  virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
+    using namespace keywords;
 
-    virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
-      using namespace keywords;
+    auto meanContext = weighted_average(
+        encState->getContext(), encState->getMask(), axis = 2);
 
-      auto meanContext = weighted_average(encState->getContext(),
-                                          encState->getMask(),
-                                          axis=2);
+    bool layerNorm = options_->get<bool>("layer-normalization");
+    auto start = Dense(prefix_ + "_ff_state",
+                       options_->get<int>("dim-rnn"),
+                       activation = act::tanh,
+                       normalize = layerNorm)(meanContext);
 
-      bool layerNorm = options_->get<bool>("layer-normalization");
-      auto start = Dense(prefix_ + "_ff_state",
-                         options_->get<int>("dim-rnn"),
-                         activation=act::tanh,
-                         normalize=layerNorm)(meanContext);
+    std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
+    return New<DecoderStateS2S>(startStates, nullptr, encState);
+  }
 
-      std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
-      return New<DecoderStateS2S>(startStates, nullptr, encState);
+  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                 Ptr<DecoderState> state) {
+    using namespace keywords;
+
+    int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+
+    int dimTrgEmb
+        = options_->get<int>("dim-emb") + options_->get<int>("dim-pos");
+
+    int dimDecState = options_->get<int>("dim-rnn");
+    bool layerNorm = options_->get<bool>("layer-normalization");
+    bool skipDepth = options_->get<bool>("skip");
+    size_t decoderLayers = options_->get<size_t>("layers-dec");
+
+    float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
+    float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
+
+    auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
+
+    auto embeddings = stateS2S->getTargetEmbeddings();
+
+    if(dropoutTrg) {
+      int dimBatch = embeddings->shape()[0];
+      int trgWords = embeddings->shape()[2];
+      auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, trgWords});
+      embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
-    virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                   Ptr<DecoderState> state) {
-      using namespace keywords;
+    if(!attention_)
+      attention_ = New<GlobalAttention>(prefix_,
+                                        state->getEncoderState(),
+                                        dimDecState,
+                                        dropout_prob = dropoutRnn,
+                                        normalize = layerNorm);
 
-      int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+    if(!rnnL1)
+      rnnL1 = New<RNN<CGRU>>(graph,
+                             prefix_,
+                             dimTrgEmb,
+                             dimDecState,
+                             attention_,
+                             dropout_prob = dropoutRnn,
+                             normalize = layerNorm);
+    auto stateL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
 
-      int dimTrgEmb = options_->get<int>("dim-emb")
-                    + options_->get<int>("dim-pos");
+    bool single = stateS2S->doSingleStep();
+    auto alignedContext = single ? rnnL1->getCell()->getLastContext() :
+                                   rnnL1->getCell()->getContexts();
 
-      int dimDecState = options_->get<int>("dim-rnn");
-      bool layerNorm = options_->get<bool>("layer-normalization");
-      bool skipDepth = options_->get<bool>("skip");
-      size_t decoderLayers = options_->get<size_t>("layers-dec");
+    std::vector<Expr> statesOut;
+    statesOut.push_back(stateL1);
 
-      float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-      float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
+    Expr outputLn;
+    if(decoderLayers > 1) {
+      std::vector<Expr> statesIn;
+      for(int i = 1; i < stateS2S->getStates().size(); ++i)
+        statesIn.push_back(stateS2S->getStates()[i]);
 
-      auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
+      if(!rnnLn)
+        rnnLn = New<MLRNN<GRU>>(graph,
+                                prefix_,
+                                decoderLayers - 1,
+                                dimDecState,
+                                dimDecState,
+                                normalize = layerNorm,
+                                dropout_prob = dropoutRnn,
+                                skip = skipDepth,
+                                skip_first = skipDepth);
 
-      auto embeddings = stateS2S->getTargetEmbeddings();
+      std::vector<Expr> statesLn;
+      std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
 
-      if(dropoutTrg) {
-        int dimBatch = embeddings->shape()[0];
-        int trgWords = embeddings->shape()[2];
-        auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, trgWords});
-        embeddings = dropout(embeddings, mask=trgWordDrop);
-      }
-
-      if(!attention_)
-        attention_ = New<GlobalAttention>(prefix_,
-                                          state->getEncoderState(),
-                                          dimDecState,
-                                          dropout_prob=dropoutRnn,
-                                          normalize=layerNorm);
-
-      if(!rnnL1)
-        rnnL1 = New<RNN<CGRU>>(graph, prefix_,
-                               dimTrgEmb, dimDecState,
-                               attention_,
-                               dropout_prob=dropoutRnn,
-                               normalize=layerNorm);
-      auto stateL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
-
-      bool single = stateS2S->doSingleStep();
-      auto alignedContext = single ?
-        rnnL1->getCell()->getLastContext() :
-        rnnL1->getCell()->getContexts();
-
-      std::vector<Expr> statesOut;
-      statesOut.push_back(stateL1);
-
-      Expr outputLn;
-      if(decoderLayers > 1) {
-        std::vector<Expr> statesIn;
-        for(int i = 1; i < stateS2S->getStates().size(); ++i)
-          statesIn.push_back(stateS2S->getStates()[i]);
-
-        if(!rnnLn)
-          rnnLn = New<MLRNN<GRU>>(graph, prefix_,
-                                  decoderLayers - 1,
-                                  dimDecState, dimDecState,
-                                  normalize=layerNorm,
-                                  dropout_prob=dropoutRnn,
-                                  skip=skipDepth,
-                                  skip_first=skipDepth);
-
-        std::vector<Expr> statesLn;
-        std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
-
-        statesOut.insert(statesOut.end(),
-                         statesLn.begin(), statesLn.end());
-      }
-      else {
-        outputLn = stateL1;
-      }
-
-      //// 2-layer feedforward network for outputs and cost
-      auto logitsL1 = Dense(prefix_ + "_ff_logit_l1", dimTrgEmb,
-                            activation=act::tanh,
-                            normalize=layerNorm)
-                        (embeddings, outputLn, alignedContext);
-
-      Expr logitsOut;
-      if(options_->get<bool>("tied-embeddings")) {
-        if(!tiedOutputWeights_)
-          tiedOutputWeights_ = transpose(graph->get(prefix_ + "_Wemb"));
-
-        logitsOut = DenseTied(prefix_ + "_ff_logit_l2", tiedOutputWeights_, dimTrgVoc)(logitsL1);
-      }
-      else
-        logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
-
-      return New<DecoderStateS2S>(statesOut, logitsOut,
-                                  state->getEncoderState());
+      statesOut.insert(statesOut.end(), statesLn.begin(), statesLn.end());
+    } else {
+      outputLn = stateL1;
     }
 
-    const std::vector<Expr> getAlignments() {
-      return attention_->getAlignments();
-    }
+    //// 2-layer feedforward network for outputs and cost
+    auto logitsL1
+        = Dense(prefix_ + "_ff_logit_l1",
+                dimTrgEmb,
+                activation = act::tanh,
+                normalize = layerNorm)(embeddings, outputLn, alignedContext);
+
+    Expr logitsOut;
+    if(options_->get<bool>("tied-embeddings")) {
+      if(!tiedOutputWeights_)
+        tiedOutputWeights_ = transpose(graph->get(prefix_ + "_Wemb"));
+
+      logitsOut = DenseTied(
+          prefix_ + "_ff_logit_l2", tiedOutputWeights_, dimTrgVoc)(logitsL1);
+    } else
+      logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
+
+    return New<DecoderStateS2S>(statesOut, logitsOut, state->getEncoderState());
+  }
+
+  const std::vector<Expr> getAlignments() {
+    return attention_->getAlignments();
+  }
 };
 
-
 typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
-
 }

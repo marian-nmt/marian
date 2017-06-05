@@ -1,17 +1,19 @@
-#include <cassert>
 #include "output_collector.h"
-#include "common/logging.h"
+#include <cassert>
 #include "common/file_stream.h"
+#include "common/logging.h"
 
 namespace marian {
 
 OutputCollector::OutputCollector()
- : nextId_(0), outStrm_(new OutputFileStream(std::cout)) {}
+    : nextId_(0), outStrm_(new OutputFileStream(std::cout)) {}
 
-void OutputCollector::Write(long sourceId, const std::string& best1, const std::string& bestn, bool nbest)
-{
+void OutputCollector::Write(long sourceId,
+                            const std::string& best1,
+                            const std::string& bestn,
+                            bool nbest) {
   boost::mutex::scoped_lock lock(mutex_);
-  if (sourceId == nextId_) {
+  if(sourceId == nextId_) {
     LOG(translate, "Best translation {} : {}", sourceId, best1);
 
     if(nbest)
@@ -23,12 +25,12 @@ void OutputCollector::Write(long sourceId, const std::string& best1, const std::
 
     Outputs::const_iterator iter, iterNext;
     iter = outputs_.begin();
-    while (iter != outputs_.end()) {
+    while(iter != outputs_.end()) {
       long currId = iter->first;
 
-      if (currId == nextId_) {
+      if(currId == nextId_) {
         // 1st element in the map is the next
-        const auto &currOutput = iter->second;
+        const auto& currOutput = iter->second;
         LOG(translate, "Best translation {} : {}", currId, currOutput.first);
         if(nbest)
           ((std::ostream&)*outStrm_) << currOutput.second << std::endl;
@@ -42,19 +44,16 @@ void OutputCollector::Write(long sourceId, const std::string& best1, const std::
         ++iterNext;
         outputs_.erase(iter);
         iter = iterNext;
-      }
-      else {
+      } else {
         // not the next. stop iterating
         assert(nextId_ < currId);
         break;
       }
     }
 
-  }
-  else {
+  } else {
     // save for later
     outputs_[sourceId] = std::make_pair(best1, bestn);
   }
 }
-
 }

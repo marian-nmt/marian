@@ -28,68 +28,55 @@
 namespace marian {
 
 class TensorCPU : public TensorBase {
-  public:
-    TensorCPU(float* data, Shape shape)
-    : TensorBase(data, shape) {}
+public:
+  TensorCPU(float* data, Shape shape) : TensorBase(data, shape) {}
 
-    float get(size_t i) {
-      return data_[i];
-    }
+  float get(size_t i) { return data_[i]; }
 
-    void set(size_t i, float value) {
-      data_[i] = value;
-    }
+  void set(size_t i, float value) { data_[i] = value; }
 
-    void get(std::vector<float> &v) {
-      v.resize(size());
-      std::copy(data_, data_ + size(), v.begin());
-    }
+  void get(std::vector<float>& v) {
+    v.resize(size());
+    std::copy(data_, data_ + size(), v.begin());
+  }
 
-    void set(float value) {
-      std::fill(data_, data_ + size(), value);
-    }
+  void set(float value) { std::fill(data_, data_ + size(), value); }
 
-    void set(const std::vector<float> &v) {
-      std::copy(v.begin(), v.end(), data_);
-    }
+  void set(const std::vector<float>& v) {
+    std::copy(v.begin(), v.end(), data_);
+  }
 };
 
 class DeviceCPU {
-  private:
-    float* data_;
-    size_t size_
+private:
+  float* data_;
+  size_t size_
 
-  public:
-    DeviceCPU()
-    : data_(0), size_(0) {}
+      public : DeviceCPU()
+      : data_(0), size_(0) {}
 
-    ~DeviceCPU() {
-      if(data_)
-        delete[] data_;
+  ~DeviceCPU() {
+    if(data_)
+      delete[] data_;
+  }
+
+  typedef TensorCPU tensor_type;
+
+  void reserve(size_t size) {
+    UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
+    float* temp = new float[size];
+
+    if(data_) {
+      std::memcpy(temp, data_, size_ * sizeof(float));
+      delete[] data_;
     }
 
-    typedef TensorCPU tensor_type;
+    data_ = temp;
+    size_ = size;
+  }
 
-    void reserve(size_t size) {
-      UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
-      float* temp = new float[size];
+  float* data() { return data_; }
 
-      if(data_) {
-        std::memcpy(temp, data_, size_* sizeof(float));
-        delete[] data_;
-      }
-
-      data_ = temp;
-      size_ = size;
-    }
-
-    float* data() {
-      return data_;
-    }
-
-    size_t capacity() {
-      return size_;
-    }
+  size_t capacity() { return size_; }
 };
-
 }

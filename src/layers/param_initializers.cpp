@@ -1,8 +1,8 @@
 
-#include <random>
+#include <stdint.h>
 #include <algorithm>
 #include <iterator>
-#include <stdint.h>
+#include <random>
 
 #include "param_initializers.h"
 #include "svd/svd.h"
@@ -12,16 +12,18 @@ namespace marian {
 namespace inits {
 
 float xor128() {
-    static uint64_t x = 123456789;
-    static uint64_t y = 362436069;
-    static uint64_t z = 521288629;
-    static uint64_t w = 88675123;
-    uint64_t t;
+  static uint64_t x = 123456789;
+  static uint64_t y = 362436069;
+  static uint64_t z = 521288629;
+  static uint64_t w = 88675123;
+  uint64_t t;
 
-    t = (x ^ (x << 11)) % 1000;
-    x = y; y = z; z = w;
-    w = (w ^ (w >> 19) ^ t ^ (t >> 8)) % 1000;
-    return 0.1 * ((w % 1000) / 1000.f) - 0.05;
+  t = (x ^ (x << 11)) % 1000;
+  x = y;
+  y = z;
+  z = w;
+  w = (w ^ (w >> 19) ^ t ^ (t >> 8)) % 1000;
+  return 0.1 * ((w % 1000) / 1000.f) - 0.05;
 }
 
 void zeros(Tensor t) {
@@ -33,14 +35,13 @@ void ones(Tensor t) {
 }
 
 std::function<void(Tensor)> from_value(float v) {
-  return [v](Tensor t) {
-    t->set(v);
-  };
+  return [v](Tensor t) { t->set(v); };
 }
 
 std::function<void(Tensor)> diag(float val) {
   return [val](Tensor t) {
-    if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1 && t->shape()[3] == 1) {
+    if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1
+       && t->shape()[3] == 1) {
       std::vector<float> vec(t->size(), 0);
       for(int i = 0; i < t->shape()[0]; ++i)
         vec[i * t->shape()[1] + i] = val;
@@ -62,7 +63,7 @@ std::function<void(Tensor)> uniform(float scale) {
 }
 
 void glorot_uniform(Tensor t) {
-  float scale = sqrtf( 6.0f / (t->shape()[0] + t->shape()[1]) );
+  float scale = sqrtf(6.0f / (t->shape()[0] + t->shape()[1]));
   distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
 }
 
@@ -74,7 +75,7 @@ void xorshift(Tensor t) {
 }
 
 void glorot_normal(Tensor t) {
-  float scale = sqrtf( 2.0f / (t->shape()[0] + t->shape()[1]) );
+  float scale = sqrtf(2.0f / (t->shape()[0] + t->shape()[1]));
   distribution<std::normal_distribution<float>>(t, 0, scale);
 }
 
@@ -85,7 +86,8 @@ void svd(std::vector<float>& vec, Shape shape) {
   int n = std::min(rows, cols);
   int m = std::max(rows, cols);
 
-  UTIL_THROW_IF2(m % n != 0, "Matrix dimensions must be equal or multiples of each other");
+  UTIL_THROW_IF2(m % n != 0,
+                 "Matrix dimensions must be equal or multiples of each other");
 
   for(int i = 0; i < shape.elements(); i += n * n) {
     std::vector<float> t1(n);
@@ -105,9 +107,7 @@ void ortho(Tensor t) {
 }
 
 std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
-  return [v](Tensor t) {
-    t->set(v);
-  };
+  return [v](Tensor t) { t->set(v); };
 }
 
 std::function<void(Tensor)> from_vector(const std::vector<size_t>& v) {
@@ -116,14 +116,12 @@ std::function<void(Tensor)> from_vector(const std::vector<size_t>& v) {
 }
 
 std::function<void(Tensor)> from_sparse_vector(
-  std::pair<std::vector<size_t>, std::vector<float>>& v) {
-
+    std::pair<std::vector<size_t>, std::vector<float>>& v) {
   return [v](Tensor t) {
     t->set(1e-6);
     t->setSparse(v.first, v.second);
   };
 }
-
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   size_t size = 1;
@@ -134,11 +132,8 @@ std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   std::vector<float> npv(size);
   std::copy((float*)np.data, (float*)np.data + size, npv.begin());
 
-  return [npv](Tensor t) {
-    t->set(npv);
-  };
+  return [npv](Tensor t) { t->set(npv); };
+}
 }
 
-}
-
-} // namespace marian
+}  // namespace marian

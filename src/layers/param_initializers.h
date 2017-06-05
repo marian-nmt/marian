@@ -2,8 +2,8 @@
 
 #include <functional>
 #include <random>
-#include "tensors/tensor.h"
 #include "cnpy/cnpy.h"
+#include "tensors/tensor.h"
 #include "training/config.h"
 
 namespace marian {
@@ -13,7 +13,7 @@ namespace inits {
 float xor128();
 
 // Use a constant seed for deterministic behaviour.
-//std::default_random_engine engine(42);
+// std::default_random_engine engine(42);
 
 void zeros(Tensor t);
 
@@ -57,11 +57,9 @@ std::function<void(Tensor)> from_vector(const std::vector<float>& v);
 std::function<void(Tensor)> from_vector(const std::vector<size_t>& v);
 
 std::function<void(Tensor)> from_sparse_vector(
-  std::pair<std::vector<size_t>, std::vector<float>>& v);
-
+    std::pair<std::vector<size_t>, std::vector<float>>& v);
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
-
 }
 
-} // namespace marian
+}  // namespace marian

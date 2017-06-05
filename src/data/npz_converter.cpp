@@ -21,12 +21,8 @@
 
 #include "npz_converter.h"
 
-
-
 NpzConverter::NpzConverter(const std::string& file)
-  : model_(cnpy::npz_load(file)),
-    destructed_(false) {
-  }
+    : model_(cnpy::npz_load(file)), destructed_(false) {}
 
 NpzConverter::~NpzConverter() {
   if(!destructed_)
@@ -40,21 +36,22 @@ void NpzConverter::Destruct() {
 
 /** TODO: Marcin, what does this function do? Why isn't it a method? */
 mblas::Matrix NpzConverter::operator[](const std::string& key) const {
-  typedef blaze::CustomMatrix<float, blaze::unaligned,
-    blaze::unpadded, blaze::rowMajor> BlazeWrapper;
+  typedef blaze::
+      CustomMatrix<float, blaze::unaligned, blaze::unpadded, blaze::rowMajor>
+          BlazeWrapper;
   mblas::Matrix matrix;
   auto it = model_.find(key);
   if(it != model_.end()) {
     NpyMatrixWrapper np(it->second);
     matrix = BlazeWrapper(np.data(), np.size1(), np.size2());
-  }
-  else {
+  } else {
     std::cerr << "Missing " << key << std::endl;
   }
   return std::move(matrix);
 }
 
-mblas::Matrix NpzConverter::operator()(const std::string& key, bool transpose) const {
+mblas::Matrix NpzConverter::operator()(const std::string& key,
+                                       bool transpose) const {
   mblas::Matrix matrix = (*this)[key];
   mblas::Trans(matrix);
   return std::move(matrix);

@@ -15,8 +15,8 @@ Expr logit(const std::vector<Expr>&);
 
 Expr tanh(const std::vector<Expr>&);
 
-template <typename ...Args>
-Expr tanh(Args ...args) {
+template <typename... Args>
+Expr tanh(Args... args) {
   std::vector<Expr> nodes{args...};
   return tanh(nodes);
 }
@@ -83,13 +83,12 @@ Expr square(Expr a);
 
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr);
 
-template <typename ...Args>
-Expr dropout(Expr x, Args ...args) {
+template <typename... Args>
+Expr dropout(Expr x, Args... args) {
   auto mask = Get(keywords::mask, nullptr, args...);
   float dropout_prob = Get(keywords::dropout_prob, 0.0f, args...);
 
-  UTIL_THROW_IF2(!mask && !dropout_prob,
-                 "Neither mask nor dropout prob given");
+  UTIL_THROW_IF2(!mask && !dropout_prob, "Neither mask nor dropout prob given");
   if(!mask) {
     auto graph = x->graph();
     mask = graph->dropout(dropout_prob, x->shape());
@@ -98,5 +97,4 @@ Expr dropout(Expr x, Args ...args) {
 }
 
 Expr shift(Expr, Shape);
-
 }

@@ -15,9 +15,9 @@ void Printer(Ptr<Config> options,
              OStream& best1,
              OStream& bestn) {
   if(options->has("n-best") && options->get<bool>("n-best")) {
-    const auto &nbl = history->NBest(options->get<size_t>("beam-size"));
+    const auto& nbl = history->NBest(options->get<size_t>("beam-size"));
 
-    for (size_t i = 0; i < nbl.size(); ++i) {
+    for(size_t i = 0; i < nbl.size(); ++i) {
       const auto& result = nbl[i];
       const auto& words = result.first;
       const auto& hypo = result.second;
@@ -28,8 +28,7 @@ void Printer(Ptr<Config> options,
 
       if(hypo->GetCostBreakdown().empty()) {
         bestn << " F0=" << hypo->GetCost();
-      }
-      else {
+      } else {
         for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
           bestn << " F" << j << "= " << hypo->GetCostBreakdown()[j];
         }
@@ -37,8 +36,7 @@ void Printer(Ptr<Config> options,
 
       if(options->get<bool>("normalize")) {
         bestn << " ||| " << hypo->GetCost() / words.size();
-      }
-      else {
+      } else {
         bestn << " ||| " << hypo->GetCost();
       }
 
@@ -53,5 +51,4 @@ void Printer(Ptr<Config> options,
   std::string translation = Join((*vocab)(bestTranslation.first));
   best1 << translation << std::flush;
 }
-
 }

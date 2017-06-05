@@ -13,18 +13,15 @@ typedef std::vector<WordMask> SentBatch;
 CorpusIterator::CorpusIterator() : pos_(-1), tup_(0) {}
 
 CorpusIterator::CorpusIterator(Corpus& corpus)
- : corpus_(&corpus), pos_(0), tup_(corpus_->next())
- {}
+    : corpus_(&corpus), pos_(0), tup_(corpus_->next()) {}
 
 void CorpusIterator::increment() {
   tup_ = corpus_->next();
   pos_++;
 }
 
-bool CorpusIterator::equal(CorpusIterator const& other) const
-{
-  return this->pos_ == other.pos_ ||
-    (this->tup_.empty() && other.tup_.empty());
+bool CorpusIterator::equal(CorpusIterator const& other) const {
+  return this->pos_ == other.pos_ || (this->tup_.empty() && other.tup_.empty());
 }
 
 const SentenceTuple& CorpusIterator::dereference() const {
@@ -32,10 +29,9 @@ const SentenceTuple& CorpusIterator::dereference() const {
 }
 
 Corpus::Corpus(Ptr<Config> options, bool translate)
-  : options_(options),
-    maxLength_(options_->get<size_t>("max-length")),
-    g_(Config::seed) {
-
+    : options_(options),
+      maxLength_(options_->get<size_t>("max-length")),
+      g_(Config::seed) {
   if(!translate)
     paths_ = options_->get<std::vector<std::string>>("train-sets");
   else
@@ -50,8 +46,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
                    "Number of corpus files and vocab files does not agree");
   }
 
-  std::vector<int> maxVocabs =
-    options_->get<std::vector<int>>("dim-vocabs");
+  std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
   if(!translate) {
     std::vector<Vocab> vocabs;
@@ -62,16 +57,14 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
         vocabs_.emplace_back(vocab);
       }
-    }
-    else {
+    } else {
       for(int i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
         vocabs_.emplace_back(vocab);
       }
     }
-  }
-  else {
+  } else {
     for(int i = 0; i < vocabPaths.size() - 1; ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
@@ -91,18 +84,16 @@ Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Config> options,
                size_t maxLength)
-  : DatasetBase(paths),
-    options_(options),
-    vocabs_(vocabs),
-    maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
-
+    : DatasetBase(paths),
+      options_(options),
+      vocabs_(vocabs),
+      maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
   UTIL_THROW_IF2(paths_.size() != vocabs_.size(),
                  "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
     files_.emplace_back(new InputFileStream(path));
   }
-
 }
 
 SentenceTuple Corpus::next() {
@@ -124,11 +115,9 @@ SentenceTuple Corpus::next() {
     }
 
     cont = tup.size() == files_.size();
-    if(cont && std::all_of(tup.begin(), tup.end(),
-                           [=](const Words& words) {
-                             return words.size() > 0 &&
-                             words.size() <= maxLength_;
-                            }))
+    if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
+         return words.size() > 0 && words.size() <= maxLength_;
+       }))
       return tup;
   }
   return SentenceTuple(0);
@@ -164,8 +153,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   while(cont) {
     std::vector<std::string> lines(files_.size());
     for(int i = 0; i < files_.size(); ++i) {
-      cont = cont && std::getline((std::istream&)*files_[i],
-                                  lines[i]);
+      cont = cont && std::getline((std::istream&)*files_[i], lines[i]);
     }
     if(cont)
       corpus.push_back(lines);
@@ -180,7 +168,8 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   std::vector<UPtr<OutputFileStream>> outs;
   for(int i = 0; i < files_.size(); ++i) {
-    tempFiles_.emplace_back(new TemporaryFile(options_->get<std::string>("tempdir")));
+    tempFiles_.emplace_back(
+        new TemporaryFile(options_->get<std::string>("tempdir")));
     outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
   }
 
@@ -199,6 +188,5 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   LOG(data, "Done");
 }
-
 }
 }
