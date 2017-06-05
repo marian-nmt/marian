@@ -240,32 +240,6 @@ Matrix& CopyRow(Matrix& Out,
   return Out;
 }
 
-__global__ void gCopyRowsOld(MatrixWrapper<float> outWrap,
-                          const MatrixWrapper<float> inWrap,
-                          const MatrixWrapper<size_t> indicesWrap,
-                          float* out, const float* in)
-{
-  size_t numPairs = indicesWrap.size();
-  size_t cols = inWrap.dim(1);
-
-  for (int bid = 0; bid < numPairs; bid += gridDim.x) {
-    int indicesInd = bid + blockIdx.x;
-    if (indicesInd < numPairs) {
-      size_t dstId = indicesInd;
-      size_t srcId = indicesWrap[indicesInd];
-
-      float* rowOut = out + dstId * cols;
-      const float* rowIn = in + srcId * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = rowIn[i];
-      }
-    }
-  }
-}
-
 __global__ void gCopyRows(MatrixWrapper<float> outWrap,
                           const MatrixWrapper<float> inWrap,
                           const MatrixWrapper<size_t> indicesWrap,
@@ -273,16 +247,14 @@ __global__ void gCopyRows(MatrixWrapper<float> outWrap,
 {
   size_t numPairs = indicesWrap.size();
   size_t cols = inWrap.dim(1);
+
   size_t indicesInd = blockIdx.x;
-  size_t outRow =indicesWrap[indicesInd];
+  size_t inRow =indicesWrap[indicesInd];
 
-  float* rowOut = out + dstId * cols;
-  const float* rowIn = in + srcId * cols;
-
-  for(int tid = 0; tid < cols; tid += blockDim.x) {
-    int i = tid + threadIdx.x;
-    if(i < cols)
-      rowOut[i] = rowIn[i];
+  size_t colInd = threadIdx.x;
+  while (colInd < outWrap.dim(1)) {
+	  outWrap(indicesInd, colInd, 0, 0) = inWrap(inRow, colInd, 0, 0);
+	  colInd += gridDim.x;
   }
 }
 
@@ -305,7 +277,9 @@ Matrix& CopyRows(Matrix& Out,
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, indicesWrap, d_out, d_in);
 
+  /*
   cerr << "nBlocks=" << blocks << endl;
+  cerr << "threads=" << threads << endl;
   cerr << "Out=" << outWrap.Debug() << endl;
   cerr << "In=" << inWrap.Debug() << endl;
   cerr << "indices=" << indices.size() << endl;
@@ -313,7 +287,7 @@ Matrix& CopyRows(Matrix& Out,
     cerr << indices[i] << " ";
   }
   cerr << endl << endl;
-
+  */
 
   return Out;
 }
