@@ -40,3 +40,7 @@ build
 # Examples
 examples/*/*.gz
 examples/mnist/*ubyte
+
+# Contrib
+/.ycm_extra_conf.py
+/.vimrc
