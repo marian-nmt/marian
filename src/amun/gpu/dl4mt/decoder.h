@@ -61,6 +61,7 @@ class Decoder {
           Prod(State, Temp2_, w_.Wi_);
           if (w_.Gamma_) {
             Normalization(State, State, w_.Gamma_, w_.Bi_, 1e-9);
+            Element(Tanh(_1), State);
           } else {
             BroadcastVec(Tanh(_1 + _2), State, w_.Bi_);
           }
