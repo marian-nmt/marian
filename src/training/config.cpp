@@ -596,13 +596,22 @@ void Config::addOptions(int argc,
 
   if(!translate) {
     if(boost::filesystem::exists(vm_["model"].as<std::string>())
-       && (translate || !vm_["no-reload"].as<bool>())) {
+       && !vm_["no-reload"].as<bool>()) {
       try {
         loadModelParameters(vm_["model"].as<std::string>());
       } catch(std::runtime_error& e) {
         // @TODO do this with log
-        std::cerr << "No model settings found in model file" << std::endl;
+        LOG(info, "No model settings found in model file");
       }
+    }
+  }
+  else {
+    auto models = vm_["models"].as<std::vector<std::string>>();
+    auto model = models[0];
+    try {
+      loadModelParameters(model);
+    } catch(std::runtime_error& e) {
+      LOG(info, "No model settings found in model file");
     }
   }
 }
