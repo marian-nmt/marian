@@ -277,18 +277,6 @@ Matrix& CopyRows(Matrix& Out,
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, indicesWrap, d_out, d_in);
 
-  /*
-  cerr << "nBlocks=" << blocks << endl;
-  cerr << "threads=" << threads << endl;
-  cerr << "Out=" << outWrap.Debug() << endl;
-  cerr << "In=" << inWrap.Debug() << endl;
-  cerr << "indices=" << indices.size() << endl;
-  for (size_t i = 0; i < indices.size(); ++i) {
-    cerr << indices[i] << " ";
-  }
-  cerr << endl << endl;
-  */
-
   return Out;
 }
 
@@ -303,14 +291,16 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
-__global__ void gSlice(float* out, const float* in,
-                       size_t n, size_t dim,
-                       size_t rows, size_t cols) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
+__global__ void gSlice(MatrixWrapper<float> outWrap,
+						const MatrixWrapper<float> inWrap,
+						float* out, const float* in,
+                       size_t n, size_t dim)
+{
+  for(int bid = 0; bid < inWrap.dim(0); bid += gridDim.x) {
     int j = bid + blockIdx.x;
-    if(j < rows) {
+    if(j < inWrap.dim(0)) {
       float* rowOut = out + j * dim;
-      const float* rowIn = in + j * cols + n * dim;
+      const float* rowIn = in + j * inWrap.dim(1) + n * dim;
 
       for(int tid = 0; tid < dim; tid += blockDim.x) {
         int i = tid + threadIdx.x;
@@ -330,11 +320,23 @@ Matrix& Slice(Matrix& Out,
   float* d_out = Out.data();
   const float* d_in = In.data();
 
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> inWrap(In);
+
   int threads = std::min(MAX_THREADS, (int)dim);
   int blocks = std::min(MAX_BLOCKS, (int)In.dim(0));
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (d_out, d_in, n, dim, In.dim(0), In.dim(1));
+    (outWrap, inWrap, d_out, d_in, n, dim);
+
+  cerr << "nBlocks=" << blocks << endl;
+  cerr << "threads=" << threads << endl;
+  cerr << "n=" << n << endl;
+  cerr << "dim=" << dim << endl;
+  cerr << "Out=" << outWrap.Debug() << endl;
+  cerr << "In=" << inWrap.Debug() << endl;
+  cerr << std::endl;
+
   return Out;
 }
 
