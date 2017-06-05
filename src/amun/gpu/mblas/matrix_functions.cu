@@ -291,26 +291,6 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
-__global__ void gSliceOld(MatrixWrapper<float> outWrap,
-						const MatrixWrapper<float> inWrap,
-						float* out, const float* in,
-                       size_t n, size_t dim)
-{
-  for(int bid = 0; bid < inWrap.dim(0); bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < inWrap.dim(0)) {
-      float* rowOut = out + j * dim;
-      const float* rowIn = in + j * inWrap.dim(1) + n * dim;
-
-      for(int tid = 0; tid < dim; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < dim)
-          rowOut[i] = rowIn[i];
-      }
-    }
-  }
-}
-
 __global__ void gSlice(MatrixWrapper<float> outWrap,
 						          const MatrixWrapper<float> inWrap,
                        size_t n, size_t dim)
@@ -344,16 +324,6 @@ Matrix& Slice(Matrix& Out,
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, n, dim);
 
-  /*
-  cerr << "nBlocks=" << blocks << endl;
-  cerr << "threads=" << threads << endl;
-  cerr << "n=" << n << endl;
-  cerr << "dim=" << dim << endl;
-  cerr << "Out=" << outWrap.Debug() << endl;
-  cerr << "In=" << inWrap.Debug() << endl;
-  cerr << std::endl;
-  cudaDeviceSynchronize();
-  */
   return Out;
 }
 
@@ -482,7 +452,12 @@ __global__ void gSoftMax(float* softMaxP, size_t rows, size_t cols,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping,size_t srcSize) {
+Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping,size_t srcSize)
+{
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<int> batchIdsWrap(batchIds);
+  const MatrixWrapper<int> srcMappingWrap(srcMapping);
+
   int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   int shared = sizeof(float) * threads * 2;
@@ -491,6 +466,17 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
     (Out.data(), Out.dim(0), Out.dim(1),
      thrust::raw_pointer_cast(batchIds.data()), batchIds.size(),
      thrust::raw_pointer_cast(srcMapping.data()), srcSize);
+
+  cerr << "nBlocks=" << blocks << endl;
+  cerr << "threads=" << threads << endl;
+  cerr << "Out=" << outWrap.Debug() << endl;
+  cerr << "batchIds=" << Debug(batchIds, 2) << endl;
+  cerr << "srcMapping=" << Debug(srcMapping, 2) << endl;
+  cerr << "srcSize=" << srcSize << endl;
+  cerr << std::endl;
+
+  cudaDeviceSynchronize();
+
   return Out;
 }
 
