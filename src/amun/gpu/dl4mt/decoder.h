@@ -190,9 +190,11 @@ class Decoder {
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
+          size_t batchSize = SourceContext.dim(3);
 
+          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          mblas::Softmax(A_, dBatchMapping_, mapping);
+          mblas::Softmax(A_, dBatchMapping_, mapping, batchSize);
 
           AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
 

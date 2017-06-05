@@ -459,13 +459,14 @@ __global__ void gSoftMax(float* softMaxP,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping)
+Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t batchSize)
 {
   size_t srcSize = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<int> batchIdsWrap(batchIds);
-  const MatrixWrapper<int> srcMappingWrap(srcMapping);
+  const MatrixWrapper<int> srcMappingWrap(srcMapping, batchSize, srcSize, 1, 1);
+  //const MatrixWrapper<int> srcMappingWrap(srcMapping);
 
   int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
