@@ -291,7 +291,7 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
-__global__ void gSlice(MatrixWrapper<float> outWrap,
+__global__ void gSliceOld(MatrixWrapper<float> outWrap,
 						const MatrixWrapper<float> inWrap,
 						float* out, const float* in,
                        size_t n, size_t dim)
@@ -311,14 +311,29 @@ __global__ void gSlice(MatrixWrapper<float> outWrap,
   }
 }
 
+__global__ void gSlice(MatrixWrapper<float> outWrap,
+						          const MatrixWrapper<float> inWrap,
+                       size_t n, size_t dim)
+{
+  size_t row = blockIdx.x;
+
+  size_t inCol = threadIdx.x + dim * n;
+  size_t outCol = threadIdx.x;
+
+  while (outCol < outWrap.dim(1)) {
+    outWrap(row, outCol, 0, 0) = inWrap(row, inCol, 0, 0);
+
+    inCol += gridDim.x;
+    outCol += gridDim.x;
+  }
+
+}
+
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim) {
 
   Out.Resize(In.dim(0), dim);
-
-  float* d_out = Out.data();
-  const float* d_in = In.data();
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
@@ -327,8 +342,9 @@ Matrix& Slice(Matrix& Out,
   int blocks = std::min(MAX_BLOCKS, (int)In.dim(0));
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, d_out, d_in, n, dim);
+    (outWrap, inWrap, n, dim);
 
+  /*
   cerr << "nBlocks=" << blocks << endl;
   cerr << "threads=" << threads << endl;
   cerr << "n=" << n << endl;
@@ -336,7 +352,8 @@ Matrix& Slice(Matrix& Out,
   cerr << "Out=" << outWrap.Debug() << endl;
   cerr << "In=" << inWrap.Debug() << endl;
   cerr << std::endl;
-
+  cudaDeviceSynchronize();
+  */
   return Out;
 }
 
