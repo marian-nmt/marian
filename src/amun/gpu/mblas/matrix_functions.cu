@@ -623,11 +623,13 @@ void Fill(Matrix& In, float value) {
 }
 
 __global__
-void gMapMatrix(float* d_in, int numRows, int numCols, int mappingCols, const int* mapping, int i) {
+void gMapMatrix(MatrixWrapper<float> inWrap,
+                const MatrixWrapper<int> mappingWrap,
+                int numRows, int numCols, int mappingCols, int i) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid < numRows * numCols) {
     int batchIdx = tid / numCols;
-    d_in[tid] *= mapping[mappingCols * batchIdx + i];
+    inWrap[tid] *= mappingWrap[mappingCols * batchIdx + i];
   }
 }
 
@@ -643,11 +645,11 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   int numThreads = std::min((int)state.size(), MAX_THREADS);
   int numBlocks = (state.size() / numThreads) + 1;
 
-  float* d_in = state.data();
-  const int* d_mapping = thrust::raw_pointer_cast(mapping.data());
+  MatrixWrapper<float> stateWrap(state);
+  MatrixWrapper<int> mappingWrap(mapping);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
-    (d_in, batchSize, stateLength, sentenceLength, d_mapping, i);
+    (stateWrap, mappingWrap, batchSize, stateLength, sentenceLength, i);
 }
 
 __global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
