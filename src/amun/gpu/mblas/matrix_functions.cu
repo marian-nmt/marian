@@ -560,7 +560,7 @@ Matrix& LogSoftmax(Matrix& Out)
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   int shared = sizeof(float) * threads;
 
-  gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>>
+  gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (Out, Out.data());
 
   return Out;
@@ -596,13 +596,19 @@ __global__ void gFill(MatrixWrapper<float> inWrap, float val) {
 
 void Fill(Matrix& In, float value) {
   size_t size = In.size();
-  int nThreads = std::min(512, (int)size);
-  int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
 
-  MatrixWrapper<float> inWrap(In);
+  if (value) {
+    int nThreads = std::min(MAX_THREADS, (int)size);
+    int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
 
-  gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (inWrap, value);
+    MatrixWrapper<float> inWrap(In);
+
+    gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+      (inWrap, value);
+  }
+  else {
+    HANDLE_ERROR(cudaMemset(In.data(), 0, size * sizeof(float)));
+  }
 
   /*
   cerr << "nBlocks=" << nBlocks << endl;
@@ -612,7 +618,7 @@ void Fill(Matrix& In, float value) {
   cerr << "value=" << value << endl;
   cerr << std::endl;
 
-  cudaDeviceSynchronize();
+  HANDLE_ERROR(cudaDeviceSynchronize());
   */
 }
 
@@ -634,7 +640,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   int stateLength = state.dim(1);
   int sentenceLength = mapping.size() / batchSize;
 
-  int numThreads = std::min((int)state.size(), 512);
+  int numThreads = std::min((int)state.size(), MAX_THREADS);
   int numBlocks = (state.size() / numThreads) + 1;
 
   float* d_in = state.data();
