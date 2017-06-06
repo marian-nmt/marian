@@ -147,90 +147,76 @@ void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
 void Config::addOptionsCommon(po::options_description& desc,
                               bool translate = false) {
   po::options_description general("General options", guess_terminal_width());
-  general.add_options()(
-      "config,c", po::value<std::string>(), "Configuration file")(
-      "workspace,w",
-      po::value<size_t>()->default_value(translate ? 512 : 2048),
-      "Preallocate  arg  MB of work space")(
-      "log",
-      po::value<std::string>(),
-      "Log training process information to file given by  arg")(
-      "seed",
-      po::value<size_t>()->default_value(0),
-      "Seed for all random number generators. 0 means initialize randomly")(
-      "relative-paths",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "All paths are relative to the config file location")(
-      "dump-config",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Dump current (modified) configuration to stdout and exit")(
-      "help,h",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Print this help message and exit");
+  // clang-format off
+  general.add_options()
+    ("config,c", po::value<std::string>(),
+     "Configuration file")
+    ("workspace,w", po::value<size_t>()->default_value(translate ? 512 : 2048),
+      "Preallocate  arg  MB of work space")
+    ("log", po::value<std::string>(),
+     "Log training process information to file given by  arg")
+    ("seed", po::value<size_t>()->default_value(0),
+     "Seed for all random number generators. 0 means initialize randomly")
+    ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
+     "All paths are relative to the config file location")
+    ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
+     "Dump current (modified) configuration to stdout and exit")
+    ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
+      "Print this help message and exit")
+  ;
+  // clang-format on
   desc.add(general);
 }
 
 void Config::addOptionsModel(po::options_description& desc,
                              bool translate = false) {
   po::options_description model("Model options", guess_terminal_width());
-
+  // clang-format off
   if(!translate) {
-    model.add_options()("model,m",
-                        po::value<std::string>()->default_value("model.npz"),
-                        "Path prefix for model to be saved/resumed");
+    model.add_options()
+      ("model,m", po::value<std::string>()->default_value("model.npz"),
+      "Path prefix for model to be saved/resumed");
   } else {
-    model.add_options()(
-        "models,m",
-        po::value<std::vector<std::string>>()->multitoken()->default_value(
-            std::vector<std::string>({"model.npz"}), "model.npz"),
-        "Paths to model(s) to be loaded");
+    model.add_options()
+    ("models,m", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"model.npz"}), "model.npz"),
+     "Paths to model(s) to be loaded");
   }
 
-  model.add_options()("type",
-                      po::value<std::string>()->default_value("amun"),
-                      "Model type (possible values: amun, s2s, multi-s2s)")(
-      "dim-vocabs",
-      po::value<std::vector<int>>()->multitoken()->default_value(
-          std::vector<int>({50000, 50000}), "50000 50000"),
-      "Maximum items in vocabulary ordered by rank")(
-      "dim-emb",
-      po::value<int>()->default_value(512),
-      "Size of embedding vector")("dim-pos",
-                                  po::value<int>()->default_value(0),
-                                  "Size of position embedding vector")(
-      "dim-rnn",
-      po::value<int>()->default_value(1024),
-      "Size of rnn hidden state")("layers-enc",
-                                  po::value<int>()->default_value(1),
-                                  "Number of encoder layers (s2s)")(
-      "layers-dec",
-      po::value<int>()->default_value(1),
-      "Number of decoder layers (s2s)")(
-      "skip",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Use skip connections (s2s)")(
-      "layer-normalization",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Enable layer normalization")(
-      "special-vocab",
-      po::value<std::vector<size_t>>()->multitoken(),
-      "Model-specific special vocabulary ids")(
-      "tied-embeddings",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Tie target embeddings and output embeddings in output layer (s2s)");
+  model.add_options()
+    ("type", po::value<std::string>()->default_value("amun"),
+      "Model type (possible values: amun, s2s, multi-s2s)")
+    ("dim-vocabs", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
+     "Maximum items in vocabulary ordered by rank")
+    ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
+    ("dim-pos", po::value<int>()->default_value(0), "Size of position embedding vector")
+    ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers (s2s)")
+    ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers (s2s)")
+    ("skip", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use skip connections (s2s)")
+    ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable layer normalization")
+    ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
+     "Model-specific special vocabulary ids")
+    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie target embeddings and output embeddings in output layer (s2s)")
+    ;
 
   if(!translate) {
-    model.add_options()(
-        "dropout-rnn",
-        po::value<float>()->default_value(0),
-        "Scaling dropout along rnn layers and time (0 = no dropout)")(
-        "dropout-src",
-        po::value<float>()->default_value(0),
-        "Dropout source words (0 = no dropout)")(
-        "dropout-trg",
-        po::value<float>()->default_value(0),
-        "Dropout target words (0 = no dropout)");
+    model.add_options()
+      ("dropout-rnn", po::value<float>()->default_value(0),
+       "Scaling dropout along rnn layers and time (0 = no dropout)")
+      ("dropout-src", po::value<float>()->default_value(0),
+       "Dropout source words (0 = no dropout)")
+      ("dropout-trg", po::value<float>()->default_value(0),
+       "Dropout target words (0 = no dropout)")
+    ;
   }
+  // clang-format on
 
   modelFeatures_ = {
       "type",
@@ -252,173 +238,142 @@ void Config::addOptionsModel(po::options_description& desc,
 
 void Config::addOptionsTraining(po::options_description& desc) {
   po::options_description training("Training options", guess_terminal_width());
-  training.add_options()("overwrite",
-                         po::value<bool>()->zero_tokens()->default_value(false),
-                         "Overwrite model with following checkpoints")(
-      "no-reload",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Do not load existing model specified in --model arg")(
-      "train-sets,t",
-      po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to training corpora: source target")(
-      "vocabs,v",
-      po::value<std::vector<std::string>>()->multitoken(),
+  // clang-format off
+  training.add_options()
+    ("overwrite", po::value<bool>()->zero_tokens()->default_value(false),
+      "Overwrite model with following checkpoints")
+    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
+      "Do not load existing model specified in --model arg")
+    ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to training corpora: source target")
+    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files have to correspond to --trainsets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exists they are created.")(
-      "max-length",
-      po::value<size_t>()->default_value(50),
-      "Maximum length of a sentence in a training sentence pair")(
-      "after-epochs,e",
-      po::value<size_t>()->default_value(0),
-      "Finish after this many epochs, 0 is infinity")(
-      "after-batches",
-      po::value<size_t>()->default_value(0),
-      "Finish after this many batch updates, 0 is infinity")(
-      "disp-freq",
-      po::value<size_t>()->default_value(1000),
-      "Display information every  arg  updates")(
-      "save-freq",
-      po::value<size_t>()->default_value(10000),
-      "Save model file every  arg  updates")(
-      "no-shuffle",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Skip shuffling of training data before each epoch")(
-      "tempdir,T",
-      po::value<std::string>()->default_value("/tmp"),
-      "Directory for temporary (shuffled) files")(
-      "devices,d",
-      po::value<std::vector<int>>()->multitoken()->default_value(
-          std::vector<int>({0}), "0"),
-      "GPUs to use for training. Asynchronous SGD is used with multiple "
-      "devices.")("mini-batch",
-                  po::value<int>()->default_value(64),
-                  "Size of mini-batch used during update")(
-      "mini-batch-words",
-      po::value<int>()->default_value(0),
-      "Set mini-batch size based on words instead of sentences.")(
-      "dynamic-batching",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size dynamically based on sentence-length and "
-      "reserved memory")(
-      "maxi-batch",
-      po::value<int>()->default_value(100),
-      "Number of batches to preload for length-based sorting")(
-      "optimizer,o",
-      po::value<std::string>()->default_value("adam"),
-      "Optimization algorithm (possible values: sgd, adagrad, adam")(
-      "learn-rate,l",
-      po::value<double>()->default_value(0.0001),
-      "Learning rate")("clip-norm",
-                       po::value<double>()->default_value(1.f),
-                       "Clip gradient norm to  arg  (0 to disable)")(
-      "moving-average",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Maintain and save moving average of parameters")(
-      "moving-decay",
-      po::value<double>()->default_value(0.999),
-      "Decay factor for moving average")
-      //("lexical-table", po::value<std::string>(),
-      // "Load lexical table")
-      ("guided-alignment",
-       po::value<std::string>(),
-       "Use guided alignment to guide attention")(
-          "guided-alignment-cost",
-          po::value<std::string>()->default_value("ce"),
-          "Cost type for guided alignment. Possible values: ce "
-          "(cross-entropy), "
-          "mse (mean square error), mult (multiplication).")(
-          "guided-alignment-weight",
-          po::value<double>()->default_value(1),
-          "Weight for guided alignment cost")(
-          "drop-rate",
-          po::value<double>()->default_value(0),
-          "Gradient drop ratio. (read: https://arxiv.org/abs/1704.05021)");
+      "If these files do not exists they are created.")
+    ("max-length", po::value<size_t>()->default_value(50),
+      "Maximum length of a sentence in a training sentence pair")
+    ("after-epochs,e", po::value<size_t>()->default_value(0),
+      "Finish after this many epochs, 0 is infinity")
+    ("after-batches", po::value<size_t>()->default_value(0),
+      "Finish after this many batch updates, 0 is infinity")
+    ("disp-freq", po::value<size_t>()->default_value(1000),
+      "Display information every  arg  updates")
+    ("save-freq", po::value<size_t>()->default_value(10000),
+      "Save model file every  arg  updates")
+    ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
+    "Skip shuffling of training data before each epoch")
+    ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
+      "Directory for temporary (shuffled) files")
+    ("devices,d", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({0}), "0"),
+      "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
+    ("mini-batch", po::value<int>()->default_value(64),
+      "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences.")
+    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("maxi-batch", po::value<int>()->default_value(100),
+      "Number of batches to preload for length-based sorting")
+    ("optimizer,o", po::value<std::string>()->default_value("adam"),
+      "Optimization algorithm (possible values: sgd, adagrad, adam")
+    ("learn-rate,l", po::value<double>()->default_value(0.0001),
+      "Learning rate")
+    ("clip-norm", po::value<double>()->default_value(1.f),
+      "Clip gradient norm to  arg  (0 to disable)")
+    ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
+     "Maintain and save moving average of parameters")
+    ("moving-decay", po::value<double>()->default_value(0.999),
+     "Decay factor for moving average")
+    //("lexical-table", po::value<std::string>(),
+    // "Load lexical table")
+    ("guided-alignment", po::value<std::string>(),
+     "Use guided alignment to guide attention")
+    ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
+     "Cost type for guided alignment. Possible values: ce (cross-entropy), "
+     "mse (mean square error), mult (multiplication).")
+    ("guided-alignment-weight", po::value<double>()->default_value(1),
+     "Weight for guided alignment cost")
+    ("drop-rate", po::value<double>()->default_value(0),
+     "Gradient drop ratio. (read: https://arxiv.org/abs/1704.05021)")
+  ;
+  // clang-format on
   desc.add(training);
 }
 
 void Config::addOptionsValid(po::options_description& desc) {
   po::options_description valid("Validation set options",
                                 guess_terminal_width());
-  valid.add_options()("valid-sets",
-                      po::value<std::vector<std::string>>()->multitoken(),
-                      "Paths to validation corpora: source target")(
-      "valid-freq",
-      po::value<size_t>()->default_value(10000),
-      "Validate model every  arg  updates")(
-      "valid-metrics",
-      po::value<std::vector<std::string>>()->multitoken()->default_value(
-          std::vector<std::string>({"cross-entropy"}), "cross-entropy"),
-      "Metric to use during validation: cross-entropy, perplexity, "
-      "valid-script. "
-      "Multiple metrics can be specified")(
-      "valid-script-path",
-      po::value<std::string>(),
-      "Path to external validation script")(
-      "early-stopping",
-      po::value<size_t>()->default_value(10),
-      "Stop if the first validation metric does not improve for  arg  "
-      "consecutive "
-      "validation steps")(
-      "keep-best",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Keep best model for each validation metric")(
-      "valid-log",
-      po::value<std::string>(),
-      "Log validation scores to file given by  arg")
-      /*("beam-size", po::value<size_t>()->default_value(12),
-        "Beam size used during search with validating translator")
-      ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
-        "Normalize translation score by translation length")
-      ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
-        "Allow unknown words to appear in output")*/
-      ;
+  // clang-format off
+  valid.add_options()
+    ("valid-sets", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to validation corpora: source target")
+    ("valid-freq", po::value<size_t>()->default_value(10000),
+      "Validate model every  arg  updates")
+    ("valid-metrics", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"cross-entropy"}),
+                      "cross-entropy"),
+      "Metric to use during validation: cross-entropy, perplexity, valid-script. "
+      "Multiple metrics can be specified")
+    ("valid-script-path", po::value<std::string>(),
+     "Path to external validation script")
+    ("early-stopping", po::value<size_t>()->default_value(10),
+     "Stop if the first validation metric does not improve for  arg  consecutive "
+     "validation steps")
+    ("keep-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Keep best model for each validation metric")
+    ("valid-log", po::value<std::string>(),
+     "Log validation scores to file given by  arg")
+    /*("beam-size", po::value<size_t>()->default_value(12),
+      "Beam size used during search with validating translator")
+    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Normalize translation score by translation length")
+    ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
+      "Allow unknown words to appear in output")*/
+  ;
+  // clang-format on
   desc.add(valid);
 }
 
 void Config::addOptionsTranslate(po::options_description& desc) {
   po::options_description translate("Translator options",
                                     guess_terminal_width());
-  translate.add_options()(
-      "input,i",
-      po::value<std::vector<std::string>>()->multitoken()->default_value(
-          std::vector<std::string>({"stdin"}), "stdin"),
-      "Paths to input file(s), stdin by default")(
-      "vocabs,v",
-      po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --input.")(
-      "beam-size,b",
-      po::value<size_t>()->default_value(12),
-      "Beam size used during search")(
-      "normalize,n",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Normalize translation score by translation length")(
-      "allow-unk",
-      po::value<bool>()->zero_tokens()->default_value(false),
-      "Allow unknown words to appear in output")(
-      "max-length",
-      po::value<size_t>()->default_value(1000),
-      "Maximum length of a sentence in a training sentence pair")(
-      "devices,d",
-      po::value<std::vector<int>>()->multitoken()->default_value(
-          std::vector<int>({0}), "0"),
-      "GPUs to use for translating.")("mini-batch",
-                                      po::value<int>()->default_value(1),
-                                      "Size of mini-batch used during update")(
-      "maxi-batch",
-      po::value<int>()->default_value(1),
-      "Number of batches to preload for length-based sorting")(
-      "n-best",
-      po::value<bool>()->zero_tokens()->default_value(false),
+  // clang-format off
+  translate.add_options()
+    ("input,i", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"stdin"}), "stdin"),
+      "Paths to input file(s), stdin by default")
+    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to vocabulary files have to correspond to --input.")
+    ("beam-size,b", po::value<size_t>()->default_value(12),
+      "Beam size used during search")
+    ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
+      "Normalize translation score by translation length")
+    ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
+      "Allow unknown words to appear in output")
+    ("max-length", po::value<size_t>()->default_value(1000),
+      "Maximum length of a sentence in a training sentence pair")
+    ("devices,d", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({0}), "0"),
+      "GPUs to use for translating.")
+    ("mini-batch", po::value<int>()->default_value(1),
+      "Size of mini-batch used during update")
+    ("maxi-batch", po::value<int>()->default_value(1),
+      "Number of batches to preload for length-based sorting")
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
-      //("lexical-table", po::value<std::string>(),
-      // "Path to lexical table")
-      ("weights",
-       po::value<std::vector<float>>()->multitoken(),
-       "Scorer weights")
-
-      ;
+    //("lexical-table", po::value<std::string>(),
+    // "Path to lexical table")
+    ("weights", po::value<std::vector<float>>()
+      ->multitoken(),
+      "Scorer weights")
+  ;
+  // clang-format on
   desc.add(translate);
 }
 
@@ -445,7 +400,6 @@ void Config::addOptions(int argc,
     po::notify(vm_);
   } catch(std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl << std::endl;
-
     std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
     std::cerr << cmdline_options_ << std::endl;
     exit(1);
