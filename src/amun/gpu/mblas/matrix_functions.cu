@@ -617,13 +617,13 @@ void gMapMatrix(MatrixWrapper<float> inWrap,
                 const MatrixWrapper<int> mappingWrap,
                 int mappingCols, int i)
 {
-  int numRows = inWrap.dim(0);
-  int numCols = inWrap.dim(1);
-
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid < numRows * numCols) {
+  if (tid < inWrap.size()) {
+    int numCols = inWrap.dim(1);
     int batchIdx = tid / numCols;
-    inWrap[tid] *= mappingWrap[mappingCols * batchIdx + i];
+    int col = tid % numCols;
+
+    inWrap(batchIdx, col, 0, 0) *= mappingWrap(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
   }
 }
 
@@ -640,7 +640,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   int numBlocks = (state.size() / numThreads) + 1;
 
   MatrixWrapper<float> stateWrap(state);
-  MatrixWrapper<int> mappingWrap(mapping);
+  MatrixWrapper<int> mappingWrap(mapping, sentenceLength, batchSize, 1, 1);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (stateWrap, mappingWrap, sentenceLength, i);
