@@ -179,13 +179,13 @@ public:
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
 
     bool amun = options_->get<std::string>("type") == "amun";
-    UTIL_THROW_IF2(options_->get<bool>("skip"),
+    UTIL_THROW_IF2(amun && options_->get<bool>("skip"),
                    "--type amun does not currently support skip connections, "
                    "use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("layers-dec") > 1,
+    UTIL_THROW_IF2(amun && options_->get<int>("layers-dec") > 1,
                    "--type amun does not currently support multiple decoder "
                    "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<bool>("tied-embeddings"),
+    UTIL_THROW_IF2(amun && options_->get<bool>("tied-embeddings"),
                    "--type amun does not currently support tied embeddings, "
                    "use --type s2s");
 
