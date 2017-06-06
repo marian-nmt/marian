@@ -490,8 +490,9 @@ __global__ void gLogSoftMax(MatrixWrapper<float> outWrap, float* softMaxP)
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
-        if (outWrap(rowIdx, id, 0, 0) > _max[threadIdx.x]) {
-          _max[threadIdx.x] = outWrap(rowIdx, id, 0, 0);
+        const float &val = outWrap(rowIdx, id, 0, 0);
+        if (val > _max[threadIdx.x]) {
+          _max[threadIdx.x] = val;
         }
       }
     }
@@ -518,8 +519,9 @@ __global__ void gLogSoftMax(MatrixWrapper<float> outWrap, float* softMaxP)
       int id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = exp(row[id] - max);
-        outWrap(rowIdx, id, 0, 0) = __expf(outWrap(rowIdx, id, 0, 0) - max);
-        _sum[threadIdx.x] += outWrap(rowIdx, id, 0, 0);
+        float &val = outWrap(rowIdx, id, 0, 0);
+        val = __expf(val - max);
+        _sum[threadIdx.x] += val;
       }
     }
 
@@ -540,7 +542,8 @@ __global__ void gLogSoftMax(MatrixWrapper<float> outWrap, float* softMaxP)
       int id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = log(row[id]/_sum[0]);
-        outWrap(rowIdx, id, 0, 0) = __logf(outWrap(rowIdx, id, 0, 0) /_sum[0]);
+        float &val = outWrap(rowIdx, id, 0, 0);
+        val = __logf(val /_sum[0]);
       }
     }
     __syncthreads();
