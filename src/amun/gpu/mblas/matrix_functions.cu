@@ -663,9 +663,12 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
                                 const MatrixWrapper<float> alphaWrap,
                                 const MatrixWrapper<float> betaWrap,
                                 float* out, const float* in, const float* alpha, const float* beta,
-                                int rows, int cols, float eps=0.00001)
+                                float eps=0.00001)
 {
   extern __shared__ float _share[];
+
+  int rows = inWrap.dim(0);
+  int cols = inWrap.dim(1);
 
   for (int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -735,12 +738,13 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Matrix& beta,
                        float eps) {
-  int numThreads = std::min((int)in.dim(1), 512);
 
   out.Reshape(in.dim(0), in.dim(1), 1, 1);
 
   int rows = in.dim(0);
   int cols = in.dim(1);
+
+  int numThreads = std::min(cols, MAX_THREADS);
   int numBlocks = std::min(rows, 65000);
   int shared = numThreads * sizeof(float) * 2;
 
@@ -750,17 +754,29 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
   const MatrixWrapper<float> betaWrap(beta);
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), beta.data(), rows, cols, eps);
+    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), beta.data(), eps);
+
+  cerr << "nBlocks=" << numBlocks << endl;
+  cerr << "nThreads=" << numThreads << endl;
+  cerr << "outWrap=" << outWrap.Debug() << endl;
+  cerr << "inWrap=" << inWrap.Debug() << endl;
+  cerr << "alphaWrap=" << alphaWrap.Debug() << endl;
+  cerr << "betaWrap=" << betaWrap.Debug() << endl;
+  cerr << "eps=" << eps << endl;
+  cerr << std::endl;
+
+  HANDLE_ERROR(cudaDeviceSynchronize());
+
 }
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)
 {
-  int numThreads = std::min((int)in.dim(1), 512);
-
   out.Reshape(in.dim(0), in.dim(1), 1, 1);
 
   int rows = in.dim(0);
   int cols = in.dim(1);
+
+  int numThreads = std::min(cols, MAX_THREADS);
   int numBlocks = std::min(rows, 65000);
   int shared = numThreads * sizeof(float) * 2;
 
@@ -770,7 +786,18 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
   const MatrixWrapper<float> betaWrap;
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), nullptr, rows, cols, eps);
+    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), nullptr, eps);
+
+  cerr << "nBlocks=" << numBlocks << endl;
+  cerr << "nThreads=" << numThreads << endl;
+  cerr << "outWrap=" << outWrap.Debug() << endl;
+  cerr << "inWrap=" << inWrap.Debug() << endl;
+  cerr << "alphaWrap=" << alphaWrap.Debug() << endl;
+  cerr << "betaWrap=" << betaWrap.Debug() << endl;
+  cerr << "eps=" << eps << endl;
+  cerr << std::endl;
+
+  HANDLE_ERROR(cudaDeviceSynchronize());
 }
 
 }  // namespace mblas
