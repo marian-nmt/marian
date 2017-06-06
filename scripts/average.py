@@ -22,11 +22,12 @@ for filename in args.model:
       if k != "history_errs":
         if k not in average:
           average[k] = m[k]
-        elif average[k].shape == m[k].shape:
+        elif average[k].shape == m[k].shape and "special" not in k:
           average[k] += m[k]
 
 for k in average:
-  average[k] /= n
+  if "special" not in k:
+    average[k] /= n
 
 print "Saving to", args.output
 np.savez(args.output, **average)
