@@ -578,13 +578,32 @@ __global__ void gSetColumn(MatrixWrapper<float> inWrap, int noColumn, float valu
 
 void SetColumn(Matrix& In, int noColumn, float value) {
   int nRows = In.dim(0);
-  int nBlocks = nRows / 512 + ((nRows % 512 == 0) ?  0 : 1);
-  int nThreads = std::min(512, nRows);
+  int nBlocks = nRows / MAX_THREADS + ((nRows % MAX_THREADS == 0) ?  0 : 1);
+  int nThreads = std::min(MAX_THREADS, nRows);
 
   MatrixWrapper<float> inWrap(In);
 
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
     (inWrap, noColumn, value);
+}
+
+__global__ void gFill(MatrixWrapper<float> inWrap, float val) {
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+  if (index < inWrap.size()) {
+    inWrap[index] = val;
+  }
+}
+
+void Fill(Matrix& In, float value) {
+  size_t size = In.size();
+  int nThreads = std::min(512, (int)size);
+  int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
+
+  MatrixWrapper<float> inWrap(In);
+
+  gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (inWrap, value);
+
   /*
   cerr << "nBlocks=" << nBlocks << endl;
   cerr << "nThreads=" << nThreads << endl;
@@ -595,22 +614,6 @@ void SetColumn(Matrix& In, int noColumn, float value) {
 
   cudaDeviceSynchronize();
   */
-}
-
-__global__ void gFill(float* d_in, int size, float val) {
-  int index = threadIdx.x + blockDim.x * blockIdx.x;
-  if (index < size) {
-    d_in[index] = val;
-  }
-}
-
-void Fill(Matrix& In, float value) {
-  size_t size = In.size();
-  int nThreads = std::min(512, (int)size);
-  int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
-
-  gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (In.data(), size, value);
 }
 
 __global__
