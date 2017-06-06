@@ -1,6 +1,6 @@
 #pragma once
 
-#define MAX_THREADS 512
+#define MAX_THREADS 1024
 #define MAX_BLOCKS 65535
 
 #include <cmath>
