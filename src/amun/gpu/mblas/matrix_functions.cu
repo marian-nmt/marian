@@ -557,7 +557,7 @@ Matrix& LogSoftmax(Matrix& Out)
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   int shared = sizeof(float) * threads;
 
-  gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
+  gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>>
     (Out, Out.data());
 
   /*
