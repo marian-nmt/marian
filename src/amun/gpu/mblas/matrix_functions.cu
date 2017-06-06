@@ -645,7 +645,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (stateWrap, mappingWrap, sentenceLength, i);
 
-
+  /*
   cerr << "nBlocks=" << numBlocks << endl;
   cerr << "nThreads=" << numThreads << endl;
   cerr << "stateWrap=" << stateWrap.Debug() << endl;
@@ -654,7 +654,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-
+  */
 }
 
 __global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
