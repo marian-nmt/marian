@@ -610,22 +610,16 @@ void Fill(Matrix& In, float value) {
     HANDLE_ERROR(cudaMemset(In.data(), 0, size * sizeof(float)));
   }
 
-  /*
-  cerr << "nBlocks=" << nBlocks << endl;
-  cerr << "nThreads=" << nThreads << endl;
-  cerr << "inWrap=" << inWrap.Debug() << endl;
-  cerr << "noColumn=" << noColumn << endl;
-  cerr << "value=" << value << endl;
-  cerr << std::endl;
-
-  HANDLE_ERROR(cudaDeviceSynchronize());
-  */
 }
 
 __global__
 void gMapMatrix(MatrixWrapper<float> inWrap,
                 const MatrixWrapper<int> mappingWrap,
-                int numRows, int numCols, int mappingCols, int i) {
+                int mappingCols, int i)
+{
+  int numRows = inWrap.dim(0);
+  int numCols = inWrap.dim(1);
+
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid < numRows * numCols) {
     int batchIdx = tid / numCols;
@@ -649,7 +643,18 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   MatrixWrapper<int> mappingWrap(mapping);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
-    (stateWrap, mappingWrap, batchSize, stateLength, sentenceLength, i);
+    (stateWrap, mappingWrap, sentenceLength, i);
+
+
+  cerr << "nBlocks=" << numBlocks << endl;
+  cerr << "nThreads=" << numThreads << endl;
+  cerr << "stateWrap=" << stateWrap.Debug() << endl;
+  cerr << "mapping=" << Debug(mapping, 2) << endl;
+  cerr << "i=" << i << endl;
+  cerr << std::endl;
+
+  HANDLE_ERROR(cudaDeviceSynchronize());
+
 }
 
 __global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
