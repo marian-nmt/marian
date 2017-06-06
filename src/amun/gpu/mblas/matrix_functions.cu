@@ -472,6 +472,7 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, batchIdsWrap, srcMappingWrap);
 
+  /*
   cerr << "nBlocks=" << blocks << endl;
   cerr << "threads=" << threads << endl;
   cerr << "Out=" << outWrap.Debug() << endl;
@@ -487,7 +488,7 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   cerr << std::endl;
 
   cudaDeviceSynchronize();
-
+  */
   return Out;
 }
 
