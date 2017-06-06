@@ -563,35 +563,38 @@ Matrix& LogSoftmax(Matrix& Out)
   gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>>
     (Out, Out.data());
 
-  /*
-  cerr << "nBlocks=" << blocks << endl;
-  cerr << "threads=" << threads << endl;
-  cerr << "Out=" << outWrap.Debug() << endl;
-  cerr << std::endl;
-
-  cudaDeviceSynchronize();
-  */
-
   return Out;
 }
 
-__global__ void gSetColumn(float* d_in, int n_columns, int n_rows, int noColumn, float value) {
-  int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
-  int index = noColumn + rowNumber * n_columns;
+__global__ void gSetColumn(MatrixWrapper<float> inWrap, int noColumn, float value) {
+  int n_rows = inWrap.dim(0);
 
-  if (index < n_columns * n_rows) {
-    d_in[index] = value;
+  int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
+
+  if (rowNumber < n_rows) {
+    inWrap(rowNumber, noColumn, 0, 0) = value;
   }
 }
 
 void SetColumn(Matrix& In, int noColumn, float value) {
-  int nColumns = In.dim(1);
   int nRows = In.dim(0);
   int nBlocks = nRows / 512 + ((nRows % 512 == 0) ?  0 : 1);
   int nThreads = std::min(512, nRows);
 
+  MatrixWrapper<float> inWrap(In);
+
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
-    (In.data(), nColumns, nRows, noColumn, value);
+    (inWrap, noColumn, value);
+  /*
+  cerr << "nBlocks=" << nBlocks << endl;
+  cerr << "nThreads=" << nThreads << endl;
+  cerr << "inWrap=" << inWrap.Debug() << endl;
+  cerr << "noColumn=" << noColumn << endl;
+  cerr << "value=" << value << endl;
+  cerr << std::endl;
+
+  cudaDeviceSynchronize();
+  */
 }
 
 __global__ void gFill(float* d_in, int size, float val) {
