@@ -623,6 +623,7 @@ void gMapMatrix(MatrixWrapper<float> inWrap,
     int batchIdx = tid / numCols;
     int col = tid % numCols;
 
+    //inWrap[tid] *= mappingWrap(i, batchIdx, 0, 0);
     inWrap(batchIdx, col, 0, 0) *= mappingWrap(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
   }
 }

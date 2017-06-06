@@ -336,8 +336,6 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 
 template <class Functor>
 __global__ void gElement(Functor functor,
-                         float* out, const float* in,
-                         size_t rows, size_t cols,
                          MatrixWrapper<float> outWrap,
                          const MatrixWrapper<float> inWrap)
 {
@@ -364,22 +362,17 @@ Matrix& Element(Functor functor,
   const MatrixWrapper<float> inWrap(In);
 
   gElement<<<blocks, threads, 0, stream>>>
-    (functor, d_out, d_in, Out.dim(0), Out.dim(1),
-        outWrap, inWrap);
+    (functor, outWrap, inWrap);
 
   return Out;
 }
 
 template <class Functor>
 __global__ void gElement(Functor functor,
-                         float* out, const float* in1, const float* in2,
-                         size_t rows, size_t cols,
                          MatrixWrapper<float> outWrap,
                          const MatrixWrapper<float> in1Wrap,
                          const MatrixWrapper<float> in2Wrap)
 {
-  //printf("gridDim.x=%i blockDim.x=%i blockIdx=%i threadIdx.x=%i:\n ", gridDim.x, blockDim.x, blockIdx.x, threadIdx.x);
-
   size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
     outWrap[ind] = functor(outWrap[ind], in1Wrap[ind], in2Wrap[ind]);
@@ -411,8 +404,7 @@ Matrix& Element(Functor functor,
   //std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
 
   gElement<<<blocks, threads, 0, stream>>>
-    (functor, d_out, d_in1, d_in2, Out.dim(0), Out.dim(1),
-        outWrap, in1Wrap, in2Wrap);
+    (functor, outWrap, in1Wrap, in2Wrap);
 
   //HANDLE_ERROR( cudaPeekAtLastError() );
   //HANDLE_ERROR( cudaDeviceSynchronize() );
