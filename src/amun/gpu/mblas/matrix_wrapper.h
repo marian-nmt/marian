@@ -9,6 +9,18 @@ template <typename T>
 class MatrixWrapper
 {
 public:
+  MatrixWrapper()
+  {
+    dim_[0] = 0;
+    dim_[1] = 0;
+    dim_[2] = 0;
+    dim_[3] = 0;
+    updateStrides();
+
+    data_ = nullptr;
+    dataConst_ = nullptr;
+  }
+
   MatrixWrapper(const TMatrix<T> &matrix)
   {
     dim_[0] = matrix.dim(0);

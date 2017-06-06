@@ -658,8 +658,13 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   */
 }
 
-__global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
-                                    int rows, int cols, float eps=0.00001) {
+__global__ void gLNormalization(MatrixWrapper<float> outWrap,
+                                const MatrixWrapper<float> inWrap,
+                                const MatrixWrapper<float> alphaWrap,
+                                const MatrixWrapper<float> betaWrap,
+                                float* out, const float* in, const float* alpha, const float* beta,
+                                int rows, int cols, float eps=0.00001)
+{
   extern __shared__ float _share[];
 
   for (int bid = 0; bid < rows; bid += gridDim.x) {
@@ -739,11 +744,17 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
   int numBlocks = std::min(rows, 65000);
   int shared = numThreads * sizeof(float) * 2;
 
+  MatrixWrapper<float> outWrap(out);
+  const MatrixWrapper<float> inWrap(in);
+  const MatrixWrapper<float> alphaWrap(alpha);
+  const MatrixWrapper<float> betaWrap(beta);
+
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (out.data(), in.data(), alpha.data(), beta.data(), rows, cols, eps);
+    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), beta.data(), rows, cols, eps);
 }
 
-void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps) {
+void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)
+{
   int numThreads = std::min((int)in.dim(1), 512);
 
   out.Reshape(in.dim(0), in.dim(1), 1, 1);
@@ -753,8 +764,13 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
   int numBlocks = std::min(rows, 65000);
   int shared = numThreads * sizeof(float) * 2;
 
+  MatrixWrapper<float> outWrap(out);
+  const MatrixWrapper<float> inWrap(in);
+  const MatrixWrapper<float> alphaWrap(alpha);
+  const MatrixWrapper<float> betaWrap;
+
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (out.data(), in.data(), alpha.data(), nullptr, rows, cols, eps);
+    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), nullptr, rows, cols, eps);
 }
 
 }  // namespace mblas
