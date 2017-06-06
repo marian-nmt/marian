@@ -475,8 +475,12 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   return Out;
 }
 
-__global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
+__global__ void gLogSoftMax(MatrixWrapper<float> outWrap, float* softMaxP)
+{
   extern __shared__ float _share[];
+
+  size_t rows = outWrap.dim(0);
+  size_t cols = outWrap.dim(1);
 
   int rowIdx =  blockIdx.x;
 
@@ -547,31 +551,23 @@ __global__ void gLogSoftMax(float* softMaxP, size_t rows, size_t cols) {
 }
 
 
-Matrix& LogSoftmax(Matrix& Out) {
+Matrix& LogSoftmax(Matrix& Out)
+{
+  MatrixWrapper<float> outWrap(Out);
+
   int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
   int shared = sizeof(float) * threads;
 
   gLogSoftMax<<<blocks, 500, shared, CudaStreamHandler::GetStream()>>>
-    (Out.data(), Out.dim(0), Out.dim(1));
+    (Out, Out.data());
 
-  /*
   cerr << "nBlocks=" << blocks << endl;
   cerr << "threads=" << threads << endl;
   cerr << "Out=" << outWrap.Debug() << endl;
-
-  cerr << "batchIdsWrap=" << batchIdsWrap.Debug() << endl;
-  cerr << Debug(batchIds, 2) << endl;
-
-  cerr << "srcMappingWrap=" << srcMappingWrap.Debug() << endl;
-  cerr << Debug(srcMapping, 2) << endl;
-
-  cerr << "srcSize=" << srcSize << endl;
-  cerr << "batchSize=" << batchSize << endl;
   cerr << std::endl;
 
   cudaDeviceSynchronize();
-  */
 
   return Out;
 }
