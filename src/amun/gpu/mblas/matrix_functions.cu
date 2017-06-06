@@ -475,7 +475,7 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   return Out;
 }
 
-__global__ void gLogSoftMax(MatrixWrapper<float> outWrap, float* softMaxP)
+__global__ void gLogSoftMax(MatrixWrapper<float> outWrap)
 {
   extern __shared__ float _share[];
 
@@ -561,7 +561,7 @@ Matrix& LogSoftmax(Matrix& Out)
   int shared = sizeof(float) * threads;
 
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (Out, Out.data());
+    (Out);
 
   return Out;
 }
