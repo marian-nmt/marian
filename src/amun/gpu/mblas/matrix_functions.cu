@@ -487,8 +487,9 @@ __global__ void gSoftMax(float* softMaxP,
       int id = tid + threadIdx.x;
       if (id < cols) {
         float value = row[id];
+
         //value *= srcMappingWrap[ batchIdsWrap[rowIdx] * srcNum + id ];
-        value *= srcMappingWrap(batchIdsWrap[rowIdx], id, 0, 0);
+        value *= srcMappingWrap(id, batchIdsWrap[rowIdx], 0, 0);
         if (value > _max[threadIdx.x]) {
           _max[threadIdx.x] = value;
         }
@@ -517,17 +518,7 @@ __global__ void gSoftMax(float* softMaxP,
       if (id < cols) {
         row[id] = __expf(row[id] - max);
 
-        size_t t1 = batchIdsWrap[rowIdx] * srcNum + id;
-        size_t t2 = srcMappingWrap.indices2Id(batchIdsWrap[rowIdx], id, 0, 0);
-        if( t1 != t2) {
-          printf("%d != %d dim=%lu %lu %lu %lu  stride=%lu %lu %lu %lu \n", t1, t2,
-              srcMappingWrap.dim(0), srcMappingWrap.dim(1), srcMappingWrap.dim(2), srcMappingWrap.dim(3),
-              srcMappingWrap.stride(0), srcMappingWrap.stride(1), srcMappingWrap.stride(2), srcMappingWrap.stride(3));
-          assert(false);
-        }
-
-        //row[id] *= srcMappingWrap[ batchIdsWrap[rowIdx] * srcNum + id ];
-        row[id] *= srcMappingWrap(batchIdsWrap[rowIdx], id, 0, 0);
+        row[id] *= srcMappingWrap(id, batchIdsWrap[rowIdx], 0, 0);
         _sum[threadIdx.x] += row[id];
       }
     }
@@ -564,8 +555,7 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<int> batchIdsWrap(batchIds);
-  const MatrixWrapper<int> srcMappingWrap(srcMapping, batchSize, srcSize, 1, 1);
-  //const MatrixWrapper<int> srcMappingWrap(srcMapping);
+  const MatrixWrapper<int> srcMappingWrap(srcMapping, srcSize, batchSize, 1, 1);
 
   int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
