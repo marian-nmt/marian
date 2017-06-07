@@ -321,10 +321,11 @@ __global__ void gBroadcastVec(Functor functor,
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
-    float vecValue = inWrap[noColumn];
+    float vecValue = inWrap(0, noColumn, 0, 0);
     int index = noColumn;
     for (int noRow = 0; noRow < rows; ++noRow) {
-      outWrap[index] = functor(outWrap[index], vecValue);
+      float &val = outWrap[index]; // sometimes [1 1024 1 19(batch)], sometime [19 500 1 1]
+      val = functor(val, vecValue);
       index += cols;
     }
   }
