@@ -194,9 +194,11 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<float> in2Wrap,
                            const MatrixWrapper<int> batchMappingWrap,
                            float* out, const float* in1, const float* in2,
-                           size_t srcSize, size_t sumBeams, size_t cols)
+                           size_t srcSize)
 {
   size_t inRows = in2Wrap.dim(0);
+  size_t cols  = in1Wrap.dim(1);
+
   size_t outSize = outWrap.size();
   size_t in1Size = in1Wrap.size();
   size_t in2Size = in2Wrap.size();
@@ -246,7 +248,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
     (functor,
         outWrap, in1Wrap, in2Wrap, batchMappingWrap,
         d_out, d_in1, d_in2,
-        srcSize, batchMapping.size(), cols);
+        srcSize);
 
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
