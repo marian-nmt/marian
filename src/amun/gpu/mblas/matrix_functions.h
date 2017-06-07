@@ -203,14 +203,19 @@ __global__ void gBroadcast(Functor functor,
     size_t indices[SHAPE_SIZE];
     outWrap.id2Indices(id, indices);
 
-    int row = id / cols;
+    int row = id / cols; // len * batch for in1
+    //assert(row == indices[2]);
 
-    int batchMappingIdx = row / srcSize;
-    int srcId = row % srcSize;
+    int batchMappingIdx = row / srcSize; // batch for in1
+    int srcId = row % srcSize;  // source pos for in1
     //assert(batchMappingIdx == indices[0]);
     //assert(srcId == indices[2]);
+    //assert(row == srcId);
+    //if (srcId != indices[2]) {
+    //  printf("srcId=%d indices[2]=%lu \n", srcId, indices[2]);
+    //}
 
-    int batchIdx = batchMappingWrap[batchMappingIdx];
+    int batchIdx = batchMappingWrap[batchMappingIdx]; // batch id for in1
 
     //assert((batchIdx * srcSize + srcId) * cols + indices[1] < in1Wrap.size());
     //assert(batchIdx * cols + indices[1] < in2Wrap.size());
@@ -405,6 +410,10 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In1, const Matrix& In2)
 {
+  //std::cerr << "Out=" << Out.Debug() << std::endl;
+  //std::cerr << "In1=" << In1.Debug() << std::endl;
+  //std::cerr << "In2=" << In2.Debug() << std::endl;
+
   assert(Out.size() == In1.size());
   assert(Out.size() == In2.size());
 
