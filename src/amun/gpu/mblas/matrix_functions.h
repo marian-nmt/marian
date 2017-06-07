@@ -192,9 +192,9 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
-                           const MatrixWrapper<int> batchMappingWrap,
-                           size_t srcSize)
+                           const MatrixWrapper<int> batchMappingWrap)
 {
+  size_t srcSize = outWrap.dim(2);
   size_t inRows = in2Wrap.dim(0);
   size_t cols  = in1Wrap.dim(1);
 
@@ -216,6 +216,12 @@ __global__ void gBroadcast(Functor functor,
 
     assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
     assert(beamIdx * cols + stateIdx < in2Size);
+
+    /*
+    outWrap(indices[0], indices[1], indices[2], indices[3])
+      = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+                          in2Wrap(indices[0], indices[1], 0, 0) );
+    */
 
     outWrap(indices[0], indices[1], indices[2], indices[3])
       = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
@@ -243,14 +249,14 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor,
-        outWrap, in1Wrap, in2Wrap, batchMappingWrap,
-        srcSize);
+        outWrap, in1Wrap, in2Wrap, batchMappingWrap);
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
   std::cerr << "in1Wrap=" << in1Wrap.Debug() << std::endl;
   std::cerr << "in2Wrap=" << in2Wrap.Debug() << std::endl;
-  std::cerr << "batchMappingWrap=" << batchMappingWrap.Debug() << std::endl;
+  std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
+  std::cerr << "srcSize=" << srcSize << std::endl;
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
