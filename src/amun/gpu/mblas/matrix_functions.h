@@ -142,53 +142,6 @@ Matrix& LogSoftmax(Matrix& Out);
 
 template <class Functor>
 __global__ void gBroadcast(Functor functor,
-                            float* out, const float* in1, const float* in2,
-                            size_t rows, size_t rows1, size_t cols) {
-  for (int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if (j < rows) {
-      float* rowOut = out + j * cols;
-
-      const float* rowIn1 = in1 + (j % rows1) * cols;
-      const float* rowIn2 = in2 + (j / rows1) * cols;
-
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = functor(rowIn1[i], rowIn2[i]);
-      }
-    }
-  }
-}
-
-template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In) {
-  size_t rows1 = OutOrig.dim(0);
-  size_t rows2 = In.dim(0);
-
-  size_t rows = rows1 * rows2;
-  size_t cols  = OutOrig.dim(1);
-
-  thread_local static Matrix Temp;
-  Temp.Resize(rows, cols);
-  mblas::Fill(Temp, 1.0f);
-
-  float* d_out = Temp.data();
-  const float* d_in1 = OutOrig.data();
-  const float* d_in2 = In.data();
-
-  int blocks  = std::min(MAX_BLOCKS, (int)rows);
-  int threads = std::min(MAX_THREADS, (int)cols);
-
-  gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (functor, d_out, d_in1, d_in2, rows, rows1, cols);
-
-  Swap(OutOrig, Temp);
-  return OutOrig;
-}
-
-template <class Functor>
-__global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
@@ -222,7 +175,7 @@ __global__ void gBroadcast(Functor functor,
 
 
     outWrap(indices[0], indices[1], indices[2], indices[3])
-      = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
+                = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
                           in2Wrap(batchMappingIdx, indices[1], 0, 0) );
 
 
@@ -251,8 +204,9 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   int blocks  = (OutNew.size() / threads) + 1;
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (functor,
-        outWrap, in1Wrap, in2Wrap, batchMappingWrap);
+    (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
+
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -263,20 +217,10 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
+  */
 
   Swap(OutOrig, OutNew);
   return OutOrig;
-}
-
-template <class Functor>
-Matrix& BroadcastColumn(Functor functor, Matrix& Out, const Matrix& In) {
-  Matrix InTemp;
-  Transpose(InTemp, In);
-
-  Transpose(Out);
-  Broadcast(functor, Out, InTemp);
-  Transpose(Out);
-  return Out;
 }
 
 template <class Functor>
