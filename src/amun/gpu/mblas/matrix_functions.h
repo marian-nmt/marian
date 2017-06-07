@@ -207,20 +207,19 @@ __global__ void gBroadcast(Functor functor,
     outWrap.id2Indices(id, indices);
 
     int row = id / cols;
-    int stateIdx = id % cols;
 
     int beamIdx = row / srcSize;
     int srcId = row % srcSize;
 
     int batchIdx = batchMappingWrap[beamIdx];
 
-    assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
-    assert(beamIdx * cols + stateIdx < in2Size);
+    assert((batchIdx * srcSize + srcId) * cols + indices[1] < in1Size);
+    assert(beamIdx * cols + indices[1] < in2Size);
 
 
     outWrap(indices[0], indices[1], indices[2], indices[3])
-      = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
-                          in2Wrap(beamIdx, stateIdx, 0, 0) );
+      = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
+                          in2Wrap(beamIdx, indices[1], 0, 0) );
 
 
     //outWrap(indices[0], indices[1], indices[2], indices[3])
