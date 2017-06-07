@@ -193,7 +193,6 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
                            const MatrixWrapper<int> batchMappingWrap,
-                           float* out, const float* in1, const float* in2,
                            size_t srcSize)
 {
   size_t inRows = in2Wrap.dim(0);
@@ -217,8 +216,8 @@ __global__ void gBroadcast(Functor functor,
     assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
     assert(beamIdx * cols + stateIdx < in2Size);
 
-    out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
-                      in2[beamIdx * cols + stateIdx]);
+    outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+                          in2Wrap[beamIdx * cols + stateIdx]);
   }
 }
 
@@ -247,7 +246,6 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor,
         outWrap, in1Wrap, in2Wrap, batchMappingWrap,
-        d_out, d_in1, d_in2,
         srcSize);
 
   std::cerr << "nBlocks=" << blocks << std::endl;

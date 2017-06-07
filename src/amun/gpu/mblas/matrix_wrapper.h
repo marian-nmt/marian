@@ -62,6 +62,8 @@ public:
     dim_[3] = 1;
     updateStrides();
 
+    assert(size() == vec.size());
+
     data_ = nullptr;
     dataConst_ = thrust::raw_pointer_cast(vec.data());
   }
@@ -74,7 +76,7 @@ public:
     dim_[3] = d;
     updateStridesRowMajor();
 
-    assert(size() == vec.size());
+    assert(size() <= vec.size());
 
     data_ = nullptr;
     dataConst_ = thrust::raw_pointer_cast(vec.data());
@@ -150,7 +152,6 @@ public:
   const T &operator()(size_t a, size_t b, size_t c, size_t d) const
   {
     size_t id = indices2Id(a, b, c, d);
-    assert(id < size());
     return data()[id];
   }
 
@@ -158,7 +159,6 @@ public:
   T &operator()(size_t a, size_t b, size_t c, size_t d)
   {
     size_t id = indices2Id(a, b, c, d);
-    assert(id < size());
     return data()[id];
   }
 
@@ -183,6 +183,11 @@ public:
   __device__ __host__
   size_t indices2Id(size_t a, size_t b, size_t c, size_t d) const
   {
+    assert(a < dim(0));
+    assert(b < dim(1));
+    assert(c < dim(2));
+    assert(d < dim(3));
+
     size_t ind = 0;
     ind += a * stride(0);
     ind += b * stride(1);
