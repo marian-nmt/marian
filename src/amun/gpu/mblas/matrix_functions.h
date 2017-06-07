@@ -217,15 +217,15 @@ __global__ void gBroadcast(Functor functor,
     assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
     assert(beamIdx * cols + stateIdx < in2Size);
 
-    /*
-    outWrap(indices[0], indices[1], indices[2], indices[3])
-      = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
-                          in2Wrap(indices[0], indices[1], 0, 0) );
-    */
 
     outWrap(indices[0], indices[1], indices[2], indices[3])
       = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
-                          in2Wrap[beamIdx * cols + stateIdx]);
+                          in2Wrap(beamIdx, stateIdx, 0, 0) );
+
+
+    //outWrap(indices[0], indices[1], indices[2], indices[3])
+    //  = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+    //                      in2Wrap[beamIdx * cols + stateIdx]);
   }
 }
 
