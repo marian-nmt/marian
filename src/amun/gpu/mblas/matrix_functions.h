@@ -316,7 +316,6 @@ __global__ void gBroadcastVec(Functor functor,
                               MatrixWrapper<float> outWrap,
                               const MatrixWrapper<float> inWrap)
 {
-  size_t rows = outWrap.dim(0) * outWrap.dim(2) * outWrap.dim(3);
   size_t cols = outWrap.dim(1);
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
@@ -352,14 +351,6 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 
   gBroadcastVec<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
-
-  std::cerr << "nBlocks=" << blocks << std::endl;
-  std::cerr << "nThreads=" << threads << std::endl;
-  std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
-  std::cerr << "inWrap=" << inWrap.Debug() << std::endl;
-  std::cerr << std::endl;
-
-  HANDLE_ERROR(cudaDeviceSynchronize());
 
   return Out;
 }
