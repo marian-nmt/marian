@@ -219,7 +219,7 @@ __global__ void gBroadcast(Functor functor,
 
 
     outWrap(indices[0], indices[1], indices[2], indices[3])
-      = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+      = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
                           in2Wrap(beamIdx, stateIdx, 0, 0) );
 
 
