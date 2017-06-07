@@ -162,19 +162,19 @@ __global__ void gBroadcast(Functor functor,
 }
 
 template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
-  size_t rows1 = Out.dim(0);
+Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In) {
+  size_t rows1 = OutOrig.dim(0);
   size_t rows2 = In.dim(0);
 
   size_t rows = rows1 * rows2;
-  size_t cols  = Out.dim(1);
+  size_t cols  = OutOrig.dim(1);
 
   thread_local static Matrix Temp;
   Temp.Resize(rows, cols);
   mblas::Fill(Temp, 1.0f);
 
   float* d_out = Temp.data();
-  const float* d_in1 = Out.data();
+  const float* d_in1 = OutOrig.data();
   const float* d_in2 = In.data();
 
   int blocks  = std::min(MAX_BLOCKS, (int)rows);
@@ -183,8 +183,8 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In) {
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in1, d_in2, rows, rows1, cols);
 
-  Swap(Out, Temp);
-  return Out;
+  Swap(OutOrig, Temp);
+  return OutOrig;
 }
 
 template <class Functor>
@@ -265,7 +265,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   HANDLE_ERROR(cudaDeviceSynchronize());
 
   Swap(OutOrig, OutNew);
-  return OutNew;
+  return OutOrig;
 }
 
 template <class Functor>
