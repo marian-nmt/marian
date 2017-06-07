@@ -662,7 +662,7 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
                                 const MatrixWrapper<float> inWrap,
                                 const MatrixWrapper<float> alphaWrap,
                                 const MatrixWrapper<float> betaWrap,
-                                float* out, const float* in, const float* alpha, const float* beta,
+                                float* out, const float* in,
                                 float eps=0.00001)
 {
   extern __shared__ float _share[];
@@ -725,10 +725,10 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          if (beta != nullptr) {
-            so[id] = alpha[id] * (so[id] / sigma) + beta[id];
+          if (betaWrap.size()) {
+            so[id] = alphaWrap[id] * (so[id] / sigma) + betaWrap[id];
           } else {
-            so[id] = alpha[id] * (so[id] / sigma);
+            so[id] = alphaWrap[id] * (so[id] / sigma);
           }
         }
       }
@@ -754,7 +754,7 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
   const MatrixWrapper<float> betaWrap(beta);
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), beta.data(), eps);
+    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), eps);
 
   cerr << "nBlocks=" << numBlocks << endl;
   cerr << "nThreads=" << numThreads << endl;
@@ -786,7 +786,7 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
   const MatrixWrapper<float> betaWrap;
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), alpha.data(), nullptr, eps);
+    (outWrap, inWrap, alphaWrap, betaWrap, out.data(), in.data(), eps);
 
   cerr << "nBlocks=" << numBlocks << endl;
   cerr << "nThreads=" << numThreads << endl;
