@@ -231,10 +231,6 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   thread_local static Matrix Temp;
   Temp.Resize(sumOfBeamSizes, cols, srcSize);
 
-  float* d_out = Temp.data();
-  const float* d_in1 = Out.data();
-  const float* d_in2 = In.data();
-
   MatrixWrapper<float> outWrap(Temp);
   const MatrixWrapper<float> in1Wrap(Out);
   const MatrixWrapper<float> in2Wrap(In);
@@ -247,7 +243,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
     (functor,
         outWrap, in1Wrap, in2Wrap, batchMappingWrap,
         srcSize);
-
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -257,7 +253,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-
+  */
 
   Swap(Out, Temp);
   return Out;
@@ -317,35 +313,48 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<floa
 
 template <class Functor>
 __global__ void gBroadcastVec(Functor functor,
-                              float* out, const float* in, size_t rows, size_t cols) {
+                              MatrixWrapper<float> outWrap,
+                              const MatrixWrapper<float> inWrap)
+{
+  size_t rows = outWrap.dim(0) * outWrap.dim(2) * outWrap.dim(3);
+  size_t cols = outWrap.dim(1);
+
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
-    float vecValue = in[noColumn];
+    float vecValue = inWrap[noColumn];
     int index = noColumn;
     for (int noRow = 0; noRow < rows; ++noRow) {
-        out[index] = functor(out[index], vecValue);
-        index += cols;
+      outWrap[index] = functor(outWrap[index], vecValue);
+      index += cols;
     }
   }
 }
 
 template <class Functor>
-Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0) {
+Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0)
+{
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In=" << In.Debug() << std::endl;
 
-  size_t rows  = Out.dim(0) * Out.dim(2) * Out.dim(3);
   size_t cols = Out.dim(1);
 
-  float* d_out = Out.data();
-  const float* d_in = In.data();
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + (cols % threads != 0);
   stream = CudaStreamHandler::GetStream();
 
   gBroadcastVec<<<blocks, threads, 0, stream>>>
-    (functor, d_out, d_in, rows, cols);
+    (functor, outWrap, inWrap);
+
+  std::cerr << "nBlocks=" << blocks << std::endl;
+  std::cerr << "nThreads=" << threads << std::endl;
+  std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
+  std::cerr << "inWrap=" << inWrap.Debug() << std::endl;
+  std::cerr << std::endl;
+
+  HANDLE_ERROR(cudaDeviceSynchronize());
 
   return Out;
 }
@@ -366,9 +375,6 @@ Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In)
 {
   assert(Out.size() == In.size());
-
-  float* d_out = Out.data();
-  const float* d_in = In.data();
 
   int threads = MAX_THREADS;
   int blocks  = Out.size() / threads + 1;
@@ -401,10 +407,6 @@ Matrix& Element(Functor functor,
 {
   assert(Out.size() == In1.size());
   assert(Out.size() == In2.size());
-
-  float* d_out = Out.data();
-  const float* d_in1 = In1.data();
-  const float* d_in2 = In2.data();
 
   int threads = MAX_THREADS;
   int blocks  = Out.size() / threads + 1;
