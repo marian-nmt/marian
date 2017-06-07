@@ -177,7 +177,6 @@ public:
     id = id % stride(0);
 
     out[1] = id / stride(1);
-    id = id % stride(1);
   }
 
   __device__ __host__

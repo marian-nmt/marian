@@ -198,12 +198,14 @@ __global__ void gBroadcast(Functor functor,
   size_t inRows = in2Wrap.dim(0);
   size_t cols  = in1Wrap.dim(1);
 
-  size_t outSize = outWrap.size();
   size_t in1Size = in1Wrap.size();
   size_t in2Size = in2Wrap.size();
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < srcSize * inRows * cols) {
+  if (id < outWrap.size()) {
+    size_t indices[SHAPE_SIZE];
+    outWrap.id2Indices(id, indices);
+
     int row = id / cols;
     int stateIdx = id % cols;
 
@@ -212,38 +214,37 @@ __global__ void gBroadcast(Functor functor,
 
     int batchIdx = batchMappingWrap[beamIdx];
 
-    assert(id < outSize);
     assert((batchIdx * srcSize + srcId) * cols + stateIdx < in1Size);
     assert(beamIdx * cols + stateIdx < in2Size);
 
-    outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+    outWrap(indices[0], indices[1], indices[2], indices[3])
+      = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
                           in2Wrap[beamIdx * cols + stateIdx]);
   }
 }
 
 template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVector<int>& batchMapping, size_t srcSize) {
+Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const DeviceVector<int>& batchMapping, size_t srcSize) {
   size_t sumOfBeamSizes = In.dim(0);
 
   //size_t rows = srcSize * sumOfBeamSizes;
-  size_t cols  = Out.dim(1);
+  size_t cols  = OutOrig.dim(1);
 
-  thread_local static Matrix Temp;
-  Temp.Resize(sumOfBeamSizes, cols, srcSize);
+  thread_local static Matrix OutNew;
+  OutNew.Resize(sumOfBeamSizes, cols, srcSize);
 
-  MatrixWrapper<float> outWrap(Temp);
-  const MatrixWrapper<float> in1Wrap(Out);
+  MatrixWrapper<float> outWrap(OutNew);
+  const MatrixWrapper<float> in1Wrap(OutOrig);
   const MatrixWrapper<float> in2Wrap(In);
   const MatrixWrapper<int> batchMappingWrap(batchMapping);
 
   int threads = MAX_THREADS;
-  int blocks  = (Temp.size() / threads) + 1;
+  int blocks  = (OutNew.size() / threads) + 1;
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor,
         outWrap, in1Wrap, in2Wrap, batchMappingWrap,
         srcSize);
-  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -253,10 +254,9 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-  */
 
-  Swap(Out, Temp);
-  return Out;
+  Swap(OutOrig, OutNew);
+  return OutNew;
 }
 
 template <class Functor>

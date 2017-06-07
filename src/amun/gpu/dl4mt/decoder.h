@@ -148,6 +148,10 @@ class Decoder {
 
           using namespace mblas;
 
+          size_t batchSize = SourceContext.dim(3);
+          //std::cerr << "batchSize=" << batchSize << std::endl;
+          //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
+
           thrust::host_vector<int> batchMapping(HiddenState.dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
@@ -190,7 +194,6 @@ class Decoder {
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
-          size_t batchSize = SourceContext.dim(3);
 
           //std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
