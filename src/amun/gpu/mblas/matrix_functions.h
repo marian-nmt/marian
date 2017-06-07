@@ -308,11 +308,10 @@ __global__ void gBroadcastVec(Functor functor,
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
-    float vecValue = inWrap[noColumn];
-    int index = noColumn;
+    float vecValue = inWrap(0, noColumn, 0, 0);
     for (int noRow = 0; noRow < rows; ++noRow) {
-      outWrap[index] = functor(outWrap[index], vecValue);
-      index += cols;
+      float &val = outWrap(noRow, noColumn, 0, 0);
+      val = functor(val, vecValue);
     }
   }
 }
@@ -337,6 +336,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
   gBroadcastVec<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
 
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -344,7 +344,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-
+  */
   return Out;
 }
 
