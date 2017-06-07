@@ -194,10 +194,13 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<float> in2Wrap,
                            const MatrixWrapper<int> batchMappingWrap,
                            float* out, const float* in1, const float* in2,
-                           size_t srcSize, size_t sumBeams, size_t cols, const int* batchMapping,
-                           size_t batchMappingSize, size_t outSize, size_t in1Size, size_t in2Size,
-                           size_t inRows)
+                           size_t srcSize, size_t sumBeams, size_t cols)
 {
+  size_t inRows = in2Wrap.dim(0);
+  size_t outSize = outWrap.size();
+  size_t in1Size = in1Wrap.size();
+  size_t in2Size = in2Wrap.size();
+
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < srcSize * inRows * cols) {
     int row = id / cols;
@@ -243,10 +246,7 @@ Matrix& Broadcast(Functor functor, Matrix& Out, const Matrix& In, const DeviceVe
     (functor,
         outWrap, in1Wrap, in2Wrap, batchMappingWrap,
         d_out, d_in1, d_in2,
-        srcSize, batchMapping.size(), cols,
-        thrust::raw_pointer_cast(batchMapping.data()),
-        batchMapping.size(), Temp.size(), Out.size(), In.size(), In.dim(0)
-    );
+        srcSize, batchMapping.size(), cols);
 
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
