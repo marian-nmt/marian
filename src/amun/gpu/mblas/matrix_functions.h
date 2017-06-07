@@ -198,9 +198,6 @@ __global__ void gBroadcast(Functor functor,
   size_t inRows = in2Wrap.dim(0);
   size_t cols  = in1Wrap.dim(1);
 
-  size_t in1Size = in1Wrap.size();
-  size_t in2Size = in2Wrap.size();
-
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < outWrap.size()) {
     size_t indices[SHAPE_SIZE];
@@ -208,18 +205,20 @@ __global__ void gBroadcast(Functor functor,
 
     int row = id / cols;
 
-    int beamIdx = row / srcSize;
+    int batchMappingIdx = row / srcSize;
     int srcId = row % srcSize;
+    //assert(batchMappingIdx == indices[0]);
+    //assert(srcId == indices[2]);
 
-    int batchIdx = batchMappingWrap[beamIdx];
+    int batchIdx = batchMappingWrap[batchMappingIdx];
 
-    assert((batchIdx * srcSize + srcId) * cols + indices[1] < in1Size);
-    assert(beamIdx * cols + indices[1] < in2Size);
+    //assert((batchIdx * srcSize + srcId) * cols + indices[1] < in1Wrap.size());
+    //assert(batchIdx * cols + indices[1] < in2Wrap.size());
 
 
     outWrap(indices[0], indices[1], indices[2], indices[3])
       = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
-                          in2Wrap(beamIdx, indices[1], 0, 0) );
+                          in2Wrap(batchMappingIdx, indices[1], 0, 0) );
 
 
     //outWrap(indices[0], indices[1], indices[2], indices[3])
