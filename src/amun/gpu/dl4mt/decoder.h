@@ -152,7 +152,7 @@ class Decoder {
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
 
-          thrust::host_vector<int> batchMapping(HiddenState.dim(0));
+          HostVector<int> batchMapping(HiddenState.dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
@@ -160,6 +160,7 @@ class Decoder {
             }
           }
 
+          dBatchMapping_.resize(batchMapping.size());
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),

@@ -76,7 +76,7 @@ public:
     dim_[3] = d;
     updateStridesRowMajor();
 
-    assert(size() <= vec.size());
+    assert(size() == vec.size());
 
     data_ = nullptr;
     dataConst_ = thrust::raw_pointer_cast(vec.data());
