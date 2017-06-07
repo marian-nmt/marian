@@ -754,16 +754,6 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, betaWrap, eps);
 
-  cerr << "nBlocks=" << numBlocks << endl;
-  cerr << "nThreads=" << numThreads << endl;
-  cerr << "outWrap=" << outWrap.Debug() << endl;
-  cerr << "inWrap=" << inWrap.Debug() << endl;
-  cerr << "alphaWrap=" << alphaWrap.Debug() << endl;
-  cerr << "betaWrap=" << betaWrap.Debug() << endl;
-  cerr << "eps=" << eps << endl;
-  cerr << std::endl;
-
-  HANDLE_ERROR(cudaDeviceSynchronize());
 }
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)
@@ -784,17 +774,6 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, betaWrap, eps);
-
-  cerr << "nBlocks=" << numBlocks << endl;
-  cerr << "nThreads=" << numThreads << endl;
-  cerr << "outWrap=" << outWrap.Debug() << endl;
-  cerr << "inWrap=" << inWrap.Debug() << endl;
-  cerr << "alphaWrap=" << alphaWrap.Debug() << endl;
-  cerr << "betaWrap=" << betaWrap.Debug() << endl;
-  cerr << "eps=" << eps << endl;
-  cerr << std::endl;
-
-  HANDLE_ERROR(cudaDeviceSynchronize());
 
 }
 
