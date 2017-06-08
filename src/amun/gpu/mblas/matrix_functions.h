@@ -186,6 +186,7 @@ Matrix& BroadcastOld(Functor functor, Matrix& Out, const Matrix& In, const Devic
   std::cerr << "in2Wrap=" << In.Debug(0) << std::endl;
   std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
   std::cerr << "srcSize=" << srcSize << std::endl;
+  std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
 
   Swap(Out, Temp);
@@ -265,6 +266,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   std::cerr << "in2Wrap=" << in2Wrap.Debug() << std::endl;
   std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
   std::cerr << "srcSize=" << srcSize << std::endl;
+  std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
