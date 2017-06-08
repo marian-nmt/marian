@@ -753,10 +753,8 @@ void Normalization(Matrix &out,
   //out.Reshape(in.dim(0), in.dim(1), 1, 1);
   out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
 
-  int cols = in.dim(1);
-
-  int numThreads = std::min(cols, MAX_THREADS);
-  dim3 numBlocks(in.dim(0), 1, 1);
+  int numThreads = std::min((uint) in.dim(1), (uint) MAX_THREADS);
+  dim3 numBlocks(in.dim(0), in.dim(2), in.dim(3));
   int shared = numThreads * sizeof(float) * 2;
 
   MatrixWrapper<float> outWrap(out);
