@@ -179,6 +179,7 @@ Matrix& BroadcastOld(Functor functor, Matrix& Out, const Matrix& In, const Devic
   gBroadcastOld<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()));
 
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << Temp.Debug(0) << std::endl;
@@ -188,6 +189,7 @@ Matrix& BroadcastOld(Functor functor, Matrix& Out, const Matrix& In, const Devic
   std::cerr << "srcSize=" << srcSize << std::endl;
   std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
+  */
 
   Swap(Out, Temp);
   return Out;
@@ -258,7 +260,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
-
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -270,7 +272,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-
+  */
 
   Swap(OutOrig, OutNew);
   return OutOrig;
