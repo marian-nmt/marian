@@ -141,6 +141,58 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
 Matrix& LogSoftmax(Matrix& Out);
 
 template <class Functor>
+__global__ void gBroadcastOld(Functor functor,
+                           float* out, const float* in1, const float* in2,
+                           size_t srcSize, size_t sumBeams, size_t cols, const int* batchMapping) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < srcSize * sumBeams * cols) {
+    int row = id / cols;
+    int stateIdx = id % cols;
+
+    int beamIdx = row / srcSize;
+    int srcId = row % srcSize;
+
+    int batchIdx = batchMapping[beamIdx];
+
+    out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
+                      in2[beamIdx * cols + stateIdx]);
+  }
+}
+
+template <class Functor>
+Matrix& BroadcastOld(Functor functor, Matrix& Out, const Matrix& In, const DeviceVector<int>& batchMapping, size_t srcSize) {
+  size_t sumOfBeamSizes = In.dim(0);
+
+  size_t rows = srcSize * sumOfBeamSizes;
+  size_t cols  = Out.dim(1);
+
+  thread_local static Matrix Temp;
+  Temp.Resize(rows, cols);
+
+  float* d_out = Temp.data();
+  const float* d_in1 = Out.data();
+  const float* d_in2 = In.data();
+
+  int threads = 512;
+  int blocks  = (Temp.size() / threads) + 1;
+
+  gBroadcastOld<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (functor, d_out, d_in1, d_in2, srcSize, batchMapping.size(), cols, thrust::raw_pointer_cast(batchMapping.data()));
+
+  std::cerr << "nBlocks=" << blocks << std::endl;
+  std::cerr << "nThreads=" << threads << std::endl;
+  std::cerr << "outWrap=" << Temp.Debug(0) << std::endl;
+  std::cerr << "in1Wrap=" << Out.Debug(0) << std::endl;
+  std::cerr << "in2Wrap=" << In.Debug(0) << std::endl;
+  std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
+  std::cerr << "srcSize=" << srcSize << std::endl;
+  std::cerr << std::endl;
+
+  Swap(Out, Temp);
+  return Out;
+}
+
+template <class Functor>
 __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
