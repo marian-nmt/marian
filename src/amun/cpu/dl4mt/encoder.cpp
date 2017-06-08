@@ -16,7 +16,7 @@ void Encoder::GetContext(const std::vector<size_t>& words,
     embeddedWords.emplace_back();
     mblas::Matrix &embed = embeddedWords.back();
     embeddings_.Lookup(embed, w);
-    cerr << "embed=" << embed.Debug(true) << endl;
+    //cerr << "embed=" << embed.Debug(true) << endl;
   }
   //cerr << embeddings_.w_.E_.Debug() << endl;
 
