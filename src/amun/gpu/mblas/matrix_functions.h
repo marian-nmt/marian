@@ -213,24 +213,11 @@ __global__ void gBroadcast(Functor functor,
 
     int row = id / cols; // len * batch for in1
     int srcId = row % srcSize;  // source pos for in1
-    //assert(row == indices[2]);
 
     int batchMappingIdx = row / srcSize; // batch for in1
-    //assert(batchMappingIdx == indices[0]);
-    //assert(srcId == indices[2]);
-    //assert(row == srcId);
-    //if (srcId != indices[2]) {
-    //  printf("srcId=%d indices[2]=%lu \n", srcId, indices[2]);
-    //}
-
     int batchIdx = batchMappingWrap[batchMappingIdx]; // batch id for in1
 
-    //assert((batchIdx * srcSize + srcId) * cols + indices[1] < in1Wrap.size());
-    //assert(batchIdx * cols + indices[1] < in2Wrap.size());
-
-
-    outWrap(indices[0], indices[1], indices[2], indices[3])
-                = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
+    outWrap[id] = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
                           in2Wrap(batchMappingIdx, indices[1], 0, 0) );
 
 
