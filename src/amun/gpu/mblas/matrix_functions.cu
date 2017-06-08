@@ -672,12 +672,15 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
   for (int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if (j < rows) {
+      float* so = outWrap.data() + j * cols;
+      const float* sp = inWrap.data() + j * cols;
+
       float* _sum = _share + blockDim.x;
       _sum[threadIdx.x] = 0.0f;
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if (id < cols) {
-          _sum[threadIdx.x] += inWrap(j, id, 0, 0);
+          _sum[threadIdx.x] += sp[id];
         }
       }
       __syncthreads();
@@ -700,8 +703,8 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
       for (int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = inWrap(j, id, 0, 0) - mean;
-          outWrap(j, id, 0, 0) = ex;
+          float ex = sp[id] - mean;
+          so[id] = ex;
           _sqSum[threadIdx.x] += ex * ex;
         }
       }
@@ -722,11 +725,9 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
         int id = tid + threadIdx.x;
         if(id < cols) {
           if (betaWrap.size()) {
-            float &val = outWrap(j, id, 0, 0);
-            val = alphaWrap[id] * (val / sigma) + betaWrap[id];
+            so[id] = alphaWrap[id] * (so[id] / sigma) + betaWrap[id];
           } else {
-            float &val = outWrap(j, id, 0, 0);
-            val = alphaWrap[id] * (val / sigma);
+            so[id] = alphaWrap[id] * (so[id] / sigma);
           }
         }
       }
@@ -740,7 +741,12 @@ void Normalization(Matrix &out,
                   const Matrix *beta,
                   float eps)
 {
-  out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
+  assert(in.dim(0) < MAX_BLOCKS);
+  assert(in.dim(2) < MAX_BLOCKS);
+  assert(in.dim(3) < MAX_BLOCKS);
+
+  out.Reshape(in.dim(0), in.dim(1), 1, 1);
+  //out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
 
   int rows = in.dim(0);
   int cols = in.dim(1);
@@ -752,7 +758,7 @@ void Normalization(Matrix &out,
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> inWrap(in);
   const MatrixWrapper<float> alphaWrap(alpha);
-  MatrixWrapper<float> *betaWrap = beta ? new MatrixWrapper<float>(*beta) : nullptr;
+  MatrixWrapper<float> *betaWrap = beta ? new MatrixWrapper<float>(*beta) : new MatrixWrapper<float>();
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, *betaWrap, eps);
