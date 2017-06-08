@@ -669,73 +669,69 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
   //printf("blockDim.x=%d gridDim.x=%d \n", blockDim.x, gridDim.x);
   // blockDim.x=512 gridDim.x=1
 
-  int rows = inWrap.dim(0);
   int cols = inWrap.dim(1);
 
-  for (int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if (j < rows) {
-      float* so = outWrap.data() + j * cols;
-      const float* sp = inWrap.data() + j * cols;
+  assert(blockIdx.x < inWrap.dim(0));
+  assert(blockIdx.y < inWrap.dim(2));
+  assert(blockIdx.z < inWrap.dim(3));
 
-      float* _sum = _share + blockDim.x;
-      _sum[threadIdx.x] = 0.0f;
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if (id < cols) {
-          _sum[threadIdx.x] += sp[id];
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if (threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float mean = _sum[0] / cols;
-      __syncthreads();
+  float* _sum = _share + blockDim.x;
+  _sum[threadIdx.x] = 0.0f;
+  for (int tid = 0; tid < cols; tid += blockDim.x) {
+    int id = tid + threadIdx.x;
+    if (id < cols) {
+      _sum[threadIdx.x] += inWrap(blockIdx.x, id, blockIdx.y, blockIdx.z);
+    }
+  }
+  __syncthreads();
+  int len = blockDim.x;
+  while(len != 1) {
+    __syncthreads();
+    int skip = (len + 1) >> 1;
+    if (threadIdx.x < (len >> 1)) {
+      _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+    }
+    len = (len + 1) >> 1;
+  }
+  __syncthreads();
+  float mean = _sum[0] / cols;
+  __syncthreads();
 
-      float* _sqSum = _share + blockDim.x;
+  float* _sqSum = _share + blockDim.x;
 
-      _sqSum[threadIdx.x] = 0.0;
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float ex = sp[id] - mean;
-          so[id] = ex;
-          _sqSum[threadIdx.x] += ex * ex;
-        }
-      }
-      __syncthreads();
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sigma = sqrtf(eps + (_sqSum[0] / cols));
-      __syncthreads();
+  _sqSum[threadIdx.x] = 0.0;
+  for (int tid = 0; tid < cols; tid += blockDim.x) {
+    int id = tid + threadIdx.x;
+    if(id < cols) {
+      float ex = inWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) - mean;
+      outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = ex;
+      _sqSum[threadIdx.x] += ex * ex;
+    }
+  }
+  __syncthreads();
+  len = blockDim.x;
+  while(len != 1) {
+    __syncthreads();
+    int skip = (len + 1) >> 1;
+    if(threadIdx.x < (len >> 1))
+      _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
+    len = (len + 1) >> 1;
+  }
+  __syncthreads();
+  float sigma = sqrtf(eps + (_sqSum[0] / cols));
+  __syncthreads();
 
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          if (betaWrap.size()) {
-            so[id] = alphaWrap[id] * (so[id] / sigma) + betaWrap[id];
-          } else {
-            so[id] = alphaWrap[id] * (so[id] / sigma);
-          }
-        }
+  for (int tid = 0; tid < cols; tid += blockDim.x) {
+    int id = tid + threadIdx.x;
+    if(id < cols) {
+      if (betaWrap.size()) {
+        outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = alphaWrap[id] * (outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) / sigma) + betaWrap[id];
+      } else {
+        outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = alphaWrap[id] * (outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) / sigma);
       }
     }
   }
+
 }
 
 void Normalization(Matrix &out,
@@ -748,8 +744,8 @@ void Normalization(Matrix &out,
   assert(in.dim(2) < MAX_BLOCKS);
   assert(in.dim(3) < MAX_BLOCKS);
 
-  out.Reshape(in.dim(0), in.dim(1), 1, 1);
-  //out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
+  //out.Reshape(in.dim(0), in.dim(1), 1, 1);
+  out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
 
   int cols = in.dim(1);
 
