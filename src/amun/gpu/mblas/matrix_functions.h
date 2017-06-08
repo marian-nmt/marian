@@ -210,10 +210,10 @@ __global__ void gBroadcast(Functor functor,
     outWrap.id2Indices(id, indices);
 
     int row = id / cols; // len * batch for in1
+    int srcId = row % srcSize;  // source pos for in1
     //assert(row == indices[2]);
 
     int batchMappingIdx = row / srcSize; // batch for in1
-    int srcId = row % srcSize;  // source pos for in1
     //assert(batchMappingIdx == indices[0]);
     //assert(srcId == indices[2]);
     //assert(row == srcId);
