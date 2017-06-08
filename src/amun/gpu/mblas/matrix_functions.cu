@@ -730,10 +730,11 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
   for (int tid = 0; tid < cols; tid += blockDim.x) {
     int id = tid + threadIdx.x;
     if(id < cols) {
+      float &val = outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z);
       if (betaWrap.size()) {
-        outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = alphaWrap[id] * (outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) / sigma) + betaWrap[id];
+        val = alphaWrap[id] * (val / sigma) + betaWrap[id];
       } else {
-        outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = alphaWrap[id] * (outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) / sigma);
+        val = alphaWrap[id] * (val / sigma);
       }
     }
   }
