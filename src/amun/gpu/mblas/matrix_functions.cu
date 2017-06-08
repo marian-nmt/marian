@@ -658,6 +658,12 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   */
 }
 
+__device__ uint getIndex(const dim3 &dim, const dim3 &val)
+{
+  uint ret = dim.x * val.x + dim.y * val.y + dim.z * val.z;
+  return ret;
+}
+
 __global__ void gLNormalization(MatrixWrapper<float> outWrap,
                                 const MatrixWrapper<float> inWrap,
                                 const MatrixWrapper<float> alphaWrap,
