@@ -666,6 +666,9 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
 {
   extern __shared__ float _share[];
 
+  //printf("blockDim.x=%d gridDim.x=%d \n", blockDim.x, gridDim.x);
+  // blockDim.x=512 gridDim.x=1
+
   int rows = inWrap.dim(0);
   int cols = inWrap.dim(1);
 
@@ -748,11 +751,10 @@ void Normalization(Matrix &out,
   out.Reshape(in.dim(0), in.dim(1), 1, 1);
   //out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
 
-  int rows = in.dim(0);
   int cols = in.dim(1);
 
   int numThreads = std::min(cols, MAX_THREADS);
-  int numBlocks = rows;
+  dim3 numBlocks(in.dim(0), 1, 1);
   int shared = numThreads * sizeof(float) * 2;
 
   MatrixWrapper<float> outWrap(out);
@@ -763,7 +765,7 @@ void Normalization(Matrix &out,
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, *betaWrap, eps);
 
-  std::cerr << "nBlocks=" << numBlocks << std::endl;
+  //std::cerr << "nBlocks=" << numBlocks << std::endl;
   std::cerr << "nThreads=" << numThreads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
   std::cerr << "inWrap=" << inWrap.Debug() << std::endl;
