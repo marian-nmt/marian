@@ -201,6 +201,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
 
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -212,7 +213,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-
+  */
 
   Swap(OutOrig, OutNew);
   return OutOrig;
