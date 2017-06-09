@@ -776,7 +776,7 @@ void Normalization(Matrix &out,
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-  */s
+  */
   delete betaWrap;
 }
 
