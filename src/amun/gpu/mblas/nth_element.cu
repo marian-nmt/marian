@@ -102,7 +102,10 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
                                   mblas::MatrixWrapper<int> indWrap,
                                   mblas::MatrixWrapper<float> probsWrap,
                                   mblas::MatrixWrapper<int> batchPositionWrap,
-                                  float* outCosts, int* outIdxs, int *cummulatedBeamSizes, int numBlocks_) {
+                                  mblas::MatrixWrapper<float> resWrap,
+                                  mblas::MatrixWrapper<int> res_idxWrap,
+                                  mblas::MatrixWrapper<int> cumBeamSizesWrap,
+                                  int numBlocks_) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
   __shared__ float bestBinCost;
@@ -116,7 +119,7 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
     num_bins = 500;
   }
 
-  for (int pos = cummulatedBeamSizes[batchIdx]; pos < cummulatedBeamSizes[batchIdx + 1]; ++pos) {
+  for (int pos = cumBeamSizesWrap[batchIdx]; pos < cumBeamSizesWrap[batchIdx + 1]; ++pos) {
     int i = tid;
 
     sdata[tid] = -3.40282e+38f;
@@ -181,8 +184,8 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
 
       probsWrap[indWrap[bestBinCostIdx]] = -3.40282e+38f;
 
-      outIdxs[pos] = indWrap[bestBinCostIdx];
-      outCosts[pos] = bestBinCost;
+      res_idxWrap[pos] = indWrap[bestBinCostIdx];
+      resWrap[pos] = bestBinCost;
     }
 
     __syncthreads();
@@ -302,15 +305,15 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<int> indWrap(d_ind);
   mblas::MatrixWrapper<float> probsWrap(probs);
   mblas::MatrixWrapper<int> batchPositionWrap(d_batchPosition);
+  mblas::MatrixWrapper<float> resWrap(d_res);
+  mblas::MatrixWrapper<int> res_idxWrap(d_res_idx);
+  mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (outWrap, indWrap, probsWrap, batchPositionWrap, numBatches);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, indWrap, probsWrap, batchPositionWrap,
-     thrust::raw_pointer_cast(d_res.data()),
-     thrust::raw_pointer_cast(d_res_idx.data()),
-     thrust::raw_pointer_cast(d_cumBeamSizes.data()),
+    (outWrap, indWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
      numBlocks_);
 }
 
