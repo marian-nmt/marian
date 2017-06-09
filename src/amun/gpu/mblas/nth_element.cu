@@ -267,6 +267,7 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_res_idx(maxBatchSize * maxBeamSize)
 , d_res(maxBatchSize * maxBeamSize)
 , d_batchPosition(maxBatchSize + 1)
+, d_cumBeamSizes(maxBatchSize + 1)
 {
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
                               cudaHostAllocDefault) );
@@ -274,7 +275,6 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
                               cudaHostAllocDefault) );
 
   HANDLE_ERROR( cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)) );
-  HANDLE_ERROR( cudaMalloc((void**)&d_cumBeamSizes, (maxBatchSize + 1) * sizeof(int)) );
 }
 
 NthElement::~NthElement()
@@ -282,7 +282,6 @@ NthElement::~NthElement()
   HANDLE_ERROR(cudaFreeHost(h_res));
   HANDLE_ERROR(cudaFreeHost(h_res_idx));
   HANDLE_ERROR(cudaFree(d_breakdown));
-  HANDLE_ERROR(cudaFree(d_cumBeamSizes));
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
@@ -290,7 +289,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 {
   HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(d_batchPosition.data()), batchFirstElementIdxs.data(), batchFirstElementIdxs.size() * sizeof(int),
                                 cudaMemcpyHostToDevice, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(d_cumBeamSizes, cummulatedBeamSizes.data(), cummulatedBeamSizes.size() * sizeof(int),
+  HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(d_cumBeamSizes.data()), cummulatedBeamSizes.data(), cummulatedBeamSizes.size() * sizeof(int),
                                 cudaMemcpyHostToDevice, stream_) );
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
@@ -310,7 +309,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
      thrust::raw_pointer_cast(d_batchPosition.data()),
      thrust::raw_pointer_cast(d_res.data()),
      thrust::raw_pointer_cast(d_res_idx.data()),
-     d_cumBeamSizes,
+     thrust::raw_pointer_cast(d_cumBeamSizes.data()),
      numBlocks_);
 }
 

@@ -44,7 +44,7 @@ class NthElement {
 
     float  *d_breakdown;
     DeviceVector<int> d_batchPosition;
-    int    *d_cumBeamSizes;
+    DeviceVector<int> d_cumBeamSizes;
     size_t lastN;
 };
 
