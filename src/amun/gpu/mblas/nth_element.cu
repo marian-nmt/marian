@@ -106,7 +106,7 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
                                   mblas::MatrixWrapper<float> resWrap,
                                   mblas::MatrixWrapper<int> res_idxWrap,
                                   mblas::MatrixWrapper<int> cumBeamSizesWrap,
-                                  int numBlocks_) {
+                                  int numBlocks) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
   __shared__ float bestBinCost;
@@ -126,13 +126,13 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
     sdata[tid] = -3.40282e+38f;
 
     if (i < num_bins) {
-      sdata[tid] = outWrap[batchIdx * numBlocks_ + i];
+      sdata[tid] = outWrap[batchIdx * numBlocks + i];
       indices[tid] = i;
     }
 
     if (i + blockDim.x < num_bins) {
-      float a = outWrap[batchIdx * numBlocks_ + i];
-      float b = outWrap[batchIdx * numBlocks_ + i + blockDim.x];
+      float a = outWrap[batchIdx * numBlocks + i];
+      float b = outWrap[batchIdx * numBlocks + i + blockDim.x];
       if (a > b) {
         sdata[tid] = a;
         indices[tid] = i;
@@ -145,14 +145,14 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
     while (i + 2 * blockDim.x < num_bins) {
       i += 2 * blockDim.x;
 
-      float a = outWrap[batchIdx * numBlocks_ + i];
+      float a = outWrap[batchIdx * numBlocks + i];
       if (a > sdata[tid]) {
         sdata[tid] = a;
         indices[tid] = i;
       }
 
       if (i + blockDim.x < num_bins) {
-        float b = outWrap[batchIdx * numBlocks_ + i + blockDim.x];
+        float b = outWrap[batchIdx * numBlocks + i + blockDim.x];
         if (b > sdata[tid]) {
           sdata[tid] = b;
           indices[tid] = i + blockDim.x;
@@ -181,7 +181,7 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
 
     if (tid == 0) {
       bestBinCost = sdata[0];
-      bestBinCostIdx = batchIdx * numBlocks_ + indices[0];
+      bestBinCostIdx = batchIdx * numBlocks + indices[0];
 
       probsWrap[indWrap[bestBinCostIdx]] = -3.40282e+38f;
 
@@ -191,7 +191,7 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
 
     __syncthreads();
 
-    i = batchPositionWrap[batchIdx] + (bestBinCostIdx - batchIdx * numBlocks_) * (blockDim.x * 2) + tid;
+    i = batchPositionWrap[batchIdx] + (bestBinCostIdx - batchIdx * numBlocks) * (blockDim.x * 2) + tid;
     const int dist = num_bins * 2 * blockDim.x;
 
     sdata[tid] = -3.40282e+38f;
