@@ -93,7 +93,7 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
   }
 }
 
-__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int *batchFirstElements, float* outCosts, int* outIdxs, int *cummulatedBeamSizes, int NUM_BLOCKS) {
+__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int *batchFirstElements, float* outCosts, int* outIdxs, int *cummulatedBeamSizes, int numBlocks_) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
   __shared__ float bestBinCost;
@@ -113,13 +113,13 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
     sdata[tid] = -3.40282e+38f;
 
     if (i < num_bins) {
-      sdata[tid] = binCosts[batchIdx * NUM_BLOCKS + i];
+      sdata[tid] = binCosts[batchIdx * numBlocks_ + i];
       indices[tid] = i;
     }
 
     if (i + blockDim.x < num_bins) {
-      float a = binCosts[batchIdx * NUM_BLOCKS + i];
-      float b = binCosts[batchIdx * NUM_BLOCKS + i + blockDim.x];
+      float a = binCosts[batchIdx * numBlocks_ + i];
+      float b = binCosts[batchIdx * numBlocks_ + i + blockDim.x];
       if (a > b) {
         sdata[tid] = a;
         indices[tid] = i;
@@ -132,14 +132,14 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
     while (i + 2 * blockDim.x < num_bins) {
       i += 2 * blockDim.x;
 
-      float a = binCosts[batchIdx * NUM_BLOCKS + i];
+      float a = binCosts[batchIdx * numBlocks_ + i];
       if (a > sdata[tid]) {
         sdata[tid] = a;
         indices[tid] = i;
       }
 
       if (i + blockDim.x < num_bins) {
-        float b = binCosts[batchIdx * NUM_BLOCKS + i + blockDim.x];
+        float b = binCosts[batchIdx * numBlocks_ + i + blockDim.x];
         if (b > sdata[tid]) {
           sdata[tid] = b;
           indices[tid] = i + blockDim.x;
@@ -168,7 +168,7 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
 
     if (tid == 0) {
       bestBinCost = sdata[0];
-      bestBinCostIdx = batchIdx * NUM_BLOCKS + indices[0];
+      bestBinCostIdx = batchIdx * numBlocks_ + indices[0];
 
       probs[binIdxs[bestBinCostIdx]] = -3.40282e+38f;
 
@@ -178,7 +178,7 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
 
     __syncthreads();
 
-    i = batchFirstElements[batchIdx] + (bestBinCostIdx - batchIdx * NUM_BLOCKS) * (blockDim.x * 2) + tid;
+    i = batchFirstElements[batchIdx] + (bestBinCostIdx - batchIdx * numBlocks_) * (blockDim.x * 2) + tid;
     const int dist = num_bins * 2 * blockDim.x;
 
     sdata[tid] = -3.40282e+38f;
@@ -255,16 +255,13 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indices, int n)
 }
 
 NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream)
-    : stream_(stream),
-      NUM_BLOCKS(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
+: stream_(stream)
+, numBlocks_(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
+, d_out(maxBatchSize * numBlocks_)
+, d_ind(maxBatchSize * numBlocks_)
+, d_res_idx(maxBatchSize * maxBeamSize)
+, d_res(maxBatchSize * maxBeamSize)
 {
-  HANDLE_ERROR( cudaMalloc((void**)&d_ind, maxBatchSize * NUM_BLOCKS * sizeof(int)) );
-
-  HANDLE_ERROR( cudaMalloc((void**)&d_out, maxBatchSize * NUM_BLOCKS * sizeof(float)) );
-
-  HANDLE_ERROR( cudaMalloc((void**)&d_res_idx, maxBatchSize * maxBeamSize * sizeof(int)) );
-  HANDLE_ERROR( cudaMalloc((void**)&d_res, maxBatchSize * maxBeamSize * sizeof(float)) );
-
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
                               cudaHostAllocDefault) );
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res_idx, maxBeamSize * maxBatchSize * sizeof(int),
@@ -277,10 +274,6 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 
 NthElement::~NthElement()
 {
-  HANDLE_ERROR(cudaFree(d_ind));
-  HANDLE_ERROR(cudaFree(d_out));
-  HANDLE_ERROR(cudaFree(d_res_idx));
-  HANDLE_ERROR(cudaFree(d_res));
   HANDLE_ERROR(cudaFreeHost(h_res));
   HANDLE_ERROR(cudaFreeHost(h_res_idx));
   HANDLE_ERROR(cudaFree(d_breakdown));
@@ -298,11 +291,18 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
 
-  gMaxElement<<<NUM_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (d_out, d_ind, probs, numBatches, d_batchPosition);
+  gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+    (thrust::raw_pointer_cast(d_out.data()), thrust::raw_pointer_cast(d_ind.data()), probs, numBatches, d_batchPosition);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (d_out, d_ind, probs, d_batchPosition, d_res, d_res_idx, d_cumBeamSizes, NUM_BLOCKS);
+    (thrust::raw_pointer_cast(d_out.data()),
+     thrust::raw_pointer_cast(d_ind.data()),
+     probs,
+     d_batchPosition,
+     thrust::raw_pointer_cast(d_res.data()),
+     thrust::raw_pointer_cast(d_res_idx.data()),
+     d_cumBeamSizes,
+     numBlocks_);
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
@@ -341,9 +341,9 @@ void NthElement::GetPairs(size_t number,
                     std::vector<unsigned>& outKeys,
                     std::vector<float>& outValues) {
 
-  HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, number * sizeof(float),
+  HANDLE_ERROR( cudaMemcpyAsync(h_res, thrust::raw_pointer_cast(d_res.data()), number * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
+  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, thrust::raw_pointer_cast(d_res_idx.data()), number * sizeof(int),
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
