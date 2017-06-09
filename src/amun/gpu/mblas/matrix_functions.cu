@@ -766,6 +766,7 @@ void Normalization(Matrix &out,
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, *betaWrap, eps);
 
+  /*
   //std::cerr << "nBlocks=" << numBlocks << std::endl;
   std::cerr << "nThreads=" << numThreads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -775,7 +776,7 @@ void Normalization(Matrix &out,
   std::cerr << std::endl;
 
   HANDLE_ERROR(cudaDeviceSynchronize());
-
+  */s
   delete betaWrap;
 }
 
