@@ -129,7 +129,7 @@ class BestHyps : public BestHypsBase
             std::vector<float> modelCosts(beamSizeSum);
             mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-            nthElement_.getValueByKey(modelCosts, currProbs.data());
+            nthElement_.getValueByKey(modelCosts, currProbs);
             //std::cerr << "modelCosts=" << amunmt::Debug(modelCosts, 1) << std::endl;
 
             breakDowns.push_back(modelCosts);

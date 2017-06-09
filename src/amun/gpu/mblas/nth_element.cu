@@ -251,12 +251,13 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
 }
 
 __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
-                              const float* d_in, int* indices, int n)
+                              const   mblas::MatrixWrapper<float> in,
+                              int* indices, int n)
 {
   int tid = threadIdx.x  + blockDim.x * blockIdx.x;
   if (tid < n) {
     int index = indices[tid];
-    out[tid] = d_in[index];
+    out[tid] = in[index];
   }
 }
 
@@ -362,12 +363,13 @@ void NthElement::GetPairs(size_t number,
   lastN = number;
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, float* d_in)
+void NthElement::getValueByKey(std::vector<float>& out, mblas::Matrix &d_in)
 {
   mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
+  mblas::MatrixWrapper<float> inWrap(d_in);
 
   gGetValueByKey<<<1, lastN, 0, stream_>>>
-    (breakdownWrap, d_in, h_res_idx, lastN);
+    (breakdownWrap, inWrap, h_res_idx, lastN);
 
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), lastN * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
