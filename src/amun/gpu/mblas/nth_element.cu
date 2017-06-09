@@ -274,8 +274,6 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , numBlocks_(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
 , d_out(maxBatchSize * numBlocks_)
 , d_ind(maxBatchSize * numBlocks_)
-, d_res_idx(maxBatchSize * maxBeamSize)
-, d_res(maxBatchSize * maxBeamSize)
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
@@ -285,6 +283,9 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 
   d_batchPosition.reserve(maxBatchSize + 1);
   d_cumBeamSizes.reserve(maxBatchSize + 1);
+
+  d_res_idx.resize(maxBatchSize * maxBeamSize);
+  d_res.resize(maxBatchSize * maxBeamSize);
 
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
                               cudaHostAllocDefault) );
@@ -379,6 +380,10 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
     batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
 
+  size_t numHypos = cummulatedBeamSizes.back();
+  d_res_idx.resize(numHypos);
+  d_res.resize(numHypos);
+
   //cerr << endl;
   //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
   //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
@@ -390,7 +395,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   //cerr << "2Probs=" << Probs.Debug() << endl;
   //cerr << "cummulatedBeamSizes.back()=" << cummulatedBeamSizes.back() << endl;
   //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
-  GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
+  GetPairs(numHypos, outKeys, outCosts);
 
   //cerr << "outCosts=" << Debug(outCosts, 2) << endl;
   //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
@@ -399,7 +404,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
 void NthElement::GetPairs(size_t number,
                     std::vector<unsigned>& outKeys,
                     std::vector<float>& outValues) {
-  cerr << "FOO5" << endl;
+  cerr << "FOO5:" << number << endl;
 
   HANDLE_ERROR( cudaMemcpyAsync(h_res, thrust::raw_pointer_cast(d_res.data()), number * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
