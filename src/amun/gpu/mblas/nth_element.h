@@ -9,6 +9,12 @@
 namespace amunmt {
 namespace GPU {
 
+struct NthOut
+{
+  int ind;
+  float score;
+};
+
 class NthElement {
   public:
     NthElement() = delete;
@@ -33,6 +39,7 @@ class NthElement {
 
     DeviceVector<int> d_ind;
     DeviceVector<float> d_out;
+    DeviceVector<NthOut> d_outNew;
 
     DeviceVector<int>   d_res_idx;
     DeviceVector<float> d_res;

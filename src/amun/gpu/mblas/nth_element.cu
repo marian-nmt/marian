@@ -19,7 +19,8 @@ namespace GPU {
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-__global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
+__global__ void gMaxElement(mblas::MatrixWrapper<NthOut> outNew,
+                            mblas::MatrixWrapper<float> outWrap,
                             mblas::MatrixWrapper<int> indWrap,
                             const mblas::MatrixWrapper<float> probsWrap,
                             const mblas::MatrixWrapper<int> batchPositionWrap,
@@ -99,7 +100,8 @@ __global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
   }
 }
 
-__global__ void gMaxElementUpdate(mblas::MatrixWrapper<float> outWrap,
+__global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> outNew,
+                                  mblas::MatrixWrapper<float> outWrap,
                                   mblas::MatrixWrapper<int> indWrap,
                                   mblas::MatrixWrapper<float> probsWrap,
                                   mblas::MatrixWrapper<int> batchPositionWrap,
@@ -274,6 +276,7 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , numBlocks_(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
 , d_out(maxBatchSize * numBlocks_)
 , d_ind(maxBatchSize * numBlocks_)
+, d_outNew(maxBatchSize * numBlocks_)
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
@@ -316,6 +319,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
 
+  mblas::MatrixWrapper<NthOut> outNewWrap(d_outNew);
   mblas::MatrixWrapper<float> outWrap(d_out);
   mblas::MatrixWrapper<int> indWrap(d_ind);
   mblas::MatrixWrapper<float> probsWrap(probs);
@@ -325,15 +329,17 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, indWrap, probsWrap, batchPositionWrap, numBatches);
+    (outNewWrap, outWrap, indWrap, probsWrap, batchPositionWrap, numBatches);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, indWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
+    (outNewWrap, outWrap, indWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
      numBlocks_);
 
   cerr << "numBlocks_=" << numBlocks_ << endl;
   cerr << "numBatches=" << numBatches << endl;
   cerr << "threads=" << BLOCK_SIZE << endl;
+
+  cerr << "outNewWrap=" << outNewWrap.Debug() << endl;
 
   cerr << "outWrap=" << outWrap.Debug() << endl;
   //cerr << mblas::Debug(d_out, 2) << endl;
