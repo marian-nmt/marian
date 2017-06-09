@@ -323,13 +323,20 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 
 
   cerr << "outWrap=" << outWrap.Debug() << endl;
+  //cerr << mblas::Debug(d_out, 2) << endl;
+
   cerr << "indWrap=" << indWrap.Debug() << endl;
+  //cerr << mblas::Debug(d_ind, 2) << endl;
+
   cerr << "probsWrap=" << probsWrap.Debug() << endl;
   cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
+
   cerr << "resWrap=" << resWrap.Debug() << endl;
-  cerr << mblas::Debug(d_res, 2) << endl;
+  //cerr << mblas::Debug(d_res, 2) << endl;
+
   cerr << "res_idxWrap=" << res_idxWrap.Debug() << endl;
-  cerr << mblas::Debug(d_res_idx, 2) << endl;
+  //cerr << mblas::Debug(d_res_idx, 2) << endl;
+
   cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
   cerr << endl;
 
