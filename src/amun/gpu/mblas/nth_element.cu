@@ -1,6 +1,7 @@
 #include <iostream>
 #include "gpu/mblas/nth_element.h"
 #include "common/utils.h"
+#include "matrix_wrapper.h"
 
 using namespace std;
 
@@ -17,7 +18,10 @@ namespace GPU {
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-__global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatches, int* batchFirstElementIdxs) {
+__global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
+                            mblas::MatrixWrapper<int> indWrap,
+                            float* d_out, int* d_ind,
+                            float* d_in, int numBatches, int* batchFirstElementIdxs) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
 
@@ -86,7 +90,7 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
     UNROLL_MAXARG_LOOP(1, end);
 
     if (tid == 0) {
-      d_out[blockIdx.x + batchIdx * gridDim.x] = sdata[0];
+      outWrap[blockIdx.x + batchIdx * gridDim.x] = sdata[0];
       d_ind[blockIdx.x + batchIdx * gridDim.x] = indices[0];
     }
     __syncthreads();
@@ -291,8 +295,11 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
 
+  mblas::MatrixWrapper<float> outWrap(d_out);
+  mblas::MatrixWrapper<int> indWrap(d_ind);
+
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (thrust::raw_pointer_cast(d_out.data()), thrust::raw_pointer_cast(d_ind.data()), probs, numBatches, d_batchPosition);
+    (outWrap, indWrap, thrust::raw_pointer_cast(d_out.data()), thrust::raw_pointer_cast(d_ind.data()), probs, numBatches, d_batchPosition);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (thrust::raw_pointer_cast(d_out.data()),
