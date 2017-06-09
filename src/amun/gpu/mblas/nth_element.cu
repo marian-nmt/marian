@@ -363,10 +363,10 @@ void NthElement::GetPairs(size_t number,
   lastN = number;
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, mblas::Matrix &d_in)
+void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
 {
   mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
-  mblas::MatrixWrapper<float> inWrap(d_in);
+  const mblas::MatrixWrapper<float> inWrap(d_in);
 
   gGetValueByKey<<<1, lastN, 0, stream_>>>
     (breakdownWrap, inWrap, h_res_idx, lastN);
