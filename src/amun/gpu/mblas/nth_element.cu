@@ -20,7 +20,6 @@ namespace GPU {
 
 __global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
                             mblas::MatrixWrapper<int> indWrap,
-                            float* d_out, int* d_ind,
                             float* d_in, int numBatches, int* batchFirstElementIdxs) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
@@ -91,7 +90,7 @@ __global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
 
     if (tid == 0) {
       outWrap[blockIdx.x + batchIdx * gridDim.x] = sdata[0];
-      d_ind[blockIdx.x + batchIdx * gridDim.x] = indices[0];
+      indWrap[blockIdx.x + batchIdx * gridDim.x] = indices[0];
     }
     __syncthreads();
   }
@@ -299,7 +298,7 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
   mblas::MatrixWrapper<int> indWrap(d_ind);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, indWrap, thrust::raw_pointer_cast(d_out.data()), thrust::raw_pointer_cast(d_ind.data()), probs, numBatches, d_batchPosition);
+    (outWrap, indWrap, probs, numBatches, d_batchPosition);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (thrust::raw_pointer_cast(d_out.data()),
