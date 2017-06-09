@@ -276,13 +276,14 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_ind(maxBatchSize * numBlocks_)
 , d_res_idx(maxBatchSize * maxBeamSize)
 , d_res(maxBatchSize * maxBeamSize)
-, d_batchPosition(maxBatchSize + 1)
-, d_cumBeamSizes(maxBatchSize + 1)
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
 {
   cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
+
+  d_batchPosition.reserve(maxBatchSize + 1);
+  d_cumBeamSizes.reserve(maxBatchSize + 1);
 
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
                               cudaHostAllocDefault) );
@@ -299,6 +300,11 @@ NthElement::~NthElement()
 void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes)
 {
+  cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
+  d_batchPosition.resize(batchFirstElementIdxs.size());
+  d_cumBeamSizes.resize(cummulatedBeamSizes.size());
+  assert(d_batchPosition.size() == d_cumBeamSizes.size());
+
   HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(d_batchPosition.data()), batchFirstElementIdxs.data(), batchFirstElementIdxs.size() * sizeof(int),
                                 cudaMemcpyHostToDevice, stream_) );
   HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(d_cumBeamSizes.data()), cummulatedBeamSizes.data(), cummulatedBeamSizes.size() * sizeof(int),
@@ -321,6 +327,9 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
     (outWrap, indWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
      numBlocks_);
 
+  cerr << "numBlocks_=" << numBlocks_ << endl;
+  cerr << "numBatches=" << numBatches << endl;
+  cerr << "threads=" << BLOCK_SIZE << endl;
 
   cerr << "outWrap=" << outWrap.Debug() << endl;
   //cerr << mblas::Debug(d_out, 2) << endl;
@@ -329,7 +338,9 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   //cerr << mblas::Debug(d_ind, 2) << endl;
 
   cerr << "probsWrap=" << probsWrap.Debug() << endl;
+
   cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
+  cerr << mblas::Debug(d_batchPosition, 2) << endl;
 
   cerr << "resWrap=" << resWrap.Debug() << endl;
   //cerr << mblas::Debug(d_res, 2) << endl;
@@ -338,6 +349,8 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   //cerr << mblas::Debug(d_res_idx, 2) << endl;
 
   cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
+  cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
+
   cerr << endl;
 
 }
@@ -345,6 +358,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst) {
+  cerr << "beamSizes=" << beamSizes.size() << endl;
   std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1);
   std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
