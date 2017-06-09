@@ -1,7 +1,8 @@
 #include <iostream>
-#include "gpu/mblas/nth_element.h"
 #include "common/utils.h"
 #include "matrix_wrapper.h"
+#include "nth_element.h"
+#include "matrix_functions.h"
 
 using namespace std;
 
@@ -278,7 +279,11 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_batchPosition(maxBatchSize + 1)
 , d_cumBeamSizes(maxBatchSize + 1)
 , d_breakdown(maxBeamSize)
+, maxBeamSize_(maxBeamSize)
+, maxBatchSize_(maxBatchSize)
 {
+  cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
+
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
                               cudaHostAllocDefault) );
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res_idx, maxBeamSize * maxBatchSize * sizeof(int),
@@ -305,8 +310,8 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<int> indWrap(d_ind);
   mblas::MatrixWrapper<float> probsWrap(probs);
   mblas::MatrixWrapper<int> batchPositionWrap(d_batchPosition);
-  mblas::MatrixWrapper<float> resWrap(d_res);
-  mblas::MatrixWrapper<int> res_idxWrap(d_res_idx);
+  mblas::MatrixWrapper<float> resWrap(d_res, maxBatchSize_, maxBeamSize_, 1, 1);
+  mblas::MatrixWrapper<int> res_idxWrap(d_res_idx, maxBatchSize_, maxBeamSize_, 1, 1);
   mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
@@ -316,16 +321,18 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
     (outWrap, indWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
      numBlocks_);
 
-  /*
+
   cerr << "outWrap=" << outWrap.Debug() << endl;
   cerr << "indWrap=" << indWrap.Debug() << endl;
   cerr << "probsWrap=" << probsWrap.Debug() << endl;
   cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
   cerr << "resWrap=" << resWrap.Debug() << endl;
+  cerr << mblas::Debug(d_res, 2) << endl;
   cerr << "res_idxWrap=" << res_idxWrap.Debug() << endl;
+  cerr << mblas::Debug(d_res_idx, 2) << endl;
   cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
   cerr << endl;
-  */
+
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,

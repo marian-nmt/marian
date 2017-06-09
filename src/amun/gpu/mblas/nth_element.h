@@ -46,6 +46,8 @@ class NthElement {
     DeviceVector<int> d_batchPosition;
     DeviceVector<int> d_cumBeamSizes;
     size_t lastN;
+
+    size_t maxBeamSize_, maxBatchSize_;
 };
 
 }  // namespace GPU
