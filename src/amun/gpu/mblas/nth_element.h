@@ -16,7 +16,7 @@ class NthElement {
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
     virtual ~NthElement();
 
-    void getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
+    void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes);
     void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                       std::vector<float>& outCosts, std::vector<unsigned>& outKeys,

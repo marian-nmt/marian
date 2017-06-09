@@ -20,7 +20,8 @@ namespace GPU {
 
 __global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
                             mblas::MatrixWrapper<int> indWrap,
-                            float* d_in, int numBatches, int* batchFirstElementIdxs) {
+                            mblas::MatrixWrapper<float> probsWrap,
+                            int numBatches, int* batchFirstElementIdxs) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
 
@@ -35,13 +36,13 @@ __global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
     sdata[tid] = -3.40282e+38f;
 
     if (i < end) {
-      sdata[tid] = d_in[i];
+      sdata[tid] = probsWrap[i];
       indices[tid] = i;
     }
 
     if (i + blockDim.x < end) {
-      float a = d_in[i];
-      float b = d_in[i + blockDim.x];
+      float a = probsWrap[i];
+      float b = probsWrap[i + blockDim.x];
       if (a > b) {
         sdata[tid] = a;
         indices[tid] = i;
@@ -54,14 +55,14 @@ __global__ void gMaxElement(mblas::MatrixWrapper<float> outWrap,
     while (i + 2 * gridDim.x * blockDim.x < end) {
       i += 2 * gridDim.x * blockDim.x;
 
-      float a = d_in[i];
+      float a = probsWrap[i];
       if (a > sdata[tid]) {
         sdata[tid] = a;
         indices[tid] = i;
       }
 
       if (i + blockDim.x < end) {
-        float b = d_in[i + blockDim.x];
+        float b = probsWrap[i + blockDim.x];
         if (b > sdata[tid]) {
           sdata[tid] = b;
           indices[tid] = i + blockDim.x;
@@ -284,7 +285,7 @@ NthElement::~NthElement()
   HANDLE_ERROR(cudaFree(d_cumBeamSizes));
 }
 
-void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
+void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes)
 {
   HANDLE_ERROR( cudaMemcpyAsync(d_batchPosition, batchFirstElementIdxs.data(), batchFirstElementIdxs.size() * sizeof(int),
@@ -296,14 +297,15 @@ void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstEl
 
   mblas::MatrixWrapper<float> outWrap(d_out);
   mblas::MatrixWrapper<int> indWrap(d_ind);
+  mblas::MatrixWrapper<float> probsWrap(probs);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, indWrap, probs, numBatches, d_batchPosition);
+    (outWrap, indWrap, probsWrap, numBatches, d_batchPosition);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (thrust::raw_pointer_cast(d_out.data()),
      thrust::raw_pointer_cast(d_ind.data()),
-     probs,
+     probs.data(),
      d_batchPosition,
      thrust::raw_pointer_cast(d_res.data()),
      thrust::raw_pointer_cast(d_res_idx.data()),
@@ -332,7 +334,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   //cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;
   //cerr << "1Probs=" << Probs.Debug() << endl;
 
-  getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
+  getNBestList(Probs, batchFirstElementIdxs, cummulatedBeamSizes);
 
   //cerr << "2Probs=" << Probs.Debug() << endl;
   //cerr << "cummulatedBeamSizes.back()=" << cummulatedBeamSizes.back() << endl;
