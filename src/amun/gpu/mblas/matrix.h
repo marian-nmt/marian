@@ -42,7 +42,7 @@ class TMatrix : public BaseMatrix {
     , arrSize_(size())
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
-      std::cerr << "malloc data1:" << data_ << std::endl;
+      //std::cerr << "malloc data1:" << data_ << std::endl;
       if (zero) {
         HANDLE_ERROR( cudaMemset(data_, 0, arrSize_ * sizeof(T)) );
       }
@@ -62,7 +62,7 @@ class TMatrix : public BaseMatrix {
     , arrSize_(m.arrSize_)
     {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
-      std::cerr << "malloc data2:" << data_ << std::endl;
+      //std::cerr << "malloc data2:" << data_ << std::endl;
       HANDLE_ERROR( cudaMemcpyAsync(
           data_,
           m.data_,
@@ -94,7 +94,7 @@ class TMatrix : public BaseMatrix {
         if (newSize > arrSize_) {
           T *newData;
           HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
-          std::cerr << "malloc data3:" << data_ << std::endl;
+          //std::cerr << "malloc data3:" << data_ << std::endl;
 
           //size_t count = std::min(arrSize_, newSize);
 
@@ -105,7 +105,7 @@ class TMatrix : public BaseMatrix {
               cudaMemcpyDeviceToDevice,
               CudaStreamHandler::GetStream()) );
 
-          std::cerr << "free data1:" << data_ << std::endl;
+          //std::cerr << "free data1:" << data_ << std::endl;
           HANDLE_ERROR(cudaFree(data_));
           data_ = newData;
           arrSize_ = newSize;
@@ -116,7 +116,7 @@ class TMatrix : public BaseMatrix {
       }
       else {
         HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
-        std::cerr << "malloc data4:" << data_ << std::endl;
+        //std::cerr << "malloc data4:" << data_ << std::endl;
         arrSize_ = newSize;
       }
 
@@ -177,7 +177,7 @@ class TMatrix : public BaseMatrix {
     }
 
     void Clear() {
-      std::cerr << "free data2:" << data_ << std::endl;
+      //std::cerr << "free data2:" << data_ << std::endl;
       HANDLE_ERROR(cudaFree(data_));
       data_ = nullptr;
       rows_ = 0;

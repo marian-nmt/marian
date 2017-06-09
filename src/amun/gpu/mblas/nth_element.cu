@@ -315,6 +315,15 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (outWrap, indWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
      numBlocks_);
+
+  cerr << "outWrap=" << outWrap.Debug() << endl;
+  cerr << "indWrap=" << indWrap.Debug() << endl;
+  cerr << "probsWrap=" << probsWrap.Debug() << endl;
+  cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
+  cerr << "resWrap=" << resWrap.Debug() << endl;
+  cerr << "res_idxWrap=" << res_idxWrap.Debug() << endl;
+  cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
+  cerr << endl;
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
