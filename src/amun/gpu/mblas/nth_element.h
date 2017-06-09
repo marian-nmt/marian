@@ -26,7 +26,7 @@ class NthElement {
                   std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues);
 
-    void getValueByKey(std::vector<float>& out, float* d_in) const;
+    void getValueByKey(std::vector<float>& out, float* d_in);
 
   private:
     const int BLOCK_SIZE = 512;
@@ -42,7 +42,7 @@ class NthElement {
     int   *h_res_idx;
     float *h_res;
 
-    float  *d_breakdown;
+    DeviceVector<float> d_breakdown;
     DeviceVector<int> d_batchPosition;
     DeviceVector<int> d_cumBeamSizes;
     size_t lastN;

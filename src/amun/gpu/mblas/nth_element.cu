@@ -250,12 +250,13 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
   }
 }
 
-__global__ void gGetValueByKey(float* d_in, float* d_out, int* indices, int n)
+__global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
+                              const float* d_in, int* indices, int n)
 {
   int tid = threadIdx.x  + blockDim.x * blockIdx.x;
   if (tid < n) {
     int index = indices[tid];
-    d_out[tid] = d_in[index];
+    out[tid] = d_in[index];
   }
 }
 
@@ -268,20 +269,18 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_res(maxBatchSize * maxBeamSize)
 , d_batchPosition(maxBatchSize + 1)
 , d_cumBeamSizes(maxBatchSize + 1)
+, d_breakdown(maxBeamSize)
 {
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
                               cudaHostAllocDefault) );
   HANDLE_ERROR( cudaHostAlloc((void**) &h_res_idx, maxBeamSize * maxBatchSize * sizeof(int),
                               cudaHostAllocDefault) );
-
-  HANDLE_ERROR( cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)) );
 }
 
 NthElement::~NthElement()
 {
   HANDLE_ERROR(cudaFreeHost(h_res));
   HANDLE_ERROR(cudaFreeHost(h_res_idx));
-  HANDLE_ERROR(cudaFree(d_breakdown));
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
@@ -363,12 +362,14 @@ void NthElement::GetPairs(size_t number,
   lastN = number;
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, float* d_in) const
+void NthElement::getValueByKey(std::vector<float>& out, float* d_in)
 {
-  gGetValueByKey<<<1, lastN, 0, stream_>>>
-    (d_in, d_breakdown, h_res_idx, lastN);
+  mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
 
-  HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
+  gGetValueByKey<<<1, lastN, 0, stream_>>>
+    (breakdownWrap, d_in, h_res_idx, lastN);
+
+  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), lastN * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaStreamSynchronize(stream_));
 }
