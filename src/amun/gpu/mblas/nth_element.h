@@ -16,8 +16,6 @@ class NthElement {
     NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
     virtual ~NthElement();
 
-    void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
-                              const std::vector<int>& cummulatedBeamSizes);
     void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                       std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                       const bool isFirst=false);
@@ -48,6 +46,10 @@ class NthElement {
     size_t lastN;
 
     size_t maxBeamSize_, maxBatchSize_;
+
+    void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
+                              const std::vector<int>& cummulatedBeamSizes);
+
 };
 
 }  // namespace GPU
