@@ -37,7 +37,7 @@ class NthElement {
     const int numBlocks_;
     cudaStream_t& stream_;
 
-    DeviceVector<NthOut> d_outNew;
+    DeviceVector<NthOut> d_out;
 
     DeviceVector<int>   d_res_idx;
     DeviceVector<float> d_res;
