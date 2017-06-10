@@ -69,7 +69,7 @@ class NthElement {
 
     DeviceVector<NthOut> d_res;
 
-    HostVector<NthOut> h_resNew;
+    HostVector<NthOut> h_res;
 
     DeviceVector<float> d_breakdown;
     DeviceVector<int> d_batchPosition;

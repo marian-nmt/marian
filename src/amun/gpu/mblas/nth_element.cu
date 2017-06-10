@@ -279,7 +279,7 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
   d_batchPosition.reserve(maxBatchSize + 1);
   d_cumBeamSizes.reserve(maxBatchSize + 1);
 
-  h_resNew.reserve(maxBatchSize * maxBeamSize);
+  h_res.reserve(maxBatchSize * maxBeamSize);
 }
 
 NthElement::~NthElement()
@@ -361,7 +361,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   size_t numHypos = cummulatedBeamSizes.back();
-  h_resNew.resize(numHypos);
+  h_res.resize(numHypos);
 
   //cerr << endl;
   //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
@@ -385,12 +385,12 @@ void NthElement::GetPairs(size_t number,
                     std::vector<float>& outValues) {
   //cerr << "FOO5:" << number << endl;
 
-  thrust::copy(d_res.begin(), d_res.end(), h_resNew.begin());
+  thrust::copy(d_res.begin(), d_res.end(), h_res.begin());
   HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
   for (size_t i = 0; i < number; ++i) {
-    outKeys.push_back(h_resNew[i].ind);
-    outValues.push_back(h_resNew[i].score);
+    outKeys.push_back(h_res[i].ind);
+    outValues.push_back(h_res[i].score);
   }
 
   lastN_ = number;
