@@ -271,7 +271,7 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
-, d_resNew(maxBatchSize * maxBeamSize)
+, d_res(maxBatchSize * maxBeamSize)
 {
   //cerr << "FOO1" << endl;
   //cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
@@ -306,14 +306,14 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
   mblas::MatrixWrapper<int> batchPositionWrap(d_batchPosition);
-  mblas::MatrixWrapper<NthOut> resNewWrap(d_resNew);
+  mblas::MatrixWrapper<NthOut> resWrap(d_res);
   mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (outWrap, probsWrap, batchPositionWrap, numBatches);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, probsWrap, batchPositionWrap, resNewWrap, cumBeamSizesWrap,
+    (outWrap, probsWrap, batchPositionWrap, resWrap, cumBeamSizesWrap,
      numBlocks_);
 
   /*
@@ -328,8 +328,8 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
   cerr << mblas::Debug(d_batchPosition, 2) << endl;
 
-  cerr << "resNewWrap=" << resNewWrap.Debug() << endl;
-  //cerr << mblas::Debug(d_res, 2) << endl;
+  cerr << "resWrap=" << resWrap.Debug() << endl;
+  cerr << mblas::Debug(d_res, 2) << endl;
 
   cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
   cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
@@ -385,10 +385,7 @@ void NthElement::GetPairs(size_t number,
                     std::vector<float>& outValues) {
   //cerr << "FOO5:" << number << endl;
 
-  //HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(h_resNew.data()), thrust::raw_pointer_cast(d_resNew.data()), number * sizeof(NthOut),
-  //                              cudaMemcpyDeviceToHost, stream_) );
-  thrust::copy(d_resNew.begin(), d_resNew.end(), h_resNew.begin());
-
+  thrust::copy(d_res.begin(), d_res.end(), h_resNew.begin());
   HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
   for (size_t i = 0; i < number; ++i) {

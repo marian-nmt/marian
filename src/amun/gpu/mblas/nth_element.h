@@ -14,6 +14,14 @@ struct NthOut
   int ind;
   float score;
 };
+/*
+std::ostream& operator<<(std::ostream &out, const NthOut &obj)
+{
+  out << "(" << obj.ind << "," << obj.score << ")";
+  return out;
+}
+*/
+/////////////////////////////////////////////////////////////////////////////////////////
 
 class NthElement {
   public:
@@ -39,7 +47,7 @@ class NthElement {
 
     DeviceVector<NthOut> d_out;
 
-    DeviceVector<NthOut> d_resNew;
+    DeviceVector<NthOut> d_res;
 
     HostVector<NthOut> h_resNew;
 
