@@ -287,8 +287,9 @@ NthElement::~NthElement()
   //cerr << "FOO2" << endl;
 }
 
-void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
-                              const std::vector<int>& cummulatedBeamSizes)
+void NthElement::getNBestList(mblas::Matrix &probs,
+                              const HostVector<int>& batchFirstElementIdxs,
+                              const HostVector<int>& cummulatedBeamSizes)
 {
   //cerr << "FOO3" << endl;
   const int vocabSize = probs.dim(1);
@@ -303,11 +304,8 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   d_cumBeamSizes.resize(cummulatedBeamSizes.size());
   assert(d_batchPosition.size() == d_cumBeamSizes.size());
 
-  HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(d_batchPosition.data()), batchFirstElementIdxs.data(), batchFirstElementIdxs.size() * sizeof(int),
-                                cudaMemcpyHostToDevice, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(d_cumBeamSizes.data()), cummulatedBeamSizes.data(), cummulatedBeamSizes.size() * sizeof(int),
-                                cudaMemcpyHostToDevice, stream_) );
-
+  thrust::copy(batchFirstElementIdxs.begin(), batchFirstElementIdxs.end(), d_batchPosition.begin());
+  thrust::copy(cummulatedBeamSizes.begin(), cummulatedBeamSizes.end(), d_cumBeamSizes.begin());
 
   mblas::MatrixWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
@@ -354,8 +352,8 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   cerr << "outCosts=" << outCosts.size() << endl;
   cerr << "outKeys=" << outKeys.size() << endl;
   */
-  std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1);
-  std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1);
+  HostVector<int> cummulatedBeamSizes(beamSizes.size() + 1);
+  HostVector<int> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 

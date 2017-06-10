@@ -75,8 +75,9 @@ class NthElement {
 
     size_t maxBeamSize_, maxBatchSize_;
 
-    void getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
-                              const std::vector<int>& cummulatedBeamSizes);
+    void getNBestList(mblas::Matrix &probs,
+                      const HostVector<int>& batchFirstElementIdxs,
+                      const HostVector<int>& cummulatedBeamSizes);
 
 };
 
