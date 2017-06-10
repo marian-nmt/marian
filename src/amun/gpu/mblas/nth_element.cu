@@ -9,6 +9,8 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
+#define SHARED_SIZE 512
+
 #define UNROLL_MAXARG_LOOP( n, max ) \
   if (tid < (n) && tid + (n) < ( max ) ) { \
     if (sdata[tid + ( n ) ] > sdata[tid]) { \
@@ -24,7 +26,7 @@ __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
                             const mblas::MatrixWrapper<int> batchPositionWrap,
                             int numBatches) {
   extern __shared__ float sdata[];
-  __shared__ int indices[512];
+  __shared__ int indices[SHARED_SIZE];
 
   int tid = threadIdx.x;
 
@@ -104,14 +106,14 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
                                   mblas::MatrixWrapper<int> cumBeamSizesWrap,
                                   int numBlocks) {
   extern __shared__ float sdata[];
-  __shared__ int indices[512];
+  __shared__ int indices[SHARED_SIZE];
   __shared__ float bestBinCost;
   __shared__ int bestBinCostIdx;
 
   const int tid = threadIdx.x;
   const int batchIdx = blockIdx.x;
   const int N = batchPositionWrap[batchIdx + 1] - batchPositionWrap[batchIdx];
-  int num_bins = int(N / (2 * 512)) + int(N % (2 * 512) != 0);
+  int num_bins = int(N / (2 * SHARED_SIZE)) + int(N % (2 * SHARED_SIZE) != 0);
   //if (num_bins > 500) {
   //  num_bins = 500;
   //}
