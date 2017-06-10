@@ -407,7 +407,7 @@ void NthElement::GetPairs(size_t number,
     outValues.push_back(h_res[i]);
   }
 
-  lastN = number;
+  lastN_ = number;
 }
 
 void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
@@ -416,10 +416,10 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
   const mblas::MatrixWrapper<float> inWrap(d_in);
 
-  gGetValueByKey<<<1, lastN, 0, stream_>>>
-    (breakdownWrap, inWrap, h_res_idx, lastN);
+  gGetValueByKey<<<1, lastN_, 0, stream_>>>
+    (breakdownWrap, inWrap, h_res_idx, lastN_);
 
-  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), lastN * sizeof(float),
+  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), lastN_ * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaStreamSynchronize(stream_));
 }
