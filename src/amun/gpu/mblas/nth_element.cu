@@ -320,7 +320,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
     (outWrap, probsWrap, batchPositionWrap, resWrap, cumBeamSizesWrap,
      numBlocks);
 
-
+  /*
   cerr << "numBlocks=" << numBlocks << endl;
   cerr << "numBatches=" << numBatches << endl;
   cerr << "threads=" << BLOCK_SIZE << endl;
@@ -339,7 +339,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   //cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
 
   cerr << endl;
-
+  */
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
