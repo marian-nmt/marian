@@ -100,8 +100,6 @@ __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
 __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
                                   mblas::MatrixWrapper<float> probsWrap,
                                   mblas::MatrixWrapper<int> batchPositionWrap,
-                                  mblas::MatrixWrapper<float> resWrap,
-                                  mblas::MatrixWrapper<int> res_idxWrap,
                                   mblas::MatrixWrapper<NthOut> resNewWrap,
                                   mblas::MatrixWrapper<int> cumBeamSizesWrap,
                                   int numBlocks) {
@@ -183,9 +181,7 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
 
       probsWrap[ out[bestBinCostIdx].ind ] = -3.40282e+38f;
 
-      res_idxWrap[pos] = out[bestBinCostIdx].ind;
       resNewWrap[pos].ind = out[bestBinCostIdx].ind;
-      resWrap[pos] = bestBinCost;
       resNewWrap[pos].score = bestBinCost;
     }
 
@@ -283,21 +279,11 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 
   d_batchPosition.reserve(maxBatchSize + 1);
   d_cumBeamSizes.reserve(maxBatchSize + 1);
-
-  d_res_idx.resize(maxBatchSize * maxBeamSize);
-  d_res.resize(maxBatchSize * maxBeamSize);
-
-  HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
-                              cudaHostAllocDefault) );
-  HANDLE_ERROR( cudaHostAlloc((void**) &h_res_idx, maxBeamSize * maxBatchSize * sizeof(int),
-                              cudaHostAllocDefault) );
 }
 
 NthElement::~NthElement()
 {
   cerr << "FOO2" << endl;
-  HANDLE_ERROR(cudaFreeHost(h_res));
-  HANDLE_ERROR(cudaFreeHost(h_res_idx));
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batchFirstElementIdxs,
@@ -319,16 +305,14 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
   mblas::MatrixWrapper<int> batchPositionWrap(d_batchPosition);
-  mblas::MatrixWrapper<float> resWrap(d_res);
   mblas::MatrixWrapper<NthOut> resNewWrap(d_resNew);
-  mblas::MatrixWrapper<int> res_idxWrap(d_res_idx);
   mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (outWrap, probsWrap, batchPositionWrap, numBatches);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, resNewWrap, cumBeamSizesWrap,
+    (outWrap, probsWrap, batchPositionWrap, resNewWrap, cumBeamSizesWrap,
      numBlocks_);
 
   cerr << "numBlocks_=" << numBlocks_ << endl;
@@ -341,12 +325,6 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 
   cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
   cerr << mblas::Debug(d_batchPosition, 2) << endl;
-
-  cerr << "resWrap=" << resWrap.Debug() << endl;
-  cerr << mblas::Debug(d_res, 2) << endl;
-
-  cerr << "res_idxWrap=" << res_idxWrap.Debug() << endl;
-  cerr << mblas::Debug(d_res_idx, 2) << endl;
 
   cerr << "resNewWrap=" << resNewWrap.Debug() << endl;
   //cerr << mblas::Debug(d_res, 2) << endl;
@@ -380,8 +358,6 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   size_t numHypos = cummulatedBeamSizes.back();
-  d_res_idx.resize(numHypos);
-  d_res.resize(numHypos);
   d_resNew.resize(numHypos);
 
   //cerr << endl;
@@ -406,14 +382,9 @@ void NthElement::GetPairs(size_t number,
                     std::vector<float>& outValues) {
   cerr << "FOO5:" << number << endl;
 
-  HANDLE_ERROR( cudaMemcpyAsync(h_res, thrust::raw_pointer_cast(d_res.data()), number * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, thrust::raw_pointer_cast(d_res_idx.data()), number * sizeof(int),
-                                cudaMemcpyDeviceToHost, stream_) );
-
-  HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(h_resNew.data()), thrust::raw_pointer_cast(d_resNew.data()), number * sizeof(NthOut),
-                                cudaMemcpyDeviceToHost, stream_) );
-  //thrust::copy(d_resNew.begin(), d_resNew.end(), h_resNew.begin());
+  //HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(h_resNew.data()), thrust::raw_pointer_cast(d_resNew.data()), number * sizeof(NthOut),
+  //                              cudaMemcpyDeviceToHost, stream_) );
+  thrust::copy(d_resNew.begin(), d_resNew.end(), h_resNew.begin());
 
   HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
@@ -431,8 +402,9 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
   const mblas::MatrixWrapper<float> inWrap(d_in);
 
-  gGetValueByKey<<<1, lastN_, 0, stream_>>>
-    (breakdownWrap, inWrap, h_res_idx, lastN_);
+  assert(false);
+  //gGetValueByKey<<<1, lastN_, 0, stream_>>>
+  //  (breakdownWrap, inWrap, h_res_idx, lastN_);
 
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), lastN_ * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
