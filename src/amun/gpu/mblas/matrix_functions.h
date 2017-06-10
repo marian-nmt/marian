@@ -45,7 +45,7 @@ std::string Debug(const DeviceVector<T> &vec, size_t verbosity = 1)
   strm << "size=" << vec.size();
 
   if (verbosity) {
-    T sum = 0;
+    T sum(0);
     for (size_t i = 0; i < vec.size(); ++i) {
       sum += vec[i];
     }

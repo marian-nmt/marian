@@ -332,7 +332,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   cerr << mblas::Debug(d_res, 2) << endl;
 
   cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
-  cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
+  //cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
 
   cerr << endl;
   */

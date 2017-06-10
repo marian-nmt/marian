@@ -13,14 +13,34 @@ struct NthOut
 {
   int ind;
   float score;
+
+  NthOut() {}
+
+  NthOut(int val)
+  :ind(val)
+  ,score(val)
+  {}
+
+  __device__ __host__
+  NthOut(int &vInd, float vScore)
+  :ind(vInd)
+  ,score(vScore)
+  {}
+
+  NthOut& operator+=(const NthOut& rhs)
+  {
+    ind += rhs.ind;
+    score += rhs.score;
+    return *this;
+  }
 };
-/*
-std::ostream& operator<<(std::ostream &out, const NthOut &obj)
+
+inline std::ostream& operator<<(std::ostream &out, const NthOut &obj)
 {
   out << "(" << obj.ind << "," << obj.score << ")";
   return out;
 }
-*/
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
 class NthElement {
