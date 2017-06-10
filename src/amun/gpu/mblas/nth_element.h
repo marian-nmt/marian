@@ -41,9 +41,11 @@ class NthElement {
 
     DeviceVector<int>   d_res_idx;
     DeviceVector<float> d_res;
+    DeviceVector<NthOut> d_resNew;
 
     int   *h_res_idx;
     float *h_res;
+    HostVector<NthOut> h_resNew;
 
     DeviceVector<float> d_breakdown;
     DeviceVector<int> d_batchPosition;

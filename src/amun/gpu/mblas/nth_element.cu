@@ -102,6 +102,7 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
                                   mblas::MatrixWrapper<int> batchPositionWrap,
                                   mblas::MatrixWrapper<float> resWrap,
                                   mblas::MatrixWrapper<int> res_idxWrap,
+                                  mblas::MatrixWrapper<NthOut> resNewWrap,
                                   mblas::MatrixWrapper<int> cumBeamSizesWrap,
                                   int numBlocks) {
   extern __shared__ float sdata[];
@@ -183,7 +184,9 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
       probsWrap[ out[bestBinCostIdx].ind ] = -3.40282e+38f;
 
       res_idxWrap[pos] = out[bestBinCostIdx].ind;
+      resNewWrap[pos].ind = out[bestBinCostIdx].ind;
       resWrap[pos] = bestBinCost;
+      resNewWrap[pos].score = bestBinCost;
     }
 
     __syncthreads();
@@ -272,6 +275,8 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
+, d_resNew(maxBatchSize * maxBeamSize)
+, h_resNew(maxBatchSize * maxBeamSize)
 {
   cerr << "FOO1" << endl;
   cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
@@ -315,6 +320,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<float> probsWrap(probs);
   mblas::MatrixWrapper<int> batchPositionWrap(d_batchPosition);
   mblas::MatrixWrapper<float> resWrap(d_res);
+  mblas::MatrixWrapper<NthOut> resNewWrap(d_resNew);
   mblas::MatrixWrapper<int> res_idxWrap(d_res_idx);
   mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
@@ -322,7 +328,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
     (outWrap, probsWrap, batchPositionWrap, numBatches);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (outWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, cumBeamSizesWrap,
+    (outWrap, probsWrap, batchPositionWrap, resWrap, res_idxWrap, resNewWrap, cumBeamSizesWrap,
      numBlocks_);
 
   cerr << "numBlocks_=" << numBlocks_ << endl;
@@ -341,6 +347,9 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 
   cerr << "res_idxWrap=" << res_idxWrap.Debug() << endl;
   cerr << mblas::Debug(d_res_idx, 2) << endl;
+
+  cerr << "resNewWrap=" << resNewWrap.Debug() << endl;
+  //cerr << mblas::Debug(d_res, 2) << endl;
 
   cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
   cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
@@ -373,6 +382,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   size_t numHypos = cummulatedBeamSizes.back();
   d_res_idx.resize(numHypos);
   d_res.resize(numHypos);
+  d_resNew.resize(numHypos);
 
   //cerr << endl;
   //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
@@ -400,11 +410,16 @@ void NthElement::GetPairs(size_t number,
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, thrust::raw_pointer_cast(d_res_idx.data()), number * sizeof(int),
                                 cudaMemcpyDeviceToHost, stream_) );
+
+  HANDLE_ERROR( cudaMemcpyAsync(thrust::raw_pointer_cast(h_resNew.data()), thrust::raw_pointer_cast(d_resNew.data()), number * sizeof(NthOut),
+                                cudaMemcpyDeviceToHost, stream_) );
+  //thrust::copy(d_resNew.begin(), d_resNew.end(), h_resNew.begin());
+
   HANDLE_ERROR( cudaStreamSynchronize(stream_) );
 
   for (size_t i = 0; i < number; ++i) {
-    outKeys.push_back(h_res_idx[i]);
-    outValues.push_back(h_res[i]);
+    outKeys.push_back(h_resNew[i].ind);
+    outValues.push_back(h_resNew[i].score);
   }
 
   lastN_ = number;
