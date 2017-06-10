@@ -112,9 +112,9 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
   const int batchIdx = blockIdx.x;
   const int N = batchPositionWrap[batchIdx + 1] - batchPositionWrap[batchIdx];
   int num_bins = int(N / (2 * 512)) + int(N % (2 * 512) != 0);
-  if (num_bins > 500) {
-    num_bins = 500;
-  }
+  //if (num_bins > 500) {
+  //  num_bins = 500;
+  //}
 
   for (int pos = cumBeamSizesWrap[batchIdx]; pos < cumBeamSizesWrap[batchIdx + 1]; ++pos) {
     int i = tid;
@@ -290,9 +290,11 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
 {
   //cerr << "FOO3" << endl;
   const int vocabSize = probs.dim(1);
-  const int numBlocks = std::min(500, int(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + int(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0));
-  d_out.resize(maxBatchSize_ * numBlocks);
+  const int numBlocks = int(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + int(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
   const int numBatches = batchFirstElementIdxs.size() - 1;
+
+  d_out.resize(maxBatchSize_ * numBlocks);
+
 
   //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
   d_batchPosition.resize(batchFirstElementIdxs.size());
