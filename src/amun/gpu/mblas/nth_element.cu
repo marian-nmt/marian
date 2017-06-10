@@ -272,13 +272,14 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
 , d_resNew(maxBatchSize * maxBeamSize)
-, h_resNew(maxBatchSize * maxBeamSize)
 {
   //cerr << "FOO1" << endl;
   //cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
 
   d_batchPosition.reserve(maxBatchSize + 1);
   d_cumBeamSizes.reserve(maxBatchSize + 1);
+
+  h_resNew.reserve(maxBatchSize * maxBeamSize);
 }
 
 NthElement::~NthElement()
@@ -360,7 +361,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   size_t numHypos = cummulatedBeamSizes.back();
-  d_resNew.resize(numHypos);
+  h_resNew.resize(numHypos);
 
   //cerr << endl;
   //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
