@@ -28,7 +28,7 @@ __global__ void gMean(MatrixWrapper<float> out,
   //printf("id = %d in = %lu %lu %lu %lu = %lu %lu \n", id, in.dim(0), in.dim(1), in.dim(2), in.dim(3), in.size(), sizeof(in));
 
   if (id < out.size()) {
-    size_t indices[SHAPE_SIZE];
+    uint indices[SHAPE_SIZE];
     out.id2Indices(id, indices);
     assert(indices[0] == 0);
     //printf("%d -> %lu %lu %lu %lu \n", id, indices[0], indices[1], indices[2], indices[3]);

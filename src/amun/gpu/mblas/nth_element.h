@@ -11,18 +11,18 @@ namespace GPU {
 
 struct NthOut
 {
-  int ind;
+  uint ind;
   float score;
 
   NthOut() {}
 
-  NthOut(int val)
+  NthOut(uint val)
   :ind(val)
   ,score(val)
   {}
 
   __device__ __host__
-  NthOut(int &vInd, float vScore)
+  NthOut(uint &vInd, float vScore)
   :ind(vInd)
   ,score(vScore)
   {}
@@ -47,21 +47,21 @@ class NthElement {
   public:
     NthElement() = delete;
     NthElement(const NthElement &copy) = delete;
-    NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
+    NthElement(uint maxBeamSize, uint maxBatchSize, cudaStream_t& stream);
     virtual ~NthElement();
 
     void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
                       std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                       const bool isFirst=false);
 
-    void GetPairs(size_t number,
+    void GetPairs(uint number,
                   std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues);
 
     void getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const;
 
   private:
-    const int BLOCK_SIZE = 512;
+    const uint BLOCK_SIZE = 512;
     cudaStream_t& stream_;
 
     DeviceVector<NthOut> d_out;
@@ -70,14 +70,14 @@ class NthElement {
     HostVector<NthOut> h_res;
 
     DeviceVector<float> d_breakdown;
-    DeviceVector<int> d_batchPosition;
-    DeviceVector<int> d_cumBeamSizes;
+    DeviceVector<uint> d_batchPosition;
+    DeviceVector<uint> d_cumBeamSizes;
 
-    size_t maxBeamSize_, maxBatchSize_;
+    uint maxBeamSize_, maxBatchSize_;
 
     void getNBestList(mblas::Matrix &probs,
-                      const HostVector<int>& batchFirstElementIdxs,
-                      const HostVector<int>& cummulatedBeamSizes);
+                      const HostVector<uint>& batchFirstElementIdxs,
+                      const HostVector<uint>& cummulatedBeamSizes);
 
 };
 
