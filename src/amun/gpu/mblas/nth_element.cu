@@ -266,8 +266,6 @@ __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
 
 NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream)
 : stream_(stream)
-, numBlocks_(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
-, d_out(maxBatchSize * numBlocks_)
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
@@ -291,6 +289,10 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
                               const std::vector<int>& cummulatedBeamSizes)
 {
   //cerr << "FOO3" << endl;
+  int vocabSize = probs.dim(1);
+  int numBlocks = (std::min(500, int(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + int(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0)));
+  d_out.resize(maxBatchSize_ * numBlocks);
+
   //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
   d_batchPosition.resize(batchFirstElementIdxs.size());
   d_cumBeamSizes.resize(cummulatedBeamSizes.size());
@@ -309,15 +311,15 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   mblas::MatrixWrapper<NthOut> resWrap(d_res);
   mblas::MatrixWrapper<int> cumBeamSizesWrap(d_cumBeamSizes);
 
-  gMaxElement<<<numBlocks_, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+  gMaxElement<<<numBlocks, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (outWrap, probsWrap, batchPositionWrap, numBatches);
 
   gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
     (outWrap, probsWrap, batchPositionWrap, resWrap, cumBeamSizesWrap,
-     numBlocks_);
+     numBlocks);
 
-  /*
-  cerr << "numBlocks_=" << numBlocks_ << endl;
+
+  cerr << "numBlocks=" << numBlocks << endl;
   cerr << "numBatches=" << numBatches << endl;
   cerr << "threads=" << BLOCK_SIZE << endl;
 
@@ -335,7 +337,7 @@ void NthElement::getNBestList(mblas::Matrix &probs, const std::vector<int>& batc
   //cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
 
   cerr << endl;
-  */
+
 }
 
 void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,

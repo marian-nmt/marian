@@ -62,13 +62,11 @@ class NthElement {
 
   private:
     const int BLOCK_SIZE = 512;
-    const int numBlocks_;
     cudaStream_t& stream_;
 
     DeviceVector<NthOut> d_out;
 
     DeviceVector<NthOut> d_res;
-
     HostVector<NthOut> h_res;
 
     DeviceVector<float> d_breakdown;
