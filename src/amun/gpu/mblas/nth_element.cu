@@ -271,7 +271,6 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
-, d_res(maxBatchSize * maxBeamSize)
 {
   //cerr << "FOO1" << endl;
   //cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
@@ -279,6 +278,7 @@ NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& st
   d_batchPosition.reserve(maxBatchSize + 1);
   d_cumBeamSizes.reserve(maxBatchSize + 1);
 
+  d_res.reserve(maxBatchSize * maxBeamSize);
   h_res.reserve(maxBatchSize * maxBeamSize);
 }
 
@@ -361,6 +361,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matri
   }
 
   size_t numHypos = cummulatedBeamSizes.back();
+  d_res.resize(numHypos);
   h_res.resize(numHypos);
 
   //cerr << endl;
@@ -392,8 +393,6 @@ void NthElement::GetPairs(size_t number,
     outKeys.push_back(h_res[i].ind);
     outValues.push_back(h_res[i].score);
   }
-
-  lastN_ = number;
 }
 
 void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
@@ -406,7 +405,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
 
-  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), lastN_ * sizeof(float),
+  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), h_res.size() * sizeof(float),
                                 cudaMemcpyDeviceToHost, stream_) );
   HANDLE_ERROR( cudaStreamSynchronize(stream_));
 }
