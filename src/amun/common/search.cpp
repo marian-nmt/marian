@@ -117,7 +117,7 @@ void Search::Decode(
   States nextStates = NewStates();
 
   size_t batchSize = sentences.size();
-  std::vector<size_t> beamSizes(batchSize, 1);
+  std::vector<uint> beamSizes(batchSize, 1);
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
     //cerr << endl;
@@ -146,7 +146,7 @@ bool Search::Decode(
 		Beam &prevHyps,
 		size_t decoderStep,
 		States &nextStates,
-		std::vector<size_t> &beamSizes
+		std::vector<uint> &beamSizes
 		)
 {
   //std::cerr << std::endl;
@@ -195,7 +195,7 @@ bool Search::CalcBeam(
 		const God &god,
 		Beam &prevHyps,
 		Beams &beams,
-		std::vector<size_t> &beamSizes,
+		std::vector<uint> &beamSizes,
 		std::shared_ptr<Histories> &histories,
 		const Sentences& sentences,
 		Beam &survivors,

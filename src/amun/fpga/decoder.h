@@ -153,7 +153,7 @@ class Decoder {
                                  const mblas::Matrix& HiddenState,
                                  const mblas::Matrix& SourceContext,
                                  const Array<int>& mapping,
-                                 const std::vector<size_t>& beamSizes)
+                                 const std::vector<uint>& beamSizes)
     {
       // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
       // batchMapping = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
@@ -337,7 +337,7 @@ public:
                 const mblas::Matrix& Embeddings,
                 const mblas::Matrix& SourceContext,
                 const Array<int>& mapping,
-                const std::vector<size_t>& beamSizes);
+                const std::vector<uint>& beamSizes);
 
   void GetHiddenState(mblas::Matrix& HiddenState,
                       const mblas::Matrix& PrevState,
@@ -347,7 +347,7 @@ public:
                                 const mblas::Matrix& HiddenState,
                                 const mblas::Matrix& SourceContext,
                                 const Array<int>& mapping,
-                                const std::vector<size_t>& beamSizes);
+                                const std::vector<uint>& beamSizes);
 
   void GetNextState(mblas::Matrix& State,
                     const mblas::Matrix& HiddenState,

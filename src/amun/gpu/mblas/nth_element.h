@@ -50,7 +50,7 @@ class NthElement {
     NthElement(uint maxBeamSize, uint maxBatchSize, cudaStream_t& stream);
     virtual ~NthElement();
 
-    void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+    void getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
                       std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                       const bool isFirst=false);
 

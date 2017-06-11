@@ -22,7 +22,7 @@ void Decoder::Decode(mblas::Matrix& NextState,
               const mblas::Matrix& Embeddings,
               const mblas::Matrix& SourceContext,
               const Array<int>& mapping,
-              const std::vector<size_t>& beamSizes)
+              const std::vector<uint>& beamSizes)
 {
   //std::cerr << "State=" << State.Debug(1) << std::endl;
   //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
@@ -50,7 +50,7 @@ void Decoder::GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                               const mblas::Matrix& HiddenState,
                               const mblas::Matrix& SourceContext,
                               const Array<int>& mapping,
-                              const std::vector<size_t>& beamSizes)
+                              const std::vector<uint>& beamSizes)
 {
   alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
                                      mapping, beamSizes);

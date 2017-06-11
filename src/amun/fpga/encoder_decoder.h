@@ -25,7 +25,7 @@ public:
                  const OpenCLInfo &openCLInfo);
 
   virtual void Decode(const God &god, const State& in,
-                     State& out, const std::vector<size_t>& beamSizes);
+                     State& out, const std::vector<uint>& beamSizes);
 
   virtual void BeginSentenceState(State& state, size_t batchSize=1);
 

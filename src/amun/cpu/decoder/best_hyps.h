@@ -32,7 +32,7 @@ public:
       const Words& filterIndices,
       bool returnAlignment,
       std::vector<Beam>& beams,
-      std::vector<size_t>& beamSizes
+      std::vector<uint>& beamSizes
       )
   {
     using namespace mblas;

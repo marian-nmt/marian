@@ -59,13 +59,13 @@ class Search {
     		Beam &prevHyps,
     		size_t decoderStep,
     		States &nextStates,
-    		std::vector<size_t> &beamSizes);
+    		std::vector<uint> &beamSizes);
 
     bool CalcBeam(
     		const God &god,
     		Beam &prevHyps,
     		Beams &beams,
-    		std::vector<size_t> &beamSizes,
+    		std::vector<uint> &beamSizes,
     		std::shared_ptr<Histories> &histories,
     		const Sentences& sentences,
     		Beam &survivors,

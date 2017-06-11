@@ -14,7 +14,7 @@ public:
 
   void DisAllowUNK(mblas::Matrix& Prob);
 
-  void FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+  void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
                  std::vector<float>& outCosts,
                  std::vector<unsigned>& outKeys,
                  const bool isFirst);
@@ -26,7 +26,7 @@ public:
       const Words& filterIndices,
       bool returnAlignment,
       std::vector<Beam>& beams,
-      std::vector<size_t>& beamSizes
+      std::vector<uint>& beamSizes
       );
 
 protected:
