@@ -51,11 +51,11 @@ class NthElement {
     virtual ~NthElement();
 
     void getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-                      std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
+                      std::vector<float>& outCosts, std::vector<uint>& outKeys,
                       const bool isFirst=false);
 
     void GetPairs(uint number,
-                  std::vector<unsigned>& outKeys,
+                  std::vector<uint>& outKeys,
                   std::vector<float>& outValues);
 
     void getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const;
