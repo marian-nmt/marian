@@ -45,8 +45,8 @@ class Encoder {
     template <class Weights>
     class RNN {
       public:
-        RNN(const Weights& model)
-        : gru_(model) {}
+        RNN(const Weights& model, cudaStream_t &cudaStream)
+        : gru_(model, cudaStream) {}
 
         void InitializeState(size_t batchSize = 1) {
           State_.Resize(batchSize, gru_.GetStateLength());
@@ -104,7 +104,7 @@ class Encoder {
     };
 
   public:
-    Encoder(const Weights& model);
+    Encoder(const Weights& model, cudaStream_t &cudaStream);
 
     void GetContext(const Sentences& words, size_t tab, mblas::Matrix& context,
                     DeviceVector<int>& mapping);

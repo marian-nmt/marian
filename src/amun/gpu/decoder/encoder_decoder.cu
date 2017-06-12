@@ -23,8 +23,8 @@ EncoderDecoder::EncoderDecoder(
         const Weights& model)
   : Scorer(name, config, tab),
     model_(model),
-    encoder_(new Encoder(model_)),
-    decoder_(new Decoder(god, model_)),
+    encoder_(new Encoder(model_, GetStream())),
+    decoder_(new Decoder(god, model_, GetStream())),
     indices_(god.Get<size_t>("beam-size"))
 {
   cerr << "EncoderDecoder" << endl;

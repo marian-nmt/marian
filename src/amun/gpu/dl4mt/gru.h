@@ -8,7 +8,7 @@ namespace GPU {
 template <class Weights>
 class SlowGRU {
   public:
-    SlowGRU(const Weights& model)
+    SlowGRU(const Weights& model, cudaStream_t &cudaStream)
     : w_(model) {}
 
     void GetNextState(mblas::Matrix& NextState,
@@ -107,8 +107,10 @@ __global__ void gElementwiseOps(float* out,
 template <class Weights>
 class FastGRU {
   public:
-    FastGRU(const Weights& model)
-    : w_(model) {
+    FastGRU(const Weights& model, cudaStream_t &cudaStream)
+    : w_(model)
+    , cudaStream_(cudaStream)
+    {
       /*for(int i = 0; i < 4; ++i) {
         cudaStreamCreate(&s_[i]);
         cublasCreate(&h_[i]);
@@ -184,7 +186,7 @@ class FastGRU {
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
-      gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
+      gElementwiseOps<<<blocks, threads, 0, cudaStream_>>>
         (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_->data(),
          w_.Bx2_->data(), rows, cols);
     }
@@ -197,6 +199,7 @@ class FastGRU {
   private:
     // Model matrices
     const Weights& w_;
+    cudaStream_t &cudaStream_;
 
     // reused to avoid allocation
     mutable mblas::Matrix WWx_;
