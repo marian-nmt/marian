@@ -114,7 +114,7 @@ void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
-cudaStream_t& EncoderDecoder::GetStream()
+const cudaStream_t& EncoderDecoder::GetStream()
 {
   return mblas::CudaStreamHandler::GetStream();
 }

@@ -323,7 +323,7 @@ Matrix& Element(Functor functor,
 
   int threads = MAX_THREADS;
   int blocks  = Out.size() / threads + 1;
-  cudaStream_t& stream = CudaStreamHandler::GetStream();
+  const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
@@ -359,7 +359,7 @@ Matrix& Element(Functor functor,
 
   int threads = MAX_THREADS;
   int blocks  = Out.size() / threads + 1;
-  cudaStream_t& stream = CudaStreamHandler::GetStream();
+  const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   //std::cerr << "Element3=" << Out.Debug(0) << std::endl;
   //std::cerr << "Element3=" << In1.Debug(0) << std::endl;

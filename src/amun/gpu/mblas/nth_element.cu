@@ -266,7 +266,7 @@ __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
   }
 }
 
-NthElement::NthElement(uint maxBeamSize, uint maxBatchSize, cudaStream_t& stream)
+NthElement::NthElement(uint maxBeamSize, uint maxBatchSize, const cudaStream_t& stream)
 : stream_(stream)
 , d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)

@@ -156,7 +156,7 @@ class TMatrix : public BaseMatrix {
         strm << "sum=" << sum << std::flush;
 
         if (verbosity == 2) {
-          cudaStream_t& stream = CudaStreamHandler::GetStream();
+          const cudaStream_t& stream = CudaStreamHandler::GetStream();
           T h_data[size()];
 
           HANDLE_ERROR( cudaMemcpyAsync(

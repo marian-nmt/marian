@@ -52,7 +52,7 @@ class Decoder {
     template <class Weights1, class Weights2>
     class RNNHidden {
       public:
-        RNNHidden(const Weights1& initModel, const Weights2& gruModel, cudaStream_t &cudaStream)
+        RNNHidden(const Weights1& initModel, const Weights2& gruModel, const cudaStream_t &cudaStream)
         : w_(initModel)
         , gru_(gruModel, cudaStream)
         {}
@@ -104,7 +104,7 @@ class Decoder {
     template <class Weights>
     class RNNFinal {
       public:
-        RNNFinal(const Weights& model, cudaStream_t &cudaStream)
+        RNNFinal(const Weights& model, const cudaStream_t &cudaStream)
         : gru_(model, cudaStream) {}
 
         void GetNextState(mblas::Matrix& NextState,
@@ -309,9 +309,6 @@ class Decoder {
       private:
         const Weights& w_;
 
-        cublasHandle_t h_[3];
-        cudaStream_t s_[3];
-
         bool filtered_;
         mblas::Matrix FilteredW4_;
         mblas::Matrix FilteredB4_;
@@ -327,7 +324,7 @@ class Decoder {
     };
 
   public:
-    Decoder(const God &god, const Weights& model, cudaStream_t &cudaStream)
+    Decoder(const God &god, const Weights& model, const cudaStream_t &cudaStream)
     : embeddings_(model.decEmbeddings_),
       rnn1_(model.decInit_, model.decGru1_, cudaStream),
       rnn2_(model.decGru2_, cudaStream),

@@ -21,7 +21,7 @@ class CudaStreamHandler {
     std::unique_ptr<cudaStream_t> stream_;
 
   public:
-    static cudaStream_t& GetStream() {
+    static const cudaStream_t& GetStream() {
       if (instance_ == nullptr) {
         instance_ = new CudaStreamHandler();
       }
