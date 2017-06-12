@@ -248,13 +248,18 @@ __global__ void gCopyRows(MatrixWrapper<float> outWrap,
   size_t cols = inWrap.dim(1);
 
   size_t indicesInd = blockIdx.x;
-  size_t inRow =indicesWrap[indicesInd];
+  while (indicesInd < numPairs) {
+    size_t inRow =indicesWrap[indicesInd];
 
-  size_t colInd = threadIdx.x;
-  while (colInd < outWrap.dim(1)) {
-	  outWrap(indicesInd, colInd, 0, 0) = inWrap(inRow, colInd, 0, 0);
-	  colInd += gridDim.x;
+    size_t colInd = threadIdx.x;
+    while (colInd < outWrap.dim(1)) {
+      outWrap(indicesInd, colInd, 0, 0) = inWrap(inRow, colInd, 0, 0);
+      colInd += gridDim.x;
+    }
+
+    indicesInd += gridDim.x;
   }
+
 }
 
 Matrix& CopyRows(Matrix& Out,
@@ -269,10 +274,12 @@ Matrix& CopyRows(Matrix& Out,
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
 
+  /*
   cerr << "Out=" << Out.Debug(0) << endl;
   cerr << "In=" << In.Debug(0) << endl;
   cerr << "indices=" << Debug(indices, 2) << endl;
   cerr << endl;
+  */
 
   size_t numPairs = indices.size();
 
