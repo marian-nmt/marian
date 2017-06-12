@@ -168,7 +168,8 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
 }
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
-  return BestHypsBasePtr(new GPU::BestHyps(god));
+  thread_local BestHypsBasePtr obj(new GPU::BestHyps(god));
+  return obj;
 }
 
 }
