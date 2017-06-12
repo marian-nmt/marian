@@ -47,7 +47,7 @@ class NthElement {
   public:
     NthElement() = delete;
     NthElement(const NthElement &copy) = delete;
-    NthElement(uint maxBeamSize, uint maxBatchSize, const cudaStream_t& stream);
+    NthElement(uint maxBeamSize, uint maxBatchSize);
     virtual ~NthElement();
 
     void getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
@@ -62,7 +62,6 @@ class NthElement {
 
   private:
     const uint BLOCK_SIZE = 512;
-    const cudaStream_t& stream_;
 
     DeviceVector<NthOut> d_out;
 

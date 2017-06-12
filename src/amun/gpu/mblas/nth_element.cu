@@ -266,9 +266,8 @@ __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
   }
 }
 
-NthElement::NthElement(uint maxBeamSize, uint maxBatchSize, const cudaStream_t& stream)
-: stream_(stream)
-, d_breakdown(maxBeamSize)
+NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
+: d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
 {
@@ -356,10 +355,10 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   mblas::MatrixWrapper<NthOut> resWrap(d_res);
   mblas::MatrixWrapper<uint> cumBeamSizesWrap(d_cumBeamSizes);
 
-  gMaxElement<<<numBlocks, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+  gMaxElement<<<numBlocks, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), mblas::CudaStreamHandler::GetStream()>>>
     (outWrap, probsWrap, batchPositionWrap, numBatches);
 
-  gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
+  gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), mblas::CudaStreamHandler::GetStream()>>>
     (outWrap, probsWrap, batchPositionWrap, resWrap, cumBeamSizesWrap,
      numBlocks);
 
@@ -391,7 +390,7 @@ void NthElement::GetPairs(uint number,
   //cerr << "FOO5:" << number << endl;
 
   thrust::copy(d_res.begin(), d_res.end(), h_res.begin());
-  HANDLE_ERROR( cudaStreamSynchronize(stream_) );
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()) );
 
   for (uint i = 0; i < number; ++i) {
     outKeys.push_back(h_res[i].ind);
@@ -410,8 +409,8 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
 
   HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), h_res.size() * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaStreamSynchronize(stream_));
+                                cudaMemcpyDeviceToHost, mblas::CudaStreamHandler::GetStream()) );
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 }
 
 }  // namespace GPU
