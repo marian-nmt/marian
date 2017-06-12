@@ -242,8 +242,7 @@ Matrix& CopyRow(Matrix& Out,
 
 __global__ void gCopyRows(MatrixWrapper<float> outWrap,
                           const MatrixWrapper<float> inWrap,
-                          const MatrixWrapper<size_t> indicesWrap,
-                          float* out, const float* in)
+                          const MatrixWrapper<size_t> indicesWrap)
 {
   size_t numPairs = indicesWrap.size();
   size_t cols = inWrap.dim(1);
@@ -262,8 +261,14 @@ Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indices)
 {
-  float* d_out = Out.data();
-  const float* d_in = In.data();
+  assert(In.dim(2) == 1);
+  assert(In.dim(3) == 1);
+  assert(Out.dim(2) == 1);
+  assert(Out.dim(3) == 1);
+
+  cerr << "Out=" << Out.Debug(0) << endl;
+  cerr << "In=" << In.Debug(0) << endl;
+  cerr << endl;
 
   size_t numPairs = indices.size();
 
@@ -275,7 +280,7 @@ Matrix& CopyRows(Matrix& Out,
   int blocks = std::min(MAX_BLOCKS, (int)numPairs);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, indicesWrap, d_out, d_in);
+    (outWrap, inWrap, indicesWrap);
 
   return Out;
 }
