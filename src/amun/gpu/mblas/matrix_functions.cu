@@ -261,6 +261,9 @@ Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indices)
 {
+  assert(In.dim(1) == Out.dim(1));
+  assert(Out.dim(0) == indices.size());
+
   assert(In.dim(2) == 1);
   assert(In.dim(3) == 1);
   assert(Out.dim(2) == 1);
@@ -268,6 +271,7 @@ Matrix& CopyRows(Matrix& Out,
 
   cerr << "Out=" << Out.Debug(0) << endl;
   cerr << "In=" << In.Debug(0) << endl;
+  cerr << "indices=" << Debug(indices, 2) << endl;
   cerr << endl;
 
   size_t numPairs = indices.size();
