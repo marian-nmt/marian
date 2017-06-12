@@ -244,22 +244,18 @@ __global__ void gCopyRows(MatrixWrapper<float> outWrap,
                           const MatrixWrapper<float> inWrap,
                           const MatrixWrapper<size_t> indicesWrap)
 {
-  size_t numPairs = indicesWrap.size();
-  size_t cols = inWrap.dim(1);
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  size_t indicesInd = blockIdx.x;
-  while (indicesInd < numPairs) {
-    size_t inRow =indicesWrap[indicesInd];
+  if (id < outWrap.size()) {
+	  uint dim[SHAPE_SIZE];
+	  outWrap.id2Indices(id, dim);
 
-    size_t colInd = threadIdx.x;
-    while (colInd < outWrap.dim(1)) {
-      outWrap(indicesInd, colInd, 0, 0) = inWrap(inRow, colInd, 0, 0);
-      colInd += gridDim.x;
-    }
+	  size_t indicesInd = dim[0];
+	  size_t inRow =indicesWrap[indicesInd];
 
-    indicesInd += gridDim.x;
+      outWrap(indicesInd, dim[1], 0, 0) = inWrap(inRow, dim[1], 0, 0);
+
   }
-
 }
 
 Matrix& CopyRows(Matrix& Out,
@@ -281,14 +277,16 @@ Matrix& CopyRows(Matrix& Out,
   cerr << endl;
   */
 
+  size_t size = Out.size();
+
   size_t numPairs = indices.size();
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
   const MatrixWrapper<size_t> indicesWrap(indices);
 
-  int threads = std::min(MAX_THREADS, (int)In.dim(1));
-  int blocks = std::min(MAX_BLOCKS, (int)numPairs);
+  uint threads = std::min((uint) MAX_THREADS, (uint)size);
+  int blocks = size / threads + 1;
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, indicesWrap);
