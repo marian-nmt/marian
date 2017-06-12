@@ -14,6 +14,7 @@ DeviceGPU::~DeviceGPU() {
 }
 
 void DeviceGPU::reserve(size_t size) {
+  size = align(size);
   cudaSetDevice(device_);
 
   UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
