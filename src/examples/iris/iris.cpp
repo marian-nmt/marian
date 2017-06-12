@@ -29,6 +29,8 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   auto b1 = graph->param("b1", {1, 5}, init = inits::zeros);
   auto h = tanh(affine(x, W1, b1));
 
+  debug(W1, "W1");
+
   // Define the output layer
   auto W2 = graph->param("W2", {5, NUM_LABELS}, init = inits::uniform());
   auto b2 = graph->param("b2", {1, NUM_LABELS}, init = inits::zeros);
@@ -84,6 +86,7 @@ int main(int argc, char** argv) {
 
       // Build classifier
       auto cost = buildIrisClassifier(graph, trainX, trainY, true);
+      debug(cost, "cost");
 
       // Train classifier and update weights
       graph->forward();
