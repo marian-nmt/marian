@@ -26,7 +26,14 @@ EncoderDecoder::EncoderDecoder(
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(god, model_)),
     indices_(god.Get<size_t>("beam-size"))
-{}
+{
+  cerr << "EncoderDecoder" << endl;
+}
+
+EncoderDecoder::~EncoderDecoder()
+{
+  cerr << "~EncoderDecoder" << endl;
+}
 
 State* EncoderDecoder::NewState() const {
   return new EDState();
@@ -107,7 +114,10 @@ void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
-EncoderDecoder::~EncoderDecoder() {}
+cudaStream_t& EncoderDecoder::GetStream()
+{
+  return mblas::CudaStreamHandler::GetStream();
+}
 
 ////////////////////////////////////////////
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,

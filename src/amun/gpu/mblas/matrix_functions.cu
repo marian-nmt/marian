@@ -160,7 +160,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In) {
 }
 
 Matrix& Transpose(Matrix& Out) {
-  Matrix Temp;
+  thread_local Matrix Temp;
   Transpose(Temp, Out);
   Swap(Out, Temp);
   return Out;

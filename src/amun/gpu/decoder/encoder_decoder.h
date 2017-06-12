@@ -9,6 +9,7 @@
 #include "common/threadpool.h"
 #include "gpu/types-gpu.h"
 #include "gpu/mblas/matrix.h"
+#include "gpu/mblas/handles.h"
 
 
 namespace amunmt {
@@ -31,6 +32,8 @@ class EncoderDecoder : public Scorer {
                    size_t tab,
                    const Weights& model);
 
+    virtual ~EncoderDecoder();
+
     virtual void Decode(const God &god, const State& in, State& out, const std::vector<uint>& beamSizes);
 
     virtual State* NewState() const;
@@ -52,7 +55,7 @@ class EncoderDecoder : public Scorer {
 
     void Filter(const std::vector<size_t>& filterIds);
 
-    virtual ~EncoderDecoder();
+    cudaStream_t& GetStream();
 
   private:
     const Weights& model_;
