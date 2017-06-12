@@ -23,8 +23,8 @@ EncoderDecoder::EncoderDecoder(
         const Weights& model)
   : Scorer(name, config, tab),
     model_(model),
-    encoder_(new Encoder(model_, GetStream())),
-    decoder_(new Decoder(god, model_, GetStream())),
+    encoder_(new Encoder(model_)),
+    decoder_(new Decoder(god, model_)),
     indices_(god.Get<size_t>("beam-size"))
 {
   cerr << "EncoderDecoder" << endl;
@@ -112,11 +112,6 @@ size_t EncoderDecoder::GetVocabSize() const {
 
 void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
-}
-
-const cudaStream_t& EncoderDecoder::GetStream()
-{
-  return mblas::CudaStreamHandler::GetStream();
 }
 
 ////////////////////////////////////////////

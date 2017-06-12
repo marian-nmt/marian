@@ -6,10 +6,10 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
-Encoder::Encoder(const Weights& model, const cudaStream_t &cudaStream)
+Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
-  forwardRnn_(model.encForwardGRU_, cudaStream),
-  backwardRnn_(model.encBackwardGRU_, cudaStream)
+  forwardRnn_(model.encForwardGRU_),
+  backwardRnn_(model.encBackwardGRU_)
 {
 }
 

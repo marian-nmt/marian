@@ -55,8 +55,6 @@ class EncoderDecoder : public Scorer {
 
     void Filter(const std::vector<size_t>& filterIds);
 
-    const cudaStream_t& GetStream();
-
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
