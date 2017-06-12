@@ -8,26 +8,29 @@
 #include "3rd_party/exception.h"
 #include "common/definitions.h"
 #include "common/shape.h"
+#include "tensors/memory_piece.h"
 
 namespace marian {
 
 class TensorBase : public std::enable_shared_from_this<TensorBase> {
 private:
-  float* data_;
+  Ptr<MemoryPiece> memory_;
   Shape shape_;
   size_t device_;
 
 public:
-  TensorBase(float* data, Shape shape, size_t device)
-      : data_(data), shape_(shape), device_(device) {}
+  TensorBase(Ptr<MemoryPiece> memory, Shape shape, size_t device)
+      : memory_(memory), shape_(shape), device_(device) {}
 
   ~TensorBase() {}
 
-  virtual void reset(float* data) { data_ = data; }
+  virtual void reset(Ptr<MemoryPiece> memory) { memory_ = memory; }
 
-  virtual float* data() { return data_; }
+  virtual Ptr<MemoryPiece> memory() { return memory_; }
 
   virtual Shape& shape() { return shape_; }
+
+  virtual float* data() { return (float*)memory_->data(); }
 
   virtual size_t size() { return shape_.elements(); }
 
@@ -39,7 +42,9 @@ public:
   size_t getDevice() { return device_; }
 
   Tensor subtensor(int offset, int size) {
-    return Tensor(new TensorBase(data_ + offset, {1, size}, device_));
+    auto mem = New<MemoryPiece>(memory_->data() + sizeof(float) * offset,
+                                sizeof(float) * size);
+    return Tensor(new TensorBase(mem, {1, size}, device_));
   }
 
   float get(size_t i);
@@ -57,28 +62,6 @@ public:
   void copyFrom(Tensor);
 
   std::string debug();
-};
-
-class DeviceGPU {
-private:
-  float* data_;
-  size_t size_;
-  size_t device_;
-
-public:
-  DeviceGPU(size_t device) : data_(0), size_(0), device_(device) {}
-
-  ~DeviceGPU();
-
-  typedef TensorBase tensor_type;
-
-  void reserve(size_t size);
-
-  float* data() { return data_; }
-
-  size_t capacity() { return size_; }
-
-  size_t getDevice() { return device_; }
 };
 
 typedef std::shared_ptr<TensorBase> Tensor;

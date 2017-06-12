@@ -8,26 +8,10 @@
 #include <memory>
 #include <vector>
 
+#include "common/definitions.h"
+#include "tensors/memory_piece.h"
+
 namespace marian {
-
-template <class T>
-using Ptr = std::shared_ptr<T>;
-
-template <class T>
-using UPtr = std::unique_ptr<T>;
-
-template <class T>
-using Weak = std::weak_ptr<T>;
-
-template <class T, typename... Args>
-Ptr<T> New(Args&&... args) {
-  return Ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-template <class T>
-Ptr<T> New(Ptr<T> p) {
-  return Ptr<T>(p);
-}
 
 class AllocationException : public std::exception {
 public:
@@ -69,6 +53,7 @@ class Gap {
     friend std::ostream& operator<<(std::ostream& out, const Gap& gap) {
       out << "gap - ptr: " << std::hex << (size_t)gap.data()
         << std::dec << " size: " << gap.size();
+      return out;
     }
 
     Gap combine(const Gap& mp) const {
@@ -83,50 +68,14 @@ class Gap {
     }
 };
 
-class AllocatorBase : public std::enable_shared_from_this<AllocatorBase> {
-  public:
-    virtual void free(uint8_t*, size_t) = 0;
-};
-
-class MemoryPiece {
-  private:
-    uint8_t* data_;
-    size_t size_;
-    Ptr<AllocatorBase> allocator_;
-
-  public:
-    MemoryPiece(uint8_t* data, size_t size, Ptr<AllocatorBase> allocator)
-      : data_(data), size_(size), allocator_(allocator) {}
-
-    uint8_t* data() const { return data_; }
-    uint8_t* data() { return data_; }
-    size_t size() const { return size_; }
-
-    void set(uint8_t* data, size_t size) {
-      data_ = data;
-      size_ = size;
-    }
-
-    void setPtr(uint8_t* data) {
-      data_ = data;
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const MemoryPiece mp) {
-      out << "MemoryPiece - ptr: " << std::hex << (size_t)mp.data()
-        << std::dec << " size: " << mp.size();
-    }
-
-
-    Ptr<AllocatorBase> allocator() { return allocator_; }
-};
-
 template <class Device>
-class Allocator : public AllocatorBase {
+class Allocator {
   private:
-    Device device_;
-    size_t available_;
-    size_t step_;
-    size_t alignment_;
+    Device device_{0};
+    size_t available_{0};
+    size_t step_{128 * 1024 * 1024};
+    size_t alignment_{256};
+    bool throw_{false};
 
     std::set<Gap> gaps_;
     std::unordered_map<uint8_t*, Ptr<MemoryPiece>> allocated_;
@@ -141,7 +90,6 @@ class Allocator : public AllocatorBase {
       size_t oldSize = device_.size();
 
       device_.reserve(oldSize + add);
-      std::cerr << "Device: " << std::hex << (size_t)device_.data() << " " << std::dec << device_.size() << std::endl;
 
       std::set<Gap> oldGaps;
       gaps_.swap(oldGaps);
@@ -163,15 +111,16 @@ class Allocator : public AllocatorBase {
       size = align(size);
       auto it = std::lower_bound(gaps_.begin(), gaps_.end(),
                                  Gap(nullptr, size));
+
+      if(throw_ && it == gaps_.end()) {
+        throw AllocationException();
+      }
+
       while(it == gaps_.end()) {
         grow(step_);
         it = std::lower_bound(gaps_.begin(), gaps_.end(),
                               Gap(nullptr, size));
       }
-
-      //if(it == gaps_.end()) {
-      //  throw AllocationException();
-      //}
 
       available_ -= it->size();
       return *it;
@@ -202,10 +151,17 @@ class Allocator : public AllocatorBase {
       reserve(bytes);
     }
 
+    void throwAtReallocation(bool throwRealloc) { throw_ = throwRealloc; }
+
     void reserve(size_t bytes) {
       bytes = align(bytes);
       device_.reserve(bytes);
       clear();
+    }
+
+    template <typename T>
+    Ptr<MemoryPiece> alloc(size_t num) {
+      return alloc(num * sizeof(T));
     }
 
     Ptr<MemoryPiece> alloc(size_t bytes) {
@@ -218,7 +174,7 @@ class Allocator : public AllocatorBase {
       }
 
       auto ptr = gap.data();
-      auto mp = New<MemoryPiece>(ptr, bytes, shared_from_this());
+      auto mp = New<MemoryPiece>(ptr, bytes);
       allocated_[ptr] = mp;
 
       return mp;
@@ -245,9 +201,15 @@ class Allocator : public AllocatorBase {
       insertGap({device_.data(), device_.size()}, false);
     }
 
+    Ptr<MemoryPiece> memory() {
+      return New<MemoryPiece>(device_.data(), device_.size());
+    }
+
     size_t size() { return device_.size(); }
 
     size_t available() { return available_; }
+
+    size_t getDevice() { return device_.getDevice(); }
 };
 
 }

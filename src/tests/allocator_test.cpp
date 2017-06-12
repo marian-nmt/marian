@@ -56,19 +56,15 @@ int main(int argc, char** argv) {
   auto a = New<Allocator<DeviceGPU>>(0, 0, 30000, 256);
   std::cerr << "Size: " << a->size() << std::endl;
 
-  auto mem1 = a->alloc(100000);
+  auto mem1 = a->alloc<int>(100000);
   std::cerr << "Size: " << a->size() << std::endl;
   std::cerr << "mem1: " << *mem1 << std::endl;
-  //std::fill(mem1->data(), mem1->data() + mem1->size(), (uint8_t)2);
-  //std::cerr << (uint32_t)mem1->data()[0] << std::endl;
+
+  //a->throwAtReallocation(true);
 
   auto mem2 = a->alloc(1000000);
   std::cerr << "Size: " << a->size() << std::endl;
   std::cerr << "mem2: " << *mem2 << std::endl;
-  //std::fill(mem2->data(), mem2->data() + mem2->size(), (uint8_t)3);
-
-  //std::cerr << (uint32_t)mem1->data()[0] << std::endl;
-  //std::cerr << (uint32_t)mem2->data()[0] << std::endl;
 
   a->free(mem1);
 
@@ -76,10 +72,6 @@ int main(int argc, char** argv) {
   std::cerr << "mem2: " << *mem2 << std::endl;
   std::cerr << "mem3: " << *mem3 << std::endl;
   std::cerr << "Size: " << a->size() << std::endl;
-  //std::fill(mem3->data(), mem3->data() + mem3->size(), (uint8_t)4);
-
-  //std::cerr << (uint32_t)mem2->data()[0] << std::endl;
-  //std::cerr << (uint32_t)mem3->data()[0] << std::endl;
 
   return 0;
 }

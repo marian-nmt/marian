@@ -536,14 +536,14 @@ public:
   Tensor& val() {
     auto childVal = reshapee_->val();
     val_.reset(
-        new TensorBase(childVal->data(), shape(), childVal->getDevice()));
+        new TensorBase(childVal->memory(), shape(), childVal->getDevice()));
     return val_;
   };
 
   Tensor& grad() {
     auto childGrad = reshapee_->grad();
     adj_.reset(
-        new TensorBase(childGrad->data(), shape(), childGrad->getDevice()));
+        new TensorBase(childGrad->memory(), shape(), childGrad->getDevice()));
     return adj_;
   };
 
@@ -592,17 +592,19 @@ public:
 
   Tensor& val() {
     auto childVal = stepNode_->val();
-    size_t offset = step_ * shape().elements();
-    val_.reset(new TensorBase(
-        childVal->data() + offset, shape(), childVal->getDevice()));
+    size_t offset = step_ * shape().elements() * sizeof(float);
+    auto mem = New<MemoryPiece>(childVal->memory()->data() + offset,
+                                childVal->memory()->size());
+    val_.reset(new TensorBase(mem, shape(), childVal->getDevice()));
     return val_;
   };
 
   Tensor& grad() {
     auto childGrad = stepNode_->grad();
-    size_t offset = step_ * shape().elements();
-    adj_.reset(new TensorBase(
-        childGrad->data() + offset, shape(), childGrad->getDevice()));
+    size_t offset = step_ * shape().elements() * sizeof(float);
+    auto mem = New<MemoryPiece>(childGrad->memory()->data() + offset,
+                                childGrad->memory()->size());
+    adj_.reset(new TensorBase(mem, shape(), childGrad->getDevice()));
     return adj_;
   };
 

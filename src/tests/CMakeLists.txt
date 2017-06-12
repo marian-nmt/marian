@@ -5,7 +5,7 @@ cuda_add_executable(dropout_test dropout_test.cu)
 add_executable(allocator_test allocator_test.cpp)
 
 #cuda_add_executable(tensor_test tensor_test.cu)
-#cuda_add_executable(marian_test marian_test.cu)
+cuda_add_executable(marian_test marian_test.cu)
 cuda_add_executable(bn_test bn_test.cu)
 
 foreach(exec
@@ -13,7 +13,7 @@ foreach(exec
     dropout_test
     allocator_test
     #tensor_test
-    #marian_test
+    marian_test
     bn_test)
   target_link_libraries(${exec} marian ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})

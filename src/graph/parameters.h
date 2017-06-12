@@ -56,7 +56,7 @@ public:
   }
 
   void allocateForward() {
-    if(vals_->capacity() == 0) {
+    if(vals_->size() == 0) {
       vals_->reserveExact(totalSize());
       for(auto p : params_)
         if(!p->val())
@@ -65,7 +65,7 @@ public:
   }
 
   void allocateBackward() {
-    if(grads_->capacity() == 0) {
+    if(grads_->size() == 0) {
       grads_->reserveExact(totalSize());
       for(auto p : params_)
         if(!p->grad())

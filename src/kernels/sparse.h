@@ -184,10 +184,11 @@ public:
   }
 
   std::string debug() {
-    float* buffer;
+    uint8_t* buffer;
     cudaMalloc(&buffer, sizeof(float) * rows() * cols());
 
-    Tensor tensor(new TensorBase(buffer, {rows(), cols()}, device_));
+    auto mem = New<MemoryPiece>(buffer, sizeof(float) * rows() * cols());
+    Tensor tensor(new TensorBase(mem, {rows(), cols()}, device_));
     toTensor(tensor);
     std::string temp = tensor->debug();
 

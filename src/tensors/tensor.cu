@@ -22,7 +22,7 @@ float TensorBase::get(size_t i) {
   cudaSetDevice(device_);
   float temp;
   CUDA_CHECK(
-      cudaMemcpy(&temp, data_ + i, sizeof(float), cudaMemcpyDeviceToHost));
+      cudaMemcpy(&temp, data() + i, sizeof(float), cudaMemcpyDeviceToHost));
   cudaStreamSynchronize(0);
   return temp;
 }
@@ -30,7 +30,7 @@ float TensorBase::get(size_t i) {
 void TensorBase::set(size_t i, float value) {
   cudaSetDevice(device_);
   CUDA_CHECK(
-      cudaMemcpy(data_ + i, &value, sizeof(float), cudaMemcpyHostToDevice));
+      cudaMemcpy(data() + i, &value, sizeof(float), cudaMemcpyHostToDevice));
   cudaStreamSynchronize(0);
 }
 
@@ -38,7 +38,7 @@ void TensorBase::get(std::vector<float> &v) {
   CUDA_CHECK(cudaSetDevice(device_));
   v.resize(size());
   CUDA_CHECK(cudaMemcpy(
-      v.data(), data_, size() * sizeof(float), cudaMemcpyDeviceToHost));
+      v.data(), data(), size() * sizeof(float), cudaMemcpyDeviceToHost));
   cudaStreamSynchronize(0);
 }
 
@@ -46,28 +46,28 @@ void TensorBase::set(float value) {
   cudaSetDevice(device_);
   int threads = std::min(512, (int)size());
   int blocks = (size() / threads) + (size() % threads != 0);
-  gFill<<<blocks, threads>>>(data_, size(), value);
+  gFill<<<blocks, threads>>>(data(), size(), value);
   cudaStreamSynchronize(0);
 }
 
 void TensorBase::set(const std::vector<float> &v) {
   CUDA_CHECK(cudaSetDevice(device_));
   CUDA_CHECK(cudaMemcpy(
-      data_, v.data(), v.size() * sizeof(float), cudaMemcpyHostToDevice));
+      data(), v.data(), v.size() * sizeof(float), cudaMemcpyHostToDevice));
   cudaStreamSynchronize(0);
 }
 
 void TensorBase::setSparse(const std::vector<size_t> &k,
                            const std::vector<float> &v) {
   cudaSetDevice(device_);
-  SetSparse(data_, k, v);
+  SetSparse(data(), k, v);
   cudaStreamSynchronize(0);
 }
 
 void TensorBase::copyFrom(Tensor in) {
   cudaSetDevice(device_);
   CUDA_CHECK(cudaMemcpy(
-      data_, in->data(), in->size() * sizeof(float), cudaMemcpyDefault));
+      data(), (float*)in->data(), in->size() * sizeof(float), cudaMemcpyDefault));
   cudaStreamSynchronize(0);
 }
 
@@ -160,36 +160,6 @@ std::string TensorBase::debug() {
     }
   }
   return strm.str();
-}
-
-DeviceGPU::~DeviceGPU() {
-  cudaSetDevice(device_);
-  if(data_) {
-    CUDA_CHECK(cudaFree(data_));
-  }
-  cudaDeviceSynchronize();
-}
-
-void DeviceGPU::reserve(size_t size) {
-  cudaSetDevice(device_);
-
-  UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
-
-  if(data_) {
-    // Allocate memory by going through host memory
-    float *temp = new float[size_];
-    CUDA_CHECK(
-        cudaMemcpy(temp, data_, size_ * sizeof(float), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(data_));
-    CUDA_CHECK(cudaMalloc(&data_, size * sizeof(float)));
-    CUDA_CHECK(
-        cudaMemcpy(data_, temp, size_ * sizeof(float), cudaMemcpyHostToDevice));
-    delete[] temp;
-  } else {
-    CUDA_CHECK(cudaMalloc(&data_, size * sizeof(float)));
-  }
-
-  size_ = size;
 }
 
 Tensor operator<<(Tensor t, const std::vector<float> &v) {
