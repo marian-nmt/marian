@@ -305,7 +305,7 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
-__global__ void gSlice(MatrixWrapper<float> outWrap,
+__global__ void gSliceOld(MatrixWrapper<float> outWrap,
                        const MatrixWrapper<float> inWrap,
                        size_t n, size_t dim)
 {
@@ -327,25 +327,46 @@ __global__ void gSlice(MatrixWrapper<float> outWrap,
   }
 }
 
+__global__ void gSlice(MatrixWrapper<float> outWrap,
+                      const MatrixWrapper<float> inWrap,
+                       size_t n, size_t dim)
+{
+  size_t row = blockIdx.x;
+
+  size_t inCol = threadIdx.x + dim * n;
+  size_t outCol = threadIdx.x;
+
+  while (outCol < outWrap.dim(1)) {
+    outWrap(row, outCol, 0, 0) = inWrap(row, inCol, 0, 0);
+
+    inCol += blockDim.x;
+    outCol += blockDim.x;
+  }
+
+}
+
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
-              size_t n, size_t dim) {
+              size_t n, size_t dim)
+{
+  assert(In.dim(2) == 1);
+  assert(In.dim(3) == 1);
 
   Out.Resize(In.dim(0), dim);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
+
+  /*
   cerr << "outWrap=" << outWrap.Debug() << endl;
   cerr << "inWrap=" << inWrap.Debug() << endl;
   cerr << "n=" << n << endl;
   cerr << "dim=" << dim << endl;
   cerr << endl;
+  */
 
-  float* d_out = Out.data();
-  const float* d_in = In.data();
-
-  int threads = std::min(MAX_THREADS, (int)dim);
-  int blocks = std::min(MAX_BLOCKS, (int)In.dim(0));
+  uint threads = std::min((uint)MAX_THREADS, (uint)dim);
+  uint blocks = In.dim(0);
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, n, dim);

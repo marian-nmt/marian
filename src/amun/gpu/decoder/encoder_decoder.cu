@@ -27,12 +27,10 @@ EncoderDecoder::EncoderDecoder(
     decoder_(new Decoder(god, model_)),
     indices_(god.Get<size_t>("beam-size"))
 {
-  cerr << "EncoderDecoder" << endl;
 }
 
 EncoderDecoder::~EncoderDecoder()
 {
-  cerr << "~EncoderDecoder" << endl;
 }
 
 State* EncoderDecoder::NewState() const {
