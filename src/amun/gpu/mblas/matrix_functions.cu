@@ -392,6 +392,8 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   if(transB)
     std::swap(l, n);
 
+  assert(k == l);
+
   size_t lda = A.dim(1);
   size_t ldb = B.dim(1);
   size_t ldc = B.dim(1);
