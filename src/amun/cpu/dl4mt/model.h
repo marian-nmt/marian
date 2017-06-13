@@ -83,9 +83,12 @@ struct Weights {
     const mblas::Matrix B3_;
     const mblas::Matrix W4_;
     const mblas::Matrix B4_;
-    const mblas::Matrix Gamma_0_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Matrix lns_1_;
+    const mblas::Matrix lns_2_;
+    const mblas::Matrix lns_3_;
+    const mblas::Matrix lnb_1_;
+    const mblas::Matrix lnb_2_;
+    const mblas::Matrix lnb_3_;
   };
 
   //////////////////////////////////////////////////////////////////////////////

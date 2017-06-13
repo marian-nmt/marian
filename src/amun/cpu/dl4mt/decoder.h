@@ -168,7 +168,7 @@ class Decoder {
       public:
         Softmax(const Weights& model)
         : w_(model),
-        filtered_(false)
+          filtered_(false)
         {}
 
         void GetProbs(mblas::ArrayMatrix& Probs,
@@ -177,24 +177,23 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-
           T1_ = State * w_.W1_;
-          if (w_.Gamma_1_.rows()) {
-            LayerNormalization(T1_, w_.Gamma_1_);
-          }
           AddBiasVector<byRow>(T1_, w_.B1_);
+          if (w_.nls_1_.rows()) {
+            LayerNormalization(T1_, w_.nls_1_, w_.nlb_1_);
+          }
 
           T2_ = Embedding * w_.W2_;
-          if (w_.Gamma_0_.rows()) {
-            LayerNormalization(T2_, w_.Gamma_0_);
-          }
           AddBiasVector<byRow>(T2_, w_.B2_);
+          if (w_.nls_2_.rows()) {
+            LayerNormalization(T1_, w_.nls_2_, w_.nlb_2_);
+          }
 
           T3_ = AlignedSourceContext * w_.W3_;
-          if (w_.Gamma_2_.rows()) {
-            LayerNormalization(T3_, w_.Gamma_2_);
-          }
           AddBiasVector<byRow>(T3_, w_.B3_);
+          if (w_.nls_3_.rows()) {
+            LayerNormalization(T1_, w_.nls_3_, w_.nlb_3_);
+          }
 
           auto t = blaze::forEach(T1_ + T2_ + T3_, Tanh());
 

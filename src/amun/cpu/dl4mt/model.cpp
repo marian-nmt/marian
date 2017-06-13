@@ -24,7 +24,7 @@ Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &key
     Gamma_1_(model[keys.at(6)]),
     Gamma_2_(model[keys.at(7)])
 {
-    const_cast<mblas::Matrix&>(Bx2_) = 0.0f;
+  const_cast<mblas::Matrix&>(Bx2_) = 0.0f;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
   Gamma_1_(model["decoder_cell2_gamma1"]),
   Gamma_2_(model["decoder_cell2_gamma2"])
 {
-    const_cast<mblas::Matrix&>(Bx1_) = 0.0f;
+  const_cast<mblas::Matrix&>(Bx1_) = 0.0f;
 }
 
 Weights::DecAttention::DecAttention(const NpzConverter& model)
@@ -69,9 +69,12 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
   W4_(model.getFirstOfMany({std::pair<std::string, bool>(std::string("ff_logit_W"), false),
              std::make_pair(std::string("Wemb_dec"), true)})),
   B4_(model("ff_logit_b", true)),
-  Gamma_0_(model["ff_logit_l1_gamma0"]),
-  Gamma_1_(model["ff_logit_l1_gamma1"]),
-  Gamma_2_(model["ff_logit_l1_gamma2"])
+  lns_1_(model["ff_logit_lstm_ln_s"]),
+  lns_2_(model["ff_logit_prev_ln_s"]),
+  lns_3_(model["ff_logit_ctx_ln_s"]),
+  lnb_1_(model["ff_logit_lstm_ln_b"]),
+  lnb_2_(model["ff_logit_prev_ln_b"]),
+  lnb_3_(model["ff_logit_ctx_ln_b"])
 {}
 
 //////////////////////////////////////////////////////////////////////////////
