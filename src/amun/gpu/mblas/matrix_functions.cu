@@ -305,7 +305,9 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
-__global__ void gSlice(float* out, const float* in,
+__global__ void gSlice(MatrixWrapper<float> outWrap,
+                       const MatrixWrapper<float> inWrap,
+                       float* out, const float* in,
                        size_t n, size_t dim,
                        size_t rows, size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -329,6 +331,11 @@ Matrix& Slice(Matrix& Out,
 
   Out.Resize(In.dim(0), dim);
 
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> inWrap(In);
+  cerr << "outWrap=" << outWrap.Debug() << endl;
+  cerr << "inWrap=" << inWrap.Debug() << endl;
+
   float* d_out = Out.data();
   const float* d_in = In.data();
 
@@ -336,7 +343,7 @@ Matrix& Slice(Matrix& Out,
   int blocks = std::min(MAX_BLOCKS, (int)In.dim(0));
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (d_out, d_in, n, dim, In.dim(0), In.dim(1));
+    (outWrap, inWrap, d_out, d_in, n, dim, In.dim(0), In.dim(1));
   return Out;
 }
 
