@@ -23,7 +23,7 @@ include_directories(${amunmt_SOURCE_DIR})
 
 option(CPU "Select to compile with CPU support" ON)
 option(CUDA "Select to compile CUDA support by default if available" ON)
-option(FPGA "Select to compile with FPGA support" ON)
+option(FPGA "Select to compile with FPGA support" OFF)
 option(MARIAN "Select to compile with Marian library" ON)
 option(MARIAN_LIBRARY_ONLY "Automatically set when building amunmt. Don't touch this." ON)
 
