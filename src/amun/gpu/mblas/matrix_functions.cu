@@ -374,7 +374,11 @@ Matrix& Slice(Matrix& Out,
 }
 
 Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA, bool transB) {
+             bool transA, bool transB)
+{
+  assert(B.dim(2) == 1);
+  assert(B.dim(3) == 1);
+
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
 
@@ -396,7 +400,14 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
     ldc = B.dim(0);
 
   C.Resize(m, n, A.dim(2), A.dim(3));
-  //cerr << "C=" << C.Debug(1) << endl;
+
+  cerr << "C=" << C.Debug(0) << endl;
+  cerr << "A=" << A.Debug(0) << endl;
+  cerr << "B=" << B.Debug(0) << endl;
+  cerr << "transA=" << transA << endl;
+  cerr << "transB=" << transB << endl;
+  cerr << endl;
+
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
