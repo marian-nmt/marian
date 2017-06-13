@@ -61,7 +61,7 @@ public:
     if(!t || t->shape() != shape) {
       int size = shape.elements();
       auto mem = allocator_->alloc<float>(size);
-      t = Tensor(new TensorBase(mem, {1, size}, allocator_->getDevice()));
+      t = Tensor(new TensorBase(mem, shape, allocator_->getDevice()));
     }
   }
 

@@ -29,15 +29,13 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   auto b1 = graph->param("b1", {1, 5}, init = inits::zeros);
   auto h = tanh(affine(x, W1, b1));
 
-  debug(W1, "W1");
-
   // Define the output layer
   auto W2 = graph->param("W2", {5, NUM_LABELS}, init = inits::uniform());
   auto b2 = graph->param("b2", {1, NUM_LABELS}, init = inits::zeros);
   auto o = affine(h, W2, b2);
 
   if(train) {
-    auto y = graph->constant({N, 1}, init = inits::from_vector(outputData));
+    auto y = graph->constant({N}, init = inits::from_vector(outputData));
     /* Define cross entropy cost on the output layer.
      * It can be also defined directly as:
      *   -mean(sum(logsoftmax(o) * y, axis=1), axis=0)
@@ -86,8 +84,7 @@ int main(int argc, char** argv) {
 
       // Build classifier
       auto cost = buildIrisClassifier(graph, trainX, trainY, true);
-      debug(cost, "cost");
-
+      
       // Train classifier and update weights
       graph->forward();
       graph->backward();

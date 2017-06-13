@@ -11,7 +11,7 @@ endif(CUDA_FOUND)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -g -O3 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})

@@ -75,12 +75,7 @@ std::string TensorBase::debug() {
   cudaSetDevice(device_);
   std::stringstream strm;
   assert(shape_.size());
-  strm << "shape=" << shape_[0];
-  for(int i = 1; i < shape_.size(); ++i)
-    strm << "x" << shape_[i];
-  strm << " size=" << shape_.elements() << " ("
-       << shape_.elements() * sizeof(float) << "B)";
-  strm << " device=" << device_ << std::endl;
+  strm << shape_ << " device=" << device_ << std::endl;
 
   // values
   size_t totSize = shape_.elements();
