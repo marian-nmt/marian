@@ -284,7 +284,7 @@ __global__ void gBroadcastVec(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_t stream = 0)
+Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
 {
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In=" << In.Debug() << std::endl;
@@ -296,7 +296,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In, cudaStream_
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + (cols % threads != 0);
-  stream = CudaStreamHandler::GetStream();
+  const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   gBroadcastVec<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
