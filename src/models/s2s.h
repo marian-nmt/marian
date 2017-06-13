@@ -97,14 +97,14 @@ public:
       x = dropout(x, mask = srcWordDrop);
     }
 
-    auto xFw = RNN<GRU>(graph,
+    auto xFw = RNN<SlowLSTM>(graph,
                         prefix_ + "_bi",
                         dimSrcEmb,
                         dimEncState,
                         normalize = layerNorm,
                         dropout_prob = dropoutRnn)(x);
 
-    auto xBw = RNN<GRU>(graph,
+    auto xBw = RNN<SlowLSTM>(graph,
                         prefix_ + "_bi_r",
                         dimSrcEmb,
                         dimEncState,

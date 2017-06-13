@@ -395,6 +395,104 @@ public:
 
 /***************************************************************/
 
+class SlowLSTM {
+private:
+  std::string prefix_;
+
+  Expr Uf_, Wf_, bf_;
+  Expr Ui_, Wi_, bi_;
+  Expr Uo_, Wo_, bo_;
+  Expr Uc_, Wc_, bc_;
+
+public:
+  template <typename... Args>
+  SlowLSTM(Ptr<ExpressionGraph> graph,
+      const std::string prefix,
+      int dimInput,
+      int dimState,
+      Args... args)
+      : prefix_(prefix) {
+
+    Uf_ = graph->param(prefix + "_Uf", {dimState, dimState},
+                       keywords::init=inits::glorot_uniform);
+    Wf_ = graph->param(prefix + "_Wf", {dimInput, dimState},
+                       keywords::init=inits::glorot_uniform);
+    bf_ = graph->param(prefix + "_bf", {1, dimState},
+                       keywords::init=inits::zeros);
+
+    Ui_ = graph->param(prefix + "_Ui", {dimState, dimState},
+                       keywords::init=inits::glorot_uniform);
+    Wi_ = graph->param(prefix + "_Wi", {dimInput, dimState},
+                       keywords::init=inits::glorot_uniform);
+    bi_ = graph->param(prefix + "_bi", {1, dimState},
+                       keywords::init=inits::zeros);
+
+    Uo_ = graph->param(prefix + "_Uo", {dimState, dimState},
+                       keywords::init=inits::glorot_uniform);
+    Wo_ = graph->param(prefix + "_Wo", {dimInput, dimState},
+                       keywords::init=inits::glorot_uniform);
+    bo_ = graph->param(prefix + "_bo", {1, dimState},
+                       keywords::init=inits::zeros);
+
+    Uc_ = graph->param(prefix + "_Uc", {dimState, dimState},
+                       keywords::init=inits::glorot_uniform);
+    Wc_ = graph->param(prefix + "_Wc", {dimInput, dimState},
+                       keywords::init=inits::glorot_uniform);
+    bc_ = graph->param(prefix + "_bc", {1, dimState},
+                       keywords::init=inits::zeros);
+
+  }
+
+  std::vector<Expr> apply(std::vector<Expr> inputs,
+                          std::vector<Expr> states,
+                          Expr mask = nullptr) {
+    return applyState(applyInput(inputs), states, mask);
+  }
+
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    Expr input;
+    if(inputs.size() > 1)
+      input = concatenate(inputs, keywords::axis = 1);
+    else
+      input = inputs.front();
+
+    auto xWf = dot(input, Wf_);
+    auto xWi = dot(input, Wi_);
+    auto xWo = dot(input, Wo_);
+    auto xWc = dot(input, Wc_);
+
+    return {xWf, xWi, xWo, xWc};
+  }
+
+  std::vector<Expr> applyState(std::vector<Expr> xWs,
+                               std::vector<Expr> states,
+                               Expr mask = nullptr) {
+    auto recState = states.front();
+    auto cellState = states.back();
+
+    auto sUf = affine(recState, Uf_, bf_);
+    auto sUi = affine(recState, Ui_, bi_);
+    auto sUo = affine(recState, Uo_, bo_);
+    auto sUc = affine(recState, Uc_, bc_);
+
+    auto f = logit(xWs[0] + sUf);
+    auto i = logit(xWs[1] + sUi);
+    auto o = logit(xWs[2] + sUo);
+    auto c = tanh(xWs[3] + sUc);
+
+    auto nextCellState = f * cellState + i * c;
+    auto nextState = o * tanh(nextCellState);
+
+    auto maskedState = mask ? mask * nextState : nextState;
+    //auto maskedCellState = mask ? mask * nextCellState : nextCellState;
+
+    return {maskedState, cellState};
+  }
+};
+
+/***************************************************************/
+
+
 template <class Cell1, class Attention, class Cell2>
 class AttentionCell {
 private:
