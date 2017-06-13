@@ -335,6 +335,9 @@ Matrix& Slice(Matrix& Out,
   const MatrixWrapper<float> inWrap(In);
   cerr << "outWrap=" << outWrap.Debug() << endl;
   cerr << "inWrap=" << inWrap.Debug() << endl;
+  cerr << "n=" << n << endl;
+  cerr << "dim=" << dim << endl;
+  cerr << endl;
 
   float* d_out = Out.data();
   const float* d_in = In.data();
