@@ -137,12 +137,6 @@ class TMatrix : public BaseMatrix {
       batches_ = batches;
     }
 
-    void Reshape2D() {
-      rows_ = rows_ * beam_ * batches_;
-      beam_ = 1;
-      batches_ = 1;
-    }
-
     virtual std::string Debug(size_t verbosity = 1) const
     {
       std::stringstream strm;
