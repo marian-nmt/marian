@@ -382,39 +382,43 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
 
-  size_t m = A.dim(0);
+  size_t m = A.dim(0) * A.dim(2) * A.dim(3);
   size_t k = A.dim(1);
-  if(transA)
+  size_t mOut = A.dim(0);
+  size_t kOut = A.dim(1);
+  if(transA) {
     std::swap(m, k);
+    std::swap(mOut, kOut);
+  }
 
-  size_t l = B.dim(0);
+  size_t l = B.dim(0) * B.dim(2) * B.dim(3);
   size_t n = B.dim(1);
-  if(transB)
+  size_t lOut = B.dim(0);
+  size_t nOut = B.dim(1);
+  if(transB) {
     std::swap(l, n);
+    std::swap(lOut, nOut);
+    }
 
   assert(k == l);
 
   size_t lda = A.dim(1);
   size_t ldb = B.dim(1);
-  size_t ldc = B.dim(1);
+  size_t ldc = transB ? B.dim(0) : B.dim(1);
 
-  if(transB)
-    ldc = B.dim(0);
+  C.Resize(mOut, nOut, A.dim(2), A.dim(3));
 
-  C.Resize(m, n, A.dim(2), A.dim(3));
-
+  /*
   cerr << "C=" << C.Debug(0) << endl;
   cerr << "A=" << A.Debug(0) << endl;
   cerr << "B=" << B.Debug(0) << endl;
   cerr << "transA=" << transA << endl;
   cerr << "transB=" << transB << endl;
   cerr << endl;
-
+  */
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
-
-  size_t m2 = A.dim(0) * A.dim(2) * A.dim(3);
 
   /*
    cublasStatus_t cublasSgemm(cublasHandle_t handle,
@@ -427,7 +431,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
                            float           *C, int ldc)
    */
   cublasSgemm(handle, opB, opA,
-              n, m2, k,
+              n, m, k,
               &alpha,
               B.data(), ldb,
               A.data(), lda,
