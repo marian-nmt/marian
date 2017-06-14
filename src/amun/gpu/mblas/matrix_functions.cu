@@ -416,8 +416,23 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 
   size_t m2 = A.dim(0) * A.dim(2) * A.dim(3);
 
+  /*
+   cublasStatus_t cublasSgemm(cublasHandle_t handle,
+                           cublasOperation_t transa, cublasOperation_t transb,
+                           int m, int n, int k,
+                           const float           *alpha,
+                           const float           *A, int lda,
+                           const float           *B, int ldb,
+                           const float           *beta,
+                           float           *C, int ldc)
+   */
   cublasSgemm(handle, opB, opA,
-              n, m2, k, &alpha, B.data(), ldb, A.data(), lda, &beta, C.data(), ldc);
+              n, m2, k,
+              &alpha,
+              B.data(), ldb,
+              A.data(), lda,
+              &beta,
+              C.data(), ldc);
   return C;
 }
 
