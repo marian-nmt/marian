@@ -1,8 +1,8 @@
 #pragma once
 
 #include "models/amun.h"
-#include "models/hardatt.h"
-#include "models/multi_s2s.h"
+//#include "models/hardatt.h"
+//#include "models/multi_s2s.h"
 #include "models/s2s.h"
 
 #include "data/corpus.h"
@@ -21,14 +21,14 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
     return New<TaskName<Wrapper<Amun>>>(options);
   else if(type == "s2s")
     return New<TaskName<Wrapper<S2S>>>(options);
-  else if(type == "multi-s2s")
-    return New<TaskName<Wrapper<MultiS2S>>>(options);
-  else if(type == "hard-att")
-    return New<TaskName<Wrapper<HardAtt>>>(options);
-  else if(type == "hard-soft-att")
-    return New<TaskName<Wrapper<HardSoftAtt>>>(options);
-  else if(type == "multi-hard-att")
-    return New<TaskName<Wrapper<MultiHardSoftAtt>>>(options);
+  //else if(type == "multi-s2s")
+  //  return New<TaskName<Wrapper<MultiS2S>>>(options);
+  //else if(type == "hard-att")
+  //  return New<TaskName<Wrapper<HardAtt>>>(options);
+  //else if(type == "hard-soft-att")
+  //  return New<TaskName<Wrapper<HardSoftAtt>>>(options);
+  //else if(type == "multi-hard-att")
+  //  return New<TaskName<Wrapper<MultiHardSoftAtt>>>(options);
   else
     UTIL_THROW2("Unknown model type: " << type);
 }

@@ -14,6 +14,68 @@
 
 namespace marian {
 
+struct RNNState {
+  Expr output;
+  Expr cell;
+
+  RNNState select(const std::vector<size_t>& indices) {
+
+    int numSelected = indices.size();
+    int dimState = output->shape()[1];
+
+    if(cell)
+      return RNNState{
+        reshape(rows(output, indices), {1, dimState, 1, numSelected}),
+        reshape(rows(cell, indices), {1, dimState, 1, numSelected})
+      };
+    else
+      return RNNState{
+        reshape(rows(output, indices), {1, dimState, 1, numSelected}),
+        nullptr
+      };
+  }
+};
+
+class RNNStates {
+  private:
+    std::vector<RNNState> states_;
+
+  public:
+
+    auto begin() -> decltype(states_.begin()) { return states_.begin(); }
+    auto end() -> decltype(states_.begin()) { return states_.end(); }
+
+    Expr outputs() {
+      std::vector<Expr> outputs;
+      for(auto s : states_)
+        outputs.push_back(s.output);
+      if(outputs.size() > 1)
+        return concatenate(outputs, keywords::axis = 2);
+      else
+        return outputs[0];
+    }
+
+    RNNState& operator[](size_t i) { return states_[i]; };
+    const RNNState& operator[](size_t i) const { return states_[i]; };
+
+    size_t size() const { return states_.size(); };
+
+    void push_back(const RNNState& state) {
+      states_.push_back(state);
+    }
+
+    RNNStates select(const std::vector<size_t>& indices) {
+      RNNStates selected;
+      for(auto& state : states_)
+        selected.push_back(state.select(indices));
+      return selected;
+    }
+
+    void reverse() {
+      std::reverse(states_.begin(), states_.end());
+    }
+};
+
 template <class Cell>
 class RNN : public Layer {
 public:
@@ -39,47 +101,57 @@ public:
 
   Ptr<Cell> getCell() { return cell_; }
 
-  std::vector<Expr> apply(const Expr input,
-                          const Expr initialState,
-                          const Expr mask = nullptr,
-                          bool reverse = false) {
+  RNNStates apply(const Expr input,
+                  const RNNState initialState,
+                  const Expr mask = nullptr,
+                  bool reverse = false) {
+
+    RNNState state = initialState;
+
     auto xWs = cell_->applyInput({input});
 
-    std::vector<Expr> outputs;
-    std::vector<Expr> states = {initialState};
-    for(size_t i = 0; i < input->shape()[2]; ++i) {
+    size_t timeSteps = input->shape()[2];
+
+    RNNStates outputs;
+    for(size_t i = 0; i < timeSteps; ++i) {
       int j = i;
       if(reverse)
-        j = input->shape()[2] - i - 1;
+        j = timeSteps - i - 1;
 
       std::vector<Expr> steps(xWs.size());
-      std::transform(xWs.begin(), xWs.end(), steps.begin(), [j](Expr e) {
-        return step(e, j);
-      });
+      std::transform(xWs.begin(), xWs.end(), steps.begin(),
+                     [j](Expr e) { return step(e, j); });
 
       if(mask)
-        states = cell_->applyState(steps, states, step(mask, j));
+        state = cell_->applyState(steps, state, step(mask, j));
       else
-        states = cell_->applyState(steps, states);
-      outputs.push_back(states.front());
+        state = cell_->applyState(steps, state);
+
+      outputs.push_back(state);
     }
     return outputs;
   }
 
-  Expr apply(Ptr<Cell> cell, Expr input, Expr state) {
-    return cell_->apply(input, state).front();
-  }
+  //Expr apply(Ptr<Cell> cell, Expr input, RNNState state) {
+  //  return cell_->apply(input, state).front();
+  //}
 
   template <typename... Args>
-  Expr operator()(Expr input, Args... args) {
+  RNNStates operator()(Expr input, Args... args) {
     auto graph = input->graph();
     int dimBatch = input->shape()[0];
-    auto startState = graph->zeros(keywords::shape = {dimBatch, dimState_});
+
+    auto output = graph->zeros(keywords::shape = {dimBatch, dimState_});
+    Expr cell = Cell::numStates() == 1 ? nullptr : output;
+
+    // TODO: look at this again
+    RNNState startState{ output, cell };
+
     return (*this)(input, startState, args...);
   }
 
   template <typename... Args>
-  Expr operator()(Expr input, Expr state, Args... args) {
+  RNNStates operator()(Expr input, RNNState state, Args... args) {
     auto graph = input->graph();
     int dimInput = input->shape()[1];
 
@@ -87,17 +159,11 @@ public:
 
     if(direction_ == dir::backward) {
       auto states = apply(input, state, mask, true);
-      std::reverse(states.begin(), states.end());
-      if(outputLast_)
-        return states.back();
-      else
-        return concatenate(states, keywords::axis = 2);
+      states.reverse();
+      return states;
     } else {  // assuming dir::forward
       auto states = apply(input, state, mask, false);
-      if(outputLast_)
-        return states.back();
-      else
-        return concatenate(states, keywords::axis = 2);
+      return states;
     }
   }
 };
@@ -268,6 +334,8 @@ public:
     else
       return {output};
   }
+
+  static size_t numStates() { return 1; }
 };
 
 Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
@@ -391,6 +459,8 @@ public:
 
     return {output};
   }
+
+  static size_t numStates() { return 1; }
 };
 
 /***************************************************************/
@@ -488,6 +558,8 @@ public:
 
     return {maskedState, maskedCellState};
   }
+
+  static size_t numStates() { return 2; }
 };
 
 /***************************************************************/
@@ -545,10 +617,10 @@ public:
     }
   }
 
-  std::vector<Expr> apply(std::vector<Expr> inputs,
-                          std::vector<Expr> states,
-                          Expr mask = nullptr) {
-    return applyState(applyInput(inputs), states, mask);
+  RNNState apply(std::vector<Expr> inputs,
+                 RNNState state,
+                 Expr mask = nullptr) {
+    return applyState(applyInput(inputs), state, mask);
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
@@ -569,11 +641,12 @@ public:
     return {xW};
   }
 
-  std::vector<Expr> applyState(std::vector<Expr> xWs,
-                               std::vector<Expr> states,
-                               Expr mask = nullptr) {
-    auto recState = states.front();
-    auto cellState = states.back();
+  RNNState applyState(std::vector<Expr> xWs,
+                      RNNState state,
+                      Expr mask = nullptr) {
+
+    auto recState = state.output;
+    auto cellState = state.cell;
 
     auto recStateDropped = recState;
     auto cellStateDropped = cellState;
@@ -601,6 +674,8 @@ public:
 
     return {nextRecState, nextCellState};
   }
+
+  static size_t numStates() { return 2; }
 };
 
 
@@ -640,21 +715,21 @@ public:
                         args...);
   }
 
-  std::vector<Expr> apply(std::vector<Expr> inputs,
-                          std::vector<Expr> states,
-                          Expr mask = nullptr) {
-    return applyState(applyInput(inputs), states, mask);
+  RNNState apply(std::vector<Expr> inputs,
+                 RNNState state,
+                 Expr mask = nullptr) {
+    return applyState(applyInput(inputs), state, mask);
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     return cell1_->applyInput(inputs);
   }
 
-  std::vector<Expr> applyState(std::vector<Expr> xWs,
-                               std::vector<Expr> states,
+  RNNState applyState(std::vector<Expr> xWs,
+                               RNNState state,
                                Expr mask = nullptr) {
-    auto hidden = cell1_->applyState(xWs, states, mask);
-    auto alignedSourceContext = att_->apply(hidden.front());
+    auto hidden = cell1_->applyState(xWs, state, mask);
+    auto alignedSourceContext = att_->apply(hidden.output);
     return cell2_->apply({alignedSourceContext}, hidden, mask);
   }
 
@@ -665,6 +740,8 @@ public:
   }
 
   Expr getLastContext() { return att_->getContexts().back(); }
+
+  static size_t numStates() { return Cell1::numStates(); }
 };
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;

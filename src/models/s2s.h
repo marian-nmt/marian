@@ -25,12 +25,12 @@ public:
 
 class DecoderStateS2S : public DecoderState {
 private:
-  std::vector<Expr> states_;
+  RNNStates states_;
   Expr probs_;
   Ptr<EncoderState> encState_;
 
 public:
-  DecoderStateS2S(const std::vector<Expr> states,
+  DecoderStateS2S(const RNNStates& states,
                   Expr probs,
                   Ptr<EncoderState> encState)
       : states_(states), probs_(probs), encState_(encState) {}
@@ -40,19 +40,10 @@ public:
   void setProbs(Expr probs) { probs_ = probs; }
 
   Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-    int numSelected = selIdx.size();
-    int dimState = states_[0]->shape()[1];
-
-    std::vector<Expr> selectedStates;
-    for(auto state : states_) {
-      selectedStates.push_back(
-          reshape(rows(state, selIdx), {1, dimState, 1, numSelected}));
-    }
-
-    return New<DecoderStateS2S>(selectedStates, probs_, encState_);
+    return New<DecoderStateS2S>(states_.select(selIdx), probs_, encState_);
   }
 
-  const std::vector<Expr>& getStates() { return states_; }
+  const RNNStates& getStates() { return states_; }
 };
 
 class EncoderS2S : public EncoderBase {
@@ -102,7 +93,7 @@ public:
                         dimSrcEmb,
                         dimEncState,
                         normalize = layerNorm,
-                        dropout_prob = dropoutRnn)(x);
+                        dropout_prob = dropoutRnn)(x).outputs();
 
     auto xBw = RNN<LSTM>(graph,
                         prefix_ + "_bi_r",
@@ -110,26 +101,26 @@ public:
                         dimEncState,
                         normalize = layerNorm,
                         direction = dir::backward,
-                        dropout_prob = dropoutRnn)(x, mask = xMask);
+                        dropout_prob = dropoutRnn)(x, mask = xMask).outputs();
 
-    if(encoderLayers > 1) {
-      auto xBi = concatenate({xFw, xBw}, axis = 1);
-
-      Expr xContext;
-      std::vector<Expr> states;
-      std::tie(xContext, states) = MLRNN<GRU>(graph,
-                                              prefix_,
-                                              encoderLayers - 1,
-                                              2 * dimEncState,
-                                              dimEncState,
-                                              normalize = layerNorm,
-                                              skip = skipDepth,
-                                              dropout_prob = dropoutRnn)(xBi);
-      return New<EncoderStateS2S>(xContext, xMask, batch);
-    } else {
+    //if(encoderLayers > 1) {
+    //  auto xBi = concatenate({xFw, xBw}, axis = 1);
+    //
+    //  Expr xContext;
+    //  std::vector<Expr> states;
+    //  std::tie(xContext, states) = MLRNN<GRU>(graph,
+    //                                          prefix_,
+    //                                          encoderLayers - 1,
+    //                                          2 * dimEncState,
+    //                                          dimEncState,
+    //                                          normalize = layerNorm,
+    //                                          skip = skipDepth,
+    //                                          dropout_prob = dropoutRnn)(xBi);
+    //  return New<EncoderStateS2S>(xContext, xMask, batch);
+    //} else {
       auto xContext = concatenate({xFw, xBw}, axis = 1);
       return New<EncoderStateS2S>(xContext, xMask, batch);
-    }
+    //}
   }
 };
 
@@ -157,7 +148,11 @@ public:
                        activation = act::tanh,
                        normalize = layerNorm)(meanContext);
 
-    std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
+    // @TODO: review this
+    RNNStates startStates;
+    for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
+      startStates.push_back(RNNState{start, start});
+
     return New<DecoderStateS2S>(startStates, nullptr, encState);
   }
 
@@ -209,45 +204,46 @@ public:
 
     if(!rnnL1)
       rnnL1 = New<RNN<CLSTM>>(graph,
-                             prefix_,
-                             dimTrgEmb,
-                             dimDecState,
-                             attention_,
-                             dropout_prob = dropoutRnn,
-                             normalize = layerNorm);
-    auto stateL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
+                              prefix_,
+                              dimTrgEmb,
+                              dimDecState,
+                              attention_,
+                              dropout_prob = dropoutRnn,
+                              normalize = layerNorm);
+
+    auto statesL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
 
     bool single = stateS2S->doSingleStep();
     auto alignedContext = single ? rnnL1->getCell()->getLastContext() :
                                    rnnL1->getCell()->getContexts();
 
-    std::vector<Expr> statesOut;
-    statesOut.push_back(stateL1);
+    RNNStates statesOut = statesL1;
+    auto outputLn = statesOut.outputs();
 
-    Expr outputLn;
-    if(decoderLayers > 1) {
-      std::vector<Expr> statesIn;
-      for(int i = 1; i < stateS2S->getStates().size(); ++i)
-        statesIn.push_back(stateS2S->getStates()[i]);
-
-      if(!rnnLn)
-        rnnLn = New<MLRNN<GRU>>(graph,
-                                prefix_,
-                                decoderLayers - 1,
-                                dimDecState,
-                                dimDecState,
-                                normalize = layerNorm,
-                                dropout_prob = dropoutRnn,
-                                skip = skipDepth,
-                                skip_first = skipDepth);
-
-      std::vector<Expr> statesLn;
-      std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
-
-      statesOut.insert(statesOut.end(), statesLn.begin(), statesLn.end());
-    } else {
-      outputLn = stateL1;
-    }
+    //Expr outputLn;
+    //if(decoderLayers > 1) {
+    //  std::vector<Expr> statesIn;
+    //  for(int i = rnnL1->numStates(); i < stateS2S->getStates().size(); ++i)
+    //    statesIn.push_back(stateS2S->getStates()[i]);
+    //
+    //  if(!rnnLn)
+    //    rnnLn = New<MLRNN<GRU>>(graph,
+    //                            prefix_,
+    //                            decoderLayers - 1,
+    //                            dimDecState,
+    //                            dimDecState,
+    //                            normalize = layerNorm,
+    //                            dropout_prob = dropoutRnn,
+    //                            skip = skipDepth,
+    //                            skip_first = skipDepth);
+    //
+    //  std::vector<Expr> statesLn;
+    //  std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
+    //
+    //  statesOut.insert(statesOut.end(), statesLn.begin(), statesLn.end());
+    //} else {
+    //  outputLn = stateL1;
+    //}
 
     //// 2-layer feedforward network for outputs and cost
     auto logitsL1
