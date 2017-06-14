@@ -1,9 +1,10 @@
 # Unit tests
 set(TEST_SOURCES
     graph_tests.cpp
+    operator_tests.cpp
 )
 
-add_executable(run_tests ${TEST_SOURCES})
+add_executable(run_tests run_tests.cpp ${TEST_SOURCES})
 target_link_libraries(run_tests marian ${EXT_LIBS} Catch)
 cuda_add_cublas_to_target(run_tests)
 set_target_properties(run_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
