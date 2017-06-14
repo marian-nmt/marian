@@ -25,22 +25,23 @@ class TMatrix : public BaseMatrix {
     typedef T value_type;
 
     TMatrix()
-    : rows_(0)
-    , cols_(0)
-    , beam_(0)
-    , batches_(0)
-    , arrSize_(0)
+    : arrSize_(0)
     , data_(nullptr)
     {
+      dim_[0] = 0;
+      dim_[1] = 0;
+      dim_[2] = 0;
+      dim_[3] = 0;
     }
 
     TMatrix(size_t rows, size_t cols, size_t beam, size_t batches, bool zero = false)
-    : rows_(rows)
-    , cols_(cols)
-    , beam_(1)
-    , batches_(1)
-    , arrSize_(size())
     {
+      dim_[0] = rows;
+      dim_[1] = cols;
+      dim_[2] = beam;
+      dim_[3] = batches;
+      arrSize_ = size();
+
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       //std::cerr << "malloc data1:" << data_ << std::endl;
       if (zero) {
@@ -55,12 +56,13 @@ class TMatrix : public BaseMatrix {
     }
 
     TMatrix(const TMatrix& m)
-    : rows_(m.rows_)
-    , cols_(m.cols_)
-    , beam_(m.beam_)
-    , batches_(m.batches_)
-    , arrSize_(m.arrSize_)
+    : arrSize_(m.arrSize_)
     {
+      dim_[0] = m.dim_[0];
+      dim_[1] = m.dim_[1];
+      dim_[2] = m.dim_[2];
+      dim_[3] = m.dim_[3];
+
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       //std::cerr << "malloc data2:" << data_ << std::endl;
       HANDLE_ERROR( cudaMemcpyAsync(
@@ -78,14 +80,7 @@ class TMatrix : public BaseMatrix {
 
     virtual size_t dim(size_t i) const
     {
-    	switch (i) {
-    	case 0: return rows_;
-    	case 1: return cols_;
-    	case 2: return beam_;
-    	case 3: return batches_;
-    	default:
-    		abort();
-    	}
+      return dim_[i];
     }
 
     void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
@@ -120,10 +115,10 @@ class TMatrix : public BaseMatrix {
         arrSize_ = newSize;
       }
 
-      rows_ = rows;
-      cols_ = cols;
-      beam_ = beam;
-      batches_ = batches;
+      dim_[0] = rows;
+      dim_[1] = cols;
+      dim_[2] = beam;
+      dim_[3] = batches;
     }
 
     void Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
@@ -131,10 +126,28 @@ class TMatrix : public BaseMatrix {
       size_t newSize = cols * rows * beam * batches;
       amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
 
-      rows_ = rows;
-      cols_ = cols;
-      beam_ = beam;
-      batches_ = batches;
+      dim_[0] = rows;
+      dim_[1] = cols;
+      dim_[2] = beam;
+      dim_[3] = batches;
+    }
+
+    void ReduceDimensions()
+    {
+      if (dim_[1] == 1) {
+        dim_[1] = dim_[0];
+        dim_[0] = dim_[2];
+        dim_[2] = dim_[3];
+      }
+
+      if (dim_[0] == 1) {
+        dim_[0] = dim_[2];
+        dim_[2] = dim_[3];
+      }
+
+      if (dim_[2] == 1) {
+        dim_[2] = dim_[3];
+      }
     }
 
     virtual std::string Debug(size_t verbosity = 1) const
@@ -174,10 +187,10 @@ class TMatrix : public BaseMatrix {
       //std::cerr << "free data2:" << data_ << std::endl;
       HANDLE_ERROR(cudaFree(data_));
       data_ = nullptr;
-      rows_ = 0;
-      cols_ = 0;
-      beam_ = 0;
-      batches_ = 0;
+      dim_[0] = 0;
+      dim_[1] = 0;
+      dim_[2] = 0;
+      dim_[3] = 0;
       arrSize_ = 0;
     }
 
@@ -191,19 +204,14 @@ class TMatrix : public BaseMatrix {
 
     void swap(TMatrix &other)
     {
-      std::swap(rows_, other.rows_);
-      std::swap(cols_, other.cols_);
-      std::swap(beam_, other.beam_);
-      std::swap(batches_, other.batches_);
+      std::swap(dim_, other.dim_);
       std::swap(arrSize_, other.arrSize_);
       std::swap(data_, other.data_);
     }
 
   private:
-    size_t rows_;
-    size_t cols_;
-    size_t beam_;
-    size_t batches_;
+    size_t dim_[SHAPE_SIZE];
+
     size_t arrSize_;
     T *data_;
 };
