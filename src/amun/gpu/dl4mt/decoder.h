@@ -187,13 +187,15 @@ class Decoder {
           //std::cerr << "1Temp1_=" << Temp1_.Debug() << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
-          //std::cerr << "2Temp1_=" << Temp1_.Debug() << std::endl;
+          std::cerr << "2Temp1_=" << Temp1_.Debug(0) << std::endl;
 
           Temp1_.Reshape2D();
 
-          //std::cerr << "w_.V_=" << w_.V_.Debug() << std::endl;
-          //std::cerr << "3Temp1_=" << Temp1_.Debug() << std::endl;
+          std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
+          std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
           Prod(A_, *w_.V_, Temp1_, false, true);
+          std::cerr << "A_=" << A_.Debug(0) << std::endl;
+          std::cerr << std::endl;
 
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
