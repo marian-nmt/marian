@@ -97,14 +97,14 @@ public:
       x = dropout(x, mask = srcWordDrop);
     }
 
-    auto xFw = RNN<SlowLSTM>(graph,
+    auto xFw = RNN<LSTM>(graph,
                         prefix_ + "_bi",
                         dimSrcEmb,
                         dimEncState,
                         normalize = layerNorm,
                         dropout_prob = dropoutRnn)(x);
 
-    auto xBw = RNN<SlowLSTM>(graph,
+    auto xBw = RNN<LSTM>(graph,
                         prefix_ + "_bi_r",
                         dimSrcEmb,
                         dimEncState,
@@ -136,7 +136,7 @@ public:
 class DecoderS2S : public DecoderBase {
 private:
   Ptr<GlobalAttention> attention_;
-  Ptr<RNN<CGRU>> rnnL1;
+  Ptr<RNN<CLSTM>> rnnL1;
   Ptr<MLRNN<GRU>> rnnLn;
   Expr tiedOutputWeights_;
 
@@ -208,7 +208,7 @@ public:
                                         normalize = layerNorm);
 
     if(!rnnL1)
-      rnnL1 = New<RNN<CGRU>>(graph,
+      rnnL1 = New<RNN<CLSTM>>(graph,
                              prefix_,
                              dimTrgEmb,
                              dimDecState,

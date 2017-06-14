@@ -481,14 +481,129 @@ public:
     auto c = tanh(xWs[3] + sUc);
 
     auto nextCellState = f * cellState + i * c;
-    auto nextState = o * tanh(nextCellState);
+    auto maskedCellState = mask ? mask * nextCellState : nextCellState;
 
+    auto nextState = o * tanh(maskedCellState);
     auto maskedState = mask ? mask * nextState : nextState;
-    //auto maskedCellState = mask ? mask * nextCellState : nextCellState;
 
-    return {maskedState, cellState};
+    return {maskedState, maskedCellState};
   }
 };
+
+/***************************************************************/
+
+Expr lstmOpsC(const std::vector<Expr>& nodes);
+Expr lstmOpsO(const std::vector<Expr>& nodes);
+
+class LSTM {
+private:
+  std::string prefix_;
+
+  Expr U_, W_, b_;
+  Expr gamma1_;
+  Expr gamma2_;
+
+  bool layerNorm_;
+  float dropout_;
+
+  Expr dropMaskX_;
+  Expr dropMaskS_;
+  Expr dropMaskC_;
+
+public:
+  template <typename... Args>
+  LSTM(Ptr<ExpressionGraph> graph,
+      const std::string prefix,
+      int dimInput,
+      int dimState,
+      Args... args)
+      : prefix_(prefix) {
+
+    U_ = graph->param(prefix + "_U", {dimState, 4 * dimState},
+                      keywords::init=inits::glorot_uniform);
+    W_ = graph->param(prefix + "_W", {dimInput, 4 * dimState},
+                      keywords::init=inits::glorot_uniform);
+    b_ = graph->param(prefix + "_b", {1, 4 * dimState},
+                      keywords::init=inits::zeros);
+
+    layerNorm_ = Get(keywords::normalize, false, args...);
+
+    dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
+    if(dropout_ > 0.0f) {
+      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+      dropMaskC_ = graph->dropout(dropout_, {1, dimState});
+    }
+
+    if(layerNorm_) {
+      gamma1_ = graph->param(prefix + "_gamma1",
+                             {1, 4 * dimState},
+                             keywords::init = inits::from_value(1.f));
+      gamma2_ = graph->param(prefix + "_gamma2",
+                             {1, 4 * dimState},
+                             keywords::init = inits::from_value(1.f));
+    }
+  }
+
+  std::vector<Expr> apply(std::vector<Expr> inputs,
+                          std::vector<Expr> states,
+                          Expr mask = nullptr) {
+    return applyState(applyInput(inputs), states, mask);
+  }
+
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    Expr input;
+    if(inputs.size() > 1)
+      input = concatenate(inputs, keywords::axis = 1);
+    else
+      input = inputs.front();
+
+    if(dropMaskX_)
+      input = dropout(input, keywords::mask = dropMaskX_);
+
+    auto xW = dot(input, W_);
+
+    if(layerNorm_)
+      xW = layer_norm(xW, gamma1_);
+
+    return {xW};
+  }
+
+  std::vector<Expr> applyState(std::vector<Expr> xWs,
+                               std::vector<Expr> states,
+                               Expr mask = nullptr) {
+    auto recState = states.front();
+    auto cellState = states.back();
+
+    auto recStateDropped = recState;
+    auto cellStateDropped = cellState;
+    if(dropMaskS_)
+      recStateDropped = dropout(recState, keywords::mask = dropMaskS_);
+    if(dropMaskC_)
+      cellStateDropped = dropout(cellState, keywords::mask = dropMaskC_);
+
+    auto sU = dot(recStateDropped, U_);
+
+    if(layerNorm_)
+      sU = layer_norm(sU, gamma2_);
+
+    auto xW = xWs.front();
+
+    // dc/dp where p = W_i, U_i, ..., but without index o
+    auto nextCellState = mask ?
+      lstmOpsC({cellStateDropped, xW, sU, b_, mask}) :
+      lstmOpsC({cellStateDropped, xW, sU, b_});
+
+    // dh/dp dh/dc where p = W_o, U_o, b_o
+    auto nextRecState = mask ?
+      lstmOpsO({nextCellState, xW, sU, b_, mask}) :
+      lstmOpsO({nextCellState, xW, sU, b_});
+
+    return {nextRecState, nextCellState};
+  }
+};
+
+
 
 /***************************************************************/
 
@@ -553,4 +668,5 @@ public:
 };
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
+typedef AttentionCell<LSTM, GlobalAttention, LSTM> CLSTM;
 }
