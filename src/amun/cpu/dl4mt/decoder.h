@@ -64,9 +64,9 @@ class Decoder {
             AddBiasVector<byRow>(State, w_.Bi_);
           } else {
             AddBiasVector<byRow>(State, w_.Bi_);
-            State = blaze::forEach(State, Tanh());
           }
 
+          State = blaze::forEach(State, Tanh());
         }
 
         void GetNextState(mblas::Matrix& NextState,
