@@ -27,8 +27,8 @@ public:
         = New<BatchGenerator<data::MNIST>>(dataset, options_, nullptr);
 
     // Prepare reporter with validators
-    auto epochState = New<EpochState>(options_);
-    auto reporter = New<Reporter<typename Model::dataset_type>>(options_, epochState);
+    auto trainState = New<TrainingState>(options_);
+    auto reporter = New<Reporter<typename Model::dataset_type>>(options_, trainState);
     auto validator
         = New<AccuracyValidator<typename Model::builder_type>>(options_);
     reporter->addValidator(validator);

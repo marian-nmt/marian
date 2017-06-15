@@ -8,11 +8,11 @@
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
 #include "tensors/tensor.h"
-#include "training/epoch_state.h"
+#include "training/training_state.h"
 
 namespace marian {
 
-class OptimizerBase : public EpochStateObserver {
+class OptimizerBase : public TrainingObserver {
 public:
   template <typename... Args>
   OptimizerBase(float eta, Args... args)
@@ -30,7 +30,7 @@ public:
     updateImpl(params, grads);
   }
 
-  void epochHasChanged(EpochState& state) {
+  void epochHasChanged(TrainingState& state) {
     eta_ = state.eta;
   }
 

@@ -7,23 +7,23 @@
 
 namespace marian {
 
-class EpochState;
+class TrainingState;
 
-class EpochStateObserver {
+class TrainingObserver {
 public:
-  virtual void epochHasChanged(EpochState& state) = 0;
+  virtual void epochHasChanged(TrainingState& state) = 0;
 };
 
-class EpochState {
+class TrainingState {
 public:
   int epoch;
   int maxStalled;
   float eta;
 
-  EpochState(Ptr<Config> options)
+  TrainingState(Ptr<Config> options)
       : epoch(1), maxStalled(0), eta(options->get<float>("learn-rate")) {}
 
-  void registerObserver(Ptr<EpochStateObserver> observer) {
+  void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
   }
 
@@ -35,7 +35,7 @@ public:
   }
 
 private:
-  std::vector<Ptr<EpochStateObserver>> observers_;
+  std::vector<Ptr<TrainingObserver>> observers_;
 
 };
 }

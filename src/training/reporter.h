@@ -1,13 +1,13 @@
 #pragma once
 
 #include "training/config.h"
-#include "training/epoch_state.h"
+#include "training/training_state.h"
 #include "training/validator.h"
 
 namespace marian {
 
 template <class DataSet>
-class Reporter : public EpochStateObserver {
+class Reporter : public TrainingObserver {
 private:
   YAML::Node progress;
 
@@ -22,13 +22,13 @@ private:
   size_t wordsDisp{0};
   size_t batches{0};
 
-  Ptr<EpochState> epochState_;
+  Ptr<TrainingState> trainState_;
 
   boost::timer::cpu_timer timer;
 
 public:
-  Reporter(Ptr<Config> options, Ptr<EpochState> state)
-      : options_(options), epochState_(state) {}
+  Reporter(Ptr<Config> options, Ptr<TrainingState> state)
+      : options_(options), trainState_(state) {}
 
   bool keepGoing() {
     // stop if it reached the maximum number of epochs
@@ -53,7 +53,7 @@ public:
     LOG(info, "Seen {} samples", samples);
 
     epochs++;
-    epochState_->next();
+    trainState_->next();
     samples = 0;
 
     LOG(info, "Starting epoch {}", epochs);
@@ -147,11 +147,11 @@ public:
 
   size_t numberOfBatches() { return batches; }
 
-  void registerEpochStateObserver(Ptr<EpochStateObserver> observer) {
-    epochState_->registerObserver(observer);
+  void registerTrainingObserver(Ptr<TrainingObserver> observer) {
+    trainState_->registerObserver(observer);
   }
 
-  void epochHasChanged(EpochState& state) {
+  void epochHasChanged(TrainingState& state) {
     if(stalled() > state.maxStalled)
       state.maxStalled++;
 

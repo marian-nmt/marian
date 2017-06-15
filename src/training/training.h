@@ -35,8 +35,8 @@ public:
       LOG(info, "[batching] Done");
     }
 
-    auto epochState = New<EpochState>(options_);
-    auto reporter = New<Reporter<dataset_type>>(options_, epochState);
+    auto trainState = New<TrainingState>(options_);
+    auto reporter = New<Reporter<dataset_type>>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
