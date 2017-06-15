@@ -88,7 +88,7 @@ public:
       x = dropout(x, mask = srcWordDrop);
     }
 
-    RNNStates statesFw = RNN<GRU>(graph,
+    RNNStates statesFw = RNN<LSTM>(graph,
                                    prefix_ + "_bi",
                                    dimSrcEmb,
                                    dimEncState,
@@ -96,7 +96,7 @@ public:
                                    dropout_prob = dropoutRnn)(x);
     auto xFw = statesFw.outputs();
 
-    RNNStates statesBw = RNN<GRU>(graph,
+    RNNStates statesBw = RNN<LSTM>(graph,
                                    prefix_ + "_bi_r",
                                    dimSrcEmb,
                                    dimEncState,
@@ -129,7 +129,7 @@ public:
 class DecoderS2S : public DecoderBase {
 private:
   Ptr<GlobalAttention> attention_;
-  Ptr<RNN<CGRU>> rnnL1;
+  Ptr<RNN<CLSTM>> rnnL1;
   Ptr<MLRNN<GRU>> rnnLn;
   Expr tiedOutputWeights_;
 
@@ -211,7 +211,7 @@ public:
                                         normalize = layerNorm);
 
     if(!rnnL1)
-      rnnL1 = New<RNN<CGRU>>(graph,
+      rnnL1 = New<RNN<CLSTM>>(graph,
                               prefix_,
                               dimTrgEmb,
                               dimDecState,

@@ -138,7 +138,7 @@ public:
     int dimBatch = input->shape()[0];
 
     auto output = graph->zeros(keywords::shape = {dimBatch, dimState_});
-    Expr cell = /*Cell::numStates() == 1 ? nullptr :*/ output;
+    Expr cell = output;
 
     // TODO: look at this again
     RNNState startState{ output, cell };
