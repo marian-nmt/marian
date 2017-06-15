@@ -17,10 +17,11 @@ public:
 class EpochState {
 public:
   int epoch;
+  int maxStalled;
   float eta;
 
   EpochState(Ptr<Config> options)
-      : epoch(1), eta(options->get<float>("learn-rate")) {}
+      : epoch(1), maxStalled(0), eta(options->get<float>("learn-rate")) {}
 
   void registerObserver(Ptr<EpochStateObserver> observer) {
     observers_.push_back(observer);

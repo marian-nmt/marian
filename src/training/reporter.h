@@ -152,13 +152,41 @@ public:
   }
 
   void epochHasChanged(EpochState& state) {
-    float decay = options_->get<double>("learning-rate-decay");
-    if (decay > 0.0f) {
-      if (decay > 1.0f)
-        LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
-      float startAt = options_->get<int>("start-decay-epoch");
-      if (startAt > 0 && state.epoch >= startAt) {
-        state.eta *= decay;
+    if(stalled() > state.maxStalled)
+      state.maxStalled++;
+
+    float factor = options_->get<double>("learning-rate-decay");
+    if (factor > 1.0f)
+      LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
+
+    /* The following behaviour for learning rate decaying is implemented:
+     *
+     * * With only the --start-decay-epoch option enabled, the learning rate
+     *   is decayed after *each* epoch starting from N-th epoch.
+     *
+     * * With only the --start-decay-stalled option enabled, the learning rate
+     *   is decayed (*once*) if the first validation metric is not improving
+     *   for N consecutive validation steps.
+     *
+     * * With both options enabled, the learning rate is decayed after *each*
+     *   epoch starting from the first epoch for which any of those two
+     *   conditions is met.
+     */
+    if (factor > 0.0f) {
+      bool decay = false;
+
+      int startAtEpoch = options_->get<int>("start-decay-epoch");
+      if(startAtEpoch && state.epoch >= startAtEpoch)
+        decay = true;
+
+      int startWhenStalled = options_->get<int>("start-decay-stalled");
+      if(startAtEpoch && startWhenStalled && state.maxStalled >= startWhenStalled)
+        decay = true;
+      if(startWhenStalled && stalled() >= startWhenStalled)
+        decay = true;
+
+      if(decay) {
+        state.eta *= factor;
         LOG(info, "Decaying learning rate to {}", state.eta);
       }
     }
