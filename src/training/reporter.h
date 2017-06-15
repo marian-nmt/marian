@@ -1,11 +1,11 @@
 #pragma once
 
 #include "training/config.h"
+#include "training/epoch_state.h"
 #include "training/validator.h"
 
 namespace marian {
 
-// TODO: or just class Validator?
 template <class DataSet>
 class Reporter {
 private:
@@ -22,10 +22,13 @@ private:
   size_t wordsDisp{0};
   size_t batches{0};
 
+  Ptr<EpochState> epochState_;
+
   boost::timer::cpu_timer timer;
 
 public:
-  Reporter(Ptr<Config> options) : options_(options) {}
+  Reporter(Ptr<Config> options, Ptr<EpochState> state)
+      : options_(options), epochState_(state) {}
 
   bool keepGoing() {
     // stop if it reached the maximum number of epochs
@@ -46,10 +49,15 @@ public:
     return true;
   }
 
+  void registerEpochStateObserver(Ptr<EpochStateObserver> observer) {
+    epochState_->registerObserver(observer);
+  }
+
   void increaseEpoch() {
     LOG(info, "Seen {} samples", samples);
 
     epochs++;
+    epochState_->next();
     samples = 0;
 
     LOG(info, "Starting epoch {}", epochs);

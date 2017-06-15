@@ -49,6 +49,7 @@ public:
 
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    reporter_->registerEpochStateObserver(opt_);
   }
 
 private:
@@ -129,6 +130,7 @@ public:
       std::string name = options_->get<std::string>("model");
 
       if(boost::filesystem::exists(name)) {
+        // @TODO: reporter_ might be a nullptr
         reporter_->load(name);
         builder_->load(graph_, name);
       }
@@ -179,6 +181,7 @@ public:
 
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    reporter_->registerEpochStateObserver(opt_);
   }
 
 private:
