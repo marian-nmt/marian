@@ -559,7 +559,7 @@ public:
 Expr lstmOpsC(const std::vector<Expr>& nodes);
 Expr lstmOpsO(const std::vector<Expr>& nodes);
 
-class LSTM {
+class FastLSTM {
 private:
   std::string prefix_;
 
@@ -572,11 +572,11 @@ private:
 
   Expr dropMaskX_;
   Expr dropMaskS_;
-  Expr dropMaskC_;
+//  Expr dropMaskC_;
 
 public:
   template <typename... Args>
-  LSTM(Ptr<ExpressionGraph> graph,
+  FastLSTM(Ptr<ExpressionGraph> graph,
       const std::string prefix,
       int dimInput,
       int dimState,
@@ -596,7 +596,6 @@ public:
     if(dropout_ > 0.0f) {
       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
-      dropMaskC_ = graph->dropout(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -641,11 +640,8 @@ public:
     auto cellState = state.cell;
 
     auto recStateDropped = recState;
-    auto cellStateDropped = cellState;
     if(dropMaskS_)
       recStateDropped = dropout(recState, keywords::mask = dropMaskS_);
-    if(dropMaskC_)
-      cellStateDropped = dropout(cellState, keywords::mask = dropMaskC_);
 
     auto sU = dot(recStateDropped, U_);
 
@@ -656,8 +652,8 @@ public:
 
     // dc/dp where p = W_i, U_i, ..., but without index o
     auto nextCellState = mask ?
-      lstmOpsC({cellStateDropped, xW, sU, b_, mask}) :
-      lstmOpsC({cellStateDropped, xW, sU, b_});
+      lstmOpsC({cellState, xW, sU, b_, mask}) :
+      lstmOpsC({cellState, xW, sU, b_});
 
     // dh/dp dh/dc where p = W_o, U_o, b_o
     auto nextRecState = mask ?
@@ -751,6 +747,9 @@ public:
 };
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
+
+typedef FastLSTM LSTM;
+
 typedef AttentionCell<LSTM, GlobalAttention, LSTM> CLSTM;
 typedef AttentionCell<LSTM, GlobalAttention, GRU> CLSTMGRU;
 }
