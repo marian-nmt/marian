@@ -18,7 +18,6 @@
 
 // @TODO:
 // - rename Builder/builder_ --> Model/model_ to be consistent with Train class
-// - rename Singleton --> SingleGraph
 
 namespace marian {
 
@@ -43,12 +42,11 @@ public:
 };
 
 template <class Builder>
-class Singleton : public GraphGroup {
+class SingletonGraph : public GraphGroup {
 public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  Ptr<Reporter<dataset_type>> reporter_;
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
   }
@@ -56,6 +54,8 @@ public:
 private:
   Ptr<Builder> builder_;
   Ptr<ExpressionGraph> graph_;
+
+  Ptr<Reporter<dataset_type>> reporter_;
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
@@ -108,7 +108,7 @@ private:
 
 public:
   template <class... Args>
-  Singleton(Ptr<Config> options, Args... args)
+  SingletonGraph(Ptr<Config> options, Args... args)
       : GraphGroup(options),
         mvAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")} {
@@ -177,7 +177,6 @@ public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  Ptr<Reporter<dataset_type>> reporter_;
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
   }
@@ -186,10 +185,10 @@ private:
   bool first_{true};
 
   std::vector<Ptr<Builder>> builders_;
-
+  std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
 
-  std::vector<Ptr<ExpressionGraph>> graphs_;
+  Ptr<Reporter<dataset_type>> reporter_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;

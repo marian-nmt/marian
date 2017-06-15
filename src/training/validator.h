@@ -65,6 +65,7 @@ public:
     return val;
   };
 
+protected:
   virtual float validateBG(Ptr<ExpressionGraph>,
                            Ptr<data::BatchGenerator<DataSet>>)
       = 0;
