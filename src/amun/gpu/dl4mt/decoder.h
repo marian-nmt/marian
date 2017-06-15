@@ -188,8 +188,8 @@ class Decoder {
 
           Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
 
-          std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
-          std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
+          //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
+          //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
 
           Prod(A_, *w_.V_, Temp1_, false, true);
 
@@ -197,10 +197,10 @@ class Decoder {
           size_t rows1 = SourceContext.dim(0);
           size_t rows2 = HiddenState.dim(0);
 
-          std::cerr << "1A_=" << A_.Debug(0) << std::endl;
+          //std::cerr << "1A_=" << A_.Debug(0) << std::endl;
           A_.Reshape(rows2, srcSize, 1, 1); // due to broadcasting above
-          std::cerr << "2A_=" << A_.Debug(0) << std::endl;
-          std::cerr << std::endl;
+          //std::cerr << "2A_=" << A_.Debug(0) << std::endl;
+          //std::cerr << std::endl;
 
           mblas::Softmax(A_, dBatchMapping_, mapping, batchSize);
           //mblas::SoftmaxOld(A_, dBatchMapping_, mapping, srcSize);
