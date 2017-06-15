@@ -405,86 +405,6 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   size_t ldb = B.dim(1);
   size_t ldc = transB ? B.dim(0) * B.dim(2) * B.dim(3) : B.dim(1);
 
-  C.Resize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));
-
-  /*
-  cerr << "C=" << C.Debug(0) << endl;
-  cerr << "A=" << A.Debug(0) << endl;
-  cerr << "B=" << B.Debug(0) << endl;
-  cerr << "transA=" << transA << endl;
-  cerr << "transB=" << transB << endl;
-  cerr << endl;
-  */
-
-  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
-
-  /*
-   cublasStatus_t cublasSgemm(cublasHandle_t handle,
-                           cublasOperation_t transa, cublasOperation_t transb,
-                           int m, int n, int k,
-                           const float           *alpha,
-                           const float           *A, int lda,
-                           const float           *B, int ldb,
-                           const float           *beta,
-                           float           *C, int ldc)
-   */
-  cublasSgemm(handle, opB, opA,
-              n, m, k,
-              &alpha,
-              B.data(), ldb,
-              A.data(), lda,
-              &beta,
-              C.data(), ldc);
-  return C;
-}
-
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA, bool transB) {
-
-  //std::cerr << "1C=" << C.Debug() << std::endl;
-  //std::cerr << "1A=" << A.Debug() << std::endl;
-  //std::cerr << "1B=" << B.Debug() << std::endl;
-
-  Matrix &ret = Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
-
-  //std::cerr << "2C=" << C.Debug() << std::endl;
-  return ret;
-}
-
-
-Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA, bool transB)
-{
-  assert((A.dim(2) == A.dim(3) == 1) || (B.dim(2) == B.dim(3) == 1));
-
-  Matrix::value_type alpha = 1.0;
-  Matrix::value_type beta = 0.0;
-
-  size_t m = A.dim(0) * A.dim(2) * A.dim(3);
-  size_t k = A.dim(1);
-  size_t mOut = A.dim(0);
-  size_t kOut = A.dim(1);
-  if(transA) {
-    std::swap(m, k);
-    std::swap(mOut, kOut);
-  }
-
-  size_t l = B.dim(0) * B.dim(2) * B.dim(3);
-  size_t n = B.dim(1);
-  size_t lOut = B.dim(0);
-  size_t nOut = B.dim(1);
-  if(transB) {
-    std::swap(l, n);
-    std::swap(lOut, nOut);
-    }
-
-  assert(k == l);
-
-  size_t lda = A.dim(1);
-  size_t ldb = B.dim(1);
-  size_t ldc = transB ? B.dim(0) * B.dim(2) * B.dim(3) : B.dim(1);
-
   size_t dim2 = A.dim(2);
   if (!transA && transB) {
     // for GetAlignedSourceContext()
@@ -526,14 +446,14 @@ Matrix& Prod2(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B
   return C;
 }
 
-Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
+Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA, bool transB) {
 
   //std::cerr << "1C=" << C.Debug() << std::endl;
   //std::cerr << "1A=" << A.Debug() << std::endl;
   //std::cerr << "1B=" << B.Debug() << std::endl;
 
-  Matrix &ret = Prod2(CublasHandler::GetHandle(), C, A, B, transA, transB);
+  Matrix &ret = Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
 
   //std::cerr << "2C=" << C.Debug() << std::endl;
   return ret;

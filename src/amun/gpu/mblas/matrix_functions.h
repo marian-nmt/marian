@@ -135,9 +135,6 @@ Matrix& Slice(Matrix& Out,
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
-Matrix& Prod2(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
-
 Matrix& SoftmaxOld(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t batchSize);
 Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t batchSize);
 
