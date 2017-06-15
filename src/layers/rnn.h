@@ -505,10 +505,10 @@ public:
 
   }
 
-  std::vector<Expr> apply(std::vector<Expr> inputs,
-                          std::vector<Expr> states,
-                          Expr mask = nullptr) {
-    return applyState(applyInput(inputs), states, mask);
+  RNNState apply(std::vector<Expr> inputs,
+                 RNNState state,
+                 Expr mask = nullptr) {
+    return applyState(applyInput(inputs), state, mask);
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
@@ -526,11 +526,11 @@ public:
     return {xWf, xWi, xWo, xWc};
   }
 
-  std::vector<Expr> applyState(std::vector<Expr> xWs,
-                               std::vector<Expr> states,
-                               Expr mask = nullptr) {
-    auto recState = states.front();
-    auto cellState = states.back();
+  RNNState applyState(std::vector<Expr> xWs,
+                      RNNState state,
+                      Expr mask = nullptr) {
+    auto recState = state.output;
+    auto cellState = state.cell;
 
     auto sUf = affine(recState, Uf_, bf_);
     auto sUi = affine(recState, Ui_, bi_);

@@ -150,16 +150,15 @@ public:
                        activation = act::tanh,
                        normalize = layerNorm)(meanContext);
 
-    int dimBatch = start->shape()[0];
-    int dimState = options_->get<int>("dim-rnn");
-
-    auto graph = start->graph();
-    auto cell = graph->zeros(keywords::shape = {dimBatch, dimState});
+    //int dimBatch = start->shape()[0];
+    //int dimState = options_->get<int>("dim-rnn");
+    //auto graph = start->graph();
+    //auto cell = graph->zeros(keywords::shape = {dimBatch, dimState});
 
     // @TODO: review this
     RNNStates startStates;
     for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
-      startStates.push_back(RNNState{start, cell});
+      startStates.push_back(RNNState{start, start});
 
     return New<DecoderStateS2S>(startStates, nullptr, encState);
   }
