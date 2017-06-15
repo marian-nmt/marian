@@ -132,17 +132,13 @@ public:
     return outputs;
   }
 
-  //Expr apply(Ptr<Cell> cell, Expr input, RNNState state) {
-  //  return cell_->apply(input, state).front();
-  //}
-
   template <typename... Args>
   RNNStates operator()(Expr input, Args... args) {
     auto graph = input->graph();
     int dimBatch = input->shape()[0];
 
     auto output = graph->zeros(keywords::shape = {dimBatch, dimState_});
-    Expr cell = Cell::numStates() == 1 ? nullptr : output;
+    Expr cell = /*Cell::numStates() == 1 ? nullptr :*/ output;
 
     // TODO: look at this again
     RNNState startState{ output, cell };
@@ -411,10 +407,10 @@ public:
     }
   }
 
-  std::vector<Expr> apply(std::vector<Expr> inputs,
-                          std::vector<Expr> states,
-                          Expr mask = nullptr) {
-    return applyState(applyInput(inputs), states, mask);
+  RNNState apply(std::vector<Expr> inputs,
+                 RNNState state,
+                 Expr mask = nullptr) {
+    return applyState(applyInput(inputs), state, mask);
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
@@ -434,18 +430,14 @@ public:
     return {xW};
   }
 
-  std::vector<Expr> applyState(std::vector<Expr> xWs,
-                               std::vector<Expr> states,
-                               Expr mask = nullptr) {
-    Expr state;
-    if(states.size() > 1)
-      state = concatenate(states, keywords::axis = 1);
-    else
-      state = states.front();
+  RNNState applyState(std::vector<Expr> xWs,
+                      RNNState state,
+                      Expr mask = nullptr) {
 
-    auto stateDropped = state;
+    auto stateOrig = state.output;
+    auto stateDropped = stateOrig;
     if(dropMaskS_)
-      stateDropped = dropout(state, keywords::mask = dropMaskS_);
+      stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
 
     auto sU = dot(stateDropped, U_);
 
@@ -454,10 +446,10 @@ public:
 
     auto xW = xWs.front();
 
-    auto output = mask ? gruOps({state, xW, sU, b_, mask}, final_) :
-                         gruOps({state, xW, sU, b_}, final_);
+    auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_) :
+                         gruOps({stateOrig, xW, sU, b_}, final_);
 
-    return {output};
+    return {output, nullptr}; // no cell state, hence nullptr
   }
 
   static size_t numStates() { return 1; }
@@ -726,11 +718,25 @@ public:
   }
 
   RNNState applyState(std::vector<Expr> xWs,
-                               RNNState state,
-                               Expr mask = nullptr) {
-    auto hidden = cell1_->applyState(xWs, state, mask);
-    auto alignedSourceContext = att_->apply(hidden.output);
-    return cell2_->apply({alignedSourceContext}, hidden, mask);
+                      RNNState state,
+                      Expr mask = nullptr) {
+    if(Cell1::numStates == Cell2::numStates) {
+      auto hidden = cell1_->applyState(xWs, state, mask);
+      auto alignedSourceContext = att_->apply(hidden.output);
+      //debug(alignedSourceContext, "aligned");
+      return cell2_->apply({alignedSourceContext}, hidden, mask);
+    }
+    else if(Cell1::numStates > Cell2::numStates) {
+      auto hidden = cell1_->applyState(xWs, state, mask);
+      auto alignedSourceContext = att_->apply(hidden.output);
+      auto output = cell2_->apply({alignedSourceContext}, hidden, mask);
+      return { output.output, hidden.cell };
+    }
+    else {
+      auto hidden = cell1_->applyState(xWs, state, mask);
+      auto alignedSourceContext = att_->apply(hidden.output);
+      return cell2_->apply({alignedSourceContext}, {hidden.output, state.cell}, mask);
+    }
   }
 
   Ptr<Attention> getAttention() { return att_; }
@@ -746,4 +752,5 @@ public:
 
 typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
 typedef AttentionCell<LSTM, GlobalAttention, LSTM> CLSTM;
+typedef AttentionCell<LSTM, GlobalAttention, GRU> CLSTMGRU;
 }

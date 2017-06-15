@@ -88,20 +88,22 @@ public:
       x = dropout(x, mask = srcWordDrop);
     }
 
-    auto xFw = RNN<LSTM>(graph,
-                        prefix_ + "_bi",
-                        dimSrcEmb,
-                        dimEncState,
-                        normalize = layerNorm,
-                        dropout_prob = dropoutRnn)(x).outputs();
+    RNNStates statesFw = RNN<GRU>(graph,
+                                   prefix_ + "_bi",
+                                   dimSrcEmb,
+                                   dimEncState,
+                                   normalize = layerNorm,
+                                   dropout_prob = dropoutRnn)(x);
+    auto xFw = statesFw.outputs();
 
-    auto xBw = RNN<LSTM>(graph,
-                        prefix_ + "_bi_r",
-                        dimSrcEmb,
-                        dimEncState,
-                        normalize = layerNorm,
-                        direction = dir::backward,
-                        dropout_prob = dropoutRnn)(x, mask = xMask).outputs();
+    RNNStates statesBw = RNN<GRU>(graph,
+                                   prefix_ + "_bi_r",
+                                   dimSrcEmb,
+                                   dimEncState,
+                                   normalize = layerNorm,
+                                   direction = dir::backward,
+                                   dropout_prob = dropoutRnn)(x, mask = xMask);
+    auto xBw = statesBw.outputs();
 
     //if(encoderLayers > 1) {
     //  auto xBi = concatenate({xFw, xBw}, axis = 1);
@@ -127,7 +129,7 @@ public:
 class DecoderS2S : public DecoderBase {
 private:
   Ptr<GlobalAttention> attention_;
-  Ptr<RNN<CLSTM>> rnnL1;
+  Ptr<RNN<CGRU>> rnnL1;
   Ptr<MLRNN<GRU>> rnnLn;
   Expr tiedOutputWeights_;
 
@@ -148,10 +150,16 @@ public:
                        activation = act::tanh,
                        normalize = layerNorm)(meanContext);
 
+    int dimBatch = start->shape()[0];
+    int dimState = options_->get<int>("dim-rnn");
+
+    auto graph = start->graph();
+    auto cell = graph->zeros(keywords::shape = {dimBatch, dimState});
+
     // @TODO: review this
     RNNStates startStates;
     for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
-      startStates.push_back(RNNState{start, start});
+      startStates.push_back(RNNState{start, cell});
 
     return New<DecoderStateS2S>(startStates, nullptr, encState);
   }
@@ -203,7 +211,7 @@ public:
                                         normalize = layerNorm);
 
     if(!rnnL1)
-      rnnL1 = New<RNN<CLSTM>>(graph,
+      rnnL1 = New<RNN<CGRU>>(graph,
                               prefix_,
                               dimTrgEmb,
                               dimDecState,
@@ -211,7 +219,7 @@ public:
                               dropout_prob = dropoutRnn,
                               normalize = layerNorm);
 
-    auto statesL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
+    RNNStates statesL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
 
     bool single = stateS2S->doSingleStep();
     auto alignedContext = single ? rnnL1->getCell()->getLastContext() :
