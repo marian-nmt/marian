@@ -306,6 +306,32 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
 
 template <class Functor>
 __global__ void gElement(Functor functor,
+                         MatrixWrapper<float> outWrap)
+{
+  size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
+  if (ind < outWrap.size()) {
+    outWrap[ind] = functor(outWrap[ind]);
+  }
+}
+
+template <class Functor>
+Matrix& Element(Functor functor,
+                Matrix& Out)
+{
+  int threads = MAX_THREADS;
+  int blocks  = Out.size() / threads + 1;
+  const cudaStream_t& stream = CudaStreamHandler::GetStream();
+
+  MatrixWrapper<float> outWrap(Out);
+
+  gElement<<<blocks, threads, 0, stream>>>
+    (functor, outWrap);
+
+  return Out;
+}
+
+template <class Functor>
+__global__ void gElement(Functor functor,
                          MatrixWrapper<float> outWrap,
                          const MatrixWrapper<float> inWrap)
 {
