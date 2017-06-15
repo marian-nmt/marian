@@ -32,8 +32,6 @@ public:
 
   void epochHasChanged(EpochState& state) {
     eta_ = state.eta;
-    // eta_ *= 0.5;
-    // LOG(info, "Changing learning rate to {}", eta_);
   }
 
 protected:

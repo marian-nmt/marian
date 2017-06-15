@@ -49,6 +49,7 @@ public:
 
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    reporter_->registerEpochStateObserver(reporter_);
     reporter_->registerEpochStateObserver(opt_);
   }
 
@@ -181,6 +182,7 @@ public:
 
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    reporter_->registerEpochStateObserver(reporter_);
     reporter_->registerEpochStateObserver(opt_);
   }
 

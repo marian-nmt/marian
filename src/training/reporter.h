@@ -7,7 +7,7 @@
 namespace marian {
 
 template <class DataSet>
-class Reporter {
+class Reporter : public EpochStateObserver {
 private:
   YAML::Node progress;
 
@@ -47,10 +47,6 @@ public:
       return false;
 
     return true;
-  }
-
-  void registerEpochStateObserver(Ptr<EpochStateObserver> observer) {
-    epochState_->registerObserver(observer);
   }
 
   void increaseEpoch() {
@@ -150,5 +146,22 @@ public:
   }
 
   size_t numberOfBatches() { return batches; }
+
+  void registerEpochStateObserver(Ptr<EpochStateObserver> observer) {
+    epochState_->registerObserver(observer);
+  }
+
+  void epochHasChanged(EpochState& state) {
+    float decay = options_->get<double>("learning-rate-decay");
+    if (decay > 0.0f) {
+      if (decay > 1.0f)
+        LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
+      float startAt = options_->get<int>("start-decay-epoch");
+      if (startAt > 0 && state.epoch >= startAt) {
+        state.eta *= decay;
+        LOG(info, "Decaying learning rate to {}", state.eta);
+      }
+    }
+  }
 };
 }
