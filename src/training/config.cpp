@@ -116,7 +116,7 @@ void Config::validate(bool translate) const {
     UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
                    "Learning rate decay factor greater than 1.0 is unusual");
     UTIL_THROW_IF2(
-        (get<std::string>("lr-decay-strategy") == "epoch+batches"
+         (get<std::string>("lr-decay-strategy") == "epoch+batches"
          || get<std::string>("lr-decay-strategy") == "epoch+stalled")
             && get<std::vector<size_t>>("lr-decay-start").size() != 2,
         "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "

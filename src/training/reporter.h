@@ -54,7 +54,7 @@ public:
     LOG(info, "Seen {} samples", samples);
 
     epochs++;
-    trainState_->newEpoch();
+    trainState_->newEpoch(epochs);
     samples = 0;
 
     LOG(info, "Starting epoch {}", epochs);
@@ -133,6 +133,8 @@ public:
       wordsDisp = 0;
       samplesDisp = 0;
     }
+
+    trainState_->newBatches(batches);
   }
 
   void load(const std::string& name) {
@@ -161,13 +163,6 @@ public:
   }
 
   void actAfterEpoch(TrainingState& state) {
-    // @TODO: remove this logging
-    LOG(info,
-        "[debug] Learning rate: {}, stalled: {}, max stalled: {}",
-        state.eta,
-        state.stalled,
-        state.maxStalled);
-
     float factor = options_->get<double>("lr-decay");
     if(factor > 0.0) {
       bool decay = false;
@@ -176,7 +171,13 @@ public:
           = options_->get<std::vector<size_t>>("lr-decay-start").front();
 
       if(strategy == "epoch") {
-        if(startEpoch && state.epoch >= startEpoch)
+        if(startEpoch && state.epochs >= startEpoch)
+          decay = true;
+      }
+      if(strategy == "epoch+batches") {
+        int startBatches
+            = options_->get<std::vector<size_t>>("lr-decay-start")[1];
+        if(startEpoch && startBatches && state.batches >= startBatches)
           decay = true;
       }
       if(strategy == "epoch+stalled") {
@@ -191,20 +192,33 @@ public:
         LOG(info,
             "Decaying learning rate to {} in epoch {}",
             state.eta,
-            state.epoch);
+            state.epochs);
+      }
+    }
+  }
+
+  void actAfterBatches(TrainingState& state) {
+    float factor = options_->get<double>("lr-decay");
+    if(factor > 0.0) {
+      if("batches" == options_->get<std::string>("lr-decay-strategy")) {
+        int start
+            = options_->get<std::vector<size_t>>("lr-decay-start").front();
+        int freq = options_->get<size_t>("lr-decay-freq");
+
+        if(start > 0 && freq > 0 && state.batches >= start
+           && ((state.batches - start) % freq == 0)) {
+          state.eta *= factor;
+          LOG(info,
+              "Decaying learning rate to {} after {} batches",
+              state.eta,
+              state.batches);
+        }
       }
     }
   }
 
   void actAfterStalled(TrainingState& state) {
-    // @TODO: remove this logging
-    LOG(info,
-        "[debug] Learning rate: {}, stalled: {}, max stalled: {}",
-        state.eta,
-        state.stalled,
-        state.maxStalled);
-
-    double factor = options_->get<double>("lr-decay");
+    float factor = options_->get<double>("lr-decay");
     if(factor > 0.0) {
       if("stalled" == options_->get<std::string>("lr-decay-strategy")) {
         int startStalled
