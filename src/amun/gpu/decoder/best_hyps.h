@@ -136,7 +136,7 @@ class BestHyps : public BestHypsBase
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         }
 
-        if(returnAttentionWeights_) {
+        if(returnNBestList_) {
           hyp->GetCostBreakdown().resize(scorers.size());
           float sum = 0;
           for (size_t j = 0; j < scorers.size(); ++j) {
