@@ -116,7 +116,7 @@ public:
 Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
 class GRU : public Cell {
-private:
+protected:
   std::string prefix_;
 
   Expr U_, W_, b_;
@@ -186,13 +186,13 @@ public:
     }
   }
 
-  RNNState apply(std::vector<Expr> inputs,
+  virtual RNNState apply(std::vector<Expr> inputs,
                  RNNState state,
                  Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
     if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
@@ -209,7 +209,7 @@ public:
     return {xW};
   }
 
-  RNNState applyState(std::vector<Expr> xWs,
+  virtual RNNState applyState(std::vector<Expr> xWs,
                       RNNState state,
                       Expr mask = nullptr) {
 
@@ -231,7 +231,7 @@ public:
     return {output, nullptr}; // no cell state, hence nullptr
   }
 
-  size_t numStates() { return 1; }
+  virtual size_t numStates() { return 1; }
 };
 
 /******************************************************************************/
@@ -240,7 +240,7 @@ Expr lstmOpsC(const std::vector<Expr>& nodes);
 Expr lstmOpsO(const std::vector<Expr>& nodes);
 
 class FastLSTM : public Cell {
-private:
+protected:
   std::string prefix_;
 
   Expr U_, W_, b_;
@@ -287,13 +287,13 @@ public:
     }
   }
 
-  RNNState apply(std::vector<Expr> inputs,
+  virtual RNNState apply(std::vector<Expr> inputs,
                  RNNState state,
                  Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
     if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
@@ -311,9 +311,9 @@ public:
     return {xW};
   }
 
-  RNNState applyState(std::vector<Expr> xWs,
-                      RNNState state,
-                      Expr mask = nullptr) {
+  virtual RNNState applyState(std::vector<Expr> xWs,
+                              RNNState state,
+                              Expr mask = nullptr) {
 
     auto recState = state.output;
     auto cellState = state.cell;
@@ -342,8 +342,76 @@ public:
     return {nextRecState, nextCellState};
   }
 
-  size_t numStates() { return 2; }
+  virtual size_t numStates() { return 2; }
 };
+
+template <class CellType>
+class Multiplicative : public CellType {
+  private:
+    Expr Um_, Wm_, bm_;
+    Expr gamma1m_, gamma2m_;
+
+  public:
+
+    template <typename... Args>
+    Multiplicative(Ptr<ExpressionGraph> graph,
+          const std::string prefix,
+          int dimInput,
+          int dimState,
+          Args... args)
+    : CellType(graph, prefix, dimInput, dimState, args...)  {
+
+      Um_ = graph->param(prefix + "_Um", {dimState, dimState},
+                         keywords::init=inits::glorot_uniform);
+      Wm_ = graph->param(prefix + "_Wm", {dimInput, dimState},
+                         keywords::init=inits::glorot_uniform);
+      bm_ = graph->param(prefix + "_bm", {1, dimState},
+                         keywords::init=inits::zeros);
+
+      if(CellType::layerNorm_) {
+        gamma1m_ = graph->param(prefix + "_gamma1m",
+                                {1, dimState},
+                                keywords::init = inits::from_value(1.f));
+        gamma2m_ = graph->param(prefix + "_gamma2m",
+                                {1, dimState},
+                                keywords::init = inits::from_value(1.f));
+      }
+    }
+
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    Expr input;
+    if(inputs.size() > 1)
+      input = concatenate(inputs, keywords::axis = 1);
+    else
+      input = inputs.front();
+
+    auto xWs = CellType::applyInput({input});
+    auto xWm = dot(input, Wm_);
+    if(CellType::layerNorm_)
+      xWm = layer_norm(xWm, gamma1m_);
+
+    xWs.push_back(xWm);
+    return xWs;
+  }
+
+  virtual RNNState applyState(std::vector<Expr> xWs,
+                              RNNState state,
+                              Expr mask = nullptr) {
+    auto xWm = xWs.back();
+    xWs.pop_back();
+
+    auto sUm = affine(state.output, Um_, bm_);
+    if(CellType::layerNorm_)
+      sUm = layer_norm(sUm, gamma2m_);
+
+    auto mstate = xWm * sUm;
+
+    return CellType::applyState(xWs, RNNState({mstate, state.cell}), mask);
+  }
+};
+
+typedef Multiplicative<FastLSTM> MLSTM;
+typedef Multiplicative<GRU> MGRU;
 
 /******************************************************************************/
 // SlowLSTM and TestLSTM are for comparing efficient kernels for gradients with
@@ -632,10 +700,12 @@ public:
 };
 
 typedef AttentionCellTmpl<GRU, GlobalAttention, GRU> CGRU;
+typedef AttentionCellTmpl<MGRU, GlobalAttention, GRU> CMGRU;
 
 typedef FastLSTM LSTM;
 
 typedef AttentionCellTmpl<LSTM, GlobalAttention, LSTM> CLSTM;
+typedef AttentionCellTmpl<MLSTM, GlobalAttention, LSTM> CMLSTM;
 typedef AttentionCellTmpl<LSTM, GlobalAttention, GRU> CLSTMGRU;
 
 class cell {
@@ -652,6 +722,10 @@ public:
       return New<GRU>(args...);
     if(type_ == "lstm")
       return New<LSTM>(args...);
+    if(type_ == "mlstm")
+      return New<MLSTM>(args...);
+    if(type_ == "mgru")
+      return New<MGRU>(args...);
     if(type_ == "tanh")
       return New<Tanh>(args...);
     return New<GRU>(args...);
@@ -672,6 +746,10 @@ public:
       return New<CGRU>(args...);
     if(type_ == "lstm")
       return New<CLSTM>(args...);
+    if(type_ == "mgru")
+      return New<CMGRU>(args...);
+    if(type_ == "mlstm")
+      return New<CMLSTM>(args...);
     if(type_ == "lstm-gru")
       return New<CLSTMGRU>(args...);
     return New<CGRU>(args...);

@@ -89,7 +89,7 @@ class RNNStates {
 };
 
 class Cell {
-private:
+protected:
   int dimInput_;
   int dimState_;
 
