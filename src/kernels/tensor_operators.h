@@ -1062,6 +1062,11 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
+void LSTMCellForward(Tensor out, std::vector<Tensor> inputs);
+void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs);
+void LSTMCellBackward(std::vector<Tensor> outputs, std::vector<Tensor> inputs, Tensor adj);
+void LSTMOutputBackward(std::vector<Tensor> outputs, std::vector<Tensor> inputs, Tensor adj);
+
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final = false);
 
 void GRUFastBackward(std::vector<Tensor> outputs,

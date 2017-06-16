@@ -370,9 +370,10 @@ public:
     node->setId(count_++);
 
     nodesForward_.push_back(node);
-    if(!inferenceOnly_)
+    if(!inferenceOnly_ && node->trainable()) {
       nodesBackward_.push_back(node);
-    topNodes_.insert(node);
+      topNodes_.insert(node);
+    }
 
     return node;
   }

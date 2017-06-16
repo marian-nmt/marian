@@ -17,7 +17,7 @@ cuda_add_library(marian
   kernels/sparse.cu
   layers/param_initializers.cpp
   layers/attention.cu
-  layers/rnn.cu
+  layers/cells.cu
   optimizers/clippers.cu
   optimizers/optimizers.cu
   common/utils.cpp

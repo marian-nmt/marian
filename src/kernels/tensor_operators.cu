@@ -1665,4 +1665,311 @@ void SetSparse(float* out,
   cudaFree(d_values);
 }
 
+/******************************************************************************/
+
+__device__ inline float logit(float x) {
+  return 1.0f / (1.0f + expf(-x));
+}
+
+__global__ void gLSTMCellForward(float* out,
+                                 const float* cell,
+                                 const float* xW,
+                                 const float* sU,
+                                 const float* b,
+                                 const float* mask,
+                                 size_t rows,
+                                 size_t cols) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float m = !mask || mask[j];
+
+      float* rowOut = out + j * cols;
+      const float* rowCell = cell + j * cols;
+
+      const float* xWrow = xW + j * cols * 4;
+      const float* sUrow = sU + j * cols * 4;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          float gf = logit(xWrow[i] + sUrow[i] + b[i]);
+
+          int k = i + cols;
+          float gi = logit(xWrow[k] + sUrow[k] + b[k]);
+
+          int l = i + 2 * cols;
+          float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
+
+          float cout = gf * rowCell[i] + gi * gc;
+          rowOut[i] = m * cout; /* + (1 - m) * rowCell[i]*/;
+        }
+      }
+    }
+  }
+}
+
+void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
+  cudaSetDevice(out->getDevice());
+
+  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  int cols = out->shape()[1];
+
+  int blocks = std::min(MAX_BLOCKS, rows);
+  int threads = std::min(MAX_THREADS, cols);
+
+  gLSTMCellForward<<<blocks, threads>>>(
+      out->data(),                                // output
+      inputs[0]->data(),                          // cell state
+      inputs[1]->data(),                          // xW
+      inputs[2]->data(),                          // sU
+      inputs[3]->data(),                          // b
+      inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
+      rows,
+      cols);
+}
+
+__global__ void gLSTMOutputForward(float* out,
+                                 const float* cell,
+                                 const float* xW,
+                                 const float* sU,
+                                 const float* b,
+                                 const float* mask,
+                                 size_t rows,
+                                 size_t cols) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float m = !mask || mask[j];
+
+      float* rowOut = out + j * cols;
+      const float* rowCell = cell + j * cols;
+
+      const float* xWrow = xW + j * cols * 4;
+      const float* sUrow = sU + j * cols * 4;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+
+          int k = i + 3 * cols ;
+          float go = logit(xWrow[k] + sUrow[k] + b[k]);
+
+          float t = tanhf(rowCell[i]);
+          float out = go * t;
+          rowOut[i] = m * out; /* + (1 - m) * rowCell[i]*/;
+        }
+      }
+    }
+  }
+}
+
+void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
+  cudaSetDevice(out->getDevice());
+
+  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  int cols = out->shape()[1];
+
+  int blocks = std::min(MAX_BLOCKS, rows);
+  int threads = std::min(MAX_THREADS, cols);
+
+  gLSTMOutputForward<<<blocks, threads>>>(
+      out->data(),                                // output
+      inputs[0]->data(),                          // cell state
+      inputs[1]->data(),                          // xW
+      inputs[2]->data(),                          // sU
+      inputs[3]->data(),                          // b
+      inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
+      rows,
+      cols);
+}
+
+__global__ void gLSTMCellBackward(float* outCell,
+                                  float* outXW,
+                                  float* outSU,
+                                  float* outB,
+                                  const float* cell,
+                                  const float* xW,
+                                  const float* sU,
+                                  const float* b,
+                                  const float* mask,
+                                  const float* adj,
+                                  size_t rows,
+                                  size_t cols) {
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float m = !mask || mask[j];
+
+      float* rowOutCell = outCell + j * cols;
+      float* rowOutXW = outXW + j * cols * 4;
+      float* rowOutSU = outSU + j * cols * 4;
+
+      const float* rowCell = cell + j * cols;
+      const float* xWrow = xW + j * cols * 4;
+      const float* sUrow = sU + j * cols * 4;
+
+      const float* rowAdj = adj + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+
+          float gf = logit(xWrow[i] + sUrow[i] + b[i]);
+
+          int k = i + cols;
+          float gi = logit(xWrow[k] + sUrow[k] + b[k]);
+
+          int l = i + 2 * cols;
+          float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
+
+          float adj = rowAdj[i];
+
+          // dc/dc_{t-1}
+          if(outCell)
+            rowOutCell[i] += m * gf * adj;
+
+          // dc/d(b_f) = dc/d(xW_f) ...
+          float dcdxf = m * rowCell[i] * gf * (1 - gf) * adj;
+          if(outXW)
+            rowOutXW[i] += dcdxf;
+          if(outSU)
+            rowOutSU[i] += dcdxf;
+          if(outB)
+            atomicAdd(outB + i, dcdxf);
+
+          // dc/d(b_i) ...
+          float dcdb_i = m * gc * gi * (1 - gi) * adj;
+          if(outXW)
+            rowOutXW[k] += dcdb_i;
+          if(outSU)
+            rowOutSU[k] += dcdb_i;
+          if(outB)
+            atomicAdd(outB + k, dcdb_i);
+
+          // dc/d(b_c) ...
+          float dcdxc = m * gi * (1 - gc * gc) * adj;
+          if(outXW)
+            rowOutXW[l] += dcdxc;
+          if(outSU)
+            rowOutSU[l] += dcdxc;
+          if(outB)
+            atomicAdd(outB + l, dcdxc);
+        }
+      }
+    }
+  }
+}
+
+void LSTMCellBackward(std::vector<Tensor> outputs,
+                      std::vector<Tensor> inputs,
+                      Tensor adj) {
+  cudaSetDevice(adj->getDevice());
+
+  int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
+  int cols = adj->shape()[1];
+
+  int blocks = std::min(MAX_BLOCKS, rows);
+  int threads = std::min(MAX_THREADS, cols);
+
+  gLSTMCellBackward<<<blocks, threads>>>(
+      outputs[0] ? outputs[0]->data() : 0,        // state - adj
+      outputs[1] ? outputs[1]->data() : 0,        // xW - adj
+      outputs[2] ? outputs[2]->data() : 0,        // sU - adj
+      outputs[3] ? outputs[3]->data() : 0,        // b - adj
+      inputs[0]->data(),                          // state
+      inputs[1]->data(),                          // xW
+      inputs[2]->data(),                          // sU
+      inputs[3]->data(),                          // b
+      inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
+      adj->data(),
+      rows,
+      cols);
+}
+
+__global__ void gLSTMOutputBackward(float* outCell,
+                                  float* outXW,
+                                  float* outSU,
+                                  float* outB,
+                                  const float* cell,
+                                  const float* xW,
+                                  const float* sU,
+                                  const float* b,
+                                  const float* mask,
+                                  const float* adj,
+                                  size_t rows,
+                                  size_t cols) {
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float m = !mask || mask[j];
+
+      float* rowOutCell = outCell + j * cols;
+      float* rowOutXW = outXW + j * cols * 4;
+      float* rowOutSU = outSU + j * cols * 4;
+
+      const float* rowCell = cell + j * cols;
+      const float* xWrow = xW + j * cols * 4;
+      const float* sUrow = sU + j * cols * 4;
+
+      const float* rowAdj = adj + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+
+          int k = i + 3 * cols;
+          float go = logit(xWrow[k] + sUrow[k] + b[k]);
+
+          float t = tanhf(rowCell[i]);
+
+          float adj = rowAdj[i];
+
+          // dc/dc_{t-1}
+          if(outCell)
+            rowOutCell[i] += m * go * (1 - t * t) * adj;
+
+          // dc/d(b_o) = dc/d(xW_f) ...
+          float dcdxo = m * t * go * (1 - go) * adj;
+          if(outXW)
+            rowOutXW[k] += dcdxo;
+          if(outSU)
+            rowOutSU[k] += dcdxo;
+          if(outB)
+            atomicAdd(outB + k, dcdxo);
+
+        }
+      }
+    }
+  }
+}
+
+void LSTMOutputBackward(std::vector<Tensor> outputs,
+                      std::vector<Tensor> inputs,
+                      Tensor adj) {
+  cudaSetDevice(adj->getDevice());
+
+  int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
+  int cols = adj->shape()[1];
+
+  int blocks = std::min(MAX_BLOCKS, rows);
+  int threads = std::min(MAX_THREADS, cols);
+
+  gLSTMOutputBackward<<<blocks, threads>>>(
+      outputs[0] ? outputs[0]->data() : 0,        // state - adj
+      outputs[1] ? outputs[1]->data() : 0,        // xW - adj
+      outputs[2] ? outputs[2]->data() : 0,        // sU - adj
+      outputs[3] ? outputs[3]->data() : 0,        // b - adj
+      inputs[0]->data(),                          // state
+      inputs[1]->data(),                          // xW
+      inputs[2]->data(),                          // sU
+      inputs[3]->data(),                          // b
+      inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
+      adj->data(),
+      rows,
+      cols);
+}
+
 }  // namespace marian
