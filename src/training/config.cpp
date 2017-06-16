@@ -111,6 +111,23 @@ void Config::validate(bool translate) const {
               != get<std::vector<std::string>>("train-sets").size(),
           "There should be as many validation sets as training sets");
     }
+
+    // validations for learning rate decaying
+    UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
+                   "Learning rate decay factor greater than 1.0 is unusual");
+    UTIL_THROW_IF2(
+         (get<std::string>("lr-decay-strategy") == "epoch+batches"
+         || get<std::string>("lr-decay-strategy") == "epoch+stalled")
+            && get<std::vector<size_t>>("lr-decay-start").size() != 2,
+        "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
+        "values specified with --lr-decay-start options");
+    UTIL_THROW_IF2(
+        (get<std::string>("lr-decay-strategy") == "epoch"
+         || get<std::string>("lr-decay-strategy") == "batches"
+         || get<std::string>("lr-decay-strategy") == "stalled")
+            && get<std::vector<size_t>>("lr-decay-start").size() != 1,
+        "Single decay strategies require only one value specified with "
+        "--lr-decay-start option");
   }
 }
 
@@ -273,6 +290,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
+
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
@@ -281,18 +299,25 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
+
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
-      "Optimization algorithm (possible values: sgd, adagrad, adam")
+     "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
-      "Learning rate")
-    ("learning-rate-decay", po::value<double>()->default_value(0.7),
-     "Learning rate decay factor: lr = lr * arg (0 to disable)")
-    ("start-decay-epoch", po::value<int>()->default_value(10),
-     "Learning rate is decayed after each epoch starting from this epoch "
-     "(0 to disable)")
-    ("start-decay-stalled", po::value<int>()->default_value(1),
-     "Learning rate is decayed after each epoch if first validation metric "
-     "is not improving more than  arg  (0 to disable)")
+     "Learning rate")
+    ("lr-decay", po::value<double>()->default_value(0.7),
+     "Decay factor for learning rate: lr = lr * arg (0 to disable)")
+    ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
+     "Strategy for learning rate strategy "
+     "(possible values: epoch, batches, stalled, epoch+batches, epoch+stalled)")
+    ("lr-decay-start", po::value<std::vector<size_t>>()
+       ->multitoken()
+       ->default_value(std::vector<size_t>({10,1}), "10,1"),
+       "The first number of epoch/batches/stalled validations to start "
+       "learning rate decaying")
+    ("lr-decay-freq", po::value<size_t>()->default_value(50000),
+     "Frequency of performing learning rate decaying for batches, "
+     "requires --lr-decay-strategy to be batches")
+
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
@@ -301,6 +326,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Decay factor for moving average")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
+
     ("guided-alignment", po::value<std::string>(),
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
@@ -308,6 +334,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "mse (mean square error), mult (multiplication).")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
+
     ("drop-rate", po::value<double>()->default_value(0),
      "Gradient drop ratio. (read: https://arxiv.org/abs/1704.05021)")
   ;
@@ -486,9 +513,10 @@ void Config::addOptions(int argc,
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
 
-    SET_OPTION("learning-rate-decay", double);
-    SET_OPTION("start-decay-epoch", int);
-    SET_OPTION("start-decay-stalled", int);
+    SET_OPTION("lr-decay", double);
+    SET_OPTION("lr-decay-strategy", std::string);
+    SET_OPTION("lr-decay-start", std::vector<size_t>);
+    SET_OPTION("lr-decay-freq", size_t);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);

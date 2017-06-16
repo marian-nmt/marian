@@ -4,7 +4,7 @@
 #include "data/corpus.h"
 #include "models/model_task.h"
 #include "training/config.h"
-#include "training/reporter.h"
+#include "training/scheduler.h"
 #include "training/validator.h"
 
 namespace marian {
@@ -36,33 +36,33 @@ public:
     }
 
     auto trainState = New<TrainingState>(options_);
-    auto reporter = New<Reporter<dataset_type>>(options_, trainState);
+    auto scheduler = New<Scheduler<dataset_type>>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
       for(auto validator :
           Validators<builder_type>(dataset->getVocabs(), options_))
-        reporter->addValidator(validator);
+        scheduler->addValidator(validator);
     }
 
     auto model = New<Model>(options_);
-    model->setReporter(reporter);
+    model->setScheduler(scheduler);
     model->load();
 
     auto batchGenerator
         = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
 
-    while(reporter->keepGoing()) {
+    while(scheduler->keepGoing()) {
       auto shuffle = !options_->get<bool>("no-shuffle");
       batchGenerator->prepare(shuffle);
-      while(*batchGenerator && reporter->keepGoing()) {
+      while(*batchGenerator && scheduler->keepGoing()) {
         auto batch = batchGenerator->next();
         model->update(batch);
       }
-      if(reporter->keepGoing())
-        reporter->increaseEpoch();
+      if(scheduler->keepGoing())
+        scheduler->increaseEpoch();
     }
-    reporter->finished();
+    scheduler->finished();
     model->save(true);
   }
 };

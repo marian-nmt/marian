@@ -30,7 +30,13 @@ public:
     updateImpl(params, grads);
   }
 
-  void epochHasChanged(TrainingState& state) {
+  void actAfterEpoch(TrainingState& state) {
+    eta_ = state.eta;
+  }
+  void actAfterBatches(TrainingState& state) {
+    eta_ = state.eta;
+  }
+  void actAfterStalled(TrainingState& state) {
     eta_ = state.eta;
   }
 

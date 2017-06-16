@@ -12,6 +12,7 @@
 #include "data/batch_generator.h"
 #include "optimizers/optimizers.h"
 #include "training/dropper.h"
+#include "training/scheduler.h"
 #include "training/sparse_tensor.h"
 #include "training/training.h"
 #include "training/validator.h"
@@ -44,17 +45,18 @@ public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
-    reporter_ = reporter;
-    reporter_->registerTrainingObserver(reporter_);
-    reporter_->registerTrainingObserver(opt_);
+  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+    scheduler_ = scheduler;
+    // optimizer has to be registered last to see a change of learning rate
+    scheduler_->registerTrainingObserver(scheduler_);
+    scheduler_->registerTrainingObserver(opt_);
   }
 
 private:
   Ptr<Builder> builder_;
   Ptr<ExpressionGraph> graph_;
 
-  Ptr<Reporter<dataset_type>> reporter_;
+  Ptr<Scheduler<dataset_type>> scheduler_;
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
@@ -90,17 +92,17 @@ private:
       }
     }
 
-    if(reporter_) {
-      reporter_->update(cost, batch);
+    if(scheduler_) {
+      scheduler_->update(cost, batch);
 
-      if(reporter_->saving())
+      if(scheduler_->saving())
         this->save();
 
-      if(reporter_->validating()) {
+      if(scheduler_->validating()) {
         if(mvAvg_)
-          reporter_->validate(mvAvgGraph_);
+          scheduler_->validate(mvAvgGraph_);
         else
-          reporter_->validate(graph_);
+          scheduler_->validate(graph_);
       }
     }
   }
@@ -128,8 +130,8 @@ public:
       std::string name = options_->get<std::string>("model");
 
       if(boost::filesystem::exists(name)) {
-        if(reporter_)
-          reporter_->load(name);
+        if(scheduler_)
+          scheduler_->load(name);
         builder_->load(graph_, name);
       }
     }
@@ -148,14 +150,14 @@ public:
       std::string name = options_->get<std::string>("model");
 
       builder_->save(graph_, name, true);
-      if(reporter_)
-        reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     } else {
       std::string name = options_->get<std::string>("model");
 
       if(!final) {
         std::string numberOfBatches
-            = reporter_ ? std::to_string(reporter_->numberOfBatches()) :
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
                           "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
@@ -164,8 +166,8 @@ public:
       }
 
       builder_->save(graph_, name, true);
-      if(reporter_)
-        reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     }
   }
 
@@ -180,10 +182,11 @@ public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
-    reporter_ = reporter;
-    reporter_->registerTrainingObserver(reporter_);
-    reporter_->registerTrainingObserver(opt_);
+  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+    scheduler_ = scheduler;
+    // optimizer has to be registered last to see a change of learning rate
+    scheduler_->registerTrainingObserver(scheduler_);
+    scheduler_->registerTrainingObserver(opt_);
   }
 
 private:
@@ -193,12 +196,12 @@ private:
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
 
-  Ptr<Reporter<dataset_type>> reporter_;
+  Ptr<Scheduler<dataset_type>> scheduler_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
 
-  boost::shared_mutex reporterMutex_;
+  boost::shared_mutex schedulerMutex_;
 
   std::vector<SparseTensor> localSparseGrads_;
   std::vector<SparseTensor> sparseGrads_;
@@ -579,25 +582,25 @@ private:
       } else
         pushGradients(graph->params()->grads());
 
-      if(reporter_) {
-        boost::upgrade_lock<boost::shared_mutex> lock(reporterMutex_);
+      if(scheduler_) {
+        boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
         {
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-          reporter_->update(cost, batch);
+          scheduler_->update(cost, batch);
         }
 
-        if(reporter_->saving()) {
+        if(scheduler_->saving()) {
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
           if(movingAvg_)
             fetchParams(graph->params()->vals(), paramsAvg_);
           this->save(graph);
         }
 
-        if(reporter_->validating()) {
+        if(scheduler_->validating()) {
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
           if(movingAvg_)
             fetchParams(graph->params()->vals(), paramsAvg_);
-          reporter_->validate(graph);
+          scheduler_->validate(graph);
         }
       }
     };
@@ -637,8 +640,8 @@ public:
       std::string init = options_->get<std::string>("model");
       if(boost::filesystem::exists(init)) {
         size_t i = 0;
-        if(reporter_)
-          reporter_->load(init);
+        if(scheduler_)
+          scheduler_->load(init);
         for(auto graph : graphs_)
           builders_[i++]->load(graph, init);
       }
@@ -660,14 +663,14 @@ public:
       std::string name = options_->get<std::string>("model");
 
       builders_[idx]->save(graphs_[idx], name, true);
-      if(reporter_)
-        reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     } else {
       std::string name = options_->get<std::string>("model");
 
       if(!final) {
         std::string numberOfBatches
-            = reporter_ ? std::to_string(reporter_->numberOfBatches()) :
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
                           "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
@@ -676,8 +679,8 @@ public:
       }
 
       builders_[idx]->save(graphs_[idx], name, true);
-      if(reporter_)
-        reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     }
   }
 

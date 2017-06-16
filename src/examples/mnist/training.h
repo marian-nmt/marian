@@ -2,7 +2,7 @@
 
 #include "models/model_task.h"
 #include "training/config.h"
-#include "training/reporter.h"
+#include "training/scheduler.h"
 
 #include "examples/mnist/dataset.h"
 #include "examples/mnist/validator.h"
@@ -26,29 +26,29 @@ public:
     auto batchGenerator
         = New<BatchGenerator<data::MNIST>>(dataset, options_, nullptr);
 
-    // Prepare reporter with validators
+    // Prepare scheduler with validators
     auto trainState = New<TrainingState>(options_);
-    auto reporter = New<Reporter<typename Model::dataset_type>>(options_, trainState);
+    auto scheduler = New<Scheduler<typename Model::dataset_type>>(options_, trainState);
     auto validator
         = New<AccuracyValidator<typename Model::builder_type>>(options_);
-    reporter->addValidator(validator);
+    scheduler->addValidator(validator);
 
     // Prepare model
     auto model = New<Model>(options_);
-    model->setReporter(reporter);
+    model->setScheduler(scheduler);
     model->load();
 
     // Run training
-    while(reporter->keepGoing()) {
+    while(scheduler->keepGoing()) {
       batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
-      while(*batchGenerator && reporter->keepGoing()) {
+      while(*batchGenerator && scheduler->keepGoing()) {
         auto batch = batchGenerator->next();
         model->update(batch);
       }
-      if(reporter->keepGoing())
-        reporter->increaseEpoch();
+      if(scheduler->keepGoing())
+        scheduler->increaseEpoch();
     }
-    reporter->finished();
+    scheduler->finished();
   }
 };
 }
