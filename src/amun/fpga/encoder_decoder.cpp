@@ -17,13 +17,13 @@ namespace amunmt {
 namespace FPGA {
 
 EncoderDecoder::EncoderDecoder(
-    const God &god,
-    const std::string& name,
+        const God &god,
+        const std::string& name,
         const YAML::Node& config,
         size_t tab,
         const Weights& model,
         const OpenCLInfo &openCLInfo)
-:Scorer(name, config, tab)
+:Scorer(god, name, config, tab)
 ,model_(model)
 ,openCLInfo_(openCLInfo)
 ,sourceContext_(openCLInfo)
@@ -49,7 +49,7 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
-void EncoderDecoder::Decode(const God &god, const State& in,
+void EncoderDecoder::Decode(const State& in,
                    State& out, const std::vector<uint>& beamSizes)
 {
   const EDState& edIn = in.get<EDState>();

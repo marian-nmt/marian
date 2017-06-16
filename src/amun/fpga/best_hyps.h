@@ -20,11 +20,9 @@ public:
                  const bool isFirst);
 
   virtual void CalcBeam(
-      const God &god,
       const Beam& prevHyps,
       const std::vector<ScorerPtr>& scorers,
       const Words& filterIndices,
-      bool returnAlignment,
       std::vector<Beam>& beams,
       std::vector<uint>& beamSizes
       );
@@ -34,7 +32,6 @@ protected:
 
   Array<unsigned> keys;
   Array<float> Costs;
-  const std::map<std::string, float>& weights_;
 
 };
 

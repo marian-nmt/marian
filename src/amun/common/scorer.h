@@ -10,7 +10,6 @@
 
 namespace amunmt {
 
-class God;
 class Sentences;
 
 class State {
@@ -38,19 +37,17 @@ typedef std::vector<StatePtr> States;
 
 class Scorer {
   public:
-    Scorer(const std::string& name,
+    Scorer(const God &god,
+           const std::string& name,
            const YAML::Node& config, size_t tab);
 
     virtual ~Scorer() {}
 
-    virtual void Decode(const God &god, const State& in,
-                       State& out, const std::vector<uint>& beamSizes) = 0;
+    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize=1) = 0;
+    virtual void BeginSentenceState(State& state, size_t batchSize = 1) = 0;
 
-    virtual void AssembleBeamState(const State& in,
-                                   const Beam& beam,
-                                   State& out) = 0;
+    virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
     virtual void SetSource(const Sentences& sources) = 0;
 
@@ -76,9 +73,9 @@ class Scorer {
 
 class SourceIndependentScorer : public Scorer {
   public:
-    SourceIndependentScorer(const std::string& name,
+    SourceIndependentScorer(const God &god, const std::string& name,
                             const YAML::Node& config, size_t)
-    : Scorer(name, config, 0) {}
+    : Scorer(god, name, config, 0) {}
 
     virtual ~SourceIndependentScorer() {}
 

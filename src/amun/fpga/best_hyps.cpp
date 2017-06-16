@@ -10,10 +10,15 @@ namespace amunmt {
 namespace FPGA {
 
 BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
-: nthElement_(openCLInfo, god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
+: BestHypsBase(
+    !god.Get<bool>("allow-unk"),
+    god.Get<bool>("n-best"),
+    god.Get<std::vector<std::string>>("softmax-filter").size(),
+    god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
+    god.GetScorerWeights()),
+  nthElement_(openCLInfo, god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
   keys(openCLInfo, god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-  Costs(openCLInfo, god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-  weights_(god.GetScorerWeights())
+  Costs(openCLInfo, god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
 {
   //std::cerr << "BestHyps::BestHyps" << std::endl;
 }
@@ -32,15 +37,14 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
 }
 
 void BestHyps::CalcBeam(
-    const God &god,
     const Beam& prevHyps,
     const std::vector<ScorerPtr>& scorers,
     const Words& filterIndices,
-    bool returnAlignment,
     std::vector<Beam>& beams,
     std::vector<uint>& beamSizes
     )
 {
+  /*
   using namespace mblas;
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
@@ -124,7 +128,7 @@ void BestHyps::CalcBeam(
 
     beams[batchMap[i]].push_back(hyp);
   }
-
+  */
 }
 
 }

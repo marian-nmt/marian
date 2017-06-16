@@ -65,7 +65,6 @@ class Decoder {
           } else {
             AddBiasVector<byRow>(State, w_.Bi_);
           }
-
           State = blaze::forEach(State, Tanh());
         }
 

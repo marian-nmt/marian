@@ -19,14 +19,18 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
+
     BestHyps(const God &god)
-    : nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
-      keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-      Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-      weights_(god.GetScorerWeights())
-    {
-      //std::cerr << "BestHyps::BestHyps" << std::endl;
-    }
+          : BestHypsBase(
+              !god.Get<bool>("allow-unk"),
+              god.Get<bool>("n-best"),
+              god.Get<std::vector<std::string>>("softmax-filter").size(),
+              god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
+              god.GetScorerWeights()),
+            nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
+            keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+            Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
+    {}
 
     void DisAllowUNK(mblas::Matrix& Prob) {
       SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
@@ -63,80 +67,55 @@ class BestHyps : public BestHypsBase
       return alignments;
     }
 
-    void CalcBeam(const God &god,
-          const Beam& prevHyps,
-          const std::vector<ScorerPtr>& scorers,
-          const Words& filterIndices,
-          bool returnAlignment,
-          std::vector<Beam>& beams,
-          std::vector<uint>& beamSizes
-          )
+    void CalcBeam(
+        const Beam& prevHyps,
+        const std::vector<ScorerPtr>& scorers,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<uint>& beamSizes)
     {
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
-      //std::cerr << "Probs=" << Probs.Debug(1) << std::endl;
 
       HostVector<float> vCosts;
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
       }
-
-      mblas::copy(
-          thrust::raw_pointer_cast(vCosts.data()),
-          vCosts.size(),
-          thrust::raw_pointer_cast(Costs.data()),
-          cudaMemcpyHostToDevice);
-      //std::cerr << "Costs=" << mblas::Debug(Costs) << std::endl;
+      mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
       BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
-      //std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
 
       for (size_t i = 1; i < scorers.size(); ++i) {
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
         Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
       }
-      //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
-      if (!god.Get<bool>("allow-unk")) {
+      if (forbidUNK_) {
         DisAllowUNK(Probs);
       }
 
       size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
       std::vector<float> bestCosts;
-
       std::vector<unsigned> bestKeys;
 
-      //std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << " " << std::endl;
-      //std::cerr << "isFirst=" << isFirst << " " << std::endl;
-
       FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
-      //std::cerr << "bestCosts=" << amunmt::Debug(bestCosts, 2) << " " << std::endl;
-      //std::cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << std::endl;
 
       std::vector<HostVector<float>> breakDowns;
-      bool doBreakdown = god.Get<bool>("n-best");
-      //std::cerr << "doBreakdown=" << doBreakdown << std::endl;
-
-      if (doBreakdown) {
+      if (returnNBestList_) {
           breakDowns.push_back(bestCosts);
           for (size_t i = 1; i < scorers.size(); ++i) {
             std::vector<float> modelCosts(beamSizeSum);
             mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
             nthElement_.getValueByKey(modelCosts, currProbs);
-            //std::cerr << "modelCosts=" << amunmt::Debug(modelCosts, 1) << std::endl;
-
             breakDowns.push_back(modelCosts);
           }
       }
-
-      bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
-      //std::cerr << "filter=" << filter << std::endl;
 
       std::map<size_t, size_t> batchMap;
       size_t tmp = 0;
@@ -148,7 +127,7 @@ class BestHyps : public BestHypsBase
 
       for (size_t i = 0; i < beamSizeSum; i++) {
         size_t wordIndex = bestKeys[i] % Probs.dim(1);
-        if (filter) {
+        if (isInputFiltered_) {
           wordIndex = filterIndices[wordIndex];
         }
 
@@ -156,14 +135,14 @@ class BestHyps : public BestHypsBase
         float cost = bestCosts[i];
 
         HypothesisPtr hyp;
-        if (returnAlignment) {
+        if (returnAttentionWeights_) {
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
                                    GetAlignments(scorers, hypIndex)));
         } else {
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         }
 
-        if(doBreakdown) {
+        if(returnNBestList_) {
           hyp->GetCostBreakdown().resize(scorers.size());
           float sum = 0;
           for (size_t j = 0; j < scorers.size(); ++j) {
@@ -188,11 +167,11 @@ class BestHyps : public BestHypsBase
       }
     }
 
+
   private:
     NthElement nthElement_;
     DeviceVector<unsigned> keys;
     DeviceVector<float> Costs;
-    const std::map<std::string, float>& weights_;
 };
 
 }

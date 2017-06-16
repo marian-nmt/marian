@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <iomanip>
 
 #include "common/god.h"
 #include "common/history.h"
@@ -49,21 +50,21 @@ void Printer(const God &god, const History& history, OStream& out) {
       out << history.GetLineNum() << " ||| " << translation << " |||";
 
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
-        out << " " << scorerNames[j] << "= " << hypo->GetCostBreakdown()[j];
+        out << " " << scorerNames[j] << "= " << std::setprecision(3) << std::fixed << hypo->GetCostBreakdown()[j];
       }
-      
+
       if(god.Get<bool>("normalize")) {
-        out << " ||| " << hypo->GetCost() / words.size();
+        out << " ||| " << std::setprecision(3) << std::fixed << hypo->GetCost() / words.size();
       }
       else {
-        out << " ||| " << hypo->GetCost();
+        out << " ||| " << std::setprecision(3) << std::fixed << hypo->GetCost();
       }
-      
+
       if(i < nbl.size() - 1)
         out << std::endl;
       else
         out << std::flush;
-      
+
     }
   } else {
     out << best << std::flush;

@@ -11,218 +11,120 @@ using namespace std;
 namespace amunmt {
 
 Search::Search(const God &god)
-{
-  deviceInfo_ = god.GetNextDevice();
-  scorers_ = god.GetScorers(deviceInfo_);
-  bestHyps_ = god.GetBestHyps(deviceInfo_);
-}
+  : deviceInfo_(god.GetNextDevice()),
+    scorers_(god.GetScorers(deviceInfo_)),
+    filter_(god.GetFilter()),
+    maxBeamSize_(god.Get<size_t>("beam-size")),
+    normalizeScore_(god.Get<bool>("normalize")),
+    bestHyps_(god.GetBestHyps(deviceInfo_))
+{}
 
-Search::~Search()
-{
+
+Search::~Search() {
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
 #endif
 }
-  
-States Search::NewStates() const
-{
-  size_t numScorers = scorers_.size();
 
-  States states(numScorers);
-  for (size_t i = 0; i < numScorers; i++) {
-    Scorer &scorer = *scorers_[i];
-    states[i].reset(scorer.NewState());
-  }
-
-  return states;
-}
-
-size_t Search::MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize) {
-  filterIndices_ = god.GetFilter().GetFilteredVocab(srcWords, vocabSize);
-  for (size_t i = 0; i < scorers_.size(); i++) {
-      scorers_[i]->Filter(filterIndices_);
-  }
-  return filterIndices_.size();
-}
-
-std::shared_ptr<Histories> Search::Process(const God &god, const Sentences& sentences) {
+std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
-  std::shared_ptr<Histories> histories(new Histories(god, sentences));
+  if (filter_) {
+    FilterTargetVocab(sentences);
+  }
 
-  size_t batchSize = sentences.size();
-  size_t numScorers = scorers_.size();
+  auto histories = Decode(sentences);
+  CleanAfterTranslation();
 
-  Beam prevHyps(batchSize, HypothesisPtr(new Hypothesis()));
-
-  States states = NewStates();
-
-  // calc
-  PreProcess(god, sentences, histories, prevHyps);
-  Encode(sentences, states);
-  Decode(god, sentences, states, histories, prevHyps);
-  PostProcess();
-
-  LOG(progress,  "Search took {}", timer.format(3, "%ws"));
+  LOG(progress, "Search took {}", timer.format(3, "%ws"));
   return histories;
 }
 
-void Search::PreProcess(
-    const God &god,
-    const Sentences& sentences,
-    std::shared_ptr<Histories> &histories,
-    Beam &prevHyps)
-{
+States Search::NewStates() const {
+  States states;
+  for (auto& scorer : scorers_) {
+    states.emplace_back(scorer->NewState());
+  }
+  return states;
+}
+
+void Search::FilterTargetVocab(const Sentences& sentences) {
   size_t vocabSize = scorers_[0]->GetVocabSize();
-
-  for (size_t i = 0; i < histories->size(); ++i) {
-    History &history = *histories->at(i).get();
-    history.Add(prevHyps);
-  }
-
-  bool filter = god.Get<std::vector<std::string>>("softmax-filter").size();
-  if (filter) {
-    std::set<Word> srcWords;
-    for (size_t i = 0; i < sentences.size(); ++i) {
-      const Sentence &sentence = *sentences.at(i);
-      for (const auto& srcWord : sentence.GetWords()) {
-        srcWords.insert(srcWord);
-      }
+  std::set<Word> srcWords;
+  for (size_t i = 0; i < sentences.size(); ++i) {
+    const Sentence& sentence = *sentences.at(i);
+    for (const auto& srcWord : sentence.GetWords()) {
+      srcWords.insert(srcWord);
     }
-    vocabSize = MakeFilter(god, srcWords, vocabSize);
   }
 
-}
-
-void Search::Encode(const Sentences& sentences, States& states) {
-  for (size_t i = 0; i < scorers_.size(); i++) {
-    Scorer &scorer = *scorers_[i];
-    scorer.SetSource(sentences);
-    State& state = *states[i];
-
-    scorer.BeginSentenceState(state, sentences.size());
-    //cerr << "BeginSentenceState state=" << state.Debug(1) << endl;
+  filterIndices_ = filter_->GetFilteredVocab(srcWords, vocabSize);
+  for (auto& scorer : scorers_) {
+    scorer->Filter(filterIndices_);
   }
 }
 
-void Search::Decode(
-		const God &god,
-		const Sentences& sentences,
-		States &states,
-		std::shared_ptr<Histories> &histories,
-		Beam &prevHyps)
-{
+States Search::SetSource(const Sentences& sentences) {
+  States states;
+  for (auto& scorer : scorers_) {
+    scorer->SetSource(sentences);
+    auto state = scorer->NewState();
+    scorer->BeginSentenceState(*state, sentences.size());
+    states.emplace_back(state);
+  }
+  return states;
+}
+
+
+std::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
+  States states = SetSource(sentences);
   States nextStates = NewStates();
+  std::vector<uint> beamSizes(sentences.size(), 1);
 
-  size_t batchSize = sentences.size();
-  std::vector<uint> beamSizes(batchSize, 1);
+  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
+  Beam prevHyps = histories->GetFirstHyps();
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    //cerr << endl;
-	  bool hasSurvivors = Decode(
-			  god,
-			  sentences,
-			  states,
-			  histories,
-			  prevHyps,
-			  decoderStep,
-			  nextStates,
-			  beamSizes
-	  	  	  );
-
-	    if (!hasSurvivors) {
-	    	break;
-	    }
-  }
-}
-
-bool Search::Decode(
-		const God &god,
-		const Sentences& sentences,
-		States &states,
-		std::shared_ptr<Histories> &histories,
-		Beam &prevHyps,
-		size_t decoderStep,
-		States &nextStates,
-		std::vector<uint> &beamSizes
-		)
-{
-  //std::cerr << std::endl;
-
-  size_t batchSize = sentences.size();
-
-  for (size_t i = 0; i < scorers_.size(); i++) {
-    Scorer &scorer = *scorers_[i];
-    const State &state = *states[i];
-    State &nextState = *nextStates[i];
-
-    //std::cerr << "state=" << state.Debug() << std::endl;
-    scorer.Decode(god, state, nextState, beamSizes);
-    //std::cerr << "nextState=" << nextState.Debug() << std::endl;
-  }
-
-  if (decoderStep == 0) {
-    for (auto& beamSize : beamSizes) {
-    beamSize = god.Get<size_t>("beam-size");
+    for (size_t i = 0; i < scorers_.size(); i++) {
+      scorers_[i]->Decode(*states[i], *nextStates[i], beamSizes);
     }
-  }
 
-  Beams beams(batchSize);
-  Beam survivors;
-
-  bool hasSurvivors = CalcBeam(
-      god,
-      prevHyps,
-      beams,
-      beamSizes,
-      histories,
-      sentences,
-      survivors,
-      states,
-      nextStates
-      );
-
-  if (!hasSurvivors) {
-    return false;
-  }
-
-  return true;
-}
-
-bool Search::CalcBeam(
-		const God &god,
-		Beam &prevHyps,
-		Beams &beams,
-		std::vector<uint> &beamSizes,
-		std::shared_ptr<Histories> &histories,
-		const Sentences& sentences,
-		Beam &survivors,
-		States &states,
-		States &nextStates
-		)
-{
-    bool returnAlignment = god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment");
-    size_t batchSize = sentences.size();
-
-    //std::cerr << "prevHyps=" << amunmt::Debug(prevHyps, 2) << std::endl;
-    bestHyps_->CalcBeam(god, prevHyps, scorers_, filterIndices_, returnAlignment, beams, beamSizes);
-    //std::cerr << "beamSizes=" << amunmt::Debug(beamSizes, 2) << std::endl;
-    //std::cerr << "beams=" << amunmt::Debug(beams, 2) << std::endl;
-
-    for (size_t i = 0; i < batchSize; ++i) {
-      if (!beams[i].empty()) {
-        histories->at(i)->Add(beams[i], histories->at(i)->size() == 3 * sentences.at(i)->GetWords().size());
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+        beamSize = maxBeamSize_;
       }
     }
 
-    for (size_t batchID = 0; batchID < batchSize; ++batchID) {
-      for (auto& h : beams[batchID]) {
+    bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, states, nextStates);
+    if (!hasSurvivors) {
+      break;
+    }
+  }
+  return histories;
+}
+
+
+bool Search::CalcBeam(
+		std::shared_ptr<Histories>& histories,
+		std::vector<uint>& beamSizes,
+    Beam& prevHyps,
+		States& states,
+		States& nextStates)
+{
+    size_t batchSize = beamSizes.size();
+    Beams beams(batchSize);
+    bestHyps_->CalcBeam(prevHyps, scorers_, filterIndices_, beams, beamSizes);
+    histories->Add(beams);
+
+    Beam survivors;
+    for (size_t batchId = 0; batchId < batchSize; ++batchId) {
+      for (auto& h : beams[batchId]) {
         if (h->GetWord() != EOS_ID) {
           survivors.push_back(h);
         } else {
-          --beamSizes[batchID];
+          --beamSizes[batchId];
         }
       }
     }
@@ -233,19 +135,20 @@ bool Search::CalcBeam(
 
     for (size_t i = 0; i < scorers_.size(); i++) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
-      //cerr << "nextStates=" << nextStates[i]->Debug() << endl;
-      //cerr << "states=" << states[i]->Debug() << endl;
     }
 
     prevHyps.swap(survivors);
-
     return true;
 }
 
-void Search::PostProcess()
+
+
+
+
+void Search::CleanAfterTranslation()
 {
   for (auto scorer : scorers_) {
-    scorer->CleanUpAfterSentence();
+	  scorer->CleanUpAfterSentence();
   }
 }
 

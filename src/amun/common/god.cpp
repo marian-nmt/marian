@@ -209,8 +209,8 @@ Vocab& God::GetTargetVocab() const {
   return *targetVocab_;
 }
 
-const Filter& God::GetFilter() const {
-  return *filter_;
+std::shared_ptr<const Filter> God::GetFilter() const {
+  return filter_;
 }
 
 std::istream& God::GetInputStream() const {

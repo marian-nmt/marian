@@ -16,7 +16,10 @@ class Sentence {
 		Sentence(God &god, size_t lineNum, const std::vector<size_t>& words);
 
     const Words& GetWords(size_t index = 0) const;
+    size_t size(size_t index = 0) const;
+
     size_t GetLineNum() const;
+
 
   private:
     std::vector<Words> words_;

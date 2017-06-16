@@ -53,17 +53,18 @@ const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
 }
 
 ////////////////////////////////////////////////
-EncoderDecoder::EncoderDecoder(const std::string& name,
+EncoderDecoder::EncoderDecoder(const God &god,
+                               const std::string& name,
                                const YAML::Node& config,
                                size_t tab,
                                const Weights& model)
-  : Scorer(name, config, tab),
+  : Scorer(god, name, config, tab),
     model_(model),
     encoder_(new CPU::Encoder(model_)),
     decoder_(new CPU::Decoder(model_))
 {}
 
-void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<uint>&) {
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -146,12 +147,12 @@ void EncoderDecoderLoader::Load(const God &god) {
 
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-  return ScorerPtr(new EncoderDecoder(name_, config_,
+  return ScorerPtr(new EncoderDecoder(god, name_, config_,
                                       tab, *weights_[0]));
 }
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
-  return BestHypsBasePtr(new CPU::BestHyps());
+  return BestHypsBasePtr(new CPU::BestHyps(god));
 }
 
 }

@@ -1,41 +1,34 @@
 #pragma once
+
 #include "sentence.h"
 
 namespace amunmt {
 
-class God;
-class ThreadPool;
 class Sentences;
 using SentencesPtr = std::shared_ptr<Sentences>;
 
 class Sentences {
- public:
-  Sentences();
-  ~Sentences();
+  public:
+    Sentences();
+    ~Sentences();
 
-  void push_back(SentencePtr sentence);
+    void push_back(SentencePtr sentence);
 
-  SentencePtr at(size_t id) const {
-    return coll_.at(id);
-  }
+    SentencePtr at(size_t id) const;
 
-  size_t size() const {
-    return coll_.size();
-  }
+    size_t size() const;
 
-  size_t GetMaxLength() const {
-    return maxLength_;
-  }
+    size_t GetMaxLength() const;
 
-  void SortByLength();
+    void SortByLength();
 
-  SentencesPtr NextMiniBatch(size_t batchsize);
+    SentencesPtr NextMiniBatch(size_t batchsize);
 
- protected:
-   std::vector<SentencePtr> coll_;
-   size_t maxLength_;
+  protected:
+    std::vector<SentencePtr> coll_;
+    size_t maxLength_;
 
-   Sentences(const Sentences &) = delete;
+    Sentences(const Sentences &) = delete;
 };
 
 }

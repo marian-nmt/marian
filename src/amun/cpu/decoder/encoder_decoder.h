@@ -49,12 +49,13 @@ class EncoderDecoder : public Scorer {
     using EDState = EncoderDecoderState;
 
   public:
-    EncoderDecoder(const std::string& name,
+    EncoderDecoder(const God &god,
+                   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
                    const Weights& model);
 
-    virtual void Decode(const God &god, const State& in, State& out, const std::vector<uint>& beamSizes);
+    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes);
 
     virtual State* NewState() const;
 

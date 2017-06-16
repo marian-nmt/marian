@@ -1,7 +1,11 @@
 #include "translation_task.h"
+
+#include <string>
+
 #include "search.h"
 #include "output_collector.h"
 #include "printer.h"
+#include "history.h"
 
 using namespace std;
 
@@ -25,10 +29,9 @@ void TranslationTaskAndOutput(const God &god, std::shared_ptr<Sentences> sentenc
 
 std::shared_ptr<Histories> TranslationTask(const God &god, std::shared_ptr<Sentences> sentences) {
   try {
-    Search &search = god.GetSearch();
-    std::shared_ptr<Histories> histories = search.Process(god, *sentences);
+    Search& search = god.GetSearch();
+    auto histories = search.Translate(*sentences);
 
-    //cerr << "histories=" << histories->size() << endl;
     return histories;
   }
 #ifdef CUDA

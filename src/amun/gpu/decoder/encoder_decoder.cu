@@ -21,12 +21,24 @@ EncoderDecoder::EncoderDecoder(
         const YAML::Node& config,
         size_t tab,
         const Weights& model)
-  : Scorer(name, config, tab),
+  : Scorer(god, name, config, tab),
     model_(model),
     encoder_(new Encoder(model_)),
     decoder_(new Decoder(god, model_)),
-    indices_(god.Get<size_t>("beam-size"))
-{
+    indices_(god.Get<size_t>("beam-size")),
+    SourceContext_(new mblas::Matrix())
+{}
+
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
+  const EDState& edIn = in.get<EDState>();
+  EDState& edOut = out.get<EDState>();
+
+  decoder_->Decode(edOut.GetStates(),
+                     edIn.GetStates(),
+                     edIn.GetEmbeddings(),
+                     *SourceContext_,
+                     batchMapping_,
+                     beamSizes);
 }
 
 EncoderDecoder::~EncoderDecoder()
@@ -38,28 +50,17 @@ State* EncoderDecoder::NewState() const {
 }
 
 void EncoderDecoder::SetSource(const Sentences& source) {
-  encoder_->GetContext(source, tab_, sourceContext_, batchMapping_);
-  //cerr << "GPU sourceContext_=" << sourceContext_.Debug(1) << endl;
+  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
+  //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
-void EncoderDecoder::Decode(const God &god, const State& in, State& out, const std::vector<uint>& beamSizes) {
-  const EDState& edIn = in.get<EDState>();
-  EDState& edOut = out.get<EDState>();
-
-  decoder_->Decode(edOut.GetStates(),
-                     edIn.GetStates(),
-                     edIn.GetEmbeddings(),
-                     sourceContext_,
-                     batchMapping_,
-                     beamSizes);
-}
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,

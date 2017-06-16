@@ -1,79 +1,48 @@
 #pragma once
 
 #include <memory>
+#include <set>
+
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "common/base_best_hyps.h"
-#include "common/history.h"
 
 namespace amunmt {
+
+class Histories;
+class Filter;
 
 class Search {
   public:
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Process(const God &god, const Sentences& sentences);
+    std::shared_ptr<Histories> Translate(const Sentences& sentences);
 
+  protected:
     States NewStates() const;
-
-    void PreProcess(
-    		const God &god,
-    		const Sentences& sentences,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps);
-
-    void PostProcess();
-
-    void Encode(const Sentences& sentences, States& states);
-
-    void Decode(
-    		const God &god,
-    		const Sentences& sentences,
-    		States &states,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps);
-
-    const DeviceInfo &GetDeviceInfo() const
-    { return deviceInfo_; }
-
-    const std::vector<ScorerPtr> &GetScorers() const
-    { return scorers_; }
-
-  private:
-    Search(const Search &) = delete;
-
-    size_t MakeFilter(const God &god, const std::set<Word>& srcWords, size_t vocabSize);
-
-    std::vector<ScorerPtr> scorers_;
-    Words filterIndices_;
-    BestHypsBasePtr bestHyps_;
-
-    DeviceInfo deviceInfo_;
-
-    bool Decode(
-    		const God &god,
-    		const Sentences& sentences,
-    		States &states,
-    		std::shared_ptr<Histories> &histories,
-    		Beam &prevHyps,
-    		size_t decoderStep,
-    		States &nextStates,
-    		std::vector<uint> &beamSizes);
+    void FilterTargetVocab(const Sentences& sentences);
+    States SetSource(const Sentences& sentences);
+    std::shared_ptr<Histories> Decode(const Sentences& sentences);
+    void CleanAfterTranslation();
 
     bool CalcBeam(
-    		const God &god,
-    		Beam &prevHyps,
-    		Beams &beams,
-    		std::vector<uint> &beamSizes,
-    		std::shared_ptr<Histories> &histories,
-    		const Sentences& sentences,
-    		Beam &survivors,
-    		States &states,
-    		States &nextStates
+    		std::shared_ptr<Histories>& histories,
+    		std::vector<uint>& beamSizes,
+        Beam& prevHyps,
+    		States& states,
+    		States& nextStates);
 
-    		);
+    Search(const Search&) = delete;
 
+  protected:
+    DeviceInfo deviceInfo_;
+    std::vector<ScorerPtr> scorers_;
+    std::shared_ptr<const Filter> filter_;
+    const size_t maxBeamSize_;
+    bool normalizeScore_;
+    Words filterIndices_;
+    BestHypsBasePtr bestHyps_;
 };
 
 }
