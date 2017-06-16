@@ -836,8 +836,7 @@ void Normalization(Matrix &out,
   assert(in.dim(2) < MAX_BLOCKS);
   assert(in.dim(3) < MAX_BLOCKS);
 
-  //out.Reshape(in.dim(0), in.dim(1), 1, 1);
-  out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
+  //out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
 
   int numThreads = std::min((uint) in.dim(1), (uint) MAX_THREADS);
   dim3 numBlocks(in.dim(0), in.dim(2), in.dim(3));

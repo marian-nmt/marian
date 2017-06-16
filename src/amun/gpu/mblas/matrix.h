@@ -121,35 +121,6 @@ class TMatrix : public BaseMatrix {
       dim_[3] = batches;
     }
 
-    void Reshape(size_t rows, size_t cols, size_t beam, size_t batches)
-    {
-      size_t newSize = cols * rows * beam * batches;
-      amunmt_UTIL_THROW_IF2(newSize > arrSize_, "Must reshape to same or smaller size");
-
-      dim_[0] = rows;
-      dim_[1] = cols;
-      dim_[2] = beam;
-      dim_[3] = batches;
-    }
-
-    void ReduceDimensions()
-    {
-      if (dim_[1] == 1) {
-        dim_[1] = dim_[0];
-        dim_[0] = dim_[2];
-        dim_[2] = dim_[3];
-      }
-
-      if (dim_[0] == 1) {
-        dim_[0] = dim_[2];
-        dim_[2] = dim_[3];
-      }
-
-      if (dim_[2] == 1) {
-        dim_[2] = dim_[3];
-      }
-    }
-
     virtual std::string Debug(size_t verbosity = 1) const
     {
       std::stringstream strm;
