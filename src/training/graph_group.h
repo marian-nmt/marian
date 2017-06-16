@@ -215,7 +215,7 @@ private:
   std::vector<std::vector<int>> localVersionNumbers;
 
   std::vector<std::vector<GradientDrop>> fetchDropper;
-  std::vector<Tensor> tmpTensor, tmpDelta;
+  std::vector<Tensor> tmpTensor;
 
   std::vector<std::vector<Tensor>> params_;
   std::vector<Ptr<TensorAllocator>> paramsAlloc_;
@@ -353,16 +353,9 @@ private:
             localSparseDelta[worker_id][idx]->copyFrom(tmpSparseDelta[idx]);
             cudaStreamSynchronize(0);
 
-            // reobtain dense delta
-            localSparseDelta[worker_id][idx]->toDense(
-                tmpDelta[worker_id]->subtensor(pos, grads_[idx]->size()), 0);
+            localSparseDelta[worker_id][idx]->scatterAdd(oldParams->subtensor(pos, grads_[idx]->size()));
             cudaStreamSynchronize(0);
 
-            // apply
-            Element(_1 += _2,
-                    oldParams->subtensor(pos, grads_[idx]->size()),
-                    tmpDelta[worker_id]->subtensor(pos, grads_[idx]->size()));
-            cudaStreamSynchronize(0);
             localVersionNumbers[worker_id][idx] = globalVersionNumber[idx];
 
           },
@@ -510,7 +503,7 @@ private:
 
       if(drop_rate_ && first_) {
         int totalSize = graphs_[0]->params()->vals()->size();
-        int sparseCap = totalSize / 10;
+        int sparseCap = totalSize * 1.2 * (1.0 - drop_rate_);
         for(auto device : devices_) {
           sparseGrads_.push_back(
               SparseTensor(new SparseTensorBase(sparseCap, device)));
@@ -545,10 +538,6 @@ private:
         my_id = i;
         graph = graphs_[i];
         builder = builders_[i++];
-
-        if(drop_rate_)
-          tmpDelta.push_back(newTensor(graph->params()->vals()->size(),
-                                       graph->params()->vals()->getDevice()));
       }
 
       if(!dropper) {
