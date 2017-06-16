@@ -301,19 +301,18 @@ void Config::addOptionsTraining(po::options_description& desc) {
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
      "Learning rate")
     ("lr-decay", po::value<double>()->default_value(0.7),
-     "Learning rate decay factor: lr = lr * arg (0 to disable)")
+     "Decay factor for learning rate: lr = lr * arg (0 to disable)")
     ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
-     "Learning rate decay strategy, "
-     "possible values: epoch, batches, stalled, epoch+batches, epoch+stalled, "
-     "default: epoch+batches")
+     "Strategy for learning rate strategy "
+     "(possible values: epoch, batches, stalled, epoch+batches, epoch+stalled)")
     ("lr-decay-start", po::value<std::vector<size_t>>()
        ->multitoken()
        ->default_value(std::vector<size_t>({10,1}), "10,1"),
        "The first number of epoch/batches/stalled validations to start "
        "learning rate decaying")
-    ("lr-decay-freq", po::value<size_t>()->default_value(1),
+    ("lr-decay-freq", po::value<size_t>()->default_value(50000),
      "Frequency of performing learning rate decaying for batches, "
-     "requires --lr-decay-strategy to be batches, default: 50000")
+     "requires --lr-decay-strategy to be batches")
 
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")

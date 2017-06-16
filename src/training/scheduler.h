@@ -7,7 +7,7 @@
 namespace marian {
 
 template <class DataSet>
-class Reporter : public TrainingObserver {
+class Scheduler : public TrainingObserver {
 private:
   YAML::Node progress;
 
@@ -27,7 +27,7 @@ private:
   boost::timer::cpu_timer timer;
 
 public:
-  Reporter(Ptr<Config> options, Ptr<TrainingState> state)
+  Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
       : options_(options), trainState_(state) {}
 
   bool keepGoing() {
