@@ -1,6 +1,9 @@
 #pragma once
 
 #include "layers/attention.h"
+#include "layers/rnn.h"
+#include "layers/cells.h"
+
 #include "models/encdec.h"
 
 namespace marian {
@@ -88,21 +91,22 @@ public:
       x = dropout(x, mask = srcWordDrop);
     }
 
-    RNNStates statesFw = RNN<LSTM>(graph,
-                                   prefix_ + "_bi",
-                                   dimSrcEmb,
-                                   dimEncState,
-                                   normalize = layerNorm,
-                                   dropout_prob = dropoutRnn)(x);
+    auto cellFw = cell("lstm")(graph,
+                               prefix_ + "_bi",
+                               dimSrcEmb,
+                               dimEncState,
+                               normalize = layerNorm,
+                               dropout_prob = dropoutRnn);
+    RNNStates statesFw = RNN(cellFw)(x);
     auto xFw = statesFw.outputs();
 
-    RNNStates statesBw = RNN<LSTM>(graph,
-                                   prefix_ + "_bi_r",
-                                   dimSrcEmb,
-                                   dimEncState,
-                                   normalize = layerNorm,
-                                   direction = dir::backward,
-                                   dropout_prob = dropoutRnn)(x, mask = xMask);
+    auto cellBw = cell("lstm")(graph,
+                               prefix_ + "_bi_r",
+                               dimSrcEmb,
+                               dimEncState,
+                               normalize = layerNorm,
+                               dropout_prob = dropoutRnn);
+    RNNStates statesBw = RNN(cellBw, direction = dir::backward)(x, xMask);
     auto xBw = statesBw.outputs();
 
     //if(encoderLayers > 1) {
@@ -128,9 +132,9 @@ public:
 
 class DecoderS2S : public DecoderBase {
 private:
-  Ptr<GlobalAttention> attention_;
-  Ptr<RNN<CLSTM>> rnnL1;
-  Ptr<MLRNN<GRU>> rnnLn;
+  Ptr<AttentionCell<GlobalAttention>> attCell_;
+
+  //Ptr<MLRNN<GRU>> rnnLn;
   Expr tiedOutputWeights_;
 
 public:
@@ -149,11 +153,6 @@ public:
                        options_->get<int>("dim-rnn"),
                        activation = act::tanh,
                        normalize = layerNorm)(meanContext);
-
-    //int dimBatch = start->shape()[0];
-    //int dimState = options_->get<int>("dim-rnn");
-    //auto graph = start->graph();
-    //auto cell = graph->zeros(keywords::shape = {dimBatch, dimState});
 
     // @TODO: review this
     RNNStates startStates;
@@ -202,27 +201,27 @@ public:
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
-    if(!attention_)
-      attention_ = New<GlobalAttention>(prefix_,
-                                        state->getEncoderState(),
-                                        dimDecState,
-                                        dropout_prob = dropoutRnn,
-                                        normalize = layerNorm);
+    if(!attCell_) {
+      auto attention = New<GlobalAttention>(prefix_,
+                                            state->getEncoderState(),
+                                            dimDecState,
+                                            dropout_prob = dropoutRnn,
+                                            normalize = layerNorm);
 
-    if(!rnnL1)
-      rnnL1 = New<RNN<CLSTM>>(graph,
-                              prefix_,
-                              dimTrgEmb,
-                              dimDecState,
-                              attention_,
-                              dropout_prob = dropoutRnn,
-                              normalize = layerNorm);
+      attCell_ = att_cell("lstm")(graph,
+                                  prefix_,
+                                  dimTrgEmb,
+                                  dimDecState,
+                                  attention,
+                                  dropout_prob = dropoutRnn,
+                                  normalize = layerNorm);
+    }
 
-    RNNStates statesL1 = (*rnnL1)(embeddings, stateS2S->getStates()[0]);
+    RNNStates statesL1 = RNN(attCell_)(embeddings, stateS2S->getStates()[0]);
 
     bool single = stateS2S->doSingleStep();
-    auto alignedContext = single ? rnnL1->getCell()->getLastContext() :
-                                   rnnL1->getCell()->getContexts();
+    auto alignedContext = single ? attCell_->getLastContext() :
+                                   attCell_->getContexts();
 
     RNNStates statesOut = statesL1;
     auto outputLn = statesOut.outputs();
@@ -273,7 +272,7 @@ public:
   }
 
   const std::vector<Expr> getAlignments() {
-    return attention_->getAlignments();
+    return attCell_->getAttention()->getAlignments();
   }
 };
 

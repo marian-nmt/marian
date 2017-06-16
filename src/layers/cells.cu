@@ -1,4 +1,4 @@
-#include "layers/rnn.h"
+#include "layers/cells.h"
 
 #include "graph/node_operators_binary.h"
 #include "kernels/tensor_operators.h"
