@@ -33,22 +33,13 @@ Expr Expression(Args&&... args);
  */
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 private:
-  /** @brief The full list of nodes */
-
   size_t count_{0};
 
   std::list<Expr> nodesForward_;
   std::list<Expr> nodesBackward_;
 
-  /** @brief Maps from name to expression node. */
-  // std::map<std::string, WExpr> named_;
-
-  /** @brief Contains all nodes with regard to which we want to calculate
-   * derivatives */
   std::unordered_set<Expr> topNodes_;
-
   Ptr<Parameters> params_;
-
   Ptr<TensorAllocator> tensors_;
 
   size_t device_;
@@ -60,15 +51,15 @@ private:
   std::string namespace_;
 
 protected:
-  // delete copy and move constructors
+  // Delete, copy and move constructors
   ExpressionGraph(const ExpressionGraph&) = delete;
   ExpressionGraph(ExpressionGraph&&) = delete;
 
 public:
   /** @brief Constructs a new expression graph
-   * Constructor is protected to force use of New<ExpressionGraph>()
-  */
-
+   *
+   * Constructor should be used as New<ExpressionGraph>()
+   */
   ExpressionGraph(bool inference = false);
 
   ~ExpressionGraph() {
@@ -77,7 +68,6 @@ public:
   }
 
   void setDevice(size_t device = 0);
-
   size_t getDevice() { return device_; }
 
   Ptr<Backend> getBackend() { return backend_; }
@@ -98,34 +88,14 @@ public:
   /**
    * @brief Performs backpropogation on this expression graph.
    *
-   * Backpropogation is implemented by performing first the forward pass
-   *    and then the backward pass of algorithmic differentiation (AD) on the
-   * nodes of the graph.
-   *
+   * Backpropogation is implemented by performing first the forward pass and
+   * then the backward pass of algorithmic differentiation (AD) on the nodes of
+   * the graph.
    */
   void backprop() {
     forward();
     backward();
   }
-
-  /**
-   * @brief Perform the forward pass of algorithmic differentiation (AD) on this
-   * graph.
-   *
-   * This pass traverses the nodes of this graph in the order they were created;
-   *    as each node is traversed, its <code>allocate()</code> method is called.
-   *
-   * Once allocation is complete for all nodes, this pass again traverses the
-   * nodes, in creation order;
-   *    as each node is traversed, its <code>forward()</code> method is called.
-   *
-   * After this method has successfully completed,
-   *    it is guaranteed that all node allocation has been completed,
-   *    and that all forward pass computations have been performed.
-   *
-   * @param batchSize       XXX Marcin, could you provide a description of this
-   * param?
-   */
 
   bool fits() {
     try {
@@ -139,6 +109,22 @@ public:
     return true;
   }
 
+  /**
+   * @brief Perform the forward pass of algorithmic differentiation (AD) on this
+   * graph.
+   *
+   * This pass traverses the nodes of this graph in the order they were
+   * created; as each node is traversed, its <code>allocate()</code> method is
+   * called.
+   *
+   * Once allocation is complete for all nodes, this pass again traverses the
+   * nodes, in creation order; as each node is traversed, its
+   * <code>forward()</code> method is called.
+   *
+   * After this method has successfully completed, it is guaranteed that all
+   * node allocation has been completed, and that all forward pass computations
+   * have been performed.
+   */
   void forward() {
     params_->allocateForward();
     forwardNext();
@@ -146,7 +132,6 @@ public:
 
   void forwardNext() {
     // @TODO: check if allocation works properly
-
     hashMap_.clear();
 
     while(!nodesForward_.empty()) {
@@ -255,9 +240,8 @@ public:
    * @brief Constructs a new node representing a parameter in an expression
    * graph.
    *
-   * This method records the parameter node in a list of parameter nodes,
-   *    but does not attach the new parameter node to any existing expression
-   * graph.
+   * This method records the parameter node in a list of parameter nodes, but
+   * does not attach the new parameter node to any existing expression graph.
    *
    * @param args           XXX Marcin, what are args here?
    *

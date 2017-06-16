@@ -35,9 +35,8 @@ public:
       LOG(info, "[batching] Done");
     }
 
-    auto batchGenerator
-        = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
-    auto reporter = New<Reporter<dataset_type>>(options_);
+    auto trainState = New<TrainingState>(options_);
+    auto reporter = New<Reporter<dataset_type>>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
@@ -49,6 +48,9 @@ public:
     auto model = New<Model>(options_);
     model->setReporter(reporter);
     model->load();
+
+    auto batchGenerator
+        = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
 
     while(reporter->keepGoing()) {
       auto shuffle = !options_->get<bool>("no-shuffle");

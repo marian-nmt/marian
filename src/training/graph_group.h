@@ -16,10 +16,6 @@
 #include "training/training.h"
 #include "training/validator.h"
 
-// @TODO:
-// - rename Builder/builder_ --> Model/model_ to be consistent with Train class
-// - rename Singleton --> SingleGraph
-
 namespace marian {
 
 class GraphGroup {
@@ -43,19 +39,22 @@ public:
 };
 
 template <class Builder>
-class Singleton : public GraphGroup {
+class SingletonGraph : public GraphGroup {
 public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  Ptr<Reporter<dataset_type>> reporter_;
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    reporter_->registerTrainingObserver(reporter_);
+    reporter_->registerTrainingObserver(opt_);
   }
 
 private:
   Ptr<Builder> builder_;
   Ptr<ExpressionGraph> graph_;
+
+  Ptr<Reporter<dataset_type>> reporter_;
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
@@ -108,7 +107,7 @@ private:
 
 public:
   template <class... Args>
-  Singleton(Ptr<Config> options, Args... args)
+  SingletonGraph(Ptr<Config> options, Args... args)
       : GraphGroup(options),
         mvAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")} {
@@ -129,7 +128,8 @@ public:
       std::string name = options_->get<std::string>("model");
 
       if(boost::filesystem::exists(name)) {
-        reporter_->load(name);
+        if(reporter_)
+          reporter_->load(name);
         builder_->load(graph_, name);
       }
     }
@@ -148,21 +148,24 @@ public:
       std::string name = options_->get<std::string>("model");
 
       builder_->save(graph_, name, true);
-      reporter_->save(name);
+      if(reporter_)
+        reporter_->save(name);
     } else {
       std::string name = options_->get<std::string>("model");
 
       if(!final) {
+        std::string numberOfBatches
+            = reporter_ ? std::to_string(reporter_->numberOfBatches()) :
+                          "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
-            name.size() - 4,
-            4,
-            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
+            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
         builder_->save(graph_, nameOverwrite);
       }
 
       builder_->save(graph_, name, true);
-      reporter_->save(name);
+      if(reporter_)
+        reporter_->save(name);
     }
   }
 
@@ -177,19 +180,20 @@ public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  Ptr<Reporter<dataset_type>> reporter_;
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    reporter_->registerTrainingObserver(reporter_);
+    reporter_->registerTrainingObserver(opt_);
   }
 
 private:
   bool first_{true};
 
   std::vector<Ptr<Builder>> builders_;
-
+  std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
 
-  std::vector<Ptr<ExpressionGraph>> graphs_;
+  Ptr<Reporter<dataset_type>> reporter_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
@@ -633,7 +637,8 @@ public:
       std::string init = options_->get<std::string>("model");
       if(boost::filesystem::exists(init)) {
         size_t i = 0;
-        reporter_->load(init);
+        if(reporter_)
+          reporter_->load(init);
         for(auto graph : graphs_)
           builders_[i++]->load(graph, init);
       }
@@ -655,21 +660,24 @@ public:
       std::string name = options_->get<std::string>("model");
 
       builders_[idx]->save(graphs_[idx], name, true);
-      reporter_->save(name);
+      if(reporter_)
+        reporter_->save(name);
     } else {
       std::string name = options_->get<std::string>("model");
 
       if(!final) {
+        std::string numberOfBatches
+            = reporter_ ? std::to_string(reporter_->numberOfBatches()) :
+                          "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
-            name.size() - 4,
-            4,
-            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
+            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
         builders_[idx]->save(graphs_[idx], nameOverwrite);
       }
 
       builders_[idx]->save(graphs_[idx], name, true);
-      reporter_->save(name);
+      if(reporter_)
+        reporter_->save(name);
     }
   }
 

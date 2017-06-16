@@ -281,8 +281,16 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
       "Learning rate")
+    ("learning-rate-decay", po::value<double>()->default_value(0.7),
+     "Learning rate decay factor: lr = lr * arg (0 to disable)")
+    ("start-decay-epoch", po::value<int>()->default_value(10),
+     "Learning rate is decayed after each epoch starting from this epoch "
+     "(0 to disable)")
+    ("start-decay-stalled", po::value<int>()->default_value(1),
+     "Learning rate is decayed after each epoch if first validation metric "
+     "is not improving more than  arg  (0 to disable)")
     ("clip-norm", po::value<double>()->default_value(1.f),
-      "Clip gradient norm to  arg  (0 to disable)")
+     "Clip gradient norm to  arg  (0 to disable)")
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.999),
@@ -471,6 +479,10 @@ void Config::addOptions(int argc,
     SET_OPTION("learn-rate", double);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
+
+    SET_OPTION("learning-rate-decay", double);
+    SET_OPTION("start-decay-epoch", int);
+    SET_OPTION("start-decay-stalled", int);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);

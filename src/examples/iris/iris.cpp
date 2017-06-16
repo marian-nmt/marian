@@ -50,7 +50,7 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   }
 }
 
-int main(int argc, char** argv) {
+int main() {
   // Initialize global settings
   createLoggers();
 
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     // Choose optimizer (Sgd, Adagrad, Adam) and initial learning rate
     auto opt = Optimizer<Adam>(0.005);
 
-    for(int epoch = 0; epoch < MAX_EPOCHS; ++epoch) {
+    for(size_t epoch = 1; epoch <= MAX_EPOCHS; ++epoch) {
       // Shuffle data in each epochs
       shuffleData(trainX, trainY);
 

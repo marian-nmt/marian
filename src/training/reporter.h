@@ -1,13 +1,13 @@
 #pragma once
 
 #include "training/config.h"
+#include "training/training_state.h"
 #include "training/validator.h"
 
 namespace marian {
 
-// TODO: or just class Validator?
 template <class DataSet>
-class Reporter {
+class Reporter : public TrainingObserver {
 private:
   YAML::Node progress;
 
@@ -22,10 +22,13 @@ private:
   size_t wordsDisp{0};
   size_t batches{0};
 
+  Ptr<TrainingState> trainState_;
+
   boost::timer::cpu_timer timer;
 
 public:
-  Reporter(Ptr<Config> options) : options_(options) {}
+  Reporter(Ptr<Config> options, Ptr<TrainingState> state)
+      : options_(options), trainState_(state) {}
 
   bool keepGoing() {
     // stop if it reached the maximum number of epochs
@@ -50,6 +53,7 @@ public:
     LOG(info, "Seen {} samples", samples);
 
     epochs++;
+    trainState_->next();
     samples = 0;
 
     LOG(info, "Starting epoch {}", epochs);
@@ -142,5 +146,50 @@ public:
   }
 
   size_t numberOfBatches() { return batches; }
+
+  void registerTrainingObserver(Ptr<TrainingObserver> observer) {
+    trainState_->registerObserver(observer);
+  }
+
+  void epochHasChanged(TrainingState& state) {
+    if(stalled() > state.maxStalled)
+      state.maxStalled++;
+
+    float factor = options_->get<double>("learning-rate-decay");
+    if (factor > 1.0f)
+      LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
+
+    /* The following behaviour for learning rate decaying is implemented:
+     *
+     * * With only the --start-decay-epoch option enabled, the learning rate
+     *   is decayed after *each* epoch starting from N-th epoch.
+     *
+     * * With only the --start-decay-stalled option enabled, the learning rate
+     *   is decayed (*once*) if the first validation metric is not improving
+     *   for N consecutive validation steps.
+     *
+     * * With both options enabled, the learning rate is decayed after *each*
+     *   epoch starting from the first epoch for which any of those two
+     *   conditions is met.
+     */
+    if (factor > 0.0f) {
+      bool decay = false;
+
+      int startAtEpoch = options_->get<int>("start-decay-epoch");
+      if(startAtEpoch && state.epoch >= startAtEpoch)
+        decay = true;
+
+      int startWhenStalled = options_->get<int>("start-decay-stalled");
+      if(startAtEpoch && startWhenStalled && state.maxStalled >= startWhenStalled)
+        decay = true;
+      if(startWhenStalled && stalled() >= startWhenStalled)
+        decay = true;
+
+      if(decay) {
+        state.eta *= factor;
+        LOG(info, "Decaying learning rate to {}", state.eta);
+      }
+    }
+  }
 };
 }

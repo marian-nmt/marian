@@ -37,10 +37,9 @@ void createLoggers(const marian::Config* options) {
   }
 
   Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs)};
-  Logger config{
-      stderrLogger("config", "[%Y-%m-%d %T] [config] %v", generalLogs)};
-  Logger memory{
-      stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v", generalLogs)};
+  Logger warn{stderrLogger("warn", "[%Y-%m-%d %T] [warn] %v", generalLogs)};
+  Logger config{stderrLogger("config", "[%Y-%m-%d %T] [config] %v", generalLogs)};
+  Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v", generalLogs)};
   Logger data{stderrLogger("data", "[%Y-%m-%d %T] [data] %v", generalLogs)};
   Logger valid{stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs)};
   Logger translate{stderrLogger("translate", "%v")};
