@@ -70,24 +70,6 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
 
 }
 
-__global__ void gWeightedMeanOld(float* d_out, const float* weights, const float* d_in, const int* mapping,
-                              int numRows, int numCols, int srcLen) {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < numRows * numCols) {
-    int rowNo = id / numCols;
-    int batchNo = mapping[rowNo];
-    int statePos = id % numCols;
-
-    float sum = 0.0f;
-    for (int i = 0; i < srcLen; ++i) {
-      sum += weights[rowNo * srcLen + i] * d_in[batchNo * srcLen * numCols + (i * numCols) + statePos];
-    }
-
-    d_out[id] = sum;
-  }
-}
-
-
 __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const MatrixWrapper<float> weights,
                               const MatrixWrapper<float> in,
@@ -183,22 +165,22 @@ Matrix& Copy(Matrix& Out, const Matrix& In) {
   return Out;
 }
 
-__global__ void gPasteRows(  MatrixWrapper<float> outWrap,
-                          const MatrixWrapper<float> inWrap,
+__global__ void gPasteRows(  MatrixWrapper<float> out,
+                          const MatrixWrapper<float> in,
                           int rowNo, int colNo)
 {
-  int inRows = inWrap.dim(0);
-  int inCols = inWrap.dim(1);
+  int inRows = in.dim(0);
+  int inCols = in.dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < inRows * inCols) {
-    int outCols = outWrap.dim(1);
+    int outCols = out.dim(1);
 
     int inRow = id / inCols;
     int inCol = id % inCols;
 
-    //outWrap[outID] = inWrap[id];
-    outWrap(rowNo, inCol + colNo, 0, inRow) = inWrap(inRow, inCol, 0, 0);
+    //out[outID] = in[id];
+    out(rowNo, inCol + colNo, 0, inRow) = in(inRow, inCol, 0, 0);
   }
 }
 
@@ -240,20 +222,20 @@ Matrix& CopyRow(Matrix& Out,
   return Out;
 }
 
-__global__ void gCopyRows(MatrixWrapper<float> outWrap,
-                          const MatrixWrapper<float> inWrap,
+__global__ void gCopyRows(MatrixWrapper<float> out,
+                          const MatrixWrapper<float> in,
                           const MatrixWrapper<size_t> indicesWrap)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  if (id < outWrap.size()) {
+  if (id < out.size()) {
 	  uint dim[SHAPE_SIZE];
-	  outWrap.id2Indices(id, dim);
+	  out.id2Indices(id, dim);
 
 	  size_t indicesInd = dim[0];
 	  size_t inRow =indicesWrap[indicesInd];
 
-      outWrap(indicesInd, dim[1], 0, 0) = inWrap(inRow, dim[1], 0, 0);
+      out(indicesInd, dim[1], 0, 0) = in(inRow, dim[1], 0, 0);
 
   }
 }
@@ -305,30 +287,8 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
-__global__ void gSliceOld(MatrixWrapper<float> outWrap,
-                       const MatrixWrapper<float> inWrap,
-                       size_t n, size_t dim)
-{
-  size_t rows = inWrap.dim(0);
-  size_t cols = inWrap.dim(1);
-
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = outWrap.data() + j * dim;
-      const float* rowIn = inWrap.data() + j * cols + n * dim;
-
-      for(int tid = 0; tid < dim; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < dim)
-          rowOut[i] = rowIn[i];
-      }
-    }
-  }
-}
-
-__global__ void gSlice(MatrixWrapper<float> outWrap,
-                      const MatrixWrapper<float> inWrap,
+__global__ void gSlice(MatrixWrapper<float> out,
+                      const MatrixWrapper<float> in,
                        size_t n, size_t dim)
 {
   size_t row = blockIdx.x;
@@ -336,8 +296,8 @@ __global__ void gSlice(MatrixWrapper<float> outWrap,
   size_t inCol = threadIdx.x + dim * n;
   size_t outCol = threadIdx.x;
 
-  while (outCol < outWrap.dim(1)) {
-    outWrap(row, outCol, 0, 0) = inWrap(row, inCol, 0, 0);
+  while (outCol < out.dim(1)) {
+    out(row, outCol, 0, 0) = in(row, inCol, 0, 0);
 
     inCol += blockDim.x;
     outCol += blockDim.x;
@@ -459,25 +419,25 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return ret;
 }
 
-__global__ void gSoftMax(MatrixWrapper<float> outWrap,
+__global__ void gSoftMax(MatrixWrapper<float> out,
                          const MatrixWrapper<int> batchIdsWrap,
                          const MatrixWrapper<int> srcMappingWrap)
 {
   extern __shared__ float _share[];
 
-  size_t numHypos = outWrap.dim(0);
-  size_t srcLen = outWrap.dim(1);
+  size_t numHypos = out.dim(0);
+  size_t srcLen = out.dim(1);
 
   int hypoInd =  blockIdx.x;
   int origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
     float* _max = _share;
-    _max[origSrcPos] = outWrap(hypoInd, origSrcPos, 0, 0);
+    _max[origSrcPos] = out(hypoInd, origSrcPos, 0, 0);
     for (int tid = 0; tid < srcLen; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
       if (srcPos < srcLen) {
-        float value = outWrap(hypoInd, srcPos, 0, 0);
+        float value = out(hypoInd, srcPos, 0, 0);
 
         int batch = batchIdsWrap[hypoInd];
         value *= srcMappingWrap(srcPos, batch, 0, 0);
@@ -507,11 +467,11 @@ __global__ void gSoftMax(MatrixWrapper<float> outWrap,
     for (int tid = 0; tid < srcLen; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
       if (srcPos < srcLen) {
-        outWrap(hypoInd, srcPos, 0, 0) = __expf(outWrap(hypoInd, srcPos, 0, 0) - max);
+        out(hypoInd, srcPos, 0, 0) = __expf(out(hypoInd, srcPos, 0, 0) - max);
 
         int batch = batchIdsWrap[hypoInd];
-        outWrap(hypoInd, srcPos, 0, 0) *= srcMappingWrap(srcPos, batch, 0, 0);
-        _sum[origSrcPos] += outWrap(hypoInd, srcPos, 0, 0);
+        out(hypoInd, srcPos, 0, 0) *= srcMappingWrap(srcPos, batch, 0, 0);
+        _sum[origSrcPos] += out(hypoInd, srcPos, 0, 0);
       }
     }
 
@@ -533,7 +493,7 @@ __global__ void gSoftMax(MatrixWrapper<float> outWrap,
     for (int tid = 0; tid < srcLen; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
       if (srcPos < srcLen) {
-        outWrap(hypoInd, srcPos, 0, 0) /= _sum[0];
+        out(hypoInd, srcPos, 0, 0) /= _sum[0];
       }
     }
     __syncthreads();
@@ -559,22 +519,22 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   return Out;
 }
 
-__global__ void gLogSoftMax(MatrixWrapper<float> outWrap)
+__global__ void gLogSoftMax(MatrixWrapper<float> out)
 {
   extern __shared__ float _share[];
 
-  size_t rows = outWrap.dim(0);
-  size_t cols = outWrap.dim(1);
+  size_t rows = out.dim(0);
+  size_t cols = out.dim(1);
 
   int rowIdx =  blockIdx.x;
 
   while (rowIdx < rows) {
     float* _max = _share;
-    _max[threadIdx.x] = outWrap(rowIdx, threadIdx.x, 0, 0);
+    _max[threadIdx.x] = out(rowIdx, threadIdx.x, 0, 0);
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
-        const float &val = outWrap(rowIdx, id, 0, 0);
+        const float &val = out(rowIdx, id, 0, 0);
         if (val > _max[threadIdx.x]) {
           _max[threadIdx.x] = val;
         }
@@ -603,7 +563,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> outWrap)
       int id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = exp(row[id] - max);
-        float &val = outWrap(rowIdx, id, 0, 0);
+        float &val = out(rowIdx, id, 0, 0);
         val = __expf(val - max);
         _sum[threadIdx.x] += val;
       }
@@ -626,7 +586,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> outWrap)
       int id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = log(row[id]/_sum[0]);
-        float &val = outWrap(rowIdx, id, 0, 0);
+        float &val = out(rowIdx, id, 0, 0);
         val = __logf(val /_sum[0]);
       }
     }
@@ -650,13 +610,13 @@ Matrix& LogSoftmax(Matrix& Out)
   return Out;
 }
 
-__global__ void gSetColumn(MatrixWrapper<float> inWrap, int noColumn, float value) {
-  int n_rows = inWrap.dim(0);
+__global__ void gSetColumn(MatrixWrapper<float> in, int noColumn, float value) {
+  int n_rows = in.dim(0);
 
   int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
 
   if (rowNumber < n_rows) {
-    inWrap(rowNumber, noColumn, 0, 0) = value;
+    in(rowNumber, noColumn, 0, 0) = value;
   }
 }
 
@@ -671,10 +631,10 @@ void SetColumn(Matrix& In, int noColumn, float value) {
     (inWrap, noColumn, value);
 }
 
-__global__ void gFill(MatrixWrapper<float> inWrap, float val) {
+__global__ void gFill(MatrixWrapper<float> in, float val) {
   int index = threadIdx.x + blockDim.x * blockIdx.x;
-  if (index < inWrap.size()) {
-    inWrap[index] = val;
+  if (index < in.size()) {
+    in[index] = val;
   }
 }
 
@@ -697,18 +657,18 @@ void Fill(Matrix& In, float value) {
 }
 
 __global__
-void gMapMatrix(MatrixWrapper<float> inWrap,
+void gMapMatrix(MatrixWrapper<float> in,
                 const MatrixWrapper<int> mappingWrap,
                 int mappingCols, int i)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid < inWrap.size()) {
-    int numCols = inWrap.dim(1);
+  if (tid < in.size()) {
+    int numCols = in.dim(1);
     int batchIdx = tid / numCols;
     int col = tid % numCols;
 
-    //inWrap[tid] *= mappingWrap(i, batchIdx, 0, 0);
-    inWrap(batchIdx, col, 0, 0) *= mappingWrap(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
+    //in[tid] *= mappingWrap(i, batchIdx, 0, 0);
+    in(batchIdx, col, 0, 0) *= mappingWrap(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
   }
 }
 
@@ -749,8 +709,8 @@ __device__ uint getIndex(const dim3 &dim, const dim3 &val)
 }
 
 
-__global__ void gLNormalization(MatrixWrapper<float> outWrap,
-                                const MatrixWrapper<float> inWrap,
+__global__ void gLNormalization(MatrixWrapper<float> out,
+                                const MatrixWrapper<float> in,
                                 const MatrixWrapper<float> alphaWrap,
                                 const MatrixWrapper<float> betaWrap,
                                 float eps=0.00001)
@@ -760,18 +720,18 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
   //printf("blockDim.x=%d gridDim.x=%d \n", blockDim.x, gridDim.x);
   // blockDim.x=512 gridDim.x=1
 
-  int cols = inWrap.dim(1);
+  int cols = in.dim(1);
 
-  assert(blockIdx.x < inWrap.dim(0));
-  assert(blockIdx.y < inWrap.dim(2));
-  assert(blockIdx.z < inWrap.dim(3));
+  assert(blockIdx.x < in.dim(0));
+  assert(blockIdx.y < in.dim(2));
+  assert(blockIdx.z < in.dim(3));
 
   float* _sum = _share + blockDim.x;
   _sum[threadIdx.x] = 0.0f;
   for (int tid = 0; tid < cols; tid += blockDim.x) {
     int id = tid + threadIdx.x;
     if (id < cols) {
-      _sum[threadIdx.x] += inWrap(blockIdx.x, id, blockIdx.y, blockIdx.z);
+      _sum[threadIdx.x] += in(blockIdx.x, id, blockIdx.y, blockIdx.z);
     }
   }
   __syncthreads();
@@ -794,8 +754,8 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
   for (int tid = 0; tid < cols; tid += blockDim.x) {
     int id = tid + threadIdx.x;
     if(id < cols) {
-      float ex = inWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) - mean;
-      outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = ex;
+      float ex = in(blockIdx.x, id, blockIdx.y, blockIdx.z) - mean;
+      out(blockIdx.x, id, blockIdx.y, blockIdx.z) = ex;
       _sqSum[threadIdx.x] += ex * ex;
     }
   }
@@ -815,7 +775,7 @@ __global__ void gLNormalization(MatrixWrapper<float> outWrap,
   for (int tid = 0; tid < cols; tid += blockDim.x) {
     int id = tid + threadIdx.x;
     if(id < cols) {
-      float &val = outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z);
+      float &val = out(blockIdx.x, id, blockIdx.y, blockIdx.z);
       if (betaWrap.size()) {
         val = alphaWrap[id] * (val / sigma) + betaWrap[id];
       } else {
