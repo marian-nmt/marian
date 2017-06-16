@@ -194,6 +194,8 @@ void Config::addOptionsModel(po::options_description& desc,
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
     ("dim-pos", po::value<int>()->default_value(0), "Size of position embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
+    ("cell-enc", po::value<std::string>()->default_value("gru"), "Type of RNN cell: gru, lstm, tanh (s2s)")
+    ("cell-dec", po::value<std::string>()->default_value("gru"), "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("layers-enc", po::value<int>()->default_value(1), "Number of encoder layers (s2s)")
     ("layers-dec", po::value<int>()->default_value(1), "Number of decoder layers (s2s)")
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
@@ -447,6 +449,8 @@ void Config::addOptions(int argc,
   SET_OPTION("dim-emb", int);
   SET_OPTION("dim-pos", int);
   SET_OPTION("dim-rnn", int);
+  SET_OPTION("cell-enc", std::string);
+  SET_OPTION("cell-dec", std::string);
   SET_OPTION("layers-enc", int);
   SET_OPTION("layers-dec", int);
   SET_OPTION("skip", bool);

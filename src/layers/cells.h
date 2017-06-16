@@ -678,5 +678,30 @@ public:
   }
 };
 
+class cells {
+private:
+  std::string type_;
+  size_t layers_;
+
+public:
+  cells(const std::string& type, size_t layers)
+  : type_(type), layers_(layers) {}
+
+  template <typename ...Args>
+  std::vector<Ptr<Cell>> operator()(Ptr<ExpressionGraph> graph,
+                                    std::string prefix,
+                                    int dimInput,
+                                    int dimState,
+                                    Args ...args) {
+    std::vector<Ptr<Cell>> cells;
+    for(int i = 0; i < layers_; ++i)
+      cells.push_back(cell(type_)(graph,
+                                 prefix + "_l" + std::to_string(i),
+                                 i == 0 ? dimInput : dimState,
+                                 dimState,
+                                 args...));
+    return cells;
+  }
+};
 
 }
