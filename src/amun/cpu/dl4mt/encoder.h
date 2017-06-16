@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../mblas/matrix.h"
-#include "../dl4mt/model.h"
-#include "../dl4mt/gru.h"
+#include "model.h"
+#include "gru.h"
+#include "transition.h"
 
 namespace amunmt {
 namespace CPU {
@@ -31,21 +32,30 @@ class Encoder {
     };
 
     /////////////////////////////////////////////////////////////////
-    template <class Weights>
-    class RNN {
+    template <class WeightsGRU, class WeightsTrans>
+    class EncoderRNN {
       public:
-        RNN(const Weights& model)
-        : gru_(model) {}
+        EncoderRNN(const WeightsGRU& modelGRU, const WeightsTrans& modelTrans)
+          : gru_(modelGRU),
+            transition_(modelTrans)
+        {}
 
         void InitializeState(size_t batchSize = 1) {
           State_.resize(batchSize, gru_.GetStateLength());
           State_ = 0.0f;
         }
 
-        void GetNextState(mblas::Matrix& NextState,
-                          const mblas::Matrix& State,
-                          const mblas::Matrix& Embd) {
-          gru_.GetNextState(NextState, State, Embd);
+        void GetNextState(mblas::Matrix& nextState,
+                          const mblas::Matrix& state,
+                          const mblas::Matrix& embd) {
+          gru_.GetNextState(nextState, state, embd);
+          // std::cerr << "GRU: " << std::endl;
+          // for (int i = 0; i < 10; ++i) std::cerr << nextState(0, i) << " ";
+          // std::cerr << std::endl;
+          transition_.GetNextState(nextState);
+          // std::cerr << "TRANS: " << std::endl;
+          // for (int i = 0; i < 10; ++i) std::cerr << nextState(0, i) << " ";
+          // std::cerr << std::endl;
         }
 
         template <class It>
@@ -72,7 +82,8 @@ class Encoder {
 
       private:
         // Model matrices
-        const GRU<Weights> gru_;
+        const GRU<WeightsGRU> gru_;
+        const Transition<WeightsTrans> transition_;
 
         mblas::Matrix State_;
     };
@@ -80,9 +91,9 @@ class Encoder {
   /////////////////////////////////////////////////////////////////
   public:
     Encoder(const Weights& model)
-    : embeddings_(model.encEmbeddings_),
-      forwardRnn_(model.encForwardGRU_),
-      backwardRnn_(model.encBackwardGRU_)
+      : embeddings_(model.encEmbeddings_),
+        forwardRnn_(model.encForwardGRU_, model.encForwardTransition_),
+        backwardRnn_(model.encBackwardGRU_, model.encBackwardTransition_)
     {}
 
     void GetContext(const std::vector<size_t>& words,
@@ -90,8 +101,8 @@ class Encoder {
 
   private:
     Embeddings<Weights::Embeddings> embeddings_;
-    RNN<Weights::GRU> forwardRnn_;
-    RNN<Weights::GRU> backwardRnn_;
+    EncoderRNN<Weights::GRU, Weights::Transition> forwardRnn_;
+    EncoderRNN<Weights::GRU, Weights::Transition> backwardRnn_;
 };
 
 }
