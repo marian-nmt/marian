@@ -161,68 +161,61 @@ public:
   }
 
   void actAfterEpoch(TrainingState& state) {
-    float factor = options_->get<double>("learning-rate-decay");
-    // @TODO: move this warning to different place
-    if (factor > 1.0f)
-      LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
-
     // @TODO: remove this logging
     LOG(info,
-        "[afterEpoch] Learning rate: {}, stalled: {}, max stalled: {}",
+        "[debug] Learning rate: {}, stalled: {}, max stalled: {}",
         state.eta,
         state.stalled,
         state.maxStalled);
 
-    /* The following behaviour for learning rate decaying is implemented:
-     *
-     * * With only the --start-decay-epoch option enabled, the learning rate
-     *   is decayed after *each* epoch starting from N-th epoch.
-     *
-     * * With only the --start-decay-stalled option enabled, the learning rate
-     *   is decayed (*once*) if the first validation metric is not improving
-     *   for N consecutive validation steps.
-     *
-     * * With both options enabled, the learning rate is decayed after *each*
-     *   epoch starting from the first epoch for which any of those two
-     *   conditions is met.
-     */
-    if (factor > 0.0f) {
+    float factor = options_->get<double>("lr-decay");
+    if(factor > 0.0) {
       bool decay = false;
+      auto strategy = options_->get<std::string>("lr-decay-strategy");
+      int startEpoch
+          = options_->get<std::vector<size_t>>("lr-decay-start").front();
 
-      int startAtEpoch = options_->get<int>("start-decay-epoch");
-      if(startAtEpoch && state.epoch >= startAtEpoch)
-        decay = true;
-
-      int startWhenStalled = options_->get<int>("start-decay-stalled");
-      if(startAtEpoch && startWhenStalled && state.maxStalled >= startWhenStalled)
-        decay = true;
+      if(strategy == "epoch") {
+        if(startEpoch && state.epoch >= startEpoch)
+          decay = true;
+      }
+      if(strategy == "epoch+stalled") {
+        int startStalled
+            = options_->get<std::vector<size_t>>("lr-decay-start")[1];
+        if(startEpoch && startStalled && state.maxStalled >= startStalled)
+          decay = true;
+      }
 
       if(decay) {
         state.eta *= factor;
-        LOG(info, "Decaying learning rate to {}", state.eta);
+        LOG(info,
+            "Decaying learning rate to {} in epoch {}",
+            state.eta,
+            state.epoch);
       }
     }
   }
 
   void actAfterStalled(TrainingState& state) {
-    float factor = options_->get<double>("learning-rate-decay");
-    // @TODO: move this warning to different place
-    if (factor > 1.0f)
-      LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
-
     // @TODO: remove this logging
     LOG(info,
-        "[afterStalled] Learning rate: {}, stalled: {}, max stalled: {}",
+        "[debug] Learning rate: {}, stalled: {}, max stalled: {}",
         state.eta,
         state.stalled,
         state.maxStalled);
 
-    if (factor > 0.0f) {
-      int startAtEpoch = options_->get<int>("start-decay-epoch");
-      int startWhenStalled = options_->get<int>("start-decay-stalled");
-      if(!startAtEpoch && startWhenStalled && state.stalled >= startWhenStalled) {
-        state.eta *= factor;
-        LOG(info, "Decaying learning rate to {}", state.eta);
+    double factor = options_->get<double>("lr-decay");
+    if(factor > 0.0) {
+      if("stalled" == options_->get<std::string>("lr-decay-strategy")) {
+        int startStalled
+            = options_->get<std::vector<size_t>>("lr-decay-start").front();
+        if(startStalled && state.stalled >= startStalled) {
+          state.eta *= factor;
+          LOG(info,
+              "Decaying learning rate to {} after stalled {} time(s)",
+              state.eta,
+              state.stalled);
+        }
       }
     }
   }
