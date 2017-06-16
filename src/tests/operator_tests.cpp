@@ -1,5 +1,3 @@
-#pragma once
-
 #include "catch.hpp"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
