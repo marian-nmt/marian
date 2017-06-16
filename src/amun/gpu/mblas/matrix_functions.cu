@@ -748,103 +748,132 @@ __device__ uint getIndex(const dim3 &dim, const dim3 &val)
   return ret;
 }
 
-__global__ void gLNormalization(float* out, const float* in, const float* alpha, const float* beta,
-                                    int rows, int cols, float eps=0.00001) {
+
+__global__ void gLNormalization(MatrixWrapper<float> outWrap,
+                                const MatrixWrapper<float> inWrap,
+                                const MatrixWrapper<float> alphaWrap,
+                                const MatrixWrapper<float> betaWrap,
+                                float eps=0.00001)
+{
   extern __shared__ float _share[];
 
-  for (int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if (j < rows) {
-      float* so = out + j * cols;
-      const float* sp = in + j * cols;
+  //printf("blockDim.x=%d gridDim.x=%d \n", blockDim.x, gridDim.x);
+  // blockDim.x=512 gridDim.x=1
 
-      float* _sum = _share + blockDim.x;
-      _sum[threadIdx.x] = 0.0f;
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if (id < cols) {
-          _sum[threadIdx.x] += sp[id];
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if (threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float mean = _sum[0] / cols;
-      __syncthreads();
+  int cols = inWrap.dim(1);
 
-      float* _sqSum = _share + blockDim.x;
+  assert(blockIdx.x < inWrap.dim(0));
+  assert(blockIdx.y < inWrap.dim(2));
+  assert(blockIdx.z < inWrap.dim(3));
 
-      _sqSum[threadIdx.x] = 0.0;
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float ex = sp[id] - mean;
-          so[id] = ex;
-          _sqSum[threadIdx.x] += ex * ex;
-        }
-      }
-      __syncthreads();
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sigma = sqrtf(eps + (_sqSum[0] / cols));
-      __syncthreads();
+  float* _sum = _share + blockDim.x;
+  _sum[threadIdx.x] = 0.0f;
+  for (int tid = 0; tid < cols; tid += blockDim.x) {
+    int id = tid + threadIdx.x;
+    if (id < cols) {
+      _sum[threadIdx.x] += inWrap(blockIdx.x, id, blockIdx.y, blockIdx.z);
+    }
+  }
+  __syncthreads();
+  int len = blockDim.x;
+  while(len != 1) {
+    __syncthreads();
+    int skip = (len + 1) >> 1;
+    if (threadIdx.x < (len >> 1)) {
+      _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+    }
+    len = (len + 1) >> 1;
+  }
+  __syncthreads();
+  float mean = _sum[0] / cols;
+  __syncthreads();
 
-      for (int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          if (beta != nullptr) {
-            so[id] = alpha[id] * (so[id] / sigma) + beta[id];
-          } else {
-            so[id] = alpha[id] * (so[id] / sigma);
-          }
-        }
+  float* _sqSum = _share + blockDim.x;
+
+  _sqSum[threadIdx.x] = 0.0;
+  for (int tid = 0; tid < cols; tid += blockDim.x) {
+    int id = tid + threadIdx.x;
+    if(id < cols) {
+      float ex = inWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) - mean;
+      outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z) = ex;
+      _sqSum[threadIdx.x] += ex * ex;
+    }
+  }
+  __syncthreads();
+  len = blockDim.x;
+  while(len != 1) {
+    __syncthreads();
+    int skip = (len + 1) >> 1;
+    if(threadIdx.x < (len >> 1))
+      _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
+    len = (len + 1) >> 1;
+  }
+  __syncthreads();
+  float sigma = sqrtf(eps + (_sqSum[0] / cols));
+  __syncthreads();
+
+  for (int tid = 0; tid < cols; tid += blockDim.x) {
+    int id = tid + threadIdx.x;
+    if(id < cols) {
+      float &val = outWrap(blockIdx.x, id, blockIdx.y, blockIdx.z);
+      if (betaWrap.size()) {
+        val = alphaWrap[id] * (val / sigma) + betaWrap[id];
+      } else {
+        val = alphaWrap[id] * (val / sigma);
       }
     }
   }
+
+}
+
+void Normalization(Matrix &out,
+                  const Matrix &in,
+                  const Matrix &alpha,
+                  const Matrix *beta,
+                  float eps)
+{
+  assert(in.dim(0) < MAX_BLOCKS);
+  assert(in.dim(2) < MAX_BLOCKS);
+  assert(in.dim(3) < MAX_BLOCKS);
+
+  //out.Reshape(in.dim(0), in.dim(1), 1, 1);
+  out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
+
+  int numThreads = std::min((uint) in.dim(1), (uint) MAX_THREADS);
+  dim3 numBlocks(in.dim(0), in.dim(2), in.dim(3));
+  int shared = numThreads * sizeof(float) * 2;
+
+  MatrixWrapper<float> outWrap(out);
+  const MatrixWrapper<float> inWrap(in);
+  const MatrixWrapper<float> alphaWrap(alpha);
+  MatrixWrapper<float> *betaWrap = beta ? new MatrixWrapper<float>(*beta) : new MatrixWrapper<float>();
+
+  gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
+    (outWrap, inWrap, alphaWrap, *betaWrap, eps);
+
+  /*
+  //std::cerr << "nBlocks=" << numBlocks << std::endl;
+  std::cerr << "nThreads=" << numThreads << std::endl;
+  std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
+  std::cerr << "inWrap=" << inWrap.Debug() << std::endl;
+  std::cerr << "alphaWrap=" << alphaWrap.Debug() << std::endl;
+  std::cerr << "betaWrap=" << betaWrap->Debug() << std::endl;
+  std::cerr << std::endl;
+
+  HANDLE_ERROR(cudaDeviceSynchronize());
+  */
+  delete betaWrap;
 }
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Matrix& beta,
-                       float eps) {
-  int numThreads = std::min((int)in.dim(1), 512);
-
-  out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
-
-  int rows = in.dim(0) * in.dim(2) * in.dim(3);
-  int cols = in.dim(1);
-  int numBlocks = std::min(rows, 65000);
-  int shared = numThreads * sizeof(float) * 2;
-
-  gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (out.data(), in.data(), alpha.data(), beta.data(), rows, cols, eps);
+                       float eps)
+{
+  Normalization(out, in, alpha, &beta, eps);
 }
 
-void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps) {
-  int numThreads = std::min((int)in.dim(1), 512);
-
-  out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
-
-  int rows = in.dim(0) * in.dim(2) * in.dim(3);
-  int cols = in.dim(1);
-  int numBlocks = std::min(rows, 65000);
-  int shared = numThreads * sizeof(float) * 2;
-
-  gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (out.data(), in.data(), alpha.data(), nullptr, rows, cols, eps);
+void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps)
+{
+  Normalization(out, in, alpha, nullptr, eps);
 }
 
 }  // namespace mblas
