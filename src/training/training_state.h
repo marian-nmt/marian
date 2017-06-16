@@ -11,27 +11,35 @@ class TrainingState;
 
 class TrainingObserver {
 public:
-  virtual void epochHasChanged(TrainingState& state) = 0;
+  virtual void actAfterEpoch(TrainingState& state) = 0;
+  virtual void actAfterStalled(TrainingState& state) {}
 };
 
 class TrainingState {
 public:
-  int epoch;
-  int maxStalled;
+  int epoch{1};
+  int stalled{0};
+  int maxStalled{0};
   float eta;
 
-  TrainingState(Ptr<Config> options)
-      : epoch(1), maxStalled(0), eta(options->get<float>("learn-rate")) {}
+  TrainingState(Ptr<Config> options) : eta(options->get<float>("learn-rate")) {}
 
   void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
   }
 
-  int next() {
+  void newEpoch() {
     ++epoch;
     for (auto observer : observers_)
-      observer->epochHasChanged(*this);
-    return epoch;
+      observer->actAfterEpoch(*this);
+  }
+
+  void newStalled(int num) {
+    stalled = num;
+    if (num > maxStalled)
+      ++maxStalled;
+    for (auto observer : observers_)
+      observer->actAfterStalled(*this);
   }
 
 private:

@@ -31,9 +31,6 @@ public:
       : options_(options), trainState_(state) {}
 
   bool keepGoing() {
-    if(stalled() > trainState_->maxStalled)
-      trainState_->maxStalled++;
-
     // stop if it reached the maximum number of epochs
     int stopAfterEpochs = options_->get<size_t>("after-epochs");
     if(stopAfterEpochs > 0 && epochs > stopAfterEpochs)
@@ -57,7 +54,7 @@ public:
     LOG(info, "Seen {} samples", samples);
 
     epochs++;
-    trainState_->next();
+    trainState_->newEpoch();
     samples = 0;
 
     LOG(info, "Starting epoch {}", epochs);
@@ -77,26 +74,34 @@ public:
   bool saving() { return (batches % options_->get<size_t>("save-freq") == 0); }
 
   void validate(Ptr<ExpressionGraph> graph) {
-    if(batches % options_->get<size_t>("valid-freq") == 0) {
-      for(auto validator : validators_) {
-        if(validator) {
-          size_t stalledPrev = validator->stalled();
-          float value = validator->validate(graph);
-          if(validator->stalled() > 0)
-            LOG(valid,
-                "{} : {} : {} : stalled {} times",
-                batches,
-                validator->type(),
-                value,
-                validator->stalled());
-          else
-            LOG(valid,
-                "{} : {} : {} : new best",
-                batches,
-                validator->type(),
-                value);
-        }
-      }
+    if(batches % options_->get<size_t>("valid-freq") != 0)
+      return;
+
+    bool firstValidator = true;
+    for(auto validator : validators_) {
+      if(!validator)
+        continue;
+
+      size_t stalledPrev = validator->stalled();
+      float value = validator->validate(graph);
+      if(validator->stalled() > 0)
+        LOG(valid,
+            "{} : {} : {} : stalled {} times",
+            batches,
+            validator->type(),
+            value,
+            validator->stalled());
+      else
+        LOG(valid,
+            "{} : {} : {} : new best",
+            batches,
+            validator->type(),
+            value);
+
+      // notify training observers if the first validator did not improve
+      if(firstValidator && validator->stalled() > stalledPrev)
+        trainState_->newStalled(validator->stalled());
+      firstValidator = false;
     }
   }
 
@@ -155,16 +160,17 @@ public:
     trainState_->registerObserver(observer);
   }
 
-  void epochHasChanged(TrainingState& state) {
+  void actAfterEpoch(TrainingState& state) {
     float factor = options_->get<double>("learning-rate-decay");
+    // @TODO: move this warning to different place
     if (factor > 1.0f)
       LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
 
     // @TODO: remove this logging
     LOG(info,
-        "Learning rate: {}, stalled: {}, max stalled: {}",
+        "[afterEpoch] Learning rate: {}, stalled: {}, max stalled: {}",
         state.eta,
-        stalled(),
+        state.stalled,
         state.maxStalled);
 
     /* The following behaviour for learning rate decaying is implemented:
@@ -190,10 +196,31 @@ public:
       int startWhenStalled = options_->get<int>("start-decay-stalled");
       if(startAtEpoch && startWhenStalled && state.maxStalled >= startWhenStalled)
         decay = true;
-      if(startWhenStalled && stalled() >= startWhenStalled)
-        decay = true;
 
       if(decay) {
+        state.eta *= factor;
+        LOG(info, "Decaying learning rate to {}", state.eta);
+      }
+    }
+  }
+
+  void actAfterStalled(TrainingState& state) {
+    float factor = options_->get<double>("learning-rate-decay");
+    // @TODO: move this warning to different place
+    if (factor > 1.0f)
+      LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
+
+    // @TODO: remove this logging
+    LOG(info,
+        "[afterStalled] Learning rate: {}, stalled: {}, max stalled: {}",
+        state.eta,
+        state.stalled,
+        state.maxStalled);
+
+    if (factor > 0.0f) {
+      int startAtEpoch = options_->get<int>("start-decay-epoch");
+      int startWhenStalled = options_->get<int>("start-decay-stalled");
+      if(!startAtEpoch && startWhenStalled && state.stalled >= startWhenStalled) {
         state.eta *= factor;
         LOG(info, "Decaying learning rate to {}", state.eta);
       }

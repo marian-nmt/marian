@@ -46,6 +46,7 @@ public:
 
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    // optimizer has to be registered last to see a change of learning rate
     reporter_->registerTrainingObserver(reporter_);
     reporter_->registerTrainingObserver(opt_);
   }
@@ -182,6 +183,7 @@ public:
 
   virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
     reporter_ = reporter;
+    // optimizer has to be registered last to see a change of learning rate
     reporter_->registerTrainingObserver(reporter_);
     reporter_->registerTrainingObserver(opt_);
   }
