@@ -215,7 +215,7 @@ private:
   std::vector<std::vector<int>> localVersionNumbers;
 
   std::vector<std::vector<GradientDrop>> fetchDropper;
-  std::vector<Tensor> tmpTensor, tmpDelta;
+  std::vector<Tensor> tmpTensor;
 
   std::vector<std::vector<Tensor>> params_;
   std::vector<Ptr<TensorAllocator>> paramsAlloc_;
@@ -355,7 +355,7 @@ private:
 
             localSparseDelta[worker_id][idx]->scatterAdd(oldParams->subtensor(pos, grads_[idx]->size()));
             cudaStreamSynchronize(0);
-            
+
             localVersionNumbers[worker_id][idx] = globalVersionNumber[idx];
 
           },
@@ -538,10 +538,6 @@ private:
         my_id = i;
         graph = graphs_[i];
         builder = builders_[i++];
-
-        if(drop_rate_)
-          tmpDelta.push_back(newTensor(graph->params()->vals()->size(),
-                                       graph->params()->vals()->getDevice()));
       }
 
       if(!dropper) {
