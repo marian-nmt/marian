@@ -31,19 +31,23 @@ public:
       : options_(options), trainState_(state) {}
 
   bool keepGoing() {
+    if(stalled() > trainState_->maxStalled)
+      trainState_->maxStalled++;
+
     // stop if it reached the maximum number of epochs
-    if(options_->get<size_t>("after-epochs") > 0
-       && epochs > options_->get<size_t>("after-epochs"))
+    int stopAfterEpochs = options_->get<size_t>("after-epochs");
+    if(stopAfterEpochs > 0 && epochs > stopAfterEpochs)
       return false;
 
     // stop if it reached the maximum number of batch updates
-    if(options_->get<size_t>("after-batches") > 0
-       && batches >= options_->get<size_t>("after-batches"))
+    int stopAfterBatches = options_->get<size_t>("after-batches");
+    if(stopAfterBatches > 0 && batches >= stopAfterBatches)
       return false;
 
     // stop if the first validator did not improve for a given number of checks
-    if(options_->get<size_t>("early-stopping") > 0 && !validators_.empty()
-       && validators_[0]->stalled() >= options_->get<size_t>("early-stopping"))
+    int stopAfterStalled = options_->get<size_t>("early-stopping");
+    if(stopAfterStalled > 0 && !validators_.empty()
+       && stalled() >= stopAfterStalled)
       return false;
 
     return true;
@@ -97,9 +101,9 @@ public:
   }
 
   size_t stalled() {
-    for(auto validator : validators_)
-      if(validator)
-        return validator->stalled();
+    if(!validators_.empty())
+      if(validators_[0])
+        return validators_[0]->stalled();
     return 0;
   }
 
@@ -152,12 +156,16 @@ public:
   }
 
   void epochHasChanged(TrainingState& state) {
-    if(stalled() > state.maxStalled)
-      state.maxStalled++;
-
     float factor = options_->get<double>("learning-rate-decay");
     if (factor > 1.0f)
       LOG(warn, "Learning rate decay factor greater than 1.0 is unusual");
+
+    // @TODO: remove this logging
+    LOG(info,
+        "Learning rate: {}, stalled: {}, max stalled: {}",
+        state.eta,
+        stalled(),
+        state.maxStalled);
 
     /* The following behaviour for learning rate decaying is implemented:
      *
