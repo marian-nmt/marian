@@ -1,9 +1,11 @@
 #pragma once
+
 #include <curand.h>
 #include <curand_kernel.h>
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <memory>
+
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
 
@@ -11,11 +13,11 @@ namespace marian {
 
 // TODO:  create actual sparse tensor class. This one is just minimal
 __global__ void gScatterAdd(float* denseData,
-                               float* sparseData,
-                               int* sparseIndices,
-                               int denseSize,
-                               int sparseSize,
-                               int offset) {
+                            float* sparseData,
+                            int* sparseIndices,
+                            int denseSize,
+                            int sparseSize,
+                            int offset) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= sparseSize)
     return;
@@ -101,7 +103,7 @@ public:
     cudaStreamSynchronize(0);
   }
 
-  //copy from another sparse tensor
+  // copy from another sparse tensor
   void copyFrom(std::shared_ptr<SparseTensorBase> t, bool data_only = false) {
     copyFrom(t->data(), t->indices(), t->size(), data_only);
   }
@@ -112,7 +114,7 @@ public:
 
   void setSize(int size) { size_ = size; }
 
-  //return the dense representation of this tensor
+  // return the dense representation of this tensor
   void toDense(Tensor t, int offset) {
     cudaSetDevice(device_);
     int threads = 512;
@@ -122,7 +124,6 @@ public:
         t->data(), data_, indices_, t->size(), size_, offset);
   }
 
-
   void scatterAdd(Tensor t, int offset = 0) {
     cudaSetDevice(device_);
     cudaStreamSynchronize(0);
@@ -131,7 +132,6 @@ public:
     gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
   }
-
 
   std::shared_ptr<SparseTensorBase> subtensor(int pos, int size, int idx) {
     cudaSetDevice(device_);
@@ -165,5 +165,4 @@ public:
 };
 
 typedef std::shared_ptr<SparseTensorBase> SparseTensor;
-
 }
