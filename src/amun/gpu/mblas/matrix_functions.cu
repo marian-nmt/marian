@@ -57,16 +57,13 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   size_t stateLength = Out.dim(1);
   size_t sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
 
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> inWrap(In);
-
   MatrixWrapper<int> mappingWrap(mapping, sentenceLength, batchNum, 1, 1);
 
   size_t threads = MAX_THREADS;
-  size_t blocks =  (outWrap.size() / threads) + ((outWrap.size() % threads == 0) ?  0 : 1);
+  size_t blocks =  (Out.size() / threads) + ((Out.size() % threads == 0) ?  0 : 1);
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, mappingWrap);
+    (Out, In, mappingWrap);
 
 }
 
@@ -102,16 +99,11 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
 
   Out.Resize(numHypos, states);
 
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> weightsWrap(Weights);
-  MatrixWrapper<float> inWrap(In);
-  MatrixWrapper<int> mappingWrap(mapping);
-
   int nThreads = MAX_THREADS;
   int nBlocks =  (Out.size() / MAX_THREADS) + ((Out.size() % MAX_THREADS == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, weightsWrap, inWrap, mappingWrap);
+    (Out, Weights, In, mapping);
   /*
   cerr << "nBlocks=" << nBlocks << endl;
 
@@ -186,14 +178,11 @@ __global__ void gPasteRows(  MatrixWrapper<float> out,
 
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
 {
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> inWrap(In);
-
   int nThreads = MAX_THREADS;
   int nBlocks =  (In.size() / 512) + ((In.size() % 512 == 0) ?  0 : 1);
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, rowNo, colNo);
+    (Out, In, rowNo, colNo);
 
 }
 
@@ -260,18 +249,13 @@ Matrix& CopyRows(Matrix& Out,
   */
 
   size_t size = Out.size();
-
   size_t numPairs = indices.size();
-
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
-  const MatrixWrapper<size_t> indicesWrap(indices);
 
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
   int blocks = size / threads + 1;
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, indicesWrap);
+    (Out, In, indices);
 
   return Out;
 }
@@ -314,9 +298,6 @@ Matrix& Slice(Matrix& Out,
 
   Out.Resize(In.dim(0), dim);
 
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
-
   /*
   cerr << "outWrap=" << outWrap.Debug() << endl;
   cerr << "inWrap=" << inWrap.Debug() << endl;
@@ -329,7 +310,7 @@ Matrix& Slice(Matrix& Out,
   uint blocks = In.dim(0);
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, n, dim);
+    (Out, In, n, dim);
   return Out;
 }
 
@@ -505,8 +486,6 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
 {
   size_t srcSize = Out.dim(1);
 
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<int> batchIdsWrap(batchIds);
   const MatrixWrapper<int> srcMappingWrap(srcMapping, srcSize, batchSize, 1, 1);
 
   int blocks = batchSize;
@@ -514,7 +493,7 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVect
   int shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, batchIdsWrap, srcMappingWrap);
+    (Out, batchIds, srcMappingWrap);
 
   return Out;
 }
@@ -625,10 +604,8 @@ void SetColumn(Matrix& In, int noColumn, float value) {
   int nBlocks = nRows / MAX_THREADS + ((nRows % MAX_THREADS == 0) ?  0 : 1);
   int nThreads = std::min(MAX_THREADS, nRows);
 
-  MatrixWrapper<float> inWrap(In);
-
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
-    (inWrap, noColumn, value);
+    (In, noColumn, value);
 }
 
 __global__ void gFill(MatrixWrapper<float> in, float val) {
@@ -645,10 +622,8 @@ void Fill(Matrix& In, float value) {
     int nThreads = std::min(MAX_THREADS, (int)size);
     int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
 
-    MatrixWrapper<float> inWrap(In);
-
     gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-      (inWrap, value);
+      (In, value);
   }
   else {
     HANDLE_ERROR(cudaMemset(In.data(), 0, size * sizeof(float)));
@@ -658,7 +633,7 @@ void Fill(Matrix& In, float value) {
 
 __global__
 void gMapMatrix(MatrixWrapper<float> in,
-                const MatrixWrapper<int> mappingWrap,
+                const MatrixWrapper<int> mapping,
                 int mappingCols, int i)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -668,7 +643,7 @@ void gMapMatrix(MatrixWrapper<float> in,
     int col = tid % numCols;
 
     //in[tid] *= mappingWrap(i, batchIdx, 0, 0);
-    in(batchIdx, col, 0, 0) *= mappingWrap(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
+    in(batchIdx, col, 0, 0) *= mapping(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
   }
 }
 
@@ -684,11 +659,10 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   int numThreads = std::min((int)state.size(), MAX_THREADS);
   int numBlocks = (state.size() / numThreads) + 1;
 
-  MatrixWrapper<float> stateWrap(state);
   MatrixWrapper<int> mappingWrap(mapping, sentenceLength, batchSize, 1, 1);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
-    (stateWrap, mappingWrap, sentenceLength, i);
+    (state, mappingWrap, sentenceLength, i);
 
   /*
   cerr << "nBlocks=" << numBlocks << endl;
@@ -802,13 +776,10 @@ void Normalization(Matrix &out,
   dim3 numBlocks(in.dim(0), in.dim(2), in.dim(3));
   int shared = numThreads * sizeof(float) * 2;
 
-  MatrixWrapper<float> outWrap(out);
-  const MatrixWrapper<float> inWrap(in);
-  const MatrixWrapper<float> alphaWrap(alpha);
   MatrixWrapper<float> *betaWrap = beta ? new MatrixWrapper<float>(*beta) : new MatrixWrapper<float>();
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, alphaWrap, *betaWrap, eps);
+    (out, in, alpha, *betaWrap, eps);
 
   /*
   //std::cerr << "nBlocks=" << numBlocks << std::endl;
