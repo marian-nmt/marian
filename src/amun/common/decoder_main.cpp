@@ -15,6 +15,7 @@
 #include "common/translation_task.h"
 
 using namespace amunmt;
+using namespace std;
 
 int main(int argc, char* argv[]) {
   God god;
@@ -27,6 +28,7 @@ int main(int argc, char* argv[]) {
   std::size_t lineNum = 0;
 
   size_t miniSize = god.Get<size_t>("mini-batch");
+  int miniWords = god.Get<int>("mini-batch-words");
   size_t maxiSize = god.Get<size_t>("maxi-batch");
 
   LOG(info, "Reading input");
@@ -40,7 +42,9 @@ int main(int argc, char* argv[]) {
 
       maxiBatch->SortByLength();
       while (maxiBatch->size()) {
-        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
+        //cerr << "miniBatch=" << miniBatch->size() << " maxiBatch=" << maxiBatch->size() << endl;
+
         god.GetThreadPool().enqueue(
             [&god,miniBatch]{ return TranslationTaskAndOutput(god, miniBatch); }
             );
@@ -55,7 +59,7 @@ int main(int argc, char* argv[]) {
   if (maxiBatch->size()) {
     maxiBatch->SortByLength();
     while (maxiBatch->size()) {
-      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
       god.GetThreadPool().enqueue(
           [&god,miniBatch]{ return TranslationTaskAndOutput(god, miniBatch); }
           );

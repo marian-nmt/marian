@@ -217,6 +217,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Number of sentences in mini batch.")
     ("maxi-batch", po::value<size_t>()->default_value(1),
       "Number of sentences in maxi batch.")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences.")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -306,6 +308,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("beam-size", size_t);
   SET_OPTION("mini-batch", size_t);
   SET_OPTION("maxi-batch", size_t);
+  SET_OPTION("mini-batch-words", int);
   SET_OPTION("max-length", size_t);
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
