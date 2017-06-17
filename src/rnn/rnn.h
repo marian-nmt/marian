@@ -72,7 +72,7 @@ private:
   States apply(const Expr input, const Expr mask = nullptr) {
     auto graph = input->graph();
     int dimBatch = input->shape()[0];
-    int dimState = cell_->dimState();
+    int dimState = cell_->getOptions()->get<int>("dimState");
 
     auto output = graph->zeros(keywords::shape = {dimBatch, dimState});
     Expr cell = output;

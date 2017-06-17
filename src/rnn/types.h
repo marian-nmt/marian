@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/definitions.h"
+#include "common/options.h"
 #include "graph/expression_graph.h"
 
 namespace marian {
@@ -86,7 +87,13 @@ class States {
 class Cell;
 struct CellInput;
 
-struct Stackable : std::enable_shared_from_this<Stackable> {
+class Stackable : public std::enable_shared_from_this<Stackable> {
+protected:
+  Ptr<Options> options_;
+
+public:
+  Stackable(Ptr<Options> options) : options_(options) {}
+
   // required for dynamic_pointer_cast to detect polymorphism
   virtual ~Stackable() {}
 
@@ -99,29 +106,32 @@ struct Stackable : std::enable_shared_from_this<Stackable> {
   inline bool is() {
     return as<Cast>() != nullptr;
   }
+
+  Ptr<Options> getOptions() {
+    return options_;
+  }
 };
 
-struct CellInput : public Stackable {
-  // Change this to apply(State)
+class CellInput : public Stackable {
+public:
+  CellInput(Ptr<Options> options)
+    : Stackable(options) {  }
+
   virtual Expr apply(State) = 0;
   virtual int dimOutput() = 0;
 };
 
 class Cell : public Stackable {
-protected:
-  int dimInput_;
-  int dimState_;
-
 public:
-  Cell(int dimInput, int dimState)
-    : dimInput_(dimInput), dimState_(dimState) {}
+  Cell(Ptr<Options> options)
+    : Stackable(options) {
 
-  virtual int dimInput() {
-    return dimInput_;
-  }
-
-  virtual int dimState() {
-    return dimState_;
+    //options_->set("prefix", "");
+    //options_->set("dimInput", 512);
+    //options_->set("dimState", 1024);
+    //options_->set("dropout", 0);
+    //options_->set("normalize", false);
+    //options_->set("final", false);
   }
 
   State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
@@ -133,12 +143,12 @@ public:
 };
 
 class MultiCellInput : public CellInput {
-private:
+protected:
   std::vector<Ptr<CellInput>> inputs_;
 
 public:
-  MultiCellInput(const std::vector<Ptr<CellInput>>& inputs)
-  : inputs_(inputs) {}
+  MultiCellInput(const std::vector<Ptr<CellInput>>& inputs, Ptr<Options> options)
+  : CellInput(options), inputs_(inputs) {}
 
   void push_back(Ptr<CellInput> input) {
     inputs_.push_back(input);
@@ -164,16 +174,16 @@ public:
 };
 
 class StackedCell : public Cell {
-private:
+protected:
   std::vector<Ptr<Stackable>> stackables_;
   std::vector<Expr> lastInputs_;
 
 public:
-  StackedCell(int dimInput, int dimState) : Cell(dimInput, dimState) {}
+  StackedCell(Ptr<ExpressionGraph>, Ptr<Options> options) : Cell(options) {}
 
-  StackedCell(int dimInput, int dimState,
+  StackedCell(Ptr<ExpressionGraph>, Ptr<Options> options,
               const std::vector<Ptr<Stackable>>& stackables)
-    : Cell(dimInput, dimState), stackables_(stackables) {}
+    : Cell(options), stackables_(stackables) {}
 
   void push_back(Ptr<Stackable> stackable) {
     stackables_.push_back(stackable);
@@ -211,6 +221,8 @@ public:
   }
 
 };
+
+typedef Builder<rnn::StackedCell> stacked_cell;
 
 }
 }

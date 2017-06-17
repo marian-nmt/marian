@@ -29,12 +29,15 @@ private:
   Expr dropMaskS_;
 
 public:
-  template <typename... Args>
-  Tanh(Ptr<ExpressionGraph> graph,
-       const std::string prefix,
-       int dimInput,
-       int dimState,
-       Args... args) : Cell(dimInput, dimState) {
+  Tanh(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+    : Cell(options) {
+
+    int dimInput = options_->get<int>("dimInput");
+    int dimState = options_->get<int>("dimState");
+    std::string prefix = options_->get<std::string>("prefix");
+    layerNorm_ = options_->get<bool>("normalize");
+    dropout_ = options_->get<float>("dropout");
+
     U_ = graph->param(prefix + "_U",
                       {dimState, dimState},
                       keywords::init = inits::glorot_uniform);
@@ -44,9 +47,6 @@ public:
     b_ = graph->param(
         prefix + "_b", {1, dimState}, keywords::init = inits::zeros);
 
-    layerNorm_ = Get(keywords::normalize, false, args...);
-
-    dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
     if(dropout_ > 0.0f) {
       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
@@ -129,13 +129,18 @@ protected:
   Expr dropMaskS_;
 
 public:
-  template <typename... Args>
   GRU(Ptr<ExpressionGraph> graph,
-      const std::string prefix,
-      int dimInput,
-      int dimState,
-      Args... args)
-      : Cell(dimInput, dimState), prefix_{prefix} {
+      Ptr<Options> options)
+      : Cell(options) {
+
+    int dimInput = options_->get<int>("dimInput");
+    int dimState = options_->get<int>("dimState");
+    std::string prefix = options_->get<std::string>("prefix");
+    layerNorm_ = options_->get<bool>("normalize");
+    dropout_ = options_->get<float>("dropout");
+    final_ = options_->get<bool>("final");
+
+
     auto U = graph->param(prefix + "_U",
                           {dimState, 2 * dimState},
                           keywords::init = inits::glorot_uniform);
@@ -165,10 +170,6 @@ public:
     // b_ = graph->param(prefix + "_b", {1, 3 * dimState},
     //                  keywords::init=inits::zeros);
 
-    final_ = Get(keywords::final, false, args...);
-    layerNorm_ = Get(keywords::normalize, false, args...);
-
-    dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
     if(dropout_ > 0.0f) {
       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
@@ -250,13 +251,16 @@ protected:
   Expr dropMaskS_;
 
 public:
-  template <typename... Args>
   FastLSTM(Ptr<ExpressionGraph> graph,
-      const std::string prefix,
-      int dimInput,
-      int dimState,
-      Args... args)
-      : Cell(dimInput, dimState), prefix_{prefix} {
+           Ptr<Options> options)
+      : Cell(options) {
+
+    int dimInput = options_->get<int>("dimInput");
+    int dimState = options_->get<int>("dimState");
+    std::string prefix = options_->get<std::string>("prefix");
+    layerNorm_ = options_->get<bool>("normalize");
+    dropout_ = options_->get<float>("dropout");
+
 
     U_ = graph->param(prefix + "_U", {dimState, 4 * dimState},
                       keywords::init=inits::glorot_uniform);
@@ -265,9 +269,6 @@ public:
     b_ = graph->param(prefix + "_b", {1, 4 * dimState},
                       keywords::init=inits::zeros);
 
-    layerNorm_ = Get(keywords::normalize, false, args...);
-
-    dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
     if(dropout_ > 0.0f) {
       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
@@ -343,19 +344,18 @@ using LSTM = FastLSTM;
 
 template <class CellType>
 class Multiplicative : public CellType {
-  private:
+  protected:
     Expr Um_, Wm_, bm_;
     Expr gamma1m_, gamma2m_;
 
   public:
-
-    template <typename... Args>
     Multiplicative(Ptr<ExpressionGraph> graph,
-          const std::string prefix,
-          int dimInput,
-          int dimState,
-          Args... args)
-    : CellType(graph, prefix, dimInput, dimState, args...)  {
+                   Ptr<Options> options)
+      : CellType(graph, options) {
+
+      int dimInput = options->get<int>("dimInput");
+      int dimState = options->get<int>("dimState");
+      std::string prefix = options->get<std::string>("prefix");
 
       Um_ = graph->param(prefix + "_Um", {dimState, dimState},
                          keywords::init=inits::glorot_uniform);
@@ -415,7 +415,6 @@ using MGRU = Multiplicative<GRU>;
 
 class SlowLSTM : public Cell {
 private:
-  std::string prefix_;
 
   Expr Uf_, Wf_, bf_;
   Expr Ui_, Wi_, bi_;
@@ -423,13 +422,13 @@ private:
   Expr Uc_, Wc_, bc_;
 
 public:
-  template <typename... Args>
   SlowLSTM(Ptr<ExpressionGraph> graph,
-      const std::string prefix,
-      int dimInput,
-      int dimState,
-      Args... args)
-      : Cell(dimInput, dimState), prefix_{prefix} {
+           Ptr<Options> options)
+      : Cell(options) {
+
+    int dimInput = options_->get<int>("dimInput");
+    int dimState = options_->get<int>("dimState");
+    std::string prefix = options->get<std::string>("prefix");
 
     Uf_ = graph->param(prefix + "_Uf", {dimState, dimState},
                        keywords::init=inits::glorot_uniform);
@@ -512,18 +511,15 @@ public:
 
 class TestLSTM : public Cell {
 private:
-  std::string prefix_;
-
   Expr U_, W_, b_;
 
 public:
-  template <typename... Args>
-  TestLSTM(Ptr<ExpressionGraph> graph,
-      const std::string prefix,
-      int dimInput,
-      int dimState,
-      Args... args)
-      : Cell(dimInput, dimState), prefix_{prefix} {
+  TestLSTM(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+      : Cell(options) {
+
+    int dimInput = options_->get<int>("dimInput");
+    int dimState = options_->get<int>("dimState");
+    std::string prefix = options->get<std::string>("prefix");
 
     auto Uf = graph->param(prefix + "_Uf", {dimState, dimState},
                        keywords::init=inits::glorot_uniform);
@@ -602,29 +598,26 @@ public:
   }
 };
 
-class cell {
-private:
-  std::string type_;
-
-public:
-  cell(const std::string& type)
-  : type_(type) {}
-
+struct CellCreate {
   template <typename ...Args>
-  Ptr<Cell> operator()(Args&& ...args) {
-    if(type_ == "gru")
-      return New<GRU>(args...);
-    if(type_ == "lstm")
-      return New<LSTM>(args...);
-    if(type_ == "mlstm")
-      return New<MLSTM>(args...);
-    if(type_ == "mgru")
-      return New<MGRU>(args...);
-    if(type_ == "tanh")
-      return New<Tanh>(args...);
-    return New<GRU>(args...);
+  static Ptr<Cell> create(Ptr<ExpressionGraph> graph, Ptr<Options> options, Args ...args) {
+    std::string type = options->get<std::string>("type");
+
+    if(type == "gru")
+      return New<GRU>(graph, options, args...);
+    if(type == "lstm")
+      return New<LSTM>(graph, options, args...);
+    if(type == "mlstm")
+      return New<MLSTM>(graph, options, args...);
+    if(type == "mgru")
+      return New<MGRU>(graph, options, args...);
+    if(type == "tanh")
+      return New<Tanh>(graph, options, args...);
+    return New<GRU>(graph, options, args...);
   }
 };
+
+typedef Builder<Cell, CellCreate> cell;
 
 class cells {
 private:

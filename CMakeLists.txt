@@ -17,7 +17,13 @@ set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-depr
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
-LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_35;)
+else(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+
 LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 

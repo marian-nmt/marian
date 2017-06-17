@@ -26,27 +26,26 @@ private:
   std::vector<Expr> contexts_;
   std::vector<Expr> alignments_;
   bool layerNorm_;
-
   float dropout_;
+
   Expr contextDropped_;
   Expr dropMaskContext_;
   Expr dropMaskState_;
 
-  Expr cov_;
-
 public:
-  template <typename... Args>
-  GlobalAttention(const std::string prefix,
-                  Ptr<EncoderState> encState,
-                  int dimDecState,
-                  Args... args)
-      : encState_(encState),
-        contextDropped_(encState->getContext()),
-        layerNorm_(Get(keywords::normalize, false, args...)),
-        cov_(Get(keywords::coverage, nullptr, args...)) {
-    int dimEncState = encState_->getContext()->shape()[1];
+  GlobalAttention(Ptr<ExpressionGraph> graph,
+                  Ptr<Options> options,
+                  Ptr<EncoderState> encState)
+      : CellInput(options),
+        encState_(encState),
+        contextDropped_(encState->getContext()) {
 
-    auto graph = encState_->getContext()->graph();
+    int dimDecState = options_->get<int>("dimState");
+    dropout_ = options_->get<float>("dropout");
+    layerNorm_ = options_->get<bool>("normalize");
+    std::string prefix = options_->get<std::string>("prefix");
+
+    int dimEncState = encState_->getContext()->shape()[1];
 
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
@@ -60,7 +59,6 @@ public:
     ba_ = graph->param(
         prefix + "_b_att", {1, dimEncState}, keywords::init = inits::zeros);
 
-    dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
     if(dropout_ > 0.0f) {
       dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
       dropMaskState_ = graph->dropout(dropout_, {1, dimDecState});
@@ -129,6 +127,8 @@ public:
 };
 
 using Attention = GlobalAttention;
+
+typedef Builder<Attention> attention;
 
 }
 
