@@ -128,7 +128,7 @@ public:
 };
 
 class DecoderS2S : public DecoderBase {
-private:
+protected:
   Ptr<AttentionCell<GlobalAttention>> attCell_;
   Ptr<RNNBase> rnnLn;
   Expr tiedOutputWeights_;
