@@ -104,7 +104,6 @@ public:
                     ("dimState", dimEncState)
                     ("dropout", dropoutRnn)
                     ("normalize", layerNorm)
-                    ("final", false)
                   .create();
     auto xFw = rnn::RNN(cellFw)(x);
 
@@ -115,7 +114,6 @@ public:
                     ("dimState", dimEncState)
                     ("dropout", dropoutRnn)
                     ("normalize", layerNorm)
-                    ("final", false)
                   .create();
     auto xBw = rnn::RNN(cellBw, direction = dir::backward)(x, xMask);
 
@@ -222,7 +220,6 @@ public:
                      ("dimState", dimDecState)
                      ("dropout", dropoutRnn)
                      ("normalize", layerNorm)
-                     ("final", false)
                    .create();
 
       auto attention = rnn::attention(graph)

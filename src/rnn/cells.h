@@ -35,8 +35,10 @@ public:
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
     std::string prefix = options_->get<std::string>("prefix");
-    layerNorm_ = options_->get<bool>("normalize");
-    dropout_ = options_->get<float>("dropout");
+
+    layerNorm_ = options_->get<bool>("normalize", false);
+    dropout_ = options_->get<float>("dropout", 0);
+
 
     U_ = graph->param(prefix + "_U",
                       {dimState, dimState},
@@ -136,10 +138,10 @@ public:
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
     std::string prefix = options_->get<std::string>("prefix");
-    layerNorm_ = options_->get<bool>("normalize");
-    dropout_ = options_->get<float>("dropout");
-    final_ = options_->get<bool>("final");
 
+    layerNorm_ = options_->get<bool>("normalize", false);
+    dropout_ = options_->get<float>("dropout", 0);
+    final_ = options_->get<bool>("final", false);
 
     auto U = graph->param(prefix + "_U",
                           {dimState, 2 * dimState},
@@ -258,9 +260,9 @@ public:
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
     std::string prefix = options_->get<std::string>("prefix");
-    layerNorm_ = options_->get<bool>("normalize");
-    dropout_ = options_->get<float>("dropout");
 
+    layerNorm_ = options_->get<bool>("normalize", false);
+    dropout_ = options_->get<float>("dropout", 0);
 
     U_ = graph->param(prefix + "_U", {dimState, 4 * dimState},
                       keywords::init=inits::glorot_uniform);
