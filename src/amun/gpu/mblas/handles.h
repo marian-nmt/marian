@@ -9,8 +9,8 @@ namespace mblas {
 
 class CudaStreamHandler {
     CudaStreamHandler()
-    : stream_(new cudaStream_t()) {
-      HANDLE_ERROR( cudaStreamCreate(stream_.get()));
+    {
+      HANDLE_ERROR( cudaStreamCreate(&stream_));
       // cudaStreamCreateWithFlags(stream_.get(), cudaStreamNonBlocking);
     }
 
@@ -18,15 +18,15 @@ class CudaStreamHandler {
 
   protected:
     static thread_local CudaStreamHandler instance_;
-    std::unique_ptr<cudaStream_t> stream_;
+    cudaStream_t stream_;
 
   public:
     static const cudaStream_t& GetStream() {
-      return *(instance_.stream_);
+      return (instance_.stream_);
     }
 
     virtual ~CudaStreamHandler() {
-      HANDLE_ERROR(cudaStreamDestroy(*stream_));
+      HANDLE_ERROR(cudaStreamDestroy(stream_));
     }
 };
 
