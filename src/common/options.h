@@ -40,7 +40,7 @@ class Options {
 
     template <typename T>
     T get(const std::string& key) {
-      UTIL_THROW_IF2(!has(key), "Option \"" << key << "\" has not been set");
+      UTIL_THROW_IF2(!has(key), "Required option \"" << key << "\" has not been set");
       return options_[key].as<T>();
     }
 

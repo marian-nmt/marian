@@ -124,15 +124,7 @@ public:
 class Cell : public Stackable {
 public:
   Cell(Ptr<Options> options)
-    : Stackable(options) {
-
-    //options_->set("prefix", "");
-    //options_->set("dimInput", 512);
-    //options_->set("dimState", 1024);
-    //options_->set("dropout", 0);
-    //options_->set("normalize", false);
-    //options_->set("final", false);
-  }
+    : Stackable(options) {}
 
   State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
