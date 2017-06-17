@@ -104,10 +104,8 @@ public:
     if(mask)
       return {output * mask, nullptr};
     else
-      return {output, nullptr};
+      return { output, state.cell };
   }
-
-  size_t numStates() { return 1; }
 };
 
 
@@ -228,10 +226,8 @@ public:
     auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_) :
                          gruOps({stateOrig, xW, sU, b_}, final_);
 
-    return {output, nullptr}; // no cell state, hence nullptr
+    return { output, state.cell }; // no cell state, hence copy
   }
-
-  virtual size_t numStates() { return 1; }
 };
 
 /******************************************************************************/
@@ -341,8 +337,6 @@ public:
 
     return {nextRecState, nextCellState};
   }
-
-  virtual size_t numStates() { return 2; }
 };
 
 template <class CellType>
@@ -510,8 +504,6 @@ public:
 
     return {maskedState, maskedCellState};
   }
-
-  size_t numStates() { return 2; }
 };
 
 /******************************************************************************/
@@ -606,8 +598,6 @@ public:
 
     return {nextRecState, nextCellState};
   }
-
-  size_t numStates() { return 2; }
 };
 
 /******************************************************************************/
@@ -670,22 +660,9 @@ public:
   RNNState applyState(std::vector<Expr> xWs,
                       RNNState state,
                       Expr mask = nullptr) {
-    if(cell1_->numStates() == cell2_->numStates()) {
-      auto hidden = cell1_->applyState(xWs, state, mask);
-      auto alignedSourceContext = att_->apply(hidden.output);
-      return cell2_->apply({alignedSourceContext}, hidden, mask);
-    }
-    else if(cell1_->numStates() > cell2_->numStates()) {
-      auto hidden = cell1_->applyState(xWs, state, mask);
-      auto alignedSourceContext = att_->apply(hidden.output);
-      auto output = cell2_->apply({alignedSourceContext}, hidden, mask);
-      return { output.output, hidden.cell };
-    }
-    else {
-      auto hidden = cell1_->applyState(xWs, state, mask);
-      auto alignedSourceContext = att_->apply(hidden.output);
-      return cell2_->apply({alignedSourceContext}, {hidden.output, state.cell}, mask);
-    }
+    auto hidden = cell1_->applyState(xWs, state, mask);
+    auto alignedSourceContext = att_->apply(hidden.output);
+    return cell2_->apply({alignedSourceContext}, hidden, mask);
   }
 
   Ptr<Attention> getAttention() { return att_; }
@@ -695,8 +672,6 @@ public:
   }
 
   Expr getLastContext() { return att_->getContexts().back(); }
-
-  size_t numStates() { return cell1_->numStates(); }
 };
 
 typedef AttentionCellTmpl<GRU, GlobalAttention, GRU> CGRU;

@@ -108,7 +108,6 @@ public:
   virtual RNNState apply(std::vector<Expr>, RNNState, Expr = nullptr) = 0;
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) = 0;
   virtual RNNState applyState(std::vector<Expr>, RNNState, Expr = nullptr) = 0;
-  virtual size_t numStates() = 0;
 };
 
 class RNNBase {
