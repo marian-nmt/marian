@@ -190,7 +190,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
   MatrixWrapper<float> inWrap(In);
 
   int nThreads = MAX_THREADS;
-  int nBlocks =  (In.size() / 512) + ((In.size() % 512 == 0) ?  0 : 1);
+  int nBlocks =  (In.size() / MAX_THREADS) + ((In.size() % MAX_THREADS == 0) ?  0 : 1);
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, rowNo, colNo);

@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
       maxiBatch->SortByLength();
       while (maxiBatch->size()) {
         SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
-        //cerr << "miniBatch=" << miniBatch->size() << " maxiBatch=" << maxiBatch->size() << endl;
+        cerr << "miniBatch=" << miniBatch->size() << " maxiBatch=" << maxiBatch->size() << endl;
 
         god.GetThreadPool().enqueue(
             [&god,miniBatch]{ return TranslationTaskAndOutput(god, miniBatch); }
