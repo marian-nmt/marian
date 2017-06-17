@@ -17,15 +17,12 @@ class CudaStreamHandler {
     CudaStreamHandler(const CudaStreamHandler&) = delete;
 
   protected:
-    static thread_local CudaStreamHandler *instance_;
+    static thread_local CudaStreamHandler instance_;
     std::unique_ptr<cudaStream_t> stream_;
 
   public:
     static const cudaStream_t& GetStream() {
-      if (instance_ == nullptr) {
-        instance_ = new CudaStreamHandler();
-      }
-      return *(instance_->stream_);
+      return *(instance_.stream_);
     }
 
     virtual ~CudaStreamHandler() {

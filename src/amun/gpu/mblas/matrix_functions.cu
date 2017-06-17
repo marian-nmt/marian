@@ -7,8 +7,8 @@ namespace amunmt {
 namespace GPU {
 namespace mblas {
 
+thread_local CudaStreamHandler CudaStreamHandler::instance_;
 thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
-thread_local CudaStreamHandler* CudaStreamHandler::instance_ = nullptr;;
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   Out.swap(In);
