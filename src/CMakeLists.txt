@@ -16,8 +16,8 @@ cuda_add_library(marian
   kernels/dropout.cu
   kernels/sparse.cu
   layers/param_initializers.cpp
-  layers/attention.cu
-  layers/cells.cu
+  rnn/attention.cu
+  rnn/cells.cu
   optimizers/clippers.cu
   optimizers/optimizers.cu
   common/utils.cpp

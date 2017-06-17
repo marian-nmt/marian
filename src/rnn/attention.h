@@ -5,11 +5,15 @@
 #include "graph/expression_operators.h"
 #include "models/states.h"
 
+#include "rnn/types.h"
+
 namespace marian {
+
+namespace rnn {
 
 Expr attOps(Expr va, Expr context, Expr state, Expr coverage = nullptr);
 
-class GlobalAttention {
+class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;
 
@@ -87,17 +91,19 @@ public:
     }
   }
 
-  Expr apply(Expr state) {
+  Expr apply(State state) {
     using namespace keywords;
+    auto recState = state.output;
 
     int dimBatch = contextDropped_->shape()[0];
     int srcWords = contextDropped_->shape()[2];
-    int dimBeam = state->shape()[3];
+    int dimBeam = recState->shape()[3];
+
 
     if(dropMaskState_)
-      state = dropout(state, keywords::mask = dropMaskState_);
+      recState = dropout(recState, keywords::mask = dropMaskState_);
 
-    auto mappedState = dot(state, Wa_);
+    auto mappedState = dot(recState, Wa_);
     if(layerNorm_)
       mappedState = layer_norm(mappedState, gammaState_);
 
@@ -119,6 +125,11 @@ public:
 
   std::vector<Expr>& getAlignments() { return alignments_; }
 
-  int outputDim() { return encState_->getContext()->shape()[1]; }
+  int dimOutput() { return encState_->getContext()->shape()[1]; }
 };
+
+using Attention = GlobalAttention;
+
+}
+
 }

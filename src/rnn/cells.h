@@ -9,12 +9,12 @@
 #include "common/definitions.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
-#include "layers/attention.h"
 #include "layers/generic.h"
-#include "layers/rnn.h"
+
+#include "rnn/rnn.h"
 
 namespace marian {
-
+namespace rnn {
 
 class Tanh : public Cell {
 private:
@@ -62,9 +62,9 @@ public:
     }
   }
 
-  RNNState apply(std::vector<Expr> inputs,
-                 RNNState states,
-                 Expr mask = nullptr) {
+  State apply(std::vector<Expr> inputs,
+              State states,
+              Expr mask = nullptr) {
     return applyState(applyInput(inputs), states, mask);
   }
 
@@ -86,9 +86,9 @@ public:
     return {xW};
   }
 
-  RNNState applyState(std::vector<Expr> xWs,
-                      RNNState state,
-                      Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs,
+                   State state,
+                   Expr mask = nullptr) {
     Expr recState = state.output;
 
     auto stateDropped = recState;
@@ -184,9 +184,9 @@ public:
     }
   }
 
-  virtual RNNState apply(std::vector<Expr> inputs,
-                 RNNState state,
-                 Expr mask = nullptr) {
+  virtual State apply(std::vector<Expr> inputs,
+                      State state,
+                      Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
 
@@ -207,9 +207,9 @@ public:
     return {xW};
   }
 
-  virtual RNNState applyState(std::vector<Expr> xWs,
-                      RNNState state,
-                      Expr mask = nullptr) {
+  virtual State applyState(std::vector<Expr> xWs,
+                           State state,
+                           Expr mask = nullptr) {
 
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
@@ -283,9 +283,9 @@ public:
     }
   }
 
-  virtual RNNState apply(std::vector<Expr> inputs,
-                 RNNState state,
-                 Expr mask = nullptr) {
+  virtual State apply(std::vector<Expr> inputs,
+                      State state,
+                      Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
 
@@ -307,9 +307,9 @@ public:
     return {xW};
   }
 
-  virtual RNNState applyState(std::vector<Expr> xWs,
-                              RNNState state,
-                              Expr mask = nullptr) {
+  virtual State applyState(std::vector<Expr> xWs,
+                           State state,
+                           Expr mask = nullptr) {
 
     auto recState = state.output;
     auto cellState = state.cell;
@@ -338,6 +338,8 @@ public:
     return {nextRecState, nextCellState};
   }
 };
+
+using LSTM = FastLSTM;
 
 template <class CellType>
 class Multiplicative : public CellType {
@@ -388,8 +390,8 @@ class Multiplicative : public CellType {
     return xWs;
   }
 
-  virtual RNNState applyState(std::vector<Expr> xWs,
-                              RNNState state,
+  virtual State applyState(std::vector<Expr> xWs,
+                              State state,
                               Expr mask = nullptr) {
     auto xWm = xWs.back();
     xWs.pop_back();
@@ -400,12 +402,12 @@ class Multiplicative : public CellType {
 
     auto mstate = xWm * sUm;
 
-    return CellType::applyState(xWs, RNNState({mstate, state.cell}), mask);
+    return CellType::applyState(xWs, State({mstate, state.cell}), mask);
   }
 };
 
-typedef Multiplicative<FastLSTM> MLSTM;
-typedef Multiplicative<GRU> MGRU;
+using MLSTM = Multiplicative<LSTM>;
+using MGRU = Multiplicative<GRU>;
 
 /******************************************************************************/
 // SlowLSTM and TestLSTM are for comparing efficient kernels for gradients with
@@ -459,8 +461,8 @@ public:
 
   }
 
-  RNNState apply(std::vector<Expr> inputs,
-                 RNNState state,
+  State apply(std::vector<Expr> inputs,
+                 State state,
                  Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
@@ -480,8 +482,8 @@ public:
     return {xWf, xWi, xWo, xWc};
   }
 
-  RNNState applyState(std::vector<Expr> xWs,
-                      RNNState state,
+  State applyState(std::vector<Expr> xWs,
+                      State state,
                       Expr mask = nullptr) {
     auto recState = state.output;
     auto cellState = state.cell;
@@ -557,8 +559,8 @@ public:
 
   }
 
-  RNNState apply(std::vector<Expr> inputs,
-                 RNNState state,
+  State apply(std::vector<Expr> inputs,
+                 State state,
                  Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
@@ -575,8 +577,8 @@ public:
     return {xW};
   }
 
-  RNNState applyState(std::vector<Expr> xWs,
-                      RNNState state,
+  State applyState(std::vector<Expr> xWs,
+                      State state,
                       Expr mask = nullptr) {
 
     auto recState = state.output;
@@ -600,89 +602,6 @@ public:
   }
 };
 
-/******************************************************************************/
-
-template <class Attention>
-class AttentionCell : public Cell {
-public:
-  AttentionCell(int dimInput, int dimState)
-    : Cell(dimInput, dimState) {}
-
-  virtual Ptr<Attention> getAttention() = 0;
-  virtual Expr getContexts() = 0;
-  virtual Expr getLastContext() = 0;
-};
-
-template <class Cell1, class Attention, class Cell2>
-class AttentionCellTmpl : public AttentionCell<Attention> {
-private:
-  Ptr<Cell> cell1_;
-  Ptr<Cell> cell2_;
-  Ptr<Attention> att_;
-
-public:
-  template <class... Args>
-  AttentionCellTmpl(Ptr<ExpressionGraph> graph,
-                    const std::string prefix,
-                    int dimInput,
-                    int dimState,
-                    Ptr<Attention> att,
-                    Args... args)
-    : AttentionCell<Attention>(dimInput, dimState)
-  {
-    cell1_ = New<Cell1>(graph,
-                        prefix + "_cell1",
-                        dimInput,
-                        dimState,
-                        keywords::final = false,
-                        args...);
-
-    att_ = New<Attention>(att);
-
-    cell2_ = New<Cell2>(graph,
-                        prefix + "_cell2",
-                        att_->outputDim(),
-                        dimState,
-                        keywords::final = true,
-                        args...);
-  }
-
-  RNNState apply(std::vector<Expr> inputs,
-                 RNNState state,
-                 Expr mask = nullptr) {
-    return applyState(applyInput(inputs), state, mask);
-  }
-
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    return cell1_->applyInput(inputs);
-  }
-
-  RNNState applyState(std::vector<Expr> xWs,
-                      RNNState state,
-                      Expr mask = nullptr) {
-    auto hidden = cell1_->applyState(xWs, state, mask);
-    auto alignedSourceContext = att_->apply(hidden.output);
-    return cell2_->apply({alignedSourceContext}, hidden, mask);
-  }
-
-  Ptr<Attention> getAttention() { return att_; }
-
-  Expr getContexts() {
-    return concatenate(att_->getContexts(), keywords::axis = 2);
-  }
-
-  Expr getLastContext() { return att_->getContexts().back(); }
-};
-
-typedef AttentionCellTmpl<GRU, GlobalAttention, GRU> CGRU;
-typedef AttentionCellTmpl<MGRU, GlobalAttention, GRU> CMGRU;
-
-typedef FastLSTM LSTM;
-
-typedef AttentionCellTmpl<LSTM, GlobalAttention, LSTM> CLSTM;
-typedef AttentionCellTmpl<MLSTM, GlobalAttention, LSTM> CMLSTM;
-typedef AttentionCellTmpl<LSTM, GlobalAttention, GRU> CLSTMGRU;
-
 class cell {
 private:
   std::string type_;
@@ -704,30 +623,6 @@ public:
     if(type_ == "tanh")
       return New<Tanh>(args...);
     return New<GRU>(args...);
-  }
-};
-
-class att_cell {
-private:
-  std::string type_;
-
-public:
-  att_cell(const std::string& type)
-  : type_(type) {}
-
-  template <typename ...Args>
-  Ptr<AttentionCell<GlobalAttention>> operator()(Args&& ...args) {
-    if(type_ == "gru")
-      return New<CGRU>(args...);
-    if(type_ == "lstm")
-      return New<CLSTM>(args...);
-    if(type_ == "mgru")
-      return New<CMGRU>(args...);
-    if(type_ == "mlstm")
-      return New<CMLSTM>(args...);
-    if(type_ == "lstm-gru")
-      return New<CLSTMGRU>(args...);
-    return New<CGRU>(args...);
   }
 };
 
@@ -757,4 +652,5 @@ public:
   }
 };
 
+}
 }

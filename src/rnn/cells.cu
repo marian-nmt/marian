@@ -1,9 +1,10 @@
-#include "layers/cells.h"
+#include "rnn/cells.h"
 
 #include "graph/node_operators_binary.h"
 #include "kernels/tensor_operators.h"
 
 namespace marian {
+namespace rnn {
 
 struct GRUFastNodeOp : public NaryNodeOp {
   bool final_;
@@ -138,4 +139,5 @@ Expr lstmOpsO(const std::vector<Expr>& nodes) {
   return Expression<LSTMOutputNodeOp>(nodes);
 }
 
+}
 }
