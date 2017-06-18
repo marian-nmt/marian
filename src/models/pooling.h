@@ -59,19 +59,28 @@ public:
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimSrcEmb, dimSrcWords});
     auto x = w + p;
 
-    int k = 5;
+    int k = 10;
 
     auto padding = graph->zeros(shape={dimBatch, dimSrcEmb, k / 2});
     auto xpad = concatenate({padding, x, padding}, axis=2);
 
+    int width = xpad->shape()[2];
+    std::vector<float> pv(width);
+    std::iota(std::begin(pv), std::end(pv), -k / 2);
+
+    auto r = graph->constant({1, 1, width}, init=inits::from_vector(pv));
+
     std::vector<Expr> means;
     for(int i = 0; i < dimSrcWords; ++i) {
-      std::vector<Expr> preAvg;
-      for(int j = 0; j < k; ++j)
-        preAvg.push_back(step(xpad, i + j));
+      auto gauss = exp(square(r - i) / -(k / 2.f));
 
-      means.push_back(mean(concatenate(preAvg, axis=2), axis=2));
+      //std::vector<Expr> preAvg;
+      //for(int j = 0; j < k; ++j)
+      //  preAvg.push_back(step(xpad, i + j));
+
+      means.push_back(mean(xpad * gauss, axis=2));
     }
+
     auto xMeans = concatenate(means, axis=2);
 
     return New<EncoderStatePooling>(x, xMeans, xMask, batch);
