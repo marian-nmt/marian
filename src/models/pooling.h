@@ -16,15 +16,59 @@ public:
   EncoderStatePooling(Expr context, Expr attended, Expr mask, Ptr<data::CorpusBatch> batch)
       : context_(context), attended_(attended), mask_(mask), batch_(batch) {}
 
-  Expr getContext() { return context_; }
-  Expr getAttended() { return attended_; }
-  Expr getMask() { return mask_; }
+  virtual Expr getContext() { return context_; }
+  virtual Expr getAttended() { return attended_; }
+  virtual Expr getMask() { return mask_; }
 
   virtual const std::vector<size_t>& getSourceWords() {
     return batch_->front()->indeces();
   }
 };
 
+Expr MeanInTime(Ptr<ExpressionGraph> graph, Expr x, int k) {
+    using namespace keywords;
+    int dimBatch = x->shape()[0];
+    int dimInput = x->shape()[1];
+    int dimSrcWords = x->shape()[2];
+
+    auto padding = graph->zeros(shape={dimBatch, dimInput, k / 2});
+    auto xpad = concatenate({padding, x, padding}, axis=2);
+
+    std::vector<Expr> means;
+    for(int i = 0; i < dimSrcWords; ++i) {
+      std::vector<Expr> preAvg;
+      for(int j = 0; j < k; ++j)
+        preAvg.push_back(step(xpad, i + j));
+
+      means.push_back(mean(concatenate(preAvg, axis=2), axis=2));
+    }
+    return tanh(concatenate(means, axis=2) + x);
+}
+
+Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
+                       int k, std::string name) {
+    using namespace keywords;
+    int dimBatch = x->shape()[0];
+    int dimInput = x->shape()[1];
+    int dimSrcWords = x->shape()[2];
+
+    auto padding = graph->zeros(shape={dimBatch, dimInput, k / 2});
+    auto xpad = concatenate({padding, x, padding}, axis=2);
+
+    float scale = 1.f / sqrtf(k * dimInput);
+    auto K = graph->param(name, {1, dimInput, k}, keywords::init=inits::uniform(scale));
+    auto B = graph->param(name + "_b", {1, dimInput}, init=inits::zeros);
+
+    std::vector<Expr> filters;
+    for(int i = 0; i < dimSrcWords; ++i) {
+      std::vector<Expr> preAvg;
+      for(int j = 0; j < k; ++j)
+        preAvg.push_back(step(xpad, i + j));
+
+      filters.push_back(sum(concatenate(preAvg, axis=2) * K, axis=2));
+    }
+    return tanh(concatenate(filters, axis=2), B, x);
+}
 
 class EncoderPooling : public EncoderBase {
 public:
@@ -59,22 +103,26 @@ public:
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimSrcEmb, dimSrcWords});
     auto x = w + p;
 
-    int k = 5;
+    int k = 3;
+    int layersC = 6;
+    int layersA = 3;
 
-    auto padding = graph->zeros(shape={dimBatch, dimSrcEmb, k / 2});
-    auto xpad = concatenate({padding, x, padding}, axis=2);
+    auto Wup = graph->param("W_c_up", {dimSrcEmb, 2 * dimSrcEmb}, init=inits::glorot_uniform);
+    auto Bup = graph->param("b_c_up", {1, 2 * dimSrcEmb}, init=inits::zeros);
 
-    std::vector<Expr> means;
-    for(int i = 0; i < dimSrcWords; ++i) {
-      std::vector<Expr> preAvg;
-      for(int j = 0; j < k; ++j)
-        preAvg.push_back(step(xpad, i + j));
+    auto Wdown = graph->param("W_c_down", {2 * dimSrcEmb, dimSrcEmb}, init=inits::glorot_uniform);
+    auto Bdown = graph->param("b_c_down", {1, dimSrcEmb}, init=inits::zeros);
 
-      means.push_back(mean(concatenate(preAvg, axis=2), axis=2));
-    }
-    auto xMeans = concatenate(means, axis=2);
+    auto cnnC = affine(x, Wup, Bup);
+    for(int i = 0; i < layersC; ++i)
+       cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
+    cnnC = affine(cnnC, Wdown, Bdown);
 
-    return New<EncoderStatePooling>(xMeans, x, xMask, batch);
+    auto cnnA = x;
+    for(int i = 0; i < layersA; ++i)
+       cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
+
+    return New<EncoderStatePooling>(cnnC, cnnA, xMask, batch);
   }
 };
 
