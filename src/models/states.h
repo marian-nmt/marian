@@ -8,6 +8,7 @@ namespace marian {
 
 struct EncoderState {
   virtual Expr getContext() = 0;
+  virtual Expr getAttended() = 0;
   virtual Expr getMask() = 0;
   virtual const std::vector<size_t>& getSourceWords() = 0;
 };

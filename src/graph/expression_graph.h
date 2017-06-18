@@ -417,12 +417,13 @@ public:
         continue;
 
       Shape shape;
-      if(it.second.shape.size() == 2) {
-        shape.set(0, it.second.shape[0]);
-        shape.set(1, it.second.shape[1]);
-      } else if(it.second.shape.size() == 1) {
+      if(it.second.shape.size() == 1) {
         shape.set(0, 1);
         shape.set(1, it.second.shape[0]);
+      }
+      else {
+        for(int i = 0; i < it.second.shape.size(); ++i)
+          shape.set(i, it.second.shape[i]);
       }
 
       param(name, shape, init = inits::from_numpy(it.second));
@@ -432,7 +433,6 @@ public:
   void save(const std::string& name) {
     LOG(info, "Saving model to {}", name);
 
-    unsigned shape[2];
     std::string mode = "w";
 
     backend_->setDevice(getDevice());
@@ -447,16 +447,33 @@ public:
       std::vector<float> v;
       p.second->val() >> v;
 
+      unsigned shape[4];
       unsigned dim;
-      if(p.second->shape()[0] == 1) {
-        shape[0] = p.second->shape()[1];
+      
+      auto ps = p.second->shape();
+      if(ps[0] == 1 && ps[2] == 1 && ps[3] == 1) {
+        shape[0] = ps[1];
         dim = 1;
-      } else {
-        shape[0] = p.second->shape()[0];
-        shape[1] = p.second->shape()[1];
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      } else if(ps[2] == 1 && ps[3] == 1) {
+        shape[0] = ps[0];
+        shape[1] = ps[1];
         dim = 2;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      } else if(ps[3] == 1) {
+        shape[0] = ps[0];
+        shape[1] = ps[1];
+        shape[2] = ps[2];
+        dim = 3;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      } else {
+        shape[0] = ps[0];
+        shape[1] = ps[1];
+        shape[2] = ps[2];
+        shape[3] = ps[3];
+        dim = 4;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
       }
-      cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
       mode = "a";
     }
   }

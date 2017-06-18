@@ -4,6 +4,7 @@
 //#include "models/hardatt.h"
 //#include "models/multi_s2s.h"
 #include "models/s2s.h"
+//#include "models/pooling.h"
 
 #include "data/corpus.h"
 

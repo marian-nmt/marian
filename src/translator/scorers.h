@@ -6,6 +6,7 @@
 //#include "models/hardatt.h"
 //#include "models/multi_s2s.h"
 #include "models/s2s.h"
+//#include "models/pooling.h"
 
 namespace marian {
 
@@ -208,8 +209,7 @@ Ptr<Scorer> scorerByType(std::string fname,
 
   if(type == "s2s") {
     return New<ScorerWrapper<S2S>>(fname, weight, model, options);
-  }
-  if(type == "amun") {
+  } else if(type == "amun") {
     return New<ScorerWrapper<Amun>>(fname, weight, model, options);
   //} else if(type == "multi-s2s") {
   //  return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);

@@ -214,7 +214,6 @@ public:
 
 };
 
-typedef Builder<rnn::StackedCell> stacked_cell;
 
 }
 }

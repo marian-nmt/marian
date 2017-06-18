@@ -112,7 +112,7 @@ public:
                      {dimBatch, 1, srcWords, dimBeam});
     // <- horrible
 
-    auto alignedSource = weighted_average(encState_->getContext(), e, axis = 2);
+    auto alignedSource = weighted_average(encState_->getAttended(), e, axis = 2);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -127,8 +127,6 @@ public:
 };
 
 using Attention = GlobalAttention;
-
-typedef Builder<Attention> attention;
 
 }
 

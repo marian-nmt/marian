@@ -600,52 +600,5 @@ public:
   }
 };
 
-struct CellCreate {
-  template <typename ...Args>
-  static Ptr<Cell> create(Ptr<ExpressionGraph> graph, Ptr<Options> options, Args ...args) {
-    std::string type = options->get<std::string>("type");
-
-    if(type == "gru")
-      return New<GRU>(graph, options, args...);
-    if(type == "lstm")
-      return New<LSTM>(graph, options, args...);
-    if(type == "mlstm")
-      return New<MLSTM>(graph, options, args...);
-    if(type == "mgru")
-      return New<MGRU>(graph, options, args...);
-    if(type == "tanh")
-      return New<Tanh>(graph, options, args...);
-    return New<GRU>(graph, options, args...);
-  }
-};
-
-typedef Builder<Cell, CellCreate> cell;
-
-class cells {
-private:
-  std::string type_;
-  size_t layers_;
-
-public:
-  cells(const std::string& type, size_t layers)
-  : type_(type), layers_(layers) {}
-
-  template <typename ...Args>
-  std::vector<Ptr<Cell>> operator()(Ptr<ExpressionGraph> graph,
-                                    std::string prefix,
-                                    int dimInput,
-                                    int dimState,
-                                    Args ...args) {
-    std::vector<Ptr<Cell>> cells;
-    for(int i = 0; i < layers_; ++i)
-      cells.push_back(cell(type_)(graph,
-                                 prefix + "_l" + std::to_string(i),
-                                 i == 0 ? dimInput : dimState,
-                                 dimState,
-                                 args...));
-    return cells;
-  }
-};
-
 }
 }

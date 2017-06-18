@@ -158,7 +158,7 @@ public:
       if(!final) {
         std::string numberOfBatches
             = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
-                          "unknown";
+                           "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
@@ -353,7 +353,8 @@ private:
             localSparseDelta[worker_id][idx]->copyFrom(tmpSparseDelta[idx]);
             cudaStreamSynchronize(0);
 
-            localSparseDelta[worker_id][idx]->scatterAdd(oldParams->subtensor(pos, grads_[idx]->size()));
+            localSparseDelta[worker_id][idx]->scatterAdd(
+                oldParams->subtensor(pos, grads_[idx]->size()));
             cudaStreamSynchronize(0);
 
             localVersionNumbers[worker_id][idx] = globalVersionNumber[idx];
@@ -660,7 +661,7 @@ public:
       if(!final) {
         std::string numberOfBatches
             = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
-                          "unknown";
+                           "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");

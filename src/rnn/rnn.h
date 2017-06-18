@@ -13,6 +13,7 @@
 
 #include "rnn/types.h"
 #include "rnn/attention.h"
+#include "rnn/cells.h"
 
 namespace marian {
 namespace rnn {

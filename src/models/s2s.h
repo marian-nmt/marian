@@ -1,9 +1,7 @@
 #pragma once
 
-#include "rnn/attention.h"
-#include "rnn/rnn.h"
-#include "rnn/cells.h"
 #include "common/options.h"
+#include "rnn/constructors.h"
 
 #include "models/encdec.h"
 
@@ -20,6 +18,7 @@ public:
       : context_(context), mask_(mask), batch_(batch) {}
 
   Expr getContext() { return context_; }
+  Expr getAttended() { return context_; }
   Expr getMask() { return mask_; }
 
   virtual const std::vector<size_t>& getSourceWords() {
@@ -104,7 +103,7 @@ public:
                     ("dimState", dimEncState)
                     ("dropout", dropoutRnn)
                     ("normalize", layerNorm)
-                  .create();
+                  .construct();
     auto xFw = rnn::RNN(cellFw)(x);
 
     auto cellBw = rnn::cell(graph)
@@ -114,7 +113,7 @@ public:
                     ("dimState", dimEncState)
                     ("dropout", dropoutRnn)
                     ("normalize", layerNorm)
-                  .create();
+                  .construct();
     auto xBw = rnn::RNN(cellBw, direction = dir::backward)(x, xMask);
 
     auto xContext = concatenate({xFw, xBw}, axis = 1);
@@ -211,39 +210,28 @@ public:
     }
 
     if(!attCell_) {
-      auto attCell = rnn::stacked_cell(graph).create();
+      auto attCell = rnn::stacked_cell(graph)
+                        ("dimInput", dimTrgEmb)
+                        ("dimState", dimDecState)
+                        ("dropout", dropoutRnn)
+                        ("normalize", layerNorm);
 
-      auto cell1 = rnn::cell(graph)
-                     ("type", cellType)
-                     ("prefix", prefix_ + "_cell1")
-                     ("dimInput", dimTrgEmb)
-                     ("dimState", dimDecState)
-                     ("dropout", dropoutRnn)
-                     ("normalize", layerNorm)
-                   .create();
+      attCell.push_back(rnn::cell(graph)
+                        ("type", cellType)
+                        ("prefix", prefix_ + "_cell1"));
 
       auto attention = rnn::attention(graph)
-                         ("prefix", prefix_)
-                         ("dimState", dimDecState)
-                         ("dropout", dropoutRnn)
-                         ("normalize", layerNorm)
-                       .create(state->getEncoderState());
+                        ("prefix", prefix_);
+      attention.set_state(state->getEncoderState());
+      attCell.push_back(attention);
 
-      auto cell2 = rnn::cell(graph)
-                     ("type", cellType)
-                     ("prefix", prefix_ + "_cell2")
-                     ("dimInput", attention->dimOutput())
-                     ("dimState", dimDecState)
-                     ("dropout", dropoutRnn)
-                     ("normalize", layerNorm)
-                     ("final", true)
-                   .create();
+      attCell.push_back(rnn::cell(graph)
+                        ("type", cellType)
+                        ("prefix", prefix_ + "_cell2")
+                        ("dimInput", attention.dimAttended())
+                        ("final", true));
 
-      attCell->push_back(cell1);
-      attCell->push_back(attention);
-      attCell->push_back(cell2);
-
-      attCell_ = attCell;
+      attCell_ = attCell.construct();
     }
 
     auto rnn = rnn::RNN(attCell_);
