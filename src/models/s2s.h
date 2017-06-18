@@ -19,6 +19,7 @@ public:
       : context_(context), mask_(mask), batch_(batch) {}
 
   Expr getContext() { return context_; }
+  Expr getAttended() { return context_; }
   Expr getMask() { return mask_; }
 
   virtual const std::vector<size_t>& getSourceWords() {

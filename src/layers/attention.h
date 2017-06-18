@@ -108,7 +108,7 @@ public:
                      {dimBatch, 1, srcWords, dimBeam});
     // <- horrible
 
-    auto alignedSource = weighted_average(encState_->getContext(), e, axis = 2);
+    auto alignedSource = weighted_average(encState_->getAttended(), e, axis = 2);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -119,6 +119,6 @@ public:
 
   std::vector<Expr>& getAlignments() { return alignments_; }
 
-  int outputDim() { return encState_->getContext()->shape()[1]; }
+  int outputDim() { return encState_->getAttended()->shape()[1]; }
 };
 }
