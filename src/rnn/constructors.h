@@ -125,8 +125,9 @@ public:
     return stacked;
   }
 
-  void push_back(StackableFactory& sf) {
-    stackableFactories_.push_back(New<StackableFactory>(sf));
+  template <class F>
+  void push_back(F& f) {
+    stackableFactories_.push_back(New<F>(f));
   }
 };
 
