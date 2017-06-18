@@ -8,7 +8,7 @@ namespace GPU {
 namespace mblas {
 
 thread_local CudaStreamHandler CudaStreamHandler::instance_;
-thread_local cublasHandle_t* CublasHandler::handle_ = nullptr;
+thread_local CublasHandler CublasHandler::instance_;
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   Out.swap(In);
