@@ -122,7 +122,7 @@ public:
     for(int i = 0; i < layersA; ++i)
        cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
 
-    return New<EncoderStatePooling>(cnnC, cnnA, xMask, batch);
+    return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }
 };
 

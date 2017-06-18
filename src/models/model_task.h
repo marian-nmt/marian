@@ -4,7 +4,7 @@
 //#include "models/hardatt.h"
 //#include "models/multi_s2s.h"
 #include "models/s2s.h"
-#include "models/pooling.h"
+//#include "models/pooling.h"
 
 #include "data/corpus.h"
 
@@ -22,8 +22,6 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
     return New<TaskName<Wrapper<Amun>>>(options);
   else if(type == "s2s")
     return New<TaskName<Wrapper<S2S>>>(options);
-  else if(type == "pooling")
-    return New<TaskName<Wrapper<Pooling>>>(options);
   //else if(type == "multi-s2s")
   //  return New<TaskName<Wrapper<MultiS2S>>>(options);
   //else if(type == "hard-att")
