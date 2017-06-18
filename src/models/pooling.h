@@ -56,7 +56,7 @@ Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
     auto xpad = concatenate({padding, x, padding}, axis=2);
 
     float scale = 1.f / sqrtf(k * dimInput);
-    auto K = graph->param(name, {k, dimInput}, keywords::init=inits::uniform(scale));
+    auto K = graph->param(name, {1, dimInput, k}, keywords::init=inits::uniform(scale));
     auto B = graph->param(name + "_b", {1, dimInput}, init=inits::zeros);
 
     std::vector<Expr> filters;
@@ -65,7 +65,7 @@ Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
       for(int j = 0; j < k; ++j)
         preAvg.push_back(step(xpad, i + j));
 
-      filters.push_back(sum(concatenate(preAvg, axis=2) * reshape(K, {1, dimInput, k}), axis=2));
+      filters.push_back(sum(concatenate(preAvg, axis=2) * K, axis=2));
     }
     return tanh(concatenate(filters, axis=2), B, x);
 }
