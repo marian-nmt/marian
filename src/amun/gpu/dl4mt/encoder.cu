@@ -35,11 +35,11 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
 }
 
 void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& context,
-                         DeviceVector<int>& dMapping) {
+                         DeviceVector<uint>& dMapping) {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
   //cerr << "1dMapping=" << mblas::Debug(dMapping, 2) << endl;
-  HostVector<int> hMapping(maxSentenceLength * source.size(), 0);
+  HostVector<uint> hMapping(maxSentenceLength * source.size(), 0);
   for (size_t i = 0; i < source.size(); ++i) {
     for (size_t j = 0; j < source.at(i)->GetWords(tab).size(); ++j) {
       hMapping[i * maxSentenceLength + j] = 1;

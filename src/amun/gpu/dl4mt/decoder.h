@@ -60,7 +60,7 @@ class Decoder {
         void InitializeState(mblas::Matrix& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize,
-                             const DeviceVector<int>& mapping) {
+                             const DeviceVector<uint>& mapping) {
           using namespace mblas;
 
           //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
@@ -142,7 +142,7 @@ class Decoder {
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const mblas::Matrix& HiddenState,
                                      const mblas::Matrix& SourceContext,
-                                     const DeviceVector<int>& mapping,
+                                     const DeviceVector<uint>& mapping,
                                      const std::vector<uint>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
@@ -155,7 +155,7 @@ class Decoder {
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
 
-          HostVector<int> batchMapping(HiddenState.dim(0));
+          HostVector<uint> batchMapping(HiddenState.dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
@@ -218,7 +218,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        DeviceVector<int> dBatchMapping_;
+        DeviceVector<uint> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
@@ -327,7 +327,7 @@ class Decoder {
                   const mblas::Matrix& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
-                  const DeviceVector<int>& mapping,
+                  const DeviceVector<uint>& mapping,
                   const std::vector<uint>& beamSizes)
     {
       //std::cerr << "State=" << State.Debug(1) << std::endl;
@@ -353,7 +353,7 @@ class Decoder {
     void EmptyState(mblas::Matrix& State,
                     const mblas::Matrix& SourceContext,
                     size_t batchSize,
-                    const DeviceVector<int>& batchMapping) {
+                    const DeviceVector<uint>& batchMapping) {
       rnn1_.InitializeState(State, SourceContext, batchSize, batchMapping);
       alignment_.Init(SourceContext);
     }
@@ -395,7 +395,7 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                   const mblas::Matrix& HiddenState,
                                   const mblas::Matrix& SourceContext,
-                                  const DeviceVector<int>& mapping,
+                                  const DeviceVector<uint>& mapping,
                                   const std::vector<uint>& beamSizes) {
       alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
                                          mapping, beamSizes);

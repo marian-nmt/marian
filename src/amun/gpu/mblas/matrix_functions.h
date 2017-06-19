@@ -105,9 +105,9 @@ void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
 
-void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping);
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -128,7 +128,7 @@ Matrix& CopyRow(Matrix& Out,
 
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
-void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i);
+void MapMatrix(Matrix& state, const DeviceVector<uint>& mapping, size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
@@ -145,7 +145,7 @@ Matrix& Slice(Matrix& Out,
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t batchSize);
+Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const DeviceVector<uint>& srcMapping, size_t batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
 
@@ -154,7 +154,7 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
-                           const MatrixWrapper<int> batchMappingWrap)
+                           const MatrixWrapper<uint> batchMappingWrap)
 {
   size_t srcSize = outWrap.dim(2);
   size_t inRows = in2Wrap.dim(0);
@@ -190,7 +190,7 @@ __global__ void gBroadcast(Functor functor,
 }
 
 template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const DeviceVector<int>& batchMapping, size_t srcSize) {
+Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const DeviceVector<uint>& batchMapping, size_t srcSize) {
   size_t sumOfBeamSizes = In.dim(0);
 
   //size_t rows = srcSize * sumOfBeamSizes;
@@ -202,7 +202,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   MatrixWrapper<float> outWrap(OutNew);
   const MatrixWrapper<float> in1Wrap(OutOrig);
   const MatrixWrapper<float> in2Wrap(In);
-  const MatrixWrapper<int> batchMappingWrap(batchMapping);
+  const MatrixWrapper<uint> batchMappingWrap(batchMapping);
 
   int threads = MAX_THREADS;
   int blocks  = (OutNew.size() / threads) + 1;

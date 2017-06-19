@@ -61,7 +61,7 @@ class Encoder {
 
         template <class It>
         void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
-                        const DeviceVector<int>* mapping=nullptr) {
+                        const DeviceVector<uint>* mapping=nullptr) {
           InitializeState(batchSize);
 
           mblas::Matrix prevState(State_);
@@ -107,7 +107,7 @@ class Encoder {
     Encoder(const Weights& model);
 
     void GetContext(const Sentences& words, size_t tab, mblas::Matrix& context,
-                    DeviceVector<int>& mapping);
+                    DeviceVector<uint>& mapping);
 
   private:
     Embeddings<Weights::EncEmbeddings> embeddings_;

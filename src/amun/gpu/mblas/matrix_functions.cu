@@ -17,7 +17,7 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
 
 __global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
-                      const MatrixWrapper<int>  mapping)
+                      const MatrixWrapper<uint>  mapping)
 {
   assert(out.dim(0) == 1);
   // in = max sentence length, whatever, 1, batches
@@ -52,7 +52,7 @@ __global__ void gMean(MatrixWrapper<float> out,
   }
 }
 
-void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping) {
   size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
   size_t stateLength = Out.dim(1);
   size_t sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
@@ -60,7 +60,7 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
 
-  MatrixWrapper<int> mappingWrap(mapping, sentenceLength, batchNum, 1, 1);
+  MatrixWrapper<uint> mappingWrap(mapping, sentenceLength, batchNum, 1, 1);
 
   size_t threads = MAX_THREADS;
   size_t blocks =  (outWrap.size() / threads) + ((outWrap.size() % threads == 0) ?  0 : 1);
@@ -73,7 +73,7 @@ void Mean(Matrix& Out, const Matrix& In, const DeviceVector<int>& mapping) {
 __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const MatrixWrapper<float> weights,
                               const MatrixWrapper<float> in,
-                              const MatrixWrapper<int> mapping
+                              const MatrixWrapper<uint> mapping
                               )
 {
   int numHypos = weights.dim(0);
@@ -96,7 +96,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<int>& mapping) {
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping) {
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
 
@@ -105,7 +105,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> weightsWrap(Weights);
   MatrixWrapper<float> inWrap(In);
-  MatrixWrapper<int> mappingWrap(mapping);
+  MatrixWrapper<uint> mappingWrap(mapping);
 
   int nThreads = MAX_THREADS;
   int nBlocks =  (Out.size() / MAX_THREADS) + ((Out.size() % MAX_THREADS == 0) ?  0 : 1);
@@ -420,8 +420,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 }
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
-                         const MatrixWrapper<int> batchIdsWrap,
-                         const MatrixWrapper<int> srcMappingWrap)
+                         const MatrixWrapper<uint> batchIdsWrap,
+                         const MatrixWrapper<uint> srcMappingWrap)
 {
   extern __shared__ float _share[];
 
@@ -501,13 +501,13 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<int>& batchIds, const DeviceVector<int>& srcMapping, size_t batchSize)
+Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const DeviceVector<uint>& srcMapping, size_t batchSize)
 {
   size_t srcSize = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<int> batchIdsWrap(batchIds);
-  const MatrixWrapper<int> srcMappingWrap(srcMapping, srcSize, batchSize, 1, 1);
+  const MatrixWrapper<uint> batchIdsWrap(batchIds);
+  const MatrixWrapper<uint> srcMappingWrap(srcMapping, srcSize, batchSize, 1, 1);
 
   int blocks = batchSize;
   int threads = std::min(MAX_THREADS, (int)srcSize);
@@ -658,7 +658,7 @@ void Fill(Matrix& In, float value) {
 
 __global__
 void gMapMatrix(MatrixWrapper<float> in,
-                const MatrixWrapper<int> mappingWrap,
+                const MatrixWrapper<uint> mappingWrap,
                 int mappingCols, int i)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -672,7 +672,7 @@ void gMapMatrix(MatrixWrapper<float> in,
   }
 }
 
-void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
+void MapMatrix(Matrix& state, const DeviceVector<uint>& mapping, size_t i)
 {
   // blank out rows in the state matrix where the word position i does not exist
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
@@ -685,7 +685,7 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i)
   int numBlocks = (state.size() / numThreads) + 1;
 
   MatrixWrapper<float> stateWrap(state);
-  MatrixWrapper<int> mappingWrap(mapping, sentenceLength, batchSize, 1, 1);
+  MatrixWrapper<uint> mappingWrap(mapping, sentenceLength, batchSize, 1, 1);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (stateWrap, mappingWrap, sentenceLength, i);
