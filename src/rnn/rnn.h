@@ -16,10 +16,15 @@
 #include "rnn/cells.h"
 
 namespace marian {
-namespace rnn {
+  namespace rnn {
+    enum dir : int { forward, backward };
+  }
+}
 
-// An enumeration of directions
-enum dir : int { forward, backward, bidirect };
+YAML_REGISTER_TYPE(marian::rnn::dir, int)
+
+namespace marian {
+namespace rnn {
 
 class BaseRNN {
 protected:
@@ -97,7 +102,7 @@ private:
 
   SingleLayerRNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : BaseRNN(graph, options),
-        direction_((dir)options->get<int>("direction", dir::forward))
+        direction_(options->get<dir>("direction", dir::forward))
       {}
 
 public:

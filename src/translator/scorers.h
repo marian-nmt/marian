@@ -3,7 +3,7 @@
 #include "marian.h"
 
 #include "models/amun.h"
-//#include "models/hardatt.h"
+#include "models/hardatt.h"
 //#include "models/multi_s2s.h"
 #include "models/s2s.h"
 //#include "models/pooling.h"
@@ -213,12 +213,12 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<Amun>>(fname, weight, model, options);
   //} else if(type == "multi-s2s") {
   //  return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
-  //} else if(type == "hard-att") {
-  //  return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
-  //} else if(type == "hard-soft-att") {
-  //  return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
+  } else if(type == "hard-att") {
+    return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
+  } else if(type == "hard-soft-att") {
+    return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
   //} else if(type == "multi-hard-att") {
-  //  return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+    //return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   } else {
     return New<ScorerWrapper<S2S>>(fname, weight, model, options);
   }

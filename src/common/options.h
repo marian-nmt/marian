@@ -5,6 +5,22 @@
 #include "common/definitions.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
+#define YAML_REGISTER_TYPE(registered, type)\
+namespace YAML {\
+template<>\
+struct convert<registered> {\
+  static Node encode(const registered& rhs) {\
+    Node node;\
+    node.push_back(static_cast<type>(rhs));\
+    return node;\
+  }\
+  static bool decode(const Node& node, registered& rhs) {\
+    rhs = static_cast<registered>(node.as<type>());\
+    return true;\
+  }\
+};\
+}
+
 namespace marian {
 
 class Options {

@@ -2,7 +2,6 @@
 
 #include "common/options.h"
 #include "rnn/constructors.h"
-
 #include "models/encdec.h"
 
 namespace marian {
@@ -107,7 +106,7 @@ public:
 
     auto rnnBw = rnnFw.clone()
                  ("prefix", prefix_ + "_bi_r")
-                 ("direction", (int)rnn::backward);
+                 ("direction", rnn::backward);
 
     auto context = concatenate({rnnFw->transduce(x),
                                 rnnBw->transduce(x, xMask)},
@@ -236,10 +235,10 @@ public:
                       ("prefix", prefix_ + "_l" + std::to_string(i)));
 
       rnn_ = rnn.construct();
-      
+
     }
 
-    auto decContext = rnn_->transduce(embeddings, stateS2S->getStates()[0]);
+    auto decContext = rnn_->transduce(embeddings, stateS2S->getStates());
     rnn::States decStates = rnn_->lastCellStates();
 
     bool single = stateS2S->doSingleStep();
