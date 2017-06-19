@@ -61,10 +61,6 @@ class Decoder {
           // Repeat mean batchSize times by broadcasting
           Temp1_ = Mean<byRow, Matrix>(SourceContext);
 
-          std::cerr << "CTX: " << std::endl;
-          for (int i = 0; i < 5; ++i) std::cerr << Temp1_(0, i) << " ";
-          std::cerr << std::endl;
-
           Temp2_.resize(batchSize, SourceContext.columns());
           Temp2_ = 0.0f;
           AddBiasVector<byRow>(Temp2_, Temp1_);
