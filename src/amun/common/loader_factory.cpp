@@ -81,6 +81,7 @@ Loader *LoaderFactory::CreateCPU(
   IF_MATCH_RETURN(god, type, "nematus", CPU::EncoderDecoderLoader);
   IF_MATCH_RETURN(god, type, "NEMATUS", CPU::EncoderDecoderLoader);
 
+  IF_MATCH_RETURN(god, type, "nematus2", CPU::EncoderDecoderLoader);
   return NULL;
 }
 

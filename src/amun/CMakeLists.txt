@@ -11,14 +11,18 @@ list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp")
 add_library(cpumode OBJECT
   cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
+  cpu/decoder/encoder_decoder.cpp
+  cpu/decoder/encoder_decoder_state.cpp
+  cpu/decoder/encoder_decoder_loader.cpp
   cpu/dl4mt/encoder.cpp
   cpu/dl4mt/gru.cpp
   cpu/dl4mt/model.cpp
+  cpu/dl4mt/encoder_decoder.cpp
   cpu/nematus/encoder.cpp
   cpu/nematus/model.cpp
   cpu/nematus/gru.cpp
   cpu/nematus/transition.cpp
-  cpu/decoder/encoder_decoder.cpp
+  cpu/nematus/encoder_decoder.cpp
 )
 
 add_library(libcommon OBJECT

@@ -115,7 +115,7 @@ class Decoder {
 
       private:
         const GRU<WeightsGRU> gru_;
-        const Transition<WeightsTrans> transition_;
+        const Transition transition_;
     };
 
     //////////////////////////////////////////////////////////////

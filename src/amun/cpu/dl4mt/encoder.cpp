@@ -18,7 +18,6 @@ void Encoder::GetContext(const std::vector<size_t>& words,
 	mblas::Matrix &embed = embeddedWords.back();
 	embeddings_.Lookup(embed, w);
   }
-  //cerr << embeddings_.w_.E_.Debug() << endl;
 
   forwardRnn_.GetContext(embeddedWords.cbegin(),
 						 embeddedWords.cend(),
