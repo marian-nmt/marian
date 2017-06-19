@@ -84,7 +84,7 @@ class Encoder {
       private:
         // Model matrices
         const GRU<WeightsGRU> gru_;
-        const Transition<WeightsTrans> transition_;
+        const Transition transition_;
 
         mblas::Matrix State_;
     };
