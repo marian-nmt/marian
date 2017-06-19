@@ -4,6 +4,7 @@ using namespace std;
 
 namespace amunmt {
 namespace CPU {
+namespace Nematus {
 
 void Encoder::GetContext(const std::vector<size_t>& words, mblas::Matrix& context) {
   std::vector<mblas::Matrix> embeddedWords;
@@ -25,6 +26,7 @@ void Encoder::GetContext(const std::vector<size_t>& words, mblas::Matrix& contex
 						  context, true);
 }
 
-} // namespace CPU
-} // namespace amunmt
+}  // namespace Nematus
+}  // namespace CPU
+}  // namespace amunmt
 

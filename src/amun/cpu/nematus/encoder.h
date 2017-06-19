@@ -7,6 +7,7 @@
 
 namespace amunmt {
 namespace CPU {
+namespace Nematus {
 
 class Encoder {
   private:
@@ -105,6 +106,7 @@ class Encoder {
     EncoderRNN<Weights::GRU, Weights::Transition> backwardRnn_;
 };
 
+}
 }
 }
 

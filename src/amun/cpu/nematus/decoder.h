@@ -8,6 +8,7 @@
 
 namespace amunmt {
 namespace CPU {
+namespace Nematus {
 
 class Decoder {
   private:
@@ -369,6 +370,7 @@ class Decoder {
     Softmax<Weights::DecSoftmax> softmax_;
 };
 
+}
 }
 }
 
