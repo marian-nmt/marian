@@ -60,9 +60,6 @@ class LexProbs;
 // An enumeration of activations
 enum struct act { linear, tanh, logit, ReLU };
 
-// An enumeration of directions
-enum struct dir { forward, backward, bidirect };
-
 /**
  * @brief Defines a set of keywords.
  *
@@ -77,7 +74,6 @@ KEY(prefix, std::string);
 KEY(final, bool);
 KEY(output_last, bool);
 KEY(activation, act);
-KEY(direction, dir);
 KEY(mask, Expr);
 KEY(dropout_prob, float);
 KEY(init, std::function<void(Tensor)>);

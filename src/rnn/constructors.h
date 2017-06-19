@@ -36,6 +36,7 @@ template <class Factory>
 class Accumulator : public Factory {
 public:
   Accumulator(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  Accumulator(const Factory& factory) : Factory(factory) {}
   Accumulator(const Accumulator&) = default;
   Accumulator(Accumulator&&) = default;
 
@@ -53,6 +54,10 @@ public:
   Accumulator& operator()(YAML::Node yaml) {
     Factory::getOptions()->merge(yaml);
     return *this;
+  }
+
+  Accumulator<Factory> clone() {
+    return Accumulator<Factory>(Factory::clone());
   }
 };
 
@@ -97,6 +102,13 @@ public:
       return New<Tanh>(graph_, options_);
     return New<GRU>(graph_, options_);
   }
+
+  CellFactory clone() {
+    CellFactory aClone(graph_);
+    aClone.options_->merge(options_);
+    return aClone;
+  }
+
 };
 
 typedef Accumulator<CellFactory> cell;
@@ -110,24 +122,36 @@ public:
 
   Ptr<Cell> construct() {
     auto stacked = New<StackedCell>(graph_, options_);
-    for(auto sf : stackableFactories_) {
+
+    int lastDimInput = options_->get<int>("dimInput");
+
+    for(int i = 0; i < stackableFactories_.size(); ++i) {
+      auto sf = stackableFactories_[i];
+
       if(sf->is<CellFactory>()) {
         auto cellFactory = sf->as<CellFactory>();
         cellFactory->getOptions()->merge(options_);
+
+        if(i > 0)
+          sf->getOptions()->set("dimInput", lastDimInput);
+
         stacked->push_back(cellFactory->construct());
       }
       else {
         auto inputFactory = sf->as<InputFactory>();
         inputFactory->getOptions()->merge(options_);
-        stacked->push_back(inputFactory->construct());
+        auto input = inputFactory->construct();
+        stacked->push_back(input);
+        lastDimInput = input->dimOutput();
       }
     }
     return stacked;
   }
 
   template <class F>
-  void push_back(F& f) {
+  Accumulator<StackedCellFactory> push_back(const F& f) {
     stackableFactories_.push_back(New<F>(f));
+    return Accumulator<StackedCellFactory>(*this);
   }
 };
 
@@ -145,8 +169,9 @@ public:
     return New<Attention>(graph_, options_, state_);
   }
 
-  void set_state(Ptr<EncoderState> state) {
+  Accumulator<AttentionFactory> set_state(Ptr<EncoderState> state) {
     state_ = state;
+    return Accumulator<AttentionFactory>(*this);
   }
 
   int dimAttended() {
@@ -157,31 +182,47 @@ public:
 
 typedef Accumulator<AttentionFactory> attention;
 
-class cells {
-private:
-  std::string type_;
-  size_t layers_;
+class RNNFactory : public Factory<RNN> {
+protected:
+  std::vector<Ptr<CellFactory>> layerFactories_;
 
 public:
-  cells(const std::string& type, size_t layers)
-  : type_(type), layers_(layers) {}
+  RNNFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
-  template <typename ...Args>
-  std::vector<Ptr<Cell>> operator()(Ptr<ExpressionGraph> graph,
-                                    std::string prefix,
-                                    int dimInput,
-                                    int dimState,
-                                    Args ...args) {
-    std::vector<Ptr<Cell>> cells;
-    for(int i = 0; i < layers_; ++i)
-      cells.push_back(cell(type_)(graph,
-                                 prefix + "_l" + std::to_string(i),
-                                 i == 0 ? dimInput : dimState,
-                                 dimState,
-                                 args...));
-    return cells;
+  Ptr<RNN> construct() {
+    auto rnn = New<RNN>(graph_, options_);
+    for(int i = 0; i < layerFactories_.size(); ++i) {
+      auto lf = layerFactories_[i];
+
+      lf->getOptions()->merge(options_);
+      if(i > 0)
+        lf->getOptions()->set("dimInput", layerFactories_[i - 1]->getOptions()->get<int>("dimState"));
+
+      rnn->push_back(lf->construct());
+    }
+    return rnn;
+  }
+
+  Ptr<RNN> operator->() {
+    return construct();
+  }
+
+  template <class F>
+  Accumulator<RNNFactory> push_back(const F& f) {
+    layerFactories_.push_back(New<F>(f));
+    return Accumulator<RNNFactory>(*this);
+  }
+
+  RNNFactory clone() {
+    RNNFactory aClone(graph_);
+    aClone.options_->merge(options_);
+    for(auto lf : layerFactories_)
+      aClone.push_back(lf->clone());
+    return aClone;
   }
 };
+
+typedef Accumulator<RNNFactory> rnn;
 
 }
 }

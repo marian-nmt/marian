@@ -96,46 +96,47 @@ public:
                    "--type amun does not currently support other rnn cells than gru, "
                    "use --type s2s");
 
-    auto cellFw = rnn::cell(graph)
-                    ("type", cellType)
-                    ("prefix", prefix_ + "_bi")
-                    ("dimInput", dimSrcEmb)
-                    ("dimState", dimEncState)
-                    ("dropout", dropoutRnn)
-                    ("normalize", layerNorm)
-                  .construct();
-    auto xFw = rnn::RNN(cellFw)(x);
+    auto rnnFw = rnn::rnn(graph)
+                 ("type", cellType)
+                 ("prefix", prefix_ + "_bi")
+                 ("dimInput", dimSrcEmb)
+                 ("dimState", dimEncState)
+                 ("dropout", dropoutRnn)
+                 ("normalize", layerNorm)
+                 .push_back(rnn::cell(graph));
 
-    auto cellBw = rnn::cell(graph)
-                    ("type", cellType)
-                    ("prefix", prefix_ + "_bi_r")
-                    ("dimInput", dimSrcEmb)
-                    ("dimState", dimEncState)
-                    ("dropout", dropoutRnn)
-                    ("normalize", layerNorm)
-                  .construct();
-    auto xBw = rnn::RNN(cellBw, direction = dir::backward)(x, xMask);
+    auto rnnBw = rnnFw.clone()
+                 ("prefix", prefix_ + "_bi_r")
+                 ("direction", (int)rnn::backward);
 
-    auto xContext = concatenate({xFw, xBw}, axis = 1);
+    auto context = concatenate({rnnFw->transduce(x),
+                                rnnBw->transduce(x, xMask)},
+                                axis=1);
 
-    //if(encoderLayers > 1) {
-    //  auto layerCells
-    //    = rnn::cells(cellType, encoderLayers-1)(graph, prefix_,
-    //                                        2 * dimEncState, dimEncState,
-    //                                        normalize=layerNorm, dropout_prob=dropoutRnn);
-    //
-    //  xContext = rnn::MLRNN(layerCells, skip=skipDepth)(xContext);
-    //}
+    if(encoderLayers > 1) {
+      auto rnnML = rnn::rnn(graph)
+                   ("type", cellType)
+                   ("dimInput", 2 * dimEncState)
+                   ("dimState", dimEncState)
+                   ("dropout", dropoutRnn)
+                   ("normalize", layerNorm)
+                   ("skip", skipDepth)
+                   ("skipFirst", skipDepth);
 
-    return New<EncoderStateS2S>(xContext, xMask, batch);
+      for(int i = 0; i < encoderLayers - 1; ++i)
+        rnnML.push_back(rnn::cell(graph)
+                        ("prefix", prefix_ + "_l" + std::to_string(i)));
 
+      context = rnnML->transduce(context);
+    }
+
+    return New<EncoderStateS2S>(context, xMask, batch);
   }
 };
 
 class DecoderS2S : public DecoderBase {
 private:
-  Ptr<rnn::Cell> attCell_;
-  Ptr<rnn::Base> rnnLn;
+  Ptr<rnn::RNN> rnn_;
   Expr tiedOutputWeights_;
 
 public:
@@ -209,61 +210,40 @@ public:
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
-    if(!attCell_) {
+    if(!rnn_) {
       auto attCell = rnn::stacked_cell(graph)
-                        ("dimInput", dimTrgEmb)
-                        ("dimState", dimDecState)
-                        ("dropout", dropoutRnn)
-                        ("normalize", layerNorm);
+                     .push_back(rnn::cell(graph)
+                                ("prefix", prefix_ + "_cell1"))
+                     .push_back(rnn::attention(graph)
+                                ("prefix", prefix_)
+                                .set_state(state->getEncoderState()))
+                     .push_back(rnn::cell(graph)
+                                ("prefix", prefix_ + "_cell2")
+                                ("final", true));
 
-      attCell.push_back(rnn::cell(graph)
-                        ("type", cellType)
-                        ("prefix", prefix_ + "_cell1"));
+      auto rnn = rnn::rnn(graph)
+                 ("type", cellType)
+                 ("dimInput", dimTrgEmb)
+                 ("dimState", dimDecState)
+                 ("dropout", dropoutRnn)
+                 ("normalize", layerNorm)
+                 ("skip", skipDepth)
+                 .push_back(attCell);
 
-      auto attention = rnn::attention(graph)
-                        ("prefix", prefix_);
-      attention.set_state(state->getEncoderState());
-      attCell.push_back(attention);
+      for(int i = 0; i < decoderLayers - 1; ++i)
+        rnn.push_back(rnn::cell(graph)
+                      ("prefix", prefix_ + "_l" + std::to_string(i)));
 
-      attCell.push_back(rnn::cell(graph)
-                        ("type", cellType)
-                        ("prefix", prefix_ + "_cell2")
-                        ("dimInput", attention.dimAttended())
-                        ("final", true));
-
-      attCell_ = attCell.construct();
+      rnn_ = rnn.construct();
     }
-
-    auto rnn = rnn::RNN(attCell_);
-    auto decContext = rnn(embeddings, stateS2S->getStates()[0]);
-    rnn::States decStates = rnn.last();
+    auto decContext = rnn_->transduce(embeddings, stateS2S->getStates()[0]);
+    rnn::States decStates = rnn_->lastCellStates();
 
     bool single = stateS2S->doSingleStep();
-    auto att = attCell_->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     auto alignedContext = single ? att->getContexts().back() :
                                    concatenate(att->getContexts(),
                                                keywords::axis = 2);
-
-
-    //if(decoderLayers > 1) {
-    //  rnn::States statesIn;
-    //  for(int i = 1; i < stateS2S->getStates().size(); ++i)
-    //    statesIn.push_back(stateS2S->getStates()[i]);
-    //
-    //  if(!rnnLn) {
-    //    auto layerCells
-    //      = rnn::cells(cellType, decoderLayers - 1)(graph,  prefix_,
-    //                                                dimDecState, dimDecState,
-    //                                                normalize = layerNorm,
-    //                                                dropout_prob = dropoutRnn);
-    //
-    //    rnnLn = New<rnn::MLRNN>(layerCells, skip = skipDepth, skip_first = skipDepth);
-    //  }
-    //
-    //  decContext = (*rnnLn)(decContext, statesIn);
-    //  for(auto state : rnnLn->last())
-    //    decStates.push_back(state);
-    //}
 
     //// 2-layer feedforward network for outputs and cost
     auto logitsL1
@@ -279,14 +259,15 @@ public:
 
       logitsOut = DenseTied(
           prefix_ + "_ff_logit_l2", tiedOutputWeights_, dimTrgVoc)(logitsL1);
-    } else
+    } else {
       logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
+    }
 
     return New<DecoderStateS2S>(decStates, logitsOut, state->getEncoderState());
   }
 
   const std::vector<Expr> getAlignments() {
-    auto att = attCell_->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     return att->getAlignments();
   }
 };

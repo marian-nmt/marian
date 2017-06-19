@@ -18,16 +18,29 @@
 namespace marian {
 namespace rnn {
 
-class Base {
+// An enumeration of directions
+enum dir : int { forward, backward, bidirect };
+
+class BaseRNN {
+protected:
+  Ptr<ExpressionGraph> graph_;
+  Ptr<Options> options_;
+
 public:
-  virtual Expr operator()(Expr, Expr = nullptr) = 0;
-  virtual Expr operator()(Expr, State, Expr = nullptr) = 0;
-  virtual Expr operator()(Expr, States, Expr = nullptr) = 0;
-  virtual States last() = 0;
+  BaseRNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+      : graph_(graph), options_(options) {}
+
+  virtual Expr transduce(Expr, Expr = nullptr) = 0;
+  virtual Expr transduce(Expr, State, Expr = nullptr) = 0;
+  virtual Expr transduce(Expr, States, Expr = nullptr) = 0;
+  virtual States lastCellStates() = 0;
+  virtual void push_back(Ptr<Cell>) = 0;
+  virtual Ptr<Cell> at(int i) = 0;
 };
 
+class RNN;
 
-class RNN : public Base {
+class SingleLayerRNN : public BaseRNN {
 private:
   Ptr<Cell> cell_;
   dir direction_;
@@ -82,53 +95,83 @@ private:
     return apply(input, States({startState}), mask);
   }
 
-public:
-
-  template <typename... Args>
-  RNN(Ptr<Cell> cell, Args... args)
-      : cell_(cell),
-        direction_{Get(keywords::direction, dir::forward, args...)}
+  SingleLayerRNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+      : BaseRNN(graph, options),
+        direction_((dir)options->get<int>("direction", dir::forward))
       {}
 
-  virtual Expr operator()(Expr input, Expr mask = nullptr) {
+public:
+  friend RNN;
+
+  virtual Expr transduce(Expr input, Expr mask = nullptr) {
     return apply(input, mask).outputs();
   }
 
-  virtual Expr operator()(Expr input, States states, Expr mask = nullptr) {
+  virtual Expr transduce(Expr input, States states, Expr mask = nullptr) {
     return apply(input, states, mask).outputs();
   }
 
-  virtual Expr operator()(Expr input, State state, Expr mask = nullptr) {
+  virtual Expr transduce(Expr input, State state, Expr mask = nullptr) {
     return apply(input, States({state}), mask).outputs();
   }
 
-  States last() {
+  States lastCellStates() {
     return last_;
+  }
+
+  void push_back(Ptr<Cell> cell) {
+    cell_ = cell;
+  }
+
+  virtual Ptr<Cell> at(int i) {
+    UTIL_THROW_IF2(i > 0, "SingleRNN only has one cell");
+    return cell_;
   }
 };
 
 
-class MLRNN : public Base {
+class RNN : public BaseRNN {
 private:
   bool skip_;
   bool skipFirst_;
-  std::vector<Ptr<Base>> rnns_;
+  std::vector<Ptr<SingleLayerRNN>> rnns_;
 
 public:
-  template <typename... Args>
-  MLRNN(const std::vector<Ptr<Cell>>& cells,
-        Args... args)
-      : skip_(Get(keywords::skip, false, args...)),
-        skipFirst_(Get(keywords::skip_first, false, args...)) {
+  RNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+      : BaseRNN(graph, options),
+        skip_(options->get("skip", false)),
+        skipFirst_(options->get("skipFirst", false)) {}
 
-    for(auto cell : cells)
-      rnns_.push_back(New<RNN>(cell));
+  void push_back(Ptr<Cell> cell) {
+    auto rnn = Ptr<SingleLayerRNN>(new SingleLayerRNN(graph_, options_));
+    rnn->push_back(cell);
+    rnns_.push_back(rnn);
   }
 
-  Expr operator()(Expr input, Expr mask = nullptr) {
+  Expr transduce(Expr input, Expr mask = nullptr) {
+    UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
+
+    Expr output;
+    Expr layerInput = input;
+    for(int i = 0; i < rnns_.size(); ++i) {
+      auto layerOutput = rnns_[i]->transduce(layerInput, mask);
+
+      if(skip_ && (skipFirst_ || i > 0))
+        output = layerOutput + input;
+      else
+        output = layerOutput;
+
+      layerInput = output;
+    }
+    return output;
+  }
+
+  Expr transduce(Expr input, States states, Expr mask = nullptr) {
+    UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
+
     Expr output;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = (*rnns_[i])(input, mask);
+      auto layerOutput = rnns_[i]->transduce(input, States({states[i]}), mask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + input;
@@ -140,10 +183,12 @@ public:
     return output;
   }
 
-  Expr operator()(Expr input, States states, Expr mask = nullptr) {
+  Expr transduce(Expr input, State state, Expr mask = nullptr) {
+    UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
+
     Expr output;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = (*rnns_[i])(input, States({states[i]}), mask);
+      auto layerOutput = rnns_[i]->transduce(input, States({state}), mask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + input;
@@ -155,26 +200,15 @@ public:
     return output;
   }
 
-  Expr operator()(Expr input, State state, Expr mask = nullptr) {
-    Expr output;
-    for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = (*rnns_[i])(input, States({state}), mask);
-
-      if(skip_ && (skipFirst_ || i > 0))
-        output = layerOutput + input;
-      else
-        output = layerOutput;
-
-      input = output;
-    }
-    return output;
-  }
-
-  States last() {
+  States lastCellStates() {
     States temp;
     for(auto rnn : rnns_)
-      temp.push_back(rnn->last().back());
+      temp.push_back(rnn->lastCellStates().back());
     return temp;
+  }
+
+  virtual Ptr<Cell> at(int i) {
+    return rnns_[i]->at(0);
   }
 
 };
