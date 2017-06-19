@@ -15,6 +15,10 @@ add_library(cpumode OBJECT
   cpu/dl4mt/encoder.cpp
   cpu/dl4mt/gru.cpp
   cpu/dl4mt/model.cpp
+  cpu/nematus/encoder.cpp
+  cpu/nematus/model.cpp
+  cpu/nematus/gru.cpp
+  cpu/nematus/transition.cpp
   cpu/decoder/encoder_decoder.cpp
 )
 
