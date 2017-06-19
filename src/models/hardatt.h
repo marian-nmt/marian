@@ -8,13 +8,13 @@ namespace marian {
 
 class DecoderStateHardAtt : public DecoderState {
 protected:
-  std::vector<Expr> states_;
+  rnn::States states_;
   Expr probs_;
   Ptr<EncoderState> encState_;
   std::vector<size_t> attentionIndices_;
 
 public:
-  DecoderStateHardAtt(const std::vector<Expr> states,
+  DecoderStateHardAtt(const rnn::States& states,
                       Expr probs,
                       Ptr<EncoderState> encState,
                       const std::vector<size_t>& attentionIndices)
@@ -28,21 +28,12 @@ public:
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-    int numSelected = selIdx.size();
-    int dimState = states_[0]->shape()[1];
-
-    std::vector<Expr> selectedStates;
-    for(auto state : states_) {
-      selectedStates.push_back(
-          reshape(rows(state, selIdx), {1, dimState, 1, numSelected}));
-    }
-
     std::vector<size_t> selectedAttentionIndices;
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
     return New<DecoderStateHardAtt>(
-        selectedStates, probs_, encState_, selectedAttentionIndices);
+        states_.select(selIdx), probs_, encState_, selectedAttentionIndices);
   }
 
   virtual void setAttentionIndices(
@@ -55,7 +46,7 @@ public:
     return attentionIndices_;
   }
 
-  virtual const std::vector<Expr>& getStates() { return states_; }
+  virtual const rnn::States& getStates() { return states_; }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
     auto attentionIdx = getAttentionIndices();
@@ -99,7 +90,11 @@ public:
                        activation = act::tanh,
                        normalize = layerNorm)(meanContext);
 
-    std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
+    // @TODO: review this
+    rnn::States startStates;
+    for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
+      startStates.push_back(rnn::State{start, start});
+
     return New<DecoderStateHardAtt>(
         startStates, nullptr, encState, std::vector<size_t>({0}));
   }
@@ -245,8 +240,6 @@ typedef EncoderDecoder<EncoderS2S, DecoderHardAtt> HardAtt;
 
 /******************************************************************************/
 
-typedef AttentionCell<GRU, GlobalAttention, GRU> CGRU;
-
 class DecoderHardSoftAtt : public DecoderHardAtt {
 private:
   Ptr<rnn::RNN> rnn_;
@@ -269,6 +262,7 @@ public:
     bool layerNorm = options_->get<bool>("layer-normalization");
     bool skipDepth = options_->get<bool>("skip");
     size_t decoderLayers = options_->get<size_t>("layers-dec");
+    auto cellType = options_->get<std::string>("cell-dec");
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
@@ -354,7 +348,8 @@ public:
   }
 
   const std::vector<Expr> getAlignments() {
-    return attention_->getAlignments();
+    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    return att->getAlignments();
   }
 };
 
