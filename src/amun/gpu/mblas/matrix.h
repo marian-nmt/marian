@@ -75,7 +75,7 @@ class TMatrix : public BaseMatrix {
 
     ~TMatrix()
     {
-      Clear();
+        HANDLE_ERROR(cudaFree(data_));
     }
 
     virtual size_t dim(size_t i) const
@@ -106,7 +106,13 @@ class TMatrix : public BaseMatrix {
           arrSize_ = newSize;
         }
         else if (rows == 0 || cols == 0) {
-          Clear();
+            HANDLE_ERROR(cudaFree(data_));
+            data_ = nullptr;
+            dim_[0] = 0;
+            dim_[1] = 0;
+            dim_[2] = 0;
+            dim_[3] = 0;
+            arrSize_ = 0;
         }
       }
       else {
@@ -152,17 +158,6 @@ class TMatrix : public BaseMatrix {
       }
 
       return strm.str();
-    }
-
-    void Clear() {
-      //std::cerr << "free data2:" << data_ << std::endl;
-      HANDLE_ERROR(cudaFree(data_));
-      data_ = nullptr;
-      dim_[0] = 0;
-      dim_[1] = 0;
-      dim_[2] = 0;
-      dim_[3] = 0;
-      arrSize_ = 0;
     }
 
     value_type* data() {
