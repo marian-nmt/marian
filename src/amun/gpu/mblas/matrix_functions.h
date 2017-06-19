@@ -198,7 +198,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   size_t cols  = OutOrig.dim(1);
 
   thread_local static Matrix OutNew;
-  OutNew.Resize(sumOfBeamSizes, cols, srcSize);
+  OutNew.NewSize(sumOfBeamSizes, cols, srcSize);
 
   MatrixWrapper<float> outWrap(OutNew);
   const MatrixWrapper<float> in1Wrap(OutOrig);

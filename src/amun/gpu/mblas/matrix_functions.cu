@@ -100,7 +100,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
 
-  Out.Resize(numHypos, states);
+  Out.NewSize(numHypos, states);
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> weightsWrap(Weights);
@@ -130,7 +130,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In) {
   size_t m = In.dim(0);
   size_t n = In.dim(1);
 
-  Out.Resize(n, m);
+  Out.NewSize(n, m);
 
   float alpha = 1.0;
   float beta  = 0.0;
@@ -312,7 +312,7 @@ Matrix& Slice(Matrix& Out,
   assert(In.dim(2) == 1);
   assert(In.dim(3) == 1);
 
-  Out.Resize(In.dim(0), dim);
+  Out.NewSize(In.dim(0), dim);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
@@ -369,10 +369,10 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   if (!transA && transB) {
     // for GetAlignedSourceContext()
     assert((A.dim(2) == A.dim(3) == 1));
-    C.Resize(nOut, B.dim(2), 1, 1);
+    C.NewSize(nOut, B.dim(2), 1, 1);
   }
   else {
-    C.Resize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));
+    C.NewSize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));
   }
 
   /*
