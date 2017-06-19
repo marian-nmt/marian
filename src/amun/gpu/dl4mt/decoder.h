@@ -64,7 +64,7 @@ class Decoder {
           using namespace mblas;
 
           //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
-          Temp2_.Resize(1, SourceContext.dim(1), 1, batchSize);
+          Temp2_.NewSize(1, SourceContext.dim(1), 1, batchSize);
           //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
@@ -207,7 +207,7 @@ class Decoder {
 
           mblas::Softmax(A_, dBatchMapping_, mapping, batchSize);
 
-          AlignedSourceContext.Resize(A_.dim(0), SourceContext.dim(1));
+          AlignedSourceContext.NewSize(A_.dim(0), SourceContext.dim(1));
 
           //std::cerr << "1AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
           //std::cerr << "A_=" << A_.Debug() << std::endl;
@@ -284,11 +284,11 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
 
           if(!filtered_) {
-            Probs.Resize(T1_.dim(0), w_.W4_->dim(1));
+            Probs.NewSize(T1_.dim(0), w_.W4_->dim(1));
             Prod(Probs, T1_, *w_.W4_);
             BroadcastVec(_1 + _2, Probs, *w_.B4_);
           } else {
-            Probs.Resize(T1_.dim(0), FilteredW4_.dim(1));
+            Probs.NewSize(T1_.dim(0), FilteredW4_.dim(1));
             Prod(Probs, T1_, FilteredW4_);
             BroadcastVec(_1 + _2, Probs, FilteredB4_);
           }
@@ -369,7 +369,7 @@ class Decoder {
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
-      Embedding.Resize(batchSize, embeddings_.GetCols());
+      Embedding.NewSize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
 

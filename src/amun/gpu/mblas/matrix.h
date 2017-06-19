@@ -75,7 +75,7 @@ class TMatrix : public BaseMatrix {
 
     ~TMatrix()
     {
-        HANDLE_ERROR(cudaFree(data_));
+      HANDLE_ERROR(cudaFree(data_));
     }
 
     virtual size_t dim(size_t i) const
@@ -107,6 +107,38 @@ class TMatrix : public BaseMatrix {
         }
         else if (rows == 0 || cols == 0) {
             HANDLE_ERROR(cudaFree(data_));
+            data_ = nullptr;
+            dim_[0] = 0;
+            dim_[1] = 0;
+            dim_[2] = 0;
+            dim_[3] = 0;
+            arrSize_ = 0;
+        }
+      }
+      else {
+        HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
+        //std::cerr << "malloc data4:" << data_ << std::endl;
+        arrSize_ = newSize;
+      }
+
+      dim_[0] = rows;
+      dim_[1] = cols;
+      dim_[2] = beam;
+      dim_[3] = batches;
+    }
+
+    void NewSize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
+      size_t newSize = cols * rows * beam * batches;
+      if (data_) {
+        if (newSize > arrSize_) {
+          T *newData;
+          HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
+          HANDLE_ERROR( cudaFree(data_));
+          data_ = newData;
+          arrSize_ = newSize;
+        }
+        else if (rows == 0 || cols == 0) {
+            HANDLE_ERROR( cudaFree(data_));
             data_ = nullptr;
             dim_[0] = 0;
             dim_[1] = 0;

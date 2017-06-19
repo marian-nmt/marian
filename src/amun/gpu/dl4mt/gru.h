@@ -181,7 +181,7 @@ class FastGRU {
       const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
       const size_t cols = State.dim(1);
 
-      NextState.Resize(State.dim(0) * State.dim(3), cols, State.dim(2), 1);
+      NextState.NewSize(State.dim(0) * State.dim(3), cols, State.dim(2), 1);
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
