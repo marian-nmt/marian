@@ -304,10 +304,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
      "Learning rate")
-    ("lr-decay", po::value<double>()->default_value(0.7),
+    ("lr-decay", po::value<double>()->default_value(0.0),
      "Decay factor for learning rate: lr = lr * arg (0 to disable)")
     ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
-     "Strategy for learning rate strategy "
+     "Strategy for learning rate decaying "
      "(possible values: epoch, batches, stalled, epoch+batches, epoch+stalled)")
     ("lr-decay-start", po::value<std::vector<size_t>>()
        ->multitoken()
@@ -315,7 +315,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
        "The first number of epoch/batches/stalled validations to start "
        "learning rate decaying")
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
-     "Frequency of performing learning rate decaying for batches, "
+     "Learning rate decaying frequency for batches, "
      "requires --lr-decay-strategy to be batches")
 
     ("clip-norm", po::value<double>()->default_value(1.f),
