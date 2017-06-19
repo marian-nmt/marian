@@ -5,12 +5,12 @@
 
 #include "common/threadpool.h"
 
-#include "common/god.h"
 #include "common/loader.h"
 #include "common/scorer.h"
-#include "../dl4mt/dl4mt.h"
 
-#include "../mblas/matrix.h"
+#include "cpu/dl4mt/dl4mt.h"
+
+#include "cpu/mblas/matrix.h"
 
 namespace amunmt {
 
@@ -18,13 +18,15 @@ class Sentence;
 
 namespace CPU {
 
+namespace dl4mt {
 class Encoder;
 class Decoder;
+}
 
 class EncoderDecoderState : public State {
   public:
-	EncoderDecoderState();
-	EncoderDecoderState(const EncoderDecoderState&) = delete;
+    EncoderDecoderState();
+    EncoderDecoderState(const EncoderDecoderState&) = delete;
 
     virtual std::string Debug() const;
 
@@ -37,13 +39,11 @@ class EncoderDecoderState : public State {
     const CPU::mblas::Matrix& GetEmbeddings() const;
 
   private:
-    //EncoderDecoderState();
-
     CPU::mblas::Matrix states_;
     CPU::mblas::Matrix embeddings_;
 };
 
-////////////////////////////////////////////////
+
 class EncoderDecoder : public Scorer {
   private:
     using EDState = EncoderDecoderState;
@@ -52,7 +52,7 @@ class EncoderDecoder : public Scorer {
     EncoderDecoder(const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
-                   const Weights& model);
+                   const dl4mt::Weights& model);
 
     virtual void Decode(const State& in, State& out, const std::vector<size_t>& beamSizes);
 
@@ -75,18 +75,17 @@ class EncoderDecoder : public Scorer {
 
     void Filter(const std::vector<size_t>& filterIds);
 
-    CPU::Encoder& GetEncoder();
+    dl4mt::Encoder& GetEncoder();
 
-    CPU::Decoder& GetDecoder();
+    dl4mt::Decoder& GetDecoder();
 
   private:
-    const Weights& model_;
-    std::unique_ptr<CPU::Encoder> encoder_;
-    std::unique_ptr<CPU::Decoder> decoder_;
+    const dl4mt::Weights& model_;
+    std::unique_ptr<dl4mt::Encoder> encoder_;
+    std::unique_ptr<dl4mt::Decoder> decoder_;
 
     mblas::Matrix SourceContext_;
 };
 
 }
-
 }

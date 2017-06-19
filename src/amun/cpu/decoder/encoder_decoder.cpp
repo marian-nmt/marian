@@ -13,6 +13,7 @@
 #include "common/scorer.h"
 #include "common/sentence.h"
 #include "common/sentences.h"
+#include "common/god.h"
 
 #include "cpu/mblas/matrix.h"
 #include "cpu/decoder/best_hyps.h"
@@ -25,10 +26,8 @@ namespace CPU {
 
 using EDState = EncoderDecoderState;
 
-////////////////////////////////////////////////
 EncoderDecoderState::EncoderDecoderState()
 {
-	//cerr << "create EncoderDecoderState" << endl;
 }
 
 std::string EncoderDecoderState::Debug() const
@@ -52,16 +51,17 @@ const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 
-////////////////////////////////////////////////
+
 EncoderDecoder::EncoderDecoder(const std::string& name,
                                const YAML::Node& config,
                                size_t tab,
-                               const Weights& model)
+                               const dl4mt::Weights& model)
   : Scorer(name, config, tab),
     model_(model),
-    encoder_(new CPU::Encoder(model_)),
-    decoder_(new CPU::Decoder(model_))
+    encoder_(new CPU::dl4mt::Encoder(model_)),
+    decoder_(new CPU::dl4mt::Decoder(model_))
 {}
+
 
 void EncoderDecoder::Decode(const State& in, State& out, const std::vector<size_t>&) {
   const EDState& edIn = in.get<EDState>();
@@ -71,9 +71,11 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<size_
                      edIn.GetEmbeddings(), SourceContext_);
 }
 
+
 State* EncoderDecoder::NewState() const {
   return new EDState();
 }
+
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
@@ -81,10 +83,12 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
 
+
 void EncoderDecoder::SetSource(const Sentences& sources) {
   encoder_->GetContext(sources.at(0)->GetWords(tab_),
                         SourceContext_);
 }
+
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                        const Beam& beam,
@@ -103,48 +107,54 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 
+
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
   decoder_->GetAttention(Attention);
 }
+
 
 mblas::Matrix& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 
+
 size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
+
 
 void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
-Encoder& EncoderDecoder::GetEncoder() {
+
+dl4mt::Encoder& EncoderDecoder::GetEncoder() {
   return *encoder_;
 }
 
-Decoder& EncoderDecoder::GetDecoder() {
+
+dl4mt::Decoder& EncoderDecoder::GetDecoder() {
   return *decoder_;
 }
+
 
 BaseMatrix& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
-
 
 ////////////////////////////////////////////////
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                                            const YAML::Node& config)
   : Loader(name, config) {}
 
-void EncoderDecoderLoader::Load(const God &god) {
+void EncoderDecoderLoader::Load(const God&) {
   std::string path = Get<std::string>("path");
 
   LOG(info, "Loading model {}", path);
-  weights_.emplace_back(new Weights(path, 0));
+  weights_.emplace_back(new dl4mt::Weights(path, 0));
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God&, const DeviceInfo& deviceInfo) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[0]));

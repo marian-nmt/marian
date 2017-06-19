@@ -4,90 +4,16 @@
 #include <map>
 #include <string>
 
-#include "../npz_converter.h"
-
-#include "../mblas/matrix.h"
+#include "cpu/npz_converter.h"
+#include "cpu/mblas/matrix.h"
 
 namespace amunmt {
 namespace CPU {
+namespace dl4mt {
 
 struct Weights {
-  class Transition {
-    public:
-      enum class TransitionType {Encoder, Decoder};
-      Transition(const NpzConverter& model, TransitionType type, std::string prefix,
-                 std::string infix="")
-        : depth_(findTransitionDepth(model, prefix, infix)), type_(type)
-      {
-        for (int i = 1; i <= depth_; ++i) {
-          U_.emplace_back(model[name(prefix, "U", infix, i)]);
-          Ux_.emplace_back(model[name(prefix, "Ux", infix, i)]);
-          B_.emplace_back(model(name(prefix, "b", infix, i), true));
-          U_lns_.emplace_back(model[name(prefix, "U", infix, i, "_lns")]);
-          U_lnb_.emplace_back(model[name(prefix, "U", infix, i, "_lnb")]);
-          Ux_lns_.emplace_back(model[name(prefix, "Ux", infix, i, "_lns")]);
-          Ux_lnb_.emplace_back(model[name(prefix, "Ux", infix, i, "_lnb")]);
-          // decoder_U_nl_drt_4_lnb
-          switch(type) {
-            case TransitionType::Encoder:
-              Bx1_.emplace_back(1, Ux_.back().Cols());
-              const_cast<mblas::Matrix&>(Bx1_.back()) = 0.0f;
-              Bx2_.emplace_back(model(name(prefix, "bx", infix, i), true));
-              break;
-            case TransitionType::Decoder:
-              Bx1_.emplace_back(model(name(prefix, "bx", infix, i), true));
-              Bx2_.emplace_back(1, Ux_.back().Cols());
-              const_cast<mblas::Matrix&>(Bx2_.back()) = 0.0f;
-              break;
-          }
-        }
-      }
 
-    static int findTransitionDepth(const NpzConverter& model, std::string prefix, std::string infix) {
-      int currentDepth = 0;
-      while (true) {
-        if (model.has(prefix + "b" + infix + "_drt_" + std::to_string(currentDepth + 1))) {
-          ++currentDepth;
-        } else {
-          break;
-        }
-      }
-      std::cerr << "Found transition depth: " << currentDepth << std::endl;
-      return currentDepth;
-    }
-
-    int size() const {
-      return depth_;
-    }
-
-    TransitionType type() const {
-      return type_;
-    }
-
-    protected:
-      std::string name(const std::string& prefix, std::string name, std::string infix, int index,
-          std::string suffix = "")
-      {
-        return prefix + name + infix + "_drt_" + std::to_string(index) + suffix;
-      }
-
-    private:
-      int depth_;
-      TransitionType type_;
-
-    public:
-      std::vector<mblas::Matrix> B_;
-      std::vector<mblas::Matrix> Bx1_;
-      std::vector<mblas::Matrix> Bx2_;
-      std::vector<mblas::Matrix> U_;
-      std::vector<mblas::Matrix> Ux_;
-
-      std::vector<mblas::Matrix> U_lns_;
-      std::vector<mblas::Matrix> U_lnb_;
-      std::vector<mblas::Matrix> Ux_lns_;
-      std::vector<mblas::Matrix> Ux_lnb_;
-
-  };
+  //////////////////////////////////////////////////////////////////////////////
 
   struct Embeddings {
     Embeddings(const NpzConverter& model, const std::string &key);
@@ -97,7 +23,7 @@ struct Weights {
   };
 
   struct GRU {
-    GRU(const NpzConverter& model, std::string prefix, std::vector<std::string> keys);
+	GRU(const NpzConverter& model, const std::vector<std::string> &keys);
 
     const mblas::Matrix W_;
     const mblas::Matrix B_;
@@ -105,48 +31,33 @@ struct Weights {
     const mblas::Matrix Wx_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
-    const mblas::Matrix Bx3_;
     const mblas::Matrix Ux_;
-
-    const mblas::Matrix W_lns_;
-    const mblas::Matrix W_lnb_;
-    const mblas::Matrix Wx_lns_;
-    const mblas::Matrix Wx_lnb_;
-    const mblas::Matrix U_lns_;
-    const mblas::Matrix U_lnb_;
-    const mblas::Matrix Ux_lns_;
-    const mblas::Matrix Ux_lnb_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
+
+  //////////////////////////////////////////////////////////////////////////////
 
   struct DecInit {
     DecInit(const NpzConverter& model);
 
     const mblas::Matrix Wi_;
     const mblas::Matrix Bi_;
-    const mblas::Matrix lns_;
-    const mblas::Matrix lnb_;
+    const mblas::Matrix Gamma_;
   };
 
   struct DecGRU2 {
-    DecGRU2(const NpzConverter& model, std::string prefix, std::vector<std::string> keys);
+    DecGRU2(const NpzConverter& model);
 
     const mblas::Matrix W_;
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix Wx_;
-    const mblas::Matrix Bx3_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Ux_;
-
-    const mblas::Matrix W_lns_;
-    const mblas::Matrix W_lnb_;
-    const mblas::Matrix Wx_lns_;
-    const mblas::Matrix Wx_lnb_;
-    const mblas::Matrix U_lns_;
-    const mblas::Matrix U_lnb_;
-    const mblas::Matrix Ux_lns_;
-    const mblas::Matrix Ux_lnb_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecAttention {
@@ -157,10 +68,8 @@ struct Weights {
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix C_;
-    const mblas::Matrix Wc_att_lns_;
-    const mblas::Matrix Wc_att_lnb_;
-    const mblas::Matrix W_comb_lns_;
-    const mblas::Matrix W_comb_lnb_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
   struct DecSoftmax {
@@ -174,14 +83,12 @@ struct Weights {
     const mblas::Matrix B3_;
     const mblas::Matrix W4_;
     const mblas::Matrix B4_;
-    const mblas::Matrix lns_1_;
-    const mblas::Matrix lns_2_;
-    const mblas::Matrix lns_3_;
-    const mblas::Matrix lnb_1_;
-    const mblas::Matrix lnb_2_;
-    const mblas::Matrix lnb_3_;
+    const mblas::Matrix Gamma_0_;
+    const mblas::Matrix Gamma_1_;
+    const mblas::Matrix Gamma_2_;
   };
 
+  //////////////////////////////////////////////////////////////////////////////
 
   Weights(const std::string& npzFile, size_t device = 0)
     : Weights(NpzConverter(npzFile), device)
@@ -202,9 +109,6 @@ struct Weights {
   const DecGRU2 decGru2_;
   const DecAttention decAttention_;
   const DecSoftmax decSoftmax_;
-  const Transition encForwardTransition_;
-  const Transition encBackwardTransition_;
-  const Transition decTransition_;
 };
 
 inline std::ostream& operator<<(std::ostream &out, const Weights::Embeddings &obj)
@@ -290,6 +194,7 @@ inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
 	return out;
 }
 
+}
 }
 }
 

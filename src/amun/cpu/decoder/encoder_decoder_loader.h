@@ -13,7 +13,9 @@ namespace amunmt {
 
 namespace CPU {
 
+namespace dl4mt {
 class Weights;
+}
 
 class EncoderDecoderLoader : public Loader {
   public:
@@ -26,7 +28,7 @@ class EncoderDecoderLoader : public Loader {
     BestHypsBasePtr GetBestHyps(const God &god) const;
 
   private:
-    std::vector<std::unique_ptr<Weights>> weights_;
+    std::vector<std::unique_ptr<dl4mt::Weights>> weights_;
 };
 
 } // namespace CPU
