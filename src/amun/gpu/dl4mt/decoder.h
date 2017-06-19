@@ -20,7 +20,7 @@ class Decoder {
 
         void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
           using namespace mblas;
-          HostVector<size_t> tids = ids;
+          HostVector<uint> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
@@ -44,7 +44,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        DeviceVector<size_t> indices_;
+        DeviceVector<uint> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };

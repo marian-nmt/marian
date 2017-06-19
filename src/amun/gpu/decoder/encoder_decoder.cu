@@ -77,7 +77,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
   indices_.resize(beamStateIds.size());
-  HostVector<size_t> tmp = beamStateIds;
+  HostVector<uint> tmp = beamStateIds;
 
   mblas::copy(thrust::raw_pointer_cast(tmp.data()),
       beamStateIds.size(),

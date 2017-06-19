@@ -132,11 +132,11 @@ void MapMatrix(Matrix& state, const DeviceVector<int>& mapping, size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<size_t>& indices);
+                 const DeviceVector<uint>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<size_t>& indices);
+                 const DeviceVector<uint>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,

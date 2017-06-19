@@ -224,7 +224,7 @@ Matrix& CopyRow(Matrix& Out,
 
 __global__ void gCopyRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
-                          const MatrixWrapper<size_t> indicesWrap)
+                          const MatrixWrapper<uint> indicesWrap)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -242,7 +242,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<size_t>& indices)
+                 const DeviceVector<uint>& indices)
 {
   assert(In.dim(1) == Out.dim(1));
   assert(Out.dim(0) == indices.size());
@@ -265,7 +265,7 @@ Matrix& CopyRows(Matrix& Out,
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
-  const MatrixWrapper<size_t> indicesWrap(indices);
+  const MatrixWrapper<uint> indicesWrap(indices);
 
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
   int blocks = size / threads + 1;
@@ -279,7 +279,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<size_t>& indices) {
+                 const DeviceVector<uint>& indices) {
   Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 

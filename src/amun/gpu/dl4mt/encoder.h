@@ -22,14 +22,14 @@ class Encoder {
         {}
 
         void Lookup(mblas::Matrix& Row, const Words& words) {
-          HostVector<size_t> knownWords(words.size(), 1);
+          HostVector<uint> knownWords(words.size(), 1);
           for (size_t i = 0; i < words.size(); ++i) {
             if (words[i] < w_.E_->dim(0)) {
               knownWords[i] = words[i];
             }
           }
 
-          DeviceVector<size_t> dKnownWords(knownWords);
+          DeviceVector<uint> dKnownWords(knownWords);
 
           Row.NewSize(words.size(), w_.E_->dim(1));
           mblas::Assemble(Row, *w_.E_, dKnownWords);
