@@ -19,7 +19,7 @@ class Options {
     void parse(const std::string& yaml) {
       auto node = YAML::Load(yaml);
       for(auto it : node)
-        options_[it.first.as<std::string>()] = it.second;
+        options_[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
 
     void merge(Ptr<Options> options) {
@@ -29,7 +29,7 @@ class Options {
     void merge(YAML::Node& node) {
       for(auto it : node)
         if(!options_[it.first.as<std::string>()])
-          options_[it.first.as<std::string>()] = it.second;
+          options_[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
 
     std::string str() {

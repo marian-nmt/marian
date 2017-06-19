@@ -211,6 +211,15 @@ public:
     }
 
     if(!rnn_) {
+
+      auto rnn = rnn::rnn(graph)
+                 ("type", cellType)
+                 ("dimInput", dimTrgEmb)
+                 ("dimState", dimDecState)
+                 ("dropout", dropoutRnn)
+                 ("normalize", layerNorm)
+                 ("skip", skipDepth);
+
       auto attCell = rnn::stacked_cell(graph)
                      .push_back(rnn::cell(graph)
                                 ("prefix", prefix_ + "_cell1"))
@@ -221,21 +230,15 @@ public:
                                 ("prefix", prefix_ + "_cell2")
                                 ("final", true));
 
-      auto rnn = rnn::rnn(graph)
-                 ("type", cellType)
-                 ("dimInput", dimTrgEmb)
-                 ("dimState", dimDecState)
-                 ("dropout", dropoutRnn)
-                 ("normalize", layerNorm)
-                 ("skip", skipDepth)
-                 .push_back(attCell);
-
+      rnn.push_back(attCell);
       for(int i = 0; i < decoderLayers - 1; ++i)
         rnn.push_back(rnn::cell(graph)
                       ("prefix", prefix_ + "_l" + std::to_string(i)));
 
       rnn_ = rnn.construct();
+      
     }
+
     auto decContext = rnn_->transduce(embeddings, stateS2S->getStates()[0]);
     rnn::States decStates = rnn_->lastCellStates();
 
