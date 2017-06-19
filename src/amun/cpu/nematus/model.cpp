@@ -4,6 +4,63 @@ using namespace std;
 
 namespace amunmt {
 namespace CPU {
+namespace Nematus {
+
+Weights::Transition::Transition(const NpzConverter& model, TransitionType type, std::string prefix,
+                                std::string infix)
+  : depth_(findTransitionDepth(model, prefix, infix)), type_(type)
+{
+  for (int i = 1; i <= depth_; ++i) {
+    U_.emplace_back(model[name(prefix, "U", infix, i)]);
+    Ux_.emplace_back(model[name(prefix, "Ux", infix, i)]);
+    B_.emplace_back(model(name(prefix, "b", infix, i), true));
+    U_lns_.emplace_back(model[name(prefix, "U", infix, i, "_lns")]);
+    U_lnb_.emplace_back(model[name(prefix, "U", infix, i, "_lnb")]);
+    Ux_lns_.emplace_back(model[name(prefix, "Ux", infix, i, "_lns")]);
+    Ux_lnb_.emplace_back(model[name(prefix, "Ux", infix, i, "_lnb")]);
+
+    switch(type) {
+      case TransitionType::Encoder:
+        Bx1_.emplace_back(1, Ux_.back().Cols());
+        const_cast<mblas::Matrix&>(Bx1_.back()) = 0.0f;
+        Bx2_.emplace_back(model(name(prefix, "bx", infix, i), true));
+        break;
+      case TransitionType::Decoder:
+        Bx1_.emplace_back(model(name(prefix, "bx", infix, i), true));
+        Bx2_.emplace_back(1, Ux_.back().Cols());
+        const_cast<mblas::Matrix&>(Bx2_.back()) = 0.0f;
+        break;
+    }
+  }
+}
+
+int Weights::Transition::findTransitionDepth(const NpzConverter& model, std::string prefix, std::string infix) {
+  int currentDepth = 0;
+  while (true) {
+    if (model.has(prefix + "b" + infix + "_drt_" + std::to_string(currentDepth + 1))) {
+      ++currentDepth;
+    } else {
+      break;
+    }
+  }
+  std::cerr << "Found transition depth: " << currentDepth << std::endl;
+  return currentDepth;
+}
+
+int Weights::Transition::size() const {
+  return depth_;
+}
+
+Weights::Transition::TransitionType Weights::Transition::type() const {
+  return type_;
+}
+
+
+std::string Weights::Transition::name(const std::string& prefix, std::string name, std::string infix,
+    int index, std::string suffix)
+{
+  return prefix + name + infix + "_drt_" + std::to_string(index) + suffix;
+}
 
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
   : E_(model[key])
@@ -121,5 +178,6 @@ Weights::Weights(const NpzConverter& model, size_t)
     decTransition_(model, Weights::Transition::TransitionType::Decoder, "decoder_", "_nl")
 {}
 
+}  // namespace Nematus
 }  // namespace cpu
 }  // namespace amunmt

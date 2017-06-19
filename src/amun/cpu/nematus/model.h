@@ -4,72 +4,30 @@
 #include <map>
 #include <string>
 
-#include "../npz_converter.h"
+#include "cpu/npz_converter.h"
 
-#include "../mblas/matrix.h"
+#include "cpu/mblas/matrix.h"
 
 namespace amunmt {
 namespace CPU {
+namespace Nematus {
 
 struct Weights {
   class Transition {
     public:
       enum class TransitionType {Encoder, Decoder};
       Transition(const NpzConverter& model, TransitionType type, std::string prefix,
-                 std::string infix="")
-        : depth_(findTransitionDepth(model, prefix, infix)), type_(type)
-      {
-        for (int i = 1; i <= depth_; ++i) {
-          U_.emplace_back(model[name(prefix, "U", infix, i)]);
-          Ux_.emplace_back(model[name(prefix, "Ux", infix, i)]);
-          B_.emplace_back(model(name(prefix, "b", infix, i), true));
-          U_lns_.emplace_back(model[name(prefix, "U", infix, i, "_lns")]);
-          U_lnb_.emplace_back(model[name(prefix, "U", infix, i, "_lnb")]);
-          Ux_lns_.emplace_back(model[name(prefix, "Ux", infix, i, "_lns")]);
-          Ux_lnb_.emplace_back(model[name(prefix, "Ux", infix, i, "_lnb")]);
-          // decoder_U_nl_drt_4_lnb
-          switch(type) {
-            case TransitionType::Encoder:
-              Bx1_.emplace_back(1, Ux_.back().Cols());
-              const_cast<mblas::Matrix&>(Bx1_.back()) = 0.0f;
-              Bx2_.emplace_back(model(name(prefix, "bx", infix, i), true));
-              break;
-            case TransitionType::Decoder:
-              Bx1_.emplace_back(model(name(prefix, "bx", infix, i), true));
-              Bx2_.emplace_back(1, Ux_.back().Cols());
-              const_cast<mblas::Matrix&>(Bx2_.back()) = 0.0f;
-              break;
-          }
-        }
-      }
+                 std::string infix="");
 
-    static int findTransitionDepth(const NpzConverter& model, std::string prefix, std::string infix) {
-      int currentDepth = 0;
-      while (true) {
-        if (model.has(prefix + "b" + infix + "_drt_" + std::to_string(currentDepth + 1))) {
-          ++currentDepth;
-        } else {
-          break;
-        }
-      }
-      std::cerr << "Found transition depth: " << currentDepth << std::endl;
-      return currentDepth;
-    }
+    static int findTransitionDepth(const NpzConverter& model, std::string prefix, std::string infix);
 
-    int size() const {
-      return depth_;
-    }
+    int size() const;
 
-    TransitionType type() const {
-      return type_;
-    }
+    TransitionType type() const;
 
     protected:
       std::string name(const std::string& prefix, std::string name, std::string infix, int index,
-          std::string suffix = "")
-      {
-        return prefix + name + infix + "_drt_" + std::to_string(index) + suffix;
-      }
+          std::string suffix = "");
 
     private:
       int depth_;
@@ -290,6 +248,7 @@ inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
 	return out;
 }
 
-}
-}
+}  // namespace Nematus
+}  // namespace CPU
+}  // namespace amunmt
 
