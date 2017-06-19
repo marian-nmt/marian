@@ -128,16 +128,6 @@ void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
 }
 
 
-dl4mt::Encoder& EncoderDecoder::GetEncoder() {
-  return *encoder_;
-}
-
-
-dl4mt::Decoder& EncoderDecoder::GetDecoder() {
-  return *decoder_;
-}
-
-
 BaseMatrix& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
@@ -154,7 +144,7 @@ void EncoderDecoderLoader::Load(const God&) {
   weights_.emplace_back(new dl4mt::Weights(path, 0));
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God&, const DeviceInfo& deviceInfo) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God&, const DeviceInfo&) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(name_, config_,
                                       tab, *weights_[0]));
