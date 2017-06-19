@@ -158,7 +158,7 @@ Matrix& Concat(Matrix& Out, const Matrix& In) {
 }
 
 Matrix& Copy(Matrix& Out, const Matrix& In) {
-  Out.Resize(In.dim(0), In.dim(1), In.dim(2), In.dim(3));
+  Out.NewSize(In.dim(0), In.dim(1), In.dim(2), In.dim(3));
 
   mblas::copy(In.data(), In.size(), Out.data(), cudaMemcpyDeviceToDevice);
 
@@ -212,7 +212,7 @@ Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
                 const size_t r, const size_t c) {
   size_t length = In.dim(1) - c;
-  Out.Resize(1, length);
+  Out.NewSize(1, length);
   size_t start = r * In.dim(1) + c;
   //size_t end   = start + length;
 
@@ -280,7 +280,7 @@ Matrix& CopyRows(Matrix& Out,
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<size_t>& indices) {
-  Out.Resize(indices.size(), In.dim(1));
+  Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
   CopyRows(Out, In, indices);
