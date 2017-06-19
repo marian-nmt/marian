@@ -62,7 +62,7 @@ std::string Debug(const DeviceVector<T> &vec, size_t verbosity = 1)
 }
 
 template<typename T>
-std::string Debug(const thrust::host_vector<T> &vec, size_t verbosity = 1)
+std::string Debug(const HostVector<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
