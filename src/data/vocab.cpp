@@ -83,7 +83,7 @@ void Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 void Vocab::load(const std::string& vocabPath, int max) {
-  LOG(data, "Loading vocabulary from {} (max: {})", vocabPath, max);
+  LOG(data, "Loading vocabulary from {}", vocabPath);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
 
   std::unordered_set<Word> seenSpecial;
