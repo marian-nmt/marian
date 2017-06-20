@@ -579,7 +579,8 @@ void Config::addOptions(int argc,
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  SET_OPTION("maxi-batch-sort", std::string);
+  if(!translate)
+    SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
