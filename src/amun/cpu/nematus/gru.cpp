@@ -1,5 +1,4 @@
-#include "decoder.h"
-
+#include "gru.h"
 
 namespace amunmt {
 

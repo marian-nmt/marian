@@ -25,11 +25,11 @@ public:
   typedef blaze::DynamicMatrix<float, blaze::rowMajor> Parent;
 
   Matrix()
-  : Parent()
+    : Parent()
   {}
 
   Matrix(size_t rows, size_t cols)
-  : Parent(rows, cols)
+    : Parent(rows, cols)
   {}
 
   template<typename T>
@@ -384,11 +384,20 @@ MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
 }
 
 template<class MT>
-void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-9) {
+void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-5f) {
+  eps=1e-5f;
+  // std::cerr << "LAYER NORM" << std::endl;
+  // std::cerr << std::endl;
   size_t rows = in.rows();
   size_t cols = in.columns();
 
   for (int j = 0; j < rows; ++j) {
+    // std::cerr << "PRE ";
+    // for (int i = 0; i < 10; ++i) {
+      // std::cerr << in(j, i) << " ";
+    // }
+    // std::cerr << std::endl;
+    //
     float sum = 0.0f;
     for (int i = 0; i < cols; ++i) {
       sum += in(j, i);
@@ -400,13 +409,27 @@ void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-9)
     for (int i = 0; i < cols; ++i) {
       sigma += (in(j, i) - mean) * (in(j, i) - mean);
     }
+    sigma /= cols;
 
     sigma = sqrt(sigma + eps);
 
+    // std::cerr << "MIDD ";
+    // for (int i = 0; i < 10; ++i) {
+      // std::cerr << ( (in(j, i) - mean) / sigma) << " ";
+    // }
+    // std::cerr << std::endl;
+
     for (int i = 0; i < cols; ++i) {
-      in(j, i) = gamma(0, j) * ( (in(j, i) - mean) / sigma) + beta(0, j);
+      in(j, i) = gamma(i, 0) * ( (in(j, i) - mean) / sigma) + beta(i, 0);
     }
+
+    // std::cerr << "POST ";
+    // for (int i = 0; i < 10; ++i) {
+      // std::cerr << in(j, i) << " ";
+    // }
+    // std::cerr << std::endl;
   }
+  // std::cerr << "LAYER NORM: DONE" << std::endl;
 }
 
 template<class MT>

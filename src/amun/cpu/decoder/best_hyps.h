@@ -7,6 +7,7 @@
 #include "common/god.h"
 #include "common/exception.h"
 #include "cpu/mblas/matrix.h"
+#include "cpu/decoder/encoder_decoder.h"
 
 namespace amunmt {
 namespace CPU {
@@ -108,7 +109,7 @@ class BestHyps : public BestHypsBase
         if (returnAttentionWeights_) {
           std::vector<SoftAlignmentPtr> alignments;
           for (auto& scorer : scorers) {
-            if (CPU::EncoderDecoder* encdec = dynamic_cast<CPU::EncoderDecoder*>(scorer.get())) {
+            if (CPU::CPUEncoderDecoderBase* encdec = dynamic_cast<CPU::CPUEncoderDecoderBase*>(scorer.get())) {
               auto& attention = encdec->GetAttention();
               alignments.emplace_back(new SoftAlignment(attention.begin(hypIndex),
                                                         attention.end(hypIndex)));

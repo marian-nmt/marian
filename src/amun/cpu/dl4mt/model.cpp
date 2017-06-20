@@ -4,6 +4,7 @@ using namespace std;
 
 namespace amunmt {
 namespace CPU {
+namespace dl4mt {
 
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
   : E_(model[key])
@@ -92,5 +93,6 @@ Weights::Weights(const NpzConverter& model, size_t)
   decSoftmax_(model)
 {}
 
+}  // namespace dl4mt
 }  // namespace cpu
 }  // namespace amunmt

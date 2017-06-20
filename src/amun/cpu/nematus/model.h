@@ -5,15 +5,47 @@
 #include <string>
 
 #include "cpu/npz_converter.h"
+
 #include "cpu/mblas/matrix.h"
 
 namespace amunmt {
 namespace CPU {
-namespace dl4mt {
+namespace Nematus {
 
 struct Weights {
+  class Transition {
+    public:
+      enum class TransitionType {Encoder, Decoder};
+      Transition(const NpzConverter& model, TransitionType type, std::string prefix,
+                 std::string infix="");
 
-  //////////////////////////////////////////////////////////////////////////////
+    static int findTransitionDepth(const NpzConverter& model, std::string prefix, std::string infix);
+
+    int size() const;
+
+    TransitionType type() const;
+
+    protected:
+      std::string name(const std::string& prefix, std::string name, std::string infix, int index,
+          std::string suffix = "");
+
+    private:
+      int depth_;
+      TransitionType type_;
+
+    public:
+      std::vector<mblas::Matrix> B_;
+      std::vector<mblas::Matrix> Bx1_;
+      std::vector<mblas::Matrix> Bx2_;
+      std::vector<mblas::Matrix> U_;
+      std::vector<mblas::Matrix> Ux_;
+
+      std::vector<mblas::Matrix> U_lns_;
+      std::vector<mblas::Matrix> U_lnb_;
+      std::vector<mblas::Matrix> Ux_lns_;
+      std::vector<mblas::Matrix> Ux_lnb_;
+
+  };
 
   struct Embeddings {
     Embeddings(const NpzConverter& model, const std::string &key);
@@ -23,7 +55,7 @@ struct Weights {
   };
 
   struct GRU {
-	GRU(const NpzConverter& model, const std::vector<std::string> &keys);
+    GRU(const NpzConverter& model, std::string prefix, std::vector<std::string> keys);
 
     const mblas::Matrix W_;
     const mblas::Matrix B_;
@@ -31,33 +63,48 @@ struct Weights {
     const mblas::Matrix Wx_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Bx2_;
+    const mblas::Matrix Bx3_;
     const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
-  };
 
-  //////////////////////////////////////////////////////////////////////////////
+    const mblas::Matrix W_lns_;
+    const mblas::Matrix W_lnb_;
+    const mblas::Matrix Wx_lns_;
+    const mblas::Matrix Wx_lnb_;
+    const mblas::Matrix U_lns_;
+    const mblas::Matrix U_lnb_;
+    const mblas::Matrix Ux_lns_;
+    const mblas::Matrix Ux_lnb_;
+  };
 
   struct DecInit {
     DecInit(const NpzConverter& model);
 
     const mblas::Matrix Wi_;
     const mblas::Matrix Bi_;
-    const mblas::Matrix Gamma_;
+    const mblas::Matrix lns_;
+    const mblas::Matrix lnb_;
   };
 
   struct DecGRU2 {
-    DecGRU2(const NpzConverter& model);
+    DecGRU2(const NpzConverter& model, std::string prefix, std::vector<std::string> keys);
 
     const mblas::Matrix W_;
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix Wx_;
+    const mblas::Matrix Bx3_;
     const mblas::Matrix Bx2_;
     const mblas::Matrix Bx1_;
     const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+
+    const mblas::Matrix W_lns_;
+    const mblas::Matrix W_lnb_;
+    const mblas::Matrix Wx_lns_;
+    const mblas::Matrix Wx_lnb_;
+    const mblas::Matrix U_lns_;
+    const mblas::Matrix U_lnb_;
+    const mblas::Matrix Ux_lns_;
+    const mblas::Matrix Ux_lnb_;
   };
 
   struct DecAttention {
@@ -68,8 +115,10 @@ struct Weights {
     const mblas::Matrix B_;
     const mblas::Matrix U_;
     const mblas::Matrix C_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Matrix Wc_att_lns_;
+    const mblas::Matrix Wc_att_lnb_;
+    const mblas::Matrix W_comb_lns_;
+    const mblas::Matrix W_comb_lnb_;
   };
 
   struct DecSoftmax {
@@ -83,12 +132,14 @@ struct Weights {
     const mblas::Matrix B3_;
     const mblas::Matrix W4_;
     const mblas::Matrix B4_;
-    const mblas::Matrix Gamma_0_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Matrix lns_1_;
+    const mblas::Matrix lns_2_;
+    const mblas::Matrix lns_3_;
+    const mblas::Matrix lnb_1_;
+    const mblas::Matrix lnb_2_;
+    const mblas::Matrix lnb_3_;
   };
 
-  //////////////////////////////////////////////////////////////////////////////
 
   Weights(const std::string& npzFile, size_t device = 0)
     : Weights(NpzConverter(npzFile), device)
@@ -109,6 +160,9 @@ struct Weights {
   const DecGRU2 decGru2_;
   const DecAttention decAttention_;
   const DecSoftmax decSoftmax_;
+  const Transition encForwardTransition_;
+  const Transition encBackwardTransition_;
+  const Transition decTransition_;
 };
 
 inline std::ostream& operator<<(std::ostream &out, const Weights::Embeddings &obj)
@@ -194,7 +248,7 @@ inline std::ostream& operator<<(std::ostream &out, const Weights &obj)
 	return out;
 }
 
-}
-}
-}
+}  // namespace Nematus
+}  // namespace CPU
+}  // namespace amunmt
 

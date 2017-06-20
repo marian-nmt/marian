@@ -381,6 +381,11 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
+			<name>src/amun/cpu/nematus</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>src/amun/cpu/npz_converter.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/npz_converter.h</locationURI>
@@ -1241,9 +1246,24 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/encoder_decoder.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/cpu/decoder/encoder_decoder_loader.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/encoder_decoder_loader.cpp</locationURI>
+		</link>
+		<link>
 			<name>src/amun/cpu/decoder/encoder_decoder_loader.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/encoder_decoder_loader.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/decoder/encoder_decoder_state.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/encoder_decoder_state.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/decoder/encoder_decoder_state.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/encoder_decoder_state.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/cpu/dl4mt/decoder.cpp</name>
@@ -1269,6 +1289,16 @@
 			<name>src/amun/cpu/dl4mt/encoder.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/dl4mt/encoder.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/dl4mt/encoder_decoder.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/dl4mt/encoder_decoder.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/dl4mt/encoder_decoder.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/dl4mt/encoder_decoder.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/cpu/dl4mt/gru.cpp</name>
@@ -1314,6 +1344,61 @@
 			<name>src/amun/cpu/mblas/simd_math_prims.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/simd_math_prims.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/decoder.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/decoder.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/encoder.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/encoder.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/encoder.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/encoder.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/encoder_decoder.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/encoder_decoder.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/encoder_decoder.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/encoder_decoder.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/gru.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/gru.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/gru.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/gru.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/model.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/model.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/model.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/model.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/transition.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/transition.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/nematus/transition.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/nematus/transition.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/fpga/kernels/matrix_functions.cl</name>

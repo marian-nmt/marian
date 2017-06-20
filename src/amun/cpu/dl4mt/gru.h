@@ -3,6 +3,7 @@
 
 namespace amunmt {
 namespace CPU {
+namespace dl4mt {
 
 template <class Weights>
 class GRU {
@@ -87,4 +88,4 @@ class GRU {
 
 }
 }
-
+}
