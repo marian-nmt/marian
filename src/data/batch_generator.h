@@ -58,15 +58,15 @@ private:
     std::unique_ptr<sample_queue> maxiBatch;
 
     if(options_->has("maxi-batch-sort")) {
-      if(options_->get<std::string>("maxi-batch-sort") == "trg")
-        maxiBatch.reset(new sample_queue(cmpTrg));
+      if(options_->get<std::string>("maxi-batch-sort") == "src")
+        maxiBatch.reset(new sample_queue(cmpSrc));
       else if(options_->get<std::string>("maxi-batch-sort") == "none")
         maxiBatch.reset(new sample_queue(cmpNone));
       else
-        maxiBatch.reset(new sample_queue(cmpSrc));
+        maxiBatch.reset(new sample_queue(cmpTrg));
     }
     else {
-      maxiBatch.reset(new sample_queue(cmpSrc));
+      maxiBatch.reset(new sample_queue(cmpNone));
     }
 
     int maxBatchSize = options_->get<int>("mini-batch");

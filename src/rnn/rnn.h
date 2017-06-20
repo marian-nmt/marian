@@ -52,11 +52,13 @@ private:
   States last_;
 
   States apply(const Expr input,
-                          const States initialState,
-                          const Expr mask = nullptr) {
+               const States initialState,
+               const Expr mask = nullptr) {
     last_.clear();
 
     State state = initialState.front();
+
+    cell_->clear();
 
     auto xWs = cell_->applyInput({input});
 
@@ -108,6 +110,7 @@ private:
 public:
   friend RNN;
 
+  // @TODO: benchmark whether this concatenation is a good idea
   virtual Expr transduce(Expr input, Expr mask = nullptr) {
     return apply(input, mask).outputs();
   }

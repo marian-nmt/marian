@@ -111,6 +111,8 @@ public:
   Ptr<Options> getOptions() {
     return options_;
   }
+
+  virtual void clear() {}
 };
 
 class CellInput : public Stackable {

@@ -41,7 +41,7 @@ public:
 
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
-    // construct forward RNN
+    // construct forward RNN with one layer
     auto rnnFw = rnn::rnn(graph)
                  ("type", opt<std::string>("cell-enc"))
                  ("prefix", prefix_ + "_bi")
@@ -51,7 +51,7 @@ public:
                  ("normalize", opt<bool>("layer-normalization"))
                  .push_back(rnn::cell(graph));
 
-    // construct backward RNN
+    // construct backward RNN as clone of forward RNN (no shared parameters)
     auto rnnBw = rnnFw.clone()
                  ("prefix", prefix_ + "_bi_r")
                  ("direction", rnn::dir::backward);
@@ -171,15 +171,15 @@ public:
 
     // apply RNN to embeddings, initialized with encoder context mapped into
     // decoder space
-    auto decContext = rnn_->transduce(embeddings, state->getStates());
-    rnn::States decStates = rnn_->lastCellStates();
+    auto decoderContext = rnn_->transduce(embeddings, state->getStates());
+
+    // retrieve the last state per layer. They are required during translation
+    // in order to continue decoding for the next word
+    rnn::States decoderStates = rnn_->lastCellStates();
 
     // retrieve all the aligned contexts computed by the attention mechanism
-    bool single = state->doSingleStep();
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
-    auto alignedContext = single ? att->getContexts().back() :
-                                   concatenate(att->getContexts(),
-                                               keywords::axis = 2);
+    auto alignedContext = att->getContext();
 
     // construct deep output multi-layer network layer-wise
     auto layer1 = mlp::dense(graph)
@@ -193,7 +193,7 @@ public:
                   ("dim", dimTrgVoc);
 
     if(opt<bool>("tied-embeddings")) {
-      UTIL_THROW2("Tied embeddings currently not implemented. Fix that.");
+      UTIL_THROW2("Tied embeddings currently not implemented. Note to self: Fix that.");
     }
 
     // assemble layers into MLP and apply to embeddings, decoder context and
@@ -201,11 +201,12 @@ public:
     auto logits = mlp::mlp(graph)
                   .push_back(layer1)
                   .push_back(layer2)
-                  ->apply(embeddings, decContext, alignedContext);
+                  ->apply(embeddings, decoderContext, alignedContext);
 
-    return New<DecoderState>(decStates, logits, state->getEncoderState());
+    return New<DecoderState>(decoderStates, logits, state->getEncoderState());
   }
 
+  // helper function for guided alignment
   virtual const std::vector<Expr> getAlignments() {
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     return att->getAlignments();

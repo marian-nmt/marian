@@ -299,8 +299,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
-    ("maxi-batch-sort", po::value<std::string>()->default_value("src"),
-      "Sorting strategy for maxi-batch: src trg none")
+    ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
+      "Sorting strategy for maxi-batch: trg (default) src none")
 
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")

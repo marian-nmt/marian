@@ -121,7 +121,16 @@ public:
 
   std::vector<Expr>& getContexts() { return contexts_; }
 
+  Expr getContext() {
+    return concatenate(contexts_, keywords::axis=2);
+  }
+
   std::vector<Expr>& getAlignments() { return alignments_; }
+
+  virtual void clear() {
+    contexts_.clear();
+    alignments_.clear();
+  }
 
   int dimOutput() { return encState_->getContext()->shape()[1]; }
 };
