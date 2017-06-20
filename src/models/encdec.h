@@ -51,6 +51,11 @@ public:
                                   Ptr<data::CorpusBatch>,
                                   size_t)
       = 0;
+
+  template <typename T>
+  T opt(const std::string& key) {
+    return options_->get<T>(key);
+  }
 };
 
 class DecoderBase {
@@ -127,6 +132,11 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
   virtual const std::vector<Expr> getAlignments() = 0;
+
+  template <typename T>
+  T opt(const std::string& key) {
+    return options_->get<T>(key);
+  }
 };
 
 class EncoderDecoderBase {
@@ -309,6 +319,11 @@ public:
       } while(fits);
     }
     return stats;
+  }
+
+   template <typename T>
+   T opt(const std::string& key) {
+    return options_->get<T>(key);
   }
 };
 }

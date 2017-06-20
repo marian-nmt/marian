@@ -10,12 +10,12 @@ namespace YAML {\
 template<>\
 struct convert<registered> {\
   static Node encode(const registered& rhs) {\
-    Node node;\
-    node.push_back(static_cast<type>(rhs));\
-    return node;\
+    type value = static_cast<type>(rhs);\
+    return Node(value);\
   }\
   static bool decode(const Node& node, registered& rhs) {\
-    rhs = static_cast<registered>(node.as<type>());\
+    type value = node.as<type>();\
+    rhs = static_cast<registered>(value);\
     return true;\
   }\
 };\

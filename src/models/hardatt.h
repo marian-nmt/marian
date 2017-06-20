@@ -85,10 +85,13 @@ public:
         encState->getContext(), encState->getMask(), axis = 2);
 
     bool layerNorm = options_->get<bool>("layer-normalization");
-    auto start = Dense("ff_state",
-                       options_->get<int>("dim-rnn"),
-                       activation = act::tanh,
-                       normalize = layerNorm)(meanContext);
+    auto graph = meanContext->graph();
+    auto mlp = mlp::mlp(graph)
+               ("prefix", prefix_ + "_ff_state")
+               ("dim", options_->get<int>("dim-rnn"))
+               ("activation", mlp::act::tanh)
+               ("normalization", layerNorm);
+    auto start = mlp->apply(meanContext);
 
     // @TODO: review this
     rnn::States startStates;
@@ -105,8 +108,7 @@ public:
 
     int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
-    int dimTrgEmb
-        = options_->get<int>("dim-emb") + options_->get<int>("dim-pos");
+    int dimTrgEmb = options_->get<int>("dim-emb");
 
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
@@ -168,15 +170,20 @@ public:
     rnn::States decStates = rnn_->lastCellStates();
 
     //// 2-layer feedforward network for outputs and cost
-    auto logitsL1 = Dense("ff_logit_l1",
-                          dimTrgEmb,
-                          activation = act::tanh,
-                          normalize = layerNorm)(rnnInputs, decContext);
+    auto out = mlp::mlp(graph)
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_logit_l1")
+                          ("dim", dimTrgEmb)
+                          ("activation", mlp::act::tanh)
+                          ("normalization", layerNorm))
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_logit_l2")
+                          ("dim", dimTrgVoc));
 
-    auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+    auto logits = out->apply(rnnInputs, decContext);
 
     return New<DecoderStateHardAtt>(decStates,
-                                    logitsOut,
+                                    logits,
                                     stateHardAtt->getEncoderState(),
                                     stateHardAtt->getAttentionIndices());
   }
@@ -255,8 +262,7 @@ public:
 
     int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
-    int dimTrgEmb
-        = options_->get<int>("dim-emb") + options_->get<int>("dim-pos");
+    int dimTrgEmb = options_->get<int>("dim-emb");
 
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
@@ -331,18 +337,21 @@ public:
                                    concatenate(att->getContexts(),
                                                keywords::axis = 2);
 
-
     //// 2-layer feedforward network for outputs and cost
-    auto logitsL1
-        = Dense("ff_logit_l1",
-                dimTrgEmb,
-                activation = act::tanh,
-                normalize = layerNorm)(rnnInputs, decContext, alignedContext);
+    auto out = mlp::mlp(graph)
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_logit_l1")
+                          ("dim", dimTrgEmb)
+                          ("activation", mlp::act::tanh)
+                          ("normalization", layerNorm))
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_logit_l2")
+                          ("dim", dimTrgVoc));
 
-    auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+    auto logits = out->apply(rnnInputs, decContext, alignedContext);
 
     return New<DecoderStateHardAtt>(decStates,
-                                    logitsOut,
+                                    logits,
                                     stateHardAtt->getEncoderState(),
                                     stateHardAtt->getAttentionIndices());
   }
@@ -383,7 +392,7 @@ public:
 
     auto start = Dense("ff_state",
                        options_->get<int>("dim-rnn"),
-                       activation = act::tanh,
+                       activation = mlp::act::tanh,
                        normalize = layerNorm)(meanContext1, meanContext2);
 
     std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
@@ -492,7 +501,7 @@ public:
     auto logitsL1
         = Dense("ff_logit_l1",
                 dimTrgEmb,
-                activation = act::tanh,
+                activation = mlp::act::tanh,
                 normalize = layerNorm)(rnnInputs, outputLn, alignedContext);
 
     auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);

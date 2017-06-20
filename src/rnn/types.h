@@ -41,6 +41,7 @@ class States {
   public:
     States() {}
     States(const std::vector<State>& states) : states_(states) {}
+    States(size_t num, State state) : states_(num, state) {}
 
     auto begin() -> decltype(states_.begin()) { return states_.begin(); }
     auto end() -> decltype(states_.begin()) { return states_.end(); }

@@ -20,6 +20,8 @@ public:
   virtual const std::string& getName() { return name_; }
 };
 
+/*
+
 class DenseNew : public Layer {
 private:
   int outDim_;
@@ -310,6 +312,8 @@ public:
     }
   }
 };
+
+*/
 
 class Embedding : public Layer {
 private:

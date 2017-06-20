@@ -3,6 +3,7 @@
 #include "common/options.h"
 #include "rnn/constructors.h"
 #include "models/encdec.h"
+#include "layers/constructors.h"
 
 namespace marian {
 
@@ -59,68 +60,47 @@ public:
                           size_t batchIdx) {
     using namespace keywords;
 
-    int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
-    int dimSrcEmb = options_->get<int>("dim-emb");
-
-    int dimEncState = options_->get<int>("dim-rnn");
-    bool layerNorm = options_->get<bool>("layer-normalization");
-    bool skipDepth = options_->get<bool>("skip");
-    size_t encoderLayers = options_->get<size_t>("layers-enc");
-
-    bool amun = options_->get<std::string>("type") == "amun";
-    UTIL_THROW_IF2(amun && options_->get<int>("layers-enc") > 1,
-                   "--type amun does not currently support multiple encoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(amun && options_->get<bool>("skip"),
-                   "--type amun does not currently support skip connections, "
-                   "use --type s2s");
-
-    float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-    float dropoutSrc = inference_ ? 0 : options_->get<float>("dropout-src");
-
-    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
+    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[batchIdx];
+    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, opt<int>("dim-emb"))(graph);
 
     Expr x, xMask;
     std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
 
+    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
-      int dimBatch = x->shape()[0];
       int srcWords = x->shape()[2];
       auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
       x = dropout(x, mask = srcWordDrop);
     }
 
-    auto cellType = options_->get<std::string>("cell-enc");
-    UTIL_THROW_IF2(amun && cellType != "gru",
-                   "--type amun does not currently support other rnn cells than gru, "
-                   "use --type s2s");
+    float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
     auto rnnFw = rnn::rnn(graph)
-                 ("type", cellType)
+                 ("type", opt<std::string>("cell-enc"))
                  ("prefix", prefix_ + "_bi")
-                 ("dimInput", dimSrcEmb)
-                 ("dimState", dimEncState)
+                 ("dimInput", opt<int>("dim-emb"))
+                 ("dimState", opt<int>("dim-rnn"))
                  ("dropout", dropoutRnn)
-                 ("normalize", layerNorm)
+                 ("normalize", opt<bool>("layer-normalization"))
                  .push_back(rnn::cell(graph));
 
     auto rnnBw = rnnFw.clone()
                  ("prefix", prefix_ + "_bi_r")
-                 ("direction", rnn::backward);
+                 ("direction", rnn::dir::backward);
 
     auto context = concatenate({rnnFw->transduce(x),
                                 rnnBw->transduce(x, xMask)},
                                 axis=1);
 
-    if(encoderLayers > 1) {
+    if(opt<size_t>("layers-enc") > 1) {
       auto rnnML = rnn::rnn(graph)
-                   ("type", cellType)
-                   ("dimInput", 2 * dimEncState)
-                   ("dimState", dimEncState)
+                   ("type", opt<std::string>("cell-enc"))
+                   ("dimInput", 2 * opt<int>("dim-rnn"))
+                   ("dimState", opt<int>("dim-rnn"))
                    ("dropout", dropoutRnn)
-                   ("normalize", layerNorm)
-                   ("skip", skipDepth)
-                   ("skipFirst", skipDepth);
+                   ("normalize", opt<bool>("layer-normalization"))
+                   ("skip", opt<bool>("skip"))
+                   ("skipFirst", opt<bool>("skip"));
 
       for(int i = 0; i < encoderLayers - 1; ++i)
         rnnML.push_back(rnn::cell(graph)
@@ -149,17 +129,16 @@ public:
     auto meanContext = weighted_average(
         encState->getContext(), encState->getMask(), axis = 2);
 
-    bool layerNorm = options_->get<bool>("layer-normalization");
-    auto start = Dense(prefix_ + "_ff_state",
-                       options_->get<int>("dim-rnn"),
-                       activation = act::tanh,
-                       normalize = layerNorm)(meanContext);
+    auto graph = meanContext->graph();
+    auto mlp = mlp::mlp(graph)
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_state")
+                          ("dim", opt<int>("dim-rnn"))
+                          ("activation", mlp::act::tanh)
+                          ("normalization", opt<bool>("layer-normalization")));
+    auto start = mlp->apply(meanContext);
 
-    // @TODO: review this
-    rnn::States startStates;
-    for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
-      startStates.push_back(rnn::State{start, start});
-
+    rnn::States startStates(opt<size_t>("layers-dec"), {start, start});
     return New<DecoderStateS2S>(startStates, nullptr, encState);
   }
 
@@ -167,57 +146,25 @@ public:
                                  Ptr<DecoderState> state) {
     using namespace keywords;
 
-    int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-
-    int dimTrgEmb
-        = options_->get<int>("dim-emb") + options_->get<int>("dim-pos");
-
-    int dimDecState = options_->get<int>("dim-rnn");
-    bool layerNorm = options_->get<bool>("layer-normalization");
-    bool skipDepth = options_->get<bool>("skip");
-    size_t decoderLayers = options_->get<size_t>("layers-dec");
-
-    float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
-    float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
-
-    auto cellType = options_->get<std::string>("cell-dec");
-
-
-    bool amun = options_->get<std::string>("type") == "amun";
-    UTIL_THROW_IF2(amun && options_->get<bool>("skip"),
-                   "--type amun does not currently support skip connections, "
-                   "use --type s2s");
-    UTIL_THROW_IF2(amun && options_->get<int>("layers-dec") > 1,
-                   "--type amun does not currently support multiple decoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(amun && options_->get<bool>("tied-embeddings"),
-                   "--type amun does not currently support tied embeddings, "
-                   "use --type s2s");
-    UTIL_THROW_IF2(amun && cellType != "gru",
-                   "--type amun does not currently support other rnn cells than gru, "
-                   "use --type s2s");
-
-
     auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
-
     auto embeddings = stateS2S->getTargetEmbeddings();
 
+    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
-      int dimBatch = embeddings->shape()[0];
       int trgWords = embeddings->shape()[2];
       auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
     if(!rnn_) {
-
+      float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
       auto rnn = rnn::rnn(graph)
-                 ("type", cellType)
-                 ("dimInput", dimTrgEmb)
-                 ("dimState", dimDecState)
+                 ("type", opt<std::string>("cell-dec"))
+                 ("dimInput", opt<int>("dim-emb"))
+                 ("dimState", opt<int>("dim-rnn"))
                  ("dropout", dropoutRnn)
-                 ("normalize", layerNorm)
-                 ("skip", skipDepth);
+                 ("normalize", opt<bool>("layer-normalization"))
+                 ("skip", opt<bool>("skip"));
 
       auto attCell = rnn::stacked_cell(graph)
                      .push_back(rnn::cell(graph)
@@ -230,12 +177,12 @@ public:
                                 ("final", true));
 
       rnn.push_back(attCell);
+      size_t decoderLayers = opt<size_t>("layers-dec");
       for(int i = 0; i < decoderLayers - 1; ++i)
         rnn.push_back(rnn::cell(graph)
                       ("prefix", prefix_ + "_l" + std::to_string(i)));
 
       rnn_ = rnn.construct();
-
     }
 
     auto decContext = rnn_->transduce(embeddings, stateS2S->getStates());
@@ -247,25 +194,27 @@ public:
                                    concatenate(att->getContexts(),
                                                keywords::axis = 2);
 
-    //// 2-layer feedforward network for outputs and cost
-    auto logitsL1
-        = Dense(prefix_ + "_ff_logit_l1",
-                dimTrgEmb,
-                activation = act::tanh,
-                normalize = layerNorm)(embeddings, decContext, alignedContext);
+    auto layer1 = mlp::dense(graph)
+                  ("prefix", prefix_ + "_ff_logit_l1")
+                  ("dim", opt<int>("dim-emb"))
+                  ("activation", mlp::act::tanh)
+                  ("normalization", opt<bool>("layer-normalization"));
 
-    Expr logitsOut;
-    if(options_->get<bool>("tied-embeddings")) {
-      if(!tiedOutputWeights_)
-        tiedOutputWeights_ = transpose(graph->get(prefix_ + "_Wemb"));
+    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
+    auto layer2 = mlp::dense(graph)
+                  ("prefix", prefix_ + "_ff_logit_l2")
+                  ("dim", dimTrgVoc);
 
-      logitsOut = DenseTied(
-          prefix_ + "_ff_logit_l2", tiedOutputWeights_, dimTrgVoc)(logitsL1);
-    } else {
-      logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
+    if(opt<bool>("tied-embeddings")) {
+      UTIL_THROW2("Tied embeddings currently not implemented");
     }
 
-    return New<DecoderStateS2S>(decStates, logitsOut, state->getEncoderState());
+    auto logits = mlp::mlp(graph)
+                  .push_back(layer1)
+                  .push_back(layer2)
+                  ->apply(embeddings, decContext, alignedContext);
+
+    return New<DecoderStateS2S>(decStates, logits, state->getEncoderState());
   }
 
   const std::vector<Expr> getAlignments() {

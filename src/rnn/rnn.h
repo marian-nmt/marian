@@ -17,7 +17,7 @@
 
 namespace marian {
   namespace rnn {
-    enum dir : int { forward, backward };
+    enum struct dir : int { forward, backward };
   }
 }
 
