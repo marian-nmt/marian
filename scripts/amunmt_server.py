@@ -5,7 +5,7 @@ import sys
 import os
 import argparse
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../build/src')
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../build')
 import libamunmt as nmt
 
 from bottle import request, Bottle, abort
