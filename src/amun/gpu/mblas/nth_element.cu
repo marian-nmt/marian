@@ -271,7 +271,6 @@ NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
 {
-  //cerr << "FOO1" << endl;
   //cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
 
   d_batchPosition.reserve(maxBatchSize + 1);
@@ -290,7 +289,6 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
                   std::vector<float>& outCosts, std::vector<uint>& outKeys,
                   const bool isFirst) {
   /*
-  cerr << "FOO4" << endl;
   cerr << "beamSizes=" << beamSizes.size() << endl;
   cerr << Debug(beamSizes, 2) << endl;
   cerr << "outCosts=" << outCosts.size() << endl;
@@ -333,7 +331,6 @@ void NthElement::getNBestList(mblas::Matrix &probs,
                               const HostVector<uint>& batchFirstElementIdxs,
                               const HostVector<uint>& cummulatedBeamSizes)
 {
-  //cerr << "FOO3" << endl;
   const uint vocabSize = probs.dim(1);
   const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
   const uint numBatches = batchFirstElementIdxs.size() - 1;
@@ -386,9 +383,8 @@ void NthElement::getNBestList(mblas::Matrix &probs,
 
 void NthElement::GetPairs(uint number,
                     std::vector<uint>& outKeys,
-                    std::vector<float>& outValues) {
-  //cerr << "FOO5:" << number << endl;
-
+                    std::vector<float>& outValues)
+{
   thrust::copy(d_res.begin(), d_res.end(), h_res.begin());
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()) );
 
@@ -400,11 +396,12 @@ void NthElement::GetPairs(uint number,
 
 void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
 {
-  //cerr << "FOO6" << endl;
+  // need a model with multiple scorers to test this method
+  assert(false);
+
   mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
   const mblas::MatrixWrapper<float> inWrap(d_in);
 
-  assert(false);
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
 
