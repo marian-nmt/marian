@@ -75,8 +75,10 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   for(auto path : paths_) {
     if(path == "stdin")
       files_.emplace_back(new InputFileStream(std::cin));
-    else
+    else {
       files_.emplace_back(new InputFileStream(path));
+      UTIL_THROW_IF2(files_.back()->empty(), "File " << path << " is empty");
+    }
   }
 }
 

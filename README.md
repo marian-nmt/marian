@@ -6,11 +6,11 @@ Marian
 
 Google group for commit messages: https://groups.google.com/forum/#!forum/mariannmt
 
-Marian is a C++ gpu-specific parallel automatic differentiation library
-with operator overloading. It is the training framework used in the AmuNMT toolkit.
+*marian-train* is a C++ GPU-specific parallel automatic differentiation library
+with operator overloading. It is the training framework used in the Marian
+toolkit.
 
-Named in honour of Marian Rejewski, a Polish mathematician and
-cryptologist.
+Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
 ## Website
 
