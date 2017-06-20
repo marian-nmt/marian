@@ -8,9 +8,6 @@ namespace marian {
 
 class DecoderStateHardAtt : public DecoderState {
 protected:
-  rnn::States states_;
-  Expr probs_;
-  Ptr<EncoderState> encState_;
   std::vector<size_t> attentionIndices_;
 
 public:
@@ -18,14 +15,8 @@ public:
                       Expr probs,
                       Ptr<EncoderState> encState,
                       const std::vector<size_t>& attentionIndices)
-      : states_(states),
-        probs_(probs),
-        encState_(encState),
+      : DecoderState(states, probs, encState),
         attentionIndices_(attentionIndices) {}
-
-  virtual Ptr<EncoderState> getEncoderState() { return encState_; }
-  virtual Expr getProbs() { return probs_; }
-  virtual void setProbs(Expr probs) { probs_ = probs; }
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
     std::vector<size_t> selectedAttentionIndices;
@@ -45,8 +36,6 @@ public:
     UTIL_THROW_IF2(attentionIndices_.empty(), "Empty attention indices");
     return attentionIndices_;
   }
-
-  virtual const rnn::States& getStates() { return states_; }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
     auto attentionIdx = getAttentionIndices();

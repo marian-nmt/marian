@@ -7,48 +7,6 @@
 
 namespace marian {
 
-class EncoderStateS2S : public EncoderState {
-private:
-  Expr context_;
-  Expr mask_;
-  Ptr<data::CorpusBatch> batch_;
-
-public:
-  EncoderStateS2S(Expr context, Expr mask, Ptr<data::CorpusBatch> batch)
-      : context_(context), mask_(mask), batch_(batch) {}
-
-  Expr getContext() { return context_; }
-  Expr getAttended() { return context_; }
-  Expr getMask() { return mask_; }
-
-  virtual const std::vector<size_t>& getSourceWords() {
-    return batch_->front()->indeces();
-  }
-};
-
-class DecoderStateS2S : public DecoderState {
-private:
-  rnn::States states_;
-  Expr probs_;
-  Ptr<EncoderState> encState_;
-
-public:
-  DecoderStateS2S(const rnn::States& states,
-                  Expr probs,
-                  Ptr<EncoderState> encState)
-      : states_(states), probs_(probs), encState_(encState) {}
-
-  Ptr<EncoderState> getEncoderState() { return encState_; }
-  Expr getProbs() { return probs_; }
-  void setProbs(Expr probs) { probs_ = probs; }
-
-  Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-    return New<DecoderStateS2S>(states_.select(selIdx), probs_, encState_);
-  }
-
-  const rnn::States& getStates() { return states_; }
-};
-
 class EncoderS2S : public EncoderBase {
 public:
   template <class... Args>
@@ -57,24 +15,26 @@ public:
 
   Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                           Ptr<data::CorpusBatch> batch,
-                          size_t batchIdx) {
+                          size_t encoderIndex) {
     using namespace keywords;
 
-    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[batchIdx];
-    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, opt<int>("dim-emb"))(graph);
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
+    auto embeddings = Embedding(prefix_ + "_Wemb",
+                                dimVoc,
+                                opt<int>("dim-emb"))(graph);
 
-    Expr x, xMask;
-    std::tie(x, xMask) = prepareSource(xEmb, batch, batchIdx);
+    Expr batchEmbeddings, batchMask;
+    std::tie(batchEmbeddings, batchMask)
+      = prepareSource(embeddings, batch, encoderIndex);
 
-    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropoutSrc) {
-      int srcWords = x->shape()[2];
-      auto srcWordDrop = graph->dropout(dropoutSrc, {1, 1, srcWords});
-      x = dropout(x, mask = srcWordDrop);
+    float dropProb = inference_ ? 0 : opt<float>("dropout-src");
+    if(dropProb) {
+      int srcWords = batchEmbeddings->shape()[2];
+      auto dropMask = graph->dropout(dropProb, {1, 1, srcWords});
+      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
     }
 
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
-
     auto rnnFw = rnn::rnn(graph)
                  ("type", opt<std::string>("cell-enc"))
                  ("prefix", prefix_ + "_bi")
@@ -88,8 +48,8 @@ public:
                  ("prefix", prefix_ + "_bi_r")
                  ("direction", rnn::dir::backward);
 
-    auto context = concatenate({rnnFw->transduce(x),
-                                rnnBw->transduce(x, xMask)},
+    auto context = concatenate({rnnFw->transduce(batchEmbeddings),
+                                rnnBw->transduce(batchEmbeddings, batchMask)},
                                 axis=1);
 
     if(opt<size_t>("layers-enc") > 1) {
@@ -102,14 +62,14 @@ public:
                    ("skip", opt<bool>("skip"))
                    ("skipFirst", opt<bool>("skip"));
 
-      for(int i = 0; i < encoderLayers - 1; ++i)
+      for(int i = 0; i < opt<size_t>("layers-enc") - 1; ++i)
         rnnML.push_back(rnn::cell(graph)
                         ("prefix", prefix_ + "_l" + std::to_string(i)));
 
       context = rnnML->transduce(context);
     }
 
-    return New<EncoderStateS2S>(context, xMask, batch);
+    return New<EncoderState>(context, batchMask, batch);
   }
 };
 
@@ -126,8 +86,9 @@ public:
   virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
     using namespace keywords;
 
-    auto meanContext = weighted_average(
-        encState->getContext(), encState->getMask(), axis = 2);
+    auto meanContext = weighted_average(encState->getContext(),
+                                        encState->getMask(),
+                                        axis = 2);
 
     auto graph = meanContext->graph();
     auto mlp = mlp::mlp(graph)
@@ -139,15 +100,14 @@ public:
     auto start = mlp->apply(meanContext);
 
     rnn::States startStates(opt<size_t>("layers-dec"), {start, start});
-    return New<DecoderStateS2S>(startStates, nullptr, encState);
+    return New<DecoderState>(startStates, nullptr, encState);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) {
     using namespace keywords;
 
-    auto stateS2S = std::dynamic_pointer_cast<DecoderStateS2S>(state);
-    auto embeddings = stateS2S->getTargetEmbeddings();
+    auto embeddings = state->getTargetEmbeddings();
 
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
@@ -185,10 +145,10 @@ public:
       rnn_ = rnn.construct();
     }
 
-    auto decContext = rnn_->transduce(embeddings, stateS2S->getStates());
+    auto decContext = rnn_->transduce(embeddings, state->getStates());
     rnn::States decStates = rnn_->lastCellStates();
 
-    bool single = stateS2S->doSingleStep();
+    bool single = state->doSingleStep();
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     auto alignedContext = single ? att->getContexts().back() :
                                    concatenate(att->getContexts(),
@@ -214,14 +174,15 @@ public:
                   .push_back(layer2)
                   ->apply(embeddings, decContext, alignedContext);
 
-    return New<DecoderStateS2S>(decStates, logits, state->getEncoderState());
+    return New<DecoderState>(decStates, logits, state->getEncoderState());
   }
 
-  const std::vector<Expr> getAlignments() {
+  virtual const std::vector<Expr> getAlignments() {
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     return att->getAlignments();
   }
 };
 
 typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
+
 }

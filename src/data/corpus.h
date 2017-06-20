@@ -33,6 +33,9 @@ public:
 
   Words& operator[](size_t i) { return tuple_[i]; }
 
+  Words& back() { return tuple_.back(); }
+  const Words& back() const { return tuple_.back(); }
+
   const Words& operator[](size_t i) const { return tuple_[i]; }
 
   bool empty() const { return tuple_.empty(); }

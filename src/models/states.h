@@ -3,26 +3,53 @@
 #include "common/definitions.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
+#include "rnn/types.h"
 
 namespace marian {
 
-struct EncoderState {
-  virtual Expr getContext() = 0;
-  virtual Expr getAttended() = 0;
-  virtual Expr getMask() = 0;
-  virtual const std::vector<size_t>& getSourceWords() = 0;
+class EncoderState {
+private:
+  Expr context_;
+  Expr mask_;
+  Ptr<data::CorpusBatch> batch_;
+
+public:
+  EncoderState(Expr context, Expr mask, Ptr<data::CorpusBatch> batch)
+      : context_(context), mask_(mask), batch_(batch) {}
+
+  virtual Expr getContext() { return context_; }
+  virtual Expr getAttended() { return context_; }
+  virtual Expr getMask() { return mask_; }
+
+  virtual const std::vector<size_t>& getSourceWords() {
+    return batch_->front()->indeces();
+  }
 };
 
 class DecoderState {
-private:
+protected:
+  Ptr<EncoderState> encState_;
+
   Expr targetEmbeddings_;
+  Expr probs_;
   bool singleStep_{false};
+  rnn::States states_;
 
 public:
-  virtual Ptr<EncoderState> getEncoderState() = 0;
+  DecoderState(const rnn::States& states,
+               Expr probs,
+               Ptr<EncoderState> encState)
+      : states_(states), probs_(probs), encState_(encState) {}
 
-  virtual Expr getProbs() = 0;
-  virtual void setProbs(Expr) = 0;
+  virtual Ptr<EncoderState> getEncoderState() { return encState_; }
+  virtual Expr getProbs() { return probs_; }
+  virtual void setProbs(Expr probs) { probs_ = probs; }
+
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+    return New<DecoderState>(states_.select(selIdx), probs_, encState_);
+  }
+
+  virtual const rnn::States& getStates() { return states_; }
 
   virtual Expr getTargetEmbeddings() { return targetEmbeddings_; };
 
@@ -36,12 +63,11 @@ public:
     singleStep_ = singleStep;
   }
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>&) = 0;
-
   virtual const std::vector<size_t>& getSourceWords() {
     return getEncoderState()->getSourceWords();
   }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}
 };
+
 }

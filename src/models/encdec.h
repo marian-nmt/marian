@@ -131,7 +131,9 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
-  virtual const std::vector<Expr> getAlignments() = 0;
+  virtual const std::vector<Expr> getAlignments() {
+    return {};
+  };
 
   template <typename T>
   T opt(const std::string& key) {
@@ -283,7 +285,9 @@ public:
         nextState->getProbs(), trgIdx, mask = trgMask);
 
     if(options_->has("guided-alignment") && !inference_) {
-      auto att = concatenate(decoder_->getAlignments(), axis = 3);
+      auto alignments = decoder_->getAlignments();
+      UTIL_THROW_IF2(alignments.empty(), "Model does not seem to support alignments");
+      auto att = concatenate(alignments, axis = 3);
       return cost + guidedAlignmentCost(graph, batch, options_, att);
     } else {
       return cost;

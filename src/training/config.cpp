@@ -299,6 +299,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
+    ("maxi-batch-sort", po::value<std::string>()->default_value("src"),
+      "Sorting strategy for maxi-batch: src trg none")
 
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
@@ -577,6 +579,7 @@ void Config::addOptions(int argc,
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
+  SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
