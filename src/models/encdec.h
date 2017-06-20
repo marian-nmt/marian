@@ -49,8 +49,7 @@ public:
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>,
                                   Ptr<data::CorpusBatch>,
-                                  size_t)
-      = 0;
+                                  size_t) = 0;
 
   template <typename T>
   T opt(const std::string& key) {

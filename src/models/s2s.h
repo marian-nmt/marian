@@ -19,14 +19,19 @@ public:
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
+
+    // create source embeddings
     auto embeddings = Embedding(prefix_ + "_Wemb",
                                 dimVoc,
                                 opt<int>("dim-emb"))(graph);
 
     Expr batchEmbeddings, batchMask;
+
+    // select embeddings that occur in the batch
     std::tie(batchEmbeddings, batchMask)
       = prepareSource(embeddings, batch, encoderIndex);
 
+    // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {
       int srcWords = batchEmbeddings->shape()[2];
@@ -35,6 +40,8 @@ public:
     }
 
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
+
+    // construct forward RNN
     auto rnnFw = rnn::rnn(graph)
                  ("type", opt<std::string>("cell-enc"))
                  ("prefix", prefix_ + "_bi")
@@ -44,15 +51,21 @@ public:
                  ("normalize", opt<bool>("layer-normalization"))
                  .push_back(rnn::cell(graph));
 
+    // construct backward RNN
     auto rnnBw = rnnFw.clone()
                  ("prefix", prefix_ + "_bi_r")
                  ("direction", rnn::dir::backward);
 
+    // apply both to embeddings and concatenate outputs
     auto context = concatenate({rnnFw->transduce(batchEmbeddings),
                                 rnnBw->transduce(batchEmbeddings, batchMask)},
                                 axis=1);
 
     if(opt<size_t>("layers-enc") > 1) {
+      // add more layers (unidirectional) by transducing the output of the
+      // previous bidirectional RNN through multiple layers
+
+      // construct RNN first
       auto rnnML = rnn::rnn(graph)
                    ("type", opt<std::string>("cell-enc"))
                    ("dimInput", 2 * opt<int>("dim-rnn"))
@@ -62,10 +75,12 @@ public:
                    ("skip", opt<bool>("skip"))
                    ("skipFirst", opt<bool>("skip"));
 
+      // add layers to RNN
       for(int i = 0; i < opt<size_t>("layers-enc") - 1; ++i)
         rnnML.push_back(rnn::cell(graph)
                         ("prefix", prefix_ + "_l" + std::to_string(i)));
 
+      // transduce context to new context
       context = rnnML->transduce(context);
     }
 
@@ -86,11 +101,15 @@ public:
   virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
     using namespace keywords;
 
+    // average the source context weighted by the batch mask
+    // this will remove padded zeros from the average
     auto meanContext = weighted_average(encState->getContext(),
                                         encState->getMask(),
                                         axis = 2);
 
     auto graph = meanContext->graph();
+
+    // apply single layer network to mean to map into decoder space
     auto mlp = mlp::mlp(graph)
                .push_back(mlp::dense(graph)
                           ("prefix", prefix_ + "_ff_state")
@@ -109,6 +128,7 @@ public:
 
     auto embeddings = state->getTargetEmbeddings();
 
+    // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
       int trgWords = embeddings->shape()[2];
@@ -117,6 +137,7 @@ public:
     }
 
     if(!rnn_) {
+      // setting up decoder RNN
       float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
       auto rnn = rnn::rnn(graph)
                  ("type", opt<std::string>("cell-dec"))
@@ -126,6 +147,7 @@ public:
                  ("normalize", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
 
+      // setting up conditional (transitional) cell
       auto attCell = rnn::stacked_cell(graph)
                      .push_back(rnn::cell(graph)
                                 ("prefix", prefix_ + "_cell1"))
@@ -135,8 +157,10 @@ public:
                      .push_back(rnn::cell(graph)
                                 ("prefix", prefix_ + "_cell2")
                                 ("final", true));
-
+      // Add cell to RNN (first layer)
       rnn.push_back(attCell);
+
+      // Add more cells to RNN (stacked RNN)
       size_t decoderLayers = opt<size_t>("layers-dec");
       for(int i = 0; i < decoderLayers - 1; ++i)
         rnn.push_back(rnn::cell(graph)
@@ -145,30 +169,35 @@ public:
       rnn_ = rnn.construct();
     }
 
+    // apply RNN to embeddings, initialized with encoder context mapped into
+    // decoder space
     auto decContext = rnn_->transduce(embeddings, state->getStates());
     rnn::States decStates = rnn_->lastCellStates();
 
+    // retrieve all the aligned contexts computed by the attention mechanism
     bool single = state->doSingleStep();
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     auto alignedContext = single ? att->getContexts().back() :
                                    concatenate(att->getContexts(),
                                                keywords::axis = 2);
 
+    // construct deep output multi-layer network layer-wise
     auto layer1 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l1")
                   ("dim", opt<int>("dim-emb"))
                   ("activation", mlp::act::tanh)
                   ("normalization", opt<bool>("layer-normalization"));
-
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
     auto layer2 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l2")
                   ("dim", dimTrgVoc);
 
     if(opt<bool>("tied-embeddings")) {
-      UTIL_THROW2("Tied embeddings currently not implemented");
+      UTIL_THROW2("Tied embeddings currently not implemented. Fix that.");
     }
 
+    // assemble layers into MLP and apply to embeddings, decoder context and
+    // aligned source context
     auto logits = mlp::mlp(graph)
                   .push_back(layer1)
                   .push_back(layer2)
