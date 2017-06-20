@@ -1,15 +1,6 @@
 #pragma once
 
-#include "data/batch_generator.h"
-#include "data/corpus.h"
-
-#include "common/logging.h"
-#include "graph/expression_graph.h"
-#include "layers/generic.h"
-#include "layers/guided_alignment.h"
-#include "layers/param_initializers.h"
-#include "models/states.h"
-#include "training/config.h"
+#include "marian.h"
 
 namespace marian {
 
@@ -272,6 +263,7 @@ public:
 
     if(clearGraph)
       clear(graph);
+
     auto state = startState(graph, batch);
 
     Expr trgMask, trgIdx;
@@ -280,8 +272,8 @@ public:
 
     auto nextState = step(graph, state);
 
-    auto cost = CrossEntropyCost(prefix_ + "cost")(
-        nextState->getProbs(), trgIdx, mask = trgMask);
+    auto cost = CrossEntropyCost(prefix_ + "cost")
+                  (nextState->getProbs(), trgIdx, mask = trgMask);
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoder_->getAlignments();

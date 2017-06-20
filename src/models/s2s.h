@@ -1,9 +1,6 @@
 #pragma once
 
-#include "common/options.h"
-#include "rnn/constructors.h"
-#include "models/encdec.h"
-#include "layers/constructors.h"
+#include "marian.h"
 
 namespace marian {
 

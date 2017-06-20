@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include "common/definitions.h"
+#include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
 #define YAML_REGISTER_TYPE(registered, type)\
