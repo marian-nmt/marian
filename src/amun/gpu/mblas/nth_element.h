@@ -14,8 +14,10 @@ struct NthOut
   uint ind;
   float score;
 
+  __device__ __host__
   NthOut() {}
 
+  __device__ __host__
   NthOut(uint val)
   :ind(val)
   ,score(val)
