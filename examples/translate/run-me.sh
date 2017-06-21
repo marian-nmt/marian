@@ -34,14 +34,14 @@ cat data/newstest2015.ende.en | \
     moses-scripts/scripts/recaser/truecase.perl -model en-de/truecase-model.en | \
     # translate
     ../../build/amun -m en-de/model.npz -s en-de/vocab.en.json -t en-de/vocab.de.json \
-    --mini-batch 50 --maxi-batch 1000 -d $GPUS -b 12 -n --bpe en-de/ende.bpe | \
+    --mini-batch 50 --maxi-batch 1000 -d $GPUS --gpu-threads 1 -b 12 -n --bpe en-de/ende.bpe | \
     # postprocess
     moses-scripts/scripts/recaser/detruecase.perl | \
     moses-scripts/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.single.out
 
 # create configuration file for model ensemble
 ../../build/amun -m en-de/model-ens?.npz -s en-de/vocab.en.json -t en-de/vocab.de.json \
-    --mini-batch 1 --maxi-batch 1 -d $GPUS -b 12 -n --bpe en-de/ende.bpe \
+    --mini-batch 1 --maxi-batch 1 -d $GPUS --gpu-threads 1 -b 12 -n --bpe en-de/ende.bpe \
     --relative-paths --dump-config > ensemble.yml
 
 # translate test set with ensemble
@@ -51,7 +51,7 @@ cat data/newstest2015.ende.en | \
     moses-scripts/scripts/tokenizer/tokenizer.perl -l en -penn | \
     moses-scripts/scripts/recaser/truecase.perl -model en-de/truecase-model.en | \
     # translate
-    ../../build/amun -c ensemble.yml | \
+    ../../build/amun -c ensemble.yml --gpu-threads 1 | \
     # postprocess
     moses-scripts/scripts/recaser/detruecase.perl | \
     moses-scripts/scripts/tokenizer/detokenizer.perl -l de > data/newstest2015.ensemble.out
