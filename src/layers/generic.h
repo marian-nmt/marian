@@ -28,6 +28,16 @@ public:
    : graph_(graph), options_(options)
   {}
 
+  template <typename T>
+  T opt(const std::string key) {
+    return options_->get<T>(key);
+  }
+
+  template <typename T>
+  T opt(const std::string key, T defaultValue) {
+    return options_->get<T>(key, defaultValue);
+  }
+
   virtual Expr apply(const std::vector<Expr>&) = 0;
   virtual Expr apply(Expr) = 0;
 };
