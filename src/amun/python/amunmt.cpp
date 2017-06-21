@@ -29,6 +29,7 @@ boost::python::list translate(boost::python::list& in)
 {
   size_t miniSize = god_.Get<size_t>("mini-batch");
   size_t maxiSize = god_.Get<size_t>("maxi-batch");
+  int miniWords = god_.Get<int>("mini-batch-words");
 
   std::vector<std::future< std::shared_ptr<Histories> >> results;
   SentencesPtr maxiBatch(new Sentences());
@@ -43,7 +44,7 @@ boost::python::list translate(boost::python::list& in)
 
       maxiBatch->SortByLength();
       while (maxiBatch->size()) {
-        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+        SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
 
         results.emplace_back(
           god_.GetThreadPool().enqueue(
@@ -60,7 +61,7 @@ boost::python::list translate(boost::python::list& in)
   if (maxiBatch->size()) {
     maxiBatch->SortByLength();
     while (maxiBatch->size()) {
-      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize);
+      SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
       results.emplace_back(
         god_.GetThreadPool().enqueue(
             [miniBatch]{ return TranslationTask(::god_, miniBatch); }
