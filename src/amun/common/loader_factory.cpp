@@ -9,6 +9,7 @@
 
 #ifdef CUDA
 #include "gpu/decoder/encoder_decoder.h"
+#include "gpu/decoder/encoder_decoder_loader.h"
 // #include "gpu/decoder/ape_penalty.h"
 
 #ifdef KENLM

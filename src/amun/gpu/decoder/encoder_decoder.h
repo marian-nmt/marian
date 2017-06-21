@@ -4,7 +4,6 @@
 #include <yaml-cpp/yaml.h>
 
 #include "common/scorer.h"
-#include "common/loader.h"
 #include "common/base_best_hyps.h"
 #include "common/threadpool.h"
 #include "gpu/types-gpu.h"
@@ -66,23 +65,6 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<mblas::Matrix> SourceContext_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
-};
-
-////////////////////////////////////////////
-class EncoderDecoderLoader : public Loader {
-  public:
-    EncoderDecoderLoader(const EncoderDecoderLoader&) = delete;
-    EncoderDecoderLoader(const std::string name,
-                         const YAML::Node& config);
-    virtual ~EncoderDecoderLoader();
-    
-    virtual void Load(const God &god);
-
-    virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
-    virtual BestHypsBasePtr GetBestHyps(const God &god) const;
-
-  private:
-    std::vector<std::unique_ptr<Weights>> weights_; // MUST be indexed by gpu id. eg. weights_[2] is for gpu2
 };
 
 }

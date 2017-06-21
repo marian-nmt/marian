@@ -1446,6 +1446,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/encoder_decoder.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/decoder/encoder_decoder_loader.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/encoder_decoder_loader.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/decoder/encoder_decoder_loader.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/encoder_decoder_loader.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/decoder/encoder_decoder_state.cu</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/encoder_decoder_state.cu</locationURI>
