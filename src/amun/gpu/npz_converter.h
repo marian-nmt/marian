@@ -72,7 +72,7 @@ class NpzConverter {
         ret.reset(matrix);
       }
       else {
-        std::cerr << "Missing " << key << std::endl;
+        std::cerr << key << " not found" << std::endl;
         mblas::Matrix *matrix = new mblas::Matrix();
         ret.reset(matrix);
       }
