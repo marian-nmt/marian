@@ -6,7 +6,7 @@
 namespace marian {
 namespace rnn {
 
-struct StackableFactory : public Factory<Stackable> {
+struct StackableFactory : public Factory {
   StackableFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
   StackableFactory(const StackableFactory&) = default;
   StackableFactory(StackableFactory&&) = default;
@@ -127,7 +127,7 @@ public:
 
 typedef Accumulator<AttentionFactory> attention;
 
-class RNNFactory : public Factory<RNN> {
+class RNNFactory : public Factory {
 protected:
   std::vector<Ptr<CellFactory>> layerFactories_;
 

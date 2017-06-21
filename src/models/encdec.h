@@ -10,9 +10,9 @@ protected:
   std::string prefix_{"encoder"};
   bool inference_{false};
 
-  virtual std::tuple<Expr, Expr> prepareSource(Expr srcEmbeddings,
-                                               Ptr<data::CorpusBatch> batch,
-                                               size_t index) {
+  virtual std::tuple<Expr, Expr> lookup(Expr srcEmbeddings,
+                                        Ptr<data::CorpusBatch> batch,
+                                        size_t index) {
     using namespace keywords;
 
     auto subBatch = (*batch)[index];
@@ -22,13 +22,13 @@ protected:
     int dimWords = subBatch->batchWidth();
 
     auto graph = srcEmbeddings->graph();
-    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indeces());
+    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
 
-    auto x = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
-    auto xMask = graph->constant({dimBatch, 1, dimWords},
-                                 init = inits::from_vector(subBatch->mask()));
+    auto batchEmbeddings = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
+    auto batchMask = graph->constant({dimBatch, 1, dimWords},
+                                     init = inits::from_vector(subBatch->mask()));
 
-    return std::make_tuple(x, xMask);
+    return std::make_tuple(batchEmbeddings, batchMask);
   }
 
 public:
@@ -62,30 +62,35 @@ public:
         prefix_(Get(keywords::prefix, "decoder", args...)),
         inference_(Get(keywords::inference, false, args...)) {}
 
+  virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
+  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
+
   virtual std::tuple<Expr, Expr> groundTruth(Ptr<DecoderState> state,
                                              Ptr<ExpressionGraph> graph,
                                              Ptr<data::CorpusBatch> batch,
                                              size_t index) {
     using namespace keywords;
 
-    int dimVoc = options_->get<std::vector<int>>("dim-vocabs").back();
-    int dimEmb = options_->get<int>("dim-emb");
-
-    auto yEmb = Embedding(prefix_ + "_Wemb", dimVoc, dimEmb)(graph);
+    int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
+    auto yEmb = embedding(graph)
+                ("prefix", prefix_ + "_Wemb")
+                ("dimVocab", dimVoc)
+                ("dimEmb", opt<int>("dim-emb"))
+                .construct();
 
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings = rows(yEmb, subBatch->indeces());
+    auto chosenEmbeddings = rows(yEmb, subBatch->indices());
 
-    auto y = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
+    auto y = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
 
     auto yMask = graph->constant({dimBatch, 1, dimWords},
                                  init = inits::from_vector(subBatch->mask()));
 
-    auto yIdx = graph->constant({(int)subBatch->indeces().size(), 1},
-                                init = inits::from_vector(subBatch->indeces()));
+    auto yIdx = graph->constant({(int)subBatch->indices().size(), 1},
+                                init = inits::from_vector(subBatch->indices()));
 
     auto yShifted = shift(y, {0, 0, 1, 0});
 
@@ -94,23 +99,24 @@ public:
     return std::make_tuple(yMask, yIdx);
   }
 
-  virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
-
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>& embIdx) {
     using namespace keywords;
 
-    int dimTrgEmb = options_->get<int>("dim-emb");
-    int dimPosEmb = options_->get<int>("dim-pos");
-    int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
+    int dimTrgEmb = opt<int>("dim-emb");
+    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
 
     Expr selectedEmbs;
     if(embIdx.empty()) {
-      selectedEmbs
-          = graph->constant({1, dimTrgEmb + dimPosEmb}, init = inits::zeros);
+      selectedEmbs = graph->constant({1, dimTrgEmb},
+                                     init = inits::zeros);
     } else {
-      auto yEmb = Embedding(prefix_ + "_Wemb", dimTrgVoc, dimTrgEmb)(graph);
+      auto yEmb = embedding(graph)
+                  ("prefix", prefix_ + "_Wemb")
+                  ("dimVocab", dimTrgVoc)
+                  ("dimEmb", opt<int>("dim-emb"))
+                  .construct();
       selectedEmbs = rows(yEmb, embIdx);
 
       selectedEmbs
@@ -118,8 +124,6 @@ public:
     }
     state->setTargetEmbeddings(selectedEmbs);
   }
-
-  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
   virtual const std::vector<Expr> getAlignments() {
     return {};
@@ -141,21 +145,18 @@ public:
 
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
-                                const std::vector<size_t>&)
-      = 0;
+                                const std::vector<size_t>&) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState>,
                                  const std::vector<size_t>&,
-                                 const std::vector<size_t>&)
-      = 0;
+                                 const std::vector<size_t>&) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true)
-      = 0;
+                     bool clearGraph = true) = 0;
 
   virtual Ptr<EncoderBase> getEncoder() = 0;
   virtual Ptr<DecoderBase> getDecoder() = 0;
@@ -296,9 +297,8 @@ public:
     auto stats = New<data::BatchStats>();
 
     size_t step = 10;
-    size_t maxLength = options_->get<size_t>("max-length");
-    size_t numFiles
-        = options_->get<std::vector<std::string>>("train-sets").size();
+    size_t maxLength = opt<size_t>("max-length");
+    size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
     for(size_t i = step; i <= maxLength; i += step) {
       size_t batchSize = step;
       std::vector<size_t> lengths(numFiles, i);

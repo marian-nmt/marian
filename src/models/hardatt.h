@@ -41,7 +41,7 @@ public:
     auto attentionIdx = getAttentionIndices();
     int dimVoc = totalCosts->shape()[1];
     for(int i = 0; i < attentionIdx.size(); i++) {
-      if(batch->front()->indeces()[attentionIdx[i]] != 0) {
+      if(batch->front()->indices()[attentionIdx[i]] != 0) {
         totalCosts->val()->set(i * dimVoc + EOS_ID,
                                std::numeric_limits<float>::lowest());
       } else {
@@ -195,7 +195,7 @@ public:
 
     for(int i = 0; i < dimWords - 1; ++i) {
       for(int j = 0; j < dimBatch; ++j) {
-        size_t word = subBatch->indeces()[i * dimBatch + j];
+        size_t word = subBatch->indices()[i * dimBatch + j];
         if(specialSymbols_.count(word))
           currentPos[j] += dimBatch;
         attentionIndices.push_back(currentPos[j]);

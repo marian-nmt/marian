@@ -184,7 +184,7 @@ public:
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
                                       Ptr<data::CorpusBatch> batch) {
     std::vector<float> p(dimVocab_, -1);
-    for(auto i : (*batch)[batchIndex_]->indeces())
+    for(auto i : (*batch)[batchIndex_]->indices())
       p[i] = 0;
     p[2] = 0;
 

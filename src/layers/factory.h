@@ -5,8 +5,7 @@
 
 namespace marian {
 
-template <class Obj>
-class Factory : public std::enable_shared_from_this<Factory<Obj>> {
+class Factory : public std::enable_shared_from_this<Factory> {
 protected:
   Ptr<Options> options_;
   Ptr<ExpressionGraph> graph_;
@@ -26,7 +25,7 @@ public:
   }
 
   template <typename T>
-  T get(const std::string& key) {
+  T opt(const std::string& key) {
     return options_->get<T>(key);
   }
 };

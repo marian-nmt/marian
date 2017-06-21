@@ -15,18 +15,18 @@ public:
                           size_t encoderIndex) {
     using namespace keywords;
 
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
-
     // create source embeddings
-    auto embeddings = Embedding(prefix_ + "_Wemb",
-                                dimVoc,
-                                opt<int>("dim-emb"))(graph);
-
-    Expr batchEmbeddings, batchMask;
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
+    auto embeddings = embedding(graph)
+                      ("prefix", prefix_ + "_Wemb")
+                      ("dimVocab", dimVoc)
+                      ("dimEmb", opt<int>("dim-emb"))
+                      .construct();
 
     // select embeddings that occur in the batch
+    Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-      = prepareSource(embeddings, batch, encoderIndex);
+      = EncoderBase::lookup(embeddings, batch, encoderIndex);
 
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
@@ -112,7 +112,7 @@ public:
                           ("prefix", prefix_ + "_ff_state")
                           ("dim", opt<int>("dim-rnn"))
                           ("activation", mlp::act::tanh)
-                          ("normalization", opt<bool>("layer-normalization")));
+                          ("normalize", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext);
 
     rnn::States startStates(opt<size_t>("layers-dec"), {start, start});
@@ -183,7 +183,7 @@ public:
                   ("prefix", prefix_ + "_ff_logit_l1")
                   ("dim", opt<int>("dim-emb"))
                   ("activation", mlp::act::tanh)
-                  ("normalization", opt<bool>("layer-normalization"));
+                  ("normalize", opt<bool>("layer-normalization"));
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
     auto layer2 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l2")
@@ -200,6 +200,7 @@ public:
                   .push_back(layer2)
                   ->apply(embeddings, decoderContext, alignedContext);
 
+    // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderState());
   }
 

@@ -49,7 +49,7 @@ public:
 
 class SubBatch {
 private:
-  std::vector<Word> indeces_;
+  std::vector<Word> indices_;
   std::vector<float> mask_;
 
   int size_;
@@ -58,13 +58,13 @@ private:
 
 public:
   SubBatch(int size, int width)
-      : indeces_(size * width, 0),
+      : indices_(size * width, 0),
         mask_(size * width, 0),
         size_(size),
         width_(width),
         words_(0) {}
 
-  std::vector<Word>& indeces() { return indeces_; }
+  std::vector<Word>& indices() { return indices_; }
   std::vector<float>& mask() { return mask_; }
 
   int batchSize() { return size_; }
@@ -102,7 +102,7 @@ public:
       for(size_t i = 0; i < sb->batchWidth(); i++) {
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {
-          Word w = sb->indeces()[i * sb->batchSize() + j];
+          Word w = sb->indices()[i * sb->batchSize() + j];
           std::cerr << w << " ";
         }
         std::cerr << std::endl;
@@ -290,7 +290,7 @@ public:
     for(int i = 0; i < batchSize; ++i) {
       for(int j = 0; j < maxDims.size(); ++j) {
         for(int k = 0; k < batchVector[i][j].size(); ++k) {
-          subBatches[j]->indeces()[k * batchSize + i] = batchVector[i][j][k];
+          subBatches[j]->indices()[k * batchSize + i] = batchVector[i][j][k];
           subBatches[j]->mask()[k * batchSize + i] = 1.f;
           words[j]++;
         }
