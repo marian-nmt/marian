@@ -48,7 +48,7 @@ fi
 if [ ! -e "model/model.npz" ]
 then
 
-    ../../../marian-train/build/marian \
+    ../../build/marian \
         --model model/model.npz \
         --devices $GPUS --seed 0 \
         --train-sets data/corpus.bpe.ro data/corpus.bpe.en \
