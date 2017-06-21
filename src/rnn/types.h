@@ -112,7 +112,7 @@ public:
     return options_;
   }
 
-  virtual void clear() {}
+  virtual void clear() = 0;
 };
 
 class CellInput : public Stackable {
@@ -135,6 +135,8 @@ public:
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) = 0;
   virtual State applyState(std::vector<Expr>, State, Expr = nullptr) = 0;
+
+  virtual void clear() {}
 };
 
 class MultiCellInput : public CellInput {
@@ -165,6 +167,11 @@ public:
     for(auto input : inputs_)
       sum += input->dimOutput();
     return sum;
+  }
+
+  virtual void clear() {
+    for(auto i : inputs_)
+      i->clear();
   }
 };
 
@@ -213,6 +220,11 @@ public:
 
   Ptr<Stackable> at(int i) {
     return stackables_[i];
+  }
+
+  virtual void clear() {
+    for(auto s : stackables_)
+      s->clear();
   }
 
 };
