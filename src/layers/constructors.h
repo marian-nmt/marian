@@ -52,7 +52,12 @@ public:
   template <typename ...Args>
   Expr apply(Args ...args) {
     std::vector<Expr> av = {args...};
-    auto output = layers_[0]->apply(av);
+
+    Expr output;
+    if(av.size() == 1)
+      output = layers_[0]->apply(av[0]);
+    else 
+      output = layers_[0]->apply(av);
 
     for(int i = 1; i < layers_.size(); ++i)
       output = layers_[i]->apply(output);
