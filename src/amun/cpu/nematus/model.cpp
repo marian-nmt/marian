@@ -1,6 +1,4 @@
-#include "model.h"
-
-using namespace std;
+#include "cpu/nematus/model.h"
 
 namespace amunmt {
 namespace CPU {
@@ -159,8 +157,9 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 
 Weights::Weights(const NpzConverter& model, size_t)
   : encEmbeddings_(model, "Wemb"),
-    decEmbeddings_(model, {std::make_pair(std::string("Wemb_dec"), false),
-                           std::make_pair(std::string("Wemb"), false)}),
+    decEmbeddings_(model, std::vector<std::pair<std::string, bool>>(
+          {std::make_pair(std::string("Wemb_dec"), false),
+           std::make_pair(std::string("Wemb"), false)})),
     encForwardGRU_(model, "encoder_", {"W", "b", "U", "Wx", "bx", "Ux", "W_lns", "W_lnb", "Wx_lns",
                                        "Wx_lnb", "U_lns", "U_lnb", "Ux_lns", "Ux_lnb" }),
     encBackwardGRU_(model, "encoder_r_", {"W", "b", "U", "Wx", "bx", "Ux", "W_lns", "W_lnb",

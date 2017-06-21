@@ -16,6 +16,7 @@ struct Weights {
   class Transition {
     public:
       enum class TransitionType {Encoder, Decoder};
+
       Transition(const NpzConverter& model, TransitionType type, std::string prefix,
                  std::string infix="");
 
