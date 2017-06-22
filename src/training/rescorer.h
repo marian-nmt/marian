@@ -31,8 +31,9 @@ public:
     auto device = options_->get<std::vector<size_t>>("devices").front();
     graph->setDevice(device);
 
-    auto model = New<Model>(options_);
-    model->load(graph, options_->get<std::string>("model"));
+    auto model = New<Model>(options_, keywords::inference = true);
+    auto modelFile = options_->get<std::string>("model");
+    model->load(graph, modelFile);
 
     Ptr<BatchGenerator<Corpus>> batchGenerator
         = New<BatchGenerator<Corpus>>(corpus, options_);
@@ -43,6 +44,7 @@ public:
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
+
       auto costNode = model->buildToScore(graph, batch);
       graph->forward();
 
