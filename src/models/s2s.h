@@ -70,7 +70,7 @@ public:
                    ("dropout", dropoutRnn)
                    ("normalize", opt<bool>("layer-normalization"))
                    ("skip", opt<bool>("skip"))
-                   ("skipFirst", opt<bool>("skip"));
+                   /*("skipFirst", opt<bool>("skip"))*/;
 
       // add layers to RNN
       for(int i = 0; i < opt<size_t>("enc-depth") - 1; ++i)
