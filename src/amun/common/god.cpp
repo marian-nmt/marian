@@ -245,13 +245,13 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
 
 BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
   if (deviceInfo.deviceType == CPUDevice) {
-    return cpuLoaders_.begin()->second->GetBestHyps(*this);
+    return cpuLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
   else if (deviceInfo.deviceType == GPUDevice) {
-    return gpuLoaders_.begin()->second->GetBestHyps(*this);
+    return gpuLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
   else if (deviceInfo.deviceType == FPGADevice) {
-    return fpgaLoaders_.begin()->second->GetBestHyps(*this);
+    return fpgaLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
   else {
 	amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
