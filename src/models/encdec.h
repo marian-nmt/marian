@@ -310,5 +310,23 @@ public:
     }
     return stats;
   }
+
+  virtual Expr buildToScore(Ptr<ExpressionGraph> graph,
+                            Ptr<data::CorpusBatch> batch,
+                            bool clearGraph = true) {
+    using namespace keywords;
+
+    if(clearGraph)
+      clear(graph);
+    auto state = startState(graph, batch);
+
+    Expr trgMask, trgIdx;
+    std::tie(trgMask, trgIdx)
+        = decoder_->groundTruth(state, graph, batch, batchIndices_.back());
+
+    auto nextState = step(graph, state);
+
+    return sum(cross_entropy(nextState->getProbs(), trgIdx) * trgMask, axis=2);
+  }
 };
 }
