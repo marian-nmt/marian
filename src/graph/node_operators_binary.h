@@ -476,7 +476,7 @@ class ConvolutionOp : public NaryNodeOp {
 
     NodeOps forwardOps() {
       const float alpha = 1.0f;
-      const float beta = 1.0f;
+      const float beta = 0.0f;
       cudaSetDevice(val_->getDevice());
 
       return {
