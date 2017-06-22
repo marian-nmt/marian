@@ -77,8 +77,10 @@ public:
         auto cellFactory = sf->as<CellFactory>();
         cellFactory->getOptions()->merge(options_);
 
-        if(i > 0)
+        if(i > 0) {
           sf->getOptions()->set("dimInput", lastDimInput);
+          lastDimInput = 0;
+        }
 
         stacked->push_back(cellFactory->construct());
       }

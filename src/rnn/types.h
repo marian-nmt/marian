@@ -112,6 +112,16 @@ public:
     return options_;
   }
 
+  template <typename T>
+  T opt(const std::string& key) {
+    return options_->get<T>(key);
+  }
+
+  template <typename T>
+  T opt(const std::string& key, T defaultValue) {
+    return options_->get<T>(key, defaultValue);
+  }
+
   virtual void clear() = 0;
 };
 
@@ -204,6 +214,8 @@ public:
     for(int i = 1; i < stackables_.size(); ++i) {
       if(stackables_[i]->is<Cell>()) {
         auto hiddenNext = stackables_[i]->as<Cell>()->apply(lastInputs_, hidden, mask);
+        if(!opt<bool>("propagate", false))
+          lastInputs_.clear();
         hidden = hiddenNext;
       }
       else {

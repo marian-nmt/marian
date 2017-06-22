@@ -40,7 +40,7 @@ public:
 
     // construct forward RNN with one layer
     auto rnnFw = rnn::rnn(graph)
-                 ("type", opt<std::string>("cell-enc"))
+                 ("type", opt<std::string>("enc-cell"))
                  ("prefix", prefix_ + "_bi")
                  ("dimInput", opt<int>("dim-emb"))
                  ("dimState", opt<int>("dim-rnn"))
@@ -58,13 +58,13 @@ public:
                                 rnnBw->transduce(batchEmbeddings, batchMask)},
                                 axis=1);
 
-    if(opt<size_t>("layers-enc") > 1) {
+    if(opt<size_t>("enc-depth") > 1) {
       // add more layers (unidirectional) by transducing the output of the
       // previous bidirectional RNN through multiple layers
 
       // construct RNN first
       auto rnnML = rnn::rnn(graph)
-                   ("type", opt<std::string>("cell-enc"))
+                   ("type", opt<std::string>("enc-cell"))
                    ("dimInput", 2 * opt<int>("dim-rnn"))
                    ("dimState", opt<int>("dim-rnn"))
                    ("dropout", dropoutRnn)
@@ -73,7 +73,7 @@ public:
                    ("skipFirst", opt<bool>("skip"));
 
       // add layers to RNN
-      for(int i = 0; i < opt<size_t>("layers-enc") - 1; ++i)
+      for(int i = 0; i < opt<size_t>("enc-depth") - 1; ++i)
         rnnML.push_back(rnn::cell(graph)
                         ("prefix", prefix_ + "_l" + std::to_string(i)));
 
@@ -85,10 +85,82 @@ public:
   }
 };
 
+/*
+options:
+  dim-emb: 512
+  dim-rnn: 1024
+  layer-normalization: true
+  dropout-rnn: 0.2
+  dropout-src: 0.1
+  dropout-trg: 0.1
+  skip: true
+
+encoder:
+  rnn:
+    type: alternating
+    layers:
+      - [ gru, gru ]
+      - [ gru, gru ]
+      - [ gru, gru ]
+      - [ gru, gru ]
+decoder:
+  rnn:
+    layers:
+      - [gru, att, gru, gru, gru]
+      - [gru, gru]
+      - [gru, gru]
+      - [gru, gru]
+*/
+
 class DecoderS2S : public DecoderBase {
 private:
   Ptr<rnn::RNN> rnn_;
   Expr tiedOutputWeights_;
+
+Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
+                                  Ptr<DecoderState> state) {
+  float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
+  auto rnn = rnn::rnn(graph)
+             ("type", opt<std::string>("dec-cell"))
+             ("dimInput", opt<int>("dim-emb"))
+             ("dimState", opt<int>("dim-rnn"))
+             ("dropout", dropoutRnn)
+             ("normalize", opt<bool>("layer-normalization"))
+             ("skip", opt<bool>("skip"));
+
+  size_t decoderLayers = opt<size_t>("dec-depth");
+  size_t decoderBaseDepth = opt<size_t>("dec-cell-base-depth");
+  size_t decoderHighDepth = opt<size_t>("dec-cell-high-depth");
+
+  // setting up conditional (transitional) cell
+  auto baseCell = rnn::stacked_cell(graph);
+  for(int i = 1; i <= decoderBaseDepth; ++i) {
+    auto paramPrefix = prefix_ + "_cell" + std::to_string(i);
+    baseCell.push_back(rnn::cell(graph)
+                       ("prefix", paramPrefix));
+    if(i == 1)
+      baseCell.push_back(rnn::attention(graph)
+                         ("prefix", prefix_)
+                         .set_state(state->getEncoderState()));
+  }
+  // Add cell to RNN (first layer)
+  rnn.push_back(baseCell);
+
+  // Add more cells to RNN (stacked RNN)
+  for(int i = 2; i <= decoderLayers; ++i) {
+    // deep transition
+    auto highCell = rnn::stacked_cell(graph);
+    for(int j = 1; j <= decoderHighDepth; j++) {
+      auto paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
+      highCell.push_back(rnn::cell(graph)
+                         ("prefix", paramPrefix));
+    }
+    // Add cell to RNN (more layers)
+    rnn.push_back(highCell);
+  }
+
+  return rnn.construct();
+}
 
 public:
   template <class... Args>
@@ -115,7 +187,7 @@ public:
                           ("normalize", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext);
 
-    rnn::States startStates(opt<size_t>("layers-dec"), {start, start});
+    rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
     return New<DecoderState>(startStates, nullptr, encState);
   }
 
@@ -133,38 +205,8 @@ public:
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
-    if(!rnn_) {
-      // setting up decoder RNN
-      float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
-      auto rnn = rnn::rnn(graph)
-                 ("type", opt<std::string>("cell-dec"))
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
-                 ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"))
-                 ("skip", opt<bool>("skip"));
-
-      // setting up conditional (transitional) cell
-      auto attCell = rnn::stacked_cell(graph)
-                     .push_back(rnn::cell(graph)
-                                ("prefix", prefix_ + "_cell1"))
-                     .push_back(rnn::attention(graph)
-                                ("prefix", prefix_)
-                                .set_state(state->getEncoderState()))
-                     .push_back(rnn::cell(graph)
-                                ("prefix", prefix_ + "_cell2")
-                                ("final", true));
-      // Add cell to RNN (first layer)
-      rnn.push_back(attCell);
-
-      // Add more cells to RNN (stacked RNN)
-      size_t decoderLayers = opt<size_t>("layers-dec");
-      for(int i = 0; i < decoderLayers - 1; ++i)
-        rnn.push_back(rnn::cell(graph)
-                      ("prefix", prefix_ + "_l" + std::to_string(i)));
-
-      rnn_ = rnn.construct();
-    }
+    if(!rnn_)
+      rnn_ = constructDecoderRNN(graph, state);
 
     // apply RNN to embeddings, initialized with encoder context mapped into
     // decoder space

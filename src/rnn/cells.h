@@ -43,21 +43,26 @@ public:
     U_ = graph->param(prefix + "_U",
                       {dimState, dimState},
                       keywords::init = inits::glorot_uniform);
-    W_ = graph->param(prefix + "_W",
-                      {dimInput, dimState},
-                      keywords::init = inits::glorot_uniform);
+
+    if(dimInput)
+      W_ = graph->param(prefix + "_W",
+                        {dimInput, dimState},
+                        keywords::init = inits::glorot_uniform);
+
     b_ = graph->param(
         prefix + "_b", {1, dimState}, keywords::init = inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      if(dimInput)
+        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
-      gamma1_ = graph->param(prefix + "_gamma1",
-                             {1, 3 * dimState},
-                             keywords::init = inits::from_value(1.f));
+      if(dimInput)
+        gamma1_ = graph->param(prefix + "_gamma1",
+                               {1, 3 * dimState},
+                               keywords::init = inits::from_value(1.f));
       gamma2_ = graph->param(prefix + "_gamma2",
                              {1, 3 * dimState},
                              keywords::init = inits::from_value(1.f));
@@ -72,7 +77,9 @@ public:
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
-    if(inputs.size() > 1)
+    if(inputs.size() == 0)
+      return {};
+    else if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
     else
       input = inputs.front();
@@ -100,9 +107,13 @@ public:
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
 
-    auto xW = xWs.front();
 
-    auto output = tanh(xW, sU, b_);
+    Expr output;
+    if(xWs.empty())
+      output = tanh(sU, b_);
+    else {
+      output = tanh(xWs.front(), sU, b_);
+    }
     if(mask)
       return {output * mask, nullptr};
     else
@@ -130,6 +141,8 @@ protected:
   Expr dropMaskX_;
   Expr dropMaskS_;
 
+  Expr fakeInput_;
+
 public:
   GRU(Ptr<ExpressionGraph> graph,
       Ptr<Options> options)
@@ -146,22 +159,26 @@ public:
     auto U = graph->param(prefix + "_U",
                           {dimState, 2 * dimState},
                           keywords::init = inits::glorot_uniform);
-    auto W = graph->param(prefix + "_W",
-                          {dimInput, 2 * dimState},
-                          keywords::init = inits::glorot_uniform);
-    auto b = graph->param(
-        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
     auto Ux = graph->param(prefix + "_Ux",
                            {dimState, dimState},
                            keywords::init = inits::glorot_uniform);
-    auto Wx = graph->param(prefix + "_Wx",
-                           {dimInput, dimState},
-                           keywords::init = inits::glorot_uniform);
+    U_ = concatenate({U, Ux}, keywords::axis = 1);
+
+
+    if(dimInput > 0) {
+      auto W = graph->param(prefix + "_W",
+                            {dimInput, 2 * dimState},
+                            keywords::init = inits::glorot_uniform);
+      auto Wx = graph->param(prefix + "_Wx",
+                             {dimInput, dimState},
+                             keywords::init = inits::glorot_uniform);
+      W_ = concatenate({W, Wx}, keywords::axis = 1);
+    }
+
+    auto b = graph->param(
+        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
     auto bx = graph->param(
         prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
-
-    U_ = concatenate({U, Ux}, keywords::axis = 1);
-    W_ = concatenate({W, Wx}, keywords::axis = 1);
     b_ = concatenate({b, bx}, keywords::axis = 1);
 
     // @TODO use this and adjust Amun model type saving and loading
@@ -173,14 +190,16 @@ public:
     //                  keywords::init=inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      if(dimInput)
+        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
-      gamma1_ = graph->param(prefix + "_gamma1",
-                             {1, 3 * dimState},
-                             keywords::init = inits::from_value(1.f));
+      if(dimInput)
+        gamma1_ = graph->param(prefix + "_gamma1",
+                               {1, 3 * dimState},
+                               keywords::init = inits::from_value(1.f));
       gamma2_ = graph->param(prefix + "_gamma2",
                              {1, 3 * dimState},
                              keywords::init = inits::from_value(1.f));
@@ -195,10 +214,12 @@ public:
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
-    if(inputs.size() > 1)
+    if(inputs.size() == 0)
+      return {};
+    else if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
     else
-      input = inputs.front();
+      input = inputs[0];
 
     if(dropMaskX_)
       input = dropout(input, keywords::mask = dropMaskX_);
@@ -224,7 +245,15 @@ public:
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
 
-    auto xW = xWs.front();
+    Expr xW;
+    if(xWs.empty()) {
+      if(not fakeInput_)
+        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
+      xW = fakeInput_;
+    }
+    else {
+      xW = xWs.front();
+    }
 
     auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_) :
                          gruOps({stateOrig, xW, sU, b_}, final_);
@@ -252,6 +281,8 @@ protected:
   Expr dropMaskX_;
   Expr dropMaskS_;
 
+  Expr fakeInput_;
+
 public:
   FastLSTM(Ptr<ExpressionGraph> graph,
            Ptr<Options> options)
@@ -266,20 +297,24 @@ public:
 
     U_ = graph->param(prefix + "_U", {dimState, 4 * dimState},
                       keywords::init=inits::glorot_uniform);
-    W_ = graph->param(prefix + "_W", {dimInput, 4 * dimState},
-                      keywords::init=inits::glorot_uniform);
+    if(dimInput)
+      W_ = graph->param(prefix + "_W", {dimInput, 4 * dimState},
+                        keywords::init=inits::glorot_uniform);
+
     b_ = graph->param(prefix + "_b", {1, 4 * dimState},
                       keywords::init=inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      if(dimInput)
+        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
       dropMaskS_ = graph->dropout(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
-      gamma1_ = graph->param(prefix + "_gamma1",
-                             {1, 4 * dimState},
-                             keywords::init = inits::from_value(1.f));
+      if(dimInput)
+        gamma1_ = graph->param(prefix + "_gamma1",
+                               {1, 4 * dimState},
+                               keywords::init = inits::from_value(1.f));
       gamma2_ = graph->param(prefix + "_gamma2",
                              {1, 4 * dimState},
                              keywords::init = inits::from_value(1.f));
@@ -294,7 +329,9 @@ public:
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
-    if(inputs.size() > 1)
+    if(inputs.size() == 0)
+      return {};
+    else if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
     else
       input = inputs.front();
@@ -326,7 +363,16 @@ public:
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
 
-    auto xW = xWs.front();
+    Expr xW;
+    if(xWs.empty()) {
+      if(not fakeInput_)
+        fakeInput_ = sU->graph()->constant(sU->shape(),
+                                           keywords::init=inits::zeros);
+      xW = fakeInput_;
+    }
+    else {
+      xW = xWs.front();
+    }
 
     // dc/dp where p = W_i, U_i, ..., but without index o
     auto nextCellState = mask ?
@@ -377,6 +423,8 @@ class Multiplicative : public CellType {
     }
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    UTIL_THROW_IF2(inputs.empty(), "Multiplicative LSTM expects input");
+
     Expr input;
     if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
@@ -469,6 +517,8 @@ public:
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    UTIL_THROW_IF2(inputs.empty(), "Slow LSTM expects input");
+
     Expr input;
     if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
@@ -564,6 +614,8 @@ public:
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    UTIL_THROW_IF2(inputs.empty(), "Test LSTM expects input");
+
     Expr input;
     if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
