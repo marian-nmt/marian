@@ -129,27 +129,47 @@ public:
     using namespace keywords;
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
-    auto rnnAlt = rnn::rnn(graph)
-                  ("type", opt<std::string>("enc-cell"))
-                  ("direction", rnn::dir::alternating)
-                  ("dimInput", opt<int>("dim-emb"))
-                  ("dimState", opt<int>("dim-rnn"))
-                  ("dropout", dropoutRnn)
-                  ("normalize", opt<bool>("layer-normalization"))
-                  ("skip", opt<bool>("skip"));
+    auto rnnFw = rnn::rnn(graph)
+                 ("type", opt<std::string>("enc-cell"))
+                 ("direction", rnn::dir::alternating_forward)
+                 ("dimInput", opt<int>("dim-emb"))
+                 ("dimState", opt<int>("dim-rnn"))
+                 ("dropout", dropoutRnn)
+                 ("normalize", opt<bool>("layer-normalization"))
+                 ("skip", opt<bool>("skip"));
 
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
       auto stacked = rnn::stacked_cell(graph);
       for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-        std::string paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
+        std::string paramPrefix = prefix_ + "_bi_l" + std::to_string(i) + "_cell" + std::to_string(j);
         stacked.push_back(rnn::cell(graph)
                           ("prefix", paramPrefix));
       }
-      rnnAlt.push_back(stacked);
+      rnnFw.push_back(stacked);
     }
 
-    // @TODO: think about mask
-    return rnnAlt->transduce(embeddings /*, mask */);
+     auto rnnBw = rnn::rnn(graph)
+                 ("type", opt<std::string>("enc-cell"))
+                 ("direction", rnn::dir::alternating_backward)
+                 ("dimInput", opt<int>("dim-emb"))
+                 ("dimState", opt<int>("dim-rnn"))
+                 ("dropout", dropoutRnn)
+                 ("normalize", opt<bool>("layer-normalization"))
+                 ("skip", opt<bool>("skip"));
+
+    for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
+      auto stacked = rnn::stacked_cell(graph);
+      for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
+        std::string paramPrefix = prefix_ + "_bi_r_l" + std::to_string(i) + "_cell" + std::to_string(j);
+        stacked.push_back(rnn::cell(graph)
+                          ("prefix", paramPrefix));
+      }
+      rnnBw.push_back(stacked);
+    }
+    auto context = concatenate({rnnFw->transduce(embeddings, mask),
+                                rnnBw->transduce(embeddings, mask)},
+                                axis=1);
+    return context;
   }
 
   template <class... Args>

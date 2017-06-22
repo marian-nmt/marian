@@ -145,8 +145,15 @@ public:
       if(i > 0)
         lf->getOptions()->set("dimInput", layerFactories_[i - 1]->getOptions()->get<int>("dimState"));
 
-      if(opt<rnn::dir>("direction", rnn::dir::forward) == rnn::dir::alternating) {
+      if(opt<rnn::dir>("direction", rnn::dir::forward) == rnn::dir::alternating_forward) {
         if(i % 2 == 0)
+          lf->getOptions()->set("direction", rnn::dir::forward);
+        else
+          lf->getOptions()->set("direction", rnn::dir::backward);
+      }
+
+      if(opt<rnn::dir>("direction", rnn::dir::forward) == rnn::dir::alternating_backward) {
+        if(i % 2 == 1)
           lf->getOptions()->set("direction", rnn::dir::forward);
         else
           lf->getOptions()->set("direction", rnn::dir::backward);

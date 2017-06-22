@@ -17,7 +17,7 @@
 
 namespace marian {
   namespace rnn {
-    enum struct dir : int { forward, backward, alternating };
+    enum struct dir : int { forward, backward, alternating_forward, alternating_backward };
   }
 }
 
@@ -41,6 +41,7 @@ public:
   virtual States lastCellStates() = 0;
   virtual void push_back(Ptr<Cell>) = 0;
   virtual Ptr<Cell> at(int i) = 0;
+  virtual Ptr<Options> getOptions() { return options_; }
 };
 
 class RNN;
@@ -163,7 +164,13 @@ public:
     Expr output;
     Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = rnns_[i]->transduce(layerInput, mask);
+      Expr layerMask = mask;
+      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::forward)
+        layerMask = nullptr;
+      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
+        layerMask = nullptr;
+
+      auto layerOutput = rnns_[i]->transduce(layerInput, layerMask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
@@ -181,7 +188,13 @@ public:
     Expr output;
     Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = rnns_[i]->transduce(layerInput, States({states[i]}), mask);
+      Expr layerMask = mask;
+      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::forward)
+        layerMask = nullptr;
+      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
+        layerMask = nullptr;
+
+      auto layerOutput = rnns_[i]->transduce(layerInput, States({states[i]}), layerMask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
@@ -199,7 +212,13 @@ public:
     Expr output;
     Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = rnns_[i]->transduce(layerInput, States({state}), mask);
+      Expr layerMask = mask;
+      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::forward)
+        layerMask = nullptr;
+      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
+        layerMask = nullptr;
+
+      auto layerOutput = rnns_[i]->transduce(layerInput, States({state}), layerMask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
