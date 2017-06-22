@@ -21,9 +21,6 @@ class Convolution : public Layer {
         kernelNum_(kernelNum) {
     }
 
-    // auto conv_1 = Convolution("Conv", 3, 3, 32)(x);
-    // auto conv_2 = relu(Convolution("Conv", 3, 3, 64)(conv_1));
-
     Expr operator()(Expr x) {
       params_.clear();
       auto graph = x->graph();
@@ -39,8 +36,6 @@ class Convolution : public Layer {
       params_.push_back(bias);
 
       auto output = convolution(x, kernel, bias);
-
-      // std::cerr << "Shape:" << output->shape() << std::endl;
 
       return output;
     }

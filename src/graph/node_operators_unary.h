@@ -737,11 +737,6 @@ class PoolingOp : public UnaryNodeOp {
       height = std::min(height, x->shape()[2]);
       strideHeight = std::min(strideHeight, x->shape()[2]);
 
-      // std::cerr <<
-            // height << " " << width << " " <<
-            // padHeight << " " << padWidth << " " <<
-            // strideHeight << " " << strideWidth << std::endl;
-
       CUDNN_CALL( cudnnCreatePoolingDescriptor(&poolingDesc_) );
       CUDNN_CALL( cudnnSetPooling2dDescriptor(poolingDesc_,
             cudnnPoolingMode,
@@ -759,13 +754,13 @@ class PoolingOp : public UnaryNodeOp {
 
       CUDNN_CALL( cudnnCreateTensorDescriptor(&yDesc_) );
       CUDNN_CALL( cudnnSetTensor4dDescriptor(yDesc_,
-                                CUDNN_TENSOR_NHWC, CUDNN_DATA_FLOAT,
+                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                 shape_[0], shape_[1],
                                 shape_[2], shape_[3])
       );
       CUDNN_CALL( cudnnCreateTensorDescriptor(&adjDesc_) );
       CUDNN_CALL( cudnnSetTensor4dDescriptor(adjDesc_,
-                                CUDNN_TENSOR_NHWC, CUDNN_DATA_FLOAT,
+                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                 shape_[0], shape_[1],
                                 shape_[2], shape_[3])
       );
@@ -781,36 +776,29 @@ class PoolingOp : public UnaryNodeOp {
       return {
         NodeOp(
           CUDNN_CALL( cudnnPoolingForward(cudnnHandle_,
-                              poolingDesc_,
-                              &alpha,
-                              xDesc_,
-                              children_[0]->val()->data(),
-                              &beta,
-                              yDesc_,
-                              val_->data()))
+                        poolingDesc_,
+                        &alpha,
+                        xDesc_, children_[0]->val()->data(),
+                        &beta,
+                        yDesc_, val_->data()))
           )
       };
     }
 
     NodeOps backwardOps() {
-      // std::cerr << "BACK" << std::endl;
       cudaSetDevice(adj_->getDevice());
       const float alpha = 1.0f;
       const float beta = 1.0f;
       return {
         NodeOp(
           CUDNN_CALL( cudnnPoolingBackward(cudnnHandle_,
-                            poolingDesc_,
-                            &alpha,
-                            yDesc_,
-                            val_->data(),
-                            adjDesc_,
-                            adj_->data(),
-                            xDesc_,
-                            children_[0]->val()->data(),
-                            &beta,
-                            xDesc_,
-                            children_[0]->grad()->data()
+                        poolingDesc_,
+                        &alpha,
+                        yDesc_, val_->data(),
+                        adjDesc_, adj_->data(),
+                        xDesc_, children_[0]->val()->data(),
+                        &beta,
+                        xDesc_, children_[0]->grad()->data()
           )))
       };
     }
