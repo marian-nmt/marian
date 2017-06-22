@@ -204,8 +204,8 @@ Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
   return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 }
 
-Expr convolution(Expr x, Expr filters) {
-  std::vector<Expr> nodes = {x, filters};
+Expr convolution(Expr x, Expr filters, Expr bias) {
+  std::vector<Expr> nodes = {x, filters, bias};
   return Expression<ConvolutionOp>(nodes);
 }
 

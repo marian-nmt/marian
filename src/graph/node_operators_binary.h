@@ -16,6 +16,7 @@
       return EXIT_FAILURE;}} while(0)
 
 #define CUDNN_CALL(x) do { if((x) != CUDNN_STATUS_SUCCESS) { \
+  std::cerr << "CALL " << __LINE__ << std::endl; \
       printf("Error (%s) at %s:%d\n",cudnnGetErrorString(x),__FILE__,__LINE__);     \
       }} while(0)
 
@@ -445,12 +446,12 @@ class ConvolutionOp : public NaryNodeOp {
               kernelH_, kernelW_
       ));
 
-      // CUDNN_CALL( cudnnCreateTensorDescriptor(&biasDesc_) );
-      // CUDNN_CALL( cudnnSetTensor4dDescriptor( biasDesc_,
-                    // CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                    // nodes[2]->shape()[0], nodes[2]->shape()[1],
-                    // nodes[2]->shape()[2], nodes[2]->shape()[3]
-      // ));
+      CUDNN_CALL( cudnnCreateTensorDescriptor(&biasDesc_) );
+      CUDNN_CALL( cudnnSetTensor4dDescriptor( biasDesc_,
+                    CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                    nodes[2]->shape()[0], nodes[2]->shape()[1],
+                    nodes[2]->shape()[2], nodes[2]->shape()[3]
+      ));
 
       CUDNN_CALL( cudnnGetConvolution2dForwardOutputDim(
         convDesc_,
@@ -461,7 +462,7 @@ class ConvolutionOp : public NaryNodeOp {
 
       CUDNN_CALL( cudnnCreateTensorDescriptor(&yDesc_) );
       CUDNN_CALL( cudnnSetTensor4dDescriptor(yDesc_,
-                                CUDNN_TENSOR_NHWC, CUDNN_DATA_FLOAT,
+                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                 shape_[0], shape_[1],
                                 shape_[2], shape_[3])
       );
@@ -490,30 +491,22 @@ class ConvolutionOp : public NaryNodeOp {
                             nullptr, 0,
                             &beta,
                             yDesc_, val_->data()))
+        ),
+        NodeOp(CUDNN_CALL(cudnnAddTensor(cudnnHandle_,
+                            &alpha,
+                            biasDesc_, children_[2]->val()->data(),
+                            &alpha,
+                            yDesc_, val_->data()))
         )
-        // NodeOp(CUDNN_CALL(cudnnAddTensor(cudnnHandle_,
-                            // &alpha,
-                            // biasDesc_, children_[2]->val()->data(),
-                            // &alpha,
-                            // yDesc_, val_->data()))
-        // )
       };
     }
 
     NodeOps backwardOps() {
-      const float alpha = 1.0f / std::sqrt(float(kernelH_ * kernelW_));
-      // const float alpha = 1.0f;
+      // const float alpha = 1.0f / std::sqrt(float(kernelH_ * kernelW_));
+      const float alpha = 1.0f;
       const float beta = 1.0f;
+      // std::cerr << "BACKWARD" << std::endl;
       return {
-        // NodeOp(CUDNN_CALL(
-          // cudnnConvolutionBackwardBias(cudnnHandle_,
-            // &alpha,
-            // adjDesc_,
-            // adj_->data(),
-            // &beta,
-            // biasDesc_,
-            // children_[2]->grad()->data())
-        // )),
         NodeOp(CUDNN_CALL(
           cudnnConvolutionBackwardData(cudnnHandle_,
             &alpha,
@@ -541,6 +534,15 @@ class ConvolutionOp : public NaryNodeOp {
             &beta,
             kernelDesc_,
             children_[1]->grad()->data())
+        )),
+        NodeOp(CUDNN_CALL(
+          cudnnConvolutionBackwardBias(cudnnHandle_,
+            &alpha,
+            adjDesc_,
+            adj_->data(),
+            &beta,
+            biasDesc_,
+            children_[2]->grad()->data())
         ))
       };
     }
@@ -556,13 +558,14 @@ class ConvolutionOp : public NaryNodeOp {
       cudnnDestroy(cudnnHandle_);
       cudnnDestroyTensorDescriptor(xDesc_);
       cudnnDestroyTensorDescriptor(yDesc_);
+      cudnnDestroyTensorDescriptor(biasDesc_);
     }
 
   protected:
     cudnnHandle_t cudnnHandle_;
     cudnnConvolutionDescriptor_t convDesc_;
     cudnnFilterDescriptor_t kernelDesc_;
-    // cudnnTensorDescriptor_t biasDesc_;
+    cudnnTensorDescriptor_t biasDesc_;
     cudnnTensorDescriptor_t xDesc_;
     cudnnTensorDescriptor_t yDesc_;
     cudnnTensorDescriptor_t adjDesc_;

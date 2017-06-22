@@ -98,7 +98,7 @@ Expr dropout(Expr x, Args... args) {
 
 Expr shift(Expr, Shape);
 
-Expr convolution(Expr x, Expr filters);
+Expr convolution(Expr x, Expr filters, Expr bias);
 
 Expr avg_pooling(
         Expr x,

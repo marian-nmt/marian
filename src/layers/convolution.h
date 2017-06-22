@@ -27,12 +27,14 @@ class Convolution : public Layer {
       auto kernel = graph->param(name_ + "_kernels",  {kernelNum_, kernelHeight_, kernelWidth_},
                                  keywords::init=inits::glorot_uniform);
 
-      // auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
-                                 // keywords::init=inits::zeros);
-      params_.push_back(kernel);
-      // params_.push_back(bias);
+      // debug(kernel, "KERNEL");
 
-      auto output = convolution(x, kernel);
+      auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
+                                 keywords::init=inits::zeros);
+      params_.push_back(kernel);
+      params_.push_back(bias);
+
+      auto output = convolution(x, kernel, bias);
 
       // std::cerr << "Shape:" << output->shape() << std::endl;
 
@@ -67,13 +69,13 @@ class Convolution : public Layer {
       std::string kernel_name = name_ + "kernels";
       auto kernel = graph->param(kernel_name,  {kernelNum_, kernelHeight_, kernelWidth_},
                                   keywords::init=inits::glorot_uniform);
-      // auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
-                                 // keywords::init=inits::zeros);
+      auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
+                                 keywords::init=inits::zeros);
       params_.push_back(kernel);
-      // params_.push_back(bias);
+      params_.push_back(bias);
 
       auto input = previousInput * shuffled_mask;
-      previousInput = convolution(input, kernel);
+      previousInput = convolution(input, kernel, bias);
 
       auto reshapedOutput = reshape(previousInput, {previousInput->shape()[0] * previousInput->shape()[2],
                                                     previousInput->shape()[1], 1, x->shape()[3]});
