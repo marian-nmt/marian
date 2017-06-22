@@ -346,8 +346,8 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   d_cumBeamSizes.resize(cummulatedBeamSizes.size());
   assert(d_batchPosition.size() == d_cumBeamSizes.size());
 
-  thrust::copy(batchFirstElementIdxs.begin(), batchFirstElementIdxs.end(), d_batchPosition.begin());
-  thrust::copy(cummulatedBeamSizes.begin(), cummulatedBeamSizes.end(), d_cumBeamSizes.begin());
+  mblas::copy(batchFirstElementIdxs.begin(), batchFirstElementIdxs.end(), d_batchPosition.begin());
+  mblas::copy(cummulatedBeamSizes.begin(), cummulatedBeamSizes.end(), d_cumBeamSizes.begin());
 
   mblas::MatrixWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
@@ -388,7 +388,7 @@ void NthElement::GetPairs(uint number,
                     std::vector<uint>& outKeys,
                     std::vector<float>& outValues)
 {
-  thrust::copy(d_res.begin(), d_res.end(), h_res.begin());
+  mblas::copy(d_res.begin(), d_res.end(), h_res.begin());
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()) );
 
   for (uint i = 0; i < number; ++i) {
