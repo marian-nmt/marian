@@ -58,6 +58,10 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &devi
 
 BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const {
   BestHypsBasePtr obj(new GPU::BestHyps(god));
+
+  //std::thread::id this_id = std::this_thread::get_id();
+  //std::cerr << "deviceInfo=" << deviceInfo << " thread " << this_id << " sleeping...\n";
+
   return obj;
 }
 
