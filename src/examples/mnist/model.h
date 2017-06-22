@@ -9,7 +9,6 @@
 #include "common/definitions.h"
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
-#include "layers/convolution.h"
 
 #include "examples/mnist/dataset.h"
 
@@ -20,7 +19,7 @@ class MNISTModel {
 private:
   Ptr<Config> options_;
   bool inference_{false};
-  std::vector<int> dims_{784, 10};
+  std::vector<int> dims_{784, 2048, 2048, 10};
 
 public:
   typedef data::MNIST dataset_type;
@@ -73,17 +72,9 @@ private:
     // with training features
     auto features
         = std::static_pointer_cast<data::DataBatch>(batch)->features();
-    auto x = g->constant({(int)batch->size(), 1, 28, 28},
+    auto x = g->constant({(int)batch->size(), dims[0]},
                          init = inits::from_vector(features));
 
-    auto conv_1 = Convolution("Conv1", 3, 3, 32)(x);
-    auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
-    // auto maxPooling = MaxPooling("MaxPooling", 2, 2)(conv_2);
-
-    auto flatten = reshape(conv_2, {conv_2->shape()[0], conv_2->shape()[1] * conv_2->shape()[2] * conv_2->shape()[3], 1, 1});
-    // debug(x, "X");
-    // debug(conv, "Conv");
-    // debug(flatten, "flatten");
     // Construct hidden layers
     std::vector<Expr> layers, weights, biases;
 
@@ -94,14 +85,15 @@ private:
       if(i == 0) {
         // Create a dropout node as the parent of x,
         //   and place that dropout node as the value of layers[0]
-        layers.emplace_back(flatten);
-        in = flatten->shape()[1];
+        layers.emplace_back(dropout(x, dropout_prob = 0.2));
       } else {
         // Multiply the matrix in layers[i-1] by the matrix in weights[i-1]
         // Take the result, and perform matrix addition on biases[i-1].
         // Wrap the result in rectified linear activation function,
         // and finally wrap that in a dropout node
-        layers.emplace_back(affine(layers.back(), weights.back(), biases.back()));
+        layers.emplace_back(
+            dropout(relu(affine(layers.back(), weights.back(), biases.back())),
+                    dropout_prob = 0.5));
       }
 
       // Construct a weight node for the outgoing connections from layer i
@@ -115,7 +107,6 @@ private:
 
     // Perform matrix multiplication and addition for the last layer
     auto last = affine(layers.back(), weights.back(), biases.back());
-    // debug(last, "LAST");
 
     if(!inference) {
       // Create an output layer of shape batchSize x 1 and populate it with
@@ -123,8 +114,6 @@ private:
       auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
       auto y = g->constant({(int)batch->size(), 1},
                            init = inits::from_vector(labels));
-
-      // debug(last, "last");
 
       // Define a top-level node for training
       return mean(cross_entropy(last, y), axis = 0);
