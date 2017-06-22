@@ -203,4 +203,36 @@ Expr shift(Expr a, Shape shift) {
 Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
   return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 }
+
+Expr convolution(Expr x, Expr filters) {
+  std::vector<Expr> nodes = {x, filters};
+  return Expression<ConvolutionOp>(nodes);
+}
+
+Expr avg_pooling(
+    Expr x,
+    int height, int width,
+    int padHeight, int padWidth,
+    int strideHeight, int strideWidth)
+{
+  return Expression<PoolingOp>(x,
+      height, width,
+      padHeight, padWidth,
+      strideHeight, strideWidth,
+      PoolingOp::Mode::AVERAGE_POOLING);
+}
+
+Expr max_pooling(
+    Expr x,
+    int height, int width,
+    int padHeight, int padWidth,
+    int strideHeight, int strideWidth)
+{
+  return Expression<PoolingOp>(x,
+      height, width,
+      padHeight, padWidth,
+      strideHeight, strideWidth,
+      PoolingOp::Mode::MAX_POOLING);
+}
+
 }

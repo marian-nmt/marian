@@ -27,12 +27,12 @@ class Convolution : public Layer {
       auto kernel = graph->param(name_ + "_kernels",  {kernelNum_, kernelHeight_, kernelWidth_},
                                  keywords::init=inits::glorot_uniform);
 
-      auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
-                                 keywords::init=inits::zeros);
+      // auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
+                                 // keywords::init=inits::zeros);
       params_.push_back(kernel);
-      params_.push_back(bias);
+      // params_.push_back(bias);
 
-      auto output = convolution(x, kernel, bias);
+      auto output = convolution(x, kernel);
 
       // std::cerr << "Shape:" << output->shape() << std::endl;
 
@@ -67,13 +67,13 @@ class Convolution : public Layer {
       std::string kernel_name = name_ + "kernels";
       auto kernel = graph->param(kernel_name,  {kernelNum_, kernelHeight_, kernelWidth_},
                                   keywords::init=inits::glorot_uniform);
-      auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
-                                 keywords::init=inits::zeros);
+      // auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
+                                 // keywords::init=inits::zeros);
       params_.push_back(kernel);
-      params_.push_back(bias);
+      // params_.push_back(bias);
 
       auto input = previousInput * shuffled_mask;
-      previousInput = convolution(input, kernel, bias);
+      previousInput = convolution(input, kernel);
 
       auto reshapedOutput = reshape(previousInput, {previousInput->shape()[0] * previousInput->shape()[2],
                                                     previousInput->shape()[1], 1, x->shape()[3]});
@@ -128,8 +128,7 @@ class MaxPooling : public Layer {
         }
       }
 
-      auto masked = reshape(x,
-                            {batchDim * sentenceDim, x->shape()[1], 1, x->shape()[3]});
+      auto masked = reshape(x, {batchDim * sentenceDim, x->shape()[1], 1, x->shape()[3]});
       // debug(masked, "masket");
       auto shuffled_X = reshape(rows(masked, newIndeces),
                                      {batchDim, 1, sentenceDim, x->shape()[1]});
