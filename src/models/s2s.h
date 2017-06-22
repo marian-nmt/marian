@@ -7,20 +7,42 @@ namespace marian {
 class EncoderS2S : public EncoderBase {
 public:
 
-  Expr applyBidirectionalEncoderRNN(Ptr<ExpressionGraph> graph, Expr embeddings, Expr mask) {
+  Expr applyEncoderRNN(Ptr<ExpressionGraph> graph,
+                       Expr embeddings, Expr mask,
+                       std::string type) {
+
+    int first, second;
+    if(type == "bidirectional" || type == "alternating") {
+      // build two separate stacks, concatenate top output
+      first = opt<int>("enc-depth");
+      second = 0;
+    }
+    else {
+      // build 1-layer bidirectional stack, concatenate,
+      // build n-1 layer unidirectional stack
+      first = 1;
+      second = opt<int>("enc-depth") - first;
+    }
+
+    auto forward = type == "alternating" ?
+      rnn::dir::alternating_forward : rnn::dir::forward;
+
+    auto backward = type == "alternating" ?
+      rnn::dir::alternating_backward : rnn::dir::backward;
+
     using namespace keywords;
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
     auto rnnFw = rnn::rnn(graph)
                  ("type", opt<std::string>("enc-cell"))
-                 ("direction", rnn::dir::forward)
+                 ("direction", forward)
                  ("dimInput", opt<int>("dim-emb"))
                  ("dimState", opt<int>("dim-rnn"))
                  ("dropout", dropoutRnn)
                  ("normalize", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
 
-    for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
+    for(int i = 1; i <= first; ++i) {
       auto stacked = rnn::stacked_cell(graph);
       for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
         std::string paramPrefix = prefix_ + "_bi_l" + std::to_string(i) + "_cell" + std::to_string(j);
@@ -30,16 +52,16 @@ public:
       rnnFw.push_back(stacked);
     }
 
-     auto rnnBw = rnn::rnn(graph)
+    auto rnnBw = rnn::rnn(graph)
                  ("type", opt<std::string>("enc-cell"))
-                 ("direction", rnn::dir::backward)
+                 ("direction", backward)
                  ("dimInput", opt<int>("dim-emb"))
                  ("dimState", opt<int>("dim-rnn"))
                  ("dropout", dropoutRnn)
                  ("normalize", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
 
-    for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
+    for(int i = 1; i <= first; ++i) {
       auto stacked = rnn::stacked_cell(graph);
       for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
         std::string paramPrefix = prefix_ + "_bi_r_l" + std::to_string(i) + "_cell" + std::to_string(j);
@@ -48,55 +70,12 @@ public:
       }
       rnnBw.push_back(stacked);
     }
-    auto context = concatenate({rnnFw->transduce(embeddings),
-                                rnnBw->transduce(embeddings, mask)},
-                                axis=1);
-    return context;
-  }
 
-  Expr applyBiUnidirectionalEncoderRNN(Ptr<ExpressionGraph> graph, Expr embeddings, Expr mask) {
-    using namespace keywords;
-
-    float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
-
-    // construct forward RNN with one layer
-    auto rnnFw = rnn::rnn(graph)
-                 ("type", opt<std::string>("enc-cell"))
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
-                 ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"));
-
-    auto stackedFwL1 = rnn::stacked_cell(graph);
-    for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-      std::string paramPrefix = prefix_ + "_bi_l1_cell" + std::to_string(j);
-      stackedFwL1.push_back(rnn::cell(graph)
-                            ("prefix", paramPrefix));
-    }
-    rnnFw.push_back(stackedFwL1);
-
-    auto rnnBw = rnn::rnn(graph)
-                 ("type", opt<std::string>("enc-cell"))
-                 ("direction", rnn::dir::backward)
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
-                 ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"));
-
-    auto stackedBwL1 = rnn::stacked_cell(graph);
-    for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-      std::string paramPrefix = prefix_ + "_bi_l1_cell" + std::to_string(j);
-      stackedBwL1.push_back(rnn::cell(graph)
-                           ("prefix", paramPrefix));
-    }
-    rnnFw.push_back(stackedBwL1);
-
-    // apply both to embeddings and concatenate outputs
     auto context = concatenate({rnnFw->transduce(embeddings),
                                 rnnBw->transduce(embeddings, mask)},
                                 axis=1);
 
-    if(opt<size_t>("enc-depth") > 1) {
+    if(second > 0) {
       // add more layers (unidirectional) by transducing the output of the
       // previous bidirectional RNN through multiple layers
 
@@ -109,7 +88,7 @@ public:
                     ("normalize", opt<bool>("layer-normalization"))
                     ("skip", opt<bool>("skip"));
 
-      for(int i = 2; i <= opt<int>("enc-depth"); ++i) {
+      for(int i = first + 1; i <= second + first; ++i) {
         auto stacked = rnn::stacked_cell(graph);
         for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
           std::string paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
@@ -122,53 +101,6 @@ public:
       // transduce context to new context
       context = rnnUni->transduce(context);
     }
-    return context;
-  }
-
-  Expr applyAlternatingEncoderRNN(Ptr<ExpressionGraph> graph, Expr embeddings, Expr mask) {
-    using namespace keywords;
-    float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
-
-    auto rnnFw = rnn::rnn(graph)
-                 ("type", opt<std::string>("enc-cell"))
-                 ("direction", rnn::dir::alternating_forward)
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
-                 ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"))
-                 ("skip", opt<bool>("skip"));
-
-    for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
-      auto stacked = rnn::stacked_cell(graph);
-      for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-        std::string paramPrefix = prefix_ + "_bi_l" + std::to_string(i) + "_cell" + std::to_string(j);
-        stacked.push_back(rnn::cell(graph)
-                          ("prefix", paramPrefix));
-      }
-      rnnFw.push_back(stacked);
-    }
-
-     auto rnnBw = rnn::rnn(graph)
-                 ("type", opt<std::string>("enc-cell"))
-                 ("direction", rnn::dir::alternating_backward)
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
-                 ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"))
-                 ("skip", opt<bool>("skip"));
-
-    for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
-      auto stacked = rnn::stacked_cell(graph);
-      for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-        std::string paramPrefix = prefix_ + "_bi_r_l" + std::to_string(i) + "_cell" + std::to_string(j);
-        stacked.push_back(rnn::cell(graph)
-                          ("prefix", paramPrefix));
-      }
-      rnnBw.push_back(stacked);
-    }
-    auto context = concatenate({rnnFw->transduce(embeddings, mask),
-                                rnnBw->transduce(embeddings, mask)},
-                                axis=1);
     return context;
   }
 
@@ -202,13 +134,8 @@ public:
       batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
     }
 
-    Expr context;
-    if(opt<std::string>("enc-type") == "bidirectional")
-      context = applyBidirectionalEncoderRNN(graph, batchEmbeddings, batchMask);
-    else if(opt<std::string>("enc-type") == "alternating")
-      context = applyAlternatingEncoderRNN(graph, batchEmbeddings, batchMask);
-    else
-      context = applyBiUnidirectionalEncoderRNN(graph, batchEmbeddings, batchMask);
+    Expr context = applyEncoderRNN(graph, batchEmbeddings, batchMask,
+                                   opt<std::string>("enc-type"));
 
     return New<EncoderState>(context, batchMask, batch);
   }
