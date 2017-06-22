@@ -17,7 +17,7 @@
 
 namespace marian {
   namespace rnn {
-    enum struct dir : int { forward, backward };
+    enum struct dir : int { forward, backward, alternating };
   }
 }
 
@@ -67,6 +67,7 @@ private:
     States outputs;
     for(size_t i = 0; i < timeSteps; ++i) {
       int j = i;
+
       if(direction_ == dir::backward)
         j = timeSteps - i - 1;
 
@@ -151,7 +152,7 @@ public:
         skipFirst_(options->get("skipFirst", false)) {}
 
   void push_back(Ptr<Cell> cell) {
-    auto rnn = Ptr<SingleLayerRNN>(new SingleLayerRNN(graph_, options_));
+    auto rnn = Ptr<SingleLayerRNN>(new SingleLayerRNN(graph_, cell->getOptions()));
     rnn->push_back(cell);
     rnns_.push_back(rnn);
   }
@@ -165,7 +166,7 @@ public:
       auto layerOutput = rnns_[i]->transduce(layerInput, mask);
 
       if(skip_ && (skipFirst_ || i > 0))
-        output = layerOutput + input;
+        output = layerOutput + layerInput;
       else
         output = layerOutput;
 
@@ -178,15 +179,16 @@ public:
     UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
+    Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = rnns_[i]->transduce(input, States({states[i]}), mask);
+      auto layerOutput = rnns_[i]->transduce(layerInput, States({states[i]}), mask);
 
       if(skip_ && (skipFirst_ || i > 0))
-        output = layerOutput + input;
+        output = layerOutput + layerInput;
       else
         output = layerOutput;
 
-      input = output;
+      layerInput = output;
     }
     return output;
   }
@@ -195,15 +197,16 @@ public:
     UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
+    Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      auto layerOutput = rnns_[i]->transduce(input, States({state}), mask);
+      auto layerOutput = rnns_[i]->transduce(layerInput, States({state}), mask);
 
       if(skip_ && (skipFirst_ || i > 0))
-        output = layerOutput + input;
+        output = layerOutput + layerInput;
       else
         output = layerOutput;
 
-      input = output;
+      layerInput = output;
     }
     return output;
   }

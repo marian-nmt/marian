@@ -223,6 +223,8 @@ void Config::addOptionsModel(po::options_description& desc,
      "Use skip connections (s2s)")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
      "Enable layer normalization")
+    ("nematus-wmt2017", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use best Nematus WMT 2017 configuration (s2s)")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
      "Model-specific special vocabulary ids")
     ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
@@ -490,6 +492,7 @@ void Config::addOptions(int argc,
   SET_OPTION("dim-rnn", int);
 
   SET_OPTION("enc-cell", std::string);
+  SET_OPTION("enc-cell-depth", int);
   SET_OPTION("enc-depth", int);
 
   SET_OPTION("dec-cell", std::string);
@@ -500,6 +503,10 @@ void Config::addOptions(int argc,
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);
   SET_OPTION("layer-normalization", bool);
+
+  SET_OPTION("nematus-wmt2017", bool);
+
+
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
   if(!translate) {
@@ -595,6 +602,19 @@ void Config::addOptions(int argc,
   if(!translate)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
+
+  if(vm_["nematus-wmt2017"].as<bool>()) {
+    config_["layer-normalization"] = true;
+    config_["enc-type"] = "alternating";
+    config_["enc-cell-type"] = "gru";
+    config_["enc-cell-depth"] = 2;
+    config_["enc-depth"] = 4;
+    config_["dec-cell-type"] = "gru";
+    config_["dec-cell-base-depth"] = 4;
+    config_["dec-cell-high-depth"] = 2;
+    config_["dec-depth"] = 4;
+    config_["skip"] = true;
+  }
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(
