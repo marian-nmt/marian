@@ -16,7 +16,6 @@
       return EXIT_FAILURE;}} while(0)
 
 #define CUDNN_CALL(x) do { if((x) != CUDNN_STATUS_SUCCESS) { \
-  std::cerr << "CALL " << __LINE__ << std::endl; \
       printf("Error (%s) at %s:%d\n",cudnnGetErrorString(x),__FILE__,__LINE__);     \
       }} while(0)
 
@@ -416,35 +415,35 @@ class ConvolutionOp : public NaryNodeOp {
 
       CUDNN_CALL( cudnnCreateTensorDescriptor(&xDesc_) );
       CUDNN_CALL( cudnnSetTensor4dDescriptor(xDesc_,
-                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                nodes[0]->shape()[0], nodes[0]->shape()[1],
-                                nodes[0]->shape()[2], nodes[0]->shape()[3]
+                    CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                    nodes[0]->shape()[0], nodes[0]->shape()[1],
+                    nodes[0]->shape()[2], nodes[0]->shape()[3]
       ));
 
-      int widthPad = 0;
-      int heightPad = nodes[1]->shape()[1] / 2;
+      int widthPad = 1;
+      int heightPad = 1;
       int heightStride = 1;
       int widthStride = 1;
 
       CUDNN_CALL( cudnnCreateConvolutionDescriptor(&convDesc_) );
       CUDNN_CALL( cudnnSetConvolution2dDescriptor(convDesc_,
-            heightPad, widthPad,
-            heightStride, widthStride,
-            1, 1,  // upscales
-            CUDNN_CROSS_CORRELATION
+                    heightPad, widthPad, heightStride, widthStride,
+                    1, 1,  // upscales
+                    CUDNN_CROSS_CORRELATION
       ));
 
-      kernelNum_ = nodes[1]->shape()[0];
-      kernelH_ = nodes[1]->shape()[1];
-      kernelW_ = nodes[1]->shape()[2];
+      // std::cerr << "data: " << nodes[0]->shape() << std::endl;
+      // std::cerr << "filter: " << nodes[1]->shape() << std::endl;
+      // std::cerr << "bias: " << nodes[2]->shape() << std::endl;
+
+      int layerIn = nodes[1]->shape()[0];
+      int layerOut  = nodes[1]->shape()[1];
+      kernelH_ = nodes[1]->shape()[2];
+      kernelW_ = nodes[1]->shape()[3];
       CUDNN_CALL( cudnnCreateFilterDescriptor(&kernelDesc_) );
-      CUDNN_CALL( cudnnSetFilter4dDescriptor(
-              kernelDesc_,
-              CUDNN_DATA_FLOAT,
-              CUDNN_TENSOR_NCHW,
-              kernelNum_, 1,
-              kernelH_, kernelW_
-      ));
+      CUDNN_CALL( cudnnSetFilter4dDescriptor( kernelDesc_,
+                    CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW,
+                    layerOut, layerIn, kernelH_, kernelW_));
 
       CUDNN_CALL( cudnnCreateTensorDescriptor(&biasDesc_) );
       CUDNN_CALL( cudnnSetTensor4dDescriptor( biasDesc_,
@@ -569,7 +568,6 @@ class ConvolutionOp : public NaryNodeOp {
     cudnnTensorDescriptor_t xDesc_;
     cudnnTensorDescriptor_t yDesc_;
     cudnnTensorDescriptor_t adjDesc_;
-    int kernelNum_;
     int kernelH_;
     int kernelW_;
 

@@ -21,16 +21,20 @@ class Convolution : public Layer {
         kernelNum_(kernelNum) {
     }
 
+    // auto conv_1 = Convolution("Conv", 3, 3, 32)(x);
+    // auto conv_2 = relu(Convolution("Conv", 3, 3, 64)(conv_1));
+
     Expr operator()(Expr x) {
       params_.clear();
       auto graph = x->graph();
-      auto kernel = graph->param(name_ + "_kernels",  {kernelNum_, kernelHeight_, kernelWidth_},
-                                 keywords::init=inits::glorot_uniform);
 
-      // debug(kernel, "KERNEL");
+      int layerIn = x->shape()[1];
 
+      auto kernel = graph->param(name_ + "_kernels",
+          {layerIn, kernelNum_, kernelHeight_, kernelWidth_},
+          keywords::init=inits::glorot_uniform);
       auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
-                                 keywords::init=inits::zeros);
+                               keywords::init=inits::zeros);
       params_.push_back(kernel);
       params_.push_back(bias);
 
@@ -117,50 +121,7 @@ class MaxPooling : public Layer {
 
     Expr operator()(Expr x) {
       params_ = {};
-
-      auto graph = x->graph();
-
-      std::vector<size_t> newIndeces;
-      int batchDim = x->shape()[0];
-      int sentenceDim = x->shape()[2];
-
-      for (int b = 0; b < batchDim; ++b) {
-        for (int t = 0; t < sentenceDim; ++t) {
-          newIndeces.push_back((t * batchDim) + b);
-        }
-      }
-
-      auto masked = reshape(x, {batchDim * sentenceDim, x->shape()[1], 1, x->shape()[3]});
-      // debug(masked, "masket");
-      auto shuffled_X = reshape(rows(masked, newIndeces),
-                                     {batchDim, 1, sentenceDim, x->shape()[1]});
-
-      auto input = shuffled_X;
-      // debug(input, "INPUT");
-      auto previousInput = max_pooling(input, height_, width_, 0, 0, strideHeight_, strideWidth_);
-      // debug(previousInput, "MAX POOLING OUTPUT");
-
-      // return previousInput;
-
-
-      auto reshapedOutput = reshape(previousInput, {previousInput->shape()[0] * previousInput->shape()[2], previousInput->shape()[3],
-                                                    1, previousInput->shape()[1]});
-
-      // debug(reshapedOutput, "reshaped output");
-
-      newIndeces.clear();
-      for (int t = 0; t < previousInput->shape()[2]; ++t) {
-        for (int b = 0; b < batchDim; ++b) {
-          newIndeces.push_back(b * previousInput->shape()[2] + t);
-          // std::cerr << b * previousInput->shape()[2] + t << " ";
-        }
-      }
-      // std::cerr << std::endl;
-
-      auto reshaped = reshape(rows(reshapedOutput, newIndeces),
-                              {previousInput->shape()[0], previousInput->shape()[3],
-                               previousInput->shape()[2], previousInput->shape()[1]});
-      return reshaped;
+      return max_pooling(x, height_, width_, 0, 0, strideHeight_, strideWidth_);
     }
 
   protected:
