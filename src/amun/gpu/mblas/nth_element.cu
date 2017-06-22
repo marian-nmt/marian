@@ -291,8 +291,11 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   /*
   cerr << "beamSizes=" << beamSizes.size() << endl;
   cerr << Debug(beamSizes, 2) << endl;
+  cerr << "Probs=" << Probs.Debug(0) << endl;
   cerr << "outCosts=" << outCosts.size() << endl;
   cerr << "outKeys=" << outKeys.size() << endl;
+  cerr << "isFirst=" << isFirst << endl;
+  cerr << endl;
   */
   HostVector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
   HostVector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
