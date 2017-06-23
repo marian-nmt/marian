@@ -156,8 +156,6 @@ public:
     dropout_ = options_->get<float>("dropout", 0);
     final_ = options_->get<bool>("final", false);
 
-    std::cerr << dimInput << " " << dimState << " " << prefix << " " << dropout_ << std::endl;
-
     auto U = graph->param(prefix + "_U",
                           {dimState, 2 * dimState},
                           keywords::init = inits::glorot_uniform);

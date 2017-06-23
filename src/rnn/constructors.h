@@ -80,7 +80,6 @@ public:
         sf->getOptions()->set("dimInput", lastDimInput);
         lastDimInput = 0;
 
-
         stacked->push_back(cellFactory->construct());
       }
       else {

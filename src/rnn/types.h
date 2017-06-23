@@ -202,7 +202,7 @@ public:
   }
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    lastInputs_ = inputs;
+    //lastInputs_ = inputs;
     return stackables_[0]->as<Cell>()->applyInput(inputs);
   }
 
@@ -214,8 +214,7 @@ public:
     for(int i = 1; i < stackables_.size(); ++i) {
       if(stackables_[i]->is<Cell>()) {
         auto hiddenNext = stackables_[i]->as<Cell>()->apply(lastInputs_, hidden, mask);
-        if(!opt<bool>("propagate", false))
-          lastInputs_.clear();
+        lastInputs_.clear();
         hidden = hiddenNext;
       }
       else {
