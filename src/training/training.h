@@ -28,11 +28,11 @@ public:
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("dynamic-batching")) {
-      LOG(info, "[batching] Collecting statistics for dynamic batching");
+      LOG(info)->info("[batching] Collecting statistics for dynamic batching");
       // @TODO, better fake batch with vocabulary
       auto model = New<Model>(options_);
       THREAD_GUARD(stats = model->collectStats());
-      LOG(info, "[batching] Done");
+      LOG(info)->info("[batching] Done");
     }
 
     auto trainState = New<TrainingState>(options_);

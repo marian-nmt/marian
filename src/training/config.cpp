@@ -601,7 +601,7 @@ void Config::addOptions(int argc,
         loadModelParameters(vm_["model"].as<std::string>());
       } catch(std::runtime_error& e) {
         // @TODO do this with log
-        LOG(info, "No model settings found in model file");
+        LOG(info)->warn("No model settings found in model file");
       }
     }
   }
@@ -611,7 +611,7 @@ void Config::addOptions(int argc,
     try {
       loadModelParameters(model);
     } catch(std::runtime_error& e) {
-      LOG(info, "No model settings found in model file");
+      LOG(info)->warn("No model settings found in model file");
     }
   }
 }
@@ -626,7 +626,7 @@ void Config::log() {
   std::vector<std::string> results;
   boost::algorithm::split(results, conf, boost::is_any_of("\n"));
   for(auto& r : results)
-    LOG(config, r);
+    LOG(config)->info(r);
 }
 
 void Config::override(const YAML::Node& params) {
@@ -637,9 +637,9 @@ void Config::override(const YAML::Node& params) {
   // std::vector<std::string> results;
   // boost::algorithm::split(results, conf, boost::is_any_of("\n"));
   //
-  // LOG(config, "Overriding model parameters:");
+  // LOG(config)->info("Overriding model parameters:");
   // for(auto &r : results)
-  //  LOG(config, r);
+  //  LOG(config)->info(r);
 
   for(auto& it : params) {
     config_[it.first.as<std::string>()] = it.second;

@@ -24,6 +24,11 @@ std::shared_ptr<spdlog::logger> stderrLogger(
   return logger;
 }
 
+Logger checkedLog(std::string logger) {
+  Logger ret = spdlog::get(logger);
+  return ret ? ret : spdlog::get("devnull");
+}
+
 void createLoggers(const marian::Config* options) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
@@ -43,4 +48,6 @@ void createLoggers(const marian::Config* options) {
   Logger data{stderrLogger("data", "[%Y-%m-%d %T] [data] %v", generalLogs)};
   Logger valid{stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs)};
   Logger translate{stderrLogger("translate", "%v")};
+  Logger devnull{stderrLogger("devnull", "%v")};
+  devnull->set_level(spdlog::level::off);
 }
