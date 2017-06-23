@@ -186,7 +186,8 @@ void Config::addOptionsCommon(po::options_description& desc,
 }
 
 void Config::addOptionsModel(po::options_description& desc,
-                             bool translate = false) {
+                             bool translate = false,
+                             bool rescore = false) {
   po::options_description model("Model options", guess_terminal_width());
   // clang-format off
   if(!translate) {
@@ -225,7 +226,7 @@ void Config::addOptionsModel(po::options_description& desc,
      "Tie target embeddings and output embeddings in output layer (s2s)")
     ;
 
-  if(!translate) {
+  if(!translate && !rescore) {
     model.add_options()
       ("dropout-rnn", po::value<float>()->default_value(0),
        "Scaling dropout along rnn layers and time (0 = no dropout)")
@@ -455,7 +456,7 @@ void Config::addOptions(int argc,
                         bool rescore) {
   addOptionsCommon(cmdline_options_, translate);
 
-  addOptionsModel(cmdline_options_, translate);
+  addOptionsModel(cmdline_options_, translate, rescore);
 
   if(!translate) {
     addOptionsTraining(cmdline_options_);
@@ -523,7 +524,7 @@ void Config::addOptions(int argc,
   SET_OPTION("layer-normalization", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
-  if(!translate) {
+  if(!translate && !rescore) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);

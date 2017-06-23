@@ -11,7 +11,7 @@
 
 namespace marian {
 
-// try to determine the with of the terminal
+// try to determine the width of the terminal
 uint16_t guess_terminal_width(uint16_t max_width = 180);
 
 class Config {
@@ -64,7 +64,7 @@ public:
       int argc, char** argv, bool validate, bool translate, bool rescore);
 
   void addOptionsCommon(boost::program_options::options_description&, bool);
-  void addOptionsModel(boost::program_options::options_description&, bool);
+  void addOptionsModel(boost::program_options::options_description&, bool, bool);
   void addOptionsTraining(boost::program_options::options_description&);
   void addOptionsRescore(boost::program_options::options_description&);
   void addOptionsValid(boost::program_options::options_description&);
