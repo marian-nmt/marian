@@ -71,12 +71,12 @@ class Decoder {
           //std::cerr << "mapping=" << Debug(mapping) << std::endl;
           Mean(Temp2_, SourceContext, mapping);
 
-          //std::cerr << "1State=" << State.Debug(1) << std::endl;
-          //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
-          //std::cerr << "w_.Wi_=" << w_.Wi_.Debug(1) << std::endl;
+          std::cerr << "1State=" << State.Debug(1) << std::endl;
+          std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
+          std::cerr << "w_.Wi_=" << w_.Wi_->Debug(1) << std::endl;
           Prod(State, Temp2_, *w_.Wi_);
 
-          //std::cerr << "2State=" << State.Debug(1) << std::endl;
+          std::cerr << "2State=" << State.Debug(1) << std::endl;
           State.ReduceDimensions();
 
           if (w_.Gamma_->size()) {
@@ -85,7 +85,8 @@ class Decoder {
           } else {
             BroadcastVec(Tanh(_1 + _2), State, *w_.Bi_);
           }
-          //std::cerr << "3State=" << State.Debug(1) << std::endl;
+          std::cerr << "3State=" << State.Debug(1) << std::endl;
+          std::cerr << "\n";
         }
 
         void GetNextState(mblas::Matrix& NextState,
