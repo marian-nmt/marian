@@ -191,6 +191,7 @@ class FastGRU {
       const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
 
       /*
+      std::cerr << "stateWrap=" << stateWrap.Debug() << std::endl;
       std::cerr << "ruhWrap=" << ruhWrap.Debug() << std::endl;
       std::cerr << "tempWrap=" << tempWrap.Debug() << std::endl;
       std::cerr << "bWrap=" << bWrap.Debug() << std::endl;
@@ -198,11 +199,11 @@ class FastGRU {
       std::cerr << "bx2Wrap=" << bx2Wrap.Debug() << std::endl;
 	  */
 
-      const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
       const size_t cols = State.dim(1);
+      const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
 
-      int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
+      int blocks  = rows;
 
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
         (nextWrap, stateWrap, ruhWrap, tempWrap,
