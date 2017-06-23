@@ -103,8 +103,10 @@ SentenceTuple Corpus::next() {
   while(cont) {
     // get index of the current sentence
     size_t curId = pos_;
+    // if corpus has been shuffled, ids_ contains sentence indexes
     if(pos_ < ids_.size())
-      curId = ids_[pos_++];
+      curId = ids_[pos_];
+    pos_++;
 
     // fill up the sentence tuple with sentences from all input files
     SentenceTuple tup(curId);

@@ -139,10 +139,6 @@ public:
   void setGuidedAlignment(const std::vector<float>& aln) {
     guidedAlignment_ = aln;
   }
-
-  const std::vector<size_t>& getSentenceIds() const { return sentenceIds_; }
-
-  void setSentenceIds(const std::vector<size_t>& ids) { sentenceIds_ = ids; }
 };
 
 class Corpus;
@@ -306,14 +302,13 @@ public:
     for(size_t j = 0; j < maxDims.size(); ++j)
       subBatches[j]->setWords(words[j]);
 
-    auto ret = batch_ptr(new batch_type(subBatches));
-
-    ret->setSentenceIds(sentenceIds);
+    auto batch = batch_ptr(new batch_type(subBatches));
+    batch->setSentenceIds(sentenceIds);
 
     if(options_->has("guided-alignment") && wordAlignment_)
-      wordAlignment_->guidedAlignment(ret);
+      wordAlignment_->guidedAlignment(batch);
 
-    return ret;
+    return batch;
   }
 
   void prepare() {
