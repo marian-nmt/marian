@@ -416,17 +416,53 @@ void Config::addOptionsTranslate(po::options_description& desc) {
   desc.add(translate);
 }
 
+void Config::addOptionsRescore(po::options_description& desc) {
+  po::options_description rescore("Rescorer options",
+                                  guess_terminal_width());
+  // clang-format off
+  rescore.add_options()
+    ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to training corpora: source target")
+    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to vocabulary files have to correspond to --trainsets. "
+      "If this parameter is not supplied we look for vocabulary files "
+      "source.{yml,json} and target.{yml,json}. "
+      "If these files do not exists they are created.")
+    ("max-length", po::value<size_t>()->default_value(1000),
+      "Maximum length of a sentence in a training sentence pair")
+    ("devices,d", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({0}), "0"),
+      "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
+
+    ("mini-batch", po::value<int>()->default_value(64),
+      "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences.")
+    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("maxi-batch", po::value<int>()->default_value(100),
+      "Number of batches to preload for length-based sorting")
+    ;
+  // clang-format on
+  desc.add(rescore);
+}
+
 void Config::addOptions(int argc,
                         char** argv,
                         bool doValidate,
-                        bool translate) {
+                        bool translate,
+                        bool rescore) {
   addOptionsCommon(cmdline_options_, translate);
 
   addOptionsModel(cmdline_options_, translate);
 
   if(!translate) {
     addOptionsTraining(cmdline_options_);
-    addOptionsValid(cmdline_options_);
+    if(!rescore)
+      addOptionsValid(cmdline_options_);
+  //} else if(!translate) {
+    //addOptionsRescore(cmdline_options_);
   } else {
     addOptionsTranslate(cmdline_options_);
   }
@@ -529,6 +565,14 @@ void Config::addOptions(int argc,
     SET_OPTION("drop-rate", double);
   }
   /** training end **/
+  //else if(rescore) {
+    //if(!vm_["train-sets"].empty()) {
+      //config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
+    //}
+    //SET_OPTION("mini-batch-words", int);
+    //SET_OPTION("dynamic-batching", bool);
+  //}
+  /** translation start **/
   else {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("normalize", bool);
@@ -540,7 +584,7 @@ void Config::addOptions(int argc,
   }
 
   /** valid **/
-  if(!translate) {
+  if(!translate && !rescore) {
     if(!vm_["valid-sets"].empty()) {
       config_["valid-sets"] = vm_["valid-sets"].as<std::vector<std::string>>();
     }
