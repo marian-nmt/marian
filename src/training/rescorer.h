@@ -18,25 +18,28 @@ template <class Model>
 class Rescorer : public ModelTask {
 private:
   Ptr<Config> options_;
+  Ptr<Corpus> corpus_;
+  Ptr<ExpressionGraph> graph_;
+  Ptr<Model> model_;
 
 public:
-  Rescorer(Ptr<Config> options) : options_(options) {}
+  Rescorer(Ptr<Config> options)
+      : options_(options),
+        corpus_(New<Corpus>(options_)),
+        graph_(New<ExpressionGraph>(true)),
+        model_(New<Model>(options_, keywords::inference = true)) {
+    corpus_->prepare();
+
+    auto device = options_->get<std::vector<size_t>>("devices").front();
+    graph_->setDevice(device);
+
+    auto modelFile = options_->get<std::string>("model");
+    model_->load(graph_, modelFile);
+  }
 
   void run() {
-    auto corpus = New<data::Corpus>(options_);
-    corpus->prepare();
-
-    // @TODO: this is a bug that no default device is set
-    auto graph = New<ExpressionGraph>();
-    auto device = options_->get<std::vector<size_t>>("devices").front();
-    graph->setDevice(device);
-
-    auto model = New<Model>(options_, keywords::inference = true);
-    auto modelFile = options_->get<std::string>("model");
-    model->load(graph, modelFile);
-
     Ptr<BatchGenerator<Corpus>> batchGenerator
-        = New<BatchGenerator<Corpus>>(corpus, options_);
+        = New<BatchGenerator<Corpus>>(corpus_, options_);
 
     // @TODO: a temporal fix as the order of sentences in a batch is random
     batchGenerator->forceBatchSize(1);
@@ -45,8 +48,8 @@ public:
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
 
-      auto costNode = model->buildToScore(graph, batch);
-      graph->forward();
+      auto costNode = model_->buildToScore(graph_, batch);
+      graph_->forward();
 
       std::vector<float> scores;
       costNode->val()->get(scores);
