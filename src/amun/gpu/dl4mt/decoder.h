@@ -64,20 +64,20 @@ class Decoder {
           using namespace mblas;
 
           //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
-          Temp2_.NewSize(1, SourceContext.dim(1), 1, batchSize);
+          Temp2_.NewSize(batchSize, SourceContext.dim(1), 1, 1);
           //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
 
           //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-          //std::cerr << "mapping=" << Debug(mapping) << std::endl;
+          //std::cerr << "mapping=" << Debug(mapping, 2) << std::endl;
           Mean(Temp2_, SourceContext, mapping);
 
-          std::cerr << "1State=" << State.Debug(1) << std::endl;
-          std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
-          std::cerr << "w_.Wi_=" << w_.Wi_->Debug(1) << std::endl;
+          //std::cerr << "1State=" << State.Debug(1) << std::endl;
+          //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
+          //std::cerr << "w_.Wi_=" << w_.Wi_->Debug(1) << std::endl;
           Prod(State, Temp2_, *w_.Wi_);
 
-          std::cerr << "2State=" << State.Debug(1) << std::endl;
-          State.ReduceDimensions();
+          //std::cerr << "2State=" << State.Debug(1) << std::endl;
+          //State.ReduceDimensions();
 
           if (w_.Gamma_->size()) {
             Normalization(State, State, *w_.Gamma_, *w_.Bi_, 1e-9);
@@ -85,8 +85,8 @@ class Decoder {
           } else {
             BroadcastVec(Tanh(_1 + _2), State, *w_.Bi_);
           }
-          std::cerr << "3State=" << State.Debug(1) << std::endl;
-          std::cerr << "\n";
+          //std::cerr << "3State=" << State.Debug(1) << std::endl;
+          //std::cerr << "\n";
         }
 
         void GetNextState(mblas::Matrix& NextState,

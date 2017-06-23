@@ -19,9 +19,8 @@ __global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
                       const MatrixWrapper<uint>  mapping)
 {
-  assert(out.dim(0) == 1);
-  // in = max sentence length, whatever, 1, batches
-  // out = in, dim(0 = 1
+  // out = batches * states
+  // in = max sentence length * states * 1 * batches
   // mapping = max length * batches
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -30,11 +29,10 @@ __global__ void gMean(MatrixWrapper<float> out,
   if (id < out.size()) {
     uint indices[SHAPE_SIZE];
     out.id2Indices(id, indices);
-    assert(indices[0] == 0);
     //printf("%d -> %lu %lu %lu %lu \n", id, indices[0], indices[1], indices[2], indices[3]);
 
-    size_t batch = indices[3];
-    size_t startMapInd = batch * in.dim(0);
+    size_t batch = indices[0];
+    size_t state = indices[1];
 
     float sum = 0.0f;
     int counter = 0;
@@ -42,7 +40,7 @@ __global__ void gMean(MatrixWrapper<float> out,
       int isWord = mapping(row, batch, 0, 0);
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
       if (isWord) {
-        sum += in(row, indices[1], indices[2], indices[3]);
+        sum += in(row, state, 0, batch);
         ++counter;
       }
     }
@@ -52,7 +50,15 @@ __global__ void gMean(MatrixWrapper<float> out,
   }
 }
 
-void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping) {
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping)
+{
+  assert(Out.dim(2) == 1);
+  assert(Out.dim(3) == 1);
+  assert(Out.dim(0) == In.dim(3));
+  assert(Out.dim(1) == In.dim(1));
+  assert(In.dim(0) * In.dim(3) == mapping.size());
+
+  // mean of each ROW
   size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
   size_t stateLength = Out.dim(1);
   size_t sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
