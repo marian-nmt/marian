@@ -181,8 +181,12 @@ class FastGRU {
     {
       assert(State.dim(2) == 1);
       assert(State.dim(3) == 1);
+      assert(RUH.dim(2) == 1);
+      assert(RUH.dim(3) == 1);
+      assert(Temp.dim(2) == 1);
+      assert(Temp.dim(3) == 1);
 
-      NextState.NewSize(State.dim(0), State.dim(1), State.dim(2), State.dim(3));
+      NextState.NewSize(State.dim(0), State.dim(1), 1, 1);
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
       mblas::MatrixWrapper<float> nextWrap(NextState);
@@ -193,6 +197,7 @@ class FastGRU {
       const mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
       const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
 
+      /*
       std::cerr << "nextWrap=" << nextWrap.Debug() << std::endl;
       std::cerr << "stateWrap=" << stateWrap.Debug() << std::endl;
       std::cerr << "ruhWrap=" << ruhWrap.Debug() << std::endl;
@@ -201,9 +206,9 @@ class FastGRU {
       std::cerr << "bx1Wrap=" << bx1Wrap.Debug() << std::endl;
       std::cerr << "bx2Wrap=" << bx2Wrap.Debug() << std::endl;
       std::cerr << "\n";
-
+      */
       const size_t cols = State.dim(1);
-      const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
+      const size_t rows = State.dim(0);
 
       int threads = std::min(MAX_THREADS, (int)cols);
       int blocks  = rows;
