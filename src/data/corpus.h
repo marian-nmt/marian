@@ -49,9 +49,9 @@ private:
   std::vector<Word> indeces_;
   std::vector<float> mask_;
 
-  int size_;
-  int width_;
-  int words_;
+  size_t size_;
+  size_t width_;
+  size_t words_;
 
 public:
   SubBatch(int size, int width)
@@ -64,9 +64,9 @@ public:
   std::vector<Word>& indeces() { return indeces_; }
   std::vector<float>& mask() { return mask_; }
 
-  int batchSize() { return size_; }
-  int batchWidth() { return width_; };
-  int batchWords() { return words_; }
+  size_t batchSize() { return size_; }
+  size_t batchWidth() { return width_; };
+  size_t batchWords() { return words_; }
 
   void setWords(size_t words) { words_ = words; }
 };
@@ -189,7 +189,7 @@ public:
       data_.emplace_back();
       std::vector<std::string> atok = split(line, " -");
       ;
-      for(int i = 0; i < atok.size(); i += 2)
+      for(size_t i = 0; i < atok.size(); i += 2)
         data_.back().emplace_back(std::stoi(atok[i]), std::stoi(atok[i + 1]));
       c++;
     }
@@ -250,6 +250,15 @@ public:
          Ptr<Config> options,
          size_t maxLength = 0);
 
+  /**
+   * @brief Iterates sentence tuples in the corpus.
+   *
+   * A sentence tuple is skipped with no warning if any sentence in the tuple
+   * (e.g. a source or target) is longer than the maximum allowed sentence
+   * length in words.
+   *
+   * @return A tuple representing parallel sentences.
+   */
   sample next();
 
   void shuffle();
@@ -271,8 +280,8 @@ public:
     for(auto& ex : batchVector) {
       if(maxDims.size() < ex.size())
         maxDims.resize(ex.size(), 0);
-      for(int i = 0; i < ex.size(); ++i) {
-        if(ex[i].size() > maxDims[i])
+      for(size_t i = 0; i < ex.size(); ++i) {
+        if(ex[i].size() > (size_t)maxDims[i])
           maxDims[i] = ex[i].size();
       }
       sentenceIds.push_back(ex.getId());
@@ -285,8 +294,8 @@ public:
 
     std::vector<size_t> words(maxDims.size(), 0);
     for(int i = 0; i < batchSize; ++i) {
-      for(int j = 0; j < maxDims.size(); ++j) {
-        for(int k = 0; k < batchVector[i][j].size(); ++k) {
+      for(size_t j = 0; j < maxDims.size(); ++j) {
+        for(size_t k = 0; k < batchVector[i][j].size(); ++k) {
           subBatches[j]->indeces()[k * batchSize + i] = batchVector[i][j][k];
           subBatches[j]->mask()[k * batchSize + i] = 1.f;
           words[j]++;

@@ -101,10 +101,12 @@ Corpus::Corpus(std::vector<std::string> paths,
 SentenceTuple Corpus::next() {
   bool cont = true;
   while(cont) {
+    // get index of the current sentence
     size_t curId = pos_;
     if(pos_ < ids_.size())
       curId = ids_[pos_++];
 
+    // fill up the sentence tuple with sentences from all input files
     SentenceTuple tup(curId);
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
@@ -119,7 +121,7 @@ SentenceTuple Corpus::next() {
     // continue only if each input file has provided an example
     cont = tup.size() == files_.size();
 
-    // skip sentences longer than maximum allowed length
+    // continue if all sentences are no longer than maximum allowed length
     if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
        }))
