@@ -333,6 +333,7 @@ class Decoder {
       //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
+      HiddenState_.ReduceDimensions();
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
 
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);

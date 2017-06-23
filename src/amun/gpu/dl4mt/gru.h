@@ -177,18 +177,18 @@ class FastGRU {
     void ElementwiseOps(mblas::Matrix& NextState,
                         const mblas::Matrix& State,
                         const mblas::Matrix& RUH,
-                        const mblas::Matrix& Temp) const {
+                        const mblas::Matrix& Temp) const
+    {
+      NextState.NewSize(State.dim(0), State.dim(1), State.dim(2), State.dim(3));
+      //std::cerr << "NextState=" << NextState.Debug() << std::endl;
+
       const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
       const size_t cols = State.dim(1);
 
-      NextState.NewSize(State.dim(0) * State.dim(3), cols, State.dim(2), 1);
-      //std::cerr << "NextState=" << NextState.Debug() << std::endl;
-
       int blocks  = std::min(MAX_BLOCKS, (int)rows);
       int threads = std::min(MAX_THREADS, (int)cols);
-      const cudaStream_t& cudaStream = mblas::CudaStreamHandler::GetStream();
 
-      gElementwiseOps<<<blocks, threads, 0, cudaStream>>>
+      gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
         (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_->data(),
          w_.Bx2_->data(), rows, cols);
     }
