@@ -97,21 +97,13 @@ class SlowGRU {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-__global__ void gElementwiseOps(float* out,
-                                const float* state,
-                                const float* ruh,
-                                const float* t,
-                                const float* b,
-                                const float* bx1,
-                                const float* bx2,
-                                size_t rows, size_t cols,
-                                mblas::MatrixWrapper<float> outWrap,
-                                mblas::MatrixWrapper<float> stateWrap,
-                                mblas::MatrixWrapper<float> ruhWrap,
-                                mblas::MatrixWrapper<float> tempWrap,
-                                mblas::MatrixWrapper<float> bWrap,
-                                mblas::MatrixWrapper<float> bx1Wrap,
-                                mblas::MatrixWrapper<float> bx2Wrap);
+__global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
+                                const mblas::MatrixWrapper<float> stateWrap,
+                                const mblas::MatrixWrapper<float> ruhWrap,
+                                const mblas::MatrixWrapper<float> tempWrap,
+                                const mblas::MatrixWrapper<float> bWrap,
+                                const mblas::MatrixWrapper<float> bx1Wrap,
+                                const mblas::MatrixWrapper<float> bx2Wrap);
 
 template <class Weights>
 class FastGRU {
@@ -191,12 +183,20 @@ class FastGRU {
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
       mblas::MatrixWrapper<float> nextWrap(NextState);
-      mblas::MatrixWrapper<float> stateWrap(State);
-      mblas::MatrixWrapper<float> ruhWrap(RUH);
-      mblas::MatrixWrapper<float> tempWrap(Temp);
-      mblas::MatrixWrapper<float> bWrap(*w_.B_);
-      mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
-      mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
+      const mblas::MatrixWrapper<float> stateWrap(State);
+      const mblas::MatrixWrapper<float> ruhWrap(RUH);
+      const mblas::MatrixWrapper<float> tempWrap(Temp);
+      const mblas::MatrixWrapper<float> bWrap(*w_.B_);
+      const mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
+      const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
+
+      /*
+      std::cerr << "ruhWrap=" << ruhWrap.Debug() << std::endl;
+      std::cerr << "tempWrap=" << tempWrap.Debug() << std::endl;
+      std::cerr << "bWrap=" << bWrap.Debug() << std::endl;
+      std::cerr << "bx1Wrap=" << bx1Wrap.Debug() << std::endl;
+      std::cerr << "bx2Wrap=" << bx2Wrap.Debug() << std::endl;
+	  */
 
       const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
       const size_t cols = State.dim(1);
@@ -205,9 +205,8 @@ class FastGRU {
       int threads = std::min(MAX_THREADS, (int)cols);
 
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
-        (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_->data(),
-         w_.Bx2_->data(), rows, cols,
-         nextWrap, stateWrap, ruhWrap, tempWrap, bWrap, bx1Wrap, bx2Wrap);
+        (nextWrap, stateWrap, ruhWrap, tempWrap,
+		bWrap, bx1Wrap, bx2Wrap);
     }
 
     size_t GetStateLength() const {
