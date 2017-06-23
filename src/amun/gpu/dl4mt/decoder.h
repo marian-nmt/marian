@@ -75,7 +75,9 @@ class Decoder {
           //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
           //std::cerr << "w_.Wi_=" << w_.Wi_.Debug(1) << std::endl;
           Prod(State, Temp2_, *w_.Wi_);
+
           //std::cerr << "2State=" << State.Debug(1) << std::endl;
+          State.ReduceDimensions();
 
           if (w_.Gamma_->size()) {
             Normalization(State, State, *w_.Gamma_, *w_.Bi_, 1e-9);
@@ -333,7 +335,7 @@ class Decoder {
       //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
-      HiddenState_.ReduceDimensions();
+      //HiddenState_.ReduceDimensions();
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
 
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
