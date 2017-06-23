@@ -24,6 +24,28 @@ std::shared_ptr<spdlog::logger> stderrLogger(
   return logger;
 }
 
+bool
+set_loglevel(spdlog::logger& logger, std::string const level) {
+  if (level == "trace")
+    logger.set_level(spdlog::level::trace);
+  else if (level == "debug")
+    logger.set_level(spdlog::level::debug);
+  else if (level == "info")
+    logger.set_level(spdlog::level::info);
+  else if (level == "err" or level == "error")
+    logger.set_level(spdlog::level::err);
+  else if (level == "critical")
+    logger.set_level(spdlog::level::critical);
+  else if (level == "off")
+    logger.set_level(spdlog::level::off);
+  else {
+    logger.warn("Unknown log level '{}' for logger '{}'",
+		level.c_str(), logger.name().c_str());
+    return false;
+  }
+  return true;
+}
+
 Logger checkedLog(std::string logger) {
   Logger ret = spdlog::get(logger);
   return ret ? ret : spdlog::get("devnull");
@@ -50,4 +72,16 @@ void createLoggers(const marian::Config* options) {
   Logger translate{stderrLogger("translate", "%v")};
   Logger devnull{stderrLogger("devnull", "%v")};
   devnull->set_level(spdlog::level::off);
+
+  if (options->has("verbose")) {
+    std::string loglevel = options->get<std::string>("verbose");
+    if (!set_loglevel(*info, loglevel)) return;
+    set_loglevel(*warn, loglevel);
+    set_loglevel(*config, loglevel);
+    set_loglevel(*memory, loglevel);
+    set_loglevel(*data, loglevel);
+    set_loglevel(*valid, loglevel);
+    set_loglevel(*translate, loglevel);
+  }
+
 }

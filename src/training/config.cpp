@@ -180,6 +180,8 @@ void Config::addOptionsCommon(po::options_description& desc,
      "Dump current (modified) configuration to stdout and exit")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
       "Print this help message and exit")
+    ("verbosity,v", po::value<std::string>()->default_value("warn")->implicit_value("info"),
+      "set verbosity level (trace - debug - info - warn - err(or) - critical - off).")
   ;
   // clang-format on
   desc.add(general);
