@@ -40,9 +40,6 @@ public:
   void run() {
     Ptr<BatchGenerator<Corpus>> batchGenerator
         = New<BatchGenerator<Corpus>>(corpus_, options_);
-
-    // @TODO: a temporal fix as the order of sentences in a batch is random
-    batchGenerator->forceBatchSize(1);
     batchGenerator->prepare(false);
 
     while(*batchGenerator) {
@@ -54,9 +51,30 @@ public:
       std::vector<float> scores;
       costNode->val()->get(scores);
 
-      for(auto score : scores)
-        std::cout << score << std::endl;
+      auto ids = ordered<size_t>(batch->getSentenceIds());
+      for(auto id : ids)
+        std::cout << scores[id] << std::endl;
     }
+  }
+
+private:
+  /**
+   * Sorts elements in ascending order keeping track of indices. The input
+   * vector itself is not touched.
+   *
+   * @param values A vector of elements with type T
+   *
+   * @return The vector of indeces for sorted elements in the input vector
+   */
+  template <typename T>
+  std::vector<size_t> ordered(const std::vector<T>& values) {
+    std::vector<size_t> indices(values.size());
+    std::iota(begin(indices), end(indices), static_cast<size_t>(0));
+
+    std::sort(begin(indices), end(indices), [&](size_t a, size_t b) {
+      return values[a] < values[b];
+    });
+    return indices;
   }
 };
 
