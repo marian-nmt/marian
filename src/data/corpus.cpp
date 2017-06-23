@@ -116,7 +116,10 @@ SentenceTuple Corpus::next() {
       }
     }
 
+    // continue only if each input file has provided an example
     cont = tup.size() == files_.size();
+
+    // skip sentences longer than maximum allowed length
     if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
        }))
