@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.5.1)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-project(amunn C CXX)
+project(amunmt C CXX)
+
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
@@ -18,7 +22,9 @@ endif(BUILD_STATIC)
 include_directories(${amunmt_SOURCE_DIR})
 
 option(CUDA "Select to compile CUDA support by default if available" ON)
-
+option(MARIAN "Select to compile with Marian library" ON)
+option(MARIAN_LIBRARY_ONLY "Automatically set when building amunmt. Don't touch this." ON)
+  
 if(CUDA)
   find_package(CUDA)
   if(CUDA_FOUND)
@@ -27,6 +33,12 @@ if(CUDA)
     add_definitions(-DCUDA)
     SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
     message("-- Compiling with CUDA support")
+    
+    if (MARIAN)
+      execute_process(COMMAND git submodule update --init --recursive --remote --no-fetch
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endif(MARIAN)
+
   else(CUDA_FOUND)
     add_definitions(-DNO_CUDA)
     message("-- Cannot find CUDA libraries. Compiling without them." )
@@ -63,11 +75,11 @@ IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
   FIND_PACKAGE(Git)
   IF(GIT_FOUND)
     EXECUTE_PROCESS(
-	    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-	    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	    OUTPUT_VARIABLE "AMUNMT_BUILD_VERSION"
-	    ERROR_QUIET
-	    OUTPUT_STRIP_TRAILING_WHITESPACE)
+      COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      OUTPUT_VARIABLE "AMUNMT_BUILD_VERSION"
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
     MESSAGE( STATUS "Git version: ${AMUNMT_BUILD_VERSION}" )
   ELSE(GIT_FOUND)
     SET(AMUNMT_BUILD_VERSION 0)

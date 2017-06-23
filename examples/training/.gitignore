@@ -1,0 +1,10 @@
+model/
+moses-scripts/
+subword-nmt/
+data/corpus.*
+data/europarl-*
+data/SETIMES2.*
+data/*.tok.*
+data/*.tc.*
+data/*.bpe.*
+data/*.tgz

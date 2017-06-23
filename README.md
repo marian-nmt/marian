@@ -1,135 +1,159 @@
 
-# AmuNMT
+# Marian
 [![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
 
+ <p>
+  <b>Marian</b> (formerly known as AmuNMT) is an efficient Neural Machine Translation framework written
+  in pure C++ with minimal dependencies. It has mainly been developed at the
+  Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh.
+  </p>
 
-A C++ inference engine for Neural Machine Translation (NMT) models trained with Theano-based scripts from
-Nematus (https://github.com/rsennrich/nematus) or DL4MT (https://github.com/nyu-dl/dl4mt-tutorial)
+  <p>
+  It is currently being deployed in
+  multiple European projects and is the main translation and training engine
+  behind the neural MT launch at the
+  <a href="http://www.wipo.int/pressroom/en/articles/2016/article_0014.html">World Intellectual Property Organization</a>.
+
+  </p>
+
+  <p>
+  Main features:
+  <ul>
+    <li> Fast multi-gpu training and translation </li>
+    <li> Compatible with Nematus and DL4MT </li>
+    <li> Efficient pure C++ implementation </li>
+    <li> Permissive open source license (MIT) </li>
+    <li> <a href="http://amunmt.github.io/features"> more details... </a> </li>
+  </ul>
+  </p>
 
 If you use this, please cite:
 
-Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine Translation Ready for Deployment? A Case Study on 30 Translation Directions (https://arxiv.org/abs/1610.01108)
+Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine
+Translation Ready for Deployment? A Case Study on 30 Translation Directions
+(https://arxiv.org/abs/1610.01108)
 
-## Recommended for GPU version:
-Tested on Ubuntu 14.04 LTS
+    @InProceedings{junczys2016neural,
+      title     = {Is Neural Machine Translation Ready for Deployment? A Case Study
+                   on 30 Translation Directions},
+      author    = {Junczys-Dowmunt, Marcin and Dwojak, Tomasz and Hoang, Hieu},
+      booktitle = {Proceedings of the 9th International Workshop on Spoken Language
+      Translation (IWSLT)},
+      year      = {2016},
+      address   = {Seattle, WA},
+      url       = {http://workshop2016.iwslt.org/downloads/IWSLT_2016_paper_4.pdf}
+    }
+
+## Website:
+
+More information on https://marian-nmt.github.io
+
+## Recommended software
+
+### GPU version
+
+**Ubuntu 16.04 LTS (tested and recommended).** For Ubuntu 16.04 the standard
+packages should work. On newer versions of Ubuntu, e.g. 16.10, there may be
+problems due to incompatibilities of the default g++ compiler and CUDA.
+
+ * CMake 3.5.1 (default)
+ * GCC/G++ 5.4 (default)
+ * Boost 1.58 (default)
+ * CUDA 8.0
+
+**Ubuntu 14.04 LTS (tested).** A newer CMake version than the default version is
+required and can be installed from source.
+
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * GCC/G++ 4.9
  * Boost 1.54
  * CUDA 7.5
 
-Tested on Ubuntu 16.04 LTS
- * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
- * GCC/G++ 5.4
- * Boost 1.61
- * CUDA 8.0
+### CPU version
 
-Also compiles the CPU version.
+The CPU-only version will automatically be compiled if CUDA cannot be detected by CMake.
+Only the translator will be compiled, the training framework is strictily GPU-based.
 
-## Recommended for CPU version:
-The CPU-only version will automatically be compiled if CUDA cannot be detected by CMAKE. Tested on different machines and distributions:
+Tested on different machines and distributions:
+
  * CMake 3.5.1
  * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions.
 
-## Compilation
-The project is a standard Cmake out-of-source build:
+## Download and Compilation
 
+Clone a fresh copy from github:
+
+    git clone https://github.com/amunmt/amunmt
+
+The project is a standard CMake out-of-source build:
+
+    cd amunmt
     mkdir build
     cd build
     cmake ..
     make -j
 
-If you want to compile only CPU version on a machine with CUDA, add `-DCUDA=OFF`  flag:
+If run for the first time, this will also download Marian -- the training
+framework for Marian.
 
-    cmake -DCUDA=OFF ..
+## Running Marian
 
-## Vocabulary files
-Vocabulary files (and all other config files) in AmuNMT are by default YAML files. AmuNMT also reads gzipped yml.gz files.
+### Training
 
-* Vocabulary files from models trained with Nematus can be used directly as JSON is a proper subset of YAML.
-* Vocabularies for models trained with DL4MT (\*.pkl extension) need to be converted to JSON/YAML with either of the two scripts below:
-```
-python scripts/pkl2json.py vocab.en.pkl > vocab.json
-python scripts/pkl2yaml.py vocab.en.pkl > vocab.yml
-```
+Assuming `corpus.en` and `corpus.ro` are
+corresponding and preprocessed files of a English-Romanian parallel corpus, the
+following command will create a Nematus-compatible neural machine translation model.
 
+    ./marian/build/marian \
+      --train-sets corpus.en corpus.ro \
+      --vocabs vocab.en vocab.ro \
+      --model model.npz
 
-## Running AmuNMT
+See the [documentation](https://marian-nmt.github.io/docs/#marian) for a full list
+of command line options or the
+[examples](https://marian-nmt.github.io/examples/training) for a full example of
+how to train a WMT-grade model.
 
-    ./bin/amun -c config.yml <<< "This is a test ."
+### Translating
 
-## Configuration files
+If a trained model is available, run:
 
-An example configuration:
+    ./marian/build/amun -m model.npz -s vocab.en -t vocab.ro <<< "This is a test ."
 
-    # Paths are relative to config file location
-    relative-paths: yes
-
-    # performance settings
-    beam-size: 12
-    devices: [0]
-    normalize: yes
-    gpu-threads: 1
-
-    # scorer configuration
-    scorers:
-      F0:
-        path: model.en-de.npz
-        type: Nematus
-
-    # scorer weights
-    weights:
-      F0: 1.0
-
-    # vocabularies
-    source-vocab: vocab.en.yml.gz
-    target-vocab: vocab.de.yml.gz
-
-## BPE Support
-
-AmuNMT has integrated support for [BPE encoding](https://github.com/rsennrich/subword-nmt). There are two option `bpe` and `debpe`. The `bpe` option receives a path to a file with BPE codes (here `bpe.codes`). To turn on desegmentation on the ouput, set `debpe` to `true`, e.g.
-
-    bpe: bpe.codes
-    debpe: true
-
-## Python Bindings
-
-Python bindings allow to run AmuNMT decoder in python scripts. The compilation of the bindings requires `python-dev` package. To compile the bindings run:
-```
-make python
-```
-
-The Python bindings consist of 3 functions: `init`, `translate`, and `shutdown`:
-
-```python
-import libamunmt
-
-libamunmt.init('-c config.yml')
-print libamunmt.translate(['this is a little test .'])
-
-libamunmt.shutdown()
-```
-
-The `init` function init the decoder and the syntax is the same as in command line. The `translate`
-function takes a list of sentences to translate. For real-world example, see the `scripts/amunmt_server.py`
-script, which uses python bindings to run REST server.
-
-The function `shutdown` is needed (and should be called at the end of your script) to avoid runtime errors
-due to the random order in which objects may be deallocated if they are not explicitly destroyed.
-
-## Using GPU/CPU threads
-AmuNMT can use GPUs, CPUs, or both, to distribute translation of different sentences.
-**However, it is unlikely that CPUs used together with GPUs yield any performance improvement.
-It is probably better to only use the GPU if one or more are available.**
-
-    cpu-threads: 8
-    gpu-threads: 2
-    devices: [0, 1]
-
-The setting above uses 8 CPU threads and 4 GPU threads (2 GPUs x 2 threads). The `gpu-threads` and `devices` options are only available when AmuNMT has been compiled with CUDA support. Multiple GPU threads can be used to increase GPU saturation, but will likely not result in a large performance boost. By default, `gpu-threads` is set to `1` and `cpu-threads` to `0`  if CUDA is available. Otherwise `cpu-threads` is set to `1`. To disable the GPU set `gpu-threads` to `0`. Setting both `gpu-threads` and `cpu-threads` to `0` will result in an exception. 
+See the [documentation](https://marian-nmt.github.io/docs/#amun) for a full list of
+command line options or the
+[examples](https://marian-nmt.github.io/examples/translating) for a full example of
+how to use Edinburgh's WMT models for translation.
 
 ## Example usage
 
-  * [Data and systems for our winning system in the WMT 2016 Shared Task on Automatic Post-Editing](https://github.com/emjotde/amunmt/wiki/AmuNMT-for-Automatic-Post-Editing)
+* **[Translating with Amun](https://marian-nmt.github.io/examples/translating/)**:
+The files and scripts described in this section can be found in
+`amunmt/examples/translate`. They demonstrate how to translate with Amun using
+Edinburgh's German-English WMT2016 single model and ensemble.
+* **[Training with Marian](https://marian-nmt.github.io/examples/training/)**: The files
+and scripts described in this section can be found in
+`marian/examples/training`. They have been adapted from the
+Romanian-English sample from <https://github.com/rsennrich/wmt16-scripts>.
+We also add the back-translated data from <http://data.statmt.org/rsennrich/wmt16_backtranslations/>
+as desribed in [Edinburgh's WMT16 paper](http://www.aclweb.org/anthology/W16-2323).
+The resulting system should be competitive or even slightly better than
+reported in that paper.
+* **[Winning system of the WMT 2016 APE shared task](https://marian-nmt.github.io/examples/postedit/)**:
+This page provides data and model files for our shared task winning APE system
+described in [Log-linear Combinations of Monolingual and Bilingual Neural
+Machine Translation Models for Automatic
+Post-Editing](http://www.aclweb.org/anthology/W16-2378).
+
+## Acknowledgements
+
+The development of Marian received funding from the European Union's Horizon 2020
+Research and Innovation Programme under grant agreements 688139
+(<a href="http://www.summa-project.eu">SUMMA</a>; 2016-2019) and 645487
+(<a href="http://www.modernmt.eu">Modern MT</a>; 2015-2017), the
+Amazon Academic Research Awards program, and the World Intellectual
+Property Organization.
+
