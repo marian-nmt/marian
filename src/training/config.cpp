@@ -491,6 +491,7 @@ void Config::addOptions(int argc,
   SET_OPTION("dim-pos", int);
   SET_OPTION("dim-rnn", int);
 
+  SET_OPTION("enc-type", std::string);
   SET_OPTION("enc-cell", std::string);
   SET_OPTION("enc-cell-depth", int);
   SET_OPTION("enc-depth", int);

@@ -59,7 +59,7 @@ public:
     auto name = opt<std::string>("prefix");
     auto dim  = opt<int>("dim");
 
-    auto layerNorm = opt<bool>("normalize", false);
+    auto layerNorm = opt<bool>("layer-normalization", false);
     auto activation = opt<act>("activation", act::linear);
 
     auto g = graph_;
@@ -105,7 +105,7 @@ public:
     auto name = options_->get<std::string>("prefix");
     auto dim  = options_->get<int>("dim");
 
-    auto layerNorm = options_->get<bool>("normalize", false);
+    auto layerNorm = options_->get<bool>("layer-normalization", false);
     auto activation = options_->get<act>("activation", act::linear);
 
     auto W = g->param(name + "_W",

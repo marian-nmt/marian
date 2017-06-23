@@ -42,7 +42,7 @@ public:
 
     int dimDecState = options_->get<int>("dimState");
     dropout_ = options_->get<float>("dropout");
-    layerNorm_ = options_->get<bool>("normalize");
+    layerNorm_ = options_->get<bool>("layer-normalization");
     std::string prefix = options_->get<std::string>("prefix");
 
     int dimEncState = encState_->getContext()->shape()[1];

@@ -39,7 +39,7 @@ public:
                  ("dimInput", opt<int>("dim-emb"))
                  ("dimState", opt<int>("dim-rnn"))
                  ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"))
+                 ("layer-normalization", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
 
     for(int i = 1; i <= first; ++i) {
@@ -58,7 +58,7 @@ public:
                  ("dimInput", opt<int>("dim-emb"))
                  ("dimState", opt<int>("dim-rnn"))
                  ("dropout", dropoutRnn)
-                 ("normalize", opt<bool>("layer-normalization"))
+                 ("layer-normalization", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
 
     for(int i = 1; i <= first; ++i) {
@@ -85,7 +85,7 @@ public:
                     ("dimInput", 2 * opt<int>("dim-rnn"))
                     ("dimState", opt<int>("dim-rnn"))
                     ("dropout", dropoutRnn)
-                    ("normalize", opt<bool>("layer-normalization"))
+                    ("layer-normalization", opt<bool>("layer-normalization"))
                     ("skip", opt<bool>("skip"));
 
       for(int i = first + 1; i <= second + first; ++i) {
@@ -181,7 +181,7 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
              ("dimInput", opt<int>("dim-emb"))
              ("dimState", opt<int>("dim-rnn"))
              ("dropout", dropoutRnn)
-             ("normalize", opt<bool>("layer-normalization"))
+             ("layer-normalization", opt<bool>("layer-normalization"))
              ("skip", opt<bool>("skip"));
 
   size_t decoderLayers = opt<size_t>("dec-depth");
@@ -240,7 +240,7 @@ public:
                           ("prefix", prefix_ + "_ff_state")
                           ("dim", opt<int>("dim-rnn"))
                           ("activation", mlp::act::tanh)
-                          ("normalize", opt<bool>("layer-normalization")));
+                          ("layer-normalization", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext);
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
@@ -281,7 +281,7 @@ public:
                   ("prefix", prefix_ + "_ff_logit_l1")
                   ("dim", opt<int>("dim-emb"))
                   ("activation", mlp::act::tanh)
-                  ("normalize", opt<bool>("layer-normalization"));
+                  ("layer-normalization", opt<bool>("layer-normalization"));
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
     auto layer2 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l2")
@@ -298,7 +298,7 @@ public:
                   .push_back(layer2)
                   ->apply(embeddings, decoderContext, alignedContext);
 
-    // return unormalized(!) probabilities
+    // return ulayer-normalizationd(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderState());
   }
 
