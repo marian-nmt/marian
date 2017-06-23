@@ -159,6 +159,7 @@ class TMatrix : public BaseMatrix {
       dim_[3] = batches;
     }
 
+    /*
     void ReduceDimensions()
     {
     	if (dim_[2] == 1) {
@@ -177,6 +178,7 @@ class TMatrix : public BaseMatrix {
     		dim_[3] = 1;
     	}
     }
+    */
 
     virtual std::string Debug(size_t verbosity = 1) const
     {
