@@ -23,6 +23,7 @@ cuda_add_library(marian
   common/utils.cpp
   common/logging.cpp
   training/config.cpp
+  training/score_collector.cpp
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu

@@ -9,6 +9,7 @@
 #include "models/model_task.h"
 #include "models/s2s.h"
 #include "training/config.h"
+#include "training/score_collector.h"
 
 namespace marian {
 
@@ -42,6 +43,8 @@ public:
         = New<BatchGenerator<Corpus>>(corpus_, options_);
     batchGenerator->prepare(false);
 
+    auto output = New<ScoreCollector>();
+
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
 
@@ -51,30 +54,9 @@ public:
       std::vector<float> scores;
       costNode->val()->get(scores);
 
-      auto ids = ordered<size_t>(batch->getSentenceIds());
-      for(auto id : ids)
-        std::cout << scores[id] << std::endl;
+      for(size_t i=0; i<batch->size(); ++i)
+        output->Write(batch->getSentenceIds()[i], scores[i]);
     }
-  }
-
-private:
-  /**
-   * Sorts elements in ascending order keeping track of indices. The input
-   * vector itself is not touched.
-   *
-   * @param values A vector of elements with type T
-   *
-   * @return The vector of indeces for sorted elements in the input vector
-   */
-  template <typename T>
-  std::vector<size_t> ordered(const std::vector<T>& values) {
-    std::vector<size_t> indices(values.size());
-    std::iota(begin(indices), end(indices), static_cast<size_t>(0));
-
-    std::sort(begin(indices), end(indices), [&](size_t a, size_t b) {
-      return values[a] < values[b];
-    });
-    return indices;
   }
 };
 
