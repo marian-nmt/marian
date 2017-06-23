@@ -193,7 +193,8 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
   for(int i = 1; i <= decoderBaseDepth; ++i) {
     auto paramPrefix = prefix_ + "_cell" + std::to_string(i);
     baseCell.push_back(rnn::cell(graph)
-                       ("prefix", paramPrefix));
+                       ("prefix", paramPrefix)
+                       ("final", i > 1));
     if(i == 1)
       baseCell.push_back(rnn::attention(graph)
                          ("prefix", prefix_)
@@ -209,7 +210,8 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
     for(int j = 1; j <= decoderHighDepth; j++) {
       auto paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
       highCell.push_back(rnn::cell(graph)
-                         ("prefix", paramPrefix));
+                         ("prefix", paramPrefix)
+                         ("final", true));
     }
     // Add cell to RNN (more layers)
     rnn.push_back(highCell);
@@ -298,7 +300,7 @@ public:
                   .push_back(layer2)
                   ->apply(embeddings, decoderContext, alignedContext);
 
-    // return ulayer-normalizationd(!) probabilities
+    // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderState());
   }
 

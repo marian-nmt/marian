@@ -209,9 +209,8 @@ void Config::addOptionsModel(po::options_description& desc,
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
      "Maximum items in vocabulary ordered by rank")
     ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
-    ("dim-pos", po::value<int>()->default_value(0), "Size of position embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
-    ("enc-type", po::value<std::string>()->default_value("bidirectional"), "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)")
+    ("enc-type", po::value<std::string>()->default_value("alternating"), "Type of encoder RNN : alternating, bidirectional, bi-unidirectional (s2s)")
     ("enc-cell", po::value<std::string>()->default_value("gru"), "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("enc-cell-depth", po::value<int>()->default_value(1), "Number of tansitional cells in encoder layers (s2s)")
     ("enc-depth", po::value<int>()->default_value(1), "Number of encoder layers (s2s)")
@@ -247,7 +246,6 @@ void Config::addOptionsModel(po::options_description& desc,
       "type",
       "dim-vocabs",
       "dim-emb",
-      "dim-pos",
       "dim-rnn",
       "enc-cell",
       "enc-type",
@@ -488,7 +486,6 @@ void Config::addOptions(int argc,
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
-  SET_OPTION("dim-pos", int);
   SET_OPTION("dim-rnn", int);
 
   SET_OPTION("enc-type", std::string);
