@@ -2,7 +2,7 @@
 
 #include "common/file_stream.h"
 #include "common/logging.h"
-#include "training/score_collector.h"
+#include "rescorer/score_collector.h"
 
 namespace marian {
 

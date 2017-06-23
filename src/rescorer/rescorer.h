@@ -8,8 +8,8 @@
 #include "models/amun.h"
 #include "models/model_task.h"
 #include "models/s2s.h"
+#include "rescorer/score_collector.h"
 #include "training/config.h"
-#include "training/score_collector.h"
 
 namespace marian {
 

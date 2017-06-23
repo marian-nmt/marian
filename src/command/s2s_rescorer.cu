@@ -1,5 +1,5 @@
 #include "marian.h"
-#include "training/rescorer.h"
+#include "rescorer/rescorer.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
