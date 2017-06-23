@@ -10,7 +10,15 @@ __global__ void gElementwiseOps(float* out,
                                 const float* b,
                                 const float* bx1,
                                 const float* bx2,
-                                size_t rows, size_t cols) {
+                                size_t rows, size_t cols,
+                                mblas::MatrixWrapper<float> outWrap,
+                                mblas::MatrixWrapper<float> stateWrap,
+                                mblas::MatrixWrapper<float> ruhWrap,
+                                mblas::MatrixWrapper<float> tempWrap,
+                                mblas::MatrixWrapper<float> bWrap,
+                                mblas::MatrixWrapper<float> bx1Wrap,
+                                mblas::MatrixWrapper<float> bx2Wrap)
+{
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;

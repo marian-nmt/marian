@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
 
 namespace amunmt {
@@ -103,7 +104,14 @@ __global__ void gElementwiseOps(float* out,
                                 const float* b,
                                 const float* bx1,
                                 const float* bx2,
-                                size_t rows, size_t cols);
+                                size_t rows, size_t cols,
+                                mblas::MatrixWrapper<float> outWrap,
+                                mblas::MatrixWrapper<float> stateWrap,
+                                mblas::MatrixWrapper<float> ruhWrap,
+                                mblas::MatrixWrapper<float> tempWrap,
+                                mblas::MatrixWrapper<float> bWrap,
+                                mblas::MatrixWrapper<float> bx1Wrap,
+                                mblas::MatrixWrapper<float> bx2Wrap);
 
 template <class Weights>
 class FastGRU {
@@ -182,6 +190,14 @@ class FastGRU {
       NextState.NewSize(State.dim(0), State.dim(1), State.dim(2), State.dim(3));
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
+      mblas::MatrixWrapper<float> nextWrap(NextState);
+      mblas::MatrixWrapper<float> stateWrap(State);
+      mblas::MatrixWrapper<float> ruhWrap(RUH);
+      mblas::MatrixWrapper<float> tempWrap(Temp);
+      mblas::MatrixWrapper<float> bWrap(*w_.B_);
+      mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
+      mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
+
       const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
       const size_t cols = State.dim(1);
 
@@ -190,7 +206,8 @@ class FastGRU {
 
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
         (NextState.data(), State.data(), RUH.data(), Temp.data(), w_.B_->data(), w_.Bx1_->data(),
-         w_.Bx2_->data(), rows, cols);
+         w_.Bx2_->data(), rows, cols,
+         nextWrap, stateWrap, ruhWrap, tempWrap, bWrap, bx1Wrap, bx2Wrap);
     }
 
     size_t GetStateLength() const {
