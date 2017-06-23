@@ -191,13 +191,15 @@ class FastGRU {
       const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
 
       /*
+      std::cerr << "nextWrap=" << nextWrap.Debug() << std::endl;
       std::cerr << "stateWrap=" << stateWrap.Debug() << std::endl;
       std::cerr << "ruhWrap=" << ruhWrap.Debug() << std::endl;
       std::cerr << "tempWrap=" << tempWrap.Debug() << std::endl;
       std::cerr << "bWrap=" << bWrap.Debug() << std::endl;
       std::cerr << "bx1Wrap=" << bx1Wrap.Debug() << std::endl;
       std::cerr << "bx2Wrap=" << bx2Wrap.Debug() << std::endl;
-	  */
+      std::cerr << "\n";
+      */
 
       const size_t cols = State.dim(1);
       const size_t rows = State.dim(0) * State.dim(2) * State.dim(3);
