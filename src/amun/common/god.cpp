@@ -44,23 +44,19 @@ God& God::Init(const std::string& options) {
   return Init(argc, argv);
 }
 
+
+  
 God& God::Init(int argc, char** argv) {
 
   config_.AddOptions(argc, argv);
-  if (config_.Get<bool>("log-info")) {
-    info_ = spdlog::stderr_logger_mt("info");
-    info_->set_pattern("[%c] (%L) %v");
-  } else {
-    // FIXME: there's probably a better way to set up a NULL logger with spdlog [UG]
-    info_ = spdlog::basic_logger_mt("info", "/dev/null");
-  }
-  if (config_.Get<bool>("log-progress")) {
-    progress_ = spdlog::stderr_logger_mt("progress");
-    progress_->set_pattern("%v");
-  } else {
-    // FIXME: there's probably a better way to set up a NULL logger with spdlog [UG]
-    progress_ = spdlog::basic_logger_mt("progress", "/dev/null");
-  }
+  info_ = spdlog::stderr_logger_mt("info");
+  info_->set_pattern("[%c] (%L) %v");
+  set_loglevel(*info_, config_.Get<string>("log-info"));
+
+  progress_ = spdlog::stderr_logger_mt("progress");
+  progress_->set_pattern("%v");
+  set_loglevel(*progress_, config_.Get<string>("log-progress"));
+  
   config_.LogOptions();
 
   if (Get("source-vocab").IsSequence()) {
@@ -75,7 +71,7 @@ God& God::Init(int argc, char** argv) {
   weights_ = Get<std::map<std::string, float>>("weights");
 
   if(Get<bool>("show-weights")) {
-    LOG(info, "Outputting weights and exiting");
+    LOG(info)->info("Outputting weights and exiting");
     for(auto && pair : weights_) {
       std::cout << pair.first << "= " << pair.second << std::endl;
     }
@@ -86,18 +82,18 @@ God& God::Init(int argc, char** argv) {
   LoadFiltering();
 
   if (Has("input-file")) {
-    LOG(info, "Reading from {}", Get<std::string>("input-file"));
+    LOG(info)->info("Reading from {}", Get<std::string>("input-file"));
     inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));
   }
   else {
-    LOG(info, "Reading from stdin");
+    LOG(info)->info("Reading from stdin");
     inputStream_.reset(new InputFileStream(std::cin));
   }
 
   LoadPrePostProcessing();
 
   size_t totalThreads = GetTotalThreads();
-  LOG(info, "Total number of threads: {}", totalThreads);
+  LOG(info)->info("Total number of threads: {}", totalThreads);
   amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
   pool_.reset(new ThreadPool(totalThreads, totalThreads));
@@ -113,7 +109,7 @@ void God::Cleanup()
 }
 
 void God::LoadScorers() {
-  LOG(info, "Loading scorers...");
+  LOG(info)->info("Loading scorers...");
 #ifdef CUDA
   size_t gpuThreads = God::Get<size_t>("gpu-threads");
   auto devices = God::Get<std::vector<size_t>>("devices");
@@ -137,7 +133,7 @@ void God::LoadFiltering() {
   if (!Get<std::vector<std::string>>("softmax-filter").empty()) {
     auto filterOptions = Get<std::vector<std::string>>("softmax-filter");
     std::string alignmentFile = filterOptions[0];
-    LOG(info, "Reading target softmax filter file from {}", alignmentFile);
+    LOG(info)->info("Reading target softmax filter file from {}", alignmentFile);
     Filter* filter = nullptr;
     if (filterOptions.size() >= 3) {
       const size_t numNFirst = stoi(filterOptions[1]);
@@ -167,13 +163,13 @@ void God::LoadPrePostProcessing() {
     if(Get("bpe").IsSequence()) {
       size_t i = 0;
       for(auto bpePath : Get<std::vector<std::string>>("bpe")) {
-        LOG(info, "using bpe: {}", bpePath);
+        LOG(info)->info("using bpe: {}", bpePath);
         preprocessors_.push_back(std::vector<PreprocessorPtr>());
         preprocessors_[i++].emplace_back(new BPE(bpePath));
       }
     }
     else {
-      LOG(info, "using bpe: {}", Get<std::string>("bpe"));
+      LOG(info)->info("using bpe: {}", Get<std::string>("bpe"));
         preprocessors_.push_back(std::vector<PreprocessorPtr>());
       if (Get<std::string>("bpe") != "") {
         preprocessors_[0].emplace_back(new BPE(Get<std::string>("bpe")));
@@ -182,7 +178,7 @@ void God::LoadPrePostProcessing() {
   }
 
   if (Has("bpe") && !Get<bool>("no-debpe")) {
-    LOG(info, "De-BPE output");
+    LOG(info)->info("De-BPE output");
     postprocessors_.emplace_back(new BPE());
   }
 }
@@ -300,13 +296,13 @@ Search &God::GetSearch() const
 size_t God::GetTotalThreads() const
 {
   size_t cpuThreads = Get<size_t>("cpu-threads");
-  LOG(info, "Setting CPU thread count to {}", cpuThreads);
+  LOG(info)->info("Setting CPU thread count to {}", cpuThreads);
 
   size_t totalThreads = cpuThreads;
 #ifdef CUDA
   size_t gpuThreads = Get<size_t>("gpu-threads");
   auto devices = Get<std::vector<size_t>>("devices");
-  LOG(info, "Setting GPU thread count to {}", gpuThreads);
+  LOG(info)->info("Setting GPU thread count to {}", gpuThreads);
   totalThreads += gpuThreads * devices.size();
 #endif
   return totalThreads;

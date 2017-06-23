@@ -59,7 +59,7 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
     std::vector<std::string> tokens;
     Split(line, tokens, delimiter);
     if (tokens.size() != 3) {
-      LOG(info, "Filter: broken line: {}", line);
+      LOG(info)->info("Filter: broken line: {}", line);
       continue;
     }
     if (trgVocab[tokens[trgIndex]] != 1 && srcVocab[tokens[srcIndex]] != 1) {

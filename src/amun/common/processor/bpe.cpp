@@ -42,7 +42,7 @@ BPE::BPE(std::ifstream&& file, const std::string sep)
     if (firstLine) {
       firstLine = false;
       if (inputLine.find("#version: 0.2") != std::string::npos) {
-        LOG(info, "WARNING! BPE VERSION 0.2 IS NOT SUPPORTED!");
+        LOG(info)->warn("WARNING! BPE VERSION 0.2 IS NOT SUPPORTED!");
       }
     }
     std::vector<std::string> code;

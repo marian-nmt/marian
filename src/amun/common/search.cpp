@@ -38,7 +38,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
   auto histories = Decode(sentences);
   CleanAfterTranslation();
 
-  LOG(progress, "Search took {}", timer.format(3, "%ws"));
+  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
   return histories;
 }
 

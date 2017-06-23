@@ -148,7 +148,7 @@ void OutputRec(const YAML::Node node, YAML::Emitter& out) {
 }
 
 void LoadWeights(YAML::Node& config, const std::string& path) {
-  LOG(info, "Reading weights from {}", path);
+  LOG(info)->info("Reading weights from {}", path);
   InputFileStream fweights(path);
   std::string name;
   float weight;
@@ -156,7 +156,7 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
   while(fweights >> name >> weight) {
     if(name.back() == '=')
       name.pop_back();
-    LOG(info, " > {} = {}", name , weight);
+    LOG(info)->info(" > {} = {}", name , weight);
     config["weights"][name] = weight;
     i++;
   }
@@ -225,10 +225,10 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Print version.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
-    ("log-progress",po::value<bool>()->default_value(true)->implicit_value(true),
-     "Log progress to stderr.")
-    ("log-info",po::value<bool>()->default_value(true)->implicit_value(true),
-     "Log info to stderr.")
+    ("log-progress",po::value<std::string>()->default_value("info")->implicit_value("info"),
+     "Log level for progress logging to stderr (trace - debug - info - warn - err(or) - critical - off).")
+    ("log-info",po::value<std::string>()->default_value("info")->implicit_value("info"),
+     "Log level for informative messages to stderr (trace - debug - info - warn - err(or) - critical - off).")
   ;
 
   po::options_description search("Search options");
@@ -359,7 +359,7 @@ void Config::LogOptions() {
   std::stringstream ss;
   YAML::Emitter out;
   OutputRec(config_, out);
-  LOG(info, "Options: {}\n", out.c_str());
+  LOG(info)->info("Options: {}\n", out.c_str());
 }
 
 }
