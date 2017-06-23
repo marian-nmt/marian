@@ -95,40 +95,45 @@ void ProcessPaths(YAML::Node& node,
   }
 }
 
-void Config::validate(bool translate) const {
-  if(!translate) {
-    UTIL_THROW_IF2(!has("train-sets")
-                       || get<std::vector<std::string>>("train-sets").empty(),
-                   "No train sets given in config file or on command line");
-    if(has("vocabs")) {
-      UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size()
-                         != get<std::vector<std::string>>("train-sets").size(),
-                     "There should be as many vocabularies as training sets");
-    }
-    if(has("valid-sets")) {
-      UTIL_THROW_IF2(
-          get<std::vector<std::string>>("valid-sets").size()
-              != get<std::vector<std::string>>("train-sets").size(),
-          "There should be as many validation sets as training sets");
-    }
+void Config::validateOptions(bool translate, bool rescore) const {
+  if(translate)
+    return;
 
-    // validations for learning rate decaying
-    UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
-                   "Learning rate decay factor greater than 1.0 is unusual");
-    UTIL_THROW_IF2(
-         (get<std::string>("lr-decay-strategy") == "epoch+batches"
-         || get<std::string>("lr-decay-strategy") == "epoch+stalled")
-            && get<std::vector<size_t>>("lr-decay-start").size() != 2,
-        "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
-        "values specified with --lr-decay-start options");
-    UTIL_THROW_IF2(
-        (get<std::string>("lr-decay-strategy") == "epoch"
-         || get<std::string>("lr-decay-strategy") == "batches"
-         || get<std::string>("lr-decay-strategy") == "stalled")
-            && get<std::vector<size_t>>("lr-decay-start").size() != 1,
-        "Single decay strategies require only one value specified with "
-        "--lr-decay-start option");
+  UTIL_THROW_IF2(!has("train-sets")
+                     || get<std::vector<std::string>>("train-sets").empty(),
+                 "No train sets given in config file or on command line");
+  if(has("vocabs")) {
+    UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size()
+                       != get<std::vector<std::string>>("train-sets").size(),
+                   "There should be as many vocabularies as training sets");
   }
+
+  if(rescore)
+    return;
+
+  if(has("valid-sets")) {
+    UTIL_THROW_IF2(
+        get<std::vector<std::string>>("valid-sets").size()
+            != get<std::vector<std::string>>("train-sets").size(),
+        "There should be as many validation sets as training sets");
+  }
+
+  // validations for learning rate decaying
+  UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
+                 "Learning rate decay factor greater than 1.0 is unusual");
+  UTIL_THROW_IF2(
+       (get<std::string>("lr-decay-strategy") == "epoch+batches"
+       || get<std::string>("lr-decay-strategy") == "epoch+stalled")
+          && get<std::vector<size_t>>("lr-decay-start").size() != 2,
+      "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
+      "values specified with --lr-decay-start options");
+  UTIL_THROW_IF2(
+      (get<std::string>("lr-decay-strategy") == "epoch"
+       || get<std::string>("lr-decay-strategy") == "batches"
+       || get<std::string>("lr-decay-strategy") == "stalled")
+          && get<std::vector<size_t>>("lr-decay-start").size() != 1,
+      "Single decay strategies require only one value specified with "
+      "--lr-decay-start option");
 }
 
 void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
@@ -422,6 +427,9 @@ void Config::addOptionsRescore(po::options_description& desc) {
                                   guess_terminal_width());
   // clang-format off
   rescore.add_options()
+    // @TODO: remove no-reload?
+    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
+      "Do not load existing model specified in --model arg")
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
@@ -454,16 +462,19 @@ void Config::addOptions(int argc,
                         bool doValidate,
                         bool translate,
                         bool rescore) {
-  addOptionsCommon(cmdline_options_, translate);
+  UTIL_THROW_IF2(translate && rescore,
+                 "Config does not support both modes: translate and rescore!");
 
+  addOptionsCommon(cmdline_options_, translate);
   addOptionsModel(cmdline_options_, translate, rescore);
 
   if(!translate) {
-    addOptionsTraining(cmdline_options_);
-    if(!rescore)
+    if(rescore) {
+      addOptionsRescore(cmdline_options_);
+    } else {
+      addOptionsTraining(cmdline_options_);
       addOptionsValid(cmdline_options_);
-  //} else if(!translate) {
-    //addOptionsRescore(cmdline_options_);
+    }
   } else {
     addOptionsTranslate(cmdline_options_);
   }
@@ -532,7 +543,7 @@ void Config::addOptions(int argc,
   /** model **/
 
   /** training start **/
-  if(!translate) {
+  if(!translate && !rescore) {
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -566,13 +577,14 @@ void Config::addOptions(int argc,
     SET_OPTION("drop-rate", double);
   }
   /** training end **/
-  //else if(rescore) {
-    //if(!vm_["train-sets"].empty()) {
-      //config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
-    //}
-    //SET_OPTION("mini-batch-words", int);
-    //SET_OPTION("dynamic-batching", bool);
-  //}
+  else if(rescore) {
+    SET_OPTION("no-reload", bool);
+    if(!vm_["train-sets"].empty()) {
+      config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
+    }
+    SET_OPTION("mini-batch-words", int);
+    SET_OPTION("dynamic-batching", bool);
+  }
   /** translation start **/
   else {
     SET_OPTION("input", std::vector<std::string>);
@@ -605,7 +617,7 @@ void Config::addOptions(int argc,
 
   if(doValidate) {
     try {
-      validate(translate);
+      validateOptions(translate, rescore);
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
 

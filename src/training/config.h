@@ -72,7 +72,7 @@ public:
   void addOptionsTranslate(boost::program_options::options_description&);
 
   void log();
-  void validate(bool translate = false) const;
+  void validateOptions(bool translate = false, bool rescore = false) const;
 
   void OutputRec(const YAML::Node node, YAML::Emitter& out) const;
 
