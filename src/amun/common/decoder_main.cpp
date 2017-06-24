@@ -20,7 +20,7 @@ using namespace std;
 std::vector<boost::timer::cpu_timer> timers;
 
 int main(int argc, char* argv[]) {
-  timers.resize(17);
+  timers.resize(19);
   for (size_t i = 0; i < timers.size(); ++i) {
     timers[i].stop();
   }

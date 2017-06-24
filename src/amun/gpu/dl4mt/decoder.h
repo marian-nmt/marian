@@ -292,21 +292,30 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
           PAUSE_TIMER(14, "GetProbs.Element=");
 
-          BEGIN_TIMER(15);
+          std::shared_ptr<mblas::Matrix> w4, b4;
           if(!filtered_) {
-            Probs.NewSize(T1_.dim(0), w_.W4_->dim(1));
-            Prod(Probs, T1_, *w_.W4_);
-            BroadcastVec(_1 + _2, Probs, *w_.B4_);
+            w4 = w_.W4_;
+            b4 = w_.B4_;
           } else {
-            Probs.NewSize(T1_.dim(0), FilteredW4_.dim(1));
-            Prod(Probs, T1_, FilteredW4_);
-            BroadcastVec(_1 + _2, Probs, FilteredB4_);
+            w4.reset(&FilteredW4_);
+            b4.reset(&FilteredB4_);
           }
-          PAUSE_TIMER(15, "GetProbs.Prod+BroadcastVec=");
+
+          BEGIN_TIMER(15);
+          Probs.NewSize(T1_.dim(0), w4->dim(1));
+          PAUSE_TIMER(15, "GetProbs.NewSize=");
 
           BEGIN_TIMER(16);
+          Prod(Probs, T1_, *w4);
+          PAUSE_TIMER(16, "GetProbs.Prod4=");
+
+          BEGIN_TIMER(17);
+          BroadcastVec(_1 + _2, Probs, *b4);
+          PAUSE_TIMER(17, "GetProbs.BroadcastVec=");
+
+          BEGIN_TIMER(18);
           mblas::LogSoftmax(Probs);
-          PAUSE_TIMER(16, "GetProbs.LogSoftMax=");
+          PAUSE_TIMER(18, "GetProbs.LogSoftMax=");
         }
 
         void Filter(const std::vector<size_t>& ids) {
