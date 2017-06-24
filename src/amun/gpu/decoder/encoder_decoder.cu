@@ -12,6 +12,8 @@
 
 using namespace std;
 
+boost::timer::cpu_timer encTimer;
+
 namespace amunmt {
 namespace GPU {
 
@@ -30,6 +32,9 @@ EncoderDecoder::EncoderDecoder(
 {}
 
 void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //decTimer.resume();
+
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -39,6 +44,11 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      *SourceContext_,
                      batchMapping_,
                      beamSizes);
+
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //decTimer.stop();
+  //std::cerr << "Decode=" << decTimer.format() << std::endl;
+
 }
 
 EncoderDecoder::~EncoderDecoder()
@@ -50,8 +60,15 @@ State* EncoderDecoder::NewState() const {
 }
 
 void EncoderDecoder::SetSource(const Sentences& source) {
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  encTimer.resume();
+
   encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  encTimer.stop();
+  std::cerr << "SetSource=" << encTimer.format() << std::endl;
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {

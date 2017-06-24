@@ -2,6 +2,7 @@
 
 #include <map>
 #include <numeric>
+#include <boost/timer/timer.hpp>
 
 #include "common/scorer.h"
 #include "common/exception.h"
@@ -11,6 +12,8 @@
 #include "gpu/mblas/nth_element.h"
 
 #include "gpu/decoder/encoder_decoder.h"
+
+extern boost::timer::cpu_timer beamTimer;
 
 namespace amunmt {
 namespace GPU {
@@ -74,6 +77,9 @@ class BestHyps : public BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes)
     {
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      beamTimer.resume();
+
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
@@ -165,6 +171,11 @@ class BestHyps : public BestHypsBase
 
         beams[batchMap[i]].push_back(hyp);
       }
+
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      beamTimer.stop();
+      std::cerr << "CalcBeam=" << beamTimer.format() << std::endl;
+
     }
 
 

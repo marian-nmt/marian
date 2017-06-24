@@ -1,8 +1,10 @@
 #pragma once
-
+#include <boost/timer/timer.hpp>
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
+
+extern boost::timer::cpu_timer gruTimer;
 
 namespace amunmt {
 namespace GPU {
@@ -107,6 +109,7 @@ __global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
 
 template <class Weights>
 class FastGRU {
+
   public:
     FastGRU(const Weights& model)
     : w_(model)
@@ -179,6 +182,9 @@ class FastGRU {
                         const mblas::Matrix& RUH,
                         const mblas::Matrix& Temp) const
     {
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      gruTimer.resume();
+
       assert(State.dim(2) == 1);
       assert(State.dim(3) == 1);
       assert(RUH.dim(2) == 1);
@@ -215,7 +221,12 @@ class FastGRU {
 
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
         (nextWrap, stateWrap, ruhWrap, tempWrap,
-		bWrap, bx1Wrap, bx2Wrap);
+            bWrap, bx1Wrap, bx2Wrap);
+
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      gruTimer.stop();
+      std::cerr << "ElementwiseOps=" << gruTimer.format() << std::endl;
+
     }
 
     size_t GetStateLength() const {
