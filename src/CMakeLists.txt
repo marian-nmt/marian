@@ -45,7 +45,7 @@ add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
 target_link_libraries(marian_translate marian)
 
-cuda_add_executable(marian_rescorer command/s2s_rescorer.cu)
+add_executable(marian_rescorer command/s2s_rescorer.cpp)
 set_target_properties(marian_rescorer PROPERTIES OUTPUT_NAME rescorer)
 target_link_libraries(marian_rescorer marian)
 
