@@ -17,15 +17,10 @@
 using namespace amunmt;
 using namespace std;
 
-boost::timer::cpu_timer gruTimer;
-boost::timer::cpu_timer beamTimer;
 std::vector<boost::timer::cpu_timer> timers;
 
 int main(int argc, char* argv[]) {
-  gruTimer.stop();
-  beamTimer.stop();
-
-  timers.resize(5);
+  timers.resize(17);
   for (size_t i = 0; i < timers.size(); ++i) {
     timers[i].stop();
   }

@@ -12,7 +12,7 @@
 
 using namespace std;
 
-boost::timer::cpu_timer encTimer;
+extern std::vector<boost::timer::cpu_timer> timers;
 
 namespace amunmt {
 namespace GPU {
@@ -61,14 +61,14 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::SetSource(const Sentences& source) {
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  encTimer.resume();
+  timers[6].resume();
 
   encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
 
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  encTimer.stop();
-  std::cerr << "SetSource=" << encTimer.format() << std::endl;
+  timers[6].stop();
+  std::cerr << "SetSource=" << timers[6].format() << std::endl;
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {

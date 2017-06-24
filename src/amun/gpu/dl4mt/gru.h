@@ -4,7 +4,7 @@
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
 
-extern boost::timer::cpu_timer gruTimer;
+extern std::vector<boost::timer::cpu_timer> timers;
 
 namespace amunmt {
 namespace GPU {
@@ -183,7 +183,7 @@ class FastGRU {
                         const mblas::Matrix& Temp) const
     {
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      gruTimer.resume();
+      timers[7].resume();
 
       assert(State.dim(2) == 1);
       assert(State.dim(3) == 1);
@@ -224,8 +224,8 @@ class FastGRU {
             bWrap, bx1Wrap, bx2Wrap);
 
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      gruTimer.stop();
-      std::cerr << "ElementwiseOps=" << gruTimer.format() << std::endl;
+      timers[7].stop();
+      std::cerr << "ElementwiseOps=" << timers[7].format() << std::endl;
 
     }
 

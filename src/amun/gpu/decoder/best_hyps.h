@@ -13,7 +13,7 @@
 
 #include "gpu/decoder/encoder_decoder.h"
 
-extern boost::timer::cpu_timer beamTimer;
+extern std::vector<boost::timer::cpu_timer> timers;
 
 namespace amunmt {
 namespace GPU {
@@ -78,7 +78,7 @@ class BestHyps : public BestHypsBase
         std::vector<uint>& beamSizes)
     {
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      beamTimer.resume();
+      timers[5].resume();
 
       using namespace mblas;
 
@@ -173,8 +173,8 @@ class BestHyps : public BestHypsBase
       }
 
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      beamTimer.stop();
-      std::cerr << "CalcBeam=" << beamTimer.format() << std::endl;
+      timers[5].stop();
+      std::cerr << "CalcBeam=" << timers[5].format() << std::endl;
 
     }
 
