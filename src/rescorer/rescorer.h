@@ -27,14 +27,20 @@ public:
   Rescorer(Ptr<Config> options)
       : options_(options),
         corpus_(New<Corpus>(options_)),
-        graph_(New<ExpressionGraph>(true)),
-        model_(New<Model>(options_, keywords::inference = true)) {
+        graph_(New<ExpressionGraph>(true)) {
     corpus_->prepare();
 
     auto device = options_->get<std::vector<size_t>>("devices").front();
     graph_->setDevice(device);
 
     auto modelFile = options_->get<std::string>("model");
+    auto modelOptions = New<Config>(*options);
+    try {
+      modelOptions->loadModelParameters(modelFile);
+    } catch(std::runtime_error& e) {
+      LOG(warn, "No model settings found in model file");
+    }
+    model_ = New<Model>(modelOptions, keywords::inference = true);
     model_->load(graph_, modelFile);
   }
 
