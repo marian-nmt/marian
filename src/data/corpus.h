@@ -32,13 +32,11 @@ public:
   size_t size() const { return tuple_.size(); }
 
   Words& operator[](size_t i) { return tuple_[i]; }
-
   const Words& operator[](size_t i) const { return tuple_[i]; }
 
   bool empty() const { return tuple_.empty(); }
 
   auto begin() -> decltype(tuple_.begin()) { return tuple_.begin(); }
-
   auto end() -> decltype(tuple_.end()) { return tuple_.end(); }
 
   size_t getId() const { return id_; }

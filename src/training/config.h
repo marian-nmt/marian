@@ -68,7 +68,6 @@ public:
   void addOptionsTraining(boost::program_options::options_description&);
   void addOptionsRescore(boost::program_options::options_description&);
   void addOptionsValid(boost::program_options::options_description&);
-
   void addOptionsTranslate(boost::program_options::options_description&);
 
   void log();

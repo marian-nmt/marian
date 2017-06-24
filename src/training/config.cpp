@@ -1,4 +1,3 @@
-
 #include <boost/algorithm/string.hpp>
 #include <set>
 #include <string>
@@ -99,9 +98,9 @@ void Config::validateOptions(bool translate, bool rescore) const {
   if(translate)
     return;
 
-  UTIL_THROW_IF2(!has("train-sets")
-                     || get<std::vector<std::string>>("train-sets").empty(),
-                 "No train sets given in config file or on command line");
+  UTIL_THROW_IF2(
+      !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
+      "No train sets given in config file or on command line");
   if(has("vocabs")) {
     UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size()
                        != get<std::vector<std::string>>("train-sets").size(),
@@ -112,17 +111,16 @@ void Config::validateOptions(bool translate, bool rescore) const {
     return;
 
   if(has("valid-sets")) {
-    UTIL_THROW_IF2(
-        get<std::vector<std::string>>("valid-sets").size()
-            != get<std::vector<std::string>>("train-sets").size(),
-        "There should be as many validation sets as training sets");
+    UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size()
+                       != get<std::vector<std::string>>("train-sets").size(),
+                   "There should be as many validation sets as training sets");
   }
 
   // validations for learning rate decaying
   UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
                  "Learning rate decay factor greater than 1.0 is unusual");
   UTIL_THROW_IF2(
-       (get<std::string>("lr-decay-strategy") == "epoch+batches"
+      (get<std::string>("lr-decay-strategy") == "epoch+batches"
        || get<std::string>("lr-decay-strategy") == "epoch+stalled")
           && get<std::vector<size_t>>("lr-decay-start").size() != 2,
       "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
@@ -274,7 +272,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --trainsets. "
+      "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created.")
@@ -423,17 +421,15 @@ void Config::addOptionsTranslate(po::options_description& desc) {
 }
 
 void Config::addOptionsRescore(po::options_description& desc) {
-  po::options_description rescore("Rescorer options",
-                                  guess_terminal_width());
+  po::options_description rescore("Rescorer options", guess_terminal_width());
   // clang-format off
   rescore.add_options()
-    // @TODO: remove no-reload?
     ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
       "Do not load existing model specified in --model arg")
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to training corpora: source target")
+      "Paths to corpora to be scored: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --trainsets. "
+      "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created.")
@@ -457,11 +453,8 @@ void Config::addOptionsRescore(po::options_description& desc) {
   desc.add(rescore);
 }
 
-void Config::addOptions(int argc,
-                        char** argv,
-                        bool doValidate,
-                        bool translate,
-                        bool rescore) {
+void Config::addOptions(
+    int argc, char** argv, bool doValidate, bool translate, bool rescore) {
   UTIL_THROW_IF2(translate && rescore,
                  "Config does not support both modes: translate and rescore!");
 
@@ -661,8 +654,7 @@ void Config::addOptions(int argc,
         LOG(info, "No model settings found in model file");
       }
     }
-  }
-  else {
+  } else {
     auto models = vm_["models"].as<std::vector<std::string>>();
     auto model = models[0];
     try {
