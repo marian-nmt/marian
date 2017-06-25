@@ -427,7 +427,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
                          const MatrixWrapper<uint> batchIdsWrap,
-                         const MatrixWrapper<uint> srcMappingWrap)
+                         const MatrixWrapper<uint> srcMappingWrap,
+                         uint shareSize)
 {
   extern __shared__ float _share[];
 
@@ -438,7 +439,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   int origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
-    float* _max = _share;
+    MatrixWrapper<float> _max(_share, shareSize);
     _max[origSrcPos] = out(hypoInd, origSrcPos, 0, 0);
     for (int tid = 0; tid < srcLen; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
@@ -468,7 +469,9 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     float max = _max[0];
     __syncthreads();
 
-    float* _sum = _share;// + blockDim.x;
+    //float* _sum = _share;// + blockDim.x;
+    MatrixWrapper<float> _sum(_share, shareSize);
+
     _sum[origSrcPos] = 0.0f;
     for (int tid = 0; tid < srcLen; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
@@ -520,12 +523,12 @@ Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const DeviceVec
   int shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, batchIdsWrap, srcMappingWrap);
+    (outWrap, batchIdsWrap, srcMappingWrap, threads);
 
   return Out;
 }
 
-__global__ void gLogSoftMax(MatrixWrapper<float> out)
+__global__ void gLogSoftMax(MatrixWrapper<float> out, uint shareSize)
 {
   extern __shared__ float _share[];
 
@@ -535,7 +538,9 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out)
   int rowIdx =  blockIdx.x;
 
   while (rowIdx < rows) {
-    float* _max = _share;
+    //float* _max = _share;
+    MatrixWrapper<float> _max(_share, shareSize);
+
     _max[threadIdx.x] = out(rowIdx, threadIdx.x, 0, 0);
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
@@ -562,7 +567,8 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out)
     float max = _max[0];
     __syncthreads();
 
-    float* _sum = _share;// + blockDim.x;
+    //float* _sum = _share;// + blockDim.x;
+    MatrixWrapper<float> _sum(_share, shareSize);
 
     _sum[threadIdx.x] = 0.0f;
     for (int tid = 0; tid < cols; tid += blockDim.x) {
@@ -611,7 +617,7 @@ Matrix& LogSoftmax(Matrix& Out)
   int shared = sizeof(float) * threads;
 
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (Out);
+    (Out, threads);
 
   return Out;
 }

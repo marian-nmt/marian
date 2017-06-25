@@ -232,10 +232,12 @@ template <class Functor>
 __global__ void gBroadcastVecColumn(Functor functor,
                                     MatrixWrapper<float> outWrap,
                                     const MatrixWrapper<float> inWrap) {
-  extern __shared__ float sdata[];
+  extern __shared__ float sdataOrig[];
 
   size_t rows  = outWrap.dim(0);
   size_t cols = outWrap.dim(1);
+
+  MatrixWrapper<float> sdata(sdataOrig, rows);
 
   if (threadIdx.x == 0) {
     for (int i = 0; i < rows; ++i)
