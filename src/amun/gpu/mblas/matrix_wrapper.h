@@ -110,6 +110,16 @@ public:
     dataConst_ = thrust::raw_pointer_cast(vec.data());
   }
 
+  __device__
+  MatrixWrapper(T *ptr, uint size)
+  {
+    dim_[0] = size;
+    size_ = size;
+
+    data_ = ptr;
+    dataConst_ = ptr;
+  }
+
   __device__ __host__
   uint dim(uint i) const
   {  return dim_[i]; }
