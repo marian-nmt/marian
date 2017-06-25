@@ -1,4 +1,3 @@
-
 #include <boost/algorithm/string.hpp>
 #include <set>
 #include <string>
@@ -95,40 +94,44 @@ void ProcessPaths(YAML::Node& node,
   }
 }
 
-void Config::validate(bool translate) const {
-  if(!translate) {
-    UTIL_THROW_IF2(!has("train-sets")
-                       || get<std::vector<std::string>>("train-sets").empty(),
-                   "No train sets given in config file or on command line");
-    if(has("vocabs")) {
-      UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size()
-                         != get<std::vector<std::string>>("train-sets").size(),
-                     "There should be as many vocabularies as training sets");
-    }
-    if(has("valid-sets")) {
-      UTIL_THROW_IF2(
-          get<std::vector<std::string>>("valid-sets").size()
-              != get<std::vector<std::string>>("train-sets").size(),
-          "There should be as many validation sets as training sets");
-    }
+void Config::validateOptions(bool translate, bool rescore) const {
+  if(translate)
+    return;
 
-    // validations for learning rate decaying
-    UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
-                   "Learning rate decay factor greater than 1.0 is unusual");
-    UTIL_THROW_IF2(
-         (get<std::string>("lr-decay-strategy") == "epoch+batches"
-         || get<std::string>("lr-decay-strategy") == "epoch+stalled")
-            && get<std::vector<size_t>>("lr-decay-start").size() != 2,
-        "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
-        "values specified with --lr-decay-start options");
-    UTIL_THROW_IF2(
-        (get<std::string>("lr-decay-strategy") == "epoch"
-         || get<std::string>("lr-decay-strategy") == "batches"
-         || get<std::string>("lr-decay-strategy") == "stalled")
-            && get<std::vector<size_t>>("lr-decay-start").size() != 1,
-        "Single decay strategies require only one value specified with "
-        "--lr-decay-start option");
+  UTIL_THROW_IF2(
+      !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
+      "No train sets given in config file or on command line");
+  if(has("vocabs")) {
+    UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size()
+                       != get<std::vector<std::string>>("train-sets").size(),
+                   "There should be as many vocabularies as training sets");
   }
+
+  if(rescore)
+    return;
+
+  if(has("valid-sets")) {
+    UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size()
+                       != get<std::vector<std::string>>("train-sets").size(),
+                   "There should be as many validation sets as training sets");
+  }
+
+  // validations for learning rate decaying
+  UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
+                 "Learning rate decay factor greater than 1.0 is unusual");
+  UTIL_THROW_IF2(
+      (get<std::string>("lr-decay-strategy") == "epoch+batches"
+       || get<std::string>("lr-decay-strategy") == "epoch+stalled")
+          && get<std::vector<size_t>>("lr-decay-start").size() != 2,
+      "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
+      "values specified with --lr-decay-start options");
+  UTIL_THROW_IF2(
+      (get<std::string>("lr-decay-strategy") == "epoch"
+       || get<std::string>("lr-decay-strategy") == "batches"
+       || get<std::string>("lr-decay-strategy") == "stalled")
+          && get<std::vector<size_t>>("lr-decay-start").size() != 1,
+      "Single decay strategies require only one value specified with "
+      "--lr-decay-start option");
 }
 
 void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
@@ -188,7 +191,8 @@ void Config::addOptionsCommon(po::options_description& desc,
 }
 
 void Config::addOptionsModel(po::options_description& desc,
-                             bool translate = false) {
+                             bool translate = false,
+                             bool rescore = false) {
   po::options_description model("Model options", guess_terminal_width());
   // clang-format off
   if(!translate) {
@@ -227,7 +231,7 @@ void Config::addOptionsModel(po::options_description& desc,
      "Tie target embeddings and output embeddings in output layer (s2s)")
     ;
 
-  if(!translate) {
+  if(!translate && !rescore) {
     model.add_options()
       ("dropout-rnn", po::value<float>()->default_value(0),
        "Scaling dropout along rnn layers and time (0 = no dropout)")
@@ -270,7 +274,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to training corpora: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --trainsets. "
+      "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created.")
@@ -418,17 +422,54 @@ void Config::addOptionsTranslate(po::options_description& desc) {
   desc.add(translate);
 }
 
-void Config::addOptions(int argc,
-                        char** argv,
-                        bool doValidate,
-                        bool translate) {
-  addOptionsCommon(cmdline_options_, translate);
+void Config::addOptionsRescore(po::options_description& desc) {
+  po::options_description rescore("Rescorer options", guess_terminal_width());
+  // clang-format off
+  rescore.add_options()
+    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
+      "Do not load existing model specified in --model arg")
+    ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to corpora to be scored: source target")
+    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
+      "Paths to vocabulary files have to correspond to --train-sets. "
+      "If this parameter is not supplied we look for vocabulary files "
+      "source.{yml,json} and target.{yml,json}. "
+      "If these files do not exists they are created.")
+    ("max-length", po::value<size_t>()->default_value(1000),
+      "Maximum length of a sentence in a training sentence pair")
+    ("devices,d", po::value<std::vector<int>>()
+      ->multitoken()
+      ->default_value(std::vector<int>({0}), "0"),
+      "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
 
-  addOptionsModel(cmdline_options_, translate);
+    ("mini-batch", po::value<int>()->default_value(64),
+      "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences.")
+    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("maxi-batch", po::value<int>()->default_value(100),
+      "Number of batches to preload for length-based sorting")
+    ;
+  // clang-format on
+  desc.add(rescore);
+}
+
+void Config::addOptions(
+    int argc, char** argv, bool doValidate, bool translate, bool rescore) {
+  UTIL_THROW_IF2(translate && rescore,
+                 "Config does not support both modes: translate and rescore!");
+
+  addOptionsCommon(cmdline_options_, translate);
+  addOptionsModel(cmdline_options_, translate, rescore);
 
   if(!translate) {
-    addOptionsTraining(cmdline_options_);
-    addOptionsValid(cmdline_options_);
+    if(rescore) {
+      addOptionsRescore(cmdline_options_);
+    } else {
+      addOptionsTraining(cmdline_options_);
+      addOptionsValid(cmdline_options_);
+    }
   } else {
     addOptionsTranslate(cmdline_options_);
   }
@@ -489,7 +530,7 @@ void Config::addOptions(int argc,
   SET_OPTION("layer-normalization", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
-  if(!translate) {
+  if(!translate && !rescore) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
@@ -497,7 +538,7 @@ void Config::addOptions(int argc,
   /** model **/
 
   /** training start **/
-  if(!translate) {
+  if(!translate && !rescore) {
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -531,6 +572,15 @@ void Config::addOptions(int argc,
     SET_OPTION("drop-rate", double);
   }
   /** training end **/
+  else if(rescore) {
+    SET_OPTION("no-reload", bool);
+    if(!vm_["train-sets"].empty()) {
+      config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
+    }
+    SET_OPTION("mini-batch-words", int);
+    SET_OPTION("dynamic-batching", bool);
+  }
+  /** translation start **/
   else {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("normalize", bool);
@@ -542,7 +592,7 @@ void Config::addOptions(int argc,
   }
 
   /** valid **/
-  if(!translate) {
+  if(!translate && !rescore) {
     if(!vm_["valid-sets"].empty()) {
       config_["valid-sets"] = vm_["valid-sets"].as<std::vector<std::string>>();
     }
@@ -562,7 +612,7 @@ void Config::addOptions(int argc,
 
   if(doValidate) {
     try {
-      validate(translate);
+      validateOptions(translate, rescore);
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
 
@@ -606,8 +656,7 @@ void Config::addOptions(int argc,
         LOG(info)->warn("No model settings found in model file");
       }
     }
-  }
-  else {
+  } else {
     auto models = vm_["models"].as<std::vector<std::string>>();
     auto model = models[0];
     try {
