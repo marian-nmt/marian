@@ -172,6 +172,8 @@ void Config::addOptionsCommon(po::options_description& desc,
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
+    ("loglevel,v", po::value<std::string>()->default_value("warn")->implicit_value("info"),
+      "set verbosity level of logging (trace - debug - info - warn - err(or) - critical - off).")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -180,8 +182,6 @@ void Config::addOptionsCommon(po::options_description& desc,
      "Dump current (modified) configuration to stdout and exit")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
       "Print this help message and exit")
-    ("verbosity,v", po::value<std::string>()->default_value("warn")->implicit_value("info"),
-      "set verbosity level (trace - debug - info - warn - err(or) - critical - off).")
   ;
   // clang-format on
   desc.add(general);
