@@ -362,20 +362,15 @@ class Decoder {
                   const DeviceVector<uint>& mapping,
                   const std::vector<uint>& beamSizes)
     {
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[0].resume();
+      BEGIN_TIMER(0);
 
-      timers[1].resume();
-
+      BEGIN_TIMER(1);
       //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
       //HiddenState_.ReduceDimensions();
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[1].stop();
-      std::cerr << "GetHiddenState=" << timers[1].format() << std::endl;
+      PAUSE_TIMER(1, "GetHiddenState=");
 
       timers[2].resume();
 
@@ -404,9 +399,7 @@ class Decoder {
       timers[4].stop();
       std::cerr << "GetProbs=" << timers[4].format() << std::endl;
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[0].stop();
-      std::cerr << "Decode=" << timers[0].format() << std::endl;
+      PAUSE_TIMER(0, "Decode=");
     }
 
     mblas::Matrix& GetProbs() {

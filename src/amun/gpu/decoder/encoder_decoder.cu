@@ -60,15 +60,12 @@ State* EncoderDecoder::NewState() const {
 }
 
 void EncoderDecoder::SetSource(const Sentences& source) {
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  timers[6].resume();
+  BEGIN_TIMER(6);
 
   encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  timers[6].stop();
-  std::cerr << "SetSource=" << timers[6].format() << std::endl;
+  PAUSE_TIMER(6, "SetSource=");
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {

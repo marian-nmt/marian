@@ -77,8 +77,7 @@ class BestHyps : public BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes)
     {
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[5].resume();
+      BEGIN_TIMER(5);
 
       using namespace mblas;
 
@@ -172,10 +171,7 @@ class BestHyps : public BestHypsBase
         beams[batchMap[i]].push_back(hyp);
       }
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[5].stop();
-      std::cerr << "CalcBeam=" << timers[5].format() << std::endl;
-
+      PAUSE_TIMER(5, "CalcBeam=");
     }
 
 
