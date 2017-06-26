@@ -20,7 +20,7 @@ using namespace std;
 std::vector<boost::timer::cpu_timer> timers;
 
 int main(int argc, char* argv[]) {
-  timers.resize(19);
+  timers.resize(20);
   for (size_t i = 0; i < timers.size(); ++i) {
     timers[i].stop();
   }
@@ -77,6 +77,10 @@ int main(int argc, char* argv[]) {
 
   god.Cleanup();
   LOG(info, "Total time: {}", timer.format());
-  //sleep(10);
+
+  for (size_t i = 0; i < timers.size(); ++i) {
+    cerr << "timers" << i << timers[i].format();
+  }
+
   return 0;
 }
