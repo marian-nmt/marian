@@ -59,7 +59,6 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
     DeviceVector<uint> indices_;
-    DeviceVector<uint> batchMapping_;
     mblas::IMatrix sentencesMapping_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 

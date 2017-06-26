@@ -21,25 +21,37 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &matrix)
+  MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
-    updateStrides();
+
+    if (colMajor) {
+      updateStrides();
+    }
+    else {
+      updateStridesRowMajor();
+    }
 
     data_ = nullptr;
     dataConst_ = matrix.data();
   }
 
-  MatrixWrapper(TMatrix<T> &matrix)
+  MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
-    updateStrides();
+
+    if (colMajor) {
+      updateStrides();
+    }
+    else {
+      updateStridesRowMajor();
+    }
 
     data_ = matrix.data();
     dataConst_ = data_;

@@ -36,12 +36,10 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  //cerr << "batchMapping_=" << mblas::Debug(batchMapping_, 2) << endl;
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
                      *SourceContext_,
-                     batchMapping_,
                      sentencesMapping_,
                      beamSizes);
   PAUSE_TIMER(19, "Decode=");
@@ -57,14 +55,14 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::SetSource(const Sentences& source) {
   BEGIN_TIMER(6);
-  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_, sentencesMapping_);
+  encoder_->GetContext(source, tab_, *SourceContext_, sentencesMapping_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER(6, "SetSource=");
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_, sentencesMapping_);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentencesMapping_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }

@@ -61,7 +61,6 @@ class Encoder {
 
         template <class It>
         void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
-                        const DeviceVector<uint>* mapping=nullptr,
                         const mblas::IMatrix *sentencesMapping=nullptr)
         {
           InitializeState(batchSize);
@@ -75,11 +74,11 @@ class Encoder {
 	    
             //std::cerr << "invert=" << invert << std::endl;
             if(invert) {
-              assert(mapping);
+              assert(sentencesMapping);
 
               //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
               //std::cerr << "mapping=" << mblas::Debug(*mapping) << std::endl;
-              mblas::MapMatrix(State_, *mapping, *sentencesMapping, n - i - 1);
+              mblas::MapMatrix(State_, *sentencesMapping, n - i - 1);
               //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
               mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength());
@@ -109,7 +108,7 @@ class Encoder {
     Encoder(const Weights& model);
 
     void GetContext(const Sentences& words, size_t tab, mblas::Matrix& context,
-                    DeviceVector<uint>& mapping, mblas::IMatrix &sentencesMapping);
+                    mblas::IMatrix &sentencesMapping);
 
   private:
     Embeddings<Weights::EncEmbeddings> embeddings_;
