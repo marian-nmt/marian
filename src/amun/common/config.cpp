@@ -308,8 +308,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION_NONDEFAULT("load-weights", std::string);
   SET_OPTION("relative-paths", bool);
   SET_OPTION_NONDEFAULT("input-file", std::string);
-  SET_OPTION("log-progress", bool);
-  SET_OPTION("log-info", bool);
+  SET_OPTION("log-progress", std::string);
+  SET_OPTION("log-info", std::string);
   // @TODO: Apply complex overwrites
 
   if (Has("load-weights")) {

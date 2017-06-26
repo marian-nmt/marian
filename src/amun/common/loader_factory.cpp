@@ -22,6 +22,8 @@ LoaderPtr LoaderFactory::Create(
     const std::string& mode) {
 	Loader *loader;
 
+// does not work in debug mode
+#ifdef CUDA
   if (HAS_GPU_SUPPORT && (mode == "GPU")) {
     loader = CreateGPU(god, name, config);
     if (loader) {
@@ -30,7 +32,7 @@ LoaderPtr LoaderFactory::Create(
       LOG(info)->info("No GPU scorer type. Switching to CPU");
     }
   }
-
+#endif
 
   loader = CreateCPU(god, name, config);
   if (loader) {
