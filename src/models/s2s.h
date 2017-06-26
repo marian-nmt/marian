@@ -45,7 +45,11 @@ public:
     for(int i = 1; i <= first; ++i) {
       auto stacked = rnn::stacked_cell(graph);
       for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-        std::string paramPrefix = prefix_ + "_bi_l" + std::to_string(i) + "_cell" + std::to_string(j);
+        std::string paramPrefix = prefix_ + "_bi";
+        if(i > 1)
+          paramPrefix += "_l" + std::to_string(i);
+        if(j > 1)
+          paramPrefix += "_cell" + std::to_string(j);
         stacked.push_back(rnn::cell(graph)
                           ("prefix", paramPrefix));
       }
@@ -64,7 +68,11 @@ public:
     for(int i = 1; i <= first; ++i) {
       auto stacked = rnn::stacked_cell(graph);
       for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-        std::string paramPrefix = prefix_ + "_bi_r_l" + std::to_string(i) + "_cell" + std::to_string(j);
+        std::string paramPrefix = prefix_ + "_bi_r";
+        if(i > 1)
+          paramPrefix += "_l" + std::to_string(i - 2);
+        if(j > 1)
+          paramPrefix += "_cell" + std::to_string(j);
         stacked.push_back(rnn::cell(graph)
                           ("prefix", paramPrefix));
       }
@@ -91,7 +99,9 @@ public:
       for(int i = first + 1; i <= second + first; ++i) {
         auto stacked = rnn::stacked_cell(graph);
         for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
-          std::string paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
+          std::string paramPrefix = prefix_ + "_l" + std::to_string(i - 2);
+          if(j > 1)
+            paramPrefix += "_cell" + std::to_string(j);
           stacked.push_back(rnn::cell(graph)
                             ("prefix", paramPrefix));
         }
@@ -141,33 +151,6 @@ public:
   }
 };
 
-/*
-options:
-  dim-emb: 512
-  dim-rnn: 1024
-  layer-normalization: true
-  dropout-rnn: 0.2
-  dropout-src: 0.1
-  dropout-trg: 0.1
-  skip: true
-
-encoder:
-  rnn:
-    type: alternating
-    layers:
-      - [ gru, gru ]
-      - [ gru, gru ]
-      - [ gru, gru ]
-      - [ gru, gru ]
-decoder:
-  rnn:
-    layers:
-      - [gru, att, gru, gru, gru]
-      - [gru, gru]
-      - [gru, gru]
-      - [gru, gru]
-*/
-
 class DecoderS2S : public DecoderBase {
 private:
   Ptr<rnn::RNN> rnn_;
@@ -208,7 +191,9 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
     // deep transition
     auto highCell = rnn::stacked_cell(graph);
     for(int j = 1; j <= decoderHighDepth; j++) {
-      auto paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
+      auto paramPrefix = prefix_ + "_l" + std::to_string(i - 2);
+      if(j > 1)
+        prefix_ += "_cell" + std::to_string(j);
       highCell.push_back(rnn::cell(graph)
                          ("prefix", paramPrefix));
     }
