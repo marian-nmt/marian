@@ -18,34 +18,6 @@ namespace amunmt {
 namespace GPU {
 namespace mblas {
 
-template<typename T>
-__global__ void gSum(const T *data, size_t count, T &ret)
-{
-  ret = 0.0f;
-  for (size_t i = 0; i < count; ++i) {
-    ret += data[i];
-  }
-}
-
-template<typename T>
-float Sum(const T *data, size_t count)
-{
-  T ret;
-  T *d_ret;
-  HANDLE_ERROR( cudaMalloc((void**)&d_ret, sizeof(T)) );
-
-  const cudaStream_t& stream = CudaStreamHandler::GetStream();
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
-
-  gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
-  HANDLE_ERROR( cudaMemcpy(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost) );
-  HANDLE_ERROR(cudaFree(d_ret));
-
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
-  HANDLE_ERROR( cudaDeviceSynchronize() );
-
-  return ret;
-}
 
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 8) {
@@ -98,10 +70,7 @@ std::string Debug(const HostVector<T> &vec, size_t verbosity = 1)
   strm << "size=" << vec.size();
 
   if (verbosity) {
-    T sum = 0;
-    for (size_t i = 0; i < vec.size(); ++i) {
-      sum += vec[i];
-    }
+    T sum = Sum(vec.data(), vec.size());
     strm << " sum=" << sum;
   }
 

@@ -36,7 +36,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  cerr << "batchMapping_=" << mblas::Debug(batchMapping_, 2) << endl;
+  //cerr << "batchMapping_=" << mblas::Debug(batchMapping_, 2) << endl;
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
