@@ -38,7 +38,7 @@ public:
     try {
       modelOptions->loadModelParameters(modelFile);
     } catch(std::runtime_error& e) {
-      LOG(warn, "No model settings found in model file");
+      LOG(warn)->warn("No model settings found in model file");
     }
     model_ = New<Model>(modelOptions, keywords::inference = true);
     model_->load(graph_, modelFile);
