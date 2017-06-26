@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
   size_t maxiSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("maxi-batch") : 1;
   int miniWords = god.Get<int>("mini-batch-words");
 
-  LOG(info, "Reading input");
+  LOG(info)->info("Reading input");
 
   SentencesPtr maxiBatch(new Sentences());
 
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
   }
 
   god.Cleanup();
-  LOG(info, "Total time: {}", timer.format());
+  LOG(info)->info("Total time: {}", timer.format());
 
   for (size_t i = 0; i < timers.size(); ++i) {
     cerr << "timers" << i << timers[i].format();

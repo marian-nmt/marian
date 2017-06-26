@@ -23,8 +23,8 @@ void EncoderDecoderLoader::Load(const God&) {
   std::string path = Get<std::string>("path");
   std::string type = Get<std::string>("type");
 
-  LOG(info, "Loading model {}", path);
-  LOG(info, "Model type: {}", type);
+  LOG(info)->info("Loading model {}", path);
+  LOG(info)->info("Model type: {}", type);
   if (type == "nematus2") {
     nematusModels_.emplace_back(new Nematus::Weights(path, 0));
   } else {
