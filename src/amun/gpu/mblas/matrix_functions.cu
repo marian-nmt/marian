@@ -50,13 +50,13 @@ __global__ void gMean(MatrixWrapper<float> out,
   }
 }
 
-void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMapping)
+void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask)
 {
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
   assert(Out.dim(0) == In.dim(3));
   assert(Out.dim(1) == In.dim(1));
-  assert(In.dim(0) * In.dim(3) == sentencesMapping.size());
+  assert(In.dim(0) * In.dim(3) == sentencesMask.size());
 
   // mean of each ROW
   size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
@@ -66,7 +66,7 @@ void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMapping)
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
 
-  MatrixWrapper<uint> mappingWrap(sentencesMapping, false);
+  MatrixWrapper<uint> mappingWrap(sentencesMask, false);
 
   size_t threads = MAX_THREADS;
   size_t blocks =  (outWrap.size() / threads) + ((outWrap.size() % threads == 0) ?  0 : 1);
@@ -510,13 +510,13 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const mblas::IMatrix &sentencesMapping, size_t batchSize)
+Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const mblas::IMatrix &sentencesMask, size_t batchSize)
 {
   size_t srcSize = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<uint> batchIdsWrap(batchIds);
-  const MatrixWrapper<uint> sentencesMappingWrap(sentencesMapping, false);
+  const MatrixWrapper<uint> sentencesMappingWrap(sentencesMask, false);
 
   int blocks = batchSize;
   int threads = std::min(MAX_THREADS, (int)srcSize);
@@ -684,20 +684,20 @@ void gMapMatrix(MatrixWrapper<float> in,
   }
 }
 
-void MapMatrix(Matrix& state, const mblas::IMatrix &sentencesMapping, size_t i)
+void MapMatrix(Matrix& state, const mblas::IMatrix &sentencesMask, size_t i)
 {
   // blank out rows in the state matrix where the word position i does not exist
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
 
   int batchSize = state.dim(0);
   int stateLength = state.dim(1);
-  int sentenceLength = sentencesMapping.size() / batchSize;
+  int sentenceLength = sentencesMask.size() / batchSize;
 
   int numThreads = std::min((int)state.size(), MAX_THREADS);
   int numBlocks = (state.size() / numThreads) + 1;
 
   MatrixWrapper<float> stateWrap(state);
-  MatrixWrapper<uint> sentencesMappingWrap(sentencesMapping, false);
+  MatrixWrapper<uint> sentencesMappingWrap(sentencesMask, false);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (stateWrap, sentencesMappingWrap, sentenceLength, i);
