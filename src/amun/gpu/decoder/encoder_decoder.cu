@@ -57,7 +57,7 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::SetSource(const Sentences& source) {
   BEGIN_TIMER(6);
-  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_);
+  encoder_->GetContext(source, tab_, *SourceContext_, batchMapping_, sentencesMapping_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER(6, "SetSource=");
 }

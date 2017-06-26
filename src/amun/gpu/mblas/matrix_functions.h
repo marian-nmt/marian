@@ -126,7 +126,10 @@ Matrix& CopyRow(Matrix& Out,
 
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
-void MapMatrix(Matrix& state, const DeviceVector<uint>& mapping, size_t i);
+void MapMatrix(Matrix& state,
+              const DeviceVector<uint>& mapping,
+              const mblas::IMatrix &sentencesMapping,
+              size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
