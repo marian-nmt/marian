@@ -652,8 +652,8 @@ void Config::addOptions(
       try {
         loadModelParameters(vm_["model"].as<std::string>());
       } catch(std::runtime_error& e) {
-        // @TODO do this with log
-        LOG(warn)->warn("No model settings found in model file");
+        // @TODO: logging doesn't seem working here
+        //LOG(info)->info("No model settings found in model file");
       }
     }
   } else {
@@ -662,7 +662,8 @@ void Config::addOptions(
     try {
       loadModelParameters(model);
     } catch(std::runtime_error& e) {
-      LOG(warn)->warn("No model settings found in model file");
+      // @TODO: logging doesn't seem working here
+      //LOG(info)->info("No model settings found in model file");
     }
   }
 }
