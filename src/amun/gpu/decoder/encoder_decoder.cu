@@ -42,6 +42,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      edIn.GetEmbeddings(),
                      *SourceContext_,
                      batchMapping_,
+                     sentencesMapping_,
                      beamSizes);
   PAUSE_TIMER(19, "Decode=");
 }

@@ -150,6 +150,7 @@ class Decoder {
                                      const mblas::Matrix& HiddenState,
                                      const mblas::Matrix& SourceContext,
                                      const DeviceVector<uint>& mapping,
+                                     const mblas::IMatrix &sentencesMapping,
                                      const std::vector<uint>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
@@ -201,7 +202,7 @@ class Decoder {
 
           Prod(A_, *w_.V_, Temp1_, false, true);
 
-          mblas::Softmax(A_, dBatchMapping_, mapping, batchSize);
+          mblas::Softmax(A_, dBatchMapping_, mapping, sentencesMapping, batchSize);
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
           /*
@@ -362,6 +363,7 @@ class Decoder {
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
                   const DeviceVector<uint>& mapping,
+                  const mblas::IMatrix &sentencesMapping,
                   const std::vector<uint>& beamSizes)
     {
       BEGIN_TIMER(0);
@@ -375,7 +377,7 @@ class Decoder {
       PAUSE_TIMER(1, "GetHiddenState=");
 
       BEGIN_TIMER(2);
-      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
+      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, sentencesMapping, beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       PAUSE_TIMER(2, "GetAlignedSourceContext=");
 
@@ -444,9 +446,10 @@ class Decoder {
                                   const mblas::Matrix& HiddenState,
                                   const mblas::Matrix& SourceContext,
                                   const DeviceVector<uint>& mapping,
+                                  const mblas::IMatrix &sentencesMapping,
                                   const std::vector<uint>& beamSizes) {
       alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
-                                         mapping, beamSizes);
+                                         mapping, sentencesMapping, beamSizes);
     }
 
     void GetNextState(mblas::Matrix& State,

@@ -428,6 +428,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 __global__ void gSoftMax(MatrixWrapper<float> out,
                          const MatrixWrapper<uint> batchIdsWrap,
                          const MatrixWrapper<uint> srcMappingWrap,
+                         const MatrixWrapper<uint> sentencesMappingWrap,
                          uint shareSize)
 {
   extern __shared__ float _share[];
@@ -510,20 +511,21 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const DeviceVector<uint>& srcMapping, size_t batchSize)
+Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const DeviceVector<uint>& srcMapping, const mblas::IMatrix &sentencesMapping, size_t batchSize)
 {
   size_t srcSize = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<uint> batchIdsWrap(batchIds);
   const MatrixWrapper<uint> srcMappingWrap(srcMapping, srcSize, batchSize, 1, 1);
+  const MatrixWrapper<uint> sentencesMappingWrap(sentencesMapping);
 
   int blocks = batchSize;
   int threads = std::min(MAX_THREADS, (int)srcSize);
   int shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, batchIdsWrap, srcMappingWrap, threads);
+    (outWrap, batchIdsWrap, srcMappingWrap, sentencesMappingWrap, threads);
 
   return Out;
 }
