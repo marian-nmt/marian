@@ -182,8 +182,7 @@ class FastGRU {
                         const mblas::Matrix& RUH,
                         const mblas::Matrix& Temp) const
     {
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[7].resume();
+      BEGIN_TIMER(7);
 
       assert(State.dim(2) == 1);
       assert(State.dim(3) == 1);
@@ -223,9 +222,7 @@ class FastGRU {
         (nextWrap, stateWrap, ruhWrap, tempWrap,
             bWrap, bx1Wrap, bx2Wrap);
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[7].stop();
-      std::cerr << "ElementwiseOps=" << timers[7].format() << std::endl;
+      PAUSE_TIMER(7, "ElementwiseOps=");
 
     }
 

@@ -372,32 +372,20 @@ class Decoder {
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
       PAUSE_TIMER(1, "GetHiddenState=");
 
-      timers[2].resume();
-
+      BEGIN_TIMER(2);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, mapping, beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
+      PAUSE_TIMER(2, "GetAlignedSourceContext=");
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[2].stop();
-      std::cerr << "GetAlignedSourceContext=" << timers[2].format() << std::endl;
-
-      timers[3].resume();
-
+      BEGIN_TIMER(3);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      PAUSE_TIMER(3, "GetNextState=");
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[3].stop();
-      std::cerr << "GetNextState=" << timers[3].format() << std::endl;
-
-      timers[4].resume();
-
+      BEGIN_TIMER(4);
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
-
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      timers[4].stop();
-      std::cerr << "GetProbs=" << timers[4].format() << std::endl;
+      PAUSE_TIMER(4, "GetProbs=");
 
       PAUSE_TIMER(0, "Decode=");
     }

@@ -32,9 +32,6 @@ EncoderDecoder::EncoderDecoder(
 {}
 
 void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //decTimer.resume();
-
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -44,11 +41,6 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      *SourceContext_,
                      batchMapping_,
                      beamSizes);
-
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //decTimer.stop();
-  //std::cerr << "Decode=" << decTimer.format() << std::endl;
-
 }
 
 EncoderDecoder::~EncoderDecoder()
