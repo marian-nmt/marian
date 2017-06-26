@@ -189,8 +189,8 @@ class TMatrix : public BaseMatrix {
           << std::flush;
 
       if (verbosity) {
-        float sum = Sum(data(), size());
-        strm << "sum=" << sum << std::flush;
+        //float sum = Sum(data(), size());
+        //strm << "sum=" << sum << std::flush;
 
         if (verbosity == 2) {
           const cudaStream_t& stream = CudaStreamHandler::GetStream();
@@ -236,7 +236,7 @@ class TMatrix : public BaseMatrix {
 };
 
 typedef TMatrix<float> Matrix;
-typedef TMatrix<int> IMatrix;
+typedef TMatrix<uint> IMatrix;
 
 
 }  // namespace mblas

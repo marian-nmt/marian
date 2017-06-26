@@ -105,7 +105,7 @@ void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
 
-void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping);
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping, const IMatrix &sentencesMapping);
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping);
 

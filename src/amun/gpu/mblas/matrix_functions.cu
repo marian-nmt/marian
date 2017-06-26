@@ -50,7 +50,7 @@ __global__ void gMean(MatrixWrapper<float> out,
   }
 }
 
-void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping)
+void Mean(Matrix& Out, const Matrix& In, const DeviceVector<uint>& mapping, const IMatrix &sentencesMapping)
 {
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);

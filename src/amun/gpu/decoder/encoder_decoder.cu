@@ -36,6 +36,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
+  cerr << "batchMapping_=" << mblas::Debug(batchMapping_, 2) << endl;
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
@@ -62,7 +63,7 @@ void EncoderDecoder::SetSource(const Sentences& source) {
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, batchMapping_, sentencesMapping_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
 }
