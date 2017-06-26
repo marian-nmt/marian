@@ -16,8 +16,6 @@ namespace mblas {
 
 using namespace thrust::placeholders;
 
-float Sum(const float *data, size_t count);
-
 
 template <typename T>
 class TMatrix : public BaseMatrix {
@@ -189,8 +187,8 @@ class TMatrix : public BaseMatrix {
           << std::flush;
 
       if (verbosity) {
-        //float sum = Sum(data(), size());
-        //strm << "sum=" << sum << std::flush;
+        T sum = Sum(data(), size());
+        strm << "sum=" << sum << std::flush;
 
         if (verbosity == 2) {
           const cudaStream_t& stream = CudaStreamHandler::GetStream();
