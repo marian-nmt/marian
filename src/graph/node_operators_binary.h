@@ -405,7 +405,6 @@ struct LayerNormalizationOp : public NaryNodeOp {
 };
 
 #ifdef CUDNN
-
 class ConvolutionOp : public NaryNodeOp {
   public:
     ConvolutionOp( const std::vector<Expr>& nodes)

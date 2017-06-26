@@ -204,6 +204,8 @@ Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
   return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 }
 
+#ifdef CUDNN
+
 Expr convolution(Expr x, Expr filters, Expr bias) {
   std::vector<Expr> nodes = {x, filters, bias};
   return Expression<ConvolutionOp>(nodes);
@@ -234,5 +236,7 @@ Expr max_pooling(
       strideHeight, strideWidth,
       PoolingOp::Mode::MAX_POOLING);
 }
+
+#endif
 
 }
