@@ -193,7 +193,7 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
     for(int j = 1; j <= decoderHighDepth; j++) {
       auto paramPrefix = prefix_ + "_l" + std::to_string(i - 2);
       if(j > 1)
-        prefix_ += "_cell" + std::to_string(j);
+        paramPrefix_ += "_cell" + std::to_string(j);
       highCell.push_back(rnn::cell(graph)
                          ("prefix", paramPrefix));
     }
