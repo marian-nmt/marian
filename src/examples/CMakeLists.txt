@@ -1,13 +1,15 @@
 add_executable(iris_example iris/iris.cpp)
 cuda_add_executable(mnist_example mnist/mnist_ffnn.cu)
-cuda_add_executable(mnist_lenet mnist/mnist_lenet.cu)
 
-target_link_libraries(iris_example marian)
-target_link_libraries(mnist_example marian)
-target_link_libraries(mnist_lenet marian)
-
-foreach(exec iris_example mnist_example mnist_lenet)
-  target_link_libraries(${exec} ${EXT_LIBS})
+foreach(exec iris_example mnist_example)
+  target_link_libraries(${exec} marian ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
+
+if(CUDNN_FOUND)
+  cuda_add_executable(mnist_lenet mnist/mnist_lenet.cu)
+  target_link_libraries(mnist_lenet marian ${EXT_LIBS})
+  cuda_add_cublas_to_target(mnist_lenet)
+  set_target_properties(mnist_lenet PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif(CUDNN_FOUND)
