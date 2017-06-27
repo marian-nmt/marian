@@ -148,13 +148,13 @@ public:
       Ptr<Options> options)
       : Cell(options) {
 
-    int dimInput = options_->get<int>("dimInput");
-    int dimState = options_->get<int>("dimState");
-    std::string prefix = options_->get<std::string>("prefix");
+    int dimInput = opt<int>("dimInput");
+    int dimState = opt<int>("dimState");
+    std::string prefix = opt<std::string>("prefix");
 
-    layerNorm_ = options_->get<bool>("layer-normalization", false);
-    dropout_ = options_->get<float>("dropout", 0);
-    final_ = options_->get<bool>("final", false);
+    layerNorm_ = opt<bool>("layer-normalization", false);
+    dropout_ = opt<float>("dropout", 0);
+    final_ = opt<bool>("final", false);
 
     auto U = graph->param(prefix + "_U",
                           {dimState, 2 * dimState},
@@ -214,7 +214,7 @@ public:
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
-    if(inputs.size() == 0)
+    if(inputs.size() == 0 || opt<int>("dimInput"))
       return {};
     else if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);
@@ -288,12 +288,12 @@ public:
            Ptr<Options> options)
       : Cell(options) {
 
-    int dimInput = options_->get<int>("dimInput");
-    int dimState = options_->get<int>("dimState");
-    std::string prefix = options_->get<std::string>("prefix");
+    int dimInput = opt<int>("dimInput");
+    int dimState = opt<int>("dimState");
+    std::string prefix = opt<std::string>("prefix");
 
-    layerNorm_ = options_->get<bool>("layer-normalization", false);
-    dropout_ = options_->get<float>("dropout", 0);
+    layerNorm_ = opt<bool>("layer-normalization", false);
+    dropout_ = opt<float>("dropout", 0);
 
     U_ = graph->param(prefix + "_U", {dimState, 4 * dimState},
                       keywords::init=inits::glorot_uniform);
@@ -380,15 +380,16 @@ public:
       lstmOpsC({cellState, xW, sU, b_});
 
     // dh/dp dh/dc where p = W_o, U_o, b_o
-    auto nextRecState = mask ?
-      lstmOpsO({nextCellState, xW, sU, b_, mask}) :
-      lstmOpsO({nextCellState, xW, sU, b_});
+    auto nextRecState = lstmOpsO({nextCellState, xW, sU, b_});
 
     return {nextRecState, nextCellState};
   }
 };
 
 using LSTM = FastLSTM;
+
+/******************************************************************************/
+// Experimentak cells, use with care
 
 template <class CellType>
 class Multiplicative : public CellType {

@@ -971,41 +971,41 @@ __global__ void gGRUFastBackward(float* outState,
 
           // df/ds
           if(outState)
-            rowOutState[i] += m * z * adj - m + 1;
+            rowOutState[i] += (m * z - m + 1) * adj;
 
           // df/d(xW_r) ...
-          float dfdxW_r = r * (1 - r) * t * adj;
+          float dfdxW_r = m * r * (1 - r) * t * adj;
           if(final)
             dfdxW_r *= rowSU[l] + b[l];
           else
             dfdxW_r *= rowSU[l];
           if(outXW)
-            rowOutXW[i] += m * dfdxW_r;
+            rowOutXW[i] += dfdxW_r;
           if(outSU)
-            rowOutSU[i] += m * dfdxW_r;
+            rowOutSU[i] += dfdxW_r;
           if(outB)
-            atomicAdd(outB + i, m * dfdxW_r);
+            atomicAdd(outB + i, dfdxW_r);
 
           // df/d(xW_z) ...
-          float dfdxW_z = (1 - z) * z * (rowState[i] - h) * adj;
+          float dfdxW_z = m * (1 - z) * z * (rowState[i] - h) * adj;
           if(outXW)
-            rowOutXW[k] += m * dfdxW_z;
+            rowOutXW[k] += dfdxW_z;
           if(outSU)
-            rowOutSU[k] += m * dfdxW_z;
+            rowOutSU[k] += dfdxW_z;
           if(outB)
-            atomicAdd(outB + k, m * dfdxW_z);
+            atomicAdd(outB + k, dfdxW_z);
 
           // df/d(xW_x) ...
-          float dfdxW_x = t * adj;
+          float dfdxW_x = m * t * adj;
           if(outXW)
-            rowOutXW[l] += m * dfdxW_x;
+            rowOutXW[l] += dfdxW_x;
           if(outSU)
-            rowOutSU[l] += m * dfdxW_x * r;
+            rowOutSU[l] += dfdxW_x * r;
           if(outB)
             if(final)
-              atomicAdd(outB + l, m * dfdxW_x * r);
+              atomicAdd(outB + l, dfdxW_x * r);
             else
-              atomicAdd(outB + l, m * dfdxW_x);
+              atomicAdd(outB + l, dfdxW_x);
         }
       }
     }
@@ -1702,7 +1702,7 @@ __global__ void gLSTMCellForward(float* out,
           float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
 
           float cout = gf * rowCell[i] + gi * gc;
-          rowOut[i] = m * cout; /* + (1 - m) * rowCell[i]*/;
+          rowOut[i] = m * cout + (1 - m) * rowCell[i];
         }
       }
     }
@@ -1734,14 +1734,11 @@ __global__ void gLSTMOutputForward(float* out,
                                  const float* xW,
                                  const float* sU,
                                  const float* b,
-                                 const float* mask,
                                  size_t rows,
                                  size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float m = !mask || mask[j];
-
       float* rowOut = out + j * cols;
       const float* rowCell = cell + j * cols;
 
@@ -1755,9 +1752,7 @@ __global__ void gLSTMOutputForward(float* out,
           int k = i + 3 * cols ;
           float go = logit(xWrow[k] + sUrow[k] + b[k]);
 
-          float t = tanhf(rowCell[i]);
-          float out = go * t;
-          rowOut[i] = m * out; /* + (1 - m) * rowCell[i]*/;
+          rowOut[i] = go * tanhf(rowCell[i]);
         }
       }
     }
@@ -1779,7 +1774,6 @@ void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
       inputs[1]->data(),                          // xW
       inputs[2]->data(),                          // sU
       inputs[3]->data(),                          // b
-      inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
       rows,
       cols);
 }
@@ -1828,7 +1822,7 @@ __global__ void gLSTMCellBackward(float* outCell,
 
           // dc/dc_{t-1}
           if(outCell)
-            rowOutCell[i] += m * gf * adj;
+            rowOutCell[i] += (m * gf - m + 1) * adj;
 
           // dc/d(b_f) = dc/d(xW_f) ...
           float dcdxf = m * rowCell[i] * gf * (1 - gf) * adj;
@@ -1896,7 +1890,6 @@ __global__ void gLSTMOutputBackward(float* outCell,
                                   const float* xW,
                                   const float* sU,
                                   const float* b,
-                                  const float* mask,
                                   const float* adj,
                                   size_t rows,
                                   size_t cols) {
@@ -1904,8 +1897,6 @@ __global__ void gLSTMOutputBackward(float* outCell,
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float m = !mask || mask[j];
-
       float* rowOutCell = outCell + j * cols;
       float* rowOutXW = outXW + j * cols * 4;
       float* rowOutSU = outSU + j * cols * 4;
@@ -1929,10 +1920,10 @@ __global__ void gLSTMOutputBackward(float* outCell,
 
           // dc/dc_{t-1}
           if(outCell)
-            rowOutCell[i] += m * go * (1 - t * t) * adj;
+            rowOutCell[i] += go * (1 - t * t) * adj;
 
           // dc/d(b_o) = dc/d(xW_f) ...
-          float dcdxo = m * t * go * (1 - go) * adj;
+          float dcdxo = t * go * (1 - go) * adj;
           if(outXW)
             rowOutXW[k] += dcdxo;
           if(outSU)
@@ -1966,7 +1957,6 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
       inputs[1]->data(),                          // xW
       inputs[2]->data(),                          // sU
       inputs[3]->data(),                          // b
-      inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
       adj->data(),
       rows,
       cols);
