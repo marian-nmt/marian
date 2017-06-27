@@ -314,6 +314,7 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   h_res.resize(numHypos);
 
   //cerr << endl;
+  //cerr << "numHypos=" << numHypos << endl;
   //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
   //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
   //cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;

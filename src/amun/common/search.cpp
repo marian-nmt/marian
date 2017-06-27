@@ -96,6 +96,7 @@ std::shared_ptr<Histories> Search::Decode(const Sentences& sentences) {
         beamSize = maxBeamSize_;
       }
     }
+    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
     bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, states, nextStates);
     if (!hasSurvivors) {
