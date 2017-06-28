@@ -218,6 +218,8 @@ void Config::addOptionsModel(po::options_description& desc,
     ("dec-cell-base-depth", po::value<int>()->default_value(2), "Number of tansitional cells in first decoder layer (s2s)")
     ("dec-cell-high-depth", po::value<int>()->default_value(1), "Number of tansitional cells in next decoder layers (s2s)")
     ("dec-depth", po::value<int>()->default_value(1), "Number of decoder layers (s2s)")
+    ("dec-repeat-context", po::value<bool>()->zero_tokens()->default_value(false),
+     "Repeat attended context as input for each higher decoder layer (s2s)")
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
      "Use skip connections (s2s)")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
@@ -255,6 +257,7 @@ void Config::addOptionsModel(po::options_description& desc,
       "dec-cell",
       "dec-cell-base-depth",
       "dec-cell-high-depth",
+      "dec-repeat-context",
       "skip",
       "layer-normalization",
       "special-vocab",
@@ -497,6 +500,7 @@ void Config::addOptions(int argc,
   SET_OPTION("dec-cell-base-depth", int);
   SET_OPTION("dec-cell-high-depth", int);
   SET_OPTION("dec-depth", int);
+  SET_OPTION("dec-repeat-context", bool);
 
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);

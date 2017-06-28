@@ -195,13 +195,23 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                          ("prefix", paramPrefix));
     }
 
-    highCell.add_input(
-      [](Ptr<rnn::RNN> rnn) {
-        auto att = rnn->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
-        return att->getContext();
-      }
-    );
-    highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
+    // @TODO:
+    // dec-high-context : none repeat conditional conditional-repeat
+    // conditional and conditional-repeat require dec-cell-high-depth > 1
+
+    // Repeat attention output as input for each layer
+    if(opt<bool>("dec-repeat-context")) {
+
+      highCell.add_input(
+        [](Ptr<rnn::RNN> rnn) {
+          return rnn->at(0)->as<rnn::StackedCell>()
+                    ->at(1)->as<rnn::Attention>()
+                    ->getContext();
+        }
+      );
+      highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
+
+    }
 
     // Add cell to RNN (more layers)
     rnn.push_back(highCell);
