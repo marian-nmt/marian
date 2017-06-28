@@ -200,8 +200,7 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
     // conditional and conditional-repeat require dec-cell-high-depth > 1
 
     // Repeat attention output as input for each layer
-    if(opt<bool>("dec-repeat-context")) {
-
+    if(opt<std::string>("dec-high-context") == "repeat") {
       highCell.add_input(
         [](Ptr<rnn::RNN> rnn) {
           return rnn->at(0)->as<rnn::StackedCell>()
@@ -210,7 +209,6 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
         }
       );
       highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
-
     }
 
     // Add cell to RNN (more layers)
