@@ -663,7 +663,7 @@ void Fill(Matrix& In, float value) {
       (inWrap, value);
   }
   else {
-    HANDLE_ERROR(cudaMemset(In.data(), 0, size * sizeof(float)));
+    HANDLE_ERROR(cudaMemsetAsync(In.data(), 0, size * sizeof(float), CudaStreamHandler::GetStream()));
   }
 
 }
