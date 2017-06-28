@@ -11,7 +11,9 @@ namespace GPU {
 ////////////////////////////////////////////
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)
- : Loader(name, config) {}
+ : Loader(name, config)
+{
+}
 
 void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");

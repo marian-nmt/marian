@@ -424,6 +424,8 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
 
+void RandomizeMemory();
+
 } // namespace mblas
 } // namespace GPU
 }

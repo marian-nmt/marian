@@ -847,6 +847,22 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
   Normalization(out, in, alpha, nullptr, eps);
 }
 
+__global__ void gRandomizeMemory(int *data)
+{
+  clock_t start = clock();
+
+}
+
+void RandomizeMemory()
+{
+  int *data;
+  HANDLE_ERROR( cudaMalloc((void**)&data, 8 * 1024 ^ 3) );
+
+  uint threads = 1024;
+  uint blocks = 8 * 1024 ^ 3 / threads;
+  gRandomizeMemory<<<blocks, threads>>>(data);
+}
+
 }  // namespace mblas
 }  // namespace GPU
 }  // namespace amunmt
