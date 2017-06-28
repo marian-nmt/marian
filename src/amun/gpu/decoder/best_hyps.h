@@ -13,8 +13,6 @@
 
 #include "gpu/decoder/encoder_decoder.h"
 
-extern std::vector<boost::timer::cpu_timer> timers;
-
 namespace amunmt {
 namespace GPU {
 
@@ -77,7 +75,7 @@ class BestHyps : public BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes)
     {
-      BEGIN_TIMER("CalcBeam=");
+      BEGIN_TIMER("CalcBeam");
 
       using namespace mblas;
 
@@ -171,7 +169,7 @@ class BestHyps : public BestHypsBase
         beams[batchMap[i]].push_back(hyp);
       }
 
-      PAUSE_TIMER("CalcBeam=");
+      PAUSE_TIMER("CalcBeam");
     }
 
 

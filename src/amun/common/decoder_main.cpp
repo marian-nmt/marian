@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <boost/timer/timer.hpp>
 
 #include "common/god.h"
 #include "common/logging.h"

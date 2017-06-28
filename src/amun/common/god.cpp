@@ -25,24 +25,21 @@ using namespace std;
 
 namespace amunmt {
 
-std::vector<boost::timer::cpu_timer> timers;
+std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 
 God::God()
  : threadIncr_(0)
 {
-  timers.resize(20);
-  for (size_t i = 0; i < timers.size(); ++i) {
-    timers[i].stop();
-  }
-
 }
 
 God::~God()
 {
   Cleanup();
 
-  for (size_t i = 0; i < timers.size(); ++i) {
-    cerr << "timers" << i << timers[i].format();
+  cerr << "timers:" << endl;
+  for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
+    const boost::timer::cpu_timer &timer = iter->second;
+    cerr << iter->first << "=" << timer.format();
   }
 }
 
