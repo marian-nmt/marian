@@ -155,6 +155,10 @@ public:
     return inputs;
   }
 
+  virtual void setLazyInputs(std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
+    lazyInputs_ = lazy;
+  }
+
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) = 0;
   virtual State applyState(std::vector<Expr>, State, Expr = nullptr) = 0;
 
@@ -248,6 +252,18 @@ public:
   virtual void clear() {
     for(auto s : stackables_)
       s->clear();
+  }
+
+  virtual std::vector<Expr> getLazyInputs(Ptr<rnn::RNN> parent) {
+    UTIL_THROW_IF2(!stackables_[0]->is<Cell>(),
+                   "First stackable should be of type Cell");
+    return stackables_[0]->as<Cell>()->getLazyInputs(parent);
+  }
+
+  virtual void setLazyInputs(std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
+    UTIL_THROW_IF2(!stackables_[0]->is<Cell>(),
+                   "First stackable should be of type Cell");
+    stackables_[0]->as<Cell>()->setLazyInputs(lazy);
   }
 
 };

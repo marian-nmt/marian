@@ -214,7 +214,7 @@ public:
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     Expr input;
-    if(inputs.size() == 0 || opt<int>("dimInput"))
+    if(inputs.size() == 0)
       return {};
     else if(inputs.size() > 1)
       input = concatenate(inputs, keywords::axis = 1);

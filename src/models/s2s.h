@@ -195,13 +195,13 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                          ("prefix", paramPrefix));
     }
 
-    //highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
-    //highCell.add_input(
-    //  [](Ptr<rnn::RNN> rnn) {
-    //    auto att = rnn->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
-    //    return att->getContext();
-    //  }
-    //);
+    highCell.add_input(
+      [](Ptr<rnn::RNN> rnn) {
+        auto att = rnn->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+        return att->getContext();
+      }
+    );
+    highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
 
     // Add cell to RNN (more layers)
     rnn.push_back(highCell);

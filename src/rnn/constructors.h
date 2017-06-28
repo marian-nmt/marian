@@ -38,22 +38,35 @@ public:
 
   virtual Ptr<Cell> construct() {
     std::string type = options_->get<std::string>("type");
-    if(type == "gru")
-      return New<GRU>(graph_, options_);
-    if(type == "lstm")
-      return New<LSTM>(graph_, options_);
-    if(type == "mlstm")
-      return New<MLSTM>(graph_, options_);
-    if(type == "mgru")
-      return New<MGRU>(graph_, options_);
-    if(type == "tanh")
-      return New<Tanh>(graph_, options_);
-    return New<GRU>(graph_, options_);
+    if(type == "gru") {
+      auto cell = New<GRU>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else if(type == "lstm") {
+      auto cell = New<LSTM>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else if(type == "mlstm") {
+      auto cell = New<MLSTM>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else if(type == "mgru"){
+      auto cell = New<MGRU>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else if(type == "tanh") {
+      auto cell = New<Tanh>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else {
+      UTIL_THROW2("Unknown RNN cell type");
+    }
   }
 
   CellFactory clone() {
     CellFactory aClone(graph_);
     aClone.options_->merge(options_);
+    aClone.inputs_ = inputs_;
     return aClone;
   }
 
