@@ -82,6 +82,14 @@ Tested on different machines and distributions:
  * CMake 3.5.1
  * The CPU version should be a lot more forgiving concerning GCC/G++ or Boost versions.
 
+#### macOS
+
+To be able to make the CPU version on macOS, first install [brew](https://brew.sh/) and then run:
+
+    brew install cmake boost boost-python
+
+Then, proceed to the next section.
+
 ## Download and Compilation
 
 Clone a fresh copy from github:
@@ -98,6 +106,14 @@ The project is a standard CMake out-of-source build:
 
 If run for the first time, this will also download Marian -- the training
 framework for Marian.
+
+### Compile Python bindings
+
+In order to compile the Python library, after running _make_ as in the previous section, do:
+
+    make python
+
+This will generate a _libamunmt.dylib_ or _libamunmt.so_ in your `build/src/` directory, which can be imported from Python.
 
 ## Running Marian
 
