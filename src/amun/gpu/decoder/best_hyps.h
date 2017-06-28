@@ -77,7 +77,7 @@ class BestHyps : public BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes)
     {
-      BEGIN_TIMER(5);
+      BEGIN_TIMER("CalcBeam=");
 
       using namespace mblas;
 
@@ -171,7 +171,7 @@ class BestHyps : public BestHypsBase
         beams[batchMap[i]].push_back(hyp);
       }
 
-      PAUSE_TIMER(5, "CalcBeam=");
+      PAUSE_TIMER("CalcBeam=");
     }
 
 

@@ -32,7 +32,7 @@ EncoderDecoder::EncoderDecoder(
 {}
 
 void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
-  BEGIN_TIMER(19);
+  BEGIN_TIMER("Decode=");
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -42,7 +42,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      *SourceContext_,
                      sentencesMask_,
                      beamSizes);
-  PAUSE_TIMER(19, "Decode=");
+  PAUSE_TIMER("Decode=");
 }
 
 EncoderDecoder::~EncoderDecoder()
@@ -54,10 +54,10 @@ State* EncoderDecoder::NewState() const {
 }
 
 void EncoderDecoder::SetSource(const Sentences& source) {
-  BEGIN_TIMER(6);
+  BEGIN_TIMER("SetSource=");
   encoder_->GetContext(source, tab_, *SourceContext_, sentencesMask_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
-  PAUSE_TIMER(6, "SetSource=");
+  PAUSE_TIMER("SetSource=");
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {

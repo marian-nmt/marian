@@ -97,9 +97,9 @@ namespace iteralgo = std;
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-#define BEGIN_TIMER(num) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[num].resume(); }
-#define PAUSE_TIMER(num, str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
-                                timers[num].stop(); \
-                              }
+#define BEGIN_TIMER(str) {} //{ HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[num].resume(); }
+#define PAUSE_TIMER(str) {} //{ HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
+                              //  timers[num].stop(); \
+                              //}
 
 

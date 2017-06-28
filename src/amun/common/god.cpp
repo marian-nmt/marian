@@ -1,6 +1,7 @@
 #include <vector>
 #include <sstream>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/timer/timer.hpp>
 
 #include <yaml-cpp/yaml.h>
 
@@ -24,14 +25,25 @@ using namespace std;
 
 namespace amunmt {
 
+std::vector<boost::timer::cpu_timer> timers;
+
 God::God()
  : threadIncr_(0)
 {
+  timers.resize(20);
+  for (size_t i = 0; i < timers.size(); ++i) {
+    timers[i].stop();
+  }
+
 }
 
 God::~God()
 {
   Cleanup();
+
+  for (size_t i = 0; i < timers.size(); ++i) {
+    cerr << "timers" << i << timers[i].format();
+  }
 }
 
 God& God::Init(const std::string& options) {

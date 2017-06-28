@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 #include <memory>
-#include <boost/timer/timer.hpp>
 
 #include "common/god.h"
 #include "common/logging.h"
@@ -17,14 +16,8 @@
 using namespace amunmt;
 using namespace std;
 
-std::vector<boost::timer::cpu_timer> timers;
-
-int main(int argc, char* argv[]) {
-  timers.resize(20);
-  for (size_t i = 0; i < timers.size(); ++i) {
-    timers[i].stop();
-  }
-
+int main(int argc, char* argv[])
+{
   God god;
   god.Init(argc, argv);
 
@@ -77,10 +70,6 @@ int main(int argc, char* argv[]) {
 
   god.Cleanup();
   LOG(info)->info("Total time: {}", timer.format());
-
-  for (size_t i = 0; i < timers.size(); ++i) {
-    cerr << "timers" << i << timers[i].format();
-  }
 
   return 0;
 }
