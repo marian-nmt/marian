@@ -188,11 +188,21 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
   for(int i = 2; i <= decoderLayers; ++i) {
     // deep transition
     auto highCell = rnn::stacked_cell(graph);
+
     for(int j = 1; j <= decoderHighDepth; j++) {
       auto paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
       highCell.push_back(rnn::cell(graph)
                          ("prefix", paramPrefix));
     }
+
+    //highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
+    //highCell.add_input(
+    //  [](Ptr<rnn::RNN> rnn) {
+    //    auto att = rnn->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    //    return att->getContext();
+    //  }
+    //);
+
     // Add cell to RNN (more layers)
     rnn.push_back(highCell);
   }

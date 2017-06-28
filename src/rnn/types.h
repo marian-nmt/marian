@@ -134,13 +134,25 @@ public:
   virtual int dimOutput() = 0;
 };
 
+class RNN;
+
 class Cell : public Stackable {
+protected:
+  std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazyInputs_;
+
 public:
   Cell(Ptr<Options> options)
     : Stackable(options) {}
 
   State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
+  }
+
+  virtual std::vector<Expr> getLazyInputs(Ptr<rnn::RNN> parent) {
+    std::vector<Expr> inputs;
+    for(auto lazy : lazyInputs_)
+      inputs.push_back(lazy(parent));
+    return inputs;
   }
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) = 0;

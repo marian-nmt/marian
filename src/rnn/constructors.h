@@ -30,6 +30,9 @@ struct InputFactory : public StackableFactory {
 };
 
 class CellFactory : public StackableFactory {
+protected:
+  std::vector<std::function<Expr(Ptr<rnn::RNN>)>> inputs_;
+
 public:
   CellFactory(Ptr<ExpressionGraph> graph) : StackableFactory(graph) {}
 
@@ -52,6 +55,14 @@ public:
     CellFactory aClone(graph_);
     aClone.options_->merge(options_);
     return aClone;
+  }
+
+  virtual void add_input(std::function<Expr(Ptr<rnn::RNN>)> func) {
+    inputs_.push_back(func);
+  }
+
+  virtual void add_input(Expr input) {
+    inputs_.push_back([input](Ptr<rnn::RNN> rnn) { return input; });
   }
 
 };
@@ -79,6 +90,10 @@ public:
 
         sf->getOptions()->set("dimInput", lastDimInput);
         lastDimInput = 0;
+
+        if(i == 0)
+          for(auto f : inputs_)
+            cellFactory->add_input(f);
 
         stacked->push_back(cellFactory->construct());
       }
@@ -140,8 +155,12 @@ public:
       auto lf = layerFactories_[i];
 
       lf->getOptions()->merge(options_);
-      if(i > 0)
-        lf->getOptions()->set("dimInput", layerFactories_[i - 1]->getOptions()->get<int>("dimState"));
+      if(i > 0) {
+        int dimInput = layerFactories_[i - 1]->getOptions()->get<int>("dimState")
+          + lf->getOptions()->get<int>("dimInputExtra", 0);
+
+        lf->getOptions()->set("dimInput", dimInput);
+      }
 
       if(opt<rnn::dir>("direction", rnn::dir::forward) == rnn::dir::alternating_forward) {
         if(i % 2 == 0)

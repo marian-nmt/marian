@@ -140,7 +140,8 @@ public:
 };
 
 
-class RNN : public BaseRNN {
+class RNN : public BaseRNN,
+            public std::enable_shared_from_this<RNN> {
 private:
   bool skip_;
   bool skipFirst_;
@@ -170,7 +171,16 @@ public:
       if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
         layerMask = nullptr;
 
-      auto layerOutput = rnns_[i]->transduce(layerInput, layerMask);
+      auto lazyInput = layerInput;
+
+      //auto cell = rnns_[i]->at(0);
+      //auto lazyInputs = cell->getLazyInputs(shared_from_this());
+      //if(!lazyInputs.empty()) {
+      //  lazyInputs.push_back(layerInput);
+      //  lazyInput = concatenate(lazyInputs, keywords::axis=1);
+      //}
+
+      auto layerOutput = rnns_[i]->transduce(lazyInput, layerMask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
@@ -194,7 +204,19 @@ public:
       if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
         layerMask = nullptr;
 
-      auto layerOutput = rnns_[i]->transduce(layerInput, States({states[i]}), layerMask);
+      //Expr lazyInput;
+      //auto cell = rnns_[i]->at(0);
+      //auto lazyInputs = cell->getLazyInputs(shared_from_this());
+      //if(!lazyInputs.empty()) {
+      //  lazyInputs.push_back(layerInput);
+      //  lazyInput = concatenate(lazyInputs, keywords::axis=1);
+      //}
+      //else {
+      //  lazyInput = layerInput;
+      //}
+      Expr lazyInput = layerInput;
+
+      auto layerOutput = rnns_[i]->transduce(lazyInput, States({states[i]}), layerMask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
@@ -218,7 +240,16 @@ public:
       if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
         layerMask = nullptr;
 
-      auto layerOutput = rnns_[i]->transduce(layerInput, States({state}), layerMask);
+      auto lazyInput = layerInput;
+
+      //auto cell = rnns_[i]->at(0);
+      //auto lazyInputs = cell->getLazyInputs(shared_from_this());
+      //if(!lazyInputs.empty()) {
+      //  lazyInputs.push_back(layerInput);
+      //  lazyInput = concatenate(lazyInputs, keywords::axis=1);
+      //}
+
+      auto layerOutput = rnns_[i]->transduce(lazyInput, States({state}), layerMask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
