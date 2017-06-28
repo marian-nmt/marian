@@ -75,7 +75,7 @@ class TMatrix : public BaseMatrix {
       HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
       //std::cerr << "malloc data1:" << data_ << std::endl;
       if (zero) {
-        HANDLE_ERROR( cudaMemset(data_, 0, arrSize_ * sizeof(T)) );
+        HANDLE_ERROR( cudaMemsetAsync(data_, 0, arrSize_ * sizeof(T), CudaStreamHandler::GetStream()) );
       }
     }
 
