@@ -72,12 +72,12 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
   }
 
   //cerr << "GetContext3=" << context.Debug(1) << endl;
-  forwardRnn_.GetContext(embeddedWords_.cbegin(),
+  forwardRnn_.Encode(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
                          context, source.size(), false);
   //cerr << "GetContext4=" << context.Debug(1) << endl;
 
-  backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
+  backwardRnn_.Encode(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
                           context, source.size(),
                           true,

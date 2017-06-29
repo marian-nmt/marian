@@ -60,7 +60,7 @@ class Encoder {
         }
 
         template <class It>
-        void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
+        void Encode(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
                         const mblas::IMatrix *sentencesMask=nullptr)
         {
           InitializeState(batchSize);

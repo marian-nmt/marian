@@ -20,10 +20,10 @@ void Encoder::Encode(const std::vector<size_t>& words,
     //cerr << "embed=" << embed.Debug(true) << endl;
   }
 
-  forwardRnn_.GetContext(embeddedWords.cbegin(),
+  forwardRnn_.Encode(embeddedWords.cbegin(),
 						 embeddedWords.cend(),
 						 context, false);
-  backwardRnn_.GetContext(embeddedWords.crbegin(),
+  backwardRnn_.Encode(embeddedWords.crbegin(),
 						  embeddedWords.crend(),
 						  context, true);
 }

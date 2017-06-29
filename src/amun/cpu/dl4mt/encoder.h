@@ -50,7 +50,7 @@ class Encoder {
         }
         
         template <class It>
-        void GetContext(It it, It end,
+        void Encode(It it, It end,
                         mblas::Matrix& Context, bool invert) {
           InitializeState();
           
