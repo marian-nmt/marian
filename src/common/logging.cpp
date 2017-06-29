@@ -40,7 +40,7 @@ set_loglevel(spdlog::logger& logger, std::string const level) {
     logger.set_level(spdlog::level::off);
   else {
     logger.warn("Unknown log level '{}' for logger '{}'",
-		level.c_str(), logger.name().c_str());
+                level.c_str(), logger.name().c_str());
     return false;
   }
   return true;
@@ -73,8 +73,8 @@ void createLoggers(const marian::Config* options) {
   Logger devnull{stderrLogger("devnull", "%v")};
   devnull->set_level(spdlog::level::off);
 
-  if (options->has("verbose")) {
-    std::string loglevel = options->get<std::string>("verbose");
+  if (options->has("log-level")) {
+    std::string loglevel = options->get<std::string>("log-level");
     if (!set_loglevel(*info, loglevel)) return;
     set_loglevel(*warn, loglevel);
     set_loglevel(*config, loglevel);

@@ -175,7 +175,7 @@ void Config::addOptionsCommon(po::options_description& desc,
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
-    ("loglevel", po::value<std::string>()->default_value("warn")->implicit_value("info"),
+    ("log-level", po::value<std::string>()->default_value("info"),
       "set verbosity level of logging (trace - debug - info - warn - err(or) - critical - off).")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
@@ -647,6 +647,7 @@ void Config::addOptions(
   }
 
   SET_OPTION("workspace", size_t);
+  SET_OPTION("log-level", std::string);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);
