@@ -89,7 +89,7 @@ public:
 
   void reserve(size_t elements = 0) {
     float mult = elements / FLOATS + 1;
-    LOG(memory,
+    LOG(memory)->info(
         "Extending reserved space to {} MB (device {})",
         mult * CHUNK,
         device_.getDevice());
@@ -102,7 +102,7 @@ public:
 
   void reserveExact(size_t elements = 0) {
     size_t mbytes = (elements * sizeof(float)) / MBYTE;
-    LOG(memory,
+    LOG(memory)->info(
         "Reserving space for {} floats ({} MB, device {})",
         elements,
         mbytes,

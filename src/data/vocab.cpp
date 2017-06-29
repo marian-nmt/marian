@@ -83,7 +83,7 @@ void Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 void Vocab::load(const std::string& vocabPath, int max) {
-  LOG(data, "Loading vocabulary from {}", vocabPath);
+  LOG(data)->info("Loading vocabulary from {}", vocabPath);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
 
   std::unordered_set<Word> seenSpecial;
@@ -127,11 +127,8 @@ public:
 void Vocab::create(const std::string& vocabPath,
                    int max,
                    const std::string& trainPath) {
-  LOG(data,
-      "Creating vocabulary {} from {} (max: {})",
-      vocabPath,
-      trainPath,
-      max);
+  LOG(data)->info("Creating vocabulary {} from {} (max: {})",
+		  vocabPath, trainPath, max);
 
   UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
                  "Vocab file " << vocabPath << " exists. Not overwriting");

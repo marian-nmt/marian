@@ -1,13 +1,11 @@
 #include "marian.h"
-#include "translator/beam_search.h"
-#include "translator/translator.h"
+#include "rescorer/rescorer.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv, true, true);
-
-  auto task = New<TranslateMultiGPU<BeamSearch>>(options);
+  auto options = New<Config>(argc, argv, true, false, true);
+  auto task = rescorerByType(options);
 
   boost::timer::cpu_timer timer;
   task->run();

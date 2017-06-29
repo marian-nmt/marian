@@ -51,21 +51,21 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(!translate) {
     std::vector<Vocab> vocabs;
     if(vocabPaths.empty()) {
-      for(int i = 0; i < paths_.size(); ++i) {
+      for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
         vocabs_.emplace_back(vocab);
       }
     } else {
-      for(int i = 0; i < vocabPaths.size(); ++i) {
+      for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
         vocabs_.emplace_back(vocab);
       }
     }
   } else {
-    for(int i = 0; i < vocabPaths.size() - 1; ++i) {
+    for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
@@ -101,12 +101,16 @@ Corpus::Corpus(std::vector<std::string> paths,
 SentenceTuple Corpus::next() {
   bool cont = true;
   while(cont) {
+    // get index of the current sentence
     size_t curId = pos_;
+    // if corpus has been shuffled, ids_ contains sentence indexes
     if(pos_ < ids_.size())
-      curId = ids_[pos_++];
+      curId = ids_[pos_];
+    pos_++;
 
+    // fill up the sentence tuple with sentences from all input files
     SentenceTuple tup(curId);
-    for(int i = 0; i < files_.size(); ++i) {
+    for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
       if(std::getline((std::istream&)*files_[i], line)) {
         Words words = (*vocabs_[i])(line);
@@ -116,7 +120,10 @@ SentenceTuple Corpus::next() {
       }
     }
 
+    // continue only if each input file has provided an example
     cont = tup.size() == files_.size();
+
+    // continue if all sentences are no longer than maximum allowed length
     if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
        }))
@@ -142,7 +149,7 @@ void Corpus::reset() {
 }
 
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
-  LOG(data, "Shuffling files");
+  LOG(data)->info("Shuffling files");
 
   std::vector<std::vector<std::string>> corpus;
 
@@ -154,7 +161,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   bool cont = true;
   while(cont) {
     std::vector<std::string> lines(files_.size());
-    for(int i = 0; i < files_.size(); ++i) {
+    for(size_t i = 0; i < files_.size(); ++i) {
       cont = cont && std::getline((std::istream&)*files_[i], lines[i]);
     }
     if(cont)
@@ -169,7 +176,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   tempFiles_.clear();
 
   std::vector<UPtr<OutputFileStream>> outs;
-  for(int i = 0; i < files_.size(); ++i) {
+  for(size_t i = 0; i < files_.size(); ++i) {
     tempFiles_.emplace_back(
         new TemporaryFile(options_->get<std::string>("tempdir")));
     outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
@@ -184,11 +191,11 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   }
 
   files_.clear();
-  for(int i = 0; i < outs.size(); ++i) {
+  for(size_t i = 0; i < outs.size(); ++i) {
     files_.emplace_back(new InputFileStream(*tempFiles_[i]));
   }
 
-  LOG(data, "Done");
+  LOG(data)->info("Done");
 }
 }
 }
