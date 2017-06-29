@@ -29,6 +29,7 @@ public:
     std::tie(batchEmbeddings, batchMask)
       = EncoderBase::lookup(embeddings, batch, encoderIndex);
 
+    // backward RNN for encoding
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
     auto rnnBw = rnn::rnn(graph)
                  ("type", "lstm")
@@ -56,6 +57,7 @@ public:
   virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
     using namespace keywords;
 
+    // Use first encoded word as start state
     auto start = marian::step(encState->getContext(), 0);
 
     rnn::States startStates({{start, start}});
@@ -68,6 +70,7 @@ public:
 
     auto embeddings = state->getTargetEmbeddings();
 
+    // forward RNN for decoder
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
     auto rnn = rnn::rnn(graph)
                ("type", "lstm")
