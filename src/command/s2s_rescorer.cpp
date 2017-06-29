@@ -5,10 +5,9 @@ int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv, true, false, true);
-  auto task = rescorerByType(options);
-
+  
   boost::timer::cpu_timer timer;
-  task->run();
+  WrapModelType<Rescore, Rescorer>(options)->run();
   LOG(info)->info("Total time: {}", timer.format());
 
   return 0;

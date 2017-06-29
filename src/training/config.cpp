@@ -510,7 +510,7 @@ void Config::addOptions(
   if(vm_.count("config")) {
     configPath = vm_["config"].as<std::string>();
     config_ = YAML::Load(InputFileStream(configPath));
-  } else if(!translate && boost::filesystem::exists(
+  } else if(!translate && !rescore && boost::filesystem::exists(
                               vm_["model"].as<std::string>() + ".yml")
             && !vm_["no-reload"].as<bool>()) {
     configPath = vm_["model"].as<std::string>() + ".yml";
@@ -653,7 +653,7 @@ void Config::addOptions(
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  if(!translate)
+  if(!translate && !rescore)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 

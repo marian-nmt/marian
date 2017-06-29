@@ -15,8 +15,27 @@ namespace marian {
 
 using namespace data;
 
+template <class Builder>
+class Rescorer {
+private:
+  Ptr<Builder> builder_;
+
+public:
+  template <typename ...Args>
+  Rescorer(Args ...args) :
+    builder_(new Builder(args...)) {}
+
+  void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
+    builder_->load(graph, modelFile);
+  }
+
+  Expr buildToScore(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
+    return builder_->buildToScore(graph, batch);
+  }
+};
+
 template <class Model>
-class Rescorer : public ModelTask {
+class Rescore : public ModelTask {
 private:
   Ptr<Config> options_;
   Ptr<Corpus> corpus_;
@@ -24,7 +43,7 @@ private:
   Ptr<Model> model_;
 
 public:
-  Rescorer(Ptr<Config> options)
+  Rescore(Ptr<Config> options)
       : options_(options),
         corpus_(New<Corpus>(options_)),
         graph_(New<ExpressionGraph>(true)) {
@@ -32,6 +51,7 @@ public:
 
     auto device = options_->get<std::vector<size_t>>("devices").front();
     graph_->setDevice(device);
+    graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
 
     auto modelFile = options_->get<std::string>("model");
     auto modelOptions = New<Config>(*options);
@@ -60,21 +80,11 @@ public:
       std::vector<float> scores;
       costNode->val()->get(scores);
 
-      for(size_t i=0; i<batch->size(); ++i)
+      for(size_t i = 0; i < batch->size(); ++i) {
         output->Write(batch->getSentenceIds()[i], scores[i]);
+      }
     }
   }
 };
 
-Ptr<ModelTask> rescorerByType(Ptr<Config> options) {
-  std::string type = options->get<std::string>("type");
-
-  if(type == "s2s") {
-    return New<Rescorer<S2S>>(options);
-  } else if(type == "amun") {
-    return New<Rescorer<Amun>>(options);
-  } else {
-    UTIL_THROW2("Unknown model type: " + type);
-  }
-}
 }

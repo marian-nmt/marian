@@ -336,7 +336,7 @@ public:
 
     auto nextState = step(graph, state);
 
-    return sum(cross_entropy(nextState->getProbs(), trgIdx) * trgMask, axis=2);
+    return -sum(cross_entropy(nextState->getProbs(), trgIdx) * trgMask, axis=2);
   }
 };
 }
