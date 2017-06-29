@@ -250,7 +250,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
     try {
       modelOptions->loadModelParameters(model);
     } catch(std::runtime_error& e) {
-      LOG(info, "No model settings found in model file");
+      LOG(warn)->warn("No model settings found in model file");
     }
 
     scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));

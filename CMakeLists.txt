@@ -7,6 +7,8 @@ project(marian CXX)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 
+option(USE_CUDNN "Use CUDNN library" OFF)
+
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
@@ -26,6 +28,17 @@ endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
+
+
+if(USE_CUDNN)
+    find_package(CUDNN "5.0")
+    if(CUDNN_FOUND)
+        include_directories(${CUDNN_INCLUDE_DIRS})
+        set(EXT_LIBS ${EXT_LIBS} ${CUDNN_LIBRARIES})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDNN")
+        LIST(APPEND CUDA_NVCC_FLAGS -DCUDNN; )
+    endif(CUDNN_FOUND)
+endif(USE_CUDNN)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)

@@ -51,16 +51,16 @@ public:
   }
 
   void increaseEpoch() {
-    LOG(info, "Seen {} samples", samples);
+    LOG(info)->info("Seen {} samples", samples);
 
     epochs++;
     trainState_->newEpoch(epochs);
     samples = 0;
 
-    LOG(info, "Starting epoch {}", epochs);
+    LOG(info)->info("Starting epoch {}", epochs);
   }
 
-  void finished() { LOG(info, "Training finshed"); }
+  void finished() { LOG(info)->info("Training finshed"); }
 
   void addValidator(Ptr<Validator<DataSet>> validator) {
     validators_.push_back(validator);
@@ -85,18 +85,12 @@ public:
       size_t stalledPrev = validator->stalled();
       float value = validator->validate(graph);
       if(validator->stalled() > 0)
-        LOG(valid,
-            "{} : {} : {} : stalled {} times",
-            batches,
-            validator->type(),
-            value,
-            validator->stalled());
+        LOG(valid)->info("{} : {} : {} : stalled {} times",
+			 batches, validator->type(), value,
+			 validator->stalled());
       else
-        LOG(valid,
-            "{} : {} : {} : new best",
-            batches,
-            validator->type(),
-            value);
+        LOG(valid)->info("{} : {} : {} : new best",
+			 batches, validator->type(), value);
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
@@ -120,14 +114,10 @@ public:
     batches++;
 
     if(batches % options_->get<size_t>("disp-freq") == 0) {
-      LOG(info,
-          "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} words/s",
-          epochs,
-          batches,
-          samples,
-          costSum / samplesDisp,
-          timer.format(2, "%ws"),
-          wordsDisp / std::stof(timer.format(5, "%w")));
+      LOG(info)->info
+	("Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} words/s", 
+	 epochs, batches, samples, costSum / samplesDisp, timer.format(2, "%ws"),
+	 wordsDisp / std::stof(timer.format(5, "%w")));
       timer.start();
       costSum = 0;
       wordsDisp = 0;
@@ -189,10 +179,8 @@ public:
 
       if(decay) {
         state.eta *= factor;
-        LOG(info,
-            "Decaying learning rate to {} in epoch {}",
-            state.eta,
-            state.epochs);
+        LOG(info)->info("Decaying learning rate to {} in epoch {}",
+			state.eta, state.epochs);
       }
     }
   }
@@ -208,10 +196,8 @@ public:
         if(start > 0 && freq > 0 && state.batches >= start
            && ((state.batches - start) % freq == 0)) {
           state.eta *= factor;
-          LOG(info,
-              "Decaying learning rate to {} after {} batches",
-              state.eta,
-              state.batches);
+          LOG(info)->info("Decaying learning rate to {} after {} batches",
+			  state.eta, state.batches);
         }
       }
     }
@@ -225,10 +211,9 @@ public:
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startStalled && state.stalled >= startStalled) {
           state.eta *= factor;
-          LOG(info,
-              "Decaying learning rate to {} after stalled {} time(s)",
-              state.eta,
-              state.stalled);
+          LOG(info)->info
+	    ("Decaying learning rate to {} after stalled {} time(s)",
+	     state.eta, state.stalled);
         }
       }
     }

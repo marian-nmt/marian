@@ -29,6 +29,7 @@ cuda_add_library(marian
   translator/helpers.cu
   data/vocab.cpp
   data/corpus.cpp
+  rescorer/score_collector.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
   STATIC
 )
@@ -44,7 +45,11 @@ add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
 target_link_libraries(marian_translate marian)
 
-foreach(exec marian_train marian_translate)
+add_executable(marian_rescorer command/s2s_rescorer.cpp)
+set_target_properties(marian_rescorer PROPERTIES OUTPUT_NAME rescorer)
+target_link_libraries(marian_rescorer marian)
+
+foreach(exec marian_train marian_translate marian_rescorer)
   target_link_libraries(${exec} ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
