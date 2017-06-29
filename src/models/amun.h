@@ -11,22 +11,22 @@ public:
   template <class... Args>
   Amun(Ptr<Config> options, Args... args) : S2S(options, args...) {
 
-    UTIL_THROW_IF2(options_->get<int>("layers-enc") > 1,
+    UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
                    "--type amun does not currently support multiple encoder "
                    "layers, use --type s2s");
     UTIL_THROW_IF2(options_->get<bool>("skip"),
                    "--type amun does not currently support skip connections, "
                    "use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("layers-dec") > 1,
+    UTIL_THROW_IF2(options_->get<int>("dec-depth") > 1,
                    "--type amun does not currently support multiple decoder "
                    "layers, use --type s2s");
     UTIL_THROW_IF2(options_->get<bool>("tied-embeddings"),
                    "--type amun does not currently support tied embeddings, "
                    "use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("cell-enc") != "gru",
+    UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru",
                    "--type amun does not currently support other rnn cells than gru, "
                    "use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("cell-dec") != "gru",
+    UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru",
                    "--type amun does not currently support other rnn cells than gru, "
                    "use --type s2s");
 
