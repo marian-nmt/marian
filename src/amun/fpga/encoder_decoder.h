@@ -33,7 +33,7 @@ public:
                                  const Beam& beam,
                                  State& out);
 
-  virtual void SetSource(const Sentences& sources);
+  virtual void Encode(const Sentences& sources);
 
   virtual void Filter(const std::vector<size_t>&);
 

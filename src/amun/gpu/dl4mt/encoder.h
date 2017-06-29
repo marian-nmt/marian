@@ -107,7 +107,7 @@ class Encoder {
   public:
     Encoder(const Weights& model);
 
-    void GetContext(const Sentences& words, size_t tab, mblas::Matrix& context,
+    void Encode(const Sentences& words, size_t tab, mblas::Matrix& context,
                     mblas::IMatrix &sentencesMask);
 
   private:

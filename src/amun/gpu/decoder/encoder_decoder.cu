@@ -51,9 +51,9 @@ State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
-void EncoderDecoder::SetSource(const Sentences& source) {
+void EncoderDecoder::Encode(const Sentences& source) {
   BEGIN_TIMER("SetSource");
-  encoder_->GetContext(source, tab_, *SourceContext_, sentencesMask_);
+  encoder_->Encode(source, tab_, *SourceContext_, sentencesMask_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("SetSource");
 }

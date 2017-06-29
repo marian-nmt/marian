@@ -45,7 +45,7 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
 }
 
 
-void EncoderDecoder::SetSource(const Sentences& sources) {
+void EncoderDecoder::Encode(const Sentences& sources) {
   encoder_->GetContext(sources.at(0)->GetWords(tab_),
                         SourceContext_);
 }

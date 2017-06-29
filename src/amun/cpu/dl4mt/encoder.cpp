@@ -6,7 +6,7 @@ namespace amunmt {
 namespace CPU {
 namespace dl4mt {
 
-void Encoder::GetContext(const std::vector<size_t>& words,
+void Encoder::Encode(const std::vector<size_t>& words,
 				mblas::Matrix& context) {
   std::vector<mblas::Matrix> embeddedWords;
 

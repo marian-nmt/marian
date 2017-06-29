@@ -125,7 +125,7 @@ class Encoder {
 public:
   Encoder(const OpenCLInfo &openCLInfo, const Weights& model);
 
-  void GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context,
+  void Encode(const Sentences& source, size_t tab, mblas::Matrix& Context,
                 Array<int>& dMapping);
 
 protected:
