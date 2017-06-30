@@ -165,12 +165,6 @@ public:
     Expr output;
     Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      Expr layerMask = mask;
-      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::forward)
-        layerMask = nullptr;
-      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
-        layerMask = nullptr;
-
       auto lazyInput = layerInput;
 
       auto cell = rnns_[i]->at(0);
@@ -180,7 +174,7 @@ public:
         lazyInput = concatenate(lazyInputs, keywords::axis=1);
       }
 
-      auto layerOutput = rnns_[i]->transduce(lazyInput, layerMask);
+      auto layerOutput = rnns_[i]->transduce(lazyInput, mask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
@@ -198,12 +192,6 @@ public:
     Expr output;
     Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      Expr layerMask = mask;
-      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::forward)
-        layerMask = nullptr;
-      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
-        layerMask = nullptr;
-
       Expr lazyInput;
       auto cell = rnns_[i]->at(0);
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
@@ -215,7 +203,7 @@ public:
         lazyInput = layerInput;
       }
 
-      auto layerOutput = rnns_[i]->transduce(lazyInput, States({states[i]}), layerMask);
+      auto layerOutput = rnns_[i]->transduce(lazyInput, States({states[i]}), mask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;
@@ -233,12 +221,6 @@ public:
     Expr output;
     Expr layerInput = input;
     for(int i = 0; i < rnns_.size(); ++i) {
-      Expr layerMask = mask;
-      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::forward)
-        layerMask = nullptr;
-      if(rnns_[i]->getOptions()->get<rnn::dir>("direction", dir::forward) == rnn::dir::alternating_forward)
-        layerMask = nullptr;
-
       auto lazyInput = layerInput;
 
       auto cell = rnns_[i]->at(0);
@@ -248,7 +230,7 @@ public:
         lazyInput = concatenate(lazyInputs, keywords::axis=1);
       }
 
-      auto layerOutput = rnns_[i]->transduce(lazyInput, States({state}), layerMask);
+      auto layerOutput = rnns_[i]->transduce(lazyInput, States({state}), mask);
 
       if(skip_ && (skipFirst_ || i > 0))
         output = layerOutput + layerInput;

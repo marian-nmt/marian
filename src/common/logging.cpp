@@ -1,5 +1,6 @@
 #include "logging.h"
 #include "training/config.h"
+#include "spdlog/sinks/null_sink.h"
 
 std::shared_ptr<spdlog::logger> stderrLogger(
     const std::string& name,
@@ -48,7 +49,13 @@ set_loglevel(spdlog::logger& logger, std::string const level) {
 
 Logger checkedLog(std::string logger) {
   Logger ret = spdlog::get(logger);
-  return ret ? ret : spdlog::get("devnull");
+  if(ret) {
+    return ret;
+  }
+  else {
+    auto null_sink = std::make_shared<spdlog::sinks::null_sink_st>();
+    return std::make_shared<spdlog::logger>("null_logger", null_sink);
+  }
 }
 
 void createLoggers(const marian::Config* options) {

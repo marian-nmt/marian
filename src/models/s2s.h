@@ -79,7 +79,7 @@ public:
       rnnBw.push_back(stacked);
     }
 
-    auto context = concatenate({rnnFw->transduce(embeddings),
+    auto context = concatenate({rnnFw->transduce(embeddings, mask),
                                 rnnBw->transduce(embeddings, mask)},
                                 axis=1);
 
@@ -282,13 +282,16 @@ public:
                   ("dim", opt<int>("dim-emb"))
                   ("activation", mlp::act::tanh)
                   ("layer-normalization", opt<bool>("layer-normalization"));
+
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
+
     auto layer2 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l2")
                   ("dim", dimTrgVoc);
 
     if(opt<bool>("tied-embeddings")) {
       UTIL_THROW2("Tied embeddings currently not implemented. Note to self: Fix that.");
+      //layer2.tie_transposed("W0", prefix_ + "_Wemb");
     }
 
     // assemble layers into MLP and apply to embeddings, decoder context and
