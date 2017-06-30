@@ -78,7 +78,6 @@ set_source_files_properties( common/loader_factory.cpp
 cuda_add_executable(
   amun
   common/decoder_main.cpp
-  gpu/decoder/encoder_decoder_state.cu
   gpu/decoder/encoder_decoder.cu
   gpu/decoder/encoder_decoder_loader.cu
   gpu/decoder/encoder_decoder_state.cu
