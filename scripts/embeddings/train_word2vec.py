@@ -43,23 +43,29 @@ def main():
             cout.write(replace_unks(line, vocab) + " " + EOS + "\n")
 
     print("Training word2vec")
+    orig_vectors = args.output + '.orig'
     cmd = "{w2v} {opts} -train {i} -output {o} -size {s} -threads {t}" \
         .format(w2v=args.word2vec, opts=WORD2VEC_OPTIONS,
-                i=args.corpus, o=args.output, s=args.dim_emb, t=args.threads)
+                i=args.corpus, o=orig_vectors, s=args.dim_emb, t=args.threads)
     print("  with command: {}".format(cmd))
 
     proc = subprocess.Popen(cmd, shell=True)
     proc.wait()
 
-    print("Checking vectors")
-    with open(args.output) as cin:
+    print("Replacing words with IDs in vector file")
+    n = 1
+    with open(orig_vectors) as cin, open(args.output, 'w+') as cout:
         for i, line in enumerate(cin):
             if i == 0:
                 cout.write(line)
                 continue
             word, tail = line.split(' ', 1)
-            if word not in vocab:
-                print("  warning: no word '{}' found in vocabulary")
+            if word in vocab:
+                cout.write("{} {}".format(vocab[word], tail))
+                n += 1
+            else:
+                print("  warning: no word '{}' in vocabulary".format(word))
+    print("  words: {}".format(n))
 
     print("Finished")
 
