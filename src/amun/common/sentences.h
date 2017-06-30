@@ -22,7 +22,7 @@ class Sentences {
 
     void SortByLength();
 
-    SentencesPtr NextMiniBatch(size_t batchsize);
+    SentencesPtr NextMiniBatch(size_t batchsize, int batchWords);
 
   protected:
     std::vector<SentencePtr> coll_;

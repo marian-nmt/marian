@@ -9,13 +9,13 @@
 namespace amunmt {
 namespace CPU {
 
-
 class CPUEncoderDecoderBase : public Scorer {
   private:
     using EDState = EncoderDecoderState;
 
   public:
     CPUEncoderDecoderBase(
+    	const God &god,
         const std::string& name,
         const YAML::Node& config,
         size_t tab);

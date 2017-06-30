@@ -19,13 +19,13 @@ Weights::Transition::Transition(const NpzConverter& model, TransitionType type, 
 
     switch(type) {
       case TransitionType::Encoder:
-        Bx1_.emplace_back(1, Ux_.back().Cols());
+        Bx1_.emplace_back(1, Ux_.back().dim(1));
         const_cast<mblas::Matrix&>(Bx1_.back()) = 0.0f;
         Bx2_.emplace_back(model(name(prefix, "bx", infix, i), true));
         break;
       case TransitionType::Decoder:
         Bx1_.emplace_back(model(name(prefix, "bx", infix, i), true));
-        Bx2_.emplace_back(1, Ux_.back().Cols());
+        Bx2_.emplace_back(1, Ux_.back().dim(1));
         const_cast<mblas::Matrix&>(Bx2_.back()) = 0.0f;
         break;
     }
@@ -102,11 +102,11 @@ Weights::DecInit::DecInit(const NpzConverter& model)
 
 Weights::DecGRU2::DecGRU2(const NpzConverter& model, std::string prefix, std::vector<std::string> keys)
   : W_(model[prefix + keys.at(0)]),  // Wc
-    B_(1, W_.Cols()),
+    B_(1, W_.dim(1)),
     U_(model[prefix + keys.at(1)]),  // U_nl
     Bx3_(model(prefix + keys.at(2), true)),  // b_nl
     Wx_(model[prefix + keys.at(3)]),  // Wcx
-    Bx1_(1, Wx_.Cols()),
+    Bx1_(1, Wx_.dim(1)),
     Ux_(model[prefix + keys.at(4)]),  // Ux_nl
     Bx2_(model(prefix + keys.at(5), true)),  // bx_nl
     W_lns_(model[prefix + keys.at(6)]),  // Wc_lns

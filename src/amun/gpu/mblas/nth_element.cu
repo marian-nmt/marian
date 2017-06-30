@@ -1,9 +1,15 @@
-#include "gpu/mblas/nth_element.h"
 #include <iostream>
+#include "common/utils.h"
+#include "matrix_wrapper.h"
+#include "nth_element.h"
+#include "matrix_functions.h"
 
+using namespace std;
 
 namespace amunmt {
 namespace GPU {
+
+#define SHARED_SIZE 512
 
 #define UNROLL_MAXARG_LOOP( n, max ) \
   if (tid < (n) && tid + (n) < ( max ) ) { \
@@ -15,28 +21,31 @@ namespace GPU {
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-__global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatches, int* batchFirstElementIdxs) {
+__global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
+                            const mblas::MatrixWrapper<float> probsWrap,
+                            const mblas::MatrixWrapper<uint> batchPositionWrap,
+                            uint numBatches) {
   extern __shared__ float sdata[];
-  __shared__ int indices[512];
+  __shared__ uint indices[SHARED_SIZE];
 
-  int tid = threadIdx.x;
+  uint tid = threadIdx.x;
 
-  for (int batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
-    int begin = batchFirstElementIdxs[batchIdx];
-    int end = batchFirstElementIdxs[batchIdx + 1];
+  for (uint batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
+    uint begin = batchPositionWrap[batchIdx];
+    uint end = batchPositionWrap[batchIdx + 1];
 
-    int i = begin + blockIdx.x * (blockDim.x * 2) + tid;
+    uint i = begin + blockIdx.x * (blockDim.x * 2) + tid;
 
     sdata[tid] = -3.40282e+38f;
 
     if (i < end) {
-      sdata[tid] = d_in[i];
+      sdata[tid] = probsWrap[i];
       indices[tid] = i;
     }
 
     if (i + blockDim.x < end) {
-      float a = d_in[i];
-      float b = d_in[i + blockDim.x];
+      float a = probsWrap[i];
+      float b = probsWrap[i + blockDim.x];
       if (a > b) {
         sdata[tid] = a;
         indices[tid] = i;
@@ -49,14 +58,14 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
     while (i + 2 * gridDim.x * blockDim.x < end) {
       i += 2 * gridDim.x * blockDim.x;
 
-      float a = d_in[i];
+      float a = probsWrap[i];
       if (a > sdata[tid]) {
         sdata[tid] = a;
         indices[tid] = i;
       }
 
       if (i + blockDim.x < end) {
-        float b = d_in[i + blockDim.x];
+        float b = probsWrap[i + blockDim.x];
         if (b > sdata[tid]) {
           sdata[tid] = b;
           indices[tid] = i + blockDim.x;
@@ -66,7 +75,7 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
 
     __syncthreads();
 
-    for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
+    for (uint s = (blockDim.x >> 1); s > 32; s >>= 1) {
       if (tid < s && tid + s < end) {
         if (sdata[tid + s] > sdata[tid]) {
           sdata[tid] = sdata[tid + s];
@@ -84,40 +93,44 @@ __global__ void gMaxElement(float* d_out, int* d_ind, float* d_in, int numBatche
     UNROLL_MAXARG_LOOP(1, end);
 
     if (tid == 0) {
-      d_out[blockIdx.x + batchIdx * gridDim.x] = sdata[0];
-      d_ind[blockIdx.x + batchIdx * gridDim.x] = indices[0];
+      out[blockIdx.x + batchIdx * gridDim.x] = {indices[0], sdata[0]};
     }
     __syncthreads();
   }
 }
 
-__global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, int *batchFirstElements, float* outCosts, int* outIdxs, int *cummulatedBeamSizes, int NUM_BLOCKS) {
+__global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
+                                  mblas::MatrixWrapper<float> probsWrap,
+                                  mblas::MatrixWrapper<uint> batchPositionWrap,
+                                  mblas::MatrixWrapper<NthOut> resNewWrap,
+                                  mblas::MatrixWrapper<uint> cumBeamSizesWrap,
+                                  uint numBlocks) {
   extern __shared__ float sdata[];
-  __shared__ int indices[512];
+  __shared__ uint indices[SHARED_SIZE];
   __shared__ float bestBinCost;
-  __shared__ int bestBinCostIdx;
+  __shared__ uint bestBinCostIdx;
 
-  const int tid = threadIdx.x;
-  const int batchIdx = blockIdx.x;
-  const int N = batchFirstElements[batchIdx + 1] - batchFirstElements[batchIdx];
-  int num_bins = int(N / (2 * 512)) + int(N % (2 * 512) != 0);
-  if (num_bins > 500) {
-    num_bins = 500;
-  }
+  const uint tid = threadIdx.x;
+  const uint batchIdx = blockIdx.x;
+  const uint N = batchPositionWrap[batchIdx + 1] - batchPositionWrap[batchIdx];
+  uint num_bins = uint(N / (2 * SHARED_SIZE)) + uint(N % (2 * SHARED_SIZE) != 0);
+  //if (num_bins > 500) {
+  //  num_bins = 500;
+  //}
 
-  for (int pos = cummulatedBeamSizes[batchIdx]; pos < cummulatedBeamSizes[batchIdx + 1]; ++pos) {
-    int i = tid;
+  for (uint pos = cumBeamSizesWrap[batchIdx]; pos < cumBeamSizesWrap[batchIdx + 1]; ++pos) {
+    uint i = tid;
 
     sdata[tid] = -3.40282e+38f;
 
     if (i < num_bins) {
-      sdata[tid] = binCosts[batchIdx * NUM_BLOCKS + i];
+      sdata[tid] = out[batchIdx * numBlocks + i].score;
       indices[tid] = i;
     }
 
     if (i + blockDim.x < num_bins) {
-      float a = binCosts[batchIdx * NUM_BLOCKS + i];
-      float b = binCosts[batchIdx * NUM_BLOCKS + i + blockDim.x];
+      float a = out[batchIdx * numBlocks + i].score;
+      float b = out[batchIdx * numBlocks + i + blockDim.x].score;
       if (a > b) {
         sdata[tid] = a;
         indices[tid] = i;
@@ -130,14 +143,14 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
     while (i + 2 * blockDim.x < num_bins) {
       i += 2 * blockDim.x;
 
-      float a = binCosts[batchIdx * NUM_BLOCKS + i];
+      float a = out[batchIdx * numBlocks + i].score;
       if (a > sdata[tid]) {
         sdata[tid] = a;
         indices[tid] = i;
       }
 
       if (i + blockDim.x < num_bins) {
-        float b = binCosts[batchIdx * NUM_BLOCKS + i + blockDim.x];
+        float b = out[batchIdx * numBlocks + i + blockDim.x].score;
         if (b > sdata[tid]) {
           sdata[tid] = b;
           indices[tid] = i + blockDim.x;
@@ -147,7 +160,7 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
 
     __syncthreads();
 
-    for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
+    for (uint s = (blockDim.x >> 1); s > 32; s >>= 1) {
       if (tid < s && tid + s < num_bins) {
         if (sdata[tid + s] > sdata[tid]) {
           sdata[tid] = sdata[tid + s];
@@ -166,29 +179,29 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
 
     if (tid == 0) {
       bestBinCost = sdata[0];
-      bestBinCostIdx = batchIdx * NUM_BLOCKS + indices[0];
+      bestBinCostIdx = batchIdx * numBlocks + indices[0];
 
-      probs[binIdxs[bestBinCostIdx]] = -3.40282e+38f;
+      probsWrap[ out[bestBinCostIdx].ind ] = -3.40282e+38f;
 
-      outIdxs[pos] = binIdxs[bestBinCostIdx];
-      outCosts[pos] = bestBinCost;
+      resNewWrap[pos].ind = out[bestBinCostIdx].ind;
+      resNewWrap[pos].score = bestBinCost;
     }
 
     __syncthreads();
 
-    i = batchFirstElements[batchIdx] + (bestBinCostIdx - batchIdx * NUM_BLOCKS) * (blockDim.x * 2) + tid;
-    const int dist = num_bins * 2 * blockDim.x;
+    i = batchPositionWrap[batchIdx] + (bestBinCostIdx - batchIdx * numBlocks) * (blockDim.x * 2) + tid;
+    const uint dist = num_bins * 2 * blockDim.x;
 
     sdata[tid] = -3.40282e+38f;
 
-    if (i < batchFirstElements[batchIdx + 1]) {
-      sdata[tid] = probs[i];
+    if (i < batchPositionWrap[batchIdx + 1]) {
+      sdata[tid] = probsWrap[i];
       indices[tid] = i;
     }
 
-    if (i + blockDim.x < batchFirstElements[batchIdx + 1]) {
-      float a = probs[i];
-      float b = probs[i+blockDim.x];
+    if (i + blockDim.x < batchPositionWrap[batchIdx + 1]) {
+      float a = probsWrap[i];
+      float b = probsWrap[i+blockDim.x];
       if (a > b) {
         sdata[tid] = a;
         indices[tid] = i;
@@ -198,17 +211,17 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
       }
     }
 
-    while (i + dist < batchFirstElements[batchIdx + 1]) {
+    while (i + dist < batchPositionWrap[batchIdx + 1]) {
       i += dist;
 
-      float a = probs[i];
+      float a = probsWrap[i];
       if (a > sdata[tid]) {
         sdata[tid] = a;
         indices[tid] = i;
       }
 
-      if (i + blockDim.x < batchFirstElements[batchIdx + 1]) {
-        float b = probs[i + blockDim.x];
+      if (i + blockDim.x < batchPositionWrap[batchIdx + 1]) {
+        float b = probsWrap[i + blockDim.x];
         if (b > sdata[tid]) {
           sdata[tid] = b;
           indices[tid] = i + blockDim.x;
@@ -218,8 +231,8 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
 
     __syncthreads();
 
-    for (int s = (blockDim.x >> 1); s > 32; s >>= 1) {
-      if (tid < s && tid + s < batchFirstElements[batchIdx + 1]) {
+    for (uint s = (blockDim.x >> 1); s > 32; s >>= 1) {
+      if (tid < s && tid + s < batchPositionWrap[batchIdx + 1]) {
         if (sdata[tid + s] > sdata[tid]) {
           sdata[tid] = sdata[tid + s];
           indices[tid] = indices[tid + s];
@@ -228,126 +241,177 @@ __global__ void gMaxElementUpdate(float* binCosts, int* binIdxs, float* probs, i
       __syncthreads();
     }
 
-    UNROLL_MAXARG_LOOP(32, batchFirstElements[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(16, batchFirstElements[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(8, batchFirstElements[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(4, batchFirstElements[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(2, batchFirstElements[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(1, batchFirstElements[batchIdx + 1]);
+    UNROLL_MAXARG_LOOP(32, batchPositionWrap[batchIdx + 1]);
+    UNROLL_MAXARG_LOOP(16, batchPositionWrap[batchIdx + 1]);
+    UNROLL_MAXARG_LOOP(8, batchPositionWrap[batchIdx + 1]);
+    UNROLL_MAXARG_LOOP(4, batchPositionWrap[batchIdx + 1]);
+    UNROLL_MAXARG_LOOP(2, batchPositionWrap[batchIdx + 1]);
+    UNROLL_MAXARG_LOOP(1, batchPositionWrap[batchIdx + 1]);
 
     if (tid == 0) {
-      binCosts[bestBinCostIdx] = sdata[0];
-      binIdxs[bestBinCostIdx] = indices[0];
+      out[bestBinCostIdx] = {indices[0], sdata[0]};
     }
     __syncthreads();
   }
 }
 
-__global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n)
+__global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
+                              const   mblas::MatrixWrapper<float> in,
+                              uint* indices, uint n)
 {
-  int tid = threadIdx.x  + blockDim.x * blockIdx.x;
+  uint tid = threadIdx.x  + blockDim.x * blockIdx.x;
   if (tid < n) {
-    int index = indeces[tid];
-    d_out[tid] = d_in[index];
+    uint index = indices[tid];
+    out[tid] = in[index];
   }
 }
 
-NthElement::NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream)
-    : stream_(stream),
-      NUM_BLOCKS(std::min(500, int(maxBeamSize * 85000 / (2 * BLOCK_SIZE)) + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0)))
+NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
+: d_breakdown(maxBeamSize)
+, maxBeamSize_(maxBeamSize)
+, maxBatchSize_(maxBatchSize)
 {
-  HANDLE_ERROR( cudaMalloc((void**)&d_ind, maxBatchSize * NUM_BLOCKS * sizeof(int)) );
+  //cerr << "maxBatchSize=" << maxBatchSize << " maxBeamSize=" << maxBeamSize << endl;
 
-  HANDLE_ERROR( cudaMalloc((void**)&d_out, maxBatchSize * NUM_BLOCKS * sizeof(float)) );
+  d_batchPosition.reserve(maxBatchSize + 1);
+  d_cumBeamSizes.reserve(maxBatchSize + 1);
 
-  HANDLE_ERROR( cudaMalloc((void**)&d_res_idx, maxBatchSize * maxBeamSize * sizeof(int)) );
-  HANDLE_ERROR( cudaMalloc((void**)&d_res, maxBatchSize * maxBeamSize * sizeof(float)) );
-
-  HANDLE_ERROR( cudaHostAlloc((void**) &h_res, maxBeamSize * maxBatchSize* sizeof(float),
-                              cudaHostAllocDefault) );
-  HANDLE_ERROR( cudaHostAlloc((void**) &h_res_idx, maxBeamSize * maxBatchSize * sizeof(int),
-                              cudaHostAllocDefault) );
-
-  HANDLE_ERROR( cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)) );
-  HANDLE_ERROR( cudaMalloc((void**)&d_batchPosition, (maxBatchSize + 1) * sizeof(int)) );
-  HANDLE_ERROR( cudaMalloc((void**)&d_cumBeamSizes, (maxBatchSize + 1) * sizeof(int)) );
+  d_res.reserve(maxBatchSize * maxBeamSize);
+  h_res.reserve(maxBatchSize * maxBeamSize);
 }
 
 NthElement::~NthElement()
 {
-  HANDLE_ERROR(cudaFree(d_ind));
-  HANDLE_ERROR(cudaFree(d_out));
-  HANDLE_ERROR(cudaFree(d_res_idx));
-  HANDLE_ERROR(cudaFree(d_res));
-  HANDLE_ERROR(cudaFreeHost(h_res));
-  HANDLE_ERROR(cudaFreeHost(h_res_idx));
-  HANDLE_ERROR(cudaFree(d_breakdown));
-  HANDLE_ERROR(cudaFree(d_batchPosition));
-  HANDLE_ERROR(cudaFree(d_cumBeamSizes));
+  //cerr << "FOO2" << endl;
 }
 
-void NthElement::getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
-                              const std::vector<int>& cummulatedBeamSizes)
-{
-  HANDLE_ERROR( cudaMemcpyAsync(d_batchPosition, batchFirstElementIdxs.data(), batchFirstElementIdxs.size() * sizeof(int),
-                                cudaMemcpyHostToDevice, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(d_cumBeamSizes, cummulatedBeamSizes.data(), cummulatedBeamSizes.size() * sizeof(int),
-                                cudaMemcpyHostToDevice, stream_) );
-
-  const int numBatches = batchFirstElementIdxs.size() - 1;
-
-  gMaxElement<<<NUM_BLOCKS, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (d_out, d_ind, probs, numBatches, d_batchPosition);
-
-  gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), stream_>>>
-    (d_out, d_ind, probs, d_batchPosition, d_res, d_res_idx, d_cumBeamSizes, NUM_BLOCKS);
-}
-
-void NthElement::getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
-                  std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
+void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+                  std::vector<float>& outCosts, std::vector<uint>& outKeys,
                   const bool isFirst) {
-  std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1);
-  std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1);
+  /*
+  cerr << "beamSizes=" << beamSizes.size() << endl;
+  cerr << Debug(beamSizes, 2) << endl;
+  cerr << "Probs=" << Probs.Debug(0) << endl;
+  cerr << "outCosts=" << outCosts.size() << endl;
+  cerr << "outKeys=" << outKeys.size() << endl;
+  cerr << "isFirst=" << isFirst << endl;
+  cerr << endl;
+  */
+  HostVector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
+  HostVector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 
-  const size_t vocabSize = Probs.Cols();
-  for (size_t i = 0; i < beamSizes.size(); ++i) {
+  const uint vocabSize = Probs.dim(1);
+  for (uint i = 0; i < beamSizes.size(); ++i) {
 
     cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
     batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
 
-  getNBestList(Probs.data(), batchFirstElementIdxs, cummulatedBeamSizes);
+  uint numHypos = cummulatedBeamSizes.back();
+  d_res.resize(numHypos);
+  h_res.resize(numHypos);
 
-  GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
+  //cerr << endl;
+  //cerr << "numHypos=" << numHypos << endl;
+  //cerr << "beamSizes=" << Debug(beamSizes, 2) << endl;
+  //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
+  //cerr << "batchFirstElementIdxs=" << Debug(batchFirstElementIdxs, 2) << endl;
+  //cerr << "1Probs=" << Probs.Debug() << endl;
+
+  getNBestList(Probs, batchFirstElementIdxs, cummulatedBeamSizes);
+
+  //cerr << "2Probs=" << Probs.Debug() << endl;
+  //cerr << "cummulatedBeamSizes.back()=" << cummulatedBeamSizes.back() << endl;
+  //cerr << "cummulatedBeamSizes=" << Debug(cummulatedBeamSizes, 2) << endl;
+  GetPairs(numHypos, outKeys, outCosts);
+
+  //cerr << "outCosts=" << Debug(outCosts, 2) << endl;
+  //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
 }
 
-void NthElement::GetPairs(size_t number,
-                    std::vector<unsigned>& outKeys,
-                    std::vector<float>& outValues) {
+void NthElement::getNBestList(mblas::Matrix &probs,
+                              const HostVector<uint>& batchFirstElementIdxs,
+                              const HostVector<uint>& cummulatedBeamSizes)
+{
+  const uint vocabSize = probs.dim(1);
+  const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
+  const uint numBatches = batchFirstElementIdxs.size() - 1;
 
-  HANDLE_ERROR( cudaMemcpyAsync(h_res, d_res, number * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaMemcpyAsync(h_res_idx, d_res_idx, number * sizeof(int),
-                                cudaMemcpyDeviceToHost, stream_) );
-  cudaStreamSynchronize(stream_);
+  d_out.resize(maxBatchSize_ * numBlocks);
 
-  for (size_t i = 0; i < number; ++i) {
-    outKeys.push_back(h_res_idx[i]);
-    outValues.push_back(h_res[i]);
+
+  //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
+  d_batchPosition.resize(batchFirstElementIdxs.size());
+  d_cumBeamSizes.resize(cummulatedBeamSizes.size());
+  assert(d_batchPosition.size() == d_cumBeamSizes.size());
+
+  mblas::copy(batchFirstElementIdxs.begin(), batchFirstElementIdxs.end(), d_batchPosition.begin());
+  mblas::copy(cummulatedBeamSizes.begin(), cummulatedBeamSizes.end(), d_cumBeamSizes.begin());
+
+  mblas::MatrixWrapper<NthOut> outWrap(d_out);
+  mblas::MatrixWrapper<float> probsWrap(probs);
+  mblas::MatrixWrapper<uint> batchPositionWrap(d_batchPosition);
+  mblas::MatrixWrapper<NthOut> resWrap(d_res);
+  mblas::MatrixWrapper<uint> cumBeamSizesWrap(d_cumBeamSizes);
+
+  gMaxElement<<<numBlocks, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), mblas::CudaStreamHandler::GetStream()>>>
+    (outWrap, probsWrap, batchPositionWrap, numBatches);
+
+  gMaxElementUpdate<<<numBatches, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), mblas::CudaStreamHandler::GetStream()>>>
+    (outWrap, probsWrap, batchPositionWrap, resWrap, cumBeamSizesWrap,
+     numBlocks);
+
+  /*
+  cerr << "numBlocks=" << numBlocks << endl;
+  cerr << "numBatches=" << numBatches << endl;
+  cerr << "threads=" << BLOCK_SIZE << endl;
+
+  cerr << "outWrap=" << outWrap.Debug() << endl;
+
+  cerr << "probsWrap=" << probsWrap.Debug() << endl;
+
+  cerr << "batchPositionWrap=" << batchPositionWrap.Debug() << endl;
+  cerr << mblas::Debug(d_batchPosition, 2) << endl;
+
+  cerr << "resWrap=" << resWrap.Debug() << endl;
+  cerr << mblas::Debug(d_res, 2) << endl;
+
+  cerr << "cumBeamSizesWrap=" << cumBeamSizesWrap.Debug() << endl;
+  //cerr << mblas::Debug(d_cumBeamSizes, 2) << endl;
+
+  cerr << endl;
+  */
+}
+
+void NthElement::GetPairs(uint number,
+                    std::vector<uint>& outKeys,
+                    std::vector<float>& outValues)
+{
+  mblas::copy(d_res.begin(), d_res.end(), h_res.begin());
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()) );
+
+  for (uint i = 0; i < number; ++i) {
+    outKeys.push_back(h_res[i].ind);
+    outValues.push_back(h_res[i].score);
   }
-
-  lastN = number;
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
-  gGetValueByKey<<<1, lastN, 0, stream_>>>
-    (d_in, d_breakdown, h_res_idx, lastN);
+void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
+{
+  // need a model with multiple scorers to test this method
+  assert(false);
 
-  HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown, lastN * sizeof(float),
-                                cudaMemcpyDeviceToHost, stream_) );
-  HANDLE_ERROR( cudaStreamSynchronize(stream_));
+  mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
+  const mblas::MatrixWrapper<float> inWrap(d_in);
+
+  //gGetValueByKey<<<1, lastN_, 0, stream_>>>
+  //  (breakdownWrap, inWrap, h_res_idx, lastN_);
+
+  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), h_res.size() * sizeof(float),
+                                cudaMemcpyDeviceToHost, mblas::CudaStreamHandler::GetStream()) );
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 }
 
 }  // namespace GPU

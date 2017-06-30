@@ -6,7 +6,7 @@ namespace amunmt {
 namespace CPU {
 namespace dl4mt {
 
-void Encoder::GetContext(const std::vector<size_t>& words,
+void Encoder::Encode(const std::vector<size_t>& words,
 				mblas::Matrix& context) {
   std::vector<mblas::Matrix> embeddedWords;
 
@@ -14,15 +14,16 @@ void Encoder::GetContext(const std::vector<size_t>& words,
 				 forwardRnn_.GetStateLength()
 				 + backwardRnn_.GetStateLength());
   for(auto& w : words) {
-	embeddedWords.emplace_back();
-	mblas::Matrix &embed = embeddedWords.back();
-	embeddings_.Lookup(embed, w);
+    embeddedWords.emplace_back();
+    mblas::Matrix &embed = embeddedWords.back();
+    embeddings_.Lookup(embed, w);
+    //cerr << "embed=" << embed.Debug(true) << endl;
   }
 
-  forwardRnn_.GetContext(embeddedWords.cbegin(),
+  forwardRnn_.Encode(embeddedWords.cbegin(),
 						 embeddedWords.cend(),
 						 context, false);
-  backwardRnn_.GetContext(embeddedWords.crbegin(),
+  backwardRnn_.Encode(embeddedWords.crbegin(),
 						  embeddedWords.crend(),
 						  context, true);
 }

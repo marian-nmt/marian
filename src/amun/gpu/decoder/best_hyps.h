@@ -2,10 +2,12 @@
 
 #include <map>
 #include <numeric>
+#include <boost/timer/timer.hpp>
 
 #include "common/scorer.h"
 #include "common/exception.h"
 #include "common/god.h"
+#include "common/utils.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/nth_element.h"
 
@@ -18,25 +20,24 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
+
     BestHyps(const God &god)
-      : BestHypsBase(
-          !god.Get<bool>("allow-unk"),
-          god.Get<bool>("n-best"),
-          god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
-          god.GetScorerWeights()),
-        nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"),
-                    mblas::CudaStreamHandler::GetStream()),
-        keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
-    {
-    }
+          : BestHypsBase(
+              !god.Get<bool>("allow-unk"),
+              god.Get<bool>("n-best"),
+              god.Get<std::vector<std::string>>("softmax-filter").size(),
+              god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
+              god.GetScorerWeights()),
+            nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
+            keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+            Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
+    {}
 
     void DisAllowUNK(mblas::Matrix& Prob) {
       SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
     }
 
-    void FindBests(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
+    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst) {
@@ -48,12 +49,18 @@ class BestHyps : public BestHypsBase
       std::vector<SoftAlignmentPtr> alignments;
       for (auto& scorer : scorers) {
         if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
-          auto& attention = encdec->GetAttention();
-          size_t attLength = attention.Cols();
+          const mblas::Matrix &attention = encdec->GetAttention();
+          size_t attLength = attention.dim(1);
 
-          alignments.emplace_back(new SoftAlignment(
-                attention.begin() + hypIndex * attLength,
-                attention.begin() + (hypIndex + 1) * attLength));
+          SoftAlignment *softAlignment = new SoftAlignment(attLength);
+          mblas::copy(
+              attention.data() + hypIndex * attLength,
+              attLength,
+              thrust::raw_pointer_cast(softAlignment->data()),
+              cudaMemcpyDeviceToHost
+          );
+
+          alignments.emplace_back(softAlignment);
         } else {
           amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
         }
@@ -66,8 +73,10 @@ class BestHyps : public BestHypsBase
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<size_t>& beamSizes)
+        std::vector<uint>& beamSizes)
     {
+      BEGIN_TIMER("CalcBeam");
+
       using namespace mblas;
 
       mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
@@ -106,7 +115,7 @@ class BestHyps : public BestHypsBase
             std::vector<float> modelCosts(beamSizeSum);
             mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-            nthElement_.getValueByKey(modelCosts, currProbs.data());
+            nthElement_.getValueByKey(modelCosts, currProbs);
             breakDowns.push_back(modelCosts);
           }
       }
@@ -120,12 +129,12 @@ class BestHyps : public BestHypsBase
       }
 
       for (size_t i = 0; i < beamSizeSum; i++) {
-        size_t wordIndex = bestKeys[i] % Probs.Cols();
+        size_t wordIndex = bestKeys[i] % Probs.dim(1);
         if (isInputFiltered_) {
           wordIndex = filterIndices[wordIndex];
         }
 
-        size_t hypIndex  = bestKeys[i] / Probs.Cols();
+        size_t hypIndex  = bestKeys[i] / Probs.dim(1);
         float cost = bestCosts[i];
 
         HypothesisPtr hyp;
@@ -159,7 +168,10 @@ class BestHyps : public BestHypsBase
 
         beams[batchMap[i]].push_back(hyp);
       }
+
+      PAUSE_TIMER("CalcBeam");
     }
+
 
   private:
     NthElement nthElement_;

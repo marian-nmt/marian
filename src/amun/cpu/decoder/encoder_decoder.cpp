@@ -9,13 +9,15 @@ namespace amunmt {
 namespace CPU {
 
 
+////////////////////////////////////////////////
+
 CPUEncoderDecoderBase::CPUEncoderDecoderBase(
+	const God &god,
     const std::string& name,
     const YAML::Node& config,
     size_t tab)
-  : Scorer(name, config, tab)
+  : Scorer(god, name, config, tab)
 {}
-
 
 State* CPUEncoderDecoderBase::NewState() const {
   return new EDState();
@@ -24,3 +26,4 @@ State* CPUEncoderDecoderBase::NewState() const {
 
 }
 }
+

@@ -28,7 +28,7 @@ class State {
       return static_cast<const T&>(*this);;
     }
 
-    virtual std::string Debug() const = 0;
+    virtual std::string Debug(size_t verbosity = 1) const = 0;
 
 };
 
@@ -37,18 +37,19 @@ typedef std::vector<StatePtr> States;
 
 class Scorer {
   public:
-    Scorer(const std::string& name,
+    Scorer(const God &god,
+           const std::string& name,
            const YAML::Node& config, size_t tab);
 
     virtual ~Scorer() {}
 
-    virtual void Decode(const State& in, State& out, const std::vector<size_t>& beamSizes) = 0;
+    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
 
     virtual void BeginSentenceState(State& state, size_t batchSize = 1) = 0;
 
     virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
-    virtual void SetSource(const Sentences& sources) = 0;
+    virtual void Encode(const Sentences& sources) = 0;
 
     virtual void Filter(const std::vector<size_t>&) = 0;
 
@@ -72,9 +73,9 @@ class Scorer {
 
 class SourceIndependentScorer : public Scorer {
   public:
-    SourceIndependentScorer(const std::string& name,
+    SourceIndependentScorer(const God &god, const std::string& name,
                             const YAML::Node& config, size_t)
-    : Scorer(name, config, 0) {}
+    : Scorer(god, name, config, 0) {}
 
     virtual ~SourceIndependentScorer() {}
 

@@ -21,9 +21,19 @@ endif(BUILD_STATIC)
 
 include_directories(${amunmt_SOURCE_DIR})
 
+option(CPU "Select to compile with CPU support" ON)
 option(CUDA "Select to compile CUDA support by default if available" ON)
+option(FPGA "Select to compile with FPGA support" OFF)
 option(MARIAN "Select to compile with Marian library" ON)
 option(MARIAN_LIBRARY_ONLY "Automatically set when building amunmt. Don't touch this." ON)
+
+if(CPU)
+    add_definitions(-DHAS_CPU)
+endif(CPU)
+
+if(FPGA)
+    add_definitions(-DHAS_FPGA)
+endif(FPGA)
   
 if(CUDA)
   find_package(CUDA)
@@ -55,6 +65,13 @@ if(Boost_FOUND)
 else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
+
+if (FPGA)
+  find_package( OpenCL REQUIRED )
+  if(OpenCL_FOUND)
+    set(EXT_LIBS ${EXT_LIBS} ${OpenCL_LIBRARIES})
+  endif(OpenCL_FOUND)
+endif(FPGA)
 
 find_package(PythonLibs 2.7)
 if(PYTHONLIBS_FOUND)

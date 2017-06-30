@@ -24,7 +24,8 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     using EDState = EncoderDecoderState;
 
   public:
-    EncoderDecoder(const std::string& name,
+    EncoderDecoder(const God &god,
+    			   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
                    const Weights& model);
@@ -32,11 +33,11 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     virtual void Decode(
         const State& in,
         State& out,
-        const std::vector<size_t>& beamSizes);
+        const std::vector<uint>& beamSizes);
 
     virtual void BeginSentenceState(State& state, size_t batchSize);
 
-    virtual void SetSource(const Sentences& sources);
+    virtual void Encode(const Sentences& sources);
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,

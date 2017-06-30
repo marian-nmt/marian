@@ -17,18 +17,19 @@ namespace Nematus {
 
 using EDState = EncoderDecoderState;
 
-EncoderDecoder::EncoderDecoder(const std::string& name,
+EncoderDecoder::EncoderDecoder(const God &god,
+							   const std::string& name,
                                const YAML::Node& config,
                                size_t tab,
                                const Nematus::Weights& model)
-  : CPUEncoderDecoderBase(name, config, tab),
+  : CPUEncoderDecoderBase(god, name, config, tab),
     model_(model),
     encoder_(new CPU::Nematus::Encoder(model_)),
     decoder_(new CPU::Nematus::Decoder(model_))
 {}
 
 
-void EncoderDecoder::Decode(const State& in, State& out, const std::vector<size_t>&) {
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -44,7 +45,7 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
 }
 
 
-void EncoderDecoder::SetSource(const Sentences& sources) {
+void EncoderDecoder::Encode(const Sentences& sources) {
   encoder_->GetContext(sources.at(0)->GetWords(tab_),
                         SourceContext_);
 }

@@ -22,17 +22,18 @@ class Encoder {
         {}
 
         void Lookup(mblas::Matrix& Row, const Words& words) {
-          thrust::host_vector<size_t> knownWords(words.size(), 1);
+          HostVector<uint> knownWords(words.size(), 1);
           for (size_t i = 0; i < words.size(); ++i) {
-            if (words[i] < w_.E_.Rows()) {
+            if (words[i] < w_.E_->dim(0)) {
               knownWords[i] = words[i];
             }
           }
 
-          DeviceVector<size_t> dKnownWords(knownWords);
+          DeviceVector<uint> dKnownWords(knownWords);
 
-          Row.Resize(words.size(), w_.E_.Cols());
-          mblas::Assemble(Row, w_.E_, dKnownWords);
+          Row.NewSize(words.size(), w_.E_->dim(1));
+          mblas::Assemble(Row, *w_.E_, dKnownWords);
+          //std::cerr << "Row3=" << Row.Debug(1) << std::endl;
         }
 
       private:
@@ -48,7 +49,7 @@ class Encoder {
         : gru_(model) {}
 
         void InitializeState(size_t batchSize = 1) {
-          State_.Resize(batchSize, gru_.GetStateLength());
+          State_.NewSize(batchSize, gru_.GetStateLength());
           mblas::Fill(State_, 0.0f);
         }
 
@@ -59,20 +60,36 @@ class Encoder {
         }
 
         template <class It>
-        void GetContext(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
-                        const DeviceVector<int>* mapping=nullptr) {
+        void Encode(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
+                        const mblas::IMatrix *sentencesMask=nullptr)
+        {
           InitializeState(batchSize);
 
+          mblas::Matrix prevState(State_);
           size_t n = std::distance(it, end);
           size_t i = 0;
+
           while(it != end) {
-            GetNextState(State_, State_, *it++);
+            GetNextState(State_, prevState, *it++);
+	    
+            //std::cerr << "invert=" << invert << std::endl;
             if(invert) {
-              mblas::MapMatrix(State_, *mapping, n - i - 1);
-              mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength(), n);
-            } else {
-              mblas::PasteRows(Context, State_, i, 0, n);
+              assert(sentencesMask);
+
+              //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
+              //std::cerr << "mapping=" << mblas::Debug(*mapping) << std::endl;
+              mblas::MapMatrix(State_, *sentencesMask, n - i - 1);
+              //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
+
+              mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength());
             }
+            else {
+              //std::cerr << "1Context=" << Context.Debug(1) << std::endl;
+              mblas::PasteRows(Context, State_, i, 0);
+              //std::cerr << "2Context=" << Context.Debug(1) << std::endl;
+            }
+
+            prevState.swap(State_);
             ++i;
           }
         }
@@ -90,8 +107,8 @@ class Encoder {
   public:
     Encoder(const Weights& model);
 
-    void GetContext(const Sentences& words, size_t tab, mblas::Matrix& Context,
-                    DeviceVector<int>& mapping);
+    void Encode(const Sentences& words, size_t tab, mblas::Matrix& context,
+                    mblas::IMatrix &sentencesMask);
 
   private:
     Embeddings<Weights::EncEmbeddings> embeddings_;

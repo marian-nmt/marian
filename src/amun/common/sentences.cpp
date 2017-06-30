@@ -1,6 +1,7 @@
+#include <algorithm>
 #include "sentences.h"
 
-#include <algorithm>
+using namespace std;
 
 namespace amunmt {
 
@@ -42,18 +43,57 @@ class LengthOrderer {
 
 void Sentences::SortByLength() {
   std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
+  //std::sort(coll_.begin(), coll_.end(), LengthOrderer());
+  //std::random_shuffle ( coll_.begin(), coll_.end() );
 }
 
-SentencesPtr Sentences::NextMiniBatch(size_t batchsize)
+SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
 {
   SentencesPtr sentences(new Sentences());
-  size_t startInd = (batchsize > size()) ? 0 : size() - batchsize;
-  for (size_t i = startInd; i < size(); ++i) {
-    SentencePtr sentence = at(i);
-    sentences->push_back(sentence);
+
+  if (batchWords) {
+    size_t numWords = 0;
+    size_t maxBatch = std::min(batchsize, size());
+    //cerr << "maxBatch=" << maxBatch << endl;
+
+    size_t ind = 0;
+    while (ind < maxBatch) {
+      SentencePtr sentence = at(ind);
+      size_t sentLen = sentence->GetWords(0).size();
+
+      if (sentences->size() && (numWords + sentLen) > batchWords) {
+        // max batch
+        break;
+      }
+
+      numWords += sentLen;
+
+      // add next 32 sentences
+      size_t endInd = std::min(size(), ind + 32);
+      for (; ind < endInd; ++ind) {
+        sentence = at(ind);
+        sentences->push_back(sentence);
+
+        if (ind == maxBatch) {
+          break;
+        }
+      }
+    }
+
+    coll_.erase(coll_.begin(), coll_.begin() + ind);
+
+    //cerr << "sentences=" << sentences->size() << " coll_=" << coll_.size() << endl;
+  }
+  else {
+    size_t startInd = (batchsize > size()) ? 0 : size() - batchsize;
+    for (size_t i = startInd; i < size(); ++i) {
+      SentencePtr sentence = at(i);
+      sentences->push_back(sentence);
+    }
+
+    coll_.resize(startInd);
   }
 
-  coll_.resize(startInd);
   return sentences;
 }
 

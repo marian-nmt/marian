@@ -9,43 +9,71 @@
 namespace amunmt {
 namespace GPU {
 
+struct NthOut
+{
+  uint ind;
+  float score;
+
+  __device__ __host__
+  NthOut() {}
+
+  __device__ __host__
+  NthOut(uint &vInd, float vScore)
+  :ind(vInd)
+  ,score(vScore)
+  {}
+
+  NthOut& operator+=(const NthOut& rhs)
+  {
+    ind += rhs.ind;
+    score += rhs.score;
+    return *this;
+  }
+};
+
+inline std::ostream& operator<<(std::ostream &out, const NthOut &obj)
+{
+  out << "(" << obj.ind << "," << obj.score << ")";
+  return out;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 class NthElement {
   public:
     NthElement() = delete;
     NthElement(const NthElement &copy) = delete;
-    NthElement(size_t maxBeamSize, size_t maxBatchSize, cudaStream_t& stream);
+    NthElement(uint maxBeamSize, uint maxBatchSize);
     virtual ~NthElement();
 
-    void getNBestList(float* probs, const std::vector<int>& batchFirstElementIdxs,
-                              const std::vector<int>& cummulatedBeamSizes);
-    void getNBestList(const std::vector<size_t>& beamSizes, mblas::Matrix& Probs,
-                      std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
+    void getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+                      std::vector<float>& outCosts, std::vector<uint>& outKeys,
                       const bool isFirst=false);
 
-    void GetPairs(size_t number,
-                  std::vector<unsigned>& outKeys,
+    void GetPairs(uint number,
+                  std::vector<uint>& outKeys,
                   std::vector<float>& outValues);
 
-    void getValueByKey(std::vector<float>& out, float* d_in);
+    void getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const;
 
   private:
-    const int BLOCK_SIZE = 512;
-    const int NUM_BLOCKS;
-    cudaStream_t& stream_;
-    int *d_ind;
+    const uint BLOCK_SIZE = 512;
 
-    float *d_out;
+    DeviceVector<NthOut> d_out;
 
-    int   *d_res_idx;
-    float *d_res;
+    DeviceVector<NthOut> d_res;
+    HostVector<NthOut> h_res;
 
-    int   *h_res_idx;
-    float *h_res;
+    DeviceVector<float> d_breakdown;
+    DeviceVector<uint> d_batchPosition;
+    DeviceVector<uint> d_cumBeamSizes;
 
-    float  *d_breakdown;
-    int    *d_batchPosition;
-    int    *d_cumBeamSizes;
-    size_t lastN;
+    uint maxBeamSize_, maxBatchSize_;
+
+    void getNBestList(mblas::Matrix &probs,
+                      const HostVector<uint>& batchFirstElementIdxs,
+                      const HostVector<uint>& cummulatedBeamSizes);
+
 };
 
 }  // namespace GPU

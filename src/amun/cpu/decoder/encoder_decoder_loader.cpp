@@ -32,18 +32,18 @@ void EncoderDecoderLoader::Load(const God&) {
   }
 }
 
-ScorerPtr EncoderDecoderLoader::NewScorer(const God&, const DeviceInfo&) const {
+ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo&) const {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
   std::string type = Get<std::string>("type");
   if (type == "nematus2") {
-    return ScorerPtr(new Nematus::EncoderDecoder(name_, config_,
+    return ScorerPtr(new Nematus::EncoderDecoder(god, name_, config_,
                                               tab, *nematusModels_[0]));
   }
-  return ScorerPtr(new dl4mt::EncoderDecoder(name_, config_,
+  return ScorerPtr(new dl4mt::EncoderDecoder(god, name_, config_,
                                              tab, *dl4mtModels_[0]));
 }
 
-BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god) const {
+BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const {
   return BestHypsBasePtr(new CPU::BestHyps(god));
 }
 

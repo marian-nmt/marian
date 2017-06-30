@@ -39,7 +39,7 @@ class BestHyps : public BestHypsBase
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<size_t>& beamSizes)
+        std::vector<uint>& beamSizes)
     {
       using namespace mblas;
 

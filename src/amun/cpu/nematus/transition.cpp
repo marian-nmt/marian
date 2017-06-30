@@ -55,16 +55,16 @@ void Transition::ElementwiseOps(mblas::Matrix& state, int idx) const {
   using namespace mblas;
   using namespace blaze;
 
-  for (int j = 0; j < (int)state.Rows(); ++j) {
+  for (int j = 0; j < (int)state.dim(0); ++j) {
     auto rowState = row(state, j);
     auto rowT   = row(Temp_1_, j);
     auto rowT2  = row(Temp_2_, j);
 
-    for (int i = 0; i < (int)state.Cols(); ++i) {
+    for (int i = 0; i < (int)state.dim(1); ++i) {
       float ev1 = expapprox(-(rowT[i])); // + w_.B_[idx](0, i)));
       float r = 1.0f / (1.0f + ev1);
 
-      int k = i + state.Cols();
+      int k = i + state.dim(1);
       float ev2 = expapprox(-(rowT[k])); // + w_.B_[idx](0, k)));
       float u = 1.0f / (1.0f + ev2);
 

@@ -10,7 +10,8 @@ Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
   forwardRnn_(model.encForwardGRU_),
   backwardRnn_(model.encBackwardGRU_)
-{}
+{
+}
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
   size_t maxLength = source.at(0)->GetWords(tab).size();
@@ -33,21 +34,31 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
   return matrix;
 }
 
-void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Context,
-                         DeviceVector<int>& dMapping) {
+void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context,
+                         mblas::IMatrix &sentencesMask)
+{
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
-  thrust::host_vector<int> hMapping(maxSentenceLength * source.size(), 0);
+  //cerr << "1dMapping=" << mblas::Debug(dMapping, 2) << endl;
+  HostVector<uint> hMapping(maxSentenceLength * source.size(), 0);
   for (size_t i = 0; i < source.size(); ++i) {
     for (size_t j = 0; j < source.at(i)->GetWords(tab).size(); ++j) {
       hMapping[i * maxSentenceLength + j] = 1;
     }
   }
 
-  dMapping = hMapping;
+  sentencesMask.NewSize(maxSentenceLength, source.size(), 1, 1);
+  mblas::copy(thrust::raw_pointer_cast(hMapping.data()),
+              hMapping.size(),
+              sentencesMask.data(),
+              cudaMemcpyHostToDevice);
 
-  Context.Resize(maxSentenceLength * source.size(),
-                 forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength());
+  //cerr << "GetContext1=" << context.Debug(1) << endl;
+  context.NewSize(maxSentenceLength,
+                 forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
+                 1,
+                 source.size());
+  //cerr << "GetContext2=" << context.Debug(1) << endl;
 
   auto input = GetBatchInput(source, tab, maxSentenceLength);
 
@@ -56,15 +67,19 @@ void Encoder::GetContext(const Sentences& source, size_t tab, mblas::Matrix& Con
       embeddedWords_.emplace_back();
     }
     embeddings_.Lookup(embeddedWords_[i], input[i]);
+    //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 
-  forwardRnn_.GetContext(embeddedWords_.cbegin(),
+  //cerr << "GetContext3=" << context.Debug(1) << endl;
+  forwardRnn_.Encode(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
-                         Context, source.size(), false);
+                         context, source.size(), false);
+  //cerr << "GetContext4=" << context.Debug(1) << endl;
 
-  backwardRnn_.GetContext(embeddedWords_.crend() - maxSentenceLength,
+  backwardRnn_.Encode(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
-                          Context, source.size(), true, &dMapping);
+                          context, source.size(), true, &sentencesMask);
+  //cerr << "GetContext5=" << context.Debug(1) << endl;
 }
 
 }

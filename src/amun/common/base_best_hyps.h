@@ -32,7 +32,7 @@ class BestHypsBase
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<size_t>& beamSizes) = 0;
+        std::vector<uint>& beamSizes) = 0;
 
   protected:
     const bool forbidUNK_;

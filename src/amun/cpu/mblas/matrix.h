@@ -37,18 +37,19 @@ public:
     return Parent::operator=(other);
   }
 
-  virtual size_t Rows() const
-  { return Parent::rows(); }
-
-  virtual size_t Cols() const
-  { return Parent::columns(); }
-
-  virtual void Resize(size_t rows, size_t cols)
+  virtual size_t dim(size_t i) const
   {
-    amunmt_UTIL_THROW2("Not implemented");
+  	switch (i) {
+  	case 0: return Parent::rows();
+  	case 1: return Parent::columns();
+  	case 2: return 1;
+  	case 3: return 1;
+  	default:
+  		abort();
+  	}
   }
 
-  virtual std::string Debug() const
+  virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1)
   {
     amunmt_UTIL_THROW2("Not implemented");
   }
@@ -86,27 +87,25 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
        std::swap(temp, *(BlazeBase*)this);
     }
 
-    virtual size_t Rows() const
+    virtual size_t dim(size_t i) const
     {
-    	return BlazeBase::rows();
+    	switch (i) {
+    	case 0: return BlazeBase::rows();
+    	case 1: return BlazeBase::columns();
+    	case 2: return 1;
+    	case 3: return 1;
+    	default:
+    		abort();
+    	}
     }
 
-    virtual size_t Cols() const
+    virtual void Resize(size_t rows, size_t columns, size_t beam = 1, size_t batches = 1)
     {
-    	return BlazeBase::columns();
-    }
-
-    virtual void Resize(size_t rows, size_t columns) {
-       data_.resize(rows * columns);
-       BlazeBase temp(data_.data(), rows, columns);
-       std::swap(temp, *(BlazeBase*)this);
-    }
-
-    virtual std::string Debug() const
-    {
-    	std::stringstream strm;
-    	strm << "(" << Rows() << "x" << Cols() << ")";
-    	return strm.str();
+      assert(beam == 1);
+      assert(batches == 1);
+      data_.resize(rows * columns);
+      BlazeBase temp(data_.data(), rows, columns);
+      std::swap(temp, *(BlazeBase*)this);
     }
 
     BlazeMatrix<T, SO>& operator=(const value_type& val) {
@@ -285,21 +284,21 @@ MT Concat(const MT1& m1, const MT2& m2) {
 
 template <bool byRow, class MT, class MT1>
 MT Assemble(const MT1& in,
-            const std::vector<size_t>& indeces) {
+            const std::vector<size_t>& indices) {
   MT out;
   if(byRow) {
-    size_t rows = indeces.size();
+    size_t rows = indices.size();
     size_t cols = in.columns();
     out.resize(rows, cols);
     for(size_t i = 0; i < rows; ++i)
-      blaze::row(out, i) = blaze::row(in, indeces[i]);
+      blaze::row(out, i) = blaze::row(in, indices[i]);
   }
   else {
     size_t rows = in.rows();
-    size_t cols = indeces.size();
+    size_t cols = indices.size();
     out.resize(rows, cols);
     for(size_t i = 0; i < cols; ++i)
-      blaze::column(out, i) = blaze::column(in, indeces[i]);
+      blaze::column(out, i) = blaze::column(in, indices[i]);
   }
   return std::move(out);
 }
