@@ -107,6 +107,13 @@ void Config::validateOptions(bool translate, bool rescore) const {
                    "There should be as many vocabularies as training sets");
   }
 
+  if(has("embedding-vectors")) {
+    UTIL_THROW_IF2(get<std::vector<std::string>>("embedding-vectors").size()
+                       != get<std::vector<std::string>>("train-sets").size(),
+                   "There should be as many files with embedding vectors as "
+                   "training sets");
+  }
+
   if(rescore)
     return;
 
@@ -356,6 +363,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
 
     ("drop-rate", po::value<double>()->default_value(0),
      "Gradient drop ratio. (read: https://arxiv.org/abs/1704.05021)")
+    ("embedding-vectors", po::value<std::vector<std::string>>()
+      ->multitoken()
+      ->default_value(std::vector<std::string>({"", ""}), ""),
+     "Paths to files with custom source and target embedding vectors.")
   ;
   // clang-format on
   desc.add(training);
@@ -594,6 +605,7 @@ void Config::addOptions(
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
     SET_OPTION("drop-rate", double);
+    SET_OPTION("embedding-vectors", std::vector<std::string>);
   }
   /** training end **/
   else if(rescore) {

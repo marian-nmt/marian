@@ -72,11 +72,15 @@ public:
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
+    auto embFile = opt<std::vector<std::string>>("embedding-vectors").back();
     auto yEmb = embedding(graph)
                 ("prefix", prefix_ + "_Wemb")
                 ("dimVocab", dimVoc)
                 ("dimEmb", opt<int>("dim-emb"))
+                ("embFile", embFile)
                 .construct();
+    // FIXME
+    debug(yEmb, "yEmb");
 
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();
@@ -112,10 +116,12 @@ public:
       selectedEmbs = graph->constant({1, dimTrgEmb},
                                      init = inits::zeros);
     } else {
+      auto embFile = opt<std::vector<std::string>>("embedding-vectors").back();
       auto yEmb = embedding(graph)
                   ("prefix", prefix_ + "_Wemb")
                   ("dimVocab", dimTrgVoc)
                   ("dimEmb", opt<int>("dim-emb"))
+                  ("embFile", embFile)
                   .construct();
       selectedEmbs = rows(yEmb, embIdx);
 

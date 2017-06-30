@@ -36,7 +36,7 @@ def main():
     print("  lines: {}".format(lines))
     print("  entries: {}".format(len(vocab)))
 
-    print("Adding <unk> na </s> tokens to the corpus")
+    print("Adding <unk> and </s> tokens to the corpus")
     prep_corpus = args.corpus + '.prep'
     with open(args.corpus) as cin, open(prep_corpus, 'w+') as cout:
         for line in cin:
@@ -64,7 +64,7 @@ def main():
                 cout.write("{} {}".format(vocab[word], tail))
                 n += 1
             else:
-                print("  warning: no word '{}' in vocabulary".format(word))
+                print("  warning: no word '{}' in vocabulary, line {}".format(word, i+1))
     print("  words: {}".format(n))
 
     print("Finished")

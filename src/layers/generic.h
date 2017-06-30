@@ -4,8 +4,9 @@
 #include "common/options.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
-#include "layers/param_initializers.h"
+#include "layers/embedding_reader.h"
 #include "layers/factory.h"
+#include "layers/param_initializers.h"
 
 namespace marian {
   namespace mlp {
@@ -146,9 +147,16 @@ struct EmbeddingFactory : public Factory {
     std::string name = opt<std::string>("prefix");
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");
+    std::string file = opt<std::string>("embFile");
 
-    return graph_->param(name, {dimVoc, dimEmb},
-                         keywords::init = inits::glorot_uniform);
+    if(!file.empty()) {
+      auto embVec = EmbeddingReader().read(file, dimVoc, dimEmb);
+      return graph_->param(
+          name, {dimVoc, dimEmb}, keywords::init = inits::from_vector(embVec));
+    } else {
+      return graph_->param(
+          name, {dimVoc, dimEmb}, keywords::init = inits::glorot_uniform);
+    }
   }
 };
 

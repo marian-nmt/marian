@@ -6,6 +6,7 @@
 
 #include "3rd_party/exception.h"
 #include "common/definitions.h"
+#include "common/logging.h"
 #include "common/utils.h"
 #include "data/vocab.h"
 #include "data/types.h"
@@ -20,6 +21,8 @@ public:
   std::vector<float> read(const std::string& fileName,
                           int dimVoc,
                           int dimEmb) {
+    LOG(data)->info("Loading embedding vectors from {}", fileName);
+
     std::ifstream embFile(fileName);
     UTIL_THROW_IF2(!embFile.is_open(),
                    "Unable to open file with embeddings: " + fileName);
