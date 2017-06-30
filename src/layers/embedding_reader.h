@@ -50,9 +50,10 @@ public:
       if(word == UNK_ID && values.front() != UNK_STR)
         continue;
 
+      word2vec[word].reserve(dimEmb);
       std::transform(values.begin() + 1,
                      values.end(),
-                     word2vec[word].begin(),
+                     std::back_inserter(word2vec[word]),
                      [](const std::string& s) { return std::stof(s); });
     }
 
@@ -61,10 +62,8 @@ public:
 
     // Populate output vector with embedding
     for(size_t word = 0; word < (size_t)dimVoc; ++word) {
-      auto pos = embs.begin() + (word * dimEmb);
-
       if(word2vec.find(word) != word2vec.end()) {
-        embs.insert(pos, word2vec[word].begin(), word2vec[word].end());
+        embs.insert(embs.end(), word2vec[word].begin(), word2vec[word].end());
       } else {
         // For words not occuring in the file use uniform distribution
         std::vector<float> values;
@@ -73,7 +72,7 @@ public:
         // then use the generated numbers to bucket into embedding vectors
         inits::distribution<std::uniform_real_distribution<float>>(
             values, -0.1, 0.1);
-        embs.insert(pos, values.begin(), values.end());
+        embs.insert(embs.end(), values.begin(), values.end());
       }
     }
 
