@@ -36,10 +36,12 @@ God::~God()
 {
   Cleanup();
 
-  cerr << "timers:" << endl;
-  for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
-    const boost::timer::cpu_timer &timer = iter->second;
-    cerr << iter->first << "=" << timer.format();
+  if (timers.size()) {
+    cerr << "timers:" << endl;
+    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
+      const boost::timer::cpu_timer &timer = iter->second;
+      cerr << iter->first << "=" << timer.format();
+    }
   }
 }
 
