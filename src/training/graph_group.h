@@ -60,11 +60,12 @@ private:
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
-  float mvDecay_{0.999};
+  float mvDecay_{0.9999};
 
-  void updateMovingAverage(Tensor mvAvgParams, Tensor params) {
+  void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches) {
+    float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
     Element(
-        _1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2), mvAvgParams, params);
+        _1 = (decay * _1) + ((1.f - decay) * _2), mvAvgParams, params);
   }
 
   void execute(Ptr<data::Batch> batch) {
@@ -88,7 +89,8 @@ private:
         mvAvgGraph_->params()->vals()->copyFrom(graph_->params()->vals());
       } else {
         updateMovingAverage(mvAvgGraph_->params()->vals(),
-                            graph_->params()->vals());
+                            graph_->params()->vals(),
+                            scheduler_->numberOfBatches());
       }
     }
 
@@ -231,7 +233,7 @@ private:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
-  float mvDecay_{0.999};
+  float mvDecay_{0.9999};
 
   ThreadPool pool_;
 
@@ -296,7 +298,8 @@ private:
             shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx]);
 
             if(movingAvg_)
-              updateMovingAverage(paramsAvg_[idx], params_[latestVersion][idx]);
+              updateMovingAverage(paramsAvg_[idx], params_[latestVersion][idx],
+                                  scheduler_->numberOfBatches());
 
             cudaStreamSynchronize(0);
           },
@@ -404,7 +407,8 @@ private:
 
               if(movingAvg_)
                 updateMovingAverage(paramsAvg_[idx],
-                                    params_[latestVersion][idx]);
+                                    params_[latestVersion][idx],
+                                    scheduler_->numberOfBatches());
 
               cudaStreamSynchronize(0);
             },
@@ -418,8 +422,9 @@ private:
     }
   }
 
-  void updateMovingAverage(Tensor paramsAvg, Tensor params) {
-    Element(_1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2), paramsAvg, params);
+  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches) {
+    float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
+    Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
   }
 
   void execute(Ptr<data::Batch> batch) {

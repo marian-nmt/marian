@@ -341,7 +341,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Clip gradient norm to  arg  (0 to disable)")
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
      "Maintain and save moving average of parameters")
-    ("moving-decay", po::value<double>()->default_value(0.999),
+    ("moving-decay", po::value<double>()->default_value(0.9999),
      "Decay factor for moving average")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
