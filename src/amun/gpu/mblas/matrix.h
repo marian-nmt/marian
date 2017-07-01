@@ -32,7 +32,7 @@ T Sum(const T *data, size_t count)
 {
   T ret;
   T *d_ret;
-  HANDLE_ERROR( cudaMalloc((void**)&d_ret, sizeof(T)) );
+  HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
 
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
   HANDLE_ERROR( cudaStreamSynchronize(stream));
@@ -72,7 +72,7 @@ class TMatrix : public BaseMatrix {
       dim_[3] = batches;
       arrSize_ = size();
 
-      HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
+      HANDLE_ERROR( cudaMalloc(&data_, arrSize_ * sizeof(T)) );
       //std::cerr << "malloc data1:" << data_ << std::endl;
       if (zero) {
         HANDLE_ERROR( cudaMemsetAsync(data_, 0, arrSize_ * sizeof(T), CudaStreamHandler::GetStream()) );
@@ -93,7 +93,7 @@ class TMatrix : public BaseMatrix {
       dim_[2] = m.dim_[2];
       dim_[3] = m.dim_[3];
 
-      HANDLE_ERROR( cudaMalloc((void**)&data_, arrSize_ * sizeof(T)) );
+      HANDLE_ERROR( cudaMalloc(&data_, arrSize_ * sizeof(T)) );
       //std::cerr << "malloc data2:" << data_ << std::endl;
       HANDLE_ERROR( cudaMemcpyAsync(
           data_,
@@ -118,7 +118,7 @@ class TMatrix : public BaseMatrix {
       if (data_) {
         if (newSize > arrSize_) {
           T *newData;
-          HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
+          HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
           //std::cerr << "malloc data3:" << data_ << std::endl;
 
           //size_t count = std::min(arrSize_, newSize);
@@ -146,7 +146,7 @@ class TMatrix : public BaseMatrix {
         }
       }
       else {
-        HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
+        HANDLE_ERROR( cudaMalloc(&data_, newSize * sizeof(T)) );
         //std::cerr << "malloc data4:" << data_ << std::endl;
         arrSize_ = newSize;
       }
@@ -162,7 +162,7 @@ class TMatrix : public BaseMatrix {
       if (data_) {
         if (newSize > arrSize_) {
           T *newData;
-          HANDLE_ERROR( cudaMalloc((void**)&newData, newSize * sizeof(T)) );
+          HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
           HANDLE_ERROR( cudaFree(data_));
           data_ = newData;
           arrSize_ = newSize;
@@ -178,7 +178,7 @@ class TMatrix : public BaseMatrix {
         }
       }
       else {
-        HANDLE_ERROR( cudaMalloc((void**)&data_, newSize * sizeof(T)) );
+        HANDLE_ERROR( cudaMalloc(&data_, newSize * sizeof(T)) );
         //std::cerr << "malloc data4:" << data_ << std::endl;
         arrSize_ = newSize;
       }
@@ -187,6 +187,13 @@ class TMatrix : public BaseMatrix {
       dim_[1] = cols;
       dim_[2] = beam;
       dim_[3] = batches;
+    }
+
+    void reserve(size_t size)
+    {
+      assert(data_ == nullptr);
+      HANDLE_ERROR( cudaMalloc(&data_, size * sizeof(T)) );
+      arrSize_ = size;
     }
 
     /*
