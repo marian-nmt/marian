@@ -18,6 +18,12 @@ struct NthOut
   NthOut() {}
 
   __device__ __host__
+  NthOut(uint init)
+  :ind(init)
+  ,score(init)
+  {}
+
+  __device__ __host__
   NthOut(uint &vInd, float vScore)
   :ind(vInd)
   ,score(vScore)
@@ -60,7 +66,7 @@ class NthElement {
   private:
     const uint BLOCK_SIZE = 512;
 
-    DeviceVector<NthOut> d_out;
+    mblas::TMatrix<NthOut> d_out;
 
     DeviceVector<NthOut> d_res;
     HostVector<NthOut> h_res;

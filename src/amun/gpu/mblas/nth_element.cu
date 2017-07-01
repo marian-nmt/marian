@@ -339,8 +339,7 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
   const uint numBatches = batchFirstElementIdxs.size() - 1;
 
-  d_out.resize(maxBatchSize_ * numBlocks);
-
+  d_out.NewSize(maxBatchSize_ * numBlocks, 1, 1, 1);
 
   //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
   d_batchPosition.resize(batchFirstElementIdxs.size());

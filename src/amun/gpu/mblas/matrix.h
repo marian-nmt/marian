@@ -21,14 +21,14 @@ using namespace thrust::placeholders;
 template<typename T>
 __global__ void gSum(const T *data, size_t count, T &ret)
 {
-  ret = 0.0f;
+  ret = 0;
   for (size_t i = 0; i < count; ++i) {
     ret += data[i];
   }
 }
 
 template<typename T>
-float Sum(const T *data, size_t count)
+T Sum(const T *data, size_t count)
 {
   T ret;
   T *d_ret;
