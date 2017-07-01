@@ -662,10 +662,8 @@ void Config::addOptions(
     config_["layer-normalization"] = true;
     config_["tied-embeddings"] = true;
     config_["enc-type"] = "alternating";
-    config_["enc-cell-type"] = "gru";
     config_["enc-cell-depth"] = 2;
     config_["enc-depth"] = 4;
-    config_["dec-cell-type"] = "gru";
     config_["dec-cell-base-depth"] = 4;
     config_["dec-cell-high-depth"] = 2;
     config_["dec-depth"] = 4;
