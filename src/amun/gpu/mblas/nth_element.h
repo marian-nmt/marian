@@ -71,8 +71,8 @@ class NthElement {
     mblas::TMatrix<NthOut> d_res;
     HostVector<NthOut> h_res;
 
-    DeviceVector<float> d_breakdown;
-    DeviceVector<uint> d_batchPosition;
+    mblas::TMatrix<float> d_breakdown;
+    mblas::TMatrix<uint> d_batchPosition;
     DeviceVector<uint> d_cumBeamSizes;
 
     uint maxBeamSize_, maxBatchSize_;

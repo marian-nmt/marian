@@ -267,7 +267,7 @@ __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
 }
 
 NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
-: d_breakdown(maxBeamSize)
+: d_breakdown(maxBeamSize, 1, 1, 1)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
 {
@@ -342,11 +342,14 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   d_out.NewSize(maxBatchSize_ * numBlocks, 1, 1, 1);
 
   //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
-  d_batchPosition.resize(batchFirstElementIdxs.size());
+  d_batchPosition.NewSize(batchFirstElementIdxs.size(), 1, 1, 1);
   d_cumBeamSizes.resize(cummulatedBeamSizes.size());
   assert(d_batchPosition.size() == d_cumBeamSizes.size());
 
-  mblas::copy(batchFirstElementIdxs.begin(), batchFirstElementIdxs.end(), d_batchPosition.begin());
+  mblas::copy(thrust::raw_pointer_cast(batchFirstElementIdxs.data()),
+              batchFirstElementIdxs.size(),
+              d_batchPosition.data(),
+              cudaMemcpyHostToDevice);
   mblas::copy(cummulatedBeamSizes.begin(), cummulatedBeamSizes.end(), d_cumBeamSizes.begin());
 
   mblas::MatrixWrapper<NthOut> outWrap(d_out);
@@ -408,7 +411,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
 
-  HANDLE_ERROR( cudaMemcpyAsync(out.data(), thrust::raw_pointer_cast(d_breakdown.data()), h_res.size() * sizeof(float),
+  HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown.data(), h_res.size() * sizeof(float),
                                 cudaMemcpyDeviceToHost, mblas::CudaStreamHandler::GetStream()) );
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 }
