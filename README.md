@@ -98,7 +98,7 @@ Clone a fresh copy from github:
 
 The project is a standard CMake out-of-source build:
 
-    cd amunmt
+    cd marian
     mkdir build
     cd build
     cmake ..
