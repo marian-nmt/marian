@@ -64,8 +64,7 @@ private:
 
   void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches) {
     float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
-    Element(
-        _1 = (decay * _1) + ((1.f - decay) * _2), mvAvgParams, params);
+    Element(_1 = (decay * _1) + ((1.f - decay) * _2), mvAvgParams, params);
   }
 
   void execute(Ptr<data::Batch> batch) {
