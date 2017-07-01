@@ -660,6 +660,7 @@ void Config::addOptions(
 
   if(vm_["nematus-wmt2017"].as<bool>()) {
     config_["layer-normalization"] = true;
+    config_["tied-embeddings"] = true;
     config_["enc-type"] = "alternating";
     config_["enc-cell-type"] = "gru";
     config_["enc-cell-depth"] = 2;

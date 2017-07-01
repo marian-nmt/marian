@@ -200,16 +200,16 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
     // conditional and conditional-repeat require dec-cell-high-depth > 1
 
     // Repeat attention output as input for each layer
-    if(opt<std::string>("dec-high-context") == "repeat") {
-      highCell.add_input(
-        [](Ptr<rnn::RNN> rnn) {
-          return rnn->at(0)->as<rnn::StackedCell>()
-                    ->at(1)->as<rnn::Attention>()
-                    ->getContext();
-        }
-      );
-      highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
-    }
+    //if(opt<std::string>("dec-high-context") == "repeat") {
+    //  highCell.add_input(
+    //    [](Ptr<rnn::RNN> rnn) {
+    //      return rnn->at(0)->as<rnn::StackedCell>()
+    //                ->at(1)->as<rnn::Attention>()
+    //                ->getContext();
+    //    }
+    //  );
+    //  highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
+    //}
 
     // Add cell to RNN (more layers)
     rnn.push_back(highCell);
@@ -288,11 +288,8 @@ public:
     auto layer2 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l2")
                   ("dim", dimTrgVoc);
-
-    if(opt<bool>("tied-embeddings")) {
-      UTIL_THROW2("Tied embeddings currently not implemented. Note to self: Fix that.");
-      //layer2.tie_transposed("W0", prefix_ + "_Wemb");
-    }
+    if(opt<bool>("tied-embeddings"))
+      layer2.tie_transposed("W", prefix_ + "_Wemb");
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
