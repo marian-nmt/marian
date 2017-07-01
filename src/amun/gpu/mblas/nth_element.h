@@ -68,7 +68,7 @@ class NthElement {
 
     mblas::TMatrix<NthOut> d_out;
 
-    DeviceVector<NthOut> d_res;
+    mblas::TMatrix<NthOut> d_res;
     HostVector<NthOut> h_res;
 
     DeviceVector<float> d_breakdown;
