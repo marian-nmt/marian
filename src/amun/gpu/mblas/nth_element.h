@@ -29,6 +29,7 @@ struct NthOut
   ,score(vScore)
   {}
 
+  __device__ __host__
   NthOut& operator+=(const NthOut& rhs)
   {
     ind += rhs.ind;
