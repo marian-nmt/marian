@@ -18,12 +18,6 @@ struct NthOut
   NthOut() {}
 
   __device__ __host__
-  NthOut(const NthOut &other)
-  :ind(other.ind)
-  ,score(other.score)
-  {}
-  
-  __device__ __host__
   NthOut(uint &vInd, float vScore)
   :ind(vInd)
   ,score(vScore)
