@@ -46,10 +46,19 @@ public:
 class Dense : public Layer {
 private:
   std::vector<Expr> params_;
+  std::map<std::string, Expr> tiedParams_;
 
 public:
   Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
    : Layer(graph, options) {}
+
+  void tie(const std::string& param, const std::string& tied) {
+    tiedParams_[param] = graph_->get(tied);
+  }
+
+  void tie_transposed(const std::string& param, const std::string& tied) {
+    tiedParams_[param] = transpose(graph_->get(tied));
+  }
 
   Expr apply(const std::vector<Expr>& inputs) {
     UTIL_THROW_IF2(inputs.empty(), "No inputs");
@@ -69,12 +78,24 @@ public:
     std::vector<Expr> outputs;
     size_t i = 0;
     for(auto&& in : inputs) {
-      auto W = g->param(name + "_W" + std::to_string(i),
-                        {in->shape()[1], dim},
-                        keywords::init = inits::glorot_uniform);
-      auto b = g->param(name + "_b" + std::to_string(i),
-                        {1, dim},
-                        keywords::init = inits::zeros);
+      Expr W;
+      std::string nameW = "W" + std::to_string(i);
+      if(tiedParams_.count(nameW))
+        W = tiedParams_[nameW];
+      else
+        W = g->param(name + "_" + nameW,
+                     {in->shape()[1], dim},
+                     keywords::init = inits::glorot_uniform);
+
+      Expr b;
+      std::string nameB = "b" + std::to_string(i);
+      if(tiedParams_.count(nameB))
+        b = tiedParams_[nameB];
+      else
+        b = g->param(name + "_" + nameB,
+                     {1, dim},
+                     keywords::init = inits::zeros);
+
       params_.push_back(W);
       params_.push_back(b);
 
@@ -109,10 +130,23 @@ public:
     auto layerNorm = options_->get<bool>("layer-normalization", false);
     auto activation = options_->get<act>("activation", act::linear);
 
-    auto W = g->param(name + "_W",
-                      {input->shape()[1], dim},
-                      keywords::init = inits::glorot_uniform);
-    auto b = g->param(name + "_b", {1, dim}, keywords::init = inits::zeros);
+    Expr W;
+    std::string nameW = "W";
+    if(tiedParams_.count(nameW))
+      W = tiedParams_[nameW];
+    else
+      W = g->param(name + "_" + nameW,
+                   {input->shape()[1], dim},
+                   keywords::init = inits::glorot_uniform);
+
+    Expr b;
+    std::string nameB = "b";
+    if(tiedParams_.count(nameB))
+      b = tiedParams_[nameB];
+    else
+      b = g->param(name + "_" + nameB,
+                   {1, dim},
+                   keywords::init = inits::zeros);
 
     params_ = {W, b};
 

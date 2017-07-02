@@ -231,14 +231,14 @@ void Config::addOptionsModel(po::options_description& desc,
     ("dec-cell-base-depth", po::value<int>()->default_value(2), "Number of tansitional cells in first decoder layer (s2s)")
     ("dec-cell-high-depth", po::value<int>()->default_value(1), "Number of tansitional cells in next decoder layers (s2s)")
     ("dec-depth", po::value<int>()->default_value(1), "Number of decoder layers (s2s)")
-    ("dec-high-context", po::value<std::string>()->default_value("none"),
-     "Repeat attended context: none, repeat, conditional, conditional-repeat (s2s)")
+    //("dec-high-context", po::value<std::string>()->default_value("none"),
+    // "Repeat attended context: none, repeat, conditional, conditional-repeat (s2s)")
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
      "Use skip connections (s2s)")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
      "Enable layer normalization")
-    ("nematus-wmt2017", po::value<bool>()->zero_tokens()->default_value(false),
-     "Use best Nematus WMT 2017 configuration (s2s)")
+    ("best-deep", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use WMT-2017-style deep configuration (s2s)")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
      "Model-specific special vocabulary ids")
     ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
@@ -270,7 +270,7 @@ void Config::addOptionsModel(po::options_description& desc,
       "dec-cell",
       "dec-cell-base-depth",
       "dec-cell-high-depth",
-      "dec-high-context",
+      //"dec-high-context",
       "skip",
       "layer-normalization",
       "special-vocab",
@@ -348,7 +348,7 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Clip gradient norm to  arg  (0 to disable)")
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
      "Maintain and save moving average of parameters")
-    ("moving-decay", po::value<double>()->default_value(0.999),
+    ("moving-decay", po::value<double>()->default_value(0.9999),
      "Decay factor for moving average")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
@@ -554,13 +554,13 @@ void Config::addOptions(
   SET_OPTION("dec-cell-base-depth", int);
   SET_OPTION("dec-cell-high-depth", int);
   SET_OPTION("dec-depth", int);
-  SET_OPTION("dec-high-context", std::string);
+  //SET_OPTION("dec-high-context", std::string);
 
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);
   SET_OPTION("layer-normalization", bool);
 
-  SET_OPTION("nematus-wmt2017", bool);
+  SET_OPTION("best-deep", bool);
 
 
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
@@ -670,13 +670,12 @@ void Config::addOptions(
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 
-  if(vm_["nematus-wmt2017"].as<bool>()) {
+  if(vm_["best-deep"].as<bool>()) {
     config_["layer-normalization"] = true;
+    config_["tied-embeddings"] = true;
     config_["enc-type"] = "alternating";
-    config_["enc-cell-type"] = "gru";
     config_["enc-cell-depth"] = 2;
     config_["enc-depth"] = 4;
-    config_["dec-cell-type"] = "gru";
     config_["dec-cell-base-depth"] = 4;
     config_["dec-cell-high-depth"] = 2;
     config_["dec-depth"] = 4;

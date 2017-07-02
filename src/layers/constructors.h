@@ -26,16 +26,35 @@ struct LayerFactory : public Factory {
   virtual Ptr<Layer> construct() = 0;
 };
 
-template <class T>
-struct SimpleLayerFactory : public LayerFactory {
-  SimpleLayerFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
+class DenseFactory : public LayerFactory {
+protected:
+  std::vector<std::pair<std::string, std::string>> tiedParams_;
+  std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
+
+public:
+  DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
+
+  Accumulator<DenseFactory> tie(const std::string& param, const std::string& tied) {
+    tiedParams_.push_back({param, tied});
+    return Accumulator<DenseFactory>(*this);
+  }
+
+  Accumulator<DenseFactory> tie_transposed(const std::string& param, const std::string& tied) {
+    tiedParamsTransposed_.push_back({param, tied});
+    return Accumulator<DenseFactory>(*this);
+  }
 
   Ptr<Layer> construct() {
-    return New<T>(graph_, options_);
+    auto dense = New<Dense>(graph_, options_);
+    for(auto& p: tiedParams_)
+      dense->tie(p.first, p.second);
+    for(auto& p: tiedParamsTransposed_)
+      dense->tie_transposed(p.first, p.second);
+    return dense;
   }
 };
 
-typedef Accumulator<SimpleLayerFactory<Dense>> dense;
+typedef Accumulator<DenseFactory> dense;
 
 class MLP {
 protected:
@@ -56,7 +75,7 @@ public:
     Expr output;
     if(av.size() == 1)
       output = layers_[0]->apply(av[0]);
-    else 
+    else
       output = layers_[0]->apply(av);
 
     for(int i = 1; i < layers_.size(); ++i)
