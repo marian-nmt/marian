@@ -1,4 +1,5 @@
 #include "npz_converter.h"
+#include "common/exception.h"
 
 namespace amunmt {
 namespace GPU {
@@ -19,7 +20,7 @@ void NpzConverter::Destruct() {
   destructed_ = true;
 }
 
-std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool transpose) const
+std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, const std::string &mandatory, bool transpose) const
 {
   std::shared_ptr<mblas::Matrix> ret;
   auto it = model_.find(key);
@@ -34,12 +35,16 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool tr
 
     ret.reset(matrix);
   }
+  else if (mandatory == "true") {
+    std::cerr << "Error: Matrix not found:" << key << std::endl;
+    //amunmt_UTIL_THROW2(strm.str()); //  << key << std::endl
+    abort();
+  }
   else {
-    std::cerr << key << " not found" << std::endl;
+    std::cerr << "Optional matrix not found, continuing: " << key << std::endl;
     mblas::Matrix *matrix = new mblas::Matrix();
     ret.reset(matrix);
   }
-
 
   //std::cerr << "key=" << key << " " << matrix.Debug(1) << std::endl;
   return ret;
