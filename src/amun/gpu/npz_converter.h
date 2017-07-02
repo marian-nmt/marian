@@ -46,8 +46,8 @@ class NpzConverter {
 
     void Destruct();
 
-    std::shared_ptr<mblas::Matrix> get(const std::string& key, const std::string &mandatory, bool transpose = false) const;
-    std::shared_ptr<mblas::Matrix> getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys) const;
+    std::shared_ptr<mblas::Matrix> get(const std::string& key, bool mandatory, bool transpose = false) const;
+    std::shared_ptr<mblas::Matrix> getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const;
 
   private:
     cnpy::npz_t model_;

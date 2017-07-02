@@ -20,7 +20,7 @@ void NpzConverter::Destruct() {
   destructed_ = true;
 }
 
-std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, const std::string &mandatory, bool transpose) const
+std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool mandatory, bool transpose) const
 {
   std::shared_ptr<mblas::Matrix> ret;
   auto it = model_.find(key);
@@ -35,7 +35,7 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, const s
 
     ret.reset(matrix);
   }
-  else if (mandatory == "true") {
+  else if (mandatory) {
     std::cerr << "Error: Matrix not found:" << key << std::endl;
     //amunmt_UTIL_THROW2(strm.str()); //  << key << std::endl
     abort();
@@ -50,7 +50,7 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, const s
   return ret;
 }
 
-std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys) const
+std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const
 {
   std::shared_ptr<mblas::Matrix> ret;
   for (auto key : keys) {
@@ -67,7 +67,15 @@ std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<st
       return ret;
     }
   }
-  std::cerr << "Matrix not found: " << keys[0].first << "\n";
+
+  if (mandatory) {
+    std::cerr << "Error: Matrix not found:" << keys[0].first << std::endl;
+    //amunmt_UTIL_THROW2(strm.str()); //  << key << std::endl
+    abort();
+  }
+  else {
+    std::cerr << "Optional matrix not found, continuing: " << keys[0].first << std::endl;
+  }
 
   return ret;
 
