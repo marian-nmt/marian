@@ -69,7 +69,8 @@ class NthElement {
     mblas::TMatrix<NthOut> d_out;
 
     mblas::TMatrix<NthOut> d_res;
-    HostVector<NthOut> h_res;
+    //HostVector<NthOut> h_res;
+    std::vector<NthOut> h_res;
 
     mblas::TMatrix<float> d_breakdown;
     mblas::TMatrix<uint> d_batchPosition;
