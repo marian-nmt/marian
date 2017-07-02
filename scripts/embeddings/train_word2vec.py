@@ -46,7 +46,7 @@ def main():
     orig_vectors = args.output + '.orig'
     cmd = "{w2v} {opts} -train {i} -output {o} -size {s} -threads {t}" \
         .format(w2v=args.word2vec, opts=WORD2VEC_OPTIONS,
-                i=args.corpus, o=orig_vectors, s=args.dim_emb, t=args.threads)
+                i=prep_corpus, o=orig_vectors, s=args.dim_emb, t=args.threads)
     print("  with command: {}".format(cmd))
 
     proc = subprocess.Popen(cmd, shell=True)
