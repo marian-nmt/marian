@@ -17,62 +17,7 @@ using DeviceVector = thrust::device_vector<T>;
 
 template<class T>
 using HostVector = thrust::host_vector<T>;
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-template <typename T>
-class DeviceVectorWrapper
-{
-public:
-  DeviceVectorWrapper(const DeviceVector<T> &vec)
-  {
-    size_ = vec.size();
-
-    data_ = nullptr;
-    dataConst_ = thrust::raw_pointer_cast(vec.data());
-  }
-
-  DeviceVectorWrapper(DeviceVector<T> &vec)
-  {
-    size_ = vec.size();
-
-    data_ = thrust::raw_pointer_cast(vec.data());
-    dataConst_ = data_;
-  }
-
-  __device__
-  size_t size() const
-  { return size_; }
-
-  __device__
-  T* data()
-  { return data_; }
-
-  __device__
-  const T* data() const
-  { return dataConst_; }
-
-  __device__
-  const T &operator[](size_t i) const
-  {
-    assert(i < size());
-    return dataConst_[i];
-  }
-
-  __device__
-  T &operator[](size_t i)
-  {
-	assert(i < size());
-    return data_[i];
-  }
-
-protected:
-  size_t size_;
-
-  T *data_;
-  const T *dataConst_;
-
-};
+//using HostVector = std::vector<T>;
 
 /////////////////////////////////////////////////////////////////////////////////////
 
