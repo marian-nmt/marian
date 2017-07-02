@@ -3,47 +3,42 @@
 #include <map>
 
 #include "marian.h"
-
+#include "rnn/rnn.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
-  using namespace keywords;
 
-  Config::seed = 1;
+  marian::Config::seed = 1234;
 
-  createLoggers(nullptr);
+  //marian::Config config(argc, argv);
 
-  auto g = New<ExpressionGraph>();
-  g->setDevice(0);
-  g->reserveWorkspaceMB(128);
+  auto graph = New<ExpressionGraph>();
+  graph->setDevice(0);
 
-  auto w = g->param("W", {10, 10}, init=inits::uniform());
-  auto x = g->constant({100000, 10}, init=inits::uniform());
+  std::vector<Expr> x;
+  for(int i = 0; i < 5; i++)
+    x.push_back(graph->constant({1, 1}, keywords::init=inits::from_value(1)));
+  auto input = concatenate(x, keywords::axis=2);
 
-  std::vector<size_t> indices;
-  while(indices.size() < 10)
-    indices.push_back(rand() % 100000);
+  auto mask = graph->constant({1, 1, 5}, keywords::init=inits::from_vector(std::vector<float>({1.f, 1.f, 1.f, 1.f, 0.f})));
 
-  auto xr = rows(x, indices);
+  auto rnnFw = rnn::rnn(graph)
+               ("type", "gru")
+               ("direction", rnn::dir::alternating_forward)
+               ("dimInput", 1)
+               ("dimState", 1)
+               ("skip", true)
+               .push_back(rnn::cell(graph)("prefix", "l1"))
+               .push_back(rnn::cell(graph)("prefix", "l2"))
+               .push_back(rnn::cell(graph)("prefix", "l3"))
+               .construct();
 
-  auto b = g->param("b", {1, 10}, init=inits::uniform());
+  auto output = rnnFw->transduce(input, mask);
 
-  auto l1 = tanh(affine(xr, w, b));
+  debug(input, "input");
+  debug(mask, "mask");
 
-  debug(w, "w");
-  debug(b, "b");
-  debug(x, "x");
-  debug(l1, "l1");
-
-  std::vector<size_t> labels({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-
-  auto y = g->constant({10}, init = inits::from_vector(labels));
-  auto cost = mean(cross_entropy(l1, y), axis = 0);
-
-  debug(cost, "cost");
-
-  g->forward();
-  g->backward();
+  graph->forward();
 
   return 0;
 }

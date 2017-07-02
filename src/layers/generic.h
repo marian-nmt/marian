@@ -1,148 +1,106 @@
 #pragma once
 
 #include "common/definitions.h"
+#include "common/options.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
 #include "layers/param_initializers.h"
+#include "layers/factory.h"
 
 namespace marian {
+  namespace mlp {
+    enum struct act : int { linear, tanh, logit, ReLU };
+  }
+}
+
+YAML_REGISTER_TYPE(marian::mlp::act, int)
+
+namespace marian {
+namespace mlp {
 
 class Layer {
 protected:
-  std::string name_;
-  std::vector<Expr> params_;
+  Ptr<ExpressionGraph> graph_;
+  Ptr<Options> options_;
 
 public:
-  Layer(const std::string& name) : name_(name) {}
+  Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+   : graph_(graph), options_(options)
+  {}
 
-  virtual const decltype(params_)& getParams() { return params_; }
-
-  virtual const std::string& getName() { return name_; }
-};
-
-class DenseNew : public Layer {
-private:
-  int outDim_;
-  act activation_;
-  bool layerNorm_;
-
-public:
-  template <class... Args>
-  DenseNew(const std::string name, int outDim, Args... args)
-      : Layer(name),
-        outDim_(outDim),
-        activation_(Get(keywords::activation, act::linear, args...)),
-        layerNorm_(Get(keywords::normalize, false, args...)) {}
-
-  template <class... Args>
-  Expr operator()(Args... args) {
-    std::vector<Expr> inputs{args...};
-
-    UTIL_THROW_IF2(inputs.empty(), "No inputs");
-
-    auto g = inputs.back()->graph();
-
-    auto in = concatenate(inputs, keywords::axis = 1);
-
-    auto W = g->param(name_ + "_W",
-                      {in->shape()[1], outDim_},
-                      keywords::init = inits::glorot_uniform);
-    auto b
-        = g->param(name_ + "_b", {1, outDim_}, keywords::init = inits::zeros);
-
-    params_ = {W, b};
-
-    Expr out;
-    if(layerNorm_) {
-      auto gamma = g->param(name_ + "_gamma",
-                            {1, outDim_},
-                            keywords::init = inits::from_value(1.0));
-
-      params_.push_back(gamma);
-      out = layer_norm(dot(in, W), gamma, b);
-    } else {
-      out = affine(in, W, b);
-    }
-
-    switch(activation_) {
-      case act::linear: return out;
-      case act::tanh: return tanh(out);
-      case act::logit: return logit(out);
-      case act::ReLU: return relu(out);
-      default: return out;
-    }
+  template <typename T>
+  T opt(const std::string key) {
+    return options_->get<T>(key);
   }
+
+  template <typename T>
+  T opt(const std::string key, T defaultValue) {
+    return options_->get<T>(key, defaultValue);
+  }
+
+  virtual Expr apply(const std::vector<Expr>&) = 0;
+  virtual Expr apply(Expr) = 0;
 };
 
 class Dense : public Layer {
 private:
-  int outDim_;
-  act activation_;
-  bool layerNorm_;
+  std::vector<Expr> params_;
+  std::map<std::string, Expr> tiedParams_;
 
 public:
-  template <class... Args>
-  Dense(const std::string name, int outDim, Args... args)
-      : Layer(name),
-        outDim_(outDim),
-        activation_(Get(keywords::activation, act::linear, args...)),
-        layerNorm_(Get(keywords::normalize, false, args...)) {}
+  Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+   : Layer(graph, options) {}
 
-  Expr operator()(Expr in) {
-    auto g = in->graph();
-    auto W = g->param(name_ + "_W",
-                      {in->shape()[1], outDim_},
-                      keywords::init = inits::glorot_uniform);
-    auto b
-        = g->param(name_ + "_b", {1, outDim_}, keywords::init = inits::zeros);
-
-    params_ = {W, b};
-
-    Expr out;
-    if(layerNorm_) {
-      auto gamma = g->param(name_ + "_gamma",
-                            {1, outDim_},
-                            keywords::init = inits::from_value(1.0));
-
-      params_.push_back(gamma);
-      out = layer_norm(dot(in, W), gamma, b);
-    } else {
-      out = affine(in, W, b);
-    }
-
-    switch(activation_) {
-      case act::linear: return out;
-      case act::tanh: return tanh(out);
-      case act::logit: return logit(out);
-      case act::ReLU: return relu(out);
-      default: return out;
-    }
+  void tie(const std::string& param, const std::string& tied) {
+    tiedParams_[param] = graph_->get(tied);
   }
 
-  template <class... Args>
-  Expr operator()(Args... args) {
-    std::vector<Expr> inputs{args...};
+  void tie_transposed(const std::string& param, const std::string& tied) {
+    tiedParams_[param] = transpose(graph_->get(tied));
+  }
 
+  Expr apply(const std::vector<Expr>& inputs) {
     UTIL_THROW_IF2(inputs.empty(), "No inputs");
 
-    auto g = inputs[0]->graph();
+    if(inputs.size() == 1)
+      return apply(inputs[0]);
+
+    auto name = opt<std::string>("prefix");
+    auto dim  = opt<int>("dim");
+
+    auto layerNorm = opt<bool>("layer-normalization", false);
+    auto activation = opt<act>("activation", act::linear);
+
+    auto g = graph_;
 
     params_ = {};
     std::vector<Expr> outputs;
     size_t i = 0;
     for(auto&& in : inputs) {
-      auto W = g->param(name_ + "_W" + std::to_string(i),
-                        {in->shape()[1], outDim_},
-                        keywords::init = inits::glorot_uniform);
-      auto b = g->param(name_ + "_b" + std::to_string(i),
-                        {1, outDim_},
-                        keywords::init = inits::zeros);
+      Expr W;
+      std::string nameW = "W" + std::to_string(i);
+      if(tiedParams_.count(nameW))
+        W = tiedParams_[nameW];
+      else
+        W = g->param(name + "_" + nameW,
+                     {in->shape()[1], dim},
+                     keywords::init = inits::glorot_uniform);
+
+      Expr b;
+      std::string nameB = "b" + std::to_string(i);
+      if(tiedParams_.count(nameB))
+        b = tiedParams_[nameB];
+      else
+        b = g->param(name + "_" + nameB,
+                     {1, dim},
+                     keywords::init = inits::zeros);
+
       params_.push_back(W);
       params_.push_back(b);
 
-      if(layerNorm_) {
-        auto gamma = g->param(name_ + "_gamma" + std::to_string(i),
-                              {1, outDim_},
+      if(layerNorm) {
+        auto gamma = g->param(name + "_gamma" + std::to_string(i),
+                              {1, dim},
                               keywords::init = inits::from_value(1.0));
 
         params_.push_back(gamma);
@@ -153,108 +111,57 @@ public:
       i++;
     }
 
-    switch(activation_) {
+    switch(activation) {
       case act::linear: return plus(outputs);
       case act::tanh: return tanh(outputs);
       case act::logit: return logit(outputs);
       case act::ReLU: return relu(outputs);
       default: return plus(outputs);
     }
-  }
-};
+  };
 
-class DenseTied : public Layer {
-private:
-  Expr tiedWeights_;
-  int outDim_;
-  act activation_;
-  bool layerNorm_;
+  Expr apply(Expr input) {
+    auto g = graph_;
 
-public:
-  template <class... Args>
-  DenseTied(const std::string name, Expr tiedWeights, int outDim, Args... args)
-      : Layer(name),
-        tiedWeights_(tiedWeights),
-        outDim_(outDim),
-        activation_(Get(keywords::activation, act::linear, args...)),
-        layerNorm_(Get(keywords::normalize, false, args...)) {}
+    auto name = options_->get<std::string>("prefix");
+    auto dim  = options_->get<int>("dim");
 
-  Expr operator()(Expr in) {
-    auto g = in->graph();
+    auto layerNorm = options_->get<bool>("layer-normalization", false);
+    auto activation = options_->get<act>("activation", act::linear);
 
-    auto b
-        = g->param(name_ + "_b", {1, outDim_}, keywords::init = inits::zeros);
+    Expr W;
+    std::string nameW = "W";
+    if(tiedParams_.count(nameW))
+      W = tiedParams_[nameW];
+    else
+      W = g->param(name + "_" + nameW,
+                   {input->shape()[1], dim},
+                   keywords::init = inits::glorot_uniform);
 
-    params_ = {tiedWeights_, b};
-
-    Expr out;
-    if(layerNorm_) {
-      auto gamma = g->param(name_ + "_gamma",
-                            {1, outDim_},
-                            keywords::init = inits::from_value(1.0));
-
-      params_.push_back(gamma);
-      out = layer_norm(dot(in, tiedWeights_), gamma, b);
-    } else {
-      out = affine(in, tiedWeights_, b);
-    }
-
-    switch(activation_) {
-      case act::linear: return out;
-      case act::tanh: return tanh(out);
-      case act::logit: return logit(out);
-      case act::ReLU: return relu(out);
-      default: return out;
-    }
-  }
-};
-
-class DenseWithFilter : public Layer {
-private:
-  int outDim_;
-  act activation_;
-  bool layerNorm_;
-  std::vector<size_t> filter_;
-
-public:
-  template <class... Args>
-  DenseWithFilter(const std::string name,
-                  int outDim,
-                  const std::vector<size_t>& filter,
-                  Args... args)
-      : Layer(name),
-        outDim_(outDim),
-        filter_(filter),
-        activation_(Get(keywords::activation, act::linear, args...)),
-        layerNorm_(Get(keywords::normalize, false, args...)) {}
-
-  Expr operator()(Expr in) {
-    auto g = in->graph();
-
-    auto W = cols(g->param(name_ + "_W",
-                           {in->shape()[1], outDim_},
-                           keywords::init = inits::glorot_uniform),
-                  filter_);
-    auto b = cols(
-        g->param(name_ + "_b", {1, outDim_}, keywords::init = inits::zeros),
-        filter_);
+    Expr b;
+    std::string nameB = "b";
+    if(tiedParams_.count(nameB))
+      b = tiedParams_[nameB];
+    else
+      b = g->param(name + "_" + nameB,
+                   {1, dim},
+                   keywords::init = inits::zeros);
 
     params_ = {W, b};
 
     Expr out;
-    if(layerNorm_) {
-      auto gamma = cols(g->param(name_ + "_gamma",
-                                 {1, outDim_},
-                                 keywords::init = inits::from_value(1.0)),
-                        filter_);
+    if(layerNorm) {
+      auto gamma = g->param(name + "_gamma",
+                            {1, dim},
+                            keywords::init = inits::from_value(1.0));
 
       params_.push_back(gamma);
-      out = layer_norm(dot(in, W), gamma, b);
+      out = layer_norm(dot(input, W), gamma, b);
     } else {
-      out = affine(in, W, b);
+      out = affine(input, W, b);
     }
 
-    switch(activation_) {
+    switch(activation) {
       case act::linear: return out;
       case act::tanh: return tanh(out);
       case act::logit: return logit(out);
@@ -262,77 +169,28 @@ public:
       default: return out;
     }
   }
+};
 
-  template <class... Args>
-  Expr operator()(Args... args) {
-    std::vector<Expr> inputs{args...};
+}
 
-    UTIL_THROW_IF2(inputs.empty(), "No inputs");
+struct EmbeddingFactory : public Factory {
+  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
-    auto g = inputs[0]->graph();
+  Expr construct() {
+    std::string name = opt<std::string>("prefix");
+    int dimVoc = opt<int>("dimVocab");
+    int dimEmb = opt<int>("dimEmb");
 
-    params_ = {};
-    std::vector<Expr> outputs;
-    size_t i = 0;
-    for(auto&& in : inputs) {
-      auto W = cols(g->param(name_ + "_W" + std::to_string(i),
-                             {in->shape()[1], outDim_},
-                             keywords::init = inits::glorot_uniform),
-                    filter_);
-      auto b = cols(g->param(name_ + "_b" + std::to_string(i),
-                             {1, outDim_},
-                             keywords::init = inits::zeros),
-                    filter_);
-
-      params_.push_back(W);
-      params_.push_back(b);
-
-      if(layerNorm_) {
-        auto gamma = cols(g->param(name_ + "_gamma" + std::to_string(i),
-                                   {1, outDim_},
-                                   keywords::init = inits::from_value(1.0)),
-                          filter_);
-
-        params_.push_back(gamma);
-        outputs.push_back(layer_norm(dot(in, W), gamma, b));
-      } else {
-        outputs.push_back(affine(in, W, b));
-      }
-      i++;
-    }
-
-    switch(activation_) {
-      case act::linear: return plus(outputs);
-      case act::tanh: return tanh(outputs);
-      case act::logit: return logit(outputs);
-      case act::ReLU: return relu(outputs);
-      default: return plus(outputs);
-    }
+    return graph_->param(name, {dimVoc, dimEmb},
+                         keywords::init = inits::glorot_uniform);
   }
 };
 
-class Embedding : public Layer {
-private:
-  int dimVoc_;
-  int dimEmb_;
-  std::function<void(Tensor)> init_;
+typedef Accumulator<EmbeddingFactory> embedding;
 
+class CrossEntropyCost {
 public:
-  template <typename... Args>
-  Embedding(const std::string name, int dimVoc, int dimEmb, Args... args)
-      : Layer(name), dimVoc_(dimVoc), dimEmb_(dimEmb) {
-    init_ = Get(keywords::init, inits::glorot_uniform, args...);
-  }
-
-  Expr operator()(Ptr<ExpressionGraph> graph) {
-    params_ = {graph->param(name_, {dimVoc_, dimEmb_}, keywords::init = init_)};
-    return params_.back();
-  }
-};
-
-class CrossEntropyCost : public Layer {
-public:
-  CrossEntropyCost(const std::string name) : Layer(name) {}
+  CrossEntropyCost(const std::string name) {}
 
   template <typename... Args>
   Expr operator()(Expr in, Expr picks, Args... args) {

@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <queue>
+#include <functional>
 
 #include <boost/timer/timer.hpp>
 
@@ -39,11 +40,34 @@ private:
   std::mt19937 g_;
 
   void fillBatches(bool shuffle = true) {
-    auto cmp = [](const sample& a, const sample& b) {
+    auto cmpSrc = [](const sample& a, const sample& b) {
       return a[0].size() < b[0].size();
     };
 
-    std::priority_queue<sample, samples, decltype(cmp)> maxiBatch(cmp);
+    auto cmpTrg = [](const sample& a, const sample& b) {
+      return a.back().size() < b.back().size();
+    };
+
+    auto cmpNone = [](const sample& a, const sample& b) {
+      return &a < &b;
+    };
+
+    typedef std::function<bool(const sample&, const sample&)> cmp_type;
+    typedef std::priority_queue<sample, samples, cmp_type> sample_queue;
+
+    std::unique_ptr<sample_queue> maxiBatch;
+
+    if(options_->has("maxi-batch-sort")) {
+      if(options_->get<std::string>("maxi-batch-sort") == "src")
+        maxiBatch.reset(new sample_queue(cmpSrc));
+      else if(options_->get<std::string>("maxi-batch-sort") == "none")
+        maxiBatch.reset(new sample_queue(cmpNone));
+      else
+        maxiBatch.reset(new sample_queue(cmpTrg));
+    }
+    else {
+      maxiBatch.reset(new sample_queue(cmpNone));
+    }
 
     int maxBatchSize = options_->get<int>("mini-batch");
     if(forceBatchSize_)
@@ -52,8 +76,8 @@ private:
     int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
     size_t sets = 0;
-    while(current_ != data_->end() && maxiBatch.size() < maxSize) {
-      maxiBatch.push(*current_);
+    while(current_ != data_->end() && maxiBatch->size() < maxSize) {
+      maxiBatch->push(*current_);
       sets = current_->size();
       current_++;
     }
@@ -62,10 +86,10 @@ private:
     int currentWords = 0;
     std::vector<size_t> lengths(sets, 0);
 
-    while(!maxiBatch.empty()) {
-      batchVector.push_back(maxiBatch.top());
+    while(!maxiBatch->empty()) {
+      batchVector.push_back(maxiBatch->top());
       currentWords += batchVector.back()[0].size();
-      maxiBatch.pop();
+      maxiBatch->pop();
 
       // Batch size based on sentences
       bool makeBatch = batchVector.size() == maxBatchSize;
@@ -87,7 +111,7 @@ private:
           maxBatchSize = stats_->getBatchSize(lengths);
 
           if(batchVector.size() > maxBatchSize) {
-            maxiBatch.push(batchVector.back());
+            maxiBatch->push(batchVector.back());
             batchVector.pop_back();
             makeBatch = true;
           } else {

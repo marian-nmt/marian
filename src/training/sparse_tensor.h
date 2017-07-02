@@ -1,46 +1,29 @@
 #pragma once
+
 #include <curand.h>
 #include <curand_kernel.h>
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <memory>
+
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
 
 namespace marian {
-// @TODO: use inplace Radix Select
-// create actual sparse tensor class. This one is just minimal
-__global__ void gScatterUpdate(float* denseData,
-                               float* sparseData,
-                               int* sparseIndices,
-                               int denseSize,
-                               int sparseSize,
-                               int offset) {
+
+// TODO:  create actual sparse tensor class. This one is just minimal
+__global__ void gScatterAdd(float* denseData,
+                            float* sparseData,
+                            int* sparseIndices,
+                            int denseSize,
+                            int sparseSize,
+                            int offset) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= sparseSize)
     return;
   if(sparseIndices[idx] + offset >= 0
      && sparseIndices[idx] + offset < denseSize)
-    denseData[sparseIndices[idx] + offset] = sparseData[idx];
-}
-
-__global__ void gScatterCopy(float* denseData,
-                             float* sparseData,
-                             int* sparseIndices,
-                             int denseSize,
-                             int sparseSize) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= sparseSize)
-    return;
-  if(sparseIndices[idx] >= 0 && sparseIndices[idx] < denseSize)
-    sparseData[idx] = denseData[sparseIndices[idx]];
-}
-
-__global__ void gShift(int* indices, int size, int offset) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= size)
-    return;
-  indices[idx] += offset;
+    denseData[sparseIndices[idx] + offset] += sparseData[idx];
 }
 
 __global__ void gFindSubtensor(int* indices,
@@ -120,6 +103,7 @@ public:
     cudaStreamSynchronize(0);
   }
 
+  // copy from another sparse tensor
   void copyFrom(std::shared_ptr<SparseTensorBase> t, bool data_only = false) {
     copyFrom(t->data(), t->indices(), t->size(), data_only);
   }
@@ -130,38 +114,23 @@ public:
 
   void setSize(int size) { size_ = size; }
 
-  void shiftIndices(int offset) {
-    cudaSetDevice(device_);
-    int threads = 512;
-    int blocks = 1 + size_ / threads;
-    gShift<<<blocks, threads>>>(indices_, size_, offset);
-  }
-
+  // return the dense representation of this tensor
   void toDense(Tensor t, int offset) {
     cudaSetDevice(device_);
     int threads = 512;
     int blocks = 1 + size_ / threads;
     t->set(0);
-    gScatterUpdate<<<blocks, threads>>>(
+    gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
   }
 
-  void scatterUpdate(Tensor t, int offset) {
+  void scatterAdd(Tensor t, int offset = 0) {
     cudaSetDevice(device_);
     cudaStreamSynchronize(0);
     int threads = 512;
     int blocks = 1 + size_ / threads;
-    gScatterUpdate<<<blocks, threads>>>(
+    gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
-  }
-
-  void scatterCopyFrom(Tensor t) {
-    cudaSetDevice(device_);
-    int threads = 512;
-    int blocks = 1 + size_ / threads;
-    gScatterCopy<<<blocks, threads>>>(
-        t->data(), data_, indices_, t->size(), size_);
-    cudaStreamSynchronize(0);
   }
 
   std::shared_ptr<SparseTensorBase> subtensor(int pos, int size, int idx) {
@@ -196,63 +165,4 @@ public:
 };
 
 typedef std::shared_ptr<SparseTensorBase> SparseTensor;
-
-__global__ void grad_drop(
-    float* data, float* tmp, float* errors, float cut_off, int max_size) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= max_size)
-    return;
-  if(std::abs(data[idx]) <= cut_off) {  // get the scaling
-    errors[idx] = data[idx];
-    data[idx] = 0;
-    tmp[idx] = 0;
-  } else {
-    errors[idx] = 0;
-    tmp[idx] = 1;
-  }
-}
-
-__global__ void grad_add_error(float* data, float* errors, int max_size) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= max_size)
-    return;
-  data[idx] += errors[idx];
-}
-
-__global__ void full_abs(float* data, int max_size) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= max_size)
-    return;
-  data[idx] = abs(data[idx]);
-}
-
-__global__ void buildIndices(float* denseData,
-                             float* denseSum,
-                             float* sparseData,
-                             int* sparseIndices,
-                             int denseSize) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= denseSize)
-    return;
-  int t_id = round(denseSum[idx]);
-  if(t_id <= 0) {
-    return;
-  }
-
-  if(idx == 0 && t_id > 0) {
-    sparseIndices[t_id - 1] = idx;
-    sparseData[t_id - 1] = denseData[idx];
-  } else if(idx > 0 && t_id > round(denseSum[idx - 1])) {
-    sparseIndices[t_id - 1] = idx;
-    sparseData[t_id - 1] = denseData[idx];
-  }
-}
-
-__global__ void randomSampling(
-    float* originalData, float* data, int size, int scale, int fullSize) {
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if(idx >= size)
-    return;
-  data[idx] = abs(originalData[idx * scale]);
-}
 }

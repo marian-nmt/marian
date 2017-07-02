@@ -24,6 +24,16 @@ public:
     initLastBest();
   }
 
+  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+    auto model = options_->get<std::string>("model");
+    builder_->save(graph, model + ".best-" + type() + ".npz", true);
+  }
+
+  bool lowerIsBetter() { return false; }
+
+  std::string type() { return "accuracy"; }
+
+protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::MNIST>> batchGenerator) {
@@ -44,15 +54,6 @@ public:
 
     return correct / float(samples);
   }
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
-  }
-
-  bool lowerIsBetter() { return false; }
-
-  std::string type() { return "accuracy"; }
 
 private:
   float countCorrect(const std::vector<float>& probs,

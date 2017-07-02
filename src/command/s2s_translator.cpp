@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 
   boost::timer::cpu_timer timer;
   task->run();
-  LOG(info, "Total time: {}", timer.format());
+  LOG(info)->info("Total time: {}", timer.format());
 
   return 0;
 }

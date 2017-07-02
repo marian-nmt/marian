@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
   if(devices.size() > 1)
     WrapModelType<Train, AsyncGraphGroup>(options)->run();
   else
-    WrapModelType<Train, Singleton>(options)->run();
+    WrapModelType<Train, SingletonGraph>(options)->run();
 
   return 0;
 }

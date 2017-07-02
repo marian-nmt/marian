@@ -2,10 +2,10 @@
 
 #include "marian.h"
 
+#include "models/s2s.h"
 #include "models/amun.h"
 #include "models/hardatt.h"
-#include "models/multi_s2s.h"
-#include "models/s2s.h"
+//#include "models/multi_s2s.h"
 
 namespace marian {
 
@@ -183,7 +183,7 @@ public:
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
                                       Ptr<data::CorpusBatch> batch) {
     std::vector<float> p(dimVocab_, -1);
-    for(auto i : (*batch)[batchIndex_]->indeces())
+    for(auto i : (*batch)[batchIndex_]->indices())
       p[i] = 0;
     p[2] = 0;
 
@@ -208,19 +208,18 @@ Ptr<Scorer> scorerByType(std::string fname,
 
   if(type == "s2s") {
     return New<ScorerWrapper<S2S>>(fname, weight, model, options);
-  }
-  if(type == "amun") {
+  } else if(type == "amun") {
     return New<ScorerWrapper<Amun>>(fname, weight, model, options);
-  } else if(type == "multi-s2s") {
-    return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
   } else if(type == "hard-att") {
     return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
   } else if(type == "hard-soft-att") {
     return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
-  } else if(type == "multi-hard-att") {
-    return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+  //} else if(type == "multi-s2s") {
+  //  return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
+  //} else if(type == "multi-hard-att") {
+    //return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   } else {
-    return New<ScorerWrapper<S2S>>(fname, weight, model, options);
+    UTIL_THROW2("Unknown decoder type: " + type);
   }
 }
 
@@ -242,7 +241,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
     try {
       modelOptions->loadModelParameters(model);
     } catch(std::runtime_error& e) {
-      LOG(info, "No model settings found in model file");
+      LOG(warn)->warn("No model settings found in model file");
     }
 
     scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));

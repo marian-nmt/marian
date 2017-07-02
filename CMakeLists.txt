@@ -3,22 +3,42 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/local/cuda-8.0/lib64)
 
 project(marian CXX)
+
+option(COMPILE_EXAMPLES "Compile examples" OFF)
+option(COMPILE_TESTS "Compile tests" OFF)
+
+option(USE_CUDNN "Use CUDNN library" OFF)
+
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
 endif(CUDA_FOUND)
 
-option(COMPILE_EXAMPLES "Compile examples" OFF)
-option(COMPILE_TESTS "Compile tests" OFF)
-
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -g -O3 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
-LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_35;)
+else(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+
 LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
+
+
+if(USE_CUDNN)
+    find_package(CUDNN "5.0")
+    if(CUDNN_FOUND)
+        include_directories(${CUDNN_INCLUDE_DIRS})
+        set(EXT_LIBS ${EXT_LIBS} ${CUDNN_LIBRARIES})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDNN")
+        LIST(APPEND CUDA_NVCC_FLAGS -DCUDNN; )
+    endif(CUDNN_FOUND)
+endif(USE_CUDNN)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)
@@ -36,10 +56,14 @@ else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
+if(COMPILE_TESTS)
+    enable_testing()
+endif(COMPILE_TESTS)
+
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
 
-# add a target to generate API documentation with Doxygen
+# Add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in

@@ -5,11 +5,15 @@
 #include "graph/expression_operators.h"
 #include "models/states.h"
 
+#include "rnn/types.h"
+
 namespace marian {
+
+namespace rnn {
 
 Expr attOps(Expr va, Expr context, Expr state, Expr coverage = nullptr);
 
-class GlobalAttention {
+class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;
 
@@ -22,27 +26,26 @@ private:
   std::vector<Expr> contexts_;
   std::vector<Expr> alignments_;
   bool layerNorm_;
-
   float dropout_;
+
   Expr contextDropped_;
   Expr dropMaskContext_;
   Expr dropMaskState_;
 
-  Expr cov_;
-
 public:
-  template <typename... Args>
-  GlobalAttention(const std::string prefix,
-                  Ptr<EncoderState> encState,
-                  int dimDecState,
-                  Args... args)
-      : encState_(encState),
-        contextDropped_(encState->getContext()),
-        layerNorm_(Get(keywords::normalize, false, args...)),
-        cov_(Get(keywords::coverage, nullptr, args...)) {
-    int dimEncState = encState_->getContext()->shape()[1];
+  GlobalAttention(Ptr<ExpressionGraph> graph,
+                  Ptr<Options> options,
+                  Ptr<EncoderState> encState)
+      : CellInput(options),
+        encState_(encState),
+        contextDropped_(encState->getContext()) {
 
-    auto graph = encState_->getContext()->graph();
+    int dimDecState = options_->get<int>("dimState");
+    dropout_ = options_->get<float>("dropout");
+    layerNorm_ = options_->get<bool>("layer-normalization");
+    std::string prefix = options_->get<std::string>("prefix");
+
+    int dimEncState = encState_->getContext()->shape()[1];
 
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
@@ -56,7 +59,6 @@ public:
     ba_ = graph->param(
         prefix + "_b_att", {1, dimEncState}, keywords::init = inits::zeros);
 
-    dropout_ = Get(keywords::dropout_prob, 0.0f, args...);
     if(dropout_ > 0.0f) {
       dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
       dropMaskState_ = graph->dropout(dropout_, {1, dimDecState});
@@ -87,17 +89,19 @@ public:
     }
   }
 
-  Expr apply(Expr state) {
+  Expr apply(State state) {
     using namespace keywords;
+    auto recState = state.output;
 
     int dimBatch = contextDropped_->shape()[0];
     int srcWords = contextDropped_->shape()[2];
-    int dimBeam = state->shape()[3];
+    int dimBeam = recState->shape()[3];
+
 
     if(dropMaskState_)
-      state = dropout(state, keywords::mask = dropMaskState_);
+      recState = dropout(recState, keywords::mask = dropMaskState_);
 
-    auto mappedState = dot(state, Wa_);
+    auto mappedState = dot(recState, Wa_);
     if(layerNorm_)
       mappedState = layer_norm(mappedState, gammaState_);
 
@@ -108,7 +112,7 @@ public:
                      {dimBatch, 1, srcWords, dimBeam});
     // <- horrible
 
-    auto alignedSource = weighted_average(encState_->getContext(), e, axis = 2);
+    auto alignedSource = weighted_average(encState_->getAttended(), e, axis = 2);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -117,8 +121,22 @@ public:
 
   std::vector<Expr>& getContexts() { return contexts_; }
 
+  Expr getContext() {
+    return concatenate(contexts_, keywords::axis=2);
+  }
+
   std::vector<Expr>& getAlignments() { return alignments_; }
 
-  int outputDim() { return encState_->getContext()->shape()[1]; }
+  virtual void clear() {
+    contexts_.clear();
+    alignments_.clear();
+  }
+
+  int dimOutput() { return encState_->getContext()->shape()[1]; }
 };
+
+using Attention = GlobalAttention;
+
+}
+
 }

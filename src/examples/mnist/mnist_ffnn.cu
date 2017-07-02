@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
   if(devices.size() > 1)
     New<TrainMNIST<AsyncGraphGroup<models::MNISTModel>>>(options)->run();
   else
-    New<TrainMNIST<Singleton<models::MNISTModel>>>(options)->run();
+    New<TrainMNIST<SingletonGraph<models::MNISTModel>>>(options)->run();
 
   return 0;
 }

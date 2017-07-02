@@ -34,7 +34,7 @@ public:
   void reserve(size_t elements = 0) {
     float mult = (elements * sizeof(float)) / GROW + 1;
     std::cerr << "reserve: " << elements << " " << mult << std::endl;
-    LOG(memory,
+    LOG(memory)->info(
         "Extending reserved space to {} MB (device {})",
         mult * CHUNK,
         allocator_->getDevice());
@@ -44,7 +44,7 @@ public:
 
   void reserveExact(size_t elements = 0) {
     size_t mbytes = (elements * sizeof(float)) / MBYTE;
-    LOG(memory,
+    LOG(memory)->info(
         "Reserving space for {} floats ({} MB, device {})",
         elements,
         mbytes,

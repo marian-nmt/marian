@@ -12,13 +12,10 @@
 #include "data/batch_generator.h"
 #include "optimizers/optimizers.h"
 #include "training/dropper.h"
+#include "training/scheduler.h"
 #include "training/sparse_tensor.h"
 #include "training/training.h"
 #include "training/validator.h"
-
-// @TODO:
-// - rename Builder/builder_ --> Model/model_ to be consistent with Train class
-// - rename Singleton --> SingleGraph
 
 namespace marian {
 
@@ -43,27 +40,31 @@ public:
 };
 
 template <class Builder>
-class Singleton : public GraphGroup {
+class SingletonGraph : public GraphGroup {
 public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  Ptr<Reporter<dataset_type>> reporter_;
-  virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
-    reporter_ = reporter;
+  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+    scheduler_ = scheduler;
+    // optimizer has to be registered last to see a change of learning rate
+    scheduler_->registerTrainingObserver(scheduler_);
+    scheduler_->registerTrainingObserver(opt_);
   }
 
 private:
   Ptr<Builder> builder_;
   Ptr<ExpressionGraph> graph_;
 
+  Ptr<Scheduler<dataset_type>> scheduler_;
+
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
-  float mvDecay_{0.999};
+  float mvDecay_{0.9999};
 
-  void updateMovingAverage(Tensor mvAvgParams, Tensor params) {
-    Element(
-        _1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2), mvAvgParams, params);
+  void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches) {
+    float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
+    Element(_1 = (decay * _1) + ((1.f - decay) * _2), mvAvgParams, params);
   }
 
   void execute(Ptr<data::Batch> batch) {
@@ -87,28 +88,29 @@ private:
         mvAvgGraph_->params()->vals()->copyFrom(graph_->params()->vals());
       } else {
         updateMovingAverage(mvAvgGraph_->params()->vals(),
-                            graph_->params()->vals());
+                            graph_->params()->vals(),
+                            scheduler_->numberOfBatches());
       }
     }
 
-    if(reporter_) {
-      reporter_->update(cost, batch);
+    if(scheduler_) {
+      scheduler_->update(cost, batch);
 
-      if(reporter_->saving())
+      if(scheduler_->saving())
         this->save();
 
-      if(reporter_->validating()) {
+      if(scheduler_->validating()) {
         if(mvAvg_)
-          reporter_->validate(mvAvgGraph_);
+          scheduler_->validate(mvAvgGraph_);
         else
-          reporter_->validate(graph_);
+          scheduler_->validate(graph_);
       }
     }
   }
 
 public:
   template <class... Args>
-  Singleton(Ptr<Config> options, Args... args)
+  SingletonGraph(Ptr<Config> options, Args... args)
       : GraphGroup(options),
         mvAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")} {
@@ -129,7 +131,8 @@ public:
       std::string name = options_->get<std::string>("model");
 
       if(boost::filesystem::exists(name)) {
-        reporter_->load(name);
+        if(scheduler_)
+          scheduler_->load(name);
         builder_->load(graph_, name);
       }
     }
@@ -148,21 +151,24 @@ public:
       std::string name = options_->get<std::string>("model");
 
       builder_->save(graph_, name, true);
-      reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     } else {
       std::string name = options_->get<std::string>("model");
 
       if(!final) {
+        std::string numberOfBatches
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
+                           "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
-            name.size() - 4,
-            4,
-            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
+            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
         builder_->save(graph_, nameOverwrite);
       }
 
       builder_->save(graph_, name, true);
-      reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     }
   }
 
@@ -177,24 +183,26 @@ public:
   typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
-  Ptr<Reporter<dataset_type>> reporter_;
-  virtual void setReporter(Ptr<Reporter<dataset_type>> reporter) {
-    reporter_ = reporter;
+  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+    scheduler_ = scheduler;
+    // optimizer has to be registered last to see a change of learning rate
+    scheduler_->registerTrainingObserver(scheduler_);
+    scheduler_->registerTrainingObserver(opt_);
   }
 
 private:
   bool first_{true};
 
   std::vector<Ptr<Builder>> builders_;
-
+  std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
 
-  std::vector<Ptr<ExpressionGraph>> graphs_;
+  Ptr<Scheduler<dataset_type>> scheduler_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
 
-  boost::shared_mutex reporterMutex_;
+  boost::shared_mutex schedulerMutex_;
 
   std::vector<SparseTensor> localSparseGrads_;
   std::vector<SparseTensor> sparseGrads_;
@@ -208,7 +216,7 @@ private:
   std::vector<std::vector<int>> localVersionNumbers;
 
   std::vector<std::vector<GradientDrop>> fetchDropper;
-  std::vector<Tensor> tmpTensor, tmpDelta;
+  std::vector<Tensor> tmpTensor;
 
   std::vector<std::vector<Tensor>> params_;
   std::vector<Ptr<TensorAllocator>> paramsAlloc_;
@@ -224,7 +232,7 @@ private:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
-  float mvDecay_{0.999};
+  float mvDecay_{0.9999};
 
   ThreadPool pool_;
 
@@ -289,7 +297,8 @@ private:
             shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx]);
 
             if(movingAvg_)
-              updateMovingAverage(paramsAvg_[idx], params_[latestVersion][idx]);
+              updateMovingAverage(paramsAvg_[idx], params_[latestVersion][idx],
+                                  scheduler_->numberOfBatches());
 
             cudaStreamSynchronize(0);
           },
@@ -346,16 +355,10 @@ private:
             localSparseDelta[worker_id][idx]->copyFrom(tmpSparseDelta[idx]);
             cudaStreamSynchronize(0);
 
-            // reobtain dense delta
-            localSparseDelta[worker_id][idx]->toDense(
-                tmpDelta[worker_id]->subtensor(pos, grads_[idx]->size()), 0);
+            localSparseDelta[worker_id][idx]->scatterAdd(
+                oldParams->subtensor(pos, grads_[idx]->size()));
             cudaStreamSynchronize(0);
 
-            // apply
-            Element(_1 += _2,
-                    oldParams->subtensor(pos, grads_[idx]->size()),
-                    tmpDelta[worker_id]->subtensor(pos, grads_[idx]->size()));
-            cudaStreamSynchronize(0);
             localVersionNumbers[worker_id][idx] = globalVersionNumber[idx];
 
           },
@@ -403,7 +406,8 @@ private:
 
               if(movingAvg_)
                 updateMovingAverage(paramsAvg_[idx],
-                                    params_[latestVersion][idx]);
+                                    params_[latestVersion][idx],
+                                    scheduler_->numberOfBatches());
 
               cudaStreamSynchronize(0);
             },
@@ -417,8 +421,9 @@ private:
     }
   }
 
-  void updateMovingAverage(Tensor paramsAvg, Tensor params) {
-    Element(_1 = (mvDecay_ * _1) + ((1.f - mvDecay_) * _2), paramsAvg, params);
+  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches) {
+    float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
+    Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
   }
 
   void execute(Ptr<data::Batch> batch) {
@@ -503,7 +508,7 @@ private:
 
       if(drop_rate_ && first_) {
         int totalSize = graphs_[0]->params()->vals()->size();
-        int sparseCap = totalSize / 10;
+        int sparseCap = totalSize * 1.2 * (1.0 - drop_rate_);
         for(auto device : devices_) {
           sparseGrads_.push_back(
               SparseTensor(new SparseTensorBase(sparseCap, device)));
@@ -538,10 +543,6 @@ private:
         my_id = i;
         graph = graphs_[i];
         builder = builders_[i++];
-
-        if(drop_rate_)
-          tmpDelta.push_back(newTensor(graph->params()->vals()->size(),
-                                       graph->params()->vals()->getDevice()));
       }
 
       if(!dropper) {
@@ -575,25 +576,25 @@ private:
       } else
         pushGradients(graph->params()->grads());
 
-      if(reporter_) {
-        boost::upgrade_lock<boost::shared_mutex> lock(reporterMutex_);
+      if(scheduler_) {
+        boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
         {
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-          reporter_->update(cost, batch);
+          scheduler_->update(cost, batch);
         }
 
-        if(reporter_->saving()) {
+        if(scheduler_->saving()) {
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
           if(movingAvg_)
             fetchParams(graph->params()->vals(), paramsAvg_);
           this->save(graph);
         }
 
-        if(reporter_->validating()) {
+        if(scheduler_->validating()) {
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
           if(movingAvg_)
             fetchParams(graph->params()->vals(), paramsAvg_);
-          reporter_->validate(graph);
+          scheduler_->validate(graph);
         }
       }
     };
@@ -633,7 +634,8 @@ public:
       std::string init = options_->get<std::string>("model");
       if(boost::filesystem::exists(init)) {
         size_t i = 0;
-        reporter_->load(init);
+        if(scheduler_)
+          scheduler_->load(init);
         for(auto graph : graphs_)
           builders_[i++]->load(graph, init);
       }
@@ -655,21 +657,24 @@ public:
       std::string name = options_->get<std::string>("model");
 
       builders_[idx]->save(graphs_[idx], name, true);
-      reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     } else {
       std::string name = options_->get<std::string>("model");
 
       if(!final) {
+        std::string numberOfBatches
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
+                           "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
-            name.size() - 4,
-            4,
-            ".iter" + std::to_string(reporter_->numberOfBatches()) + ".npz");
+            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
         builders_[idx]->save(graphs_[idx], nameOverwrite);
       }
 
       builders_[idx]->save(graphs_[idx], name, true);
-      reporter_->save(name);
+      if(scheduler_)
+        scheduler_->save(name);
     }
   }
 

@@ -1,9 +1,11 @@
-#include "layers/attention.h"
+#include "rnn/attention.h"
 
 #include "graph/node_operators_binary.h"
 #include "kernels/tensor_operators.h"
 
 namespace marian {
+
+namespace rnn {
 
 struct AttentionNodeOp : public NaryNodeOp {
   AttentionNodeOp(const std::vector<Expr>& nodes)
@@ -72,5 +74,7 @@ Expr attOps(Expr va, Expr context, Expr state, Expr coverage) {
   int dimBeam = state->shape()[3];
   return reshape(Expression<AttentionNodeOp>(nodes),
                  {dimWords, dimBatch, 1, dimBeam});
+}
+
 }
 }

@@ -33,22 +33,13 @@ Expr Expression(Args&&... args);
  */
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 private:
-  /** @brief The full list of nodes */
-
   size_t count_{0};
 
   std::list<Expr> nodesForward_;
   std::list<Expr> nodesBackward_;
 
-  /** @brief Maps from name to expression node. */
-  // std::map<std::string, WExpr> named_;
-
-  /** @brief Contains all nodes with regard to which we want to calculate
-   * derivatives */
   std::unordered_set<Expr> topNodes_;
-
   Ptr<Parameters> params_;
-
   Ptr<TensorAllocator> tensors_;
 
   size_t device_;
@@ -60,15 +51,15 @@ private:
   std::string namespace_;
 
 protected:
-  // delete copy and move constructors
+  // Delete, copy and move constructors
   ExpressionGraph(const ExpressionGraph&) = delete;
   ExpressionGraph(ExpressionGraph&&) = delete;
 
 public:
   /** @brief Constructs a new expression graph
-   * Constructor is protected to force use of New<ExpressionGraph>()
-  */
-
+   *
+   * Constructor should be used as New<ExpressionGraph>()
+   */
   ExpressionGraph(bool inference = false);
 
   ~ExpressionGraph() {
@@ -77,7 +68,6 @@ public:
   }
 
   void setDevice(size_t device = 0);
-
   size_t getDevice() { return device_; }
 
   Ptr<Backend> getBackend() { return backend_; }
@@ -98,34 +88,14 @@ public:
   /**
    * @brief Performs backpropogation on this expression graph.
    *
-   * Backpropogation is implemented by performing first the forward pass
-   *    and then the backward pass of algorithmic differentiation (AD) on the
-   * nodes of the graph.
-   *
+   * Backpropogation is implemented by performing first the forward pass and
+   * then the backward pass of algorithmic differentiation (AD) on the nodes of
+   * the graph.
    */
   void backprop() {
     forward();
     backward();
   }
-
-  /**
-   * @brief Perform the forward pass of algorithmic differentiation (AD) on this
-   * graph.
-   *
-   * This pass traverses the nodes of this graph in the order they were created;
-   *    as each node is traversed, its <code>allocate()</code> method is called.
-   *
-   * Once allocation is complete for all nodes, this pass again traverses the
-   * nodes, in creation order;
-   *    as each node is traversed, its <code>forward()</code> method is called.
-   *
-   * After this method has successfully completed,
-   *    it is guaranteed that all node allocation has been completed,
-   *    and that all forward pass computations have been performed.
-   *
-   * @param batchSize       XXX Marcin, could you provide a description of this
-   * param?
-   */
 
   bool fits() {
     try {
@@ -139,6 +109,22 @@ public:
     return true;
   }
 
+  /**
+   * @brief Perform the forward pass of algorithmic differentiation (AD) on this
+   * graph.
+   *
+   * This pass traverses the nodes of this graph in the order they were
+   * created; as each node is traversed, its <code>allocate()</code> method is
+   * called.
+   *
+   * Once allocation is complete for all nodes, this pass again traverses the
+   * nodes, in creation order; as each node is traversed, its
+   * <code>forward()</code> method is called.
+   *
+   * After this method has successfully completed, it is guaranteed that all
+   * node allocation has been completed, and that all forward pass computations
+   * have been performed.
+   */
   void forward() {
     params_->allocateForward();
     forwardNext();
@@ -146,7 +132,6 @@ public:
 
   void forwardNext() {
     // @TODO: check if allocation works properly
-
     hashMap_.clear();
 
     while(!nodesForward_.empty()) {
@@ -255,9 +240,8 @@ public:
    * @brief Constructs a new node representing a parameter in an expression
    * graph.
    *
-   * This method records the parameter node in a list of parameter nodes,
-   *    but does not attach the new parameter node to any existing expression
-   * graph.
+   * This method records the parameter node in a list of parameter nodes, but
+   * does not attach the new parameter node to any existing expression graph.
    *
    * @param args           XXX Marcin, what are args here?
    *
@@ -386,9 +370,10 @@ public:
     node->setId(count_++);
 
     nodesForward_.push_back(node);
-    if(!inferenceOnly_)
+    if(!inferenceOnly_ && node->trainable()) {
       nodesBackward_.push_back(node);
-    topNodes_.insert(node);
+      topNodes_.insert(node);
+    }
 
     return node;
   }
@@ -421,7 +406,7 @@ public:
   void load(const std::string& name) {
     using namespace keywords;
 
-    LOG(info, "Loading model from {}", name);
+    LOG(info)->info("Loading model from {}", name);
 
     auto numpy = cnpy::npz_load(name);
 
@@ -432,12 +417,13 @@ public:
         continue;
 
       Shape shape;
-      if(it.second.shape.size() == 2) {
-        shape.set(0, it.second.shape[0]);
-        shape.set(1, it.second.shape[1]);
-      } else if(it.second.shape.size() == 1) {
+      if(it.second.shape.size() == 1) {
         shape.set(0, 1);
         shape.set(1, it.second.shape[0]);
+      }
+      else {
+        for(int i = 0; i < it.second.shape.size(); ++i)
+          shape.set(i, it.second.shape[i]);
       }
 
       param(name, shape, init = inits::from_numpy(it.second));
@@ -445,9 +431,8 @@ public:
   }
 
   void save(const std::string& name) {
-    LOG(info, "Saving model to {}", name);
+    LOG(info)->info("Saving model to {}", name);
 
-    unsigned shape[2];
     std::string mode = "w";
 
     backend_->setDevice(getDevice());
@@ -462,16 +447,33 @@ public:
       std::vector<float> v;
       p.second->val() >> v;
 
+      unsigned shape[4];
       unsigned dim;
-      if(p.second->shape()[0] == 1) {
-        shape[0] = p.second->shape()[1];
+      
+      auto ps = p.second->shape();
+      if(ps[0] == 1 && ps[2] == 1 && ps[3] == 1) {
+        shape[0] = ps[1];
         dim = 1;
-      } else {
-        shape[0] = p.second->shape()[0];
-        shape[1] = p.second->shape()[1];
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      } else if(ps[2] == 1 && ps[3] == 1) {
+        shape[0] = ps[0];
+        shape[1] = ps[1];
         dim = 2;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      } else if(ps[3] == 1) {
+        shape[0] = ps[0];
+        shape[1] = ps[1];
+        shape[2] = ps[2];
+        dim = 3;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      } else {
+        shape[0] = ps[0];
+        shape[1] = ps[1];
+        shape[2] = ps[2];
+        shape[3] = ps[3];
+        dim = 4;
+        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
       }
-      cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
       mode = "a";
     }
   }
