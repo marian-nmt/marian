@@ -3,5 +3,71 @@
 namespace amunmt {
 namespace GPU {
 
+NpzConverter::NpzConverter(const std::string& file)
+  : model_(cnpy::npz_load(file)),
+    destructed_(false)
+{
+}
+
+NpzConverter::~NpzConverter() {
+  if(!destructed_)
+    model_.destruct();
+}
+
+void NpzConverter::Destruct() {
+  model_.destruct();
+  destructed_ = true;
+}
+
+std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool transpose) const
+{
+  std::shared_ptr<mblas::Matrix> ret;
+  auto it = model_.find(key);
+  if(it != model_.end()) {
+    NpyMatrixWrapper np(it->second);
+    mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
+    mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+
+    if (transpose) {
+      mblas::Transpose(*matrix);
+    }
+
+    ret.reset(matrix);
+  }
+  else {
+    std::cerr << key << " not found" << std::endl;
+    mblas::Matrix *matrix = new mblas::Matrix();
+    ret.reset(matrix);
+  }
+
+
+  //std::cerr << "key=" << key << " " << matrix.Debug(1) << std::endl;
+  return ret;
+}
+
+std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys) const
+{
+  std::shared_ptr<mblas::Matrix> ret;
+  for (auto key : keys) {
+    auto it = model_.find(key.first);
+    if(it != model_.end()) {
+      NpyMatrixWrapper np(it->second);
+      mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
+      mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+
+      if (key.second) {
+        mblas::Transpose(*matrix);
+      }
+      ret.reset(matrix);
+      return ret;
+    }
+  }
+  std::cerr << "Matrix not found: " << keys[0].first << "\n";
+
+  return ret;
+
+}
+
+
 }
 }
