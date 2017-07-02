@@ -343,14 +343,17 @@ void NthElement::getNBestList(mblas::Matrix &probs,
 
   //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
   d_batchPosition.NewSize(batchFirstElementIdxs.size(), 1, 1, 1);
-  d_cumBeamSizes.resize(cummulatedBeamSizes.size());
+  d_cumBeamSizes.NewSize(cummulatedBeamSizes.size(), 1, 1, 1);
   assert(d_batchPosition.size() == d_cumBeamSizes.size());
 
   mblas::copy(thrust::raw_pointer_cast(batchFirstElementIdxs.data()),
               batchFirstElementIdxs.size(),
               d_batchPosition.data(),
               cudaMemcpyHostToDevice);
-  mblas::copy(cummulatedBeamSizes.begin(), cummulatedBeamSizes.end(), d_cumBeamSizes.begin());
+  mblas::copy(thrust::raw_pointer_cast(cummulatedBeamSizes.data()),
+              cummulatedBeamSizes.size(),
+              d_cumBeamSizes.data(),
+              cudaMemcpyHostToDevice);
 
   mblas::MatrixWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
