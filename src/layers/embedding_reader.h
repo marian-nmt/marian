@@ -46,10 +46,6 @@ public:
 
       Word word = std::stoi(values.front());
 
-      // Skip unknown words, but not <unk> word
-      if(word == UNK_ID && values.front() != UNK_STR)
-        continue;
-
       word2vec[word].reserve(dimEmb);
       std::transform(values.begin() + 1,
                      values.end(),
