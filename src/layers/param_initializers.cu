@@ -4,7 +4,10 @@
 #include <iterator>
 #include <random>
 
-#include "param_initializers.h"
+#include "kernels/cuda_helpers.h"
+#include "kernels/tensor_operators.h"
+#include "layers/word2vec_reader.h"
+#include "layers/param_initializers.h"
 #include "svd/svd.h"
 
 namespace marian {
@@ -50,7 +53,7 @@ std::function<void(Tensor)> diag(float val) {
   };
 }
 
-std::function<void(Tensor)> normal(float scale, bool orto) {
+std::function<void(Tensor)> normal(float scale, bool ortho /*= true*/) {
   return [scale](Tensor t) {
     distribution<std::normal_distribution<float>>(t, 0, scale);
   };
@@ -125,7 +128,7 @@ std::function<void(Tensor)> from_sparse_vector(
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   size_t size = 1;
-  for(int i = 0; i < np.shape.size(); ++i) {
+  for(size_t i = 0; i < np.shape.size(); ++i) {
     size *= np.shape[i];
   };
 
@@ -133,6 +136,21 @@ std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   std::copy((float*)np.data, (float*)np.data + size, npv.begin());
 
   return [npv](Tensor t) { t->set(npv); };
+}
+
+std::function<void(Tensor)> from_word2vec(const std::string& file,
+                                          int dimVoc,
+                                          int dimEmb,
+                                          bool normalize /*= false*/) {
+  return [file, dimVoc, dimEmb, normalize](Tensor t) {
+    auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
+    t->set(embs);
+    if(normalize){
+      float l2Norm = L2Norm(t);
+      if(l2Norm != 0)
+        Element(_1 = _1 / l2Norm, t);
+    }
+  };
 }
 }
 

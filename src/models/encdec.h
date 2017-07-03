@@ -73,25 +73,27 @@ public:
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
     int dimEmb = opt<int>("dim-emb");
-    auto yEmb = embedding(graph)
-                ("prefix", prefix_ + "_Wemb")
-                ("dimVocab", dimVoc)
-                ("dimEmb", dimEmb)
-                .construct();
+
+    auto yEmbFactory = embedding(graph)
+                       ("prefix", prefix_ + "_Wemb")
+                       ("dimVocab", dimVoc)
+                       ("dimEmb", dimEmb)
+                       ("fixed", opt<bool>("embedding-fix-trg"));
+                       
+    if(options_->has("embedding-vectors")) {
+      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+      yEmbFactory
+        ("embFile", embFiles[index])
+        ("normalization", opt<bool>("embedding-normalization"));
+    }
+
+    auto yEmb = yEmbFactory.construct();
 
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
     auto chosenEmbeddings = rows(yEmb, subBatch->indices());
-
-    if() {
-      auto yEmbFixed = graph->param(prefix_ + "_WembFix", {dimVoc, opt<int>("dim-emb")},
-                                    init=inits::glorot_uniform,
-                                    fixed=true);
-      auto chosenEmbeddingsFixed = rows(yEmbFixed, subBatch->indices());
-      chosenEmbeddings = chosenEmbeddings + chosenEmbeddingsFixed;
-    }
 
     auto y = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
 
@@ -121,10 +123,11 @@ public:
       selectedEmbs = graph->constant({1, dimTrgEmb},
                                      init = inits::zeros);
     } else {
+      // embeddings are loaded from model during translation, no fixing required
       auto yEmb = embedding(graph)
                   ("prefix", prefix_ + "_Wemb")
                   ("dimVocab", dimTrgVoc)
-                  ("dimEmb", opt<int>("dim-emb"))
+                  ("dimEmb", dimTrgEmb)
                   .construct();
       selectedEmbs = rows(yEmb, embIdx);
 
