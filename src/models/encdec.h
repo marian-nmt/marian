@@ -72,29 +72,26 @@ public:
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
+    int dimEmb = opt<int>("dim-emb");
     auto yEmb = embedding(graph)
                 ("prefix", prefix_ + "_Wemb")
                 ("dimVocab", dimVoc)
-                ("dimEmb", opt<int>("dim-emb"))
+                ("dimEmb", dimEmb)
                 .construct();
-
-    //auto yEmbFixed = graph->param(prefix_ + "_WembFix", {dimVoc, opt<int>("dim-emb")},
-    //                              init=inits::glorot_uniform,
-    //                              fixed=true);
 
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
     auto chosenEmbeddings = rows(yEmb, subBatch->indices());
-    //auto chosenEmbeddingsFixed = rows(yEmbFixed, subBatch->indices());
 
-    debug(chosenEmbeddings, "not-fixed");
-    //debug(chosenEmbeddingsFixed, "fixed");
-
-    //chosenEmbeddings = chosenEmbeddings + chosenEmbeddingsFixed;
-
-    //debug(chosenEmbeddings, "sum");
+    if() {
+      auto yEmbFixed = graph->param(prefix_ + "_WembFix", {dimVoc, opt<int>("dim-emb")},
+                                    init=inits::glorot_uniform,
+                                    fixed=true);
+      auto chosenEmbeddingsFixed = rows(yEmbFixed, subBatch->indices());
+      chosenEmbeddings = chosenEmbeddings + chosenEmbeddingsFixed;
+    }
 
     auto y = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
 
