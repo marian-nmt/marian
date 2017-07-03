@@ -62,7 +62,7 @@ public:
     for(size_t word = 0; word < (size_t)dimVoc; ++word) {
       // For words not occuring in the file use uniform distribution
       if(word2vec.find(word) == word2vec.end()) {
-        auto randVals = randomEmbeddings(dimEmb);
+        auto randVals = randomEmbeddings(dimVoc, dimEmb);
         embs.insert(embs.end(), randVals.begin(), randVals.end());
       } else {
         embs.insert(embs.end(), word2vec[word].begin(), word2vec[word].end());
@@ -73,13 +73,12 @@ public:
   }
 
 private:
-  std::vector<float> randomEmbeddings(int dimEmb) {
-    // @TODO: consider generating values once for all missing words and
-    // then use the generated numbers to bucket them into the output vector
+  std::vector<float> randomEmbeddings(int dimVoc, int dimEmb) {
     std::vector<float> values;
     values.reserve(dimEmb);
-    inits::distribution<std::uniform_real_distribution<float>>(
-        values, -0.1, 0.1);
+    // Glorot numal distribution
+    float scale = sqrtf(2.0f / (dimVoc + dimEmb));
+    inits::distribution<std::normal_distribution<float>>(values, 0, scale);
     return values;
   }
 };
