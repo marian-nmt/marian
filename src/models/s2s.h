@@ -130,8 +130,6 @@ public:
                       ("dimEmb", opt<int>("dim-emb"))
                       ("embFile", embFile)
                       .construct();
-    // FIXME
-    debug(embeddings, "embeddings");
 
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;

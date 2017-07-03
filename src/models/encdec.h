@@ -79,8 +79,6 @@ public:
                 ("dimEmb", opt<int>("dim-emb"))
                 ("embFile", embFile)
                 .construct();
-    // FIXME
-    debug(yEmb, "yEmb");
 
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();

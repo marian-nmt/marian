@@ -9,15 +9,13 @@
 #include "common/logging.h"
 #include "common/utils.h"
 #include "data/types.h"
-#include "graph/expression_graph.h"
-#include "layers/factory.h"
 #include "layers/param_initializers.h"
 
 namespace marian {
 
-class EmbeddingReader {
+class Word2VecReader {
 public:
-  EmbeddingReader() {}
+  Word2VecReader() {}
 
   std::vector<float> read(const std::string& fileName, int dimVoc, int dimEmb) {
     LOG(data)->info("Loading embedding vectors from {}", fileName);
@@ -85,28 +83,5 @@ private:
     return values;
   }
 };
-
-struct EmbeddingFactory : public Factory {
-  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
-  Expr construct() {
-    std::string name = opt<std::string>("prefix");
-    int dimVoc = opt<int>("dimVocab");
-    int dimEmb = opt<int>("dimEmb");
-    std::string file = opt<std::string>("embFile");
-
-    std::function<void(Tensor)> initFunc;
-    if(!file.empty()) {
-      auto embVec = EmbeddingReader().read(file, dimVoc, dimEmb);
-      initFunc = inits::from_vector(embVec);
-    } else {
-      initFunc = inits::glorot_normal;
-    }
-    return graph_->param(name, {dimVoc, dimEmb}, keywords::init = initFunc);
-  }
-};
-
-typedef Accumulator<EmbeddingFactory> embedding;
-
 
 }  // namespace marian
