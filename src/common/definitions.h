@@ -68,6 +68,7 @@ namespace keywords {
 KEY(axis, int);
 KEY(shape, Shape);
 KEY(value, float);
+KEY(fixed, bool);
 KEY(prefix, std::string);
 KEY(final, bool);
 KEY(output_last, bool);

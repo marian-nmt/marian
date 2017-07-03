@@ -78,11 +78,23 @@ public:
                 ("dimEmb", opt<int>("dim-emb"))
                 .construct();
 
+    //auto yEmbFixed = graph->param(prefix_ + "_WembFix", {dimVoc, opt<int>("dim-emb")},
+    //                              init=inits::glorot_uniform,
+    //                              fixed=true);
+
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
     auto chosenEmbeddings = rows(yEmb, subBatch->indices());
+    //auto chosenEmbeddingsFixed = rows(yEmbFixed, subBatch->indices());
+
+    debug(chosenEmbeddings, "not-fixed");
+    //debug(chosenEmbeddingsFixed, "fixed");
+
+    //chosenEmbeddings = chosenEmbeddings + chosenEmbeddingsFixed;
+
+    //debug(chosenEmbeddings, "sum");
 
     auto y = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
 
