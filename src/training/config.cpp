@@ -341,8 +341,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
      "Clip gradient norm to  arg  (0 to disable)")
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
      "Maintain and save moving average of parameters")
-    ("moving-decay", po::value<double>()->default_value(0.9999),
+    ("moving-decay", po::value<double>()->default_value(0.9999, "0.9999"),
      "Decay factor for moving average")
+    ("moving-inject-freq", po::value<size_t>()->default_value(0),
+     "Replace model parameters with moving average every  arg  updates (0 to disable)")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
 
@@ -588,6 +590,8 @@ void Config::addOptions(
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
+    SET_OPTION("moving-inject-freq", size_t);
+
     // SET_OPTION_NONDEFAULT("lexical-table", std::string);
 
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
