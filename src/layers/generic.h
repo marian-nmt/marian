@@ -181,10 +181,11 @@ struct EmbeddingFactory : public Factory {
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");
     std::string file = opt<std::string>("embFile");
+    bool norm = opt<bool>("normalization");
 
     std::function<void(Tensor)> initFunc
         = file.empty() ? inits::glorot_normal :
-                         inits::from_word2vec(file, dimVoc, dimEmb);
+                         inits::from_word2vec(file, dimVoc, dimEmb, norm);
     return graph_->param(name, {dimVoc, dimEmb}, keywords::init = initFunc);
   }
 };

@@ -78,6 +78,7 @@ public:
                 ("dimVocab", dimVoc)
                 ("dimEmb", opt<int>("dim-emb"))
                 ("embFile", embFile)
+                ("normalization", opt<bool>("embedding-normalization"))
                 .construct();
 
     auto subBatch = (*batch)[index];
@@ -120,6 +121,7 @@ public:
                   ("dimVocab", dimTrgVoc)
                   ("dimEmb", opt<int>("dim-emb"))
                   ("embFile", embFile)
+                  ("normalization", opt<bool>("embedding-normalization"))
                   .construct();
       selectedEmbs = rows(yEmb, embIdx);
 

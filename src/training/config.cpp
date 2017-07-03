@@ -367,6 +367,10 @@ void Config::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"", ""}), ""),
      "Paths to files with custom source and target embedding vectors.")
+    ("embedding-normalization", po::value<bool>()
+      ->zero_tokens()
+      ->default_value(false),
+     "Enable normalization of custom embedding vectors")
   ;
   // clang-format on
   desc.add(training);
@@ -606,6 +610,7 @@ void Config::addOptions(
     SET_OPTION("guided-alignment-weight", double);
     SET_OPTION("drop-rate", double);
     SET_OPTION("embedding-vectors", std::vector<std::string>);
+    SET_OPTION("embedding-normalization", bool);
   }
   /** training end **/
   else if(rescore) {

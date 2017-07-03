@@ -129,6 +129,7 @@ public:
                       ("dimVocab", dimVoc)
                       ("dimEmb", opt<int>("dim-emb"))
                       ("embFile", embFile)
+                      ("normalization", opt<bool>("embedding-normalization"))
                       .construct();
 
     // select embeddings that occur in the batch

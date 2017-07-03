@@ -63,7 +63,8 @@ std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
 
 std::function<void(Tensor)> from_word2vec(const std::string& file,
                                           int dimVoc,
-                                          int dimEmb);
+                                          int dimEmb,
+                                          bool normalize = false);
 }
 
 }  // namespace marian
