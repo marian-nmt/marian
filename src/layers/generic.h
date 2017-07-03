@@ -4,7 +4,7 @@
 #include "common/options.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
-#include "layers/embedding_reader.h"
+#include "layers/embedding.h"
 #include "layers/factory.h"
 #include "layers/param_initializers.h"
 
@@ -173,28 +173,6 @@ public:
 };
 
 }
-
-struct EmbeddingFactory : public Factory {
-  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
-  Expr construct() {
-    std::string name = opt<std::string>("prefix");
-    int dimVoc = opt<int>("dimVocab");
-    int dimEmb = opt<int>("dimEmb");
-    std::string file = opt<std::string>("embFile");
-
-    if(!file.empty()) {
-      auto embVec = EmbeddingReader().read(file, dimVoc, dimEmb);
-      return graph_->param(
-          name, {dimVoc, dimEmb}, keywords::init = inits::from_vector(embVec));
-    } else {
-      return graph_->param(
-          name, {dimVoc, dimEmb}, keywords::init = inits::glorot_uniform);
-    }
-  }
-};
-
-typedef Accumulator<EmbeddingFactory> embedding;
 
 class CrossEntropyCost {
 public:
