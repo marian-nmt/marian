@@ -60,6 +60,11 @@ std::function<void(Tensor)> from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
+
+std::function<void(Tensor)> from_word2vec(const std::string& file,
+                                          int dimVoc,
+                                          int dimEmb,
+                                          bool normalize = false);
 }
 
 }  // namespace marian

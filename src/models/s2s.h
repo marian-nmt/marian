@@ -123,10 +123,13 @@ public:
 
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
+    auto embFile = opt<std::vector<std::string>>("embedding-vectors").front();
     auto embeddings = embedding(graph)
                       ("prefix", prefix_ + "_Wemb")
                       ("dimVocab", dimVoc)
                       ("dimEmb", opt<int>("dim-emb"))
+                      ("embFile", embFile)
+                      ("normalization", opt<bool>("embedding-normalization"))
                       .construct();
 
     // select embeddings that occur in the batch
