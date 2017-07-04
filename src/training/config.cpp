@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <set>
 #include <string>
@@ -26,11 +27,21 @@ namespace po = boost::program_options;
 namespace marian {
 
 uint16_t guess_terminal_width(uint16_t max_width) {
-  struct winsize size;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
-  if(size.ws_col == 0)  // couldn't determine terminal width
-    size.ws_col = po::options_description::m_default_line_length;
-  return max_width ? std::min(size.ws_col, max_width) : size.ws_col;
+  uint16_t cols = 0;
+#ifdef TIOCGSIZE
+  struct ttysize ts;
+  ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+  if(ts.ts_cols != 0)
+    cols = ts.ts_cols;
+#elif defined(TIOCGWINSZ)
+  struct winsize ts;
+  ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+  if(ts.ws_col != 0)
+    cols = ts.ws_col;
+#endif /* TIOCGSIZE */
+  if(cols == 0)  // couldn't determine terminal width
+    cols = po::options_description::m_default_line_length;
+  return max_width ? std::min(cols, max_width) : cols;
 }
 
 size_t Config::seed = (size_t)time(0);
