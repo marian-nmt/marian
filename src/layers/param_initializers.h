@@ -25,12 +25,9 @@ std::function<void(Tensor)> diag(float val);
 
 template <class Distribution>
 void distribution(std::vector<float>& vals, float a, float b) {
-  std::random_device device;
-  std::default_random_engine engine(device());
-  engine.seed(Config::seed);
+  std::default_random_engine engine(Config::seed++);
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
-
   std::generate(begin(vals), end(vals), gen);
 }
 
