@@ -242,7 +242,7 @@ void Config::addOptionsModel(po::options_description& desc,
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
      "Model-specific special vocabulary ids")
     ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
-     "Tie target embeddings and output embeddings in output layer (s2s)")
+     "Tie target embeddings and output embeddings in output layer")
     ;
 
   if(!translate && !rescore) {
