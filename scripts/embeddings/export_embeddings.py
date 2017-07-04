@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import argparse
+import yaml
 import numpy as np
 
 
@@ -18,17 +19,25 @@ def main():
 
     print("Loading model")
     model = np.load(args.model)
+    special = yaml.load(model["special:model.yml"][:-1].tobytes())
+
+    if special["type"] == "amun":
+        enc_emb = model["Wemb"]
+        dec_emb = model["Wemb_dec"]
+    else:
+        enc_emb = model["encoder_Wemb"]
+        dec_emb = model["decoder_Wemb"]
 
     with open(args.output_prefix + ".src", "w") as out:
-        out.write("{0} {1}\n".format(*model["Wemb"].shape))
-        for i in range(model["Wemb"].shape[0]):
-            vec = " ".join("{0:.8f}".format(v) for v in model["Wemb"][i])
+        out.write("{0} {1}\n".format(*enc_emb.shape))
+        for i in range(enc_emb.shape[0]):
+            vec = " ".join("{0:.8f}".format(v) for v in enc_emb[i])
             out.write("{0} {1}\n".format(i, vec))
 
     with open(args.output_prefix + ".trg", "w") as out:
-        out.write("{0} {1}\n".format(*model["Wemb_dec"].shape))
-        for i in range(model["Wemb_dec"].shape[0]):
-            vec = " ".join("{0:.8f}".format(v) for v in model["Wemb"][i])
+        out.write("{0} {1}\n".format(*dec_emb.shape))
+        for i in range(dec_emb.shape[0]):
+            vec = " ".join("{0:.8f}".format(v) for v in dec_emb[i])
             out.write("{0} {1}\n".format(i, vec))
 
 
