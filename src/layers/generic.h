@@ -171,7 +171,7 @@ public:
   }
 };
 
-}
+} // namespace mlp
 
 struct EmbeddingFactory : public Factory {
   EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
