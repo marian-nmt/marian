@@ -77,9 +77,12 @@ public:
     auto yEmbFactory = embedding(graph)
                        ("prefix", prefix_ + "_Wemb")
                        ("dimVocab", dimVoc)
-                       ("dimEmb", dimEmb)
-                       ("fixed", opt<bool>("embedding-fix-trg"));
-                       
+                       ("dimEmb", dimEmb);
+
+    if(options_->has("embedding-fix-trg"))
+      yEmbFactory
+        ("fixed", opt<bool>("embedding-fix-trg"));
+
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       yEmbFactory

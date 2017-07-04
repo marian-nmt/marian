@@ -128,8 +128,11 @@ public:
     auto embFactory = embedding(graph)
                       ("prefix", prefix_ + "_Wemb")
                       ("dimVocab", dimVoc)
-                      ("dimEmb", dimEmb)
-                      ("fixed", opt<bool>("embedding-fix-src"));
+                      ("dimEmb", dimEmb);
+
+    if(options_->has("embedding-fix-src"))
+      embFactory
+        ("fixed", opt<bool>("embedding-fix-src"));
 
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
@@ -139,7 +142,7 @@ public:
     }
 
     auto embeddings = embFactory.construct();
-    
+
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
