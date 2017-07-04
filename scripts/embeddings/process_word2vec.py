@@ -9,7 +9,6 @@ import argparse
 import subprocess
 import json
 
-
 WORD2VEC_OPTIONS = '-cbow 0 -window 5 -negative -hs 1 -sample 1e-3 -binary 0'
 
 UNK = '<unk>'
@@ -68,7 +67,8 @@ def main():
                 cout.write("{} {}".format(vocab[word], tail))
                 n += 1
             else:
-                print("  warning: no word '{}' in vocabulary, line {}".format(word, i+1))
+                print("  warning: no word '{}' in vocabulary, line {}".format(
+                    word, i + 1))
     print("  words: {}".format(n))
 
     print("Finished")
@@ -81,8 +81,9 @@ def replace_unks(l, voc):
 def load_yaml(lines):
     vocab = {}
     for line in lines:
-        word, idx = line.strip().split(': ')
-        vocab[word.strip('"')] = int(idx)
+        # all values are integers, so splitting by ':' from right should be safe
+        word, idx = line.strip().rsplit(':', 1)
+        vocab[word.strip('"')] = int(idx.strip())
     return vocab
 
 
@@ -93,10 +94,11 @@ embedding vectors with regard to the word vocabulary."""
   {0} -v vocab.yml -i corpus.txt -o output.txt -w path/to/word2vec
   {0} -v vocab.yml -i vectors.txt -o output.txt"""
     note = note.format(os.path.basename(__file__))
+
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            description=desc,
-            epilog=note)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=desc,
+        epilog=note)
     parser.add_argument("-i", "--input", help="embedding vectors or corpus for word2vec", required=True)
     parser.add_argument("-o", "--output", help="output embedding vectors", required=True)
     parser.add_argument("-v", "--vocab", help="path to vocabulary in JSON or YAML format", required=True)
