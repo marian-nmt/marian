@@ -17,11 +17,10 @@ cl_context CreateContext(
 {
   cl_uint platformIdCount = 0;
   CheckError( clGetPlatformIDs (0, nullptr, &platformIdCount));
+  cerr << "platformIdCount=" << platformIdCount << endl;
 
   std::vector<cl_platform_id> platformIds (platformIdCount);
   CheckError( clGetPlatformIDs (platformIdCount, platformIds.data (), nullptr));
-
-  cerr << "platformIdCount=" << platformIdCount << endl;
 
   for (int i=0; i<platformIdCount; i++)
   {
@@ -48,7 +47,7 @@ cl_context CreateContext(
     cerr << endl;
   }
 
-  CheckError( clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_GPU, maxDevices, devices, &numDevices));
+  CheckError( clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, maxDevices, devices, &numDevices));
 
   int err;
   cl_context ret = clCreateContext(NULL, 1, devices, &pfn_notify, NULL, &err);

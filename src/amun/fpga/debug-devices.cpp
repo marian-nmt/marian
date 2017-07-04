@@ -6,7 +6,7 @@ void DebugDevicesInfo(cl_platform_id id)
 {
   cl_device_id devices[100];
   cl_uint numDevices = 0;
-  CheckError( clGetDeviceIDs(id, CL_DEVICE_TYPE_GPU, 100, devices, &numDevices) );
+  CheckError( clGetDeviceIDs(id, CL_DEVICE_TYPE_ALL, 100, devices, &numDevices) );
   DebugDevicesInfo(devices, numDevices);
 }
 
