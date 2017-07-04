@@ -1,3 +1,6 @@
+# Config files from CMake
+src/common/version.h
+
 # Compiled Object files
 *.slo
 *.lo

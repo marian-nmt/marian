@@ -6,6 +6,7 @@
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "common/version.h"
 #include "training/config.h"
 
 #define SET_OPTION(key, type)                    \
@@ -201,6 +202,8 @@ void Config::addOptionsCommon(po::options_description& desc,
      "All paths are relative to the config file location")
     ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
      "Dump current (modified) configuration to stdout and exit")
+    ("version", po::value<bool>()->zero_tokens()->default_value(false),
+      "Print version number and exit")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
       "Print this help message and exit")
   ;
@@ -538,6 +541,11 @@ void Config::addOptions(
   if(vm_["help"].as<bool>()) {
     std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
     std::cerr << cmdline_options_ << std::endl;
+    exit(0);
+  }
+
+  if(vm_["version"].as<bool>()) {
+    std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
   }
 

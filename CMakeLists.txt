@@ -2,33 +2,44 @@ cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/local/cuda-8.0/lib64)
 
+
 project(marian CXX)
 
+# Custom CMake options
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
-
 option(USE_CUDNN "Use CUDNN library" OFF)
+option(VERSION_UPDATE_FROM_GIT "Update project version from git" OFF)
 
-find_package(CUDA "8.0" REQUIRED)
-if(CUDA_FOUND)
-    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
-endif(CUDA_FOUND)
+# Project versioning
+find_package(Git QUIET)
+include(GetVersionFromGitTag)
 
+message(STATUS "Project name: ${PROJECT_NAME}")
+message(STATUS "Project version: ${marian_VERSION}")
+
+
+# Set compilation flags
 set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
 
+# Find packages
+find_package(CUDA "8.0" REQUIRED)
+if(CUDA_FOUND)
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
+endif(CUDA_FOUND)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_35;)
+  list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_35;)
 else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  LIST(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+  list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
-LIST(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
-SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
-
+list(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 if(USE_CUDNN)
     find_package(CUDNN "5.0")
@@ -60,8 +71,14 @@ if(COMPILE_TESTS)
     enable_testing()
 endif(COMPILE_TESTS)
 
+
+# Compile source files
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h @ONLY)
+
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
+
 
 # Add a target to generate API documentation with Doxygen
 find_package(Doxygen)
