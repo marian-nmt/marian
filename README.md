@@ -94,13 +94,12 @@ Then, proceed to the next section.
 
 Clone a fresh copy from github:
 
-    git clone https://github.com/amunmt/amunmt
+    git clone https://github.com/marian-nmt/marian.git
 
 The project is a standard CMake out-of-source build:
 
     cd marian
-    mkdir build
-    cd build
+    mkdir build && cd build
     cmake ..
     make -j
 
