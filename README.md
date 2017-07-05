@@ -26,7 +26,7 @@
     <li> Compatible with Nematus and DL4MT </li>
     <li> Efficient pure C++ implementation </li>
     <li> Permissive open source license (MIT) </li>
-    <li> <a href="http://amunmt.github.io/features"> more details... </a> </li>
+    <li> <a href="https://marian-nmt.github.io/features/"> more details... </a> </li>
   </ul>
   </p>
 
