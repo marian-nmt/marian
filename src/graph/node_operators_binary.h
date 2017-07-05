@@ -425,11 +425,19 @@ class ConvolutionOp : public NaryNodeOp {
       int widthStride = 1;
 
       CUDNN_CALL( cudnnCreateConvolutionDescriptor(&convDesc_) );
+#if CUDNN_MAJOR > 5
+      CUDNN_CALL( cudnnSetConvolution2dDescriptor(convDesc_,
+                    heightPad, widthPad, heightStride, widthStride,
+                    1, 1,  // upscales
+                    CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT
+      ));
+#else
       CUDNN_CALL( cudnnSetConvolution2dDescriptor(convDesc_,
                     heightPad, widthPad, heightStride, widthStride,
                     1, 1,  // upscales
                     CUDNN_CROSS_CORRELATION
       ));
+#endif
 
       // std::cerr << "data: " << nodes[0]->shape() << std::endl;
       // std::cerr << "filter: " << nodes[1]->shape() << std::endl;
