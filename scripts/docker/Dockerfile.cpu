@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:16.04
 
 MAINTAINER Mama <ma@ma.com>
 LABEL description="Basic Marian docker container for Ubuntu"
