@@ -8,11 +8,9 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "training/config_parser.h"
 
 namespace marian {
-
-// try to determine the width of the terminal
-uint16_t guess_terminal_width(uint16_t max_width = 180);
 
 class Config {
 public:
@@ -22,9 +20,55 @@ public:
          char** argv,
          bool validate = true,
          bool translate = false,
-         bool rescore = false)
-      : cmdline_options_("Allowed options", guess_terminal_width()) {
-    addOptions(argc, argv, validate, translate, rescore);
+         bool rescore = false) {
+
+    auto parser = ConfigParser(argc, argv, validate, translate, rescore);
+    config_ = parser.getConfig();
+    createLoggers(this);
+
+    modelFeatures_ = {
+        "type",
+        "dim-vocabs",
+        "dim-emb",
+        "dim-rnn",
+        "enc-cell",
+        "enc-type",
+        "enc-cell-depth",
+        "enc-depth",
+        "dec-depth",
+        "dec-cell",
+        "dec-cell-base-depth",
+        "dec-cell-high-depth",
+        //"dec-high-context",
+        "skip",
+        "layer-normalization",
+        "special-vocab",
+        "tied-embeddings"
+        /*"lexical-table", "vocabs"*/
+    };
+
+    if(get<size_t>("seed") == 0)
+      seed = (size_t)time(0);
+    else
+      seed = get<size_t>("seed");
+
+    if(!translate) {
+      if(boost::filesystem::exists(get<std::string>("model"))
+         && !get<bool>("no-reload")) {
+        try {
+          loadModelParameters(get<std::string>("model"));
+        } catch(std::runtime_error& e) {
+          LOG(info)->info("No model settings found in model file");
+        }
+      }
+    } else {
+      auto model = get<std::vector<std::string>>("models")[0];
+      try {
+        loadModelParameters(model);
+      } catch(std::runtime_error& e) {
+        LOG(info)->info("No model settings found in model file");
+      }
+    }
     log();
   }
 
@@ -52,26 +96,10 @@ public:
   YAML::Node operator[](const std::string& key) const { return get(key); }
 
   void override(const YAML::Node& params);
+
   YAML::Node getModelParameters();
   void loadModelParameters(const std::string& name);
   void saveModelParameters(const std::string& name);
-
-  void GetYamlFromNpz(YAML::Node&, const std::string&, const std::string&);
-
-  void AddYamlToNpz(const YAML::Node&, const std::string&, const std::string&);
-
-  void addOptions(
-      int argc, char** argv, bool validate, bool translate, bool rescore);
-
-  void addOptionsCommon(boost::program_options::options_description&, bool);
-  void addOptionsModel(boost::program_options::options_description&, bool, bool);
-  void addOptionsTraining(boost::program_options::options_description&);
-  void addOptionsRescore(boost::program_options::options_description&);
-  void addOptionsValid(boost::program_options::options_description&);
-  void addOptionsTranslate(boost::program_options::options_description&);
-
-  void log();
-  void validateOptions(bool translate = false, bool rescore = false) const;
 
   void OutputRec(const YAML::Node node, YAML::Emitter& out) const;
 
@@ -89,8 +117,12 @@ public:
   }
 
 private:
-  boost::program_options::options_description cmdline_options_;
   YAML::Node config_;
   std::vector<std::string> modelFeatures_;
+
+  void GetYamlFromNpz(YAML::Node&, const std::string&, const std::string&);
+  void AddYamlToNpz(const YAML::Node&, const std::string&, const std::string&);
+
+  void log();
 };
 }
