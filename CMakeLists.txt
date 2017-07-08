@@ -25,6 +25,15 @@ set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-depr
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
+execute_process(COMMAND git submodule update --init --recursive --remote --no-fetch
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/spdlog/include)
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach(dir ${dirs})
+  message(STATUS "dir='${dir}'")
+endforeach()
 
 # Find packages
 find_package(CUDA "8.0" REQUIRED)
