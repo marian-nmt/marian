@@ -39,7 +39,7 @@ uint16_t guess_terminal_width(uint16_t max_width) {
   ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
   if(ts.ws_col != 0)
     cols = ts.ws_col;
-#endif /* TIOCGSIZE */
+#endif
   if(cols == 0)  // couldn't determine terminal width
     cols = po::options_description::m_default_line_length;
   return max_width ? std::min(cols, max_width) : cols;
@@ -137,7 +137,7 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
 
   if(has("embedding-vectors")) {
     UTIL_THROW_IF2(get<std::vector<std::string>>("embedding-vectors").size()
-                   != get<std::vector<std::string>>("train-sets").size(),
+                       != get<std::vector<std::string>>("train-sets").size(),
                    "There should be as many files with embedding vectors as "
                    "training sets");
   }
@@ -170,7 +170,7 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
 }
 
 void ConfigParser::addOptionsCommon(po::options_description& desc,
-                              bool translate = false) {
+                                    bool translate = false) {
   po::options_description general("General options", guess_terminal_width());
   // clang-format off
   general.add_options()
@@ -198,8 +198,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc,
 }
 
 void ConfigParser::addOptionsModel(po::options_description& desc,
-                             bool translate = false,
-                             bool rescore = false) {
+                                   bool translate = false,
+                                   bool rescore = false) {
   po::options_description model("Model options", guess_terminal_width());
   // clang-format off
   if(!translate) {
@@ -518,8 +518,9 @@ void ConfigParser::parseOptions(
   if(vm_.count("config")) {
     configPath = vm_["config"].as<std::string>();
     config_ = YAML::Load(InputFileStream(configPath));
-  } else if(!translate && !rescore && boost::filesystem::exists(
-                              vm_["model"].as<std::string>() + ".yml")
+  } else if(!translate && !rescore
+            && boost::filesystem::exists(vm_["model"].as<std::string>()
+                                         + ".yml")
             && !vm_["no-reload"].as<bool>()) {
     configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
@@ -551,14 +552,13 @@ void ConfigParser::parseOptions(
   SET_OPTION("dec-cell-base-depth", int);
   SET_OPTION("dec-cell-high-depth", int);
   SET_OPTION("dec-depth", int);
-  //SET_OPTION("dec-high-context", std::string);
+  // SET_OPTION("dec-high-context", std::string);
 
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);
   SET_OPTION("layer-normalization", bool);
 
   SET_OPTION("best-deep", bool);
-
 
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
@@ -699,5 +699,4 @@ void ConfigParser::parseOptions(
 YAML::Node ConfigParser::getConfig() const {
   return config_;
 }
-
 }
