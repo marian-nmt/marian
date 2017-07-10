@@ -115,7 +115,7 @@ public:
         inputFactory->getOptions()->merge(options_);
         auto input = inputFactory->construct();
         stacked->push_back(input);
-        lastDimInput = input->dimOutput();
+        lastDimInput += input->dimOutput();
       }
     }
     return stacked;

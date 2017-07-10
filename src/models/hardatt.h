@@ -1,8 +1,6 @@
 #pragma once
 
-#include "models/encdec.h"
-//#include "models/multi_s2s.h"
-#include "models/s2s.h"
+#include "marian.h"
 
 namespace marian {
 

@@ -234,7 +234,8 @@ public:
         hidden = hiddenNext;
       }
       else {
-        lastInputs_ = { stackables_[i]->as<CellInput>()->apply(hidden) };
+        lastInputs_.push_back( stackables_[i]->as<CellInput>()->apply(hidden) );
+        //lastInputs_ = { stackables_[i]->as<CellInput>()->apply(hidden) };
       }
     }
 

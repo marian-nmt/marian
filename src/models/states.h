@@ -17,6 +17,8 @@ public:
   EncoderState(Expr context, Expr mask, Ptr<data::CorpusBatch> batch)
       : context_(context), mask_(mask), batch_(batch) {}
 
+  EncoderState() {}
+
   virtual Expr getContext() { return context_; }
   virtual Expr getAttended() { return context_; }
   virtual Expr getMask() { return mask_; }
