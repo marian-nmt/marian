@@ -14,6 +14,8 @@ namespace marian {
 // try to determine the width of the terminal
 uint16_t guess_terminal_width(uint16_t max_width = 180);
 
+void OutputYaml(const YAML::Node node, YAML::Emitter& out);
+
 class ConfigParser {
 public:
   static size_t seed;
@@ -27,12 +29,6 @@ public:
     parseOptions(argc, argv, validate, translate, rescore);
   }
 
-  bool has(const std::string& key) const;
-  template <typename T>
-  T get(const std::string& key) const {
-    return config_[key].as<T>();
-  }
-
   void parseOptions(
       int argc, char** argv, bool validate, bool translate, bool rescore);
 
@@ -41,6 +37,12 @@ public:
 private:
   boost::program_options::options_description cmdline_options_;
   YAML::Node config_;
+
+  bool has(const std::string& key) const;
+  template <typename T>
+  T get(const std::string& key) const {
+    return config_[key].as<T>();
+  }
 
   void addOptionsCommon(boost::program_options::options_description&, bool);
   void addOptionsModel(boost::program_options::options_description&, bool, bool);
@@ -51,6 +53,5 @@ private:
 
   void validateOptions(bool translate = false, bool rescore = false) const;
 
-  void OutputRec(const YAML::Node node, YAML::Emitter& out) const;
 };
 }

@@ -29,44 +29,13 @@ YAML::Node& Config::get() {
   return config_;
 }
 
-void Config::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
-  // std::set<std::string> flow = { "devices" };
-  std::set<std::string> sorter;
-  switch(node.Type()) {
-    case YAML::NodeType::Null: out << node; break;
-    case YAML::NodeType::Scalar: out << node; break;
-    case YAML::NodeType::Sequence:
-      out << YAML::BeginSeq;
-      for(auto&& n : node)
-        OutputRec(n, out);
-      out << YAML::EndSeq;
-      break;
-    case YAML::NodeType::Map:
-      for(auto& n : node)
-        sorter.insert(n.first.as<std::string>());
-      out << YAML::BeginMap;
-      for(auto& key : sorter) {
-        out << YAML::Key;
-        out << key;
-        out << YAML::Value;
-        // if(flow.count(key))
-        // out << YAML::Flow;
-        OutputRec(node[key], out);
-      }
-      out << YAML::EndMap;
-      break;
-    case YAML::NodeType::Undefined: out << node; break;
-  }
-}
-
-
 void Config::log() {
   YAML::Emitter out;
-  OutputRec(config_, out);
-  std::string conf = out.c_str();
+  OutputYaml(config_, out);
+  std::string configString = out.c_str();
 
   std::vector<std::string> results;
-  boost::algorithm::split(results, conf, boost::is_any_of("\n"));
+  boost::algorithm::split(results, configString, boost::is_any_of("\n"));
   for(auto& r : results)
     LOG(config)->info(r);
 }
@@ -104,7 +73,7 @@ void Config::AddYamlToNpz(const YAML::Node& yaml,
                           const std::string& varName,
                           const std::string& fName) {
   YAML::Emitter out;
-  OutputRec(yaml, out);
+  OutputYaml(yaml, out);
   unsigned shape = out.size() + 1;
   cnpy::npz_save(fName, varName, out.c_str(), &shape, 1, "a");
 }

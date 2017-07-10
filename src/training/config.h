@@ -101,12 +101,12 @@ public:
   void loadModelParameters(const std::string& name);
   void saveModelParameters(const std::string& name);
 
-  void OutputRec(const YAML::Node node, YAML::Emitter& out) const;
+  //void OutputYaml(const YAML::Node node, YAML::Emitter& out) const;
 
   template <class OStream>
   friend OStream& operator<<(OStream& out, const Config& config) {
     YAML::Emitter outYaml;
-    config.OutputRec(config.get(), outYaml);
+    OutputYaml(config.get(), outYaml);
     out << outYaml.c_str();
     return out;
   }

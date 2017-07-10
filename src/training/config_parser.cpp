@@ -45,7 +45,35 @@ uint16_t guess_terminal_width(uint16_t max_width) {
   return max_width ? std::min(cols, max_width) : cols;
 }
 
-size_t ConfigParser::seed = (size_t)time(0);
+void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
+  // std::set<std::string> flow = { "devices" };
+  std::set<std::string> sorter;
+  switch(node.Type()) {
+    case YAML::NodeType::Null: out << node; break;
+    case YAML::NodeType::Scalar: out << node; break;
+    case YAML::NodeType::Sequence:
+      out << YAML::BeginSeq;
+      for(auto&& n : node)
+        OutputYaml(n, out);
+      out << YAML::EndSeq;
+      break;
+    case YAML::NodeType::Map:
+      for(auto& n : node)
+        sorter.insert(n.first.as<std::string>());
+      out << YAML::BeginMap;
+      for(auto& key : sorter) {
+        out << YAML::Key;
+        out << key;
+        out << YAML::Value;
+        // if(flow.count(key))
+        // out << YAML::Flow;
+        OutputYaml(node[key], out);
+      }
+      out << YAML::EndMap;
+      break;
+    case YAML::NodeType::Undefined: out << node; break;
+  }
+}
 
 void ProcessPaths(YAML::Node& node,
                   const boost::filesystem::path& configPath,
@@ -89,6 +117,8 @@ void ProcessPaths(YAML::Node& node,
     }
   }
 }
+
+size_t ConfigParser::seed = (size_t)time(0);
 
 bool ConfigParser::has(const std::string& key) const {
   return config_[key];
@@ -139,36 +169,6 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
           && get<std::vector<size_t>>("lr-decay-start").size() != 1,
       "Single decay strategies require only one value specified with "
       "--lr-decay-start option");
-}
-
-void ConfigParser::OutputRec(const YAML::Node node, YAML::Emitter& out) const {
-  // std::set<std::string> flow = { "devices" };
-  std::set<std::string> sorter;
-  switch(node.Type()) {
-    case YAML::NodeType::Null: out << node; break;
-    case YAML::NodeType::Scalar: out << node; break;
-    case YAML::NodeType::Sequence:
-      out << YAML::BeginSeq;
-      for(auto&& n : node)
-        OutputRec(n, out);
-      out << YAML::EndSeq;
-      break;
-    case YAML::NodeType::Map:
-      for(auto& n : node)
-        sorter.insert(n.first.as<std::string>());
-      out << YAML::BeginMap;
-      for(auto& key : sorter) {
-        out << YAML::Key;
-        out << key;
-        out << YAML::Value;
-        // if(flow.count(key))
-        // out << YAML::Flow;
-        OutputRec(node[key], out);
-      }
-      out << YAML::EndMap;
-      break;
-    case YAML::NodeType::Undefined: out << node; break;
-  }
 }
 
 void ConfigParser::addOptionsCommon(po::options_description& desc,
@@ -689,9 +689,10 @@ void ConfigParser::parseOptions(
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(
         config_, boost::filesystem::path{configPath}.parent_path(), false);
+
   if(vm_["dump-config"].as<bool>()) {
     YAML::Emitter emit;
-    OutputRec(config_, emit);
+    OutputYaml(config_, emit);
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
