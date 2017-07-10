@@ -2,8 +2,8 @@
 
 #include <vector>
 
+#include "common/config.h"
 #include "common/definitions.h"
-#include "training/config.h"
 
 namespace marian {
 

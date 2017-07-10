@@ -1,14 +1,13 @@
-// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #pragma once
 
 #include <boost/program_options.hpp>
-
 #include <sys/ioctl.h>
 #include <unistd.h>
+
 #include "3rd_party/yaml-cpp/yaml.h"
+#include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
-#include "training/config_parser.h"
 
 namespace marian {
 
@@ -79,6 +78,7 @@ public:
   bool has(const std::string& key) const;
 
   YAML::Node get(const std::string& key) const;
+  YAML::Node operator[](const std::string& key) const { return get(key); }
 
   template <typename T>
   T get(const std::string& key) const {
@@ -93,15 +93,14 @@ public:
   const YAML::Node& get() const;
   YAML::Node& get();
 
-  YAML::Node operator[](const std::string& key) const { return get(key); }
-
-  void override(const YAML::Node& params);
-
   YAML::Node getModelParameters();
   void loadModelParameters(const std::string& name);
   void saveModelParameters(const std::string& name);
 
-  //void OutputYaml(const YAML::Node node, YAML::Emitter& out) const;
+  void save(const std::string& name) {
+    OutputFileStream out(name);
+    (std::ostream&)out << *this;
+  }
 
   template <class OStream>
   friend OStream& operator<<(OStream& out, const Config& config) {
@@ -111,17 +110,14 @@ public:
     return out;
   }
 
-  void save(const std::string& name) {
-    OutputFileStream out(name);
-    (std::ostream&)out << *this;
-  }
-
 private:
   YAML::Node config_;
   std::vector<std::string> modelFeatures_;
 
   void GetYamlFromNpz(YAML::Node&, const std::string&, const std::string&);
   void AddYamlToNpz(const YAML::Node&, const std::string&, const std::string&);
+
+  void override(const YAML::Node& params);
 
   void log();
 };

@@ -4,8 +4,8 @@
 #include <cuda.h>
 #include <curand.h>
 
+#include "common/config.h"
 #include "graph/backend.h"
-#include "training/config.h"
 
 #define CURAND_CALL(x)                                \
   do {                                                \

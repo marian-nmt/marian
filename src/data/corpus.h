@@ -7,12 +7,12 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
+#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/batch.h"
 #include "data/dataset.h"
 #include "data/vocab.h"
-#include "training/config.h"
 
 namespace marian {
 namespace data {

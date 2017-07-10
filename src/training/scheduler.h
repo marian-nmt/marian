@@ -1,6 +1,6 @@
 #pragma once
 
-#include "training/config.h"
+#include "common/config.h"
 #include "training/training_state.h"
 #include "training/validator.h"
 

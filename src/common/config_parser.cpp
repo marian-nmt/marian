@@ -4,10 +4,10 @@
 #include <string>
 
 #include "3rd_party/cnpy/cnpy.h"
+#include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/version.h"
-#include "training/config_parser.h"
 
 #define SET_OPTION(key, type)                    \
   do {                                           \

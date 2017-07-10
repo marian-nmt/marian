@@ -2,9 +2,10 @@
 
 #include <functional>
 #include <random>
+
 #include "cnpy/cnpy.h"
+#include "common/config.h"
 #include "tensors/tensor.h"
-#include "training/config.h"
 
 namespace marian {
 

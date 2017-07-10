@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "models/model_task.h"
-#include "training/config.h"
 #include "training/scheduler.h"
 #include "training/validator.h"
 

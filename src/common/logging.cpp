@@ -1,5 +1,5 @@
 #include "logging.h"
-#include "training/config.h"
+#include "common/config.h"
 #include "spdlog/sinks/null_sink.h"
 
 std::shared_ptr<spdlog::logger> stderrLogger(

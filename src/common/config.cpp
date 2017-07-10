@@ -4,10 +4,9 @@
 #include <string>
 
 #include "3rd_party/cnpy/cnpy.h"
+#include "common/config.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
-#include "training/config.h"
-
 
 namespace marian {
 

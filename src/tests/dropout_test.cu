@@ -6,9 +6,9 @@
 #include <boost/timer/timer.hpp>
 #include <vector>
 
+#include "common/config.h"
 #include "layers/param_initializers.h"
 #include "marian.h"
-#include "training/config.h"
 
 using namespace marian;
 using namespace keywords;

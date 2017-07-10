@@ -3,8 +3,7 @@
 #include <map>
 #include <memory>
 
-#include "training/config.h"
-
+#include "common/config.h"
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
 #include "tensors/tensor.h"

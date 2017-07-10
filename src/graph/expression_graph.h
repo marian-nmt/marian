@@ -4,23 +4,17 @@
 #include <map>
 #include <unordered_set>
 
-#include "common/definitions.h"
-#include "training/config.h"
-
-#include "data/batch_generator.h"
-
-#include "graph/backend.h"
-#include "graph/chainable.h"
-#include "graph/parameters.h"
-
-#include "tensors/tensor_allocator.h"
-
-#include "layers/param_initializers.h"
-
 #include "3rd_party/cnpy/cnpy.h"
 #include "3rd_party/threadpool.h"
-
+#include "common/config.h"
+#include "common/definitions.h"
+#include "data/batch_generator.h"
+#include "graph/backend.h"
+#include "graph/chainable.h"
 #include "graph/node_operators.h"
+#include "graph/parameters.h"
+#include "layers/param_initializers.h"
+#include "tensors/tensor_allocator.h"
 
 namespace marian {
 

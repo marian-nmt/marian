@@ -2,6 +2,7 @@
 
 #include "marian.h"
 
+#include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
@@ -9,7 +10,6 @@
 #include "models/model_task.h"
 #include "models/s2s.h"
 #include "rescorer/score_collector.h"
-#include "training/config.h"
 
 namespace marian {
 

@@ -6,9 +6,9 @@
 
 #include <boost/timer/timer.hpp>
 
+#include "common/config.h"
 #include "data/batch_stats.h"
 #include "data/vocab.h"
-#include "training/config.h"
 
 namespace marian {
 

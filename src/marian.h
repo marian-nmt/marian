@@ -16,12 +16,12 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 
+#include "common/config.h"
 #include "common/logging.h"
 #include "graph/expression_graph.h"
 #include "layers/generic.h"
 #include "layers/guided_alignment.h"
 #include "layers/param_initializers.h"
 #include "models/states.h"
-#include "training/config.h"
 
 #include "models/encdec.h"
