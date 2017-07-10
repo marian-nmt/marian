@@ -106,14 +106,14 @@ private:
           scheduler_->validate(graph_);
       }
 
-      if(mvAvg_) {
+      /*if(mvAvg_) {
         size_t injectFreq = options_->get<size_t>("moving-inject-freq");
         if(injectFreq && scheduler_->numberOfBatches() % injectFreq == 0) {
           LOG(info)->info("{} : Injecting moving average into training parameters",
                           scheduler_->numberOfBatches());
           graph_->params()->vals()->copyFrom(mvAvgGraph_->params()->vals());
         }
-      }
+      }*/
     }
   }
 
@@ -606,7 +606,7 @@ private:
           scheduler_->validate(graph);
         }
 
-        if(movingAvg_) {
+        /*if(movingAvg_) {
           size_t injectFreq = options_->get<size_t>("moving-inject-freq");
           if(injectFreq && scheduler_->numberOfBatches() % injectFreq == 0) {
             boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
@@ -618,7 +618,7 @@ private:
               params_[my_id][idx]->copyFrom(paramsAvg_[idx]);
             }
           }
-        }
+        }*/
       }
     };
 

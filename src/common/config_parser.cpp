@@ -329,8 +329,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.9999, "0.9999"),
      "Decay factor for moving average")
-    ("moving-inject-freq", po::value<size_t>()->default_value(0),
-     "Replace model parameters with moving average every  arg  updates (0 to disable)")
+    //("moving-inject-freq", po::value<size_t>()->default_value(0),
+    // "Replace model parameters with moving average every  arg  updates (0 to disable)")
     //("lexical-table", po::value<std::string>(),
     // "Load lexical table")
 
@@ -596,7 +596,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-    SET_OPTION("moving-inject-freq", size_t);
+    //SET_OPTION("moving-inject-freq", size_t);
 
     // SET_OPTION_NONDEFAULT("lexical-table", std::string);
 

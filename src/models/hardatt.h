@@ -76,16 +76,14 @@ public:
     bool layerNorm = options_->get<bool>("layer-normalization");
     auto graph = meanContext->graph();
     auto mlp = mlp::mlp(graph)
-               ("prefix", prefix_ + "_ff_state")
-               ("dim", options_->get<int>("dim-rnn"))
-               ("activation", mlp::act::tanh)
-               ("layer-normalization", layerNorm);
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_state")
+                          ("dim", opt<int>("dim-rnn"))
+                          ("activation", mlp::act::tanh)
+                          ("layer-normalization", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext);
 
-    // @TODO: review this
-    rnn::States startStates;
-    for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
-      startStates.push_back(rnn::State{start, start});
+    rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
 
     return New<DecoderStateHardAtt>(
         startStates, nullptr, encState, std::vector<size_t>({0}));
@@ -102,7 +100,7 @@ public:
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
     bool skipDepth = options_->get<bool>("skip");
-    size_t decoderLayers = options_->get<size_t>("layers-dec");
+    size_t decoderLayers = options_->get<size_t>("dec-depth");
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
@@ -256,8 +254,9 @@ public:
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
     bool skipDepth = options_->get<bool>("skip");
-    size_t decoderLayers = options_->get<size_t>("layers-dec");
-    auto cellType = options_->get<std::string>("cell-dec");
+
+    size_t decoderLayers = options_->get<size_t>("dec-depth");
+    auto cellType = options_->get<std::string>("dec-cell");
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
