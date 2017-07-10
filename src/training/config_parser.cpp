@@ -118,8 +118,6 @@ void ProcessPaths(YAML::Node& node,
   }
 }
 
-size_t ConfigParser::seed = (size_t)time(0);
-
 bool ConfigParser::has(const std::string& key) const {
   return config_[key];
 }

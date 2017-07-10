@@ -18,8 +18,6 @@ void OutputYaml(const YAML::Node node, YAML::Emitter& out);
 
 class ConfigParser {
 public:
-  static size_t seed;
-
   ConfigParser(int argc,
          char** argv,
          bool validate = true,
