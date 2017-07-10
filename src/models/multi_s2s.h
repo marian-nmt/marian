@@ -9,8 +9,8 @@ struct EncoderStateMultiS2S : public EncoderState {
   EncoderStateMultiS2S(Ptr<EncoderState> e1, Ptr<EncoderState> e2)
       : enc1(e1), enc2(e2) {}
 
-  virtual Expr getContext() { return nullptr; }
-  virtual Expr getMask() { return nullptr; }
+  virtual Expr getContext() { return enc1->getContext(); }
+  virtual Expr getMask() { return enc2->getMask(); }
 
   Ptr<EncoderState> enc1;
   Ptr<EncoderState> enc2;

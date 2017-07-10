@@ -216,8 +216,8 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
   } else if(type == "multi-s2s") {
     return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
-  //} else if(type == "multi-hard-att") {
-    //return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+  } else if(type == "multi-hard-att") {
+    return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }
