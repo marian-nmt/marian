@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <sstream>
 #include <unordered_map>
@@ -127,8 +126,11 @@ public:
 void Vocab::create(const std::string& vocabPath,
                    int max,
                    const std::string& trainPath) {
-  LOG(data)->info("Creating vocabulary {} from {} (max: {})",
-		  vocabPath, trainPath, max);
+  LOG(data)
+      ->info("Creating vocabulary {} from {} (max: {})",
+             vocabPath,
+             trainPath,
+             max);
 
   UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
                  "Vocab file " << vocabPath << " exists. Not overwriting");
