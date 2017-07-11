@@ -380,7 +380,7 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
                       "cross-entropy"),
       "Metric to use during validation: cross-entropy, perplexity, valid-script. "
       "Multiple metrics can be specified")
-    ("mini-batch-valid", po::value<int>()->default_value(64),
+    ("valid-mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during validation")
     ("valid-script-path", po::value<std::string>(),
      "Path to external validation script")
@@ -641,7 +641,7 @@ void ConfigParser::parseOptions(
     SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
     SET_OPTION("valid-freq", size_t);
     SET_OPTION("valid-metrics", std::vector<std::string>);
-    SET_OPTION("mini-batch-valid", int);
+    SET_OPTION("valid-mini-batch", int);
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION("keep-best", bool);
