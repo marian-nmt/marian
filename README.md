@@ -106,11 +106,15 @@ The project is a standard CMake out-of-source build:
 If run for the first time, this will also download Marian -- the training
 framework for Marian. 
 
-You can build the CPU-only version by instead typing:
+Other cmake options:
 
-    cmake .. -DCUDA=off
+-  Build the CPU-only version of `amun` (training is GPU-only)
+
+       cmake .. -DCUDA=off
     
-This will compile the CPU-only version of amun, the decoder. Training is GPU-only.
+-  Adding debugging symbols (for use with gdb, etc)
+
+       cmake .. -DCMAKE_BUILD_TYPE=Debug
 
 ### Compile Python bindings
 
