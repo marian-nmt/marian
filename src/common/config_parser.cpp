@@ -181,7 +181,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc,
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
     ("log-level", po::value<std::string>()->default_value("info"),
-      "set verbosity level of logging (trace - debug - info - warn - err(or) - critical - off).")
+     "Set verbosity level of logging "
+     "(trace - debug - info - warn - err(or) - critical - off)")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -274,7 +275,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exists they are created.")
+      "If these files do not exists they are created")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
@@ -292,12 +293,12 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
-      "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
+      "GPUs to use for training. Asynchronous SGD is used with multiple devices")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
-      "Set mini-batch size based on words instead of sentences.")
+      "Set mini-batch size based on words instead of sentences")
     ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
@@ -338,15 +339,15 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
      "Cost type for guided alignment. Possible values: ce (cross-entropy), "
-     "mse (mean square error), mult (multiplication).")
+     "mse (mean square error), mult (multiplication)")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
 
     ("drop-rate", po::value<double>()->default_value(0),
-     "Gradient drop ratio. (read: https://arxiv.org/abs/1704.05021)")
+     "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
     ("embedding-vectors", po::value<std::vector<std::string>>()
       ->multitoken(),
-     "Paths to files with custom source and target embedding vectors.")
+     "Paths to files with custom source and target embedding vectors")
     ("embedding-normalization", po::value<bool>()
       ->zero_tokens()
       ->default_value(false),
@@ -379,6 +380,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
                       "cross-entropy"),
       "Metric to use during validation: cross-entropy, perplexity, valid-script. "
       "Multiple metrics can be specified")
+    ("mini-batch-valid", po::value<int>()->default_value(64),
+      "Size of mini-batch used during validation")
     ("valid-script-path", po::value<std::string>(),
      "Path to external validation script")
     ("early-stopping", po::value<size_t>()->default_value(10),
@@ -388,6 +391,7 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Keep best model for each validation metric")
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
+
     /*("beam-size", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
     ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
@@ -409,7 +413,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->default_value(std::vector<std::string>({"stdin"}), "stdin"),
       "Paths to input file(s), stdin by default")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --input.")
+      "Paths to vocabulary files have to correspond to --input")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
@@ -421,7 +425,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
-      "GPUs to use for translating.")
+      "GPUs to use for translating")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -450,18 +454,18 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exists they are created.")
+      "If these files do not exists they are created")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
-      "GPUs to use for training. Asynchronous SGD is used with multiple devices.")
+      "GPUs to use for training. Asynchronous SGD is used with multiple devices")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
-      "Set mini-batch size based on words instead of sentences.")
+      "Set mini-batch size based on words instead of sentences")
     ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
@@ -637,6 +641,7 @@ void ConfigParser::parseOptions(
     SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
     SET_OPTION("valid-freq", size_t);
     SET_OPTION("valid-metrics", std::vector<std::string>);
+    SET_OPTION("mini-batch-valid", int);
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION("keep-best", bool);
