@@ -21,7 +21,13 @@ public:
          bool translate = false,
          bool rescore = false) {
 
-    auto parser = ConfigParser(argc, argv, validate, translate, rescore);
+    ConfigMode mode = ConfigMode::training;
+    if(translate)
+      mode = ConfigMode::translating;
+    if(rescore)
+      mode = ConfigMode::rescoring;
+
+    auto parser = ConfigParser(argc, argv, mode, validate);
     config_ = parser.getConfig();
     createLoggers(this);
 

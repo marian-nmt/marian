@@ -11,6 +11,12 @@
 
 namespace marian {
 
+enum struct ConfigMode {
+  training,
+  translating,
+  rescoring,
+};
+
 // try to determine the width of the terminal
 uint16_t guess_terminal_width(uint16_t max_width = 180);
 
@@ -18,21 +24,18 @@ void OutputYaml(const YAML::Node node, YAML::Emitter& out);
 
 class ConfigParser {
 public:
-  ConfigParser(int argc,
-         char** argv,
-         bool validate = true,
-         bool translate = false,
-         bool rescore = false)
-      : cmdline_options_("Allowed options", guess_terminal_width()) {
-    parseOptions(argc, argv, validate, translate, rescore);
+  ConfigParser(int argc, char** argv, ConfigMode mode, bool validate = false)
+      : mode_(mode),
+        cmdline_options_("Allowed options", guess_terminal_width()) {
+    parseOptions(argc, argv, validate);
   }
 
-  void parseOptions(
-      int argc, char** argv, bool validate, bool translate, bool rescore);
+  void parseOptions(int argc, char** argv, bool validate);
 
   YAML::Node getConfig() const;
 
 private:
+  ConfigMode mode_;
   boost::program_options::options_description cmdline_options_;
   YAML::Node config_;
 
@@ -42,14 +45,14 @@ private:
     return config_[key].as<T>();
   }
 
-  void addOptionsCommon(boost::program_options::options_description&, bool);
-  void addOptionsModel(boost::program_options::options_description&, bool, bool);
+  void addOptionsCommon(boost::program_options::options_description&);
+  void addOptionsModel(boost::program_options::options_description&);
   void addOptionsTraining(boost::program_options::options_description&);
   void addOptionsRescore(boost::program_options::options_description&);
   void addOptionsValid(boost::program_options::options_description&);
   void addOptionsTranslate(boost::program_options::options_description&);
 
-  void validateOptions(bool translate = false, bool rescore = false) const;
+  void validateOptions() const;
 
 };
 }

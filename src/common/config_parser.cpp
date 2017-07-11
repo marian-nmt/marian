@@ -5,6 +5,7 @@
 
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/config_parser.h"
+#include "common/config.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/version.h"
@@ -122,26 +123,26 @@ bool ConfigParser::has(const std::string& key) const {
   return config_[key];
 }
 
-void ConfigParser::validateOptions(bool translate, bool rescore) const {
-  if(translate)
+void ConfigParser::validateOptions() const {
+  if(mode_ == ConfigMode::translating)
     return;
 
   UTIL_THROW_IF2(
       !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
       "No train sets given in config file or on command line");
-  if(has("vocabs")) {
-    UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").size()
-                       != get<std::vector<std::string>>("train-sets").size(),
-                   "There should be as many vocabularies as training sets");
-  }
-  if(has("embedding-vectors")) {
-    UTIL_THROW_IF2(get<std::vector<std::string>>("embedding-vectors").size()
-                       != get<std::vector<std::string>>("train-sets").size(),
-                   "There should be as many files with embedding vectors as "
-                   "training sets");
-  }
+  UTIL_THROW_IF2(
+      has("vocabs")
+          && get<std::vector<std::string>>("vocabs").size()
+                 != get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many vocabularies as training sets");
+  UTIL_THROW_IF2(
+      has("embedding-vectors")
+          && get<std::vector<std::string>>("embedding-vectors").size()
+                 != get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many files with embedding vectors as "
+      "training sets");
 
-  if(rescore)
+  if(mode_ == ConfigMode::rescoring)
     return;
 
   boost::filesystem::path modelPath(get<std::string>("model"));
@@ -149,11 +150,11 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
   UTIL_THROW_IF2(!boost::filesystem::is_directory(modelDir),
                  "Model directory does not exist");
 
-  if(has("valid-sets")) {
-    UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size()
-                       != get<std::vector<std::string>>("train-sets").size(),
-                   "There should be as many validation sets as training sets");
-  }
+  UTIL_THROW_IF2(
+      has("valid-sets")
+          && get<std::vector<std::string>>("valid-sets").size()
+                 != get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
   UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
@@ -173,14 +174,15 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
       "--lr-decay-start option");
 }
 
-void ConfigParser::addOptionsCommon(po::options_description& desc,
-                                    bool translate = false) {
+void ConfigParser::addOptionsCommon(po::options_description& desc) {
+  int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
+
   po::options_description general("General options", guess_terminal_width());
   // clang-format off
   general.add_options()
     ("config,c", po::value<std::string>(),
      "Configuration file")
-    ("workspace,w", po::value<size_t>()->default_value(translate ? 512 : 2048),
+    ("workspace,w", po::value<size_t>()->default_value(defaultWorkspace),
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
      "Log training process information to file given by  arg")
@@ -202,21 +204,19 @@ void ConfigParser::addOptionsCommon(po::options_description& desc,
   desc.add(general);
 }
 
-void ConfigParser::addOptionsModel(po::options_description& desc,
-                                   bool translate = false,
-                                   bool rescore = false) {
+void ConfigParser::addOptionsModel(po::options_description& desc) {
   po::options_description model("Model options", guess_terminal_width());
   // clang-format off
-  if(!translate) {
-    model.add_options()
-      ("model,m", po::value<std::string>()->default_value("model.npz"),
-      "Path prefix for model to be saved/resumed");
-  } else {
+  if(mode_ == ConfigMode::translating) {
     model.add_options()
     ("models,m", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"model.npz"}), "model.npz"),
      "Paths to model(s) to be loaded");
+  } else {
+    model.add_options()
+      ("model,m", po::value<std::string>()->default_value("model.npz"),
+      "Path prefix for model to be saved/resumed");
   }
 
   model.add_options()
@@ -226,16 +226,26 @@ void ConfigParser::addOptionsModel(po::options_description& desc,
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
      "Maximum items in vocabulary ordered by rank")
-    ("dim-emb", po::value<int>()->default_value(512), "Size of embedding vector")
-    ("dim-rnn", po::value<int>()->default_value(1024), "Size of rnn hidden state")
-    ("enc-type", po::value<std::string>()->default_value("bidirectional"), "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)")
-    ("enc-cell", po::value<std::string>()->default_value("gru"), "Type of RNN cell: gru, lstm, tanh (s2s)")
-    ("enc-cell-depth", po::value<int>()->default_value(1), "Number of tansitional cells in encoder layers (s2s)")
-    ("enc-depth", po::value<int>()->default_value(1), "Number of encoder layers (s2s)")
-    ("dec-cell", po::value<std::string>()->default_value("gru"), "Type of RNN cell: gru, lstm, tanh (s2s)")
-    ("dec-cell-base-depth", po::value<int>()->default_value(2), "Number of tansitional cells in first decoder layer (s2s)")
-    ("dec-cell-high-depth", po::value<int>()->default_value(1), "Number of tansitional cells in next decoder layers (s2s)")
-    ("dec-depth", po::value<int>()->default_value(1), "Number of decoder layers (s2s)")
+    ("dim-emb", po::value<int>()->default_value(512),
+     "Size of embedding vector")
+    ("dim-rnn", po::value<int>()->default_value(1024),
+     "Size of rnn hidden state")
+    ("enc-type", po::value<std::string>()->default_value("bidirectional"),
+     "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)")
+    ("enc-cell", po::value<std::string>()->default_value("gru"),
+     "Type of RNN cell: gru, lstm, tanh (s2s)")
+    ("enc-cell-depth", po::value<int>()->default_value(1),
+     "Number of tansitional cells in encoder layers (s2s)")
+    ("enc-depth", po::value<int>()->default_value(1),
+     "Number of encoder layers (s2s)")
+    ("dec-cell", po::value<std::string>()->default_value("gru"),
+     "Type of RNN cell: gru, lstm, tanh (s2s)")
+    ("dec-cell-base-depth", po::value<int>()->default_value(2),
+     "Number of tansitional cells in first decoder layer (s2s)")
+    ("dec-cell-high-depth", po::value<int>()->default_value(1),
+     "Number of tansitional cells in next decoder layers (s2s)")
+    ("dec-depth", po::value<int>()->default_value(1),
+     "Number of decoder layers (s2s)")
     //("dec-high-context", po::value<std::string>()->default_value("none"),
     // "Repeat attended context: none, repeat, conditional, conditional-repeat (s2s)")
     ("skip", po::value<bool>()->zero_tokens()->default_value(false),
@@ -250,7 +260,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc,
      "Tie target embeddings and output embeddings in output layer")
     ;
 
-  if(!translate && !rescore) {
+  if(mode_ == ConfigMode::training) {
     model.add_options()
       ("dropout-rnn", po::value<float>()->default_value(0),
        "Scaling dropout along rnn layers and time (0 = no dropout)")
@@ -480,23 +490,26 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
 }
 
 void ConfigParser::parseOptions(
-    int argc, char** argv, bool doValidate, bool translate, bool rescore) {
-  UTIL_THROW_IF2(translate && rescore,
-                 "Config does not support both modes: translate and rescore!");
+    int argc, char** argv, bool doValidate) {
 
-  addOptionsCommon(cmdline_options_, translate);
-  addOptionsModel(cmdline_options_, translate, rescore);
+  addOptionsCommon(cmdline_options_);
+  addOptionsModel(cmdline_options_);
 
-  if(!translate) {
-    if(rescore) {
+  // clang-format off
+  switch(mode_) {
+    case ConfigMode::translating:
+      addOptionsTranslate(cmdline_options_);
+      break;
+    case ConfigMode::rescoring:
       addOptionsRescore(cmdline_options_);
-    } else {
+      break;
+    case ConfigMode::training:
       addOptionsTraining(cmdline_options_);
       addOptionsValid(cmdline_options_);
-    }
-  } else {
-    addOptionsTranslate(cmdline_options_);
+      break;
   }
+  // clang-format on
+
 
   boost::program_options::variables_map vm_;
   try {
@@ -526,7 +539,7 @@ void ConfigParser::parseOptions(
   if(vm_.count("config")) {
     configPath = vm_["config"].as<std::string>();
     config_ = YAML::Load(InputFileStream(configPath));
-  } else if(!translate && !rescore
+  } else if((mode_ == ConfigMode::training)
             && boost::filesystem::exists(vm_["model"].as<std::string>()
                                          + ".yml")
             && !vm_["no-reload"].as<bool>()) {
@@ -536,10 +549,10 @@ void ConfigParser::parseOptions(
 
   /** model **/
 
-  if(!translate) {
-    SET_OPTION("model", std::string);
-  } else {
+  if(mode_ == ConfigMode::translating) {
     SET_OPTION("models", std::vector<std::string>);
+  } else {
+    SET_OPTION("model", std::string);
   }
 
   if(!vm_["vocabs"].empty()) {
@@ -567,18 +580,13 @@ void ConfigParser::parseOptions(
   SET_OPTION("layer-normalization", bool);
 
   SET_OPTION("best-deep", bool);
-
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
-  if(!translate && !rescore) {
+  if(mode_ == ConfigMode::training) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
-  }
-  /** model **/
 
-  /** training start **/
-  if(!translate && !rescore) {
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -617,8 +625,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("embedding-fix-src", bool);
     SET_OPTION("embedding-fix-trg", bool);
   }
-  /** training end **/
-  else if(rescore) {
+  if(mode_ == ConfigMode::rescoring) {
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
       config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
@@ -626,8 +633,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
   }
-  /** translation start **/
-  else {
+  if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("normalize", bool);
     SET_OPTION("n-best", bool);
@@ -638,7 +644,7 @@ void ConfigParser::parseOptions(
   }
 
   /** valid **/
-  if(!translate && !rescore) {
+  if(mode_ == ConfigMode::training) {
     if(!vm_["valid-sets"].empty()) {
       config_["valid-sets"] = vm_["valid-sets"].as<std::vector<std::string>>();
     }
@@ -655,11 +661,10 @@ void ConfigParser::parseOptions(
     // SET_OPTION("beam-size", size_t);
     // SET_OPTION("allow-unk", bool);
   }
-  /** valid **/
 
   if(doValidate) {
     try {
-      validateOptions(translate, rescore);
+      validateOptions();
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
 
@@ -677,7 +682,8 @@ void ConfigParser::parseOptions(
   SET_OPTION("devices", std::vector<int>);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
-  if(!translate && !rescore)
+
+  if(mode_ == ConfigMode::training)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 
