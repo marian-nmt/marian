@@ -49,6 +49,8 @@ public:
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
     Ptr<BatchGenerator<DataSet>> batchGenerator
         = New<BatchGenerator<DataSet>>(corpus, options_);
+    if(options_->has("valid-mini-batch"))
+      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
     batchGenerator->prepare(false);
 
     float val = validateBG(graph, batchGenerator);
