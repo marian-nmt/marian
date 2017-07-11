@@ -134,7 +134,6 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
                        != get<std::vector<std::string>>("train-sets").size(),
                    "There should be as many vocabularies as training sets");
   }
-
   if(has("embedding-vectors")) {
     UTIL_THROW_IF2(get<std::vector<std::string>>("embedding-vectors").size()
                        != get<std::vector<std::string>>("train-sets").size(),
@@ -144,6 +143,11 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
 
   if(rescore)
     return;
+
+  boost::filesystem::path modelPath(get<std::string>("model"));
+  auto modelDir = modelPath.parent_path();
+  UTIL_THROW_IF2(!boost::filesystem::is_directory(modelDir),
+                 "Model directory does not exist");
 
   if(has("valid-sets")) {
     UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size()
