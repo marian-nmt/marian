@@ -52,6 +52,7 @@ public:
     auto batchGenerator
         = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
 
+    scheduler->started();
     while(scheduler->keepGoing()) {
       auto shuffle = !options_->get<bool>("no-shuffle");
       batchGenerator->prepare(shuffle);
