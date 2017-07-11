@@ -146,8 +146,9 @@ void ConfigParser::validateOptions(bool translate, bool rescore) const {
 
   boost::filesystem::path modelPath(get<std::string>("model"));
   auto modelDir = modelPath.parent_path();
-  UTIL_THROW_IF2(!boost::filesystem::is_directory(modelDir),
-                 "Model directory does not exist");
+  UTIL_THROW_IF2(
+      !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
+      "Model directory does not exist");
 
   if(has("valid-sets")) {
     UTIL_THROW_IF2(get<std::vector<std::string>>("valid-sets").size()
