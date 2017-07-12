@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
-  auto options = New<Config>(argc, argv, false);
+  auto options = New<Config>(argc, argv, ConfigMode::training, false);
 
   auto corpus = New<Corpus>(options);
   BatchGenerator<Corpus> bg(corpus, options);

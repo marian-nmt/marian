@@ -17,15 +17,8 @@ public:
 
   Config(int argc,
          char** argv,
-         bool validate = true,
-         bool translate = false,
-         bool rescore = false) {
-
-    ConfigMode mode = ConfigMode::training;
-    if(translate)
-      mode = ConfigMode::translating;
-    if(rescore)
-      mode = ConfigMode::rescoring;
+         ConfigMode mode = ConfigMode::training,
+         bool validate = true) {
 
     auto parser = ConfigParser(argc, argv, mode, validate);
     config_ = parser.getConfig();
@@ -57,7 +50,7 @@ public:
     else
       seed = get<size_t>("seed");
 
-    if(!translate) {
+    if(mode != ConfigMode::translating) {
       if(boost::filesystem::exists(get<std::string>("model"))
          && !get<bool>("no-reload")) {
         try {
