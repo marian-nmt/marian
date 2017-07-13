@@ -9,14 +9,13 @@ project(marian CXX)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
-option(VERSION_UPDATE_FROM_GIT "Update project version from git" OFF)
 
 # Project versioning
 find_package(Git QUIET)
-include(GetVersionFromGitTag)
+include(GetVersionFromFile)
 
 message(STATUS "Project name: ${PROJECT_NAME}")
-message(STATUS "Project version: ${marian_VERSION}")
+message(STATUS "Project version: ${PROJECT_VERSION_STRING}")
 
 
 # Set compilation flags
@@ -28,7 +27,7 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 # Find packages
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
-    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
+  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
 endif(CUDA_FOUND)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -41,33 +40,33 @@ list(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 if(USE_CUDNN)
-    find_package(CUDNN "5.0")
-    if(CUDNN_FOUND)
-        include_directories(${CUDNN_INCLUDE_DIRS})
-        set(EXT_LIBS ${EXT_LIBS} ${CUDNN_LIBRARIES})
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDNN")
-        LIST(APPEND CUDA_NVCC_FLAGS -DCUDNN; )
-    endif(CUDNN_FOUND)
+  find_package(CUDNN "5.0")
+  if(CUDNN_FOUND)
+    include_directories(${CUDNN_INCLUDE_DIRS})
+    set(EXT_LIBS ${EXT_LIBS} ${CUDNN_LIBRARIES})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDNN")
+    LIST(APPEND CUDA_NVCC_FLAGS -DCUDNN; )
+  endif(CUDNN_FOUND)
 endif(USE_CUDNN)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)
-    include_directories(${ZLIB_INCLUDE_DIRS})
-    set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
+  include_directories(${ZLIB_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
 else(ZLIB_FOUND)
-    message(SEND_ERROR "Cannot find zlib" )
+  message(SEND_ERROR "Cannot find zlib" )
 endif(ZLIB_FOUND)
 
 find_package(Boost COMPONENTS system timer iostreams filesystem chrono program_options thread)
 if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-    set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
 else(Boost_FOUND)
-    message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
+  message(SEND_ERROR "Cannot find Boost libraries. Terminating." )
 endif(Boost_FOUND)
 
 if(COMPILE_TESTS)
-    enable_testing()
+  enable_testing()
 endif(COMPILE_TESTS)
 
 
@@ -82,11 +81,11 @@ add_subdirectory(src)
 # Add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
-                   ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-    add_custom_target(doc
-        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen" VERBATIM
-    )
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+           ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+  add_custom_target(doc
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen" VERBATIM
+  )
 endif(DOXYGEN_FOUND)
