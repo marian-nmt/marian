@@ -1,8 +1,12 @@
 #!/usr/bin/python
 
-import argparse
-import numpy
+from __future__ import print_function
 
+import argparse
+
+import numpy as np
+
+# Parse arguments.
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--s2s', required=True,
                     help="S2S Model")
@@ -10,7 +14,8 @@ parser.add_argument('-o', '--amun', required=True,
                     help="Amun Model")
 args = parser.parse_args()
 
-mapping = { "decoder_cell1_U":  "decoder_U", 
+# Mappings from Seq2Seq to Amun.
+mapping = { "decoder_cell1_U":  "decoder_U",
             "decoder_cell1_Ux": "decoder_Ux",
             "decoder_cell1_W":  "decoder_W",
             "decoder_cell1_Wx": "decoder_Wx",
@@ -71,18 +76,23 @@ mapping = { "decoder_cell1_U":  "decoder_U",
             "encoder_bi_r_gamma2": "encoder_r_gamma2" }
 
 
-print "[s2s2amun] Loading s2s model", args.s2s
-s2s_model = numpy.load(args.s2s)
+# Loads the Seq2Seq model.
+print("[s2s2amun] Loading s2s model {}".format(args.s2s))
+s2s_model = np.load(args.s2s)
+# *amun_model* holds the output model.
 amun_model = dict()
-for tensor_name in s2s_model:
-  if tensor_name in mapping:
-    amun_model[ mapping[ tensor_name ]] = s2s_model[ tensor_name ]
-  else:
-    print "[s2s2amun] unknown", tensor_name
 
-decoder_c_tt = numpy.array([0])
+for tensor_name in s2s_model:
+    # Substitute the mapping.
+    if tensor_name in mapping:
+        amun_model[ mapping[ tensor_name ]] = s2s_model[ tensor_name ]
+    # Otherwise, notify user of unknown tensor.
+    else:
+        print("[s2s2amun] unknown: {}".format(tensor_name))
+
+decoder_c_tt = np.array([0])
 amun_model[ "decoder_c_tt" ] = decoder_c_tt
 
-print "[s2s2amun] Saving amun model", args.amun
-numpy.savez(args.amun, **amun_model)
-
+# Saves the Amun model.
+print("[s2s2amun] Saving amun model: {}".format(args.amun))
+np.savez(args.amun, **amun_model)
