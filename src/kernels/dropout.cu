@@ -39,4 +39,10 @@ void Dropout(Tensor tensor, float p, curandGenerator_t gen) {
 
   gScale<<<numBlocks, numThreads>>>(tensor->data(), n, 1.f - p);
 }
+
+void Gaussian(Tensor tensor, float mean, float stddev, curandGenerator_t gen) {
+  int n = tensor->size();
+  CURAND_CALL(curandGenerateNormal(gen, tensor->data(), n, mean, stddev));
+}
+
 }

@@ -338,6 +338,8 @@ public:
 
   Expr dropout(float prob, Shape shape);
 
+  Expr gaussian(float mean, float stddev, Shape shape);
+
   /*********************************************************/
 
   /**

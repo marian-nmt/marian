@@ -156,6 +156,12 @@ public:
       batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
     }
 
+    float noiseStddev = inference_ ? 0 : opt<float>("noise-src");
+    if(noiseStddev) {
+      auto noiseMask = graph->gaussian(0.f, noiseStddev, batchEmbeddings->shape());
+      batchEmbeddings = batchEmbeddings + noiseMask;
+    }
+
     Expr context = applyEncoderRNN(graph, batchEmbeddings, batchMask,
                                    opt<std::string>("enc-type"));
 
