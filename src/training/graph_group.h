@@ -80,12 +80,7 @@ private:
       if(!mvAvgGraph_) {
         mvAvgGraph_ = New<ExpressionGraph>();
         mvAvgGraph_->setDevice(graph_->getDevice());
-        mvAvgGraph_->reuseWorkspace(graph_);
-
-        builder_->build(mvAvgGraph_, batch);
-        mvAvgGraph_->forward();
-
-        mvAvgGraph_->params()->vals()->copyFrom(graph_->params()->vals());
+        mvAvgGraph_->copyParams(graph_);
       } else {
         updateMovingAverage(mvAvgGraph_->params()->vals(),
                             graph_->params()->vals(),

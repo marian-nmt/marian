@@ -42,6 +42,7 @@ private:
   std::unordered_map<size_t, WExpr> hashMap_;
 
   bool inferenceOnly_{false};
+  bool reloaded_{false};
   std::string namespace_;
 
 protected:
@@ -73,6 +74,13 @@ public:
   void reserveWorkspaceMB(size_t num) {
     size_t elements = num * 1024 * 1024 / 4 - 1;
     tensors_->reserve(elements);
+  }
+
+  void copyParams(Ptr<ExpressionGraph> graph) {
+    for(auto p : *graph->params())
+      param(p->name(), p->shape());
+    params()->allocateForward();
+    params()->vals()->copyFrom(graph->params()->vals());
   }
 
   void reuseWorkspace(Ptr<ExpressionGraph> graph) {
@@ -250,13 +258,24 @@ public:
     auto p = params_->get(name);
     if(p) {
       // if yes add to tape and return
+
+      UTIL_THROW_IF2(shape != p->shape(),
+                     "Requested shape for existing parameter "
+                     << name
+                     << " does not match original shape");
+
       add(p);
       return p;
     }
 
+    // if graph was reloaded do not allow creation of new parameters
+    UTIL_THROW_IF2(reloaded_,
+                   "Graph was reloaded and parameter " << name << " is newly created");
+
     // if not check if name is not taken by other node
     UTIL_THROW_IF2(get(name),
                    "Non-parameter with name " << name << "already exists");
+
 
     // create parameter node (adds to tape)
     p = Expression<ParamNode>(
@@ -397,6 +416,10 @@ public:
 
   void clearParameters() { params_->clear(); }
 
+  void setReloaded(bool reloaded) {
+    reloaded_ = reloaded;
+  }
+
   void load(const std::string& name) {
     using namespace keywords;
 
@@ -422,6 +445,8 @@ public:
 
       param(name, shape, init = inits::from_numpy(it.second));
     }
+
+    setReloaded(true);
   }
 
   void save(const std::string& name) {
@@ -443,7 +468,7 @@ public:
 
       unsigned shape[4];
       unsigned dim;
-      
+
       auto ps = p.second->shape();
       if(ps[0] == 1 && ps[2] == 1 && ps[3] == 1) {
         shape[0] = ps[1];

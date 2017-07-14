@@ -96,6 +96,11 @@ public:
     for(auto it : numpy) {
       auto name = it.first;
 
+      if(name == "decoder_c_tt")
+        continue;
+      if(name.substr(0, 8) == "special:")
+        continue;
+
       Shape shape;
       if(numpy[name].shape.size() == 2) {
         shape.set(0, numpy[name].shape[0]);
@@ -111,6 +116,8 @@ public:
 
       graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
     }
+
+    graph->setReloaded(true);
   }
 
   void save(Ptr<ExpressionGraph> graph,
