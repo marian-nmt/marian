@@ -190,8 +190,8 @@ class Allocator {
     }
 
     void free(Ptr<MemoryPiece> mp) {
-      //free(mp->data(), mp->size());
-      //mp->set(nullptr, 0);
+      free(mp->data(), mp->size());
+      mp->set(nullptr, 0);
     }
 
     void clear() {
