@@ -158,7 +158,9 @@ public:
 
     float noiseStddev = inference_ ? 0 : opt<float>("noise-src");
     if(noiseStddev) {
-      auto noiseMask = graph->gaussian(0.f, noiseStddev, batchEmbeddings->shape());
+      int dimRnn = batchEmbeddings->shape()[1];
+      int srcWords = batchEmbeddings->shape()[2];
+      auto noiseMask = graph->gaussian(0.f, noiseStddev, {1, dimRnn, srcWords});
       batchEmbeddings = batchEmbeddings + noiseMask;
     }
 
