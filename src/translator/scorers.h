@@ -5,7 +5,7 @@
 #include "models/s2s.h"
 #include "models/amun.h"
 #include "models/hardatt.h"
-//#include "models/multi_s2s.h"
+#include "models/multi_s2s.h"
 
 namespace marian {
 
@@ -214,10 +214,10 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
   } else if(type == "hard-soft-att") {
     return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
-  //} else if(type == "multi-s2s") {
-  //  return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
-  //} else if(type == "multi-hard-att") {
-    //return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+  } else if(type == "multi-s2s") {
+    return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
+  } else if(type == "multi-hard-att") {
+    return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }

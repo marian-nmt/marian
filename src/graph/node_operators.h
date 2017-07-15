@@ -5,23 +5,6 @@
 
 namespace marian {
 
-struct InputNode : public Node {
-  template <typename... Args>
-  InputNode(Args... args) : Node(args...) {
-    UTIL_THROW_IF2(!Has(keywords::shape),
-                   "Data items require shape information");
-    setTrainable(false);
-  }
-
-  ~InputNode() {}
-
-  const std::string type() { return "input"; }
-
-  const std::string form() { return "circle"; }
-
-  const std::string color() { return "white"; }
-};
-
 struct ConstantNode : public Node {
   template <typename... Args>
   ConstantNode(Args... args)
@@ -62,7 +45,7 @@ struct ParamNode : public Node {
         initialized_(false) {
     UTIL_THROW_IF2(!Has(keywords::shape),
                    "Param items require shape information");
-    setTrainable(true);
+    setTrainable(!Get(keywords::fixed, false));
   }
 
   ~ParamNode() {}

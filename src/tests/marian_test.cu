@@ -6,12 +6,12 @@
 #include <iomanip>
 #include <string>
 
+#include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "marian.h"
 #include "optimizers/clippers.h"
 #include "optimizers/optimizers.h"
-#include "training/config.h"
 
 #include "models/amun.h"
 #include "models/s2s.h"
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
   using namespace marian;
   using namespace data;
 
-  auto options = New<Config>(argc, argv, false);
+  auto options = New<Config>(argc, argv, ConfigMode::training, false);
 
   auto corpus = New<Corpus>(options);
   BatchGenerator<Corpus> bg(corpus, options);

@@ -2,9 +2,10 @@
 
 #include <functional>
 #include <random>
+
 #include "cnpy/cnpy.h"
+#include "common/config.h"
 #include "tensors/tensor.h"
-#include "training/config.h"
 
 namespace marian {
 
@@ -25,12 +26,9 @@ std::function<void(Tensor)> diag(float val);
 
 template <class Distribution>
 void distribution(std::vector<float>& vals, float a, float b) {
-  std::random_device device;
-  std::default_random_engine engine(device());
-  engine.seed(Config::seed);
+  std::default_random_engine engine(Config::seed++);
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
-
   std::generate(begin(vals), end(vals), gen);
 }
 
@@ -60,6 +58,11 @@ std::function<void(Tensor)> from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 
 std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
+
+std::function<void(Tensor)> from_word2vec(const std::string& file,
+                                          int dimVoc,
+                                          int dimEmb,
+                                          bool normalize = false);
 }
 
 }  // namespace marian

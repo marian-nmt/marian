@@ -1,0 +1,14 @@
+#pragma once
+
+/*
+ * File version.h is generated using CMake. Do NOT modify it manually! Edit
+ * version.h.in file instead.
+ */
+
+// e.g. v1.2.3-beta+1.abc123d
+#define PROJECT_VERSION_FULL  "@PROJECT_VERSION_STRING_FULL@"
+// e.g. v1.2.3-beta
+#define PROJECT_VERSION       "@PROJECT_VERSION_STRING@"
+#define PROJECT_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define PROJECT_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define PROJECT_VERSION_PATCH @PROJECT_vERSION_PATCH@

@@ -4,10 +4,10 @@
 #include <cstdlib>
 #include <limits>
 
+#include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
-#include "training/config.h"
 #include "translator/beam_search.h"
 #include "translator/history.h"
 #include "translator/output_collector.h"
@@ -49,6 +49,8 @@ public:
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
     Ptr<BatchGenerator<DataSet>> batchGenerator
         = New<BatchGenerator<DataSet>>(corpus, options_);
+    if(options_->has("valid-mini-batch"))
+      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
     batchGenerator->prepare(false);
 
     float val = validateBG(graph, batchGenerator);

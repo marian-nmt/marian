@@ -1,7 +1,7 @@
 #pragma once
 
+#include "common/config.h"
 #include "models/model_task.h"
-#include "training/config.h"
 #include "training/scheduler.h"
 
 #include "examples/mnist/dataset.h"

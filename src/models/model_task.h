@@ -3,7 +3,7 @@
 #include "models/s2s.h"
 #include "models/amun.h"
 #include "models/hardatt.h"
-//#include "models/multi_s2s.h"
+#include "models/multi_s2s.h"
 
 namespace marian {
 
@@ -26,8 +26,8 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
   REGISTER_MODEL("hard-att", HardAtt);
   REGISTER_MODEL("hard-soft-att", HardSoftAtt);
 
-  //REGISTER_MODEL("multi-s2s", MultiS2S);
-  //REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
+  REGISTER_MODEL("multi-s2s", MultiS2S);
+  REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
 
   UTIL_THROW2("Unknown model type: " << type);
 }

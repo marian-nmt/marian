@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   using namespace data;
   using namespace keywords;
 
-  auto options = New<Config>(argc, argv, false);
+  auto options = New<Config>(argc, argv, ConfigMode::training, false);
 
   int batchSize = 128;
 

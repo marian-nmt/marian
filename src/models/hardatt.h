@@ -1,8 +1,7 @@
 #pragma once
 
-#include "models/encdec.h"
-//#include "models/multi_s2s.h"
-#include "models/s2s.h"
+#include "marian.h"
+#include "models/multi_s2s.h"
 
 namespace marian {
 
@@ -76,16 +75,14 @@ public:
     bool layerNorm = options_->get<bool>("layer-normalization");
     auto graph = meanContext->graph();
     auto mlp = mlp::mlp(graph)
-               ("prefix", prefix_ + "_ff_state")
-               ("dim", options_->get<int>("dim-rnn"))
-               ("activation", mlp::act::tanh)
-               ("layer-normalization", layerNorm);
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_state")
+                          ("dim", opt<int>("dim-rnn"))
+                          ("activation", mlp::act::tanh)
+                          ("layer-normalization", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext);
 
-    // @TODO: review this
-    rnn::States startStates;
-    for(int i = 0; i < options_->get<size_t>("layers-dec"); ++i)
-      startStates.push_back(rnn::State{start, start});
+    rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
 
     return New<DecoderStateHardAtt>(
         startStates, nullptr, encState, std::vector<size_t>({0}));
@@ -102,7 +99,7 @@ public:
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
     bool skipDepth = options_->get<bool>("skip");
-    size_t decoderLayers = options_->get<size_t>("layers-dec");
+    size_t decoderLayers = options_->get<size_t>("dec-depth");
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
@@ -237,7 +234,7 @@ typedef EncoderDecoder<EncoderS2S, DecoderHardAtt> HardAtt;
 /******************************************************************************/
 
 class DecoderHardSoftAtt : public DecoderHardAtt {
-private:
+protected:
   Ptr<rnn::RNN> rnn_;
 
 public:
@@ -256,8 +253,9 @@ public:
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
     bool skipDepth = options_->get<bool>("skip");
-    size_t decoderLayers = options_->get<size_t>("layers-dec");
-    auto cellType = options_->get<std::string>("cell-dec");
+
+    size_t decoderLayers = options_->get<size_t>("dec-depth");
+    auto cellType = options_->get<std::string>("dec-cell");
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
@@ -320,11 +318,8 @@ public:
     auto decContext = rnn_->transduce(rnnInputs, stateHardAtt->getStates());
     rnn::States decStates = rnn_->lastCellStates();
 
-    bool single = stateHardAtt->doSingleStep();
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
-    auto alignedContext = single ? att->getContexts().back() :
-                                   concatenate(att->getContexts(),
-                                               keywords::axis = 2);
+    auto alignedContext = att->getContext();
 
     //// 2-layer feedforward network for outputs and cost
     auto out = mlp::mlp(graph)
@@ -353,14 +348,7 @@ public:
 
 typedef EncoderDecoder<EncoderS2S, DecoderHardSoftAtt> HardSoftAtt;
 
-/*
 class MultiDecoderHardSoftAtt : public DecoderHardSoftAtt {
-private:
-  Ptr<GlobalAttention> attention1_;
-  Ptr<GlobalAttention> attention2_;
-  Ptr<RNN<MultiCGRU>> rnnL1;
-  Ptr<MLRNN<GRU>> rnnLn;
-
 public:
   template <class... Args>
   MultiDecoderHardSoftAtt(Ptr<Config> options, Args... args)
@@ -377,14 +365,18 @@ public:
     auto meanContext2 = weighted_average(
         mEncState->enc2->getContext(), mEncState->enc2->getMask(), axis = 2);
 
-    bool layerNorm = options_->get<bool>("layer-normalization");
+    auto graph = meanContext1->graph();
 
-    auto start = Dense("ff_state",
-                       options_->get<int>("dim-rnn"),
-                       activation = mlp::act::tanh,
-                       layer-normalization = layerNorm)(meanContext1, meanContext2);
+    // apply single layer network to mean to map into decoder space
+    auto mlp = mlp::mlp(graph)
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_state")
+                          ("dim", opt<int>("dim-rnn"))
+                          ("activation", mlp::act::tanh)
+                          ("layer-normalization", opt<bool>("layer-normalization")));
+    auto start = mlp->apply(meanContext1, meanContext2);
 
-    std::vector<Expr> startStates(options_->get<size_t>("layers-dec"), start);
+    rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
     return New<DecoderStateHardAtt>(
         startStates, nullptr, encState, std::vector<size_t>({0}));
   }
@@ -395,25 +387,23 @@ public:
 
     int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
-    int dimTrgEmb
-        = options_->get<int>("dim-emb") + options_->get<int>("dim-pos");
+    int dimTrgEmb = options_->get<int>("dim-emb");
 
     int dimDecState = options_->get<int>("dim-rnn");
     bool layerNorm = options_->get<bool>("layer-normalization");
     bool skipDepth = options_->get<bool>("skip");
-    size_t decoderLayers = options_->get<size_t>("layers-dec");
+
+    size_t decoderLayers = options_->get<size_t>("dec-depth");
+    auto cellType = options_->get<std::string>("dec-cell");
 
     float dropoutRnn = inference_ ? 0 : options_->get<float>("dropout-rnn");
     float dropoutTrg = inference_ ? 0 : options_->get<float>("dropout-trg");
-
-    auto mEncState = std::static_pointer_cast<EncoderStateMultiS2S>(
-        state->getEncoderState());
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 
     auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
 
-    auto context = mEncState->enc1->getContext();
+    auto context = stateHardAtt->getEncoderState()->getContext();
     int dimContext = context->shape()[1];
     int dimSrcWords = context->shape()[2];
 
@@ -435,68 +425,69 @@ public:
     auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis = 1);
     int dimInput = rnnInputs->shape()[1];
 
-    if(!attention1_)
-      attention1_ = New<GlobalAttention>(
-          "decoder_att1", mEncState->enc1, dimDecState, layer-normalization = layerNorm);
-    if(!attention2_)
-      attention2_ = New<GlobalAttention>(
-          "decoder_att2", mEncState->enc2, dimDecState, layer-normalization = layerNorm);
+    if(!rnn_) {
 
-    if(!rnnL1)
-      rnnL1 = New<RNN<MultiCGRU>>(graph,
-                                  "decoder",
-                                  dimInput,
-                                  dimDecState,
-                                  attention1_,
-                                  attention2_,
-                                  dropout_prob = dropoutRnn,
-                                  layer-normalization = layerNorm);
+      auto rnn = rnn::rnn(graph)
+                 ("type", cellType)
+                 ("dimInput", dimInput)
+                 ("dimState", dimDecState)
+                 ("dropout", dropoutRnn)
+                 ("layer-normalization", layerNorm)
+                 ("skip", skipDepth);
 
-    auto stateL1 = (*rnnL1)(rnnInputs, stateHardAtt->getStates()[0]);
+      auto mEncState = std::static_pointer_cast<EncoderStateMultiS2S>(
+        state->getEncoderState());
 
-    bool single = stateHardAtt->doSingleStep();
-    auto alignedContext = single ? rnnL1->getCell()->getLastContext() :
-                                   rnnL1->getCell()->getContexts();
+      auto attCell = rnn::stacked_cell(graph)
+                     .push_back(rnn::cell(graph)
+                                ("prefix", prefix_ + "_cell1"))
+                     .push_back(rnn::attention(graph)
+                                ("prefix", prefix_ + "_att1")
+                                .set_state(mEncState->enc1))
+                     .push_back(rnn::attention(graph)
+                                ("prefix", prefix_ + "_att2")
+                                .set_state(mEncState->enc2))
+                     .push_back(rnn::cell(graph)
+                                ("prefix", prefix_ + "_cell2")
+                                ("final", true));
 
-    std::vector<Expr> statesOut;
-    statesOut.push_back(stateL1);
+      rnn.push_back(attCell);
+      for(int i = 0; i < decoderLayers - 1; ++i)
+        rnn.push_back(rnn::cell(graph)
+                      ("prefix", prefix_ + "_l" + std::to_string(i)));
 
-    Expr outputLn;
-    if(decoderLayers > 1) {
-      std::vector<Expr> statesIn;
-      for(int i = 1; i < stateHardAtt->getStates().size(); ++i)
-        statesIn.push_back(stateHardAtt->getStates()[i]);
+      rnn_ = rnn.construct();
 
-      if(!rnnLn)
-        rnnLn = New<MLRNN<GRU>>(graph,
-                                "decoder",
-                                decoderLayers - 1,
-                                dimDecState,
-                                dimDecState,
-                                layer-normalization = layerNorm,
-                                dropout_prob = dropoutRnn,
-                                skip = skipDepth,
-                                skip_first = skipDepth);
-
-      std::vector<Expr> statesLn;
-      std::tie(outputLn, statesLn) = (*rnnLn)(stateL1, statesIn);
-
-      statesOut.insert(statesOut.end(), statesLn.begin(), statesLn.end());
-    } else {
-      outputLn = stateL1;
     }
 
+    auto decContext = rnn_->transduce(rnnInputs, stateHardAtt->getStates());
+    rnn::States decStates = rnn_->lastCellStates();
+
+    auto att1 = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    auto alignedContext1 = att1->getContext();
+
+    auto att2 = rnn_->at(0)->as<rnn::StackedCell>()->at(2)->as<rnn::Attention>();
+    auto alignedContext2 = att2->getContext();
+
+    auto alignedContext = concatenate({alignedContext1,
+                                       alignedContext2},
+                                       axis=1);
+
     //// 2-layer feedforward network for outputs and cost
-    auto logitsL1
-        = Dense("ff_logit_l1",
-                dimTrgEmb,
-                activation = mlp::act::tanh,
-                layer-normalization = layerNorm)(rnnInputs, outputLn, alignedContext);
+    auto out = mlp::mlp(graph)
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_logit_l1")
+                          ("dim", dimTrgEmb)
+                          ("activation", mlp::act::tanh)
+                          ("layer-normalization", layerNorm))
+               .push_back(mlp::dense(graph)
+                          ("prefix", prefix_ + "_ff_logit_l2")
+                          ("dim", dimTrgVoc));
 
-    auto logitsOut = Dense("ff_logit_l2", dimTrgVoc)(logitsL1);
+    auto logits = out->apply(rnnInputs, decContext, alignedContext);
 
-    return New<DecoderStateHardAtt>(statesOut,
-                                    logitsOut,
+    return New<DecoderStateHardAtt>(decStates,
+                                    logits,
                                     stateHardAtt->getEncoderState(),
                                     stateHardAtt->getAttentionIndices());
   }
@@ -526,7 +517,8 @@ public:
   }
 
   const std::vector<Expr> getAlignments() {
-    return attention1_->getAlignments();
+    auto att1 = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    return att1->getAlignments();
   }
 };
 
@@ -537,6 +529,5 @@ public:
   MultiHardSoftAtt(Ptr<Config> options, Args... args)
       : EncoderDecoder(options, {0, 1, 2}, args...) {}
 };
-*/
 
 }

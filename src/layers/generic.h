@@ -4,8 +4,8 @@
 #include "common/options.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
-#include "layers/param_initializers.h"
 #include "layers/factory.h"
+#include "layers/param_initializers.h"
 
 namespace marian {
   namespace mlp {
@@ -171,7 +171,7 @@ public:
   }
 };
 
-}
+} // namespace mlp
 
 struct EmbeddingFactory : public Factory {
   EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
@@ -181,8 +181,20 @@ struct EmbeddingFactory : public Factory {
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");
 
+    bool fixed = opt<bool>("fixed", false);
+
+    std::function<void(Tensor)> initFunc = inits::glorot_uniform;
+    if(options_->has("embFile")) {
+      std::string file = opt<std::string>("embFile");
+      if(!file.empty()) {
+        bool norm = opt<bool>("normalization", false);
+        initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
+      }
+    }
+
     return graph_->param(name, {dimVoc, dimEmb},
-                         keywords::init = inits::glorot_uniform);
+                         keywords::init = initFunc,
+                         keywords::fixed = fixed);
   }
 };
 

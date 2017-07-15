@@ -1,11 +1,11 @@
 #pragma once
 
+#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/vocab.h"
 #include "kernels/sparse.h"
 #include "layers/attention.h"
-#include "training/config.h"
 
 namespace marian {
 

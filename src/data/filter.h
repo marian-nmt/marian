@@ -3,9 +3,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
-#include "training/config.h"
 
 namespace marian {
 

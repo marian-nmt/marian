@@ -6,7 +6,7 @@
 
 namespace marian {
 
-class Convolution : public Layer {
+class Convolution {
   public:
     Convolution(
         const std::string& name,
@@ -14,7 +14,7 @@ class Convolution : public Layer {
         int kernelWidth = 3,
         int kernelNum = 1,
         int depth = 1)
-      : Layer(name),
+      : name_(name),
         depth_(depth),
         kernelHeight_(kernelHeight),
         kernelWidth_(kernelWidth),
@@ -92,6 +92,10 @@ class Convolution : public Layer {
       return reshaped * mask;
     }
 
+  private:
+    std::vector<Expr> params_;
+    std::string name_;
+
   protected:
     int depth_;
     int kernelHeight_;
@@ -99,7 +103,7 @@ class Convolution : public Layer {
     int kernelNum_;
 };
 
-class MaxPooling : public Layer {
+class MaxPooling {
   public:
     MaxPooling(
         const std::string& name,
@@ -107,7 +111,7 @@ class MaxPooling : public Layer {
         int width = 1,
         int strideHeight = 1,
         int strideWidth = 1)
-      : Layer(name),
+      : name_(name),
         height_(height),
         width_(width),
         strideHeight_(strideHeight),
@@ -119,11 +123,16 @@ class MaxPooling : public Layer {
       return max_pooling(x, height_, width_, 0, 0, strideHeight_, strideWidth_);
     }
 
+  private:
+    std::vector<Expr> params_;
+    std::string name_;
+
   protected:
     int height_;
     int width_;
     int strideHeight_;
     int strideWidth_;
+
 };
 
 

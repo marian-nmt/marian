@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/config.h"
 #include "data/batch_generator.h"
 #include "graph/expression_graph.h"
-#include "training/config.h"
 #include "training/validator.h"
 
 #include "examples/mnist/dataset.h"

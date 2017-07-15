@@ -16,14 +16,15 @@ cuda_add_library(marian
   kernels/tensor_operators.cu
   kernels/dropout.cu
   kernels/sparse.cu
-  layers/param_initializers.cpp
+  layers/param_initializers.cu
   rnn/attention.cu
   rnn/cells.cu
   optimizers/clippers.cu
   optimizers/optimizers.cu
   common/utils.cpp
   common/logging.cpp
-  training/config.cpp
+  common/config.cpp
+  common/config_parser.cpp
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu

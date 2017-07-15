@@ -1,10 +1,10 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 
+#include "common/config.h"
 #include "graph/expression_graph.h"
 #include "layers/generic.h"
 #include "layers/param_initializers.h"
-#include "training/config.h"
 
 namespace marian {
 

@@ -72,11 +72,25 @@ public:
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
-    auto yEmb = embedding(graph)
-                ("prefix", prefix_ + "_Wemb")
-                ("dimVocab", dimVoc)
-                ("dimEmb", opt<int>("dim-emb"))
-                .construct();
+    int dimEmb = opt<int>("dim-emb");
+
+    auto yEmbFactory = embedding(graph)
+                       ("prefix", prefix_ + "_Wemb")
+                       ("dimVocab", dimVoc)
+                       ("dimEmb", dimEmb);
+
+    if(options_->has("embedding-fix-trg"))
+      yEmbFactory
+        ("fixed", opt<bool>("embedding-fix-trg"));
+
+    if(options_->has("embedding-vectors")) {
+      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+      yEmbFactory
+        ("embFile", embFiles[index])
+        ("normalization", opt<bool>("embedding-normalization"));
+    }
+
+    auto yEmb = yEmbFactory.construct();
 
     auto subBatch = (*batch)[index];
     int dimBatch = subBatch->batchSize();
@@ -112,10 +126,11 @@ public:
       selectedEmbs = graph->constant({1, dimTrgEmb},
                                      init = inits::zeros);
     } else {
+      // embeddings are loaded from model during translation, no fixing required
       auto yEmb = embedding(graph)
                   ("prefix", prefix_ + "_Wemb")
                   ("dimVocab", dimTrgVoc)
-                  ("dimEmb", opt<int>("dim-emb"))
+                  ("dimEmb", dimTrgEmb)
                   .construct();
       selectedEmbs = rows(yEmb, embIdx);
 
