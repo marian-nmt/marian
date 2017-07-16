@@ -535,7 +535,11 @@ private:
 public:
   template <typename... Args>
   ReshapeNodeOp(Expr a, Shape shape, Args... args)
-      : UnaryNodeOp(a, keywords::shape = shape, args...), reshapee_(a) {}
+      : UnaryNodeOp(a, keywords::shape = shape, args...), reshapee_(a) {
+    Node::destroy_ = false;
+  }
+
+  ~ReshapeNodeOp() {}
 
   size_t allocate() { return 0; }
   void free() {}
@@ -585,7 +589,9 @@ public:
   TimestepNodeOp(Expr a, size_t step)
       : UnaryNodeOp(a, keywords::shape = newShape(a)),
         stepNode_(a),
-        step_(step) {}
+        step_(step) {
+    Node::destroy_ = false;
+  }
 
   Shape newShape(Expr a) {
     Shape outShape = a->shape();

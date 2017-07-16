@@ -15,14 +15,15 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto output = graph->param("bla", {1, 5, 5}, keywords::init=inits::from_value(1));
+  auto emb = graph->param("emb", {5, 5, 2}, keywords::init=inits::from_value(1));
+  auto input = 2 * emb;
 
-  auto picks = graph->constant({1 * 5}, keywords::init=inits::from_value(1));
-  auto cost = cross_entropy(output, picks);
+  auto ce = sum(reshape(input, {5*2, 5}), keywords::axis=1);
 
-  debug(cost, "cost");
-  debug(output, "output");
 
+  debug(ce, "cost");
+  debug(input, "input");
+  debug(emb, "emb");
 
   graph->forward();
   graph->backward();

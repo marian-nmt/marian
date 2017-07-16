@@ -72,8 +72,8 @@ public:
   }
 
   void reserveWorkspaceMB(size_t num) {
-    size_t elements = num * 1024 * 1024 / 4 - 1;
-    tensors_->reserve(elements);
+    size_t bytes = num * 1024 * 1024 - 1;
+    tensors_->reserve(bytes);
   }
 
   void copyParams(Ptr<ExpressionGraph> graph) {

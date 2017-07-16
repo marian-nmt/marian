@@ -1112,7 +1112,7 @@ __global__ void gCrossEntropyPick(float* out,
 void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = in->shape()[0];
+  size_t m = in->shape()[0] * in->shape()[2] * in->shape()[3];
   size_t k = in->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
@@ -1198,7 +1198,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
 void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = out->shape()[0];
+  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
   size_t k = out->shape()[1];
 
   int blocks = std::min(MAX_BLOCKS, (int)m);

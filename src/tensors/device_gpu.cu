@@ -1,6 +1,7 @@
 #include "tensors/device_gpu.h"
 
 #include <cuda.h>
+#include <iostream>
 #include "kernels/cuda_helpers.h"
 
 namespace marian {

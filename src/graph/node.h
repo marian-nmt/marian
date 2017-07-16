@@ -18,6 +18,7 @@ protected:
   size_t id_{0};
   size_t edges_{0};
   bool trainable_{true};
+  bool destroy_{true};
   std::vector<Expr> children_;
 
   Weak<ExpressionGraph> graph_;
@@ -36,6 +37,12 @@ public:
       : Keywords(args...),
         graph_(graph),
         shape_(Get(keywords::shape, {1, 1, 1, 1})) {}
+
+  virtual ~Node() {
+    if(destroy_) {
+      free();
+    }
+  }
 
   virtual float scalar();
 
@@ -150,7 +157,7 @@ struct NaryNodeOp : public Node {
     remove_children_from_top_nodes();
   }
 
-  ~NaryNodeOp() { free(); }
+  virtual ~NaryNodeOp() {}
 
   std::vector<Expr>& children() { return children_; }
 

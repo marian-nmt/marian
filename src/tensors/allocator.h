@@ -160,8 +160,13 @@ class Allocator {
     }
 
     template <typename T>
+    size_t capacity(size_t num) {
+      return align(num * sizeof(T));
+    }
+
+    template <typename T>
     Ptr<MemoryPiece> alloc(size_t num) {
-      return alloc(num * sizeof(T));
+      return alloc(capacity<T>(num));
     }
 
     Ptr<MemoryPiece> alloc(size_t bytes) {
@@ -180,18 +185,29 @@ class Allocator {
       return mp;
     }
 
-    void free(uint8_t* ptr, size_t size) {
-      size = align(size);
+    bool free(uint8_t* ptr, size_t bytes) {
+      bytes = align(bytes);
+
+      UTIL_THROW_IF2(ptr == 0, "Double free?");
+
+      if(!ptr)
+        return false;
+
       auto it = allocated_.find(ptr);
       if(it != allocated_.end()) {
         allocated_.erase(ptr);
-        insertGap(Gap(ptr, size), true);
+        insertGap(Gap(ptr, bytes), true);
+        return true;
       }
+      return false;
     }
 
-    void free(Ptr<MemoryPiece> mp) {
-      free(mp->data(), mp->size());
-      mp->set(nullptr, 0);
+    bool free(Ptr<MemoryPiece> mp) {
+      if(free(mp->data(), mp->size())) {
+        mp->set(nullptr, 0);
+        return true;
+      }
+      return false;
     }
 
     void clear() {

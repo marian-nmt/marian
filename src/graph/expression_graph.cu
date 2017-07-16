@@ -1,6 +1,6 @@
 #include <sstream>
-#include "backend_gpu.h"
-#include "expression_graph.h"
+#include "graph/backend_gpu.h"
+#include "graph/expression_graph.h"
 #include "kernels/dropout.h"
 
 namespace marian {

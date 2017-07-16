@@ -147,6 +147,8 @@ Expr cross_entropy(Expr a, Expr b) {
   Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
   sOut.set(1, 1);
   return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
+
+  //return Expression<CrossEntropyNodeOp>(a, b);
 }
 
 Expr affine(Expr a, Expr b, Expr c) {

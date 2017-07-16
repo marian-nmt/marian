@@ -31,9 +31,8 @@ public:
     allocator_->throwAtReallocation(throwRealloc);
   }
 
-  void reserve(size_t elements = 0) {
-    float mult = (elements * sizeof(float)) / GROW + 1;
-    std::cerr << "reserve: " << elements << " " << mult << std::endl;
+  void reserve(size_t bytes = 0) {
+    float mult = bytes / GROW + 1;
     LOG(memory)->info(
         "Extending reserved space to {} MB (device {})",
         mult * CHUNK,
@@ -42,19 +41,22 @@ public:
     allocator_->reserve(mult * GROW);
   }
 
-  void reserveExact(size_t elements = 0) {
-    size_t mbytes = (elements * sizeof(float)) / MBYTE;
+  void reserveExact(size_t bytes = 0) {
+    size_t mbytes = bytes / MBYTE;
     LOG(memory)->info(
-        "Reserving space for {} floats ({} MB, device {})",
-        elements,
+        "Reserving {} MB, device {}",
         mbytes,
         allocator_->getDevice());
 
-    allocator_->reserve(elements * sizeof(float));
+    allocator_->reserve(bytes);
   }
 
   void clear() {
     allocator_->clear();
+  }
+
+  size_t capacity(Shape shape) {
+    return allocator_->capacity<float>(shape.elements());
   }
 
   void allocate(Tensor& t, Shape shape) {
