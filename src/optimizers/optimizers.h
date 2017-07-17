@@ -17,9 +17,12 @@ public:
   OptimizerBase(float eta, Args... args)
       : clipper_(Get(keywords::clip, nullptr, args...)), eta_(eta) {}
 
-  void update(Ptr<ExpressionGraph> graph) {
+  void update(Ptr<ExpressionGraph> graph, size_t batch_size=0, size_t batch_words=0) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
+    //Define default ratio. Guess at first we can be more precise later
+    //Assume batch size of 64 and 30 words per sentence meaning 1920
+    multiply_factor = float(batch_words)/1920.0;
     update(p, g);
   }
 
@@ -44,6 +47,7 @@ protected:
 
   Ptr<ClipperBase> clipper_;
   float eta_;
+  float multiply_factor; //Compensates for larger batch
 };
 
 class Sgd : public OptimizerBase {

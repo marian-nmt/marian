@@ -74,7 +74,13 @@ private:
     float cost = costNode->scalar();
     graph_->backward();
 
-    opt_->update(graph_);
+    //Get batch stats
+    size_t batch_size = batch->size();
+    size_t batch_words = batch->words();
+    //@TODO use this to gather statistics about the usual number of words per batch
+    //std::cout << "Batch size: " << batch_size << " batch_words " << batch_words << std::endl;
+
+    opt_->update(graph_, batch_size, batch_words);
 
     if(mvAvg_) {
       if(!mvAvgGraph_) {
