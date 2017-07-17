@@ -2,15 +2,9 @@
 
 #include "translator/nth_element.h"
 
-namespace marian {
+#include "kernels/cuda_helpers.h"
 
-void HandleError(cudaError_t err, const char* file, int line) {
-  if(err != cudaSuccess) {
-    UTIL_THROW2("ERROR: " << cudaGetErrorString(err) << " in " << file
-                          << " at line "
-                          << line);
-  }
-}
+namespace marian {
 
 #define UNROLL_MAXARG_LOOP(n, max)       \
   if(tid < (n) && tid + (n) < (max)) {   \
@@ -19,8 +13,6 @@ void HandleError(cudaError_t err, const char* file, int line) {
       indices[tid] = indices[tid + (n)]; \
     }                                    \
   }
-
-#define HANDLE_ERROR(err) (HandleError(err, __FILE__, __LINE__))
 
 __global__ void gMaxElement(float* d_out,
                             int* d_ind,
@@ -281,52 +273,52 @@ NthElement::NthElement(size_t maxBeamSize,
                        + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0))) {
   // std::cerr << "NthElement::NthElement" << std::endl;
 
-  HANDLE_ERROR(
+  CUDA_CHECK(
       cudaMalloc((void**)&d_ind, maxBatchSize * NUM_BLOCKS * sizeof(int)));
 
-  HANDLE_ERROR(
+  CUDA_CHECK(
       cudaMalloc((void**)&d_out, maxBatchSize * NUM_BLOCKS * sizeof(float)));
 
-  HANDLE_ERROR(
+  CUDA_CHECK(
       cudaMalloc((void**)&d_res_idx, maxBatchSize * maxBeamSize * sizeof(int)));
-  HANDLE_ERROR(
+  CUDA_CHECK(
       cudaMalloc((void**)&d_res, maxBatchSize * maxBeamSize * sizeof(float)));
 
-  HANDLE_ERROR(cudaHostAlloc((void**)&h_res,
+  CUDA_CHECK(cudaHostAlloc((void**)&h_res,
                              maxBeamSize * maxBatchSize * sizeof(float),
                              cudaHostAllocDefault));
-  HANDLE_ERROR(cudaHostAlloc((void**)&h_res_idx,
+  CUDA_CHECK(cudaHostAlloc((void**)&h_res_idx,
                              maxBeamSize * maxBatchSize * sizeof(int),
                              cudaHostAllocDefault));
 
-  HANDLE_ERROR(cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)));
-  HANDLE_ERROR(
+  CUDA_CHECK(cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)));
+  CUDA_CHECK(
       cudaMalloc((void**)&d_batchPosition, (maxBatchSize + 1) * sizeof(int)));
-  HANDLE_ERROR(
+  CUDA_CHECK(
       cudaMalloc((void**)&d_cumBeamSizes, (maxBatchSize + 1) * sizeof(int)));
 }
 
 NthElement::~NthElement() {
-  HANDLE_ERROR(cudaFree(d_ind));
-  HANDLE_ERROR(cudaFree(d_out));
-  HANDLE_ERROR(cudaFree(d_res_idx));
-  HANDLE_ERROR(cudaFree(d_res));
-  HANDLE_ERROR(cudaFreeHost(h_res));
-  HANDLE_ERROR(cudaFreeHost(h_res_idx));
-  HANDLE_ERROR(cudaFree(d_breakdown));
-  HANDLE_ERROR(cudaFree(d_batchPosition));
-  HANDLE_ERROR(cudaFree(d_cumBeamSizes));
+  CUDA_CHECK(cudaFree(d_ind));
+  CUDA_CHECK(cudaFree(d_out));
+  CUDA_CHECK(cudaFree(d_res_idx));
+  CUDA_CHECK(cudaFree(d_res));
+  CUDA_CHECK(cudaFreeHost(h_res));
+  CUDA_CHECK(cudaFreeHost(h_res_idx));
+  CUDA_CHECK(cudaFree(d_breakdown));
+  CUDA_CHECK(cudaFree(d_batchPosition));
+  CUDA_CHECK(cudaFree(d_cumBeamSizes));
 }
 
 void NthElement::getNBestList(float* probs,
                               const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes) {
-  HANDLE_ERROR(cudaMemcpyAsync(d_batchPosition,
+  CUDA_CHECK(cudaMemcpyAsync(d_batchPosition,
                                batchFirstElementIdxs.data(),
                                batchFirstElementIdxs.size() * sizeof(int),
                                cudaMemcpyHostToDevice,
                                /* stream_ */ 0));
-  HANDLE_ERROR(cudaMemcpyAsync(d_cumBeamSizes,
+  CUDA_CHECK(cudaMemcpyAsync(d_cumBeamSizes,
                                cummulatedBeamSizes.data(),
                                cummulatedBeamSizes.size() * sizeof(int),
                                cudaMemcpyHostToDevice,
@@ -375,12 +367,12 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes,
 void NthElement::GetPairs(size_t number,
                           std::vector<unsigned>& outKeys,
                           std::vector<float>& outValues) {
-  HANDLE_ERROR(cudaMemcpyAsync(h_res,
+  CUDA_CHECK(cudaMemcpyAsync(h_res,
                                d_res,
                                number * sizeof(float),
                                cudaMemcpyDeviceToHost,
                                /* stream_ */ 0));
-  HANDLE_ERROR(cudaMemcpyAsync(h_res_idx,
+  CUDA_CHECK(cudaMemcpyAsync(h_res_idx,
                                d_res_idx,
                                number * sizeof(int),
                                cudaMemcpyDeviceToHost,
@@ -399,11 +391,11 @@ void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
   gGetValueByKey<<<1, lastN, 0, /* stream_ */ 0>>>(
       d_in, d_breakdown, h_res_idx, lastN);
 
-  HANDLE_ERROR(cudaMemcpyAsync(out.data(),
+  CUDA_CHECK(cudaMemcpyAsync(out.data(),
                                d_breakdown,
                                lastN * sizeof(float),
                                cudaMemcpyDeviceToHost,
                                /* stream_ */ 0));
-  HANDLE_ERROR(cudaStreamSynchronize(/* stream_ */ 0));
+  CUDA_CHECK(cudaStreamSynchronize(/* stream_ */ 0));
 }
 }

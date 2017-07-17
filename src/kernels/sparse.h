@@ -86,7 +86,7 @@ public:
     // invert everything because of row-major format and use dense2csc,
     // next keep using routines for csr
     int* nnzPerCol;
-    cudaMalloc(&nnzPerCol, sizeof(int) * cols_);
+    CUDA_CHECK(cudaMalloc(&nnzPerCol, sizeof(int) * cols_));
     cusparseSnnz(handle_,
                  CUSPARSE_DIRECTION_COLUMN,
                  cols_,
@@ -185,7 +185,7 @@ public:
 
   std::string debug() {
     uint8_t* buffer;
-    cudaMalloc(&buffer, sizeof(float) * rows() * cols());
+    CUDA_CHECK(cudaMalloc(&buffer, sizeof(float) * rows() * cols()));
 
     auto mem = New<MemoryPiece>(buffer, sizeof(float) * rows() * cols());
     Tensor tensor(new TensorBase(mem, {rows(), cols()}, device_));

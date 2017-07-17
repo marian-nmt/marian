@@ -62,11 +62,11 @@ public:
     device_ = device;
     capacity_ = capacity;
     cudaSetDevice(device_);
-    cudaMalloc(&data_, sizeof(float) * capacity);
-    cudaMalloc(&indices_, sizeof(int) * capacity);
+    CUDA_CHECK(cudaMalloc(&data_, sizeof(float) * capacity));
+    CUDA_CHECK(cudaMalloc(&indices_, sizeof(int) * capacity));
 
-    cudaMalloc(&gstart_, sizeof(int) * 100);
-    cudaMalloc(&gend_, sizeof(int) * 100);
+    CUDA_CHECK(cudaMalloc(&gstart_, sizeof(int) * 100));
+    CUDA_CHECK(cudaMalloc(&gend_, sizeof(int) * 100));
   }
 
   SparseTensorBase(float* data, int* indices, int size, size_t device) {
