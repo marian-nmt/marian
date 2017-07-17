@@ -1,8 +1,13 @@
 #!/usr/bin/env python
-import sys
-import cPickle
-import json
-import operator
 
-d = cPickle.load(open(sys.argv[1], 'r'))
-json.dump(d, sys.stdout)
+import sys
+import json
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+with open(sys.argv[1], 'r') as fin:
+    d = pickle.load(fin)
+    json.dump(d, sys.stdout)
