@@ -341,6 +341,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
      "Learning rate decaying frequency for batches, "
      "requires --lr-decay-strategy to be batches")
+    ("tau", po::value<size_t>()->default_value(1),
+     "SGD update delay, 1 = no delay")
 
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
@@ -606,6 +608,7 @@ void ConfigParser::parseOptions(
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
+    SET_OPTION("tau", size_t);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
 

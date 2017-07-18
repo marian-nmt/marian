@@ -231,7 +231,6 @@ private:
   std::vector<Ptr<OptimizerBase>> shardOpt_;
 
   int shardSize_;
-  int tau_{1};
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
@@ -242,6 +241,8 @@ private:
 
   double drop_rate_{0};
   int history_size_{1};
+
+  size_t tau_{1};
 
   std::vector<Ptr<TensorAllocator>> allocators;
 
@@ -538,6 +539,9 @@ private:
       thread_local Ptr<Builder> builder;
       thread_local size_t t = 0;
 
+      thread_local Tensor accGradients;
+      thread_local Ptr<TensorAllocator> accAlloc;
+
       // gradient drop purpose
       thread_local GradientDrop dropper;
 
@@ -561,25 +565,54 @@ private:
 
       auto costNode = builder->build(graph, batch);
 
-      if(drop_rate_ && t > 0)
-        sparseFetchParams(graph->params()->vals(), my_id);
-      else
-        fetchParams(graph->params()->vals(),
-                    params_[globalVersionNumber[my_id] % history_size_]);
+      if(t % tau_ == 0) {
+
+        if(drop_rate_ && t > 0)
+          sparseFetchParams(graph->params()->vals(), my_id);
+        else
+          fetchParams(graph->params()->vals(),
+                      params_[globalVersionNumber[my_id] % history_size_]);
+
+      }
 
       graph->forward();
       float cost = costNode->scalar();
       graph->backward();
 
-      t++;
+      Tensor gradients;
+      if(tau_ > 1) {
+        if(t == 0) {
+          accAlloc = New<TensorAllocator>(graph->getDevice());
+          accAlloc->reserveExact(graph->params()->grads()->memory()->size());
+          accAlloc->allocate(accGradients, graph->params()->grads()->shape());
+          accGradients->set(0);
+        }
 
-      cudaStreamSynchronize(0);
-      if(drop_rate_) {
-        dropper->dropGraph(
-            graph->params()->grads(), localSparseGrads_[my_id], drop_rate_);
-        sparsePush(localSparseGrads_[my_id]);
-      } else
-        pushGradients(graph->params()->grads());
+        Element(_1 += _2, accGradients, graph->params()->grads());
+        gradients = accGradients;
+      }
+      else {
+        gradients = graph->params()->grads();
+      }
+
+      if(t % tau_ == 0) {
+
+        cudaStreamSynchronize(0);
+        if(drop_rate_) {
+          dropper->dropGraph(
+              gradients, localSparseGrads_[my_id], drop_rate_);
+          sparsePush(localSparseGrads_[my_id]);
+        } else {
+          pushGradients(gradients);
+        }
+
+        if(tau_ > 1) {
+          gradients->set(0);
+        }
+
+      }
+
+      t++;
 
       if(scheduler_) {
         boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
@@ -630,7 +663,8 @@ public:
         shardSync_{devices_.size()},
         movingAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")},
-        drop_rate_{options_->get<double>("drop-rate")} {
+        drop_rate_{options_->get<double>("drop-rate")},
+        tau_{options_->get<size_t>("tau")} {
     if(drop_rate_ > 0.0) {
       history_size_ = devices_.size() * 1.5;
     }
