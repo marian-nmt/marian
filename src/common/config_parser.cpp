@@ -341,6 +341,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
      "Learning rate decaying frequency for batches, "
      "requires --lr-decay-strategy to be batches")
+    ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
+      "Scales the learning rate based on the number of words in a mini-batch")
+    ("batch-normal-words", po::value<float>()->default_value(1920),
+      "This can option is only active when batch-flexible-lr is on. It determines number of words per batch that the learning rate corresponds to.")
 
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")

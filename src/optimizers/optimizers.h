@@ -14,15 +14,20 @@ namespace marian {
 class OptimizerBase : public TrainingObserver {
 public:
   template <typename... Args>
-  OptimizerBase(float eta, Args... args)
-      : clipper_(Get(keywords::clip, nullptr, args...)), eta_(eta) {}
+  OptimizerBase(Ptr<Config> options, float eta, Args... args)
+      : clipper_(Get(keywords::clip, nullptr, args...)), eta_(eta), multiply_factor(1.0f) {
+    scale_lr = options->get<bool>("batch-flexible-lr");
+    batch_target_num_words = options->get<float>("batch-normal-words");
+  }
 
   void update(Ptr<ExpressionGraph> graph, size_t batch_size=0, size_t batch_words=0) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
-    //Define default ratio. Guess at first we can be more precise later
-    //Assume batch size of 64 and 30 words per sentence meaning 1920
-    multiply_factor = float(batch_words)/1920.0;
+
+    if (scale_lr) {
+      multiply_factor = batch_words/batch_target_num_words;
+    }
+
     update(p, g);
   }
 
@@ -48,12 +53,14 @@ protected:
   Ptr<ClipperBase> clipper_;
   float eta_;
   float multiply_factor; //Compensates for larger batch
+  float batch_target_num_words;
+  bool scale_lr;
 };
 
 class Sgd : public OptimizerBase {
 public:
   template <typename... Args>
-  Sgd(float eta, Args... args) : OptimizerBase(eta, args...) {}
+  Sgd(Ptr<Config> options, float eta, Args... args) : OptimizerBase(options, eta, args...) {}
 
 private:
   void updateImpl(Tensor params, Tensor grads);
@@ -63,8 +70,8 @@ private:
 class Adagrad : public OptimizerBase {
 public:
   template <typename... Args>
-  Adagrad(float eta, Args... args)
-      : OptimizerBase(eta, args...), eps_(Get(keywords::eps, 1e-8, args...)) {}
+  Adagrad(Ptr<Config> options, float eta, Args... args)
+      : OptimizerBase(options, eta, args...), eps_(Get(keywords::eps, 1e-8, args...)) {}
 
 private:
   void updateImpl(Tensor params, Tensor grads);
@@ -79,8 +86,8 @@ private:
 class Adam : public OptimizerBase {
 public:
   template <typename... Args>
-  Adam(float eta, Args... args)
-      : OptimizerBase(eta, args...),
+  Adam(Ptr<Config> options, float eta, Args... args)
+      : OptimizerBase(options, eta, args...),
         beta1_(Get(keywords::beta1, 0.9, args...)),
         beta2_(Get(keywords::beta2, 0.999, args...)),
         eps_(Get(keywords::eps, 1e-8, args...)),
@@ -101,8 +108,8 @@ private:
 };
 
 template <class Algorithm, typename... Args>
-Ptr<OptimizerBase> Optimizer(float eta, Args&&... args) {
-  return Ptr<OptimizerBase>(new Algorithm(eta, args...));
+Ptr<OptimizerBase> Optimizer(Ptr<Config> options, float eta, Args&&... args) {
+  return Ptr<OptimizerBase>(new Algorithm(options, eta, args...));
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options);

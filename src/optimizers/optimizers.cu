@@ -65,11 +65,11 @@ Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
   std::string opt = options->get<std::string>("optimizer");
 
   if(opt == "sgd") {
-    return Optimizer<Sgd>(lrate, keywords::clip = clipper);
+    return Optimizer<Sgd>(options, lrate, keywords::clip = clipper);
   } else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(lrate, keywords::clip = clipper);
+    return Optimizer<Adagrad>(options, lrate, keywords::clip = clipper);
   } else if(opt == "adam") {
-    return Optimizer<Adam>(lrate, keywords::clip = clipper);
+    return Optimizer<Adam>(options, lrate, keywords::clip = clipper);
   } else {
     UTIL_THROW2("Unknown optimizer: " << opt);
   }
