@@ -14,7 +14,7 @@ Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
 ## Website
 
-More information on https://amunmt.github.io
+More information on https://marian-nmt.github.io
 
 ## Acknowledgements
 
