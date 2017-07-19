@@ -8,8 +8,8 @@ namespace GPU {
 
 Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
-  forwardRnn_(model.encForwardGRU_),
-  backwardRnn_(model.encBackwardGRU_)
+  forwardRnn_(GRU<Weights::EncForwardGRU>(model.encForwardGRU_)),
+  backwardRnn_(GRU<Weights::EncBackwardGRU>(model.encBackwardGRU_))
 {
 }
 

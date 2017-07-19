@@ -5,6 +5,7 @@
 #include "gru.h"
 #include "common/sentence.h"
 #include "gpu/types-gpu.h"
+#include "gru.h"
 
 namespace amunmt {
 
@@ -45,8 +46,8 @@ class Encoder {
     template <class Weights>
     class RNN {
       public:
-        RNN(const Weights& model)
-        : gru_(model) {}
+        RNN(const Cell& cell)
+        : gru_(cell) {}
 
         void InitializeState(size_t batchSize = 1) {
           State_.NewSize(batchSize, gru_.GetStateLength());
@@ -99,7 +100,7 @@ class Encoder {
         }
 
       private:
-        const GRU<Weights> gru_;
+        const Cell& gru_;
         mblas::Matrix State_;
         RNN(const RNN&) = delete;
     };

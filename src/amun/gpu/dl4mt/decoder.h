@@ -5,6 +5,7 @@
 #include "gru.h"
 #include "gpu/types-gpu.h"
 #include "common/god.h"
+#include "gru.h"
 
 namespace amunmt {
 namespace GPU {
@@ -52,9 +53,9 @@ class Decoder {
     template <class Weights1, class Weights2>
     class RNNHidden {
       public:
-        RNNHidden(const Weights1& initModel, const Weights2& gruModel)
+        RNNHidden(const Weights1& initModel, const Cell& cell)
         : w_(initModel)
-        , gru_(gruModel)
+        , gru_(cell)
         {}
 
         void InitializeState(mblas::Matrix& State,
@@ -98,7 +99,7 @@ class Decoder {
 
       private:
         const Weights1& w_;
-        const GRU<Weights2> gru_;
+        const Cell& gru_;
 
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
@@ -109,8 +110,8 @@ class Decoder {
     template <class Weights>
     class RNNFinal {
       public:
-        RNNFinal(const Weights& model)
-        : gru_(model) {}
+        RNNFinal(const Cell& cell)
+        : gru_(cell) {}
 
         void GetNextState(mblas::Matrix& NextState,
                           const mblas::Matrix& State,
@@ -119,7 +120,7 @@ class Decoder {
         }
 
       private:
-        const GRU<Weights> gru_;
+        const Cell& gru_;
 
         RNNFinal(const RNNFinal&) = delete;
     };
@@ -348,8 +349,8 @@ class Decoder {
   public:
     Decoder(const God &god, const Weights& model)
     : embeddings_(model.decEmbeddings_),
-      rnn1_(model.decInit_, model.decGru1_),
-      rnn2_(model.decGru2_),
+      rnn1_(model.decInit_, GRU<Weights::DecGRU1>(model.decGru1_)),
+      rnn2_(GRU<Weights::DecGRU2>(model.decGru2_)),
       alignment_(god, model.decAlignment_),
       softmax_(model.decSoftmax_)
     {}
