@@ -21,8 +21,7 @@ public:
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
 
-    multiply_factor = multiply_factor_; //In case we want to add a multiply factor to our learning rate
-    update(p, g);
+    update(p, g, multiply_factor_);
   }
 
   void update(Tensor params, Tensor grads, float multiply_factor_ = 1.0f) {
