@@ -24,7 +24,8 @@ def handle_websocket():
                 message = wsock.receive()
                 #print message
                 if message is not None:
-                    listSentences = message.split('\n')
+                    # force potential unicode to str() for boost conversion
+                    listSentences = str(message).split('\n')
                     numEle = len(listSentences)
                     #print numEle
                     if numEle > 0 and listSentences[numEle - 1] == "":
