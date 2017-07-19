@@ -595,6 +595,8 @@ private:
         gradients = graph->params()->grads();
       }
 
+      t++;
+
       if(t % tau_ == 0) {
 
         cudaStreamSynchronize(0);
@@ -611,8 +613,6 @@ private:
         }
 
       }
-
-      t++;
 
       if(scheduler_) {
         boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
