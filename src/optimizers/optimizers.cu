@@ -5,7 +5,7 @@
 
 namespace marian {
 void Sgd::updateImpl(Tensor params, Tensor grads) {
-  Element(_1 -= multiply_factor*eta_ * _2, params, grads);
+  Element(_1 -= (multiply_factor*eta_) * _2, params, grads);
 }
 
 void Adagrad::updateImpl(Tensor params, Tensor grads) {
@@ -48,7 +48,7 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
   Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2), mt_, grads);
   Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)), vt_, grads);
 
-  Element(_1 -= multiply_factor*eta_ * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
+  Element(_1 -= (multiply_factor*eta_) * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
           params,
           mt_,
           vt_);
@@ -65,11 +65,11 @@ Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
   std::string opt = options->get<std::string>("optimizer");
 
   if(opt == "sgd") {
-    return Optimizer<Sgd>(options, lrate, keywords::clip = clipper);
+    return Optimizer<Sgd>(lrate, keywords::clip = clipper);
   } else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(options, lrate, keywords::clip = clipper);
+    return Optimizer<Adagrad>(lrate, keywords::clip = clipper);
   } else if(opt == "adam") {
-    return Optimizer<Adam>(options, lrate, keywords::clip = clipper);
+    return Optimizer<Adam>(lrate, keywords::clip = clipper);
   } else {
     UTIL_THROW2("Unknown optimizer: " << opt);
   }
