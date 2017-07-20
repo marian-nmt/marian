@@ -168,23 +168,25 @@ public:
     if(factor > 0.0) {
       bool decay = false;
       auto strategy = options_->get<std::string>("lr-decay-strategy");
-      int startEpoch
-          = options_->get<std::vector<size_t>>("lr-decay-start").front();
 
-      if(strategy == "epoch") {
+      if(strategy == "epoch" || strategy == "epoch+batches"
+         || strategy == "epoch+stalled") {
+        int startEpoch
+            = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startEpoch && state.epochs >= startEpoch)
           decay = true;
       }
+
       if(strategy == "epoch+batches") {
         int startBatches
             = options_->get<std::vector<size_t>>("lr-decay-start")[1];
-        if(startEpoch && startBatches && state.batches >= startBatches)
+        if(startBatches && state.batches >= startBatches)
           decay = true;
       }
       if(strategy == "epoch+stalled") {
         int startStalled
             = options_->get<std::vector<size_t>>("lr-decay-start")[1];
-        if(startEpoch && startStalled && state.maxStalled >= startStalled)
+        if(startStalled && state.maxStalled >= startStalled)
           decay = true;
       }
 

@@ -335,7 +335,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "(possible values: epoch, batches, stalled, epoch+batches, epoch+stalled)")
     ("lr-decay-start", po::value<std::vector<size_t>>()
        ->multitoken()
-       ->default_value(std::vector<size_t>({10,1}), "10,1"),
+       ->default_value(std::vector<size_t>({10,1}), "10 1"),
        "The first number of epoch/batches/stalled validations to start "
        "learning rate decaying")
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
