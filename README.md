@@ -8,7 +8,7 @@ Google group for commit messages: https://groups.google.com/forum/#!forum/marian
 
 *marian* is a C++ GPU-specific parallel automatic differentiation library
 with operator overloading. It is the training framework used in the Marian
-toolkit. This repository is the development repo of `https://github.com/marian-nmt/marian`, use it at your own risk. S
+toolkit. This repository is the development repo of `https://github.com/marian-nmt/marian`, use it at your own risk. 
 
 https://github.com/marian-nmt/marian is updated with stable versions of this repository.  
 
