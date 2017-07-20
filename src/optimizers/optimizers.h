@@ -17,15 +17,18 @@ public:
   OptimizerBase(float eta, Args... args)
       : clipper_(Get(keywords::clip, nullptr, args...)), eta_(eta) {}
 
-  void update(Ptr<ExpressionGraph> graph) {
+  void update(Ptr<ExpressionGraph> graph, float multiply_factor_ = 1.0f) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
-    update(p, g);
+
+    update(p, g, multiply_factor_);
   }
 
-  void update(Tensor params, Tensor grads) {
+  void update(Tensor params, Tensor grads, float multiply_factor_ = 1.0f) {
     if(clipper_)
       clipper_->clip(grads);
+
+    multiply_factor = multiply_factor_; //In case we want to add a multiply factor to our learning rate
     updateImpl(params, grads);
   }
 
@@ -44,6 +47,7 @@ protected:
 
   Ptr<ClipperBase> clipper_;
   float eta_;
+  float multiply_factor; //Compensates for larger batch
 };
 
 class Sgd : public OptimizerBase {

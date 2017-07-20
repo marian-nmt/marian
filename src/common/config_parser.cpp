@@ -341,6 +341,12 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
      "Learning rate decaying frequency for batches, "
      "requires --lr-decay-strategy to be batches")
+    ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
+      "Scales the learning rate based on the number of words in a mini-batch")
+    ("batch-normal-words", po::value<double>()->default_value(1920.0),
+      "This can option is only active when batch-flexible-lr is on. It determines number of words per batch that the learning rate corresponds to.")
+    ("tau", po::value<size_t>()->default_value(1),
+     "SGD update delay, 1 = no delay")
 
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
@@ -606,6 +612,7 @@ void ConfigParser::parseOptions(
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
+    SET_OPTION("tau", size_t);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
 
@@ -613,6 +620,8 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-strategy", std::string);
     SET_OPTION("lr-decay-start", std::vector<size_t>);
     SET_OPTION("lr-decay-freq", size_t);
+    SET_OPTION("batch-flexible-lr", bool);
+    SET_OPTION("batch-normal-words", double);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
