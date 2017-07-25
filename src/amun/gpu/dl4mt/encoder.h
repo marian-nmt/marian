@@ -6,6 +6,9 @@
 #include "common/sentence.h"
 #include "gpu/types-gpu.h"
 #include "gru.h"
+#include "cell.h"
+
+using namespace std;
 
 namespace amunmt {
 
@@ -46,18 +49,18 @@ class Encoder {
     template <class Weights>
     class RNN {
       public:
-        RNN(const Cell& cell)
-        : gru_(cell) {}
+        RNN(unique_ptr<Cell> cell)
+          : gru_(move(cell)) {}
 
         void InitializeState(size_t batchSize = 1) {
-          State_.NewSize(batchSize, gru_.GetStateLength());
+          State_.NewSize(batchSize, gru_->GetStateLength());
           mblas::Fill(State_, 0.0f);
         }
 
         void GetNextState(mblas::Matrix& NextState,
                           const mblas::Matrix& State,
                           const mblas::Matrix& Embd) {
-          gru_.GetNextState(NextState, State, Embd);
+          gru_->GetNextState(NextState, State, Embd);
         }
 
         template <class It>
@@ -82,7 +85,7 @@ class Encoder {
               mblas::MapMatrix(State_, *sentencesMask, n - i - 1);
               //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
-              mblas::PasteRows(Context, State_, (n - i - 1), gru_.GetStateLength());
+              mblas::PasteRows(Context, State_, (n - i - 1), gru_->GetStateLength());
             }
             else {
               //std::cerr << "1Context=" << Context.Debug(1) << std::endl;
@@ -96,11 +99,11 @@ class Encoder {
         }
 
         size_t GetStateLength() const {
-          return gru_.GetStateLength();
+          return gru_->GetStateLength();
         }
 
       private:
-        const Cell& gru_;
+        const unique_ptr<Cell> gru_;
         mblas::Matrix State_;
         RNN(const RNN&) = delete;
     };

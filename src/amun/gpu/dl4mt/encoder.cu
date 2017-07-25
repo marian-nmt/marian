@@ -8,10 +8,9 @@ namespace GPU {
 
 Encoder::Encoder(const Weights& model)
 : embeddings_(model.encEmbeddings_),
-  forwardRnn_(GRU<Weights::EncForwardGRU>(model.encForwardGRU_)),
-  backwardRnn_(GRU<Weights::EncBackwardGRU>(model.encBackwardGRU_))
-{
-}
+  forwardRnn_(unique_ptr<Cell>(new GRU<Weights::EncForwardGRU>(model.encForwardGRU_))),
+  backwardRnn_(unique_ptr<Cell>(new GRU<Weights::EncBackwardGRU>(model.encBackwardGRU_)))
+{}
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
   size_t maxLength = source.at(0)->GetWords(tab).size();
