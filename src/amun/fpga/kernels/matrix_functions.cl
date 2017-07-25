@@ -471,7 +471,7 @@ __kernel void gWeightedMean(__global float* restrict d_out,
 }
 
 /////////////////////////////////////////////////////////////////////////////
-
+/*
 __kernel void gMaxElement(
 								__global float* restrict d_out, 
 								__global int* restrict d_ind, 
@@ -481,7 +481,7 @@ __kernel void gMaxElement(
 {
 
 }
-
+*/
 /////////////////////////////////////////////////////////////////////////////
 
 void insertValue(
