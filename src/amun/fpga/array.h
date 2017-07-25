@@ -2,6 +2,7 @@
 #include <sstream>
 #include <vector>
 #include <cassert>
+#include <CL/cl.h>
 #include "types-fpga.h"
 #include "matrix_functions.h"
 
@@ -84,7 +85,7 @@ public:
 
   void Set(const T &val)
   {
-    CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
+    //CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
     CheckError( clFinish(openCLInfo_.commands) );
   }
 

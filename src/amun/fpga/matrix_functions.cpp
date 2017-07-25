@@ -160,7 +160,7 @@ void Fill(
 {
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
-  CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
+  //CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
   CheckError( clFinish(openCLInfo.commands) );
 }
 
