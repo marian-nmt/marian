@@ -115,17 +115,21 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
 
   scoped_array<cl_int> binary_status(openCLInfo.numDevices);
 
-  cerr << "CreateKernel1=" << kernelName << endl;
+  cout << "CreateKernel1=" << kernelName << endl;
+  cout << "binary_lengths=" << binary_lengths.get()[0] << endl;
+  cout << "openCLInfo.numDevices=" << openCLInfo.numDevices << endl;
+
   program = clCreateProgramWithBinary(
                 openCLInfo.context,
                 openCLInfo.numDevices,
                 openCLInfo.devices,
-                binary_lengths,
+                binary_lengths.get(),
                 (const unsigned char **) binaries.get(),
-                binary_status,
+                binary_status.get(),
                 &err);
   CheckError(err);
 
+  cout << "CreateKernel2=" << kernelName << endl;
   for(unsigned i = 0; i < openCLInfo.numDevices; ++i) {
     CheckError(binary_status[i]); //, "Failed to load binary for device");
   }
@@ -134,7 +138,9 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
 
   // Build the program executable
   //
+  cout << "CreateKernel3=" << kernelName << endl;
   CheckError( clBuildProgram(program, 0, NULL, NULL, NULL, NULL) );
+  cout << "CreateKernel4=" << kernelName << endl;
   /*
   if (err != CL_SUCCESS)
   {
