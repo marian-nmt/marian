@@ -32,8 +32,12 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
 
 void EncoderDecoderLoader::Load(const God &god)
 {
+  std::string aocxPath = god.Get<std::string>("aocx-path");
+  //cerr << "aocxPath=" << aocxPath << endl;
+  CreateProgram(openCLInfo_, aocxPath);
+
   std::string path = Get<std::string>("path");
-  //cerr << "path=" << path << endl;
+  //cerr << "Load path=" << path << endl;
 
   Weights *weights = new Weights(openCLInfo_, path);
   weights_.reset(weights);

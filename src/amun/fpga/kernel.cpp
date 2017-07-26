@@ -70,24 +70,12 @@ cl_context CreateContext(
   return ret;
 }
 
-std::string LoadKernel(const std::string &filePath)
-{
- std::ifstream in(filePath.c_str());
- std::string result (
-   (std::istreambuf_iterator<char> (in)),
-   std::istreambuf_iterator<char> ());
- return result;
-}
-
-cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const OpenCLInfo &openCLInfo)
+void CreateProgram(OpenCLInfo &openCLInfo, const std::string &filePath)
 {
   #define MAX_SOURCE_SIZE (0x100000)
   using namespace aocl_utils;
 
   cl_int err;                            // error code returned from api calls
-
-  cl_program program;                 // compute program
-  cl_kernel kernel;                   // compute kernel
 
   // Create the compute program from the source buffer
   /*
@@ -115,11 +103,10 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
 
   scoped_array<cl_int> binary_status(openCLInfo.numDevices);
 
-  cout << "CreateKernel1=" << kernelName << endl;
   cout << "binary_lengths=" << binary_lengths.get()[0] << endl;
   cout << "openCLInfo.numDevices=" << openCLInfo.numDevices << endl;
 
-  program = clCreateProgramWithBinary(
+  openCLInfo.program = clCreateProgramWithBinary(
                 openCLInfo.context,
                 openCLInfo.numDevices,
                 openCLInfo.devices,
@@ -129,18 +116,15 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
                 &err);
   CheckError(err);
 
-  cout << "CreateKernel2=" << kernelName << endl;
   for(unsigned i = 0; i < openCLInfo.numDevices; ++i) {
     CheckError(binary_status[i]); //, "Failed to load binary for device");
   }
 
-  assert(program);
+  assert(openCLInfo.program);
 
   // Build the program executable
   //
-  cout << "CreateKernel3=" << kernelName << endl;
-  CheckError( clBuildProgram(program, 0, NULL, NULL, NULL, NULL) );
-  cout << "CreateKernel4=" << kernelName << endl;
+  CheckError( clBuildProgram(openCLInfo.program, 0, NULL, NULL, NULL, NULL) );
   /*
   if (err != CL_SUCCESS)
   {
@@ -154,9 +138,24 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
   }
   */
 
+}
+
+std::string LoadKernel(const std::string &filePath)
+{
+ std::ifstream in(filePath.c_str());
+ std::string result (
+   (std::istreambuf_iterator<char> (in)),
+   std::istreambuf_iterator<char> ());
+ return result;
+}
+
+cl_kernel CreateKernel(const std::string &kernelName, const OpenCLInfo &openCLInfo)
+{
   // Create the compute kernel in the program we wish to run
   //
-  kernel = clCreateKernel(program, kernelName.c_str(), &err);
+  cl_int err;                            // error code returned from api calls
+  cl_kernel kernel;                   // compute kernel
+  kernel = clCreateKernel(openCLInfo.program, kernelName.c_str(), &err);
   CheckError(err);
   assert(kernel);
 

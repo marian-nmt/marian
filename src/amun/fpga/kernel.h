@@ -10,7 +10,9 @@ cl_context CreateContext(
     cl_device_id *devices,
     cl_uint &numDevices);
 
-cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const OpenCLInfo &openCLInfo);
+void CreateProgram(OpenCLInfo &openCLInfo, const std::string &filePath);
+
+cl_kernel CreateKernel(const std::string &kernelName, const OpenCLInfo &openCLInfo);
 cl_command_queue CreateCommandQueue(const OpenCLInfo &openCLInfo);
 
 unsigned char *loadBinaryFile(const char *file_name, size_t *size);

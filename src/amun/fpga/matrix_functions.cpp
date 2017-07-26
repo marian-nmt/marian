@@ -49,7 +49,7 @@ void CallOpenCL(
   assert(output);
 
   // create kernel
-  cl_kernel kernel = CreateKernel(filePath, kernelName, openCLInfo);
+  cl_kernel kernel = CreateKernel(kernelName, openCLInfo);
 
   // Set the arguments to our compute kernel
   SetKernelArg(kernel, 0, args...);
