@@ -127,15 +127,6 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
     CheckError(binary_status[i]); //, "Failed to load binary for device");
   }
 
-  /*
-  program = clCreateProgramWithBinary(
-                openCLInfo.context,
-                openCLInfo.numDevices,
-                openCLInfo.devices,
-                );
-  */
-
-  CheckError(err);
   assert(program);
 
   // Build the program executable
