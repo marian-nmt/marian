@@ -105,7 +105,6 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
   if(binary == NULL) {
     CheckError(CL_INVALID_PROGRAM); //, "Failed to load binary file");
   }
-  cerr << "CreateKernel1=" << filePath << endl;
 
   scoped_array<size_t> binary_lengths(openCLInfo.numDevices);
   scoped_array<unsigned char*> binaries(openCLInfo.numDevices);
@@ -114,7 +113,6 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
     binaries[i] = binary;
   }
 
-  cerr << "CreateKernel2=" << kernelName << endl;
   scoped_array<cl_int> binary_status(openCLInfo.numDevices);
 
   cerr << "CreateKernel1" << endl;
@@ -126,22 +124,17 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
                 (const unsigned char **) binaries.get(),
                 binary_status,
                 &err);
-  cerr << "CreateKernel3" << endl;
   CheckError(err);
 
-  cerr << "CreateKernel4" << endl;
   for(unsigned i = 0; i < openCLInfo.numDevices; ++i) {
     CheckError(binary_status[i]); //, "Failed to load binary for device");
   }
-  cerr << "CreateKernel5" << endl;
 
   assert(program);
 
   // Build the program executable
   //
-  cerr << "CreateKernel6" << endl;
   CheckError( clBuildProgram(program, 0, NULL, NULL, NULL, NULL) );
-  cerr << "CreateKernel7" << endl;
   /*
   if (err != CL_SUCCESS)
   {
@@ -157,12 +150,9 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
 
   // Create the compute kernel in the program we wish to run
   //
-  cerr << "CreateKernel8" << endl;
   kernel = clCreateKernel(program, kernelName.c_str(), &err);
-  cerr << "CreateKernel9" << endl;
   CheckError(err);
   assert(kernel);
-  cerr << "CreateKernel10" << endl;
 
   return kernel;
 }

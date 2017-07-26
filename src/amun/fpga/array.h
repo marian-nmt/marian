@@ -95,13 +95,7 @@ public:
 
     //CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
 
-    mblas::Fill(mem_, size_);
-    /*
-    CallOpenCL("kernels/matrix_functions.cl", "gFill", openCLInfo_,
-        mem_,
-        val,
-        size_);
-    */
+    mblas::Fill(openCLInfo_, mem_, val, size_);
 
     CheckError( clFinish(openCLInfo_.commands) );
   }

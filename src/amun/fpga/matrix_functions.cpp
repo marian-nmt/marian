@@ -157,25 +157,27 @@ Matrix& Assemble(
 }
 
 void Fill(
+    const OpenCLInfo &openCLInfo,
     cl_mem mem,
-    float value)
+    float val,
+    uint size)
 {
+  //CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
+  CallOpenCL(kernelPath, "gFill", openCLInfo,
+      mem,
+      val,
+      size);
 
+  CheckError( clFinish(openCLInfo.commands) );
 }
 
 void Fill(
     Matrix& In,
-    float value)
+    float val)
 {
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
-  assert(false);
-
-  //CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
-  CallOpenCL(kernelPath, "gFill", openCLInfo,
-      In.data(),
-      value,
-      In.sizeUInt());
+  Fill(openCLInfo, In.data(), val, In.sizeUInt());
 
   CheckError( clFinish(openCLInfo.commands) );
 }

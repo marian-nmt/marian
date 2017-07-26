@@ -41,12 +41,14 @@ Matrix& Assemble(
 		 const Array<uint>& indices);
 
 void Fill(
+    const OpenCLInfo &openCLInfo,
     cl_mem mem,
-    float value);
+    float val,
+    uint size);
 
 void Fill(
     Matrix& In,
-    float value);
+    float val);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
