@@ -8,8 +8,6 @@
 #include "gru.h"
 #include "cell.h"
 
-using namespace std;
-
 namespace amunmt {
 
 class Sentences;
@@ -49,8 +47,8 @@ class Encoder {
     template <class Weights>
     class RNN {
       public:
-        RNN(unique_ptr<Cell> cell)
-          : gru_(move(cell)) {}
+        RNN(std::unique_ptr<Cell> cell)
+          : gru_(std::move(cell)) {}
 
         void InitializeState(size_t batchSize = 1) {
           State_.NewSize(batchSize, gru_->GetStateLength());
@@ -103,7 +101,7 @@ class Encoder {
         }
 
       private:
-        const unique_ptr<Cell> gru_;
+        const std::unique_ptr<Cell> gru_;
         mblas::Matrix State_;
         RNN(const RNN&) = delete;
     };
