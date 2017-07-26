@@ -157,6 +157,13 @@ Matrix& Assemble(
 }
 
 void Fill(
+    cl_mem mem,
+    float value)
+{
+
+}
+
+void Fill(
     Matrix& In,
     float value)
 {

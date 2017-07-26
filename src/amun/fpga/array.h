@@ -9,6 +9,12 @@
 namespace amunmt {
 namespace FPGA {
 
+namespace mblas {
+void Fill(
+    cl_mem mem,
+    float value);
+}
+
 template<typename T>
 class Array
 {
@@ -85,9 +91,11 @@ public:
 
   void Set(const T &val)
   {
-    assert(false);
+    //assert(false);
 
     //CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
+
+    mblas::Fill(mem_, size_);
     /*
     CallOpenCL("kernels/matrix_functions.cl", "gFill", openCLInfo_,
         mem_,
