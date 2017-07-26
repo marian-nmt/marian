@@ -171,6 +171,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> modelPaths;
   std::vector<std::string> sourceVocabPaths;
   std::string targetVocabPath;
+  std::string aocxPath;
   std::vector<std::string> bpePaths;
   bool debpe;
 
@@ -211,6 +212,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "FPGA device(s) to use, set to 0 by default, "
         "e.g. set to 0 1 to use fpga0 and fpga1. "
         "Implicitly sets minimal number of threads to number of devices.")
+    ("aocx-path", po::value(&aocxPath),
+       "Full path to .aocx file.")
 #endif
 
     ("mini-batch", po::value<size_t>()->default_value(1),
@@ -314,6 +317,7 @@ void Config::AddOptions(size_t argc, char** argv) {
 #ifdef HAS_FPGA
   SET_OPTION("fpga-threads", size_t);
   SET_OPTION("fpga-devices", std::vector<size_t>);
+  SET_OPTION("aocx-path", std::string);
 #endif
   SET_OPTION("show-weights", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);

@@ -8,10 +8,12 @@
 using namespace std;
 
 namespace amunmt {
+
+std::string kernelPath; // hack
+
 namespace FPGA {
 namespace mblas {
 
-const string kernelPath = "/home/hieu/workspace/github/marian.hieu.fpga/build/matrix_functions.aocx";
 
 //////////////////////////////////////////////////////////////////////////////////////
 template <typename T>

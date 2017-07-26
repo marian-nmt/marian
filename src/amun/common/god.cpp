@@ -24,6 +24,8 @@ using namespace std;
 
 namespace amunmt {
 
+extern std::string kernelPath; // hack
+
 God::God()
  : threadIncr_(0)
 {
@@ -136,6 +138,8 @@ void God::LoadScorers() {
   }
 #endif
 #ifdef HAS_FPGA
+  kernelPath = God::Get<std::string>("aocx-path");
+
   size_t fpgaThreads = God::Get<size_t>("fpga-threads");
   if (fpgaThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
