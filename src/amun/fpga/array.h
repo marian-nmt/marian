@@ -85,7 +85,7 @@ public:
 
   void Set(const T &val)
   {
-    abort();
+    assert(false);
 
     //CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
     /*

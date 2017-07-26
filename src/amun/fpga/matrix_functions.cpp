@@ -11,6 +11,8 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
+const string kernelPath = "/home/hieu/workspace/github/marian.hieu.fpga/build/matrix_functions.aocx";
+
 //////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
 void SetKernelArg(cl_kernel kernel, cl_uint argNum, const T &t)
@@ -81,7 +83,7 @@ float SumFloat(
   CheckError(err);
   assert(output);
 
-  CallOpenCL("kernels/matrix_functions.cl", "sum_float", openCLInfo,
+  CallOpenCL(kernelPath, "sum_float", openCLInfo,
       mem, output, size);
 
   // Read back the results from the device to verify the output
@@ -101,7 +103,7 @@ uint SumUInt(
   CheckError(err);
   assert(output);
 
-  CallOpenCL("kernels/matrix_functions.cl", "sum_uint", openCLInfo,
+  CallOpenCL(kernelPath, "sum_uint", openCLInfo,
       mem, output, size);
 
   // Read back the results from the device to verify the output
@@ -131,7 +133,7 @@ Matrix& CopyRows(
   //cerr << "indices=" << indices.Debug() << endl;
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gCopyRows", openCLInfo,
+  CallOpenCL(kernelPath, "gCopyRows", openCLInfo,
       Out.data(),
       In.data(),
       In.dimUInt(1),
@@ -160,10 +162,10 @@ void Fill(
 {
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
-  abort();
+  assert(false);
 
   //CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
-  CallOpenCL("kernels/matrix_functions.cl", "gFill", openCLInfo,
+  CallOpenCL(kernelPath, "gFill", openCLInfo,
       In.data(),
       value,
       In.sizeUInt());
@@ -177,7 +179,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In)
 
   Out.Resize(In.dim(1), In.dim(0));
 
-  CallOpenCL("/home/hieu/workspace/github/marian.hieu.fpga/build/matrix_functions.aocx", "transpose", openCLInfo,
+  CallOpenCL(kernelPath, "transpose", openCLInfo,
       Out.data(), In.data(), In.dimUInt(0), In.dimUInt(1));
 
   return Out;
@@ -228,7 +230,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   uint rowsB = B.dimUInt(0) * B.dimUInt(2) * B.dimUInt(3);
   uint colsB = B.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "prod", openCLInfo,
+  CallOpenCL(kernelPath, "prod", openCLInfo,
       C.data(),
       A.data(),
       B.data(),
@@ -252,7 +254,7 @@ void ElementwiseOps(mblas::Matrix& NextState,
 {
   const OpenCLInfo &openCLInfo = NextState.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gElementwiseOps", openCLInfo,
+  CallOpenCL(kernelPath, "gElementwiseOps", openCLInfo,
       NextState.data(),
       State.data(),
       RUH.data(),
@@ -273,7 +275,7 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gLogit", openCLInfo,
+  CallOpenCL(kernelPath, "gLogit", openCLInfo,
       Out.data(), In.data(), rows, cols);
 
   return Out;
@@ -286,7 +288,7 @@ Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gElementTanh", openCLInfo,
+  CallOpenCL(kernelPath, "gElementTanh", openCLInfo,
       Out.data(), In1.data(), In2.data(), rows, cols);
 
   return Out;
@@ -299,7 +301,7 @@ Matrix& ElementTanh2(Matrix& Out, const Matrix& In1, const Matrix& In2)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gElementTanh2", openCLInfo,
+  CallOpenCL(kernelPath, "gElementTanh2", openCLInfo,
       Out.data(), In1.data(), In2.data(), rows, cols);
 
   return Out;
@@ -312,7 +314,7 @@ Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gElementWhatever", openCLInfo,
+  CallOpenCL(kernelPath, "gElementWhatever", openCLInfo,
       Out.data(), In1.data(), In2.data(), rows, cols);
 
   return Out;
@@ -325,7 +327,7 @@ Matrix& ElementAddWeighted(Matrix& Out, float weight, const Matrix& In)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gElementAddWeighted", openCLInfo,
+  CallOpenCL(kernelPath, "gElementAddWeighted", openCLInfo,
       Out.data(), In.data(), rows, cols);
 
   return Out;
@@ -338,7 +340,7 @@ Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gBroadcastVecAdd", openCLInfo,
+  CallOpenCL(kernelPath, "gBroadcastVecAdd", openCLInfo,
       Out.data(), In.data(), rows, cols);
 
   return Out;
@@ -352,7 +354,7 @@ Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In)
   uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
   uint cols = Out.dimUInt(1);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gBroadcastVecTanh", openCLInfo,
+  CallOpenCL(kernelPath, "gBroadcastVecTanh", openCLInfo,
       Out.data(), In.data(), rows, cols);
 
   return Out;
@@ -369,7 +371,7 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   thread_local static Matrix Temp(openCLInfo);
   Temp.Resize(sumOfBeamSizes, cols, srcSize);
 
-  CallOpenCL("kernels/matrix_functions.cl", "gBroadcastTanh", openCLInfo,
+  CallOpenCL(kernelPath, "gBroadcastTanh", openCLInfo,
       Temp.data(),
       Out.data(),
       In.data(),
@@ -391,7 +393,7 @@ Matrix& BroadcastVecColumnAddWeighted(Matrix& Out, float weight, const Array<flo
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gBroadcastVecColumnAddWeighted", openCLInfo,
+  CallOpenCL(kernelPath, "gBroadcastVecColumnAddWeighted", openCLInfo,
       Out.data(),
       In.data(),
       Out.dimUInt(0),
@@ -410,7 +412,7 @@ Matrix& Slice(Matrix& Out,
 
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gSlice", openCLInfo,
+  CallOpenCL(kernelPath, "gSlice", openCLInfo,
       Out.data(),
       In.data(),
       n,
@@ -435,7 +437,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
   */
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gPasteRows", openCLInfo,
+  CallOpenCL(kernelPath, "gPasteRows", openCLInfo,
       Out.data(),
       (uint) rowNo,
       Out.dimUInt(1),
@@ -458,7 +460,7 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
 
   const OpenCLInfo &openCLInfo = state.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gMapMatrix", openCLInfo,
+  CallOpenCL(kernelPath, "gMapMatrix", openCLInfo,
       state.data(),
       batchSize,
       state.dimUInt(1),
@@ -477,7 +479,7 @@ void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
 
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gMean", openCLInfo,
+  CallOpenCL(kernelPath, "gMean", openCLInfo,
       Out.data(),
       In.data(),
       mapping.data(),
@@ -490,7 +492,7 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gSoftMax", openCLInfo,
+  CallOpenCL(kernelPath, "gSoftMax", openCLInfo,
       Out.data(),
       Out.dimUInt(0),
       Out.dimUInt(1),
@@ -506,7 +508,7 @@ Matrix& LogSoftmax(Matrix& Out)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gLogSoftMax", openCLInfo,
+  CallOpenCL(kernelPath, "gLogSoftMax", openCLInfo,
       Out.data(),
       Out.dimUInt(0),
       Out.dimUInt(1));
@@ -525,7 +527,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Arr
 
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gWeightedMean", openCLInfo,
+  CallOpenCL(kernelPath, "gWeightedMean", openCLInfo,
       Out.data(),
       Weights.data(),
       In.data(),
@@ -549,7 +551,7 @@ void MaxElement(
 {
   const OpenCLInfo &openCLInfo = d_out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gMaxElement", openCLInfo,
+  CallOpenCL(kernelPath, "gMaxElement", openCLInfo,
       d_out.data(),
       d_ind.data(),
       d_in.data(),
@@ -569,7 +571,7 @@ void NthElement(
 {
   const OpenCLInfo &openCLInfo = d_out.GetOpenCLInfo();
 
-  CallOpenCL("kernels/matrix_functions.cl", "gNthElement", openCLInfo,
+  CallOpenCL(kernelPath, "gNthElement", openCLInfo,
       Probs.data(),
       Probs.dimUInt(0),
       Probs.dimUInt(1),
