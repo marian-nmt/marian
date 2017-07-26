@@ -158,6 +158,7 @@ cl_kernel CreateKernel(const std::string &kernelName, const OpenCLInfo &openCLIn
   kernel = clCreateKernel(openCLInfo.program, kernelName.c_str(), &err);
   CheckError(err);
   assert(kernel);
+  cerr << "CreateKernel=" << kernelName << endl;
 
   return kernel;
 }
