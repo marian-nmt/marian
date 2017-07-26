@@ -115,7 +115,7 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
 
   scoped_array<cl_int> binary_status(openCLInfo.numDevices);
 
-  cerr << "CreateKernel1" << endl;
+  cerr << "CreateKernel1=" << kernelName << endl;
   program = clCreateProgramWithBinary(
                 openCLInfo.context,
                 openCLInfo.numDevices,
