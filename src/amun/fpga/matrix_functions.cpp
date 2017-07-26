@@ -177,7 +177,7 @@ Matrix& Transpose(Matrix& Out, const Matrix& In)
 
   Out.Resize(In.dim(1), In.dim(0));
 
-  CallOpenCL("kernels/matrix_functions.cl", "transpose", openCLInfo,
+  CallOpenCL("/home/hieu/workspace/github/marian.hieu.fpga/build/matrix_functions.aocx", "transpose", openCLInfo,
       Out.data(), In.data(), In.dimUInt(0), In.dimUInt(1));
 
   return Out;
