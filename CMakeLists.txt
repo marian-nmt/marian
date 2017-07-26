@@ -8,8 +8,8 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
-set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf")
+set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread -Wl,--no-as-needed -lalteracl -laltera_a10_ref_mmd -lelf")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
