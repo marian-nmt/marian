@@ -531,6 +531,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/fpga/nth_element.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/fpga/scoped_ptrs.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/fpga/scoped_ptrs.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/fpga/types-fpga.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/fpga/types-fpga.h</locationURI>

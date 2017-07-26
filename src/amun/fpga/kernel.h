@@ -13,6 +13,7 @@ cl_context CreateContext(
 cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const OpenCLInfo &openCLInfo);
 cl_command_queue CreateCommandQueue(const OpenCLInfo &openCLInfo);
 
+unsigned char *loadBinaryFile(const char *file_name, size_t *size);
 
 
 

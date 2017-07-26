@@ -4,6 +4,7 @@
 #include <cassert>
 #include "kernel.h"
 #include "debug-devices.h"
+#include "scoped_ptrs.h"
 
 using namespace std;
 
@@ -81,8 +82,9 @@ std::string LoadKernel(const std::string &filePath)
 cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelName, const OpenCLInfo &openCLInfo)
 {
   #define MAX_SOURCE_SIZE (0x100000)
+  using namespace aocl_utils;
 
-  int err;                            // error code returned from api calls
+  cl_int err;                            // error code returned from api calls
 
   cl_program program;                 // compute program
   cl_kernel kernel;                   // compute kernel
@@ -90,7 +92,49 @@ cl_kernel CreateKernel(const std::string &filePath, const std::string &kernelNam
   // Create the compute program from the source buffer
   string str = LoadKernel(filePath);
   const char *arr[1] = {str.c_str()};
-  program = clCreateProgramWithSource(openCLInfo.context, 1, (const char **) arr, NULL, &err);
+
+  //program = clCreateProgramWithSource(openCLInfo.context, 1, (const char **) arr, NULL, &err);
+
+  // Load the binary.
+  const char *binary_file_name = filePath.c_str();
+
+  size_t binary_size;
+  scoped_array<unsigned char> binary(loadBinaryFile(binary_file_name, &binary_size));
+  if(binary == NULL) {
+    CheckError(CL_INVALID_PROGRAM); //, "Failed to load binary file");
+  }
+
+  scoped_array<size_t> binary_lengths(openCLInfo.numDevices);
+  scoped_array<unsigned char*> binaries(openCLInfo.numDevices);
+  for (unsigned i = 0; i < openCLInfo.numDevices; ++i) {
+    binary_lengths[i] = binary_size;
+    binaries[i] = binary;
+  }
+
+  scoped_array<cl_int> binary_status(openCLInfo.numDevices);
+
+  program = clCreateProgramWithBinary(
+                openCLInfo.context,
+                openCLInfo.numDevices,
+                openCLInfo.devices,
+                binary_lengths,
+                (const unsigned char **) binaries.get(),
+                binary_status,
+                &err);
+  CheckError(err);
+
+  for(unsigned i = 0; i < openCLInfo.numDevices; ++i) {
+    CheckError(binary_status[i]); //, "Failed to load binary for device");
+  }
+
+  /*
+  program = clCreateProgramWithBinary(
+                openCLInfo.context,
+                openCLInfo.numDevices,
+                openCLInfo.devices,
+                );
+  */
+
   CheckError(err);
   assert(program);
 
@@ -130,6 +174,41 @@ cl_command_queue CreateCommandQueue(const OpenCLInfo &openCLInfo)
   assert(commands);
 
   return commands;
+}
+
+// Loads a file in binary form.
+unsigned char *loadBinaryFile(const char *file_name, size_t *size) {
+  // Open the File
+  FILE* fp;
+#ifdef _WIN32
+  if(fopen_s(&fp, file_name, "rb") != 0) {
+    return NULL;
+  }
+#else
+  fp = fopen(file_name, "rb");
+  if(fp == 0) {
+    return NULL;
+  }
+#endif
+
+  // Get the size of the file
+  fseek(fp, 0, SEEK_END);
+  *size = ftell(fp);
+
+  // Allocate space for the binary
+  unsigned char *binary = new unsigned char[*size];
+
+  // Go back to the file start
+  rewind(fp);
+
+  // Read the file into the binary
+  if(fread((void*)binary, *size, 1, fp) == 0) {
+    delete[] binary;
+    fclose(fp);
+    return NULL;
+  }
+
+  return binary;
 }
 
 }
