@@ -86,7 +86,15 @@ public:
   void Set(const T &val)
   {
     abort();
+
     //CheckError( clEnqueueFillBuffer(openCLInfo_.commands, mem_, &val, sizeof(T), 0, size() * sizeof(T), 0, NULL, NULL) );
+    /*
+    CallOpenCL("kernels/matrix_functions.cl", "gFill", openCLInfo_,
+        mem_,
+        val,
+        size_);
+    */
+
     CheckError( clFinish(openCLInfo_.commands) );
   }
 

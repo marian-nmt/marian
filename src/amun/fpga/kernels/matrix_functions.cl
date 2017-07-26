@@ -581,5 +581,17 @@ __kernel void gNthElement(
   }    
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
+__kernel void gFill(
+                __global float* restrict d_out, 
+                float val, 
+                uint size)
+{
+  for (uint i = 0; i < size; ++i) {
+    d_out[i] = val;
+  }
+}
+
 
 

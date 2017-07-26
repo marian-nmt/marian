@@ -161,7 +161,13 @@ void Fill(
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
 
   abort();
+
   //CheckError( clEnqueueFillBuffer(openCLInfo.commands, In.data(), &value, sizeof(float), 0, In.size() * sizeof(float), 0, NULL, NULL) );
+  CallOpenCL("kernels/matrix_functions.cl", "gFill", openCLInfo,
+      In.data(),
+      value,
+      In.sizeUInt());
+
   CheckError( clFinish(openCLInfo.commands) );
 }
 
