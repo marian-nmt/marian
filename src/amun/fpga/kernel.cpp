@@ -103,8 +103,8 @@ void CreateProgram(OpenCLInfo &openCLInfo, const std::string &filePath)
 
   scoped_array<cl_int> binary_status(openCLInfo.numDevices);
 
-  cout << "binary_lengths=" << binary_lengths.get()[0] << endl;
-  cout << "openCLInfo.numDevices=" << openCLInfo.numDevices << endl;
+  cerr << "binary_lengths=" << binary_lengths.get()[0] << endl;
+  cerr << "openCLInfo.numDevices=" << openCLInfo.numDevices << endl;
 
   openCLInfo.program = clCreateProgramWithBinary(
                 openCLInfo.context,
