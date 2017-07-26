@@ -6,7 +6,6 @@
 #include "model.h"
 #include "common/god.h"
 #include "kernel.h"
-#include "hello_world.h"
 
 using namespace std;
 
@@ -17,24 +16,10 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
                      const YAML::Node& config)
 :Loader(name, config)
 {
-  cerr << "opencl start" << endl;
   openCLInfo_.context = CreateContext(100, openCLInfo_.devices, openCLInfo_.numDevices);
   openCLInfo_.device = openCLInfo_.devices[0];
   openCLInfo_.commands = CreateCommandQueue(openCLInfo_);
-
-  cerr << "EncoderDecoderLoader1:" << endl;
-
-  cl_kernel kernel = CreateKernel("kernels/square.cl", "square", openCLInfo_);
-
-  cerr << "EncoderDecoderLoader2:" << endl;
-  HelloWorld(kernel, openCLInfo_, openCLInfo_.commands, 1024);
-  cerr << "EncoderDecoderLoader3:" << endl;
-  HelloWorld(kernel, openCLInfo_, openCLInfo_.commands, 2048);
-  cerr << "EncoderDecoderLoader4:" << endl;
-
-  clReleaseKernel(kernel);
-
-  cerr << "opencl end" << endl;
+  cerr << "openCLInfo_ created" << endl;
 }
 
 
