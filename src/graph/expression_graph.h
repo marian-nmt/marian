@@ -426,6 +426,7 @@ public:
     using namespace keywords;
 
     LOG(info)->info("Loading model from {}", name);
+    setReloaded(false);
 
     auto numpy = cnpy::npz_load(name);
 

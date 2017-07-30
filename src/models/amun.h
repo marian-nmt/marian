@@ -93,6 +93,8 @@ public:
            {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
            {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
 
+    graph->setReloaded(false);
+
     for(auto it : numpy) {
       auto name = it.first;
 

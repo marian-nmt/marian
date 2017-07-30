@@ -207,6 +207,8 @@ Ptr<Scorer> scorerByType(std::string fname,
                          Ptr<Config> options) {
   std::string type = options->get<std::string>("type");
 
+  std::cerr << fname << " " << type << std::endl;
+
   if(type == "s2s") {
     return New<ScorerWrapper<S2S>>(fname, weight, model, options);
   } else if(type == "amun") {
