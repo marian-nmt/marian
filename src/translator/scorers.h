@@ -6,6 +6,7 @@
 #include "models/amun.h"
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
+#include "models/lm.h"
 
 namespace marian {
 
@@ -210,6 +211,9 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<S2S>>(fname, weight, model, options);
   } else if(type == "amun") {
     return New<ScorerWrapper<Amun>>(fname, weight, model, options);
+  } else if(type == "lm") {
+    const std::vector<size_t> idx = {1};
+    return New<ScorerWrapper<LM>>(fname, weight, model, options, idx);
   } else if(type == "hard-att") {
     return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
   } else if(type == "hard-soft-att") {
@@ -250,4 +254,5 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
 
   return scorers;
 }
+
 }
