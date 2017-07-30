@@ -82,7 +82,7 @@ class GradientDropBase {
       float* data, float* errors, float* tmp, int len, float rate) {
     int threads = 512;
     int blocks = 1 + len / threads;
-    cudaSetDevice(_device);
+    CUDA_CHECK(cudaSetDevice(_device));
 
     grad_add_error<<<blocks, threads>>>(data, errors, len);
     // full sort
@@ -91,47 +91,49 @@ class GradientDropBase {
     int blocksSample = 1 + sortSize / threads;
     randomSampling<<<blocksSample, threads>>>(
         data, tmp, sortSize, len / sortSize, len);
-    // dont update the cut threshold every step
 
     thrust::device_ptr<float> dev_data_ptr(tmp);
     thrust::sort(dev_data_ptr, dev_data_ptr + sortSize);
 
     int cut_index = std::max(0, (int)(sortSize * rate) - 1);
-    cudaMemcpy(
-        &cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost);
+    CUDA_CHECK(cudaMemcpy(
+        &cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost));
 
     grad_drop<<<blocks, threads>>>(data, tmp, errors, cut_off, len);
   }
 
 public:
   void dropGraph(Tensor t, SparseTensor destination, double rate = 0.99) {
-    cudaSetDevice(t->getDevice());
+    CUDA_CHECK(cudaSetDevice(t->getDevice()));
     if(!feedback) {
       _device = t->getDevice();
       CUDA_CHECK(cudaMalloc(&feedback, sizeof(float) * t->size()));
       CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
-      cudaMemset(feedback, 0, sizeof(float) * t->size());
-      cudaMemset(temp_d, 0, sizeof(float) * t->size());
+      CUDA_CHECK(cudaMemset(feedback, 0, sizeof(float) * t->size()));
+      CUDA_CHECK(cudaMemset(temp_d, 0, sizeof(float) * t->size()));
 
       step = 0;
     }
 
+    //drop the gradient. Temp_d will hold a binary array:
+    //temp_d[i] = 0 if gradient at index i is dropped, otherwise temp_d[i] = 1
     grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
 
+    // do inclusive sum on temp_d to obtain the gradients location on the sparse matrix
     thrust::device_ptr<float> mask_ptr(temp_d);
     int denseSize = t->size();
     thrust::inclusive_scan(mask_ptr, mask_ptr + denseSize, mask_ptr);
     float sparseSize;
 
-    cudaMemcpy(&sparseSize,
+    CUDA_CHECK(cudaMemcpy(&sparseSize,
                temp_d + denseSize - 1,
                sizeof(float),
-               cudaMemcpyDeviceToHost);
+               cudaMemcpyDeviceToHost));
 
-    // convert result of exscan to indices.
+    // convert result of inclusive sum to indices.
     int threads = 512;
     int blocks = 1 + denseSize / threads;
-    cudaSetDevice(t->getDevice());
+    CUDA_CHECK(cudaSetDevice(t->getDevice()));
     buildIndices<<<blocks, threads>>>(t->data(),
                                       temp_d,
                                       destination->data(),
@@ -139,7 +141,7 @@ public:
                                       denseSize);
     destination->setSize(sparseSize);
 
-    cudaStreamSynchronize(0);
+    CUDA_CHECK(cudaStreamSynchronize(0));
 
     step++;
   }
