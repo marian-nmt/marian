@@ -21,7 +21,6 @@ private:
   size_t samplesDisp{0};
   size_t wordsDisp{0};
   size_t batches{0};
-  size_t batchesInEpoch{0};
 
   Ptr<TrainingState> trainState_;
 
@@ -57,7 +56,6 @@ public:
     epochs++;
     trainState_->newEpoch(epochs);
     samples = 0;
-    batchesInEpoch = 0;
 
     LOG(info)->info("Starting epoch {}", epochs);
   }
@@ -114,21 +112,11 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
+    costSum += cost * batch->size();
+    samples += batch->size();
+    samplesDisp += batch->size();
+    wordsDisp += batch->words();
     batches++;
-    batchesInEpoch++;
-
-    size_t numDevices = options_->get<std::vector<size_t>>("devices").size();
-    if(batchesInEpoch <= numDevices) {
-      timer.start();
-      costSum = 0;
-      wordsDisp = 0;
-      samplesDisp = 0;
-    } else {
-      costSum += cost * batch->size();
-      samples += batch->size();
-      samplesDisp += batch->size();
-      wordsDisp += batch->words();
-    }
 
     if(batches % options_->get<size_t>("disp-freq") == 0) {
       LOG(info)
