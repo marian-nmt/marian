@@ -45,7 +45,7 @@ __global__ void buildIndices(float* denseData,
                              float* denseSum,
                              float* sparseData,
                              int* sparseIndices,
-                             int denseSize) {
+                             int denseSize) { 
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= denseSize)
     return;
@@ -79,10 +79,10 @@ class GradientDropBase {
   int _device;
 
   void grad_drop_do(
-      float* data, float* errors, float* tmp, int len, float rate) {
+    float* data, float* errors, float* tmp, int len, float rate) {
     int threads = 512;
     int blocks = 1 + len / threads;
-    CUDA_CHECK(cudaSetDevice(_device));
+    cudaSetDevice(_device);
 
     grad_add_error<<<blocks, threads>>>(data, errors, len);
     // full sort
@@ -104,7 +104,7 @@ class GradientDropBase {
 
 public:
   void dropGraph(Tensor t, SparseTensor destination, double rate = 0.99) {
-    CUDA_CHECK(cudaSetDevice(t->getDevice()));
+    t->getDevice();
     if(!feedback) {
       _device = t->getDevice();
       CUDA_CHECK(cudaMalloc(&feedback, sizeof(float) * t->size()));
@@ -133,7 +133,7 @@ public:
     // convert result of inclusive sum to indices.
     int threads = 512;
     int blocks = 1 + denseSize / threads;
-    CUDA_CHECK(cudaSetDevice(t->getDevice()));
+    cudaSetDevice(t->getDevice());
     buildIndices<<<blocks, threads>>>(t->data(),
                                       temp_d,
                                       destination->data(),
@@ -141,7 +141,7 @@ public:
                                       denseSize);
     destination->setSize(sparseSize);
 
-    CUDA_CHECK(cudaStreamSynchronize(0));
+    cudaStreamSynchronize(0);
 
     step++;
   }
