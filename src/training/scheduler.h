@@ -61,7 +61,7 @@ public:
   }
 
   void started() { LOG(info)->info("Training started"); }
-  void finished() { LOG(info)->info("Training finshed"); }
+  void finished() { LOG(info)->info("Training finished"); }
 
   void addValidator(Ptr<Validator<DataSet>> validator) {
     validators_.push_back(validator);
