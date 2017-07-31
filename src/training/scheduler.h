@@ -80,9 +80,6 @@ public:
     if(batches % options_->get<size_t>("valid-freq") != 0)
       return;
 
-    // stop measuring training time for all validation runs
-    timer.stop();
-
     bool firstValidator = true;
     for(auto validator : validators_) {
       if(!validator)
@@ -107,8 +104,6 @@ public:
         trainState_->newStalled(validator->stalled());
       firstValidator = false;
     }
-
-    timer.resume();
   }
 
   size_t stalled() {
@@ -122,9 +117,6 @@ public:
     batches++;
     batchesInEpoch++;
 
-    // Skip very first batches in each epoch in the calculation of the training
-    // time as they are longer due to the graph initialization on each device
-    // used.
     size_t numDevices = options_->get<std::vector<size_t>>("devices").size();
     if(batchesInEpoch <= numDevices) {
       timer.start();
