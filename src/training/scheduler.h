@@ -21,7 +21,6 @@ private:
   size_t samplesDisp{0};
   size_t wordsDisp{0};
   size_t batches{0};
-  size_t batchesInEpoch{0};
 
   Ptr<TrainingState> trainState_;
 
@@ -57,13 +56,12 @@ public:
     epochs++;
     trainState_->newEpoch(epochs);
     samples = 0;
-    batchesInEpoch = 0;
 
     LOG(info)->info("Starting epoch {}", epochs);
   }
 
   void started() { LOG(info)->info("Training started"); }
-  void finished() { LOG(info)->info("Training finshed"); }
+  void finished() { LOG(info)->info("Training finished"); }
 
   void addValidator(Ptr<Validator<DataSet>> validator) {
     validators_.push_back(validator);
@@ -79,9 +77,6 @@ public:
   void validate(Ptr<ExpressionGraph> graph) {
     if(batches % options_->get<size_t>("valid-freq") != 0)
       return;
-
-    // stop measuring training time for all validation runs
-    timer.stop();
 
     bool firstValidator = true;
     for(auto validator : validators_) {
@@ -107,8 +102,6 @@ public:
         trainState_->newStalled(validator->stalled());
       firstValidator = false;
     }
-
-    timer.resume();
   }
 
   size_t stalled() {
@@ -119,24 +112,11 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
+    costSum += cost * batch->size();
+    samples += batch->size();
+    samplesDisp += batch->size();
+    wordsDisp += batch->words();
     batches++;
-    batchesInEpoch++;
-
-    // Skip very first batches in each epoch in the calculation of the training
-    // time as they are longer due to the graph initialization on each device
-    // used.
-    size_t numDevices = options_->get<std::vector<size_t>>("devices").size();
-    if(batchesInEpoch <= numDevices) {
-      timer.start();
-      costSum = 0;
-      wordsDisp = 0;
-      samplesDisp = 0;
-    } else {
-      costSum += cost * batch->size();
-      samples += batch->size();
-      samplesDisp += batch->size();
-      wordsDisp += batch->words();
-    }
 
     if(batches % options_->get<size_t>("disp-freq") == 0) {
       LOG(info)
