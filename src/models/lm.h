@@ -44,10 +44,22 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
              ("skip", opt<bool>("skip"));
 
   size_t decoderLayers = opt<size_t>("dec-depth");
+  size_t decoderBaseDepth = opt<size_t>("dec-cell-base-depth");
   size_t decoderHighDepth = opt<size_t>("dec-cell-high-depth");
 
+  // setting up conditional (transitional) cell
+  auto baseCell = rnn::stacked_cell(graph);
+  for(int i = 1; i <= decoderBaseDepth; ++i) {
+    auto paramPrefix = prefix_ + "_cell" + std::to_string(i);
+    baseCell.push_back(rnn::cell(graph)
+                       ("prefix", paramPrefix)
+                       ("final", i > 1));
+  }
+  // Add cell to RNN (first layer)
+  rnn.push_back(baseCell);
+
   // Add more cells to RNN (stacked RNN)
-  for(int i = 1; i <= decoderLayers; ++i) {
+  for(int i = 2; i <= decoderLayers; ++i) {
     // deep transition
     auto highCell = rnn::stacked_cell(graph);
 
@@ -63,7 +75,6 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
 
   return rnn.construct();
 }
-
 public:
   template <class... Args>
   DecoderLM(Ptr<Config> options, Args... args)
