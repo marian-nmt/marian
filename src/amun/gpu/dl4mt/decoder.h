@@ -5,7 +5,7 @@
 #include "gru.h"
 #include "gpu/types-gpu.h"
 #include "common/god.h"
-#include "gru.h"
+#include "cell.h"
 
 namespace amunmt {
 namespace GPU {
