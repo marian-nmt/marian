@@ -323,8 +323,6 @@ private:
             if(movingAvg_)
               updateMovingAverage(paramsAvg_[idx], params_[latestVersion][idx],
                                   scheduler_->numberOfBatches());
-
-            cudaStreamSynchronize(0);
           },
           idx,
           pos));
@@ -433,7 +431,6 @@ private:
                                     params_[latestVersion][idx],
                                     scheduler_->numberOfBatches());
 
-              cudaStreamSynchronize(0);
             },
             idx,
             pos));

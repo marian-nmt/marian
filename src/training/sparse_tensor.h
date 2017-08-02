@@ -67,8 +67,6 @@ public:
 
     CUDA_CHECK(cudaMalloc(&gstart_, sizeof(int) * 100));
     CUDA_CHECK(cudaMalloc(&gend_, sizeof(int) * 100));
-
-    cudaStreamSynchronize(0);
   }
 
   SparseTensorBase(float* data, int* indices, int size, size_t device) {
@@ -99,23 +97,16 @@ public:
       return;
     cudaSetDevice(device_);
 
-    CUDA_CHECK(cudaMemcpy(
-      data_, data, size * sizeof(float), cudaMemcpyDefault));
+    cudaMemcpy(data_, data, size * sizeof(float), cudaMemcpyDefault);
     if(!data_only)
-      CUDA_CHECK(cudaMemcpy(
-        indices_, indices, size * sizeof(int), cudaMemcpyDefault));
-
-    CUDA_CHECK(cudaStreamSynchronize(0));
+      cudaMemcpy(indices_, indices, size * sizeof(int), cudaMemcpyDefault);
+    cudaStreamSynchronize(0);
   }
 
   // copy from another sparse tensor
   void copyFrom(std::shared_ptr<SparseTensorBase> t, bool data_only = false) {
     copyFrom(t->data(), t->indices(), t->size(), data_only);
-
-    cudaStreamSynchronize(0);
   }
-
-  void copyFromDense(Tensor t) { CUDA_CHECK(cudaSetDevice(device_)); }
 
   size_t getDevice() { return device_; }
 
@@ -129,17 +120,16 @@ public:
     t->set(0);
     gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
-
-    cudaStreamSynchronize(0);
+    cudaStreamSynchronize(0); 
   }
 
   void scatterAdd(Tensor t, int offset = 0) {
     cudaSetDevice(device_);
+    cudaStreamSynchronize(0);
     int threads = 512;
     int blocks = 1 + size_ / threads;
     gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
-
     cudaStreamSynchronize(0);
   }
 
@@ -151,8 +141,8 @@ public:
 
     int threads = 512;
     int blocks = 1 + size_ / threads;
-    CUDA_CHECK(cudaMemset(start, -1, sizeof(int)));
-    CUDA_CHECK(cudaMemset(end, 0, sizeof(int)));
+    cudaMemset(start, -1, sizeof(int));
+    cudaMemset(end, 0, sizeof(int));
 
     gFindSubtensor<<<blocks, threads>>>(
         indices_, size_, pos, pos + size, start, end);
@@ -160,17 +150,14 @@ public:
     int startOffset;
     int endOffset;
     int tmp_dt;
-    CUDA_CHECK(cudaMemcpy(
-      &startOffset, start, sizeof(int), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(
-      &endOffset, end, sizeof(int), cudaMemcpyDeviceToHost));
+    cudaMemcpy(&startOffset, start, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&endOffset, end, sizeof(int), cudaMemcpyDeviceToHost);
 
     if(startOffset != -1 && startOffset < size_)
-      CUDA_CHECK(cudaMemcpy(
-          &tmp_dt, indices_ + startOffset, sizeof(int), cudaMemcpyDeviceToHost));
+      cudaMemcpy(
+          &tmp_dt, indices_ + startOffset, sizeof(int), cudaMemcpyDeviceToHost);
 
     int subtensorSize = max(0, endOffset - startOffset + 1);
-
     cudaStreamSynchronize(0);
     return std::shared_ptr<SparseTensorBase>(new SparseTensorBase(
         data_ + startOffset, indices_ + startOffset, subtensorSize, device_));

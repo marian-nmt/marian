@@ -45,7 +45,7 @@ __global__ void buildIndices(float* denseData,
                              float* denseSum,
                              float* sparseData,
                              int* sparseIndices,
-                             int denseSize) { 
+                             int denseSize) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= denseSize)
     return;
@@ -79,7 +79,7 @@ class GradientDropBase {
   int _device;
 
   void grad_drop_do(
-    float* data, float* errors, float* tmp, int len, float rate) {
+      float* data, float* errors, float* tmp, int len, float rate) {
     int threads = 512;
     int blocks = 1 + len / threads;
     cudaSetDevice(_device);
@@ -96,41 +96,40 @@ class GradientDropBase {
     thrust::sort(dev_data_ptr, dev_data_ptr + sortSize);
 
     int cut_index = std::max(0, (int)(sortSize * rate) - 1);
-    CUDA_CHECK(cudaMemcpy(
-        &cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost));
+    cudaMemcpy(
+        &cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost);
 
     grad_drop<<<blocks, threads>>>(data, tmp, errors, cut_off, len);
   }
 
 public:
   void dropGraph(Tensor t, SparseTensor destination, double rate = 0.99) {
-    t->getDevice();
+    cudaSetDevice(t->getDevice());
     if(!feedback) {
       _device = t->getDevice();
       CUDA_CHECK(cudaMalloc(&feedback, sizeof(float) * t->size()));
       CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
-      CUDA_CHECK(cudaMemset(feedback, 0, sizeof(float) * t->size()));
-      CUDA_CHECK(cudaMemset(temp_d, 0, sizeof(float) * t->size()));
+      cudaMemset(feedback, 0, sizeof(float) * t->size());
+      cudaMemset(temp_d, 0, sizeof(float) * t->size());
 
       step = 0;
     }
 
-    //drop the gradient. Temp_d will hold a binary array:
-    //temp_d[i] = 0 if gradient at index i is dropped, otherwise temp_d[i] = 1
+    // drop the gradients in t->data(). Also fills in feedback with the propagated error
+    // fills temp_d with binary flag. 0 means that gradient in that position is dropped, 1 otherwise
     grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
 
-    // do inclusive sum on temp_d to obtain the gradients location on the sparse matrix
+    //do inclusive sum on temp_d, to obtain the sparse matrix location of non-dropped gradients
     thrust::device_ptr<float> mask_ptr(temp_d);
     int denseSize = t->size();
     thrust::inclusive_scan(mask_ptr, mask_ptr + denseSize, mask_ptr);
     float sparseSize;
 
-    CUDA_CHECK(cudaMemcpy(&sparseSize,
+    cudaMemcpy(&sparseSize,
                temp_d + denseSize - 1,
                sizeof(float),
-               cudaMemcpyDeviceToHost));
+               cudaMemcpyDeviceToHost);
 
-    // convert result of inclusive sum to indices.
     int threads = 512;
     int blocks = 1 + denseSize / threads;
     cudaSetDevice(t->getDevice());
