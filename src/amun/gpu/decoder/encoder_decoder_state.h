@@ -3,7 +3,7 @@
 #include <string>
 #include "common/scorer.h"
 
-#include "gpu/mblas/matrix.h"
+#include "gpu/dl4mt/cellstate.h"
 
 namespace amunmt {
 namespace GPU {
@@ -15,13 +15,13 @@ class EncoderDecoderState : public State {
 
     virtual std::string Debug(size_t verbosity = 1) const;
 
-    mblas::Matrix& GetStates();
+    CellState& GetStates();
     mblas::Matrix& GetEmbeddings();
-    const mblas::Matrix& GetStates() const;
+    const CellState& GetStates() const;
     const mblas::Matrix& GetEmbeddings() const;
 
   private:
-    mblas::Matrix states_;
+    CellState states_;
     mblas::Matrix embeddings_;
 };
 

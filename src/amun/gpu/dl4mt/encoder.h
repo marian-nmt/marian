@@ -7,6 +7,7 @@
 #include "gpu/types-gpu.h"
 #include "gru.h"
 #include "cell.h"
+#include "cellstate.h"
 
 namespace amunmt {
 
@@ -51,12 +52,17 @@ class Encoder {
           : gru_(std::move(cell)) {}
 
         void InitializeState(size_t batchSize = 1) {
-          State_.NewSize(batchSize, gru_->GetStateLength());
-          mblas::Fill(State_, 0.0f);
+          CellLength cellLength = gru_->GetStateLength();
+          if (cellLength.cell > 0) {
+            State_.cell->NewSize(batchSize, cellLength.cell);
+            mblas::Fill(*(State_.cell), 0.0f);
+          }
+          State_.output->NewSize(batchSize, cellLength.output);
+          mblas::Fill(*(State_.output), 0.0f);
         }
 
-        void GetNextState(mblas::Matrix& NextState,
-                          const mblas::Matrix& State,
+        void GetNextState(CellState& NextState,
+                          const CellState& State,
                           const mblas::Matrix& Embd) {
           gru_->GetNextState(NextState, State, Embd);
         }
@@ -67,42 +73,47 @@ class Encoder {
         {
           InitializeState(batchSize);
 
-          mblas::Matrix prevState(State_);
+          CellState prevState(std::unique_ptr<mblas::Matrix>(new mblas::Matrix(*(State_.cell))),
+                              std::unique_ptr<mblas::Matrix>(new mblas::Matrix(*(State_.output))));
           size_t n = std::distance(it, end);
           size_t i = 0;
 
           while(it != end) {
             GetNextState(State_, prevState, *it++);
-	    
+
             //std::cerr << "invert=" << invert << std::endl;
             if(invert) {
               assert(sentencesMask);
 
               //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
               //std::cerr << "mapping=" << mblas::Debug(*mapping) << std::endl;
-              mblas::MapMatrix(State_, *sentencesMask, n - i - 1);
+              //mblas::MapMatrix(*(State_.cell), *sentencesMask, n - i - 1);
+              mblas::MapMatrix(*(State_.output), *sentencesMask, n - i - 1);
               //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
-              mblas::PasteRows(Context, State_, (n - i - 1), gru_->GetStateLength());
+              mblas::PasteRows(Context, *(State_.output), (n - i - 1), gru_->GetStateLength().output);
             }
             else {
               //std::cerr << "1Context=" << Context.Debug(1) << std::endl;
-              mblas::PasteRows(Context, State_, i, 0);
+              mblas::PasteRows(Context, *(State_.output), i, 0);
               //std::cerr << "2Context=" << Context.Debug(1) << std::endl;
             }
 
-            prevState.swap(State_);
+            if (State_.cell->size() > 0) {
+              prevState.cell->swap(*(State_.cell));
+            }
+            prevState.output->swap(*(State_.output));
             ++i;
           }
         }
 
-        size_t GetStateLength() const {
+        CellLength GetStateLength() const {
           return gru_->GetStateLength();
         }
 
       private:
         const std::unique_ptr<Cell> gru_;
-        mblas::Matrix State_;
+        CellState State_;
         RNN(const RNN&) = delete;
     };
 

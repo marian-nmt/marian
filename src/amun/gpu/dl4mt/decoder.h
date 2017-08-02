@@ -6,6 +6,7 @@
 #include "gpu/types-gpu.h"
 #include "common/god.h"
 #include "cell.h"
+#include "cellstate.h"
 
 namespace amunmt {
 namespace GPU {
@@ -58,13 +59,18 @@ class Decoder {
         , gru_(std::move(cell))
         {}
 
-        void InitializeState(mblas::Matrix& State,
+        void InitializeState(CellState& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize,
                              const mblas::IMatrix &sentencesMask)
         {
           using namespace mblas;
 
+          CellLength cellLength = gru_->GetStateLength();
+          if (cellLength.cell > 0) {
+            State.cell->NewSize(batchSize, cellLength.cell);
+            mblas::Fill(*(State.cell), 0.0f);
+          }
           //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
           Temp2_.NewSize(batchSize, SourceContext.dim(1), 1, 1);
           //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
@@ -76,23 +82,23 @@ class Decoder {
           //std::cerr << "1State=" << State.Debug(1) << std::endl;
           //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
           //std::cerr << "w_.Wi_=" << w_.Wi_->Debug(1) << std::endl;
-          Prod(State, Temp2_, *w_.Wi_);
+          Prod(*(State.output), Temp2_, *w_.Wi_);
 
           //std::cerr << "2State=" << State.Debug(1) << std::endl;
           //State.ReduceDimensions();
 
           if (w_.Gamma_->size()) {
-            Normalization(State, State, *w_.Gamma_, *w_.Bi_, 1e-9);
-            Element(Tanh(_1), State);
+            Normalization(*(State.output), *(State.output), *w_.Gamma_, *w_.Bi_, 1e-9);
+            Element(Tanh(_1), *(State.output));
           } else {
-            BroadcastVec(Tanh(_1 + _2), State, *w_.Bi_);
+            BroadcastVec(Tanh(_1 + _2), *(State.output), *w_.Bi_);
           }
           //std::cerr << "3State=" << State.Debug(1) << std::endl;
           //std::cerr << "\n";
         }
 
-        void GetNextState(mblas::Matrix& NextState,
-                          const mblas::Matrix& State,
+        void GetNextState(CellState& NextState,
+                          const CellState& State,
                           const mblas::Matrix& Context) {
           gru_->GetNextState(NextState, State, Context);
         }
@@ -113,8 +119,8 @@ class Decoder {
         RNNFinal(std::unique_ptr<Cell> cell)
           : gru_(std::move(cell)) {}
 
-        void GetNextState(mblas::Matrix& NextState,
-                          const mblas::Matrix& State,
+        void GetNextState(CellState& NextState,
+                          const CellState& State,
                           const mblas::Matrix& Context) {
           gru_->GetNextState(NextState, State, Context);
         }
@@ -145,7 +151,7 @@ class Decoder {
         }
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                                     const mblas::Matrix& HiddenState,
+                                     const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
                                      const mblas::IMatrix &sentencesMask,
                                      const std::vector<uint>& beamSizes)
@@ -160,7 +166,7 @@ class Decoder {
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
 
-          HostVector<uint> batchMapping(HiddenState.dim(0));
+          HostVector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
@@ -179,7 +185,7 @@ class Decoder {
 
           const size_t srcSize = sentencesMask.size() / beamSizes.size();
 
-          Prod(/*h_[1],*/ Temp2_, HiddenState, *w_.W_);
+          Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_);
           //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
 
           if (w_.Gamma_2_->size()) {
@@ -247,13 +253,13 @@ class Decoder {
         }
 
         void GetProbs(mblas::Matrix& Probs,
-                  const mblas::Matrix& State,
+                  const CellState& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
           BEGIN_TIMER("GetProbs.Prod");
-          Prod(/*h_[0],*/ T1_, State, *w_.W1_);
+          Prod(/*h_[0],*/ T1_, *(State.output), *w_.W1_);
           PAUSE_TIMER("GetProbs.Prod");
 
           BEGIN_TIMER("GetProbs.Normalization/BroadcastVec");
@@ -355,8 +361,8 @@ class Decoder {
       softmax_(model.decSoftmax_)
     {}
 
-    void Decode(mblas::Matrix& NextState,
-                  const mblas::Matrix& State,
+    void Decode(CellState& NextState,
+                  const CellState& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
                   const mblas::IMatrix &sentencesMask,
@@ -394,7 +400,7 @@ class Decoder {
       return Probs_;
     }
 
-    void EmptyState(mblas::Matrix& State,
+    void EmptyState(CellState& State,
                     const mblas::Matrix& SourceContext,
                     size_t batchSize,
                     const mblas::IMatrix &sentencesMask)
@@ -431,14 +437,14 @@ class Decoder {
 
   private:
 
-    void GetHiddenState(mblas::Matrix& HiddenState,
-                        const mblas::Matrix& PrevState,
+    void GetHiddenState(CellState& HiddenState,
+                        const CellState& PrevState,
                         const mblas::Matrix& Embedding) {
       rnn1_.GetNextState(HiddenState, PrevState, Embedding);
     }
 
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                                  const mblas::Matrix& HiddenState,
+                                  const CellState& HiddenState,
                                   const mblas::Matrix& SourceContext,
                                   const mblas::IMatrix &sentencesMask,
                                   const std::vector<uint>& beamSizes) {
@@ -446,21 +452,21 @@ class Decoder {
                                          sentencesMask, beamSizes);
     }
 
-    void GetNextState(mblas::Matrix& State,
-                      const mblas::Matrix& HiddenState,
+    void GetNextState(CellState& State,
+                      const CellState& HiddenState,
                       const mblas::Matrix& AlignedSourceContext) {
       rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
     }
 
 
-    void GetProbs(const mblas::Matrix& State,
+    void GetProbs(const CellState& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
       softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
     }
 
   private:
-    mblas::Matrix HiddenState_;
+    CellState HiddenState_;
     mblas::Matrix AlignedSourceContext_;
     mblas::Matrix Probs_;
 

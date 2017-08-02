@@ -54,7 +54,7 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
   context.NewSize(maxSentenceLength,
-                 forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
+                 forwardRnn_.GetStateLength().output + backwardRnn_.GetStateLength().output,
                  1,
                  source.size());
   //cerr << "GetContext2=" << context.Debug(1) << endl;

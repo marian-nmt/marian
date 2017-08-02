@@ -4,6 +4,7 @@
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/dl4mt/cell.h"
+#include "cellstate.h"
 
 namespace amunmt {
 namespace GPU {
@@ -14,8 +15,8 @@ class SlowGRU: public Cell {
     SlowGRU(const Weights& model)
     : w_(model) {}
 
-    virtual void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
+    virtual void GetNextState(CellState& NextState,
+                      const CellState& State,
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
@@ -31,8 +32,8 @@ class SlowGRU: public Cell {
       // -----------------------------------------------------
 
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(Temp1_, State, *w_.U_);
-      Prod(Temp2_, State, *w_.Ux_);
+      Prod(Temp1_, *(State.output), *w_.U_);
+      Prod(Temp2_, *(State.output), *w_.Ux_);
       //std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
@@ -70,15 +71,15 @@ class SlowGRU: public Cell {
       //std::cerr << "1U_=" << U_.Debug(1) << std::endl;
       //std::cerr << "H_=" << H_.Debug(1) << std::endl;
       //std::cerr << "State=" << State.Debug(1) << std::endl;
-      Element((1.0 - _1) * _2 + _1 * _3, U_, H_, State);
+      Element((1.0 - _1) * _2 + _1 * _3, U_, H_, *(State.output));
       //std::cerr << "2U_=" << H_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
-      Swap(NextState, U_);
+      Swap(*(NextState.output), U_);
     }
 
-    virtual size_t GetStateLength() const {
-      return w_.U_->dim(0);
+    virtual CellLength GetStateLength() const {
+      return CellLength(0, w_.U_->dim(0));
     }
 
   private:
@@ -145,8 +146,8 @@ class FastGRU: public Cell {
       //std::cerr << std::endl;
     }
 
-    virtual void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
+    virtual void GetNextState(CellState& NextState,
+                      const CellState& State,
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
@@ -163,7 +164,7 @@ class FastGRU: public Cell {
         Normalization(RUH_, RUH_, *w_.Gamma_1_, 1e-9);
       }
 
-      Prod(Temp_, State, UUx_);
+      Prod(Temp_, *(State.output), UUx_);
       //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
       //std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
@@ -172,7 +173,7 @@ class FastGRU: public Cell {
         Normalization(Temp_, Temp_, *w_.Gamma_2_, 1e-9);
       }
 
-      ElementwiseOps(NextState, State, RUH_, Temp_);
+      ElementwiseOps(*(NextState.output), *(State.output), RUH_, Temp_);
     }
 
 
@@ -225,8 +226,8 @@ class FastGRU: public Cell {
 
     }
 
-    virtual size_t GetStateLength() const {
-      return w_.U_->dim(0);
+    virtual CellLength GetStateLength() const {
+      return CellLength(0, w_.U_->dim(0));
     }
 
 
