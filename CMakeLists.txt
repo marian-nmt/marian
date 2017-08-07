@@ -58,7 +58,34 @@ else(CUDA)
     add_definitions(-DNO_CUDA)
 endif(CUDA)
 
-find_package(Boost COMPONENTS system filesystem program_options timer iostreams python thread)
+if(PYTHON_VERSION)
+  STRING(REPLACE "." "" PYTHON_VERSION_NORMALIZED ${PYTHON_VERSION})
+else(PYTHON_VERSION)
+  set(PYTHON_VERSION "2.7")
+endif(PYTHON_VERSION)
+
+if (UNIX AND NOT APPLE)
+
+    if(PYTHON_VERSION_NORMALIZED)
+      set(BOOST_PYTHON_VERSION_NAME "python-py${PYTHON_VERSION_NORMALIZED}")
+    else(PYTHON_VERSION_NORMALIZED)
+      set(BOOST_PYTHON_VERSION_NAME "python")
+    endif(PYTHON_VERSION_NORMALIZED)
+
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+elseif (APPLE)
+
+    # On macOS, boost-python component is named python if compiled against python2.7 or
+    # python3 if compiled against python3.x
+    if(NOT PYTHON_VERSION_NORMALIZED EQUAL 27)
+      set(BOOST_PYTHON_VERSION_NAME "python${PYTHON_VERSION_NORMALIZED}")
+    else(NOT PYTHON_VERSION_NORMALIZED EQUAL 27)
+      set(BOOST_PYTHON_VERSION_NAME "python")
+    endif(NOT PYTHON_VERSION_NORMALIZED EQUAL 27)
+
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+endif (UNIX AND NOT APPLE)
+
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
@@ -73,7 +100,7 @@ if (FPGA)
   endif(OpenCL_FOUND)
 endif(FPGA)
 
-find_package(PythonLibs 2.7)
+find_package(PythonLibs ${PYTHON_VERSION} REQUIRED)
 if(PYTHONLIBS_FOUND)
   message("-- Found Python" )
   include_directories(${PYTHON_INCLUDE_DIRS})
