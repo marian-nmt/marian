@@ -5,27 +5,33 @@
 #include <boost/python.hpp>
 
 #include "common/version.h"
+#include "translator/beam_search.h"
+#include "translator/translator.h"
+
+using namespace marian;
 
 
-void init(const std::string& options) {
-  // TODO: implement me!
+void init(const std::string& argopts) {
+  std::cerr << "initialize...\n";
+  auto options = New<Config>(argopts, ConfigMode::translating);
+  std::cerr << "creating task...\n";
+  auto task = New<TranslateMultiGPU<BeamSearch>>(options);
+  std::cerr << "running...\n";
+  task->run();
+  std::cerr << "finished\n";
 }
 
-
-boost::python::list translate(boost::python::list& in) {
-  // TODO: implement me!
-
+boost::python::list translate(boost::python::list& input) {
   boost::python::list output;
-  output.append("foo");
-  output.append("bar");
-  output.append("baz");
-
+  for(int i = 0; i < boost::python::len(input); ++i)
+    output.append(input[i]);
   return output;
 }
 
 std::string version() {
   return PROJECT_VERSION;
 }
+
 
 BOOST_PYTHON_MODULE(libmariannmt) {
   boost::python::def("init", init);

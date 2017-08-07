@@ -11,13 +11,12 @@ import libmariannmt as nmt
 
 print >>sys.stderr, nmt.version()
 
-nmt.init("" if len(sys.argv) < 2 else ' '.join(sys.argv[1:]))
+nmt.init(' '.join(sys.argv))
 
 sentences = []
 for line in sys.stdin:
     sentences.append(line.rstrip())
 
-    output = nmt.translate(sentences)
-
-    for line in output:
-        print line
+output = nmt.translate(sentences)
+for line in output:
+    print line
