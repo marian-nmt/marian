@@ -86,7 +86,13 @@ Tested on different machines and distributions:
 
 To be able to make the CPU version on macOS, first install [brew](https://brew.sh/) and then run:
 
-    brew install cmake boost boost-python
+    brew install cmake boost
+
+    # Python 2 default
+    brew install boost-python
+
+    # Python 3
+    brew install boost-python --with-python3
 
 Then, proceed to the next section.
 
@@ -104,17 +110,29 @@ The project is a standard CMake out-of-source build:
     make -j
 
 If run for the first time, this will also download Marian -- the training
-framework for Marian. 
+framework for Marian.
 
 Other cmake options:
 
 -  Build the CPU-only version of `amun` (training is GPU-only)
 
        cmake .. -DCUDA=off
-    
+
 -  Adding debugging symbols (for use with gdb, etc)
 
        cmake .. -DCMAKE_BUILD_TYPE=Debug
+
+- Specifying Python version to compile against
+
+       # Linux
+       cmake .. -DPYTHON_VERSION=2.7
+       cmake .. -DPYTHON_VERSION=3.5
+       cmake .. -DPYTHON_VERSION=3.6
+
+       # macOS
+       cmake .. -DPYTHON_VERSION=2
+       cmake .. -DPYTHON_VERSION=3
+
 
 ### Compile Python bindings
 
