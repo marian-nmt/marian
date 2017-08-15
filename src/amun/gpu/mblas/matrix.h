@@ -35,14 +35,12 @@ T Sum(const T *data, size_t count)
   HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
 
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
 
   gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
-  HANDLE_ERROR( cudaMemcpy(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost) );
-  HANDLE_ERROR(cudaFree(d_ret));
+  HANDLE_ERROR( cudaMemcpyAsync(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost, stream) );
 
   HANDLE_ERROR( cudaStreamSynchronize(stream));
-  HANDLE_ERROR( cudaDeviceSynchronize() );
+  HANDLE_ERROR(cudaFree(d_ret));
 
   return ret;
 }
