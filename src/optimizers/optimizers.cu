@@ -6,6 +6,8 @@
 namespace marian {
 void Sgd::updateImpl(Tensor params, Tensor grads) {
   Element(_1 -= (multiply_factor*eta_) * _2, params, grads);
+
+  cudaStreamSynchronize(0);
 }
 
 void Adagrad::updateImpl(Tensor params, Tensor grads) {
@@ -22,6 +24,8 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
   Element(_1 += (_2 * _2), gt_, grads);
 
   Element(_1 -= ((multiply_factor*eta_) / (Sqrt(_2) + eps_)) * _3, params, gt_, grads);
+
+  cudaStreamSynchronize(0);
 }
 
 void Adam::updateImpl(Tensor params, Tensor grads) {
@@ -52,6 +56,8 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
           params,
           mt_,
           vt_);
+
+ cudaStreamSynchronize(0);
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
