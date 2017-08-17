@@ -10,21 +10,28 @@
 
 using namespace marian;
 
+Ptr<TranslateLoopMultiGPU<BeamSearch>> task;
 
 void init(const std::string& argopts) {
   std::cerr << "initialize...\n";
   auto options = New<Config>(argopts, ConfigMode::translating);
   std::cerr << "creating task...\n";
-  auto task = New<TranslateMultiGPU<BeamSearch>>(options);
-  std::cerr << "running...\n";
-  task->run();
-  std::cerr << "finished\n";
+  task = New<TranslateLoopMultiGPU<BeamSearch>>(options);
+  std::cerr << "initialized...\n";
 }
 
-boost::python::list translate(boost::python::list& input) {
+boost::python::list translate(boost::python::list& pyinput) {
+  std::string inputText;
+  for(int i = 0; i < boost::python::len(pyinput); ++i) {
+    inputText += boost::python::extract<std::string>(
+        boost::python::object(pyinput[i]));
+    inputText += "\n";
+  }
+
+  std::vector<std::string> input = {inputText};
+  task->run(input);
+
   boost::python::list output;
-  for(int i = 0; i < boost::python::len(input); ++i)
-    output.append(input[i]);
   return output;
 }
 

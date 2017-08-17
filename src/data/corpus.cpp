@@ -197,5 +197,86 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   LOG(data)->info("Done");
 }
+
+
+
+
+TextIterator::TextIterator() : pos_(-1), tup_(0) {}
+
+TextIterator::TextIterator(TextInput& corpus)
+    : corpus_(&corpus), pos_(0), tup_(corpus_->next()) {}
+
+void TextIterator::increment() {
+  tup_ = corpus_->next();
+  pos_++;
+}
+
+bool TextIterator::equal(TextIterator const& other) const {
+  return this->pos_ == other.pos_ || (this->tup_.empty() && other.tup_.empty());
+}
+
+const SentenceTuple& TextIterator::dereference() const {
+  return tup_;
+}
+
+TextInput::TextInput(std::vector<std::string> paths,
+                     Ptr<Config> options,
+                     size_t maxLength)
+    : DatasetBase(paths),
+      options_(options),
+      maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
+
+  // initialize vocabs
+  std::vector<std::string> vocabPaths;
+  if(options_->has("vocabs"))
+    vocabPaths = options_->get<std::vector<std::string>>("vocabs");
+
+  std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
+  for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
+    Ptr<Vocab> vocab = New<Vocab>();
+    vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+    vocabs_.emplace_back(vocab);
+  }
+
+  for(auto path : paths_) {
+    files_.emplace_back(new std::istringstream(path));
+  }
+}
+
+SentenceTuple TextInput::next() {
+  bool cont = true;
+  while(cont) {
+    // get index of the current sentence
+    size_t curId = pos_;
+    // if corpus has been shuffled, ids_ contains sentence indexes
+    if(pos_ < ids_.size())
+      curId = ids_[pos_];
+    pos_++;
+
+    // fill up the sentence tuple with sentences from all input files
+    SentenceTuple tup(curId);
+    for(size_t i = 0; i < files_.size(); ++i) {
+      std::string line;
+      if(std::getline((std::istream&)*files_[i], line)) {
+        Words words = (*vocabs_[i])(line);
+        if(words.empty())
+          words.push_back(0);
+        tup.push_back(words);
+      }
+    }
+
+    // continue only if each input file has provided an example
+    cont = tup.size() == files_.size();
+
+    // continue if all sentences are no longer than maximum allowed length
+    if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
+         return words.size() > 0 && words.size() <= maxLength_;
+       }))
+      return tup;
+  }
+  return SentenceTuple(0);
+}
+
+
 }
 }

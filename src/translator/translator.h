@@ -93,4 +93,91 @@ public:
     }
   }
 };
+
+
+
+template <class Search>
+class TranslateLoopMultiGPU : public ModelTask {
+private:
+  Ptr<Config> options_;
+  std::vector<Ptr<ExpressionGraph>> graphs_;
+  std::vector<std::vector<Ptr<Scorer>>> scorers_;
+
+  Ptr<Vocab> trgVocab_;
+  std::vector<size_t> devices_;
+  ThreadPool threadPool_;
+
+public:
+  virtual ~TranslateLoopMultiGPU() {}
+
+  TranslateLoopMultiGPU(Ptr<Config> options)
+      : options_(options),
+        trgVocab_(New<Vocab>()),
+        devices_{options_->get<std::vector<size_t>>("devices")},
+        threadPool_{devices_.size(), devices_.size()}
+  {
+    auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+    trgVocab_->load(vocabs.back());
+
+    for(auto& device : devices_) {
+      auto graph = New<ExpressionGraph>(true);
+      graph->setDevice(device);
+      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      graphs_.push_back(graph);
+
+      auto scorers = createScorers(options);
+      for(auto scorer : scorers)
+        scorer->init(graph);
+      scorers_.push_back(scorers);
+    }
+  }
+
+  void run() {
+  }
+
+  void run(const std::vector<std::string>& inputs) {
+    auto corpus_ = New<data::TextInput>(inputs, options_);
+    data::BatchGenerator<data::TextInput> bg(corpus_, options_);
+
+    //auto collector = New<StringCollector>();
+    size_t sentenceId = 0;
+
+    bg.prepare(false);
+
+    while(bg) {
+      auto batch = bg.next();
+      //batch->debug();
+
+      auto task = [=](size_t id) {
+        thread_local Ptr<ExpressionGraph> graph;
+        thread_local std::vector<Ptr<Scorer>> scorers;
+
+        if(!graph) {
+          graph = graphs_[id % devices_.size()];
+          graph->getBackend()->setDevice(graph->getDevice());
+          scorers = scorers_[id % devices_.size()];
+        }
+
+        auto search = New<Search>(options_, scorers);
+        auto history = search->search(graph, batch, id);
+
+        std::stringstream best1;
+        std::stringstream bestn;
+        Printer(options_, trgVocab_, history, best1, bestn);
+        //collector->Write(history->GetLineNum(),
+                         //best1.str(),
+                         //bestn.str(),
+                         //options_->get<bool>("n-best"));
+      };
+
+      threadPool_.enqueue(task, sentenceId);
+
+      sentenceId++;
+    }
+
+    // TODO: collect and sort outputs
+  }
+};
+
+
 }
