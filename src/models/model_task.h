@@ -10,7 +10,6 @@ namespace marian {
 
 struct ModelTask {
   virtual void run() = 0;
-  virtual std::vector<std::string> run(const std::vector<std::string>&) {};
 };
 
 #define REGISTER_MODEL(name, model) \

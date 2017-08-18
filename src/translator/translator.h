@@ -94,29 +94,24 @@ public:
   }
 };
 
-
-
 template <class Search>
-class TranslateLoopMultiGPU : public ModelTask {
+class TranslateLoopMultiGPU {
 private:
   Ptr<Config> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
+  std::vector<size_t> devices_;
   std::vector<Ptr<Vocab>> srcVocabs_;
   Ptr<Vocab> trgVocab_;
-  std::vector<size_t> devices_;
-  ThreadPool threadPool_;
 
 public:
   virtual ~TranslateLoopMultiGPU() {}
 
   TranslateLoopMultiGPU(Ptr<Config> options)
       : options_(options),
-        trgVocab_(New<Vocab>()),
-        devices_{options_->get<std::vector<size_t>>("devices")},
-        threadPool_{devices_.size(), devices_.size()}
-  {
+        devices_(options_->get<std::vector<size_t>>("devices")),
+        trgVocab_(New<Vocab>()) {
     // initialize vocabs
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
@@ -141,8 +136,6 @@ public:
     }
   }
 
-  void run() { }
-
   std::vector<std::string> run(const std::vector<std::string>& inputs) {
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
@@ -152,38 +145,38 @@ public:
 
     bg.prepare(false);
 
-    while(bg) {
-      auto batch = bg.next();
-      //batch->debug();
+    {
+      ThreadPool threadPool_(devices_.size(), devices_.size());
 
-      auto task = [=](size_t id) {
-        thread_local Ptr<ExpressionGraph> graph;
-        thread_local std::vector<Ptr<Scorer>> scorers;
+      while(bg) {
+        auto batch = bg.next();
+        // batch->debug();
 
-        if(!graph) {
-          graph = graphs_[id % devices_.size()];
-          graph->getBackend()->setDevice(graph->getDevice());
-          scorers = scorers_[id % devices_.size()];
-        }
+        auto task = [=](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local std::vector<Ptr<Scorer>> scorers;
 
-        auto search = New<Search>(options_, scorers);
-        auto history = search->search(graph, batch, id);
+          if(!graph) {
+            graph = graphs_[id % devices_.size()];
+            graph->getBackend()->setDevice(graph->getDevice());
+            scorers = scorers_[id % devices_.size()];
+          }
 
-        std::stringstream best1;
-        std::stringstream bestn;
-        Printer(options_, trgVocab_, history, best1, bestn);
-        // TODO: fixme
-        std::cerr << " > " << history->GetLineNum() << ": " << best1.str() << " / " << bestn.str() << std::endl;
-        collector->add(history->GetLineNum(), best1.str(), bestn.str());
-      };
+          auto search = New<Search>(options_, scorers);
+          auto history = search->search(graph, batch, id);
 
-      threadPool_.enqueue(task, sentenceId);
-      sentenceId++;
+          std::stringstream best1;
+          std::stringstream bestn;
+          Printer(options_, trgVocab_, history, best1, bestn);
+          collector->add(history->GetLineNum(), best1.str(), bestn.str());
+        };
+
+        threadPool_.enqueue(task, sentenceId);
+        sentenceId++;
+      }
     }
 
     return collector->collect(options_->get<bool>("n-best"));
   }
 };
-
-
 }
