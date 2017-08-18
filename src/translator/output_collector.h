@@ -38,10 +38,7 @@ public:
   StringCollector();
   StringCollector(const StringCollector&) = delete;
 
-  void add(long sourceId,
-           const std::string& best1,
-           const std::string& bestn);
-
+  void add(long sourceId, const std::string& best1, const std::string& bestn);
   std::vector<std::string> collect(bool nbest);
 
 protected:

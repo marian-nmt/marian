@@ -32,7 +32,6 @@ boost::python::list translate(boost::python::list& pyinput) {
   std::vector<std::string> output = task->run(input);
   boost::python::list pyoutput;
   for(auto outputText : output) {
-    std::cerr << "output=" << outputText << "\n";
     pyoutput.append(outputText);
   }
   return pyoutput;

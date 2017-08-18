@@ -72,11 +72,8 @@ void StringCollector::add(long sourceId,
 
 std::vector<std::string> StringCollector::collect(bool nbest) {
   std::vector<std::string> outputs;
-  for(int id = 0; id <= maxId_; ++id) {
-    auto output = nbest ? outputs_[id].second : outputs_[id].first;
-    std::cerr << output << std::endl;
-    outputs.emplace_back(output);
-  }
+  for(int id = 0; id <= maxId_; ++id)
+    outputs.emplace_back(nbest ? outputs_[id].second : outputs_[id].first);
   return outputs;
 }
 

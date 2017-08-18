@@ -247,7 +247,7 @@ SentenceTuple TextInput::next() {
     SentenceTuple tup(curId);
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
-      if(std::getline((std::istream&)*files_[i], line)) {
+      if(std::getline(*files_[i], line)) {
         Words words = (*vocabs_[i])(line);
         if(words.empty())
           words.push_back(0);
@@ -258,6 +258,7 @@ SentenceTuple TextInput::next() {
     // continue only if each input file has provided an example
     cont = tup.size() == files_.size();
 
+    // TODO: we don't need this for TextInput
     // continue if all sentences are no longer than maximum allowed length
     if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
