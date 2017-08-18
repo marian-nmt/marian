@@ -56,4 +56,28 @@ void OutputCollector::Write(long sourceId,
     outputs_[sourceId] = std::make_pair(best1, bestn);
   }
 }
+
+
+StringCollector::StringCollector() : maxId_(-1) {}
+
+void StringCollector::add(long sourceId,
+                          const std::string& best1,
+                          const std::string& bestn) {
+  boost::mutex::scoped_lock lock(mutex_);
+  LOG(translate)->info("Best translation {} : {}", sourceId, best1);
+  outputs_[sourceId] = std::make_pair(best1, bestn);
+  if (maxId_ <= sourceId)
+      maxId_ = sourceId;
+}
+
+std::vector<std::string> StringCollector::collect(bool nbest) {
+  std::vector<std::string> outputs;
+  for(int id = 0; id <= maxId_; ++id) {
+    auto output = nbest ? outputs_[id].second : outputs_[id].first;
+    std::cerr << output << std::endl;
+    outputs.emplace_back(output);
+  }
+  return outputs;
+}
+
 }
