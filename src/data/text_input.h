@@ -38,28 +38,21 @@ private:
 
   std::vector<UPtr<std::istringstream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
-  size_t maxLength_;
 
-  std::vector<size_t> ids_;
   size_t pos_{0};
 
 public:
   TextInput(std::vector<std::string> inputs,
             std::vector<Ptr<Vocab>> vocabs,
-            Ptr<Config> options,
-            size_t maxLength = 0);
+            Ptr<Config> options);
 
   sample next();
 
   void shuffle() {}
-
   void reset() {}
 
   iterator begin() { return iterator(*this); }
-
   iterator end() { return iterator(); }
-
-  std::vector<Ptr<Vocab>>& getVocabs() { return vocabs_; }
 
   batch_ptr toBatch(const std::vector<sample>& batchVector) {
     int batchSize = batchVector.size();

@@ -23,27 +23,17 @@ const SentenceTuple& TextIterator::dereference() const {
 
 TextInput::TextInput(std::vector<std::string> paths,
                      std::vector<Ptr<Vocab>> vocabs,
-                     Ptr<Config> options,
-                     size_t maxLength)
-    : DatasetBase(paths),
-      vocabs_(vocabs),
-      options_(options),
-      maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
-
-  for(auto path : paths_) {
+                     Ptr<Config> options)
+    : DatasetBase(paths), vocabs_(vocabs), options_(options) {
+  for(auto path : paths_)
     files_.emplace_back(new std::istringstream(path));
-  }
 }
 
 SentenceTuple TextInput::next() {
   bool cont = true;
   while(cont) {
     // get index of the current sentence
-    size_t curId = pos_;
-    // if corpus has been shuffled, ids_ contains sentence indexes
-    if(pos_ < ids_.size())
-      curId = ids_[pos_];
-    pos_++;
+    size_t curId = pos_++;
 
     // fill up the sentence tuple with sentences from all input files
     SentenceTuple tup(curId);
@@ -59,16 +49,10 @@ SentenceTuple TextInput::next() {
 
     // continue only if each input file has provided an example
     cont = tup.size() == files_.size();
-
-    // TODO: we don't need this for TextInput
-    // continue if all sentences are no longer than maximum allowed length
-    if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
-         return words.size() > 0 && words.size() <= maxLength_;
-       }))
+    if(cont)
       return tup;
   }
   return SentenceTuple(0);
 }
-
 }
 }
