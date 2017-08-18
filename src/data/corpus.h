@@ -323,5 +323,6 @@ private:
     wordAlignment_ = New<WordAlignment>(path);
   }
 };
+
 }
 }
