@@ -103,6 +103,7 @@ private:
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
+  std::vector<Ptr<Vocab>> srcVocabs_;
   Ptr<Vocab> trgVocab_;
   std::vector<size_t> devices_;
   ThreadPool threadPool_;
@@ -116,9 +117,17 @@ public:
         devices_{options_->get<std::vector<size_t>>("devices")},
         threadPool_{devices_.size(), devices_.size()}
   {
-    auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-    trgVocab_->load(vocabs.back());
+    // initialize vocabs
+    auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
+    std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
+    for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
+      Ptr<Vocab> vocab = New<Vocab>();
+      vocab->load(vocabPaths[i], maxVocabs[i]);
+      srcVocabs_.emplace_back(vocab);
+    }
+    trgVocab_->load(vocabPaths.back());
 
+    // initialize scorers
     for(auto& device : devices_) {
       auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
@@ -132,11 +141,10 @@ public:
     }
   }
 
-  void run() {
-  }
+  void run() { }
 
   void run(const std::vector<std::string>& inputs) {
-    auto corpus_ = New<data::TextInput>(inputs, options_);
+    auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
     //auto collector = New<StringCollector>();
@@ -164,18 +172,17 @@ public:
         std::stringstream best1;
         std::stringstream bestn;
         Printer(options_, trgVocab_, history, best1, bestn);
-        //collector->Write(history->GetLineNum(),
-                         //best1.str(),
-                         //bestn.str(),
-                         //options_->get<bool>("n-best"));
+        std::cerr << " > " << history->GetLineNum() << ": " << best1.str() << " / " << bestn.str() << std::endl;
+        //collector->add(history->GetLineNum(),
+                       //best1.str(),
+                       //bestn.str());
       };
 
       threadPool_.enqueue(task, sentenceId);
-
       sentenceId++;
     }
 
-    // TODO: collect and sort outputs
+    //return collector->collect(options_->get<bool>("n-best"));
   }
 };
 

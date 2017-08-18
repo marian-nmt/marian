@@ -365,6 +365,7 @@ private:
 
 public:
   TextInput(std::vector<std::string> inputs,
+            std::vector<Ptr<Vocab>> vocabs,
             Ptr<Config> options,
             size_t maxLength = 0);
 
