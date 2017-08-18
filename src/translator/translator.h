@@ -143,11 +143,11 @@ public:
 
   void run() { }
 
-  void run(const std::vector<std::string>& inputs) {
+  std::vector<std::string> run(const std::vector<std::string>& inputs) {
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
-    //auto collector = New<StringCollector>();
+    auto collector = New<StringCollector>();
     size_t sentenceId = 0;
 
     bg.prepare(false);
@@ -172,17 +172,16 @@ public:
         std::stringstream best1;
         std::stringstream bestn;
         Printer(options_, trgVocab_, history, best1, bestn);
+        // TODO: fixme
         std::cerr << " > " << history->GetLineNum() << ": " << best1.str() << " / " << bestn.str() << std::endl;
-        //collector->add(history->GetLineNum(),
-                       //best1.str(),
-                       //bestn.str());
+        collector->add(history->GetLineNum(), best1.str(), bestn.str());
       };
 
       threadPool_.enqueue(task, sentenceId);
       sentenceId++;
     }
 
-    //return collector->collect(options_->get<bool>("n-best"));
+    return collector->collect(options_->get<bool>("n-best"));
   }
 };
 
