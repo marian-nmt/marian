@@ -13,7 +13,7 @@ nmt.init(' '.join(sys.argv))
 
 nmt.translate(["my name is george ."])
 # nmt.translate(["that was the second cat ."])
-nmt.translate(["that was the second cat .\nit has two sentences ."])
+nmt.translate(["that was the second cat .", "it has two sentences ."])
 nmt.translate(["The last one ."])
 
 for line in sys.stdin:

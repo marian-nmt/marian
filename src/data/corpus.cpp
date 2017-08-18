@@ -220,23 +220,13 @@ const SentenceTuple& TextIterator::dereference() const {
 }
 
 TextInput::TextInput(std::vector<std::string> paths,
+                     std::vector<Ptr<Vocab>> vocabs,
                      Ptr<Config> options,
                      size_t maxLength)
     : DatasetBase(paths),
+      vocabs_(vocabs),
       options_(options),
       maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
-
-  // initialize vocabs
-  std::vector<std::string> vocabPaths;
-  if(options_->has("vocabs"))
-    vocabPaths = options_->get<std::vector<std::string>>("vocabs");
-
-  std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
-  for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
-    Ptr<Vocab> vocab = New<Vocab>();
-    vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-    vocabs_.emplace_back(vocab);
-  }
 
   for(auto path : paths_) {
     files_.emplace_back(new std::istringstream(path));
