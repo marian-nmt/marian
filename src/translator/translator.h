@@ -2,6 +2,7 @@
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
+#include "data/text_input.h"
 
 #include "3rd_party/threadpool.h"
 #include "translator/history.h"
@@ -150,7 +151,6 @@ public:
 
       while(bg) {
         auto batch = bg.next();
-        // batch->debug();
 
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;

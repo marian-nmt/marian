@@ -31,6 +31,7 @@ cuda_add_library(marian
   translator/helpers.cu
   data/vocab.cpp
   data/corpus.cpp
+  data/text_input.cpp
   rescorer/score_collector.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
   STATIC
