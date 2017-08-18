@@ -6,7 +6,6 @@ import os
 import argparse
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "./../build"))
-print sys.path
 import libmariannmt as nmt
 
 from bottle import request, Bottle, abort
