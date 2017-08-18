@@ -9,21 +9,17 @@ batchSize = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 
 def translate(batch):
     ws = create_connection("ws://localhost:1234/translate")
-    #batch = batch[:-1]
-    print(batch)
+    #print(batch.rstrip())
     ws.send(batch)
     result = ws.recv()
-    result = result[:-1]
-    print(result)
+    print(result.rstrip())
     ws.close()
-    #time.sleep(5)
 
 
 if __name__ == "__main__":
     batchCount = 0
     batch = ""
     for line in sys.stdin:
-        #print line
         batchCount = batchCount + 1
         batch += line
         if batchCount == batchSize:
