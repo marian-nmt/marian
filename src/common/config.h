@@ -41,7 +41,8 @@ public:
         "skip",
         "layer-normalization",
         "special-vocab",
-        "tied-embeddings"
+        "tied-embeddings",
+        "tied-embeddings-all"
         /*"lexical-table", "vocabs"*/
     };
 
