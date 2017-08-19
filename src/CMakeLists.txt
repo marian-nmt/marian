@@ -42,27 +42,23 @@ set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY
 
 cuda_add_executable(marian_train command/marian.cu)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
-target_link_libraries(marian_train marian)
 
 add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
-target_link_libraries(marian_translate marian)
 
 add_executable(marian_rescore command/s2s_rescorer.cpp)
 set_target_properties(marian_rescore PROPERTIES OUTPUT_NAME rescorer)
-target_link_libraries(marian_rescore marian)
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_translate marian_rescore)
 
 if(COMPILE_SERVER)
   add_executable(marian_server command/s2s_server.cpp)
   set_target_properties(marian_server PROPERTIES OUTPUT_NAME server)
-  target_link_libraries(marian_server marian)
   set(EXECUTABLES ${EXECUTABLES} marian_server)
 endif(COMPILE_SERVER)
 
 foreach(exec ${EXECUTABLES})
-  target_link_libraries(${exec} ${EXT_LIBS})
+  target_link_libraries(${exec} marian ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
