@@ -13,21 +13,24 @@ int main(int argc, char **argv) {
   auto task = New<TranslateLoopMultiGPU<BeamSearch>>(options);
 
   WsServer server_;
-  server_.config.port = 1234;
+  server_.config.port = options->get<size_t>("port");
 
   auto &translate = server_.endpoint["^/translate/?$"];
 
   translate.on_message = [&task](Ptr<WsServer::Connection> connection,
                                  Ptr<WsServer::Message> message) {
     auto message_str = message->string();
-    LOG(info)->info("Message received: \"" + message_str + "\"");
+
+    auto message_short = message_str;
+    boost::algorithm::trim_right(message_short);
+    LOG(info)->info("Message received: " + message_short);
 
     auto send_stream = std::make_shared<WsServer::SendStream>();
     boost::timer::cpu_timer timer;
     for(auto &transl : task->run({message_str})) {
       *send_stream << transl << std::endl;
     }
-    LOG(info)->info("Search took: {}", timer.format(5, "%ws"));
+    LOG(info)->info("Translation took: {}", timer.format(5, "%ws"));
 
     connection->send(send_stream, [](const SimpleWeb::error_code &ec) {
       if(ec) {

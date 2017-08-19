@@ -461,6 +461,9 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("weights", po::value<std::vector<float>>()
       ->multitoken(),
       "Scorer weights")
+    // TODO: the options should be available only in server
+    ("port,p", po::value<size_t>()->default_value(8080),
+      "Port number for web socket server")
   ;
   // clang-format on
   desc.add(translate);
@@ -655,6 +658,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("allow-unk", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     // SET_OPTION_NONDEFAULT("lexical-table", std::string);
+    SET_OPTION("port", size_t);
   }
 
   /** valid **/
