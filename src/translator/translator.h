@@ -2,6 +2,7 @@
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
+#include "data/text_input.h"
 
 #include "3rd_party/threadpool.h"
 #include "translator/history.h"
@@ -91,6 +92,95 @@ public:
 
       sentenceId++;
     }
+  }
+};
+
+template <class Search>
+class TranslateServiceMultiGPU : public ModelServiceTask {
+private:
+  Ptr<Config> options_;
+  std::vector<Ptr<ExpressionGraph>> graphs_;
+  std::vector<std::vector<Ptr<Scorer>>> scorers_;
+
+  std::vector<size_t> devices_;
+  std::vector<Ptr<Vocab>> srcVocabs_;
+  Ptr<Vocab> trgVocab_;
+
+public:
+  virtual ~TranslateServiceMultiGPU() {}
+
+  TranslateServiceMultiGPU(Ptr<Config> options)
+      : options_(options),
+        devices_(options_->get<std::vector<size_t>>("devices")),
+        trgVocab_(New<Vocab>()) {
+    init();
+  }
+
+  void init() {
+    // initialize vocabs
+    auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
+    std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
+    for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
+      Ptr<Vocab> vocab = New<Vocab>();
+      vocab->load(vocabPaths[i], maxVocabs[i]);
+      srcVocabs_.emplace_back(vocab);
+    }
+    trgVocab_->load(vocabPaths.back());
+
+    // initialize scorers
+    for(auto& device : devices_) {
+      auto graph = New<ExpressionGraph>(true);
+      graph->setDevice(device);
+      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      graphs_.push_back(graph);
+
+      auto scorers = createScorers(options_);
+      for(auto scorer : scorers)
+        scorer->init(graph);
+      scorers_.push_back(scorers);
+    }
+  }
+
+  std::vector<std::string> run(const std::vector<std::string>& inputs) {
+    auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
+    data::BatchGenerator<data::TextInput> bg(corpus_, options_);
+
+    auto collector = New<StringCollector>();
+    size_t sentenceId = 0;
+
+    bg.prepare(false);
+
+    {
+      ThreadPool threadPool_(devices_.size(), devices_.size());
+
+      while(bg) {
+        auto batch = bg.next();
+
+        auto task = [=](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local std::vector<Ptr<Scorer>> scorers;
+
+          if(!graph) {
+            graph = graphs_[id % devices_.size()];
+            graph->getBackend()->setDevice(graph->getDevice());
+            scorers = scorers_[id % devices_.size()];
+          }
+
+          auto search = New<Search>(options_, scorers);
+          auto history = search->search(graph, batch, id);
+
+          std::stringstream best1;
+          std::stringstream bestn;
+          Printer(options_, trgVocab_, history, best1, bestn);
+          collector->add(history->GetLineNum(), best1.str(), bestn.str());
+        };
+
+        threadPool_.enqueue(task, sentenceId);
+        sentenceId++;
+      }
+    }
+
+    return collector->collect(options_->get<bool>("n-best"));
   }
 };
 }

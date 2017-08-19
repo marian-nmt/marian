@@ -164,8 +164,8 @@ private:
 
   Corpus* corpus_;
 
-  SentenceTuple tup_;
   long long int pos_;
+  SentenceTuple tup_;
 };
 
 class WordAlignment {
@@ -323,5 +323,6 @@ private:
     wordAlignment_ = New<WordAlignment>(path);
   }
 };
+
 }
 }
