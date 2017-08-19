@@ -91,7 +91,6 @@ class GradientDropBase {
     int blocksSample = 1 + sortSize / threads;
     randomSampling<<<blocksSample, threads>>>(
         data, tmp, sortSize, len / sortSize, len);
-    // dont update the cut threshold every step
 
     thrust::device_ptr<float> dev_data_ptr(tmp);
     thrust::sort(dev_data_ptr, dev_data_ptr + sortSize);
@@ -116,8 +115,11 @@ public:
       step = 0;
     }
 
+    // drop the gradients in t->data(). Also fills in feedback with the propagated error
+    // fills temp_d with binary flag. 0 means that gradient in that position is dropped, 1 otherwise
     grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
 
+    //do inclusive sum on temp_d, to obtain the sparse matrix location of non-dropped gradients
     thrust::device_ptr<float> mask_ptr(temp_d);
     int denseSize = t->size();
     thrust::inclusive_scan(mask_ptr, mask_ptr + denseSize, mask_ptr);
@@ -128,7 +130,6 @@ public:
                sizeof(float),
                cudaMemcpyDeviceToHost);
 
-    // convert result of exscan to indices.
     int threads = 512;
     int blocks = 1 + denseSize / threads;
     cudaSetDevice(t->getDevice());

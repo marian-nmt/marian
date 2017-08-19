@@ -108,8 +108,6 @@ public:
     copyFrom(t->data(), t->indices(), t->size(), data_only);
   }
 
-  void copyFromDense(Tensor t) { cudaSetDevice(device_); }
-
   size_t getDevice() { return device_; }
 
   void setSize(int size) { size_ = size; }
@@ -122,6 +120,7 @@ public:
     t->set(0);
     gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
+    cudaStreamSynchronize(0); 
   }
 
   void scatterAdd(Tensor t, int offset = 0) {
@@ -131,6 +130,7 @@ public:
     int blocks = 1 + size_ / threads;
     gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
+    cudaStreamSynchronize(0);
   }
 
   std::shared_ptr<SparseTensorBase> subtensor(int pos, int size, int idx) {
