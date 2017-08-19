@@ -96,7 +96,7 @@ public:
 };
 
 template <class Search>
-class TranslateLoopMultiGPU {
+class TranslateServiceMultiGPU : public ModelServiceTask {
 private:
   Ptr<Config> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -107,12 +107,16 @@ private:
   Ptr<Vocab> trgVocab_;
 
 public:
-  virtual ~TranslateLoopMultiGPU() {}
+  virtual ~TranslateServiceMultiGPU() {}
 
-  TranslateLoopMultiGPU(Ptr<Config> options)
+  TranslateServiceMultiGPU(Ptr<Config> options)
       : options_(options),
         devices_(options_->get<std::vector<size_t>>("devices")),
         trgVocab_(New<Vocab>()) {
+    init();
+  }
+
+  void init() {
     // initialize vocabs
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
@@ -130,7 +134,7 @@ public:
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 
-      auto scorers = createScorers(options);
+      auto scorers = createScorers(options_);
       for(auto scorer : scorers)
         scorer->init(graph);
       scorers_.push_back(scorers);

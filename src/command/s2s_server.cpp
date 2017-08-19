@@ -9,12 +9,14 @@ typedef SimpleWeb::SocketServer<SimpleWeb::WS> WsServer;
 int main(int argc, char **argv) {
   using namespace marian;
 
+  // initialize translation model task
   auto options = New<Config>(argc, argv, ConfigMode::translating);
-  auto task = New<TranslateLoopMultiGPU<BeamSearch>>(options);
+  auto task = New<TranslateServiceMultiGPU<BeamSearch>>(options);
+  task->init();
 
+  // create web service server
   WsServer server_;
   server_.config.port = options->get<size_t>("port");
-
   auto &translate = server_.endpoint["^/translate/?$"];
 
   translate.on_message = [&task](Ptr<WsServer::Connection> connection,
@@ -49,6 +51,7 @@ int main(int argc, char **argv) {
     LOG(warn)->warn("Connection error: (" + ec_str + ") " + ec.message());
   };
 
+  // start server
   std::thread server_thread([&server_]() {
     LOG(info)->info("Server started");
     server_.start();
