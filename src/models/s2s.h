@@ -126,13 +126,16 @@ public:
     int dimEmb = opt<int>("dim-emb");
 
     auto embFactory = embedding(graph)
-                      ("prefix", prefix_ + "_Wemb")
                       ("dimVocab", dimVoc)
                       ("dimEmb", dimEmb);
 
+    if(opt<bool>("tied-embeddings-all"))
+      embFactory("prefix", "Wemb");
+    else
+      embFactory("prefix", prefix_ + "_Wemb");
+
     if(options_->has("embedding-fix-src"))
-      embFactory
-        ("fixed", opt<bool>("embedding-fix-src"));
+      embFactory("fixed", opt<bool>("embedding-fix-src"));
 
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
@@ -310,7 +313,11 @@ public:
     auto layer2 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l2")
                   ("dim", dimTrgVoc);
-    if(opt<bool>("tied-embeddings"))
+
+
+    if(opt<bool>("tied-embeddings-all"))
+      layer2.tie_transposed("W", "Wemb");
+    else if(opt<bool>("tied-embeddings"))
       layer2.tie_transposed("W", prefix_ + "_Wemb");
 
     // assemble layers into MLP and apply to embeddings, decoder context and
