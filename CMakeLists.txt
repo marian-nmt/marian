@@ -57,7 +57,7 @@ else(ZLIB_FOUND)
   message(SEND_ERROR "Cannot find zlib" )
 endif(ZLIB_FOUND)
 
-find_package(Boost COMPONENTS system timer iostreams filesystem chrono program_options thread python)
+find_package(Boost COMPONENTS system timer iostreams filesystem chrono program_options thread python coroutine context)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
@@ -73,6 +73,11 @@ if(PYTHONLIBS_FOUND)
 else(PYTHONLIBS_FOUND)
   message(WARNING "Cannot find python libraries. Building without bindings." )
 endif(PYTHONLIBS_FOUND)
+
+# TODO: make it optional
+find_package(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
+set(EXT_LIBS ${EXT_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
 
 if(COMPILE_TESTS)
   enable_testing()
