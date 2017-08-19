@@ -11,11 +11,11 @@
 
 using namespace marian;
 
-Ptr<TranslateLoopMultiGPU<BeamSearch>> task;
+Ptr<TranslateServiceMultiGPU<BeamSearch>> task;
 
 void init(const std::string& argopts) {
   auto options = New<Config>(argopts, ConfigMode::translating);
-  task = New<TranslateLoopMultiGPU<BeamSearch>>(options);
+  task = New<TranslateServiceMultiGPU<BeamSearch>>(options);
   LOG(info)->info("Translator initialized");
 }
 
