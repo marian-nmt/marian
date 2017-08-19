@@ -8,7 +8,10 @@ import libmariannmt as nmt
 
 print >>sys.stderr, "marian-nmt version: ", nmt.version()
 
-nmt.init(' '.join(sys.argv))
+if len(sys.argv) == 1:
+    print >>sys.stderr, "Specify s2s arguments"
+    exit(1)
 
+nmt.init(' '.join(sys.argv))
 for line in sys.stdin:
     print nmt.translate([line.rstrip()])
