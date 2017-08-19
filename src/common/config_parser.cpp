@@ -259,6 +259,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Model-specific special vocabulary ids")
     ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie target embeddings and output embeddings in output layer")
+    ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie all embedding layers and output layer")
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -587,6 +589,7 @@ void ConfigParser::parseOptions(
 
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);
+  SET_OPTION("tied-embeddings-all", bool);
   SET_OPTION("layer-normalization", bool);
 
   SET_OPTION("best-deep", bool);

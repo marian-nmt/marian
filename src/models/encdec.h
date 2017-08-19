@@ -75,13 +75,16 @@ public:
     int dimEmb = opt<int>("dim-emb");
 
     auto yEmbFactory = embedding(graph)
-                       ("prefix", prefix_ + "_Wemb")
                        ("dimVocab", dimVoc)
                        ("dimEmb", dimEmb);
 
+    if(opt<bool>("tied-embeddings-all"))
+      yEmbFactory("prefix", "Wemb");
+    else
+      yEmbFactory("prefix", prefix_ + "_Wemb");
+
     if(options_->has("embedding-fix-trg"))
-      yEmbFactory
-        ("fixed", opt<bool>("embedding-fix-trg"));
+      yEmbFactory("fixed", opt<bool>("embedding-fix-trg"));
 
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
@@ -127,11 +130,16 @@ public:
                                      init = inits::zeros);
     } else {
       // embeddings are loaded from model during translation, no fixing required
-      auto yEmb = embedding(graph)
-                  ("prefix", prefix_ + "_Wemb")
+      auto yEmbFactory = embedding(graph)
                   ("dimVocab", dimTrgVoc)
-                  ("dimEmb", dimTrgEmb)
-                  .construct();
+                  ("dimEmb", dimTrgEmb);
+
+      if(opt<bool>("tied-embeddings-all"))
+        yEmbFactory("prefix", "Wemb");
+      else
+        yEmbFactory("prefix", prefix_ + "_Wemb");
+
+      auto yEmb = yEmbFactory.construct();
       selectedEmbs = rows(yEmb, embIdx);
 
       selectedEmbs
