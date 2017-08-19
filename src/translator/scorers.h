@@ -4,6 +4,7 @@
 
 #include "models/s2s.h"
 #include "models/amun.h"
+#include "models/nematus.h"
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
 #include "models/lm.h"
@@ -213,6 +214,8 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<S2S>>(fname, weight, model, options);
   } else if(type == "amun") {
     return New<ScorerWrapper<Amun>>(fname, weight, model, options);
+  } else if(type == "nematus") {
+    return New<ScorerWrapper<Nematus>>(fname, weight, model, options);
   } else if(type == "lm") {
     const std::vector<size_t> idx = {1};
     return New<ScorerWrapper<LM>>(fname, weight, model, options, idx);

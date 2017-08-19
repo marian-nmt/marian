@@ -222,7 +222,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
 
   model.add_options()
     ("type", po::value<std::string>()->default_value("amun"),
-      "Model type (possible values: amun, s2s, multi-s2s)")
+      "Model type (possible values: amun, nematus, s2s, multi-s2s)")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
