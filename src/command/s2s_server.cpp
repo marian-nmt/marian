@@ -12,12 +12,11 @@ int main(int argc, char **argv) {
   // initialize translation model task
   auto options = New<Config>(argc, argv, ConfigMode::translating);
   auto task = New<TranslateServiceMultiGPU<BeamSearch>>(options);
-  task->init();
 
   // create web service server
-  WsServer server_;
-  server_.config.port = options->get<size_t>("port");
-  auto &translate = server_.endpoint["^/translate/?$"];
+  WsServer server;
+  server.config.port = options->get<size_t>("port");
+  auto &translate = server.endpoint["^/translate/?$"];
 
   translate.on_message = [&task](Ptr<WsServer::Connection> connection,
                                  Ptr<WsServer::Message> message) {
@@ -52,9 +51,9 @@ int main(int argc, char **argv) {
   };
 
   // start server
-  std::thread server_thread([&server_]() {
+  std::thread server_thread([&server]() {
     LOG(info)->info("Server started");
-    server_.start();
+    server.start();
   });
 
   server_thread.join();
