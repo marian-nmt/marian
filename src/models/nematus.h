@@ -11,30 +11,15 @@ public:
   template <class... Args>
   Nematus(Ptr<Config> options, Args... args) : S2S(options, args...) {
 
-    UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
-                   "--type amun does not currently support multiple encoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("enc-cell-depth") > 1,
-                   "--type amun does not currently support stacked encoder "
-                   "cells, use --type s2s");
     UTIL_THROW_IF2(options_->get<bool>("skip"),
                    "--type amun does not currently support skip connections, "
                    "use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("dec-depth") > 1,
-                   "--type amun does not currently support multiple decoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("dec-cell-base-depth") != 2,
-                   "--type amun does not currently support multiple decoder "
-                   "base cells, use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("dec-cell-high-depth") > 1,
-                   "--type amun does not currently support multiple decoder "
-                   "high cells, use --type s2s");
     UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru",
-                   "--type amun does not currently support other rnn cells than gru, "
-                   "use --type s2s");
+                   "--type nematus does not currently support other rnn cells "
+                   "than gru-nematus, use --type s2s");
     UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru",
-                   "--type amun does not currently support other rnn cells than gru, "
-                   "use --type s2s");
+                   "--type nematus does not currently support other rnn cells "
+                   "than gru-nematus, use --type s2s");
   }
 
   void load(Ptr<ExpressionGraph> graph, const std::string& name) {
@@ -97,6 +82,8 @@ public:
     for(auto it : numpy) {
       auto name = it.first;
 
+      //LOG(info)->info("key= " + name);
+
       if(name == "decoder_c_tt")
         continue;
       if(name.substr(0, 8) == "special:")
@@ -111,9 +98,15 @@ public:
         shape.set(1, numpy[name].shape[0]);
       }
 
+      // TODO: remove debugs
+      //std::stringstream ss;
+      //ss << shape;
+      //LOG(info)->info("  shape= " + ss.str());
+
       std::string pName = name;
       if(nameMap.count(name))
         pName = nameMap[name];
+      //LOG(info)->info("  pName= " + pName + ((pName == name) ? " EQUAL" : ""));
 
       graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
     }
