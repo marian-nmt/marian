@@ -197,5 +197,6 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   LOG(data)->info("Done");
 }
+
 }
 }

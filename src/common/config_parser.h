@@ -1,4 +1,3 @@
-// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #pragma once
 
 #include <boost/program_options.hpp>

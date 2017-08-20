@@ -32,4 +32,20 @@ protected:
   typedef std::map<long, std::pair<std::string, std::string>> Outputs;
   Outputs outputs_;
 };
+
+class StringCollector {
+public:
+  StringCollector();
+  StringCollector(const StringCollector&) = delete;
+
+  void add(long sourceId, const std::string& best1, const std::string& bestn);
+  std::vector<std::string> collect(bool nbest);
+
+protected:
+  long maxId_;
+  boost::mutex mutex_;
+
+  typedef std::map<long, std::pair<std::string, std::string>> Outputs;
+  Outputs outputs_;
+};
 }

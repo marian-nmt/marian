@@ -31,6 +31,7 @@ cuda_add_library(marian
   translator/helpers.cu
   data/vocab.cpp
   data/corpus.cpp
+  data/text_input.cpp
   rescorer/score_collector.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
   STATIC
@@ -41,18 +42,23 @@ set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY
 
 cuda_add_executable(marian_train command/marian.cu)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
-target_link_libraries(marian_train marian)
 
 add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
-target_link_libraries(marian_translate marian)
 
-add_executable(marian_rescorer command/s2s_rescorer.cpp)
-set_target_properties(marian_rescorer PROPERTIES OUTPUT_NAME rescorer)
-target_link_libraries(marian_rescorer marian)
+add_executable(marian_rescore command/s2s_rescorer.cpp)
+set_target_properties(marian_rescore PROPERTIES OUTPUT_NAME rescorer)
 
-foreach(exec marian_train marian_translate marian_rescorer)
-  target_link_libraries(${exec} ${EXT_LIBS})
+set(EXECUTABLES ${EXECUTABLES} marian_train marian_translate marian_rescore)
+
+if(COMPILE_SERVER)
+  add_executable(marian_server command/s2s_server.cpp)
+  set_target_properties(marian_server PROPERTIES OUTPUT_NAME server)
+  set(EXECUTABLES ${EXECUTABLES} marian_server)
+endif(COMPILE_SERVER)
+
+foreach(exec ${EXECUTABLES})
+  target_link_libraries(${exec} marian ${EXT_LIBS})
   cuda_add_cublas_to_target(${exec})
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
@@ -63,6 +69,10 @@ endforeach(exec)
 #)
 
 #set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+if(PYTHONLIBS_FOUND)
+  add_subdirectory(python)
+endif(PYTHONLIBS_FOUND)
 
 if(COMPILE_TESTS)
   set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party)

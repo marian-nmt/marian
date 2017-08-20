@@ -8,6 +8,7 @@
 #include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "common/utils.h"
 
 namespace marian {
 
@@ -15,11 +16,31 @@ class Config {
 public:
   static size_t seed;
 
+  Config(const std::string options,
+         ConfigMode mode = ConfigMode::training,
+         bool validate = false) {
+    std::vector<std::string> sargv;
+    Split(options, sargv, " ");
+    int argc = sargv.size();
+
+    std::vector<char*> argv(argc);
+    for(int i = 0; i < argc; ++i)
+      argv[i] = const_cast<char*>(sargv[i].c_str());
+
+    initialize(argc, &argv[0], mode, validate);
+  }
+
   Config(int argc,
          char** argv,
          ConfigMode mode = ConfigMode::training,
          bool validate = true) {
+    initialize(argc, argv, mode, validate);
+  }
 
+  void initialize(int argc,
+                  char** argv,
+                  ConfigMode mode = ConfigMode::training,
+                  bool validate = true) {
     auto parser = ConfigParser(argc, argv, mode, validate);
     config_ = parser.getConfig();
     createLoggers(this);
