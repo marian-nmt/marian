@@ -78,7 +78,7 @@ public:
                        ("dimVocab", dimVoc)
                        ("dimEmb", dimEmb);
 
-    if(opt<bool>("tied-embeddings-all"))
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       yEmbFactory("prefix", "Wemb");
     else
       yEmbFactory("prefix", prefix_ + "_Wemb");
@@ -134,7 +134,7 @@ public:
                   ("dimVocab", dimTrgVoc)
                   ("dimEmb", dimTrgEmb);
 
-      if(opt<bool>("tied-embeddings-all"))
+      if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
         yEmbFactory("prefix", "Wemb");
       else
         yEmbFactory("prefix", prefix_ + "_Wemb");

@@ -63,6 +63,7 @@ public:
         "layer-normalization",
         "special-vocab",
         "tied-embeddings",
+        "tied-embeddings-src",
         "tied-embeddings-all"
         /*"lexical-table", "vocabs"*/
     };
