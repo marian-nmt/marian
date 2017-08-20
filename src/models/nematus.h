@@ -14,10 +14,10 @@ public:
     UTIL_THROW_IF2(options_->get<bool>("skip"),
                    "--type amun does not currently support skip connections, "
                    "use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru",
+    UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru-nematus",
                    "--type nematus does not currently support other rnn cells "
                    "than gru-nematus, use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru",
+    UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru-nematus",
                    "--type nematus does not currently support other rnn cells "
                    "than gru-nematus, use --type s2s");
   }

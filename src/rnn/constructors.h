@@ -42,6 +42,10 @@ public:
       auto cell = New<GRU>(graph_, options_);
       cell->setLazyInputs(inputs_);
       return cell;
+    } else if(type == "gru-nematus") {
+      auto cell = New<GRUNematus>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
     } else if(type == "lstm") {
       auto cell = New<LSTM>(graph_, options_);
       cell->setLazyInputs(inputs_);
