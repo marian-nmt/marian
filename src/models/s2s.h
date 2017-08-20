@@ -129,7 +129,7 @@ public:
                       ("dimVocab", dimVoc)
                       ("dimEmb", dimEmb);
 
-    if(opt<bool>("tied-embeddings-all"))
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
     else
       embFactory("prefix", prefix_ + "_Wemb");
@@ -314,11 +314,12 @@ public:
                   ("prefix", prefix_ + "_ff_logit_l2")
                   ("dim", dimTrgVoc);
 
-
-    if(opt<bool>("tied-embeddings-all"))
-      layer2.tie_transposed("W", "Wemb");
-    else if(opt<bool>("tied-embeddings"))
-      layer2.tie_transposed("W", prefix_ + "_Wemb");
+    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
+      std::string tiedPrefix = prefix_ + "_Wemb";
+      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
+        tiedPrefix = "Wemb";
+      layer2.tie_transposed("W", tiedPrefix);
+    }
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
