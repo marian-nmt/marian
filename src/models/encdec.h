@@ -181,8 +181,8 @@ public:
                      Ptr<data::CorpusBatch> batch,
                      bool clearGraph = true) = 0;
 
-  virtual Ptr<EncoderBase> getEncoder() = 0;
-  virtual Ptr<DecoderBase> getDecoder() = 0;
+  virtual std::vector<Ptr<EncoderBase>>& getEncoders() = 0;
+  virtual std::vector<Ptr<DecoderBase>>& getDecoders() = 0;
 };
 
 template <class Encoder, class Decoder>
@@ -191,8 +191,8 @@ protected:
   Ptr<Config> options_;
   std::string prefix_;
 
-  Ptr<EncoderBase> encoder_;
-  Ptr<DecoderBase> decoder_;
+  std::vector<Ptr<EncoderBase>> encoders_;
+  std::vector<Ptr<DecoderBase>> decoders_;
 
   std::vector<size_t> batchIndices_;
 
@@ -212,15 +212,15 @@ public:
       : options_(options),
         batchIndices_(batchIndices),
         prefix_(Get(keywords::prefix, "", args...)),
-        encoder_(New<Encoder>(
-            options, keywords::prefix = prefix_ + "encoder", args...)),
-        decoder_(New<Decoder>(
-            options, keywords::prefix = prefix_ + "decoder", args...)),
-        inference_(Get(keywords::inference, false, args...)) {}
+        inference_(Get(keywords::inference, false, args...)) {
 
-  Ptr<EncoderBase> getEncoder() { return encoder_; }
+    encoders_.push_back(New<Encoder>(options, keywords::prefix = prefix_ + "encoder", args...));
+    decoders_.push_back(New<Decoder>(options, keywords::prefix = prefix_ + "decoder", args...));
+  }
 
-  Ptr<DecoderBase> getDecoder() { return decoder_; }
+  std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
+
+  std::vector<Ptr<DecoderBase>>& getDecoders() { return decoders_; }
 
   virtual void load(Ptr<ExpressionGraph> graph, const std::string& name) {
     graph->load(name);
@@ -241,24 +241,27 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
     graph->clear();
-    encoder_ = New<Encoder>(options_,
-                            keywords::prefix = prefix_ + "encoder",
-                            keywords::inference = inference_);
 
-    decoder_ = New<Decoder>(options_,
-                            keywords::prefix = prefix_ + "decoder",
-                            keywords::inference = inference_);
+    encoders_.clear();
+    encoders_.push_back(New<Encoder>(options_,
+                                     keywords::prefix = prefix_ + "encoder",
+                                     keywords::inference = inference_));
+
+    decoders_.clear();
+    decoders_.push_back(New<Decoder>(options_,
+                                     keywords::prefix = prefix_ + "decoder",
+                                     keywords::inference = inference_));
   }
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) {
-    return decoder_->startState(
-        encoder_->build(graph, batch, batchIndices_.front()));
+    return decoders_[0]->startState(
+        encoders_[0]->build(graph, batch, batchIndices_.front()));
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) {
-    return decoder_->step(graph, state);
+    return decoders_[0]->step(graph, state);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -277,7 +280,7 @@ public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>& embIdx) {
-    return decoder_->selectEmbeddings(graph, state, embIdx);
+    decoders_[0]->selectEmbeddings(graph, state, embIdx);
   }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
@@ -292,7 +295,7 @@ public:
 
     Expr trgMask, trgIdx;
     std::tie(trgMask, trgIdx)
-        = decoder_->groundTruth(state, graph, batch, batchIndices_.back());
+        = decoders_[0]->groundTruth(state, graph, batch, batchIndices_.back());
 
     auto nextState = step(graph, state);
 
@@ -300,7 +303,7 @@ public:
                   (nextState->getProbs(), trgIdx, mask = trgMask);
 
     if(options_->has("guided-alignment") && !inference_) {
-      auto alignments = decoder_->getAlignments();
+      auto alignments = decoders_[0]->getAlignments();
       UTIL_THROW_IF2(alignments.empty(), "Model does not seem to support alignments");
       auto att = concatenate(alignments, axis = 3);
       return cost + guidedAlignmentCost(graph, batch, options_, att);
@@ -355,7 +358,7 @@ public:
 
     Expr trgMask, trgIdx;
     std::tie(trgMask, trgIdx)
-        = decoder_->groundTruth(state, graph, batch, batchIndices_.back());
+        = decoders_[0]->groundTruth(state, graph, batch, batchIndices_.back());
 
     auto nextState = step(graph, state);
 
