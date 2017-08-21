@@ -2,6 +2,7 @@
 
 #include "models/s2s.h"
 #include "models/amun.h"
+#include "models/nematus.h"
 #include "models/lm.h"
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
@@ -29,6 +30,7 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
 
   REGISTER_MODEL("s2s", S2S);
   REGISTER_MODEL("amun", Amun);
+  REGISTER_MODEL("nematus", Nematus);
   REGISTER_MODEL("hard-att", HardAtt);
   REGISTER_MODEL("hard-soft-att", HardSoftAtt);
 
