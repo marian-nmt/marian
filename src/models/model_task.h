@@ -1,10 +1,10 @@
 #pragma once
 
 #include "models/s2s.h"
-#include "models/amun.h"
-#include "models/lm.h"
-#include "models/hardatt.h"
-#include "models/multi_s2s.h"
+//#include "models/amun.h"
+//#include "models/lm.h"
+//#include "models/hardatt.h"
+//#include "models/multi_s2s.h"
 
 namespace marian {
 
@@ -23,21 +23,30 @@ do { \
     return New<TaskName<Wrapper<model>>>(options); \
 } while(0)
 
-template <template <class> class TaskName, template <class> class Wrapper>
-Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
-  auto type = options->get<std::string>("type");
 
-  REGISTER_MODEL("s2s", S2S);
-  REGISTER_MODEL("amun", Amun);
-  REGISTER_MODEL("hard-att", HardAtt);
-  REGISTER_MODEL("hard-soft-att", HardSoftAtt);
-
-  REGISTER_MODEL("multi-s2s", MultiS2S);
-  REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
-
-  REGISTER_MODEL("lm", LM);
-
-  UTIL_THROW2("Unknown model type: " << type);
+template <class... Args>
+Ptr<EncoderDecoder> constructS2S(Ptr<Config> options, Args... args) {
+  auto encdec = New<EncoderDecoder>(options, args...);
+  encdec->getEncoders().push_back(New<EncoderS2S>(options, args...));
+  encdec->getDecoders().push_back(New<DecoderS2S>(options, args...));
+  return encdec;
 }
+
+//template <template <class> class TaskName, template <class> class Wrapper>
+//Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
+//  auto type = options->get<std::string>("type");
+//
+//  REGISTER_MODEL("s2s", constructS2S);
+//  //REGISTER_MODEL("amun", Amun);
+//  //REGISTER_MODEL("hard-att", HardAtt);
+//  //REGISTER_MODEL("hard-soft-att", HardSoftAtt);
+//  //
+//  //REGISTER_MODEL("multi-s2s", MultiS2S);
+//  //REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
+//  //
+//  //REGISTER_MODEL("lm", LM);
+//
+//  UTIL_THROW2("Unknown model type: " << type);
+//}
 
 }

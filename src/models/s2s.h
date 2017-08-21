@@ -323,6 +323,4 @@ public:
   }
 };
 
-typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
-
 }

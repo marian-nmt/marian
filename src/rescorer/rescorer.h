@@ -6,9 +6,9 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
-#include "models/amun.h"
+
 #include "models/model_task.h"
-#include "models/s2s.h"
+
 #include "rescorer/score_collector.h"
 
 namespace marian {

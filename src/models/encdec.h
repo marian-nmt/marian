@@ -46,6 +46,8 @@ public:
   T opt(const std::string& key) {
     return options_->get<T>(key);
   }
+
+  virtual void clear() = 0;
 };
 
 class DecoderBase {
@@ -156,6 +158,8 @@ public:
   T opt(const std::string& key) {
     return options_->get<T>(key);
   }
+
+  virtual void clear() = 0;
 };
 
 class EncoderDecoderBase {
@@ -185,7 +189,6 @@ public:
   virtual std::vector<Ptr<DecoderBase>>& getDecoders() = 0;
 };
 
-template <class Encoder, class Decoder>
 class EncoderDecoder : public EncoderDecoderBase {
 protected:
   Ptr<Config> options_;
@@ -212,11 +215,7 @@ public:
       : options_(options),
         batchIndices_(batchIndices),
         prefix_(Get(keywords::prefix, "", args...)),
-        inference_(Get(keywords::inference, false, args...)) {
-
-    encoders_.push_back(New<Encoder>(options, keywords::prefix = prefix_ + "encoder", args...));
-    decoders_.push_back(New<Decoder>(options, keywords::prefix = prefix_ + "decoder", args...));
-  }
+        inference_(Get(keywords::inference, false, args...)) {}
 
   std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
 
@@ -242,15 +241,10 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) {
     graph->clear();
 
-    encoders_.clear();
-    encoders_.push_back(New<Encoder>(options_,
-                                     keywords::prefix = prefix_ + "encoder",
-                                     keywords::inference = inference_));
-
-    decoders_.clear();
-    decoders_.push_back(New<Decoder>(options_,
-                                     keywords::prefix = prefix_ + "decoder",
-                                     keywords::inference = inference_));
+    for(auto& enc : encoders_)
+      enc->clear();
+    for(auto& dec : decoders_)
+      dec->clear();
   }
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,

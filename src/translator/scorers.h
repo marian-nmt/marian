@@ -2,11 +2,12 @@
 
 #include "marian.h"
 
-#include "models/s2s.h"
-#include "models/amun.h"
-#include "models/hardatt.h"
-#include "models/multi_s2s.h"
-#include "models/lm.h"
+#include "models/model_task.h"
+//#include "models/s2s.h"
+//#include "models/amun.h"
+//#include "models/hardatt.h"
+//#include "models/multi_s2s.h"
+//#include "models/lm.h"
 
 namespace marian {
 
@@ -60,36 +61,18 @@ public:
   }
 };
 
-template <class EncoderDecoder>
 class ScorerWrapper : public Scorer {
 private:
   Ptr<EncoderDecoder> encdec_;
   std::string fname_;
 
 public:
-  template <class... Args>
-  ScorerWrapper(const std::string& name,
+  ScorerWrapper(Ptr<EncoderDecoder> encdec,
+                const std::string& name,
                 float weight,
-                const std::string& fname,
-                Ptr<Config> options,
-                Args... args)
+                const std::string& fname)
       : Scorer(name, weight),
-        encdec_(New<EncoderDecoder>(options,
-                                    std::vector<size_t>({0, 1}),
-                                    keywords::inference = true,
-                                    args...)),
-        fname_(fname) {}
-
-  template <class... Args>
-  ScorerWrapper(const std::string& name,
-                float weight,
-                const std::string& fname,
-                Ptr<Config> options,
-                const std::vector<size_t>& batchIndices,
-                Args... args)
-      : Scorer(name, weight),
-        encdec_(New<EncoderDecoder>(
-            options, batchIndices, keywords::inference = true, args...)),
+        encdec_(encdec),
         fname_(fname) {}
 
   virtual void init(Ptr<ExpressionGraph> graph) {
@@ -210,20 +193,21 @@ Ptr<Scorer> scorerByType(std::string fname,
   LOG(info)->info("Loading scorer of type {} as feature {}", type, fname);
 
   if(type == "s2s") {
-    return New<ScorerWrapper<S2S>>(fname, weight, model, options);
-  } else if(type == "amun") {
-    return New<ScorerWrapper<Amun>>(fname, weight, model, options);
-  } else if(type == "lm") {
-    const std::vector<size_t> idx = {1};
-    return New<ScorerWrapper<LM>>(fname, weight, model, options, idx);
-  } else if(type == "hard-att") {
-    return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
-  } else if(type == "hard-soft-att") {
-    return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
-  } else if(type == "multi-s2s") {
-    return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
-  } else if(type == "multi-hard-att") {
-    return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+    auto s2s = constructS2S(options, keywords::inference=true);
+    return New<ScorerWrapper>(s2s, fname, weight, model);
+  //} else if(type == "amun") {
+  //  return New<ScorerWrapper<Amun>>(fname, weight, model, options);
+  //} else if(type == "lm") {
+  //  const std::vector<size_t> idx = {1};
+  //  return New<ScorerWrapper<LM>>(fname, weight, model, options, idx);
+  //} else if(type == "hard-att") {
+  //  return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
+  //} else if(type == "hard-soft-att") {
+  //  return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
+  //} else if(type == "multi-s2s") {
+  //  return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
+  //} else if(type == "multi-hard-att") {
+  //  return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }
