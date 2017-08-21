@@ -10,10 +10,22 @@ class Nematus : public S2S {
 public:
   template <class... Args>
   Nematus(Ptr<Config> options, Args... args) : S2S(options, args...) {
-
+    UTIL_THROW_IF2(options_->get<std::string>("enc-type") != "bidirectional",
+                   "--type nematus does not currently support other encoder "
+                   "type than bidirectional, use --type s2s");
+    UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
+                   "--type nematus does not currently support multiple encoder "
+                   "layers, use --type s2s");
     UTIL_THROW_IF2(options_->get<bool>("skip"),
-                   "--type amun does not currently support skip connections, "
+                   "--type nematus does not currently support skip connections, "
                    "use --type s2s");
+    UTIL_THROW_IF2(options_->get<int>("dec-depth") > 1,
+                   "--type nematus does not currently support multiple decoder "
+                   "layers, use --type s2s");
+    UTIL_THROW_IF2(options_->get<int>("dec-cell-high-depth") > 1,
+                   "--type nematus does not currently support multiple decoder "
+                   "high cells, use --type s2s");
+
     UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru-nematus",
                    "--type nematus does not currently support other rnn cells "
                    "than gru-nematus, use --type s2s");
@@ -77,12 +89,36 @@ public:
            {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
            {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
 
+    std::vector<std::string> suffixes = {"_U", "_Ux", "_b", "_bx"};
+    for(int i = 1; i < options_->get<int>("enc-cell-depth"); ++i) {
+      std::string num1 = std::to_string(i);
+      std::string num2 = std::to_string(i + 1);
+      for(auto suf : suffixes) {
+        nameMap.insert({"encoder" + suf + "_drt_" + num1,
+                        "encoder_bi_cell" + num2 + suf});
+        nameMap.insert({"encoder_r" + suf + "_drt_" + num1,
+                        "encoder_bi_r_cell" + num2 + suf});
+      }
+    }
+    for(int i = 3; i <= options_->get<int>("dec-cell-base-depth"); ++i) {
+      std::string num1 = std::to_string(i - 2);
+      std::string num2 = std::to_string(i);
+      for(auto suf : suffixes)
+        nameMap.insert({"decoder" + suf + "_nl_drt_" + num1,
+                        "decoder_cell" + num2 + suf});
+    }
+
+    // TODO: remove debugs
+    //for(auto& t : nameMap)
+      //std::cerr << t.first << "\t" << t.second << std::endl;
+
     graph->setReloaded(false);
 
     for(auto it : numpy) {
       auto name = it.first;
 
-      //LOG(info)->info("key= " + name);
+      // TODO: remove debugs
+      LOG(info)->info("key= " + name);
 
       if(name == "decoder_c_tt")
         continue;
@@ -99,14 +135,16 @@ public:
       }
 
       // TODO: remove debugs
-      //std::stringstream ss;
-      //ss << shape;
-      //LOG(info)->info("  shape= " + ss.str());
+      std::stringstream ss;
+      ss << shape;
+      LOG(info)->info("  shape= " + ss.str());
 
       std::string pName = name;
       if(nameMap.count(name))
         pName = nameMap[name];
-      //LOG(info)->info("  pName= " + pName + ((pName == name) ? " EQUAL" : ""));
+
+      // TODO: remove debugs
+      LOG(info)->info("  pName= " + pName + ((pName == name) ? " EQUAL" : ""));
 
       graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
     }
