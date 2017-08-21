@@ -92,7 +92,7 @@ namespace SimpleWeb {
 
         b64 = BIO_new(BIO_f_base64());
         BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-        bio = BIO_new_mem_buf(&base64[0], static_cast<int>(base64.size()));
+        bio = BIO_new_mem_buf((void*)&base64[0], static_cast<int>(base64.size()));
         bio = BIO_push(b64, bio);
 
         auto decoded_length = BIO_read(bio, &ascii[0], static_cast<int>(ascii.size()));
