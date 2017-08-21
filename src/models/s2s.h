@@ -172,6 +172,9 @@ public:
 
     return New<EncoderState>(context, batchMask, batch);
   }
+
+  void clear() { }
+
 };
 
 class DecoderS2S : public DecoderBase {
@@ -320,6 +323,11 @@ public:
   virtual const std::vector<Expr> getAlignments() {
     auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     return att->getAlignments();
+  }
+
+  void clear() {
+    rnn_ = nullptr;
+    tiedOutputWeights_ = nullptr;
   }
 };
 
