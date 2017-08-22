@@ -89,6 +89,7 @@ public:
            {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
            {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
 
+    // add mapping for deep cells
     std::vector<std::string> suffixes = {"_U", "_Ux", "_b", "_bx"};
     for(int i = 1; i < options_->get<int>("enc-cell-depth"); ++i) {
       std::string num1 = std::to_string(i);
@@ -106,6 +107,17 @@ public:
       for(auto suf : suffixes)
         nameMap.insert({"decoder" + suf + "_nl_drt_" + num1,
                         "decoder_cell" + num2 + suf});
+    }
+    // add mapping for normalization layers
+    std::map<std::string, std::string> nameMapCopy(nameMap);
+    for(auto& kv : nameMapCopy) {
+      if(kv.first.substr(0, 3) == "ff_") {
+        nameMap.insert({kv.first + "_ln_s", kv.second + "_lns"});
+        nameMap.insert({kv.first + "_ln_b", kv.second + "_lnb"});
+      } else {
+        nameMap.insert({kv.first + "_lns", kv.second + "_lns"});
+        nameMap.insert({kv.first + "_lnb", kv.second + "_lnb"});
+      }
     }
 
     // TODO: remove debugs
