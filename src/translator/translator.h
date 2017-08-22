@@ -56,7 +56,7 @@ public:
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
     auto devices = options_->get<std::vector<int>>("devices");
-    ThreadPool threadPool(devices.size(), devices.size());
+    //ThreadPool threadPool(devices.size(), devices.size());
 
     auto collector = New<OutputCollector>();
     size_t sentenceId = 0;
@@ -88,7 +88,9 @@ public:
                          options_->get<bool>("n-best"));
       };
 
-      threadPool.enqueue(task, sentenceId);
+      //threadPool.enqueue(task, sentenceId);
+
+      task(sentenceId);
 
       sentenceId++;
     }
