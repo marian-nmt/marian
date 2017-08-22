@@ -124,13 +124,14 @@ public:
 
 /******************************************************************************/
 
-Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
+Expr gruNematusOps(const std::vector<Expr>& nodes, bool final = false);
 
 class GRUNematus : public Cell {
 protected:
   std::string prefix_;
 
   Expr U_, W_, b_;
+  Expr Ux_, Wx_, bx_;
   Expr gamma1_;
   Expr gamma2_;
 
@@ -147,44 +148,32 @@ public:
   GRUNematus(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = opt<int>("dimInput");
     int dimState = opt<int>("dimState");
-    std::string prefix = opt<std::string>("prefix");
 
+    prefix_ = opt<std::string>("prefix");
     layerNorm_ = opt<bool>("layer-normalization", false);
     dropout_ = opt<float>("dropout", 0);
     final_ = opt<bool>("final", false);
 
-    auto U = graph->param(prefix + "_U",
-                          {dimState, 2 * dimState},
-                          keywords::init = inits::glorot_uniform);
-    auto Ux = graph->param(prefix + "_Ux",
-                           {dimState, dimState},
-                           keywords::init = inits::glorot_uniform);
-    U_ = concatenate({U, Ux}, keywords::axis = 1);
-
+    U_ = graph->param(prefix_ + "_U",
+                      {dimState, 2 * dimState},
+                      keywords::init = inits::glorot_uniform);
+    Ux_ = graph->param(prefix_ + "_Ux",
+                       {dimState, dimState},
+                       keywords::init = inits::glorot_uniform);
 
     if(dimInput > 0) {
-      auto W = graph->param(prefix + "_W",
-                            {dimInput, 2 * dimState},
-                            keywords::init = inits::glorot_uniform);
-      auto Wx = graph->param(prefix + "_Wx",
-                             {dimInput, dimState},
-                             keywords::init = inits::glorot_uniform);
-      W_ = concatenate({W, Wx}, keywords::axis = 1);
+      W_ = graph->param(prefix_ + "_W",
+                        {dimInput, 2 * dimState},
+                        keywords::init = inits::glorot_uniform);
+      Wx_ = graph->param(prefix_ + "_Wx",
+                         {dimInput, dimState},
+                         keywords::init = inits::glorot_uniform);
     }
 
-    auto b = graph->param(
-        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
-    auto bx = graph->param(
-        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
-    b_ = concatenate({b, bx}, keywords::axis = 1);
-
-    // @TODO use this and adjust Amun model type saving and loading
-    // U_ = graph->param(prefix + "_U", {dimState, 3 * dimState},
-    //                  keywords::init=inits::glorot_uniform);
-    // W_ = graph->param(prefix + "_W", {dimInput, 3 * dimState},
-    //                  keywords::init=inits::glorot_uniform);
-    // b_ = graph->param(prefix + "_b", {1, 3 * dimState},
-    //                  keywords::init=inits::zeros);
+    b_ = graph->param(
+        prefix_ + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
+    bx_ = graph->param(
+        prefix_ + "_bx", {1, dimState}, keywords::init = inits::zeros);
 
     if(dropout_ > 0.0f) {
       if(dimInput)
@@ -194,10 +183,10 @@ public:
 
     if(layerNorm_) {
       if(dimInput)
-        gamma1_ = graph->param(prefix + "_gamma1",
+        gamma1_ = graph->param(prefix_ + "_gamma1",
                                {1, 3 * dimState},
                                keywords::init = inits::from_value(1.f));
-      gamma2_ = graph->param(prefix + "_gamma2",
+      gamma2_ = graph->param(prefix_ + "_gamma2",
                              {1, 3 * dimState},
                              keywords::init = inits::from_value(1.f));
     }
@@ -221,7 +210,11 @@ public:
     if(dropMaskX_)
       input = dropout(input, keywords::mask = dropMaskX_);
 
-    auto xW = dot(input, W_);
+    //debug(W_, prefix_ + "_W");
+
+    auto W = dot(input, W_);
+    auto Wx = dot(input, Wx_);
+    auto xW = concatenate({W, Wx}, keywords::axis = 1);
 
     if(layerNorm_)
       xW = layer_norm(xW, gamma1_);
@@ -237,7 +230,11 @@ public:
     if(dropMaskS_)
       stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
 
-    auto sU = dot(stateDropped, U_);
+    //debug(U_, prefix_ + "_U");
+
+    auto U = affine(stateDropped, U_, b_);
+    auto Ux = affine(stateDropped, Ux_, bx_);
+    auto sU = concatenate({U, Ux}, keywords::axis = 1);
 
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
@@ -252,14 +249,20 @@ public:
       xW = xWs.front();
     }
 
-    auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_) :
-                         gruOps({stateOrig, xW, sU, b_}, final_);
+    //debug(sU, prefix_ + " / xW");
+    //debug(xW, prefix_ + " / sU");
+
+    auto bbx = concatenate({b_, bx_}, keywords::axis = 1);
+    auto output = mask ? gruNematusOps({stateOrig, xW, sU, bbx, mask}, final_) :
+                         gruNematusOps({stateOrig, xW, sU, bbx}, final_);
 
     return { output, state.cell }; // no cell state, hence copy
   }
 };
 
 /******************************************************************************/
+
+Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
 class GRU : public Cell {
 protected:

@@ -1074,6 +1074,8 @@ void GRUFastBackward(std::vector<Tensor> outputs,
                      Tensor adj,
                      bool final = false);
 
+void GRUNematusForward(Tensor out, std::vector<Tensor> inputs, bool final = false);
+
 void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage);
 void AttBack(Tensor gva,
              Tensor gContext,
