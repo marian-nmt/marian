@@ -161,7 +161,7 @@ public:
       graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
     }
 
-    graph->setReloaded(true);
+    //graph->setReloaded(true);
   }
 
   void save(Ptr<ExpressionGraph> graph,
