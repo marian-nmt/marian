@@ -1048,7 +1048,8 @@ __global__ void gGRUNematusForward(float* out,
                                    const float* mask,
                                    size_t rows,
                                    size_t cols,
-                                   bool final) {
+                                   bool final,
+                                   bool layerNorm) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -1067,7 +1068,7 @@ __global__ void gGRUNematusForward(float* out,
 
           int k = i + cols;
           float ev2 = expf(-(xWrow[k] + sUrow[k]));
-          float z = 1.0f / (1.0f + ev2);
+          float u = 1.0f / (1.0f + ev2);
 
           int l = i + 2 * cols;
           float h;
@@ -1076,7 +1077,7 @@ __global__ void gGRUNematusForward(float* out,
           else
             h = tanhf(xWrow[l] + (sUrow[l] - b[l]) * r + b[l]);
 
-          float out = (1.0f - z) * h + z * rowState[i];
+          float out = (1.0f - u) * h + u * rowState[i];
           rowOut[i] = m * out + (1 - m) * rowState[i];
         }
       }
@@ -1084,7 +1085,7 @@ __global__ void gGRUNematusForward(float* out,
   }
 }
 
-void GRUNematusForward(Tensor out, std::vector<Tensor> inputs, bool final) {
+void GRUNematusForward(Tensor out, std::vector<Tensor> inputs, bool final, bool layerNorm) {
   cudaSetDevice(out->getDevice());
 
   int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
@@ -1102,7 +1103,8 @@ void GRUNematusForward(Tensor out, std::vector<Tensor> inputs, bool final) {
       inputs.size() > 4 ? inputs[4]->data() : 0,  // mask
       rows,
       cols,
-      final);
+      final,
+      layerNorm);
 }
 
 __global__ void gCrossEntropyPick(float* out,

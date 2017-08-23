@@ -8,17 +8,21 @@ namespace rnn {
 
 struct GRUNematusNodeOp : public NaryNodeOp {
   bool final_;
+  bool layerNorm_;
 
   template <typename... Args>
-  GRUNematusNodeOp(const std::vector<Expr>& nodes, bool final, Args... args)
-      : NaryNodeOp(nodes, args...), final_(final) {}
+  GRUNematusNodeOp(const std::vector<Expr>& nodes,
+                   bool final,
+                   bool layerNorm,
+                   Args... args)
+      : NaryNodeOp(nodes, args...), final_(final), layerNorm_(layerNorm) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
     for(int i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
 
-    return {NodeOp(GRUNematusForward(val_, inputs, final_))};
+    return {NodeOp(GRUNematusForward(val_, inputs, final_, layerNorm_))};
   }
 
   NodeOps backwardOps() {
@@ -48,8 +52,8 @@ struct GRUNematusNodeOp : public NaryNodeOp {
   const std::string color() { return "yellow"; }
 };
 
-Expr gruNematusOps(const std::vector<Expr>& nodes, bool final) {
-  return Expression<GRUNematusNodeOp>(nodes, final);
+Expr gruNematusOps(const std::vector<Expr>& nodes, bool final, bool layerNorm) {
+  return Expression<GRUNematusNodeOp>(nodes, final, layerNorm);
 }
 
 /******************************************************************************/

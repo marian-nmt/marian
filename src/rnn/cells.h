@@ -124,7 +124,9 @@ public:
 
 /******************************************************************************/
 
-Expr gruNematusOps(const std::vector<Expr>& nodes, bool final = false);
+Expr gruNematusOps(const std::vector<Expr>& nodes,
+                   bool final = false,
+                   bool layerNorm = false);
 
 class GRUNematus : public Cell {
 protected:
@@ -256,7 +258,7 @@ public:
 
         //debug(W, "RUH_1_ " + prefix_);
         //debug(Wx, "RUH_2_ " + prefix_);
-        
+
         //W = layer_norm(W, W_lns_, W_lnb_);
         //Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_);
       } else {
@@ -283,7 +285,7 @@ public:
 
     //auto U = dot(stateDropped, U_);   // Temp_1_ in Amun
     //auto Ux = dot(stateDropped, Ux_); // Temp_2_ in Amun
-    
+
     auto U = affine(stateDropped, U_, b_);
     auto Ux = affine(stateDropped, Ux_, bx_);
 
@@ -314,8 +316,8 @@ public:
     auto bbx = concatenate({b_, bx_}, keywords::axis = 1);
     //auto bbx0 = concatenate({b0_, bx0_}, keywords::axis = 1);
 
-    auto output = mask ? gruNematusOps({stateOrig, xW, sU, bbx, mask}, final_) :
-                         gruNematusOps({stateOrig, xW, sU, bbx}, final_);
+    auto output = mask ? gruNematusOps({stateOrig, xW, sU, bbx, mask}, final_, layerNorm_) :
+                         gruNematusOps({stateOrig, xW, sU, bbx}, final_, layerNorm_);
 
     //debug(output, prefix_ + " / GRU / final=" + std::to_string(final_));
 
