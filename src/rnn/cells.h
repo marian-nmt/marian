@@ -244,27 +244,24 @@ public:
     if(dropMaskX_)
       input = dropout(input, keywords::mask = dropMaskX_);
 
-    //debug(b_, "b_ " + prefix_);
-    //debug(bx_, "bx_ " + prefix_);
-    //debug(W_, prefix_ + "_W");
-    //debug(Wx_, prefix_ + "_Wx");
+    debug(b_, "b_ " + prefix_);
+    debug(bx_, "bx_ " + prefix_);
+    debug(W_, prefix_ + "_W");
+    debug(Wx_, prefix_ + "_Wx");
 
     auto W = dot(input, W_);    // RUH_1_ in Amun
     auto Wx = dot(input, Wx_);  // RUH_2_ in Amun
+
     if(layerNorm_) {
       if(isEncoder_) {
-        //W = W + b_;
-        //Wx = Wx + bx_;
-
-        //debug(W, "RUH_1_ " + prefix_);
-        //debug(Wx, "RUH_2_ " + prefix_);
-
-        //W = layer_norm(W, W_lns_, W_lnb_);
-        //Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_);
+        W = layer_norm(W + b_, W_lns_, W_lnb_);
+        Wx = layer_norm(Wx + bx_, Wx_lns_, Wx_lnb_);
       } else {
         // TODO
       }
     }
+    debug(W, "RUH_1_ " + prefix_);
+    debug(Wx, "RUH_2_ " + prefix_);
 
     auto xW = concatenate({W, Wx}, keywords::axis = 1);
 
@@ -280,26 +277,26 @@ public:
     if(dropMaskS_)
       stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
 
-    //debug(U_, prefix_ + "_U");
-    //debug(Ux_, prefix_ + "_Ux");
+    debug(U_, prefix_ + "_U");
+    debug(Ux_, prefix_ + "_Ux");
 
-    //auto U = dot(stateDropped, U_);   // Temp_1_ in Amun
-    //auto Ux = dot(stateDropped, Ux_); // Temp_2_ in Amun
-
-    auto U = affine(stateDropped, U_, b_);
-    auto Ux = affine(stateDropped, Ux_, bx_);
+    auto U = dot(stateDropped, U_);   // Temp_1_ in Amun
+    auto Ux = dot(stateDropped, Ux_); // Temp_2_ in Amun
 
     if(layerNorm_) {
       if(isEncoder_) {
-        //U = layer_norm(U, U_lns_, U_lnb_);
-        //Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
+        U = layer_norm(U, U_lns_, U_lnb_);
+        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
       } else {
         // TODO
       }
+    } else {
+      U = U + b_;
+      Ux = Ux + bx_;
     }
 
-    //debug(U, "Temp_1_ " + prefix_);
-    //debug(Ux, "Temp_2_ " + prefix_);
+    debug(U, "Temp_1_ " + prefix_);
+    debug(Ux, "Temp_2_ " + prefix_);
 
     auto sU = concatenate({U, Ux}, keywords::axis = 1);
 
@@ -316,10 +313,11 @@ public:
     auto bbx = concatenate({b_, bx_}, keywords::axis = 1);
     //auto bbx0 = concatenate({b0_, bx0_}, keywords::axis = 1);
 
+
     auto output = mask ? gruNematusOps({stateOrig, xW, sU, bbx, mask}, final_, layerNorm_) :
                          gruNematusOps({stateOrig, xW, sU, bbx}, final_, layerNorm_);
 
-    //debug(output, prefix_ + " / GRU / final=" + std::to_string(final_));
+    debug(output, prefix_ + " / GRU / final=" + std::to_string(final_));
 
     return { output, state.cell }; // no cell state, hence copy
   }

@@ -1072,10 +1072,17 @@ __global__ void gGRUNematusForward(float* out,
 
           int l = i + 2 * cols;
           float h;
-          if(final)
-            h = tanhf(xWrow[l] + (sUrow[l]) * r);
-          else
-            h = tanhf(xWrow[l] + (sUrow[l] - b[l]) * r + b[l]);
+          if(layerNorm) {
+            if(final)
+              h = tanhf(xWrow[l] + (sUrow[l]) * r);
+            else
+              h = tanhf(xWrow[l] + sUrow[l] * r);
+          } else {
+            if(final)
+              h = tanhf(xWrow[l] + (sUrow[l]) * r);
+            else
+              h = tanhf(xWrow[l] + (sUrow[l] - b[l]) * r + b[l]);
+          }
 
           float out = (1.0f - u) * h + u * rowState[i];
           rowOut[i] = m * out + (1 - m) * rowState[i];
