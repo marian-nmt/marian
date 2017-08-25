@@ -69,6 +69,7 @@ public:
     auto dim  = opt<int>("dim");
 
     auto layerNorm = opt<bool>("layer-normalization", false);
+    auto nematusNorm = opt<bool>("nematus-normalization", false);
     auto activation = opt<act>("activation", act::linear);
 
     auto g = graph_;
@@ -98,17 +99,25 @@ public:
       params_.push_back(W);
       params_.push_back(b);
 
-      // @TODO: restore s2s
       if(layerNorm) {
-        auto gamma_s = g->param(name + "_gamma" + std::to_string(i) + "s",
+        if(nematusNorm) {
+          auto ln_s = g->param(name + "_ln_s" + std::to_string(i),
+                               {1, dim},
+                               keywords::init = inits::from_value(1.f));
+          auto ln_b = g->param(name + "_ln_b" + std::to_string(i),
+                               {1, dim},
+                               keywords::init = inits::zeros);
+
+          outputs.push_back(layer_norm(affine(in, W, b), ln_s, ln_b));
+        } else {
+          auto gamma = g->param(name + "_gamma" + std::to_string(i),
                                 {1, dim},
                                 keywords::init = inits::from_value(1.0));
-        auto gamma_b = g->param(name + "_gamma" + std::to_string(i) + "b",
-                                {1, dim},
-                                keywords::init = inits::zeros);
 
-        auto iWb = affine(in, W, b);
-        outputs.push_back(layer_norm(iWb, gamma_s, gamma_b));
+          params_.push_back(gamma);
+          outputs.push_back(layer_norm(dot(in, W), gamma, b));
+        }
+
       } else {
         outputs.push_back(affine(in, W, b));
       }
@@ -131,6 +140,7 @@ public:
     auto dim  = options_->get<int>("dim");
 
     auto layerNorm = options_->get<bool>("layer-normalization", false);
+    auto nematusNorm = opt<bool>("nematus-normalization", false);
     auto activation = options_->get<act>("activation", act::linear);
 
     Expr W;
@@ -155,15 +165,23 @@ public:
 
     Expr out;
     if(layerNorm) {
-      // @TODO: restore s2s
-      auto ln_s = g->param(name + "_ln_s",
-                           {1, dim},
-                           keywords::init = inits::from_value(1.0));
-      auto ln_b = g->param(name + "_ln_b",
-                           {1, dim},
-                           keywords::init = inits::zeros);
+      if(nematusNorm) {
+        auto ln_s = g->param(name + "_ln_s",
+                             {1, dim},
+                             keywords::init = inits::from_value(1.f));
+        auto ln_b = g->param(name + "_ln_b",
+                             {1, dim},
+                             keywords::init = inits::zeros);
 
-      out = layer_norm(affine(input, W, b), ln_s, ln_b);
+        out = layer_norm(affine(input, W, b), ln_s, ln_b);
+      } else {
+        auto gamma = g->param(name + "_gamma",
+                              {1, dim},
+                              keywords::init = inits::from_value(1.0));
+
+        params_.push_back(gamma);
+        out = layer_norm(dot(input, W), gamma, b);
+      }
     } else {
       out = affine(input, W, b);
     }

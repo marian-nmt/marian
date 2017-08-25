@@ -90,12 +90,12 @@ public:
            {"encoder_r_gamma2", "encoder_bi_r_gamma2"},
            {"ff_state_ln_s", "decoder_ff_state_ln_s"},
            {"ff_state_ln_b", "decoder_ff_state_ln_b"},
-           {"ff_logit_prev_ln_s", "decoder_ff_logit_l1_gamma0s"},
-           {"ff_logit_lstm_ln_s", "decoder_ff_logit_l1_gamma1s"},
-           {"ff_logit_ctx_ln_s", "decoder_ff_logit_l1_gamma2s"},
-           {"ff_logit_prev_ln_b", "decoder_ff_logit_l1_gamma0b"},
-           {"ff_logit_lstm_ln_b", "decoder_ff_logit_l1_gamma1b"},
-           {"ff_logit_ctx_ln_b", "decoder_ff_logit_l1_gamma2b"}
+           {"ff_logit_prev_ln_s", "decoder_ff_logit_l1_ln_s0"},
+           {"ff_logit_lstm_ln_s", "decoder_ff_logit_l1_ln_s1"},
+           {"ff_logit_ctx_ln_s", "decoder_ff_logit_l1_ln_s2"},
+           {"ff_logit_prev_ln_b", "decoder_ff_logit_l1_ln_b0"},
+           {"ff_logit_lstm_ln_b", "decoder_ff_logit_l1_ln_b1"},
+           {"ff_logit_ctx_ln_b", "decoder_ff_logit_l1_ln_b2"}
         };
 
     // add mapping for deep encoder cells

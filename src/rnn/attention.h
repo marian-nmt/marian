@@ -17,8 +17,8 @@ class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;
 
-  Expr Wc_att_lns_, Wc_att_lnb_;
-  Expr W_comb_att_lns_, W_comb_att_lnb_;
+  Expr gammaContext_;
+  Expr gammaState_;
 
   Ptr<EncoderState> encState_;
   Expr softmaxMask_;
@@ -32,6 +32,11 @@ private:
   Expr dropMaskContext_;
   Expr dropMaskState_;
 
+  // for Nematus-style layer normalization
+  Expr Wc_att_lns_, Wc_att_lnb_;
+  Expr W_comb_att_lns_, W_comb_att_lnb_;
+  bool nematusNorm_;
+
 public:
   GlobalAttention(Ptr<ExpressionGraph> graph,
                   Ptr<Options> options,
@@ -43,6 +48,7 @@ public:
     int dimDecState = options_->get<int>("dimState");
     dropout_ = options_->get<float>("dropout");
     layerNorm_ = options_->get<bool>("layer-normalization");
+    nematusNorm_ = options_->get<bool>("nematus-normalization");
     std::string prefix = options_->get<std::string>("prefix");
 
     int dimEncState = encState_->getContext()->shape()[1];
@@ -69,25 +75,36 @@ public:
           = dropout(contextDropped_, keywords::mask = dropMaskContext_);
 
     if(layerNorm_) {
-      // @TODO: restore s2s
-      // gammaContext_
-      Wc_att_lns_ = graph->param(prefix + "_Wc_att_lns",
-                                 {1, dimEncState},
-                                 keywords::init = inits::from_value(1.f));
-      Wc_att_lnb_ = graph->param(prefix + "_Wc_att_lnb",
-                                 {1, dimEncState},
-                                 keywords::init = inits::zeros);
-      // gammaState_
-      W_comb_att_lns_ = graph->param(prefix + "_W_comb_att_lns",
-                                     {1, dimEncState},
-                                     keywords::init = inits::from_value(1.f));
-      W_comb_att_lnb_ = graph->param(prefix + "_W_comb_att_lnb",
-                                     {1, dimEncState},
-                                     keywords::init = inits::zeros);
+      if(nematusNorm_) {
+        // instead of gammaContext_
+        Wc_att_lns_ = graph->param(prefix + "_Wc_att_lns",
+                                   {1, dimEncState},
+                                   keywords::init = inits::from_value(1.f));
+        Wc_att_lnb_ = graph->param(prefix + "_Wc_att_lnb",
+                                   {1, dimEncState},
+                                   keywords::init = inits::zeros);
+        // instead of gammaState_
+        W_comb_att_lns_ = graph->param(prefix + "_W_comb_att_lns",
+                                       {1, dimEncState},
+                                       keywords::init = inits::from_value(1.f));
+        W_comb_att_lnb_ = graph->param(prefix + "_W_comb_att_lnb",
+                                       {1, dimEncState},
+                                       keywords::init = inits::zeros);
 
-      // @TODO: refactorize
-      auto cUb = affine(contextDropped_, Ua_, ba_);
-      mappedContext_ = layer_norm(cUb, Wc_att_lns_, Wc_att_lnb_);
+        mappedContext_ = layer_norm(
+            affine(contextDropped_, Ua_, ba_), Wc_att_lns_, Wc_att_lnb_);
+      } else {
+        gammaContext_ = graph->param(prefix + "_att_gamma1",
+                                     {1, dimEncState},
+                                     keywords::init = inits::from_value(1.0));
+        gammaState_ = graph->param(prefix + "_att_gamma2",
+                                   {1, dimEncState},
+                                   keywords::init = inits::from_value(1.0));
+
+        mappedContext_
+            = layer_norm(dot(contextDropped_, Ua_), gammaContext_, ba_);
+      }
+
     } else {
       mappedContext_ = affine(contextDropped_, Ua_, ba_);
     }
@@ -112,9 +129,11 @@ public:
       recState = dropout(recState, keywords::mask = dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
-    // @TODO: restore s2s
     if(layerNorm_)
-      mappedState = layer_norm(mappedState, W_comb_att_lns_, W_comb_att_lnb_);
+      if(nematusNorm_)
+        mappedState = layer_norm(mappedState, W_comb_att_lns_, W_comb_att_lnb_);
+      else
+        mappedState = layer_norm(mappedState, gammaState_);
 
     auto attReduce = attOps(va_, mappedContext_, mappedState);
 
