@@ -25,7 +25,7 @@ my $DEV = "dev";
 
 GetOptions(
     "w|working-dir=s" => \$WORK,
-    "a|amunn-bin-dir=s" => \$AMUNN_DIR,
+    "a|amunmt-bin-dir=s" => \$AMUNN_DIR,
     "m|moses-bin-dir=s" => \$MOSES_DIR,
     "s|scorer=s" => \$SCORER,
     "i|maximum-iterations=i" => \$MAX_IT,
@@ -35,24 +35,27 @@ GetOptions(
     "o|decoder-opts=s" => \$DECODER_OPTS,
 );
 
-my $AMUNN = "$AMUNN_DIR/amunn";
+my $AMUNN = "$AMUNN_DIR/amun";
 my $MIRA = "$MOSES_DIR/kbmira";
+my $MERT = "$MOSES_DIR/mert";
 my $EVAL = "$MOSES_DIR/evaluator";
 my $EXTR = "$MOSES_DIR/extractor";
 
 my $DEV_SRC = "$DEV.$SRC";
 my $DEV_TRG = "$DEV.$TRG";
 
-my $CONFIG = "--sctype $SCORER --filter /work/wmt16/tools/scripts/cleanBPE";
+my $CONFIG = "--sctype $SCORER";
 
 $WORK = File::Spec->rel2abs($WORK);
 
 execute("mkdir -p $WORK");
 execute("$AMUNN $DECODER_OPTS --show-weights > $WORK/run1.dense");
+dense2init("$WORK/run1.dense", "$WORK/run1.initopt");
+
 execute("rm -rf $WORK/progress.txt");
 for my $i (1 .. $MAX_IT) {
     unless(-s "$WORK/run$i.out") {
-        execute("cat $DEV_SRC | $AMUNN $DECODER_OPTS --load-weights $WORK/run$i.dense --n-best > $WORK/run$i.out");
+        execute("cat $DEV_SRC | $AMUNN $DECODER_OPTS --load-weights $WORK/run$i.dense --n-best | perl -pe 's/\@\@ //g' > $WORK/run$i.out");
     }
     execute("$EVAL $CONFIG --reference $DEV_TRG -n $WORK/run$i.out | tee -a $WORK/progress.txt");
     
@@ -60,11 +63,13 @@ for my $i (1 .. $MAX_IT) {
     unless(-s "$WORK/run$j.dense") {
         execute("$EXTR $CONFIG --reference $DEV_TRG -n $WORK/run$i.out -S $WORK/run$i.scores.dat -F $WORK/run$i.features.dat");
         
-        my $SCORES = join(" ", map { "$WORK/run$_.scores.dat" } (1 .. $i));
-        my $FEATURES = join(" ", map { "$WORK/run$_.features.dat" } (1 .. $i));
+        my $SCORES = join(",", map { "$WORK/run$_.scores.dat" } (1 .. $i));
+        my $FEATURES = join(",", map { "$WORK/run$_.features.dat" } (1 .. $i));
     
-        execute("$MIRA --sctype $SCORER -S $SCORES -F $FEATURES -d $WORK/run$i.dense -o $WORK/run$j.dense 2> $WORK/mira.run$i.log");
-        normalizeWeights("$WORK/run$j.dense");
+        execute("$MERT --sctype $SCORER --scfile $SCORES --ffile $FEATURES --ifile $WORK/run$i.initopt -d 9 -n 20 -m 20 --threads 20 2> $WORK/mert.run$i.log");
+
+        log2dense("$WORK/mert.run$i.log", "$WORK/run$j.dense");
+        dense2init("$WORK/run$j.dense", "$WORK/run$j.initopt");
     }
     execute("cp $WORK/run$j.dense $WORK/weights.txt")
 }
@@ -81,28 +86,50 @@ sub execute {
     }
 }
 
-sub normalizeWeights {
-    my $path = shift;
-    my ($temp_h, $temp) = tempfile();
-    open(OLD, "<", $path) or die "can't open $path: $!";
+sub log2dense {
+    my $log = shift;
+    my $dense = shift;
+
+    open(OLD, "<", $log) or die "can't open $log: $!";
+    open(NEW, ">", $dense) or die "can't open $dense: $!";
     
     my @weights;
-    my $sum = 0;
-    while (<OLD>) {
+    while(<OLD>) {
         chomp;
-        if (/^(F\d+) (.+)$/) {
-            push(@weights, [$1, $2]);
-            $sum += abs($2);
+        if (/^Best point: (.*?)  =>/) {
+            @weights = split(/\s/, $1);
         }
     }
-    close(OLD) or die "can't close $path: $!";
+    close(OLD) or die "can't close $log: $!";
+    my $i = 0;
     foreach(@weights) {
-        print $temp_h $_->[0], "= ", $_->[1]/$sum, "\n";
+        print NEW "F$i= ", $_, "\n";
+        $i++;
     }
-    close($temp_h);
-    execute("mv $temp $path");
-    #rename($temp, $path) or die "can't rename $temp to $path: $!";
+    close(NEW);
 }
+
+sub dense2init {
+    my $dense = shift;
+    my $init = shift;
+
+    open(OLD, "<", $dense) or die "can't open $dense: $!";
+    open(NEW, ">", $init) or die "can't open $init: $!";
+    
+    my @weights;
+    while(<OLD>) {
+        chomp;
+        if (/^F\d+= (\S*)$/) {
+            push(@weights, $1);
+        }
+    }
+    close(OLD) or die "can't close $dense: $!";
+    print NEW join(" ", @weights), "\n";
+    print NEW "0 " x scalar @weights, "\n";
+    print NEW "1 " x scalar @weights, "\n";
+    close(NEW);
+}
+
 
 sub logMessage {
     my $message = shift;

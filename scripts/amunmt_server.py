@@ -5,7 +5,7 @@ import sys
 import os
 import argparse
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../build/src')
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../build')
 import libamunmt as nmt
 
 from bottle import request, Bottle, abort
@@ -22,8 +22,16 @@ def handle_websocket():
         while True:
             try:
                 message = wsock.receive()
+                #print message
                 if message is not None:
-                    trans = nmt.translate(message.split('\n'))
+                    # force potential unicode to str() for boost conversion
+                    listSentences = str(message).split('\n')
+                    numEle = len(listSentences)
+                    #print numEle
+                    if numEle > 0 and listSentences[numEle - 1] == "":
+                      #print "deleting"
+                      del listSentences[numEle - 1]
+                    trans = nmt.translate(listSentences)
                     wsock.send('\n'.join(trans))
             except WebSocketError:
                 break
