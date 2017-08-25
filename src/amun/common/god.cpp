@@ -40,7 +40,7 @@ God::~God()
     cerr << "timers:" << endl;
     for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
       const boost::timer::cpu_timer &timer = iter->second;
-      cerr << iter->first << " " << timer.format(2, "%w") << endl;
+      cerr << iter->first << "\t" << timer.format(2, "%w") << endl;
     }
   }
 }

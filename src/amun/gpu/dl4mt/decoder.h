@@ -361,32 +361,32 @@ class Decoder {
                   const mblas::IMatrix &sentencesMask,
                   const std::vector<uint>& beamSizes)
     {
-      BEGIN_TIMER("Decode");
+      //BEGIN_TIMER("Decode");
 
-      BEGIN_TIMER("GetHiddenState");
+      //BEGIN_TIMER("GetHiddenState");
       //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
       //HiddenState_.ReduceDimensions();
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-      PAUSE_TIMER("GetHiddenState");
+      //PAUSE_TIMER("GetHiddenState");
 
-      BEGIN_TIMER("GetAlignedSourceContext");
+      //BEGIN_TIMER("GetAlignedSourceContext");
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, sentencesMask, beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
-      PAUSE_TIMER("GetAlignedSourceContext");
+      //PAUSE_TIMER("GetAlignedSourceContext");
 
-      BEGIN_TIMER("GetNextState");
+      //BEGIN_TIMER("GetNextState");
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
-      PAUSE_TIMER("GetNextState");
+      //PAUSE_TIMER("GetNextState");
 
-      BEGIN_TIMER("GetProbs");
+      //BEGIN_TIMER("GetProbs");
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
-      PAUSE_TIMER("GetProbs");
+      //PAUSE_TIMER("GetProbs");
 
-      PAUSE_TIMER("Decode");
+      //PAUSE_TIMER("Decode");
     }
 
     mblas::Matrix& GetProbs() {
