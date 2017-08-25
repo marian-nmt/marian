@@ -17,8 +17,8 @@ class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;
 
-  Expr gammaContext_, betaContext_;
-  Expr gammaState_, betaState_;
+  Expr Wc_att_lns_, Wc_att_lnb_;
+  Expr W_comb_att_lns_, W_comb_att_lnb_;
 
   Ptr<EncoderState> encState_;
   Expr softmaxMask_;
@@ -69,15 +69,25 @@ public:
           = dropout(contextDropped_, keywords::mask = dropMaskContext_);
 
     if(layerNorm_) {
-      gammaContext_ = graph->param(prefix + "_att_gamma1",
-                                   {1, dimEncState},
-                                   keywords::init = inits::from_value(1.0));
-      gammaState_ = graph->param(prefix + "_att_gamma2",
+      // @TODO: restore s2s
+      // gammaContext_
+      Wc_att_lns_ = graph->param(prefix + "_Wc_att_lns",
                                  {1, dimEncState},
-                                 keywords::init = inits::from_value(1.0));
+                                 keywords::init = inits::from_value(1.f));
+      Wc_att_lnb_ = graph->param(prefix + "_Wc_att_lnb",
+                                 {1, dimEncState},
+                                 keywords::init = inits::zeros);
+      // gammaState_
+      W_comb_att_lns_ = graph->param(prefix + "_W_comb_att_lns",
+                                     {1, dimEncState},
+                                     keywords::init = inits::from_value(1.f));
+      W_comb_att_lnb_ = graph->param(prefix + "_W_comb_att_lnb",
+                                     {1, dimEncState},
+                                     keywords::init = inits::zeros);
 
-      mappedContext_
-          = layer_norm(dot(contextDropped_, Ua_), gammaContext_, ba_);
+      // @TODO: refactorize
+      auto cUb = affine(contextDropped_, Ua_, ba_);
+      mappedContext_ = layer_norm(cUb, Wc_att_lns_, Wc_att_lnb_);
     } else {
       mappedContext_ = affine(contextDropped_, Ua_, ba_);
     }
@@ -102,8 +112,9 @@ public:
       recState = dropout(recState, keywords::mask = dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
+    // @TODO: restore s2s
     if(layerNorm_)
-      mappedState = layer_norm(mappedState, gammaState_);
+      mappedState = layer_norm(mappedState, W_comb_att_lns_, W_comb_att_lnb_);
 
     auto attReduce = attOps(va_, mappedContext_, mappedState);
 

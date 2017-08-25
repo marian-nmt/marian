@@ -1074,14 +1074,14 @@ __global__ void gGRUNematusForward(float* out,
           float h;
           if(layerNorm) {
             if(final)
-              h = tanhf(xWrow[l] + (sUrow[l]) * r);
+              h = tanhf(xWrow[l] + (sUrow[l] + b[l]) * r);
             else
-              h = tanhf(xWrow[l] + sUrow[l] * r);
+              h = tanhf(xWrow[l] + sUrow[l] * r + b[l]);
           } else {
-            if(final)
-              h = tanhf(xWrow[l] + (sUrow[l]) * r);
-            else
-              h = tanhf(xWrow[l] + (sUrow[l] - b[l]) * r + b[l]);
+            //if(final)
+              //h = tanhf(xWrow[l] + (sUrow[l]) * r);
+            //else
+              //h = tanhf(xWrow[l] + (sUrow[l] - b[l]) * r + b[l]);
           }
 
           float out = (1.0f - u) * h + u * rowState[i];

@@ -98,13 +98,17 @@ public:
       params_.push_back(W);
       params_.push_back(b);
 
+      // @TODO: restore s2s
       if(layerNorm) {
-        auto gamma = g->param(name + "_gamma" + std::to_string(i),
-                              {1, dim},
-                              keywords::init = inits::from_value(1.0));
+        auto gamma_s = g->param(name + "_gamma" + std::to_string(i) + "s",
+                                {1, dim},
+                                keywords::init = inits::from_value(1.0));
+        auto gamma_b = g->param(name + "_gamma" + std::to_string(i) + "b",
+                                {1, dim},
+                                keywords::init = inits::zeros);
 
-        params_.push_back(gamma);
-        outputs.push_back(layer_norm(dot(in, W), gamma, b));
+        auto iWb = affine(in, W, b);
+        outputs.push_back(layer_norm(iWb, gamma_s, gamma_b));
       } else {
         outputs.push_back(affine(in, W, b));
       }
@@ -151,12 +155,15 @@ public:
 
     Expr out;
     if(layerNorm) {
-      auto gamma = g->param(name + "_gamma",
-                            {1, dim},
-                            keywords::init = inits::from_value(1.0));
+      // @TODO: restore s2s
+      auto ln_s = g->param(name + "_ln_s",
+                           {1, dim},
+                           keywords::init = inits::from_value(1.0));
+      auto ln_b = g->param(name + "_ln_b",
+                           {1, dim},
+                           keywords::init = inits::zeros);
 
-      params_.push_back(gamma);
-      out = layer_norm(dot(input, W), gamma, b);
+      out = layer_norm(affine(input, W, b), ln_s, ln_b);
     } else {
       out = affine(input, W, b);
     }

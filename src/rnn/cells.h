@@ -244,24 +244,18 @@ public:
     if(dropMaskX_)
       input = dropout(input, keywords::mask = dropMaskX_);
 
-    debug(b_, "b_ " + prefix_);
-    debug(bx_, "bx_ " + prefix_);
-    debug(W_, prefix_ + "_W");
-    debug(Wx_, prefix_ + "_Wx");
-
+    // @TODO: refactorize
     auto W = dot(input, W_);    // RUH_1_ in Amun
     auto Wx = dot(input, Wx_);  // RUH_2_ in Amun
 
     if(layerNorm_) {
-      if(isEncoder_) {
-        W = layer_norm(W + b_, W_lns_, W_lnb_);
-        Wx = layer_norm(Wx + bx_, Wx_lns_, Wx_lnb_);
-      } else {
-        // TODO
+      if(!final_) {
+        W = W + b_;
+        Wx = Wx + bx_;
       }
+      W = layer_norm(W, W_lns_, W_lnb_);
+      Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_);
     }
-    debug(W, "RUH_1_ " + prefix_);
-    debug(Wx, "RUH_2_ " + prefix_);
 
     auto xW = concatenate({W, Wx}, keywords::axis = 1);
 
@@ -277,8 +271,8 @@ public:
     if(dropMaskS_)
       stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
 
-    debug(U_, prefix_ + "_U");
-    debug(Ux_, prefix_ + "_Ux");
+    // @TODO: refactorize
+    bool transition = xWs.empty();
 
     auto U = dot(stateDropped, U_);   // Temp_1_ in Amun
     auto Ux = dot(stateDropped, Ux_); // Temp_2_ in Amun
@@ -287,38 +281,49 @@ public:
       if(isEncoder_) {
         U = layer_norm(U, U_lns_, U_lnb_);
         Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
+        if(transition) {
+          U = U + b_;
+        }
       } else {
-        // TODO
+        if(transition || final_) {
+          U = U + b_;
+          Ux = Ux + bx_;
+        }
+        U = layer_norm(U, U_lns_, U_lnb_);
+        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
       }
     } else {
       U = U + b_;
       Ux = Ux + bx_;
     }
 
-    debug(U, "Temp_1_ " + prefix_);
-    debug(Ux, "Temp_2_ " + prefix_);
-
+    // @TODO: refactorize
     auto sU = concatenate({U, Ux}, keywords::axis = 1);
+
+    auto bbx = concatenate({b_, bx_}, keywords::axis = 1);
+    auto bbx0 = concatenate({b0_, bx0_}, keywords::axis = 1);
 
     Expr xW;
     if(xWs.empty()) {
       if(not fakeInput_)
         fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
       xW = fakeInput_;
+
+      if(layerNorm_) {
+        if(isEncoder_) {
+          bbx0 = bbx;
+        }
+      }
     }
     else {
       xW = xWs.front();
+      if(!isEncoder_ && final_) {
+        bbx0 = bbx;
+      }
     }
 
-    auto bbx = concatenate({b_, bx_}, keywords::axis = 1);
-    //auto bbx0 = concatenate({b0_, bx0_}, keywords::axis = 1);
-
-
-    auto output = mask ? gruNematusOps({stateOrig, xW, sU, bbx, mask}, final_, layerNorm_) :
-                         gruNematusOps({stateOrig, xW, sU, bbx}, final_, layerNorm_);
-
-    debug(output, prefix_ + " / GRU / final=" + std::to_string(final_));
-
+    auto output = mask ? gruNematusOps({stateOrig, xW, sU, bbx0, mask}, final_, layerNorm_) :
+                         gruNematusOps({stateOrig, xW, sU, bbx0}, final_, layerNorm_);
     return { output, state.cell }; // no cell state, hence copy
   }
 };

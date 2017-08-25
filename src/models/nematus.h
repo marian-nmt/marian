@@ -87,9 +87,18 @@ public:
            {"encoder_r_b", "encoder_bi_r_b"},
            {"encoder_r_bx", "encoder_bi_r_bx"},
            {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
-           {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
+           {"encoder_r_gamma2", "encoder_bi_r_gamma2"},
+           {"ff_state_ln_s", "decoder_ff_state_ln_s"},
+           {"ff_state_ln_b", "decoder_ff_state_ln_b"},
+           {"ff_logit_prev_ln_s", "decoder_ff_logit_l1_gamma0s"},
+           {"ff_logit_lstm_ln_s", "decoder_ff_logit_l1_gamma1s"},
+           {"ff_logit_ctx_ln_s", "decoder_ff_logit_l1_gamma2s"},
+           {"ff_logit_prev_ln_b", "decoder_ff_logit_l1_gamma0b"},
+           {"ff_logit_lstm_ln_b", "decoder_ff_logit_l1_gamma1b"},
+           {"ff_logit_ctx_ln_b", "decoder_ff_logit_l1_gamma2b"}
+        };
 
-    // add mapping for deep cells
+    // add mapping for deep encoder cells
     std::vector<std::string> suffixes = {"_U", "_Ux", "_b", "_bx"};
     for(int i = 1; i < options_->get<int>("enc-cell-depth"); ++i) {
       std::string num1 = std::to_string(i);
@@ -101,6 +110,7 @@ public:
                         "encoder_bi_r_cell" + num2 + suf});
       }
     }
+    // add mapping for deep decoder cells
     for(int i = 3; i <= options_->get<int>("dec-cell-base-depth"); ++i) {
       std::string num1 = std::to_string(i - 2);
       std::string num2 = std::to_string(i);
@@ -111,26 +121,18 @@ public:
     // add mapping for normalization layers
     std::map<std::string, std::string> nameMapCopy(nameMap);
     for(auto& kv : nameMapCopy) {
-      if(kv.first.substr(0, 3) == "ff_") {
-        nameMap.insert({kv.first + "_ln_s", kv.second + "_lns"});
-        nameMap.insert({kv.first + "_ln_b", kv.second + "_lnb"});
-      } else {
+      std::string prefix = kv.first.substr(0, 7);
+
+      if(prefix == "encoder" || prefix == "decoder") {
         nameMap.insert({kv.first + "_lns", kv.second + "_lns"});
         nameMap.insert({kv.first + "_lnb", kv.second + "_lnb"});
       }
     }
 
-    // TODO: remove debugs
-    //for(auto& t : nameMap)
-      //std::cerr << t.first << "\t" << t.second << std::endl;
-
     graph->setReloaded(false);
 
     for(auto it : numpy) {
       auto name = it.first;
-
-      // TODO: remove debugs
-      LOG(info)->info("key= " + name);
 
       if(name == "decoder_c_tt")
         continue;
@@ -146,22 +148,14 @@ public:
         shape.set(1, numpy[name].shape[0]);
       }
 
-      // TODO: remove debugs
-      std::stringstream ss;
-      ss << shape;
-      LOG(info)->info("  shape= " + ss.str());
-
       std::string pName = name;
       if(nameMap.count(name))
         pName = nameMap[name];
 
-      // TODO: remove debugs
-      LOG(info)->info("  pName= " + pName + ((pName == name) ? " EQUAL" : ""));
-
       graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
     }
 
-    //graph->setReloaded(true);
+    graph->setReloaded(true);
   }
 
   void save(Ptr<ExpressionGraph> graph,
