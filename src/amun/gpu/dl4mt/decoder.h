@@ -251,45 +251,45 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext) {
           using namespace mblas;
 
-          BEGIN_TIMER("GetProbs.Prod");
+          //BEGIN_TIMER("GetProbs.Prod");
           Prod(/*h_[0],*/ T1_, State, *w_.W1_);
-          PAUSE_TIMER("GetProbs.Prod");
+          //PAUSE_TIMER("GetProbs.Prod");
 
-          BEGIN_TIMER("GetProbs.Normalization/BroadcastVec");
+          //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec");
           if (w_.Gamma_1_->size()) {
             Normalization(T1_, T1_, *w_.Gamma_1_, *w_.B1_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, T1_, *w_.B1_ /*,s_[0]*/);
           }
-          PAUSE_TIMER("GetProbs.Normalization/BroadcastVec");
+          //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec");
 
-          BEGIN_TIMER("GetProbs.Prod2");
+          //BEGIN_TIMER("GetProbs.Prod2");
           Prod(/*h_[1],*/ T2_, Embedding, *w_.W2_);
-          PAUSE_TIMER("GetProbs.Prod2");
+          //PAUSE_TIMER("GetProbs.Prod2");
 
-          BEGIN_TIMER("GetProbs.Normalization/BroadcastVec2");
+          //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec2");
           if (w_.Gamma_0_->size()) {
             Normalization(T2_, T2_, *w_.Gamma_0_, *w_.B2_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, T2_, *w_.B2_ /*,s_[1]*/);
           }
-          PAUSE_TIMER("GetProbs.Normalization/BroadcastVec2");
+          //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec2");
 
-          BEGIN_TIMER("GetProbs.Prod3");
+          //BEGIN_TIMER("GetProbs.Prod3");
           Prod(/*h_[2],*/ T3_, AlignedSourceContext, *w_.W3_);
-          PAUSE_TIMER("GetProbs.Prod3");
+          //PAUSE_TIMER("GetProbs.Prod3");
 
-          BEGIN_TIMER("GetProbs.Normalization/BroadcastVec3");
+          //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec3");
           if (w_.Gamma_2_->size()) {
             Normalization(T3_, T3_, *w_.Gamma_2_, *w_.B3_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, T3_, *w_.B3_ /*,s_[2]*/);
           }
-          PAUSE_TIMER("GetProbs.Normalization/BroadcastVec3");
+          //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec3");
 
-          BEGIN_TIMER("GetProbs.Element");
+          //BEGIN_TIMER("GetProbs.Element");
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
-          PAUSE_TIMER("GetProbs.Element");
+          //PAUSE_TIMER("GetProbs.Element");
 
           std::shared_ptr<mblas::Matrix> w4, b4;
           if(!filtered_) {
@@ -300,21 +300,21 @@ class Decoder {
             b4.reset(&FilteredB4_);
           }
 
-          BEGIN_TIMER("GetProbs.NewSize");
+          //BEGIN_TIMER("GetProbs.NewSize");
           Probs.NewSize(T1_.dim(0), w4->dim(1));
-          PAUSE_TIMER("GetProbs.NewSize");
+          //PAUSE_TIMER("GetProbs.NewSize");
 
-          BEGIN_TIMER("GetProbs.Prod4");
+          //BEGIN_TIMER("GetProbs.Prod4");
           Prod(Probs, T1_, *w4);
-          PAUSE_TIMER("GetProbs.Prod4");
+          //PAUSE_TIMER("GetProbs.Prod4");
 
-          BEGIN_TIMER("GetProbs.BroadcastVec");
+          //BEGIN_TIMER("GetProbs.BroadcastVec");
           BroadcastVec(_1 + _2, Probs, *b4);
-          PAUSE_TIMER("GetProbs.BroadcastVec");
+          //PAUSE_TIMER("GetProbs.BroadcastVec");
 
-          BEGIN_TIMER("GetProbs.LogSoftMax");
+          //BEGIN_TIMER("GetProbs.LogSoftMax");
           mblas::LogSoftmax(Probs);
-          PAUSE_TIMER("GetProbs.LogSoftMax");
+          //PAUSE_TIMER("GetProbs.LogSoftMax");
         }
 
         void Filter(const std::vector<size_t>& ids) {
