@@ -1,13 +1,7 @@
 #pragma once
 
 #include "marian.h"
-
 #include "models/model_factory.h"
-//#include "models/s2s.h"
-//#include "models/amun.h"
-//#include "models/hardatt.h"
-//#include "models/multi_s2s.h"
-//#include "models/lm.h"
 
 namespace marian {
 
@@ -187,68 +181,18 @@ public:
 Ptr<Scorer> scorerByType(std::string fname,
                          float weight,
                          std::string model,
-                         Ptr<Config> options) {
+                         Ptr<Config> config) {
+
+  Ptr<Options> options = New<Options>();
+  options->merge(config);
+  options->set("inference", true);
+
+  auto encdec = models::from_options(options);
 
   std::string type = options->get<std::string>("type");
-
   LOG(info)->info("Loading scorer of type {} as feature {}", type, fname);
 
-  if(type == "s2s") {
-
-    auto s2s = models::encoder_decoder(nullptr)
-               (options)
-               ("inference", true)
-               .push_back(models::encoder(nullptr))
-               .push_back(models::decoder(nullptr))
-               .construct();
-
-    return New<ScorerWrapper>(s2s, fname, weight, model);
-
-  } else if(type == "lm") {
-
-    auto lm = models::encoder_decoder(nullptr)
-              (options)
-              ("type", "s2s")
-              ("inference", true)
-              .push_back(models::decoder(nullptr)
-                         ("index", 1))
-              .construct();
-
-    return New<ScorerWrapper>(lm, fname, weight, model);
-
-  }
-  else if(type == "multi-s2s") {
-
-    size_t numEncoders = 2;
-    auto ms2sFactory = models::encoder_decoder(nullptr)
-                       (options)
-                       ("type", "s2s")
-                       ("inference", true);
-
-    for(size_t i = 0; i < numEncoders; ++i)
-      ms2sFactory.push_back(models::encoder(nullptr)
-                            ("prefix", "encoder" + std::to_string(i+1))
-                            ("index", i));
-
-    ms2sFactory.push_back(models::decoder(nullptr)
-                          ("index", numEncoders));
-
-    return New<ScorerWrapper>(ms2sFactory.construct(),
-                              fname, weight, model);
-
-  }
-  //} else if(type == "amun") {
-  //  return New<ScorerWrapper<Amun>>(fname, weight, model, options);
-  //} else if(type == "hard-att") {
-  //  return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
-  //} else if(type == "hard-soft-att") {
-  //  return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
-  //} else if(type == "multi-hard-att") {
-  //  return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
-  // }
-  else {
-    UTIL_THROW2("Unknown decoder type: " + type);
-  }
+  return New<ScorerWrapper>(encdec, fname, weight, model);
 }
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {

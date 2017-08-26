@@ -72,7 +72,48 @@ public:
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
 
+Ptr<EncoderDecoder> from_options(Ptr<Options> options) {
 
+  std::string type = options->get<std::string>("type");
+
+  if(type == "s2s") {
+
+    return models::encoder_decoder(nullptr)
+           (options)
+           .push_back(models::encoder(nullptr))
+           .push_back(models::decoder(nullptr))
+           .construct();
+
+  } else if(type == "lm") {
+
+    return models::encoder_decoder(nullptr)
+           (options)
+           ("type", "s2s")
+           .push_back(models::decoder(nullptr)
+                      ("index", 1))
+           .construct();
+  }
+  else if(type == "multi-s2s") {
+    size_t numEncoders = 2;
+    auto ms2sFactory = models::encoder_decoder(nullptr)
+                       (options)
+                       ("type", "s2s");
+
+    for(size_t i = 0; i < numEncoders; ++i)
+      ms2sFactory.push_back(models::encoder(nullptr)
+                            ("prefix", "encoder" + std::to_string(i+1))
+                            ("index", i));
+
+    ms2sFactory.push_back(models::decoder(nullptr)
+                          ("index", numEncoders));
+
+    return ms2sFactory.construct();
+  }
+  else {
+    UTIL_THROW2("Unknown model type: " + type);
+  }
+
+}
 
 }
 

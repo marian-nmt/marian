@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 #include "common/definitions.h"
+#include "common/config.h"
+
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
@@ -41,6 +43,10 @@ class Options {
 
     void merge(Ptr<Options> options) {
       merge(options->getOptions());
+    }
+
+    void merge(Ptr<Config> config) {
+      merge(config->get());
     }
 
     void merge(YAML::Node& node) {
