@@ -124,6 +124,8 @@ public:
 
 /******************************************************************************/
 
+Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
+
 Expr gruNematusOps(const std::vector<Expr>& nodes,
                    bool final = false,
                    bool layerNorm = false);
@@ -171,13 +173,18 @@ public:
     dropout_ = opt<float>("dropout", 0);
     final_ = opt<bool>("final", false);
 
+    // TODO: refactorize: these don't have to be class attributes if no LN
     U_ = graph->param(prefix + "_U",
                       {dimState, 2 * dimState},
                       keywords::init = inits::glorot_uniform);
     Ux_ = graph->param(prefix + "_Ux",
                        {dimState, dimState},
                        keywords::init = inits::glorot_uniform);
+    if(!layerNorm_)
+      UUx_ = concatenate({U_, Ux_}, keywords::axis = 1);
 
+
+    // TODO: refactorize: these don't have to be class attributes if no LN
     if(dimInput > 0) {
       W_ = graph->param(prefix + "_W",
                         {dimInput, 2 * dimState},
@@ -185,6 +192,8 @@ public:
       Wx_ = graph->param(prefix + "_Wx",
                          {dimInput, dimState},
                          keywords::init = inits::glorot_uniform);
+      if(!layerNorm_)
+        WWx_ = concatenate({W_, Wx_}, keywords::axis = 1);
     }
 
     b_ = graph->param(
@@ -338,15 +347,20 @@ public:
       xW = xWs.front();
     }
 
-    auto output = mask ? gruNematusOps({stateOrig, xW, sU, b, mask}, final_, layerNorm_) :
-                         gruNematusOps({stateOrig, xW, sU, b}, final_, layerNorm_);
+    // TODO: remove layerNorm_ from gruNematusOps
+    Expr output;
+    if(layerNorm_) {
+      output = mask ? gruNematusOps({stateOrig, xW, sU, b, mask}, final_, layerNorm_) :
+                      gruNematusOps({stateOrig, xW, sU, b}, final_, layerNorm_);
+    } else {
+      output = mask ? gruOps({stateOrig, xW, sU, b, mask}, final_) :
+                      gruOps({stateOrig, xW, sU, b}, final_);
+    }
     return { output, state.cell }; // no cell state, hence copy
   }
 };
 
 /******************************************************************************/
-
-Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
 class GRU : public Cell {
 protected:
@@ -385,7 +399,6 @@ public:
                            {dimState, dimState},
                            keywords::init = inits::glorot_uniform);
     U_ = concatenate({U, Ux}, keywords::axis = 1);
-
 
     if(dimInput > 0) {
       auto W = graph->param(prefix + "_W",
@@ -447,9 +460,9 @@ public:
       input = dropout(input, keywords::mask = dropMaskX_);
 
     auto xW = dot(input, W_);
-
     if(layerNorm_)
       xW = layer_norm(xW, gamma1_);
+
     return {xW};
   }
 
@@ -463,7 +476,6 @@ public:
       stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
 
     auto sU = dot(stateDropped, U_);
-
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
 
