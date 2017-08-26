@@ -9,15 +9,15 @@ namespace models {
 
 class EncoderFactory : public Factory {
 public:
-  EncoderFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
 
   virtual Ptr<EncoderBase> construct() {
     std::string type = options_->get<std::string>("type");
-    if(type == "s2s") {
+
+    if(type == "s2s")
       return New<EncoderS2S>(options_);
-    } else {
-      UTIL_THROW2("Unknown encoder type");
-    }
+
+    UTIL_THROW2("Unknown encoder type");
   }
 };
 
@@ -25,15 +25,15 @@ typedef Accumulator<EncoderFactory> encoder;
 
 class DecoderFactory : public Factory {
 public:
-  DecoderFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
 
   virtual Ptr<DecoderBase> construct() {
     std::string type = options_->get<std::string>("type");
-    if(type == "s2s") {
+
+    if(type == "s2s")
       return New<DecoderS2S>(options_);
-    } else {
-      UTIL_THROW2("Unknown decoder type");
-    }
+
+    UTIL_THROW2("Unknown decoder type");
   }
 };
 
@@ -45,7 +45,7 @@ private:
   std::vector<decoder> decoders_;
 
 public:
-  EncoderDecoderFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  EncoderDecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
 
   Accumulator<EncoderDecoderFactory> push_back(encoder enc) {
     encoders_.push_back(enc);
@@ -72,47 +72,48 @@ public:
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
 
-Ptr<EncoderDecoder> from_options(Ptr<Options> options) {
-
-  std::string type = options->get<std::string>("type");
-
+Ptr<EncoderDecoder> by_type(std::string type,
+                            Ptr<Options> options) {
   if(type == "s2s") {
-
-    return models::encoder_decoder(nullptr)
+    return models::encoder_decoder()
            (options)
-           .push_back(models::encoder(nullptr))
-           .push_back(models::decoder(nullptr))
+           .push_back(models::encoder())
+           .push_back(models::decoder())
            .construct();
+  }
 
-  } else if(type == "lm") {
-
-    return models::encoder_decoder(nullptr)
+  if(type == "lm") {
+    return models::encoder_decoder()
            (options)
            ("type", "s2s")
-           .push_back(models::decoder(nullptr)
+           .push_back(models::decoder()
                       ("index", 1))
            .construct();
   }
-  else if(type == "multi-s2s") {
+
+  if(type == "multi-s2s") {
     size_t numEncoders = 2;
-    auto ms2sFactory = models::encoder_decoder(nullptr)
+    auto ms2sFactory = models::encoder_decoder()
                        (options)
                        ("type", "s2s");
 
     for(size_t i = 0; i < numEncoders; ++i)
-      ms2sFactory.push_back(models::encoder(nullptr)
+      ms2sFactory.push_back(models::encoder()
                             ("prefix", "encoder" + std::to_string(i+1))
                             ("index", i));
 
-    ms2sFactory.push_back(models::decoder(nullptr)
+    ms2sFactory.push_back(models::decoder()
                           ("index", numEncoders));
 
     return ms2sFactory.construct();
   }
-  else {
-    UTIL_THROW2("Unknown model type: " + type);
-  }
 
+  UTIL_THROW2("Unknown model type: " + type);
+}
+
+Ptr<EncoderDecoder> from_options(Ptr<Options> options) {
+  std::string type = options->get<std::string>("type");
+  return by_type(type, options);
 }
 
 }

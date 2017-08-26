@@ -38,6 +38,7 @@ public:
 template <class Factory>
 class Accumulator : public Factory {
 public:
+  Accumulator() : Factory(nullptr) {}
   Accumulator(Ptr<ExpressionGraph> graph) : Factory(graph) {}
   Accumulator(const Factory& factory) : Factory(factory) {}
   Accumulator(const Accumulator&) = default;
