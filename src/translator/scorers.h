@@ -227,7 +227,7 @@ Ptr<Scorer> scorerByType(std::string fname,
 
     for(size_t i = 0; i < numEncoders; ++i)
       ms2sFactory.push_back(models::encoder(nullptr)
-                            ("prefix", "encoder" + std::to_string(i+1)
+                            ("prefix", "encoder" + std::to_string(i+1))
                             ("index", i));
 
     ms2sFactory.push_back(models::decoder(nullptr)
