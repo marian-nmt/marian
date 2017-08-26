@@ -111,7 +111,7 @@ Ptr<EncoderDecoder> by_type(std::string type,
            (options)
            ("type", "s2s")
            .push_back(models::decoder()
-                      ("index", 1))
+                      ("index", 0))
            .construct();
   }
 
@@ -123,7 +123,7 @@ Ptr<EncoderDecoder> by_type(std::string type,
 
     for(size_t i = 0; i < numEncoders; ++i)
       ms2sFactory.push_back(models::encoder()
-                            ("prefix", "encoder" + std::to_string(i+1))
+                            ("prefix", "encoder" + std::to_string(i + 1))
                             ("index", i));
 
     ms2sFactory.push_back(models::decoder()

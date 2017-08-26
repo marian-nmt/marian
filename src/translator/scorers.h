@@ -187,9 +187,16 @@ Ptr<Scorer> scorerByType(std::string fname,
   options->merge(config);
   options->set("inference", true);
 
+  std::string type = options->get<std::string>("type");
+
+  // @TODO: solve this better
+  if(type == "lm") {
+    size_t index = config->get<std::vector<std::string>>("input").size();
+    options->set("index", index);
+  }
+
   auto encdec = models::from_options(options);
 
-  std::string type = options->get<std::string>("type");
   LOG(info)->info("Loading scorer of type {} as feature {}", type, fname);
 
   return New<ScorerWrapper>(encdec, fname, weight, model);
