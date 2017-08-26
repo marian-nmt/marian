@@ -200,7 +200,7 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
         if(state->getEncoderStates().size() > 1)
           attPrefix += "_att" + std::to_string(k + 1);
 
-        auto encState = state->getEncoderStates()[k++];
+        auto encState = state->getEncoderStates()[k];
 
         baseCell.push_back(rnn::attention(graph)
                            ("prefix", attPrefix)

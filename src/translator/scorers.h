@@ -226,9 +226,12 @@ Ptr<Scorer> scorerByType(std::string fname,
                        ("inference", true);
 
     for(size_t i = 0; i < numEncoders; ++i)
-      ms2sFactory.push_back(models::encoder(nullptr)("index", i));
+      ms2sFactory.push_back(models::encoder(nullptr)
+                            ("prefix", "encoder" + std::to_string(i+1)
+                            ("index", i));
 
-    ms2sFactory.push_back(models::decoder(nullptr)("index", numEncoders));
+    ms2sFactory.push_back(models::decoder(nullptr)
+                          ("index", numEncoders));
 
     return New<ScorerWrapper>(ms2sFactory.construct(),
                               fname, weight, model);
@@ -236,15 +239,10 @@ Ptr<Scorer> scorerByType(std::string fname,
   }
   //} else if(type == "amun") {
   //  return New<ScorerWrapper<Amun>>(fname, weight, model, options);
-  //} else if(type == "lm") {
-  //  const std::vector<size_t> idx = {1};
-  //  return New<ScorerWrapper<LM>>(fname, weight, model, options, idx);
   //} else if(type == "hard-att") {
   //  return New<ScorerWrapper<HardAtt>>(fname, weight, model, options);
   //} else if(type == "hard-soft-att") {
   //  return New<ScorerWrapper<HardSoftAtt>>(fname, weight, model, options);
-  //} else if(type == "multi-s2s") {
-  //  return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
   //} else if(type == "multi-hard-att") {
   //  return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   // }
