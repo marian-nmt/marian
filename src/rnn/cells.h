@@ -126,242 +126,6 @@ public:
 
 Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
-Expr gruNematusOps(const std::vector<Expr>& nodes,
-                   bool final = false,
-                   bool layerNorm = false);
-
-class GRUNematus : public Cell {
-protected:
-  // Concatenated Us and Ws, used only unless layer normalization enabled
-  Expr UUx_, WWx_, bbx_;
-
-  // Cell parameters only if layer normalization enabled
-  Expr U_, W_, b_;
-  Expr Ux_, Wx_, bx_;
-
-  // Layer normalization parameters
-  Expr W_lns_, W_lnb_;
-  Expr Wx_lns_, Wx_lnb_;
-  Expr U_lns_, U_lnb_;
-  Expr Ux_lns_, Ux_lnb_;
-
-  // An encoder or decoder
-  bool encoder_;
-  // An RNN final layer or hidden layer
-  bool final_;
-  // Use layer normalization
-  bool layerNorm_;
-  float dropout_;
-
-  Expr dropMaskX_;
-  Expr dropMaskS_;
-
-  // Fake input with zeros replaces W and Wx in transition cells
-  Expr fakeInput_;
-  // Fake biases with zeros to handle layer normalization
-  Expr bbx0_;
-
-public:
-  GRUNematus(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
-    int dimInput = opt<int>("dimInput");
-    int dimState = opt<int>("dimState");
-
-    auto prefix = opt<std::string>("prefix");
-    encoder_ = prefix.substr(0, 7) == "encoder";
-
-    layerNorm_ = opt<bool>("layer-normalization", false);
-    dropout_ = opt<float>("dropout", 0);
-    final_ = opt<bool>("final", false);
-
-    // TODO: refactorize: these don't have to be class attributes if no LN
-    U_ = graph->param(prefix + "_U",
-                      {dimState, 2 * dimState},
-                      keywords::init = inits::glorot_uniform);
-    Ux_ = graph->param(prefix + "_Ux",
-                       {dimState, dimState},
-                       keywords::init = inits::glorot_uniform);
-    if(!layerNorm_)
-      UUx_ = concatenate({U_, Ux_}, keywords::axis = 1);
-
-
-    // TODO: refactorize: these don't have to be class attributes if no LN
-    if(dimInput > 0) {
-      W_ = graph->param(prefix + "_W",
-                        {dimInput, 2 * dimState},
-                        keywords::init = inits::glorot_uniform);
-      Wx_ = graph->param(prefix + "_Wx",
-                         {dimInput, dimState},
-                         keywords::init = inits::glorot_uniform);
-      if(!layerNorm_)
-        WWx_ = concatenate({W_, Wx_}, keywords::axis = 1);
-    }
-
-    b_ = graph->param(
-        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
-    bx_ = graph->param(
-        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
-    bbx_ = concatenate({b_, bx_}, keywords::axis = 1);
-
-    if(layerNorm_) {
-      auto b0 = graph->param(
-          prefix + "_b0", {1, 2 * dimState}, keywords::init = inits::zeros);
-      auto bx0 = graph->param(
-          prefix + "_bx0", {1, dimState}, keywords::init = inits::zeros);
-      bbx0_ = concatenate({b0, bx0}, keywords::axis = 1);
-    }
-
-    if(dropout_ > 0.0f) {
-      if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
-    }
-
-    if(layerNorm_) {
-      if(dimInput) {
-        W_lns_ = graph->param(prefix + "_W_lns",
-                              {1, 2 * dimState},
-                              keywords::init = inits::from_value(1.f));
-        W_lnb_ = graph->param(prefix + "_W_lnb",
-                              {1, 2 * dimState},
-                              keywords::init = inits::zeros);
-        Wx_lns_ = graph->param(prefix + "_Wx_lns",
-                               {1, 1 * dimState},
-                               keywords::init = inits::from_value(1.f));
-        Wx_lnb_ = graph->param(prefix + "_Wx_lnb",
-                               {1, 1 * dimState},
-                               keywords::init = inits::zeros);
-      }
-      U_lns_ = graph->param(prefix + "_U_lns",
-                            {1, 2 * dimState},
-                            keywords::init = inits::from_value(1.f));
-      U_lnb_ = graph->param(prefix + "_U_lnb",
-                            {1, 2 * dimState},
-                            keywords::init = inits::zeros);
-      Ux_lns_ = graph->param(prefix + "_Ux_lns",
-                             {1, 1 * dimState},
-                             keywords::init = inits::from_value(1.f));
-      Ux_lnb_ = graph->param(prefix + "_Ux_lnb",
-                             {1, 1 * dimState},
-                             keywords::init = inits::zeros);
-    }
-  }
-
-  virtual State apply(std::vector<Expr> inputs,
-                      State state,
-                      Expr mask = nullptr) {
-    return applyState(applyInput(inputs), state, mask);
-  }
-
-  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    Expr input;
-    if(inputs.size() == 0)
-      return {};
-    else if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = 1);
-    else
-      input = inputs[0];
-
-    if(dropMaskX_)
-      input = dropout(input, keywords::mask = dropMaskX_);
-
-    Expr xW;
-    if(layerNorm_) {
-      Expr W;   // RUH_1_ in Amun
-      Expr Wx;  // RUH_2_ in Amun
-
-      if(final_) {
-        W = dot(input, W_);
-        Wx = dot(input, Wx_);
-      } else {
-        W = affine(input, W_, b_);
-        Wx = affine(input, Wx_, bx_);
-      }
-      W = layer_norm(W, W_lns_, W_lnb_);
-      Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_);
-
-      xW = concatenate({W, Wx}, keywords::axis = 1);
-    } else {
-      xW = dot(input, WWx_);
-    }
-
-    return {xW};
-  }
-
-  virtual State applyState(std::vector<Expr> xWs,
-                           State state,
-                           Expr mask = nullptr) {
-    bool transition = xWs.empty();
-
-    auto stateOrig = state.output;
-    auto stateDropped = stateOrig;
-    if(dropMaskS_)
-      stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
-
-    Expr b;
-    if(layerNorm_)
-      b = bbx0_;
-    else
-      b = bbx_;
-
-    Expr sU;
-    if(layerNorm_) {
-      Expr U;   // Temp_1_ in Amun
-      Expr Ux;  // Temp_2_ in Amun
-
-      if(encoder_) {
-        U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_);
-        Ux = layer_norm(dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_);
-
-        if(transition) {
-          U = U + b_;
-          b = bbx_;
-        }
-      } else {
-        if(final_ || transition) {
-          U = affine(stateDropped, U_, b_);
-          Ux = affine(stateDropped, Ux_, bx_);
-        } else {
-          U = dot(stateDropped, U_);
-          Ux = dot(stateDropped, Ux_);
-        }
-        U = layer_norm(U, U_lns_, U_lnb_);
-        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
-
-        if(final_ && !transition) {
-          b = bbx_;
-        }
-      }
-
-      sU = concatenate({U, Ux}, keywords::axis = 1);
-    } else {
-      sU = dot(stateDropped, UUx_);
-    }
-
-    Expr xW;
-    if(transition) {
-      if(not fakeInput_)
-        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
-      xW = fakeInput_;
-    }
-    else {
-      xW = xWs.front();
-    }
-
-    // TODO: remove layerNorm_ from gruNematusOps
-    Expr output;
-    if(layerNorm_) {
-      output = mask ? gruNematusOps({stateOrig, xW, sU, b, mask}, final_, layerNorm_) :
-                      gruNematusOps({stateOrig, xW, sU, b}, final_, layerNorm_);
-    } else {
-      output = mask ? gruOps({stateOrig, xW, sU, b, mask}, final_) :
-                      gruOps({stateOrig, xW, sU, b}, final_);
-    }
-    return { output, state.cell }; // no cell state, hence copy
-  }
-};
-
-/******************************************************************************/
-
 class GRU : public Cell {
 protected:
   std::string prefix_;
@@ -491,6 +255,252 @@ public:
 
     auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_) :
                          gruOps({stateOrig, xW, sU, b_}, final_);
+
+    return { output, state.cell }; // no cell state, hence copy
+  }
+};
+
+/**
+ * @brief GRU unit supporting Nematus-like layer normalization.
+ *
+ * If no layer normalization is used, the unit is equivalent to
+ * marian::rnn::GRU and uses the same kernel.
+ *
+ * @see marian::rnn::GRU
+ */
+class GRUNematus : public Cell {
+protected:
+  // Concatenated Us and Ws, used unless layer normalization enabled
+  Expr UUx_, WWx_, bbx_;
+
+  // Parameters used if layer normalization enabled
+  Expr U_, W_, b_;
+  Expr Ux_, Wx_, bx_;
+
+  // Layer normalization parameters
+  Expr W_lns_, W_lnb_;
+  Expr Wx_lns_, Wx_lnb_;
+  Expr U_lns_, U_lnb_;
+  Expr Ux_lns_, Ux_lnb_;
+
+  // Whether it is an encoder or decoder
+  bool encoder_;
+  // Whether it is an RNN final layer or hidden layer
+  bool final_;
+  // Use layer normalization
+  bool layerNorm_;
+
+  // Dropout probability
+  float dropout_;
+  Expr dropMaskX_;
+  Expr dropMaskS_;
+
+  // Fake input with zeros replaces W and Wx in transition cells
+  Expr fakeInput_;
+  // Fake biases with zeros to handle layer normalization
+  Expr b0bx_;
+  Expr b0bx0_;
+
+public:
+  GRUNematus(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
+    int dimInput = opt<int>("dimInput");
+    int dimState = opt<int>("dimState");
+
+    auto prefix = opt<std::string>("prefix");
+    encoder_ = prefix.substr(0, 7) == "encoder";
+
+    layerNorm_ = opt<bool>("layer-normalization", false);
+    dropout_ = opt<float>("dropout", 0);
+    final_ = opt<bool>("final", false);
+
+    auto U = graph->param(prefix + "_U",
+                          {dimState, 2 * dimState},
+                          keywords::init = inits::glorot_uniform);
+    auto Ux = graph->param(prefix + "_Ux",
+                           {dimState, dimState},
+                           keywords::init = inits::glorot_uniform);
+
+    if(layerNorm_) {
+      U_ = U;
+      Ux_ = Ux;
+    } else {
+      UUx_ = concatenate({U, Ux}, keywords::axis = 1);
+    }
+
+    if(dimInput > 0) {
+      auto W = graph->param(prefix + "_W",
+                        {dimInput, 2 * dimState},
+                        keywords::init = inits::glorot_uniform);
+      auto Wx = graph->param(prefix + "_Wx",
+                         {dimInput, dimState},
+                         keywords::init = inits::glorot_uniform);
+      if(layerNorm_) {
+        W_ = W;
+        Wx_ = Wx;
+      } else {
+        WWx_ = concatenate({W, Wx}, keywords::axis = 1);
+      }
+    }
+
+    auto b = graph->param(
+        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
+    auto bx = graph->param(
+        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
+    bbx_ = concatenate({b, bx}, keywords::axis = 1);
+
+    if(layerNorm_) {
+      b_ = b;
+      bx_ = bx;
+
+      auto b0 = graph->param(
+          prefix + "_b0", {1, 2 * dimState}, keywords::init = inits::zeros);
+      auto bx0 = graph->param(
+          prefix + "_bx0", {1, dimState}, keywords::init = inits::zeros);
+
+      b0bx_ = concatenate({b0, bx}, keywords::axis = 1);
+      b0bx0_ = concatenate({b0, bx0}, keywords::axis = 1);
+    }
+
+    if(dropout_ > 0.0f) {
+      if(dimInput)
+        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+    }
+
+    if(layerNorm_) {
+      if(dimInput) {
+        W_lns_ = graph->param(prefix + "_W_lns",
+                              {1, 2 * dimState},
+                              keywords::init = inits::from_value(1.f));
+        W_lnb_ = graph->param(prefix + "_W_lnb",
+                              {1, 2 * dimState},
+                              keywords::init = inits::zeros);
+        Wx_lns_ = graph->param(prefix + "_Wx_lns",
+                               {1, 1 * dimState},
+                               keywords::init = inits::from_value(1.f));
+        Wx_lnb_ = graph->param(prefix + "_Wx_lnb",
+                               {1, 1 * dimState},
+                               keywords::init = inits::zeros);
+      }
+      U_lns_ = graph->param(prefix + "_U_lns",
+                            {1, 2 * dimState},
+                            keywords::init = inits::from_value(1.f));
+      U_lnb_ = graph->param(prefix + "_U_lnb",
+                            {1, 2 * dimState},
+                            keywords::init = inits::zeros);
+      Ux_lns_ = graph->param(prefix + "_Ux_lns",
+                             {1, 1 * dimState},
+                             keywords::init = inits::from_value(1.f));
+      Ux_lnb_ = graph->param(prefix + "_Ux_lnb",
+                             {1, 1 * dimState},
+                             keywords::init = inits::zeros);
+    }
+  }
+
+  virtual State apply(std::vector<Expr> inputs,
+                      State state,
+                      Expr mask = nullptr) {
+    return applyState(applyInput(inputs), state, mask);
+  }
+
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+    Expr input;
+    if(inputs.size() == 0)
+      return {};
+    else if(inputs.size() > 1)
+      input = concatenate(inputs, keywords::axis = 1);
+    else
+      input = inputs[0];
+
+    if(dropMaskX_)
+      input = dropout(input, keywords::mask = dropMaskX_);
+
+    Expr xW;
+    if(layerNorm_) {
+      Expr W;   // RUH_1_ in Amun
+      Expr Wx;  // RUH_2_ in Amun
+
+      if(final_) {
+        W = dot(input, W_);
+        Wx = dot(input, Wx_);
+      } else {
+        W = affine(input, W_, b_);
+        Wx = affine(input, Wx_, bx_);
+      }
+      W = layer_norm(W, W_lns_, W_lnb_);
+      Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_);
+
+      xW = concatenate({W, Wx}, keywords::axis = 1);
+    } else {
+      xW = dot(input, WWx_);
+    }
+
+    return {xW};
+  }
+
+  virtual State applyState(std::vector<Expr> xWs,
+                           State state,
+                           Expr mask = nullptr) {
+    bool transition = xWs.empty();
+
+    auto stateOrig = state.output;
+    auto stateDropped = stateOrig;
+    if(dropMaskS_)
+      stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
+
+    Expr b;
+    if(layerNorm_)
+      b = b0bx0_;
+    else
+      b = bbx_;
+
+    Expr sU;
+    if(layerNorm_) {
+      Expr U;   // Temp_1_ in Amun
+      Expr Ux;  // Temp_2_ in Amun
+
+      if(encoder_) {
+        U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_);
+        Ux = layer_norm(dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_);
+
+        if(transition) {
+          U = U + b_;
+          b = b0bx_;
+        }
+      } else {
+        if(final_ || transition) {
+          U = affine(stateDropped, U_, b_);
+          Ux = affine(stateDropped, Ux_, bx_);
+        } else {
+          U = dot(stateDropped, U_);
+          Ux = dot(stateDropped, Ux_);
+        }
+        U = layer_norm(U, U_lns_, U_lnb_);
+        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
+
+        if(final_ && !transition) {
+          b = b0bx_;
+        }
+      }
+
+      sU = concatenate({U, Ux}, keywords::axis = 1);
+    } else {
+      sU = dot(stateDropped, UUx_);
+    }
+
+    Expr xW;
+    if(transition) {
+      if(not fakeInput_)
+        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
+      xW = fakeInput_;
+    }
+    else {
+      xW = xWs.front();
+    }
+
+    Expr output;
+    output = mask ? gruOps({stateOrig, xW, sU, b, mask}, final_) :
+                    gruOps({stateOrig, xW, sU, b}, final_);
 
     return { output, state.cell }; // no cell state, hence copy
   }

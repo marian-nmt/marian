@@ -6,58 +6,6 @@
 namespace marian {
 namespace rnn {
 
-struct GRUNematusNodeOp : public NaryNodeOp {
-  bool final_;
-  bool layerNorm_;
-
-  template <typename... Args>
-  GRUNematusNodeOp(const std::vector<Expr>& nodes,
-                   bool final,
-                   bool layerNorm,
-                   Args... args)
-      : NaryNodeOp(nodes, args...), final_(final), layerNorm_(layerNorm) {}
-
-  NodeOps forwardOps() {
-    std::vector<Tensor> inputs;
-    for(int i = 0; i < children_.size(); ++i)
-      inputs.push_back(child(i)->val());
-
-    return {NodeOp(GRUNematusForward(val_, inputs, final_, layerNorm_))};
-  }
-
-  NodeOps backwardOps() {
-    // @TODO: make the model nontrainable, this is a copied code from
-    // GRUFastNodeOp and is incorrect
-    std::vector<Tensor> inputs;
-    std::vector<Tensor> outputs;
-    for(auto child : children_) {
-      inputs.push_back(child->val());
-      if(child->trainable())
-        outputs.push_back(child->grad());
-      else
-        outputs.push_back(nullptr);
-    }
-
-    return {NodeOp(GRUFastBackward(outputs, inputs, adj_, final_))};
-  }
-
-  // do not check if node is trainable
-  virtual void runBackward(const NodeOps& ops) {
-    for(auto&& op : ops)
-      op();
-  }
-
-  const std::string type() { return "GRU-Nematus-ops"; }
-
-  const std::string color() { return "yellow"; }
-};
-
-Expr gruNematusOps(const std::vector<Expr>& nodes, bool final, bool layerNorm) {
-  return Expression<GRUNematusNodeOp>(nodes, final, layerNorm);
-}
-
-/******************************************************************************/
-
 struct GRUFastNodeOp : public NaryNodeOp {
   bool final_;
 
