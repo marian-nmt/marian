@@ -30,7 +30,7 @@ public:
 
 class DecoderState {
 protected:
-  Ptr<EncoderState> encState_;
+  std::vector<Ptr<EncoderState>> encStates_;
 
   Expr targetEmbeddings_;
   Expr probs_;
@@ -40,15 +40,15 @@ protected:
 public:
   DecoderState(const rnn::States& states,
                Expr probs,
-               Ptr<EncoderState> encState)
-      : states_(states), probs_(probs), encState_(encState) {}
+               std::vector<Ptr<EncoderState>>& encStates)
+      : states_(states), probs_(probs), encStates_(encStates) {}
 
-  virtual Ptr<EncoderState> getEncoderState() { return encState_; }
+  virtual std::vector<Ptr<EncoderState>>& getEncoderStates() { return encStates_; }
   virtual Expr getProbs() { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
-    return New<DecoderState>(states_.select(selIdx), probs_, encState_);
+    return New<DecoderState>(states_.select(selIdx), probs_, encStates_);
   }
 
   virtual const rnn::States& getStates() { return states_; }
@@ -66,7 +66,7 @@ public:
   }
 
   virtual const std::vector<size_t>& getSourceWords() {
-    return getEncoderState()->getSourceWords();
+    return getEncoderStates()[0]->getSourceWords();
   }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}

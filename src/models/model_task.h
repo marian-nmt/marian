@@ -24,11 +24,10 @@ do { \
 } while(0)
 
 
-template <class... Args>
-Ptr<EncoderDecoder> constructS2S(Ptr<Config> options, Args... args) {
-  auto encdec = New<EncoderDecoder>(options, args...);
-  encdec->getEncoders().push_back(New<EncoderS2S>(options, args...));
-  encdec->getDecoders().push_back(New<DecoderS2S>(options, args...));
+Ptr<EncoderDecoder> constructS2S(Ptr<Options> options) {
+  auto encdec = New<EncoderDecoder>(options);
+  encdec->getEncoders().push_back(New<EncoderS2S>(options));
+  encdec->getDecoders().push_back(New<DecoderS2S>(options));
   return encdec;
 }
 

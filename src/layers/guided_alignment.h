@@ -10,7 +10,7 @@ namespace marian {
 
 Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
                          Ptr<data::CorpusBatch> batch,
-                         Ptr<Config> options,
+                         Ptr<Options> options,
                          Expr att) {
   using namespace keywords;
 
