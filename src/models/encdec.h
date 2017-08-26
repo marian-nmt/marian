@@ -376,6 +376,11 @@ public:
     return options_->get<T>(key);
   }
 
+  template <typename T>
+  void set(std::string key, T value) {
+    options_->set(key, value);
+  }
+
   virtual Expr buildToScore(Ptr<ExpressionGraph> graph,
                             Ptr<data::CorpusBatch> batch,
                             bool clearGraph = true) {

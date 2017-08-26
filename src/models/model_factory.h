@@ -111,7 +111,8 @@ Ptr<EncoderDecoder> by_type(std::string type,
            (options)
            ("type", "s2s")
            .push_back(models::decoder()
-                      ("index", 0))
+                      ("index", options->has("index") ?
+                                options->get<size_t>("index") : 0))
            .construct();
   }
 

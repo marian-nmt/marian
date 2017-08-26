@@ -190,7 +190,7 @@ Ptr<Scorer> scorerByType(std::string fname,
   std::string type = options->get<std::string>("type");
 
   // @TODO: solve this better
-  if(type == "lm") {
+  if(type == "lm" && config->has("input")) {
     size_t index = config->get<std::vector<std::string>>("input").size();
     options->set("index", index);
   }
