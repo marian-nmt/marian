@@ -23,29 +23,9 @@ do { \
     return New<TaskName<Wrapper<model>>>(options); \
 } while(0)
 
-
-Ptr<EncoderDecoder> constructS2S(Ptr<Options> options) {
-  auto encdec = New<EncoderDecoder>(options);
-  encdec->getEncoders().push_back(New<EncoderS2S>(options));
-  encdec->getDecoders().push_back(New<DecoderS2S>(options));
-  return encdec;
+template <template <class> class TaskName, class Wrapper>
+Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
+  return New<TaskName<Wrapper>>(options);
 }
-
-//template <template <class> class TaskName, template <class> class Wrapper>
-//Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
-//  auto type = options->get<std::string>("type");
-//
-//  REGISTER_MODEL("s2s", constructS2S);
-//  //REGISTER_MODEL("amun", Amun);
-//  //REGISTER_MODEL("hard-att", HardAtt);
-//  //REGISTER_MODEL("hard-soft-att", HardSoftAtt);
-//  //
-//  //REGISTER_MODEL("multi-s2s", MultiS2S);
-//  //REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
-//  //
-//  //REGISTER_MODEL("lm", LM);
-//
-//  UTIL_THROW2("Unknown model type: " << type);
-//}
 
 }

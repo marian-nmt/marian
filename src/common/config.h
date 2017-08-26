@@ -45,29 +45,6 @@ public:
     config_ = parser.getConfig();
     createLoggers(this);
 
-    modelFeatures_ = {
-        "type",
-        "dim-vocabs",
-        "dim-emb",
-        "dim-rnn",
-        "enc-cell",
-        "enc-type",
-        "enc-cell-depth",
-        "enc-depth",
-        "dec-depth",
-        "dec-cell",
-        "dec-cell-base-depth",
-        "dec-cell-high-depth",
-        //"dec-high-context",
-        "skip",
-        "layer-normalization",
-        "special-vocab",
-        "tied-embeddings",
-        "tied-embeddings-src",
-        "tied-embeddings-all"
-        /*"lexical-table", "vocabs"*/
-    };
-
     if(get<size_t>("seed") == 0)
       seed = (size_t)time(0);
     else
@@ -94,8 +71,7 @@ public:
   }
 
   Config(const Config& other)
-      : config_(YAML::Clone(other.config_)),
-        modelFeatures_(other.modelFeatures_) {}
+      : config_(YAML::Clone(other.config_)) {}
 
   bool has(const std::string& key) const;
 
@@ -117,7 +93,6 @@ public:
 
   YAML::Node getModelParameters();
   void loadModelParameters(const std::string& name);
-  void saveModelParameters(const std::string& name);
 
   void save(const std::string& name) {
     OutputFileStream out(name);
@@ -132,12 +107,12 @@ public:
     return out;
   }
 
+  static void AddYamlToNpz(const YAML::Node&, const std::string&, const std::string&);
+
 private:
   YAML::Node config_;
-  std::vector<std::string> modelFeatures_;
 
-  void GetYamlFromNpz(YAML::Node&, const std::string&, const std::string&);
-  void AddYamlToNpz(const YAML::Node&, const std::string&, const std::string&);
+  static void GetYamlFromNpz(YAML::Node&, const std::string&, const std::string&);
 
   void override(const YAML::Node& params);
 

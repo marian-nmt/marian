@@ -10,9 +10,9 @@ int main(int argc, char** argv) {
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if(devices.size() > 1)
-    WrapModelType<Train, AsyncGraphGroup>(options)->run();
+    WrapModelType<Train, AsyncGraphGroup<EncoderDecoder>>(options)->run();
   else
-    WrapModelType<Train, SingletonGraph>(options)->run();
+    WrapModelType<Train, SingletonGraph<EncoderDecoder>>(options)->run();
 
   return 0;
 }

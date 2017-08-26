@@ -6,9 +6,9 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv, ConfigMode::rescoring);
 
-  //boost::timer::cpu_timer timer;
-  //WrapModelType<Rescore, Rescorer>(options)->run();
-  //LOG(info)->info("Total time: {}", timer.format());
+  boost::timer::cpu_timer timer;
+  WrapModelType<Rescore, Rescorer<EncoderDecoder>>(options)->run();
+  LOG(info)->info("Total time: {}", timer.format());
 
   return 0;
 }

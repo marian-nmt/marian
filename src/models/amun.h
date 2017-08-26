@@ -6,10 +6,9 @@
 
 namespace marian {
 
-class Amun : public S2S {
+class Amun : public EncoderDecoder {
 public:
-  template <class... Args>
-  Amun(Ptr<Config> options, Args... args) : S2S(options, args...) {
+  Amun(Ptr<Options> options) : EncoderDecoder(options) {
 
     UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
                    "--type amun does not currently support multiple encoder "
@@ -226,7 +225,7 @@ public:
     shape[0] = 1;
     cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
 
-    options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 };
 }

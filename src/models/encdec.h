@@ -151,7 +151,7 @@ public:
     state->setTargetEmbeddings(selectedEmbs);
   }
 
-  virtual const std::vector<Expr> getAlignments() {
+  virtual const std::vector<Expr> getAlignments(int i = 0) {
     return {};
   };
 
@@ -161,6 +161,8 @@ public:
   }
 
   virtual void clear() = 0;
+
+
 };
 
 class EncoderDecoderBase {
@@ -200,13 +202,44 @@ protected:
 
   bool inference_{false};
 
+  std::vector<std::string> modelFeatures_;
+
+  void saveModelParameters(const std::string& name) {
+    YAML::Node modelParams;
+    for(auto& key : modelFeatures_)
+      modelParams[key] = options_->getOptions()[key];
+    Config::AddYamlToNpz(modelParams, "special:model.yml", name);
+  }
+
 public:
   typedef data::Corpus dataset_type;
 
   EncoderDecoder(Ptr<Options> options)
       : options_(options),
         prefix_(options->get<std::string>("prefix", "")),
-        inference_(options->get<bool>("inference", false)) {}
+        inference_(options->get<bool>("inference", false)) {
+
+    modelFeatures_ = {
+      "type",
+      "dim-vocabs",
+      "dim-emb",
+      "dim-rnn",
+      "enc-cell",
+      "enc-type",
+      "enc-cell-depth",
+      "enc-depth",
+      "dec-depth",
+      "dec-cell",
+      "dec-cell-base-depth",
+      "dec-cell-high-depth",
+      "skip",
+      "layer-normalization",
+      "special-vocab",
+      "tied-embeddings",
+      "tied-embeddings-src",
+      "tied-embeddings-all"
+    };
+  }
 
   std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
 
@@ -229,16 +262,12 @@ public:
                     bool saveTranslatorConfig) {
     // ignore config for now
     graph->save(name);
-
-    UTIL_THROW2("Fix this");
-    //options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 
   virtual void save(Ptr<ExpressionGraph> graph, const std::string& name) {
     graph->save(name);
-
-    UTIL_THROW2("Fix this");
-    //options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
@@ -250,10 +279,10 @@ public:
       dec->clear();
   }
 
+
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) {
     std::vector<Ptr<EncoderState>> encoderStates;
-    int i = 0;
     for(auto& encoder : encoders_)
       encoderStates.push_back(encoder->build(graph, batch));
     return decoders_[0]->startState(graph, batch, encoderStates);

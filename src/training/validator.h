@@ -83,8 +83,13 @@ public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
                         Ptr<Config> options,
                         Args... args)
-      : Validator(vocabs, options),
-        builder_(New<Builder>(options, keywords::inference = true, args...)) {
+      : Validator(vocabs, options) {
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
+
     initLastBest();
   }
 
@@ -124,8 +129,13 @@ public:
   PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
                       Ptr<Config> options,
                       Args... args)
-      : Validator(vocabs, options),
-        builder_(New<Builder>(options, keywords::inference = true, args...)) {
+      : Validator(vocabs, options) {
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
+
     initLastBest();
   }
 
@@ -165,8 +175,13 @@ public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
                   Ptr<Config> options,
                   Args... args)
-      : Validator(vocabs, options),
-        builder_(New<Builder>(options, keywords::inference = true, args...)) {
+      : Validator(vocabs, options) {
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
+
     initLastBest();
   }
 
@@ -236,8 +251,13 @@ public:
   S2SValidator(std::vector<Ptr<Vocab>> vocabs,
                Ptr<Config> options,
                Args... args)
-      : Validator(vocabs, options),
-        builder_(New<Builder>(options, keywords::inference = true, args...)) {
+      : Validator(vocabs, options) {
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
+
     initLastBest();
   }
 
