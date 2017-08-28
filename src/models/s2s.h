@@ -50,8 +50,11 @@ public:
           paramPrefix += "_l" + std::to_string(i);
         if(i > 1 || j > 1)
           paramPrefix += "_cell" + std::to_string(j);
+        bool transition = (j > 1);
+
         stacked.push_back(rnn::cell(graph)
-                          ("prefix", paramPrefix));
+                          ("prefix", paramPrefix)
+                          ("transition", transition));
       }
       rnnFw.push_back(stacked);
     }
@@ -73,8 +76,11 @@ public:
           paramPrefix += "_l" + std::to_string(i);
         if(i > 1 || j > 1)
           paramPrefix += "_cell" + std::to_string(j);
+        bool transition = (j > 1);
+
         stacked.push_back(rnn::cell(graph)
-                          ("prefix", paramPrefix));
+                          ("prefix", paramPrefix)
+                          ("transition", transition));
       }
       rnnBw.push_back(stacked);
     }
@@ -198,10 +204,12 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
   // setting up conditional (transitional) cell
   auto baseCell = rnn::stacked_cell(graph);
   for(int i = 1; i <= decoderBaseDepth; ++i) {
+    bool transition = (i > 2);
     auto paramPrefix = prefix_ + "_cell" + std::to_string(i);
     baseCell.push_back(rnn::cell(graph)
                        ("prefix", paramPrefix)
-                       ("final", i > 1));
+                       ("final", i > 1)
+                       ("transition", transition));
     if(i == 1)
       baseCell.push_back(rnn::attention(graph)
                          ("prefix", prefix_)

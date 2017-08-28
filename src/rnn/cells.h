@@ -287,6 +287,8 @@ protected:
   bool encoder_;
   // Whether it is an RNN final layer or hidden layer
   bool final_;
+  // Whether it is a transition layer
+  bool transition_;
   // Use layer normalization
   bool layerNorm_;
 
@@ -297,9 +299,6 @@ protected:
 
   // Fake input with zeros replaces W and Wx in transition cells
   Expr fakeInput_;
-  // Fake biases with zeros to handle layer normalization
-  Expr b0bx_;
-  Expr b0bx0_;
 
 public:
   GRUNematus(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
@@ -308,6 +307,7 @@ public:
 
     auto prefix = opt<std::string>("prefix");
     encoder_ = prefix.substr(0, 7) == "encoder";
+    transition_ = opt<bool>("transition", false);
 
     layerNorm_ = opt<bool>("layer-normalization", false);
     dropout_ = opt<float>("dropout", 0);
@@ -346,16 +346,21 @@ public:
         prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
     auto bx = graph->param(
         prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
-    bbx_ = concatenate({b, bx}, keywords::axis = 1);
 
     if(layerNorm_) {
       b_ = b;
       bx_ = bx;
 
-      auto b0 = graph->constant({1, 2 * dimState}, keywords::init = inits::zeros);
-      b0bx_ = concatenate({b0, bx}, keywords::axis = 1);
-
-      b0bx0_ = graph->constant({1, 3 * dimState}, keywords::init = inits::zeros);
+      // in specific cases we need to pass bx to the kernel
+      if((encoder_ && transition_) || (!encoder_ && !transition_ && final_)) {
+        auto b0 = graph->constant({1, 2 * dimState}, keywords::init = inits::zeros);
+        bbx_ = concatenate({b0, bx}, keywords::axis = 1);
+      } else {
+        bbx_ = graph->constant({1, 3 * dimState}, keywords::init = inits::zeros);
+      }
+    }
+    else {
+      bbx_ = concatenate({b, bx}, keywords::axis = 1);
     }
 
     if(dropout_ > 0.0f) {
@@ -438,18 +443,14 @@ public:
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
                            Expr mask = nullptr) {
-    bool transition = xWs.empty();
+
+    // make sure that we have transition layers
+    assert(transition_ == xWs.empty());
 
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
     if(dropMaskS_)
       stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
-
-    Expr b;
-    if(layerNorm_)
-      b = b0bx0_;
-    else
-      b = bbx_;
 
     Expr sU;
     if(layerNorm_) {
@@ -460,12 +461,11 @@ public:
         U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_);
         Ux = layer_norm(dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_);
 
-        if(transition) {
+        if(transition_) {
           U = U + b_;
-          b = b0bx_;
         }
       } else {
-        if(final_ || transition) {
+        if(final_ || transition_) {
           U = affine(stateDropped, U_, b_);
           Ux = affine(stateDropped, Ux_, bx_);
         } else {
@@ -474,10 +474,6 @@ public:
         }
         U = layer_norm(U, U_lns_, U_lnb_);
         Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
-
-        if(final_ && !transition) {
-          b = b0bx_;
-        }
       }
 
       sU = concatenate({U, Ux}, keywords::axis = 1);
@@ -486,7 +482,7 @@ public:
     }
 
     Expr xW;
-    if(transition) {
+    if(transition_) {
       if(not fakeInput_)
         fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
       xW = fakeInput_;
@@ -496,8 +492,8 @@ public:
     }
 
     Expr output;
-    output = mask ? gruOps({stateOrig, xW, sU, b, mask}, final_) :
-                    gruOps({stateOrig, xW, sU, b}, final_);
+    output = mask ? gruOps({stateOrig, xW, sU, bbx_, mask}, final_) :
+                    gruOps({stateOrig, xW, sU, bbx_}, final_);
 
     return { output, state.cell }; // no cell state, hence copy
   }
