@@ -352,13 +352,10 @@ public:
       b_ = b;
       bx_ = bx;
 
-      auto b0 = graph->param(
-          prefix + "_b0", {1, 2 * dimState}, keywords::init = inits::zeros);
-      auto bx0 = graph->param(
-          prefix + "_bx0", {1, dimState}, keywords::init = inits::zeros);
-
+      auto b0 = graph->constant({1, 2 * dimState}, keywords::init = inits::zeros);
       b0bx_ = concatenate({b0, bx}, keywords::axis = 1);
-      b0bx0_ = concatenate({b0, bx0}, keywords::axis = 1);
+
+      b0bx0_ = graph->constant({1, 3 * dimState}, keywords::init = inits::zeros);
     }
 
     if(dropout_ > 0.0f) {

@@ -269,13 +269,8 @@ public:
     }
 
     // if graph was reloaded do not allow creation of new parameters
-    // @TODO: restore exception
-    //UTIL_THROW_IF2(reloaded_,
-                   //"Graph was reloaded and parameter " << name << " is newly created");
-    if(reloaded_)
-      LOG(warn)
-          ->warn("WARNING: Graph was reloaded and parameter " + name
-                 + " is newly created");
+    UTIL_THROW_IF2(reloaded_,
+                   "Graph was reloaded and parameter " << name << " is newly created");
 
     // if not check if name is not taken by other node
     UTIL_THROW_IF2(get(name),
