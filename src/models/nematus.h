@@ -185,87 +185,116 @@ public:
   void save(Ptr<ExpressionGraph> graph, const std::string& name) {
     LOG(info)->info("Saving model to {}", name);
 
-    // @TODO: support training with nematus model
-    UTIL_THROW2("Saving is not yet supported");
+    unsigned shape[2];
+    std::string mode = "w";
 
-    //unsigned shape[2];
-    //std::string mode = "w";
+    std::map<std::string, std::string> nameMap
+        = {{"decoder_cell1_U", "decoder_U"},
+           {"decoder_cell1_Ux", "decoder_Ux"},
+           {"decoder_cell1_W", "decoder_W"},
+           {"decoder_cell1_Wx", "decoder_Wx"},
+           {"decoder_cell1_b", "decoder_b"},
+           {"decoder_cell1_bx", "decoder_bx"},
+           {"decoder_cell2_U", "decoder_U_nl"},
+           {"decoder_cell2_Ux", "decoder_Ux_nl"},
+           {"decoder_cell2_W", "decoder_Wc"},
+           {"decoder_cell2_Wx", "decoder_Wcx"},
+           {"decoder_cell2_b", "decoder_b_nl"},
+           {"decoder_cell2_bx", "decoder_bx_nl"},
+           {"decoder_ff_logit_l1_W0", "ff_logit_prev_W"},
+           {"decoder_ff_logit_l1_W1", "ff_logit_lstm_W"},
+           {"decoder_ff_logit_l1_W2", "ff_logit_ctx_W"},
+           {"decoder_ff_logit_l1_b0", "ff_logit_prev_b"},
+           {"decoder_ff_logit_l1_b1", "ff_logit_lstm_b"},
+           {"decoder_ff_logit_l1_b2", "ff_logit_ctx_b"},
+           {"decoder_ff_logit_l2_W", "ff_logit_W"},
+           {"decoder_ff_logit_l2_b", "ff_logit_b"},
+           {"decoder_ff_state_W", "ff_state_W"},
+           {"decoder_ff_state_b", "ff_state_b"},
+           {"decoder_Wemb", "Wemb_dec"},
+           {"encoder_Wemb", "Wemb"},
+           {"encoder_bi_U", "encoder_U"},
+           {"encoder_bi_Ux", "encoder_Ux"},
+           {"encoder_bi_W", "encoder_W"},
+           {"encoder_bi_Wx", "encoder_Wx"},
+           {"encoder_bi_b", "encoder_b"},
+           {"encoder_bi_bx", "encoder_bx"},
+           {"encoder_bi_r_U", "encoder_r_U"},
+           {"encoder_bi_r_Ux", "encoder_r_Ux"},
+           {"encoder_bi_r_W", "encoder_r_W"},
+           {"encoder_bi_r_Wx", "encoder_r_Wx"},
+           {"encoder_bi_r_b", "encoder_r_b"},
+           {"encoder_bi_r_bx", "encoder_r_bx"},
+           {"decoder_ff_state_ln_s", "ff_state_ln_s", },
+           {"decoder_ff_state_ln_b", "ff_state_ln_b"},
+           {"decoder_ff_logit_l1_ln_s0", "ff_logit_prev_ln_s"},
+           {"decoder_ff_logit_l1_ln_s1", "ff_logit_lstm_ln_s"},
+           {"decoder_ff_logit_l1_ln_s2", "ff_logit_ctx_ln_s"},
+           {"decoder_ff_logit_l1_ln_b0", "ff_logit_prev_ln_b"},
+           {"decoder_ff_logit_l1_ln_b1", "ff_logit_lstm_ln_b"},
+           {"decoder_ff_logit_l1_ln_b2", "ff_logit_ctx_ln_b"}
+        };
 
-    //std::map<std::string, std::string> nameMap
-        //= {{"decoder_cell1_U", "decoder_U"},
-           //{"decoder_cell1_Ux", "decoder_Ux"},
-           //{"decoder_cell1_W", "decoder_W"},
-           //{"decoder_cell1_Wx", "decoder_Wx"},
-           //{"decoder_cell1_b", "decoder_b"},
-           //{"decoder_cell1_bx", "decoder_bx"},
-           //{"decoder_cell2_U", "decoder_U_nl"},
-           //{"decoder_cell2_Ux", "decoder_Ux_nl"},
-           //{"decoder_cell2_W", "decoder_Wc"},
-           //{"decoder_cell2_Wx", "decoder_Wcx"},
-           //{"decoder_cell2_b", "decoder_b_nl"},
-           //{"decoder_cell2_bx", "decoder_bx_nl"},
-           //{"decoder_ff_logit_l1_W0", "ff_logit_prev_W"},
-           //{"decoder_ff_logit_l1_W1", "ff_logit_lstm_W"},
-           //{"decoder_ff_logit_l1_W2", "ff_logit_ctx_W"},
-           //{"decoder_ff_logit_l1_b0", "ff_logit_prev_b"},
-           //{"decoder_ff_logit_l1_b1", "ff_logit_lstm_b"},
-           //{"decoder_ff_logit_l1_b2", "ff_logit_ctx_b"},
-           //{"decoder_ff_logit_l1_gamma0", "ff_logit_l1_gamma0"},
-           //{"decoder_ff_logit_l1_gamma1", "ff_logit_l1_gamma1"},
-           //{"decoder_ff_logit_l1_gamma2", "ff_logit_l1_gamma2"},
-           //{"decoder_ff_logit_l2_W", "ff_logit_W"},
-           //{"decoder_ff_logit_l2_b", "ff_logit_b"},
-           //{"decoder_ff_state_W", "ff_state_W"},
-           //{"decoder_ff_state_b", "ff_state_b"},
-           //{"decoder_ff_state_gamma", "ff_state_gamma"},
-           //{"decoder_Wemb", "Wemb_dec"},
-           //{"encoder_Wemb", "Wemb"},
-           //{"encoder_bi_U", "encoder_U"},
-           //{"encoder_bi_Ux", "encoder_Ux"},
-           //{"encoder_bi_W", "encoder_W"},
-           //{"encoder_bi_Wx", "encoder_Wx"},
-           //{"encoder_bi_b", "encoder_b"},
-           //{"encoder_bi_bx", "encoder_bx"},
-           //{"encoder_bi_gamma1", "encoder_gamma1"},
-           //{"encoder_bi_gamma2", "encoder_gamma2"},
-           //{"encoder_bi_r_U", "encoder_r_U"},
-           //{"encoder_bi_r_Ux", "encoder_r_Ux"},
-           //{"encoder_bi_r_W", "encoder_r_W"},
-           //{"encoder_bi_r_Wx", "encoder_r_Wx"},
-           //{"encoder_bi_r_b", "encoder_r_b"},
-           //{"encoder_bi_r_bx", "encoder_r_bx"},
-           //{"encoder_bi_r_gamma1", "encoder_r_gamma1"},
-           //{"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
+    // add mapping for deep encoder cells
+    std::vector<std::string> suffixes = {"_U", "_Ux", "_b", "_bx"};
+    for(int i = 1; i < options_->get<int>("enc-cell-depth"); ++i) {
+      std::string num1 = std::to_string(i);
+      std::string num2 = std::to_string(i + 1);
+      for(auto suf : suffixes) {
+        nameMap.insert({"encoder_bi_cell" + num2 + suf,
+                        "encoder" + suf + "_drt_" + num1});
+        nameMap.insert({"encoder_bi_r_cell" + num2 + suf,
+                        "encoder_r" + suf + "_drt_" + num1});
+      }
+    }
+    // add mapping for deep decoder cells
+    for(int i = 3; i <= options_->get<int>("dec-cell-base-depth"); ++i) {
+      std::string num1 = std::to_string(i - 2);
+      std::string num2 = std::to_string(i);
+      for(auto suf : suffixes)
+        nameMap.insert({"decoder_cell" + num2 + suf,
+                        "decoder" + suf + "_nl_drt_" + num1});
+    }
+    // add mapping for normalization layers
+    std::map<std::string, std::string> nameMapCopy(nameMap);
+    for(auto& kv : nameMapCopy) {
+      std::string prefix = kv.second.substr(0, 7);
 
-    //graph->getBackend()->setDevice(graph->getDevice());
+      if(prefix == "encoder" || prefix == "decoder") {
+        nameMap.insert({kv.first + "_lns", kv.second + "_lns"});
+        nameMap.insert({kv.first + "_lnb", kv.second + "_lnb"});
+      }
+    }
 
-    //for(auto p : graph->params()->getMap()) {
-      //std::vector<float> v;
-      //p.second->val() >> v;
+    graph->getBackend()->setDevice(graph->getDevice());
 
-      //unsigned dim;
-      //if(p.second->shape()[0] == 1) {
-        //shape[0] = p.second->shape()[1];
-        //dim = 1;
-      //} else {
-        //shape[0] = p.second->shape()[0];
-        //shape[1] = p.second->shape()[1];
-        //dim = 2;
-      //}
+    for(auto p : graph->params()->getMap()) {
+      std::vector<float> v;
+      p.second->val() >> v;
 
-      //std::string pName = p.first;
-      //if(nameMap.count(pName))
-        //pName = nameMap[pName];
+      unsigned dim;
+      if(p.second->shape()[0] == 1) {
+        shape[0] = p.second->shape()[1];
+        dim = 1;
+      } else {
+        shape[0] = p.second->shape()[0];
+        shape[1] = p.second->shape()[1];
+        dim = 2;
+      }
 
-      //cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
-      //mode = "a";
-    //}
+      std::string pName = p.first;
+      if(nameMap.count(pName))
+        pName = nameMap[pName];
 
-    //float ctt = 0;
-    //shape[0] = 1;
-    //cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
+      cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      mode = "a";
+    }
 
-    //options_->saveModelParameters(name);
+    float ctt = 0;
+    shape[0] = 1;
+    cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
+
+    options_->saveModelParameters(name);
   }
 };
 }
