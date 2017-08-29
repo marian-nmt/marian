@@ -38,6 +38,7 @@ public:
 template <class Factory>
 class Accumulator : public Factory {
 public:
+  Accumulator() : Factory(nullptr) {}
   Accumulator(Ptr<ExpressionGraph> graph) : Factory(graph) {}
   Accumulator(const Factory& factory) : Factory(factory) {}
   Accumulator(const Accumulator&) = default;
@@ -56,6 +57,16 @@ public:
 
   Accumulator& operator()(YAML::Node yaml) {
     Factory::getOptions()->merge(yaml);
+    return *this;
+  }
+
+  Accumulator& operator()(Ptr<Options> options) {
+    Factory::getOptions()->merge(options);
+    return *this;
+  }
+
+  Accumulator& operator()(Ptr<Config> config) {
+    Factory::getOptions()->merge(config->get());
     return *this;
   }
 

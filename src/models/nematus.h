@@ -6,11 +6,11 @@
 
 namespace marian {
 
-class Nematus : public S2S {
+class Nematus : public EncoderDecoder {
 public:
   template <class... Args>
-  Nematus(Ptr<Config> options, Args... args)
-      : S2S(options, args...), nameMap_(createNameMap()) {
+  Nematus(Ptr<Options> options)
+      : EncoderDecoder(options), nameMap_(createNameMap()) {
 
     UTIL_THROW_IF2(options_->get<std::string>("enc-type") != "bidirectional",
                    "--type nematus does not currently support other encoder "
@@ -133,7 +133,7 @@ public:
     shape[0] = 1;
     cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
 
-    options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 
 private:

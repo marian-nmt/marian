@@ -88,7 +88,8 @@ public:
                          options_->get<bool>("n-best"));
       };
 
-      threadPool.enqueue(task, sentenceId);
+      task(sentenceId);
+      //threadPool.enqueue(task, sentenceId);
 
       sentenceId++;
     }

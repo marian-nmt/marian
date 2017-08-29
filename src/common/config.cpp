@@ -45,13 +45,6 @@ void Config::override(const YAML::Node& params) {
   }
 }
 
-YAML::Node Config::getModelParameters() {
-  YAML::Node modelParams;
-  for(auto& key : modelFeatures_)
-    modelParams[key] = config_[key];
-  return modelParams;
-}
-
 void Config::loadModelParameters(const std::string& name) {
   YAML::Node config;
   GetYamlFromNpz(config, "special:model.yml", name);
@@ -62,10 +55,6 @@ void Config::GetYamlFromNpz(YAML::Node& yaml,
                             const std::string& varName,
                             const std::string& fName) {
   yaml = YAML::Load(cnpy::npz_load(fName, varName).data);
-}
-
-void Config::saveModelParameters(const std::string& name) {
-  AddYamlToNpz(getModelParameters(), "special:model.yml", name);
 }
 
 void Config::AddYamlToNpz(const YAML::Node& yaml,

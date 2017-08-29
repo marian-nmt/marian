@@ -273,9 +273,6 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
        "Dropout source words (0 = no dropout)")
       ("dropout-trg", po::value<float>()->default_value(0),
        "Dropout target words (0 = no dropout)")
-      ("noise-src", po::value<float>()->default_value(0),
-       "Add noise to source embeddings with given stddev (0 = no noise)")
-
     ;
   }
   // clang-format on
@@ -590,8 +587,7 @@ void ConfigParser::parseOptions(
   SET_OPTION("dec-cell-base-depth", int);
   SET_OPTION("dec-cell-high-depth", int);
   SET_OPTION("dec-depth", int);
-  // SET_OPTION("dec-high-context", std::string);
-
+  
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);
   SET_OPTION("tied-embeddings-src", bool);
@@ -605,7 +601,6 @@ void ConfigParser::parseOptions(
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
-    SET_OPTION("noise-src", float);
 
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
