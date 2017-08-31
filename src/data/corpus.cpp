@@ -65,7 +65,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       }
     }
   } else {
-    for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
+    for(size_t i = 0; i+1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
