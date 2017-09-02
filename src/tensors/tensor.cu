@@ -95,6 +95,14 @@ std::string TensorBase::debug() {
         for(size_t i = 0; i < shape()[0] && i < dispCols; ++i) {
           if(i > 0)
             strm << std::endl << "  ";
+
+          float sum = 0;
+          for(size_t j = 0; j < shape()[1]; ++j)
+            sum += values[i * shape().stride(0) + j * shape().stride(1)
+                           + k * shape().stride(2)
+                           + l * shape().stride(3)];
+          strm << std::setw(12) << sum << " | ";
+
           for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
             strm << std::setw(12)
                  << values[i * shape().stride(0) + j * shape().stride(1)
@@ -137,6 +145,14 @@ std::string TensorBase::debug() {
         for(size_t i = 0; i < shape()[0] && i < 10; ++i) {
           if(i > 0)
             strm << std::endl << "  ";
+
+          float sum = 0;
+          for(size_t j = 0; j < shape()[1]; ++j)
+            sum += values[i * shape().stride(0) + j * shape().stride(1)
+                           + k * shape().stride(2)
+                           + l * shape().stride(3)];
+          strm << std::setw(12) << sum << " | ";
+
           for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
             strm << std::setw(12)
                  << values[i * shape().stride(0) + j * shape().stride(1)
