@@ -435,6 +435,8 @@ struct RowsNodeOp : public UnaryNodeOp {
   Shape newShape(Expr a, const std::vector<size_t>& indeces) {
     Shape shape = a->shape();
     shape.set(0, indeces.size());
+    shape.set(2, 1);
+    shape.set(3, 1);
     return shape;
   }
 
