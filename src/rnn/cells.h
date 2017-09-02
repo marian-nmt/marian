@@ -245,7 +245,7 @@ public:
 
     Expr xW;
     if(xWs.empty()) {
-      if(not fakeInput_)
+      if(!fakeInput_ || fakeInput_->shape() != sU->shape())
         fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
       xW = fakeInput_;
     }
@@ -483,7 +483,7 @@ public:
 
     Expr xW;
     if(transition_) {
-      if(not fakeInput_)
+      if(!fakeInput_ || fakeInput_->shape() != sU->shape())
         fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
       xW = fakeInput_;
     }
@@ -602,7 +602,7 @@ public:
 
     Expr xW;
     if(xWs.empty()) {
-      if(not fakeInput_)
+      if(!fakeInput_ || fakeInput_->shape() != sU->shape())
         fakeInput_ = sU->graph()->constant(sU->shape(),
                                            keywords::init=inits::zeros);
       xW = fakeInput_;
