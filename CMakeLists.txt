@@ -15,7 +15,7 @@ find_package(Git QUIET)
 include(GetVersionFromFile)
 
 message(STATUS "Project name: ${PROJECT_NAME}")
-message(STATUS "Project version: ${PROJECT_VERSION_STRING}")
+message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 
 # Set compilation flags
