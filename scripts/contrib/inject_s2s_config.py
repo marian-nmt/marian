@@ -49,7 +49,7 @@ def main():
             print("Use -f/--force to overwrite")
             exit()
 
-    s2s_node = str.encode(yaml.dump(s2s_config).strip() + "\n")
+    s2s_node = str.encode(yaml.dump(s2s_config).strip())
     s2s_model = {S2S_SPECIAL_NODE: s2s_node}
 
     print("Updating model...")
