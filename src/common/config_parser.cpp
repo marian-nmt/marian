@@ -76,11 +76,20 @@ void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
   }
 }
 
+const std::set<std::string> PATHS = {"model",
+                                     "models",
+                                     "train-sets",
+                                     "vocabs",
+                                     "embedding-vectors",
+                                     "valid-sets",
+                                     "valid-script-path",
+                                     "valid-log",
+                                     "log"};
+
 void ProcessPaths(YAML::Node& node,
                   const boost::filesystem::path& configPath,
                   bool isPath) {
   using namespace boost::filesystem;
-  std::set<std::string> paths = {"model", "trainsets", "vocabs"};
 
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
@@ -112,7 +121,7 @@ void ProcessPaths(YAML::Node& node,
       case YAML::NodeType::Map:
         for(auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
-          ProcessPaths(sub.second, configPath, paths.count(key) > 0);
+          ProcessPaths(sub.second, configPath, PATHS.count(key) > 0);
         }
         break;
     }
