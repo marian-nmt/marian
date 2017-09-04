@@ -78,16 +78,22 @@ public:
 
     if(saveTranslatorConfig) {
       YAML::Node amun;
+      // Amun has only CPU decoder for deep Nematus models
+      amun["cpu-threads"] = 16;
+      amun["gpu-threads"] = 0;
+      amun["maxi-batch"] = 1;
+      amun["mini-batch"] = 1;
+
       auto vocabs = options_->get<std::vector<std::string>>("vocabs");
       amun["source-vocab"] = vocabs[0];
       amun["target-vocab"] = vocabs[1];
       amun["devices"] = options_->get<std::vector<int>>("devices");
       amun["normalize"] = true;
-      amun["beam-size"] = 12;
+      amun["beam-size"] = 5;
       amun["relative-paths"] = false;
 
       amun["scorers"]["F0"]["path"] = name;
-      amun["scorers"]["F0"]["type"] = "NematusDeep";
+      amun["scorers"]["F0"]["type"] = "nematus2";
       amun["weights"]["F0"] = 1.0f;
 
       OutputFileStream out(name + ".amun.yml");

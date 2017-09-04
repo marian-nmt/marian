@@ -267,10 +267,10 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n) {
 NthElement::NthElement(size_t maxBeamSize,
                        size_t maxBatchSize /*, cudaStream_t stream*/)
     : /*stream_(stream) ,*/
-      NUM_BLOCKS(
-          std::min(500,
-                   int(maxBeamSize * 85000 / (2 * BLOCK_SIZE))
-                       + int(maxBeamSize * 85000 % (2 * BLOCK_SIZE) != 0))) {
+      NUM_BLOCKS(std::min(
+          500,
+          int(maxBeamSize* MAX_VOCAB_SIZE / (2 * BLOCK_SIZE))
+              + int(maxBeamSize* MAX_VOCAB_SIZE % (2 * BLOCK_SIZE) != 0))) {
   // std::cerr << "NthElement::NthElement" << std::endl;
 
   CUDA_CHECK(

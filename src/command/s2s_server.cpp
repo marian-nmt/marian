@@ -52,7 +52,8 @@ int main(int argc, char **argv) {
 
   // start server
   std::thread server_thread([&server]() {
-    LOG(info)->info("Server started");
+    LOG(info)->info("Server is listening on port "
+                    + std::to_string(server.config.port));
     server.start();
   });
 
