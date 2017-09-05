@@ -1,8 +1,11 @@
 #pragma once
 
+#include <yaml-cpp/yaml.h>
+
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
+#include "lstm.h"
 #include "gpu/types-gpu.h"
 #include "common/god.h"
 #include "cell.h"
@@ -51,10 +54,11 @@ class Decoder {
         Embeddings(const Embeddings&) = delete;
     };
 
-    template <class Weights1, class Weights2>
+    template <class Weights>
     class RNNHidden {
       public:
-        RNNHidden(const Weights1& initModel, std::unique_ptr<Cell> cell)
+        RNNHidden() = default;
+        RNNHidden(const Weights& initModel, std::unique_ptr<Cell> cell)
         : w_(initModel)
         , gru_(std::move(cell))
         {}
@@ -104,7 +108,7 @@ class Decoder {
         }
 
       private:
-        const Weights1& w_;
+        const Weights& w_;
         std::unique_ptr<Cell> gru_;
 
         mblas::Matrix Temp1_;
@@ -113,7 +117,6 @@ class Decoder {
         RNNHidden(const RNNHidden&) = delete;
     };
 
-    template <class Weights>
     class RNNFinal {
       public:
         RNNFinal(std::unique_ptr<Cell> cell)
@@ -353,10 +356,10 @@ class Decoder {
     };
 
   public:
-    Decoder(const God &god, const Weights& model)
+    Decoder(const God &god, const Weights& model, const YAML::Node& config)
     : embeddings_(model.decEmbeddings_),
-      rnn1_(model.decInit_, std::unique_ptr<Cell>(new GRU<Weights::DecGRU1>(model.decGru1_))),
-      rnn2_(std::unique_ptr<Cell>(new GRU<Weights::DecGRU2>(model.decGru2_))),
+      rnn1_(model.decInit_, InitHiddenCell(model, config)),
+      rnn2_(InitFinalCell(model, config)),
       alignment_(god, model.decAlignment_),
       softmax_(model.decSoftmax_)
     {}
@@ -465,14 +468,29 @@ class Decoder {
       softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
     }
 
+    std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){
+      if (config["dec-cell"] && config["dec-cell"].as<std::string>() == "lstm") {
+        return std::unique_ptr<Cell>(new LSTM<Weights::DecLSTM1>(*(model.decLSTM1_)));
+      } else {
+        return std::unique_ptr<Cell>(new GRU<Weights::DecGRU1>(*(model.decGru1_)));
+      }
+    }
+    std::unique_ptr<Cell> InitFinalCell(const Weights& model, const YAML::Node& config){
+      if (config["dec-cell"] && config["dec-cell"].as<std::string>() == "lstm") {
+        return std::unique_ptr<Cell>(new LSTM<Weights::DecLSTM2>(*(model.decLSTM2_)));
+      } else {
+        return std::unique_ptr<Cell>(new GRU<Weights::DecGRU2>(*(model.decGru2_)));
+      }
+    }
+
   private:
     CellState HiddenState_;
     mblas::Matrix AlignedSourceContext_;
     mblas::Matrix Probs_;
 
     Embeddings<Weights::DecEmbeddings> embeddings_;
-    RNNHidden<Weights::DecInit, Weights::DecGRU1> rnn1_;
-    RNNFinal<Weights::DecGRU2> rnn2_;
+    RNNHidden<Weights::DecInit> rnn1_;
+    RNNFinal rnn2_;
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
 

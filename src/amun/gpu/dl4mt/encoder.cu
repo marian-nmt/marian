@@ -6,11 +6,26 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
-Encoder::Encoder(const Weights& model)
-: embeddings_(model.encEmbeddings_),
-  forwardRnn_(unique_ptr<Cell>(new GRU<Weights::EncForwardGRU>(model.encForwardGRU_))),
-  backwardRnn_(unique_ptr<Cell>(new GRU<Weights::EncBackwardGRU>(model.encBackwardGRU_)))
+Encoder::Encoder(const Weights& model, const YAML::Node& config)
+  : embeddings_(model.encEmbeddings_),
+    forwardRnn_(InitForwardCell(model, config)),
+    backwardRnn_(InitBackwardCell(model, config))
 {}
+
+std::unique_ptr<Cell> Encoder::InitForwardCell(const Weights& model, const YAML::Node& config){
+  if (config["enc-cell"] && config["enc-cell"].as<std::string>() == "lstm") {
+    return unique_ptr<Cell>(new LSTM<Weights::EncForwardLSTM>(*(model.encForwardLSTM_)));
+  } else {
+    return unique_ptr<Cell>(new GRU<Weights::EncForwardGRU>(*(model.encForwardGRU_)));
+  }
+}
+std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML::Node& config){
+  if (config["enc-cell"] && config["enc-cell"].as<std::string>() == "lstm") {
+    return unique_ptr<Cell>(new LSTM<Weights::EncBackwardLSTM>(*(model.encBackwardLSTM_)));
+  } else {
+    return unique_ptr<Cell>(new GRU<Weights::EncBackwardGRU>(*(model.encBackwardGRU_)));
+  }
+}
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
   size_t maxLength = source.at(0)->GetWords(tab).size();

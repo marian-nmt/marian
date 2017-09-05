@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 #include "gpu/mblas/matrix.h"
 #include "gpu/npz_converter.h"
@@ -53,6 +54,58 @@ struct Weights {
     EncBackwardGRU(const EncBackwardGRU&) = delete;
 
     EncBackwardGRU(const NpzConverter& model)
+    : W_(model.get("encoder_r_W", true)),
+      B_(model.get("encoder_r_b", true, true)),
+      U_(model.get("encoder_r_U", true)),
+      Wx_(model.get("encoder_r_Wx", true)),
+      Bx1_(model.get("encoder_r_bx", true, true)),
+      Bx2_(new mblas::Matrix( Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+      Ux_(model.get("encoder_r_Ux", true)),
+      Gamma_1_(model.get("encoder_r_gamma1", false)),
+      Gamma_2_(model.get("encoder_r_gamma2", false))
+    {}
+
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
+    const std::shared_ptr<mblas::Matrix> Bx1_;
+    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+  };
+
+  struct EncForwardLSTM {
+    EncForwardLSTM(const EncForwardLSTM&) = delete;
+
+    EncForwardLSTM(const NpzConverter& model)
+    : W_(model.get("encoder_W", true)),
+      B_(model.get("encoder_b", true, true)),
+      U_(model.get("encoder_U", true)),
+      Wx_(model.get("encoder_Wx", true)),
+      Bx1_(model.get("encoder_bx", true, true)),
+      Bx2_(new mblas::Matrix(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+      Ux_(model.get("encoder_Ux", true)),
+      Gamma_1_(model.get("encoder_gamma1", false)),
+      Gamma_2_(model.get("encoder_gamma2", false))
+    { }
+
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
+    const std::shared_ptr<mblas::Matrix> Bx1_;
+    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+  };
+
+  struct EncBackwardLSTM {
+    EncBackwardLSTM(const EncBackwardLSTM&) = delete;
+
+    EncBackwardLSTM(const NpzConverter& model)
     : W_(model.get("encoder_r_W", true)),
       B_(model.get("encoder_r_b", true, true)),
       U_(model.get("encoder_r_U", true)),
@@ -154,6 +207,58 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
+  struct DecLSTM1 {
+    DecLSTM1(const DecLSTM1&) = delete;
+
+    DecLSTM1(const NpzConverter& model)
+    : W_(model.get("decoder_W", true)),
+      B_(model.get("decoder_b", true, true)),
+      U_(model.get("decoder_U", true)),
+      Wx_(model.get("decoder_Wx", true)),
+      Bx1_(model.get("decoder_bx", true, true)),
+      Bx2_(new mblas::Matrix(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+      Ux_(model.get("decoder_Ux", true)),
+      Gamma_1_(model.get("decoder_cell1_gamma1", false)),
+      Gamma_2_(model.get("decoder_cell1_gamma2", false))
+    {}
+
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
+    const std::shared_ptr<mblas::Matrix> Bx1_;
+    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+  };
+
+  struct DecLSTM2 {
+    DecLSTM2(const DecLSTM2&) = delete;
+
+    DecLSTM2(const NpzConverter& model)
+    : W_(model.get("decoder_Wc", true)),
+      B_(model.get("decoder_b_nl", true, true)),
+      U_(model.get("decoder_U_nl", true)),
+      Wx_(model.get("decoder_Wcx", true)),
+      Bx2_(model.get("decoder_bx_nl", true, true)),
+      Bx1_(new mblas::Matrix(Bx2_->dim(0), Bx2_->dim(1), Bx2_->dim(2), Bx2_->dim(3), true)),
+      Ux_(model.get("decoder_Ux_nl", true)),
+      Gamma_1_(model.get("decoder_cell2_gamma1", false)),
+      Gamma_2_(model.get("decoder_cell2_gamma2", false))
+    {}
+
+    const std::shared_ptr<mblas::Matrix> W_;
+    const std::shared_ptr<mblas::Matrix> B_;
+    const std::shared_ptr<mblas::Matrix> U_;
+    const std::shared_ptr<mblas::Matrix> Wx_;
+    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Bx1_;
+    const std::shared_ptr<mblas::Matrix> Ux_;
+    const std::shared_ptr<mblas::Matrix> Gamma_1_;
+    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+  };
+
   struct DecAlignment {
     DecAlignment(const DecAlignment&) = delete;
 
@@ -207,22 +312,34 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
-  Weights(const std::string& npzFile, size_t device)
-  : Weights(NpzConverter(npzFile), device)
+  Weights(const std::string& npzFile, const YAML::Node& config,  size_t device)
+  : Weights(NpzConverter(npzFile), config, device)
   {}
 
-  Weights(const NpzConverter& model, size_t device)
+  Weights(const NpzConverter& model, const YAML::Node& config, size_t device)
   : encEmbeddings_(model),
-    encForwardGRU_(model),
-    encBackwardGRU_(model),
     decEmbeddings_(model),
     decInit_(model),
-    decGru1_(model),
-    decGru2_(model),
     decAlignment_(model),
     decSoftmax_(model),
     device_(device)
-    {}
+    {
+
+      if (config["enc-cell"] && config["enc-cell"].as<std::string>() == "lstm") {
+        encForwardLSTM_ = std::shared_ptr<EncForwardLSTM>(new EncForwardLSTM(model));
+        encBackwardLSTM_ = std::shared_ptr<EncBackwardLSTM>(new EncBackwardLSTM(model));
+      } else {
+        encForwardGRU_ = std::shared_ptr<EncForwardGRU>(new EncForwardGRU(model));
+        encBackwardGRU_ = std::shared_ptr<EncBackwardGRU>(new EncBackwardGRU(model));
+      }
+      if (config["dec-cell"] && config["dec-cell"].as<std::string>() == "lstm") {
+        decLSTM1_ = std::shared_ptr<DecLSTM1>(new DecLSTM1(model));
+        decLSTM2_ = std::shared_ptr<DecLSTM2>(new DecLSTM2(model));
+      } else {
+        decGru1_ = std::shared_ptr<DecGRU1>(new DecGRU1(model));
+        decGru2_ = std::shared_ptr<DecGRU2>(new DecGRU2(model));
+      }
+    }
 
   Weights(const Weights&) = delete;
 
@@ -232,11 +349,15 @@ struct Weights {
 
   const EncEmbeddings encEmbeddings_;
   const DecEmbeddings decEmbeddings_;
-  const EncForwardGRU encForwardGRU_;
-  const EncBackwardGRU encBackwardGRU_;
+  std::shared_ptr<EncForwardGRU> encForwardGRU_;
+  std::shared_ptr<EncBackwardGRU> encBackwardGRU_;
+  std::shared_ptr<EncForwardLSTM> encForwardLSTM_;
+  std::shared_ptr<EncBackwardLSTM> encBackwardLSTM_;
   const DecInit decInit_;
-  const DecGRU1 decGru1_;
-  const DecGRU2 decGru2_;
+  std::shared_ptr<DecGRU1> decGru1_;
+  std::shared_ptr<DecGRU2> decGru2_;
+  std::shared_ptr<DecLSTM1> decLSTM1_;
+  std::shared_ptr<DecLSTM2> decLSTM2_;
   const DecAlignment decAlignment_;
   const DecSoftmax decSoftmax_;
 

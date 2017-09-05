@@ -1,11 +1,14 @@
 #pragma once
 
+#include <yaml-cpp/yaml.h>
+
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
 #include "common/sentence.h"
 #include "gpu/types-gpu.h"
 #include "gru.h"
+#include "lstm.h"
 #include "cell.h"
 #include "cellstate.h"
 
@@ -45,7 +48,6 @@ class Encoder {
         Embeddings(const Embeddings&) = delete;
     };
 
-    template <class Weights>
     class RNN {
       public:
         RNN(std::unique_ptr<Cell> cell)
@@ -118,15 +120,19 @@ class Encoder {
     };
 
   public:
-    Encoder(const Weights& model);
+    Encoder(const Weights& model, const YAML::Node& config);
 
     void Encode(const Sentences& words, size_t tab, mblas::Matrix& context,
                     mblas::IMatrix &sentencesMask);
 
   private:
+    std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);
+    std::unique_ptr<Cell> InitBackwardCell(const Weights& model, const YAML::Node& config);
+
+  private:
     Embeddings<Weights::EncEmbeddings> embeddings_;
-    RNN<Weights::EncForwardGRU> forwardRnn_;
-    RNN<Weights::EncBackwardGRU> backwardRnn_;
+    RNN forwardRnn_;
+    RNN backwardRnn_;
 
     // reusing memory
     std::vector<mblas::Matrix> embeddedWords_;

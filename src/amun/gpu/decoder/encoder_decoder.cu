@@ -26,8 +26,8 @@ EncoderDecoder::EncoderDecoder(
         const Weights& model)
   : Scorer(god, name, config, tab),
     model_(model),
-    encoder_(new Encoder(model_)),
-    decoder_(new Decoder(god, model_)),
+    encoder_(new Encoder(model_, config)),
+    decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {
