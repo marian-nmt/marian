@@ -9,6 +9,7 @@
 #include "gpu/types-gpu.h"
 #include "gru.h"
 #include "lstm.h"
+#include "multiplicative.h"
 #include "cell.h"
 #include "cellstate.h"
 

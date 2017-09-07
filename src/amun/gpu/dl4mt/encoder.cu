@@ -13,16 +13,23 @@ Encoder::Encoder(const Weights& model, const YAML::Node& config)
 {}
 
 std::unique_ptr<Cell> Encoder::InitForwardCell(const Weights& model, const YAML::Node& config){
-  if (config["enc-cell"] && config["enc-cell"].as<std::string>() == "lstm") {
+  std::string celltype = config["enc-cell"] ? config["enc-cell"].as<std::string>() : "gru";
+  if (celltype == "lstm") {
     return unique_ptr<Cell>(new LSTM<Weights::EncForwardLSTM>(*(model.encForwardLSTM_)));
-  } else {
+  } else if (celltype == "mlstm") {
+    return unique_ptr<Cell>(new Multiplicative<LSTM, Weights::EncForwardLSTM>(*model.encForwardMLSTM_));
+  } else if (celltype == "gru") {
     return unique_ptr<Cell>(new GRU<Weights::EncForwardGRU>(*(model.encForwardGRU_)));
   }
 }
 std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML::Node& config){
-  if (config["enc-cell"] && config["enc-cell"].as<std::string>() == "lstm") {
+  std::string enccell = config["enc-cell"] ? config["enc-cell"].as<std::string>() : "gru";
+  std::string celltype = config["enc-cell-r"] ? config["enc-cell-r"].as<std::string>() : enccell;
+  if (celltype == "lstm") {
     return unique_ptr<Cell>(new LSTM<Weights::EncBackwardLSTM>(*(model.encBackwardLSTM_)));
-  } else {
+  } else if (celltype == "mlstm") {
+    return unique_ptr<Cell>(new Multiplicative<LSTM, Weights::EncBackwardLSTM>(*model.encBackwardMLSTM_));
+  } else if (celltype == "gru") {
     return unique_ptr<Cell>(new GRU<Weights::EncBackwardGRU>(*(model.encBackwardGRU_)));
   }
 }

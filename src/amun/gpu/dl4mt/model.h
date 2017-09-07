@@ -259,6 +259,28 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
   };
 
+  // A wrapper class to deserialize weights for multiplicative-LSTM,
+  // multiplicative-GRU and such
+  template<class BaseWeights>
+  struct MultWeights: public BaseWeights {
+    MultWeights(const MultWeights&) = delete;
+    MultWeights(const NpzConverter& model, const std::string& prefix)
+      : BaseWeights(model),
+      Wmx_(model.get(p(prefix, "Wmx"), true)),
+      bWmx_(model.get(p(prefix, "bWmx"), true)),
+      Umh_(model.get(p(prefix, "Umh"), true)),
+      bUmh_(model.get(p(prefix, "bUmh"), true))
+      {}
+    const std::shared_ptr<mblas::Matrix> Wmx_;
+    const std::shared_ptr<mblas::Matrix> bWmx_;
+    const std::shared_ptr<mblas::Matrix> Umh_;
+    const std::shared_ptr<mblas::Matrix> bUmh_;
+  private:
+    std::string p(std::string prefix, std::string sufix){
+      return prefix + "_" + sufix;
+    }
+  };
+
   struct DecAlignment {
     DecAlignment(const DecAlignment&) = delete;
 
@@ -325,20 +347,15 @@ struct Weights {
     device_(device)
     {
 
-      if (config["enc-cell"] && config["enc-cell"].as<std::string>() == "lstm") {
-        encForwardLSTM_ = std::shared_ptr<EncForwardLSTM>(new EncForwardLSTM(model));
-        encBackwardLSTM_ = std::shared_ptr<EncBackwardLSTM>(new EncBackwardLSTM(model));
-      } else {
-        encForwardGRU_ = std::shared_ptr<EncForwardGRU>(new EncForwardGRU(model));
-        encBackwardGRU_ = std::shared_ptr<EncBackwardGRU>(new EncBackwardGRU(model));
-      }
-      if (config["dec-cell"] && config["dec-cell"].as<std::string>() == "lstm") {
-        decLSTM1_ = std::shared_ptr<DecLSTM1>(new DecLSTM1(model));
-        decLSTM2_ = std::shared_ptr<DecLSTM2>(new DecLSTM2(model));
-      } else {
-        decGru1_ = std::shared_ptr<DecGRU1>(new DecGRU1(model));
-        decGru2_ = std::shared_ptr<DecGRU2>(new DecGRU2(model));
-      }
+      std::string encCell = config["enc-cell"] ? config["enc-cell"].as<std::string>() : "gru";
+      std::string encCell_r = config["enc-cell-r"] ? config["enc-cell-r"].as<std::string>() : encCell;
+      initEncForward(model, encCell);
+      initEncBackward(model, encCell_r);
+
+      std::string decCell = config["dec-cell"] ? config["dec-cell"].as<std::string>() : "gru";
+      std::string decCell2 = config["dec-cell-2"] ? config["dec-cell-2"].as<std::string>() : decCell;
+      initDec1(model, decCell);
+      initDec2(model, decCell2);
     }
 
   Weights(const Weights&) = delete;
@@ -347,17 +364,64 @@ struct Weights {
     return device_;
   }
 
+private:
+  void initEncForward(const NpzConverter& model,std::string celltype){
+    if(celltype == "lstm"){
+      encForwardLSTM_ = std::shared_ptr<EncForwardLSTM>(new EncForwardLSTM(model));
+    } else if (celltype == "mlstm") {
+      encForwardMLSTM_ = std::shared_ptr<MultWeights<EncForwardLSTM>>
+        (new MultWeights<EncForwardLSTM>(model, "encoder"));
+    } else if (celltype == "gru"){
+      encForwardGRU_ = std::shared_ptr<EncForwardGRU>(new EncForwardGRU(model));
+    }
+  }
+  void initEncBackward(const NpzConverter& model,std::string celltype) {
+    if(celltype == "lstm"){
+      encBackwardLSTM_ = std::shared_ptr<EncBackwardLSTM>(new EncBackwardLSTM(model));
+    } else if (celltype == "mlstm") {
+      encBackwardMLSTM_ = std::shared_ptr<MultWeights<EncBackwardLSTM>>
+        (new MultWeights<EncBackwardLSTM>(model, "encoder_r"));
+    } else if (celltype == "gru"){
+      encBackwardGRU_ = std::shared_ptr<EncBackwardGRU>(new EncBackwardGRU(model));
+    }
+  }
+  void initDec1(const NpzConverter& model,std::string celltype){
+    if (celltype == "lstm"){
+      decLSTM1_ = std::shared_ptr<DecLSTM1>(new DecLSTM1(model));
+    } else if (celltype == "mlstm") {
+      decMLSTM1_ = std::shared_ptr<MultWeights<DecLSTM1>>(new MultWeights<DecLSTM1>(model, "decoder"));
+    } else if (celltype == "gru") {
+      decGru1_ = std::shared_ptr<DecGRU1>(new DecGRU1(model));
+    }
+  }
+  void initDec2(const NpzConverter& model,std::string celltype){
+    if (celltype == "lstm"){
+      decLSTM2_ = std::shared_ptr<DecLSTM2>(new DecLSTM2(model));
+    } else if (celltype == "mlstm") {
+      decMLSTM2_ = std::shared_ptr<MultWeights<DecLSTM2>>(new MultWeights<DecLSTM2>(model, "decoder_2"));
+    } else if (celltype == "gru") {
+      decGru2_ = std::shared_ptr<DecGRU2>(new DecGRU2(model));
+    }
+  }
+
+public:
   const EncEmbeddings encEmbeddings_;
   const DecEmbeddings decEmbeddings_;
+  // of these usuall only two at a time will be not null
   std::shared_ptr<EncForwardGRU> encForwardGRU_;
   std::shared_ptr<EncBackwardGRU> encBackwardGRU_;
   std::shared_ptr<EncForwardLSTM> encForwardLSTM_;
   std::shared_ptr<EncBackwardLSTM> encBackwardLSTM_;
+  std::shared_ptr<MultWeights<EncForwardLSTM>> encForwardMLSTM_;
+  std::shared_ptr<MultWeights<EncBackwardLSTM>> encBackwardMLSTM_;
   const DecInit decInit_;
+  // of these usuall only two at a time will be not null
   std::shared_ptr<DecGRU1> decGru1_;
   std::shared_ptr<DecGRU2> decGru2_;
   std::shared_ptr<DecLSTM1> decLSTM1_;
   std::shared_ptr<DecLSTM2> decLSTM2_;
+  std::shared_ptr<MultWeights<DecLSTM1>> decMLSTM1_;
+  std::shared_ptr<MultWeights<DecLSTM2>> decMLSTM2_;
   const DecAlignment decAlignment_;
   const DecSoftmax decSoftmax_;
 

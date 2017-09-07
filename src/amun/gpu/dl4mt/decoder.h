@@ -469,16 +469,23 @@ class Decoder {
     }
 
     std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){
-      if (config["dec-cell"] && config["dec-cell"].as<std::string>() == "lstm") {
+      std::string celltype = config["dec-cell"] ? config["dec-cell"].as<std::string>() : "gru";
+      if (celltype == "lstm") {
         return std::unique_ptr<Cell>(new LSTM<Weights::DecLSTM1>(*(model.decLSTM1_)));
-      } else {
+      } else if (celltype == "mlstm") {
+        return std::unique_ptr<Cell>(new Multiplicative<LSTM, Weights::DecLSTM1>(*model.decMLSTM1_));
+      } else if (celltype == "gru"){
         return std::unique_ptr<Cell>(new GRU<Weights::DecGRU1>(*(model.decGru1_)));
       }
     }
     std::unique_ptr<Cell> InitFinalCell(const Weights& model, const YAML::Node& config){
-      if (config["dec-cell"] && config["dec-cell"].as<std::string>() == "lstm") {
+      std::string hiddencell = config["dec-cell"] ? config["dec-cell"].as<std::string>() : "gru";
+      std::string celltype = config["dec-cell-2"] ? config["dec-cell-2"].as<std::string>() : hiddencell;
+      if (celltype == "lstm") {
         return std::unique_ptr<Cell>(new LSTM<Weights::DecLSTM2>(*(model.decLSTM2_)));
-      } else {
+      } else if (celltype == "mlstm") {
+        return std::unique_ptr<Cell>(new Multiplicative<LSTM, Weights::DecLSTM2>(*model.decMLSTM2_));
+      } else if (celltype == "gru"){
         return std::unique_ptr<Cell>(new GRU<Weights::DecGRU2>(*(model.decGru2_)));
       }
     }
