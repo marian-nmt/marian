@@ -1041,7 +1041,8 @@ void Prod(cublasHandle_t handle,
           const Tensor B,
           bool transA,
           bool transB,
-          float beta = 0);
+          float beta = 0,
+          float scalar = 1);
 
 void ProdBatched(cublasHandle_t handle,
           Tensor C,
@@ -1049,7 +1050,8 @@ void ProdBatched(cublasHandle_t handle,
           const Tensor B,
           bool transA,
           bool transB,
-          float beta = 0);
+          float beta = 0,
+          float scalar = 1);
 
 void CopyRowsByIndex(Tensor out,
                      const Tensor in,

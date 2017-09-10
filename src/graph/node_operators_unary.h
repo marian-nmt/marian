@@ -183,7 +183,7 @@ struct SoftmaxNodeOp : public NaryNodeOp {
 
   template <typename... Args>
   SoftmaxNodeOp(Expr a, Expr mask, Args... args)
-      : NaryNodeOp({a, mask}, args...), mask_(mask) {}
+      : NaryNodeOp({a}, args...), mask_(mask) {}
 
   Expr mask_;
 

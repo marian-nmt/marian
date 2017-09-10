@@ -415,9 +415,10 @@ void Prod(cublasHandle_t handle,
           const Tensor B,
           bool transA,
           bool transB,
-          float beta) {
+          float beta,
+          float scalar) {
   cudaSetDevice(C->getDevice());
-  float alpha = 1.0;
+  float alpha = scalar;
 
   size_t m = A->shape()[0] * A->shape()[2] * A->shape()[3];
   size_t k = A->shape()[1];
@@ -462,9 +463,10 @@ void ProdBatched(
           const Tensor B,
           bool transA,
           bool transB,
-          float beta) {
+          float beta,
+          float scalar) {
   cudaSetDevice(C->getDevice());
-  float alpha = 1.0;
+  float alpha = scalar;
 
   size_t batchA = A->shape()[2] * A->shape()[3];
   size_t batchB = B->shape()[2] * B->shape()[3];

@@ -237,7 +237,8 @@ public:
       "special-vocab",
       "tied-embeddings",
       "tied-embeddings-src",
-      "tied-embeddings-all"
+      "tied-embeddings-all",
+      "transformer-heads"
     };
   }
 

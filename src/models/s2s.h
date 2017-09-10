@@ -188,7 +188,8 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
              ("dropout", dropoutRnn)
              ("layer-normalization", opt<bool>("layer-normalization"))
              ("nematus-normalization",
-                opt<std::string>("original-type") == "nematus")
+                options_->has("original-type")
+                && opt<std::string>("original-type") == "nematus")
              ("skip", opt<bool>("skip"));
 
   size_t decoderLayers = opt<size_t>("dec-depth");
@@ -268,7 +269,8 @@ public:
                             ("activation", mlp::act::tanh)
                             ("layer-normalization", opt<bool>("layer-normalization"))
                             ("nematus-normalization",
-                               opt<std::string>("original-type") == "nematus"));
+                               options_->has("original-type")
+                               && opt<std::string>("original-type") == "nematus"));
       start = mlp->apply(meanContexts);
     }
     else {
@@ -328,6 +330,7 @@ public:
                   ("activation", mlp::act::tanh)
                   ("layer-normalization", opt<bool>("layer-normalization"))
                   ("nematus-normalization",
+                     options_->has("original-type") &&
                      opt<std::string>("original-type") == "nematus");
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();

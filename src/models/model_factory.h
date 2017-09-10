@@ -4,6 +4,7 @@
 #include "models/s2s.h"
 #include "models/amun.h"
 #include "models/nematus.h"
+#include "models/transformer.h"
 
 #define REGISTER_ENCODER(name, className)\
 do {\
@@ -35,6 +36,7 @@ public:
   virtual Ptr<EncoderBase> construct() {
 
     REGISTER_ENCODER("s2s", EncoderS2S);
+    REGISTER_ENCODER("transformer", EncoderTransformer);
 
     UTIL_THROW2("Unknown encoder type");
   }
@@ -107,6 +109,16 @@ Ptr<EncoderDecoder> by_type(std::string type,
            .push_back(models::decoder()
                       ("type", "s2s")
                       ("original-type", type))
+           .construct();
+  }
+
+  if(type == "transformer") {
+    return models::encoder_decoder()
+           (options)
+           .push_back(models::encoder()
+                      ("type", "transformer"))
+           .push_back(models::decoder()
+                      ("type", "s2s"))
            .construct();
   }
 
