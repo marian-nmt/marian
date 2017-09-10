@@ -180,7 +180,7 @@ class FastGRU {
                         const mblas::Matrix& RUH,
                         const mblas::Matrix& Temp) const
     {
-      BEGIN_TIMER("ElementwiseOps");
+      //BEGIN_TIMER("ElementwiseOps");
 
       assert(State.dim(2) == 1);
       assert(State.dim(3) == 1);
@@ -220,7 +220,7 @@ class FastGRU {
         (nextWrap, stateWrap, ruhWrap, tempWrap,
             bWrap, bx1Wrap, bx2Wrap);
 
-      PAUSE_TIMER("ElementwiseOps");
+      //PAUSE_TIMER("ElementwiseOps");
 
     }
 

@@ -62,19 +62,19 @@ void EncoderDecoder::Encode(const Sentences& source) {
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
-  BEGIN_TIMER("BeginSentenceState");
+  //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentencesMask_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
-  PAUSE_TIMER("BeginSentenceState");
+  //PAUSE_TIMER("BeginSentenceState");
 }
 
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out) {
-  BEGIN_TIMER("AssembleBeamState");
+  //BEGIN_TIMER("AssembleBeamState");
   std::vector<size_t> beamWords;
   std::vector<uint> beamStateIds;
   for (const HypothesisPtr &h : beam) {
@@ -101,7 +101,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
   //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
-  PAUSE_TIMER("AssembleBeamState");
+  //PAUSE_TIMER("AssembleBeamState");
 }
 
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {

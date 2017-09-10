@@ -304,17 +304,17 @@ class Decoder {
           Probs.NewSize(T1_.dim(0), w4->dim(1));
           //PAUSE_TIMER("GetProbs.NewSize");
 
-          //BEGIN_TIMER("GetProbs.Prod4");
+          BEGIN_TIMER("GetProbs.Prod4");
           Prod(Probs, T1_, *w4);
-          //PAUSE_TIMER("GetProbs.Prod4");
+          PAUSE_TIMER("GetProbs.Prod4");
 
           //BEGIN_TIMER("GetProbs.BroadcastVec");
           BroadcastVec(_1 + _2, Probs, *b4);
           //PAUSE_TIMER("GetProbs.BroadcastVec");
 
-          //BEGIN_TIMER("GetProbs.LogSoftMax");
+          BEGIN_TIMER("GetProbs.LogSoftMax");
           mblas::LogSoftmax(Probs);
-          //PAUSE_TIMER("GetProbs.LogSoftMax");
+          PAUSE_TIMER("GetProbs.LogSoftMax");
         }
 
         void Filter(const std::vector<size_t>& ids) {
