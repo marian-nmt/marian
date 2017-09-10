@@ -45,6 +45,8 @@ private:
   bool reloaded_{false};
   std::string namespace_;
 
+  bool throwNaN_{false};
+
 protected:
   // Delete, copy and move constructors
   ExpressionGraph(const ExpressionGraph&) = delete;
@@ -132,6 +134,8 @@ public:
     forwardNext();
   }
 
+  void checkNan(Tensor t);
+
   void forwardNext() {
     // @TODO: check if allocation works properly
     hashMap_.clear();
@@ -141,6 +145,8 @@ public:
       v->allocate();
       v->init();
       v->forward();
+
+      checkNan(v->val());
 
       if(v->marked_for_debug()) {
         std::cerr << "Debug: " << v->debug_message() << std::endl;
@@ -193,6 +199,8 @@ public:
       }
       if(v->trainable())
         v->backward();
+
+      checkNan(v->grad());
 
       if(v->trainable() && v->marked_for_debug()) {
         std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
@@ -420,6 +428,10 @@ public:
 
   void setReloaded(bool reloaded) {
     reloaded_ = reloaded;
+  }
+
+  void setThrowNaN(bool throwNaN) {
+    throwNaN_ = throwNaN;
   }
 
   void load(const std::string& name) {

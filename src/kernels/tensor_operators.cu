@@ -1,10 +1,25 @@
 
+#include <thrust/transform_reduce.h>
+
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
 
 #include "3rd_party/reduce_all.h"
 
 namespace marian {
+
+struct isnan_test {
+  __host__ __device__ bool operator()(const float a) const {
+      return isnan(a);
+  }
+};
+
+bool IsNan(Tensor in) {
+  thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
+  thrust::device_ptr<float> end = thrust::device_pointer_cast(in->data() + in->size());
+  return thrust::transform_reduce(begin, end, isnan_test(), 0, thrust::plus<bool>());
+}
+
 
 // static cudnnHandle_t create_handle_dnn() {
 //  cudnnHandle_t cudnnHandle;

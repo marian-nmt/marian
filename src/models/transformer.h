@@ -130,6 +130,8 @@ public:
                           Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
+    graph->setThrowNaN(true);
+
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");

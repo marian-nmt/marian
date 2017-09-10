@@ -11,6 +11,8 @@
 
 namespace marian {
 
+bool IsNan(Tensor in);
+
 using namespace thrust::placeholders;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
