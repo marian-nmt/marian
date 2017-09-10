@@ -455,6 +455,59 @@ void Prod(cublasHandle_t handle,
               ldc);
 }
 
+void ProdBatched(
+          cublasHandle_t handle,
+          Tensor C,
+          const Tensor A,
+          const Tensor B,
+          bool transA,
+          bool transB,
+          float beta) {
+  cudaSetDevice(C->getDevice());
+  float alpha = 1.0;
+
+  size_t batchA = A->shape()[2] * A->shape()[3];
+  size_t batchB = B->shape()[2] * B->shape()[3];
+
+  size_t m = A->shape()[0];
+  size_t k = A->shape()[1];
+  if(transA)
+    std::swap(m, k);
+
+  size_t l = B->shape()[0];
+  size_t n = B->shape()[1];
+  if(transB)
+    std::swap(l, n);
+
+  size_t lda = A->shape()[1];
+  size_t ldb = B->shape()[1];
+  size_t ldc = B->shape()[1];
+
+  if(transB)
+    ldc = B->shape()[0];
+
+  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
+
+  cublasSgemmStridedBatched(
+              handle,
+              opB,
+              opA,
+              n,
+              m,
+              k,
+              &alpha,
+              B->data(),
+              ldb, batchB == 1 ? 0 : n * k,
+              A->data(),
+              lda, batchA == 1 ? 0 : m * k,
+              &beta,
+              C->data(),
+              ldc,
+              n * m,
+              std::max(batchA, batchB));
+}
+
 __global__ void gCopyRows(float* out,
                           const float* in,
                           size_t cols,

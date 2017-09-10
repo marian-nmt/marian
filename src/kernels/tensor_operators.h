@@ -1043,6 +1043,14 @@ void Prod(cublasHandle_t handle,
           bool transB,
           float beta = 0);
 
+void ProdBatched(cublasHandle_t handle,
+          Tensor C,
+          const Tensor A,
+          const Tensor B,
+          bool transA,
+          bool transB,
+          float beta = 0);
+
 void CopyRowsByIndex(Tensor out,
                      const Tensor in,
                      thrust::pair<size_t, size_t>* ipair,
