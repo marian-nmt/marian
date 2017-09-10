@@ -87,7 +87,8 @@ namespace marian {
 __global__ void gSoftmax(float* out,
                          const ShapeGPU outShape,
                          const float* in,
-                         const float* mask) {
+                         const float* mask,
+                         int maskRows) {
   int rows = outShape[0] * outShape[2] * outShape[3];
   int cols = outShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -95,7 +96,7 @@ __global__ void gSoftmax(float* out,
     if(j < rows) {
       float* so = out + j * cols;
       const float* sp = in + j * cols;
-      const float* mp = mask ? (mask + j * cols) : 0;
+      const float* mp = mask ? (mask + (j % maskRows) * cols) : 0;
 
       extern __shared__ float _share[];
 
@@ -168,10 +169,10 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
 
   if(mask)
     gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), mask->data());
+        out->data(), out->shape(), in->data(), mask->data(), mask->shape()[0]);
   else
     gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), 0);
+        out->data(), out->shape(), in->data(), 0, 0);
   // cudaStreamSynchronize(0);
 }
 
