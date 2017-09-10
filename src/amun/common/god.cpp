@@ -25,8 +25,6 @@ using namespace std;
 
 namespace amunmt {
 
-std::unordered_map<std::string, boost::timer::cpu_timer> timers;
-
 God::God()
  : threadIncr_(0)
 {
@@ -35,27 +33,6 @@ God::God()
 God::~God()
 {
   Cleanup();
-
-  if (timers.size()) {
-    boost::timer::nanosecond_type encDecWall = timers["EncoderDecoder"].elapsed().wall;
-
-    cerr << "timers:" << endl;
-    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
-      const boost::timer::cpu_timer &timer = iter->second;
-      boost::timer::cpu_times t = timer.elapsed();
-      boost::timer::nanosecond_type wallTime = t.wall;
-
-      int percent = (float) wallTime / (float) encDecWall * 100.0f;
-
-      cerr << iter->first << " ";
-
-      for (int i = 0; i < ((int)35 - (int)iter->first.size()); ++i) {
-        cerr << " ";
-      }
-
-      cerr << timer.format(2, "%w") << " (" << percent << ")" << endl;
-    }
-  }
 }
 
 God& God::Init(const std::string& options) {

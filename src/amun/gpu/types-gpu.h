@@ -2,7 +2,9 @@
 
 #ifndef NO_CUDA
 
+#include <unordered_map>
 #include <thrust/device_vector.h>
+#include <boost/timer/timer.hpp>
 
 namespace amunmt {
 namespace GPU {
@@ -44,6 +46,13 @@ namespace iteralgo = std;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////
+extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
+
+//#define BEGIN_TIMER(str) {}
+//#define PAUSE_TIMER(str) {}
+#define BEGIN_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
+#define PAUSE_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
+							timers[str].stop(); }
 
 
 }
