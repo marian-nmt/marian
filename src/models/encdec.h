@@ -238,7 +238,8 @@ public:
       "tied-embeddings",
       "tied-embeddings-src",
       "tied-embeddings-all",
-      "transformer-heads"
+      "transformer-heads",
+      "transformer-dim-ffn"
     };
   }
 

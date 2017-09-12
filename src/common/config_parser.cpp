@@ -272,8 +272,10 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie source and target embeddings")
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
-    ("transformer-heads", po::value<int>()->default_value(4),
+    ("transformer-heads", po::value<int>()->default_value(8),
      "Number of head in multi-head attention (transformer)")
+    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network (transformer)")
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -605,6 +607,7 @@ void ConfigParser::parseOptions(
   SET_OPTION("tied-embeddings-all", bool);
   SET_OPTION("layer-normalization", bool);
   SET_OPTION("transformer-heads", int);
+  SET_OPTION("transformer-dim-ffn", int);
 
   SET_OPTION("best-deep", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
