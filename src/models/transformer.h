@@ -29,6 +29,8 @@ public:
   Expr WordEmbeddings(Ptr<ExpressionGraph> graph,
                       Ptr<data::CorpusBatch> batch) {
 
+    // standard encoder word embeddings
+
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
@@ -58,7 +60,8 @@ public:
                             int dimEmb, int dimWords) {
     using namespace keywords;
 
-    // positional embeddings, maybe turn this into a gpu based initializer
+    // positional embeddings as described in the paper. Maybe turn this
+    // into a gpu based initializer
     std::vector<float> vPos;
     for(int p = 0; p < dimWords; ++p) {
       for(int i = 0; i < dimEmb / 2; ++i) {
@@ -68,22 +71,30 @@ public:
       }
     }
 
-    return graph->constant({1, dimEmb, dimWords}, init=inits::from_vector(vPos));
+    // shared across batch entries
+    return graph->constant({1, dimEmb, dimWords},
+                           init=inits::from_vector(vPos));
   }
 
-  Expr Att(Ptr<ExpressionGraph> graph,
-           Expr q, Expr k, Expr v, Expr mask = nullptr) {
+  Expr Attention(Ptr<ExpressionGraph> graph,
+                 Expr q, Expr k, Expr v, Expr mask = nullptr) {
     float dk = k->shape()[1];
+
+    // scaling to avoid extreme values due to matrix multiplication
     float scale = 1.0 / std::sqrt(dk);
 
+    // softmax over batched dot product of query and keys (applied over all
+    // time steps and batch entries)
     auto weights = softmax(dot_batch(q, k, false, true, scale), mask);
 
+    // optional dropout for attention weights
     float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, weights->shape());
       weights = dropout(weights, keywords::mask = dropMask);
     }
 
+    // apply attention weights to values
     return dot_batch(weights, v);
   }
 
@@ -97,7 +108,11 @@ public:
     int dimModel = k->shape()[1];
 
     std::vector<Expr> heads;
+
+    // loop over number of heads
     for(int i = 0; i < dimHeads; ++i) {
+
+      // downscaling of query, key and value, separate parameters for each head
       auto Wq = graph->param(prefix + "_Wq_h" + std::to_string(i + 1),
                              {dimModel, dimModel / dimHeads},
                              init=inits::glorot_uniform);
@@ -108,7 +123,8 @@ public:
                              {dimModel, dimModel / dimHeads},
                              init=inits::glorot_uniform);
 
-      auto head = Att(graph, dot(q, Wq), dot(k, Wk), dot(v, Wv), mask);
+      // apply multi-head attention to downscaled inputs
+      auto head = Attention(graph, dot(q, Wq), dot(k, Wk), dot(v, Wv), mask);
       heads.push_back(head);
     }
 
@@ -127,15 +143,20 @@ public:
     int dimModel = input->shape()[1];
     float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
 
+    // first block: multi-head self-attention over previous input
     auto block1 = MultiHead(graph, prefix, h, input, input, input, mask);
 
+    // optional dropout
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
       block1 = dropout(block1, keywords::mask = dropMask);
     }
 
-    block1 = block1 + input;
+    // skip connection
+    if(opt<bool>("skip"))
+      block1 = block1 + input;
 
+    // optional layer normalization, used in original paper
     bool layerNorm = opt<bool>("layer-normalization");
     if(layerNorm) {
       auto gamma_b1 = graph->param(prefix + "_gamma_b1", {1, dimModel},
@@ -145,6 +166,8 @@ public:
       block1 = layer_norm(block1, gamma_b1, beta_b1);
     }
 
+    // second block: positional feed-forward network, upscaling of
+    // self-attention results.
     int dimFfn = opt<int>("transformer-dim-ffn");
 
     auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
@@ -159,13 +182,17 @@ public:
 
     auto block2 = affine(relu(affine(block1, W1, b1)), W2, b2);
 
+    // optional dropout
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
       block2 = dropout(block2, keywords::mask = dropMask);
     }
 
-    block2 = block2 + block1;
+    // skip connection
+    if(opt<bool>("skip"))
+      block2 = block2 + block1;
 
+    // optional layer-normalization
     if(layerNorm) {
       auto gamma_b2 = graph->param(prefix + "_gamma_b2", {1, dimModel},
                                    init = inits::from_value(1.f));
@@ -202,6 +229,7 @@ public:
 
     auto posEmbeddings = PositionalEmbeddings(graph, dimEmb, dimSrcWords);
 
+    // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings + posEmbeddings;
 
     // reorganize batch and timestep
@@ -209,14 +237,18 @@ public:
     auto layerMask = reshape(reverseTimeBatch(batchMask),
                              {1, dimSrcWords, dimBatch});
 
-    for(int i = 1; i <= opt<int>("enc-depth"); ++i)
+    // apply layers
+    for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
       layer = Layer(graph,
                     "encoder_l" + std::to_string(i),
                     opt<int>("transformer-heads"),
                     layer,
                     layerMask);
+    }
 
-    // restore organization of batch and timestep
+    // restore organization of batch and time steps. This is currently required
+    // to make RNN-based decoders and beam search work with this. We are looking
+    // into makeing this more natural.
     auto context = reverseTimeBatch(layer);
     return New<EncoderState>(context, batchMask, batch);
   }

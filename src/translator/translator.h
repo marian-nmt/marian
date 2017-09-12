@@ -33,11 +33,6 @@ public:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
-    // if(options_->has("lexical-table"))
-    //  lexProbs_ = New<LexProbs>(options_,
-    //                       corpus_->getVocabs().front(),
-    //                       trgVocab_);
-
     auto devices = options_->get<std::vector<int>>("devices");
     for(auto& device : devices) {
       auto graph = New<ExpressionGraph>(true);
@@ -88,8 +83,7 @@ public:
                          options_->get<bool>("n-best"));
       };
 
-      task(sentenceId);
-      //threadPool.enqueue(task, sentenceId);
+      threadPool.enqueue(task, sentenceId);
 
       sentenceId++;
     }
