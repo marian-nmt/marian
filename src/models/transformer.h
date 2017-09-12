@@ -184,7 +184,7 @@ public:
 
     int dimEmb = opt<int>("dim-emb");
     int dimBatch = batch->size();
-    int dimSrcWords = batch->words();
+    int dimSrcWords = (*batch)[batchIndex_]->batchWidth();
 
     auto embeddings = WordEmbeddings(graph, batch);
 
