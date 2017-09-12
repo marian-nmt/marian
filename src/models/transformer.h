@@ -128,7 +128,7 @@
         auto kh = dot(k, Wk);
         auto vh = dot(v, Wv);
 
-        // optional layer normalization, used in original paper
+        // optional layer normalization, not used here in original paper
         if(layerNorm) {
           auto gamma_q = graph->param(prefix + "_Wq_gamma_h" + std::to_string(i),
                                       {1, dimModel / dimHeads},
@@ -177,57 +177,61 @@
       float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
 
       // first block: multi-head self-attention over previous input
-      auto block1 = MultiHead(graph, prefix, h, input, input, input, mask);
+      auto output = MultiHead(graph, prefix, h, input, input, input, mask);
 
       // skip connection
       if(opt<bool>("skip"))
-        block1 = block1 + input;
+        output = output + input;
 
       // optional dropout
       if(dropProb) {
         auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-        block1 = dropout(block1, keywords::mask = dropMask);
+        output = dropout(output, keywords::mask = dropMask);
       }
 
-      return block1;
+      auto block1 = output;
 
-      //// second block: positional feed-forward network, upscaling of
-      //// self-attention results.
-      //int dimFfn = opt<int>("transformer-dim-ffn");
-      //
-      //auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
-      //                       init=inits::glorot_uniform);
-      //auto b1 = graph->param(prefix + "_b1", {1, dimFfn},
-      //                       init=inits::zeros);
-      //
-      //auto W2 = graph->param(prefix + "_W2", {dimFfn, dimModel},
-      //                       init=inits::glorot_uniform);
-      //auto b2 = graph->param(prefix + "_b2", {1, dimModel},
-      //                       init=inits::zeros);
-      //
-      //auto block2 = affine(relu(affine(block1, W1, b1)), W2, b2);
-      //
-      //// optional dropout
-      //if(dropProb) {
-      //  auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      //  block2 = dropout(block2, keywords::mask = dropMask);
-      //}
-      //
-      //// skip connection
-      //if(opt<bool>("skip"))
-      //  block2 = block2 + block1;
-      //
-      //// optional layer-normalization
-      //if(layerNorm) {
-      //  auto gamma_b2 = graph->param(prefix + "_gamma_b2", {1, dimModel},
-      //                               init = inits::ones);
-      //  auto beta_b2 = graph->param(prefix + "_beta_b2", {1, dimModel},
-      //                               init = inits::zeros);
-      //
-      //  block2 = layer_norm(block2, gamma_b2, beta_b2);
-      //}
-      //
-      //return block2;
+      // second block: positional feed-forward network, upscaling of
+      // self-attention results.
+      int dimFfn = opt<int>("transformer-dim-ffn");
+
+      auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
+                             init=inits::glorot_uniform);
+      auto b1 = graph->param(prefix + "_b1", {1, dimFfn},
+                             init=inits::zeros);
+
+      auto W2 = graph->param(prefix + "_W2", {dimFfn, dimModel},
+                             init=inits::glorot_uniform);
+      auto b2 = graph->param(prefix + "_b2", {1, dimModel},
+                             init=inits::zeros);
+
+      // optional layer-normalization
+      bool layerNorm = opt<bool>("layer-normalization");
+
+      if(layerNorm) {
+        auto gamma1 = graph->param(prefix + "_gamma1", {1, dimFfn},
+                                   init = inits::ones);
+        auto gamma2 = graph->param(prefix + "_gamma2", {1, dimModel},
+                                   init = inits::ones);
+
+        output = relu(layer_norm(dot(output, W1), gamma1, b1));
+        output = layer_norm(dot(output, W2), gamma2, b2);
+      }
+      else {
+        output = affine(relu(affine(output, W1, b1)), W2, b2);
+      }
+
+      // skip connection
+      if(opt<bool>("skip"))
+        output = output + block1;
+
+      // optional dropout
+      if(dropProb) {
+        auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
+        output = dropout(output, keywords::mask = dropMask);
+      }
+
+      return output;
     }
 
     Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
