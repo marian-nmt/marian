@@ -695,7 +695,7 @@ void MapMatrix(Matrix& state, const mblas::IMatrix &sentencesMask, size_t i)
   int sentenceLength = sentencesMask.size() / batchSize;
 
   int numThreads = std::min((int)state.size(), MAX_THREADS);
-  int numBlocks = (state.size() / numThreads) + 1;
+  int numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
 
   MatrixWrapper<float> stateWrap(state);
   MatrixWrapper<uint> sentencesMappingWrap(sentencesMask, false);
