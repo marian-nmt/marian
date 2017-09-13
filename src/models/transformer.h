@@ -179,11 +179,11 @@
       // first block: multi-head self-attention over previous input
       auto output = MultiHead(graph, prefix, h, input, input, input, mask);
 
-      // skip connection
+      // skip connection, moved being layer normalization
       if(opt<bool>("skip"))
         output = output + input;
 
-      // optional dropout
+      // optional dropout, moved to end
       if(dropProb) {
         auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
         output = dropout(output, keywords::mask = dropMask);
@@ -221,11 +221,11 @@
         output = affine(relu(affine(output, W1, b1)), W2, b2);
       }
 
-      // skip connection
+      // skip connection, moved behind layer normalization
       if(opt<bool>("skip"))
         output = output + block1;
 
-      // optional dropout
+      // optional dropout, moved to end
       if(dropProb) {
         auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
         output = dropout(output, keywords::mask = dropMask);
