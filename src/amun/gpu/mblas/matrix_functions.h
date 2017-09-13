@@ -205,7 +205,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   const MatrixWrapper<uint> batchMappingWrap(batchMapping);
 
   int threads = MAX_THREADS;
-  int blocks  = (OutNew.size() / threads) + 1;
+  int blocks  = (OutNew.size() / threads) + ((OutNew.size() % threads == 0) ?  0 : 1);
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
@@ -263,7 +263,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<floa
   const MatrixWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
-  int blocks  = cols / threads  + (cols % threads != 0);
+  int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
 
   gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), CudaStreamHandler::GetStream()>>>
     (functor, outWrap, inWrap);
