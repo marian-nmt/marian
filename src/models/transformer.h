@@ -211,11 +211,16 @@
       if(layerNorm) {
         auto gamma1 = graph->param(prefix + "_gamma1", {1, dimFfn},
                                    init = inits::ones);
+        auto beta1 = graph->param(prefix + "_beta1", {1, dimFfn},
+                                  init = inits::zeros);
+
         auto gamma2 = graph->param(prefix + "_gamma2", {1, dimModel},
                                    init = inits::ones);
+        auto beta2 = graph->param(prefix + "_beta2", {1, dimModel},
+                                  init = inits::zeros);
 
-        output = relu(layer_norm(dot(output, W1), gamma1, b1));
-        output = layer_norm(dot(output, W2), gamma2, b2);
+        output = layer_norm(relu(affine(output, W1, b1)), gamma1, beta1);
+        output = layer_norm(affine(output, W2, b2), gamma2, beta2);
       }
       else {
         output = affine(relu(affine(output, W1, b1)), W2, b2);
@@ -265,6 +270,12 @@
       auto layer = reverseTimeBatch(scaledEmbeddings);
       auto layerMask = reshape(reverseTimeBatch(batchMask),
                                {1, dimSrcWords, dimBatch});
+
+      float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
+      if(dropProb) {
+        auto dropMask = graph->dropout(dropProb, {1, dimEmb, 1});
+        layer = dropout(layer, keywords::mask = dropMask);
+      }
 
       // apply layers
       for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
