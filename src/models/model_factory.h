@@ -51,6 +51,7 @@ public:
   virtual Ptr<DecoderBase> construct() {
 
     REGISTER_DECODER("s2s", DecoderS2S);
+    REGISTER_DECODER("transformer", DecoderTransformer);
 
     UTIL_THROW2("Unknown decoder type");
   }
@@ -119,6 +120,16 @@ Ptr<EncoderDecoder> by_type(std::string type,
                       ("type", "transformer"))
            .push_back(models::decoder()
                       ("type", "s2s"))
+           .construct();
+  }
+
+  if(type == "transformer2") {
+    return models::encoder_decoder()
+           (options)
+           .push_back(models::encoder()
+                      ("type", "transformer"))
+           .push_back(models::decoder()
+                      ("type", "transformer"))
            .construct();
   }
 
