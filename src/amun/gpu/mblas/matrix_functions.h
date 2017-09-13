@@ -306,7 +306,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
   const MatrixWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
-  int blocks  = cols / threads  + (cols % threads != 0);
+  int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   gBroadcastVec<<<blocks, threads, 0, stream>>>
@@ -330,7 +330,7 @@ Matrix& Element(Functor functor,
                 Matrix& Out)
 {
   int threads = MAX_THREADS;
-  int blocks  = Out.size() / threads + 1;
+  int blocks  = Out.size() / threads + ((Out.size() % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -359,7 +359,7 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In.size());
 
   int threads = MAX_THREADS;
-  int blocks  = Out.size() / threads + 1;
+  int blocks  = Out.size() / threads + ((Out.size() % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -395,7 +395,7 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In2.size());
 
   int threads = MAX_THREADS;
-  int blocks  = Out.size() / threads + 1;
+  int blocks  = Out.size() / threads + ((Out.size() % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   //std::cerr << "Element3=" << Out.Debug(0) << std::endl;
