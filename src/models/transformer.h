@@ -255,9 +255,9 @@
         = EncoderBase::lookup(embeddings, batch);
 
       // apply dropout over source words
-      float dropProb = inference_ ? 0 : opt<float>("dropout-src");
-      if(dropProb) {
-        auto dropMask = graph->dropout(dropProb, {1, 1, dimSrcWords});
+      float dropProbSrc = inference_ ? 0 : opt<float>("dropout-src");
+      if(dropProbSrc) {
+        auto dropMask = graph->dropout(dropProbSrc, {1, 1, dimSrcWords});
         batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
       }
 
