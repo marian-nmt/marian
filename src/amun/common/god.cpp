@@ -25,8 +25,6 @@ using namespace std;
 
 namespace amunmt {
 
-std::unordered_map<std::string, boost::timer::cpu_timer> timers;
-
 God::God()
  : threadIncr_(0)
 {
@@ -35,14 +33,6 @@ God::God()
 God::~God()
 {
   Cleanup();
-
-  if (timers.size()) {
-    cerr << "timers:" << endl;
-    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
-      const boost::timer::cpu_timer &timer = iter->second;
-      cerr << iter->first << "=" << timer.format();
-    }
-  }
 }
 
 God& God::Init(const std::string& options) {

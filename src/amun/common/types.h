@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <vector>
 #include <iostream>
-#include <unordered_map>
-#include <boost/timer/timer.hpp>
 
 namespace amunmt {
 
@@ -35,12 +33,5 @@ struct DeviceInfo
 };
 
 /////////////////////////////////////////////////////////////////////////////////////
-extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
-
-#define BEGIN_TIMER(str) {} // { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
-#define PAUSE_TIMER(str) {} //{ HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
-  //  timers[str].stop();						\
-  //                       }
-
 }
 

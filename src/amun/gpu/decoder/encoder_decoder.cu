@@ -16,6 +16,8 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
+std::unordered_map<std::string, boost::timer::cpu_timer> timers;
+
 EncoderDecoder::EncoderDecoder(
 		const God &god,
 		const std::string& name,
@@ -28,7 +30,36 @@ EncoderDecoder::EncoderDecoder(
     decoder_(new Decoder(god, model_)),
     indices_(god.Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
-{}
+{
+  BEGIN_TIMER("EncoderDecoder");
+}
+
+EncoderDecoder::~EncoderDecoder()
+{
+  PAUSE_TIMER("EncoderDecoder");
+
+  if (timers.size()) {
+    boost::timer::nanosecond_type encDecWall = timers["EncoderDecoder"].elapsed().wall;
+
+    cerr << "timers:" << endl;
+    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
+      const boost::timer::cpu_timer &timer = iter->second;
+      boost::timer::cpu_times t = timer.elapsed();
+      boost::timer::nanosecond_type wallTime = t.wall;
+
+      int percent = (float) wallTime / (float) encDecWall * 100.0f;
+
+      cerr << iter->first << " ";
+
+      for (int i = 0; i < ((int)35 - (int)iter->first.size()); ++i) {
+        cerr << " ";
+      }
+
+      cerr << timer.format(2, "%w") << " (" << percent << ")" << endl;
+    }
+  }
+
+}
 
 void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
   BEGIN_TIMER("Decode");
@@ -44,32 +75,31 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
   PAUSE_TIMER("Decode");
 }
 
-EncoderDecoder::~EncoderDecoder()
-{
-}
-
 State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
 void EncoderDecoder::Encode(const Sentences& source) {
-  BEGIN_TIMER("SetSource");
+  BEGIN_TIMER("Encode");
   encoder_->Encode(source, tab_, *SourceContext_, sentencesMask_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
-  PAUSE_TIMER("SetSource");
+  PAUSE_TIMER("Encode");
 }
 
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+  //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentencesMask_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+  //PAUSE_TIMER("BeginSentenceState");
 }
 
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out) {
+  //BEGIN_TIMER("AssembleBeamState");
   std::vector<size_t> beamWords;
   std::vector<uint> beamStateIds;
   for (const HypothesisPtr &h : beam) {
@@ -102,6 +132,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
   //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
+  //PAUSE_TIMER("AssembleBeamState");
 }
 
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {

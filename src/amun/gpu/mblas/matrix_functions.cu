@@ -114,7 +114,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   MatrixWrapper<uint> mappingWrap(mapping);
 
   int nThreads = MAX_THREADS;
-  int nBlocks =  (Out.size() / MAX_THREADS) + ((Out.size() % MAX_THREADS == 0) ?  0 : 1);
+  int nBlocks =  (Out.size() / nThreads) + ((Out.size() % nThreads == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, weightsWrap, inWrap, mappingWrap);
@@ -196,7 +196,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
   MatrixWrapper<float> inWrap(In);
 
   int nThreads = MAX_THREADS;
-  int nBlocks =  (In.size() / MAX_THREADS) + ((In.size() % MAX_THREADS == 0) ?  0 : 1);
+  int nBlocks =  (In.size() / nThreads) + ((In.size() % nThreads == 0) ?  0 : 1);
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, rowNo, colNo);
@@ -272,9 +272,10 @@ Matrix& CopyRows(Matrix& Out,
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
   const MatrixWrapper<uint> indicesWrap(indices);
+  //cerr << "size=" << size << endl;
 
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  int blocks = size / threads + 1;
+  int blocks = size / threads + ((size % threads == 0) ?  0 : 1);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, indicesWrap);
@@ -694,7 +695,7 @@ void MapMatrix(Matrix& state, const mblas::IMatrix &sentencesMask, size_t i)
   int sentenceLength = sentencesMask.size() / batchSize;
 
   int numThreads = std::min((int)state.size(), MAX_THREADS);
-  int numBlocks = (state.size() / numThreads) + 1;
+  int numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
 
   MatrixWrapper<float> stateWrap(state);
   MatrixWrapper<uint> sentencesMappingWrap(sentencesMask, false);

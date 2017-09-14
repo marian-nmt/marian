@@ -41,7 +41,6 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
     abort();
   }
   else {
-    std::cerr << "Optional matrix not found, continuing: " << key << std::endl;
     mblas::Matrix *matrix = new mblas::Matrix();
     ret.reset(matrix);
   }

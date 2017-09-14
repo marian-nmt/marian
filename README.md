@@ -26,7 +26,7 @@
     <li> Compatible with Nematus and DL4MT </li>
     <li> Efficient pure C++ implementation </li>
     <li> Permissive open source license (MIT) </li>
-    <li> <a href="http://amunmt.github.io/features"> more details... </a> </li>
+    <li> <a href="https://marian-nmt.github.io/features/"> more details... </a> </li>
   </ul>
   </p>
 
@@ -86,7 +86,13 @@ Tested on different machines and distributions:
 
 To be able to make the CPU version on macOS, first install [brew](https://brew.sh/) and then run:
 
-    brew install cmake boost boost-python
+    brew install cmake boost
+
+    # Python 2 default
+    brew install boost-python
+
+    # Python 3
+    brew install boost-python --with-python3
 
 Then, proceed to the next section.
 
@@ -94,18 +100,39 @@ Then, proceed to the next section.
 
 Clone a fresh copy from github:
 
-    git clone https://github.com/amunmt/amunmt
+    git clone https://github.com/marian-nmt/marian.git
 
 The project is a standard CMake out-of-source build:
 
     cd marian
-    mkdir build
-    cd build
+    mkdir build && cd build
     cmake ..
     make -j
 
 If run for the first time, this will also download Marian -- the training
 framework for Marian.
+
+Other cmake options:
+
+-  Build the CPU-only version of `amun` (training is GPU-only)
+
+       cmake .. -DCUDA=off
+
+-  Adding debugging symbols (for use with gdb, etc)
+
+       cmake .. -DCMAKE_BUILD_TYPE=Debug
+
+- Specifying Python version to compile against
+
+       # Linux
+       cmake .. -DPYTHON_VERSION=2.7
+       cmake .. -DPYTHON_VERSION=3.5
+       cmake .. -DPYTHON_VERSION=3.6
+
+       # macOS
+       cmake .. -DPYTHON_VERSION=2
+       cmake .. -DPYTHON_VERSION=3
+
 
 ### Compile Python bindings
 
@@ -172,4 +199,5 @@ Research and Innovation Programme under grant agreements 688139
 (<a href="http://www.modernmt.eu">Modern MT</a>; 2015-2017), the
 Amazon Academic Research Awards program, and the World Intellectual
 Property Organization.
+
 
