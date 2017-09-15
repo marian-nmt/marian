@@ -355,6 +355,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
      "Learning rate decaying frequency for batches, "
      "requires --lr-decay-strategy to be batches")
+    ("lr-decay-reset-optimizer", po::value<bool>()->zero_tokens()->default_value(false),
+      "Reset running statistics of optimizer whenever learning rate decays")
     ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
@@ -639,6 +641,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-strategy", std::string);
     SET_OPTION("lr-decay-start", std::vector<size_t>);
     SET_OPTION("lr-decay-freq", size_t);
+    SET_OPTION("lr-decay-reset-optimizer", bool);
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
 

@@ -504,7 +504,7 @@ public:
                   .push_back(layer1)
                   .push_back(layer2);
 
-    Expr logits = output->apply(decoderContext);
+    Expr logits = output->apply(embeddings, decoderContext);
 
     // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
