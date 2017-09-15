@@ -209,7 +209,7 @@ public:
 
     size_t warmup = options_->get<size_t>("transformer-warmup");
     if(warmup) {
-      float lr = options_->get<double>("learn-rate");
+      float lr = std::pow((float)options_->get<int>("dim-emb"), -0.5);
       state.eta = lr * std::min(std::pow(state.batches, -0.5),
                                 state.batches * std::pow(warmup, -1.5));
     }
