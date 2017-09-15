@@ -196,7 +196,9 @@ public:
     scheduler_ = scheduler;
     // optimizer has to be registered last to see a change of learning rate
     scheduler_->registerTrainingObserver(scheduler_);
-    scheduler_->registerTrainingObserver(opt_);
+
+    for(auto opt : shardOpt_)
+      scheduler_->registerTrainingObserver(opt);
   }
 
 private:
