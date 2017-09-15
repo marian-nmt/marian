@@ -28,7 +28,7 @@ public:
     if(clipper_)
       clipper_->clip(grads);
 
-    multiplyFactor_ = multiplyFactor_; //In case we want to add a multiply factor to our learning rate
+    multiplyFactor_ = multiplyFactor; //In case we want to add a multiply factor to our learning rate
     updateImpl(params, grads);
   }
 

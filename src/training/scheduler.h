@@ -207,6 +207,13 @@ public:
     float factor = options_->get<double>("lr-decay");
     state.reset = options_->get<bool>("lr-decay-reset-optimizer");
 
+    size_t warmup = options_->get<size_t>("transformer-warmup");
+    if(warmup) {
+      float lr = options_->get<double>("learn-rate");
+      state.eta = lr * std::min(std::pow(state.batches, -0.5),
+                                state.batches * std::pow(warmup, -1.5));
+    }
+
     if(factor > 0.0) {
       if("batches" == options_->get<std::string>("lr-decay-strategy")) {
         int start

@@ -400,6 +400,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
+    ("transformer-warmup", po::value<size_t>()->default_value(0),
+     "Use transformer-specific learning-rate schedule with arg warm-up steps if arg > 0")
   ;
   // clang-format on
   desc.add(training);
@@ -648,10 +650,9 @@ void ConfigParser::parseOptions(
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-    //SET_OPTION("moving-inject-freq", size_t);
 
-    // SET_OPTION_NONDEFAULT("lexical-table", std::string);
-
+    SET_OPTION("transformer-warmup", size_t);
+    
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
