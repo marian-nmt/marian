@@ -85,7 +85,13 @@ class BestHyps : public BestHypsBase
       for (auto& h : prevHyps) {
         vCosts.push_back(h->GetCost());
       }
-      mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+
+
+      mblas::copy(thrust::raw_pointer_cast(vCosts.data()),
+                  vCosts.size(),
+                  thrust::raw_pointer_cast(Costs.data()),
+                  cudaMemcpyHostToDevice);
+      //mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
       const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
