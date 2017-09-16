@@ -26,6 +26,7 @@ option(CUDA "Select to compile CUDA support by default if available" ON)
 option(FPGA "Select to compile with FPGA support" OFF)
 option(MARIAN "Select to compile with Marian library" ON)
 option(MARIAN_LIBRARY_ONLY "Automatically set when building amunmt. Don't touch this." ON)
+option(EXACT_MODE "Turn off approximated computations" OFF)
 
 if(CPU)
     add_definitions(-DHAS_CPU)
@@ -57,6 +58,10 @@ else(CUDA)
     message("-- Forcing compilation without CUDA.")
     add_definitions(-DNO_CUDA)
 endif(CUDA)
+
+if(EXACT_MODE)
+  add_definitions(-DEXACT_MODE)
+endif(EXACT_MODE)
 
 if(PYTHON_VERSION)
   STRING(REPLACE "." "" PYTHON_VERSION_NORMALIZED ${PYTHON_VERSION})

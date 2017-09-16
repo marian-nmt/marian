@@ -315,7 +315,7 @@ void SafeSoftmax(MT& Out) {
     }
     sum[j] = 0;
     for (int i = 0; i < cols; ++i) {
-      Out(j, i) = expapprox(Out(j, i) - maxRowValue);
+      Out(j, i) = exp(Out(j, i) - maxRowValue);
       sum[j] += Out(j, i);
     }
     for(int i = 0; i < cols; ++i) {
@@ -332,10 +332,10 @@ void LogSoftmax(MT& Out) {
   for (int j = 0; j < rows; ++j) {
     sum[j] = 0;
     for (int i = 0; i < cols; ++i) {
-      sum[j] += expapprox(Out(j, i));
+      sum[j] += exp(Out(j, i));
     }
     for(int i = 0; i < cols; ++i) {
-      Out(j, i) -= logapprox(sum[j]);
+      Out(j, i) -= log(sum[j]);
     }
   }
 }
@@ -353,7 +353,7 @@ void Softmax(MT& Out) {
 
     sum[j] = 0;
     for (int i = 0; i < cols; ++i) {
-      Out(j,i) = expapprox(Out(j, i) - maxRowValue);
+      Out(j,i) = exp(Out(j, i) - maxRowValue);
       sum[j] += Out(j, i);
     }
 

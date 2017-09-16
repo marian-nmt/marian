@@ -61,16 +61,16 @@ void Transition::ElementwiseOps(mblas::Matrix& state, int idx) const {
     auto rowT2  = row(Temp_2_, j);
 
     for (int i = 0; i < (int)state.dim(1); ++i) {
-      float ev1 = expapprox(-(rowT[i])); // + w_.B_[idx](0, i)));
+      float ev1 = exp(-(rowT[i])); // + w_.B_[idx](0, i)));
       float r = 1.0f / (1.0f + ev1);
 
       int k = i + state.dim(1);
-      float ev2 = expapprox(-(rowT[k])); // + w_.B_[idx](0, k)));
+      float ev2 = exp(-(rowT[k])); // + w_.B_[idx](0, k)));
       float u = 1.0f / (1.0f + ev2);
 
       float hv = w_.Bx2_[idx](0, i);
       float t2v = rowT2[i]; // + w_.Bx1_[idx](0, i);
-      hv = tanhapprox(hv + r * t2v);
+      hv = tanh(hv + r * t2v);
       rowState[i] = (1.0f - u) * hv + u * rowState[i];
     }
   }

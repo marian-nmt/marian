@@ -73,16 +73,16 @@ class GRU {
         auto rowT2  = subvector(rowT, 2 * colNo, colNo);
 
         for (int i = 0; i < colNo; ++i) {
-          float ev1 = expapprox(-(rowRuh[i] + w_.B_(0, i) + rowT[i]));
+          float ev1 = exp(-(rowRuh[i] + w_.B_(0, i) + rowT[i]));
           float r = 1.0f / (1.0f + ev1);
 
           int k = i + colNo;
-          float ev2 = expapprox(-(rowRuh[k] + w_.B_(0, k) + rowT[k]));
+          float ev2 = exp(-(rowRuh[k] + w_.B_(0, k) + rowT[k]));
           float u = 1.0f / (1.0f + ev2);
 
           float hv = rowH[i] + w_.Bx1_(0, i);
           float t2v = rowT2[i];
-          hv = tanhapprox(hv + r * t2v);
+          hv = tanh(hv + r * t2v);
           rowOut[i] = (1.0f - u) * hv + u * rowState[i];
         }
       }
@@ -107,16 +107,16 @@ class GRU {
         auto rowT2  = subvector(rowT, 2 * colNo, colNo);
 
         for (int i = 0; i < colNo; ++i) {
-          float ev1 = expapprox(-(rowRuh[i] + rowT[i]));
+          float ev1 = exp(-(rowRuh[i] + rowT[i]));
           float r = 1.0f / (1.0f + ev1);
 
           int k = i + colNo;
-          float ev2 = expapprox(-(rowRuh[k] + rowT[k]));
+          float ev2 = exp(-(rowRuh[k] + rowT[k]));
           float u = 1.0f / (1.0f + ev2);
 
           float hv = rowH[i];
           float t2v = rowT2[i] + w_.Bx2_(0, i);
-          hv = tanhapprox(hv + r * t2v);
+          hv = tanh(hv + r * t2v);
           rowOut[i] = (1.0f - u) * hv + u * rowState[i];
         }
       }

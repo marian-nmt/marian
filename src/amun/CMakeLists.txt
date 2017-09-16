@@ -9,8 +9,6 @@ list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp")
 
 
 add_library(cpumode OBJECT
-  cpu/mblas/matrix.cpp
-  cpu/mblas/phoenix_functions.cpp
   cpu/decoder/encoder_decoder.cpp
   cpu/decoder/encoder_decoder_state.cpp
   cpu/decoder/encoder_decoder_loader.cpp
