@@ -34,6 +34,10 @@ struct ConstantNode : public Node {
     return seed;
   }
 
+  virtual bool equal(Expr node) {
+    return this == node.get();
+  }
+
 private:
   std::function<void(Tensor)> init_;
   bool initialized_;
@@ -67,6 +71,10 @@ struct ParamNode : public Node {
     boost::hash_combine(seed, type());
     boost::hash_combine(seed, this);
     return seed;
+  }
+
+  virtual bool equal(Expr node) {
+    return name() == node->name();
   }
 
 private:

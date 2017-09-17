@@ -376,6 +376,17 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     return seed;
   }
 
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<ConcatenateNodeOp> cnode = std::dynamic_pointer_cast<ConcatenateNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(ax_ != cnode->ax_)
+      return false;
+    return true;
+  }
+
   const std::string type() { return "concat"; }
 
   int ax_;

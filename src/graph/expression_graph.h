@@ -39,7 +39,7 @@ private:
   size_t device_;
   Ptr<Backend> backend_;
 
-  std::unordered_map<size_t, WExpr> hashMap_;
+  std::unordered_map<size_t, std::vector<WExpr>> hashMap_;
 
   bool inferenceOnly_{false};
   bool reloaded_{false};
@@ -382,7 +382,7 @@ public:
   Expr add(Expr node) {
     // size_t group = 0;
 
-    
+
     size_t hash = node->hash();
     auto it = hashMap_.find(hash);
     if(it != hashMap_.end()) {
@@ -395,6 +395,8 @@ public:
       std::cerr << "f: " << f->type() << " " << f->name() << " " << f->hash() << std::endl;
       for(auto c : f->children())
         std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
+
+      std::cerr << "equal: " << node->equal(f) << std::endl;
       }
       return it->second.lock();
     }

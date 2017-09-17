@@ -201,6 +201,19 @@ struct SoftmaxNodeOp : public NaryNodeOp {
     return hash_;
   }
 
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<SoftmaxNodeOp> cnode = std::dynamic_pointer_cast<SoftmaxNodeOp>(node);
+    if(!cnode)
+      return false;
+    if((bool)mask_ != (bool)cnode->mask_)
+      return false;
+    if(mask_ && !mask_->equal(cnode->mask_))
+      return false;
+    return true;
+  }
+
   NodeOps backwardOps() {
     // For each row, the Jacobian times vector is given by:
     // J * dy = p .* (dy - avg*1)
@@ -274,6 +287,17 @@ struct SumNodeOp : public UnaryNodeOp {
     }
     return hash_;
   }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(ax_ != cnode->ax_)
+      return false;
+    return true;
+  }
 };
 
 struct MeanNodeOp : public UnaryNodeOp {
@@ -323,6 +347,17 @@ struct MeanNodeOp : public UnaryNodeOp {
       boost::hash_combine(hash_, ax_);
     }
     return hash_;
+  }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<MeanNodeOp> cnode = std::dynamic_pointer_cast<MeanNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(ax_ != cnode->ax_)
+      return false;
+    return true;
   }
 };
 
@@ -381,6 +416,17 @@ struct SqrtNodeOp : public UnaryNodeOp {
       hash_ = seed;
     }
     return hash_;
+  }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<SqrtNodeOp> cnode = std::dynamic_pointer_cast<SqrtNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(epsilon_ != cnode->epsilon_)
+      return false;
+    return true;
   }
 };
 
@@ -454,6 +500,17 @@ struct RowsNodeOp : public UnaryNodeOp {
     return hash_;
   }
 
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<RowsNodeOp> cnode = std::dynamic_pointer_cast<RowsNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(indeces_ != cnode->indeces_)
+      return false;
+    return true;
+  }
+
   std::vector<size_t> indeces_;
 };
 
@@ -492,6 +549,17 @@ struct ColsNodeOp : public UnaryNodeOp {
       hash_ = seed;
     }
     return hash_;
+  }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<ColsNodeOp> cnode = std::dynamic_pointer_cast<ColsNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(indeces_ != cnode->indeces_)
+      return false;
+    return true;
   }
 
   std::vector<size_t> indeces_;
@@ -580,6 +648,17 @@ public:
     }
     return hash_;
   }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<ReshapeNodeOp> cnode = std::dynamic_pointer_cast<ReshapeNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(shape() != cnode->shape())
+      return false;
+    return true;
+  }
 };
 
 class TimestepNodeOp : public UnaryNodeOp {
@@ -641,6 +720,17 @@ public:
     }
     return hash_;
   }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<TimestepNodeOp> cnode = std::dynamic_pointer_cast<TimestepNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(step_ != cnode->step_)
+      return false;
+    return true;
+  }
 };
 
 struct ShiftNodeOp : public UnaryNodeOp {
@@ -661,51 +751,62 @@ struct ShiftNodeOp : public UnaryNodeOp {
   virtual size_t hash() {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
-      for(auto i : shape_)
+      for(auto i : shift_)
         boost::hash_combine(seed, i);
       hash_ = seed;
     }
     return hash_;
   }
 
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<ShiftNodeOp> cnode = std::dynamic_pointer_cast<ShiftNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(shift_ != cnode->shift_)
+      return false;
+    return true;
+  }
+
   Shape shift_;
 };
 
-struct LexicalProbNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  LexicalProbNodeOp(
-      Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf, Args... args)
-      : NaryNodeOp({logits, att}, keywords::shape = logits->shape(), args...),
-        eps_(eps),
-        lf_(lf) {}
-
-  void forward() {
-    sparse::LfaForward(val_, child(0)->val(), child(1)->val(), lf_);
-    // val = x + ln(p + eps)
-    Element(_1 = (Log(_1 + eps_) + _2), val_, child(0)->val());
-  }
-
-  void backward() {
-    Add(_1, child(0)->grad(), adj_);
-    // adj' = adj / (p + eps) = adj / exp(val - x)
-    Element(_1 = _1 / Exp(_2 - _3), adj_, val_, child(0)->val());
-    sparse::LfaBackward(child(1)->grad(), adj_, lf_);
-  }
-
-  const std::string type() { return "lexical_prob"; }
-
-  virtual size_t hash() {
-    if(!hash_) {
-      size_t seed = NaryNodeOp::hash();
-      boost::hash_combine(seed, (size_t)lf_.get());
-      hash_ = seed;
-    }
-    return hash_;
-  }
-
-  float eps_;
-  Ptr<sparse::CSR> lf_;
-};
+//struct LexicalProbNodeOp : public NaryNodeOp {
+//  template <typename... Args>
+//  LexicalProbNodeOp(
+//      Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf, Args... args)
+//      : NaryNodeOp({logits, att}, keywords::shape = logits->shape(), args...),
+//        eps_(eps),
+//        lf_(lf) {}
+//
+//  void forward() {
+//    sparse::LfaForward(val_, child(0)->val(), child(1)->val(), lf_);
+//    // val = x + ln(p + eps)
+//    Element(_1 = (Log(_1 + eps_) + _2), val_, child(0)->val());
+//  }
+//
+//  void backward() {
+//    Add(_1, child(0)->grad(), adj_);
+//    // adj' = adj / (p + eps) = adj / exp(val - x)
+//    Element(_1 = _1 / Exp(_2 - _3), adj_, val_, child(0)->val());
+//    sparse::LfaBackward(child(1)->grad(), adj_, lf_);
+//  }
+//
+//  const std::string type() { return "lexical_prob"; }
+//
+//  virtual size_t hash() {
+//    if(!hash_) {
+//      size_t seed = NaryNodeOp::hash();
+//      boost::hash_combine(seed, (size_t)lf_.get());
+//      hash_ = seed;
+//    }
+//    return hash_;
+//  }
+//
+//  float eps_;
+//  Ptr<sparse::CSR> lf_;
+//};
 
 #ifdef CUDNN
 

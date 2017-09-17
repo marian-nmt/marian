@@ -206,9 +206,9 @@ Expr shift(Expr a, Shape shift) {
   return Expression<ShiftNodeOp>(a, shift);
 }
 
-Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
-  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
-}
+//Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
+//  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
+//}
 
 #ifdef CUDNN
 
