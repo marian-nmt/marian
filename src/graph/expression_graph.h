@@ -386,22 +386,29 @@ public:
     size_t hash = node->hash();
     auto it = hashMap_.find(hash);
     if(it != hashMap_.end()) {
-      auto f = it->second.lock();
-      if(f->type() == "layer_normalization") {
-      std::cerr << "n: " << node->type() << " " << node->name() << " " << node->hash() << std::endl;
-      for(auto c : node->children())
-        std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
 
-      std::cerr << "f: " << f->type() << " " << f->name() << " " << f->hash() << std::endl;
-      for(auto c : f->children())
-        std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
-
-      std::cerr << "equal: " << node->equal(f) << std::endl;
+      for(auto foundWeak : it->second) {
+        auto found = foundWeak.lock();
+        if(node->equal(found))
+          return found;
       }
-      return it->second.lock();
+
+      //auto f = it->second.lock();
+      //if(f->type() == "layer_normalization") {
+      //std::cerr << "n: " << node->type() << " " << node->name() << " " << node->hash() << std::endl;
+      //for(auto c : node->children())
+      //  std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
+      //
+      //std::cerr << "f: " << f->type() << " " << f->name() << " " << f->hash() << std::endl;
+      //for(auto c : f->children())
+      //  std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
+      //
+      //std::cerr << "equal: " << node->equal(f) << std::endl;
+      //}
+      //return it->second.lock();
     }
 
-    hashMap_[hash] = node;
+    hashMap_[hash].push_back(node);
 
     node->setId(count_++);
 
