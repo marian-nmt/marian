@@ -94,5 +94,6 @@ struct Chainable {
   virtual const std::string& debug_message() = 0;
 
   virtual size_t hash() = 0;
+  virtual bool equal(Expr) = 0;
 };
 }

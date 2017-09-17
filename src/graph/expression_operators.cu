@@ -129,8 +129,12 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
   return p / s;
 }
 
-Expr dot(Expr a, Expr b) {
-  return Expression<DotNodeOp>(a, b);
+Expr dot(Expr a, Expr b, bool transA, bool transB, float scalar) {
+  return Expression<DotNodeOp>(a, b, transA, transB, scalar);
+}
+
+Expr dot_batch(Expr a, Expr b, bool transA, bool transB, float scalar) {
+  return Expression<DotBatchedNodeOp>(a, b, transA, transB, scalar);
 }
 
 Expr transpose(Expr a) {
@@ -202,9 +206,9 @@ Expr shift(Expr a, Shape shift) {
   return Expression<ShiftNodeOp>(a, shift);
 }
 
-Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
-  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
-}
+//Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
+//  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
+//}
 
 #ifdef CUDNN
 

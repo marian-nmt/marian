@@ -39,11 +39,13 @@ private:
   size_t device_;
   Ptr<Backend> backend_;
 
-  std::unordered_map<size_t, WExpr> hashMap_;
+  std::unordered_map<size_t, std::vector<WExpr>> hashMap_;
 
   bool inferenceOnly_{false};
   bool reloaded_{false};
   std::string namespace_;
+
+  bool throwNaN_{false};
 
 protected:
   // Delete, copy and move constructors
@@ -132,6 +134,8 @@ public:
     forwardNext();
   }
 
+  void checkNan(Tensor t);
+
   void forwardNext() {
     // @TODO: check if allocation works properly
     hashMap_.clear();
@@ -141,6 +145,8 @@ public:
       v->allocate();
       v->init();
       v->forward();
+
+      checkNan(v->val());
 
       if(v->marked_for_debug()) {
         std::cerr << "Debug: " << v->debug_message() << std::endl;
@@ -193,6 +199,8 @@ public:
       }
       if(v->trainable())
         v->backward();
+
+      checkNan(v->grad());
 
       if(v->trainable() && v->marked_for_debug()) {
         std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
@@ -374,13 +382,33 @@ public:
   Expr add(Expr node) {
     // size_t group = 0;
 
+
     size_t hash = node->hash();
     auto it = hashMap_.find(hash);
     if(it != hashMap_.end()) {
-      return it->second.lock();
+
+      for(auto foundWeak : it->second) {
+        auto found = foundWeak.lock();
+        if(node->equal(found))
+          return found;
+      }
+
+      //auto f = it->second.lock();
+      //if(f->type() == "layer_normalization") {
+      //std::cerr << "n: " << node->type() << " " << node->name() << " " << node->hash() << std::endl;
+      //for(auto c : node->children())
+      //  std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
+      //
+      //std::cerr << "f: " << f->type() << " " << f->name() << " " << f->hash() << std::endl;
+      //for(auto c : f->children())
+      //  std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
+      //
+      //std::cerr << "equal: " << node->equal(f) << std::endl;
+      //}
+      //return it->second.lock();
     }
 
-    hashMap_[hash] = node;
+    hashMap_[hash].push_back(node);
 
     node->setId(count_++);
 
@@ -420,6 +448,10 @@ public:
 
   void setReloaded(bool reloaded) {
     reloaded_ = reloaded;
+  }
+
+  void setThrowNaN(bool throwNaN) {
+    throwNaN_ = throwNaN;
   }
 
   void load(const std::string& name) {

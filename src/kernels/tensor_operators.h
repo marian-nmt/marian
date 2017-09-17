@@ -11,6 +11,8 @@
 
 namespace marian {
 
+bool IsNan(Tensor in);
+
 using namespace thrust::placeholders;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
@@ -1041,7 +1043,17 @@ void Prod(cublasHandle_t handle,
           const Tensor B,
           bool transA,
           bool transB,
-          float beta = 0);
+          float beta = 0,
+          float scalar = 1);
+
+void ProdBatched(cublasHandle_t handle,
+          Tensor C,
+          const Tensor A,
+          const Tensor B,
+          bool transA,
+          bool transB,
+          float beta = 0,
+          float scalar = 1);
 
 void CopyRowsByIndex(Tensor out,
                      const Tensor in,

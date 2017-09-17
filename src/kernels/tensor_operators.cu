@@ -1,4 +1,6 @@
 
+#include <thrust/transform_reduce.h>
+
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
 
@@ -6,105 +8,57 @@
 
 namespace marian {
 
-// static cudnnHandle_t create_handle_dnn() {
-//  cudnnHandle_t cudnnHandle;
-//  cudnnCreate(&cudnnHandle);
-//  return cudnnHandle;
-//}
+#define CUDA_FLT_MAX 1.70141e+38
 
-// cudnnHandle_t cudnnHandle = create_handle_dnn();
+struct isnan_test {
+  __host__ __device__ bool operator()(const float a) const {
+      return isnan(a);
+  }
+};
 
-// void CudnnSoftmax(Tensor out, Tensor in) {
-//    float alpha = 1, beta = 0;
-//    auto inGpu = static_cast<TensorGPU*>(in.get());
-//    auto outGpu = static_cast<TensorGPU*>(out.get());
-//    cudnnSoftmaxForward(cudnnHandle,
-//                        CUDNN_SOFTMAX_ACCURATE,
-//                        CUDNN_SOFTMAX_MODE_CHANNEL,
-//                        &alpha,
-//                        inGpu->cudnn(),
-//                        inGpu->data(),
-//                        &beta,
-//                        outGpu->cudnn(),
-//                        outGpu->data());
-//    cudaDeviceSynchronize();
-//}
-//
-// void CudnnLogSoftmax(Tensor out, Tensor in) {
-//    float alpha = 1, beta = 0;
-//    auto inGpu = static_cast<TensorGPU*>(in.get());
-//    auto outGpu = static_cast<TensorGPU*>(out.get());
-//    cudnnSoftmaxForward(cudnnHandle,
-//                        CUDNN_SOFTMAX_LOG,
-//                        CUDNN_SOFTMAX_MODE_CHANNEL,
-//                        &alpha,
-//                        inGpu->cudnn(),
-//                        inGpu->data(),
-//                        &beta,
-//                        outGpu->cudnn(),
-//                        outGpu->data());
-//    cudaDeviceSynchronize();
-//}
-//
-// void CudnnSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
-//    float alpha = 1, beta = 0;
-//    auto valGpu = static_cast<TensorGPU*>(val.get());
-//    auto adjGpu = static_cast<TensorGPU*>(adj.get());
-//    auto gradGpu = static_cast<TensorGPU*>(grad.get());
-//    cudnnSoftmaxBackward(cudnnHandle,
-//                        CUDNN_SOFTMAX_ACCURATE,
-//                        CUDNN_SOFTMAX_MODE_CHANNEL,
-//                        &alpha,
-//                        valGpu->cudnn(),
-//                        valGpu->data(),
-//                        adjGpu->cudnn(),
-//                        adjGpu->data(),
-//                        &beta,
-//                        gradGpu->cudnn(),
-//                        gradGpu->data());
-//    cudaDeviceSynchronize();
-//}
-//
-// void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
-//    float alpha = 1, beta = 0;
-//    auto valGpu = static_cast<TensorGPU*>(val.get());
-//    auto adjGpu = static_cast<TensorGPU*>(adj.get());
-//    auto gradGpu = static_cast<TensorGPU*>(grad.get());
-//    cudnnSoftmaxBackward(cudnnHandle,
-//                        CUDNN_SOFTMAX_LOG,
-//                        CUDNN_SOFTMAX_MODE_CHANNEL,
-//                        &alpha,
-//                        valGpu->cudnn(),
-//                        valGpu->data(),
-//                        adjGpu->cudnn(),
-//                        adjGpu->data(),
-//                        &beta,
-//                        gradGpu->cudnn(),
-//                        gradGpu->data());
-//    cudaDeviceSynchronize();
-//}
+bool IsNan(Tensor in) {
+  thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
+  thrust::device_ptr<float> end = thrust::device_pointer_cast(in->data() + in->size());
+  return thrust::transform_reduce(begin, end, isnan_test(), 0, thrust::plus<bool>());
+}
 
 __global__ void gSoftmax(float* out,
-                         const ShapeGPU outShape,
+                         ShapeGPU outShape,
                          const float* in,
-                         const float* mask) {
+                         const float* mask,
+                         const ShapeGPU maskShape) {
+
   int rows = outShape[0] * outShape[2] * outShape[3];
   int cols = outShape[1];
+
+  bool broadcast = outShape != maskShape;
+  int dims[4];
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
       float* so = out + j * cols;
       const float* sp = in + j * cols;
-      const float* mp = mask ? (mask + j * cols) : 0;
 
       extern __shared__ float _share[];
 
       float* _max = _share + blockDim.x;
-      _max[threadIdx.x] = sp[threadIdx.x];  // mask
+      _max[threadIdx.x] = -CUDA_FLT_MAX;  // mask
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          if(sp[id] > _max[threadIdx.x])
+
+          float mVal = 1.f;
+          if(mask) {
+            int mIndex = id + j * cols;
+            if(broadcast) {
+              outShape.dims(mIndex, dims);
+              mIndex = maskShape.bindex(dims);
+            }
+            mVal = mask[mIndex];
+          }
+
+          if(mVal && sp[id] > _max[threadIdx.x])
             _max[threadIdx.x] = sp[id];
         }
       }
@@ -130,10 +84,22 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
+
+          float mVal = 1.f;
+          if(mask) {
+            int mIndex = id + j * cols;
+            if(broadcast) {
+              outShape.dims(mIndex, dims);
+              mIndex = maskShape.bindex(dims);
+            }
+            mVal = mask[mIndex];
+          }
+
           float ex = 0;
-          if(!mask || mp[id])
+          if(mVal)
             ex = __expf(sp[id] - max);
           so[id] = ex;
+
           _sum[threadIdx.x] += ex;
         }
       }
@@ -149,8 +115,9 @@ __global__ void gSoftmax(float* out,
       __syncthreads();
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id < cols)
-          so[id] /= _sum[0];
+        if(id < cols) {
+          so[id] = so[id] / _sum[0];
+        }
       }
     }
   }
@@ -168,10 +135,10 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
 
   if(mask)
     gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), mask->data());
+        out->data(), out->shape(), in->data(), mask->data(), mask->shape());
   else
     gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), 0);
+        out->data(), out->shape(), in->data(), 0, out->shape());
   // cudaStreamSynchronize(0);
 }
 
@@ -415,9 +382,10 @@ void Prod(cublasHandle_t handle,
           const Tensor B,
           bool transA,
           bool transB,
-          float beta) {
+          float beta,
+          float scalar) {
   cudaSetDevice(C->getDevice());
-  float alpha = 1.0;
+  float alpha = scalar;
 
   size_t m = A->shape()[0] * A->shape()[2] * A->shape()[3];
   size_t k = A->shape()[1];
@@ -453,6 +421,60 @@ void Prod(cublasHandle_t handle,
               &beta,
               C->data(),
               ldc);
+}
+
+void ProdBatched(
+          cublasHandle_t handle,
+          Tensor C,
+          const Tensor A,
+          const Tensor B,
+          bool transA,
+          bool transB,
+          float beta,
+          float scalar) {
+  cudaSetDevice(C->getDevice());
+  float alpha = scalar;
+
+  size_t batchA = A->shape()[2] * A->shape()[3];
+  size_t batchB = B->shape()[2] * B->shape()[3];
+
+  size_t m = A->shape()[0];
+  size_t k = A->shape()[1];
+  if(transA)
+    std::swap(m, k);
+
+  size_t l = B->shape()[0];
+  size_t n = B->shape()[1];
+  if(transB)
+    std::swap(l, n);
+
+  size_t lda = A->shape()[1];
+  size_t ldb = B->shape()[1];
+  size_t ldc = B->shape()[1];
+
+  if(transB)
+    ldc = B->shape()[0];
+
+  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
+
+  cublasSgemmStridedBatched(
+              handle,
+              opB,
+              opA,
+              n,
+              m,
+              k,
+              &alpha,
+              B->data(),
+              ldb, batchB == 1 ? 0 : n * k,
+              A->data(),
+              lda, batchA == 1 ? 0 : m * k,
+              &beta,
+              C->data(),
+              ldc,
+              n * m,
+              std::max(batchA, batchB));
 }
 
 __global__ void gCopyRows(float* out,

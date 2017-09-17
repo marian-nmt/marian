@@ -163,10 +163,14 @@ struct ShapeGPU {
    * dimension represented by this object */
   const int* end() const { return shape_ + SHAPE_SIZE; }
 
-  bool operator==(const ShapeGPU& other) const {
-    return std::equal(begin(), end(), other.begin());
+  __host__ __device__ bool operator==(const ShapeGPU& other) const {
+    return
+      shape_[0] == other[0] &&
+      shape_[1] == other[1] &&
+      shape_[2] == other[2] &&
+      shape_[3] == other[3];
   }
 
-  bool operator!=(const ShapeGPU& other) const { return !(*this == other); }
+  __host__ __device__ bool operator!=(const ShapeGPU& other) const { return !(*this == other); }
 };
 }

@@ -23,14 +23,32 @@
 
 namespace marian {
 
-struct DotNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  DotNodeOp(Expr a, Expr b, Args... args)
-      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b), args...) {}
+class DotNodeOp : public NaryNodeOp {
+private:
+  bool transA_;
+  bool transB_;
+  float scalar_;
 
-  Shape newShape(Expr a, Expr b) {
+public:
+  template <typename... Args>
+  DotNodeOp(Expr a, Expr b,
+            bool transA, bool transB, float scalar,
+            Args... args)
+      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b, transA, transB), args...),
+        transA_(transA), transB_(transB), scalar_(scalar) {}
+
+  Shape newShape(Expr a, Expr b, bool transA, bool transB) {
     auto shapeA = a->shape();
+    if(transA) {
+      shapeA.set(0, a->shape()[1]);
+      shapeA.set(1, a->shape()[0]);
+    }
+
     auto shapeB = b->shape();
+    if(transB) {
+      shapeB.set(0, b->shape()[1]);
+      shapeB.set(1, b->shape()[0]);
+    }
 
     Shape outShape = shapeA;
     outShape.set(1, shapeB[1]);
@@ -40,21 +58,23 @@ struct DotNodeOp : public NaryNodeOp {
   }
 
   NodeOps forwardOps() {
-    // C = A*B
+    // C = alpha * dot(op(A), op(B))
     return {NodeOp(Prod(
         std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
         val_,
         child(0)->val(),
         child(1)->val(),
-        false,
-        false))};
+        transA_,
+        transB_,
+        0.f,
+        scalar_))};
   }
 
   NodeOps backwardOps() {
     // D is the adjoint, the matrix of derivatives
-    // df/dA += D*B.T
-    // df/dB += A.T*D
-    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
+    // df/dA += alpha * dot(D, op(B).T)
+    // df/dB += alpha * dot(op(A).T, D)
+    // beta set to 1.0 in gemm, C = alpha * dot(op(A), op(B)) + beta * C
     // to sum gradients from different graph parts
     return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
                             ->getCublasHandle(),
@@ -62,16 +82,96 @@ struct DotNodeOp : public NaryNodeOp {
                         adj_,
                         child(1)->val(),
                         false,
-                        true,
-                        1.0)),
+                        !transB_,
+                        1.0,
+                        scalar_)),
             NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
                             ->getCublasHandle(),
                         child(1)->grad(),
                         child(0)->val(),
                         adj_,
-                        true,
+                        !transA_,
                         false,
-                        1.0))};
+                        1.0,
+                        scalar_))};
+  }
+
+  const std::string type() { return "•"; }
+
+  const std::string color() { return "orange"; }
+};
+
+class DotBatchedNodeOp : public NaryNodeOp {
+private:
+  bool transA_;
+  bool transB_;
+  float scalar_;
+
+public:
+  template <typename... Args>
+  DotBatchedNodeOp(Expr a, Expr b,
+            bool transA, bool transB, float scalar,
+            Args... args)
+      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b, transA, transB), args...),
+        transA_(transA), transB_(transB), scalar_(scalar) {}
+
+  Shape newShape(Expr a, Expr b, bool transA, bool transB) {
+    auto shapeA = a->shape();
+    if(transA) {
+      shapeA.set(0, a->shape()[1]);
+      shapeA.set(1, a->shape()[0]);
+    }
+
+    auto shapeB = b->shape();
+    if(transB) {
+      shapeB.set(0, b->shape()[1]);
+      shapeB.set(1, b->shape()[0]);
+    }
+
+    Shape outShape = shapeA;
+    outShape.set(1, shapeB[1]);
+    UTIL_THROW_IF2(shapeA[1] != shapeB[0],
+                   "matrix product requires dimensions to match");
+    return outShape;
+  }
+
+  NodeOps forwardOps() {
+    // C = alpha * dot(op(A), op(B))
+    return {NodeOp(ProdBatched(
+        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        transA_,
+        transB_,
+        0.f,
+        scalar_))};
+  }
+
+  NodeOps backwardOps() {
+    // D is the adjoint, the matrix of derivatives
+    // df/dA += alpha * dot(D, op(B).T)
+    // df/dB += alpha * dot(op(A).T, D)
+    // beta set to 1.0 in gemm, C = alpha * dot(op(A), op(B)) + beta * C
+    // to sum gradients from different graph parts
+    return {NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(0)->grad(),
+                        adj_,
+                        child(1)->val(),
+                        false,
+                        !transB_,
+                        1.0,
+                        scalar_)),
+            NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(1)->grad(),
+                        child(0)->val(),
+                        adj_,
+                        !transA_,
+                        false,
+                        1.0,
+                        scalar_))};
   }
 
   const std::string type() { return "•"; }
@@ -274,6 +374,17 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     size_t seed = NaryNodeOp::hash();
     boost::hash_combine(seed, ax_);
     return seed;
+  }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<ConcatenateNodeOp> cnode = std::dynamic_pointer_cast<ConcatenateNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(ax_ != cnode->ax_)
+      return false;
+    return true;
   }
 
   const std::string type() { return "concat"; }

@@ -172,6 +172,19 @@ struct NaryNodeOp : public Node {
     return hash_;
   }
 
+  virtual bool equal(Expr node) {
+    if(type() != node->type())
+      return false;
+    if(name() != node->name())
+      return false;
+    if(children().size() != node->children().size())
+      return false;
+    for(int i = 0; i < children().size(); ++i)
+      if(children()[i]->getId() != node->children()[i]->getId())
+        return false;
+    return true;
+  }
+
   void remove_children_from_top_nodes();
 };
 }
