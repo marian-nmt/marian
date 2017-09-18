@@ -108,7 +108,8 @@ public:
                                {1, dim},
                                keywords::init = inits::zeros);
 
-          outputs.push_back(layer_norm(affine(in, W, b), ln_s, ln_b));
+          outputs.push_back(
+              layer_norm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
         } else {
           auto gamma = g->param(name + "_gamma" + std::to_string(i),
                                 {1, dim},
@@ -173,7 +174,7 @@ public:
                              {1, dim},
                              keywords::init = inits::zeros);
 
-        out = layer_norm(affine(input, W, b), ln_s, ln_b);
+        out = layer_norm(affine(input, W, b), ln_s, ln_b, NEMATUS_LN_EPS);
       } else {
         auto gamma = g->param(name + "_gamma",
                               {1, dim},

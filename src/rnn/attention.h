@@ -91,8 +91,10 @@ public:
                                        {1, dimEncState},
                                        keywords::init = inits::zeros);
 
-        mappedContext_ = layer_norm(
-            affine(contextDropped_, Ua_, ba_), Wc_att_lns_, Wc_att_lnb_);
+        mappedContext_ = layer_norm(affine(contextDropped_, Ua_, ba_),
+                                    Wc_att_lns_,
+                                    Wc_att_lnb_,
+                                    NEMATUS_LN_EPS);
       } else {
         gammaContext_ = graph->param(prefix + "_att_gamma1",
                                      {1, dimEncState},
@@ -131,7 +133,8 @@ public:
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_)
       if(nematusNorm_)
-        mappedState = layer_norm(mappedState, W_comb_att_lns_, W_comb_att_lnb_);
+        mappedState = layer_norm(
+            mappedState, W_comb_att_lns_, W_comb_att_lnb_, NEMATUS_LN_EPS);
       else
         mappedState = layer_norm(mappedState, gammaState_);
 

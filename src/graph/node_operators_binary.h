@@ -479,14 +479,16 @@ struct AffineNodeOp : public NaryNodeOp {
 };
 
 struct LayerNormalizationOp : public NaryNodeOp {
-  LayerNormalizationOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
+  LayerNormalizationOp(const std::vector<Expr>& nodes, float eps)
+      : NaryNodeOp(nodes), eps_(eps) {}
 
   NodeOps forwardOps() {
     return {NodeOp(LayerNormalization(
         val_,
         child(0)->val(),
         child(1)->val(),
-        (children_.size() == 3) ? child(2)->val() : nullptr))};
+        (children_.size() == 3) ? child(2)->val() : nullptr,
+        eps_))};
   }
 
   NodeOps backwardOps() {
@@ -502,6 +504,9 @@ struct LayerNormalizationOp : public NaryNodeOp {
   }
 
   const std::string type() { return "layer_normalization"; }
+
+private:
+  float eps_;
 };
 
 #ifdef CUDNN
