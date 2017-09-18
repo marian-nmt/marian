@@ -133,7 +133,7 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scalar) {
   return Expression<DotNodeOp>(a, b, transA, transB, scalar);
 }
 
-Expr dot_batch(Expr a, Expr b, bool transA, bool transB, float scalar) {
+Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
   return Expression<DotBatchedNodeOp>(a, b, transA, transB, scalar);
 }
 

@@ -50,7 +50,7 @@ Expr operator/(Expr a, float b);
 
 Expr dot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
 
-Expr dot_batch(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
+Expr bdot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
 
 Expr transpose(Expr a);
 

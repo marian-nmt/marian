@@ -54,7 +54,7 @@ public:
 
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries)
-    auto weights = softmax(dot_batch(q, k, false, true, scale), mask);
+    auto weights = softmax(bdot(q, k, false, true, scale), mask);
 
     // optional dropout for attention weights
     bool inference = options->get<bool>("inference", true);
@@ -65,12 +65,13 @@ public:
     }
 
     // apply attention weights to values
-    return dot_batch(weights, v);
+    return bdot(weights, v);
   }
 
   Expr MultiHead(Ptr<ExpressionGraph> graph,
                  Ptr<Options> options,
                  std::string prefix,
+                 int dimOut,
                  int dimHeads,
                  Expr q, Expr k, Expr v,
                  Expr mask) {
@@ -87,26 +88,46 @@ public:
       auto Wq = graph->param(prefix + "_Wq_h" + std::to_string(i),
                              {dimModel, dimModel / dimHeads},
                              init=inits::glorot_uniform);
+      auto bq = graph->param(prefix + "_bq_h" + std::to_string(i),
+                             {1, dimModel / dimHeads},
+                             init=inits::zeros);
+
       auto Wk = graph->param(prefix + "_Wk_h" + std::to_string(i),
                              {dimModel, dimModel / dimHeads},
                              init=inits::glorot_uniform);
+      auto bk = graph->param(prefix + "_bk_h" + std::to_string(i),
+                             {1, dimModel / dimHeads},
+                             init=inits::zeros);
+
       auto Wv = graph->param(prefix + "_Wv_h" + std::to_string(i),
                              {dimModel, dimModel / dimHeads},
                              init=inits::glorot_uniform);
+      auto bv = graph->param(prefix + "_bv_h" + std::to_string(i),
+                             {1, dimModel / dimHeads},
+                             init=inits::zeros);
 
-      auto qh = dot(q, Wq);
-      auto kh = dot(k, Wk);
-      auto vh = dot(v, Wv);
+      auto qh = affine(q, Wq, bq);
+      auto kh = affine(k, Wk, bk);
+      auto vh = affine(v, Wv, bv);
 
       // apply multi-head attention to downscaled inputs
       auto head = Attention(graph, options, prefix, qh, kh, vh, mask);
       heads.push_back(head);
     }
 
-    auto Wo = graph->param(prefix + "_Wo", {dimModel, dimModel},
-                           init=inits::glorot_uniform);
+    auto output = concatenate(heads, axis=1);
 
-    return dot(concatenate(heads, axis=1), Wo);
+    if(dimModel != dimOut) {
+      auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
+                             init=inits::glorot_uniform);
+
+      auto bo = graph->param(prefix + "_bo", {1, dimOut},
+                             init=inits::zeros);
+
+      output = affine(output, Wo, bo);
+    }
+
+    return output;
   }
 
   Expr LayerAttention(Ptr<ExpressionGraph> graph,
@@ -123,6 +144,7 @@ public:
 
     // multi-head self-attention over previous input
     Expr output = MultiHead(graph, options, prefix,
+                            dimModel,
                             heads, input, key, value,
                             mask);
 
@@ -134,7 +156,9 @@ public:
     if(layerNorm) {
       auto gamma = graph->param(prefix + "_Wo_gamma", {1, dimModel},
                                 init = inits::ones);
-      output = layer_norm(output, gamma);
+      auto beta = graph->param(prefix + "_Wo_beta", {1, dimModel},
+                                init = inits::zeros);
+      output = layer_norm(output, gamma, beta);
     }
 
     // optional dropout, moved to end
@@ -189,7 +213,9 @@ public:
     if(layerNorm) {
       auto gamma = graph->param(prefix + "_Wffn_gamma", {1, dimModel},
                                 init = inits::ones);
-      output = layer_norm(output, gamma);
+      auto beta = graph->param(prefix + "_Wffn_beta", {1, dimModel},
+                                init = inits::zeros);
+      output = layer_norm(output, gamma, beta);
     }
 
     if(dropProb) {
