@@ -302,7 +302,6 @@ public:
     }
 
     auto fake = graph->constant({dimEmb, 3 * dimEmb}, init=inits::zeros);
-    auto b = graph->constant({1, 3 * dimEmb}, init=inits::zeros);
 
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
@@ -311,7 +310,11 @@ public:
                                  layer, layer, layer,
                                  layerMask);
 
-      layer = rnn::gruOps({layer, fake, self, b}, false);
+      auto bself = graph->param(prefix_ + "_selfB_l" + std::to_string(i),
+                                {1, 3 * dimEmb},
+                                init=inits::zeros);
+
+      layer = rnn::gruOps({layer, fake, self, bself});
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
@@ -394,26 +397,26 @@ public:
       layer = dropout(layer, keywords::mask = dropMask);
     }
 
-    auto fake = graph->constant({dimEmb, 3 * dimEmb}, init=inits::zeros);
-    auto b = graph->constant({1, 3 * dimEmb}, init=inits::zeros);
+    //auto fake = graph->constant({dimEmb, 3 * dimEmb}, init=inits::zeros);
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
-
 
       auto self = LayerAttention(graph, options_,
                                  prefix_ + "_self_l" + std::to_string(i),
                                  layer, layer, layer,
                                  selfMask);
 
-      layer = rnn::gruOps({layer, fake, self, b}, false);
-
       auto ctx = LayerAttention(graph, options_,
                                 prefix_ + "_context_l" + std::to_string(i),
                                 layer, encoderContext, encoderContext,
                                 encoderMask);
 
-      layer = rnn::gruOps({layer, fake, ctx, b}, false);
+      auto b = graph->param(prefix_ + "_ctxB_l" + std::to_string(i),
+                            {1, 3 * dimEmb},
+                            init=inits::zeros);
+
+      layer = rnn::gruOps({layer, self, ctx, b});
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
