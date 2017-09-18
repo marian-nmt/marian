@@ -176,7 +176,6 @@ public:
 class DecoderS2S : public DecoderBase {
 private:
   Ptr<rnn::RNN> rnn_;
-  Expr tiedOutputWeights_;
 
 Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state) {
@@ -370,7 +369,6 @@ public:
 
   void clear() {
     rnn_ = nullptr;
-    tiedOutputWeights_ = nullptr;
   }
 };
 
