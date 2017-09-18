@@ -1426,6 +1426,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/ape_penalty.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/decoder/best_hyps.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/best_hyps.cu</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/decoder/best_hyps.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/best_hyps.h</locationURI>
