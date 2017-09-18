@@ -44,6 +44,7 @@ public:
 
   Expr Attention(Ptr<ExpressionGraph> graph,
                  Ptr<Options> options,
+                 std::string prefix,
                  Expr q, Expr k, Expr v,
                  Expr mask = nullptr) {
     float dk = k->shape()[1];
@@ -116,15 +117,35 @@ public:
       }
 
       // apply multi-head attention to downscaled inputs
-      auto head = Attention(graph, options, qh, kh, vh, mask);
+      auto head = Attention(graph, options, prefix, qh, kh, vh, mask);
       heads.push_back(head);
     }
 
-    auto Wo = graph->param(prefix + "_Wo", {dimModel, dimModel},
+    auto Wo = graph->param(prefix + "_Wo", {dimModel, 3 * dimModel},
                            init=inits::glorot_uniform);
 
-    auto output = dot(concatenate(heads, axis=1), Wo);
+    return dot(concatenate(heads, axis=1), Wo);
+  }
 
+  Expr LayerAttention(Ptr<ExpressionGraph> graph,
+                      Ptr<Options> options,
+                      std::string prefix,
+                      Expr input, Expr key, Expr value,
+                      Expr mask,
+                      bool inference=false) {
+
+    using namespace keywords;
+
+    int heads = options->get<float>("transformer-heads");
+
+    // multi-head self-attention over previous input
+    Expr output = MultiHead(graph, options, prefix,
+                            heads, input, key, value,
+                            mask);
+
+    int dimModel = output->shape()[1];
+
+    bool layerNorm = options->get<bool>("layer-normalization");
     if(layerNorm) {
       auto gamma_b1 = graph->param(prefix + "_Wo_gamma", {1, dimModel},
                                    init = inits::ones);
@@ -133,8 +154,75 @@ public:
       output = layer_norm(output, gamma_b1, beta_b1);
     }
 
-    return output;
+    // skip connection, moved being layer normalization
+    //if(options->get<bool>("skip"))
+    //  output = output + input;
 
+    // optional dropout, moved to end
+    float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
+    if(dropProb) {
+      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
+      output = dropout(output, keywords::mask = dropMask);
+    }
+
+    return output;
+  }
+
+  Expr LayerFFN(Ptr<ExpressionGraph> graph,
+                Ptr<Options> options,
+                std::string prefix,
+                Expr input,
+                bool inference=false) {
+
+    using namespace keywords;
+
+    int dimModel = options->get<int>("dim-emb");
+    int dimFfn = options->get<int>("transformer-dim-ffn");
+
+    auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
+                           init=inits::glorot_uniform);
+    auto b1 = graph->param(prefix + "_b1", {1, dimFfn},
+                           init=inits::zeros);
+
+    auto W2 = graph->param(prefix + "_W2", {dimFfn, dimModel},
+                           init=inits::glorot_uniform);
+    auto b2 = graph->param(prefix + "_b2", {1, dimModel},
+                           init=inits::zeros);
+
+    // optional layer-normalization
+    bool layerNorm = options->get<bool>("layer-normalization");
+
+    Expr output;
+    if(layerNorm) {
+      auto gamma1 = graph->param(prefix + "_gamma1", {1, dimFfn},
+                                 init = inits::ones);
+      auto beta1 = graph->param(prefix + "_beta1", {1, dimFfn},
+                                init = inits::zeros);
+
+      auto gamma2 = graph->param(prefix + "_gamma2", {1, dimModel},
+                                 init = inits::ones);
+      auto beta2 = graph->param(prefix + "_beta2", {1, dimModel},
+                                init = inits::zeros);
+
+      output = layer_norm(relu(affine(input, W1, b1)), gamma1, beta1);
+      output = layer_norm(affine(output, W2, b2), gamma2, beta2);
+    }
+    else {
+      output = affine(relu(affine(input, W1, b1)), W2, b2);
+    }
+
+    // skip connection, moved behind layer normalization
+    if(options->get<bool>("skip"))
+      output = output + input;
+
+    // optional dropout, moved to end
+    float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
+    if(dropProb) {
+      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
+      output = dropout(output, keywords::mask = dropMask);
+    }
+
+    return output;
   }
 
 };
@@ -175,79 +263,6 @@ public:
     return embFactory.construct();
   }
 
-  Expr Layer(Ptr<ExpressionGraph> graph,
-             std::string prefix,
-             int h,
-             Expr input, Expr mask) {
-    using namespace keywords;
-
-    int dimModel = input->shape()[1];
-    float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
-
-    // first block: multi-head self-attention over previous input
-    auto output = MultiHead(graph, options_, prefix, h,
-                            input, input, input, mask);
-
-    // skip connection, moved being layer normalization
-    if(opt<bool>("skip"))
-      output = output + input;
-
-    // optional dropout, moved to end
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    auto block1 = output;
-
-    // second block: positional feed-forward network, upscaling of
-    // self-attention results.
-    int dimFfn = opt<int>("transformer-dim-ffn");
-
-    auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
-                           init=inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn},
-                           init=inits::zeros);
-
-    auto W2 = graph->param(prefix + "_W2", {dimFfn, dimModel},
-                           init=inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel},
-                           init=inits::zeros);
-
-    // optional layer-normalization
-    bool layerNorm = opt<bool>("layer-normalization");
-
-    if(layerNorm) {
-      auto gamma1 = graph->param(prefix + "_gamma1", {1, dimFfn},
-                                 init = inits::ones);
-      auto beta1 = graph->param(prefix + "_beta1", {1, dimFfn},
-                                init = inits::zeros);
-
-      auto gamma2 = graph->param(prefix + "_gamma2", {1, dimModel},
-                                 init = inits::ones);
-      auto beta2 = graph->param(prefix + "_beta2", {1, dimModel},
-                                init = inits::zeros);
-
-      output = layer_norm(relu(affine(output, W1, b1)), gamma1, beta1);
-      output = layer_norm(affine(output, W2, b2), gamma2, beta2);
-    }
-    else {
-      output = affine(relu(affine(output, W1, b1)), W2, b2);
-    }
-
-    // skip connection, moved behind layer normalization
-    if(opt<bool>("skip"))
-      output = output + block1;
-
-    // optional dropout, moved to end
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    return output;
-  }
-
   Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                           Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
@@ -286,13 +301,22 @@ public:
       layer = dropout(layer, keywords::mask = dropMask);
     }
 
+    auto fake = graph->constant({dimEmb, 3 * dimEmb}, init=inits::zeros);
+    auto b = graph->constant({1, 3 * dimEmb}, init=inits::zeros);
+
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
-      layer = Layer(graph,
-                    "encoder_l" + std::to_string(i),
-                    opt<int>("transformer-heads"),
-                    layer,
-                    layerMask);
+      auto self = LayerAttention(graph, options_,
+                                 prefix_ + "_self_l" + std::to_string(i),
+                                 layer, layer, layer,
+                                 layerMask);
+
+      layer = rnn::gruOps({layer, fake, self, b}, false);
+
+      layer = LayerFFN(graph, options_,
+                       prefix_ + "_ffn_l" + std::to_string(i),
+                       layer);
+
     }
 
     // restore organization of batch and time steps. This is currently required
@@ -309,98 +333,6 @@ public:
 class DecoderTransformer : public DecoderBase, public Transformer {
 private:
   Expr tiedOutputWeights_;
-
-  Expr Layer(Ptr<ExpressionGraph> graph,
-             std::string prefix,
-             int h,
-             Expr input,
-             Expr mask,
-             Expr context,
-             Expr contextMask) {
-    using namespace keywords;
-
-    int dimModel = input->shape()[1];
-    float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
-
-    // first block: multi-head self-attention over previous input
-    auto output = MultiHead(graph, options_, prefix, h,
-                            input, input, input, mask);
-
-    auto block1 = output;
-
-    // skip connection, moved behind layer normalization
-    if(opt<bool>("skip"))
-      output = output + input;
-
-    // optional dropout, moved to end
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    // second block: multi-head attention over encoder context
-    output = MultiHead(graph, options_, prefix + "_context", h,
-                       output, context, context, contextMask);
-
-    // skip connection, moved being layer normalization
-    if(opt<bool>("skip"))
-      output = output + block1;
-
-    // optional dropout, moved to end
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    auto block2 = output;
-
-    // third block: positional feed-forward network, upscaling of
-    // attention results.
-    int dimFfn = opt<int>("transformer-dim-ffn");
-
-    auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
-                           init=inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn},
-                           init=inits::zeros);
-
-    auto W2 = graph->param(prefix + "_W2", {dimFfn, dimModel},
-                           init=inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel},
-                           init=inits::zeros);
-
-    // optional layer-normalization
-    bool layerNorm = opt<bool>("layer-normalization");
-
-    if(layerNorm) {
-      auto gamma1 = graph->param(prefix + "_gamma1", {1, dimFfn},
-                                 init = inits::ones);
-      auto beta1 = graph->param(prefix + "_beta1", {1, dimFfn},
-                                init = inits::zeros);
-
-      auto gamma2 = graph->param(prefix + "_gamma2", {1, dimModel},
-                                 init = inits::ones);
-      auto beta2 = graph->param(prefix + "_beta2", {1, dimModel},
-                                init = inits::zeros);
-
-      output = layer_norm(relu(affine(output, W1, b1)), gamma1, beta1);
-      output = layer_norm(affine(output, W2, b2), gamma2, beta2);
-    }
-    else {
-      output = affine(relu(affine(output, W1, b1)), W2, b2);
-    }
-
-    // skip connection, moved behind layer normalization
-    if(opt<bool>("skip"))
-      output = output + block2;
-
-    // optional dropout, moved to end
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    return output;
-  }
 
 public:
   DecoderTransformer(Ptr<Options> options)
@@ -462,15 +394,31 @@ public:
       layer = dropout(layer, keywords::mask = dropMask);
     }
 
+    auto fake = graph->constant({dimEmb, 3 * dimEmb}, init=inits::zeros);
+    auto b = graph->constant({1, 3 * dimEmb}, init=inits::zeros);
+
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
-      layer = Layer(graph,
-                    "decoder_l" + std::to_string(i),
-                    opt<int>("transformer-heads"),
-                    layer,
-                    selfMask,
-                    encoderContext,
-                    encoderMask);
+
+
+      auto self = LayerAttention(graph, options_,
+                                 prefix_ + "_self_l" + std::to_string(i),
+                                 layer, layer, layer,
+                                 selfMask);
+
+      layer = rnn::gruOps({layer, fake, self, b}, false);
+
+      auto ctx = LayerAttention(graph, options_,
+                                prefix_ + "_context_l" + std::to_string(i),
+                                layer, encoderContext, encoderContext,
+                                encoderMask);
+
+      layer = rnn::gruOps({layer, fake, ctx, b}, false);
+
+      layer = LayerFFN(graph, options_,
+                       prefix_ + "_ffn_l" + std::to_string(i),
+                       layer);
+
     }
 
     rnn::States decoderStates;
