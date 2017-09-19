@@ -6,10 +6,9 @@
 
 namespace marian {
 
-class Amun : public S2S {
+class Amun : public EncoderDecoder {
 public:
-  template <class... Args>
-  Amun(Ptr<Config> options, Args... args) : S2S(options, args...) {
+  Amun(Ptr<Options> options) : EncoderDecoder(options) {
 
     UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
                    "--type amun does not currently support multiple encoder "
@@ -35,7 +34,6 @@ public:
     UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru",
                    "--type amun does not currently support other rnn cells than gru, "
                    "use --type s2s");
-
   }
 
   void load(Ptr<ExpressionGraph> graph, const std::string& name) {
@@ -226,7 +224,7 @@ public:
     shape[0] = 1;
     cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
 
-    options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 };
 }

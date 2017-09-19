@@ -114,15 +114,6 @@ private:
         else
           scheduler_->validate(graph_);
       }
-
-      /*if(mvAvg_) {
-        size_t injectFreq = options_->get<size_t>("moving-inject-freq");
-        if(injectFreq && scheduler_->numberOfBatches() % injectFreq == 0) {
-          LOG(info)->info("{} : Injecting moving average into training parameters",
-                          scheduler_->numberOfBatches());
-          graph_->params()->vals()->copyFrom(mvAvgGraph_->params()->vals());
-        }
-      }*/
     }
   }
 
@@ -139,7 +130,7 @@ public:
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
 
-    builder_ = New<Builder>(options_, args...);
+    builder_ = models::from_config(options_);
   }
 
   void update(Ptr<data::Batch> batch) { execute(batch); }
@@ -205,7 +196,9 @@ public:
     scheduler_ = scheduler;
     // optimizer has to be registered last to see a change of learning rate
     scheduler_->registerTrainingObserver(scheduler_);
-    scheduler_->registerTrainingObserver(opt_);
+
+    for(auto opt : shardOpt_)
+      scheduler_->registerTrainingObserver(opt);
   }
 
 private:
@@ -696,7 +689,7 @@ public:
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
-      builders_.push_back(New<Builder>(options_, args...));
+      builders_.push_back(models::from_config(options_));
     }
   }
 

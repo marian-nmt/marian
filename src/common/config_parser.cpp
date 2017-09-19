@@ -272,6 +272,10 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie source and target embeddings")
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
+    ("transformer-heads", po::value<int>()->default_value(8),
+     "Number of head in multi-head attention (transformer)")
+    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network (transformer)")
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -282,9 +286,6 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
        "Dropout source words (0 = no dropout)")
       ("dropout-trg", po::value<float>()->default_value(0),
        "Dropout target words (0 = no dropout)")
-      ("noise-src", po::value<float>()->default_value(0),
-       "Add noise to source embeddings with given stddev (0 = no noise)")
-
     ;
   }
   // clang-format on
@@ -354,6 +355,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay-freq", po::value<size_t>()->default_value(50000),
      "Learning rate decaying frequency for batches, "
      "requires --lr-decay-strategy to be batches")
+    ("lr-decay-reset-optimizer", po::value<bool>()->zero_tokens()->default_value(false),
+      "Reset running statistics of optimizer whenever learning rate decays")
     ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
@@ -397,6 +400,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
+    ("transformer-warmup", po::value<size_t>()->default_value(0),
+     "Use transformer-specific learning-rate schedule with arg warm-up steps if arg > 0")
   ;
   // clang-format on
   desc.add(training);
@@ -599,13 +604,14 @@ void ConfigParser::parseOptions(
   SET_OPTION("dec-cell-base-depth", int);
   SET_OPTION("dec-cell-high-depth", int);
   SET_OPTION("dec-depth", int);
-  // SET_OPTION("dec-high-context", std::string);
 
   SET_OPTION("skip", bool);
   SET_OPTION("tied-embeddings", bool);
   SET_OPTION("tied-embeddings-src", bool);
   SET_OPTION("tied-embeddings-all", bool);
   SET_OPTION("layer-normalization", bool);
+  SET_OPTION("transformer-heads", int);
+  SET_OPTION("transformer-dim-ffn", int);
 
   SET_OPTION("best-deep", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
@@ -614,7 +620,6 @@ void ConfigParser::parseOptions(
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
-    SET_OPTION("noise-src", float);
 
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
@@ -638,16 +643,16 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-strategy", std::string);
     SET_OPTION("lr-decay-start", std::vector<size_t>);
     SET_OPTION("lr-decay-freq", size_t);
+    SET_OPTION("lr-decay-reset-optimizer", bool);
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-    //SET_OPTION("moving-inject-freq", size_t);
 
-    // SET_OPTION_NONDEFAULT("lexical-table", std::string);
-
+    SET_OPTION("transformer-warmup", size_t);
+    
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);

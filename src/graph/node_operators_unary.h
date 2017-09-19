@@ -183,7 +183,7 @@ struct SoftmaxNodeOp : public NaryNodeOp {
 
   template <typename... Args>
   SoftmaxNodeOp(Expr a, Expr mask, Args... args)
-      : NaryNodeOp({a, mask}, args...), mask_(mask) {}
+      : NaryNodeOp({a}, args...), mask_(mask) {}
 
   Expr mask_;
 
@@ -435,6 +435,8 @@ struct RowsNodeOp : public UnaryNodeOp {
   Shape newShape(Expr a, const std::vector<size_t>& indeces) {
     Shape shape = a->shape();
     shape.set(0, indeces.size());
+    shape.set(2, 1);
+    shape.set(3, 1);
     return shape;
   }
 

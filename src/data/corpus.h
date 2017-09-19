@@ -122,6 +122,8 @@ public:
 
     for(auto len : lengths) {
       auto sb = New<SubBatch>(batchSize, len);
+      std::fill(sb->mask().begin(), sb->mask().end(), 1);
+
       batches.push_back(sb);
     }
 

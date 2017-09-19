@@ -6,9 +6,10 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
-#include "models/amun.h"
+
 #include "models/model_task.h"
-#include "models/s2s.h"
+#include "models/model_factory.h"
+
 #include "rescorer/score_collector.h"
 
 namespace marian {
@@ -21,9 +22,8 @@ private:
   Ptr<Builder> builder_;
 
 public:
-  template <typename ...Args>
-  Rescorer(Args ...args) :
-    builder_(new Builder(args...)) {}
+  Rescorer(Ptr<Options> options) :
+    builder_(models::from_options(options)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
@@ -60,7 +60,12 @@ public:
     } catch(std::runtime_error& e) {
       LOG(warn)->warn("No model settings found in model file");
     }
-    model_ = New<Model>(modelOptions, keywords::inference = true);
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    model_ = New<Model>(temp);
+
     model_->load(graph_, modelFile);
   }
 

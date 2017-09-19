@@ -168,6 +168,7 @@ public:
     if(factor > 0.0) {
       bool decay = false;
       auto strategy = options_->get<std::string>("lr-decay-strategy");
+      state.reset = options_->get<bool>("lr-decay-reset-optimizer");
 
       if(strategy == "epoch" || strategy == "epoch+batches"
          || strategy == "epoch+stalled") {
@@ -196,12 +197,23 @@ public:
             ->info("Decaying learning rate to {} in epoch {}",
                    state.eta,
                    state.epochs);
+        if(state.reset)
+          LOG(info)->info("Resetting optimizer statistics");
       }
     }
   }
 
   void actAfterBatches(TrainingState& state) {
     float factor = options_->get<double>("lr-decay");
+    state.reset = options_->get<bool>("lr-decay-reset-optimizer");
+
+    size_t warmup = options_->get<size_t>("transformer-warmup");
+    if(warmup) {
+      float lr = std::pow((float)options_->get<int>("dim-emb"), -0.5);
+      state.eta = lr * std::min(std::pow(state.batches, -0.5),
+                                state.batches * std::pow(warmup, -1.5));
+    }
+
     if(factor > 0.0) {
       if("batches" == options_->get<std::string>("lr-decay-strategy")) {
         int start
@@ -215,6 +227,8 @@ public:
               ->info("Decaying learning rate to {} after {} batches",
                      state.eta,
                      state.batches);
+          if(state.reset)
+            LOG(info)->info("Resetting optimizer statistics");
         }
       }
     }
@@ -222,6 +236,8 @@ public:
 
   void actAfterStalled(TrainingState& state) {
     float factor = options_->get<double>("lr-decay");
+    state.reset = options_->get<bool>("lr-decay-reset-optimizer");
+
     if(factor > 0.0) {
       if("stalled" == options_->get<std::string>("lr-decay-strategy")) {
         int startStalled
@@ -232,6 +248,8 @@ public:
               ->info("Decaying learning rate to {} after stalled {} time(s)",
                      state.eta,
                      state.stalled);
+          if(state.reset)
+            LOG(info)->info("Resetting optimizer statistics");
         }
       }
     }
