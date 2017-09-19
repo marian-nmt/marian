@@ -6,20 +6,8 @@ namespace marian {
 
 class Transformer {
 public:
-  Expr reverseTimeBatch(Expr input) {
-    int b = input->shape()[0];
-    int d = input->shape()[1];
-    int t = input->shape()[2];
-
-    auto flat = reshape(input, {b * t, d});
-    std::vector<size_t> indices;
-    for(int i = 0; i < b; ++i)
-      for(int j = 0; j < t; ++j)
-        indices.push_back(j * b + i);
-
-    auto reversed = rows(flat, indices);
-
-    return reshape(reversed, {t, d, b});
+  Expr transposeTimeBatch(Expr input) {
+    return transpose(input, {2, 1, 0, 3});
   }
 
   Expr PositionalEmbeddings(Ptr<ExpressionGraph> graph,
@@ -108,39 +96,27 @@ public:
     auto Wq = graph->param(prefix + "_Wq",
                            {dimModel, dimModel},
                            init=inits::glorot_uniform);
+    auto bq = graph->param(prefix + "_bq",
+                           {1, dimModel},
+                           init=inits::zeros);
 
     auto Wk = graph->param(prefix + "_Wk",
                            {dimModel, dimModel},
                            init=inits::glorot_uniform);
+    auto bk = graph->param(prefix + "_bk",
+                           {1, dimModel},
+                           init=inits::zeros);
 
     auto Wv = graph->param(prefix + "_Wv",
                            {dimModel, dimModel},
                            init=inits::glorot_uniform);
+    auto bv = graph->param(prefix + "_bv",
+                           {1, dimModel},
+                           init=inits::zeros);
 
-    auto qh = dot(q, Wq);
-    auto kh = dot(k, Wk);
-    auto vh = dot(v, Wv);
-
-    bool layerNorm = options->get<bool>("layer-normalization");
-    if(layerNorm) {
-      auto gamma_q = graph->param(prefix + "_Wq_gamma",
-                                  {1, dimModel},
-                                  init=inits::ones);
-      auto gamma_k = graph->param(prefix + "_Wk_gamma",
-                                  {1, dimModel},
-                                  init=inits::ones);
-      auto gamma_v = graph->param(prefix + "_Wv_gamma",
-                                  {1, dimModel},
-                                  init=inits::ones);
-
-      qh = layer_norm(qh, gamma_q);
-      kh = layer_norm(kh, gamma_k);
-      vh = layer_norm(vh, gamma_v);
-    }
-
-    qh = SplitHeads(qh, dimHeads);
-    kh = SplitHeads(kh, dimHeads);
-    vh = SplitHeads(vh, dimHeads);
+    auto qh = SplitHeads(affine(q, Wq, bq), dimHeads);
+    auto kh = SplitHeads(affine(k, Wk, bk), dimHeads);
+    auto vh = SplitHeads(affine(v, Wv, bv), dimHeads);
 
     // apply multi-head attention to downscaled inputs
     auto output = Attention(graph, options, prefix, qh, kh, vh, mask);
@@ -158,39 +134,43 @@ public:
   Expr LayerAttention(Ptr<ExpressionGraph> graph,
                       Ptr<Options> options,
                       std::string prefix,
-                      int dimOut,
                       Expr input, Expr key, Expr value,
                       Expr mask,
                       bool inference=false) {
 
     using namespace keywords;
 
+    int dimModel = input->shape()[1];
+
+    auto output = input;
+
     int heads = options->get<float>("transformer-heads");
 
     // multi-head self-attention over previous input
-    Expr output = MultiHead(graph, options, prefix, dimOut,
-                            heads, input, key, value,
-                            mask);
+    output = MultiHead(graph, options, prefix,
+                       dimModel,
+                       heads, output, key, value,
+                       mask);
 
     bool layerNorm = options->get<bool>("layer-normalization");
     if(layerNorm) {
-      auto gamma = graph->param(prefix + "_Wo_gamma", {1, dimOut},
+      auto gamma = graph->param(prefix + "_Wo_gamma", {1, dimModel},
                                 init = inits::ones);
-      auto beta = graph->param(prefix + "_Wo_beta", {1, dimOut},
-                               init = inits::zeros);
+      auto beta = graph->param(prefix + "_Wo_beta", {1, dimModel},
+                               init = inits::ones);
       output = layer_norm(output, gamma, beta);
     }
 
-    // skip connection, moved being layer normalization
-    //if(options->get<bool>("skip"))
-    //  output = output + input;
-
-    // optional dropout, moved to end
+     // optional dropout, moved to end
     float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
     if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimOut, 1});
+      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
       output = dropout(output, keywords::mask = dropMask);
     }
+
+    // skip connection, moved being layer normalization
+    if(options->get<bool>("skip"))
+      output = output + input;
 
     return output;
   }
@@ -203,7 +183,10 @@ public:
 
     using namespace keywords;
 
-    int dimModel = options->get<int>("dim-emb");
+    int dimModel = input->shape()[1];
+
+    auto output = input;
+
     int dimFfn = options->get<int>("transformer-dim-ffn");
 
     auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
@@ -216,38 +199,27 @@ public:
     auto b2 = graph->param(prefix + "_b2", {1, dimModel},
                            init=inits::zeros);
 
-    // optional layer-normalization
+    output = relu(affine(output, W1, b1));
+    output = affine(output, W2, b2);
+
     bool layerNorm = options->get<bool>("layer-normalization");
-
-    Expr output;
     if(layerNorm) {
-      auto gamma1 = graph->param(prefix + "_gamma1", {1, dimFfn},
-                                 init = inits::ones);
-      auto beta1 = graph->param(prefix + "_beta1", {1, dimFfn},
+      auto gamma = graph->param(prefix + "_Wffn_gamma", {1, dimModel},
+                                init = inits::ones);
+      auto beta = graph->param(prefix + "_Wffn_beta", {1, dimModel},
                                 init = inits::zeros);
-
-      auto gamma2 = graph->param(prefix + "_gamma2", {1, dimModel},
-                                 init = inits::ones);
-      auto beta2 = graph->param(prefix + "_beta2", {1, dimModel},
-                                init = inits::zeros);
-
-      output = layer_norm(relu(affine(input, W1, b1)), gamma1, beta1);
-      output = layer_norm(affine(output, W2, b2), gamma2, beta2);
-    }
-    else {
-      output = affine(relu(affine(input, W1, b1)), W2, b2);
+      output = layer_norm(output, gamma, beta);
     }
 
-    // skip connection, moved behind layer normalization
-    if(options->get<bool>("skip"))
-      output = output + input;
-
-    // optional dropout, moved to end
     float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
       output = dropout(output, keywords::mask = dropMask);
     }
+
+    // skip connection, moved behind layer normalization
+    if(options->get<bool>("skip"))
+      output = output + input;
 
     return output;
   }
@@ -318,8 +290,8 @@ public:
     auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings + posEmbeddings;
 
     // reorganize batch and timestep
-    auto layer = reverseTimeBatch(scaledEmbeddings);
-    auto layerMask = reshape(reverseTimeBatch(batchMask),
+    auto layer = transposeTimeBatch(scaledEmbeddings);
+    auto layerMask = reshape(transposeTimeBatch(batchMask),
                              {1, dimSrcWords, dimBatch});
 
     float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
@@ -328,21 +300,12 @@ public:
       layer = dropout(layer, keywords::mask = dropMask);
     }
 
-    auto fake = graph->constant({dimEmb, 3 * dimEmb}, init=inits::zeros);
-
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
-      auto self = LayerAttention(graph, options_,
-                                 prefix_ + "_self_l" + std::to_string(i),
-                                 3 * dimEmb,
-                                 layer, layer, layer,
-                                 layerMask);
-
-      auto bself = graph->param(prefix_ + "_selfB_l" + std::to_string(i),
-                                {1, 3 * dimEmb},
-                                init=inits::zeros);
-
-      layer = rnn::gruOps({layer, fake, self, bself});
+      layer = LayerAttention(graph, options_,
+                             prefix_ + "_self_l" + std::to_string(i),
+                             layer, layer, layer,
+                             layerMask);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
@@ -353,7 +316,7 @@ public:
     // restore organization of batch and time steps. This is currently required
     // to make RNN-based decoders and beam search work with this. We are looking
     // into makeing this more natural.
-    auto context = reverseTimeBatch(layer);
+    auto context = transposeTimeBatch(layer);
     return New<EncoderState>(context, batchMask, batch);
   }
 
@@ -362,9 +325,6 @@ public:
 
 
 class DecoderTransformer : public DecoderBase, public Transformer {
-private:
-  Expr tiedOutputWeights_;
-
 public:
   DecoderTransformer(Ptr<Options> options)
    : DecoderBase(options) {}
@@ -404,12 +364,12 @@ public:
     int dimBatch = encoderContext->shape()[0];
 
     // keep this around during steps
-    encoderContext = reverseTimeBatch(encoderContext);
-    encoderMask = reshape(reverseTimeBatch(encoderMask),
+    encoderContext = transposeTimeBatch(encoderContext);
+    encoderMask = reshape(transposeTimeBatch(encoderMask),
                           {1, dimSrcWords, dimBatch});
 
     // reorganize batch and timestep
-    auto layer = reverseTimeBatch(scaledEmbeddings);
+    auto layer = transposeTimeBatch(scaledEmbeddings);
 
     // fill triangle mask
     std::vector<float> vSelfMask(dimTrgWords * dimTrgWords, 0);
@@ -428,23 +388,15 @@ public:
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
 
-      auto self = LayerAttention(graph, options_,
-                                 prefix_ + "_self_l" + std::to_string(i),
-                                 3 * dimEmb,
-                                 layer, layer, layer,
-                                 selfMask);
+      layer = LayerAttention(graph, options_,
+                             prefix_ + "_self_l" + std::to_string(i),
+                             layer, layer, layer,
+                             selfMask);
 
-      auto ctx = LayerAttention(graph, options_,
-                                prefix_ + "_context_l" + std::to_string(i),
-                                3 * dimEmb,
-                                layer, encoderContext, encoderContext,
-                                encoderMask);
-
-      auto b = graph->param(prefix_ + "_ctxB_l" + std::to_string(i),
-                            {1, 3 * dimEmb},
-                            init=inits::zeros);
-
-      layer = rnn::gruOps({layer, self, ctx, b});
+      layer = LayerAttention(graph, options_,
+                             prefix_ + "_context_l" + std::to_string(i),
+                             layer, encoderContext, encoderContext,
+                             encoderMask);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
@@ -453,37 +405,29 @@ public:
     }
 
     rnn::States decoderStates;
-    auto decoderContext = reverseTimeBatch(layer);
+    auto decoderContext = transposeTimeBatch(layer);
 
     //************************************************************************//
 
-    // construct deep output multi-layer network layer-wise
-    auto layer1 = mlp::dense(graph)
-                  ("prefix", prefix_ + "_ff_logit_l1")
-                  ("dim", opt<int>("dim-emb"))
-                  ("activation", mlp::act::tanh)
-                  ("layer-normalization", opt<bool>("layer-normalization"));
-
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
 
-    auto layer2 = mlp::dense(graph)
-                  ("prefix", prefix_ + "_ff_logit_l2")
-                  ("dim", dimTrgVoc);
+    auto layerOut = mlp::dense(graph)
+                    ("prefix", prefix_ + "_ff_logit_out")
+                    ("dim", dimTrgVoc);
 
     if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
       std::string tiedPrefix = prefix_ + "_Wemb";
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
-      layer2.tie_transposed("W", tiedPrefix);
+      layerOut.tie_transposed("W", tiedPrefix);
     }
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
     auto output = mlp::mlp(graph)
-                  .push_back(layer1)
-                  .push_back(layer2);
+                  .push_back(layerOut);
 
-    Expr logits = output->apply(embeddings, decoderContext);
+    Expr logits = output->apply(decoderContext);
 
     // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
@@ -495,7 +439,6 @@ public:
   }
 
   void clear() {
-    tiedOutputWeights_ = nullptr;
   }
 };
 

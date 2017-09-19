@@ -5,6 +5,7 @@
 #include "models/amun.h"
 #include "models/nematus.h"
 #include "models/transformer.h"
+#include "models/transformer_gru.h"
 
 #define REGISTER_ENCODER(name, className)\
 do {\
@@ -37,6 +38,7 @@ public:
 
     REGISTER_ENCODER("s2s", EncoderS2S);
     REGISTER_ENCODER("transformer", EncoderTransformer);
+    REGISTER_ENCODER("transformer_gru", EncoderTransformerGRU);
 
     UTIL_THROW2("Unknown encoder type");
   }
@@ -52,6 +54,7 @@ public:
 
     REGISTER_DECODER("s2s", DecoderS2S);
     REGISTER_DECODER("transformer", DecoderTransformer);
+    REGISTER_DECODER("transformer_gru", DecoderTransformerGRU);
 
     UTIL_THROW2("Unknown decoder type");
   }
@@ -119,17 +122,27 @@ Ptr<EncoderDecoder> by_type(std::string type,
            .push_back(models::encoder()
                       ("type", "transformer"))
            .push_back(models::decoder()
-                      ("type", "s2s"))
+                      ("type", "transformer"))
            .construct();
   }
 
-  if(type == "transformer2") {
+  if(type == "transformer_gru") {
     return models::encoder_decoder()
            (options)
            .push_back(models::encoder()
-                      ("type", "transformer"))
+                      ("type", "transformer_gru"))
            .push_back(models::decoder()
-                      ("type", "transformer"))
+                      ("type", "transformer_gru"))
+           .construct();
+  }
+
+  if(type == "transformer_s2s") {
+    return models::encoder_decoder()
+           (options)
+           .push_back(models::encoder()
+                      ("type", "transformer_gru"))
+           .push_back(models::decoder()
+                      ("type", "s2s"))
            .construct();
   }
 
