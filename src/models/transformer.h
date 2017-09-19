@@ -40,9 +40,14 @@ public:
     // scaling to avoid extreme values due to matrix multiplication
     float scale = 1.0 / std::sqrt(dk);
 
+    // convert 0/1 mask to transformer style -inf mask
+    auto ms = mask->shape();
+    mask = (1 - mask) * -9999;
+    mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
+
     // softmax over batched dot product of query and keys (applied over all
-    // time steps and batch entries)
-    auto weights = softmax(bdot(q, k, false, true, scale), mask);
+    // time steps and batch entries), also add mask for illegal connections
+    auto weights = softmax(bdot(q, k, false, true, scale) + mask);
 
     // optional dropout for attention weights
     bool inference = options->get<bool>("inference", true);
