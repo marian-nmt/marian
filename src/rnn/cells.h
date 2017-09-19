@@ -352,7 +352,7 @@ public:
       bx_ = bx;
 
       // in specific cases we need to pass bx to the kernel
-      if((encoder_ && transition_) || (!encoder_ && !transition_ && final_)) {
+      if(encoder_ && transition_) {
         auto b0 = graph->constant({1, 2 * dimState}, keywords::init = inits::zeros);
         bbx_ = concatenate({b0, bx}, keywords::axis = 1);
       } else {
@@ -429,8 +429,8 @@ public:
         W = affine(input, W_, b_);
         Wx = affine(input, Wx_, bx_);
       }
-      W = layer_norm(W, W_lns_, W_lnb_);
-      Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_);
+      W = layer_norm(W, W_lns_, W_lnb_, NEMATUS_LN_EPS);
+      Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_, NEMATUS_LN_EPS);
 
       xW = concatenate({W, Wx}, keywords::axis = 1);
     } else {
@@ -458,8 +458,8 @@ public:
       Expr Ux;  // Temp_2_ in Amun
 
       if(encoder_) {
-        U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_);
-        Ux = layer_norm(dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_);
+        U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_, NEMATUS_LN_EPS);
+        Ux = layer_norm(dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
 
         if(transition_) {
           U = U + b_;
@@ -472,8 +472,8 @@ public:
           U = dot(stateDropped, U_);
           Ux = dot(stateDropped, Ux_);
         }
-        U = layer_norm(U, U_lns_, U_lnb_);
-        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_);
+        U = layer_norm(U, U_lns_, U_lnb_, NEMATUS_LN_EPS);
+        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
       }
 
       sU = concatenate({U, Ux}, keywords::axis = 1);
