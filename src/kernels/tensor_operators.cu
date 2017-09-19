@@ -22,6 +22,46 @@ bool IsNan(Tensor in) {
   return thrust::transform_reduce(begin, end, isnan_test(), 0, thrust::plus<bool>());
 }
 
+__global__ void gTranspose4D(float* out,
+                             ShapeGPU outShape,
+                             const float* in,
+                             const ShapeGPU inShape,
+                             const ShapeGPU permute) {
+
+  int length = outShape.elements();
+  int dims1[4];
+  int dims2[4];
+
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      outShape.dims(index, dims1);
+
+      for(int i = 0; i < 4; ++i)
+        dims2[i] = dims1[permute[i]];
+
+      int inIndex = inShape.bindex(dims2);
+
+      out[index] = in[inIndex];
+    }
+  }
+}
+
+void Transpose4D(Tensor out, Tensor in, Shape permute) {
+  cudaSetDevice(out->getDevice());
+
+  int length = out->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  gTranspose4D<<<blocks, threads>>>(out->data(),
+                                    out->shape(),
+                                    in->data(),
+                                    in->shape(),
+                                    permute);
+}
+
 __global__ void gSoftmax(float* out,
                          ShapeGPU outShape,
                          const float* in,

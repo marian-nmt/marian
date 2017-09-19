@@ -598,6 +598,57 @@ struct TransposeNodeOp : public UnaryNodeOp {
   const std::string color() { return "orange"; }
 };
 
+struct Transpose4DNodeOp : public UnaryNodeOp {
+  Shape permute_;
+
+  Transpose4DNodeOp(Expr a, Shape permute)
+      : UnaryNodeOp(a, keywords::shape = newShape(a, permute)),
+        permute_{permute} {}
+
+  NodeOps forwardOps() {
+    return { NodeOp(Transpose4D(val_, child(0)->val(), permute_)) };
+  }
+
+  NodeOps backwardOps() {
+    return { NodeOp(Transpose4D(child(0)->grad(), adj_, permute_)) };
+  }
+
+  template <class... Args>
+  Shape newShape(Expr a, Shape permute) {
+    Shape shape;
+
+    for(int i = 0; i < 4; ++i)
+      shape.set(i, a->shape()[permute[i]]);
+
+    return shape;
+  }
+
+  virtual size_t hash() {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      for(auto s : permute_)
+        boost::hash_combine(seed, s);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+  virtual bool equal(Expr node) {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<Transpose4DNodeOp> cnode = std::dynamic_pointer_cast<Transpose4DNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(permute_ != cnode->permute_)
+      return false;
+    return true;
+  }
+
+  const std::string type() { return "transpose4d"; }
+
+  const std::string color() { return "orange"; }
+};
+
 class ReshapeNodeOp : public UnaryNodeOp {
 private:
   Expr reshapee_;

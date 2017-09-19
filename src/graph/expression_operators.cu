@@ -141,6 +141,10 @@ Expr transpose(Expr a) {
   return Expression<TransposeNodeOp>(a);
 }
 
+Expr transpose(Expr a, Shape permute) {
+  return Expression<Transpose4DNodeOp>(a, permute);
+}
+
 Expr step(Expr a, size_t step) {
   return Expression<TimestepNodeOp>(a, step);
 }

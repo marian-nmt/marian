@@ -21,6 +21,8 @@ class TensorGPU;
 
 cublasHandle_t create_handle(size_t);
 
+void Transpose4D(Tensor out, Tensor in, Shape tranpose);
+
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
