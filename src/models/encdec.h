@@ -115,6 +115,7 @@ public:
     auto yShifted = shift(y, {0, 0, 1, 0});
 
     state->setTargetEmbeddings(yShifted);
+    state->setTargetMask(yMask);
 
     return std::make_tuple(yMask, yIdx);
   }

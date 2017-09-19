@@ -33,6 +33,7 @@ protected:
   std::vector<Ptr<EncoderState>> encStates_;
 
   Expr targetEmbeddings_;
+  Expr targetMask_;
   Expr probs_;
   bool singleStep_{false};
   rnn::States states_;
@@ -57,6 +58,12 @@ public:
 
   virtual void setTargetEmbeddings(Expr targetEmbeddings) {
     targetEmbeddings_ = targetEmbeddings;
+  }
+
+  virtual Expr getTargetMask() { return targetMask_; };
+
+  virtual void setTargetMask(Expr targetMask) {
+    targetMask_ = targetMask;
   }
 
   virtual bool doSingleStep() { return singleStep_; };

@@ -122,11 +122,9 @@ public:
     auto output = Attention(graph, options, prefix, qh, kh, vh, mask);
     output = JoinHeads(output);
 
-    if(dimModel != dimOut) {
-      auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
-                             init=inits::glorot_uniform);
-      output = dot(output, Wo);
-    }
+    auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
+                           init=inits::glorot_uniform);
+    output = dot(output, Wo);
 
     return output;
   }
@@ -152,15 +150,6 @@ public:
                        heads, output, key, value,
                        mask);
 
-    bool layerNorm = options->get<bool>("layer-normalization");
-    if(layerNorm) {
-      auto gamma = graph->param(prefix + "_Wo_gamma", {1, dimModel},
-                                init = inits::ones);
-      auto beta = graph->param(prefix + "_Wo_beta", {1, dimModel},
-                               init = inits::ones);
-      output = layer_norm(output, gamma, beta);
-    }
-
      // optional dropout, moved to end
     float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
     if(dropProb) {
@@ -171,6 +160,15 @@ public:
     // skip connection, moved being layer normalization
     if(options->get<bool>("skip"))
       output = output + input;
+
+    bool layerNorm = options->get<bool>("layer-normalization");
+    if(layerNorm) {
+      auto gamma = graph->param(prefix + "_Wo_gamma", {1, dimModel},
+                                init = inits::ones);
+      auto beta = graph->param(prefix + "_Wo_beta", {1, dimModel},
+                               init = inits::ones);
+      output = layer_norm(output, gamma, beta);
+    }
 
     return output;
   }
@@ -202,15 +200,6 @@ public:
     output = relu(affine(output, W1, b1));
     output = affine(output, W2, b2);
 
-    bool layerNorm = options->get<bool>("layer-normalization");
-    if(layerNorm) {
-      auto gamma = graph->param(prefix + "_Wffn_gamma", {1, dimModel},
-                                init = inits::ones);
-      auto beta = graph->param(prefix + "_Wffn_beta", {1, dimModel},
-                                init = inits::zeros);
-      output = layer_norm(output, gamma, beta);
-    }
-
     float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
@@ -220,6 +209,15 @@ public:
     // skip connection, moved behind layer normalization
     if(options->get<bool>("skip"))
       output = output + input;
+
+    bool layerNorm = options->get<bool>("layer-normalization");
+    if(layerNorm) {
+      auto gamma = graph->param(prefix + "_Wffn_gamma", {1, dimModel},
+                                init = inits::ones);
+      auto beta = graph->param(prefix + "_Wffn_beta", {1, dimModel},
+                                init = inits::zeros);
+      output = layer_norm(output, gamma, beta);
+    }
 
     return output;
   }
@@ -343,6 +341,7 @@ public:
     using namespace keywords;
 
     auto embeddings = state->getTargetEmbeddings();
+    auto decoderMask = state->getTargetMask();
 
     //************************************************************************//
 
@@ -368,6 +367,10 @@ public:
     encoderMask = reshape(transposeTimeBatch(encoderMask),
                           {1, dimSrcWords, dimBatch});
 
+    if(decoderMask)
+      decoderMask = reshape(transposeTimeBatch(decoderMask),
+                            {1, dimTrgWords, dimBatch});
+
     // reorganize batch and timestep
     auto layer = transposeTimeBatch(scaledEmbeddings);
 
@@ -384,6 +387,9 @@ public:
       auto dropMask = graph->dropout(dropProb, {1, dimEmb, 1});
       layer = dropout(layer, keywords::mask = dropMask);
     }
+
+    if(decoderMask)
+      selfMask = selfMask * decoderMask;
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
