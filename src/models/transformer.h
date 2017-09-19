@@ -205,6 +205,8 @@ public:
     output = relu(affine(output, W1, b1));
     output = affine(output, W2, b2);
 
+
+
     float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
