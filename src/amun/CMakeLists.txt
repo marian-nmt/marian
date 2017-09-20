@@ -87,6 +87,7 @@ cuda_add_executable(
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
+  gpu/mblas/nth_element_kernels.cu
   gpu/npz_converter.cu
   gpu/types-gpu.cu
 

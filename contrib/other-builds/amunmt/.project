@@ -1566,6 +1566,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/nth_element.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/mblas/nth_element_kernels.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/nth_element_kernels.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/nth_element_kernels.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/nth_element_kernels.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/mblas/thrust_functions.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/thrust_functions.h</locationURI>
