@@ -109,6 +109,7 @@ cuda_add_library(python SHARED
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
+  gpu/mblas/nth_element_kernels.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
@@ -135,6 +136,7 @@ cuda_add_library(mosesplugin STATIC
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
+  gpu/mblas/nth_element_kernels.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
