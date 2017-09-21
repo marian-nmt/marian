@@ -72,7 +72,7 @@ if (UNIX AND NOT APPLE)
       set(BOOST_PYTHON_VERSION_NAME "python")
     endif(PYTHON_VERSION_NORMALIZED)
 
-    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread chrono)
 elseif (APPLE)
 
     # On macOS, boost-python component is named python if compiled against python2.7 or
@@ -83,7 +83,7 @@ elseif (APPLE)
       set(BOOST_PYTHON_VERSION_NAME "python")
     endif(NOT PYTHON_VERSION_NORMALIZED EQUAL 27)
 
-    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread chrono)
 endif (UNIX AND NOT APPLE)
 
 if(Boost_FOUND)
