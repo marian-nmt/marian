@@ -78,6 +78,7 @@ set_source_files_properties( common/loader_factory.cpp
 cuda_add_executable(
   amun
   common/decoder_main.cpp
+  gpu/decoder/best_hyps.cu
   gpu/decoder/encoder_decoder.cu
   gpu/decoder/encoder_decoder_loader.cu
   gpu/decoder/encoder_decoder_state.cu
@@ -86,6 +87,7 @@ cuda_add_executable(
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
+  gpu/mblas/nth_element_kernels.cu
   gpu/npz_converter.cu
   gpu/types-gpu.cu
 
@@ -100,13 +102,14 @@ cuda_add_executable(
 if(PYTHONLIBS_FOUND)
 cuda_add_library(python SHARED
   python/amunmt.cpp
-  # gpu/decoder/ape_penalty.cu
+  gpu/decoder/best_hyps.cu
   gpu/decoder/encoder_decoder.cu
   gpu/decoder/encoder_decoder_loader.cu
   gpu/decoder/encoder_decoder_state.cu
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
+  gpu/mblas/nth_element_kernels.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu
@@ -133,6 +136,7 @@ cuda_add_library(mosesplugin STATIC
   gpu/mblas/matrix.cu
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
+  gpu/mblas/nth_element_kernels.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/npz_converter.cu

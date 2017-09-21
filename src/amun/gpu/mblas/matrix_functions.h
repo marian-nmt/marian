@@ -89,16 +89,6 @@ void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
 
-template<class IteratorT1, class IteratorT2>
-void copy(IteratorT1 inBegin, IteratorT1 inEnd, IteratorT2 outBegin) {
-  thrust::copy(thrust::cuda::par.on(CudaStreamHandler::GetStream()), inBegin, inEnd, outBegin);
-}
-
-template<class IteratorT1, class IteratorT2>
-void copy_n(IteratorT1 inBegin, size_t size, IteratorT2 outBegin) {
-  thrust::copy_n(thrust::cuda::par.on(CudaStreamHandler::GetStream()), inBegin, size, outBegin);
-}
-
 void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);

@@ -5,46 +5,11 @@
 
 #include <cuda.h>
 #include "gpu/mblas/matrix.h"
+#include "nth_element_kernels.h"
 
 namespace amunmt {
 namespace GPU {
 
-struct NthOut
-{
-  uint ind;
-  float score;
-
-  __device__ __host__
-  NthOut() {}
-
-  __device__ __host__
-  NthOut(uint init)
-  :ind(init)
-  ,score(init)
-  {}
-
-  __device__ __host__
-  NthOut(uint &vInd, float vScore)
-  :ind(vInd)
-  ,score(vScore)
-  {}
-
-  __device__ __host__
-  NthOut& operator+=(const NthOut& rhs)
-  {
-    ind += rhs.ind;
-    score += rhs.score;
-    return *this;
-  }
-};
-
-inline std::ostream& operator<<(std::ostream &out, const NthOut &obj)
-{
-  out << "(" << obj.ind << "," << obj.score << ")";
-  return out;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
 
 class NthElement {
   public:
