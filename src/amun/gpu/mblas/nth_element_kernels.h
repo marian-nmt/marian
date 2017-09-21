@@ -49,9 +49,9 @@ __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
 
 __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
                                   mblas::MatrixWrapper<float> probsWrap,
-                                  mblas::MatrixWrapper<uint> batchPositionWrap,
                                   mblas::MatrixWrapper<NthOut> resNewWrap,
-                                  mblas::MatrixWrapper<uint> cumBeamSizesWrap,
+                                  const mblas::MatrixWrapper<uint> batchPositionWrap,
+                                  const mblas::MatrixWrapper<uint> cumBeamSizesWrap,
                                   uint numBlocks);
 
 __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
