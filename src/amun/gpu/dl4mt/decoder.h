@@ -374,9 +374,14 @@ class Decoder {
       //BEGIN_TIMER("Decode");
 
       //BEGIN_TIMER("GetHiddenState");
-      //std::cerr << "State=" << State.Debug(1) << std::endl;
-      //std::cerr << "Embeddings=" << Embeddings.Debug(1) << std::endl;
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+	    std::cerr << "Decoder::Decode1" << std::endl;
+
       GetHiddenState(HiddenState_, State, Embeddings);
+
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "Decoder::Decode2" << std::endl;
+
       //HiddenState_.ReduceDimensions();
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetHiddenState");
@@ -386,15 +391,24 @@ class Decoder {
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetAlignedSourceContext");
 
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "Decoder::Decode3" << std::endl;
+
       //BEGIN_TIMER("GetNextState");
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
       //PAUSE_TIMER("GetNextState");
 
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "Decoder::Decode4" << std::endl;
+
       //BEGIN_TIMER("GetProbs");
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetProbs");
+
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "Decoder::Decode5" << std::endl;
 
       //PAUSE_TIMER("Decode");
     }
@@ -477,7 +491,9 @@ class Decoder {
       } else if (celltype == "gru"){
         return std::unique_ptr<Cell>(new GRU<Weights::DecGRU1>(*(model.decGru1_)));
       }
+      assert(false);
     }
+
     std::unique_ptr<Cell> InitFinalCell(const Weights& model, const YAML::Node& config){
       std::string hiddencell = config["dec-cell"] ? config["dec-cell"].as<std::string>() : "gru";
       std::string celltype = config["dec-cell-2"] ? config["dec-cell-2"].as<std::string>() : hiddencell;

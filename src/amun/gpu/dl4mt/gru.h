@@ -151,6 +151,9 @@ class FastGRU: public Cell {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GRU::GetNextState" << std::endl;
+
       //std::cerr << std::endl;
       //std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
       //std::cerr << "Context=" << Context.Debug(1) << std::endl;

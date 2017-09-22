@@ -32,6 +32,9 @@ EncoderDecoder::EncoderDecoder(
     SourceContext_(new mblas::Matrix())
 {
   BEGIN_TIMER("EncoderDecoder");
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "EncoderDecoder::EncoderDecoder" << endl;
 }
 
 EncoderDecoder::~EncoderDecoder()
@@ -66,6 +69,9 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "EncoderDecoder::Decode1" << endl;
+
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
@@ -73,6 +79,9 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      sentencesMask_,
                      beamSizes);
   PAUSE_TIMER("Decode");
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "EncoderDecoder::Decode2" << endl;
 }
 
 State* EncoderDecoder::NewState() const {
