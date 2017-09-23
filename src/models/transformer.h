@@ -6,59 +6,46 @@ namespace marian {
 
 class Transformer {
 public:
-  Expr transposeTimeBatch(Expr input) {
+  Expr TransposeTimeBatch(Expr input) {
     return transpose(input, {2, 1, 0, 3});
   }
 
-  Expr PositionalEmbeddings(Ptr<ExpressionGraph> graph,
-                            int dimEmb, int first, int last) {
+  Expr AddPositionalEmbeddings(Ptr<ExpressionGraph> graph,
+                               Expr input) {
     using namespace keywords;
 
-    // positional embeddings as described in the paper. Maybe turn this
-    // into a gpu based initializer
-    std::vector<float> vPos;
-    for(int p = first; p <= last; ++p) {
-      for(int i = 0; i < dimEmb / 2; ++i) {
-        float v = p / pow(10000.f, (2.f * i) / dimEmb);
-        vPos.push_back(sin(v));
-        vPos.push_back(cos(v));
+    int dimEmb = input->shape()[1];
+    int dimWords = input->shape()[2];
+
+    float num_timescales = dimEmb / 2;
+    float log_timescale_increment = std::log(10000.f) /
+      (num_timescales - 1.f);
+
+    std::vector<float> vPos(dimEmb * dimWords, 0);
+    for(int p = 0; p < dimWords; ++p) {
+      for(int i = 0; i < num_timescales; ++i) {
+        float v = p * std::exp(i * -log_timescale_increment);
+        vPos[p * dimEmb + i] = std::sin(v);
+        vPos[p * dimEmb + num_timescales + i] = std::cos(v);
       }
     }
 
     // shared across batch entries
-    return graph->constant({1, dimEmb, last - first + 1},
-                           init=inits::from_vector(vPos));
+    auto signal = graph->constant({1, dimEmb, dimWords},
+                                  init=inits::from_vector(vPos));
+    return input + signal;
   }
 
-  Expr Attention(Ptr<ExpressionGraph> graph,
-                 Ptr<Options> options,
-                 std::string prefix,
-                 Expr q, Expr k, Expr v,
-                 Expr mask = nullptr) {
-    float dk = k->shape()[1];
+  Expr TriangleMask(Ptr<ExpressionGraph> graph, int length) {
+    using namespace keywords;
 
-    // scaling to avoid extreme values due to matrix multiplication
-    float scale = 1.0 / std::sqrt(dk);
-
-    // convert 0/1 mask to transformer style -inf mask
-    auto ms = mask->shape();
-    mask = (1 - mask) * -9999;
-    mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
-
-    // softmax over batched dot product of query and keys (applied over all
-    // time steps and batch entries), also add mask for illegal connections
-    auto weights = softmax(bdot(q, k, false, true, scale) + mask);
-
-    // optional dropout for attention weights
-    bool inference = options->get<bool>("inference", true);
-    float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, weights->shape());
-      weights = dropout(weights, keywords::mask = dropMask);
-    }
-
-    // apply attention weights to values
-    return bdot(weights, v);
+    // fill triangle mask
+    std::vector<float> vMask(length * length, 0);
+    for(int i = 0; i < length; ++i)
+      for(int j = 0; j <= i; ++j)
+        vMask[i * length + j] = 1.f;
+    return graph->constant({length, length, 1},
+                            init=inits::from_vector(vMask));
   }
 
   Expr SplitHeads(Expr input, int dimHeads) {
@@ -86,6 +73,97 @@ public:
     return reshape(output, {dimSteps, dimModel, dimBatch});
   }
 
+  Expr PreProcess(Ptr<ExpressionGraph> graph,
+                  std::string prefix,
+                  std::string ops,
+                  Expr input,
+                  float dropProb=0.0f) {
+    using namespace keywords;
+
+    int dimModel = input->shape()[1];
+    auto output = input;
+    for(auto op : ops) {
+      // dropout
+      if(op == 'd' && dropProb > 0.0f) {
+        auto dropMask = graph->dropout(dropProb, output->shape());
+        output = dropout(output, mask = dropMask);
+      }
+      // layer normalization
+      if(op == 'n') {
+        auto scale = graph->param(prefix + "_ln_scale_pre", {1, dimModel},
+                                  init = inits::ones);
+        auto bias = graph->param(prefix + "_ln_bias_pre", {1, dimModel},
+                                  init = inits::zeros);
+        output = layer_norm(output, scale, bias);
+      }
+    }
+    return output;
+  }
+
+  Expr PostProcess(Ptr<ExpressionGraph> graph,
+                   std::string prefix,
+                   std::string ops,
+                   Expr input,
+                   Expr prevInput,
+                   float dropProb=0.0f) {
+    using namespace keywords;
+
+    int dimModel = input->shape()[1];
+    auto output = input;
+    for(auto op : ops) {
+      // dropout
+      if(op == 'd' && dropProb > 0.0f) {
+        auto dropMask = graph->dropout(dropProb, output->shape());
+        output = dropout(output, mask = dropMask);
+      }
+      // skip connection, moved behind layer normalization
+      if(op == 'a') {
+        output = output + prevInput;
+      }
+      // layer normalization
+      if(op == 'n') {
+        auto scale = graph->param(prefix + "_ln_scale", {1, dimModel},
+                                  init = inits::ones);
+        auto bias = graph->param(prefix + "_ln_bias", {1, dimModel},
+                                  init = inits::zeros);
+        output = layer_norm(output, scale, bias);
+      }
+    }
+    return output;
+  }
+
+  Expr Attention(Ptr<ExpressionGraph> graph,
+                 Ptr<Options> options,
+                 std::string prefix,
+                 Expr q, Expr k, Expr v,
+                 Expr mask=nullptr,
+                 bool inference=false) {
+    using namespace keywords;
+
+    float dk = k->shape()[1];
+
+    // scaling to avoid extreme values due to matrix multiplication
+    float scale = 1.0 / std::sqrt(dk);
+
+    // convert 0/1 mask to transformer style -inf mask
+    auto ms = mask->shape();
+    mask = (1 - mask) * -99999999.f;
+    mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
+
+    // softmax over batched dot product of query and keys (applied over all
+    // time steps and batch entries), also add mask for illegal connections
+    auto weights = softmax(bdot(q, k, false, true, scale) + mask);
+
+    // optional dropout for attention weights
+    float dropProb = inference ? 0 : options->get<float>("transformer-dropout-attention");
+    if(dropProb) {
+      auto dropMask = graph->dropout(dropProb, weights->shape());
+      weights = dropout(weights, mask = dropMask);
+    }
+
+    // apply attention weights to values
+    return bdot(weights, v);
+  }
 
   Expr MultiHead(Ptr<ExpressionGraph> graph,
                  Ptr<Options> options,
@@ -93,7 +171,8 @@ public:
                  int dimOut,
                  int dimHeads,
                  Expr q, Expr k, Expr v,
-                 Expr mask) {
+                 Expr mask=nullptr,
+                 bool inference=false) {
     using namespace keywords;
 
     int dimModel = q->shape()[1];
@@ -124,13 +203,16 @@ public:
     auto vh = SplitHeads(affine(v, Wv, bv), dimHeads);
 
     // apply multi-head attention to downscaled inputs
-    auto output = Attention(graph, options, prefix, qh, kh, vh, mask);
+    auto output = Attention(graph, options, prefix, qh, kh, vh, mask, inference);
     output = JoinHeads(output);
 
-    auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
-                           init=inits::glorot_uniform);
-    output = dot(output, Wo);
-
+    if(dimModel != dimOut) {
+      auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
+                             init=inits::glorot_uniform);
+      auto bo = graph->param(prefix + "_bo", {1, dimOut},
+                             init=inits::zeros);
+      output = affine(output, Wo, bo);
+    }
     return output;
   }
 
@@ -145,7 +227,11 @@ public:
 
     int dimModel = input->shape()[1];
 
-    auto output = input;
+    float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
+    auto opsPre = options->get<std::string>("transformer-preprocess");
+    auto output = PreProcess(graph, prefix + "_Wo", opsPre,
+                             input,
+                             dropProb);
 
     int heads = options->get<float>("transformer-heads");
 
@@ -153,27 +239,13 @@ public:
     output = MultiHead(graph, options, prefix,
                        dimModel,
                        heads, output, key, value,
-                       mask);
+                       mask,
+                       inference);
 
-     // optional dropout, moved to end
-    float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    // skip connection, moved being layer normalization
-    if(options->get<bool>("skip"))
-      output = output + input;
-
-    bool layerNorm = options->get<bool>("layer-normalization");
-    if(layerNorm) {
-      auto gamma = graph->param(prefix + "_Wo_gamma", {1, dimModel},
-                                init = inits::ones);
-      auto beta = graph->param(prefix + "_Wo_beta", {1, dimModel},
-                               init = inits::ones);
-      output = layer_norm(output, gamma, beta);
-    }
+    auto opsPost = options->get<std::string>("transformer-postprocess");
+    output = PostProcess(graph, prefix + "_Wo", opsPost,
+                         output, input,
+                         dropProb);
 
     return output;
   }
@@ -188,7 +260,11 @@ public:
 
     int dimModel = input->shape()[1];
 
-    auto output = input;
+    float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
+    auto opsPre = options->get<std::string>("transformer-preprocess");
+    auto output = PreProcess(graph, prefix + "_ffn", opsPre,
+                             input,
+                             dropProb);
 
     int dimFfn = options->get<int>("transformer-dim-ffn");
 
@@ -205,26 +281,10 @@ public:
     output = relu(affine(output, W1, b1));
     output = affine(output, W2, b2);
 
-
-
-    float dropProb = inference ? 0 : options->get<float>("dropout-rnn");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimModel, 1});
-      output = dropout(output, keywords::mask = dropMask);
-    }
-
-    // skip connection, moved behind layer normalization
-    if(options->get<bool>("skip"))
-      output = output + input;
-
-    bool layerNorm = options->get<bool>("layer-normalization");
-    if(layerNorm) {
-      auto gamma = graph->param(prefix + "_Wffn_gamma", {1, dimModel},
-                                init = inits::ones);
-      auto beta = graph->param(prefix + "_Wffn_beta", {1, dimModel},
-                                init = inits::zeros);
-      output = layer_norm(output, gamma, beta);
-    }
+    auto opsPost = options->get<std::string>("transformer-postprocess");
+    output = PostProcess(graph, prefix + "_ffn", opsPost,
+                         output, input,
+                         dropProb);
 
     return output;
   }
@@ -282,26 +342,18 @@ public:
     std::tie(batchEmbeddings, batchMask)
       = EncoderBase::lookup(embeddings, batch);
 
-    // apply dropout over source words
-    float dropProbSrc = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropProbSrc) {
-      auto dropMask = graph->dropout(dropProbSrc, {1, 1, dimSrcWords});
-      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
-    }
-
-    auto posEmbeddings = PositionalEmbeddings(graph, dimEmb, 1, dimSrcWords);
-
     // according to paper embeddings are scaled by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings + posEmbeddings;
+    auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings;
+    scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
 
     // reorganize batch and timestep
-    auto layer = transposeTimeBatch(scaledEmbeddings);
-    auto layerMask = reshape(transposeTimeBatch(batchMask),
+    auto layer = TransposeTimeBatch(scaledEmbeddings);
+    auto layerMask = reshape(TransposeTimeBatch(batchMask),
                              {1, dimSrcWords, dimBatch});
 
-    float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
+    float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimEmb, 1});
+      auto dropMask = graph->dropout(dropProb, layer->shape());
       layer = dropout(layer, keywords::mask = dropMask);
     }
 
@@ -321,7 +373,7 @@ public:
     // restore organization of batch and time steps. This is currently required
     // to make RNN-based decoders and beam search work with this. We are looking
     // into makeing this more natural.
-    auto context = transposeTimeBatch(layer);
+    auto context = TransposeTimeBatch(layer);
     return New<EncoderState>(context, batchMask, batch);
   }
 
@@ -355,11 +407,9 @@ public:
     int dimEmb = embeddings->shape()[1];
     int dimTrgWords = embeddings->shape()[2];
 
-    // generate positional embeddings and shift by one time step
-    auto posEmbeddings = PositionalEmbeddings(graph, dimEmb, 0, dimTrgWords - 1);
-
     // according to paper embeddings are scaled by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings + posEmbeddings;
+    auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
+    scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
 
     auto encoderState = state->getEncoderStates()[0];
 
@@ -370,33 +420,27 @@ public:
     int dimBatch = encoderContext->shape()[0];
 
     // keep this around during steps
-    encoderContext = transposeTimeBatch(encoderContext);
-    encoderMask = reshape(transposeTimeBatch(encoderMask),
+    encoderContext = TransposeTimeBatch(encoderContext);
+    encoderMask = reshape(TransposeTimeBatch(encoderMask),
                           {1, dimSrcWords, dimBatch});
 
     if(decoderMask)
-      decoderMask = reshape(transposeTimeBatch(decoderMask),
+      decoderMask = reshape(TransposeTimeBatch(decoderMask),
                             {1, dimTrgWords, dimBatch});
 
     // reorganize batch and timestep
-    auto layer = transposeTimeBatch(scaledEmbeddings);
+    auto layer = TransposeTimeBatch(scaledEmbeddings);
 
-    // fill triangle mask
-    std::vector<float> vSelfMask(dimTrgWords * dimTrgWords, 0);
-    for(int i = 0; i < dimTrgWords; ++i)
-      for(int j = 0; j <= i; ++j)
-        vSelfMask[i * dimTrgWords + j] = 1.f;
-    auto selfMask = graph->constant({dimTrgWords, dimTrgWords, 1},
-                                    init=inits::from_vector(vSelfMask));
-
-    float dropProb = inference_ ? 0 : opt<float>("dropout-rnn");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, {1, dimEmb, 1});
-      layer = dropout(layer, keywords::mask = dropMask);
-    }
+    auto selfMask = TriangleMask(graph, dimTrgWords);
 
     if(decoderMask)
       selfMask = selfMask * decoderMask;
+
+    float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
+    if(dropProb) {
+      auto dropMask = graph->dropout(dropProb, layer->shape());
+      layer = dropout(layer, keywords::mask = dropMask);
+    }
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
@@ -418,7 +462,7 @@ public:
     }
 
     rnn::States decoderStates;
-    auto decoderContext = transposeTimeBatch(layer);
+    auto decoderContext = TransposeTimeBatch(layer);
 
     //************************************************************************//
 

@@ -96,6 +96,21 @@ Expr operator/(Expr a, float b) {
   return Expression<ScalarMultNodeOp>(a, 1.f / b);
 }
 
+//Expr pow(float a, Expr b) {
+//  return Expression<Scalar1PowNodeOp>(a, b);
+//
+//}
+//
+//Expr pow(Expr a, float b) {
+//  return Expression<Scalar2PowNodeOp>(a, b);
+//
+//}
+//
+//Expr pow(Expr a, Expr b) {
+//  return Expression<PowNodeOp>(a, b);
+//}
+
+
 /*********************************************************/
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {

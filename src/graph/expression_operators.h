@@ -48,6 +48,10 @@ Expr operator/(Expr a, Expr b);
 Expr operator/(float a, Expr b);
 Expr operator/(Expr a, float b);
 
+//Expr pow(Expr a, Expr b);
+//Expr pow(float a, Expr b);
+//Expr pow(Expr a, float b);
+
 Expr dot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
 
 Expr bdot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);

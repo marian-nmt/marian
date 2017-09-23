@@ -239,9 +239,14 @@ public:
       "tied-embeddings",
       "tied-embeddings-src",
       "tied-embeddings-all",
-      "transformer-heads",
-      "transformer-dim-ffn"
     };
+
+    if(opt<std::string>("type") == "transformer") {
+      modelFeatures_.push_back("transformer-heads");
+      modelFeatures_.push_back("transformer-dim-ffn");
+      modelFeatures_.push_back("transformer-preprocess");
+      modelFeatures_.push_back("transformer-postprocess");
+    }
   }
 
   std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
@@ -331,8 +336,38 @@ public:
 
     auto nextState = step(graph, state);
 
-    auto cost = CrossEntropyCost(prefix_ + "cost")
-                  (nextState->getProbs(), trgIdx, mask = trgMask);
+    auto logits = nextState->getProbs();
+    auto ce = cross_entropy(logits, trgIdx);
+
+    if(!inference_) {
+      float ls = opt<float>("label-smoothing");
+      if(ls > 0) {
+        // @TODO: add this to CE kernels instead
+        auto ceq = -mean(logsoftmax(logits), axis=1);
+        ce = (1 - ls) * ce + ls * ceq;
+      }
+    }
+
+    if(trgMask)
+      ce = ce * trgMask;
+
+    Expr cost;
+    auto costType = opt<std::string>("cost-type");
+    if(costType == "ce-mean") {
+      cost = mean(sum(ce, axis=2), axis=0);
+    }
+    else if(costType == "ce-mean-words") {
+      cost = sum(sum(ce, axis=2), axis=0) / sum(sum(trgMask, axis=2), axis=0);
+    }
+    else if(costType == "ce-sum") {
+      cost = sum(sum(ce, axis=2), axis=0);
+    }
+    //else if(costType == "perplexity") {
+    //  cost = pow(2.f, sum(sum(ce, axis=2), axis=0) / sum(sum(trgMask, axis=2), axis=0));
+    //}
+    else { // same as ce-mean
+      cost = mean(sum(ce, axis=2), axis=0);
+    }
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();

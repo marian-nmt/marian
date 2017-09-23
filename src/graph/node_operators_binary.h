@@ -309,6 +309,30 @@ struct DivNodeOp : public ElementBinaryNodeOp {
   const std::string type() { return "÷"; }
 };
 
+//struct PowNodeOp : public ElementBinaryNodeOp {
+//public:
+//  template <typename... Args>
+//  PowNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
+//
+//  NodeOps forwardOps() {
+//    return {NodeOp(Element(_1 = Pow(_2, _3), val_,
+//                           child(0)->val(), child(1)->val()))};
+//  }
+//
+//  NodeOps backwardOps() {
+//    return {
+//      NodeOp(Add(_2 * Pow(_1, _2 - 1.f) * _3,
+//                 child(0)->grad(), child(0)->val(), child(1)->val(), adj_)),
+//      NodeOp(Add(Pow(_1, _2) * Log(_1) * _3,
+//                 child(1)->grad(), child(0)->val(), child(1)->val(), adj_))
+//
+//    };
+//  }
+//
+//  const std::string type() { return "pow"; }
+//};
+
+
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
   template <typename... Args>
@@ -518,8 +542,7 @@ struct LayerNormalizationOp : public NaryNodeOp {
 #ifdef CUDNN
 class ConvolutionOp : public NaryNodeOp {
   public:
-    ConvolutionOp( const std::vector<Expr>& nodes)
-        : NaryNodeOp(nodes)
+    ConvolutionOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes)
     {
       CUDNN_CALL( cudnnCreate(&cudnnHandle_) );
 

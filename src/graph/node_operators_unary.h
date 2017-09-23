@@ -84,6 +84,46 @@ struct LogitNodeOp : public UnaryNodeOp {
   const std::string type() { return "logit"; }
 };
 
+//struct Scalar2PowNodeOp : public UnaryNodeOp {
+//private:
+//  float scalar_{0};
+//
+//public:
+//  template <typename... Args>
+//  Scalar2PowNodeOp(Expr a, float scalar, Args... args)
+//      : UnaryNodeOp(a, args...), scalar_{scalar} {}
+//
+//  NodeOps forwardOps() {
+//    return {NodeOp(Element(_1 = Pow(_2, scalar_), val_, child(0)->val()))};
+//  }
+//
+//  NodeOps backwardOps() {
+//    return {NodeOp(Add(scalar_ * Pow(_1, scalar_ - 1.f) * _2, child(0)->grad(), child(0)->val(), adj_))};
+//  }
+//
+//  const std::string type() { return "scalar_pow2"; }
+//};
+//
+//struct Scalar1PowNodeOp : public UnaryNodeOp {
+//private:
+//  float scalar_{0};
+//
+//public:
+//  template <typename... Args>
+//  Scalar1PowNodeOp(float scalar, Expr a, Args... args)
+//      : UnaryNodeOp(a, args...), scalar_{scalar} {}
+//
+//  NodeOps forwardOps() {
+//    return {NodeOp(Element(_1 = Pow(scalar_, _2), val_, child(0)->val()))};
+//  }
+//
+//  NodeOps backwardOps() {
+//    return {NodeOp(Add(Pow(scalar_, _1) * log(scalar_) * _2, child(0)->grad(), child(0)->val(), adj_))};
+//  }
+//
+//  const std::string type() { return "scalar_pow1"; }
+//};
+
 struct TanhNodeOp : public NaryNodeOp {
   TanhNodeOp(const std::vector<Expr>& nodes)
       : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}

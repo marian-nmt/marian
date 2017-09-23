@@ -276,6 +276,10 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Number of head in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
+    ("transformer-preprocess", po::value<std::string>()->default_value(""),
+     "Operation before each transformer layer: d = dropout, a = add, n = normalize")
+    ("transformer-postprocess", po::value<std::string>()->default_value("dan"),
+     "Operation after each transformer layer: d = dropout, a = add, n = normalize")
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -286,6 +290,10 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
        "Dropout source words (0 = no dropout)")
       ("dropout-trg", po::value<float>()->default_value(0),
        "Dropout target words (0 = no dropout)")
+      ("transformer-dropout", po::value<float>()->default_value(0),
+       "Dropout between transformer layers (0 = no dropout)")
+      ("transformer-dropout-attention", po::value<float>()->default_value(0),
+       "Dropout for transformer attention (0 = no dropout)")
     ;
   }
   // clang-format on
@@ -297,6 +305,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
   po::options_description training("Training options", guess_terminal_width());
   // clang-format off
   training.add_options()
+    ("cost-type", po::value<std::string>()->default_value("ce-mean"),
+      "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity")
     ("overwrite", po::value<bool>()->zero_tokens()->default_value(false),
       "Overwrite model with following checkpoints")
     ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
@@ -363,7 +373,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "This can option is only active when batch-flexible-lr is on. It determines number of words per batch that the learning rate corresponds to.")
     ("tau", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
-
+    ("label-smoothing", po::value<double>()->default_value(0),
+     "Epsilon for label smoothing (0 to disable)")
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
     ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
@@ -611,15 +622,23 @@ void ConfigParser::parseOptions(
   SET_OPTION("tied-embeddings-all", bool);
   SET_OPTION("layer-normalization", bool);
   SET_OPTION("transformer-heads", int);
+  SET_OPTION("transformer-preprocess", std::string);
+  SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-dim-ffn", int);
 
   SET_OPTION("best-deep", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
   if(mode_ == ConfigMode::training) {
+
+    SET_OPTION("cost-type", std::string);
+
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
+
+    SET_OPTION("transformer-dropout", float);
+    SET_OPTION("transformer-dropout-attention", float);
 
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
@@ -647,12 +666,13 @@ void ConfigParser::parseOptions(
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
 
+    SET_OPTION("label-smoothing", double);
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
 
     SET_OPTION("transformer-warmup", size_t);
-    
+
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);

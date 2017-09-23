@@ -140,7 +140,7 @@ Ptr<EncoderDecoder> by_type(std::string type,
     return models::encoder_decoder()
            (options)
            .push_back(models::encoder()
-                      ("type", "transformer_gru"))
+                      ("type", "transformer"))
            .push_back(models::decoder()
                       ("type", "s2s"))
            .construct();
