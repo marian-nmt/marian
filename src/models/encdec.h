@@ -241,12 +241,12 @@ public:
       "tied-embeddings-all",
     };
 
-    if(opt<std::string>("type") == "transformer") {
+    //if(opt<std::string>("type") == "transformer") {
       modelFeatures_.push_back("transformer-heads");
       modelFeatures_.push_back("transformer-dim-ffn");
       modelFeatures_.push_back("transformer-preprocess");
       modelFeatures_.push_back("transformer-postprocess");
-    }
+    //}
   }
 
   std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }

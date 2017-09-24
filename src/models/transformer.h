@@ -153,6 +153,7 @@ public:
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
+    //debug(weights, prefix);
 
     // optional dropout for attention weights
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout-attention");
@@ -362,11 +363,11 @@ public:
       layer = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
                              layer, layer, layer,
-                             layerMask);
+                             layerMask, inference_);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer);
+                       layer, inference_);
 
     }
 
@@ -448,16 +449,16 @@ public:
       layer = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
                              layer, layer, layer,
-                             selfMask);
+                             selfMask, inference_);
 
       layer = LayerAttention(graph, options_,
                              prefix_ + "_context_l" + std::to_string(i),
                              layer, encoderContext, encoderContext,
-                             encoderMask);
+                             encoderMask, inference_);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer);
+                       layer, inference_);
 
     }
 
