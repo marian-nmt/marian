@@ -212,6 +212,33 @@ public:
     auto kh = affine(k, Wk, bk);
     auto vh = affine(v, Wv, bv);
 
+    if(true) {
+      auto gammaq = graph->param(prefix + "_gammaq",
+                                 {1, dimModel},
+                                 init=inits::ones);
+      auto betaq = graph->param(prefix + "_betaq",
+                                {1, dimModel},
+                                init=inits::zeros);
+
+      auto gammak = graph->param(prefix + "_gammak",
+                                 {1, dimModel},
+                                 init=inits::ones);
+      auto betak = graph->param(prefix + "_betak",
+                                {1, dimModel},
+                                init=inits::zeros);
+
+      auto gammav = graph->param(prefix + "_gammav",
+                                 {1, dimModel},
+                                 init=inits::ones);
+      auto betav = graph->param(prefix + "_betav",
+                                {1, dimModel},
+                                init=inits::zeros);
+
+      qh = layer_norm(qh, gammaq, betaq);
+      kh = layer_norm(kh, gammak, betak);
+      vh = layer_norm(vh, gammav, betav);
+    }
+
     qh = SplitHeads(qh, dimHeads);
     kh = SplitHeads(kh, dimHeads);
     vh = SplitHeads(vh, dimHeads);
@@ -291,7 +318,20 @@ public:
     auto b2 = graph->param(prefix + "_b2", {1, dimModel},
                            init=inits::zeros);
 
-    output = relu(affine(output, W1, b1));
+    output = affine(output, W1, b1);
+
+    if(true) {
+      auto gamma1 = graph->param(prefix + "_gamma1",
+                                 {1, dimFfn},
+                                 init=inits::ones);
+      auto beta1 = graph->param(prefix + "_beta1",
+                                {1, dimFfn},
+                                init=inits::zeros);
+
+      output = layer_norm(output, gamma1, beta1);
+    }
+
+    output = relu(output);
     output = affine(output, W2, b2);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
@@ -365,10 +405,9 @@ public:
                              {1, dimSrcWords, dimBatch});
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, layer->shape());
-      layer = dropout(layer, keywords::mask = dropMask);
-    }
+    layer = PostProcess(graph, prefix_ + "_emb", "dn",
+                        layer, layer,
+                        dropProb);
 
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
@@ -450,10 +489,9 @@ public:
       selfMask = selfMask * decoderMask;
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, layer->shape());
-      layer = dropout(layer, keywords::mask = dropMask);
-    }
+    layer = PostProcess(graph, prefix_ + "_emb", "dn",
+                        layer, layer,
+                        dropProb);
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
