@@ -1108,7 +1108,8 @@ void LayerNormalizationGrad(Tensor gradX,
                             Tensor y,
                             Tensor x,
                             Tensor gamma,
-                            Tensor beta);
+                            Tensor beta,
+                            float eps = 1e-9);
 
 void Shift(Tensor out, Tensor in, ShapeGPU shift, bool invert = false);
 

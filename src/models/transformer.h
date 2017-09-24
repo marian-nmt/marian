@@ -120,13 +120,23 @@ public:
       if(op == 'a') {
         output = output + prevInput;
       }
+      // highway connection
+      if(op == 'h') {
+        auto Wh = graph->param(prefix + "_Wh", {dimModel, dimModel},
+                               init = inits::glorot_uniform);
+        auto bh = graph->param(prefix + "_bh", {1, dimModel},
+                               init = inits::zeros);
+
+        auto h = logit(affine(prevInput, Wh, bh));
+        output = output * h + prevInput * (1 - h);
+      }
       // layer normalization
       if(op == 'n') {
         auto scale = graph->param(prefix + "_ln_scale", {1, dimModel},
                                   init = inits::ones);
         auto bias = graph->param(prefix + "_ln_bias", {1, dimModel},
                                   init = inits::zeros);
-        output = layer_norm(output, scale, bias);
+        output = layer_norm(output, scale, bias, 1e-6);
       }
     }
     return output;
@@ -199,21 +209,24 @@ public:
                            {1, dimModel},
                            init=inits::zeros);
 
-    auto qh = SplitHeads(affine(q, Wq, bq), dimHeads);
-    auto kh = SplitHeads(affine(k, Wk, bk), dimHeads);
-    auto vh = SplitHeads(affine(v, Wv, bv), dimHeads);
+    auto qh = affine(q, Wq, bq);
+    auto kh = affine(k, Wk, bk);
+    auto vh = affine(v, Wv, bv);
+
+    qh = SplitHeads(qh, dimHeads);
+    kh = SplitHeads(kh, dimHeads);
+    vh = SplitHeads(vh, dimHeads);
 
     // apply multi-head attention to downscaled inputs
     auto output = Attention(graph, options, prefix, qh, kh, vh, mask, inference);
     output = JoinHeads(output);
 
-    if(dimModel != dimOut) {
-      auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
-                             init=inits::glorot_uniform);
-      auto bo = graph->param(prefix + "_bo", {1, dimOut},
-                             init=inits::zeros);
-      output = affine(output, Wo, bo);
-    }
+    auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
+                           init=inits::glorot_uniform);
+    auto bo = graph->param(prefix + "_bo", {1, dimOut},
+                           init=inits::zeros);
+    output = affine(output, Wo, bo);
+
     return output;
   }
 
