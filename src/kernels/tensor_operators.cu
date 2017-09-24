@@ -1637,7 +1637,8 @@ void LayerNormalizationGrad(Tensor gradX,
                             Tensor y,
                             Tensor x,
                             Tensor gamma,
-                            Tensor beta) {
+                            Tensor beta,
+                            float eps) {
   cudaSetDevice(adj->getDevice());
   int rows = y->shape()[0] * y->shape()[2] * y->shape()[3];
   int cols = y->shape()[1];
@@ -1656,7 +1657,7 @@ void LayerNormalizationGrad(Tensor gradX,
       gamma->data(),
       (beta) ? beta->data() : nullptr,
       rows,
-      cols);
+      cols, eps);
 }
 
 __global__ void gShift(float* out, const float* in, int length, int offset) {
