@@ -1,12 +1,15 @@
 #include <vector>
 
+#include <boost/filesystem.hpp>
+
+#include "common/config.h"
 #include "examples/iris/helper.cpp"
 #include "marian.h"
-#include "common/config.h"
 
 using namespace marian;
 using namespace data;
 using namespace keywords;
+
 
 // Constants for Iris example
 const size_t MAX_EPOCHS = 200;
@@ -58,10 +61,15 @@ int main() {
   // Disable randomness by setting a fixed seed for random number generator
   Config::seed = 123456;
 
+  // Get path do data set
+  std::string dataPath
+      = (boost::filesystem::path(__FILE__).parent_path() / "iris.data")
+            .string();
+
   // Read data set (all 150 examples)
   std::vector<float> trainX;
   std::vector<float> trainY;
-  readIrisData("../src/examples/iris/iris.data", trainX, trainY);
+  readIrisData(dataPath, trainX, trainY);
 
   // Split shuffled data into training data (120 examples) and test data (rest
   // 30 examples)
