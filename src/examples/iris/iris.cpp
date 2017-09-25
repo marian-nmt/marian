@@ -2,6 +2,7 @@
 
 #include "examples/iris/helper.cpp"
 #include "marian.h"
+#include "common/config.h"
 
 using namespace marian;
 using namespace data;
@@ -54,6 +55,9 @@ int main() {
   // Initialize global settings
   createLoggers();
 
+  // Disable randomness by setting a fixed seed for random number generator
+  Config::seed = 123456;
+
   // Read data set (all 150 examples)
   std::vector<float> trainX;
   std::vector<float> trainY;
@@ -84,7 +88,7 @@ int main() {
 
       // Build classifier
       auto cost = buildIrisClassifier(graph, trainX, trainY, true);
-      
+
       // Train classifier and update weights
       graph->forward();
       graph->backward();

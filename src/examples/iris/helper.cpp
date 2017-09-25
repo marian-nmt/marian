@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "common/config.h"
+
 // Constants for Iris example
 const int NUM_FEATURES = 4;
 const int NUM_LABELS = 3;
@@ -43,6 +45,7 @@ void shuffleData(std::vector<float>& features, std::vector<float>& labels) {
     indeces.push_back(i);
 
   // Shuffle indeces
+  std::srand(marian::Config::seed);
   std::random_shuffle(indeces.begin(), indeces.end());
 
   std::vector<float> featuresTemp;
