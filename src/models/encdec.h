@@ -362,9 +362,9 @@ public:
     else if(costType == "ce-sum") {
       cost = sum(sum(ce, axis=2), axis=0);
     }
-    //else if(costType == "perplexity") {
-    //  cost = pow(2.f, sum(sum(ce, axis=2), axis=0) / sum(sum(trgMask, axis=2), axis=0));
-    //}
+    else if(costType == "perplexity") {
+      cost = exp(sum(sum(ce, axis=2), axis=0) / sum(sum(trgMask, axis=2), axis=0));
+    }
     else { // same as ce-mean
       cost = mean(sum(ce, axis=2), axis=0);
     }

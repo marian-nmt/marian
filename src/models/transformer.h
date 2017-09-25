@@ -125,8 +125,7 @@ public:
         auto Wh = graph->param(prefix + "_Wh", {dimModel, dimModel},
                                init = inits::glorot_uniform);
         auto bh = graph->param(prefix + "_bh", {1, dimModel},
-                               init = inits::from_value(-1.f));
-
+                               init = inits::from_value(-5.f));
         output = highway(output, prevInput, affine(prevInput, Wh, bh));
       }
       // layer normalization
