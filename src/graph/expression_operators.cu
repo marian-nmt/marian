@@ -210,6 +210,11 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta, float eps) {
   return Expression<LayerNormalizationOp>(nodes, eps);
 }
 
+Expr highway(Expr y, Expr x, Expr t) {
+  std::vector<Expr> nodes = {y, x, t};
+  return Expression<HighwayNodeOp>(nodes);
+}
+
 // Expr batch_norm(Expr x, Expr gamma, Expr beta) {
 //  auto mju = mean(x, keywords::axis=0);
 //  auto xmmju = x - mju;

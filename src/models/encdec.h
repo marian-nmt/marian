@@ -35,7 +35,7 @@ public:
   EncoderBase(Ptr<Options> options)
   : options_(options),
     prefix_(options->get<std::string>("prefix", "encoder")),
-    inference_(options->get<bool>("inference", true)),
+    inference_(options->get<bool>("inference", false)),
     batchIndex_(options->get<size_t>("index", 0)) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>,

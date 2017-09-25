@@ -90,6 +90,8 @@ Expr square(Expr a);
 
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps=1e-9);
 
+Expr highway(Expr y, Expr x, Expr t);
+
 template <typename... Args>
 Expr dropout(Expr x, Args... args) {
   auto mask = Get(keywords::mask, nullptr, args...);

@@ -546,6 +546,32 @@ public:
   const std::string type() { return "layer_normalization"; }
 };
 
+struct HighwayNodeOp : public NaryNodeOp {
+  HighwayNodeOp(const std::vector<Expr>& nodes)
+  : NaryNodeOp(nodes) {}
+
+  NodeOps forwardOps() {
+    return {NodeOp(HighwayForward(
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        child(2)->val()))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(HighwayBackward(
+        child(0)->grad(),
+        child(1)->grad(),
+        child(2)->grad(),
+        child(0)->val(),
+        child(1)->val(),
+        child(2)->val(),
+        adj_))};
+  }
+
+  const std::string type() { return "highway"; }
+};
+
 #ifdef CUDNN
 class ConvolutionOp : public NaryNodeOp {
   public:

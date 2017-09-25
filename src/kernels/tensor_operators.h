@@ -1116,4 +1116,11 @@ void Shift(Tensor out, Tensor in, ShapeGPU shift, bool invert = false);
 void SetSparse(float*,
                const std::vector<size_t>& indeces,
                const std::vector<float>& values);
+
+void HighwayForward(Tensor out,
+                    const Tensor in1, const Tensor in2, const Tensor t);
+
+void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
+                     const Tensor in1, const Tensor in2, const Tensor t,
+                     const Tensor adj);
 }

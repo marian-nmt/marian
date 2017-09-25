@@ -2025,4 +2025,75 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
       cols);
 }
 
+__global__ void gHighwayForward(float* out,
+                                const float* in1,
+                                const float* in2,
+                                const float* t,
+                                size_t length) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      float sigma = 1.f / (1.f + expf(-t[index]));
+      out[index] = in1[index] * sigma + in2[index] * (1.f - sigma);
+    }
+  }
+}
+
+
+void HighwayForward(Tensor out,
+                    const Tensor in1, const Tensor in2, const Tensor t) {
+  cudaSetDevice(out->getDevice());
+
+  int length = out->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  gHighwayForward<<<blocks, threads>>>(out->data(),
+                                       in1->data(),
+                                       in2->data(),
+                                       t->data(),
+                                       length);
+}
+
+__global__ void gHighwayBackward(float* out1,
+                                 float* out2,
+                                 float* outt,
+                                 const float* in1,
+                                 const float* in2,
+                                 const float* t,
+                                 const float* adj,
+                                 size_t length) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      float sigma = 1.f / (1.f + expf(-t[index]));
+      out1[index] = sigma * adj[index];
+      out2[index] = (1.f - sigma) * adj[index];
+      outt[index] = sigma * (1.f - sigma) * (in1[index] - in2[index]) * adj[index];
+    }
+  }
+}
+
+void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
+                     const Tensor in1, const Tensor in2, const Tensor t,
+                     const Tensor adj) {
+  cudaSetDevice(out1->getDevice());
+
+  int length = out1->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  gHighwayBackward<<<blocks, threads>>>(out1->data(),
+                                        out2->data(),
+                                        outt->data(),
+                                        in1->data(),
+                                        in2->data(),
+                                        t->data(),
+                                        adj->data(),
+                                        length);
+}
+
+
 }  // namespace marian
