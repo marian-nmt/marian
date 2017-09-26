@@ -14,46 +14,41 @@ namespace marian {
 class OptimizerBase : public TrainingObserver {
 public:
   OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
-      : clipper_(clipper), eta_(eta) {}
+      : eta_(eta), clipper_(clipper) {}
 
-  void update(Ptr<ExpressionGraph> graph, float multiply_factor_ = 1.0f) {
+  void update(Ptr<ExpressionGraph> graph, float multiplyFactor = 1.0f) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
 
-    update(p, g, multiply_factor_);
+    update(p, g, multiplyFactor);
   }
 
-  void update(Tensor params, Tensor grads, float multiply_factor_ = 1.0f) {
+  void update(Tensor params, Tensor grads, float multiplyFactor = 1.0f) {
     if(clipper_)
       clipper_->clip(grads);
 
     // In case we want to add a multiply factor to our learning rate
-    multiply_factor = multiply_factor_;
+    multiplyFactor_ = multiplyFactor;
 
     updateImpl(params, grads);
   }
 
-  void actAfterEpoch(TrainingState& state) {
-    eta_ = state.eta;
-  }
-  void actAfterBatches(TrainingState& state) {
-    eta_ = state.eta;
-  }
-  void actAfterStalled(TrainingState& state) {
-    eta_ = state.eta;
-  }
+  void actAfterEpoch(TrainingState& state) { eta_ = state.eta; }
+  void actAfterBatches(TrainingState& state) { eta_ = state.eta; }
+  void actAfterStalled(TrainingState& state) { eta_ = state.eta; }
 
-  void setParams(const std::vector<float>& params) {
-    parseParams(params);
-  }
+  void setParams(const std::vector<float>& params) { parseParams(params); }
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
   virtual void parseParams(const std::vector<float>& params) = 0;
 
-  Ptr<ClipperBase> clipper_;
+  // Learning rate
   float eta_;
-  float multiply_factor;  // Compensates for larger batch
+  // Compensates for larger batch
+  float multiplyFactor_;
+  // Clip gradient norm
+  Ptr<ClipperBase> clipper_;
 };
 
 class Sgd : public OptimizerBase {
