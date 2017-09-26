@@ -116,53 +116,7 @@ public:
     builder_->save(graph, model + ".best-" + type() + ".npz", true);
   }
 
-  std::string type() { return "cross-entropy"; }
-};
-
-template <class Builder>
-class PerplexityValidator : public Validator<data::Corpus> {
-private:
-  Ptr<Builder> builder_;
-
-public:
-  template <class... Args>
-  PerplexityValidator(std::vector<Ptr<Vocab>> vocabs,
-                      Ptr<Config> options,
-                      Args... args)
-      : Validator(vocabs, options) {
-
-    Ptr<Options> temp = New<Options>();
-    temp->merge(options);
-    temp->set("inference", true);
-    builder_ = models::from_options(temp);
-
-    initLastBest();
-  }
-
-  virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
-    float cost = 0;
-    size_t words = 0;
-
-    while(*batchGenerator) {
-      auto batch = batchGenerator->next();
-      auto costNode = builder_->build(graph, batch);
-      graph->forward();
-
-      cost += costNode->scalar() * batch->size();
-      words += batch->words();
-    }
-
-    return expf(cost / words);
-  }
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
-  }
-
-  std::string type() { return "perplexity"; }
+  std::string type() { return options_->get<std::string>("cost-type"); }
 };
 
 template <class Builder>
@@ -330,32 +284,36 @@ public:
 
 template <class Builder, class... Args>
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
-    std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options, Args... args) {
+    std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config, Args... args) {
   std::vector<Ptr<Validator<data::Corpus>>> validators;
 
-  auto validMetrics = options->get<std::vector<std::string>>("valid-metrics");
+  auto validMetrics = config->get<std::vector<std::string>>("valid-metrics");
+
+  std::vector<std::string> ceMetrics = {
+    "cross-entropy", "ce-mean", "ce-sum",
+    "ce-mean-words", "perplexity"
+  };
 
   for(auto metric : validMetrics) {
-    if(metric == "cross-entropy") {
+    if(std::find(ceMetrics.begin(), ceMetrics.end(), metric) != ceMetrics.end()) {
+      Ptr<Config> temp = New<Config>(*config);
+      temp->set("cost-type", metric);
+
       auto validator
-          = New<CrossEntropyValidator<Builder>>(vocabs, options, args...);
-      validators.push_back(validator);
-    }
-    if(metric == "perplexity") {
-      auto validator
-          = New<PerplexityValidator<Builder>>(vocabs, options, args...);
+          = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
       validators.push_back(validator);
     }
     if(metric == "valid-script") {
-      auto validator = New<ScriptValidator<Builder>>(vocabs, options, args...);
+      auto validator = New<ScriptValidator<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
     }
     if(metric == "s2s") {
-      auto validator = New<S2SValidator<Builder>>(vocabs, options, args...);
+      auto validator = New<S2SValidator<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
     }
   }
 
   return validators;
 }
+
 }

@@ -225,21 +225,8 @@ struct EmbeddingFactory : public Factory {
 
 typedef Accumulator<EmbeddingFactory> embedding;
 
-class CrossEntropyCost {
-public:
-  CrossEntropyCost(const std::string name) {}
+Expr Cost(Expr logits, Expr indices, Expr mask,
+          std::string costType = "cross-entropy",
+          float smoothing = 0);
 
-  template <typename... Args>
-  Expr operator()(Expr in, Expr picks, Args... args) {
-    auto mask = Get(keywords::mask, nullptr, args...);
-
-    auto ce = cross_entropy(in, picks);
-
-    if(mask)
-      ce = ce * mask;
-
-    auto cost = mean(sum(ce, keywords::axis = 2), keywords::axis = 0);
-    return cost;
-  }
-};
 }

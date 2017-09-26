@@ -23,6 +23,7 @@ public:
   int stalled{0};
   int maxStalled{0};
   float eta;
+  float factor{1.f};
   bool reset{false};
 
   TrainingState(Ptr<Config> options) : eta(options->get<float>("learn-rate")) {}

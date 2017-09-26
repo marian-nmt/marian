@@ -278,6 +278,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Size of position-wise feed-forward network (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
+    ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
+     "Operation after transformer embedding layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess", po::value<std::string>()->default_value("dan"),
      "Operation after each transformer layer: d = dropout, a = add, n = normalize")
     ;
@@ -381,10 +383,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Maintain and save moving average of parameters")
     ("moving-decay", po::value<double>()->default_value(0.9999, "0.9999"),
      "Decay factor for moving average")
-    //("moving-inject-freq", po::value<size_t>()->default_value(0),
-    // "Replace model parameters with moving average every  arg  updates (0 to disable)")
-    //("lexical-table", po::value<std::string>(),
-    // "Load lexical table")
 
     ("guided-alignment", po::value<std::string>(),
      "Use guided alignment to guide attention")
@@ -411,8 +409,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
-    ("transformer-warmup", po::value<size_t>()->default_value(0),
-     "Use transformer-specific learning-rate schedule with arg warm-up steps if arg > 0")
+    ("lr-warmup", po::value<size_t>()->default_value(0),
+     "Increase learning rate linearly for arg first steps")
   ;
   // clang-format on
   desc.add(training);
@@ -624,6 +622,7 @@ void ConfigParser::parseOptions(
   SET_OPTION("transformer-heads", int);
   SET_OPTION("transformer-preprocess", std::string);
   SET_OPTION("transformer-postprocess", std::string);
+  SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
 
   SET_OPTION("best-deep", bool);
@@ -663,6 +662,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-start", std::vector<size_t>);
     SET_OPTION("lr-decay-freq", size_t);
     SET_OPTION("lr-decay-reset-optimizer", bool);
+    SET_OPTION("lr-warmup", size_t);
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
 
@@ -670,8 +670,6 @@ void ConfigParser::parseOptions(
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);
     SET_OPTION("moving-decay", double);
-
-    SET_OPTION("transformer-warmup", size_t);
 
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);

@@ -125,8 +125,10 @@ public:
         auto Wh = graph->param(prefix + "_Wh", {dimModel, dimModel},
                                init = inits::glorot_uniform);
         auto bh = graph->param(prefix + "_bh", {1, dimModel},
-                               init = inits::from_value(-5.f));
-        output = highway(output, prevInput, affine(prevInput, Wh, bh));
+                               init = inits::zeros);
+
+        auto h = logit(affine(prevInput, Wh, bh));
+        output = output * h + prevInput * (1 - h);
       }
       // layer normalization
       if(op == 'n') {
@@ -161,7 +163,6 @@ public:
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
-    //debug(weights, prefix);
 
     // optional dropout for attention weights
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout-attention");
@@ -210,33 +211,6 @@ public:
     auto qh = affine(q, Wq, bq);
     auto kh = affine(k, Wk, bk);
     auto vh = affine(v, Wv, bv);
-
-    if(true) {
-      auto gammaq = graph->param(prefix + "_gammaq",
-                                 {1, dimModel},
-                                 init=inits::ones);
-      auto betaq = graph->param(prefix + "_betaq",
-                                {1, dimModel},
-                                init=inits::zeros);
-
-      auto gammak = graph->param(prefix + "_gammak",
-                                 {1, dimModel},
-                                 init=inits::ones);
-      auto betak = graph->param(prefix + "_betak",
-                                {1, dimModel},
-                                init=inits::zeros);
-
-      auto gammav = graph->param(prefix + "_gammav",
-                                 {1, dimModel},
-                                 init=inits::ones);
-      auto betav = graph->param(prefix + "_betav",
-                                {1, dimModel},
-                                init=inits::zeros);
-
-      qh = layer_norm(qh, gammaq, betaq);
-      kh = layer_norm(kh, gammak, betak);
-      vh = layer_norm(vh, gammav, betav);
-    }
 
     qh = SplitHeads(qh, dimHeads);
     kh = SplitHeads(kh, dimHeads);
@@ -318,18 +292,6 @@ public:
                            init=inits::zeros);
 
     output = affine(output, W1, b1);
-
-    if(true) {
-      auto gamma1 = graph->param(prefix + "_gamma1",
-                                 {1, dimFfn},
-                                 init=inits::ones);
-      auto beta1 = graph->param(prefix + "_beta1",
-                                {1, dimFfn},
-                                init=inits::zeros);
-
-      output = layer_norm(output, gamma1, beta1);
-    }
-
     output = relu(output);
     output = affine(output, W2, b2);
 
@@ -403,21 +365,21 @@ public:
     auto layerMask = reshape(TransposeTimeBatch(batchMask),
                              {1, dimSrcWords, dimBatch});
 
+    auto opsEmb = opt<std::string>("transformer-postprocess-emb");
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    layer = PostProcess(graph, prefix_ + "_emb", "dn",
-                        layer, layer,
-                        dropProb);
+    layer = PreProcess(graph, prefix_ + "_emb", opsEmb,
+                       layer, dropProb);
 
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
       layer = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
                              layer, layer, layer,
-                             layerMask, inference_);
+                             layerMask);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer, inference_);
+                       layer);
 
     }
 
@@ -463,34 +425,31 @@ public:
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
 
     auto encoderState = state->getEncoderStates()[0];
-
     auto encoderContext = encoderState->getContext();
     auto encoderMask = encoderState->getMask();
-
-    int dimSrcWords = encoderContext->shape()[2];
     int dimBatch = encoderContext->shape()[0];
+    int dimSrcWords = encoderContext->shape()[2];
 
     // keep this around during steps
     encoderContext = TransposeTimeBatch(encoderContext);
     encoderMask = reshape(TransposeTimeBatch(encoderMask),
                           {1, dimSrcWords, dimBatch});
 
-    if(decoderMask)
-      decoderMask = reshape(TransposeTimeBatch(decoderMask),
-                            {1, dimTrgWords, dimBatch});
-
     // reorganize batch and timestep
     auto layer = TransposeTimeBatch(scaledEmbeddings);
 
     auto selfMask = TriangleMask(graph, dimTrgWords);
 
-    if(decoderMask)
+    if(decoderMask) {
+      decoderMask = reshape(TransposeTimeBatch(decoderMask),
+                            {1, dimTrgWords, dimBatch});
       selfMask = selfMask * decoderMask;
+    }
 
+    auto opsEmb = opt<std::string>("transformer-postprocess-emb");
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    layer = PostProcess(graph, prefix_ + "_emb", "dn",
-                        layer, layer,
-                        dropProb);
+    layer = PreProcess(graph, prefix_ + "_emb", opsEmb,
+                       layer, dropProb);
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
@@ -498,16 +457,16 @@ public:
       layer = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
                              layer, layer, layer,
-                             selfMask, inference_);
+                             selfMask);
 
       layer = LayerAttention(graph, options_,
                              prefix_ + "_context_l" + std::to_string(i),
                              layer, encoderContext, encoderContext,
-                             encoderMask, inference_);
+                             encoderMask);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer, inference_);
+                       layer);
 
     }
 

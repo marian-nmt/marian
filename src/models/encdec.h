@@ -241,12 +241,12 @@ public:
       "tied-embeddings-all",
     };
 
-    //if(opt<std::string>("type") == "transformer") {
-      modelFeatures_.push_back("transformer-heads");
-      modelFeatures_.push_back("transformer-dim-ffn");
-      modelFeatures_.push_back("transformer-preprocess");
-      modelFeatures_.push_back("transformer-postprocess");
-    //}
+    modelFeatures_.push_back("transformer-heads");
+    modelFeatures_.push_back("transformer-dim-ffn");
+    modelFeatures_.push_back("transformer-preprocess");
+    modelFeatures_.push_back("transformer-postprocess");
+    modelFeatures_.push_back("transformer-postprocess-emb");
+
   }
 
   std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
@@ -337,37 +337,12 @@ public:
     auto nextState = step(graph, state);
 
     auto logits = nextState->getProbs();
-    auto ce = cross_entropy(logits, trgIdx);
 
-    if(!inference_) {
-      float ls = opt<float>("label-smoothing");
-      if(ls > 0) {
-        // @TODO: add this to CE kernels instead
-        auto ceq = -mean(logsoftmax(logits), axis=1);
-        ce = (1 - ls) * ce + ls * ceq;
-      }
-    }
+    std::string costType = opt<std::string>("cost-type");
+    float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
-    if(trgMask)
-      ce = ce * trgMask;
-
-    Expr cost;
-    auto costType = opt<std::string>("cost-type");
-    if(costType == "ce-mean") {
-      cost = mean(sum(ce, axis=2), axis=0);
-    }
-    else if(costType == "ce-mean-words") {
-      cost = sum(sum(ce, axis=2), axis=0) / sum(sum(trgMask, axis=2), axis=0);
-    }
-    else if(costType == "ce-sum") {
-      cost = sum(sum(ce, axis=2), axis=0);
-    }
-    else if(costType == "perplexity") {
-      cost = exp(sum(sum(ce, axis=2), axis=0) / sum(sum(trgMask, axis=2), axis=0));
-    }
-    else { // same as ce-mean
-      cost = mean(sum(ce, axis=2), axis=0);
-    }
+    auto cost = Cost(logits, trgIdx, trgMask,
+                     costType, ls);
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();
