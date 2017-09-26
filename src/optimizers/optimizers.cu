@@ -66,16 +66,16 @@ Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
 
-  float lrate = options->get<double>("learn-rate");
-
-  std::string opt = options->get<std::string>("optimizer");
+  auto lrate = options->get<double>("learn-rate");
+  auto params = options->get<std::vector<float>>("optimizer-params");
+  auto opt = options->get<std::string>("optimizer");
 
   if(opt == "sgd") {
-    return Optimizer<Sgd>(lrate, keywords::clip = clipper);
+    return Optimizer<Sgd>(lrate, params, keywords::clip = clipper);
   } else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(lrate, keywords::clip = clipper);
+    return Optimizer<Adagrad>(lrate, params, keywords::clip = clipper);
   } else if(opt == "adam") {
-    return Optimizer<Adam>(lrate, keywords::clip = clipper);
+    return Optimizer<Adam>(lrate, params, keywords::clip = clipper);
   } else {
     UTIL_THROW2("Unknown optimizer: " << opt);
   }

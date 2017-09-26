@@ -28,7 +28,9 @@ public:
     if(clipper_)
       clipper_->clip(grads);
 
-    multiply_factor = multiply_factor_; //In case we want to add a multiply factor to our learning rate
+    //In case we want to add a multiply factor to our learning rate
+    multiply_factor = multiply_factor_;
+
     updateImpl(params, grads);
   }
 
@@ -41,6 +43,8 @@ public:
   void actAfterStalled(TrainingState& state) {
     eta_ = state.eta;
   }
+
+  virtual void parseParams(const std::vector<float>& params) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -98,11 +102,24 @@ private:
   Tensor mt_;
   Ptr<TensorAllocator> vtAlloc_;
   Tensor vt_;
+
+  virtual void parseParams(const std::vector<float>& params) {
+    if(params.size() > 0)
+      beta1_ = params[0];
+    if(params.size() > 1)
+      beta2_ = params[1];
+    if(params.size() > 2)
+      eps_ = params[2];
+  }
 };
 
 template <class Algorithm, typename... Args>
-Ptr<OptimizerBase> Optimizer(float eta, Args&&... args) {
-  return Ptr<OptimizerBase>(new Algorithm(eta, args...));
+Ptr<OptimizerBase> Optimizer(float eta,
+                             std::vector<float> params = {},
+                             Args&&... args) {
+  auto opt = Ptr<OptimizerBase>(new Algorithm(eta, args...));
+  opt->parseParams(params);
+  return opt;
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options);
