@@ -336,12 +336,12 @@ public:
 
     auto nextState = step(graph, state);
 
-    auto logits = nextState->getProbs();
-
     std::string costType = opt<std::string>("cost-type");
     float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
-    auto cost = Cost(logits, trgIdx, trgMask,
+    auto cost = Cost(nextState->getProbs(),
+                     trgIdx,
+                     trgMask,
                      costType, ls);
 
     if(options_->has("guided-alignment") && !inference_) {

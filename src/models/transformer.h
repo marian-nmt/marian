@@ -127,8 +127,8 @@ public:
         auto bh = graph->param(prefix + "_bh", {1, dimModel},
                                init = inits::zeros);
 
-        auto h = logit(affine(prevInput, Wh, bh));
-        output = output * h + prevInput * (1 - h);
+        auto t = affine(prevInput, Wh, bh);
+        output = highway(output, prevInput, t);
       }
       // layer normalization
       if(op == 'n') {
