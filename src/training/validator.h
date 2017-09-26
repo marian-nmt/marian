@@ -299,8 +299,7 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
       Ptr<Config> temp = New<Config>(*config);
       temp->set("cost-type", metric);
 
-      auto validator
-          = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
+      auto validator = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
       validators.push_back(validator);
     }
     if(metric == "valid-script") {
