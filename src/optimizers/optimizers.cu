@@ -61,21 +61,22 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
+  auto lrate = options->get<double>("learn-rate");
+  auto params = options->get<std::vector<float>>("optimizer-params");
+
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = options->get<double>("clip-norm");
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
 
-  auto lrate = options->get<double>("learn-rate");
-  auto params = options->get<std::vector<float>>("optimizer-params");
   auto opt = options->get<std::string>("optimizer");
 
   if(opt == "sgd") {
-    return Optimizer<Sgd>(lrate, params, keywords::clip = clipper);
+    return Optimizer<Sgd>(lrate, clipper, params);
   } else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(lrate, params, keywords::clip = clipper);
+    return Optimizer<Adagrad>(lrate, clipper, params);
   } else if(opt == "adam") {
-    return Optimizer<Adam>(lrate, params, keywords::clip = clipper);
+    return Optimizer<Adam>(lrate, clipper, params);
   } else {
     UTIL_THROW2("Unknown optimizer: " << opt);
   }
