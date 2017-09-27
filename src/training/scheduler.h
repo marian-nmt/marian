@@ -168,8 +168,18 @@ public:
     float lr = options_->get<float>("learn-rate");
 
     size_t warmup = options_->get<size_t>("lr-warmup");
+    size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
+
+    UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
+                   "Only use one warmup strategy")
+
     if(warmup > state.batches) {
       float mult = (float)state.batches / (float)warmup;
+      lr = lr * mult;
+    }
+    if(warmupGoogle > state.batches) {
+      float mult = std::min(state.batches * pow(warmupGoogle, -1.5),
+                            pow(state.batches, -0.5));
       lr = lr * mult;
     }
 
@@ -222,8 +232,18 @@ public:
     float lr = options_->get<float>("learn-rate");
 
     size_t warmup = options_->get<size_t>("lr-warmup");
+    size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
+
+    UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
+                   "Only use one warmup strategy")
+
     if(warmup > state.batches) {
       float mult = (float)state.batches / (float)warmup;
+      lr = lr * mult;
+    }
+    if(warmupGoogle > state.batches) {
+      float mult = std::min(state.batches * pow(warmupGoogle, -1.5),
+                            pow(state.batches, -0.5));
       lr = lr * mult;
     }
 
@@ -259,8 +279,19 @@ public:
     float lr = options_->get<float>("learn-rate");
 
     size_t warmup = options_->get<size_t>("lr-warmup");
+    size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
+
+    UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
+                   "Only use one warmup strategy")
+
     if(warmup > state.batches) {
       float mult = (float)state.batches / (float)warmup;
+      lr = lr * mult;
+    }
+    if(warmupGoogle > state.batches) {
+      float mult = std::min(state.batches * pow(warmupGoogle, -1.5),
+                            pow(state.batches, -0.5))
+                   * pow(warmupGoogle, 0.5);
       lr = lr * mult;
     }
 
@@ -270,7 +301,7 @@ public:
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
         int startStalled
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
-        if(startStalled && state.stalled >= startStalled) {
+        if(startStalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
           state.eta = lr * state.factor;
           LOG(info)

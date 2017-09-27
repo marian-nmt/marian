@@ -411,6 +411,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Fix target embeddings. Affects all decoders")
     ("lr-warmup", po::value<size_t>()->default_value(0),
      "Increase learning rate linearly for arg first steps")
+    ("lr-warmup-google", po::value<size_t>()->default_value(0),
+     "Increase learning rate linearly for arg first steps")
   ;
   // clang-format on
   desc.add(training);
@@ -663,6 +665,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-freq", size_t);
     SET_OPTION("lr-decay-reset-optimizer", bool);
     SET_OPTION("lr-warmup", size_t);
+    SET_OPTION("lr-warmup-google", size_t);
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
 
