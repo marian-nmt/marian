@@ -160,9 +160,11 @@ public:
     mask = (1 - mask) * -99999999.f;
     mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
 
+    auto kt = transpose(k, {1, 0, 2, 3});
+
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
-    auto weights = softmax(bdot(q, k, false, true, scale) + mask);
+    auto weights = softmax(bdot(q, kt, false, false, scale) + mask);
 
     // optional dropout for attention weights
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout-attention");
@@ -211,33 +213,6 @@ public:
     auto qh = affine(q, Wq, bq);
     auto kh = affine(k, Wk, bk);
     auto vh = affine(v, Wv, bv);
-
-    if(true) {
-      auto gammaq = graph->param(prefix + "_gammaq",
-                                 {1, dimModel},
-                                 init=inits::ones);
-      auto betaq = graph->param(prefix + "_betaq",
-                                {1, dimModel},
-                                init=inits::zeros);
-
-      auto gammak = graph->param(prefix + "_gammak",
-                                 {1, dimModel},
-                                 init=inits::ones);
-      auto betak = graph->param(prefix + "_betak",
-                                {1, dimModel},
-                                init=inits::zeros);
-
-      auto gammav = graph->param(prefix + "_gammav",
-                                 {1, dimModel},
-                                 init=inits::ones);
-      auto betav = graph->param(prefix + "_betav",
-                                {1, dimModel},
-                                init=inits::zeros);
-
-      qh = layer_norm(qh, gammaq, betaq);
-      kh = layer_norm(kh, gammak, betak);
-      vh = layer_norm(vh, gammav, betav);
-    }
 
     qh = SplitHeads(qh, dimHeads);
     kh = SplitHeads(kh, dimHeads);
@@ -319,18 +294,6 @@ public:
                            init=inits::zeros);
 
     output = affine(output, W1, b1);
-
-    if(true) {
-      auto gamma1 = graph->param(prefix + "_gamma1",
-                                 {1, dimFfn},
-                                 init=inits::ones);
-      auto beta1 = graph->param(prefix + "_beta1",
-                                {1, dimFfn},
-                                init=inits::zeros);
-
-      output = layer_norm(output, gamma1, beta1);
-    }
-
     output = relu(output);
     output = affine(output, W2, b2);
 

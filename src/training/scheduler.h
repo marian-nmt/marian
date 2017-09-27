@@ -270,7 +270,7 @@ public:
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
         int startStalled
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
-        if(startStalled && state.stalled >= startStalled) {
+        if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
           state.eta = lr * state.factor;
           LOG(info)
