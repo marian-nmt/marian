@@ -123,7 +123,7 @@ public:
         LOG(info)
             ->info(
                 "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-                "words/s : L.r. {:.6f}",
+                "words/s : L.r. {:.4e}",
                 epochs,
                 batches,
                 samples,
