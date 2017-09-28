@@ -6,16 +6,16 @@ namespace marian {
 
 class EncoderBase {
 protected:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::string prefix_{"encoder"};
   bool inference_{false};
+  size_t batchIndex_{0};
 
   virtual std::tuple<Expr, Expr> lookup(Expr srcEmbeddings,
-                                        Ptr<data::CorpusBatch> batch,
-                                        size_t index) {
+                                        Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
-    auto subBatch = (*batch)[index];
+    auto subBatch = (*batch)[batchIndex_];
 
     int dimBatch = subBatch->batchSize();
     int dimEmb = srcEmbeddings->shape()[1];
@@ -32,46 +32,49 @@ protected:
   }
 
 public:
-  template <class... Args>
-  EncoderBase(Ptr<Config> options, Args... args)
-      : options_(options),
-        prefix_(Get(keywords::prefix, "encoder", args...)),
-        inference_(Get(keywords::inference, false, args...)) {}
+  EncoderBase(Ptr<Options> options)
+  : options_(options),
+    prefix_(options->get<std::string>("prefix", "encoder")),
+    inference_(options->get<bool>("inference", true)),
+    batchIndex_(options->get<size_t>("index", 0)) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>,
-                                  Ptr<data::CorpusBatch>,
-                                  size_t) = 0;
+                                  Ptr<data::CorpusBatch>) = 0;
 
   template <typename T>
   T opt(const std::string& key) {
     return options_->get<T>(key);
   }
+
+  virtual void clear() = 0;
 };
 
 class DecoderBase {
 protected:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::string prefix_{"decoder"};
-
   bool inference_{false};
+  size_t batchIndex_{1};
 
 public:
-  template <class... Args>
-  DecoderBase(Ptr<Config> options, Args... args)
+  DecoderBase(Ptr<Options> options)
       : options_(options),
-        prefix_(Get(keywords::prefix, "decoder", args...)),
-        inference_(Get(keywords::inference, false, args...)) {}
+        prefix_(options->get<std::string>("prefix", "decoder")),
+        inference_(options->get<bool>("inference", false)),
+        batchIndex_(options->get<size_t>("index", 1)) {}
 
-  virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) = 0;
+  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph>,
+                                       Ptr<data::CorpusBatch> batch,
+                                       std::vector<Ptr<EncoderState>>&) = 0;
+
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
   virtual std::tuple<Expr, Expr> groundTruth(Ptr<DecoderState> state,
                                              Ptr<ExpressionGraph> graph,
-                                             Ptr<data::CorpusBatch> batch,
-                                             size_t index) {
+                                             Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
-    int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
     auto yEmbFactory = embedding(graph)
@@ -89,13 +92,13 @@ public:
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       yEmbFactory
-        ("embFile", embFiles[index])
+        ("embFile", embFiles[batchIndex_])
         ("normalization", opt<bool>("embedding-normalization"));
     }
 
     auto yEmb = yEmbFactory.construct();
 
-    auto subBatch = (*batch)[index];
+    auto subBatch = (*batch)[batchIndex_];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
@@ -122,7 +125,7 @@ public:
     using namespace keywords;
 
     int dimTrgEmb = opt<int>("dim-emb");
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
+    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     Expr selectedEmbs;
     if(embIdx.empty()) {
@@ -148,7 +151,7 @@ public:
     state->setTargetEmbeddings(selectedEmbs);
   }
 
-  virtual const std::vector<Expr> getAlignments() {
+  virtual const std::vector<Expr> getAlignments(int i = 0) {
     return {};
   };
 
@@ -156,6 +159,10 @@ public:
   T opt(const std::string& key) {
     return options_->get<T>(key);
   }
+
+  virtual void clear() = 0;
+
+
 };
 
 class EncoderDecoderBase {
@@ -181,46 +188,72 @@ public:
                      Ptr<data::CorpusBatch> batch,
                      bool clearGraph = true) = 0;
 
-  virtual Ptr<EncoderBase> getEncoder() = 0;
-  virtual Ptr<DecoderBase> getDecoder() = 0;
+  virtual std::vector<Ptr<EncoderBase>>& getEncoders() = 0;
+  virtual std::vector<Ptr<DecoderBase>>& getDecoders() = 0;
 };
 
-template <class Encoder, class Decoder>
 class EncoderDecoder : public EncoderDecoderBase {
 protected:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::string prefix_;
 
-  Ptr<EncoderBase> encoder_;
-  Ptr<DecoderBase> decoder_;
-
-  std::vector<size_t> batchIndices_;
+  std::vector<Ptr<EncoderBase>> encoders_;
+  std::vector<Ptr<DecoderBase>> decoders_;
 
   bool inference_{false};
+
+  std::vector<std::string> modelFeatures_;
+
+  void saveModelParameters(const std::string& name) {
+    YAML::Node modelParams;
+    for(auto& key : modelFeatures_)
+      modelParams[key] = options_->getOptions()[key];
+    Config::AddYamlToNpz(modelParams, "special:model.yml", name);
+  }
 
 public:
   typedef data::Corpus dataset_type;
 
-  template <class... Args>
-  EncoderDecoder(Ptr<Config> options, Args... args)
-      : EncoderDecoder(options, {0, 1}, args...) {}
-
-  template <class... Args>
-  EncoderDecoder(Ptr<Config> options,
-                 const std::vector<size_t>& batchIndices,
-                 Args... args)
+  EncoderDecoder(Ptr<Options> options)
       : options_(options),
-        batchIndices_(batchIndices),
-        prefix_(Get(keywords::prefix, "", args...)),
-        encoder_(New<Encoder>(
-            options, keywords::prefix = prefix_ + "encoder", args...)),
-        decoder_(New<Decoder>(
-            options, keywords::prefix = prefix_ + "decoder", args...)),
-        inference_(Get(keywords::inference, false, args...)) {}
+        prefix_(options->get<std::string>("prefix", "")),
+        inference_(options->get<bool>("inference", false)) {
 
-  Ptr<EncoderBase> getEncoder() { return encoder_; }
+    modelFeatures_ = {
+      "type",
+      "dim-vocabs",
+      "dim-emb",
+      "dim-rnn",
+      "enc-cell",
+      "enc-type",
+      "enc-cell-depth",
+      "enc-depth",
+      "dec-depth",
+      "dec-cell",
+      "dec-cell-base-depth",
+      "dec-cell-high-depth",
+      "skip",
+      "layer-normalization",
+      "special-vocab",
+      "tied-embeddings",
+      "tied-embeddings-src",
+      "tied-embeddings-all",
+      "transformer-heads",
+      "transformer-dim-ffn"
+    };
+  }
 
-  Ptr<DecoderBase> getDecoder() { return decoder_; }
+  std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
+
+  void push_back(Ptr<EncoderBase> encoder) {
+    encoders_.push_back(encoder);
+  }
+
+  std::vector<Ptr<DecoderBase>>& getDecoders() { return decoders_; }
+
+  void push_back(Ptr<DecoderBase> decoder) {
+    decoders_.push_back(decoder);
+  }
 
   virtual void load(Ptr<ExpressionGraph> graph, const std::string& name) {
     graph->load(name);
@@ -231,34 +264,35 @@ public:
                     bool saveTranslatorConfig) {
     // ignore config for now
     graph->save(name);
-    options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 
   virtual void save(Ptr<ExpressionGraph> graph, const std::string& name) {
     graph->save(name);
-    options_->saveModelParameters(name);
+    saveModelParameters(name);
   }
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
     graph->clear();
-    encoder_ = New<Encoder>(options_,
-                            keywords::prefix = prefix_ + "encoder",
-                            keywords::inference = inference_);
 
-    decoder_ = New<Decoder>(options_,
-                            keywords::prefix = prefix_ + "decoder",
-                            keywords::inference = inference_);
+    for(auto& enc : encoders_)
+      enc->clear();
+    for(auto& dec : decoders_)
+      dec->clear();
   }
+
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) {
-    return decoder_->startState(
-        encoder_->build(graph, batch, batchIndices_.front()));
+    std::vector<Ptr<EncoderState>> encoderStates;
+    for(auto& encoder : encoders_)
+      encoderStates.push_back(encoder->build(graph, batch));
+    return decoders_[0]->startState(graph, batch, encoderStates);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) {
-    return decoder_->step(graph, state);
+    return decoders_[0]->step(graph, state);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -277,7 +311,7 @@ public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>& embIdx) {
-    return decoder_->selectEmbeddings(graph, state, embIdx);
+    decoders_[0]->selectEmbeddings(graph, state, embIdx);
   }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
@@ -292,7 +326,7 @@ public:
 
     Expr trgMask, trgIdx;
     std::tie(trgMask, trgIdx)
-        = decoder_->groundTruth(state, graph, batch, batchIndices_.back());
+      = decoders_[0]->groundTruth(state, graph, batch);
 
     auto nextState = step(graph, state);
 
@@ -300,7 +334,7 @@ public:
                   (nextState->getProbs(), trgIdx, mask = trgMask);
 
     if(options_->has("guided-alignment") && !inference_) {
-      auto alignments = decoder_->getAlignments();
+      auto alignments = decoders_[0]->getAlignments();
       UTIL_THROW_IF2(alignments.empty(), "Model does not seem to support alignments");
       auto att = concatenate(alignments, axis = 3);
       return cost + guidedAlignmentCost(graph, batch, options_, att);
@@ -344,6 +378,11 @@ public:
     return options_->get<T>(key);
   }
 
+  template <typename T>
+  void set(std::string key, T value) {
+    options_->set(key, value);
+  }
+
   virtual Expr buildToScore(Ptr<ExpressionGraph> graph,
                             Ptr<data::CorpusBatch> batch,
                             bool clearGraph = true) {
@@ -355,7 +394,7 @@ public:
 
     Expr trgMask, trgIdx;
     std::tie(trgMask, trgIdx)
-        = decoder_->groundTruth(state, graph, batch, batchIndices_.back());
+      = decoders_[0]->groundTruth(state, graph, batch);
 
     auto nextState = step(graph, state);
 

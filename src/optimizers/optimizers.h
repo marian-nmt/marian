@@ -17,28 +17,30 @@ public:
   OptimizerBase(float eta, Args... args)
       : clipper_(Get(keywords::clip, nullptr, args...)), eta_(eta) {}
 
-  void update(Ptr<ExpressionGraph> graph, float multiply_factor_ = 1.0f) {
+  void update(Ptr<ExpressionGraph> graph, float multiplyFactor = 1.0f) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
 
-    update(p, g, multiply_factor_);
+    update(p, g, multiplyFactor);
   }
 
-  void update(Tensor params, Tensor grads, float multiply_factor_ = 1.0f) {
+  void update(Tensor params, Tensor grads, float multiplyFactor = 1.0f) {
     if(clipper_)
       clipper_->clip(grads);
 
-    multiply_factor = multiply_factor_; //In case we want to add a multiply factor to our learning rate
+    multiplyFactor_ = multiplyFactor; //In case we want to add a multiply factor to our learning rate
     updateImpl(params, grads);
   }
 
-  void actAfterEpoch(TrainingState& state) {
+  virtual void actAfterEpoch(TrainingState& state) {
     eta_ = state.eta;
   }
-  void actAfterBatches(TrainingState& state) {
+
+  virtual void actAfterBatches(TrainingState& state) {
     eta_ = state.eta;
   }
-  void actAfterStalled(TrainingState& state) {
+
+  virtual void actAfterStalled(TrainingState& state) {
     eta_ = state.eta;
   }
 
@@ -47,7 +49,7 @@ protected:
 
   Ptr<ClipperBase> clipper_;
   float eta_;
-  float multiply_factor; //Compensates for larger batch
+  float multiplyFactor_; //Compensates for larger batch
 };
 
 class Sgd : public OptimizerBase {
@@ -66,8 +68,27 @@ public:
   Adagrad(float eta, Args... args)
       : OptimizerBase(eta, args...), eps_(Get(keywords::eps, 1e-8, args...)) {}
 
+  virtual void actAfterEpoch(TrainingState& state) {
+    OptimizerBase::actAfterEpoch(state);
+    if(state.reset)
+      resetStats();
+  }
+
+  virtual void actAfterBatches(TrainingState& state) {
+    OptimizerBase::actAfterBatches(state);
+    if(state.reset)
+      resetStats();
+  }
+
+  virtual void actAfterStalled(TrainingState& state) {
+    OptimizerBase::actAfterStalled(state);
+    if(state.reset)
+      resetStats();
+  }
+
 private:
   void updateImpl(Tensor params, Tensor grads);
+  void resetStats();
 
   float eps_;
   Ptr<TensorAllocator> alloc_;
@@ -88,7 +109,27 @@ public:
 
   void updateImpl(Tensor params, Tensor grads);
 
+  virtual void actAfterEpoch(TrainingState& state) {
+    OptimizerBase::actAfterEpoch(state);
+    if(state.reset)
+      resetStats();
+  }
+
+  virtual void actAfterBatches(TrainingState& state) {
+    OptimizerBase::actAfterBatches(state);
+    if(state.reset)
+      resetStats();
+  }
+
+  virtual void actAfterStalled(TrainingState& state) {
+    OptimizerBase::actAfterStalled(state);
+    if(state.reset)
+      resetStats();
+  }
+
 private:
+  void resetStats();
+
   float beta1_;
   float beta2_;
   float eps_;

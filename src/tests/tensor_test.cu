@@ -7,26 +7,42 @@
 
 int main(int argc, char** argv) {
   using namespace marian;
-
-  marian::Config::seed = 1234;
-
-  //marian::Config config(argc, argv);
+  using namespace keywords;
 
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto emb = graph->param("emb", {5, 5, 2}, keywords::init=inits::from_value(1));
-  auto input = 2 * emb;
+  std::vector<float> vals1 = {
+    -87.41486359, -87.41487122, -87.41486359, -87.41486359, -87.41487885,
+    -87.41485596, -87.41486359, -87.41485596, -87.41487122, -87.41486359,
+    -87.41487885, -87.41486359, -87.41487885, -87.41487885, -87.41486359,
+    -87.41486359
+  };
 
-  auto ce = sum(reshape(input, {5*2, 5}), keywords::axis=1);
+  std::vector<float> vals;
+  for(int i = 0; i < 16 * 16; ++i)
+    for(auto v: vals1)
+      vals.push_back(v);
 
+  auto in = graph->constant({16, 16, 16}, init=inits::from_vector(vals));
 
-  debug(ce, "cost");
-  debug(input, "input");
-  debug(emb, "emb");
+  std::vector<float> vMask1(32, 1.f);
+  vMask1[15] = 0.f;
+
+  std::vector<float> vMask;
+  for(int i = 0; i < 8; ++i)
+    for(auto v: vMask1)
+      vMask.push_back(v);
+
+  auto inMask = graph->constant({16, 16, 1}, init=inits::from_vector(vMask));
+
+  auto out = softmax(in, inMask);
+
+  debug(in, "cost");
+  debug(inMask, "mask");
+  debug(out, "out");
 
   graph->forward();
-  graph->backward();
 
   return 0;
 }

@@ -32,6 +32,8 @@ public:
   void getValueByKey(std::vector<float>& out, float* d_in);
 
 private:
+  const int MAX_VOCAB_SIZE = 100000;
+
   const int BLOCK_SIZE = 512;
   const int NUM_BLOCKS;
   // cudaStream_t stream_;

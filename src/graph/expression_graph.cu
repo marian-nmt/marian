@@ -2,6 +2,7 @@
 #include "graph/backend_gpu.h"
 #include "graph/expression_graph.h"
 #include "kernels/dropout.h"
+#include "kernels/tensor_operators.h"
 
 namespace marian {
 
@@ -40,6 +41,10 @@ Expr ExpressionGraph::gaussian(float mean, float stddev, Shape shape) {
   return Expression<ConstantNode>(shared_from_this(),
                                   keywords::init = gaussianInit,
                                   keywords::shape = shape);
+}
+
+void ExpressionGraph::checkNan(Tensor t) {
+  UTIL_THROW_IF2(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 
 }

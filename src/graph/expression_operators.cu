@@ -129,8 +129,12 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
   return p / s;
 }
 
-Expr dot(Expr a, Expr b) {
-  return Expression<DotNodeOp>(a, b);
+Expr dot(Expr a, Expr b, bool transA, bool transB, float scalar) {
+  return Expression<DotNodeOp>(a, b, transA, transB, scalar);
+}
+
+Expr dot_batch(Expr a, Expr b, bool transA, bool transB, float scalar) {
+  return Expression<DotBatchedNodeOp>(a, b, transA, transB, scalar);
 }
 
 Expr transpose(Expr a) {
@@ -180,11 +184,11 @@ Expr square(Expr a) {
   return Expression<SquareNodeOp>(a);
 }
 
-Expr layer_norm(Expr x, Expr gamma, Expr beta) {
+Expr layer_norm(Expr x, Expr gamma, Expr beta /*= nullptr*/, float eps /*= 1e-9*/) {
   std::vector<Expr> nodes = {x, gamma};
   if(beta)
     nodes.push_back(beta);
-  return Expression<LayerNormalizationOp>(nodes);
+  return Expression<LayerNormalizationOp>(nodes, eps);
 }
 
 // Expr batch_norm(Expr x, Expr gamma, Expr beta) {

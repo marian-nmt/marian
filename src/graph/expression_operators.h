@@ -48,7 +48,9 @@ Expr operator/(Expr a, Expr b);
 Expr operator/(float a, Expr b);
 Expr operator/(Expr a, float b);
 
-Expr dot(Expr a, Expr b);
+Expr dot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
+
+Expr dot_batch(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
 
 Expr transpose(Expr a);
 
@@ -81,7 +83,7 @@ Expr step(Expr a, size_t step);
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
 
-Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr);
+Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 template <typename... Args>
 Expr dropout(Expr x, Args... args) {

@@ -118,17 +118,15 @@ public:
     return context;
   }
 
-  template <class... Args>
-  EncoderS2S(Ptr<Config> options, Args... args)
-      : EncoderBase(options, args...) {}
+  EncoderS2S(Ptr<Options> options)
+   : EncoderBase(options) {}
 
   Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch,
-                          size_t encoderIndex) {
+                          Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
     // create source embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
     auto embFactory = embedding(graph)
@@ -146,7 +144,7 @@ public:
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       embFactory
-        ("embFile", embFiles[encoderIndex])
+        ("embFile", embFiles[batchIndex_])
         ("normalization", opt<bool>("embedding-normalization"));
     }
 
@@ -155,7 +153,7 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-      = EncoderBase::lookup(embeddings, batch, encoderIndex);
+      = EncoderBase::lookup(embeddings, batch);
 
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
@@ -165,19 +163,14 @@ public:
       batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
     }
 
-    float noiseStddev = inference_ ? 0 : opt<float>("noise-src");
-    if(noiseStddev) {
-      int dimRnn = batchEmbeddings->shape()[1];
-      int srcWords = batchEmbeddings->shape()[2];
-      auto noiseMask = graph->gaussian(0.f, noiseStddev, {1, dimRnn, srcWords});
-      batchEmbeddings = batchEmbeddings + noiseMask;
-    }
-
     Expr context = applyEncoderRNN(graph, batchEmbeddings, batchMask,
                                    opt<std::string>("enc-type"));
 
     return New<EncoderState>(context, batchMask, batch);
   }
+
+  void clear() { }
+
 };
 
 class DecoderS2S : public DecoderBase {
@@ -194,7 +187,9 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
              ("dimState", opt<int>("dim-rnn"))
              ("dropout", dropoutRnn)
              ("layer-normalization", opt<bool>("layer-normalization"))
-             ("nematus-normalization", opt<std::string>("type") == "nematus")
+             ("nematus-normalization",
+                options_->has("original-type")
+                && opt<std::string>("original-type") == "nematus")
              ("skip", opt<bool>("skip"));
 
   size_t decoderLayers = opt<size_t>("dec-depth");
@@ -210,10 +205,19 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                        ("prefix", paramPrefix)
                        ("final", i > 1)
                        ("transition", transition));
-    if(i == 1)
-      baseCell.push_back(rnn::attention(graph)
-                         ("prefix", prefix_)
-                         .set_state(state->getEncoderState()));
+    if(i == 1) {
+      for(int k = 0; k < state->getEncoderStates().size(); ++k) {
+        auto attPrefix = prefix_;
+        if(state->getEncoderStates().size() > 1)
+          attPrefix += "_att" + std::to_string(k + 1);
+
+        auto encState = state->getEncoderStates()[k];
+
+        baseCell.push_back(rnn::attention(graph)
+                           ("prefix", attPrefix)
+                           .set_state(encState));
+      }
+    }
   }
   // Add cell to RNN (first layer)
   rnn.push_back(baseCell);
@@ -229,22 +233,6 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                          ("prefix", paramPrefix));
     }
 
-    // @TODO:
-    // dec-high-context : none repeat conditional conditional-repeat
-    // conditional and conditional-repeat require dec-cell-high-depth > 1
-
-    // Repeat attention output as input for each layer
-    //if(opt<std::string>("dec-high-context") == "repeat") {
-    //  highCell.add_input(
-    //    [](Ptr<rnn::RNN> rnn) {
-    //      return rnn->at(0)->as<rnn::StackedCell>()
-    //                ->at(1)->as<rnn::Attention>()
-    //                ->getContext();
-    //    }
-    //  );
-    //  highCell("dimInputExtra", 2 * opt<int>("dim-rnn"));
-    //}
-
     // Add cell to RNN (more layers)
     rnn.push_back(highCell);
   }
@@ -253,33 +241,48 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
 }
 
 public:
-  template <class... Args>
-  DecoderS2S(Ptr<Config> options, Args... args)
-      : DecoderBase(options, args...) {}
+  DecoderS2S(Ptr<Options> options)
+   : DecoderBase(options) {}
 
-  virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
+  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
+                                       Ptr<data::CorpusBatch> batch,
+                                       std::vector<Ptr<EncoderState>>& encStates) {
     using namespace keywords;
 
-    // average the source context weighted by the batch mask
-    // this will remove padded zeros from the average
-    auto meanContext = weighted_average(encState->getContext(),
-                                        encState->getMask(),
-                                        axis = 2);
+    std::vector<Expr> meanContexts;
+    for(auto& encState : encStates) {
+      // average the source context weighted by the batch mask
+      // this will remove padded zeros from the average
+      meanContexts.push_back(weighted_average(encState->getContext(),
+                                              encState->getMask(),
+                                              axis = 2));
 
-    auto graph = meanContext->graph();
+    }
 
-    // apply single layer network to mean to map into decoder space
-    auto mlp = mlp::mlp(graph)
-               .push_back(mlp::dense(graph)
-                          ("prefix", prefix_ + "_ff_state")
-                          ("dim", opt<int>("dim-rnn"))
-                          ("activation", mlp::act::tanh)
-                          ("layer-normalization", opt<bool>("layer-normalization"))
-                          ("nematus-normalization", opt<std::string>("type") == "nematus"));
-    auto start = mlp->apply(meanContext);
+    Expr start;
+    if(!meanContexts.empty()) {
+      // apply single layer network to mean to map into decoder space
+      auto mlp = mlp::mlp(graph)
+                 .push_back(mlp::dense(graph)
+                            ("prefix", prefix_ + "_ff_state")
+                            ("dim", opt<int>("dim-rnn"))
+                            ("activation", mlp::act::tanh)
+                            ("layer-normalization", opt<bool>("layer-normalization"))
+                            ("nematus-normalization",
+                               options_->has("original-type")
+                               && opt<std::string>("original-type") == "nematus"));
+      start = mlp->apply(meanContexts);
+    }
+    else {
+      int dimBatch = batch->size();
+      int dimRnn = opt<int>("dim-rnn");
+
+      start = graph->constant({dimBatch, dimRnn},
+                              init=inits::zeros);
+    }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderState>(startStates, nullptr, encState);
+    return New<DecoderState>(startStates, nullptr, encStates);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -307,9 +310,18 @@ public:
     // in order to continue decoding for the next word
     rnn::States decoderStates = rnn_->lastCellStates();
 
+    std::vector<Expr> alignedContexts;
+    for(int k = 0; k < state->getEncoderStates().size(); ++k) {
     // retrieve all the aligned contexts computed by the attention mechanism
-    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
-    auto alignedContext = att->getContext();
+      auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(k + 1)->as<rnn::Attention>();
+      alignedContexts.push_back(att->getContext());
+    }
+
+    Expr alignedContext;
+    if(alignedContexts.size() > 1)
+      alignedContext = concatenate(alignedContexts, axis=1);
+    else if(alignedContexts.size() == 1)
+      alignedContext = alignedContexts[0];
 
     // construct deep output multi-layer network layer-wise
     auto layer1 = mlp::dense(graph)
@@ -317,7 +329,9 @@ public:
                   ("dim", opt<int>("dim-emb"))
                   ("activation", mlp::act::tanh)
                   ("layer-normalization", opt<bool>("layer-normalization"))
-                  ("nematus-normalization", opt<std::string>("type") == "nematus");
+                  ("nematus-normalization",
+                     options_->has("original-type") &&
+                     opt<std::string>("original-type") == "nematus");
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
 
@@ -334,22 +348,30 @@ public:
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
-    auto logits = mlp::mlp(graph)
+    auto output = mlp::mlp(graph)
                   .push_back(layer1)
-                  .push_back(layer2)
-                  ->apply(embeddings, decoderContext, alignedContext);
+                  .push_back(layer2);
+
+    Expr logits;
+    if(alignedContext)
+      logits = output->apply(embeddings, decoderContext, alignedContext);
+    else
+      logits = output->apply(embeddings, decoderContext);
 
     // return unormalized(!) probabilities
-    return New<DecoderState>(decoderStates, logits, state->getEncoderState());
+    return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
   }
 
   // helper function for guided alignment
-  virtual const std::vector<Expr> getAlignments() {
-    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+  virtual const std::vector<Expr> getAlignments(int i = 0) {
+    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(i + 1)->as<rnn::Attention>();
     return att->getAlignments();
   }
-};
 
-typedef EncoderDecoder<EncoderS2S, DecoderS2S> S2S;
+  void clear() {
+    rnn_ = nullptr;
+    tiedOutputWeights_ = nullptr;
+  }
+};
 
 }
