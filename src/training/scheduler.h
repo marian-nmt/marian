@@ -119,16 +119,31 @@ public:
     batches++;
 
     if(batches % options_->get<size_t>("disp-freq") == 0) {
-      LOG(info)
-          ->info(
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-              "words/s",
-              epochs,
-              batches,
-              samples,
-              costSum / samplesDisp,
-              timer.format(2, "%ws"),
-              wordsDisp / std::stof(timer.format(5, "%w")));
+      if(options_->get<bool>("lr-report")) {
+        LOG(info)
+            ->info(
+                "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+                "words/s : L.r. {:.6f}",
+                epochs,
+                batches,
+                samples,
+                costSum / samplesDisp,
+                timer.format(2, "%ws"),
+                wordsDisp / std::stof(timer.format(5, "%w")),
+                trainState_->eta);
+      }
+      else {
+        LOG(info)
+            ->info(
+                "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+                "words/s",
+                epochs,
+                batches,
+                samples,
+                costSum / samplesDisp,
+                timer.format(2, "%ws"),
+                wordsDisp / std::stof(timer.format(5, "%w")));
+      }
       timer.start();
       costSum = 0;
       wordsDisp = 0;
@@ -163,9 +178,10 @@ public:
     trainState_->registerObserver(observer);
   }
 
-  void actAfterEpoch(TrainingState& state) {
-    float factor = options_->get<double>("lr-decay");
-    float lr = options_->get<float>("learn-rate");
+  float getLearninRate(TrainingState& state) {
+    float baselr = options_->get<float>("learn-rate");
+
+    float bno = state.batches - state.warmupStart;
 
     size_t warmup = options_->get<size_t>("lr-warmup");
     size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
@@ -173,18 +189,25 @@ public:
     UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
                    "Only use one warmup strategy");
 
-    if(warmup > state.batches) {
-      float mult = (float)state.batches / (float)warmup;
-      lr = lr * mult;
-    }
-    if(warmupGoogle > state.batches) {
-      float mult = std::min(state.batches * pow(warmupGoogle, -1.5),
-                            pow(state.batches, -0.5))
-                   * pow(warmupGoogle, 0.5);
-      lr = lr * mult;
+    float mult = 1.f;
+    if(warmup > 0)
+      mult = std::min(bno / (float)warmup, 1.f);
+
+    if(warmupGoogle > 0) {
+      mult = std::min(bno * pow(warmupGoogle, -1.5), pow(bno, -0.5))
+             * pow(warmupGoogle, 0.5);
     }
 
-    state.eta = lr;
+    baselr = baselr * mult;
+
+    return baselr;
+  }
+
+  void actAfterEpoch(TrainingState& state) {
+    float factor = options_->get<double>("lr-decay");
+
+    float baselr = getLearninRate(state);
+    state.eta = baselr;
 
     if(factor > 0.0) {
       bool decay = false;
@@ -214,14 +237,20 @@ public:
 
       if(decay) {
         state.factor *= factor;
-        state.eta = lr * state.factor;
+        state.eta = baselr * state.factor;
         LOG(info)
             ->info("Decaying learning rate to {} in epoch {}",
                    state.eta,
                    state.epochs);
+
         state.reset = options_->get<bool>("lr-decay-reset-optimizer");
         if(state.reset)
           LOG(info)->info("Resetting optimizer statistics");
+
+        if(options_->get<bool>("lr-decay-repeat-warmup")) {
+          LOG(info)->info("Restarting learning rate warmup");
+          state.warmupStart = state.batches;
+        }
       }
     }
   }
@@ -230,26 +259,8 @@ public:
     float factor = options_->get<double>("lr-decay");
     state.reset = false;
 
-    float lr = options_->get<float>("learn-rate");
-
-    size_t warmup = options_->get<size_t>("lr-warmup");
-    size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
-
-    UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
-                   "Only use one warmup strategy");
-
-    if(warmup > state.batches) {
-      float mult = (float)state.batches / (float)warmup;
-      lr = lr * mult;
-    }
-    if(warmupGoogle > state.batches) {
-      float mult = std::min(state.batches * pow(warmupGoogle, -1.5),
-                            pow(state.batches, -0.5))
-                   * pow(warmupGoogle, 0.5);
-      lr = lr * mult;
-    }
-
-    state.eta = lr;
+    float baselr = getLearninRate(state);
+    state.eta = baselr;
 
     if(factor > 0.0) {
       if("batches" == options_->get<std::string>("lr-decay-strategy")) {
@@ -260,7 +271,7 @@ public:
         if(start > 0 && freq > 0 && state.batches >= start
            && ((state.batches - start) % freq == 0)) {
           state.factor *= factor;
-          state.eta = lr * state.factor;
+          state.eta = baselr * state.factor;
           LOG(info)
               ->info("Decaying learning rate to {} after {} batches",
                      state.eta,
@@ -269,6 +280,11 @@ public:
           state.reset = options_->get<bool>("lr-decay-reset-optimizer");
           if(state.reset)
             LOG(info)->info("Resetting optimizer statistics");
+
+          if(options_->get<bool>("lr-decay-repeat-warmup")) {
+            LOG(info)->info("Restarting learning rate warmup");
+            state.warmupStart = state.batches;
+          }
         }
       }
     }
@@ -278,27 +294,8 @@ public:
     float factor = options_->get<double>("lr-decay");
     state.reset = false;
 
-    float lr = options_->get<float>("learn-rate");
-
-    size_t warmup = options_->get<size_t>("lr-warmup");
-    size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
-
-    UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
-                   "Only use one warmup strategy");
-
-    if(warmup > state.batches) {
-      float mult = (float)state.batches / (float)warmup;
-      lr = lr * mult;
-    }
-
-    if(warmupGoogle > state.batches) {
-      float mult = std::min(state.batches * pow(warmupGoogle, -1.5),
-                            pow(state.batches, -0.5))
-                   * pow(warmupGoogle, 0.5);
-      lr = lr * mult;
-    }
-
-    state.eta = lr;
+    float baselr = getLearninRate(state);
+    state.eta = baselr;
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
@@ -306,7 +303,7 @@ public:
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
-          state.eta = lr * state.factor;
+          state.eta = baselr * state.factor;
           LOG(info)
               ->info("Decaying learning rate to {} after stalled {} time(s)",
                      state.eta,
@@ -314,6 +311,11 @@ public:
           state.reset = options_->get<bool>("lr-decay-reset-optimizer");
           if(state.reset)
             LOG(info)->info("Resetting optimizer statistics");
+
+          if(options_->get<bool>("lr-decay-repeat-warmup")) {
+            LOG(info)->info("Restarting learning rate warmup");
+            state.warmupStart = state.batches;
+          }
         }
       }
     }

@@ -22,6 +22,7 @@ public:
   int batches{0};
   int stalled{0};
   int maxStalled{0};
+  int warmupStart{0};
   float eta;
   float factor{1.f};
   bool reset{false};

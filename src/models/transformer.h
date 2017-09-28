@@ -160,11 +160,11 @@ public:
     mask = (1 - mask) * -99999999.f;
     mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
 
-    auto kt = transpose(k, {1, 0, 2, 3});
+    //auto kt = transpose(k, {1, 0, 2, 3});
 
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
-    auto weights = softmax(bdot(q, kt, false, false, scale) + mask);
+    auto weights = softmax(bdot(q, k, false, true, scale) + mask);
 
     // optional dropout for attention weights
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout-attention");

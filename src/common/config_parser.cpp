@@ -413,6 +413,12 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Increase learning rate linearly for arg first steps")
     ("lr-warmup-google", po::value<size_t>()->default_value(0),
      "Increase learning rate linearly for arg first steps")
+    ("lr-decay-repeat-warmup", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Repeat learning rate warmup when learning rate is decayed")
+    ("lr-report", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Report learning rate for each update")
   ;
   // clang-format on
   desc.add(training);
@@ -666,6 +672,9 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-reset-optimizer", bool);
     SET_OPTION("lr-warmup", size_t);
     SET_OPTION("lr-warmup-google", size_t);
+    SET_OPTION("lr-decay-repeat-warmup", bool);
+    SET_OPTION("lr-report", bool);
+
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
 

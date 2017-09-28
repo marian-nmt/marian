@@ -76,24 +76,30 @@ public:
     // df/dB += alpha * dot(op(A).T, D)
     // beta set to 1.0 in gemm, C = alpha * dot(op(A), op(B)) + beta * C
     // to sum gradients from different graph parts
-    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
-                            ->getCublasHandle(),
-                        child(0)->grad(),
-                        adj_,
-                        child(1)->val(),
-                        false,
-                        !transB_,
-                        1.0,
-                        scalar_)),
-            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
-                            ->getCublasHandle(),
-                        child(1)->grad(),
-                        child(0)->val(),
-                        adj_,
-                        !transA_,
-                        false,
-                        1.0,
-                        scalar_))};
+
+    if(!transA_ && transB_)
+      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(0)->grad(), adj_, child(1)->val(), false, false, 1.0, scalar_)),
+              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(1)->grad(), adj_, child(0)->val(), true, false, 1.0, scalar_))};
+
+    if(transA_ && !transB_)
+      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(0)->grad(), child(1)->val(), adj_, false, true, 1.0, scalar_)),
+              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(1)->grad(), child(0)->val(), adj_, false, false, 1.0, scalar_))};
+
+    if(transA_ && transB_)
+      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(0)->grad(), child(1)->val(), adj_, true, true, 1.0, scalar_)),
+              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(1)->grad(), adj_, child(0)->val(), true, true, 1.0, scalar_))};
+
+    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                        child(0)->grad(), adj_, child(1)->val(), false, true, 1.0, scalar_)),
+            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                        child(1)->grad(), child(0)->val(), adj_, true, false, 1.0, scalar_))};
+
   }
 
   const std::string type() { return "•"; }
@@ -154,24 +160,29 @@ public:
     // df/dB += alpha * dot(op(A).T, D)
     // beta set to 1.0 in gemm, C = alpha * dot(op(A), op(B)) + beta * C
     // to sum gradients from different graph parts
-    return {NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
-                            ->getCublasHandle(),
-                        child(0)->grad(),
-                        adj_,
-                        child(1)->val(),
-                        false,
-                        !transB_,
-                        1.0,
-                        scalar_)),
-            NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
-                            ->getCublasHandle(),
-                        child(1)->grad(),
-                        child(0)->val(),
-                        adj_,
-                        !transA_,
-                        false,
-                        1.0,
-                        scalar_))};
+
+    if(!transA_ && transB_)
+      return {NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(0)->grad(), adj_, child(1)->val(), false, false, 1.0, scalar_)),
+              NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(1)->grad(), adj_, child(0)->val(), true, false, 1.0, scalar_))};
+
+    if(transA_ && !transB_)
+      return {NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(0)->grad(), child(1)->val(), adj_, false, true, 1.0, scalar_)),
+              NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(1)->grad(), child(0)->val(), adj_, false, false, 1.0, scalar_))};
+
+    if(transA_ && transB_)
+      return {NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(0)->grad(), child(1)->val(), adj_, true, true, 1.0, scalar_)),
+              NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                          child(1)->grad(), adj_, child(0)->val(), true, true, 1.0, scalar_))};
+
+    return {NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                              child(0)->grad(), adj_, child(1)->val(), false, true, 1.0, scalar_)),
+            NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+                               child(1)->grad(), child(0)->val(), adj_, true, false, 1.0, scalar_))};
   }
 
   const std::string type() { return "•"; }
