@@ -632,7 +632,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("tempdir", std::string);
 
     SET_OPTION("optimizer", std::string);
-    SET_OPTION("optimizer-params", std::vector<float>);
+    SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("learn-rate", double);
     SET_OPTION("tau", size_t);
     SET_OPTION("mini-batch-words", int);

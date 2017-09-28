@@ -65,8 +65,10 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
-  auto lrate = options->get<double>("learn-rate");
-  auto params = options->get<std::vector<float>>("optimizer-params");
+  float lrate = options->get<double>("learn-rate");
+  auto params = options->has("optimizer-params") ?
+                    options->get<std::vector<float>>("optimizer-params") :
+                    std::vector<float>({});
 
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = options->get<double>("clip-norm");
