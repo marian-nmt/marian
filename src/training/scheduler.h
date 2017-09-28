@@ -207,7 +207,7 @@ public:
     float factor = options_->get<double>("lr-decay");
 
     float baselr = getLearninRate(state);
-    state.eta = baselr;
+    state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
       bool decay = false;
@@ -260,7 +260,7 @@ public:
     state.reset = false;
 
     float baselr = getLearninRate(state);
-    state.eta = baselr;
+    state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
       if("batches" == options_->get<std::string>("lr-decay-strategy")) {
@@ -295,7 +295,7 @@ public:
     state.reset = false;
 
     float baselr = getLearninRate(state);
-    state.eta = baselr;
+    state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
