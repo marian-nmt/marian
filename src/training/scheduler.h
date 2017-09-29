@@ -194,8 +194,8 @@ public:
       mult = std::min(1.f, bno / (float)warmup);
 
     if(warmupGoogle > 0) {
-      float m1 = std::min(1.f, sqrt(warmupGoogle) / sqrt(state.batches));
-      float m2 = std::min(1.f, bno / sqrt(warmupGoogle));
+      float m1 = std::min(1.f, (float)(std::sqrt(warmupGoogle) / std::sqrt(state.batches)));
+      float m2 = std::min(1.f, bno / (float)warmupGoogle);
       mult = m1 * m2;
     }
 
