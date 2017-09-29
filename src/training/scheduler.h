@@ -178,7 +178,7 @@ public:
     trainState_->registerObserver(observer);
   }
 
-  float getLearninRate(TrainingState& state) {
+  float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
 
     float bno = state.batches - state.warmupStart;
@@ -191,11 +191,12 @@ public:
 
     float mult = 1.f;
     if(warmup > 0)
-      mult = std::min(bno / (float)warmup, 1.f);
+      mult = std::min(1.f, bno / (float)warmup);
 
     if(warmupGoogle > 0) {
-      mult = std::min(bno * pow(warmupGoogle, -1.5), pow(bno, -0.5))
-             * pow(warmupGoogle, 0.5);
+      float m1 = std::min(1.f, sqrt(warmupGoogle) / sqrt(state.batches));
+      float m2 = std::min(1.f, bno / sqrt(warmupGoogle));
+      mult = m1 * m2;
     }
 
     baselr = baselr * mult;
@@ -206,7 +207,7 @@ public:
   void actAfterEpoch(TrainingState& state) {
     float factor = options_->get<double>("lr-decay");
 
-    float baselr = getLearninRate(state);
+    float baselr = getLearningRate(state);
     state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
@@ -259,7 +260,7 @@ public:
     float factor = options_->get<double>("lr-decay");
     state.reset = false;
 
-    float baselr = getLearninRate(state);
+    float baselr = getLearningRate(state);
     state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
@@ -294,7 +295,7 @@ public:
     float factor = options_->get<double>("lr-decay");
     state.reset = false;
 
-    float baselr = getLearninRate(state);
+    float baselr = getLearningRate(state);
     state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
