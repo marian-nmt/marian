@@ -79,11 +79,15 @@ boost::python::list translate(boost::python::list& in)
   allHistories.SortByLineNum();
 
   // output
-  std::stringstream ss;
-  Printer(god_, allHistories, ss);
-  string str = ss.str();
   boost::python::list output;
-  output.append(str);
+  for (size_t i = 0; i < allHistories.size(); ++i) {
+    const History& history = *allHistories.at(i).get();
+    std::stringstream ss;
+    Printer(god_, history, ss);
+    string str = ss.str();
+
+    output.append(str);
+  }
 
   return output;
 }
