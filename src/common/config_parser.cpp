@@ -83,6 +83,7 @@ const std::set<std::string> PATHS = {"model",
                                      "embedding-vectors",
                                      "valid-sets",
                                      "valid-script-path",
+                                     "valid-output",
                                      "valid-log",
                                      "log"};
 
@@ -437,12 +438,15 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"cross-entropy"}),
                       "cross-entropy"),
-      "Metric to use during validation: cross-entropy, perplexity, valid-script. "
+      "Metric to use during validation: cross-entropy, perplexity, "
+      "valid-script, translation. "
       "Multiple metrics can be specified")
     ("valid-mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during validation")
     ("valid-script-path", po::value<std::string>(),
      "Path to external validation script")
+    ("valid-output", po::value<std::string>(),
+     "Path to output translated validation set")
     ("early-stopping", po::value<size_t>()->default_value(10),
      "Stop if the first validation metric does not improve for  arg  consecutive "
      "validation steps")
@@ -721,6 +725,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("valid-metrics", std::vector<std::string>);
     SET_OPTION("valid-mini-batch", int);
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
+    SET_OPTION_NONDEFAULT("valid-output", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION("keep-best", bool);
     SET_OPTION_NONDEFAULT("valid-log", std::string);

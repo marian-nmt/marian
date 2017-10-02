@@ -282,6 +282,55 @@ public:
   virtual std::string type() { return "s2s"; }
 };
 
+template <class Builder>
+class TranslationAction : public Validator<data::Corpus> {
+private:
+  Ptr<Builder> builder_;
+
+public:
+  template <class... Args>
+  TranslationAction(std::vector<Ptr<Vocab>> vocabs,
+                    Ptr<Config> options,
+                    Args... args)
+      : Validator(vocabs, options) {
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
+
+    initLastBest();
+  }
+
+  virtual bool lowerIsBetter() { return false; }
+
+  virtual float validate(Ptr<ExpressionGraph> graph) {
+    using namespace data;
+    auto model = options_->get<std::string>("model");
+
+    UTIL_THROW_IF2(!options_->has("valid-output"),
+                   "translation but no output file given");
+    auto outputFile = options_->get<std::string>("valid-output");
+
+    LOG(valid)->info("Translating...");
+
+    // TODO: change me!
+    return 0.0f;
+  };
+
+  virtual float validateBG(
+      Ptr<ExpressionGraph> graph,
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+    return 0;
+  }
+
+  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+    // TODO: decide what to do with this method
+  }
+
+  std::string type() { return "translation"; }
+};
+
 template <class Builder, class... Args>
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config, Args... args) {
@@ -304,6 +353,10 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
     }
     if(metric == "valid-script") {
       auto validator = New<ScriptValidator<Builder>>(vocabs, config, args...);
+      validators.push_back(validator);
+    }
+    if(metric == "translation") {
+      auto validator = New<TranslationAction<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
     }
     if(metric == "s2s") {
