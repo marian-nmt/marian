@@ -22,7 +22,9 @@ public:
              Args... args)
       : options_(options),
         scorers_(scorers),
-        beamSize_(options_->get<size_t>("beam-size")) {}
+        beamSize_(options_->has("beam-size")
+                      ? options_->get<size_t>("beam-size")
+                      : 3) {}
 
   Beam toHyps(const std::vector<uint> keys,
               const std::vector<float> costs,
@@ -62,7 +64,9 @@ public:
   Ptr<History> search(Ptr<ExpressionGraph> graph,
                       Ptr<data::CorpusBatch> batch,
                       size_t sentenceId = 0) {
-    auto history = New<History>(sentenceId, options_->get<bool>("normalize"));
+    auto history = New<History>(
+        sentenceId,
+        options_->has("normalize") ? options_->get<bool>("normalize") : false);
     Beam beam(1, New<Hypothesis>());
     bool first = true;
     bool final = false;
@@ -119,7 +123,7 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(!options_->get<bool>("allow-unk"))
+      if(options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
         suppressUnk(totalCosts);
       for(auto state : states)
         state->blacklist(totalCosts, batch);
