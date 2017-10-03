@@ -13,6 +13,10 @@
 #include "translator/output_collector.h"
 #include "translator/printer.h"
 
+#include "translator/printer.h"
+#include "translator/scorers.h"
+
+
 namespace marian {
 
 template <class DataSet>
@@ -306,13 +310,62 @@ public:
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
-    auto model = options_->get<std::string>("model");
 
-    UTIL_THROW_IF2(!options_->has("valid-output"),
-                   "translation but no output file given");
-    auto outputFile = options_->get<std::string>("valid-output");
+    // TODO: use
+    //UTIL_THROW_IF2(!options_->has("valid-output"),
+                   //"translation but no output file given");
+    //auto outputFile = options_->get<std::string>("valid-output");
+
+
+    // Create corpus
+    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+    auto corpus = New<Corpus>(validPaths, vocabs_, options_);
+
+    // Generate batches
+    Ptr<BatchGenerator<Corpus>> batchGenerator
+        = New<BatchGenerator<Corpus>>(corpus, options_);
+    if(options_->has("valid-mini-batch"))
+      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
+    batchGenerator->prepare(false);
+
+    // Create scorer
+    auto model = options_->get<std::string>("model");
+    Ptr<Scorer> scorer(scorerByType("F0", 1.0f, model, options_));
+    std::vector<Ptr<Scorer>> scorers = { scorer };
+
+    auto collector = New<StringCollector>();
+    size_t sentenceId = 0;
 
     LOG(valid)->info("Translating...");
+    {
+      while(batchGenerator) {
+        auto batch = batchGenerator->next();
+
+        auto task = [=](size_t id) {
+          if(!graph)
+            graph->getBackend()->setDevice(graph->getDevice());
+
+          auto search = New<BeamSearch>(options_, scorers);
+          auto history = search->search(graph, batch, id);
+
+          std::stringstream best1;
+          std::stringstream bestn;
+          Printer(options_, vocabs_.back(), history, best1, bestn);
+          collector->add(history->GetLineNum(), best1.str(), bestn.str());
+        };
+
+        LOG(valid)->info("Sentence " + std::to_string(sentenceId));
+
+        task(sentenceId);
+        sentenceId++;
+      }
+    }
+
+    LOG(valid)->info("Collecting...");
+    for(auto &trans : collector->collect(false)) {
+      LOG(valid)->info(trans);
+    }
+
 
     // TODO: change me!
     return 0.0f;
