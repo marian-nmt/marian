@@ -400,25 +400,34 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
   };
 
   for(auto metric : validMetrics) {
-    if(std::find(ceMetrics.begin(), ceMetrics.end(), metric) != ceMetrics.end()) {
+    if(std::find(ceMetrics.begin(), ceMetrics.end(), metric)
+       != ceMetrics.end()) {
       Ptr<Config> temp = New<Config>(*config);
       temp->set("cost-type", metric);
 
-      auto validator = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
+      auto validator
+          = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
       validators.push_back(validator);
-    }
-    if(metric == "valid-script") {
+    } else if(metric == "valid-script") {
       auto validator = New<ScriptValidator<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
-    }
-    if(metric == "translation") {
+    } else if(metric == "translation") {
       auto validator = New<TranslationAction<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
+    } else {
+      LOG(valid)->info("Unrecognized validation metric: {}", metric);
     }
-    if(metric == "s2s") {
-      auto validator = New<S2SValidator<Builder>>(vocabs, config, args...);
-      validators.push_back(validator);
-    }
+  }
+
+  if(validators.empty()) {
+    LOG(valid)->info("No validation metric specified, using 'cross-entropy'");
+
+    Ptr<Config> temp = New<Config>(*config);
+    temp->set("cost-type", "cross-entropy");
+
+    auto validator
+        = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
+    validators.push_back(validator);
   }
 
   return validators;
