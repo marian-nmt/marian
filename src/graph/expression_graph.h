@@ -59,6 +59,8 @@ public:
    */
   ExpressionGraph(bool inference = false);
 
+  void setInference(bool inference) { inferenceOnly_ = inference; }
+
   ~ExpressionGraph() {
     clear();
     params_->clear();

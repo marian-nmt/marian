@@ -49,6 +49,9 @@ public:
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
+
+    graph->setInference(true);
+
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
     Ptr<BatchGenerator<DataSet>> batchGenerator
@@ -59,6 +62,8 @@ public:
 
     float val = validateBG(graph, batchGenerator);
 
+    graph->setInference(false);
+
     if((lowerIsBetter() && lastBest_ > val)
        || (!lowerIsBetter() && lastBest_ < val)) {
       stalled_ = 0;
@@ -68,6 +73,7 @@ public:
     } else {
       stalled_++;
     }
+
     return val;
   };
 
@@ -311,18 +317,12 @@ public:
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
 
+    graph->setInference(true);
+
     // TODO: use
     //UTIL_THROW_IF2(!options_->has("valid-output"),
                    //"translation but no output file given");
     //auto outputFile = options_->get<std::string>("valid-output");
-    //
-
-      //auto graph = New<ExpressionGraph>(true);
-      //auto devices = options_->get<std::vector<int>>("devices");
-      ////graph->setDevice(devices.front());
-      //graph->setDevice(0);
-      //graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
@@ -333,7 +333,7 @@ public:
     // Generate batches
     Ptr<BatchGenerator<Corpus>> batchGenerator
         = New<BatchGenerator<Corpus>>(corpus, options_);
-    // Force batch size to 1 because a multi-batch translation is not yet supported
+    // Force batch size of 1 because multi-batch translation is not yet supported
     batchGenerator->forceBatchSize(1);
     batchGenerator->prepare(false);
 
@@ -349,8 +349,8 @@ public:
     {
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
-        graph->clear();
 
+        graph->clear();
         //if(!graph)
           //graph->getBackend()->setDevice(graph->getDevice());
 
@@ -367,6 +367,8 @@ public:
         sentenceId++;
       }
     }
+
+    graph->setInference(false);
 
     // TODO: change me!
     return 0.0f;
