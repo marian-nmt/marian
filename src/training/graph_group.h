@@ -110,9 +110,9 @@ private:
 
       if(scheduler_->validating()) {
         if(mvAvg_)
-          scheduler_->validate(mvAvgGraph_, builder_);
+          scheduler_->validate(mvAvgGraph_);
         else
-          scheduler_->validate(graph_, builder_);
+          scheduler_->validate(graph_);
       }
     }
   }
@@ -645,7 +645,7 @@ private:
           boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
           if(movingAvg_)
             fetchParams(graph->params()->vals(), paramsAvg_);
-          scheduler_->validate(graph, builder);
+          scheduler_->validate(graph);
         }
 
         /*if(movingAvg_) {

@@ -47,7 +47,7 @@ public:
 
   size_t stalled() { return stalled_; }
 
-  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
+  virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
@@ -159,7 +159,7 @@ public:
 
   virtual bool lowerIsBetter() { return false; }
 
-  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
+  virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
     auto model = options_->get<std::string>("model");
 
@@ -219,7 +219,7 @@ public:
     initLastBest();
   }
 
-  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
+  virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
 
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
@@ -308,7 +308,7 @@ public:
 
   virtual bool lowerIsBetter() { return false; }
 
-  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
+  virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
 
     // TODO: use
@@ -333,12 +333,13 @@ public:
     // Generate batches
     Ptr<BatchGenerator<Corpus>> batchGenerator
         = New<BatchGenerator<Corpus>>(corpus, options_);
+    // Force batch size to 1 because a multi-batch translation is not yet supported
     batchGenerator->forceBatchSize(1);
     batchGenerator->prepare(false);
 
     // Create scorer
     auto model = options_->get<std::string>("model");
-    Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
+    Ptr<Scorer> scorer = New<ScorerWrapper>(builder_, "", 1.0f, model);
     std::vector<Ptr<Scorer>> scorers = { scorer };
 
     //auto collector = New<StringCollector>();
@@ -348,6 +349,7 @@ public:
     {
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
+        graph->clear();
 
         //if(!graph)
           //graph->getBackend()->setDevice(graph->getDevice());
