@@ -1,11 +1,13 @@
 #pragma once
 
+#include "common/model_base.h"
 #include "layers/factory.h"
 #include "models/s2s.h"
 #include "models/amun.h"
 #include "models/nematus.h"
 #include "models/transformer.h"
 #include "models/transformer_gru.h"
+#include "examples/mnist/model.h"
 
 #define REGISTER_ENCODER(name, className)\
 do {\
@@ -101,8 +103,8 @@ public:
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
 
-Ptr<EncoderDecoder> by_type(std::string type,
-                            Ptr<Options> options) {
+Ptr<ModelBase> by_type(std::string type,
+                       Ptr<Options> options) {
 
   if(type == "s2s" || type == "amun" || type == "nematus") {
     return models::encoder_decoder()
@@ -173,15 +175,23 @@ Ptr<EncoderDecoder> by_type(std::string type,
     return ms2sFactory.construct();
   }
 
+  if(type == "mnist-ffnn") {
+    return New<MNISTModel>(options);
+  }
+
+  if(type == "mnist-lenet") {
+    return New<MNISTModel>(options);
+  }
+
   UTIL_THROW2("Unknown model type: " + type);
 }
 
-Ptr<EncoderDecoder> from_options(Ptr<Options> options) {
+Ptr<ModelBase> from_options(Ptr<Options> options) {
   std::string type = options->get<std::string>("type");
   return by_type(type, options);
 }
 
-Ptr<EncoderDecoder> from_config(Ptr<Config> config) {
+Ptr<ModelBase> from_config(Ptr<Config> config) {
   Ptr<Options> options = New<Options>();
   options->merge(config);
   return from_options(options);
