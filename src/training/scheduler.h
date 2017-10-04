@@ -74,7 +74,7 @@ public:
 
   bool saving() { return (batches % options_->get<size_t>("save-freq") == 0); }
 
-  void validate(Ptr<ExpressionGraph> graph) {
+  void validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
     if(batches % options_->get<size_t>("valid-freq") != 0)
       return;
 
@@ -84,7 +84,7 @@ public:
         continue;
 
       size_t stalledPrev = validator->stalled();
-      float value = validator->validate(graph);
+      float value = validator->validate(graph, builder);
       if(validator->stalled() > 0)
         LOG(valid)
             ->info("{} : {} : {} : stalled {} times",

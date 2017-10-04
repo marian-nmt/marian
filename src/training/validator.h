@@ -47,7 +47,7 @@ public:
 
   size_t stalled() { return stalled_; }
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
     using namespace data;
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
@@ -159,7 +159,7 @@ public:
 
   virtual bool lowerIsBetter() { return false; }
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
     using namespace data;
     auto model = options_->get<std::string>("model");
 
@@ -219,7 +219,7 @@ public:
     initLastBest();
   }
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
     using namespace data;
 
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
@@ -308,64 +308,63 @@ public:
 
   virtual bool lowerIsBetter() { return false; }
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(Ptr<ExpressionGraph> graph, Ptr<EncoderDecoder> builder = nullptr) {
     using namespace data;
 
     // TODO: use
     //UTIL_THROW_IF2(!options_->has("valid-output"),
                    //"translation but no output file given");
     //auto outputFile = options_->get<std::string>("valid-output");
+    //
+
+      //auto graph = New<ExpressionGraph>(true);
+      //auto devices = options_->get<std::vector<int>>("devices");
+      ////graph->setDevice(devices.front());
+      //graph->setDevice(0);
+      //graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
 
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<Corpus>(validPaths, vocabs_, options_);
+    std::vector<std::string> validPath = { validPaths.front() };
+    std::vector<Ptr<Vocab>> srcVocab = { vocabs_.front() };
+    auto corpus = New<Corpus>(validPath, srcVocab, options_, 10000);
 
     // Generate batches
     Ptr<BatchGenerator<Corpus>> batchGenerator
         = New<BatchGenerator<Corpus>>(corpus, options_);
-    if(options_->has("valid-mini-batch"))
-      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
+    batchGenerator->forceBatchSize(1);
     batchGenerator->prepare(false);
 
     // Create scorer
     auto model = options_->get<std::string>("model");
-    Ptr<Scorer> scorer(scorerByType("F0", 1.0f, model, options_));
+    Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
     std::vector<Ptr<Scorer>> scorers = { scorer };
 
-    auto collector = New<StringCollector>();
+    //auto collector = New<StringCollector>();
     size_t sentenceId = 0;
 
     LOG(valid)->info("Translating...");
     {
-      while(batchGenerator) {
+      while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
-        auto task = [=](size_t id) {
-          if(!graph)
-            graph->getBackend()->setDevice(graph->getDevice());
+        //if(!graph)
+          //graph->getBackend()->setDevice(graph->getDevice());
 
-          auto search = New<BeamSearch>(options_, scorers);
-          auto history = search->search(graph, batch, id);
+        auto search = New<BeamSearch>(options_, scorers);
+        auto history = search->search(graph, batch, sentenceId);
 
-          std::stringstream best1;
-          std::stringstream bestn;
-          Printer(options_, vocabs_.back(), history, best1, bestn);
-          collector->add(history->GetLineNum(), best1.str(), bestn.str());
-        };
+        std::stringstream best1;
+        std::stringstream bestn;
+        Printer(options_, vocabs_.back(), history, best1, bestn);
 
-        LOG(valid)->info("Sentence " + std::to_string(sentenceId));
+        int id = batch->getSentenceIds()[0];
+        LOG(valid)->info("Best translation {}: {}", id, best1.str());
 
-        task(sentenceId);
         sentenceId++;
       }
     }
-
-    LOG(valid)->info("Collecting...");
-    for(auto &trans : collector->collect(false)) {
-      LOG(valid)->info(trans);
-    }
-
 
     // TODO: change me!
     return 0.0f;
