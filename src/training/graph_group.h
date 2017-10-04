@@ -9,6 +9,7 @@
 
 #include "3rd_party/threadpool.h"
 #include "common/definitions.h"
+#include "common/model_base.h"
 #include "data/batch_generator.h"
 #include "optimizers/optimizers.h"
 #include "training/dropper.h"
@@ -58,7 +59,7 @@ public:
   }
 
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
   Ptr<ExpressionGraph> graph_;
 
   Ptr<Scheduler<dataset_type>> scheduler_;
@@ -204,7 +205,7 @@ public:
 private:
   bool first_{true};
 
-  std::vector<Ptr<Builder>> builders_;
+  std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
 
@@ -544,7 +545,7 @@ private:
     auto task = [this](Ptr<data::Batch> batch) {
       static size_t i = 0;
       thread_local Ptr<ExpressionGraph> graph;
-      thread_local Ptr<Builder> builder;
+      thread_local Ptr<models::ModelBase> builder;
       thread_local size_t t = 0;
       thread_local size_t num_seen_words = 0;
 

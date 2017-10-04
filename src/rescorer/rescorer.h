@@ -3,6 +3,7 @@
 #include "marian.h"
 
 #include "common/config.h"
+#include "common/model_base.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
@@ -16,10 +17,9 @@ namespace marian {
 
 using namespace data;
 
-template <class Builder>
 class Rescorer {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 public:
   Rescorer(Ptr<Options> options) :

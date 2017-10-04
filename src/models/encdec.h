@@ -166,14 +166,8 @@ public:
 
 };
 
-class EncoderDecoderBase {
+class EncoderDecoderBase : public models::ModelBase {
 public:
-  virtual void load(Ptr<ExpressionGraph>, const std::string&) = 0;
-
-  virtual void save(Ptr<ExpressionGraph>, const std::string&) = 0;
-
-  virtual void save(Ptr<ExpressionGraph>, const std::string&, bool) = 0;
-
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>&) = 0;
@@ -184,10 +178,6 @@ public:
                                  const std::vector<size_t>&) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
-
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) = 0;
 
   virtual std::vector<Ptr<EncoderBase>>& getEncoders() = 0;
   virtual std::vector<Ptr<DecoderBase>>& getDecoders() = 0;
