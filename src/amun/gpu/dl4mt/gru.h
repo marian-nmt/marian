@@ -76,6 +76,9 @@ class SlowGRU: public Cell {
       // -----------------------------------------------------
 
       Swap(*(NextState.output), U_);
+      if(State.cell->size() > 0) {
+        Swap(*(NextState.cell), *(State.cell));
+      }
     }
 
     virtual CellLength GetStateLength() const {
@@ -177,6 +180,9 @@ class FastGRU: public Cell {
       }
 
       ElementwiseOps(*(NextState.output), *(State.output), RUH_, Temp_);
+      if(State.cell->size() > 0) {
+        Swap(*(NextState.cell), *(State.cell));
+      }
     }
 
 
