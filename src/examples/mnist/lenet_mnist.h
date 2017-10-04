@@ -6,6 +6,7 @@
 
 #include <boost/timer/timer.hpp>
 
+#include "common/model_base.h"
 #include "common/definitions.h"
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
@@ -16,7 +17,7 @@
 namespace marian {
 namespace models {
 
-class LeNetModel {
+class LeNetModel : public ModelBase {
 private:
   Ptr<Config> options_;
   bool inference_{false};

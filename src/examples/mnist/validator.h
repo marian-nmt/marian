@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/config.h"
+#include "common/model_base.h"
 #include "data/batch_generator.h"
 #include "graph/expression_graph.h"
 #include "training/validator.h"
@@ -11,16 +12,18 @@ using namespace marian;
 
 namespace marian {
 
-template <class Builder>
 class AccuracyValidator : public Validator<data::MNIST> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 public:
   template <class... Args>
   AccuracyValidator(Ptr<Config> options, Args... args)
-      : Validator(std::vector<Ptr<Vocab>>(), options),
-        builder_(New<Builder>(options, keywords::inference = true, args...)) {
+      : Validator(std::vector<Ptr<Vocab>>(), options) {
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
     initLastBest();
   }
 
@@ -42,7 +45,7 @@ protected:
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
-      auto probs = builder_->build(graph, batch);
+      auto probs = builder_->build(graph, batch, true);
       graph->forward();
 
       std::vector<float> scores;
@@ -70,4 +73,5 @@ private:
     return numCorrect;
   }
 };
+
 }

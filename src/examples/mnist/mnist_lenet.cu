@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
   if(!options->has("valid-sets"))
     options->set("valid-sets", VALID_SET);
 
+  options->set("type", "mnist-lenet");
+
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if(devices.size() > 1)
