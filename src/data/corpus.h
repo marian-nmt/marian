@@ -76,7 +76,6 @@ public:
 class CorpusBatch : public Batch {
 private:
   std::vector<Ptr<SubBatch>> batches_;
-  std::vector<size_t> sentenceIds_;
   std::vector<float> guidedAlignment_;
 
 public:
@@ -89,15 +88,18 @@ public:
   Ptr<SubBatch> back() { return batches_.back(); }
 
   void debug() {
-    size_t i = 0;
+    std::cerr << "batches: " << sets() << std::endl;
+
     if(!sentenceIds_.empty()) {
-      for(auto i : sentenceIds_)
-        std::cerr << i << " ";
+      std::cerr << "indexes: ";
+      for(auto id : sentenceIds_)
+        std::cerr << id << " ";
       std::cerr << std::endl;
     }
 
+    size_t b = 0;
     for(auto sb : batches_) {
-      std::cerr << "input " << i++ << ": " << std::endl;
+      std::cerr << "batch " << b++ << ": " << std::endl;
       for(size_t i = 0; i < sb->batchWidth(); i++) {
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {

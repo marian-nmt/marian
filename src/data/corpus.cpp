@@ -32,7 +32,9 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     : options_(options),
       maxLength_(options_->get<size_t>("max-length")),
       g_(Config::seed) {
-  if(!translate)
+  bool training = !translate;
+
+  if(training)
     paths_ = options_->get<std::vector<std::string>>("train-sets");
   else
     paths_ = options_->get<std::vector<std::string>>("input");
@@ -41,16 +43,18 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   if(options_->has("vocabs"))
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
-  if(!translate) {
+  if(training) {
     UTIL_THROW_IF2(!vocabPaths.empty() && paths_.size() != vocabPaths.size(),
                    "Number of corpus files and vocab files does not agree");
   }
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-  if(!translate) {
+  if(training) {
     std::vector<Vocab> vocabs;
+
     if(vocabPaths.empty()) {
+      // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
@@ -58,6 +62,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         vocabs_.emplace_back(vocab);
       }
     } else {
+      // Load all vocabs
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
@@ -65,6 +70,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       }
     }
   } else {
+    // Load all vocabs except the last one, which should be a target vocab
     for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
