@@ -25,43 +25,11 @@ protected:
   float lastBest_;
   size_t stalled_{0};
 
-public:
-  Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
-      : options_(options),
-        vocabs_(vocabs),
-        lastBest_{lowerIsBetter() ? std::numeric_limits<float>::max() :
-                                    std::numeric_limits<float>::lowest()} {}
+  virtual float validateBG(Ptr<ExpressionGraph>,
+                           Ptr<data::BatchGenerator<DataSet>>)
+      = 0;
 
-  virtual std::string type() = 0;
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) = 0;
-
-  virtual bool lowerIsBetter() { return true; }
-
-  virtual void initLastBest() {
-    lastBest_ = lowerIsBetter() ? std::numeric_limits<float>::max() :
-                                  std::numeric_limits<float>::lowest();
-  }
-
-  size_t stalled() { return stalled_; }
-
-  virtual float validate(Ptr<ExpressionGraph> graph) {
-    using namespace data;
-
-    graph->setInference(true);
-
-    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, options_);
-    Ptr<BatchGenerator<DataSet>> batchGenerator
-        = New<BatchGenerator<DataSet>>(corpus, options_);
-    if(options_->has("valid-mini-batch"))
-      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
-    batchGenerator->prepare(false);
-
-    float val = validateBG(graph, batchGenerator);
-
-    graph->setInference(false);
-
+  void updateStalled(Ptr<ExpressionGraph> graph, float val) {
     if((lowerIsBetter() && lastBest_ > val)
        || (!lowerIsBetter() && lastBest_ < val)) {
       stalled_ = 0;
@@ -71,14 +39,52 @@ public:
     } else {
       stalled_++;
     }
+  }
+
+  virtual void initLastBest() {
+    lastBest_ = lowerIsBetter() ? std::numeric_limits<float>::max()
+                                : std::numeric_limits<float>::lowest();
+  }
+
+public:
+  Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
+      : options_(options),
+        vocabs_(vocabs),
+        lastBest_{lowerIsBetter() ? std::numeric_limits<float>::max()
+                                  : std::numeric_limits<float>::lowest()} {}
+
+  size_t stalled() { return stalled_; }
+
+  virtual bool lowerIsBetter() { return true; }
+
+  virtual void keepBest(Ptr<ExpressionGraph> graph) = 0;
+
+  virtual std::string type() = 0;
+
+  virtual float validate(Ptr<ExpressionGraph> graph) {
+    using namespace data;
+
+    graph->setInference(true);
+
+    // Create corpus
+    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+    auto corpus = New<DataSet>(validPaths, vocabs_, options_);
+
+    // Generate batches
+    Ptr<BatchGenerator<DataSet>> batchGenerator
+        = New<BatchGenerator<DataSet>>(corpus, options_);
+    if(options_->has("valid-mini-batch"))
+      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
+    batchGenerator->prepare(false);
+
+    // Validate on batches
+    float val = validateBG(graph, batchGenerator);
+    updateStalled(graph, val);
+
+    graph->setInference(false);
 
     return val;
   };
-
-protected:
-  virtual float validateBG(Ptr<ExpressionGraph>,
-                           Ptr<data::BatchGenerator<DataSet>>)
-      = 0;
 };
 
 template <class Builder>
@@ -86,21 +92,7 @@ class CrossEntropyValidator : public Validator<data::Corpus> {
 private:
   Ptr<Builder> builder_;
 
-public:
-  template <class... Args>
-  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
-                        Ptr<Config> options,
-                        Args... args)
-      : Validator(vocabs, options) {
-
-    Ptr<Options> temp = New<Options>();
-    temp->merge(options);
-    temp->set("inference", true);
-    builder_ = models::from_options(temp);
-
-    initLastBest();
-  }
-
+protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
@@ -119,6 +111,21 @@ public:
     return cost / samples;
   }
 
+
+public:
+  template <class... Args>
+  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
+                        Ptr<Config> options)
+      : Validator(vocabs, options) {
+
+    Ptr<Options> temp = New<Options>();
+    temp->merge(options);
+    temp->set("inference", true);
+    builder_ = models::from_options(temp);
+
+    initLastBest();
+  }
+
   virtual void keepBest(Ptr<ExpressionGraph> graph) {
     auto model = options_->get<std::string>("model");
     builder_->save(graph, model + ".best-" + type() + ".npz", true);
@@ -132,17 +139,26 @@ class ScriptValidator : public Validator<data::Corpus> {
 private:
   Ptr<Builder> builder_;
 
+protected:
+  virtual float validateBG(
+      Ptr<ExpressionGraph> graph,
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+    return 0;
+  }
+
 public:
   template <class... Args>
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
-                  Ptr<Config> options,
-                  Args... args)
+                  Ptr<Config> options)
       : Validator(vocabs, options) {
 
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
     builder_ = models::from_options(temp);
+
+    UTIL_THROW_IF2(!options_->has("valid-script-path"),
+                   "valid-script metric but no script given");
 
     initLastBest();
   }
@@ -152,34 +168,15 @@ public:
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
     auto model = options_->get<std::string>("model");
-
     builder_->save(graph, model + ".dev.npz", true);
 
-    UTIL_THROW_IF2(!options_->has("valid-script-path"),
-                   "valid-script metric but no script given");
     auto command = options_->get<std::string>("valid-script-path");
-
     auto valStr = Exec(command);
     float val = std::atof(valStr.c_str());
-
-    if((lowerIsBetter() && lastBest_ > val)
-       || (!lowerIsBetter() && lastBest_ < val)) {
-      stalled_ = 0;
-      lastBest_ = val;
-      if(options_->get<bool>("keep-best"))
-        keepBest(graph);
-    } else {
-      stalled_++;
-    }
+    updateStalled(graph, val);
 
     return val;
   };
-
-  virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
-    return 0;
-  }
 
   virtual void keepBest(Ptr<ExpressionGraph> graph) {
     auto model = options_->get<std::string>("model");
@@ -195,20 +192,25 @@ class TranslationValidator : public Validator<data::Corpus> {
 private:
   Ptr<Builder> builder_;
 
+protected:
+  virtual float validateBG(
+      Ptr<ExpressionGraph> graph,
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+    return 0;
+  }
+
 public:
   template <class... Args>
-  TranslationValidator(std::vector<Ptr<Vocab>> vocabs,
-                       Ptr<Config> options,
-                       Args... args)
+  TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options) {
-
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
     builder_ = models::from_options(opts);
 
     if(!options_->has("valid-script-path"))
-      LOG(warn)->info("No post-processing script given for validating translator");
+      LOG(warn)
+          ->info("No post-processing script given for validating translator");
 
     initLastBest();
   }
@@ -287,16 +289,7 @@ public:
       auto command = options_->get<std::string>("valid-script-path") + " " + outputFile;
       auto valStr = Exec(command);
       val = std::atof(valStr.c_str());
-    }
-
-    if((lowerIsBetter() && lastBest_ > val)
-       || (!lowerIsBetter() && lastBest_ < val)) {
-      stalled_ = 0;
-      lastBest_ = val;
-      if(options_->get<bool>("keep-best"))
-        keepBest(graph);
-    } else {
-      stalled_++;
+      updateStalled(graph, val);
     }
 
     return val;
@@ -308,13 +301,6 @@ public:
   }
 
   std::string type() { return "translation"; }
-
-protected:
-  virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
-    return 0;
-  }
 
 private:
   std::string createTempFileName() {
@@ -338,7 +324,7 @@ private:
  */
 template <class Builder, class... Args>
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
-    std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config, Args... args) {
+    std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config) {
   std::vector<Ptr<Validator<data::Corpus>>> validators;
 
   auto validMetrics = config->get<std::vector<std::string>>("valid-metrics");
@@ -355,13 +341,13 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
       opts->set("cost-type", metric);
 
       auto validator
-          = New<CrossEntropyValidator<Builder>>(vocabs, opts, args...);
+          = New<CrossEntropyValidator<Builder>>(vocabs, opts);
       validators.push_back(validator);
     } else if(metric == "valid-script") {
-      auto validator = New<ScriptValidator<Builder>>(vocabs, config, args...);
+      auto validator = New<ScriptValidator<Builder>>(vocabs, config);
       validators.push_back(validator);
     } else if(metric == "translation") {
-      auto validator = New<TranslationValidator<Builder>>(vocabs, config, args...);
+      auto validator = New<TranslationValidator<Builder>>(vocabs, config);
       validators.push_back(validator);
     } else {
       LOG(valid)->info("Unrecognized validation metric: {}", metric);
@@ -375,7 +361,7 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
     opts->set("cost-type", "cross-entropy");
 
     auto validator
-        = New<CrossEntropyValidator<Builder>>(vocabs, opts, args...);
+        = New<CrossEntropyValidator<Builder>>(vocabs, opts);
     validators.push_back(validator);
   }
 
