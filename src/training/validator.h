@@ -242,11 +242,17 @@ public:
     Ptr<Scorer> scorer = New<ScorerWrapper>(builder_, "", 1.0f, model);
     std::vector<Ptr<Scorer>> scorers = { scorer };
 
-    // Get output file name
-    // TODO: consider deleting the temp file after validation
-    auto outputFile = options_->has("trans-output")
-                          ? options_->get<std::string>("trans-output")
-                          : createTempFileName();
+    // Set up output file
+    std::string fileName;
+    Ptr<TemporaryFile> tempFile;
+
+    if(options_->has("trans-output")) {
+      fileName = options_->get<std::string>("trans-output");
+    } else {
+      tempFile.reset(
+          new TemporaryFile(options_->get<std::string>("tempdir"), false));
+      fileName = tempFile->getFileName();
+    }
 
     LOG(valid)->info("Translating validation set...");
 
@@ -254,7 +260,10 @@ public:
     boost::timer::cpu_timer timer;
 
     {
-      auto collector = New<OutputCollector>(outputFile);
+      auto collector = options_->has("trans-output")
+                           ? New<OutputCollector>(fileName)
+                           : New<OutputCollector>(*tempFile);
+
       size_t sentenceId = 0;
 
       while(*batchGenerator) {
@@ -286,7 +295,7 @@ public:
 
     // Run post-processing script if given
     if(options_->has("valid-script-path")) {
-      auto command = options_->get<std::string>("valid-script-path") + " " + outputFile;
+      auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
       auto valStr = Exec(command);
       val = std::atof(valStr.c_str());
       updateStalled(graph, val);
@@ -301,14 +310,6 @@ public:
   }
 
   std::string type() { return "translation"; }
-
-private:
-  std::string createTempFileName() {
-    std::string base("/tmp/marian.XXXXXX");
-    UTIL_THROW_IF2(-1 == mkstemp(&base[0]),
-                   "while making a temporary file based on " << base);
-    return base;
-  }
 };
 
 /**

@@ -16,10 +16,12 @@ namespace io = boost::iostreams;
 class TemporaryFile {
 private:
   int fd_;
+  bool unlink_;
+  std::string name_;
 
   int mkstemp_and_unlink(char* tmpl) {
     int ret = mkstemp(tmpl);
-    if(ret != -1) {
+    if(unlink_ && ret != -1) {
       UTIL_THROW_IF2(unlink(tmpl), "while deleting " << tmpl);
     }
     return ret;
@@ -27,11 +29,12 @@ private:
 
   int MakeTemp(const std::string& base) {
     std::string name(base);
-    name += "XXXXXX";
+    name += "marian.XXXXXX";
     name.push_back(0);
     int ret;
     UTIL_THROW_IF2(-1 == (ret = mkstemp_and_unlink(&name[0])),
                    "while making a temporary based on " << base);
+    name_ = name;
     return ret;
   }
 
@@ -49,13 +52,17 @@ private:
   }
 
 public:
-  TemporaryFile(const std::string base = "/tmp/") {
+  TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true)
+      : unlink_(earlyUnlink) {
     std::string baseTemp(base);
     NormalizeTempPrefix(baseTemp);
     fd_ = MakeTemp(baseTemp);
   }
 
   ~TemporaryFile() {
+    if(fd_ != -1 && !unlink_) {
+      UTIL_THROW_IF2(unlink(name_.c_str()), "while deleting " << name_);
+    }
     if(fd_ != -1 && close(fd_)) {
       std::cerr << "Could not close file " << fd_ << std::endl;
       std::abort();
@@ -63,6 +70,8 @@ public:
   }
 
   int getFileDescriptor() { return fd_; }
+
+  std::string getFileName() { return name_; }
 };
 
 class InputFileStream {
