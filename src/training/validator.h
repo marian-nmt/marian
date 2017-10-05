@@ -5,6 +5,7 @@
 #include <limits>
 
 #include "common/config.h"
+#include "common/utils.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
@@ -12,10 +13,7 @@
 #include "translator/history.h"
 #include "translator/output_collector.h"
 #include "translator/printer.h"
-
-#include "translator/printer.h"
 #include "translator/scorers.h"
-
 
 namespace marian {
 
@@ -149,20 +147,6 @@ public:
     initLastBest();
   }
 
-  std::string exec(const std::string& cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::shared_ptr<std::FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-    if(!pipe)
-      UTIL_THROW2("popen() failed!");
-
-    while(!std::feof(pipe.get())) {
-      if(std::fgets(buffer.data(), 128, pipe.get()) != NULL)
-        result += buffer.data();
-    }
-    return result;
-  }
-
   virtual bool lowerIsBetter() { return false; }
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
@@ -175,7 +159,7 @@ public:
                    "valid-script metric but no script given");
     auto command = options_->get<std::string>("valid-script-path");
 
-    auto valStr = exec(command);
+    auto valStr = Exec(command);
     float val = std::atof(valStr.c_str());
 
     if((lowerIsBetter() && lastBest_ > val)
@@ -223,6 +207,9 @@ public:
     opts->set("inference", true);
     builder_ = models::from_options(opts);
 
+    if(!options_->has("valid-script-path"))
+      LOG(warn)->info("No post-processing script given for validating translator");
+
     initLastBest();
   }
 
@@ -253,18 +240,21 @@ public:
     Ptr<Scorer> scorer = New<ScorerWrapper>(builder_, "", 1.0f, model);
     std::vector<Ptr<Scorer>> scorers = { scorer };
 
-    // Create output collector
-    UTIL_THROW_IF2(!options_->has("trans-output"),
-                   "translation but no output file given");
-    auto outputFile = options_->get<std::string>("trans-output");
-    auto collector = New<OutputCollector>(outputFile);
+    // Get output file name
+    // TODO: consider deleting the temp file after validation
+    auto outputFile = options_->has("trans-output")
+                          ? options_->get<std::string>("trans-output")
+                          : createTempFileName();
 
-    size_t sentenceId = 0;
-
-    LOG(valid)->info("Translating...");
+    LOG(valid)->info("Translating validation set...");
 
     graph->setInference(true);
+    boost::timer::cpu_timer timer;
+
     {
+      auto collector = New<OutputCollector>(outputFile);
+      size_t sentenceId = 0;
+
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
@@ -280,31 +270,72 @@ public:
                          bestn.str(),
                          options_->get<bool>("n-best"));
 
-        int id = batch->getSentenceIds()[0];
-        LOG(valid)->info("Best translation {}: {}", id, best1.str());
+        //int id = batch->getSentenceIds()[0];
+        //LOG(valid)->info("Best translation {}: {}", id, best1.str());
 
         sentenceId++;
       }
     }
+
+    LOG(valid)->info("Total translation time: {}", timer.format(5, "%ws"));
     graph->setInference(false);
 
-    // TODO: change me!
-    return 0.0f;
+    float val = 0.0f;
+
+    // Run post-processing script if given
+    if(options_->has("valid-script-path")) {
+      auto command = options_->get<std::string>("valid-script-path") + " " + outputFile;
+      auto valStr = Exec(command);
+      val = std::atof(valStr.c_str());
+    }
+
+    if((lowerIsBetter() && lastBest_ > val)
+       || (!lowerIsBetter() && lastBest_ < val)) {
+      stalled_ = 0;
+      lastBest_ = val;
+      if(options_->get<bool>("keep-best"))
+        keepBest(graph);
+    } else {
+      stalled_++;
+    }
+
+    return val;
   };
 
+  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+    auto model = options_->get<std::string>("model");
+    builder_->save(graph, model + ".best-" + type() + ".npz", true);
+  }
+
+  std::string type() { return "translation"; }
+
+protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
     return 0;
   }
 
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    // TODO: decide what to do with this method
+private:
+  std::string createTempFileName() {
+    std::string base("/tmp/marian.XXXXXX");
+    UTIL_THROW_IF2(-1 == mkstemp(&base[0]),
+                   "while making a temporary file based on " << base);
+    return base;
   }
-
-  std::string type() { return "translation"; }
 };
 
+/**
+ * @brief Creates validators from options
+ *
+ * If no validation metrics are specified in the options, a cross entropy
+ * validator is created by default.
+ *
+ * @param vocabs Source and target vocabularies
+ * @param config Config options
+ *
+ * @return Vector of validator objects
+ */
 template <class Builder, class... Args>
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config, Args... args) {

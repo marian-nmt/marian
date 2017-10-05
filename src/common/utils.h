@@ -11,3 +11,5 @@ void Split(const std::string& line,
 
 std::string Join(const std::vector<std::string>& words,
                  const std::string del = " ");
+
+std::string Exec(const std::string& cmd);
