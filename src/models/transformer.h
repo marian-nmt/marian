@@ -11,7 +11,8 @@ public:
   }
 
   Expr AddPositionalEmbeddings(Ptr<ExpressionGraph> graph,
-                               Expr input) {
+                               Expr input,
+                               int start = 0) {
     using namespace keywords;
 
     int dimEmb = input->shape()[1];
@@ -22,17 +23,18 @@ public:
       (num_timescales - 1.f);
 
     std::vector<float> vPos(dimEmb * dimWords, 0);
-    for(int p = 0; p < dimWords; ++p) {
+    for(int p = start; p < dimWords + start; ++p) {
       for(int i = 0; i < num_timescales; ++i) {
         float v = p * std::exp(i * -log_timescale_increment);
-        vPos[p * dimEmb + i] = std::sin(v);
-        vPos[p * dimEmb + num_timescales + i] = std::cos(v);
+        vPos[(p - start) * dimEmb + i] = std::sin(v);
+        vPos[(p - start) * dimEmb + num_timescales + i] = std::cos(v);
       }
     }
 
     // shared across batch entries
     auto signal = graph->constant({1, dimEmb, dimWords},
                                   init=inits::from_vector(vPos));
+    //debug(signal, "signal");
     return input + signal;
   }
 
@@ -52,25 +54,27 @@ public:
     int dimSteps = input->shape()[0];
     int dimModel = input->shape()[1];
     int dimBatch = input->shape()[2];
+    int dimBeam  = input->shape()[3];
 
     int dimDepth = dimModel / dimHeads;
 
-    auto output = reshape(input, {dimHeads, dimDepth, dimSteps, dimBatch});
+    auto output = reshape(input, {dimHeads, dimDepth, dimSteps, dimBatch * dimBeam});
 
     return transpose(output, {2, 1, 0, 3});
   }
 
-  Expr JoinHeads(Expr input) {
+  Expr JoinHeads(Expr input, int dimBeam = 1) {
     int dimSteps = input->shape()[0];
     int dimDepth = input->shape()[1];
     int dimHeads = input->shape()[2];
-    int dimBatch = input->shape()[3];
+    int dimBatchBeam = input->shape()[3];
 
     int dimModel = dimHeads * dimDepth;
+    int dimBatch = dimBatchBeam / dimBeam;
 
     auto output = transpose(input, {2, 1, 0, 3});
 
-    return reshape(output, {dimSteps, dimModel, dimBatch});
+    return reshape(output, {dimSteps, dimModel, dimBatch, dimBeam});
   }
 
   Expr PreProcess(Ptr<ExpressionGraph> graph,
@@ -160,8 +164,6 @@ public:
     mask = (1 - mask) * -99999999.f;
     mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
 
-    //auto kt = transpose(k, {1, 0, 2, 3});
-
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
@@ -220,7 +222,7 @@ public:
 
     // apply multi-head attention to downscaled inputs
     auto output = Attention(graph, options, prefix, qh, kh, vh, mask, inference);
-    output = JoinHeads(output);
+    output = JoinHeads(output, q->shape()[3]);
 
     auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
                            init=inits::glorot_uniform);
@@ -398,6 +400,22 @@ public:
   void clear() { }
 };
 
+class TransformerState : public DecoderState {
+public:
+    TransformerState(const rnn::States& states,
+                     Expr probs,
+                     std::vector<Ptr<EncoderState>>& encStates)
+      : DecoderState(states, probs, encStates) {}
+
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+    rnn::States selectedStates;
+
+    for(auto state : states_)
+      selectedStates.push_back({marian::select(state.output, 3, selIdx), nullptr});
+
+    return New<TransformerState>(selectedStates, probs_, encStates_);
+  }
+};
 
 class DecoderTransformer : public DecoderBase, public Transformer {
 public:
@@ -407,10 +425,8 @@ public:
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch,
                                        std::vector<Ptr<EncoderState>>& encStates) {
-    using namespace keywords;
-
-    rnn::States startStates(opt<size_t>("dec-depth"), {nullptr, nullptr});
-    return New<DecoderState>(startStates, nullptr, encStates);
+    rnn::States startStates;
+    return New<TransformerState>(startStates, nullptr, encStates);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -423,11 +439,16 @@ public:
     //************************************************************************//
 
     int dimEmb = embeddings->shape()[1];
-    int dimTrgWords = embeddings->shape()[2];
 
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
-    scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
+
+    int startPos = 0;
+    auto prevDecoderStates = state->getStates();
+    if(prevDecoderStates.size() > 0)
+      startPos = prevDecoderStates[0].output->shape()[0];
+
+    scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
 
     auto encoderState = state->getEncoderStates()[0];
     auto encoderContext = encoderState->getContext();
@@ -441,42 +462,54 @@ public:
                           {1, dimSrcWords, dimBatch});
 
     // reorganize batch and timestep
-    auto layer = TransposeTimeBatch(scaledEmbeddings);
+    auto query = TransposeTimeBatch(scaledEmbeddings);
 
+    auto opsEmb = opt<std::string>("transformer-postprocess-emb");
+    float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
+
+    query = PreProcess(graph, prefix_ + "_emb", opsEmb,
+                       query, dropProb);
+
+    rnn::States decoderStates;
+
+    int dimTrgWords = query->shape()[0];
     auto selfMask = TriangleMask(graph, dimTrgWords);
-
     if(decoderMask) {
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
                             {1, dimTrgWords, dimBatch});
       selfMask = selfMask * decoderMask;
     }
 
-    auto opsEmb = opt<std::string>("transformer-postprocess-emb");
-    float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    layer = PreProcess(graph, prefix_ + "_emb", opsEmb,
-                       layer, dropProb);
-
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
 
-      layer = LayerAttention(graph, options_,
+      auto values = query;
+      if(prevDecoderStates.size() > 0)
+        values = concatenate({prevDecoderStates[i - 1].output, query}, axis=0);
+      decoderStates.push_back({values, nullptr});
+
+      if(i <= 2)
+        debug(values, "values" + std::to_string(i));
+
+      // TODO: do not recompute matrix multiplies
+      query = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
-                             layer, layer, layer,
+                             query, values, values,
                              selfMask, inference_);
 
-      layer = LayerAttention(graph, options_,
+      // TODO: do not recompute matrix multiplies
+      query = LayerAttention(graph, options_,
                              prefix_ + "_context_l" + std::to_string(i),
-                             layer, encoderContext, encoderContext,
+                             query, encoderContext, encoderContext,
                              encoderMask, inference_);
 
-      layer = LayerFFN(graph, options_,
+      query = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer, inference_);
-
+                       query, inference_);
     }
 
-    rnn::States decoderStates;
-    auto decoderContext = TransposeTimeBatch(layer);
+    auto decoderContext = TransposeTimeBatch(query);
+    // debug(decoderContext, "decContext");
 
     //************************************************************************//
 
@@ -502,7 +535,7 @@ public:
     //debug(logits, "logits");
 
     // return unormalized(!) probabilities
-    return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
+    return New<TransformerState>(decoderStates, logits, state->getEncoderStates());
   }
 
   // helper function for guided alignment

@@ -306,7 +306,6 @@ public:
                                  const std::vector<size_t>& hypIndices,
                                  const std::vector<size_t>& embIndices) {
     auto selectedState = hypIndices.empty() ? state : state->select(hypIndices);
-
     selectEmbeddings(graph, selectedState, embIndices);
     selectedState->setSingleStep(true);
     auto nextState = step(graph, selectedState);
