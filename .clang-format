@@ -34,7 +34,7 @@ BraceWrapping:
   IndentBraces:    false
 BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Attach
-BreakBeforeTernaryOperators: false
+BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: false
 ColumnLimit:     80
 CommentPragmas:  '^ IWYU pragma:'
