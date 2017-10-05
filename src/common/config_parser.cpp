@@ -83,8 +83,9 @@ const std::set<std::string> PATHS = {"model",
                                      "embedding-vectors",
                                      "valid-sets",
                                      "valid-script-path",
-                                     "valid-output",
                                      "valid-log",
+                                     "trans-output",
+                                     "trans-script-path",
                                      "log"};
 
 void ProcessPaths(YAML::Node& node,
@@ -445,8 +446,6 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Size of mini-batch used during validation")
     ("valid-script-path", po::value<std::string>(),
      "Path to external validation script")
-    ("valid-output", po::value<std::string>(),
-     "Path to output translated validation set")
     ("early-stopping", po::value<size_t>()->default_value(10),
      "Stop if the first validation metric does not improve for  arg  consecutive "
      "validation steps")
@@ -455,12 +454,21 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
 
-    /*("beam-size", po::value<size_t>()->default_value(12),
+    ("trans-script-path", po::value<std::string>(),
+     "Path to external postprocessing script to which the translated "
+     "validation set is passed as a first argument. "
+     "Requires 'translation' validation metric")
+    ("trans-output", po::value<std::string>(),
+     "Path to store the translation")
+
+    ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
-    ("normalize", po::value<bool>()->zero_tokens()->default_value(false),
+    ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
       "Normalize translation score by translation length")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
-      "Allow unknown words to appear in output")*/
+      "Allow unknown words to appear in output")
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Generate n-best list")
   ;
   // clang-format on
   desc.add(valid);
@@ -706,10 +714,10 @@ void ConfigParser::parseOptions(
   }
   if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);
-    SET_OPTION("normalize", bool);
-    SET_OPTION("n-best", bool);
     SET_OPTION("beam-size", size_t);
+    SET_OPTION("normalize", bool);
     SET_OPTION("allow-unk", bool);
+    SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     // SET_OPTION_NONDEFAULT("lexical-table", std::string);
     SET_OPTION("port", size_t);
@@ -725,14 +733,17 @@ void ConfigParser::parseOptions(
     SET_OPTION("valid-metrics", std::vector<std::string>);
     SET_OPTION("valid-mini-batch", int);
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
-    SET_OPTION_NONDEFAULT("valid-output", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION("keep-best", bool);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
 
-    // SET_OPTION("normalize", bool);
-    // SET_OPTION("beam-size", size_t);
-    // SET_OPTION("allow-unk", bool);
+    SET_OPTION_NONDEFAULT("trans-script-path", std::string);
+    SET_OPTION_NONDEFAULT("trans-output", std::string);
+
+    SET_OPTION("beam-size", size_t);
+    SET_OPTION("normalize", bool);
+    SET_OPTION("allow-unk", bool);
+    SET_OPTION("n-best", bool);
   }
 
   if(doValidate) {

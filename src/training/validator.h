@@ -207,21 +207,21 @@ public:
 
 
 template <class Builder>
-class TranslationAction : public Validator<data::Corpus> {
+class TranslationValidator : public Validator<data::Corpus> {
 private:
   Ptr<Builder> builder_;
 
 public:
   template <class... Args>
-  TranslationAction(std::vector<Ptr<Vocab>> vocabs,
-                    Ptr<Config> options,
-                    Args... args)
+  TranslationValidator(std::vector<Ptr<Vocab>> vocabs,
+                       Ptr<Config> options,
+                       Args... args)
       : Validator(vocabs, options) {
 
-    Ptr<Options> temp = New<Options>();
-    temp->merge(options);
-    temp->set("inference", true);
-    builder_ = models::from_options(temp);
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts);
 
     initLastBest();
   }
@@ -231,24 +231,21 @@ public:
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
 
-    graph->setInference(true);
-
-    // TODO: use
-    //UTIL_THROW_IF2(!options_->has("valid-output"),
-                   //"translation but no output file given");
-    //auto outputFile = options_->get<std::string>("valid-output");
+    // Temporary options for translation
+    auto opts = New<Config>(*options_);
+    opts->set("mini-batch", 1);
+    opts->set("maxi-batch", 1);
+    opts->set("max-length", 1000);
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    std::vector<std::string> validPath = { validPaths.front() };
-    std::vector<Ptr<Vocab>> srcVocab = { vocabs_.front() };
-    auto corpus = New<Corpus>(validPath, srcVocab, options_, 10000);
+    std::vector<std::string> srcPaths(validPaths.begin(), validPaths.end() - 1);
+    std::vector<Ptr<Vocab>> srcVocabs(vocabs_.begin(), vocabs_.end() - 1);
+    auto corpus = New<Corpus>(srcPaths, srcVocabs, opts);
 
     // Generate batches
     Ptr<BatchGenerator<Corpus>> batchGenerator
-        = New<BatchGenerator<Corpus>>(corpus, options_);
-    // Force batch size of 1 because multi-batch translation is not yet supported
-    batchGenerator->forceBatchSize(1);
+        = New<BatchGenerator<Corpus>>(corpus, opts);
     batchGenerator->prepare(false);
 
     // Create scorer
@@ -256,24 +253,32 @@ public:
     Ptr<Scorer> scorer = New<ScorerWrapper>(builder_, "", 1.0f, model);
     std::vector<Ptr<Scorer>> scorers = { scorer };
 
-    //auto collector = New<StringCollector>();
+    // Create output collector
+    UTIL_THROW_IF2(!options_->has("trans-output"),
+                   "translation but no output file given");
+    auto outputFile = options_->get<std::string>("trans-output");
+    auto collector = New<OutputCollector>(outputFile);
+
     size_t sentenceId = 0;
 
     LOG(valid)->info("Translating...");
+
+    graph->setInference(true);
     {
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
         graph->clear();
-        //if(!graph)
-          //graph->getBackend()->setDevice(graph->getDevice());
-
         auto search = New<BeamSearch>(options_, scorers);
         auto history = search->search(graph, batch, sentenceId);
 
         std::stringstream best1;
         std::stringstream bestn;
         Printer(options_, vocabs_.back(), history, best1, bestn);
+        collector->Write(history->GetLineNum(),
+                         best1.str(),
+                         bestn.str(),
+                         options_->get<bool>("n-best"));
 
         int id = batch->getSentenceIds()[0];
         LOG(valid)->info("Best translation {}: {}", id, best1.str());
@@ -281,7 +286,6 @@ public:
         sentenceId++;
       }
     }
-
     graph->setInference(false);
 
     // TODO: change me!
@@ -316,17 +320,17 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
   for(auto metric : validMetrics) {
     if(std::find(ceMetrics.begin(), ceMetrics.end(), metric)
        != ceMetrics.end()) {
-      Ptr<Config> temp = New<Config>(*config);
-      temp->set("cost-type", metric);
+      Ptr<Config> opts = New<Config>(*config);
+      opts->set("cost-type", metric);
 
       auto validator
-          = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
+          = New<CrossEntropyValidator<Builder>>(vocabs, opts, args...);
       validators.push_back(validator);
     } else if(metric == "valid-script") {
       auto validator = New<ScriptValidator<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
     } else if(metric == "translation") {
-      auto validator = New<TranslationAction<Builder>>(vocabs, config, args...);
+      auto validator = New<TranslationValidator<Builder>>(vocabs, config, args...);
       validators.push_back(validator);
     } else {
       LOG(valid)->info("Unrecognized validation metric: {}", metric);
@@ -336,11 +340,11 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
   if(validators.empty()) {
     LOG(valid)->info("No validation metric specified, using 'cross-entropy'");
 
-    Ptr<Config> temp = New<Config>(*config);
-    temp->set("cost-type", "cross-entropy");
+    Ptr<Config> opts = New<Config>(*config);
+    opts->set("cost-type", "cross-entropy");
 
     auto validator
-        = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
+        = New<CrossEntropyValidator<Builder>>(vocabs, opts, args...);
     validators.push_back(validator);
   }
 
