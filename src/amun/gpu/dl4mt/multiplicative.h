@@ -26,7 +26,7 @@ class Multiplicative: public Cell {
       Prod(*State.output, *State.output, *w_.Umh_);
       BroadcastVec(_1 + _2, *State.output, *w_.bUmh_);
       Prod(x_mult_, Context, *w_.Wmx_);
-      Element(_1 + _2, x_mult_, *w_.bWmx_);
+      BroadcastVec(_1 + _2, x_mult_, *w_.bWmx_);
       Element(_1 * _2, *State.output, x_mult_);
       innerCell_.GetNextState(NextState, State, Context);
     }

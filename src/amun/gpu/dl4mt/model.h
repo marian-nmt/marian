@@ -267,9 +267,9 @@ struct Weights {
     MultWeights(const NpzConverter& model, const std::string& prefix)
       : BaseWeights(model),
       Wmx_(model.get(p(prefix, "Wmx"), true)),
-      bWmx_(model.get(p(prefix, "bWmx"), true)),
+      bWmx_(model.get(p(prefix, "bWmx"), true, true)),
       Umh_(model.get(p(prefix, "Umh"), true)),
-      bUmh_(model.get(p(prefix, "bUmh"), true))
+      bUmh_(model.get(p(prefix, "bUmh"), true, true))
       {}
     const std::shared_ptr<mblas::Matrix> Wmx_;
     const std::shared_ptr<mblas::Matrix> bWmx_;
