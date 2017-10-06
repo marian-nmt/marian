@@ -365,6 +365,9 @@ public:
 
     size_t step = 10;
     size_t maxLength = opt<size_t>("max-length");
+
+    maxLength = std::ceil(maxLength / (float)step) * step;
+
     size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
     for(size_t i = step; i <= maxLength; i += step) {
       size_t batchSize = step;
