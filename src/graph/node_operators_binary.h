@@ -390,7 +390,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> concatenees;
     for(int i = 0; i < children_.size(); ++i)
       concatenees.push_back(child(i)->val());
-    Concatenate(val_, concatenees, ax_);
+    ConcatN(val_, concatenees, ax_);
   }
 
   void backward() {
@@ -401,7 +401,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
           ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
       deconcatenees.push_back(childPtr->grad());
     }
-    Deconcatenate(deconcatenees, adj_, ax_);
+    SplitN(deconcatenees, adj_, ax_);
   }
 
   virtual size_t hash() {

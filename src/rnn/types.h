@@ -18,6 +18,7 @@ struct State {
 
     int numSelected = indices.size();
     int dimState = output->shape()[1];
+    int dimTime = output->shape()[2];
 
     if(cell) {
       return State{

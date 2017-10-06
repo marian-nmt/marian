@@ -5,9 +5,6 @@ namespace marian {
 
 Expr debug(Expr a, const std::string& message = "");
 
-Expr rows(Expr a, const std::vector<size_t>& indeces);
-Expr cols(Expr a, const std::vector<size_t>& indeces);
-
 Expr plus(const std::vector<Expr>&);
 
 Expr logit(Expr a);
@@ -53,7 +50,6 @@ Expr operator/(Expr a, float b);
 //Expr pow(Expr a, float b);
 
 Expr dot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
-
 Expr bdot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
 
 Expr transpose(Expr a);
@@ -64,6 +60,11 @@ Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
 Expr reshape(Expr a, Shape shape);
 
 Expr flatten(Expr a);
+
+Expr rows(Expr a, const std::vector<size_t>& indices);
+Expr cols(Expr a, const std::vector<size_t>& indices);
+
+Expr select(Expr a, int axis, const std::vector<size_t>& indices);
 
 /*********************************************************/
 
