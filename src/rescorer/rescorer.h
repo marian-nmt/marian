@@ -27,8 +27,8 @@ public:
     builder_->load(graph, modelFile);
   }
 
-  Expr buildToScore(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
-    return builder_->buildToScore(graph, batch);
+  Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
+    return builder_->build(graph, batch);
   }
 };
 
@@ -62,6 +62,7 @@ public:
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
+    temp->set("cost-type", "ce-rescore");
     model_ = New<Model>(temp);
 
     model_->load(graph_, modelFile);
@@ -74,19 +75,31 @@ public:
 
     auto output = New<ScoreCollector>();
 
+    bool summarize = options_->get<bool>("summarize");
+    float sumCost = 0;
+    size_t sumWords = 0;
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
 
-      auto costNode = model_->buildToScore(graph_, batch);
+      auto costNode = model_->build(graph_, batch);
       graph_->forward();
 
       std::vector<float> scores;
       costNode->val()->get(scores);
 
-      for(size_t i = 0; i < batch->size(); ++i) {
-        output->Write(batch->getSentenceIds()[i], scores[i]);
+      for(auto s : scores)
+        sumCost += s;
+      sumWords += batch->back()->batchWords();
+
+      if(!summarize) {
+        for(size_t i = 0; i < batch->size(); ++i) {
+          output->Write(batch->getSentenceIds()[i], scores[i]);
+        }
       }
     }
+
+    if(summarize)
+      std::cout << "Perplexity: " << std::exp(-(float)sumCost / (float)sumWords) << std::endl;
   }
 };
 

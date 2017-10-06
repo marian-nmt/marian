@@ -382,24 +382,5 @@ public:
   void set(std::string key, T value) {
     options_->set(key, value);
   }
-
-  virtual Expr buildToScore(Ptr<ExpressionGraph> graph,
-                            Ptr<data::Batch> batch,
-                            bool clearGraph = true) {
-    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
-
-    if(clearGraph)
-      clear(graph);
-    auto state = startState(graph, corpusBatch);
-
-    Expr trgMask, trgIdx;
-    std::tie(trgMask, trgIdx)
-      = decoders_[0]->groundTruth(state, graph, corpusBatch);
-
-    auto nextState = step(graph, state);
-
-    return -sum(cross_entropy(nextState->getProbs(), trgIdx) * trgMask,
-                keywords::axis = 2);
-  }
 };
 }

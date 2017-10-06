@@ -1,7 +1,7 @@
 #pragma once
 
 #include "examples/mnist/model.h"
-#include "examples/mnist/model_lenet.h"
+//#include "examples/mnist/model_lenet.h"
 #include "layers/factory.h"
 #include "models/amun.h"
 #include "models/model_base.h"
@@ -181,9 +181,9 @@ Ptr<ModelBase> by_type(std::string type,
   }
 
   // TODO: this should be compiled optionally!
-  if(type == "mnist-lenet") {
-    return New<MnistLeNet>(options);
-  }
+  //if(type == "mnist-lenet") {
+    //return New<MnistLeNet>(options);
+  //}
 
   UTIL_THROW2("Unknown model type: " + type);
 }

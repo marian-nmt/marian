@@ -20,12 +20,6 @@ public:
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) = 0;
 
-  virtual Expr buildToScore(Ptr<ExpressionGraph> graph,
-                            Ptr<data::Batch> batch,
-                            bool clearGraph = true) {
-    return build(graph, batch, clearGraph);
-  }
-
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) = 0;
 };
 

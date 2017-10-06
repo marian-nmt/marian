@@ -28,7 +28,9 @@ public:
       : options_(options),
         vocabs_(vocabs),
         lastBest_{lowerIsBetter() ? std::numeric_limits<float>::max() :
-                                    std::numeric_limits<float>::lowest()} {}
+                                    std::numeric_limits<float>::lowest()} {
+
+  }
 
   virtual std::string type() = 0;
 
@@ -46,9 +48,13 @@ public:
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, options_);
+
+    auto opts = New<Config>(*options_);
+    opts->set("max-length", options_->get<size_t>("valid-max-length"));
+
+    auto corpus = New<DataSet>(validPaths, vocabs_, opts);
     Ptr<BatchGenerator<DataSet>> batchGenerator
-        = New<BatchGenerator<DataSet>>(corpus, options_);
+        = New<BatchGenerator<DataSet>>(corpus, opts);
     if(options_->has("valid-mini-batch"))
       batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
     batchGenerator->prepare(false);
@@ -87,6 +93,7 @@ public:
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
+    temp->set("cost-type", "ce-sum");
     builder_ = models::from_options(temp);
 
     initLastBest();
@@ -95,19 +102,31 @@ public:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+
+    auto ctype = options_->get<std::string>("cost-type");
+
     float cost = 0;
     size_t samples = 0;
+    size_t words = 0;
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
       auto costNode = builder_->build(graph, batch);
       graph->forward();
 
-      cost += costNode->scalar() * batch->size();
+      cost += costNode->scalar();
       samples += batch->size();
+      words += batch->back()->batchWords();
     }
 
-    return cost / samples;
+    if(ctype == "perplexity")
+      return std::exp(cost / words);
+    if(ctype == "ce-mean-words")
+      return cost / words;
+    if(ctype == "ce-sum")
+      return cost;
+    else
+      return cost / samples;
   }
 
   virtual void keepBest(Ptr<ExpressionGraph> graph) {
