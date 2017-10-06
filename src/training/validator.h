@@ -88,6 +88,7 @@ public:
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
+    temp->set("cost-type", "ce-sum");
     builder_ = models::from_options(temp);
 
     initLastBest();
@@ -96,19 +97,31 @@ public:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+
+    auto ctype = options_->get<std::string>("cost-type");
+
     float cost = 0;
     size_t samples = 0;
+    size_t words = 0;
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
       auto costNode = builder_->build(graph, batch);
       graph->forward();
 
-      cost += costNode->scalar() * batch->size();
+      cost += costNode->scalar();
       samples += batch->size();
+      words += batch->back()->batchWords();
     }
 
-    return cost / samples;
+    if(ctype == "perplexity")
+      return std::exp(cost / words);
+    if(ctype == "ce-words")
+      return cost / words;
+    if(ctype == "ce-sum")
+      return cost;
+    else
+      return cost / samples;
   }
 
   virtual void keepBest(Ptr<ExpressionGraph> graph) {
