@@ -12,34 +12,15 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  std::vector<float> vals1 = {
-    -87.41486359, -87.41487122, -87.41486359, -87.41486359, -87.41487885,
-    -87.41485596, -87.41486359, -87.41485596, -87.41487122, -87.41486359,
-    -87.41487885, -87.41486359, -87.41487885, -87.41487885, -87.41486359,
-    -87.41486359
-  };
+  auto in1 = graph->constant({1, 3, 2, 2}, init=inits::from_value(1));
+  auto in2 = graph->constant({1, 3, 2, 2}, init=inits::from_value(2));
+  auto in3 = graph->constant({1, 3, 2, 2}, init=inits::from_value(3));
+  auto in4 = graph->constant({1, 3, 2, 2}, init=inits::from_value(4));
 
-  std::vector<float> vals;
-  for(int i = 0; i < 16 * 16; ++i)
-    for(auto v: vals1)
-      vals.push_back(v);
+  auto out = concatenate({in1, in2, in3, in4}, axis=2);
 
-  auto in = graph->constant({16, 16, 16}, init=inits::from_vector(vals));
-
-  std::vector<float> vMask1(32, 1.f);
-  vMask1[15] = 0.f;
-
-  std::vector<float> vMask;
-  for(int i = 0; i < 8; ++i)
-    for(auto v: vMask1)
-      vMask.push_back(v);
-
-  auto inMask = graph->constant({16, 16, 1}, init=inits::from_vector(vMask));
-
-  auto out = softmax(in, inMask);
-
-  debug(in, "cost");
-  debug(inMask, "mask");
+  debug(in1, "in1");
+  debug(in2, "in2");
   debug(out, "out");
 
   graph->forward();

@@ -12,14 +12,6 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
-Expr rows(Expr a, const std::vector<size_t>& indeces) {
-  return Expression<RowsNodeOp>(a, indeces);
-}
-
-Expr cols(Expr a, const std::vector<size_t>& indeces) {
-  return Expression<ColsNodeOp>(a, indeces);
-}
-
 Expr logit(Expr a) {
   return Expression<LogitNodeOp>(a);
 }
@@ -124,6 +116,18 @@ Expr reshape(Expr a, Shape shape) {
 Expr flatten(Expr a) {
   Shape shape = {a->shape().elements()};
   return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr rows(Expr a, const std::vector<size_t>& indices) {
+  return Expression<RowsNodeOp>(a, indices);
+}
+
+Expr cols(Expr a, const std::vector<size_t>& indices) {
+  return Expression<ColsNodeOp>(a, indices);
+}
+
+Expr select(Expr a, int axis, const std::vector<size_t>& indices) {
+  return Expression<SelectNodeOp>(a, axis, indices);
 }
 
 Expr sum(Expr a, keywords::axis_k ax) {

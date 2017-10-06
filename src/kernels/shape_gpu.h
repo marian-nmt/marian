@@ -53,7 +53,7 @@ struct ShapeGPU {
     updateStrides();
   }
 
-  void updateStrides() {
+  __host__ __device__ void updateStrides() {
     stride_[0] = shape_[1];
     stride_[1] = 1;
     stride_[2] = shape_[0] * shape_[1];
@@ -65,7 +65,7 @@ struct ShapeGPU {
     bstride_[3] = shape_[3] == 1 ? 0 : stride_[3];
   }
 
-  inline void set(int i, int dim) {
+  __host__ __device__ inline void set(int i, int dim) {
     shape_[i] = dim;
     updateStrides();
   }

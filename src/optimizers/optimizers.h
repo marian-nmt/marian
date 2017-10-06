@@ -13,9 +13,8 @@ namespace marian {
 
 class OptimizerBase : public TrainingObserver {
 public:
-  template <typename... Args>
-  OptimizerBase(float eta, Args... args)
-      : clipper_(Get(keywords::clip, nullptr, args...)), eta_(eta) {}
+  OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
+      : eta_(eta), clipper_(clipper) {}
 
   void update(Ptr<ExpressionGraph> graph, float multiplyFactor = 1.0f) {
     Tensor p = graph->params()->vals();
@@ -28,45 +27,45 @@ public:
     if(clipper_)
       clipper_->clip(grads);
 
-    multiplyFactor_ = multiplyFactor; //In case we want to add a multiply factor to our learning rate
+    // In case we want to add a multiply factor to our learning rate
+    multiplyFactor_ = multiplyFactor; 
     updateImpl(params, grads);
   }
 
-  virtual void actAfterEpoch(TrainingState& state) {
-    eta_ = state.eta;
-  }
+  virtual void actAfterEpoch(TrainingState& state) { eta_ = state.eta; }
+  virtual void actAfterBatches(TrainingState& state) { eta_ = state.eta; }
+  virtual void actAfterStalled(TrainingState& state) { eta_ = state.eta; }
 
-  virtual void actAfterBatches(TrainingState& state) {
-    eta_ = state.eta;
-  }
-
-  virtual void actAfterStalled(TrainingState& state) {
-    eta_ = state.eta;
-  }
+  void setParams(const std::vector<float>& params) { parseParams(params); }
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
+  virtual void parseParams(const std::vector<float>& params) = 0;
 
-  Ptr<ClipperBase> clipper_;
+  // Learning rate
   float eta_;
-  float multiplyFactor_; //Compensates for larger batch
+  // Compensates for larger batch
+  float multiplyFactor_;
+  // Clip gradient norm
+  Ptr<ClipperBase> clipper_;
 };
 
 class Sgd : public OptimizerBase {
 public:
-  template <typename... Args>
-  Sgd(float eta, Args... args) : OptimizerBase(eta, args...) {}
+  Sgd(float eta, Ptr<ClipperBase> clipper = nullptr)
+      : OptimizerBase(eta, clipper) {}
 
 private:
   void updateImpl(Tensor params, Tensor grads);
+
+  virtual void parseParams(const std::vector<float>& params) {}
 };
 
 // @TODO: Add serialization for historic gradients and parameters
 class Adagrad : public OptimizerBase {
 public:
-  template <typename... Args>
-  Adagrad(float eta, Args... args)
-      : OptimizerBase(eta, args...), eps_(Get(keywords::eps, 1e-8, args...)) {}
+  Adagrad(float eta, Ptr<ClipperBase> clipper = nullptr)
+      : OptimizerBase(eta, clipper) {}
 
   virtual void actAfterEpoch(TrainingState& state) {
     OptimizerBase::actAfterEpoch(state);
@@ -90,7 +89,12 @@ private:
   void updateImpl(Tensor params, Tensor grads);
   void resetStats();
 
-  float eps_;
+  virtual void parseParams(const std::vector<float>& params) {
+    if(params.size() > 0)
+      eps_ = params[0];
+  }
+
+  float eps_ = 1e-8;
   Ptr<TensorAllocator> alloc_;
   Tensor gt_;
 };
@@ -99,14 +103,10 @@ private:
 // https://arxiv.org/pdf/1412.6980v8.pdf
 class Adam : public OptimizerBase {
 public:
-  template <typename... Args>
-  Adam(float eta, Args... args)
-      : OptimizerBase(eta, args...),
-        beta1_(Get(keywords::beta1, 0.9, args...)),
-        beta2_(Get(keywords::beta2, 0.98, args...)),
-        eps_(Get(keywords::eps, 1e-9, args...)),
-        t_(0) {}
+  Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
+      : OptimizerBase(eta, clipper), t_(0) {}
 
+private:
   void updateImpl(Tensor params, Tensor grads);
 
   virtual void actAfterEpoch(TrainingState& state) {
@@ -130,9 +130,18 @@ public:
 private:
   void resetStats();
 
-  float beta1_;
-  float beta2_;
-  float eps_;
+  virtual void parseParams(const std::vector<float>& params) {
+    if(params.size() > 0)
+      beta1_ = params[0];
+    if(params.size() > 1)
+      beta2_ = params[1];
+    if(params.size() > 2)
+      eps_ = params[2];
+  }
+
+  float beta1_ = 0.9;
+  float beta2_ = 0.999;
+  float eps_ = 1e-8;
   size_t t_;
 
   Ptr<TensorAllocator> mtAlloc_;
@@ -141,9 +150,13 @@ private:
   Tensor vt_;
 };
 
-template <class Algorithm, typename... Args>
-Ptr<OptimizerBase> Optimizer(float eta, Args&&... args) {
-  return Ptr<OptimizerBase>(new Algorithm(eta, args...));
+template <class Algorithm>
+Ptr<OptimizerBase> Optimizer(float eta,
+                             Ptr<ClipperBase> clipper = nullptr,
+                             std::vector<float> params = {}) {
+  auto opt = Ptr<OptimizerBase>(new Algorithm(eta, clipper));
+  opt->setParams(params);
+  return opt;
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options);
