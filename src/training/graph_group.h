@@ -49,7 +49,6 @@ public:
 template <class Builder>
 class SingletonGraph : public GraphGroup {
 public:
-  typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
   virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
@@ -191,7 +190,6 @@ public:
 template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
 public:
-  typedef Builder builder_type;
   typedef typename Builder::dataset_type dataset_type;
 
   virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {

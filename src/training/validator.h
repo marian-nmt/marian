@@ -327,7 +327,6 @@ protected:
  *
  * @return Vector of validator objects
  */
-template <class Builder>
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config) {
   std::vector<Ptr<Validator<data::Corpus>>> validators;
