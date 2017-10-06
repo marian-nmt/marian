@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/config.h"
-#include "common/model_base.h"
 #include "data/batch_generator.h"
 #include "graph/expression_graph.h"
+#include "models/model_base.h"
 #include "training/validator.h"
 
 #include "examples/mnist/dataset.h"

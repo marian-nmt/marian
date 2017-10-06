@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/model_base.h"
+#include "examples/mnist/model.h"
 #include "layers/factory.h"
-#include "models/s2s.h"
 #include "models/amun.h"
+#include "models/model_base.h"
 #include "models/nematus.h"
+#include "models/s2s.h"
 #include "models/transformer.h"
 #include "models/transformer_gru.h"
-#include "examples/mnist/model.h"
 
 #define REGISTER_ENCODER(name, className)\
 do {\

@@ -2,7 +2,7 @@
 
 #include "common/definitions.h"
 #include "common/options.h"
-#include "common/model_base.h"
+#include "models/model_base.h"
 
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"

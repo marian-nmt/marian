@@ -6,11 +6,11 @@
 
 #include <boost/timer/timer.hpp>
 
-#include "common/model_base.h"
 #include "common/definitions.h"
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
 #include "layers/convolution.h"
+#include "models/model_base.h"
 
 #include "examples/mnist/dataset.h"
 
