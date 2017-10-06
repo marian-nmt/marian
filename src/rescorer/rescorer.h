@@ -6,20 +6,18 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
-
-#include "models/model_task.h"
+#include "models/model_base.h"
 #include "models/model_factory.h"
-
+#include "models/model_task.h"
 #include "rescorer/score_collector.h"
 
 namespace marian {
 
 using namespace data;
 
-template <class Builder>
 class Rescorer {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 public:
   Rescorer(Ptr<Options> options) :
