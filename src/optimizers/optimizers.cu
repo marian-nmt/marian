@@ -23,7 +23,10 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
 
   Element(_1 += (_2 * _2), gt_, grads);
 
-  Element(_1 -= ((multiplyFactor_*eta_) / (Sqrt(_2) + eps_)) * _3, params, gt_, grads);
+  Element(_1 -= ((multiplyFactor_ * eta_) / (Sqrt(_2) + eps_)) * _3,
+          params,
+          gt_,
+          grads);
 
   cudaStreamSynchronize(0);
 }
@@ -58,12 +61,13 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
   Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2), mt_, grads);
   Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)), vt_, grads);
 
-  Element(_1 -= (multiplyFactor_*eta_) * (_2 / denom1) / (Sqrt(_3 / denom2) + eps_),
+  Element(_1 -= (multiplyFactor_ * eta_) * (_2 / denom1)
+                / (Sqrt(_3 / denom2) + eps_),
           params,
           mt_,
           vt_);
 
- cudaStreamSynchronize(0);
+  cudaStreamSynchronize(0);
 }
 
 void Adam::resetStats() {
@@ -78,21 +82,24 @@ void Adam::resetStats() {
 
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
+  float lrate = options->get<double>("learn-rate");
+  auto params = options->has("optimizer-params") ?
+                    options->get<std::vector<float>>("optimizer-params") :
+                    std::vector<float>({});
+
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = options->get<double>("clip-norm");
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
 
-  float lrate = options->get<double>("learn-rate");
-
-  std::string opt = options->get<std::string>("optimizer");
+  auto opt = options->get<std::string>("optimizer");
 
   if(opt == "sgd") {
-    return Optimizer<Sgd>(lrate, keywords::clip = clipper);
+    return Optimizer<Sgd>(lrate, clipper, params);
   } else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(lrate, keywords::clip = clipper);
+    return Optimizer<Adagrad>(lrate, clipper, params);
   } else if(opt == "adam") {
-    return Optimizer<Adam>(lrate, keywords::clip = clipper);
+    return Optimizer<Adam>(lrate, clipper, params);
   } else {
     UTIL_THROW2("Unknown optimizer: " << opt);
   }
