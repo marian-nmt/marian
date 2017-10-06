@@ -166,6 +166,15 @@ public:
 
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
+
+    // @TODO: do this better
+    int dimBeamQ = q->shape()[3];
+    int dimBeamK = k->shape()[3];
+    if(dimBeamQ != dimBeamK) {
+      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis=3);
+      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis=3);
+    }
+
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
 
     // optional dropout for attention weights
@@ -222,6 +231,7 @@ public:
 
     // apply multi-head attention to downscaled inputs
     auto output = Attention(graph, options, prefix, qh, kh, vh, mask, inference);
+
     output = JoinHeads(output, q->shape()[3]);
 
     auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
@@ -487,9 +497,6 @@ public:
       if(prevDecoderStates.size() > 0)
         values = concatenate({prevDecoderStates[i - 1].output, query}, axis=0);
       decoderStates.push_back({values, nullptr});
-
-      if(i <= 2)
-        debug(values, "values" + std::to_string(i));
 
       // TODO: do not recompute matrix multiplies
       query = LayerAttention(graph, options_,
