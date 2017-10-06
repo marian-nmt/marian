@@ -1,6 +1,7 @@
 #pragma once
 
 #include "examples/mnist/model.h"
+#include "examples/mnist/model_lenet.h"
 #include "layers/factory.h"
 #include "models/amun.h"
 #include "models/model_base.h"
@@ -176,11 +177,12 @@ Ptr<ModelBase> by_type(std::string type,
   }
 
   if(type == "mnist-ffnn") {
-    return New<MNISTModel>(options);
+    return New<MnistFeedForwardNet>(options);
   }
 
+  // TODO: this should be compiled optionally!
   if(type == "mnist-lenet") {
-    return New<MNISTModel>(options);
+    return New<MnistLeNet>(options);
   }
 
   UTIL_THROW2("Unknown model type: " + type);
