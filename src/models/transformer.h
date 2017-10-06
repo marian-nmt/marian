@@ -50,6 +50,13 @@ public:
                             init=inits::from_vector(vMask));
   }
 
+  Expr InverseMask(Expr mask) {
+    // convert 0/1 mask to transformer style -inf mask
+    auto ms = mask->shape();
+    mask = (1 - mask) * -99999999.f;
+    return reshape(mask, {ms[0], ms[1], 1, ms[2]});
+  }
+
   Expr SplitHeads(Expr input, int dimHeads) {
     int dimSteps = input->shape()[0];
     int dimModel = input->shape()[1];
@@ -158,11 +165,6 @@ public:
 
     // scaling to avoid extreme values due to matrix multiplication
     float scale = 1.0 / std::sqrt(dk);
-
-    // convert 0/1 mask to transformer style -inf mask
-    auto ms = mask->shape();
-    mask = (1 - mask) * -99999999.f;
-    mask = reshape(mask, {ms[0], ms[1], 1, ms[2]});
 
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
@@ -385,6 +387,8 @@ public:
     layer = PreProcess(graph, prefix_ + "_emb", opsEmb,
                        layer, dropProb);
 
+    layerMask = InverseMask(layerMask);
+
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
       layer = LayerAttention(graph, options_,
@@ -402,7 +406,6 @@ public:
     // to make RNN-based decoders and beam search work with this. We are looking
     // into makeing this more natural.
     auto context = TransposeTimeBatch(layer);
-    //debug(context, "context");
 
     return New<EncoderState>(context, batchMask, batch);
   }
@@ -490,6 +493,9 @@ public:
       selfMask = selfMask * decoderMask;
     }
 
+    selfMask = InverseMask(selfMask);
+    encoderMask = InverseMask(encoderMask);
+
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
 
@@ -516,7 +522,6 @@ public:
     }
 
     auto decoderContext = TransposeTimeBatch(query);
-    // debug(decoderContext, "decContext");
 
     //************************************************************************//
 
@@ -539,7 +544,6 @@ public:
                   .push_back(layerOut);
 
     Expr logits = output->apply(decoderContext);
-    //debug(logits, "logits");
 
     // return unormalized(!) probabilities
     return New<TransformerState>(decoderStates, logits, state->getEncoderStates());
