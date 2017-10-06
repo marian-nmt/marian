@@ -368,6 +368,7 @@ public:
                              {1, dimSrcWords, dimBatch});
 
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
+
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     layer = PreProcess(graph, prefix_ + "_emb", opsEmb,
                        layer, dropProb);
@@ -377,11 +378,11 @@ public:
       layer = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
                              layer, layer, layer,
-                             layerMask);
+                             layerMask, inference_);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer);
+                       layer, inference_);
 
     }
 
@@ -389,6 +390,8 @@ public:
     // to make RNN-based decoders and beam search work with this. We are looking
     // into makeing this more natural.
     auto context = TransposeTimeBatch(layer);
+    //debug(context, "context");
+
     return New<EncoderState>(context, batchMask, batch);
   }
 
@@ -459,16 +462,16 @@ public:
       layer = LayerAttention(graph, options_,
                              prefix_ + "_self_l" + std::to_string(i),
                              layer, layer, layer,
-                             selfMask);
+                             selfMask, inference_);
 
       layer = LayerAttention(graph, options_,
                              prefix_ + "_context_l" + std::to_string(i),
                              layer, encoderContext, encoderContext,
-                             encoderMask);
+                             encoderMask, inference_);
 
       layer = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),
-                       layer);
+                       layer, inference_);
 
     }
 
@@ -496,6 +499,7 @@ public:
                   .push_back(layerOut);
 
     Expr logits = output->apply(decoderContext);
+    //debug(logits, "logits");
 
     // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
