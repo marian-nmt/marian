@@ -520,6 +520,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created")
+    ("summarize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Only print total perplexity")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
     ("devices,d", po::value<std::vector<int>>()
@@ -703,6 +705,7 @@ void ConfigParser::parseOptions(
     }
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("summarize", bool);
   }
   if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);

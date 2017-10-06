@@ -28,7 +28,9 @@ public:
       : options_(options),
         vocabs_(vocabs),
         lastBest_{lowerIsBetter() ? std::numeric_limits<float>::max() :
-                                    std::numeric_limits<float>::lowest()} {}
+                                    std::numeric_limits<float>::lowest()} {
+
+  }
 
   virtual std::string type() = 0;
 
@@ -46,9 +48,14 @@ public:
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, options_);
+
+    auto opts = New<Config>(*options_);
+    // @TODO: valid-max-length
+    opts->set("max-length", 1000);
+
+    auto corpus = New<DataSet>(validPaths, vocabs_, opts);
     Ptr<BatchGenerator<DataSet>> batchGenerator
-        = New<BatchGenerator<DataSet>>(corpus, options_);
+        = New<BatchGenerator<DataSet>>(corpus, opts);
     if(options_->has("valid-mini-batch"))
       batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
     batchGenerator->prepare(false);
@@ -116,7 +123,7 @@ public:
 
     if(ctype == "perplexity")
       return std::exp(cost / words);
-    if(ctype == "ce-words")
+    if(ctype == "ce-mean-words")
       return cost / words;
     if(ctype == "ce-sum")
       return cost;
