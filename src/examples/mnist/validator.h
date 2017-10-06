@@ -13,12 +13,8 @@ using namespace marian;
 namespace marian {
 
 class AccuracyValidator : public Validator<data::MNIST> {
-private:
-  Ptr<models::ModelBase> builder_;
-
 public:
-  template <class... Args>
-  AccuracyValidator(Ptr<Config> options, Args... args)
+  AccuracyValidator(Ptr<Config> options)
       : Validator(std::vector<Ptr<Vocab>>(), options) {
     Ptr<Options> temp = New<Options>();
     temp->merge(options);

@@ -17,35 +17,11 @@
 
 namespace marian {
 
+/**
+ * @brief Base class for validators
+ */
 template <class DataSet>
 class Validator {
-protected:
-  Ptr<Config> options_;
-  std::vector<Ptr<Vocab>> vocabs_;
-  float lastBest_;
-  size_t stalled_{0};
-
-  virtual float validateBG(Ptr<ExpressionGraph>,
-                           Ptr<data::BatchGenerator<DataSet>>)
-      = 0;
-
-  void updateStalled(Ptr<ExpressionGraph> graph, float val) {
-    if((lowerIsBetter() && lastBest_ > val)
-       || (!lowerIsBetter() && lastBest_ < val)) {
-      stalled_ = 0;
-      lastBest_ = val;
-      if(options_->get<bool>("keep-best"))
-        keepBest(graph);
-    } else {
-      stalled_++;
-    }
-  }
-
-  virtual void initLastBest() {
-    lastBest_ = lowerIsBetter() ? std::numeric_limits<float>::max()
-                                : std::numeric_limits<float>::lowest();
-  }
-
 public:
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : options_(options),
@@ -87,11 +63,58 @@ public:
 
     return val;
   };
+
+protected:
+  std::vector<Ptr<Vocab>> vocabs_;
+  Ptr<Config> options_;
+  Ptr<models::ModelBase> builder_;
+
+  float lastBest_;
+  size_t stalled_{0};
+
+  virtual float validateBG(Ptr<ExpressionGraph>,
+                           Ptr<data::BatchGenerator<DataSet>>)
+      = 0;
+
+  void updateStalled(Ptr<ExpressionGraph> graph, float val) {
+    if((lowerIsBetter() && lastBest_ > val)
+       || (!lowerIsBetter() && lastBest_ < val)) {
+      stalled_ = 0;
+      lastBest_ = val;
+      if(options_->get<bool>("keep-best"))
+        keepBest(graph);
+    } else {
+      stalled_++;
+    }
+  }
+
+  virtual void initLastBest() {
+    lastBest_ = lowerIsBetter() ? std::numeric_limits<float>::max()
+                                : std::numeric_limits<float>::lowest();
+  }
 };
 
 class CrossEntropyValidator : public Validator<data::Corpus> {
-private:
-  Ptr<models::ModelBase> builder_;
+public:
+  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
+                        Ptr<Config> options)
+      : Validator(vocabs, options) {
+
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    opts->set("cost-type", "ce-sum");
+    builder_ = models::from_options(opts);
+
+    initLastBest();
+  }
+
+  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+    auto model = options_->get<std::string>("model");
+    builder_->save(graph, model + ".best-" + type() + ".npz", true);
+  }
+
+  std::string type() { return options_->get<std::string>("cost-type"); }
 
 protected:
   virtual float validateBG(
@@ -123,44 +146,10 @@ protected:
     else
       return cost / samples;
   }
-
-public:
-  template <class... Args>
-  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
-                        Ptr<Config> options,
-                        Args... args)
-      : Validator(vocabs, options) {
-
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    opts->set("cost-type", "ce-sum");
-    builder_ = models::from_options(opts);
-
-    initLastBest();
-  }
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
-  }
-
-  std::string type() { return options_->get<std::string>("cost-type"); }
 };
 
 class ScriptValidator : public Validator<data::Corpus> {
-private:
-  Ptr<models::ModelBase> builder_;
-
-protected:
-  virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
-    return 0;
-  }
-
 public:
-  template <class... Args>
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
                   Ptr<Config> options)
       : Validator(vocabs, options) {
@@ -197,11 +186,6 @@ public:
   }
 
   std::string type() { return "valid-script"; }
-};
-
-class TranslationValidator : public Validator<data::Corpus> {
-private:
-  Ptr<models::ModelBase> builder_;
 
 protected:
   virtual float validateBG(
@@ -209,7 +193,9 @@ protected:
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
     return 0;
   }
+};
 
+class TranslationValidator : public Validator<data::Corpus> {
 public:
   template <class... Args>
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
@@ -321,6 +307,13 @@ public:
   }
 
   std::string type() { return "translation"; }
+
+protected:
+  virtual float validateBG(
+      Ptr<ExpressionGraph> graph,
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+    return 0;
+  }
 };
 
 /**
@@ -334,7 +327,7 @@ public:
  *
  * @return Vector of validator objects
  */
-template <class Builder, class... Args>
+template <class Builder>
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config) {
   std::vector<Ptr<Validator<data::Corpus>>> validators;
