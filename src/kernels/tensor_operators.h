@@ -23,6 +23,12 @@ cublasHandle_t create_handle(size_t);
 
 void Transpose4D(Tensor out, Tensor in, Shape tranpose);
 
+void Select(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+void Insert(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+
+void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis);
+void SplitN(std::vector<Tensor>& outs, const Tensor in, int axis);
+
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
