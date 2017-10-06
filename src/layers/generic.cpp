@@ -31,6 +31,9 @@ Expr Cost(Expr logits, Expr indices, Expr mask,
   else if(costType == "perplexity") {
     cost = exp(sum(sum(ce, axis=2), axis=0) / sum(sum(mask, axis=2), axis=0));
   }
+  else if(costType == "ce-rescore") {
+    cost = -sum(ce, axis=2);
+  }
   else { // same as ce-mean
     cost = mean(sum(ce, axis=2), axis=0);
   }

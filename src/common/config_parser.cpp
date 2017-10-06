@@ -376,7 +376,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
-      "This can option is only active when batch-flexible-lr is on. It determines number of words per batch that the learning rate corresponds to.")
+      "Set number of words per batch that the learning rate corresponds to. "
+      "The option is only active when batch-flexible-lr is on")
     ("tau", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
     ("label-smoothing", po::value<double>()->default_value(0),
@@ -446,6 +447,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Multiple metrics can be specified")
     ("valid-mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during validation")
+    ("valid-max-length", po::value<size_t>()->default_value(1000),
+      "Maximum length of a sentence in a validating sentence pair")
     ("valid-script-path", po::value<std::string>(),
      "Path to external validation script. "
      "It should print a single score to stdout. "
@@ -529,6 +532,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created")
+    ("summarize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Only print total perplexity")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
     ("devices,d", po::value<std::vector<int>>()
@@ -712,6 +717,7 @@ void ConfigParser::parseOptions(
     }
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("summarize", bool);
   }
   if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);
@@ -733,6 +739,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("valid-freq", size_t);
     SET_OPTION("valid-metrics", std::vector<std::string>);
     SET_OPTION("valid-mini-batch", int);
+    SET_OPTION("valid-max-length", size_t);
     SET_OPTION_NONDEFAULT("valid-script-path", std::string);
     SET_OPTION("early-stopping", size_t);
     SET_OPTION("keep-best", bool);

@@ -61,12 +61,12 @@ private:
   std::string fname_;
 
 public:
-  ScorerWrapper(Ptr<EncoderDecoder> encdec,
+  ScorerWrapper(Ptr<models::ModelBase> encdec,
                 const std::string& name,
                 float weight,
                 const std::string& fname)
       : Scorer(name, weight),
-        encdec_(encdec),
+        encdec_(std::dynamic_pointer_cast<EncoderDecoder>(encdec)),
         fname_(fname) {}
 
   virtual void init(Ptr<ExpressionGraph> graph) {

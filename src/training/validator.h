@@ -68,11 +68,13 @@ public:
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, options_);
+    auto opts = New<Config>(*options_);
+    opts->set("max-length", options_->get<size_t>("valid-max-length"));
+    auto corpus = New<DataSet>(validPaths, vocabs_, opts);
 
     // Generate batches
     Ptr<BatchGenerator<DataSet>> batchGenerator
-        = New<BatchGenerator<DataSet>>(corpus, options_);
+        = New<BatchGenerator<DataSet>>(corpus, opts);
     if(options_->has("valid-mini-batch"))
       batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
     batchGenerator->prepare(false);
@@ -87,41 +89,53 @@ public:
   };
 };
 
-template <class Builder>
 class CrossEntropyValidator : public Validator<data::Corpus> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+
+    auto ctype = options_->get<std::string>("cost-type");
+
     float cost = 0;
     size_t samples = 0;
+    size_t words = 0;
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
       auto costNode = builder_->build(graph, batch);
       graph->forward();
 
-      cost += costNode->scalar() * batch->size();
+      cost += costNode->scalar();
       samples += batch->size();
+      words += batch->back()->batchWords();
     }
 
-    return cost / samples;
+    if(ctype == "perplexity")
+      return std::exp(cost / words);
+    if(ctype == "ce-mean-words")
+      return cost / words;
+    if(ctype == "ce-sum")
+      return cost;
+    else
+      return cost / samples;
   }
-
 
 public:
   template <class... Args>
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
-                        Ptr<Config> options)
+                        Ptr<Config> options,
+                        Args... args)
       : Validator(vocabs, options) {
 
-    Ptr<Options> temp = New<Options>();
-    temp->merge(options);
-    temp->set("inference", true);
-    builder_ = models::from_options(temp);
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    opts->set("cost-type", "ce-sum");
+    builder_ = models::from_options(opts);
 
     initLastBest();
   }
@@ -134,10 +148,9 @@ public:
   std::string type() { return options_->get<std::string>("cost-type"); }
 };
 
-template <class Builder>
 class ScriptValidator : public Validator<data::Corpus> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 protected:
   virtual float validateBG(
@@ -152,10 +165,10 @@ public:
                   Ptr<Config> options)
       : Validator(vocabs, options) {
 
-    Ptr<Options> temp = New<Options>();
-    temp->merge(options);
-    temp->set("inference", true);
-    builder_ = models::from_options(temp);
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts);
 
     UTIL_THROW_IF2(!options_->has("valid-script-path"),
                    "valid-script metric but no script given");
@@ -186,11 +199,9 @@ public:
   std::string type() { return "valid-script"; }
 };
 
-
-template <class Builder>
 class TranslationValidator : public Validator<data::Corpus> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 protected:
   virtual float validateBG(
@@ -341,29 +352,17 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
       Ptr<Config> opts = New<Config>(*config);
       opts->set("cost-type", metric);
 
-      auto validator
-          = New<CrossEntropyValidator<Builder>>(vocabs, opts);
+      auto validator = New<CrossEntropyValidator>(vocabs, opts);
       validators.push_back(validator);
     } else if(metric == "valid-script") {
-      auto validator = New<ScriptValidator<Builder>>(vocabs, config);
+      auto validator = New<ScriptValidator>(vocabs, config);
       validators.push_back(validator);
     } else if(metric == "translation") {
-      auto validator = New<TranslationValidator<Builder>>(vocabs, config);
+      auto validator = New<TranslationValidator>(vocabs, config);
       validators.push_back(validator);
     } else {
       LOG(valid)->info("Unrecognized validation metric: {}", metric);
     }
-  }
-
-  if(validators.empty()) {
-    LOG(valid)->info("No validation metric specified, using 'cross-entropy'");
-
-    Ptr<Config> opts = New<Config>(*config);
-    opts->set("cost-type", "cross-entropy");
-
-    auto validator
-        = New<CrossEntropyValidator<Builder>>(vocabs, opts);
-    validators.push_back(validator);
   }
 
   return validators;

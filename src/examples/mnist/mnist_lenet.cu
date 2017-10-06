@@ -8,7 +8,7 @@
 
 #include "marian.h"
 
-#include "examples/mnist/lenet_mnist.h"
+#include "examples/mnist/model_lenet.h"
 #include "examples/mnist/training.h"
 #include "training/graph_group.h"
 
@@ -29,12 +29,14 @@ int main(int argc, char** argv) {
   if(!options->has("valid-sets"))
     options->set("valid-sets", VALID_SET);
 
+  options->set("type", "mnist-lenet");
+
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if(devices.size() > 1)
-    New<TrainMNIST<AsyncGraphGroup<models::LeNetModel>>>(options)->run();
+    New<TrainMNIST<AsyncGraphGroup<models::MnistLeNet>>>(options)->run();
   else
-    New<TrainMNIST<SingletonGraph<models::LeNetModel>>>(options)->run();
+    New<TrainMNIST<SingletonGraph<models::MnistLeNet>>>(options)->run();
 
   return 0;
 }

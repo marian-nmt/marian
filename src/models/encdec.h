@@ -166,14 +166,8 @@ public:
 
 };
 
-class EncoderDecoderBase {
+class EncoderDecoderBase : public models::ModelBase {
 public:
-  virtual void load(Ptr<ExpressionGraph>, const std::string&) = 0;
-
-  virtual void save(Ptr<ExpressionGraph>, const std::string&) = 0;
-
-  virtual void save(Ptr<ExpressionGraph>, const std::string&, bool) = 0;
-
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>&) = 0;
@@ -184,10 +178,6 @@ public:
                                  const std::vector<size_t>&) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
-
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) = 0;
 
   virtual std::vector<Ptr<EncoderBase>>& getEncoders() = 0;
   virtual std::vector<Ptr<DecoderBase>>& getDecoders() = 0;
@@ -365,6 +355,9 @@ public:
 
     size_t step = 10;
     size_t maxLength = opt<size_t>("max-length");
+
+    maxLength = std::ceil(maxLength / (float)step) * step;
+
     size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
     for(size_t i = step; i <= maxLength; i += step) {
       size_t batchSize = step;
@@ -391,24 +384,6 @@ public:
   template <typename T>
   void set(std::string key, T value) {
     options_->set(key, value);
-  }
-
-  virtual Expr buildToScore(Ptr<ExpressionGraph> graph,
-                            Ptr<data::CorpusBatch> batch,
-                            bool clearGraph = true) {
-    using namespace keywords;
-
-    if(clearGraph)
-      clear(graph);
-    auto state = startState(graph, batch);
-
-    Expr trgMask, trgIdx;
-    std::tie(trgMask, trgIdx)
-      = decoders_[0]->groundTruth(state, graph, batch);
-
-    auto nextState = step(graph, state);
-
-    return -sum(cross_entropy(nextState->getProbs(), trgIdx) * trgMask, axis=2);
   }
 };
 }

@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
       //batch->debug();
 
       auto costNode = encdec->build(graph, batch);
-      
+
       debug(costNode, "cost");
 
       // graph->graphviz("debug.dot");
