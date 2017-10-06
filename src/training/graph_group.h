@@ -24,15 +24,16 @@ class GraphGroup {
 protected:
   Ptr<Config> options_;
   Ptr<OptimizerBase> opt_;
-  bool scale_lr; // Whether to scale the learning rate
-  float average_batch_words;
+
+  bool scaleLearningRate_;
+  float avgBatchWords_;
 
 public:
   GraphGroup(Ptr<Config> options)
       : options_(options),
       opt_(Optimizer(options)),
-      scale_lr(options->get<bool>("batch-flexible-lr")),
-      average_batch_words(options->get<float>("batch-normal-words")) {}
+      scaleLearningRate_(options->get<bool>("batch-flexible-lr")),
+      avgBatchWords_(options->get<float>("batch-normal-words")) {}
 
   virtual ~GraphGroup() {}
 
@@ -85,8 +86,8 @@ private:
     //@TODO use this to gather statistics about the usual number of words per batch
     //std::cout << "Batch size: " << batch->size() << " batch_words " << batch_words << std::endl;
 
-    if (scale_lr) {
-      opt_->update(graph_, batch_words/average_batch_words);
+    if (scaleLearningRate_) {
+      opt_->update(graph_, batch_words/avgBatchWords_);
     } else {
       opt_->update(graph_);
     }
@@ -308,8 +309,10 @@ private:
               params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
             }
 
-            if (scale_lr) {
-              shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/average_batch_words);
+            if(scaleLearningRate_) {
+              shardOpt_[idx]->update(params_[latestVersion][idx],
+                                     grads_[idx],
+                                     batch_words / avgBatchWords_);
             } else {
               shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx]);
             }
@@ -385,8 +388,8 @@ private:
 
   void sparsePush(SparseTensor newGrads, size_t batch_words) {
     if(graphs_.size() < 2) {
-      if (scale_lr) {
-        opt_->update(graphs_[0], batch_words/average_batch_words);
+      if(scaleLearningRate_) {
+        opt_->update(graphs_[0], batch_words / avgBatchWords_);
       } else {
         opt_->update(graphs_[0]);
       }
@@ -414,10 +417,13 @@ private:
               int pastVersion = globalVersionNumber[idx] % history_size_;
               int latestVersion = ++globalVersionNumber[idx] % history_size_;
               params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
-              if (scale_lr) {
-                shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/average_batch_words);
+              if(scaleLearningRate_) {
+                shardOpt_[idx]->update(params_[latestVersion][idx],
+                                       grads_[idx],
+                                       batch_words / avgBatchWords_);
               } else {
-                shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx]);
+                shardOpt_[idx]->update(params_[latestVersion][idx],
+                                       grads_[idx]);
               }
 
               if(movingAvg_)
