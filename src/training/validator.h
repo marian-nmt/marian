@@ -50,8 +50,7 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
 
     auto opts = New<Config>(*options_);
-    // @TODO: valid-max-length
-    opts->set("max-length", 1000);
+    opts->set("max-length", options_->get<size_t>("valid-max-length"));
 
     auto corpus = New<DataSet>(validPaths, vocabs_, opts);
     Ptr<BatchGenerator<DataSet>> batchGenerator
