@@ -1,6 +1,5 @@
 #pragma once
 
-#include "rnn/rnn.h"
 #include "common/options.h"
 
 namespace marian {
