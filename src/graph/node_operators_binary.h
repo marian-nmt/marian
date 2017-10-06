@@ -99,7 +99,6 @@ public:
                         child(0)->grad(), adj_, child(1)->val(), false, true, 1.0, scalar_)),
             NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
                         child(1)->grad(), child(0)->val(), adj_, true, false, 1.0, scalar_))};
-
   }
 
   const std::string type() { return "•"; }

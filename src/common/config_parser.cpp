@@ -352,6 +352,9 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
 
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
+    ("optimizer-params",  po::value<std::vector<float>>()
+       ->multitoken(),
+     "Parameters for optimization algorithm, e.g. betas for adam")
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
      "Learning rate")
     ("lr-decay", po::value<double>()->default_value(0.0),
@@ -660,6 +663,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("tempdir", std::string);
 
     SET_OPTION("optimizer", std::string);
+    SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("learn-rate", double);
     SET_OPTION("tau", size_t);
     SET_OPTION("mini-batch-words", int);
