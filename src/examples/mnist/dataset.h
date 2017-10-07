@@ -17,15 +17,15 @@
 namespace marian {
 namespace data {
 
-class MNIST : public Dataset {
+class MNISTData : public Dataset {
 private:
   const int IMAGE_MAGIC_NUMBER;
   const int LABEL_MAGIC_NUMBER;
 
 public:
-  MNIST(std::vector<std::string> paths,
-        std::vector<Ptr<Vocab>> vocabs = {},
-        Ptr<Config> options = nullptr)
+  MNISTData(std::vector<std::string> paths,
+            std::vector<Ptr<Vocab>> vocabs = {},
+            Ptr<Config> options = nullptr)
       : Dataset(paths), IMAGE_MAGIC_NUMBER(2051), LABEL_MAGIC_NUMBER(2049) {
     loadData();
   }

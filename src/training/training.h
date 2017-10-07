@@ -22,7 +22,7 @@ public:
 
     typedef typename Model::dataset_type dataset_type;
 
-    auto dataset = New<dataset_type>(options_);
+    auto dataset = New<data::Corpus>(options_);
     dataset->prepare();
 
     Ptr<BatchStats> stats;
@@ -35,7 +35,7 @@ public:
     }
 
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
-    auto scheduler = New<Scheduler<dataset_type>>(options_, trainState);
+    auto scheduler = New<Scheduler>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
@@ -49,7 +49,7 @@ public:
     model->load();
 
     auto batchGenerator
-        = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
+        = New<BatchGenerator<data::Corpus>>(dataset, options_, stats);
 
     scheduler->started();
     while(scheduler->keepGoing()) {

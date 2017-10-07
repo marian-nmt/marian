@@ -6,13 +6,12 @@
 
 namespace marian {
 
-template <class DataSet>
 class Scheduler : public TrainingObserver {
 private:
   YAML::Node progress;
 
   Ptr<Config> options_;
-  std::vector<Ptr<Validator<DataSet>>> validators_;
+  std::vector<Ptr<ValidatorBase>> validators_;
 
   float costSum{0};
   size_t samples{0};
@@ -59,7 +58,7 @@ public:
   void started() { LOG(info)->info("Training started"); }
   void finished() { LOG(info)->info("Training finished"); }
 
-  void addValidator(Ptr<Validator<DataSet>> validator) {
+  void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
   }
 

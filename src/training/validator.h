@@ -20,8 +20,19 @@ namespace marian {
 /**
  * @brief Base class for validators
  */
+class ValidatorBase {
+public:
+  virtual float validate(Ptr<ExpressionGraph> graph) = 0;
+  virtual std::string type() = 0;
+
+  size_t stalled() { return stalled_; }
+
+protected:
+  size_t stalled_{0};
+};
+
 template <class DataSet>
-class Validator {
+class Validator : public ValidatorBase {
 public:
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : options_(options),
@@ -29,13 +40,9 @@ public:
         lastBest_{lowerIsBetter() ? std::numeric_limits<float>::max()
                                   : std::numeric_limits<float>::lowest()} {}
 
-  size_t stalled() { return stalled_; }
-
   virtual bool lowerIsBetter() { return true; }
 
   virtual void keepBest(Ptr<ExpressionGraph> graph) = 0;
-
-  virtual std::string type() = 0;
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
@@ -69,9 +76,7 @@ protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Config> options_;
   Ptr<models::ModelBase> builder_;
-
   float lastBest_;
-  size_t stalled_{0};
 
   virtual float validateBG(Ptr<ExpressionGraph>,
                            Ptr<data::BatchGenerator<DataSet>>)
@@ -228,11 +233,10 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> srcPaths(validPaths.begin(), validPaths.end() - 1);
     std::vector<Ptr<Vocab>> srcVocabs(vocabs_.begin(), vocabs_.end() - 1);
-    auto corpus = New<Corpus>(srcPaths, srcVocabs, opts);
+    auto corpus = New<data::Corpus>(srcPaths, srcVocabs, opts);
 
     // Generate batches
-    Ptr<BatchGenerator<Corpus>> batchGenerator
-        = New<BatchGenerator<Corpus>>(corpus, opts);
+    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
     batchGenerator->prepare(false);
 
     // Create scorer

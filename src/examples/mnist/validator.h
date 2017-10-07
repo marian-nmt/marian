@@ -12,7 +12,7 @@ using namespace marian;
 
 namespace marian {
 
-class AccuracyValidator : public Validator<data::MNIST> {
+class AccuracyValidator : public Validator<data::MNISTData> {
 public:
   AccuracyValidator(Ptr<Config> options)
       : Validator(std::vector<Ptr<Vocab>>(), options) {
@@ -35,7 +35,7 @@ public:
 protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
-      Ptr<data::BatchGenerator<data::MNIST>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::MNISTData>> batchGenerator) {
     float correct = 0;
     size_t samples = 0;
 

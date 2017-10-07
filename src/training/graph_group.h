@@ -51,7 +51,7 @@ class SingletonGraph : public GraphGroup {
 public:
   typedef typename Builder::dataset_type dataset_type;
 
-  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+  virtual void setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_ = scheduler;
     // optimizer has to be registered last to see changes of the learning rate
     scheduler_->registerTrainingObserver(scheduler_);
@@ -62,7 +62,7 @@ private:
   Ptr<models::ModelBase> builder_;
   Ptr<ExpressionGraph> graph_;
 
-  Ptr<Scheduler<dataset_type>> scheduler_;
+  Ptr<Scheduler> scheduler_;
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
@@ -192,7 +192,7 @@ class AsyncGraphGroup : public GraphGroup {
 public:
   typedef typename Builder::dataset_type dataset_type;
 
-  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+  virtual void setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_ = scheduler;
     // optimizer has to be registered last to see a change of learning rate
     scheduler_->registerTrainingObserver(scheduler_);
@@ -208,7 +208,7 @@ private:
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
 
-  Ptr<Scheduler<dataset_type>> scheduler_;
+  Ptr<Scheduler> scheduler_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;

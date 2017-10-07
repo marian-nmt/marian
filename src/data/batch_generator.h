@@ -32,7 +32,6 @@ private:
   typename DataSet::iterator current_;
 
   size_t maxiBatchSize_;
-
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
 
