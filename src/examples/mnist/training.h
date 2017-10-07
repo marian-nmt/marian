@@ -30,7 +30,7 @@ public:
     auto trainState = New<TrainingState>(options_);
     auto scheduler = New<Scheduler<typename Model::dataset_type>>(options_, trainState);
     auto validator
-        = New<AccuracyValidator<typename Model::builder_type>>(options_);
+        = New<AccuracyValidator>(options_);
     scheduler->addValidator(validator);
 
     // Prepare model

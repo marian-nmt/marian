@@ -50,8 +50,7 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
 
     auto opts = New<Config>(*options_);
-    // @TODO: valid-max-length
-    opts->set("max-length", 1000);
+    opts->set("max-length", options_->get<size_t>("valid-max-length"));
 
     auto corpus = New<DataSet>(validPaths, vocabs_, opts);
     Ptr<BatchGenerator<DataSet>> batchGenerator
@@ -80,10 +79,9 @@ protected:
       = 0;
 };
 
-template <class Builder>
 class CrossEntropyValidator : public Validator<data::Corpus> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 public:
   template <class... Args>
@@ -139,10 +137,9 @@ public:
   std::string type() { return options_->get<std::string>("cost-type"); }
 };
 
-template <class Builder>
 class ScriptValidator : public Validator<data::Corpus> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 public:
   template <class... Args>
@@ -215,10 +212,9 @@ public:
   std::string type() { return "valid-script"; }
 };
 
-template <class Builder>
 class S2SValidator : public Validator<data::Corpus> {
 private:
-  Ptr<Builder> builder_;
+  Ptr<models::ModelBase> builder_;
 
 public:
   template <class... Args>
@@ -319,15 +315,15 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
       Ptr<Config> temp = New<Config>(*config);
       temp->set("cost-type", metric);
 
-      auto validator = New<CrossEntropyValidator<Builder>>(vocabs, temp, args...);
+      auto validator = New<CrossEntropyValidator>(vocabs, temp, args...);
       validators.push_back(validator);
     }
     if(metric == "valid-script") {
-      auto validator = New<ScriptValidator<Builder>>(vocabs, config, args...);
+      auto validator = New<ScriptValidator>(vocabs, config, args...);
       validators.push_back(validator);
     }
     if(metric == "s2s") {
-      auto validator = New<S2SValidator<Builder>>(vocabs, config, args...);
+      auto validator = New<S2SValidator>(vocabs, config, args...);
       validators.push_back(validator);
     }
   }
