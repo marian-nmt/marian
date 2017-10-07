@@ -42,17 +42,18 @@ public:
 
     graph->setInference(true);
 
-    // Create corpus
-    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+    // Update validation options
     auto opts = New<Config>(*options_);
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
+    if(options_->has("valid-mini-batch"))
+      opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
+
+    // Create corpus
+    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, opts);
 
     // Generate batches
-    Ptr<BatchGenerator<DataSet>> batchGenerator
-        = New<BatchGenerator<DataSet>>(corpus, opts);
-    if(options_->has("valid-mini-batch"))
-      batchGenerator->forceBatchSize(options_->get<int>("valid-mini-batch"));
+    auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
     batchGenerator->prepare(false);
 
     // Validate on batches
