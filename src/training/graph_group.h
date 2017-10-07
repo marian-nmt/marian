@@ -46,11 +46,8 @@ public:
   virtual Ptr<data::BatchStats> collectStats() = 0;
 };
 
-template <class Builder>
 class SingletonGraph : public GraphGroup {
 public:
-  typedef typename Builder::dataset_type dataset_type;
-
   virtual void setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_ = scheduler;
     // optimizer has to be registered last to see changes of the learning rate
@@ -187,11 +184,8 @@ public:
   }
 };
 
-template <class Builder>
 class AsyncGraphGroup : public GraphGroup {
 public:
-  typedef typename Builder::dataset_type dataset_type;
-
   virtual void setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_ = scheduler;
     // optimizer has to be registered last to see a change of learning rate

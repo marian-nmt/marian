@@ -34,9 +34,9 @@ int main(int argc, char** argv) {
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if(devices.size() > 1)
-    New<TrainMNIST<AsyncGraphGroup<models::MnistFeedForwardNet>>>(options)->run();
+    New<TrainMNIST<AsyncGraphGroup>>(options)->run();
   else
-    New<TrainMNIST<SingletonGraph<models::MnistFeedForwardNet>>>(options)->run();
+    New<TrainMNIST<SingletonGraph>>(options)->run();
 
   return 0;
 }

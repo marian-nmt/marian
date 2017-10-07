@@ -20,8 +20,6 @@ public:
   void run() {
     using namespace data;
 
-    typedef typename Model::dataset_type dataset_type;
-
     auto dataset = New<data::Corpus>(options_);
     dataset->prepare();
 

@@ -5,10 +5,9 @@
 #include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "graph/expression_graph.h"
-#include "models/model_base.h"
-#include "models/model_factory.h"
 #include "models/model_task.h"
+#include "training/scheduler.h"
+#include "training/validator.h"
 #include "rescorer/score_collector.h"
 
 namespace marian {
