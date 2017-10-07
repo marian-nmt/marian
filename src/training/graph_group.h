@@ -53,7 +53,7 @@ public:
 
   virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
     scheduler_ = scheduler;
-    // optimizer has to be registered last to see a change of learning rate
+    // optimizer has to be registered last to see changes of the learning rate
     scheduler_->registerTrainingObserver(scheduler_);
     scheduler_->registerTrainingObserver(opt_);
   }

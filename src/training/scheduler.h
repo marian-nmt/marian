@@ -15,30 +15,27 @@ private:
   std::vector<Ptr<Validator<DataSet>>> validators_;
 
   float costSum{0};
-
-  size_t epochs{1};
   size_t samples{0};
   size_t samplesDisp{0};
   size_t wordsDisp{0};
-  size_t batches{0};
 
-  Ptr<TrainingState> trainState_;
+  Ptr<TrainingState> state_;
 
   boost::timer::cpu_timer timer;
 
 public:
   Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
-      : options_(options), trainState_(state) {}
+      : options_(options), state_(state) {}
 
   bool keepGoing() {
     // stop if it reached the maximum number of epochs
     int stopAfterEpochs = options_->get<size_t>("after-epochs");
-    if(stopAfterEpochs > 0 && epochs > stopAfterEpochs)
+    if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
       return false;
 
     // stop if it reached the maximum number of batch updates
     int stopAfterBatches = options_->get<size_t>("after-batches");
-    if(stopAfterBatches > 0 && batches >= stopAfterBatches)
+    if(stopAfterBatches > 0 && state_->batches >= stopAfterBatches)
       return false;
 
     // stop if the first validator did not improve for a given number of checks
@@ -53,11 +50,10 @@ public:
   void increaseEpoch() {
     LOG(info)->info("Seen {} samples", samples);
 
-    epochs++;
-    trainState_->newEpoch(epochs);
+    state_->newEpoch();
     samples = 0;
 
-    LOG(info)->info("Starting epoch {}", epochs);
+    LOG(info)->info("Starting epoch {}", state_->epochs);
   }
 
   void started() { LOG(info)->info("Training started"); }
@@ -69,13 +65,15 @@ public:
 
   bool validating() {
     return (!validators_.empty()
-            && batches % options_->get<size_t>("valid-freq") == 0);
+            && state_->batches % options_->get<size_t>("valid-freq") == 0);
   }
 
-  bool saving() { return (batches % options_->get<size_t>("save-freq") == 0); }
+  bool saving() {
+    return (state_->batches % options_->get<size_t>("save-freq") == 0);
+  }
 
   void validate(Ptr<ExpressionGraph> graph) {
-    if(batches % options_->get<size_t>("valid-freq") != 0)
+    if(state_->batches % options_->get<size_t>("valid-freq") != 0)
       return;
 
     bool firstValidator = true;
@@ -88,18 +86,18 @@ public:
       if(validator->stalled() > 0)
         LOG(valid)
             ->info("{} : {} : {} : stalled {} times",
-                   batches,
+                   state_->batches,
                    validator->type(),
                    value,
                    validator->stalled());
       else
         LOG(valid)
             ->info(
-                "{} : {} : {} : new best", batches, validator->type(), value);
+                "{} : {} : {} : new best", state_->batches, validator->type(), value);
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
-        trainState_->newStalled(validator->stalled());
+        state_->newStalled(validator->stalled());
       firstValidator = false;
     }
   }
@@ -116,29 +114,29 @@ public:
     samples += batch->size();
     samplesDisp += batch->size();
     wordsDisp += batch->words();
-    batches++;
+    state_->newBatch();
 
-    if(batches % options_->get<size_t>("disp-freq") == 0) {
+    if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(options_->get<bool>("lr-report")) {
         LOG(info)
             ->info(
                 "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
                 "words/s : L.r. {:.4e}",
-                epochs,
-                batches,
+                state_->epochs,
+                state_->batches,
                 samples,
                 costSum / samplesDisp,
                 timer.format(2, "%ws"),
                 wordsDisp / std::stof(timer.format(5, "%w")),
-                trainState_->eta);
+                state_->eta);
       }
       else {
         LOG(info)
             ->info(
                 "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
                 "words/s",
-                epochs,
-                batches,
+                state_->epochs,
+                state_->batches,
                 samples,
                 costSum / samplesDisp,
                 timer.format(2, "%ws"),
@@ -149,33 +147,31 @@ public:
       wordsDisp = 0;
       samplesDisp = 0;
     }
-
-    trainState_->newBatches(batches);
   }
 
   void load(const std::string& name) {
     std::string nameYaml = name + ".yml";
     if(boost::filesystem::exists(nameYaml)) {
       YAML::Node config = YAML::LoadFile(nameYaml);
-      epochs = config["progress"]["epochs"].as<size_t>();
-      batches = config["progress"]["batches"].as<size_t>();
+      state_->epochs = config["progress"]["epochs"].as<size_t>();
+      state_->batches = config["progress"]["batches"].as<size_t>();
     }
   }
 
   void save(const std::string& name) {
     YAML::Node config = options_->get();
-    config["progress"]["epochs"] = epochs;
-    config["progress"]["batches"] = batches;
+    config["progress"]["epochs"] = state_->epochs;
+    config["progress"]["batches"] = state_->batches;
 
     std::string nameYaml = name + ".yml";
     std::ofstream fout(nameYaml);
     fout << config;
   }
 
-  size_t numberOfBatches() { return batches; }
+  size_t numberOfBatches() { return state_->batches; }
 
   void registerTrainingObserver(Ptr<TrainingObserver> observer) {
-    trainState_->registerObserver(observer);
+    state_->registerObserver(observer);
   }
 
   float getLearningRate(TrainingState& state) {

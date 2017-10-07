@@ -27,7 +27,7 @@ public:
         = New<BatchGenerator<data::MNIST>>(dataset, options_, nullptr);
 
     // Prepare scheduler with validators
-    auto trainState = New<TrainingState>(options_);
+    auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler<typename Model::dataset_type>>(options_, trainState);
     auto validator
         = New<AccuracyValidator>(options_);

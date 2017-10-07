@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "common/config.h"
 #include "common/definitions.h"
 
 namespace marian {
@@ -27,20 +26,20 @@ public:
   float factor{1.f};
   bool reset{false};
 
-  TrainingState(Ptr<Config> options) : eta(options->get<float>("learn-rate")) {}
+  TrainingState(float learnRate) : eta(learnRate) {}
 
   void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
   }
 
-  void newEpoch(int num) {
-    epochs = num;
+  void newEpoch() {
+    ++epochs;
     for(auto observer : observers_)
       observer->actAfterEpoch(*this);
   }
 
-  void newBatches(int num) {
-    batches = num;
+  void newBatch() {
+    ++batches;
     for(auto observer : observers_)
       observer->actAfterBatches(*this);
   }

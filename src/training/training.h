@@ -34,7 +34,7 @@ public:
       LOG(info)->info("[batching] Done");
     }
 
-    auto trainState = New<TrainingState>(options_);
+    auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler<dataset_type>>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
