@@ -136,7 +136,7 @@ private:
         for(auto graph : graphs_) {
           auto subGrad = graph->params()->grads()->subtensor(pos, size);
           tmpTensors_[idx]->copyFrom(subGrad);
-          Element(_1 += _2, params_[idx], grads_[idx]);
+          Element(_1 += _2, grads_[idx], tmpTensors_[idx]);
         }
 
         shardOpt_[idx]->update(params_[idx], grads_[idx]);
