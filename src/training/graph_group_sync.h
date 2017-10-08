@@ -54,13 +54,16 @@ private:
   Ptr<Scheduler<dataset_type>> scheduler_;
 
   void execute(Ptr<data::Batch> batch) {
+    std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
 
     if(first_) {
 
       for(size_t i = 0; i < graphs_.size(); ++i) {
         // takes care of thead_local stuff
-        THREAD_GUARD(builders_[i]->build(graphs_[i], batch);
+        THREAD_GUARD(builders_[i]->build(graphs_[i], batches[i]);
                      graphs_[i]->forward(););
+        if(i > 0)
+          graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
       }
 
       if(params_.size() == 0) {
@@ -111,7 +114,6 @@ private:
       first_ = false;
     }
 
-    std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
     std::vector<float> costs(devices_.size());
 
     {
