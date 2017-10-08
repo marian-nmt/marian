@@ -31,7 +31,9 @@ public:
     scheduler_ = scheduler;
     // optimizer has to be registered last to see a change of learning rate
     scheduler_->registerTrainingObserver(scheduler_);
-    scheduler_->registerTrainingObserver(opt_);
+
+    for(auto opt : shardOpt_)
+      scheduler_->registerTrainingObserver(opt);
   }
 
 private:
@@ -63,7 +65,7 @@ private:
           graphs_[i]->forward();
         );
 
-        if(i > 0) 
+        if(i > 0)
           graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
       }
 
@@ -81,16 +83,14 @@ private:
           paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
 
           Tensor param, grad, tmp;
-          paramsAlloc->allocate(param, {1, __size__});
-          paramsAlloc->allocate(grad, {1, __size__});
-          paramsAlloc->allocate(tmp, {1, __size__});
+          paramsAlloc->allocate(param, {__size__});
+          paramsAlloc->allocate(grad, {__size__});
+          paramsAlloc->allocate(tmp, {__size__});
           params_.push_back(param);
           grads_.push_back(grad);
           tmpTensors_.push_back(tmp);
 
-          auto sub = graphs_[0]->params()->vals()->subtensor(pos, __size__);
-          param->copyFrom(sub);
-
+          param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
           pos += __size__;
           totalSize -= __size__;
         }
@@ -120,7 +120,6 @@ private:
       auto task = [this](size_t idx, int pos) {
         grads_[idx]->set(0);
         int size = params_[idx]->size();
-
         for(auto graph : graphs_) {
           auto subGrad = graph->params()->grads()->subtensor(pos, size);
           tmpTensors_[idx]->copyFrom(subGrad);
