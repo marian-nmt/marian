@@ -24,6 +24,7 @@ class GraphGroup {
 protected:
   Ptr<Config> options_;
   Ptr<OptimizerBase> opt_;
+  Ptr<Scheduler> scheduler_;
 
   bool scaleLearningRate_;
   float avgBatchWords_;
@@ -42,6 +43,8 @@ public:
   virtual void load() = 0;
 
   virtual void save(bool = false) = 0;
+
+  virtual void setScheduler(Ptr<Scheduler> scheduler)  = 0;
 
   virtual Ptr<data::BatchStats> collectStats() = 0;
 };
@@ -77,7 +80,7 @@ private:
     float cost = costNode->scalar();
     graph_->backward();
 
-    //Get batch stats
+    // Get batch stats
     size_t batch_words = batch->words();
     //@TODO use this to gather statistics about the usual number of words per batch
     //std::cout << "Batch size: " << batch->size() << " batch_words " << batch_words << std::endl;
@@ -201,8 +204,6 @@ private:
   std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<size_t> devices_;
-
-  Ptr<Scheduler> scheduler_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;

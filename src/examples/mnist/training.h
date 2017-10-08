@@ -9,7 +9,7 @@
 
 namespace marian {
 
-template <class Model>
+template <class ModelWrapper>
 class TrainMNIST : public ModelTask {
 private:
   Ptr<Config> options_;
@@ -32,7 +32,7 @@ public:
     scheduler->addValidator(New<AccuracyValidator>(options_));
 
     // Prepare model
-    auto model = New<Model>(options_);
+    auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
     model->load();
 

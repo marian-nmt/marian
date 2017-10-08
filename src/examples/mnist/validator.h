@@ -15,20 +15,17 @@ namespace marian {
 class AccuracyValidator : public Validator<data::MNISTData> {
 public:
   AccuracyValidator(Ptr<Config> options)
-      : Validator(std::vector<Ptr<Vocab>>(), options) {
+      : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
     builder_ = models::from_options(temp);
-    initLastBest();
   }
 
   virtual void keepBest(Ptr<ExpressionGraph> graph) {
     auto model = options_->get<std::string>("model");
     builder_->save(graph, model + ".best-" + type() + ".npz", true);
   }
-
-  bool lowerIsBetter() { return false; }
 
   std::string type() { return "accuracy"; }
 

@@ -9,7 +9,7 @@
 
 namespace marian {
 
-template <class Model>
+template <class ModelWrapper>
 class Train : public ModelTask {
 private:
   Ptr<Config> options_;
@@ -27,7 +27,7 @@ public:
     if(options_->get<bool>("dynamic-batching")) {
       LOG(info)->info("[batching] Collecting statistics for dynamic batching");
       // @TODO, better fake batch with vocabulary
-      auto model = New<Model>(options_);
+      auto model = New<ModelWrapper>(options_);
       THREAD_GUARD(stats = model->collectStats());
       LOG(info)->info("[batching] Done");
     }
@@ -42,7 +42,7 @@ public:
         scheduler->addValidator(validator);
     }
 
-    auto model = New<Model>(options_);
+    auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
     model->load();
 

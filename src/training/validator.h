@@ -22,27 +22,29 @@ namespace marian {
  */
 class ValidatorBase {
 public:
+  ValidatorBase(bool lowerIsBetter)
+      : lowerIsBetter_(lowerIsBetter),
+        lastBest_{lowerIsBetter_ ? std::numeric_limits<float>::max()
+                                 : std::numeric_limits<float>::lowest()} {}
+
   virtual float validate(Ptr<ExpressionGraph> graph) = 0;
   virtual std::string type() = 0;
 
   size_t stalled() { return stalled_; }
 
 protected:
+  bool lowerIsBetter_{true};
+  float lastBest_;
   size_t stalled_{0};
 };
 
 template <class DataSet>
 class Validator : public ValidatorBase {
 public:
-  Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
-      : options_(options),
-        vocabs_(vocabs),
-        lastBest_{lowerIsBetter() ? std::numeric_limits<float>::max()
-                                  : std::numeric_limits<float>::lowest()} {}
-
-  virtual bool lowerIsBetter() { return true; }
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) = 0;
+  Validator(std::vector<Ptr<Vocab>> vocabs,
+            Ptr<Config> options,
+            bool lowerIsBetter = true)
+      : ValidatorBase(lowerIsBetter), options_(options), vocabs_(vocabs) {}
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
@@ -76,15 +78,14 @@ protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Config> options_;
   Ptr<models::ModelBase> builder_;
-  float lastBest_;
 
   virtual float validateBG(Ptr<ExpressionGraph>,
                            Ptr<data::BatchGenerator<DataSet>>)
       = 0;
 
   void updateStalled(Ptr<ExpressionGraph> graph, float val) {
-    if((lowerIsBetter() && lastBest_ > val)
-       || (!lowerIsBetter() && lastBest_ < val)) {
+    if((lowerIsBetter_ && lastBest_ > val)
+       || (!lowerIsBetter_ && lastBest_ < val)) {
       stalled_ = 0;
       lastBest_ = val;
       if(options_->get<bool>("keep-best"))
@@ -94,9 +95,9 @@ protected:
     }
   }
 
-  virtual void initLastBest() {
-    lastBest_ = lowerIsBetter() ? std::numeric_limits<float>::max()
-                                : std::numeric_limits<float>::lowest();
+  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+    auto model = options_->get<std::string>("model");
+    builder_->save(graph, model + ".best-" + type() + ".npz", true);
   }
 };
 
@@ -111,13 +112,6 @@ public:
     opts->set("inference", true);
     opts->set("cost-type", "ce-sum");
     builder_ = models::from_options(opts);
-
-    initLastBest();
-  }
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
   }
 
   std::string type() { return options_->get<std::string>("cost-type"); }
@@ -158,7 +152,7 @@ class ScriptValidator : public Validator<data::Corpus> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
                   Ptr<Config> options)
-      : Validator(vocabs, options) {
+      : Validator(vocabs, options, false) {
 
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
@@ -167,11 +161,7 @@ public:
 
     UTIL_THROW_IF2(!options_->has("valid-script-path"),
                    "valid-script metric but no script given");
-
-    initLastBest();
   }
-
-  virtual bool lowerIsBetter() { return false; }
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
@@ -185,11 +175,6 @@ public:
 
     return val;
   };
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
-  }
 
   std::string type() { return "valid-script"; }
 
@@ -205,7 +190,7 @@ class TranslationValidator : public Validator<data::Corpus> {
 public:
   template <class... Args>
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
-      : Validator(vocabs, options) {
+      : Validator(vocabs, options, false) {
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
@@ -214,11 +199,7 @@ public:
     if(!options_->has("valid-script-path"))
       LOG(warn)
           ->info("No post-processing script given for validating translator");
-
-    initLastBest();
   }
-
-  virtual bool lowerIsBetter() { return false; }
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
     using namespace data;
@@ -305,11 +286,6 @@ public:
 
     return val;
   };
-
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
-  }
 
   std::string type() { return "translation"; }
 

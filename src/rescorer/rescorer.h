@@ -68,8 +68,7 @@ public:
   }
 
   void run() {
-    Ptr<BatchGenerator<Corpus>> batchGenerator
-        = New<BatchGenerator<Corpus>>(corpus_, options_);
+    auto batchGenerator = New<BatchGenerator<Corpus>>(corpus_, options_);
     batchGenerator->prepare(false);
 
     auto output = New<ScoreCollector>();
@@ -98,7 +97,8 @@ public:
     }
 
     if(summarize)
-      std::cout << "Perplexity: " << std::exp(-(float)sumCost / (float)sumWords) << std::endl;
+      std::cout << "Perplexity: " << std::exp(-(float)sumCost / (float)sumWords)
+                << std::endl;
   }
 };
 
