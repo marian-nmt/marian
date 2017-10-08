@@ -293,7 +293,7 @@ private:
 
       if(params_[0].size() == 0) {
         int totalSize = graphs_[0]->params()->vals()->size();
-        shardSize_ = ceil(totalSize / devices_.size());
+        shardSize_ = ceil(totalSize / (float)devices_.size());
 
         int pos = 0;
         // parameter sharding
