@@ -40,11 +40,9 @@ private:
   std::vector<size_t> devices_;
 
   std::vector<Tensor> params_;
-  std::vector<Ptr<TensorAllocator>> paramsAllocs_;
-
   std::vector<Tensor> grads_;
   std::vector<Tensor> tmpTensors_;
-  std::vector<Ptr<TensorAllocator>> gradsAllocs_;
+  std::vector<Ptr<TensorAllocator>> paramsAllocs_;
 
   std::vector<Ptr<OptimizerBase>> shardOpt_;
 
@@ -60,54 +58,39 @@ private:
 
       for(size_t i = 0; i < graphs_.size(); ++i) {
         // takes care of thead_local stuff
-        THREAD_GUARD(builders_[i]->build(graphs_[i], batches[i]);
-                     graphs_[i]->forward(););
+        THREAD_GUARD(
+          builders_[i]->build(graphs_[i], batches[i]);
+          graphs_[i]->forward();
+        );
+
         if(i > 0)
           graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
       }
 
       if(params_.size() == 0) {
         int totalSize = graphs_[0]->params()->vals()->size();
-        shardSize_ = ceil(totalSize / devices_.size());
+        shardSize_ = ceil(totalSize / (float)devices_.size());
 
         int pos = 0;
         for(auto device : devices_) {
           int __size__ = min(shardSize_, totalSize);
-          totalSize -= __size__;
-
 
           auto paramsAlloc = New<TensorAllocator>(device);
           paramsAllocs_.push_back(paramsAlloc);
 
-          paramsAlloc->reserveExact(__size__ * sizeof(float));
+          paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
 
-          Tensor param;
-          paramsAlloc->allocate(param, {1, __size__});
-          param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
-
+          Tensor param, grad, tmp;
+          paramsAlloc->allocate(param, {__size__});
+          paramsAlloc->allocate(grad, {__size__});
+          paramsAlloc->allocate(tmp, {__size__});
           params_.push_back(param);
-
-          pos += __size__;
-        }
-      }
-
-      if(grads_.size() == 0) {
-        int totalSize = graphs_[0]->params()->vals()->size();
-
-        for(auto device : devices_) {
-          int __size__ = min(shardSize_, totalSize);
-          totalSize -= __size__;
-
-          auto gradsAlloc = New<TensorAllocator>(device);
-          gradsAllocs_.push_back(gradsAlloc);
-
-          gradsAlloc->reserveExact(2 * __size__ * sizeof(float));
-
-          Tensor grad, tmp;
-          gradsAlloc->allocate(grad, {1, __size__});
-          gradsAlloc->allocate(tmp, {1, __size__});
           grads_.push_back(grad);
           tmpTensors_.push_back(tmp);
+
+          param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+          pos += __size__;
+          totalSize -= __size__;
         }
       }
 
