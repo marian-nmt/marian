@@ -26,11 +26,11 @@ public:
     return it->second;
   }
 
-  void add(Ptr<data::CorpusBatch> batch) {
+  void add(Ptr<data::CorpusBatch> batch, size_t multiplier=1) {
     std::vector<size_t> lengths;
     for(int i = 0; i < batch->sets(); ++i)
       lengths.push_back((*batch)[i]->batchWidth());
-    size_t batchSize = batch->size();
+    size_t batchSize = batch->size() * multiplier;
 
     if(map_[lengths] < batchSize)
       map_[lengths] = batchSize;

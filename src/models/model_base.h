@@ -20,7 +20,8 @@ public:
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) = 0;
 
-  virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) = 0;
+  virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
+                                             size_t multiplier=1) = 0;
 };
 
 }

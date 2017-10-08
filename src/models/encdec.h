@@ -350,7 +350,8 @@ public:
     return build(graph, corpusBatch, clearGraph);
   }
 
-  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {
+  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
+                                     size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
 
     size_t step = 10;
@@ -369,7 +370,7 @@ public:
         build(graph, batch);
         fits = graph->fits();
         if(fits)
-          stats->add(batch);
+          stats->add(batch, multiplier);
         batchSize += step;
       } while(fits);
     }

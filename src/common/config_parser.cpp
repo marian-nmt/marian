@@ -379,6 +379,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "The option is only active when batch-flexible-lr is on")
     ("tau", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
+    ("sync", po::value<bool>()->zero_tokens()->default_value(false),
+     "Use synchronous SGD instead of asynchronous for multi-gpu training")
     ("label-smoothing", po::value<double>()->default_value(0),
      "Epsilon for label smoothing (0 to disable)")
     ("clip-norm", po::value<double>()->default_value(1.f),
@@ -672,6 +674,7 @@ void ConfigParser::parseOptions(
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("learn-rate", double);
     SET_OPTION("tau", size_t);
+    SET_OPTION("sync", bool);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
 
