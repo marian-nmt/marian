@@ -1,7 +1,5 @@
 #pragma once
 
-#include "examples/mnist/model.h"
-//#include "examples/mnist/model_lenet.h"
 #include "layers/factory.h"
 #include "models/amun.h"
 #include "models/model_base.h"
@@ -9,6 +7,11 @@
 #include "models/s2s.h"
 #include "models/transformer.h"
 #include "models/transformer_gru.h"
+
+#include "examples/mnist/model.h"
+#ifdef CUDNN
+#include "examples/mnist/model_lenet.h"
+#endif
 
 #define REGISTER_ENCODER(name, className)\
 do {\
@@ -176,14 +179,15 @@ Ptr<ModelBase> by_type(std::string type,
     return ms2sFactory.construct();
   }
 
+  // @TODO: examples should be compiled optionally
   if(type == "mnist-ffnn") {
     return New<MnistFeedForwardNet>(options);
   }
-
-  // TODO: this should be compiled optionally!
-  //if(type == "mnist-lenet") {
-    //return New<MnistLeNet>(options);
-  //}
+#ifdef CUDNN
+  if(type == "mnist-lenet") {
+    return New<MnistLeNet>(options);
+  }
+#endif
 
   UTIL_THROW2("Unknown model type: " + type);
 }

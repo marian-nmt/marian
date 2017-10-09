@@ -20,7 +20,7 @@ public:
   void run() {
     using namespace data;
 
-    auto dataset = New<data::Corpus>(options_);
+    auto dataset = New<Corpus>(options_);
     dataset->prepare();
 
     Ptr<BatchStats> stats;
@@ -46,8 +46,7 @@ public:
     model->setScheduler(scheduler);
     model->load();
 
-    auto batchGenerator
-        = New<BatchGenerator<data::Corpus>>(dataset, options_, stats);
+    auto batchGenerator = New<BatchGenerator<Corpus>>(dataset, options_, stats);
 
     scheduler->started();
     while(scheduler->keepGoing()) {
