@@ -8,16 +8,10 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include "3rd_party/threadpool.h"
-#include "common/definitions.h"
-#include "data/batch_generator.h"
-#include "models/model_base.h"
-#include "optimizers/optimizers.h"
 #include "training/dropper.h"
-#include "training/scheduler.h"
-#include "training/sparse_tensor.h"
-#include "training/training.h"
-#include "training/validator.h"
 #include "training/graph_group.h"
+#include "training/sparse_tensor.h"
+#include "training/validator.h"
 
 namespace marian {
 
