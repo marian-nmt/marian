@@ -61,7 +61,7 @@ private:
       for(size_t i = 0; i < graphs_.size(); ++i) {
         // takes care of thead_local stuff
         THREAD_GUARD(
-          builders_[i]->build(graphs_[i], batches[i]);
+          builders_[i]->build(graphs_[i], batches[0]);
           graphs_[i]->forward();
         );
 
@@ -83,9 +83,9 @@ private:
           paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
 
           Tensor param, grad, tmp;
-          paramsAlloc->allocate(param, {1, __size__});
-          paramsAlloc->allocate(grad, {1, __size__});
-          paramsAlloc->allocate(tmp, {1, __size__});
+          paramsAlloc->allocate(param, {__size__});
+          paramsAlloc->allocate(grad, {__size__});
+          paramsAlloc->allocate(tmp, {__size__});
           params_.push_back(param);
           grads_.push_back(grad);
           tmpTensors_.push_back(tmp);
@@ -104,11 +104,14 @@ private:
     {
       auto task = [this, &costs, batches](size_t idx) {
         auto graph = graphs_[idx];
-        auto costNode = builders_[idx]->build(graph, batches[idx]);
+        auto batch = batches[idx];
 
-        graph->forward();
-        costs[idx] = costNode->scalar();
-        graph->backward();
+        if(batch->size() > 0) {
+          auto costNode = builders_[idx]->build(graph, batch);
+          graph->forward();
+          costs[idx] = costNode->scalar();
+          graph->backward();
+        }
       };
 
       ThreadPool pool(devices_.size(), devices_.size());
@@ -117,13 +120,17 @@ private:
     }
 
     {
-      auto task = [this](size_t idx, int pos) {
+      auto task = [this, batches](size_t idx, int pos) {
         grads_[idx]->set(0);
         int size = params_[idx]->size();
+        int i = 0;
         for(auto graph : graphs_) {
-          auto subGrad = graph->params()->grads()->subtensor(pos, size);
-          tmpTensors_[idx]->copyFrom(subGrad);
-          Element(_1 += _2, grads_[idx], tmpTensors_[idx]);
+          if(batches[i]->size() > 0) {
+            auto subGrad = graph->params()->grads()->subtensor(pos, size);
+            tmpTensors_[idx]->copyFrom(subGrad);
+            Element(_1 += _2, grads_[idx], tmpTensors_[idx]);
+          }
+          i++;
         }
 
         shardOpt_[idx]->update(params_[idx], grads_[idx]);
