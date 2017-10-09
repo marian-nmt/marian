@@ -12,19 +12,14 @@ using namespace marian;
 
 namespace marian {
 
-class AccuracyValidator : public Validator<data::MNIST> {
-private:
-  Ptr<models::ModelBase> builder_;
-
+class AccuracyValidator : public Validator<data::MNISTData> {
 public:
-  template <class... Args>
-  AccuracyValidator(Ptr<Config> options, Args... args)
-      : Validator(std::vector<Ptr<Vocab>>(), options) {
+  AccuracyValidator(Ptr<Config> options)
+      : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
     builder_ = models::from_options(temp);
-    initLastBest();
   }
 
   virtual void keepBest(Ptr<ExpressionGraph> graph) {
@@ -32,14 +27,12 @@ public:
     builder_->save(graph, model + ".best-" + type() + ".npz", true);
   }
 
-  bool lowerIsBetter() { return false; }
-
   std::string type() { return "accuracy"; }
 
 protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
-      Ptr<data::BatchGenerator<data::MNIST>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::MNISTData>> batchGenerator) {
     float correct = 0;
     size_t samples = 0;
 

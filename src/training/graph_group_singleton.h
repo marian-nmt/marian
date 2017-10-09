@@ -1,35 +1,21 @@
 #pragma once
 
 #include <future>
-#include <thread>
 
 #include <boost/filesystem.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
-#include "3rd_party/threadpool.h"
-#include "common/definitions.h"
-#include "data/batch_generator.h"
-#include "models/model_base.h"
-#include "optimizers/optimizers.h"
 #include "training/dropper.h"
-#include "training/scheduler.h"
-#include "training/sparse_tensor.h"
-#include "training/training.h"
-#include "training/validator.h"
 #include "training/graph_group.h"
+#include "training/sparse_tensor.h"
+#include "training/validator.h"
 
 namespace marian {
 
-template <class Builder>
 class SingletonGraph : public GraphGroup {
 public:
-  typedef Builder builder_type;
-  typedef typename Builder::dataset_type dataset_type;
-
-  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+  virtual void setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_ = scheduler;
-    // optimizer has to be registered last to see a change of learning rate
+    // optimizer has to be registered last to see changes of learning rate
     scheduler_->registerTrainingObserver(scheduler_);
     scheduler_->registerTrainingObserver(opt_);
   }
@@ -37,8 +23,6 @@ public:
 private:
   Ptr<models::ModelBase> builder_;
   Ptr<ExpressionGraph> graph_;
-
-  Ptr<Scheduler<dataset_type>> scheduler_;
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
@@ -56,13 +40,13 @@ private:
     float cost = costNode->scalar();
     graph_->backward();
 
-    //Get batch stats
+    // Get batch stats
     size_t batch_words = batch->words();
     //@TODO use this to gather statistics about the usual number of words per batch
     //std::cout << "Batch size: " << batch->size() << " batch_words " << batch_words << std::endl;
 
-    if (scale_lr) {
-      opt_->update(graph_, batch_words/average_batch_words);
+    if (scaleLearningRate_) {
+      opt_->update(graph_, batch_words/avgBatchWords_);
     } else {
       opt_->update(graph_);
     }

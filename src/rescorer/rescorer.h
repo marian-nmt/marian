@@ -5,10 +5,9 @@
 #include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "graph/expression_graph.h"
-#include "models/model_base.h"
-#include "models/model_factory.h"
 #include "models/model_task.h"
+#include "training/scheduler.h"
+#include "training/validator.h"
 #include "rescorer/score_collector.h"
 
 namespace marian {
@@ -71,14 +70,14 @@ public:
   void run() {
     LOG(info)->info("Scoring");
 
-    Ptr<BatchGenerator<Corpus>> batchGenerator
-        = New<BatchGenerator<Corpus>>(corpus_, options_);
+    auto batchGenerator = New<BatchGenerator<Corpus>>(corpus_, options_);
     batchGenerator->prepare(false);
 
     auto output = New<ScoreCollector>();
 
     bool summarize = options_->has("summary");
-    std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
+    std::string summary
+        = summarize ? options_->get<std::string>("summary") : "cross-entropy";
 
     float sumCost = 0;
     size_t sumWords = 0;

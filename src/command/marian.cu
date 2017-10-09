@@ -4,6 +4,7 @@
 #include "training/graph_group_async.h"
 #include "training/graph_group_sync.h"
 #include "training/graph_group_singleton.h"
+#include "training/training.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -13,12 +14,11 @@ int main(int argc, char** argv) {
 
   if(devices.size() > 1) {
     if(options->get<bool>("sync"))
-      WrapModelType<Train, SyncGraphGroup<EncoderDecoder>>(options)->run();
+      New<Train<SyncGraphGroup>>(options)->run();
     else
-      WrapModelType<Train, AsyncGraphGroup<EncoderDecoder>>(options)->run();
-  }
-  else
-    WrapModelType<Train, SingletonGraph<EncoderDecoder>>(options)->run();
+      New<Train<AsyncGraphGroup>>(options)->run();
+  } else
+    New<Train<SingletonGraph>>(options)->run();
 
   return 0;
 }

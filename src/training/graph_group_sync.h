@@ -8,28 +8,18 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include "3rd_party/threadpool.h"
-#include "common/definitions.h"
-#include "data/batch_generator.h"
-#include "models/model_base.h"
-#include "optimizers/optimizers.h"
 #include "training/dropper.h"
-#include "training/scheduler.h"
-#include "training/sparse_tensor.h"
-#include "training/training.h"
-#include "training/validator.h"
 #include "training/graph_group.h"
+#include "training/sparse_tensor.h"
+#include "training/validator.h"
 
 namespace marian {
 
-template <class Builder>
 class SyncGraphGroup : public GraphGroup {
 public:
-  typedef Builder builder_type;
-  typedef typename Builder::dataset_type dataset_type;
-
-  virtual void setScheduler(Ptr<Scheduler<dataset_type>> scheduler) {
+  virtual void setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_ = scheduler;
-    // optimizer has to be registered last to see a change of learning rate
+    // optimizer has to be registered last to see changes of learning rate
     scheduler_->registerTrainingObserver(scheduler_);
 
     for(auto opt : shardOpt_)
@@ -51,7 +41,6 @@ private:
   int shardSize_;
   bool first_{true};
 
-  Ptr<Scheduler<dataset_type>> scheduler_;
 
   void execute(Ptr<data::Batch> batch) {
     std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());

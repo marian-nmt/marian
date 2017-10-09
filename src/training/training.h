@@ -9,7 +9,7 @@
 
 namespace marian {
 
-template <class Model>
+template <class ModelWrapper>
 class Train : public ModelTask {
 private:
   Ptr<Config> options_;
@@ -20,37 +20,33 @@ public:
   void run() {
     using namespace data;
 
-    typedef typename Model::builder_type builder_type;
-    typedef typename Model::dataset_type dataset_type;
-
-    auto dataset = New<dataset_type>(options_);
+    auto dataset = New<Corpus>(options_);
     dataset->prepare();
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("dynamic-batching")) {
       LOG(info)->info("[batching] Collecting statistics for dynamic batching");
       // @TODO, better fake batch with vocabulary
-      auto model = New<Model>(options_);
+      auto model = New<ModelWrapper>(options_);
       THREAD_GUARD(stats = model->collectStats());
       LOG(info)->info("[batching] Done");
     }
 
-    auto trainState = New<TrainingState>(options_);
-    auto scheduler = New<Scheduler<dataset_type>>(options_, trainState);
+    auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
+    auto scheduler = New<Scheduler>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
       for(auto validator :
-          Validators<builder_type>(dataset->getVocabs(), options_))
+          Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }
 
-    auto model = New<Model>(options_);
+    auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
     model->load();
 
-    auto batchGenerator
-        = New<BatchGenerator<dataset_type>>(dataset, options_, stats);
+    auto batchGenerator = New<BatchGenerator<Corpus>>(dataset, options_, stats);
 
     scheduler->started();
     while(scheduler->keepGoing()) {

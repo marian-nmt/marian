@@ -10,7 +10,9 @@
 
 #include "examples/mnist/model.h"
 #include "examples/mnist/training.h"
-#include "training/graph_group.h"
+#include "training/graph_group_async.h"
+#include "training/graph_group_sync.h"
+#include "training/graph_group_singleton.h"
 
 const std::vector<std::string> TRAIN_SET
     = {"../src/examples/mnist/train-images-idx3-ubyte",
@@ -29,14 +31,18 @@ int main(int argc, char** argv) {
   if(!options->has("valid-sets"))
     options->set("valid-sets", VALID_SET);
 
-  options->set("type", "mnist-ffnn");
+  if(options->get<std::string>("type") != "mnist-lenet")
+    options->set("type", "mnist-ffnn");
 
   auto devices = options->get<std::vector<size_t>>("devices");
 
-  if(devices.size() > 1)
-    New<TrainMNIST<AsyncGraphGroup<models::MnistFeedForwardNet>>>(options)->run();
-  else
-    New<TrainMNIST<SingletonGraph<models::MnistFeedForwardNet>>>(options)->run();
+  if(devices.size() > 1) {
+    if(options->get<bool>("sync"))
+      New<TrainMNIST<SyncGraphGroup>>(options)->run();
+    else
+      New<TrainMNIST<AsyncGraphGroup>>(options)->run();
+  } else
+    New<TrainMNIST<SingletonGraph>>(options)->run();
 
   return 0;
 }

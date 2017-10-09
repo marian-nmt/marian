@@ -27,13 +27,11 @@ private:
   Ptr<Config> options_;
   Ptr<BatchStats> stats_;
 
-  bool forceBatchSize_{false};
   int batchSize_{1};
 
   typename DataSet::iterator current_;
 
   size_t maxiBatchSize_;
-
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
 
@@ -70,9 +68,6 @@ private:
     }
 
     int maxBatchSize = options_->get<int>("mini-batch");
-    if(forceBatchSize_)
-      maxBatchSize = batchSize_;
-
     int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
     size_t sets = 0;
@@ -95,13 +90,13 @@ private:
       bool makeBatch = batchVector.size() == maxBatchSize;
 
       // Batch size based on words
-      if(!forceBatchSize_ && options_->has("mini-batch-words")) {
+      if(options_->has("mini-batch-words")) {
         int mbWords = options_->get<int>("mini-batch-words");
         if(mbWords > 0)
           makeBatch = currentWords > mbWords;
       }
 
-      if(!forceBatchSize_ && options_->has("dynamic-batching")) {
+      if(options_->has("dynamic-batching")) {
         // Dynamic batching
         if(stats_ && options_->get<bool>("dynamic-batching")) {
           for(size_t i = 0; i < sets; ++i)
@@ -155,11 +150,6 @@ public:
       fillBatches();
 
     return currentBatch_;
-  }
-
-  void forceBatchSize(int batchSize) {
-    forceBatchSize_ = true;
-    batchSize_ = batchSize;
   }
 
   void prepare(bool shuffle = true) {

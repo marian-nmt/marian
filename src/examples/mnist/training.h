@@ -9,7 +9,7 @@
 
 namespace marian {
 
-template <class Model>
+template <class ModelWrapper>
 class TrainMNIST : public ModelTask {
 private:
   Ptr<Config> options_;
@@ -22,19 +22,17 @@ public:
 
     // Prepare data set
     auto paths = options_->get<std::vector<std::string>>("train-sets");
-    auto dataset = New<typename Model::dataset_type>(paths);
+    auto dataset = New<data::MNISTData>(paths);
     auto batchGenerator
-        = New<BatchGenerator<data::MNIST>>(dataset, options_, nullptr);
+        = New<BatchGenerator<data::MNISTData>>(dataset, options_, nullptr);
 
     // Prepare scheduler with validators
-    auto trainState = New<TrainingState>(options_);
-    auto scheduler = New<Scheduler<typename Model::dataset_type>>(options_, trainState);
-    auto validator
-        = New<AccuracyValidator>(options_);
-    scheduler->addValidator(validator);
+    auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
+    auto scheduler = New<Scheduler>(options_, trainState);
+    scheduler->addValidator(New<AccuracyValidator>(options_));
 
     // Prepare model
-    auto model = New<Model>(options_);
+    auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
     model->load();
 

@@ -19,7 +19,7 @@ namespace models {
 
 class MnistFeedForwardNet : public ModelBase {
 public:
-  typedef data::MNIST dataset_type;
+  typedef data::MNISTData dataset_type;
 
   template <class... Args>
   MnistFeedForwardNet(Ptr<Options> options, Args... args)
