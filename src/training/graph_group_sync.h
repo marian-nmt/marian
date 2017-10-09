@@ -41,6 +41,33 @@ private:
   int shardSize_;
   bool first_{true};
 
+  std::vector<Tensor> paramsAvg_;
+  std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
+  bool movingAvg_{false};
+  float mvDecay_{0.9999};
+
+  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches) {
+    float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
+    Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
+  }
+
+  void fetchParams(Tensor oldParams, const std::vector<Tensor>& params) {
+    // @TODO read guard on parameters
+    int pos = 0;
+    std::vector<std::thread> threads;
+    for(int idx = 0; idx < devices_.size(); idx++) {
+      threads.emplace_back(std::thread(
+        [=](int idx, int pos) {
+          oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
+        },
+        idx,
+        pos));
+      pos += shardSize_;
+    }
+    for(auto&& t : threads) {
+      t.join();
+    }
+  }
 
   void execute(Ptr<data::Batch> batch) {
     std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
@@ -85,6 +112,26 @@ private:
         }
       }
 
+      if(movingAvg_ && paramsAvg_.size() == 0) {
+        int totalSize = graphs_[0]->params()->vals()->size();
+
+        int i = 0;
+        for(auto device : devices_) {
+          int __size__ = min(shardSize_, totalSize);
+          totalSize -= __size__;
+          Tensor paramAvg;
+          auto allocator = New<TensorAllocator>(device);
+
+          allocator->reserveExact(__size__ * sizeof(float));
+          allocator->allocate(paramAvg, {1, __size__});
+
+          paramAvg->copyFrom(params_[i++]);
+
+          paramsAllocAvg_.push_back(allocator);
+          paramsAvg_.push_back(paramAvg);
+        }
+      }
+
       first_ = false;
     }
 
@@ -124,6 +171,10 @@ private:
 
         shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
+        if(movingAvg_)
+          updateMovingAverage(paramsAvg_[idx], params_[idx],
+                              scheduler_->numberOfBatches());
+
         for(auto graph : graphs_) {
           auto subParam = graph->params()->vals()->subtensor(pos, size);
           subParam->copyFrom(params_[idx]);
@@ -146,11 +197,18 @@ private:
     if(scheduler_) {
       scheduler_->update(cost, batch);
 
-      if(scheduler_->saving())
+      if(scheduler_->saving()) {
         this->save();
+      }
 
       if(scheduler_->validating()) {
+        if(movingAvg_)
+          fetchParams(graphs_[0]->params()->vals(), paramsAvg_);
+
         scheduler_->validate(graphs_[0]);
+
+        if(movingAvg_)
+          fetchParams(graphs_[0]->params()->vals(), params_);
       }
     }
   }
@@ -159,7 +217,9 @@ public:
   template <class... Args>
   SyncGraphGroup(Ptr<Config> options, Args... args)
       : GraphGroup(options),
-        devices_{options_->get<std::vector<size_t>>("devices")}
+        devices_{options_->get<std::vector<size_t>>("devices")},
+        movingAvg_{options_->get<bool>("moving-average")},
+        mvDecay_{(float)options_->get<double>("moving-decay")}
   {
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
@@ -197,6 +257,9 @@ public:
       }
     }
 
+    if(movingAvg_)
+      fetchParams(graphs_[idx]->params()->vals(), paramsAvg_);
+
     if(options_->get<bool>("overwrite")) {
       std::string name = options_->get<std::string>("model");
 
@@ -220,6 +283,9 @@ public:
       if(scheduler_)
         scheduler_->save(name);
     }
+
+    if(movingAvg_)
+      fetchParams(graphs_[idx]->params()->vals(), params_);
   }
 
   Ptr<data::BatchStats> collectStats() {
