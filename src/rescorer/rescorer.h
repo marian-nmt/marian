@@ -68,14 +68,21 @@ public:
   }
 
   void run() {
+    LOG(info)->info("Scoring");
+
     auto batchGenerator = New<BatchGenerator<Corpus>>(corpus_, options_);
     batchGenerator->prepare(false);
 
     auto output = New<ScoreCollector>();
 
-    bool summarize = options_->get<bool>("summarize");
+    bool summarize = options_->has("summary");
+    std::string summary
+        = summarize ? options_->get<std::string>("summary") : "cross-entropy";
+
     float sumCost = 0;
     size_t sumWords = 0;
+    size_t sumSamples = 0;
+
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
 
@@ -88,6 +95,7 @@ public:
       for(auto s : scores)
         sumCost += s;
       sumWords += batch->back()->batchWords();
+      sumSamples += batch->size();
 
       if(!summarize) {
         for(size_t i = 0; i < batch->size(); ++i) {
@@ -96,9 +104,20 @@ public:
       }
     }
 
-    if(summarize)
-      std::cout << "Perplexity: " << std::exp(-(float)sumCost / (float)sumWords)
-                << std::endl;
+    if(summarize) {
+      float cost = 0;
+      if(summary == "perplexity")
+        cost = std::exp(-(float)sumCost / (float)sumWords);
+      else if(summary == "ce-sum")
+        cost = sumCost;
+      else if(summary == "ce-mean-words")
+        cost = (float)sumCost / (float)sumWords;
+      else
+        cost = sumCost / sumSamples;
+
+      LOG(info)->info("Reporting {} summary", summary);
+      std::cout << cost << std::endl;
+    }
   }
 };
 

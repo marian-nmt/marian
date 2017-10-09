@@ -23,7 +23,6 @@ private:
 
   Ptr<data::Corpus> corpus_;
   Ptr<Vocab> trgVocab_;
-  // Ptr<LexProbs> lexProbs_;
 
 public:
   TranslateMultiGPU(Ptr<Config> options)
@@ -34,16 +33,26 @@ public:
     trgVocab_->load(vocabs.back());
 
     auto devices = options_->get<std::vector<int>>("devices");
-    for(auto& device : devices) {
-      auto graph = New<ExpressionGraph>(true);
-      graph->setDevice(device);
-      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      graphs_.push_back(graph);
+    ThreadPool threadPool(devices.size(), devices.size());
 
-      auto scorers = createScorers(options);
-      for(auto scorer : scorers)
+    scorers_.resize(devices.size());
+    graphs_.resize(devices.size());
+    size_t id = 0;
+    for(size_t device : devices) {
+      auto task = [&](size_t device, size_t id) {
+        auto graph = New<ExpressionGraph>(true);
+        graph->setDevice(device);
+        graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+        graphs_[id] = graph;
+
+        auto scorers = createScorers(options_);
+        for(auto scorer : scorers)
         scorer->init(graph);
-      scorers_.push_back(scorers);
+
+        scorers_[id] = scorers;
+      };
+
+      threadPool.enqueue(task, device, id++);
     }
   }
 
@@ -83,9 +92,7 @@ public:
                          options_->get<bool>("n-best"));
       };
 
-      threadPool.enqueue(task, sentenceId);
-
-      sentenceId++;
+      threadPool.enqueue(task, sentenceId++);
     }
   }
 };

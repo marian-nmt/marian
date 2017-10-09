@@ -10,7 +10,9 @@
 
 #include "examples/mnist/model.h"
 #include "examples/mnist/training.h"
-#include "training/graph_group.h"
+#include "training/graph_group_async.h"
+#include "training/graph_group_sync.h"
+#include "training/graph_group_singleton.h"
 
 const std::vector<std::string> TRAIN_SET
     = {"../src/examples/mnist/train-images-idx3-ubyte",
@@ -34,9 +36,12 @@ int main(int argc, char** argv) {
 
   auto devices = options->get<std::vector<size_t>>("devices");
 
-  if(devices.size() > 1)
-    New<TrainMNIST<AsyncGraphGroup>>(options)->run();
-  else
+  if(devices.size() > 1) {
+    if(options->get<bool>("sync"))
+      New<TrainMNIST<SyncGraphGroup>>(options)->run();
+    else
+      New<TrainMNIST<AsyncGraphGroup>>(options)->run();
+  } else
     New<TrainMNIST<SingletonGraph>>(options)->run();
 
   return 0;

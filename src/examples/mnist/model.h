@@ -46,7 +46,7 @@ public:
     LOG(info)->critical("Saving MNIST model is not supported");
   }
 
-  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph) {
+  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph, size_t multiplier) {
     LOG(info)->critical("Collecting stats in MNIST model is not supported");
     return nullptr;
   }
