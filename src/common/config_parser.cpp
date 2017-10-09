@@ -399,8 +399,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
 
-    ("drop-rate", po::value<double>()->default_value(0),
-     "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
+    //("drop-rate", po::value<double>()->default_value(0),
+    // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
     ("embedding-vectors", po::value<std::vector<std::string>>()
       ->multitoken(),
      "Paths to files with custom source and target embedding vectors")
@@ -707,7 +707,7 @@ void ConfigParser::parseOptions(
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
-    SET_OPTION("drop-rate", double);
+    //SET_OPTION("drop-rate", double);
     SET_OPTION_NONDEFAULT("embedding-vectors", std::vector<std::string>);
     SET_OPTION("embedding-normalization", bool);
     SET_OPTION("embedding-fix-src", bool);

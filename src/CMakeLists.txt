@@ -18,6 +18,8 @@ cuda_add_library(marian
   kernels/sparse.cu
   layers/param_initializers.cu
   layers/generic.cpp
+  layers/guided_alignment.cpp
+  models/model_factory.cpp
   rnn/attention.cu
   rnn/cells.cu
   optimizers/clippers.cu
@@ -30,6 +32,11 @@ cuda_add_library(marian
   translator/output_collector.cpp
   translator/nth_element.cu
   translator/helpers.cu
+  translator/scorers.cpp
+  training/graph_group_async.cu
+  training/graph_group_sync.cu
+  training/graph_group_singleton.cu
+  training/validator.cpp
   data/vocab.cpp
   data/corpus.cpp
   data/text_input.cpp
@@ -41,13 +48,13 @@ cuda_add_library(marian
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-cuda_add_executable(marian_train command/marian.cu)
+cuda_add_executable(marian_train command/marian.cpp)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
 
 add_executable(marian_translate command/s2s_translator.cpp)
 set_target_properties(marian_translate PROPERTIES OUTPUT_NAME s2s)
 
-cuda_add_executable(marian_rescore command/s2s_rescorer.cu)
+cuda_add_executable(marian_rescore command/s2s_rescorer.cpp)
 set_target_properties(marian_rescore PROPERTIES OUTPUT_NAME rescorer)
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_translate marian_rescore)
