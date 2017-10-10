@@ -18,6 +18,8 @@ private:
   size_t samplesDisp{0};
   size_t wordsDisp{0};
 
+  bool first_{true};
+
   Ptr<TrainingState> state_;
 
   boost::timer::cpu_timer timer;
@@ -284,6 +286,11 @@ public:
         }
       }
     }
+
+    if(first_)
+      state.warmupStart = state.batches;
+
+    first_ = false;
   }
 
   void actAfterStalled(TrainingState& state) {

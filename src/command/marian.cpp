@@ -1,10 +1,9 @@
 #include "marian.h"
 
-#include "models/model_task.h"
+#include "training/training.h"
 #include "training/graph_group_async.h"
 #include "training/graph_group_sync.h"
 #include "training/graph_group_singleton.h"
-#include "training/training.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
