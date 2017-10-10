@@ -287,8 +287,10 @@ public:
       }
     }
 
-    if(first_)
+    if(first_ && options_->get<bool>("lr-warmup-at-reload")) {
+      LOG(info)->info("Restarting learning rate warmup");
       state.warmupStart = state.batches;
+    }
 
     first_ = false;
   }

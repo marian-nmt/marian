@@ -420,6 +420,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Increase learning rate linearly for arg first steps")
     ("lr-warmup-google", po::value<size_t>()->default_value(0),
      "Increase learning rate linearly for arg first steps")
+    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
+     "Repeat warmup after interrupted training")
     ("lr-decay-repeat-warmup", po::value<bool>()
      ->zero_tokens()->default_value(false),
      "Repeat learning rate warmup when learning rate is decayed")
@@ -694,6 +696,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-warmup", size_t);
     SET_OPTION("lr-warmup-google", size_t);
     SET_OPTION("lr-decay-repeat-warmup", bool);
+    SET_OPTION("lr-warmup-at-reload", bool);
     SET_OPTION("lr-report", bool);
 
     SET_OPTION("batch-flexible-lr", bool);
