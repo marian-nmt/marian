@@ -28,7 +28,7 @@ public:
       clipper_->clip(grads);
 
     // In case we want to add a multiply factor to our learning rate
-    multiplyFactor_ = multiplyFactor; 
+    multiplyFactor_ = multiplyFactor;
     updateImpl(params, grads);
   }
 
@@ -144,9 +144,8 @@ private:
   float eps_ = 1e-8;
   size_t t_;
 
-  Ptr<TensorAllocator> mtAlloc_;
+  Ptr<TensorAllocator> alloc_;
   Tensor mt_;
-  Ptr<TensorAllocator> vtAlloc_;
   Tensor vt_;
 };
 

@@ -394,20 +394,6 @@ public:
         if(node->equal(found))
           return found;
       }
-
-      //auto f = it->second.lock();
-      //if(f->type() == "layer_normalization") {
-      //std::cerr << "n: " << node->type() << " " << node->name() << " " << node->hash() << std::endl;
-      //for(auto c : node->children())
-      //  std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
-      //
-      //std::cerr << "f: " << f->type() << " " << f->name() << " " << f->hash() << std::endl;
-      //for(auto c : f->children())
-      //  std::cerr << c->getId() << " " << c->type() << " " << c->name() << " " << c->hash() << std::endl;
-      //
-      //std::cerr << "equal: " << node->equal(f) << std::endl;
-      //}
-      //return it->second.lock();
     }
 
     hashMap_[hash].push_back(node);

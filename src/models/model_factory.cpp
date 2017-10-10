@@ -4,8 +4,8 @@
 #include "models/model_base.h"
 #include "models/nematus.h"
 #include "models/s2s.h"
+#include "hardatt.h"
 #include "models/transformer.h"
-#include "models/transformer_gru.h"
 
 #include "examples/mnist/model.h"
 #ifdef CUDNN
@@ -20,8 +20,6 @@ Ptr<EncoderBase> EncoderFactory::construct() {
     return New<EncoderS2S>(options_);
   if(options_->get<std::string>("type") == "transformer")
     return New<EncoderTransformer>(options_);
-  if(options_->get<std::string>("type") == "transformer_gru")
-    return New<EncoderTransformerGRU>(options_);
 
   UTIL_THROW2("Unknown encoder type");
 }
@@ -32,8 +30,10 @@ Ptr<DecoderBase> DecoderFactory::construct() {
     return New<DecoderS2S>(options_);
   if(options_->get<std::string>("type") == "transformer")
     return New<DecoderTransformer>(options_);
-  if(options_->get<std::string>("type") == "transformer_gru")
-    return New<DecoderTransformerGRU>(options_);
+  if(options_->get<std::string>("type") == "hard-att")
+    return New<DecoderHardAtt>(options_);
+  if(options_->get<std::string>("type") == "hard-soft-att")
+    return New<DecoderHardAtt>(options_);
 
   UTIL_THROW2("Unknown decoder type");
 }
@@ -75,13 +75,6 @@ Ptr<ModelBase> by_type(std::string type,
         .construct();
   }
 
-  if(type == "transformer_gru") {
-    return models::encoder_decoder()(options)
-        .push_back(models::encoder()("type", "transformer_gru"))
-        .push_back(models::decoder()("type", "transformer_gru"))
-        .construct();
-  }
-
   if(type == "transformer_s2s") {
     return models::encoder_decoder()(options)
         .push_back(models::encoder()("type", "transformer"))
@@ -96,6 +89,20 @@ Ptr<ModelBase> by_type(std::string type,
         .construct();
   }
 
+  if(type == "hard-att") {
+    return models::encoder_decoder()(options)
+        .push_back(models::encoder()("type", "s2s"))
+        .push_back(models::decoder()("type", "hard-att"))
+        .construct();
+  }
+
+  if(type == "hard-soft-att") {
+    return models::encoder_decoder()(options)
+        .push_back(models::encoder()("type", "s2s"))
+        .push_back(models::decoder()("type", "hard-soft-att"))
+        .construct();
+  }
+
   if(type == "multi-s2s") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)("type", "s2s");
@@ -106,6 +113,22 @@ Ptr<ModelBase> by_type(std::string type,
     }
 
     ms2sFactory.push_back(models::decoder()("index", numEncoders));
+
+    return ms2sFactory.construct();
+  }
+
+  if(type == "multi-hard-soft-att") {
+    size_t numEncoders = 2;
+    auto ms2sFactory = models::encoder_decoder()(options)("type", "s2s");
+
+    for(size_t i = 0; i < numEncoders; ++i) {
+      auto prefix = "encoder" + std::to_string(i + 1);
+      ms2sFactory.push_back(models::encoder()("prefix", prefix)("index", i));
+    }
+
+    ms2sFactory.push_back(models::decoder()
+                          ("index", numEncoders)
+                          ("type", "hard-soft-att"));
 
     return ms2sFactory.construct();
   }

@@ -38,19 +38,16 @@ void Adagrad::resetStats() {
 }
 
 void Adam::updateImpl(Tensor params, Tensor grads) {
-  if(!mtAlloc_)
-    mtAlloc_ = New<TensorAllocator>(params->getDevice());
-  if(!vtAlloc_)
-    vtAlloc_ = New<TensorAllocator>(params->getDevice());
+  if(!alloc_)
+    alloc_ = New<TensorAllocator>(params->getDevice());
 
   if(!mt_) {
     int elements = params->size();
-    mtAlloc_->reserveExact(params->memory()->size());
-    mtAlloc_->allocate(mt_, {1, elements});
+    alloc_->reserveExact(2 * params->memory()->size());
+    alloc_->allocate(mt_, {1, elements});
     mt_->set(0);
 
-    vtAlloc_->reserveExact(params->memory()->size());
-    vtAlloc_->allocate(vt_, {1, elements});
+    alloc_->allocate(vt_, {1, elements});
     vt_->set(0);
   }
 
