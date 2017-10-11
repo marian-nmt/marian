@@ -186,7 +186,9 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       Element(_1 += _2, accGradients, graph->params()->grads());
       gradients = accGradients;
-      num_seen_words += batch_words; //Keep track of how many words we've calculated the error from
+
+      //Keep track of how many words we've calculated the error from
+      num_seen_words += batch_words;
     }
     else {
       gradients = graph->params()->grads();
