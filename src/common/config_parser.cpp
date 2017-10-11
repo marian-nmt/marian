@@ -200,6 +200,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
     ("log-level", po::value<std::string>()->default_value("info"),
      "Set verbosity level of logging "
      "(trace - debug - info - warn - err(or) - critical - off)")
+    ("quiet", po::value<bool>()->zero_tokens()->default_value(false),
+     "Suppress all logging to stderr. Logging to files still works")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -732,7 +734,6 @@ void ConfigParser::parseOptions(
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
-    // SET_OPTION_NONDEFAULT("lexical-table", std::string);
     SET_OPTION("port", size_t);
   }
 
@@ -772,6 +773,7 @@ void ConfigParser::parseOptions(
 
   SET_OPTION("workspace", size_t);
   SET_OPTION("log-level", std::string);
+  SET_OPTION("quiet", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);

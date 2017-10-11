@@ -7,7 +7,8 @@
 typedef std::shared_ptr<spdlog::logger> Logger;
 Logger stderrLogger(const std::string&,
                     const std::string&,
-                    const std::vector<std::string>& = {});
+                    const std::vector<std::string>& = {},
+                    bool quiet = false);
 
 namespace marian {
 class Config;
