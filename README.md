@@ -1,6 +1,5 @@
 
 # Marian
-[![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
