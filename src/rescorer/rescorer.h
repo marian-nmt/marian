@@ -109,11 +109,11 @@ public:
       if(summary == "perplexity")
         cost = std::exp(-(float)sumCost / (float)sumWords);
       else if(summary == "ce-sum")
-        cost = sumCost;
+        cost = -sumCost;
       else if(summary == "ce-mean-words")
-        cost = (float)sumCost / (float)sumWords;
+        cost = -(float)sumCost / (float)sumWords;
       else
-        cost = sumCost / sumSamples;
+        cost = -sumCost / sumSamples;
 
       LOG(info)->info("Reporting {} summary", summary);
       std::cout << cost << std::endl;
