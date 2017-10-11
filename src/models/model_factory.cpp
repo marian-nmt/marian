@@ -117,7 +117,7 @@ Ptr<ModelBase> by_type(std::string type,
     return ms2sFactory.construct();
   }
 
-  if(type == "multi-hard-soft-att") {
+  if(type == "multi-hard-att") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)("type", "s2s");
 

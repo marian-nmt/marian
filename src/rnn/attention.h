@@ -46,9 +46,9 @@ public:
         contextDropped_(encState->getContext()) {
 
     int dimDecState = options_->get<int>("dimState");
-    dropout_ = options_->get<float>("dropout");
-    layerNorm_ = options_->get<bool>("layer-normalization");
-    nematusNorm_ = options_->get<bool>("nematus-normalization");
+    dropout_ = options_->get<float>("dropout", 0);
+    layerNorm_ = options_->get<bool>("layer-normalization", false);
+    nematusNorm_ = options_->get<bool>("nematus-normalization", false);
     std::string prefix = options_->get<std::string>("prefix");
 
     int dimEncState = encState_->getContext()->shape()[1];
