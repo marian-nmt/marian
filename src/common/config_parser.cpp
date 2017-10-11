@@ -600,8 +600,7 @@ void ConfigParser::parseOptions(
   }
 
   if(mode_ == ConfigMode::translating) {
-    if(vm_["models"].as<std::vector<std::string>>().size() == 0
-       && vm_.count("config") == 0) {
+    if(vm_.count("models") == 0 && vm_.count("config") == 0) {
       std::cerr << "Error: you need to provide at least one model file or a config file" << std::endl << std::endl;
 
       std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
