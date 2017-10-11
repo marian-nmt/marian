@@ -222,9 +222,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
   // clang-format off
   if(mode_ == ConfigMode::translating) {
     model.add_options()
-    ("models,m", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"model.npz"}), "model.npz"),
+    ("models,m", po::value<std::vector<std::string>>()->multitoken(),
      "Paths to model(s) to be loaded");
   } else {
     model.add_options()
@@ -599,6 +597,17 @@ void ConfigParser::parseOptions(
     std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
     std::cerr << cmdline_options_ << std::endl;
     exit(0);
+  }
+
+  if(mode_ == ConfigMode::translating) {
+    if(vm_["models"].as<std::vector<std::string>>().size() == 0
+       && vm_.count("config") == 0) {
+      std::cerr << "Error: you need to provide at least one model file or a config file" << std::endl << std::endl;
+
+      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
+      std::cerr << cmdline_options_ << std::endl;
+      exit(0);
+    }
   }
 
   if(vm_["version"].as<bool>()) {
