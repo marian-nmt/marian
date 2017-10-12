@@ -463,17 +463,6 @@ public:
 
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
 
-    auto encoderState = state->getEncoderStates()[0];
-    auto encoderContext = encoderState->getContext();
-    auto encoderMask = encoderState->getMask();
-    int dimBatch = encoderContext->shape()[0];
-    int dimSrcWords = encoderContext->shape()[2];
-
-    // keep this around during steps
-    encoderContext = TransposeTimeBatch(encoderContext);
-    encoderMask = reshape(TransposeTimeBatch(encoderMask),
-                          {1, dimSrcWords, dimBatch});
-
     // reorganize batch and timestep
     auto query = TransposeTimeBatch(scaledEmbeddings);
 
@@ -484,8 +473,8 @@ public:
                        query, dropProb);
 
     rnn::States decoderStates;
-
     int dimTrgWords = query->shape()[0];
+    int dimBatch = query->shape()[2];
     auto selfMask = TriangleMask(graph, dimTrgWords);
     if(decoderMask) {
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
@@ -494,7 +483,24 @@ public:
     }
 
     selfMask = InverseMask(selfMask);
-    encoderMask = InverseMask(encoderMask);
+
+    std::vector<Expr> encoderContexts;
+    std::vector<Expr> encoderMasks;
+
+    for(auto encoderState : state->getEncoderStates()) {
+      auto encoderContext = encoderState->getContext();
+      auto encoderMask = encoderState->getMask();
+
+      encoderContext = TransposeTimeBatch(encoderContext);
+
+      int dimSrcWords = encoderContext->shape()[0];
+      encoderMask = reshape(TransposeTimeBatch(encoderMask),
+                            {1, dimSrcWords, dimBatch});
+      encoderMask = InverseMask(encoderMask);
+
+      encoderContexts.push_back(encoderContext);
+      encoderMasks.push_back(encoderMask);
+    }
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
@@ -510,11 +516,28 @@ public:
                              query, values, values,
                              selfMask, inference_);
 
-      // TODO: do not recompute matrix multiplies
-      query = LayerAttention(graph, options_,
-                             prefix_ + "_context_l" + std::to_string(i),
-                             query, encoderContext, encoderContext,
-                             encoderMask, inference_);
+      Expr context;
+      // Iterate over number of all encoders
+      for(int j = 0; j < encoderContexts.size(); ++j) {
+        std::string prefix = prefix_ + "_context_l" + std::to_string(i);
+        if(j > 0)
+          prefix += "_enc" + std::to_string(j + 1);
+
+        // TODO: do not recompute matrix multiplies
+        auto aligned = LayerAttention(graph, options_,
+                                      prefix,
+                                      query,
+                                      encoderContexts[j],
+                                      encoderContexts[j],
+                                      encoderMasks[j],
+                                      inference_);
+        if(j == 0)
+          context = aligned;
+        else
+          context = context + aligned;
+      }
+      if(context)
+        query = context;
 
       query = LayerFFN(graph, options_,
                        prefix_ + "_ffn_l" + std::to_string(i),

@@ -63,7 +63,7 @@ public:
         shardSync_{devices_.size()},
         movingAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")},
-        tau_{options_->get<size_t>("tau")} {
+        tau_{options_->get<size_t>("optimizer-delay")} {
 
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();

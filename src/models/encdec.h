@@ -199,6 +199,10 @@ protected:
     YAML::Node modelParams;
     for(auto& key : modelFeatures_)
       modelParams[key] = options_->getOptions()[key];
+
+    if(options_->has("original-type"))
+      modelParams["type"] = options_->getOptions()["original-type"];
+
     Config::AddYamlToNpz(modelParams, "special:model.yml", name);
   }
 

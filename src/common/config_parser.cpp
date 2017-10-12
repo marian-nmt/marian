@@ -344,8 +344,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
-    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
@@ -358,7 +358,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Parameters for optimization algorithm, e.g. betas for adam")
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
      "Learning rate")
-
     ("lr-decay", po::value<double>()->default_value(0.0),
      "Decay factor for learning rate: lr = lr * arg (0 to disable)")
     ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
@@ -374,32 +373,12 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "requires --lr-decay-strategy to be batches")
     ("lr-decay-reset-optimizer", po::value<bool>()->zero_tokens()->default_value(false),
       "Reset running statistics of optimizer whenever learning rate decays")
-
-    ("lr-decay-repeat-warmup", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Repeat learning rate warmup when learning rate is decayed")
-    ("lr-decay-inv-sqrt", po::value<size_t>()->default_value(0),
-     "Decrease learning rate at arg / sqrt(no. updates) starting at arg")
-
-    ("lr-warmup", po::value<size_t>()->default_value(0),
-     "Increase learning rate linearly for arg first steps")
-    ("lr-warmup-start-rate", po::value<float>()->default_value(0),
-     "Start value for learning rate warmup")
-    ("lr-warmup-cycle", po::value<bool>()->zero_tokens()->default_value(false),
-     "Apply cyclic warmup")
-    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
-     "Repeat warmup after interrupted training")
-
-    ("lr-report", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Report learning rate for each update")
-
     ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
       "Set number of words per batch that the learning rate corresponds to. "
       "The option is only active when batch-flexible-lr is on")
-    ("tau", po::value<size_t>()->default_value(1),
+    ("optimizer-delay", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
     ("sync-sgd", po::value<bool>()->zero_tokens()->default_value(false),
      "Use synchronous SGD instead of asynchronous for multi-gpu training")
@@ -437,6 +416,18 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
+    ("lr-warmup", po::value<size_t>()->default_value(0),
+     "Increase learning rate linearly for arg first steps")
+    ("lr-warmup-google", po::value<size_t>()->default_value(0),
+     "Increase learning rate linearly for arg first steps")
+    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
+     "Repeat warmup after interrupted training")
+    ("lr-decay-repeat-warmup", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Repeat learning rate warmup when learning rate is decayed")
+    ("lr-report", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Report learning rate for each update")
   ;
   // clang-format on
   desc.add(training);
@@ -558,8 +549,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
-    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ;
@@ -701,22 +692,20 @@ void ConfigParser::parseOptions(
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
+    SET_OPTION("optimizer-delay", size_t);
     SET_OPTION("learn-rate", double);
-    SET_OPTION("tau", size_t);
     SET_OPTION("sync-sgd", bool);
     SET_OPTION("mini-batch-words", int);
-    SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("mini-batch-fit", bool);
 
     SET_OPTION("lr-decay", double);
     SET_OPTION("lr-decay-strategy", std::string);
     SET_OPTION("lr-decay-start", std::vector<size_t>);
     SET_OPTION("lr-decay-freq", size_t);
     SET_OPTION("lr-decay-reset-optimizer", bool);
-    SET_OPTION("lr-decay-inv-sqrt", size_t);
-    SET_OPTION("lr-decay-repeat-warmup", bool);
     SET_OPTION("lr-warmup", size_t);
-    SET_OPTION("lr-warmup-start-rate", float);
-    SET_OPTION("lr-warmup-cycle", bool);
+    SET_OPTION("lr-warmup-google", size_t);
+    SET_OPTION("lr-decay-repeat-warmup", bool);
     SET_OPTION("lr-warmup-at-reload", bool);
     SET_OPTION("lr-report", bool);
 
@@ -743,7 +732,7 @@ void ConfigParser::parseOptions(
       config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
     }
     SET_OPTION("mini-batch-words", int);
-    SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("mini-batch-fit", bool);
     SET_OPTION_NONDEFAULT("summary", std::string);
   }
   if(mode_ == ConfigMode::translating) {
