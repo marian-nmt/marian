@@ -373,6 +373,26 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "requires --lr-decay-strategy to be batches")
     ("lr-decay-reset-optimizer", po::value<bool>()->zero_tokens()->default_value(false),
       "Reset running statistics of optimizer whenever learning rate decays")
+
+    ("lr-decay-repeat-warmup", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Repeat learning rate warmup when learning rate is decayed")
+    ("lr-decay-inv-sqrt", po::value<size_t>()->default_value(0),
+     "Decrease learning rate at arg / sqrt(no. updates) starting at arg")
+
+    ("lr-warmup", po::value<size_t>()->default_value(0),
+     "Increase learning rate linearly for arg first steps")
+    ("lr-warmup-start-rate", po::value<float>()->default_value(0),
+     "Start value for learning rate warmup")
+    ("lr-warmup-cycle", po::value<bool>()->zero_tokens()->default_value(false),
+     "Apply cyclic warmup")
+    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
+     "Repeat warmup after interrupted training")
+
+    ("lr-report", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Report learning rate for each update")
+
     ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
@@ -704,7 +724,11 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-freq", size_t);
     SET_OPTION("lr-decay-reset-optimizer", bool);
     SET_OPTION("lr-warmup", size_t);
-    SET_OPTION("lr-warmup-google", size_t);
+
+    SET_OPTION("lr-decay-inv-sqrt", size_t);
+    SET_OPTION("lr-warmup-start-rate", float);
+    SET_OPTION("lr-warmup-cycle", bool);
+
     SET_OPTION("lr-decay-repeat-warmup", bool);
     SET_OPTION("lr-warmup-at-reload", bool);
     SET_OPTION("lr-report", bool);
