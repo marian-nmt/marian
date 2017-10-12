@@ -436,18 +436,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
-    ("lr-warmup", po::value<size_t>()->default_value(0),
-     "Increase learning rate linearly for arg first steps")
-    ("lr-warmup-google", po::value<size_t>()->default_value(0),
-     "Increase learning rate linearly for arg first steps")
-    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
-     "Repeat warmup after interrupted training")
-    ("lr-decay-repeat-warmup", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Repeat learning rate warmup when learning rate is decayed")
-    ("lr-report", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Report learning rate for each update")
   ;
   // clang-format on
   desc.add(training);
