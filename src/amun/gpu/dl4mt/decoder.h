@@ -374,13 +374,8 @@ class Decoder {
       //BEGIN_TIMER("Decode");
 
       //BEGIN_TIMER("GetHiddenState");
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-	    std::cerr << "Decoder::Decode1" << std::endl;
 
       GetHiddenState(HiddenState_, State, Embeddings);
-
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decoder::Decode2" << std::endl;
 
       //HiddenState_.ReduceDimensions();
       //std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
@@ -391,24 +386,15 @@ class Decoder {
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetAlignedSourceContext");
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decoder::Decode3" << std::endl;
-
       //BEGIN_TIMER("GetNextState");
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
       //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
       //PAUSE_TIMER("GetNextState");
 
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decoder::Decode4" << std::endl;
-
       //BEGIN_TIMER("GetProbs");
       GetProbs(NextState, Embeddings, AlignedSourceContext_);
       //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetProbs");
-
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decoder::Decode5" << std::endl;
 
       //PAUSE_TIMER("Decode");
     }
