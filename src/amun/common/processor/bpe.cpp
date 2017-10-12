@@ -27,6 +27,10 @@ std::vector<std::string> BPE::Postprocess(const std::vector<std::string> input) 
       currWord.clear();
     }
   }
+  std::string tailWord = currWord.str();
+  if (tailWord.size() != 0) {
+      debped.push_back(tailWord);
+  }
   return debped;
 }
 
