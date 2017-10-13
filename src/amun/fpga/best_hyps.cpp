@@ -14,7 +14,7 @@ BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
     !god.Get<bool>("allow-unk"),
     god.Get<bool>("n-best"),
     god.Get<std::vector<std::string>>("softmax-filter").size(),
-    god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
+    god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
     god.GetScorerWeights()),
   nthElement_(openCLInfo, god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
   keys(openCLInfo, god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),

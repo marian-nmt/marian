@@ -21,7 +21,7 @@ void TranslationTaskAndOutput(const God &god, std::shared_ptr<Sentences> sentenc
     size_t lineNum = history.GetLineNum();
 
     std::stringstream strm;
-    Printer(god, history, strm);
+    Printer(god, history, strm, sentences);
 
     outputCollector.Write(lineNum, strm.str());
   }

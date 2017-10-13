@@ -8,6 +8,8 @@
 #include "common/utils.h"
 #include "common/vocab.h"
 #include "common/soft_alignment.h"
+#include "common/sentence.h"
+#include "common/sentences.h"
 
 namespace amunmt {
 
@@ -15,18 +17,29 @@ std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 
 std::string GetAlignmentString(const std::vector<size_t>& alignment);
 std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
+std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, size_t linenum);
 
 template <class OStream>
-void Printer(const God &god, const History& history, OStream& out) {
+void Printer(const God &god, const History& history, OStream& out, std::shared_ptr<Sentences> sentences) {
+  
+  //Get the source sentence for printing Nematus style soft alignments
+  sentences->SortByLineNum();
+  std::shared_ptr<Sentence> sentence = sentences->at(history.GetLineNum());
+  std::string source = Join(god.Postprocess(god.GetSourceVocab()(sentence->GetWords(0))));
+  
   auto bestTranslation = history.Top();
   std::vector<std::string> bestSentenceWords = god.Postprocess(god.GetTargetVocab()(bestTranslation.first));
 
   std::string best = Join(bestSentenceWords);
-  if (god.Get<bool>("return-alignment")) {
-    best += GetAlignmentString(GetAlignment(bestTranslation.second));
-  }
-  if (god.Get<bool>("return-soft-alignment")) {
-    best += GetSoftAlignmentString(bestTranslation.second);
+  if (god.Get<bool>("return-nematus-alignment")) {
+    best = GetNematusAlignmentString(bestTranslation.second, best, source, history.GetLineNum());
+  }else{
+	  if (god.Get<bool>("return-alignment")) {
+		best += GetAlignmentString(GetAlignment(bestTranslation.second));
+	  }
+	  if (god.Get<bool>("return-soft-alignment")) {
+		best += GetSoftAlignmentString(bestTranslation.second);
+	  }
   }
 
   if (god.Get<bool>("n-best")) {

@@ -47,6 +47,17 @@ void Sentences::SortByLength() {
   //std::random_shuffle ( coll_.begin(), coll_.end() );
 }
 
+class LineNumOrderer{
+  public:
+    bool operator()(const SentencePtr& a, const SentencePtr& b) const {
+      return a->GetLineNum() < b->GetLineNum();
+    }
+};
+
+void Sentences::SortByLineNum() {
+  std::sort(coll_.begin(), coll_.end(), LineNumOrderer());
+}
+
 SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
 {
   SentencesPtr sentences(new Sentences());

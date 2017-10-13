@@ -30,7 +30,7 @@ class BestHyps : public BestHypsBase
           !god.Get<bool>("allow-unk"),
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
+          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
           god.GetScorerWeights())
     {}
 
