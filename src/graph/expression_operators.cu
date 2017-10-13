@@ -207,7 +207,7 @@ Expr square(Expr a) {
   return Expression<SquareNodeOp>(a);
 }
 
-Expr layer_norm(Expr x, Expr gamma, Expr beta, float eps) {
+Expr layer_norm(Expr x, Expr gamma, Expr beta /*= nullptr*/, float eps /*= 1e-9*/) {
   std::vector<Expr> nodes = {x, gamma};
   if(beta)
     nodes.push_back(beta);

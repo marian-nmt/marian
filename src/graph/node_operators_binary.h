@@ -524,12 +524,9 @@ struct AffineNodeOp : public NaryNodeOp {
 };
 
 struct LayerNormalizationOp : public NaryNodeOp {
-private:
-  float eps_;
-
 public:
-  LayerNormalizationOp(const std::vector<Expr>& nodes, float eps=1e-9)
-  : NaryNodeOp(nodes), eps_(eps) {}
+  LayerNormalizationOp(const std::vector<Expr>& nodes, float eps = 1e-9)
+      : NaryNodeOp(nodes), eps_(eps) {}
 
   NodeOps forwardOps() {
     return {NodeOp(LayerNormalization(
@@ -554,6 +551,9 @@ public:
   }
 
   const std::string type() { return "layer_normalization"; }
+
+private:
+  float eps_;
 };
 
 struct HighwayNodeOp : public NaryNodeOp {
