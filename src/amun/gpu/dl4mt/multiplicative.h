@@ -26,10 +26,10 @@ class Multiplicative: public Cell {
       /* std::cerr << "Multipliative::GetNextState1" << std::endl; */
 
       Copy(*tempState_.cell, *State.cell);
-      Prod(*tempState_.output, *State.output, *w_.Umh_);
-      BroadcastVec(_1 + _2, *tempState_.output, *w_.bUmh_);
-      Prod(x_mult_, Context, *w_.Wmx_);
-      BroadcastVec(_1 + _2, x_mult_, *w_.bWmx_);
+      Prod(*tempState_.output, *State.output, *w_.Um_);
+      BroadcastVec(_1 + _2, *tempState_.output, *w_.Bmu_);
+      Prod(x_mult_, Context, *w_.Wm_);
+      BroadcastVec(_1 + _2, x_mult_, *w_.Bm_);
       Element(_1 * _2, *tempState_.output, x_mult_);
       innerCell_.GetNextState(NextState, tempState_, Context);
     }

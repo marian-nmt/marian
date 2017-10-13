@@ -84,8 +84,7 @@ struct Weights {
       B_(model.get("encoder_b", true, true)),
       U_(model.get("encoder_U", true)),
       Wx_(model.get("encoder_Wx", true)),
-      Bx1_(model.get("encoder_bx", true, true)),
-      Bx2_(new mblas::Matrix(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+      Bx_(model.get("encoder_bx", true, true)),
       Ux_(model.get("encoder_Ux", true)),
       Gamma_1_(model.get("encoder_gamma1", false)),
       Gamma_2_(model.get("encoder_gamma2", false))
@@ -95,8 +94,7 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> B_;
     const std::shared_ptr<mblas::Matrix> U_;
     const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Bx_;
     const std::shared_ptr<mblas::Matrix> Ux_;
     const std::shared_ptr<mblas::Matrix> Gamma_1_;
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
@@ -110,8 +108,7 @@ struct Weights {
       B_(model.get("encoder_r_b", true, true)),
       U_(model.get("encoder_r_U", true)),
       Wx_(model.get("encoder_r_Wx", true)),
-      Bx1_(model.get("encoder_r_bx", true, true)),
-      Bx2_(new mblas::Matrix( Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+      Bx_(model.get("encoder_r_bx", true, true)),
       Ux_(model.get("encoder_r_Ux", true)),
       Gamma_1_(model.get("encoder_r_gamma1", false)),
       Gamma_2_(model.get("encoder_r_gamma2", false))
@@ -121,8 +118,7 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> B_;
     const std::shared_ptr<mblas::Matrix> U_;
     const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Bx_;
     const std::shared_ptr<mblas::Matrix> Ux_;
     const std::shared_ptr<mblas::Matrix> Gamma_1_;
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
@@ -215,8 +211,7 @@ struct Weights {
       B_(model.get("decoder_b", true, true)),
       U_(model.get("decoder_U", true)),
       Wx_(model.get("decoder_Wx", true)),
-      Bx1_(model.get("decoder_bx", true, true)),
-      Bx2_(new mblas::Matrix(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+      Bx_(model.get("decoder_bx", true, true)),
       Ux_(model.get("decoder_Ux", true)),
       Gamma_1_(model.get("decoder_cell1_gamma1", false)),
       Gamma_2_(model.get("decoder_cell1_gamma2", false))
@@ -226,8 +221,7 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> B_;
     const std::shared_ptr<mblas::Matrix> U_;
     const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
+    const std::shared_ptr<mblas::Matrix> Bx_;
     const std::shared_ptr<mblas::Matrix> Ux_;
     const std::shared_ptr<mblas::Matrix> Gamma_1_;
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
@@ -241,8 +235,7 @@ struct Weights {
       B_(model.get("decoder_b_nl", true, true)),
       U_(model.get("decoder_U_nl", true)),
       Wx_(model.get("decoder_Wcx", true)),
-      Bx2_(model.get("decoder_bx_nl", true, true)),
-      Bx1_(new mblas::Matrix(Bx2_->dim(0), Bx2_->dim(1), Bx2_->dim(2), Bx2_->dim(3), true)),
+      Bx_(model.get("decoder_bx_nl", true, true)),
       Ux_(model.get("decoder_Ux_nl", true)),
       Gamma_1_(model.get("decoder_cell2_gamma1", false)),
       Gamma_2_(model.get("decoder_cell2_gamma2", false))
@@ -252,8 +245,7 @@ struct Weights {
     const std::shared_ptr<mblas::Matrix> B_;
     const std::shared_ptr<mblas::Matrix> U_;
     const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
+    const std::shared_ptr<mblas::Matrix> Bx_;
     const std::shared_ptr<mblas::Matrix> Ux_;
     const std::shared_ptr<mblas::Matrix> Gamma_1_;
     const std::shared_ptr<mblas::Matrix> Gamma_2_;
@@ -266,15 +258,15 @@ struct Weights {
     MultWeights(const MultWeights&) = delete;
     MultWeights(const NpzConverter& model, const std::string& prefix)
       : BaseWeights(model),
-      Wmx_(model.get(p(prefix, "Wmx"), true)),
-      bWmx_(model.get(p(prefix, "bWmx"), true, true)),
-      Umh_(model.get(p(prefix, "Umh"), true)),
-      bUmh_(model.get(p(prefix, "bUmh"), true, true))
+      Wm_(model.get(p(prefix, "Wm"), true)),
+      Bm_(model.get(p(prefix, "bm"), true, true)),
+      Um_(model.get(p(prefix, "Um"), true)),
+      Bmu_(model.get(p(prefix, "bmu"), true, true))
       {}
-    const std::shared_ptr<mblas::Matrix> Wmx_;
-    const std::shared_ptr<mblas::Matrix> bWmx_;
-    const std::shared_ptr<mblas::Matrix> Umh_;
-    const std::shared_ptr<mblas::Matrix> bUmh_;
+    const std::shared_ptr<mblas::Matrix> Wm_;
+    const std::shared_ptr<mblas::Matrix> Bm_;
+    const std::shared_ptr<mblas::Matrix> Um_;
+    const std::shared_ptr<mblas::Matrix> Bmu_;
   private:
     std::string p(std::string prefix, std::string sufix){
       return prefix + "_" + sufix;

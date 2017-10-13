@@ -30,7 +30,7 @@ class SlowLSTM: public Cell {
       BroadcastVec(_1 + _2, FIO_, *w_.B_); // Broadcasting row-wise
       // transform context for use with computing the input
       Prod(H_,  Context, *w_.Wx_);
-      BroadcastVec(_1 + _2, H_, *w_.Bx1_); // Broadcasting row-wise
+      BroadcastVec(_1 + _2, H_, *w_.Bx_); // Broadcasting row-wise
 
       // transform previous output for use with gates
       Prod(Temp1_, *(State.output), *w_.U_);
