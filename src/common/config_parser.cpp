@@ -637,7 +637,7 @@ void ConfigParser::parseOptions(
   /** model **/
 
   if(mode_ == ConfigMode::translating) {
-    SET_OPTION("models", std::vector<std::string>);
+    SET_OPTION_NONDEFAULT("models", std::vector<std::string>);
   } else {
     SET_OPTION("model", std::string);
   }
