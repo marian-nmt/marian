@@ -477,7 +477,9 @@ class Decoder {
       } else if (celltype == "gru"){
         return std::unique_ptr<Cell>(new GRU<Weights::DecGRU1>(*(model.decGru1_)));
       }
+
       assert(false);
+      return std::unique_ptr<Cell>(nullptr);
     }
 
     std::unique_ptr<Cell> InitFinalCell(const Weights& model, const YAML::Node& config){
@@ -490,6 +492,9 @@ class Decoder {
       } else if (celltype == "gru"){
         return std::unique_ptr<Cell>(new GRU<Weights::DecGRU2>(*(model.decGru2_)));
       }
+
+      assert(false);
+      return std::unique_ptr<Cell>(nullptr);
     }
 
   private:

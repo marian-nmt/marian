@@ -21,7 +21,11 @@ std::unique_ptr<Cell> Encoder::InitForwardCell(const Weights& model, const YAML:
   } else if (celltype == "gru") {
     return unique_ptr<Cell>(new GRU<Weights::EncForwardGRU>(*(model.encForwardGRU_)));
   }
+
+  assert(false);
+  return unique_ptr<Cell>(nullptr);
 }
+
 std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML::Node& config){
   std::string enccell = config["enc-cell"] ? config["enc-cell"].as<std::string>() : "gru";
   std::string celltype = config["enc-cell-r"] ? config["enc-cell-r"].as<std::string>() : enccell;
@@ -32,6 +36,9 @@ std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML
   } else if (celltype == "gru") {
     return unique_ptr<Cell>(new GRU<Weights::EncBackwardGRU>(*(model.encBackwardGRU_)));
   }
+
+  assert(false);
+  return unique_ptr<Cell>(nullptr);
 }
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
