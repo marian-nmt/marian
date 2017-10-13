@@ -372,6 +372,14 @@ public:
     std::tie(batchEmbeddings, batchMask)
       = EncoderBase::lookup(embeddings, batch);
 
+    // apply dropout over source words
+    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
+    if(dropoutSrc) {
+      int srcWords = batchEmbeddings->shape()[2];
+      auto dropMask = graph->dropout(dropoutSrc, {1, 1, srcWords});
+      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
+    }
+    
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings;
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
@@ -448,6 +456,14 @@ public:
 
     auto embeddings = state->getTargetEmbeddings();
     auto decoderMask = state->getTargetMask();
+
+    // dropout target words
+    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
+    if(dropoutTrg) {
+      int trgWords = embeddings->shape()[2];
+      auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+      embeddings = dropout(embeddings, mask = trgWordDrop);
+    }
 
     //************************************************************************//
 
