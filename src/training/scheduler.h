@@ -181,22 +181,22 @@ public:
     float bno = state.batches - state.warmupStart;
 
     size_t warmup = options_->get<size_t>("lr-warmup");
-    size_t warmupGoogle = options_->get<size_t>("lr-warmup-google");
-
-    UTIL_THROW_IF2(warmup > 0 && warmupGoogle > 0,
-                   "Only use one warmup strategy");
-
-    float mult = 1.f;
-    if(warmup > 0)
-      mult = std::min(1.f, bno / (float)warmup);
-
-    if(warmupGoogle > 0) {
-      float m1 = std::min(1.f, (float)(std::sqrt(warmupGoogle) / std::sqrt(state.batches)));
-      float m2 = std::min(1.f, bno / (float)warmupGoogle);
-      mult = m1 * m2;
+    float mult1 = 1.f;
+    if(warmup > 0) {
+      mult1 = std::min(1.f, bno / (float)warmup);
     }
 
-    baselr = baselr * mult;
+    size_t decayGoogle = options_->get<size_t>("lr-decay-inv-sqrt");
+    float mult2 = 1.f;
+    if(decayGoogle > 0) {
+      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle) / std::sqrt(state.batches)));
+    }
+
+    baselr = baselr * mult1 * mult2;
+
+    float lrStart = options_->get<float>("lr-warmup-start-rate");
+    if(lrStart > 0)
+      baselr = baselr - lrStart * mult1 * mult2 + lrStart * mult2;
 
     return baselr;
   }
@@ -290,6 +290,12 @@ public:
     if(first_ && options_->get<bool>("lr-warmup-at-reload")) {
       LOG(info)->info("Restarting learning rate warmup");
       state.warmupStart = state.batches;
+    }
+
+    if(options_->get<bool>("lr-warmup-cycle")) {
+      size_t warmup = options_->get<size_t>("lr-warmup");
+      if(warmup > 0 && state.batches % warmup == 0)
+        state.warmupStart = state.batches;
     }
 
     first_ = false;

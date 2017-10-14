@@ -91,14 +91,15 @@ public:
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderState>(startStates, nullptr, encStates);
+    return New<DecoderStateHardAtt>(startStates, nullptr, encStates,
+                                    std::vector<size_t>({0}));
   }
 
 virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) {
     using namespace keywords;
 
-    auto type = options_->get<std::string>("dec-cell");
+    auto type = options_->get<std::string>("type");
 
     int dimTrgVoc = options_->get<std::vector<int>>("dim-vocabs").back();
 
@@ -277,7 +278,9 @@ virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
     }
   }
 
-  void clear() {}
+  void clear() {
+    rnn_ = nullptr;
+  }
 };
 
 }

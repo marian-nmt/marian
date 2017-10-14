@@ -5,11 +5,14 @@
 std::shared_ptr<spdlog::logger> stderrLogger(
     const std::string& name,
     const std::string& pattern,
-    const std::vector<std::string>& files) {
+    const std::vector<std::string>& files,
+    bool quiet) {
   std::vector<spdlog::sink_ptr> sinks;
 
   auto stderr_sink = spdlog::sinks::stderr_sink_mt::instance();
-  sinks.push_back(stderr_sink);
+
+  if(!quiet)
+    sinks.push_back(stderr_sink);
 
   for(auto&& file : files) {
     auto file_sink
@@ -70,14 +73,15 @@ void createLoggers(const marian::Config* options) {
     validLogs.push_back(options->get<std::string>("valid-log"));
   }
 
-  Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs)};
-  Logger warn{stderrLogger("warn", "[%Y-%m-%d %T] [warn] %v", generalLogs)};
-  Logger config{stderrLogger("config", "[%Y-%m-%d %T] [config] %v", generalLogs)};
-  Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v", generalLogs)};
-  Logger data{stderrLogger("data", "[%Y-%m-%d %T] [data] %v", generalLogs)};
-  Logger valid{stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs)};
-  Logger translate{stderrLogger("translate", "%v")};
-  Logger devnull{stderrLogger("devnull", "%v")};
+  bool quiet = options && options->get<bool>("quiet");
+  Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
+  Logger warn{stderrLogger("warn", "[%Y-%m-%d %T] [warn] %v", generalLogs, quiet)};
+  Logger config{stderrLogger("config", "[%Y-%m-%d %T] [config] %v", generalLogs, quiet)};
+  Logger memory{stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v", generalLogs, quiet)};
+  Logger data{stderrLogger("data", "[%Y-%m-%d %T] [data] %v", generalLogs, quiet)};
+  Logger valid{stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs, quiet)};
+  Logger translate{stderrLogger("translate", "%v", generalLogs, quiet)};
+  Logger devnull{stderrLogger("devnull", "%v", {}, quiet)};
   devnull->set_level(spdlog::level::off);
 
   if(options && options->has("log-level")) {

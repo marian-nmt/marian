@@ -200,6 +200,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
     ("log-level", po::value<std::string>()->default_value("info"),
      "Set verbosity level of logging "
      "(trace - debug - info - warn - err(or) - critical - off)")
+    ("quiet", po::value<bool>()->zero_tokens()->default_value(false),
+     "Suppress all logging to stderr. Logging to files still works")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -220,9 +222,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
   // clang-format off
   if(mode_ == ConfigMode::translating) {
     model.add_options()
-    ("models,m", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"model.npz"}), "model.npz"),
+    ("models,m", po::value<std::vector<std::string>>()->multitoken(),
      "Paths to model(s) to be loaded");
   } else {
     model.add_options()
@@ -344,8 +344,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
-    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
@@ -373,14 +373,34 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "requires --lr-decay-strategy to be batches")
     ("lr-decay-reset-optimizer", po::value<bool>()->zero_tokens()->default_value(false),
       "Reset running statistics of optimizer whenever learning rate decays")
+
+    ("lr-decay-repeat-warmup", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Repeat learning rate warmup when learning rate is decayed")
+    ("lr-decay-inv-sqrt", po::value<size_t>()->default_value(0),
+     "Decrease learning rate at arg / sqrt(no. updates) starting at arg")
+
+    ("lr-warmup", po::value<size_t>()->default_value(0),
+     "Increase learning rate linearly for arg first steps")
+    ("lr-warmup-start-rate", po::value<float>()->default_value(0),
+     "Start value for learning rate warmup")
+    ("lr-warmup-cycle", po::value<bool>()->zero_tokens()->default_value(false),
+     "Apply cyclic warmup")
+    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
+     "Repeat warmup after interrupted training")
+
+    ("lr-report", po::value<bool>()
+     ->zero_tokens()->default_value(false),
+     "Report learning rate for each update")
+
     ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
       "Set number of words per batch that the learning rate corresponds to. "
       "The option is only active when batch-flexible-lr is on")
-    ("tau", po::value<size_t>()->default_value(1),
+    ("optimizer-delay", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
-    ("sync", po::value<bool>()->zero_tokens()->default_value(false),
+    ("sync-sgd", po::value<bool>()->zero_tokens()->default_value(false),
      "Use synchronous SGD instead of asynchronous for multi-gpu training")
     ("label-smoothing", po::value<double>()->default_value(0),
      "Epsilon for label smoothing (0 to disable)")
@@ -416,18 +436,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
-    ("lr-warmup", po::value<size_t>()->default_value(0),
-     "Increase learning rate linearly for arg first steps")
-    ("lr-warmup-google", po::value<size_t>()->default_value(0),
-     "Increase learning rate linearly for arg first steps")
-    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
-     "Repeat warmup after interrupted training")
-    ("lr-decay-repeat-warmup", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Repeat learning rate warmup when learning rate is decayed")
-    ("lr-report", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Report learning rate for each update")
   ;
   // clang-format on
   desc.add(training);
@@ -549,8 +557,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
-    ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
+      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ;
@@ -599,6 +607,16 @@ void ConfigParser::parseOptions(
     exit(0);
   }
 
+  if(mode_ == ConfigMode::translating) {
+    if(vm_.count("models") == 0 && vm_.count("config") == 0) {
+      std::cerr << "Error: you need to provide at least one model file or a config file" << std::endl << std::endl;
+
+      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
+      std::cerr << cmdline_options_ << std::endl;
+      exit(0);
+    }
+  }
+
   if(vm_["version"].as<bool>()) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
@@ -619,7 +637,7 @@ void ConfigParser::parseOptions(
   /** model **/
 
   if(mode_ == ConfigMode::translating) {
-    SET_OPTION("models", std::vector<std::string>);
+    SET_OPTION_NONDEFAULT("models", std::vector<std::string>);
   } else {
     SET_OPTION("model", std::string);
   }
@@ -682,11 +700,11 @@ void ConfigParser::parseOptions(
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
+    SET_OPTION("optimizer-delay", size_t);
     SET_OPTION("learn-rate", double);
-    SET_OPTION("tau", size_t);
-    SET_OPTION("sync", bool);
+    SET_OPTION("sync-sgd", bool);
     SET_OPTION("mini-batch-words", int);
-    SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("mini-batch-fit", bool);
 
     SET_OPTION("lr-decay", double);
     SET_OPTION("lr-decay-strategy", std::string);
@@ -694,7 +712,11 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-freq", size_t);
     SET_OPTION("lr-decay-reset-optimizer", bool);
     SET_OPTION("lr-warmup", size_t);
-    SET_OPTION("lr-warmup-google", size_t);
+
+    SET_OPTION("lr-decay-inv-sqrt", size_t);
+    SET_OPTION("lr-warmup-start-rate", float);
+    SET_OPTION("lr-warmup-cycle", bool);
+
     SET_OPTION("lr-decay-repeat-warmup", bool);
     SET_OPTION("lr-warmup-at-reload", bool);
     SET_OPTION("lr-report", bool);
@@ -722,7 +744,7 @@ void ConfigParser::parseOptions(
       config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
     }
     SET_OPTION("mini-batch-words", int);
-    SET_OPTION("dynamic-batching", bool);
+    SET_OPTION("mini-batch-fit", bool);
     SET_OPTION_NONDEFAULT("summary", std::string);
   }
   if(mode_ == ConfigMode::translating) {
@@ -732,7 +754,6 @@ void ConfigParser::parseOptions(
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
-    // SET_OPTION_NONDEFAULT("lexical-table", std::string);
     SET_OPTION("port", size_t);
   }
 
@@ -772,6 +793,7 @@ void ConfigParser::parseOptions(
 
   SET_OPTION("workspace", size_t);
   SET_OPTION("log-level", std::string);
+  SET_OPTION("quiet", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);

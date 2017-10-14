@@ -247,7 +247,6 @@ public:
     while(std::getline((std::istream&)aStream, line)) {
       data_.emplace_back();
       std::vector<std::string> atok = split(line, " -");
-      ;
       for(size_t i = 0; i < atok.size(); i += 2)
         data_.back().emplace_back(std::stoi(atok[i]), std::stoi(atok[i + 1]));
       c++;

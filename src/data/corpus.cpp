@@ -49,7 +49,11 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   }
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
-
+  UTIL_THROW_IF2(maxVocabs.size() != vocabPaths.size(),
+                 "number of vocabularies and specification of vocabulary sizes "
+                 "does not match!");
+  // If vocabularies exist, can't we get the dimensions from them and require
+  // dim-vocabs only when they don't? [UG]
   if(training) {
     std::vector<Vocab> vocabs;
 
@@ -69,9 +73,9 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         vocabs_.emplace_back(vocab);
       }
     }
-  } else {
-    // Load all vocabs except the last one, which should be a target vocab
-    for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
+  } else { // i.e., if translating
+    UTIL_THROW_IF2(vocabPaths.empty(), "translating but vocabularies are missing!");
+    for(size_t i = 0; i+1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);

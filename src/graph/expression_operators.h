@@ -89,7 +89,7 @@ Expr step(Expr a, size_t step);
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
 
-Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps=1e-9);
+Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 Expr highway(Expr y, Expr x, Expr t);
 

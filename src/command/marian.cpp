@@ -12,12 +12,13 @@ int main(int argc, char** argv) {
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if(devices.size() > 1) {
-    if(options->get<bool>("sync"))
+    if(options->get<bool>("sync-sgd"))
       New<Train<SyncGraphGroup>>(options)->run();
     else
       New<Train<AsyncGraphGroup>>(options)->run();
-  } else
+  } else {
     New<Train<SingletonGraph>>(options)->run();
+  }
 
   return 0;
 }

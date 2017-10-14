@@ -195,8 +195,10 @@ public:
                  std::string prefix,
                  int dimOut,
                  int dimHeads,
-                 Expr q, Expr k, Expr v,
-                 Expr mask=nullptr,
+                 Expr q,
+                 const std::vector<Expr> &keys,
+                 const std::vector<Expr> &values,
+                 const std::vector<Expr> &masks,
                  bool inference=false) {
     using namespace keywords;
 
@@ -208,35 +210,51 @@ public:
     auto bq = graph->param(prefix + "_bq",
                            {1, dimModel},
                            init=inits::zeros);
-
-    auto Wk = graph->param(prefix + "_Wk",
-                           {dimModel, dimModel},
-                           init=inits::glorot_uniform);
-    auto bk = graph->param(prefix + "_bk",
-                           {1, dimModel},
-                           init=inits::zeros);
-
-    auto Wv = graph->param(prefix + "_Wv",
-                           {dimModel, dimModel},
-                           init=inits::glorot_uniform);
-    auto bv = graph->param(prefix + "_bv",
-                           {1, dimModel},
-                           init=inits::zeros);
-
     auto qh = affine(q, Wq, bq);
-    auto kh = affine(k, Wk, bk);
-    auto vh = affine(v, Wv, bv);
-
     qh = SplitHeads(qh, dimHeads);
-    kh = SplitHeads(kh, dimHeads);
-    vh = SplitHeads(vh, dimHeads);
 
-    // apply multi-head attention to downscaled inputs
-    auto output = Attention(graph, options, prefix, qh, kh, vh, mask, inference);
+    std::vector<Expr> outputs;
+    for(int i = 0; i < keys.size(); ++i) {
+      std::string prefixProj = prefix;
+      if(i > 0)
+        prefixProj += "_enc" + std::to_string(i + 1);
 
-    output = JoinHeads(output, q->shape()[3]);
+      auto Wk = graph->param(prefixProj + "_Wk",
+                             {dimModel, dimModel},
+                             init=inits::glorot_uniform);
+      auto bk = graph->param(prefixProj + "_bk",
+                             {1, dimModel},
+                             init=inits::zeros);
 
-    auto Wo = graph->param(prefix + "_Wo", {dimModel, dimOut},
+      auto Wv = graph->param(prefixProj + "_Wv",
+                             {dimModel, dimModel},
+                             init=inits::glorot_uniform);
+      auto bv = graph->param(prefixProj + "_bv",
+                             {1, dimModel},
+                             init=inits::zeros);
+
+      auto kh = affine(keys[i], Wk, bk);
+      auto vh = affine(values[i], Wv, bv);
+
+      kh = SplitHeads(kh, dimHeads);
+      vh = SplitHeads(vh, dimHeads);
+
+      // apply multi-head attention to downscaled inputs
+      auto output = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference);
+      output = JoinHeads(output, q->shape()[3]);
+
+      outputs.push_back(output);
+    }
+
+    Expr output;
+    if(outputs.size() > 1)
+      output = concatenate(outputs, axis=1);
+    else
+      output = outputs.front();
+
+    int dimAtt = output->shape()[1];
+
+    auto Wo = graph->param(prefix + "_Wo", {dimAtt, dimOut},
                            init=inits::glorot_uniform);
     auto bo = graph->param(prefix + "_bo", {1, dimOut},
                            init=inits::zeros);
@@ -248,8 +266,10 @@ public:
   Expr LayerAttention(Ptr<ExpressionGraph> graph,
                       Ptr<Options> options,
                       std::string prefix,
-                      Expr input, Expr key, Expr value,
-                      Expr mask,
+                      Expr input,
+                      const std::vector<Expr> &keys,
+                      const std::vector<Expr> &values,
+                      const std::vector<Expr> &masks,
                       bool inference=false) {
 
     using namespace keywords;
@@ -267,8 +287,10 @@ public:
     // multi-head self-attention over previous input
     output = MultiHead(graph, options, prefix,
                        dimModel,
-                       heads, output, key, value,
-                       mask,
+                       heads, output,
+                       keys,
+                       values,
+                       masks,
                        inference);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
@@ -372,6 +394,14 @@ public:
     std::tie(batchEmbeddings, batchMask)
       = EncoderBase::lookup(embeddings, batch);
 
+    // apply dropout over source words
+    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
+    if(dropoutSrc) {
+      int srcWords = batchEmbeddings->shape()[2];
+      auto dropMask = graph->dropout(dropoutSrc, {1, 1, srcWords});
+      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
+    }
+
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings;
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
@@ -392,12 +422,15 @@ public:
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
       layer = LayerAttention(graph, options_,
-                             prefix_ + "_self_l" + std::to_string(i),
-                             layer, layer, layer,
-                             layerMask, inference_);
+                             prefix_ + "_l" + std::to_string(i) + "_self",
+                             layer,
+                             {layer},
+                             {layer},
+                             {layerMask},
+                             inference_);
 
       layer = LayerFFN(graph, options_,
-                       prefix_ + "_ffn_l" + std::to_string(i),
+                       prefix_ + "_l" + std::to_string(i) + "_ffn",
                        layer, inference_);
 
     }
@@ -449,6 +482,14 @@ public:
     auto embeddings = state->getTargetEmbeddings();
     auto decoderMask = state->getTargetMask();
 
+    // dropout target words
+    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
+    if(dropoutTrg) {
+      int trgWords = embeddings->shape()[2];
+      auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+      embeddings = dropout(embeddings, mask = trgWordDrop);
+    }
+
     //************************************************************************//
 
     int dimEmb = embeddings->shape()[1];
@@ -463,17 +504,6 @@ public:
 
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
 
-    auto encoderState = state->getEncoderStates()[0];
-    auto encoderContext = encoderState->getContext();
-    auto encoderMask = encoderState->getMask();
-    int dimBatch = encoderContext->shape()[0];
-    int dimSrcWords = encoderContext->shape()[2];
-
-    // keep this around during steps
-    encoderContext = TransposeTimeBatch(encoderContext);
-    encoderMask = reshape(TransposeTimeBatch(encoderMask),
-                          {1, dimSrcWords, dimBatch});
-
     // reorganize batch and timestep
     auto query = TransposeTimeBatch(scaledEmbeddings);
 
@@ -484,8 +514,8 @@ public:
                        query, dropProb);
 
     rnn::States decoderStates;
-
     int dimTrgWords = query->shape()[0];
+    int dimBatch = query->shape()[2];
     auto selfMask = TriangleMask(graph, dimTrgWords);
     if(decoderMask) {
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
@@ -494,7 +524,24 @@ public:
     }
 
     selfMask = InverseMask(selfMask);
-    encoderMask = InverseMask(encoderMask);
+
+    std::vector<Expr> encoderContexts;
+    std::vector<Expr> encoderMasks;
+
+    for(auto encoderState : state->getEncoderStates()) {
+      auto encoderContext = encoderState->getContext();
+      auto encoderMask = encoderState->getMask();
+
+      encoderContext = TransposeTimeBatch(encoderContext);
+
+      int dimSrcWords = encoderContext->shape()[0];
+      encoderMask = reshape(TransposeTimeBatch(encoderMask),
+                            {1, dimSrcWords, dimBatch});
+      encoderMask = InverseMask(encoderMask);
+
+      encoderContexts.push_back(encoderContext);
+      encoderMasks.push_back(encoderMask);
+    }
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
@@ -506,18 +553,25 @@ public:
 
       // TODO: do not recompute matrix multiplies
       query = LayerAttention(graph, options_,
-                             prefix_ + "_self_l" + std::to_string(i),
-                             query, values, values,
-                             selfMask, inference_);
+                             prefix_ + "_l" + std::to_string(i) + "_self",
+                             query,
+                             {values},
+                             {values},
+                             {selfMask},
+                             inference_);
 
-      // TODO: do not recompute matrix multiplies
-      query = LayerAttention(graph, options_,
-                             prefix_ + "_context_l" + std::to_string(i),
-                             query, encoderContext, encoderContext,
-                             encoderMask, inference_);
+      if(encoderContexts.size() > 0) {
+        query = LayerAttention(graph, options_,
+                               prefix_ + "_l" + std::to_string(i) + "_context",
+                               query,
+                               encoderContexts,
+                               encoderContexts,
+                               encoderMasks,
+                               inference_);
+      }
 
       query = LayerFFN(graph, options_,
-                       prefix_ + "_ffn_l" + std::to_string(i),
+                       prefix_ + "_l" + std::to_string(i) + "_ffn",
                        query, inference_);
     }
 

@@ -46,9 +46,9 @@ public:
         contextDropped_(encState->getContext()) {
 
     int dimDecState = options_->get<int>("dimState");
-    dropout_ = options_->get<float>("dropout");
-    layerNorm_ = options_->get<bool>("layer-normalization");
-    nematusNorm_ = options_->get<bool>("nematus-normalization");
+    dropout_ = options_->get<float>("dropout", 0);
+    layerNorm_ = options_->get<bool>("layer-normalization", false);
+    nematusNorm_ = options_->get<bool>("nematus-normalization", false);
     std::string prefix = options_->get<std::string>("prefix");
 
     int dimEncState = encState_->getContext()->shape()[1];
@@ -91,8 +91,10 @@ public:
                                        {1, dimEncState},
                                        keywords::init = inits::zeros);
 
-        mappedContext_ = layer_norm(
-            affine(contextDropped_, Ua_, ba_), Wc_att_lns_, Wc_att_lnb_);
+        mappedContext_ = layer_norm(affine(contextDropped_, Ua_, ba_),
+                                    Wc_att_lns_,
+                                    Wc_att_lnb_,
+                                    NEMATUS_LN_EPS);
       } else {
         gammaContext_ = graph->param(prefix + "_att_gamma1",
                                      {1, dimEncState},
@@ -131,7 +133,8 @@ public:
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_)
       if(nematusNorm_)
-        mappedState = layer_norm(mappedState, W_comb_att_lns_, W_comb_att_lnb_);
+        mappedState = layer_norm(
+            mappedState, W_comb_att_lns_, W_comb_att_lnb_, NEMATUS_LN_EPS);
       else
         mappedState = layer_norm(mappedState, gammaState_);
 
