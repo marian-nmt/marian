@@ -8,9 +8,9 @@
 #include "layers/param_initializers.h"
 
 namespace marian {
-  namespace mlp {
-    enum struct act : int { linear, tanh, logit, ReLU };
-  }
+namespace mlp {
+enum struct act : int { linear, tanh, logit, ReLU };
+}
 }
 
 YAML_REGISTER_TYPE(marian::mlp::act, int)
@@ -25,8 +25,7 @@ protected:
 
 public:
   Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-   : graph_(graph), options_(options)
-  {}
+      : graph_(graph), options_(options) {}
 
   template <typename T>
   T opt(const std::string key) {
@@ -49,7 +48,7 @@ private:
 
 public:
   Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-   : Layer(graph, options) {}
+      : Layer(graph, options) {}
 
   void tie(const std::string& param, const std::string& tied) {
     tiedParams_[param] = graph_->get(tied);
@@ -66,7 +65,7 @@ public:
       return apply(inputs[0]);
 
     auto name = opt<std::string>("prefix");
-    auto dim  = opt<int>("dim");
+    auto dim = opt<int>("dim");
 
     auto layerNorm = opt<bool>("layer-normalization", false);
     auto nematusNorm = opt<bool>("nematus-normalization", false);
@@ -92,7 +91,7 @@ public:
       if(tiedParams_.count(nameB))
         b = tiedParams_[nameB];
       else
-        b = g->param(name + "_" + nameB,
+        b = g->param(name + "_" + nameB,  //
                      {1, dim},
                      keywords::init = inits::zeros);
 
@@ -138,7 +137,7 @@ public:
     auto g = graph_;
 
     auto name = options_->get<std::string>("prefix");
-    auto dim  = options_->get<int>("dim");
+    auto dim = options_->get<int>("dim");
 
     auto layerNorm = options_->get<bool>("layer-normalization", false);
     auto nematusNorm = opt<bool>("nematus-normalization", false);
@@ -158,7 +157,7 @@ public:
     if(tiedParams_.count(nameB))
       b = tiedParams_[nameB];
     else
-      b = g->param(name + "_" + nameB,
+      b = g->param(name + "_" + nameB,  //
                    {1, dim},
                    keywords::init = inits::zeros);
 
@@ -167,16 +166,16 @@ public:
     Expr out;
     if(layerNorm) {
       if(nematusNorm) {
-        auto ln_s = g->param(name + "_ln_s",
+        auto ln_s = g->param(name + "_ln_s",  //
                              {1, dim},
                              keywords::init = inits::from_value(1.f));
-        auto ln_b = g->param(name + "_ln_b",
+        auto ln_b = g->param(name + "_ln_b",  //
                              {1, dim},
                              keywords::init = inits::zeros);
 
         out = layer_norm(affine(input, W, b), ln_s, ln_b, NEMATUS_LN_EPS);
       } else {
-        auto gamma = g->param(name + "_gamma",
+        auto gamma = g->param(name + "_gamma",  //
                               {1, dim},
                               keywords::init = inits::from_value(1.0));
 
@@ -197,7 +196,7 @@ public:
   }
 };
 
-} // namespace mlp
+}  // namespace mlp
 
 struct EmbeddingFactory : public Factory {
   EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
@@ -218,7 +217,8 @@ struct EmbeddingFactory : public Factory {
       }
     }
 
-    return graph_->param(name, {dimVoc, dimEmb},
+    return graph_->param(name,
+                         {dimVoc, dimEmb},
                          keywords::init = initFunc,
                          keywords::fixed = fixed);
   }
@@ -226,8 +226,9 @@ struct EmbeddingFactory : public Factory {
 
 typedef Accumulator<EmbeddingFactory> embedding;
 
-Expr Cost(Expr logits, Expr indices, Expr mask,
+Expr Cost(Expr logits,
+          Expr indices,
+          Expr mask,
           std::string costType = "cross-entropy",
           float smoothing = 0);
-
 }

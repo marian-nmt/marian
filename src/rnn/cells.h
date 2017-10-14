@@ -29,16 +29,13 @@ private:
   Expr dropMaskS_;
 
 public:
-  Tanh(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-    : Cell(options) {
-
+  Tanh(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
     std::string prefix = options_->get<std::string>("prefix");
 
     layerNorm_ = options_->get<bool>("layer-normalization", false);
     dropout_ = options_->get<float>("dropout", 0);
-
 
     U_ = graph->param(prefix + "_U",
                       {dimState, dimState},
@@ -69,9 +66,7 @@ public:
     }
   }
 
-  State apply(std::vector<Expr> inputs,
-              State states,
-              Expr mask = nullptr) {
+  State apply(std::vector<Expr> inputs, State states, Expr mask = nullptr) {
     return applyState(applyInput(inputs), states, mask);
   }
 
@@ -95,9 +90,7 @@ public:
     return {xW};
   }
 
-  State applyState(std::vector<Expr> xWs,
-                   State state,
-                   Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
     Expr recState = state.output;
 
     auto stateDropped = recState;
@@ -106,7 +99,6 @@ public:
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
-
 
     Expr output;
     if(xWs.empty())
@@ -117,10 +109,9 @@ public:
     if(mask)
       return {output * mask, nullptr};
     else
-      return { output, state.cell };
+      return {output, state.cell};
   }
 };
-
 
 /******************************************************************************/
 
@@ -144,10 +135,7 @@ protected:
   Expr fakeInput_;
 
 public:
-  GRU(Ptr<ExpressionGraph> graph,
-      Ptr<Options> options)
-      : Cell(options) {
-
+  GRU(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = opt<int>("dimInput");
     int dimState = opt<int>("dimState");
     std::string prefix = opt<std::string>("prefix");
@@ -174,10 +162,12 @@ public:
       W_ = concatenate({W, Wx}, keywords::axis = 1);
     }
 
-    auto b = graph->param(
-        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
-    auto bx = graph->param(
-        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
+    auto b = graph->param(prefix + "_b",
+                         {1, 2 * dimState},
+                         keywords::init = inits::zeros);
+    auto bx = graph->param(prefix + "_bx",
+                           {1, dimState},
+                           keywords::init = inits::zeros);
     b_ = concatenate({b, bx}, keywords::axis = 1);
 
     // @TODO use this and adjust Amun model type saving and loading
@@ -233,7 +223,6 @@ public:
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
                            Expr mask = nullptr) {
-
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
     if(dropMaskS_)
@@ -246,17 +235,17 @@ public:
     Expr xW;
     if(xWs.empty()) {
       if(!fakeInput_ || fakeInput_->shape() != sU->shape())
-        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
+        fakeInput_ = sU->graph()->constant(sU->shape(),  //
+                                           keywords::init = inits::zeros);
       xW = fakeInput_;
-    }
-    else {
+    } else {
       xW = xWs.front();
     }
 
-    auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_) :
-                         gruOps({stateOrig, xW, sU, b_}, final_);
+    auto output = mask ? gruOps({stateOrig, xW, sU, b_, mask}, final_)
+                       : gruOps({stateOrig, xW, sU, b_}, final_);
 
-    return { output, state.cell }; // no cell state, hence copy
+    return {output, state.cell};  // no cell state, hence copy
   }
 };
 
@@ -329,11 +318,11 @@ public:
 
     if(dimInput > 0) {
       auto W = graph->param(prefix + "_W",
-                        {dimInput, 2 * dimState},
-                        keywords::init = inits::glorot_uniform);
+                            {dimInput, 2 * dimState},
+                            keywords::init = inits::glorot_uniform);
       auto Wx = graph->param(prefix + "_Wx",
-                         {dimInput, dimState},
-                         keywords::init = inits::glorot_uniform);
+                             {dimInput, dimState},
+                             keywords::init = inits::glorot_uniform);
       if(layerNorm_) {
         W_ = W;
         Wx_ = Wx;
@@ -342,10 +331,12 @@ public:
       }
     }
 
-    auto b = graph->param(
-        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
-    auto bx = graph->param(
-        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
+    auto b = graph->param(prefix + "_b",  //
+                          {1, 2 * dimState},
+                          keywords::init = inits::zeros);
+    auto bx = graph->param(prefix + "_bx",  //
+                           {1, dimState},
+                           keywords::init = inits::zeros);
 
     if(layerNorm_) {
       b_ = b;
@@ -353,13 +344,14 @@ public:
 
       // in specific cases we need to pass bx to the kernel
       if(encoder_ && transition_) {
-        auto b0 = graph->constant({1, 2 * dimState}, keywords::init = inits::zeros);
+        auto b0 = graph->constant({1, 2 * dimState},  //
+                                  keywords::init = inits::zeros);
         bbx_ = concatenate({b0, bx}, keywords::axis = 1);
       } else {
-        bbx_ = graph->constant({1, 3 * dimState}, keywords::init = inits::zeros);
+        bbx_ = graph->constant({1, 3 * dimState},  //
+                               keywords::init = inits::zeros);
       }
-    }
-    else {
+    } else {
       bbx_ = concatenate({b, bx}, keywords::axis = 1);
     }
 
@@ -387,13 +379,13 @@ public:
       U_lns_ = graph->param(prefix + "_U_lns",
                             {1, 2 * dimState},
                             keywords::init = inits::from_value(1.f));
-      U_lnb_ = graph->param(prefix + "_U_lnb",
+      U_lnb_ = graph->param(prefix + "_U_lnb",  //
                             {1, 2 * dimState},
                             keywords::init = inits::zeros);
       Ux_lns_ = graph->param(prefix + "_Ux_lns",
                              {1, 1 * dimState},
                              keywords::init = inits::from_value(1.f));
-      Ux_lnb_ = graph->param(prefix + "_Ux_lnb",
+      Ux_lnb_ = graph->param(prefix + "_Ux_lnb",  //
                              {1, 1 * dimState},
                              keywords::init = inits::zeros);
     }
@@ -443,7 +435,6 @@ public:
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
                            Expr mask = nullptr) {
-
     // make sure that we have transition layers
     assert(transition_ == xWs.empty());
 
@@ -459,7 +450,8 @@ public:
 
       if(encoder_) {
         U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_, NEMATUS_LN_EPS);
-        Ux = layer_norm(dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
+        Ux = layer_norm(
+            dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
 
         if(transition_) {
           U = U + b_;
@@ -484,18 +476,17 @@ public:
     Expr xW;
     if(transition_) {
       if(!fakeInput_ || fakeInput_->shape() != sU->shape())
-        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init=inits::zeros);
+        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init = inits::zeros);
       xW = fakeInput_;
-    }
-    else {
+    } else {
       xW = xWs.front();
     }
 
     Expr output;
-    output = mask ? gruOps({stateOrig, xW, sU, bbx_, mask}, final_) :
-                    gruOps({stateOrig, xW, sU, bbx_}, final_);
+    output = mask ? gruOps({stateOrig, xW, sU, bbx_, mask}, final_)
+                  : gruOps({stateOrig, xW, sU, bbx_}, final_);
 
-    return { output, state.cell }; // no cell state, hence copy
+    return {output, state.cell};  // no cell state, hence copy
   }
 };
 
@@ -521,10 +512,7 @@ protected:
   Expr fakeInput_;
 
 public:
-  FastLSTM(Ptr<ExpressionGraph> graph,
-           Ptr<Options> options)
-      : Cell(options) {
-
+  FastLSTM(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = opt<int>("dimInput");
     int dimState = opt<int>("dimState");
     std::string prefix = opt<std::string>("prefix");
@@ -532,14 +520,17 @@ public:
     layerNorm_ = opt<bool>("layer-normalization", false);
     dropout_ = opt<float>("dropout", 0);
 
-    U_ = graph->param(prefix + "_U", {dimState, 4 * dimState},
-                      keywords::init=inits::glorot_uniform);
+    U_ = graph->param(prefix + "_U",
+                      {dimState, 4 * dimState},
+                      keywords::init = inits::glorot_uniform);
     if(dimInput)
-      W_ = graph->param(prefix + "_W", {dimInput, 4 * dimState},
-                        keywords::init=inits::glorot_uniform);
+      W_ = graph->param(prefix + "_W",
+                        {dimInput, 4 * dimState},
+                        keywords::init = inits::glorot_uniform);
 
-    b_ = graph->param(prefix + "_b", {1, 4 * dimState},
-                      keywords::init=inits::zeros);
+    b_ = graph->param(prefix + "_b",  //
+                      {1, 4 * dimState},
+                      keywords::init = inits::zeros);
 
     if(dropout_ > 0.0f) {
       if(dimInput)
@@ -587,7 +578,6 @@ public:
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
                            Expr mask = nullptr) {
-
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -603,18 +593,16 @@ public:
     Expr xW;
     if(xWs.empty()) {
       if(!fakeInput_ || fakeInput_->shape() != sU->shape())
-        fakeInput_ = sU->graph()->constant(sU->shape(),
-                                           keywords::init=inits::zeros);
+        fakeInput_ = sU->graph()->constant(sU->shape(),  //
+                                           keywords::init = inits::zeros);
       xW = fakeInput_;
-    }
-    else {
+    } else {
       xW = xWs.front();
     }
 
     // dc/dp where p = W_i, U_i, ..., but without index o
-    auto nextCellState = mask ?
-      lstmOpsC({cellState, xW, sU, b_, mask}) :
-      lstmOpsC({cellState, xW, sU, b_});
+    auto nextCellState = mask ? lstmOpsC({cellState, xW, sU, b_, mask})
+                              : lstmOpsC({cellState, xW, sU, b_});
 
     // dh/dp dh/dc where p = W_o, U_o, b_o
     auto nextRecState = lstmOpsO({nextCellState, xW, sU, b_});
@@ -630,35 +618,36 @@ using LSTM = FastLSTM;
 
 template <class CellType>
 class Multiplicative : public CellType {
-  protected:
-    Expr Um_, Wm_, bm_;
-    Expr gamma1m_, gamma2m_;
+protected:
+  Expr Um_, Wm_, bm_;
+  Expr gamma1m_, gamma2m_;
 
-  public:
-    Multiplicative(Ptr<ExpressionGraph> graph,
-                   Ptr<Options> options)
+public:
+  Multiplicative(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : CellType(graph, options) {
+    int dimInput = options->get<int>("dimInput");
+    int dimState = options->get<int>("dimState");
+    std::string prefix = options->get<std::string>("prefix");
 
-      int dimInput = options->get<int>("dimInput");
-      int dimState = options->get<int>("dimState");
-      std::string prefix = options->get<std::string>("prefix");
+    Um_ = graph->param(prefix + "_Um",
+                       {dimState, dimState},
+                       keywords::init = inits::glorot_uniform);
+    Wm_ = graph->param(prefix + "_Wm",
+                       {dimInput, dimState},
+                       keywords::init = inits::glorot_uniform);
+    bm_ = graph->param(prefix + "_bm",  //
+                       {1, dimState},
+                       keywords::init = inits::zeros);
 
-      Um_ = graph->param(prefix + "_Um", {dimState, dimState},
-                         keywords::init=inits::glorot_uniform);
-      Wm_ = graph->param(prefix + "_Wm", {dimInput, dimState},
-                         keywords::init=inits::glorot_uniform);
-      bm_ = graph->param(prefix + "_bm", {1, dimState},
-                         keywords::init=inits::zeros);
-
-      if(CellType::layerNorm_) {
-        gamma1m_ = graph->param(prefix + "_gamma1m",
-                                {1, dimState},
-                                keywords::init = inits::from_value(1.f));
-        gamma2m_ = graph->param(prefix + "_gamma2m",
-                                {1, dimState},
-                                keywords::init = inits::from_value(1.f));
-      }
+    if(CellType::layerNorm_) {
+      gamma1m_ = graph->param(prefix + "_gamma1m",
+                              {1, dimState},
+                              keywords::init = inits::from_value(1.f));
+      gamma2m_ = graph->param(prefix + "_gamma2m",
+                              {1, dimState},
+                              keywords::init = inits::from_value(1.f));
     }
+  }
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
     UTIL_THROW_IF2(inputs.empty(), "Multiplicative LSTM expects input");
@@ -679,8 +668,8 @@ class Multiplicative : public CellType {
   }
 
   virtual State applyState(std::vector<Expr> xWs,
-                              State state,
-                              Expr mask = nullptr) {
+                           State state,
+                           Expr mask = nullptr) {
     auto xWm = xWs.back();
     xWs.pop_back();
 
@@ -703,54 +692,59 @@ using MGRU = Multiplicative<GRU>;
 
 class SlowLSTM : public Cell {
 private:
-
   Expr Uf_, Wf_, bf_;
   Expr Ui_, Wi_, bi_;
   Expr Uo_, Wo_, bo_;
   Expr Uc_, Wc_, bc_;
 
 public:
-  SlowLSTM(Ptr<ExpressionGraph> graph,
-           Ptr<Options> options)
-      : Cell(options) {
-
+  SlowLSTM(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
     std::string prefix = options->get<std::string>("prefix");
 
-    Uf_ = graph->param(prefix + "_Uf", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    Wf_ = graph->param(prefix + "_Wf", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    bf_ = graph->param(prefix + "_bf", {1, dimState},
-                       keywords::init=inits::zeros);
+    Uf_ = graph->param(prefix + "_Uf",
+                       {dimState, dimState},
+                       keywords::init = inits::glorot_uniform);
+    Wf_ = graph->param(prefix + "_Wf",
+                       {dimInput, dimState},
+                       keywords::init = inits::glorot_uniform);
+    bf_ = graph->param(prefix + "_bf",  //
+                       {1, dimState},
+                       keywords::init = inits::zeros);
 
-    Ui_ = graph->param(prefix + "_Ui", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    Wi_ = graph->param(prefix + "_Wi", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    bi_ = graph->param(prefix + "_bi", {1, dimState},
-                       keywords::init=inits::zeros);
+    Ui_ = graph->param(prefix + "_Ui",
+                       {dimState, dimState},
+                       keywords::init = inits::glorot_uniform);
+    Wi_ = graph->param(prefix + "_Wi",
+                       {dimInput, dimState},
+                       keywords::init = inits::glorot_uniform);
+    bi_ = graph->param(prefix + "_bi",  //
+                       {1, dimState},
+                       keywords::init = inits::zeros);
 
-    Uc_ = graph->param(prefix + "_Uc", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    Wc_ = graph->param(prefix + "_Wc", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    bc_ = graph->param(prefix + "_bc", {1, dimState},
-                       keywords::init=inits::zeros);
+    Uc_ = graph->param(prefix + "_Uc",
+                       {dimState, dimState},
+                       keywords::init = inits::glorot_uniform);
+    Wc_ = graph->param(prefix + "_Wc",
+                       {dimInput, dimState},
+                       keywords::init = inits::glorot_uniform);
+    bc_ = graph->param(prefix + "_bc",  //
+                       {1, dimState},
+                       keywords::init = inits::zeros);
 
-    Uo_ = graph->param(prefix + "_Uo", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    Wo_ = graph->param(prefix + "_Wo", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    bo_ = graph->param(prefix + "_bo", {1, dimState},
-                       keywords::init=inits::zeros);
-
+    Uo_ = graph->param(prefix + "_Uo",
+                       {dimState, dimState},
+                       keywords::init = inits::glorot_uniform);
+    Wo_ = graph->param(prefix + "_Wo",
+                       {dimInput, dimState},
+                       keywords::init = inits::glorot_uniform);
+    bo_ = graph->param(prefix + "_bo",  //
+                       {1, dimState},
+                       keywords::init = inits::zeros);
   }
 
-  State apply(std::vector<Expr> inputs,
-                 State state,
-                 Expr mask = nullptr) {
+  State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
 
@@ -771,9 +765,7 @@ public:
     return {xWf, xWi, xWo, xWc};
   }
 
-  State applyState(std::vector<Expr> xWs,
-                      State state,
-                      Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -804,50 +796,57 @@ private:
   Expr U_, W_, b_;
 
 public:
-  TestLSTM(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : Cell(options) {
-
+  TestLSTM(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
     std::string prefix = options->get<std::string>("prefix");
 
-    auto Uf = graph->param(prefix + "_Uf", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto Wf = graph->param(prefix + "_Wf", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto bf = graph->param(prefix + "_bf", {1, dimState},
-                       keywords::init=inits::zeros);
+    auto Uf = graph->param(prefix + "_Uf",
+                           {dimState, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto Wf = graph->param(prefix + "_Wf",
+                           {dimInput, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto bf = graph->param(prefix + "_bf",  //
+                           {1, dimState},
+                           keywords::init = inits::zeros);
 
-    auto Ui = graph->param(prefix + "_Ui", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto Wi = graph->param(prefix + "_Wi", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto bi = graph->param(prefix + "_bi", {1, dimState},
-                       keywords::init=inits::zeros);
+    auto Ui = graph->param(prefix + "_Ui",
+                           {dimState, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto Wi = graph->param(prefix + "_Wi",
+                           {dimInput, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto bi = graph->param(prefix + "_bi",  //
+                           {1, dimState},
+                           keywords::init = inits::zeros);
 
-    auto Uc = graph->param(prefix + "_Uc", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto Wc = graph->param(prefix + "_Wc", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto bc = graph->param(prefix + "_bc", {1, dimState},
-                       keywords::init=inits::zeros);
+    auto Uc = graph->param(prefix + "_Uc",
+                           {dimState, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto Wc = graph->param(prefix + "_Wc",
+                           {dimInput, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto bc = graph->param(prefix + "_bc",  //
+                           {1, dimState},
+                           keywords::init = inits::zeros);
 
-    auto Uo = graph->param(prefix + "_Uo", {dimState, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto Wo = graph->param(prefix + "_Wo", {dimInput, dimState},
-                       keywords::init=inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo", {1, dimState},
-                       keywords::init=inits::zeros);
+    auto Uo = graph->param(prefix + "_Uo",
+                           {dimState, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto Wo = graph->param(prefix + "_Wo",
+                           {dimInput, dimState},
+                           keywords::init = inits::glorot_uniform);
+    auto bo = graph->param(prefix + "_bo",  //
+                           {1, dimState},
+                           keywords::init = inits::zeros);
 
     U_ = concatenate({Uf, Ui, Uc, Uo}, keywords::axis = 1);
     W_ = concatenate({Wf, Wi, Wc, Wo}, keywords::axis = 1);
     b_ = concatenate({bf, bi, bc, bo}, keywords::axis = 1);
-
   }
 
-  State apply(std::vector<Expr> inputs,
-                 State state,
-                 Expr mask = nullptr) {
+  State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
   }
 
@@ -865,10 +864,7 @@ public:
     return {xW};
   }
 
-  State applyState(std::vector<Expr> xWs,
-                      State state,
-                      Expr mask = nullptr) {
-
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -877,18 +873,15 @@ public:
     auto xW = xWs.front();
 
     // dc/dp where p = W_i, U_i, ..., but without index o
-    auto nextCellState = mask ?
-      lstmOpsC({cellState, xW, sU, b_, mask}) :
-      lstmOpsC({cellState, xW, sU, b_});
+    auto nextCellState = mask ? lstmOpsC({cellState, xW, sU, b_, mask})
+                              : lstmOpsC({cellState, xW, sU, b_});
 
     // dh/dp dh/dc where p = W_o, U_o, b_o
-    auto nextRecState = mask ?
-      lstmOpsO({nextCellState, xW, sU, b_, mask}) :
-      lstmOpsO({nextCellState, xW, sU, b_});
+    auto nextRecState = mask ? lstmOpsO({nextCellState, xW, sU, b_, mask})
+                             : lstmOpsO({nextCellState, xW, sU, b_});
 
     return {nextRecState, nextCellState};
   }
 };
-
 }
 }

@@ -11,15 +11,15 @@ namespace marian {
 #define CUDA_FLT_MAX 1.70141e+38
 
 struct isnan_test {
-  __host__ __device__ bool operator()(const float a) const {
-      return isnan(a);
-  }
+  __host__ __device__ bool operator()(const float a) const { return isnan(a); }
 };
 
 bool IsNan(Tensor in) {
   thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
-  thrust::device_ptr<float> end = thrust::device_pointer_cast(in->data() + in->size());
-  return thrust::transform_reduce(begin, end, isnan_test(), 0, thrust::plus<bool>());
+  thrust::device_ptr<float> end
+      = thrust::device_pointer_cast(in->data() + in->size());
+  return thrust::transform_reduce(
+      begin, end, isnan_test(), 0, thrust::plus<bool>());
 }
 
 __global__ void gConcatN(float* out,
@@ -29,7 +29,6 @@ __global__ void gConcatN(float* out,
                          size_t* lengths,
                          size_t num,
                          size_t axis) {
-
   int dims[4];
   int length = outShape.elements();
 
@@ -73,14 +72,14 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
 
   float** d_ins;
   CUDA_CHECK(cudaMalloc(&d_ins, num * sizeof(float*)));
-  CUDA_CHECK(cudaMemcpy(d_ins,
+  CUDA_CHECK(cudaMemcpy(d_ins,  //
                         vins.data(),
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
   size_t* d_lengths;
   CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_lengths,
+  CUDA_CHECK(cudaMemcpy(d_lengths,  //
                         vlengths.data(),
                         num * sizeof(size_t),
                         cudaMemcpyHostToDevice));
@@ -91,7 +90,7 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
   auto inShape = ins[0]->shape();
   inShape.set(axis, 1);
 
-  gConcatN<<<blocks, threads>>>(out->data(),
+  gConcatN<<<blocks, threads>>>(out->data(),  //
                                 out->shape(),
                                 d_ins,
                                 inShape,
@@ -110,7 +109,6 @@ __global__ void gSplitN(float* in,
                         size_t* lengths,
                         size_t num,
                         size_t axis) {
-
   int dims[4];
   int length = inShape.elements();
 
@@ -154,14 +152,14 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
 
   float** d_outs;
   CUDA_CHECK(cudaMalloc(&d_outs, num * sizeof(float*)));
-  CUDA_CHECK(cudaMemcpy(d_outs,
+  CUDA_CHECK(cudaMemcpy(d_outs,  //
                         vouts.data(),
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
   size_t* d_lengths;
   CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_lengths,
+  CUDA_CHECK(cudaMemcpy(d_lengths,  //
                         vlengths.data(),
                         num * sizeof(size_t),
                         cudaMemcpyHostToDevice));
@@ -172,7 +170,7 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
   auto outShape = outs[0]->shape();
   outShape.set(axis, 1);
 
-  gSplitN<<<blocks, threads>>>(in->data(),
+  gSplitN<<<blocks, threads>>>(in->data(),  //
                                in->shape(),
                                d_outs,
                                outShape,
@@ -189,7 +187,6 @@ __global__ void gTranspose4D(float* out,
                              const float* in,
                              const ShapeGPU inShape,
                              const ShapeGPU permute) {
-
   int length = outShape.elements();
   int dims1[4];
   int dims2[4];
@@ -217,7 +214,7 @@ void Transpose4D(Tensor out, Tensor in, Shape permute) {
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gTranspose4D<<<blocks, threads>>>(out->data(),
+  gTranspose4D<<<blocks, threads>>>(out->data(),  //
                                     out->shape(),
                                     in->data(),
                                     in->shape(),
@@ -229,7 +226,6 @@ __global__ void gSoftmax(float* out,
                          const float* in,
                          const float* mask,
                          const ShapeGPU maskShape) {
-
   int rows = outShape[0] * outShape[2] * outShape[3];
   int cols = outShape[1];
 
@@ -249,7 +245,6 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-
           float mVal = 1.f;
           if(mask) {
             int mIndex = id + j * cols;
@@ -286,7 +281,6 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-
           float mVal = 1.f;
           if(mask) {
             int mIndex = id + j * cols;
@@ -336,11 +330,17 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
   int shared = sizeof(float) * threads * 2;
 
   if(mask)
-    gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), mask->data(), mask->shape());
+    gSoftmax<<<blocks, threads, shared>>>(out->data(),  //
+                                          out->shape(),
+                                          in->data(),
+                                          mask->data(),
+                                          mask->shape());
   else
-    gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), 0, out->shape());
+    gSoftmax<<<blocks, threads, shared>>>(out->data(),  //
+                                          out->shape(),
+                                          in->data(),
+                                          0,
+                                          out->shape());
   // cudaStreamSynchronize(0);
 }
 
@@ -423,8 +423,9 @@ void LogSoftmax(Tensor out, Tensor in) {
   int threads = std::min(MAX_THREADS, (int)k);
   int shared = sizeof(float) * threads * 2;
 
-  gLogSoftmax<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), in->data());
+  gLogSoftmax<<<blocks, threads, shared>>>(out->data(),  //
+                                           out->shape(),
+                                           in->data());
 }
 
 ///////////////////////////////////////////////////////
@@ -484,8 +485,11 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
   int shared = sizeof(float) * threads * 2;
-  gSoftmaxGrad<<<blocks, threads, shared>>>(
-      grad->data(), adj->data(), val->data(), m, k);
+  gSoftmaxGrad<<<blocks, threads, shared>>>(grad->data(),  //
+                                            adj->data(),
+                                            val->data(),
+                                            m,
+                                            k);
 }
 
 __global__ void gLogSoftmaxGrad(float* grad,
@@ -541,8 +545,11 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
   int shared = sizeof(float) * threads * 2;
-  gLogSoftmaxGrad<<<blocks, threads, shared>>>(
-      grad->data(), adj->data(), val->data(), m, k);
+  gLogSoftmaxGrad<<<blocks, threads, shared>>>(grad->data(),  //
+                                               adj->data(),
+                                               val->data(),
+                                               m,
+                                               k);
 }
 
 ///////////////////////////////////////////////////////
@@ -609,7 +616,7 @@ void Prod(cublasHandle_t handle,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  cublasSgemm(handle,
+  cublasSgemm(handle,  //
               opB,
               opA,
               n,
@@ -625,15 +632,14 @@ void Prod(cublasHandle_t handle,
               ldc);
 }
 
-void ProdBatched(
-          cublasHandle_t handle,
-          Tensor C,
-          const Tensor A,
-          const Tensor B,
-          bool transA,
-          bool transB,
-          float beta,
-          float scalar) {
+void ProdBatched(cublasHandle_t handle,
+                 Tensor C,
+                 const Tensor A,
+                 const Tensor B,
+                 bool transA,
+                 bool transB,
+                 float beta,
+                 float scalar) {
   cudaSetDevice(C->getDevice());
   float alpha = scalar;
 
@@ -660,25 +666,24 @@ void ProdBatched(
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  cublasSgemmStridedBatched(
-              handle,
-              opB,
-              opA,
-              n,
-              m,
-              k,
-              &alpha,
-              B->data(),
-              ldb,
-              batchB == 1 ? 0 : n * k,
-              A->data(),
-              lda,
-              batchA == 1 ? 0 : m * k,
-              &beta,
-              C->data(),
-              ldc,
-              n * m,
-              std::max(batchA, batchB));
+  cublasSgemmStridedBatched(handle,
+                            opB,
+                            opA,
+                            n,
+                            m,
+                            k,
+                            &alpha,
+                            B->data(),
+                            ldb,
+                            batchB == 1 ? 0 : n * k,
+                            A->data(),
+                            lda,
+                            batchA == 1 ? 0 : m * k,
+                            &beta,
+                            C->data(),
+                            ldc,
+                            n * m,
+                            std::max(batchA, batchB));
 }
 
 __global__ void gCopyRows(float* out,
@@ -768,8 +773,11 @@ void PasteRows(Tensor out,
                         rowsToCopy * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gPasteRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, d_indices, rowsToCopy);
+  gPasteRows<<<blocks, threads>>>(out->data(),  //
+                                  in->data(),
+                                  cols,
+                                  d_indices,
+                                  rowsToCopy);
   CUDA_CHECK(cudaFree(d_indices));
 }
 
@@ -813,8 +821,12 @@ void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
                         colsToCopy * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gCopyCols<<<blocks, threads>>>(
-      out->data(), in->data(), rows, cols, d_indices, colsToCopy);
+  gCopyCols<<<blocks, threads>>>(out->data(),  //
+                                 in->data(),
+                                 rows,
+                                 cols,
+                                 d_indices,
+                                 colsToCopy);
 
   CUDA_CHECK(cudaFree(d_indices));
 }
@@ -859,12 +871,15 @@ void PasteCols(Tensor out,
                         colsToCopy * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gPasteCols<<<blocks, threads>>>(
-      out->data(), in->data(), rows, cols, d_indices, colsToCopy);
+  gPasteCols<<<blocks, threads>>>(out->data(),  //
+                                  in->data(),
+                                  rows,
+                                  cols,
+                                  d_indices,
+                                  colsToCopy);
 
   CUDA_CHECK(cudaFree(d_indices));
 }
-
 
 __global__ void gSelect(float* out,
                         ShapeGPU outShape,
@@ -872,7 +887,6 @@ __global__ void gSelect(float* out,
                         const ShapeGPU inShape,
                         int axis,
                         size_t* d_indices) {
-
   int length = outShape.elements();
   int dims[4];
 
@@ -893,7 +907,6 @@ __global__ void gInsert(float* out,
                         const ShapeGPU inShape,
                         int axis,
                         size_t* d_indices) {
-
   int length = inShape.elements();
   int dims[4];
 
@@ -908,7 +921,10 @@ __global__ void gInsert(float* out,
   }
 }
 
-void Select(Tensor out, const Tensor in, int axis, const std::vector<size_t>& indices) {
+void Select(Tensor out,
+            const Tensor in,
+            int axis,
+            const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
@@ -918,12 +934,12 @@ void Select(Tensor out, const Tensor in, int axis, const std::vector<size_t>& in
 
   size_t* d_indices;
   CUDA_CHECK(cudaMalloc(&d_indices, indices.size() * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
+  CUDA_CHECK(cudaMemcpy(d_indices,  //
                         indices.data(),
                         indices.size() * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gSelect<<<blocks, threads>>>(out->data(),
+  gSelect<<<blocks, threads>>>(out->data(),  //
                                out->shape(),
                                in->data(),
                                in->shape(),
@@ -933,7 +949,10 @@ void Select(Tensor out, const Tensor in, int axis, const std::vector<size_t>& in
   CUDA_CHECK(cudaFree(d_indices));
 }
 
-void Insert(Tensor out, const Tensor in, int axis, const std::vector<size_t>& indices) {
+void Insert(Tensor out,
+            const Tensor in,
+            int axis,
+            const std::vector<size_t>& indices) {
   cudaSetDevice(in->getDevice());
 
   int length = in->shape().elements();
@@ -943,12 +962,12 @@ void Insert(Tensor out, const Tensor in, int axis, const std::vector<size_t>& in
 
   size_t* d_indices;
   CUDA_CHECK(cudaMalloc(&d_indices, indices.size() * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
+  CUDA_CHECK(cudaMemcpy(d_indices,  //
                         indices.data(),
                         indices.size() * sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
-  gInsert<<<blocks, threads>>>(out->data(),
+  gInsert<<<blocks, threads>>>(out->data(),  //
                                out->shape(),
                                in->data(),
                                in->shape(),
@@ -1122,8 +1141,14 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_in);
 
-    gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0);
+    gInsertCols<<<blocks, threads>>>(out->data(),  //
+                                     in->data(),
+                                     rows,
+                                     cols_in,
+                                     cols_out,
+                                     cols_in,
+                                     offset,
+                                     0);
     offset += cols_in;
   }
 }
@@ -1162,8 +1187,14 @@ void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_out);
 
-    gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset);
+    gInsertCols<<<blocks, threads>>>(out->data(),  //
+                                     in->data(),
+                                     rows,
+                                     cols_out,
+                                     cols_out,
+                                     cols_in,
+                                     0,
+                                     offset);
     offset += cols_out;
   }
 }
@@ -1439,8 +1470,11 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   int threads = std::min(MAX_THREADS, (int)k);
   int shared = sizeof(float) * threads * 2;
 
-  gCrossEntropyPick<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), in->data(), in->shape(), pick->data());
+  gCrossEntropyPick<<<blocks, threads, shared>>>(out->data(),  //
+                                                 out->shape(),
+                                                 in->data(),
+                                                 in->shape(),
+                                                 pick->data());
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
@@ -1525,8 +1559,11 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   int threads = std::min(MAX_THREADS, (int)k);
   int shared = sizeof(float) * threads * 2;
 
-  gCrossEntropyPickBackward<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), adj->data(), a->data(), pick->data());
+  gCrossEntropyPickBackward<<<blocks, threads, shared>>>(out->data(),  //
+                                                         out->shape(),
+                                                         adj->data(),
+                                                         a->data(),
+                                                         pick->data());
 }
 
 float L2Norm(Tensor in) {
@@ -1534,7 +1571,8 @@ float L2Norm(Tensor in) {
 
   uint8_t* data;
   cudaMalloc(&data, sizeof(float));
-  Tensor out(new TensorBase(New<MemoryPiece>(data, sizeof(float)), {1, 1}, in->getDevice()));
+  Tensor out(new TensorBase(
+      New<MemoryPiece>(data, sizeof(float)), {1, 1}, in->getDevice()));
   ReduceAll(_1 * _1, out, in);
   float dataCpu = sqrtf(out->get(0));
   out.reset();
@@ -1915,7 +1953,8 @@ void LayerNormalizationGrad(Tensor gradX,
       gamma->data(),
       (beta) ? beta->data() : nullptr,
       rows,
-      cols, eps);
+      cols,
+      eps);
 }
 
 __global__ void gShift(float* out, const float* in, int length, int offset) {
@@ -1980,7 +2019,10 @@ void SetSparse(float* out,
   CUDA_CHECK(cudaMemcpy(
       d_values, values.data(), length * sizeof(float), cudaMemcpyHostToDevice));
 
-  gSetSparse<<<blocks, threads>>>(out, d_indices, d_values, length);
+  gSetSparse<<<blocks, threads>>>(out,  //
+                                  d_indices,
+                                  d_values,
+                                  length);
 
   cudaFree(d_indices);
   cudaFree(d_values);
@@ -2051,12 +2093,12 @@ void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
 }
 
 __global__ void gLSTMOutputForward(float* out,
-                                 const float* cell,
-                                 const float* xW,
-                                 const float* sU,
-                                 const float* b,
-                                 size_t rows,
-                                 size_t cols) {
+                                   const float* cell,
+                                   const float* xW,
+                                   const float* sU,
+                                   const float* b,
+                                   size_t rows,
+                                   size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -2069,8 +2111,7 @@ __global__ void gLSTMOutputForward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-
-          int k = i + 3 * cols ;
+          int k = i + 3 * cols;
           float go = logit(xWrow[k] + sUrow[k] + b[k]);
 
           rowOut[i] = go * tanhf(rowCell[i]);
@@ -2089,14 +2130,13 @@ void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
 
-  gLSTMOutputForward<<<blocks, threads>>>(
-      out->data(),                                // output
-      inputs[0]->data(),                          // cell state
-      inputs[1]->data(),                          // xW
-      inputs[2]->data(),                          // sU
-      inputs[3]->data(),                          // b
-      rows,
-      cols);
+  gLSTMOutputForward<<<blocks, threads>>>(out->data(),        // output
+                                          inputs[0]->data(),  // cell state
+                                          inputs[1]->data(),  // xW
+                                          inputs[2]->data(),  // sU
+                                          inputs[3]->data(),  // b
+                                          rows,
+                                          cols);
 }
 
 __global__ void gLSTMCellBackward(float* outCell,
@@ -2111,7 +2151,6 @@ __global__ void gLSTMCellBackward(float* outCell,
                                   const float* adj,
                                   size_t rows,
                                   size_t cols) {
-
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -2130,7 +2169,6 @@ __global__ void gLSTMCellBackward(float* outCell,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-
           float gf = logit(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
@@ -2204,17 +2242,16 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
 }
 
 __global__ void gLSTMOutputBackward(float* outCell,
-                                  float* outXW,
-                                  float* outSU,
-                                  float* outB,
-                                  const float* cell,
-                                  const float* xW,
-                                  const float* sU,
-                                  const float* b,
-                                  const float* adj,
-                                  size_t rows,
-                                  size_t cols) {
-
+                                    float* outXW,
+                                    float* outSU,
+                                    float* outB,
+                                    const float* cell,
+                                    const float* xW,
+                                    const float* sU,
+                                    const float* b,
+                                    const float* adj,
+                                    size_t rows,
+                                    size_t cols) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -2231,7 +2268,6 @@ __global__ void gLSTMOutputBackward(float* outCell,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-
           int k = i + 3 * cols;
           float go = logit(xWrow[k] + sUrow[k] + b[k]);
 
@@ -2251,7 +2287,6 @@ __global__ void gLSTMOutputBackward(float* outCell,
             rowOutSU[k] += dcdxo;
           if(outB)
             atomicAdd(outB + k, dcdxo);
-
         }
       }
     }
@@ -2259,8 +2294,8 @@ __global__ void gLSTMOutputBackward(float* outCell,
 }
 
 void LSTMOutputBackward(std::vector<Tensor> outputs,
-                      std::vector<Tensor> inputs,
-                      Tensor adj) {
+                        std::vector<Tensor> inputs,
+                        Tensor adj) {
   cudaSetDevice(adj->getDevice());
 
   int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
@@ -2270,14 +2305,14 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
   int threads = std::min(MAX_THREADS, cols);
 
   gLSTMOutputBackward<<<blocks, threads>>>(
-      outputs[0] ? outputs[0]->data() : 0,        // state - adj
-      outputs[1] ? outputs[1]->data() : 0,        // xW - adj
-      outputs[2] ? outputs[2]->data() : 0,        // sU - adj
-      outputs[3] ? outputs[3]->data() : 0,        // b - adj
-      inputs[0]->data(),                          // state
-      inputs[1]->data(),                          // xW
-      inputs[2]->data(),                          // sU
-      inputs[3]->data(),                          // b
+      outputs[0] ? outputs[0]->data() : 0,  // state - adj
+      outputs[1] ? outputs[1]->data() : 0,  // xW - adj
+      outputs[2] ? outputs[2]->data() : 0,  // sU - adj
+      outputs[3] ? outputs[3]->data() : 0,  // b - adj
+      inputs[0]->data(),                    // state
+      inputs[1]->data(),                    // xW
+      inputs[2]->data(),                    // sU
+      inputs[3]->data(),                    // b
       adj->data(),
       rows,
       cols);
@@ -2297,9 +2332,10 @@ __global__ void gHighwayForward(float* out,
   }
 }
 
-
 void HighwayForward(Tensor out,
-                    const Tensor in1, const Tensor in2, const Tensor t) {
+                    const Tensor in1,
+                    const Tensor in2,
+                    const Tensor t) {
   cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
@@ -2307,7 +2343,7 @@ void HighwayForward(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gHighwayForward<<<blocks, threads>>>(out->data(),
+  gHighwayForward<<<blocks, threads>>>(out->data(),  //
                                        in1->data(),
                                        in2->data(),
                                        t->data(),
@@ -2328,13 +2364,18 @@ __global__ void gHighwayBackward(float* out1,
       float sigma = 1.f / (1.f + expf(-t[index]));
       out1[index] = sigma * adj[index];
       out2[index] = (1.f - sigma) * adj[index];
-      outt[index] = sigma * (1.f - sigma) * (in1[index] - in2[index]) * adj[index];
+      outt[index]
+          = sigma * (1.f - sigma) * (in1[index] - in2[index]) * adj[index];
     }
   }
 }
 
-void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
-                     const Tensor in1, const Tensor in2, const Tensor t,
+void HighwayBackward(Tensor out1,
+                     Tensor out2,
+                     Tensor outt,
+                     const Tensor in1,
+                     const Tensor in2,
+                     const Tensor t,
                      const Tensor adj) {
   cudaSetDevice(out1->getDevice());
 
@@ -2352,6 +2393,5 @@ void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
                                         adj->data(),
                                         length);
 }
-
 
 }  // namespace marian

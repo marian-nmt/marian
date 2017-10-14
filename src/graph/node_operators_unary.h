@@ -11,13 +11,23 @@
 
 #include <cudnn.h>
 
-#define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
-      printf("Error at %s:%d\n",__FILE__,__LINE__);     \
-      return EXIT_FAILURE;}} while(0)
+#define CUDA_CALL(x)                                  \
+  do {                                                \
+    if((x) != cudaSuccess) {                          \
+      printf("Error at %s:%d\n", __FILE__, __LINE__); \
+      return EXIT_FAILURE;                            \
+    }                                                 \
+  } while(0)
 
-#define CUDNN_CALL(x) do { if((x) != CUDNN_STATUS_SUCCESS) { \
-      printf("Error (%s) at %s:%d\n",cudnnGetErrorString(x),__FILE__,__LINE__);     \
-      }} while(0)
+#define CUDNN_CALL(x)                 \
+  do {                                \
+    if((x) != CUDNN_STATUS_SUCCESS) { \
+      printf("Error (%s) at %s:%d\n", \
+             cudnnGetErrorString(x),  \
+             __FILE__,                \
+             __LINE__);               \
+    }                                 \
+  } while(0)
 
 #endif
 

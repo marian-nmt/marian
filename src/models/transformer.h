@@ -6,9 +6,7 @@ namespace marian {
 
 class Transformer {
 public:
-  Expr TransposeTimeBatch(Expr input) {
-    return transpose(input, {2, 1, 0, 3});
-  }
+  Expr TransposeTimeBatch(Expr input) { return transpose(input, {2, 1, 0, 3}); }
 
   Expr AddPositionalEmbeddings(Ptr<ExpressionGraph> graph,
                                Expr input,
@@ -19,8 +17,7 @@ public:
     int dimWords = input->shape()[2];
 
     float num_timescales = dimEmb / 2;
-    float log_timescale_increment = std::log(10000.f) /
-      (num_timescales - 1.f);
+    float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
 
     std::vector<float> vPos(dimEmb * dimWords, 0);
     for(int p = start; p < dimWords + start; ++p) {
@@ -33,8 +30,8 @@ public:
 
     // shared across batch entries
     auto signal = graph->constant({1, dimEmb, dimWords},
-                                  init=inits::from_vector(vPos));
-    //debug(signal, "signal");
+                                  init = inits::from_vector(vPos));
+    // debug(signal, "signal");
     return input + signal;
   }
 
@@ -47,7 +44,7 @@ public:
       for(int j = 0; j <= i; ++j)
         vMask[i * length + j] = 1.f;
     return graph->constant({length, length, 1},
-                            init=inits::from_vector(vMask));
+                           init = inits::from_vector(vMask));
   }
 
   Expr InverseMask(Expr mask) {
@@ -61,11 +58,12 @@ public:
     int dimSteps = input->shape()[0];
     int dimModel = input->shape()[1];
     int dimBatch = input->shape()[2];
-    int dimBeam  = input->shape()[3];
+    int dimBeam = input->shape()[3];
 
     int dimDepth = dimModel / dimHeads;
 
-    auto output = reshape(input, {dimHeads, dimDepth, dimSteps, dimBatch * dimBeam});
+    auto output
+        = reshape(input, {dimHeads, dimDepth, dimSteps, dimBatch * dimBeam});
 
     return transpose(output, {2, 1, 0, 3});
   }
@@ -88,7 +86,7 @@ public:
                   std::string prefix,
                   std::string ops,
                   Expr input,
-                  float dropProb=0.0f) {
+                  float dropProb = 0.0f) {
     using namespace keywords;
 
     int dimModel = input->shape()[1];
@@ -101,10 +99,12 @@ public:
       }
       // layer normalization
       if(op == 'n') {
-        auto scale = graph->param(prefix + "_ln_scale_pre", {1, dimModel},
+        auto scale = graph->param(prefix + "_ln_scale_pre",  //
+                                  {1, dimModel},
                                   init = inits::ones);
-        auto bias = graph->param(prefix + "_ln_bias_pre", {1, dimModel},
-                                  init = inits::zeros);
+        auto bias = graph->param(prefix + "_ln_bias_pre",  //
+                                 {1, dimModel},
+                                 init = inits::zeros);
         output = layer_norm(output, scale, bias);
       }
     }
@@ -116,7 +116,7 @@ public:
                    std::string ops,
                    Expr input,
                    Expr prevInput,
-                   float dropProb=0.0f) {
+                   float dropProb = 0.0f) {
     using namespace keywords;
 
     int dimModel = input->shape()[1];
@@ -133,9 +133,11 @@ public:
       }
       // highway connection
       if(op == 'h') {
-        auto Wh = graph->param(prefix + "_Wh", {dimModel, dimModel},
+        auto Wh = graph->param(prefix + "_Wh",  //
+                               {dimModel, dimModel},
                                init = inits::glorot_uniform);
-        auto bh = graph->param(prefix + "_bh", {1, dimModel},
+        auto bh = graph->param(prefix + "_bh",  //
+                               {1, dimModel},
                                init = inits::zeros);
 
         auto t = affine(prevInput, Wh, bh);
@@ -143,10 +145,12 @@ public:
       }
       // layer normalization
       if(op == 'n') {
-        auto scale = graph->param(prefix + "_ln_scale", {1, dimModel},
+        auto scale = graph->param(prefix + "_ln_scale",  //
+                                  {1, dimModel},
                                   init = inits::ones);
-        auto bias = graph->param(prefix + "_ln_bias", {1, dimModel},
-                                  init = inits::zeros);
+        auto bias = graph->param(prefix + "_ln_bias",  //
+                                 {1, dimModel},
+                                 init = inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -156,9 +160,11 @@ public:
   Expr Attention(Ptr<ExpressionGraph> graph,
                  Ptr<Options> options,
                  std::string prefix,
-                 Expr q, Expr k, Expr v,
-                 Expr mask=nullptr,
-                 bool inference=false) {
+                 Expr q,
+                 Expr k,
+                 Expr v,
+                 Expr mask = nullptr,
+                 bool inference = false) {
     using namespace keywords;
 
     float dk = k->shape()[1];
@@ -173,14 +179,15 @@ public:
     int dimBeamQ = q->shape()[3];
     int dimBeamK = k->shape()[3];
     if(dimBeamQ != dimBeamK) {
-      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis=3);
-      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis=3);
+      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis = 3);
+      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis = 3);
     }
 
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
 
     // optional dropout for attention weights
-    float dropProb = inference ? 0 : options->get<float>("transformer-dropout-attention");
+    float dropProb
+        = inference ? 0 : options->get<float>("transformer-dropout-attention");
     if(dropProb) {
       auto dropMask = graph->dropout(dropProb, weights->shape());
       weights = dropout(weights, mask = dropMask);
@@ -199,17 +206,17 @@ public:
                  const std::vector<Expr> &keys,
                  const std::vector<Expr> &values,
                  const std::vector<Expr> &masks,
-                 bool inference=false) {
+                 bool inference = false) {
     using namespace keywords;
 
     int dimModel = q->shape()[1];
 
-    auto Wq = graph->param(prefix + "_Wq",
+    auto Wq = graph->param(prefix + "_Wq",  //
                            {dimModel, dimModel},
-                           init=inits::glorot_uniform);
-    auto bq = graph->param(prefix + "_bq",
+                           init = inits::glorot_uniform);
+    auto bq = graph->param(prefix + "_bq",  //
                            {1, dimModel},
-                           init=inits::zeros);
+                           init = inits::zeros);
     auto qh = affine(q, Wq, bq);
     qh = SplitHeads(qh, dimHeads);
 
@@ -221,17 +228,17 @@ public:
 
       auto Wk = graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
-                             init=inits::glorot_uniform);
-      auto bk = graph->param(prefixProj + "_bk",
+                             init = inits::glorot_uniform);
+      auto bk = graph->param(prefixProj + "_bk",  //
                              {1, dimModel},
-                             init=inits::zeros);
+                             init = inits::zeros);
 
       auto Wv = graph->param(prefixProj + "_Wv",
                              {dimModel, dimModel},
-                             init=inits::glorot_uniform);
-      auto bv = graph->param(prefixProj + "_bv",
+                             init = inits::glorot_uniform);
+      auto bv = graph->param(prefixProj + "_bv",  //
                              {1, dimModel},
-                             init=inits::zeros);
+                             init = inits::zeros);
 
       auto kh = affine(keys[i], Wk, bk);
       auto vh = affine(values[i], Wv, bv);
@@ -240,7 +247,8 @@ public:
       vh = SplitHeads(vh, dimHeads);
 
       // apply multi-head attention to downscaled inputs
-      auto output = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference);
+      auto output
+          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference);
       output = JoinHeads(output, q->shape()[3]);
 
       outputs.push_back(output);
@@ -248,16 +256,18 @@ public:
 
     Expr output;
     if(outputs.size() > 1)
-      output = concatenate(outputs, axis=1);
+      output = concatenate(outputs, axis = 1);
     else
       output = outputs.front();
 
     int dimAtt = output->shape()[1];
 
-    auto Wo = graph->param(prefix + "_Wo", {dimAtt, dimOut},
-                           init=inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo", {1, dimOut},
-                           init=inits::zeros);
+    auto Wo = graph->param(prefix + "_Wo",  //
+                           {dimAtt, dimOut},
+                           init = inits::glorot_uniform);
+    auto bo = graph->param(prefix + "_bo",  //
+                           {1, dimOut},
+                           init = inits::zeros);
     output = affine(output, Wo, bo);
 
     return output;
@@ -270,32 +280,39 @@ public:
                       const std::vector<Expr> &keys,
                       const std::vector<Expr> &values,
                       const std::vector<Expr> &masks,
-                      bool inference=false) {
-
+                      bool inference = false) {
     using namespace keywords;
 
     int dimModel = input->shape()[1];
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
-    auto output = PreProcess(graph, prefix + "_Wo", opsPre,
+    auto output = PreProcess(graph,  //
+                             prefix + "_Wo",
+                             opsPre,
                              input,
                              dropProb);
 
     int heads = options->get<float>("transformer-heads");
 
     // multi-head self-attention over previous input
-    output = MultiHead(graph, options, prefix,
+    output = MultiHead(graph,
+                       options,
+                       prefix,
                        dimModel,
-                       heads, output,
+                       heads,
+                       output,
                        keys,
                        values,
                        masks,
                        inference);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
-    output = PostProcess(graph, prefix + "_Wo", opsPost,
-                         output, input,
+    output = PostProcess(graph,  //
+                         prefix + "_Wo",
+                         opsPost,
+                         output,
+                         input,
                          dropProb);
 
     return output;
@@ -305,61 +322,63 @@ public:
                 Ptr<Options> options,
                 std::string prefix,
                 Expr input,
-                bool inference=false) {
-
+                bool inference = false) {
     using namespace keywords;
 
     int dimModel = input->shape()[1];
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
-    auto output = PreProcess(graph, prefix + "_ffn", opsPre,
+    auto output = PreProcess(graph,  //
+                             prefix + "_ffn",
+                             opsPre,
                              input,
                              dropProb);
 
     int dimFfn = options->get<int>("transformer-dim-ffn");
 
-    auto W1 = graph->param(prefix + "_W1", {dimModel, dimFfn},
-                           init=inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn},
-                           init=inits::zeros);
+    auto W1 = graph->param(prefix + "_W1",  //
+                           {dimModel, dimFfn},
+                           init = inits::glorot_uniform);
+    auto b1 = graph->param(prefix + "_b1",  //
+                           {1, dimFfn},
+                           init = inits::zeros);
 
-    auto W2 = graph->param(prefix + "_W2", {dimFfn, dimModel},
-                           init=inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel},
-                           init=inits::zeros);
+    auto W2 = graph->param(prefix + "_W2",  //
+                           {dimFfn, dimModel},
+                           init = inits::glorot_uniform);
+    auto b2 = graph->param(prefix + "_b2",  //
+                           {1, dimModel},
+                           init = inits::zeros);
 
     output = affine(output, W1, b1);
     output = relu(output);
     output = affine(output, W2, b2);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
-    output = PostProcess(graph, prefix + "_ffn", opsPost,
-                         output, input,
+    output = PostProcess(graph,  //
+                         prefix + "_ffn",
+                         opsPost,
+                         output,
+                         input,
                          dropProb);
 
     return output;
   }
-
 };
 
 class EncoderTransformer : public EncoderBase, public Transformer {
 public:
-
-  EncoderTransformer(Ptr<Options> options)
-   : EncoderBase(options) {}
+  EncoderTransformer(Ptr<Options> options) : EncoderBase(options) {}
 
   Expr WordEmbeddings(Ptr<ExpressionGraph> graph,
                       Ptr<data::CorpusBatch> batch) {
-
     // standard encoder word embeddings
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
-    auto embFactory = embedding(graph)
-                      ("dimVocab", dimVoc)
-                      ("dimEmb", dimEmb);
+    auto embFactory = embedding(graph)("dimVocab", dimVoc)("dimEmb", dimEmb);
 
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
@@ -371,9 +390,9 @@ public:
 
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory
-        ("embFile", embFiles[batchIndex_])
-        ("normalization", opt<bool>("embedding-normalization"));
+      embFactory                              //
+          ("embFile", embFiles[batchIndex_])  //
+          ("normalization", opt<bool>("embedding-normalization"));
     }
 
     return embFactory.construct();
@@ -392,7 +411,7 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-      = EncoderBase::lookup(embeddings, batch);
+        = EncoderBase::lookup(embeddings, batch);
 
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
@@ -408,20 +427,20 @@ public:
 
     // reorganize batch and timestep
     auto layer = TransposeTimeBatch(scaledEmbeddings);
-    auto layerMask = reshape(TransposeTimeBatch(batchMask),
+    auto layerMask = reshape(TransposeTimeBatch(batchMask),  //
                              {1, dimSrcWords, dimBatch});
 
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    layer = PreProcess(graph, prefix_ + "_emb", opsEmb,
-                       layer, dropProb);
+    layer = PreProcess(graph, prefix_ + "_emb", opsEmb, layer, dropProb);
 
     layerMask = InverseMask(layerMask);
 
     // apply layers
     for(int i = 1; i <= opt<int>("enc-depth"); ++i) {
-      layer = LayerAttention(graph, options_,
+      layer = LayerAttention(graph,
+                             options_,
                              prefix_ + "_l" + std::to_string(i) + "_self",
                              layer,
                              {layer},
@@ -429,10 +448,11 @@ public:
                              {layerMask},
                              inference_);
 
-      layer = LayerFFN(graph, options_,
+      layer = LayerFFN(graph,
+                       options_,
                        prefix_ + "_l" + std::to_string(i) + "_ffn",
-                       layer, inference_);
-
+                       layer,
+                       inference_);
     }
 
     // restore organization of batch and time steps. This is currently required
@@ -443,21 +463,22 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() { }
+  void clear() {}
 };
 
 class TransformerState : public DecoderState {
 public:
-    TransformerState(const rnn::States& states,
-                     Expr probs,
-                     std::vector<Ptr<EncoderState>>& encStates)
+  TransformerState(const rnn::States &states,
+                   Expr probs,
+                   std::vector<Ptr<EncoderState>> &encStates)
       : DecoderState(states, probs, encStates) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx) {
     rnn::States selectedStates;
 
     for(auto state : states_)
-      selectedStates.push_back({marian::select(state.output, 3, selIdx), nullptr});
+      selectedStates.push_back(
+          {marian::select(state.output, 3, selIdx), nullptr});
 
     return New<TransformerState>(selectedStates, probs_, encStates_);
   }
@@ -465,12 +486,12 @@ public:
 
 class DecoderTransformer : public DecoderBase, public Transformer {
 public:
-  DecoderTransformer(Ptr<Options> options)
-   : DecoderBase(options) {}
+  DecoderTransformer(Ptr<Options> options) : DecoderBase(options) {}
 
-  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
-                                       Ptr<data::CorpusBatch> batch,
-                                       std::vector<Ptr<EncoderState>>& encStates) {
+  virtual Ptr<DecoderState> startState(
+      Ptr<ExpressionGraph> graph,
+      Ptr<data::CorpusBatch> batch,
+      std::vector<Ptr<EncoderState>> &encStates) {
     rnn::States startStates;
     return New<TransformerState>(startStates, nullptr, encStates);
   }
@@ -502,7 +523,8 @@ public:
     if(prevDecoderStates.size() > 0)
       startPos = prevDecoderStates[0].output->shape()[0];
 
-    scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
+    scaledEmbeddings
+        = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
 
     // reorganize batch and timestep
     auto query = TransposeTimeBatch(scaledEmbeddings);
@@ -510,8 +532,11 @@ public:
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
 
-    query = PreProcess(graph, prefix_ + "_emb", opsEmb,
-                       query, dropProb);
+    query = PreProcess(graph,  //
+                       prefix_ + "_emb",
+                       opsEmb,
+                       query,
+                       dropProb);
 
     rnn::States decoderStates;
     int dimTrgWords = query->shape()[0];
@@ -545,14 +570,15 @@ public:
 
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
-
       auto values = query;
       if(prevDecoderStates.size() > 0)
-        values = concatenate({prevDecoderStates[i - 1].output, query}, axis=0);
+        values
+            = concatenate({prevDecoderStates[i - 1].output, query}, axis = 0);
       decoderStates.push_back({values, nullptr});
 
       // TODO: do not recompute matrix multiplies
-      query = LayerAttention(graph, options_,
+      query = LayerAttention(graph,  //
+                             options_,
                              prefix_ + "_l" + std::to_string(i) + "_self",
                              query,
                              {values},
@@ -561,7 +587,8 @@ public:
                              inference_);
 
       if(encoderContexts.size() > 0) {
-        query = LayerAttention(graph, options_,
+        query = LayerAttention(graph,  //
+                               options_,
                                prefix_ + "_l" + std::to_string(i) + "_context",
                                query,
                                encoderContexts,
@@ -570,9 +597,11 @@ public:
                                inference_);
       }
 
-      query = LayerFFN(graph, options_,
+      query = LayerFFN(graph,  //
+                       options_,
                        prefix_ + "_l" + std::to_string(i) + "_ffn",
-                       query, inference_);
+                       query,
+                       inference_);
     }
 
     auto decoderContext = TransposeTimeBatch(query);
@@ -581,9 +610,9 @@ public:
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
 
-    auto layerOut = mlp::dense(graph)
-                    ("prefix", prefix_ + "_ff_logit_out")
-                    ("dim", dimTrgVoc);
+    auto layerOut = mlp::dense(graph)          //
+        ("prefix", prefix_ + "_ff_logit_out")  //
+        ("dim", dimTrgVoc);
 
     if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
       std::string tiedPrefix = prefix_ + "_Wemb";
@@ -594,22 +623,18 @@ public:
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
-    auto output = mlp::mlp(graph)
-                  .push_back(layerOut);
+    auto output = mlp::mlp(graph).push_back(layerOut);
 
     Expr logits = output->apply(decoderContext);
 
     // return unormalized(!) probabilities
-    return New<TransformerState>(decoderStates, logits, state->getEncoderStates());
+    return New<TransformerState>(
+        decoderStates, logits, state->getEncoderStates());
   }
 
   // helper function for guided alignment
-  virtual const std::vector<Expr> getAlignments(int i = 0) {
-    return {};
-  }
+  virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; }
 
-  void clear() {
-  }
+  void clear() {}
 };
-
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rnn/rnn.h"
 #include "layers/factory.h"
+#include "rnn/rnn.h"
 
 namespace marian {
 namespace rnn {
@@ -54,7 +54,7 @@ public:
       auto cell = New<MLSTM>(graph_, options_);
       cell->setLazyInputs(inputs_);
       return cell;
-    } else if(type == "mgru"){
+    } else if(type == "mgru") {
       auto cell = New<MGRU>(graph_, options_);
       cell->setLazyInputs(inputs_);
       return cell;
@@ -81,7 +81,6 @@ public:
   virtual void add_input(Expr input) {
     inputs_.push_back([input](Ptr<rnn::RNN> rnn) { return input; });
   }
-
 };
 
 typedef Accumulator<CellFactory> cell;
@@ -113,8 +112,7 @@ public:
             cellFactory->add_input(f);
 
         stacked->push_back(cellFactory->construct());
-      }
-      else {
+      } else {
         auto inputFactory = sf->as<InputFactory>();
         inputFactory->getOptions()->merge(options_);
         auto input = inputFactory->construct();
@@ -173,20 +171,23 @@ public:
 
       lf->getOptions()->merge(options_);
       if(i > 0) {
-        int dimInput = layerFactories_[i - 1]->getOptions()->get<int>("dimState")
-          + lf->getOptions()->get<int>("dimInputExtra", 0);
+        int dimInput
+            = layerFactories_[i - 1]->getOptions()->get<int>("dimState")
+              + lf->getOptions()->get<int>("dimInputExtra", 0);
 
         lf->getOptions()->set("dimInput", dimInput);
       }
 
-      if(opt<rnn::dir>("direction", rnn::dir::forward) == rnn::dir::alternating_forward) {
+      if(opt<rnn::dir>("direction", rnn::dir::forward)
+         == rnn::dir::alternating_forward) {
         if(i % 2 == 0)
           lf->getOptions()->set("direction", rnn::dir::forward);
         else
           lf->getOptions()->set("direction", rnn::dir::backward);
       }
 
-      if(opt<rnn::dir>("direction", rnn::dir::forward) == rnn::dir::alternating_backward) {
+      if(opt<rnn::dir>("direction", rnn::dir::forward)
+         == rnn::dir::alternating_backward) {
         if(i % 2 == 1)
           lf->getOptions()->set("direction", rnn::dir::forward);
         else
@@ -198,9 +199,7 @@ public:
     return rnn;
   }
 
-  Ptr<RNN> operator->() {
-    return construct();
-  }
+  Ptr<RNN> operator->() { return construct(); }
 
   template <class F>
   Accumulator<RNNFactory> push_back(const F& f) {
@@ -218,6 +217,5 @@ public:
 };
 
 typedef Accumulator<RNNFactory> rnn;
-
 }
 }
