@@ -1,10 +1,8 @@
 Marian
 ======
 
-[![Join the chat at https://gitter.im/amunmt/marian](https://badges.gitter.im/amunmt/marian.svg)](https://gitter.im/amunmt/marian?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/marian-nmt](https://badges.gitter.im/amunmt/marian.svg)](https://gitter.im/marian-nmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-dev)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
-
-Google group for commit messages: https://groups.google.com/forum/#!forum/mariannmt
 
 **Marian** is a C++ GPU-specific parallel automatic differentiation library
 with operator overloading. It is the training framework used in the Marian
@@ -17,6 +15,10 @@ Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 ## Website
 
 More information on https://marian-nmt.github.io
+
+## Mailing lists
+* General google group: https://groups.google.com/forum/#!forum/marian-nmt (for users and developers)
+* Google group for commit messages: https://groups.google.com/forum/#!forum/marian-nmt-commits (for developers)
 
 ## Acknowledgements
 
