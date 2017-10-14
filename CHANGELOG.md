@@ -14,9 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Cyclic learning rate warmup
 - More options for learning rate decay, including: optimizer history reset, repeated
 warmup.
-- Continuous inverted square root decay of learning (--lr-decay-inv-sqrt)
+- Continuous inverted square root decay of learning rate (--lr-decay-inv-sqrt)
 rate based on number of updates.
-- Exposed optimizer parameters (e.g. momentum etc. for Adam)
+- Exposed optimizer parameters (e.g. momentum etc. for Adam with --optimizer-params)
 - Version of deep RNN-based models compatible with Nematus (--type nematus).
 - Synchronous SGD training for multi-gpu (enable with --sync-sgd).
 - Dynamic construction of complex models with different encoders and decoders,
