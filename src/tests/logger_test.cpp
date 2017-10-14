@@ -6,7 +6,7 @@
 
 // small test program for playing around with spdlog formatting of messages
 
-std::shared_ptr<spdlog::logger> stderrLogger(
+std::shared_ptr<spdlog::logger> stderrLoggerTest(
     const std::string& name,
     const std::string& pattern,
     const std::vector<std::string>& files) {
@@ -31,7 +31,7 @@ std::shared_ptr<spdlog::logger> stderrLogger(
 
 int main() {
   std::vector<std::string> logfiles;
-  Logger info(stderrLogger("info", "[%Y-%m-%d %T] %v", logfiles));
+  Logger info(stderrLoggerTest("info", "[%Y-%m-%d %T] %v", logfiles));
 
   info->info("hello {:06.2f}", .7);
 
