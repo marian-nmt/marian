@@ -66,8 +66,10 @@ void TensorBase::setSparse(const std::vector<size_t> &k,
 
 void TensorBase::copyFrom(Tensor in) {
   cudaSetDevice(device_);
-  CUDA_CHECK(cudaMemcpy(
-      data(), (float*)in->data(), in->size() * sizeof(float), cudaMemcpyDefault));
+  CUDA_CHECK(cudaMemcpy(data(),
+                        (float *)in->data(),
+                        in->size() * sizeof(float),
+                        cudaMemcpyDefault));
   cudaStreamSynchronize(0);
 }
 
@@ -99,8 +101,8 @@ std::string TensorBase::debug() {
           float sum = 0;
           for(size_t j = 0; j < shape()[1]; ++j)
             sum += values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)];
+                          + k * shape().stride(2)
+                          + l * shape().stride(3)];
           strm << std::setw(12) << sum << " | ";
 
           for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
@@ -128,8 +130,8 @@ std::string TensorBase::debug() {
           float sum = 0;
           for(size_t j = 0; j < shape()[1]; ++j)
             sum += values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)];
+                          + k * shape().stride(2)
+                          + l * shape().stride(3)];
           strm << std::setw(12) << sum << " | ";
 
           for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
@@ -157,8 +159,8 @@ std::string TensorBase::debug() {
           float sum = 0;
           for(size_t j = 0; j < shape()[1]; ++j)
             sum += values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)];
+                          + k * shape().stride(2)
+                          + l * shape().stride(3)];
           strm << std::setw(12) << sum << " | ";
 
           for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {

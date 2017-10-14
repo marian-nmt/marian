@@ -23,8 +23,8 @@ public:
     if(beam.back()->GetPrevHyp() != nullptr) {
       for(size_t j = 0; j < beam.size(); ++j)
         if(beam[j]->GetWord() == 0 || last) {
-          float cost = normalize_ ? beam[j]->GetCost() / history_.size() :
-                                    beam[j]->GetCost();
+          float cost = normalize_ ? beam[j]->GetCost() / history_.size()
+                                  : beam[j]->GetCost();
           topHyps_.push({history_.size(), j, cost});
         }
     }

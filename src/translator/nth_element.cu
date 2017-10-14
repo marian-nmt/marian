@@ -285,11 +285,11 @@ NthElement::NthElement(size_t maxBeamSize,
       cudaMalloc((void**)&d_res, maxBatchSize * maxBeamSize * sizeof(float)));
 
   CUDA_CHECK(cudaHostAlloc((void**)&h_res,
-                             maxBeamSize * maxBatchSize * sizeof(float),
-                             cudaHostAllocDefault));
+                           maxBeamSize * maxBatchSize * sizeof(float),
+                           cudaHostAllocDefault));
   CUDA_CHECK(cudaHostAlloc((void**)&h_res_idx,
-                             maxBeamSize * maxBatchSize * sizeof(int),
-                             cudaHostAllocDefault));
+                           maxBeamSize * maxBatchSize * sizeof(int),
+                           cudaHostAllocDefault));
 
   CUDA_CHECK(cudaMalloc((void**)&d_breakdown, maxBeamSize * sizeof(float)));
   CUDA_CHECK(
@@ -314,15 +314,15 @@ void NthElement::getNBestList(float* probs,
                               const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes) {
   CUDA_CHECK(cudaMemcpyAsync(d_batchPosition,
-                               batchFirstElementIdxs.data(),
-                               batchFirstElementIdxs.size() * sizeof(int),
-                               cudaMemcpyHostToDevice,
-                               /* stream_ */ 0));
+                             batchFirstElementIdxs.data(),
+                             batchFirstElementIdxs.size() * sizeof(int),
+                             cudaMemcpyHostToDevice,
+                             /* stream_ */ 0));
   CUDA_CHECK(cudaMemcpyAsync(d_cumBeamSizes,
-                               cummulatedBeamSizes.data(),
-                               cummulatedBeamSizes.size() * sizeof(int),
-                               cudaMemcpyHostToDevice,
-                               /* stream_ */ 0));
+                             cummulatedBeamSizes.data(),
+                             cummulatedBeamSizes.size() * sizeof(int),
+                             cudaMemcpyHostToDevice,
+                             /* stream_ */ 0));
 
   const int numBatches = batchFirstElementIdxs.size() - 1;
 
@@ -368,15 +368,15 @@ void NthElement::GetPairs(size_t number,
                           std::vector<unsigned>& outKeys,
                           std::vector<float>& outValues) {
   CUDA_CHECK(cudaMemcpyAsync(h_res,
-                               d_res,
-                               number * sizeof(float),
-                               cudaMemcpyDeviceToHost,
-                               /* stream_ */ 0));
+                             d_res,
+                             number * sizeof(float),
+                             cudaMemcpyDeviceToHost,
+                             /* stream_ */ 0));
   CUDA_CHECK(cudaMemcpyAsync(h_res_idx,
-                               d_res_idx,
-                               number * sizeof(int),
-                               cudaMemcpyDeviceToHost,
-                               /* stream_ */ 0));
+                             d_res_idx,
+                             number * sizeof(int),
+                             cudaMemcpyDeviceToHost,
+                             /* stream_ */ 0));
   cudaStreamSynchronize(/* stream_ */ 0);
 
   for(size_t i = 0; i < number; ++i) {
@@ -392,10 +392,10 @@ void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
       d_in, d_breakdown, h_res_idx, lastN);
 
   CUDA_CHECK(cudaMemcpyAsync(out.data(),
-                               d_breakdown,
-                               lastN * sizeof(float),
-                               cudaMemcpyDeviceToHost,
-                               /* stream_ */ 0));
+                             d_breakdown,
+                             lastN * sizeof(float),
+                             cudaMemcpyDeviceToHost,
+                             /* stream_ */ 0));
   CUDA_CHECK(cudaStreamSynchronize(/* stream_ */ 0));
 }
 }

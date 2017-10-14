@@ -73,9 +73,10 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         vocabs_.emplace_back(vocab);
       }
     }
-  } else { // i.e., if translating
-    UTIL_THROW_IF2(vocabPaths.empty(), "translating but vocabularies are missing!");
-    for(size_t i = 0; i+1 < vocabPaths.size(); ++i) {
+  } else {  // i.e., if translating
+    UTIL_THROW_IF2(vocabPaths.empty(),
+                   "translating but vocabularies are missing!");
+    for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
@@ -207,6 +208,5 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   LOG(data)->info("Done");
 }
-
 }
 }

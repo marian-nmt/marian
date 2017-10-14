@@ -271,8 +271,8 @@ public:
 
       UTIL_THROW_IF2(shape != p->shape(),
                      "Requested shape for existing parameter "
-                     << name
-                     << " does not match original shape");
+                         << name
+                         << " does not match original shape");
 
       add(p);
       return p;
@@ -280,12 +280,12 @@ public:
 
     // if graph was reloaded do not allow creation of new parameters
     UTIL_THROW_IF2(reloaded_,
-                   "Graph was reloaded and parameter " << name << " is newly created");
+                   "Graph was reloaded and parameter " << name
+                                                       << " is newly created");
 
     // if not check if name is not taken by other node
     UTIL_THROW_IF2(get(name),
                    "Non-parameter with name " << name << "already exists");
-
 
     // create parameter node (adds to tape)
     p = Expression<ParamNode>(
@@ -384,11 +384,9 @@ public:
   Expr add(Expr node) {
     // size_t group = 0;
 
-
     size_t hash = node->hash();
     auto it = hashMap_.find(hash);
     if(it != hashMap_.end()) {
-
       for(auto foundWeak : it->second) {
         auto found = foundWeak.lock();
         if(node->equal(found))
@@ -434,13 +432,9 @@ public:
 
   void clearParameters() { params_->clear(); }
 
-  void setReloaded(bool reloaded) {
-    reloaded_ = reloaded;
-  }
+  void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
-  void setThrowNaN(bool throwNaN) {
-    throwNaN_ = throwNaN;
-  }
+  void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
   void load(const std::string& name) {
     using namespace keywords;
@@ -460,8 +454,7 @@ public:
       if(it.second.shape.size() == 1) {
         shape.set(0, 1);
         shape.set(1, it.second.shape[0]);
-      }
-      else {
+      } else {
         for(int i = 0; i < it.second.shape.size(); ++i)
           shape.set(i, it.second.shape[i]);
       }

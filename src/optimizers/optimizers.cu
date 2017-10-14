@@ -5,7 +5,7 @@
 
 namespace marian {
 void Sgd::updateImpl(Tensor params, Tensor grads) {
-  Element(_1 -= (multiplyFactor_*eta_) * _2, params, grads);
+  Element(_1 -= (multiplyFactor_ * eta_) * _2, params, grads);
 
   cudaStreamSynchronize(0);
 }
@@ -77,12 +77,11 @@ void Adam::resetStats() {
   cudaStreamSynchronize(0);
 }
 
-
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
   float lrate = options->get<double>("learn-rate");
-  auto params = options->has("optimizer-params") ?
-                    options->get<std::vector<float>>("optimizer-params") :
-                    std::vector<float>({});
+  auto params = options->has("optimizer-params")
+                    ? options->get<std::vector<float>>("optimizer-params")
+                    : std::vector<float>({});
 
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = options->get<double>("clip-norm");

@@ -53,7 +53,6 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final) {
 /******************************************************************************/
 
 struct LSTMCellNodeOp : public NaryNodeOp {
-
   template <typename... Args>
   LSTMCellNodeOp(const std::vector<Expr>& nodes, Args... args)
       : NaryNodeOp(nodes, args...) {}
@@ -92,7 +91,6 @@ struct LSTMCellNodeOp : public NaryNodeOp {
 };
 
 struct LSTMOutputNodeOp : public NaryNodeOp {
-
   template <typename... Args>
   LSTMOutputNodeOp(const std::vector<Expr>& nodes, Args... args)
       : NaryNodeOp(nodes, args...) {}
@@ -130,7 +128,6 @@ struct LSTMOutputNodeOp : public NaryNodeOp {
   const std::string color() { return "yellow"; }
 };
 
-
 Expr lstmOpsC(const std::vector<Expr>& nodes) {
   return Expression<LSTMCellNodeOp>(nodes);
 }
@@ -138,6 +135,5 @@ Expr lstmOpsC(const std::vector<Expr>& nodes) {
 Expr lstmOpsO(const std::vector<Expr>& nodes) {
   return Expression<LSTMOutputNodeOp>(nodes);
 }
-
 }
 }

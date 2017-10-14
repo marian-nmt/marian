@@ -73,8 +73,8 @@ public:
 
       if(!final) {
         std::string numberOfBatches
-            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
-                           "unknown";
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                         : "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
@@ -91,5 +91,4 @@ public:
     return builder_->collectStats(graph_);
   }
 };
-
 }

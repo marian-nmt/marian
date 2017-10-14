@@ -1,8 +1,8 @@
 #pragma once
 
 #include <deque>
-#include <queue>
 #include <functional>
+#include <queue>
 
 #include <boost/timer/timer.hpp>
 
@@ -46,9 +46,7 @@ private:
       return a.back().size() < b.back().size();
     };
 
-    auto cmpNone = [](const sample& a, const sample& b) {
-      return &a < &b;
-    };
+    auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; };
 
     typedef std::function<bool(const sample&, const sample&)> cmp_type;
     typedef std::priority_queue<sample, samples, cmp_type> sample_queue;
@@ -62,8 +60,7 @@ private:
         maxiBatch.reset(new sample_queue(cmpNone));
       else
         maxiBatch.reset(new sample_queue(cmpTrg));
-    }
-    else {
+    } else {
       maxiBatch.reset(new sample_queue(cmpNone));
     }
 

@@ -23,8 +23,10 @@ void ExpressionGraph::setDevice(size_t device) {
 
 Expr ExpressionGraph::dropout(float prob, Shape shape) {
   auto dropoutInit = [prob, this](Tensor t) {
-    Dropout(t, prob,
-      std::static_pointer_cast<BackendGPU>(backend_)->getCurandGenerator());
+    Dropout(
+        t,
+        prob,
+        std::static_pointer_cast<BackendGPU>(backend_)->getCurandGenerator());
   };
 
   return Expression<ConstantNode>(shared_from_this(),
@@ -34,8 +36,11 @@ Expr ExpressionGraph::dropout(float prob, Shape shape) {
 
 Expr ExpressionGraph::gaussian(float mean, float stddev, Shape shape) {
   auto gaussianInit = [mean, stddev, this](Tensor t) {
-    Gaussian(t, mean, stddev,
-      std::static_pointer_cast<BackendGPU>(backend_)->getCurandGenerator());
+    Gaussian(
+        t,
+        mean,
+        stddev,
+        std::static_pointer_cast<BackendGPU>(backend_)->getCurandGenerator());
   };
 
   return Expression<ConstantNode>(shared_from_this(),
@@ -46,5 +51,4 @@ Expr ExpressionGraph::gaussian(float mean, float stddev, Shape shape) {
 void ExpressionGraph::checkNan(Tensor t) {
   UTIL_THROW_IF2(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
-
 }

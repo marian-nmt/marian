@@ -12,17 +12,13 @@ protected:
 
 public:
   Factory(Ptr<ExpressionGraph> graph)
-  : options_(New<Options>()), graph_(graph) {}
+      : options_(New<Options>()), graph_(graph) {}
 
   virtual ~Factory() {}
 
-  Ptr<Options> getOptions() {
-    return options_;
-  }
+  Ptr<Options> getOptions() { return options_; }
 
-  std::string str() {
-    return options_->str();
-  }
+  std::string str() { return options_->str(); }
 
   template <typename T>
   T opt(const std::string& key) {
@@ -74,5 +70,4 @@ public:
     return Accumulator<Factory>(Factory::clone());
   }
 };
-
 }

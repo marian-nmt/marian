@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 
 namespace marian {
 
@@ -17,10 +17,8 @@ private:
   }
 
 public:
-  DeviceGPU(size_t device, size_t alignment=256)
-   : data_(0), size_(0),
-     device_(device),
-     alignment_(alignment) {}
+  DeviceGPU(size_t device, size_t alignment = 256)
+      : data_(0), size_(0), device_(device), alignment_(alignment) {}
 
   ~DeviceGPU();
 
@@ -32,5 +30,4 @@ public:
 
   size_t getDevice() { return device_; }
 };
-
 }

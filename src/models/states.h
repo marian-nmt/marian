@@ -44,7 +44,9 @@ public:
                std::vector<Ptr<EncoderState>>& encStates)
       : states_(states), probs_(probs), encStates_(encStates) {}
 
-  virtual std::vector<Ptr<EncoderState>>& getEncoderStates() { return encStates_; }
+  virtual std::vector<Ptr<EncoderState>>& getEncoderStates() {
+    return encStates_;
+  }
   virtual Expr getProbs() { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
@@ -62,9 +64,7 @@ public:
 
   virtual Expr getTargetMask() { return targetMask_; };
 
-  virtual void setTargetMask(Expr targetMask) {
-    targetMask_ = targetMask;
-  }
+  virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
 
   virtual bool doSingleStep() { return singleStep_; };
 
@@ -78,5 +78,4 @@ public:
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}
 };
-
 }

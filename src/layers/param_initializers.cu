@@ -6,8 +6,8 @@
 
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
-#include "layers/word2vec_reader.h"
 #include "layers/param_initializers.h"
+#include "layers/word2vec_reader.h"
 #include "svd/svd.h"
 
 namespace marian {
@@ -145,7 +145,7 @@ std::function<void(Tensor)> from_word2vec(const std::string& file,
   return [file, dimVoc, dimEmb, normalize](Tensor t) {
     auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
     t->set(embs);
-    if(normalize){
+    if(normalize) {
       float l2Norm = L2Norm(t);
       if(l2Norm != 0)
         Element(_1 = _1 / l2Norm, t);

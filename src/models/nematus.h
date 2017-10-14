@@ -11,16 +11,16 @@ public:
   template <class... Args>
   Nematus(Ptr<Options> options)
       : EncoderDecoder(options), nameMap_(createNameMap()) {
-
     UTIL_THROW_IF2(options_->get<std::string>("enc-type") != "bidirectional",
                    "--type nematus does not currently support other encoder "
                    "type than bidirectional, use --type s2s");
     UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
                    "--type nematus does not currently support multiple encoder "
                    "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<bool>("skip"),
-                   "--type nematus does not currently support skip connections, "
-                   "use --type s2s");
+    UTIL_THROW_IF2(
+        options_->get<bool>("skip"),
+        "--type nematus does not currently support skip connections, "
+        "use --type s2s");
     UTIL_THROW_IF2(options_->get<int>("dec-depth") > 1,
                    "--type nematus does not currently support multiple decoder "
                    "layers, use --type s2s");
@@ -191,8 +191,7 @@ private:
            {"ff_logit_ctx_ln_s", "decoder_ff_logit_l1_ln_s2"},
            {"ff_logit_prev_ln_b", "decoder_ff_logit_l1_ln_b0"},
            {"ff_logit_lstm_ln_b", "decoder_ff_logit_l1_ln_b1"},
-           {"ff_logit_ctx_ln_b", "decoder_ff_logit_l1_ln_b2"}
-        };
+           {"ff_logit_ctx_ln_b", "decoder_ff_logit_l1_ln_b2"}};
 
     // add mapping for deep encoder cells
     std::vector<std::string> suffixes = {"_U", "_Ux", "_b", "_bx"};
@@ -200,8 +199,8 @@ private:
       std::string num1 = std::to_string(i);
       std::string num2 = std::to_string(i + 1);
       for(auto suf : suffixes) {
-        nameMap.insert({"encoder" + suf + "_drt_" + num1,
-                        "encoder_bi_cell" + num2 + suf});
+        nameMap.insert(
+            {"encoder" + suf + "_drt_" + num1, "encoder_bi_cell" + num2 + suf});
         nameMap.insert({"encoder_r" + suf + "_drt_" + num1,
                         "encoder_bi_r_cell" + num2 + suf});
       }
@@ -211,8 +210,8 @@ private:
       std::string num1 = std::to_string(i - 2);
       std::string num2 = std::to_string(i);
       for(auto suf : suffixes)
-        nameMap.insert({"decoder" + suf + "_nl_drt_" + num1,
-                        "decoder_cell" + num2 + suf});
+        nameMap.insert(
+            {"decoder" + suf + "_nl_drt_" + num1, "decoder_cell" + num2 + suf});
     }
     // add mapping for normalization layers
     std::map<std::string, std::string> nameMapCopy(nameMap);

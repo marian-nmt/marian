@@ -64,7 +64,6 @@ public:
         movingAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")},
         tau_{options_->get<size_t>("optimizer-delay")} {
-
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);
@@ -112,8 +111,8 @@ public:
 
       if(!final) {
         std::string numberOfBatches
-            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
-                           "unknown";
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                         : "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");

@@ -15,75 +15,67 @@ struct State {
   Expr cell;
 
   State select(const std::vector<size_t>& indices) {
-
     int numSelected = indices.size();
     int dimState = output->shape()[1];
     int dimTime = output->shape()[2];
 
     if(cell) {
       return State{
-        reshape(rows(output, indices), {1, dimState, 1, numSelected}),
-        reshape(rows(cell, indices), {1, dimState, 1, numSelected})
-      };
-    }
-    else {
+          reshape(rows(output, indices), {1, dimState, 1, numSelected}),
+          reshape(rows(cell, indices), {1, dimState, 1, numSelected})};
+    } else {
       return State{
-        reshape(rows(output, indices), {1, dimState, 1, numSelected}),
-        nullptr
-      };
+          reshape(rows(output, indices), {1, dimState, 1, numSelected}),
+          nullptr};
     }
   }
 };
 
 class States {
-  private:
-    std::vector<State> states_;
+private:
+  std::vector<State> states_;
 
-  public:
-    States() {}
-    States(const std::vector<State>& states) : states_(states) {}
-    States(size_t num, State state) : states_(num, state) {}
+public:
+  States() {}
+  States(const std::vector<State>& states) : states_(states) {}
+  States(size_t num, State state) : states_(num, state) {}
 
-    auto begin() -> decltype(states_.begin()) { return states_.begin(); }
-    auto end() -> decltype(states_.begin()) { return states_.end(); }
+  auto begin() -> decltype(states_.begin()) { return states_.begin(); }
+  auto end() -> decltype(states_.begin()) { return states_.end(); }
 
-    Expr outputs() {
-      std::vector<Expr> outputs;
-      for(auto s : states_)
-        outputs.push_back(s.output);
-      if(outputs.size() > 1)
-        return concatenate(outputs, keywords::axis = 2);
-      else
-        return outputs[0];
-    }
+  Expr outputs() {
+    std::vector<Expr> outputs;
+    for(auto s : states_)
+      outputs.push_back(s.output);
+    if(outputs.size() > 1)
+      return concatenate(outputs, keywords::axis = 2);
+    else
+      return outputs[0];
+  }
 
-    State& operator[](size_t i) { return states_[i]; };
-    const State& operator[](size_t i) const { return states_[i]; };
+  State& operator[](size_t i) { return states_[i]; };
+  const State& operator[](size_t i) const { return states_[i]; };
 
-    State& back() { return states_.back(); }
-    const State& back() const { return states_.back(); }
+  State& back() { return states_.back(); }
+  const State& back() const { return states_.back(); }
 
-    State& front() { return states_.front(); }
-    const State& front() const { return states_.front(); }
+  State& front() { return states_.front(); }
+  const State& front() const { return states_.front(); }
 
-    size_t size() const { return states_.size(); };
+  size_t size() const { return states_.size(); };
 
-    void push_back(const State& state) {
-      states_.push_back(state);
-    }
+  void push_back(const State& state) { states_.push_back(state); }
 
-    States select(const std::vector<size_t>& indices) {
-      States selected;
-      for(auto& state : states_)
-        selected.push_back(state.select(indices));
-      return selected;
-    }
+  States select(const std::vector<size_t>& indices) {
+    States selected;
+    for(auto& state : states_)
+      selected.push_back(state.select(indices));
+    return selected;
+  }
 
-    void reverse() {
-      std::reverse(states_.begin(), states_.end());
-    }
+  void reverse() { std::reverse(states_.begin(), states_.end()); }
 
-    void clear() { states_.clear(); }
+  void clear() { states_.clear(); }
 };
 
 class Cell;
@@ -109,9 +101,7 @@ public:
     return as<Cast>() != nullptr;
   }
 
-  Ptr<Options> getOptions() {
-    return options_;
-  }
+  Ptr<Options> getOptions() { return options_; }
 
   template <typename T>
   T opt(const std::string& key) {
@@ -128,8 +118,7 @@ public:
 
 class CellInput : public Stackable {
 public:
-  CellInput(Ptr<Options> options)
-    : Stackable(options) {  }
+  CellInput(Ptr<Options> options) : Stackable(options) {}
 
   virtual Expr apply(State) = 0;
   virtual int dimOutput() = 0;
@@ -142,8 +131,7 @@ protected:
   std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazyInputs_;
 
 public:
-  Cell(Ptr<Options> options)
-    : Stackable(options) {}
+  Cell(Ptr<Options> options) : Stackable(options) {}
 
   State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
     return applyState(applyInput(inputs), state, mask);
@@ -156,7 +144,8 @@ public:
     return inputs;
   }
 
-  virtual void setLazyInputs(std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
+  virtual void setLazyInputs(
+      std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
     lazyInputs_ = lazy;
   }
 
@@ -171,12 +160,11 @@ protected:
   std::vector<Ptr<CellInput>> inputs_;
 
 public:
-  MultiCellInput(const std::vector<Ptr<CellInput>>& inputs, Ptr<Options> options)
-  : CellInput(options), inputs_(inputs) {}
+  MultiCellInput(const std::vector<Ptr<CellInput>>& inputs,
+                 Ptr<Options> options)
+      : CellInput(options), inputs_(inputs) {}
 
-  void push_back(Ptr<CellInput> input) {
-    inputs_.push_back(input);
-  }
+  void push_back(Ptr<CellInput> input) { inputs_.push_back(input); }
 
   virtual Expr apply(State state) {
     std::vector<Expr> outputs;
@@ -210,46 +198,43 @@ protected:
 public:
   StackedCell(Ptr<ExpressionGraph>, Ptr<Options> options) : Cell(options) {}
 
-  StackedCell(Ptr<ExpressionGraph>, Ptr<Options> options,
+  StackedCell(Ptr<ExpressionGraph>,
+              Ptr<Options> options,
               const std::vector<Ptr<Stackable>>& stackables)
-    : Cell(options), stackables_(stackables) {}
+      : Cell(options), stackables_(stackables) {}
 
-  void push_back(Ptr<Stackable> stackable) {
-    stackables_.push_back(stackable);
-  }
+  void push_back(Ptr<Stackable> stackable) { stackables_.push_back(stackable); }
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    //lastInputs_ = inputs;
+    // lastInputs_ = inputs;
     return stackables_[0]->as<Cell>()->applyInput(inputs);
   }
 
-  virtual State applyState(std::vector<Expr> mappedInputs, State state,
+  virtual State applyState(std::vector<Expr> mappedInputs,
+                           State state,
                            Expr mask = nullptr) {
-
-    State hidden = stackables_[0]->as<Cell>()->applyState(mappedInputs, state, mask);;
+    State hidden
+        = stackables_[0]->as<Cell>()->applyState(mappedInputs, state, mask);
+    ;
 
     for(int i = 1; i < stackables_.size(); ++i) {
       if(stackables_[i]->is<Cell>()) {
-        auto hiddenNext = stackables_[i]->as<Cell>()->apply(lastInputs_, hidden, mask);
+        auto hiddenNext
+            = stackables_[i]->as<Cell>()->apply(lastInputs_, hidden, mask);
         lastInputs_.clear();
         hidden = hiddenNext;
-      }
-      else {
-        lastInputs_.push_back( stackables_[i]->as<CellInput>()->apply(hidden) );
-        //lastInputs_ = { stackables_[i]->as<CellInput>()->apply(hidden) };
+      } else {
+        lastInputs_.push_back(stackables_[i]->as<CellInput>()->apply(hidden));
+        // lastInputs_ = { stackables_[i]->as<CellInput>()->apply(hidden) };
       }
     }
 
     return hidden;
   };
 
-  Ptr<Stackable> operator[](int i) {
-    return stackables_[i];
-  }
+  Ptr<Stackable> operator[](int i) { return stackables_[i]; }
 
-  Ptr<Stackable> at(int i) {
-    return stackables_[i];
-  }
+  Ptr<Stackable> at(int i) { return stackables_[i]; }
 
   virtual void clear() {
     for(auto s : stackables_)
@@ -262,14 +247,12 @@ public:
     return stackables_[0]->as<Cell>()->getLazyInputs(parent);
   }
 
-  virtual void setLazyInputs(std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
+  virtual void setLazyInputs(
+      std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
     UTIL_THROW_IF2(!stackables_[0]->is<Cell>(),
                    "First stackable should be of type Cell");
     stackables_[0]->as<Cell>()->setLazyInputs(lazy);
   }
-
 };
-
-
 }
 }

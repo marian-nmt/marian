@@ -35,18 +35,16 @@ public:
     LOG(info)->critical("Loading MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> graph,
-            const std::string& name,
-            bool) {
+  void save(Ptr<ExpressionGraph> graph, const std::string& name, bool) {
     LOG(info)->critical("Saving MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> graph,
-            const std::string& name) {
+  void save(Ptr<ExpressionGraph> graph, const std::string& name) {
     LOG(info)->critical("Saving MNIST model is not supported");
   }
 
-  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph, size_t multiplier) {
+  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
+                                     size_t multiplier) {
     LOG(info)->critical("Collecting stats in MNIST model is not supported");
     return nullptr;
   }
@@ -129,6 +127,5 @@ protected:
     }
   }
 };
-
 }
 }

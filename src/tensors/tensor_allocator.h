@@ -4,9 +4,9 @@
 #include <set>
 
 #include "common/definitions.h"
-#include "tensors/tensor.h"
 #include "tensors/allocator.h"
 #include "tensors/device_gpu.h"
+#include "tensors/tensor.h"
 
 namespace marian {
 
@@ -19,11 +19,9 @@ private:
 
   Ptr<Allocator<DeviceGPU>> allocator_;
 
-
 public:
   TensorAllocator(size_t device)
-    : allocator_(New<Allocator<DeviceGPU>>(device, 0, GROW, ALIGN))
-  {}
+      : allocator_(New<Allocator<DeviceGPU>>(device, 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 
@@ -33,27 +31,23 @@ public:
 
   void reserve(size_t bytes = 0) {
     float mult = bytes / GROW + 1;
-    LOG(memory)->info(
-        "Extending reserved space to {} MB (device {})",
-        mult * CHUNK,
-        allocator_->getDevice());
+    LOG(memory)
+        ->info("Extending reserved space to {} MB (device {})",
+               mult * CHUNK,
+               allocator_->getDevice());
 
     allocator_->reserve(mult * GROW);
   }
 
   void reserveExact(size_t bytes = 0) {
     size_t mbytes = bytes / MBYTE;
-    LOG(memory)->info(
-        "Reserving {} MB, device {}",
-        mbytes,
-        allocator_->getDevice());
+    LOG(memory)
+        ->info("Reserving {} MB, device {}", mbytes, allocator_->getDevice());
 
     allocator_->reserve(bytes);
   }
 
-  void clear() {
-    allocator_->clear();
-  }
+  void clear() { allocator_->clear(); }
 
   size_t capacity(Shape shape) {
     return allocator_->capacity<float>(shape.elements());
@@ -67,9 +61,7 @@ public:
     }
   }
 
-  void free(Tensor& t) {
-    allocator_->free(t->memory());
-  }
+  void free(Tensor& t) { allocator_->free(t->memory()); }
 
   Tensor asTensor() {
     auto mem = allocator_->memory();
@@ -78,7 +70,5 @@ public:
   }
 
   size_t size() { return allocator_->size() / sizeof(float); }
-
 };
-
 }

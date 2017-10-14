@@ -47,7 +47,7 @@ public:
 
         auto scorers = createScorers(options_);
         for(auto scorer : scorers)
-        scorer->init(graph);
+          scorer->init(graph);
 
         scorers_[id] = scorers;
       };

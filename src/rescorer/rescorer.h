@@ -6,9 +6,9 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "models/model_task.h"
+#include "rescorer/score_collector.h"
 #include "training/scheduler.h"
 #include "training/validator.h"
-#include "rescorer/score_collector.h"
 
 namespace marian {
 
@@ -19,8 +19,7 @@ private:
   Ptr<models::ModelBase> builder_;
 
 public:
-  Rescorer(Ptr<Options> options) :
-    builder_(models::from_options(options)) {}
+  Rescorer(Ptr<Options> options) : builder_(models::from_options(options)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
@@ -120,5 +119,4 @@ public:
     }
   }
 };
-
 }

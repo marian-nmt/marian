@@ -26,7 +26,7 @@ public:
     return it->second;
   }
 
-  void add(Ptr<data::CorpusBatch> batch, size_t multiplier=1) {
+  void add(Ptr<data::CorpusBatch> batch, size_t multiplier = 1) {
     std::vector<size_t> lengths;
     for(int i = 0; i < batch->sets(); ++i)
       lengths.push_back((*batch)[i]->batchWidth());

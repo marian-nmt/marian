@@ -4,8 +4,8 @@
 #include <string>
 
 #include "3rd_party/cnpy/cnpy.h"
-#include "common/config_parser.h"
 #include "common/config.h"
+#include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/version.h"
@@ -566,9 +566,7 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
   desc.add(rescore);
 }
 
-void ConfigParser::parseOptions(
-    int argc, char** argv, bool doValidate) {
-
+void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   addOptionsCommon(cmdline_options_);
   addOptionsModel(cmdline_options_);
 
@@ -586,7 +584,6 @@ void ConfigParser::parseOptions(
       break;
   }
   // clang-format on
-
 
   boost::program_options::variables_map vm_;
   try {
@@ -609,7 +606,10 @@ void ConfigParser::parseOptions(
 
   if(mode_ == ConfigMode::translating) {
     if(vm_.count("models") == 0 && vm_.count("config") == 0) {
-      std::cerr << "Error: you need to provide at least one model file or a config file" << std::endl << std::endl;
+      std::cerr << "Error: you need to provide at least one model file or a "
+                   "config file"
+                << std::endl
+                << std::endl;
 
       std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
       std::cerr << cmdline_options_ << std::endl;
@@ -676,7 +676,6 @@ void ConfigParser::parseOptions(
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 
   if(mode_ == ConfigMode::training) {
-
     SET_OPTION("cost-type", std::string);
 
     SET_OPTION("dropout-rnn", float);
@@ -732,7 +731,7 @@ void ConfigParser::parseOptions(
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
-    //SET_OPTION("drop-rate", double);
+    // SET_OPTION("drop-rate", double);
     SET_OPTION_NONDEFAULT("embedding-vectors", std::vector<std::string>);
     SET_OPTION("embedding-normalization", bool);
     SET_OPTION("embedding-fix-src", bool);

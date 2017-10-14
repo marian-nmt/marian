@@ -169,8 +169,7 @@ void LfaBackward(Tensor gradAtt, Tensor adj, Ptr<CSR> sparseLf) {
 
   int exSize = sizeof(float) * batch * srcWords * batch * trgWords;
   uint8_t* expandAttGradBuffer;
-  CUDA_CHECK(cudaMalloc(&expandAttGradBuffer,
-                        exSize));
+  CUDA_CHECK(cudaMalloc(&expandAttGradBuffer, exSize));
 
   float alpha = 1, beta = 0;
   CUSPARSE_CHECK(cusparseScsrmm2(sparseLf->handle(),
@@ -191,8 +190,10 @@ void LfaBackward(Tensor gradAtt, Tensor adj, Ptr<CSR> sparseLf) {
                                  (float*)expandAttGradBuffer,
                                  batch * srcWords));
 
-  Tensor expandAttGrad(new TensorBase(
-      New<MemoryPiece>(expandAttGradBuffer, exSize), {batch * trgWords, batch * srcWords}, 0));
+  Tensor expandAttGrad(
+      new TensorBase(New<MemoryPiece>(expandAttGradBuffer, exSize),
+                     {batch * trgWords, batch * srcWords},
+                     0));
   CollapseAtt(gradAtt, expandAttGrad);
   CUDA_CHECK(cudaFree(expandAttGradBuffer));
 }

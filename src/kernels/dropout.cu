@@ -45,8 +45,7 @@ void Gaussian(Tensor tensor, float mean, float stddev, curandGenerator_t gen) {
   int n = tensor->size();
   // @TODO: fix misalignment with new allocator and use true gaussian noise
   CURAND_CALL(curandGenerateNormal(gen, tensor->data(), n, mean, stddev));
-  //CURAND_CALL(curandGenerateUniform(gen, tensor->data(), n));
-  //Element(_1 = 2.f * stddev * _1 - stddev, tensor);
+  // CURAND_CALL(curandGenerateUniform(gen, tensor->data(), n));
+  // Element(_1 = 2.f * stddev * _1 - stddev, tensor);
 }
-
 }

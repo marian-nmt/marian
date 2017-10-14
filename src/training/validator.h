@@ -103,10 +103,8 @@ protected:
 
 class CrossEntropyValidator : public Validator<data::Corpus> {
 public:
-  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs,
-                        Ptr<Config> options)
+  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options) {
-
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
@@ -120,7 +118,6 @@ protected:
   virtual float validateBG(
       Ptr<ExpressionGraph> graph,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
-
     auto ctype = options_->get<std::string>("cost-type");
 
     float cost = 0;
@@ -150,10 +147,8 @@ protected:
 
 class ScriptValidator : public Validator<data::Corpus> {
 public:
-  ScriptValidator(std::vector<Ptr<Vocab>> vocabs,
-                  Ptr<Config> options)
+  ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options, false) {
-
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
@@ -223,7 +218,7 @@ public:
     // Create scorer
     auto model = options_->get<std::string>("model");
     Ptr<Scorer> scorer = New<ScorerWrapper>(builder_, "", 1.0f, model);
-    std::vector<Ptr<Scorer>> scorers = { scorer };
+    std::vector<Ptr<Scorer>> scorers = {scorer};
 
     // Set up output file
     std::string fileName;
@@ -264,8 +259,8 @@ public:
                          bestn.str(),
                          options_->get<bool>("n-best"));
 
-        //int id = batch->getSentenceIds()[0];
-        //LOG(valid)->info("Best translation {}: {}", id, best1.str());
+        // int id = batch->getSentenceIds()[0];
+        // LOG(valid)->info("Best translation {}: {}", id, best1.str());
 
         sentenceId++;
       }
@@ -278,7 +273,8 @@ public:
 
     // Run post-processing script if given
     if(options_->has("valid-script-path")) {
-      auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
+      auto command
+          = options_->get<std::string>("valid-script-path") + " " + fileName;
       auto valStr = Exec(command);
       val = std::atof(valStr.c_str());
       updateStalled(graph, val);
@@ -310,5 +306,4 @@ protected:
  */
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config);
-
 }

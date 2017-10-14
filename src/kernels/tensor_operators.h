@@ -1055,13 +1055,13 @@ void Prod(cublasHandle_t handle,
           float scalar = 1);
 
 void ProdBatched(cublasHandle_t handle,
-          Tensor C,
-          const Tensor A,
-          const Tensor B,
-          bool transA,
-          bool transB,
-          float beta = 0,
-          float scalar = 1);
+                 Tensor C,
+                 const Tensor A,
+                 const Tensor B,
+                 bool transA,
+                 bool transB,
+                 float beta = 0,
+                 float scalar = 1);
 
 void CopyRowsByIndex(Tensor out,
                      const Tensor in,
@@ -1084,8 +1084,12 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
 void LSTMCellForward(Tensor out, std::vector<Tensor> inputs);
 void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs);
-void LSTMCellBackward(std::vector<Tensor> outputs, std::vector<Tensor> inputs, Tensor adj);
-void LSTMOutputBackward(std::vector<Tensor> outputs, std::vector<Tensor> inputs, Tensor adj);
+void LSTMCellBackward(std::vector<Tensor> outputs,
+                      std::vector<Tensor> inputs,
+                      Tensor adj);
+void LSTMOutputBackward(std::vector<Tensor> outputs,
+                        std::vector<Tensor> inputs,
+                        Tensor adj);
 
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final = false);
 
@@ -1124,9 +1128,15 @@ void SetSparse(float*,
                const std::vector<float>& values);
 
 void HighwayForward(Tensor out,
-                    const Tensor in1, const Tensor in2, const Tensor t);
+                    const Tensor in1,
+                    const Tensor in2,
+                    const Tensor t);
 
-void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
-                     const Tensor in1, const Tensor in2, const Tensor t,
+void HighwayBackward(Tensor out1,
+                     Tensor out2,
+                     Tensor outt,
+                     const Tensor in1,
+                     const Tensor in2,
+                     const Tensor t,
                      const Tensor adj);
 }
