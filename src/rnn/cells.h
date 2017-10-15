@@ -235,8 +235,8 @@ public:
     Expr xW;
     if(xWs.empty()) {
       if(!fakeInput_ || fakeInput_->shape() != sU->shape())
-        fakeInput_ = sU->graph()->constant(sU->shape(),  //
-                                           keywords::init = inits::zeros);
+        fakeInput_
+            = sU->graph()->constant(sU->shape(), keywords::init = inits::zeros);
       xW = fakeInput_;
     } else {
       xW = xWs.front();
@@ -331,12 +331,10 @@ public:
       }
     }
 
-    auto b = graph->param(prefix + "_b",  //
-                          {1, 2 * dimState},
-                          keywords::init = inits::zeros);
-    auto bx = graph->param(prefix + "_bx",  //
-                           {1, dimState},
-                           keywords::init = inits::zeros);
+    auto b = graph->param(
+        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
+    auto bx = graph->param(
+        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
 
     if(layerNorm_) {
       b_ = b;
@@ -344,12 +342,12 @@ public:
 
       // in specific cases we need to pass bx to the kernel
       if(encoder_ && transition_) {
-        auto b0 = graph->constant({1, 2 * dimState},  //
-                                  keywords::init = inits::zeros);
+        auto b0
+            = graph->constant({1, 2 * dimState}, keywords::init = inits::zeros);
         bbx_ = concatenate({b0, bx}, keywords::axis = 1);
       } else {
-        bbx_ = graph->constant({1, 3 * dimState},  //
-                               keywords::init = inits::zeros);
+        bbx_
+            = graph->constant({1, 3 * dimState}, keywords::init = inits::zeros);
       }
     } else {
       bbx_ = concatenate({b, bx}, keywords::axis = 1);
@@ -379,15 +377,13 @@ public:
       U_lns_ = graph->param(prefix + "_U_lns",
                             {1, 2 * dimState},
                             keywords::init = inits::from_value(1.f));
-      U_lnb_ = graph->param(prefix + "_U_lnb",  //
-                            {1, 2 * dimState},
-                            keywords::init = inits::zeros);
+      U_lnb_ = graph->param(
+          prefix + "_U_lnb", {1, 2 * dimState}, keywords::init = inits::zeros);
       Ux_lns_ = graph->param(prefix + "_Ux_lns",
                              {1, 1 * dimState},
                              keywords::init = inits::from_value(1.f));
-      Ux_lnb_ = graph->param(prefix + "_Ux_lnb",  //
-                             {1, 1 * dimState},
-                             keywords::init = inits::zeros);
+      Ux_lnb_ = graph->param(
+          prefix + "_Ux_lnb", {1, 1 * dimState}, keywords::init = inits::zeros);
     }
   }
 
@@ -528,9 +524,8 @@ public:
                         {dimInput, 4 * dimState},
                         keywords::init = inits::glorot_uniform);
 
-    b_ = graph->param(prefix + "_b",  //
-                      {1, 4 * dimState},
-                      keywords::init = inits::zeros);
+    b_ = graph->param(
+        prefix + "_b", {1, 4 * dimState}, keywords::init = inits::zeros);
 
     if(dropout_ > 0.0f) {
       if(dimInput)
@@ -593,8 +588,8 @@ public:
     Expr xW;
     if(xWs.empty()) {
       if(!fakeInput_ || fakeInput_->shape() != sU->shape())
-        fakeInput_ = sU->graph()->constant(sU->shape(),  //
-                                           keywords::init = inits::zeros);
+        fakeInput_
+            = sU->graph()->constant(sU->shape(), keywords::init = inits::zeros);
       xW = fakeInput_;
     } else {
       xW = xWs.front();
@@ -635,9 +630,8 @@ public:
     Wm_ = graph->param(prefix + "_Wm",
                        {dimInput, dimState},
                        keywords::init = inits::glorot_uniform);
-    bm_ = graph->param(prefix + "_bm",  //
-                       {1, dimState},
-                       keywords::init = inits::zeros);
+    bm_ = graph->param(
+        prefix + "_bm", {1, dimState}, keywords::init = inits::zeros);
 
     if(CellType::layerNorm_) {
       gamma1m_ = graph->param(prefix + "_gamma1m",
@@ -709,9 +703,8 @@ public:
     Wf_ = graph->param(prefix + "_Wf",
                        {dimInput, dimState},
                        keywords::init = inits::glorot_uniform);
-    bf_ = graph->param(prefix + "_bf",  //
-                       {1, dimState},
-                       keywords::init = inits::zeros);
+    bf_ = graph->param(
+        prefix + "_bf", {1, dimState}, keywords::init = inits::zeros);
 
     Ui_ = graph->param(prefix + "_Ui",
                        {dimState, dimState},
@@ -719,9 +712,8 @@ public:
     Wi_ = graph->param(prefix + "_Wi",
                        {dimInput, dimState},
                        keywords::init = inits::glorot_uniform);
-    bi_ = graph->param(prefix + "_bi",  //
-                       {1, dimState},
-                       keywords::init = inits::zeros);
+    bi_ = graph->param(
+        prefix + "_bi", {1, dimState}, keywords::init = inits::zeros);
 
     Uc_ = graph->param(prefix + "_Uc",
                        {dimState, dimState},
@@ -729,9 +721,8 @@ public:
     Wc_ = graph->param(prefix + "_Wc",
                        {dimInput, dimState},
                        keywords::init = inits::glorot_uniform);
-    bc_ = graph->param(prefix + "_bc",  //
-                       {1, dimState},
-                       keywords::init = inits::zeros);
+    bc_ = graph->param(
+        prefix + "_bc", {1, dimState}, keywords::init = inits::zeros);
 
     Uo_ = graph->param(prefix + "_Uo",
                        {dimState, dimState},
@@ -739,9 +730,8 @@ public:
     Wo_ = graph->param(prefix + "_Wo",
                        {dimInput, dimState},
                        keywords::init = inits::glorot_uniform);
-    bo_ = graph->param(prefix + "_bo",  //
-                       {1, dimState},
-                       keywords::init = inits::zeros);
+    bo_ = graph->param(
+        prefix + "_bo", {1, dimState}, keywords::init = inits::zeros);
   }
 
   State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
@@ -807,9 +797,8 @@ public:
     auto Wf = graph->param(prefix + "_Wf",
                            {dimInput, dimState},
                            keywords::init = inits::glorot_uniform);
-    auto bf = graph->param(prefix + "_bf",  //
-                           {1, dimState},
-                           keywords::init = inits::zeros);
+    auto bf = graph->param(
+        prefix + "_bf", {1, dimState}, keywords::init = inits::zeros);
 
     auto Ui = graph->param(prefix + "_Ui",
                            {dimState, dimState},
@@ -817,9 +806,8 @@ public:
     auto Wi = graph->param(prefix + "_Wi",
                            {dimInput, dimState},
                            keywords::init = inits::glorot_uniform);
-    auto bi = graph->param(prefix + "_bi",  //
-                           {1, dimState},
-                           keywords::init = inits::zeros);
+    auto bi = graph->param(
+        prefix + "_bi", {1, dimState}, keywords::init = inits::zeros);
 
     auto Uc = graph->param(prefix + "_Uc",
                            {dimState, dimState},
@@ -827,9 +815,8 @@ public:
     auto Wc = graph->param(prefix + "_Wc",
                            {dimInput, dimState},
                            keywords::init = inits::glorot_uniform);
-    auto bc = graph->param(prefix + "_bc",  //
-                           {1, dimState},
-                           keywords::init = inits::zeros);
+    auto bc = graph->param(
+        prefix + "_bc", {1, dimState}, keywords::init = inits::zeros);
 
     auto Uo = graph->param(prefix + "_Uo",
                            {dimState, dimState},
@@ -837,9 +824,8 @@ public:
     auto Wo = graph->param(prefix + "_Wo",
                            {dimInput, dimState},
                            keywords::init = inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo",  //
-                           {1, dimState},
-                           keywords::init = inits::zeros);
+    auto bo = graph->param(
+        prefix + "_bo", {1, dimState}, keywords::init = inits::zeros);
 
     U_ = concatenate({Uf, Ui, Uc, Uo}, keywords::axis = 1);
     W_ = concatenate({Wf, Wi, Wc, Wo}, keywords::axis = 1);

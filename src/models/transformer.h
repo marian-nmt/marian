@@ -99,12 +99,10 @@ public:
       }
       // layer normalization
       if(op == 'n') {
-        auto scale = graph->param(prefix + "_ln_scale_pre",  //
-                                  {1, dimModel},
-                                  init = inits::ones);
-        auto bias = graph->param(prefix + "_ln_bias_pre",  //
-                                 {1, dimModel},
-                                 init = inits::zeros);
+        auto scale = graph->param(
+            prefix + "_ln_scale_pre", {1, dimModel}, init = inits::ones);
+        auto bias = graph->param(
+            prefix + "_ln_bias_pre", {1, dimModel}, init = inits::zeros);
         output = layer_norm(output, scale, bias);
       }
     }
@@ -133,24 +131,20 @@ public:
       }
       // highway connection
       if(op == 'h') {
-        auto Wh = graph->param(prefix + "_Wh",  //
-                               {dimModel, dimModel},
-                               init = inits::glorot_uniform);
-        auto bh = graph->param(prefix + "_bh",  //
-                               {1, dimModel},
-                               init = inits::zeros);
+        auto Wh = graph->param(
+            prefix + "_Wh", {dimModel, dimModel}, init = inits::glorot_uniform);
+        auto bh
+            = graph->param(prefix + "_bh", {1, dimModel}, init = inits::zeros);
 
         auto t = affine(prevInput, Wh, bh);
         output = highway(output, prevInput, t);
       }
       // layer normalization
       if(op == 'n') {
-        auto scale = graph->param(prefix + "_ln_scale",  //
-                                  {1, dimModel},
-                                  init = inits::ones);
-        auto bias = graph->param(prefix + "_ln_bias",  //
-                                 {1, dimModel},
-                                 init = inits::zeros);
+        auto scale = graph->param(
+            prefix + "_ln_scale", {1, dimModel}, init = inits::ones);
+        auto bias = graph->param(
+            prefix + "_ln_bias", {1, dimModel}, init = inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -211,12 +205,9 @@ public:
 
     int dimModel = q->shape()[1];
 
-    auto Wq = graph->param(prefix + "_Wq",  //
-                           {dimModel, dimModel},
-                           init = inits::glorot_uniform);
-    auto bq = graph->param(prefix + "_bq",  //
-                           {1, dimModel},
-                           init = inits::zeros);
+    auto Wq = graph->param(
+        prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
+    auto bq = graph->param(prefix + "_bq", {1, dimModel}, init = inits::zeros);
     auto qh = affine(q, Wq, bq);
     qh = SplitHeads(qh, dimHeads);
 
@@ -229,16 +220,14 @@ public:
       auto Wk = graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
                              init = inits::glorot_uniform);
-      auto bk = graph->param(prefixProj + "_bk",  //
-                             {1, dimModel},
-                             init = inits::zeros);
+      auto bk = graph->param(
+          prefixProj + "_bk", {1, dimModel}, init = inits::zeros);
 
       auto Wv = graph->param(prefixProj + "_Wv",
                              {dimModel, dimModel},
                              init = inits::glorot_uniform);
-      auto bv = graph->param(prefixProj + "_bv",  //
-                             {1, dimModel},
-                             init = inits::zeros);
+      auto bv = graph->param(
+          prefixProj + "_bv", {1, dimModel}, init = inits::zeros);
 
       auto kh = affine(keys[i], Wk, bk);
       auto vh = affine(values[i], Wv, bv);
@@ -262,12 +251,9 @@ public:
 
     int dimAtt = output->shape()[1];
 
-    auto Wo = graph->param(prefix + "_Wo",  //
-                           {dimAtt, dimOut},
-                           init = inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo",  //
-                           {1, dimOut},
-                           init = inits::zeros);
+    auto Wo = graph->param(
+        prefix + "_Wo", {dimAtt, dimOut}, init = inits::glorot_uniform);
+    auto bo = graph->param(prefix + "_bo", {1, dimOut}, init = inits::zeros);
     output = affine(output, Wo, bo);
 
     return output;
@@ -287,11 +273,7 @@ public:
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
-    auto output = PreProcess(graph,  //
-                             prefix + "_Wo",
-                             opsPre,
-                             input,
-                             dropProb);
+    auto output = PreProcess(graph, prefix + "_Wo", opsPre, input, dropProb);
 
     int heads = options->get<float>("transformer-heads");
 
@@ -308,12 +290,8 @@ public:
                        inference);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
-    output = PostProcess(graph,  //
-                         prefix + "_Wo",
-                         opsPost,
-                         output,
-                         input,
-                         dropProb);
+    output
+        = PostProcess(graph, prefix + "_Wo", opsPost, output, input, dropProb);
 
     return output;
   }
@@ -329,39 +307,25 @@ public:
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
-    auto output = PreProcess(graph,  //
-                             prefix + "_ffn",
-                             opsPre,
-                             input,
-                             dropProb);
+    auto output = PreProcess(graph, prefix + "_ffn", opsPre, input, dropProb);
 
     int dimFfn = options->get<int>("transformer-dim-ffn");
 
-    auto W1 = graph->param(prefix + "_W1",  //
-                           {dimModel, dimFfn},
-                           init = inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1",  //
-                           {1, dimFfn},
-                           init = inits::zeros);
+    auto W1 = graph->param(
+        prefix + "_W1", {dimModel, dimFfn}, init = inits::glorot_uniform);
+    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, init = inits::zeros);
 
-    auto W2 = graph->param(prefix + "_W2",  //
-                           {dimFfn, dimModel},
-                           init = inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2",  //
-                           {1, dimModel},
-                           init = inits::zeros);
+    auto W2 = graph->param(
+        prefix + "_W2", {dimFfn, dimModel}, init = inits::glorot_uniform);
+    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, init = inits::zeros);
 
     output = affine(output, W1, b1);
     output = relu(output);
     output = affine(output, W2, b2);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
-    output = PostProcess(graph,  //
-                         prefix + "_ffn",
-                         opsPost,
-                         output,
-                         input,
-                         dropProb);
+    output
+        = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
 
     return output;
   }
@@ -427,8 +391,8 @@ public:
 
     // reorganize batch and timestep
     auto layer = TransposeTimeBatch(scaledEmbeddings);
-    auto layerMask = reshape(TransposeTimeBatch(batchMask),  //
-                             {1, dimSrcWords, dimBatch});
+    auto layerMask
+        = reshape(TransposeTimeBatch(batchMask), {1, dimSrcWords, dimBatch});
 
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
 
@@ -532,11 +496,7 @@ public:
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
 
-    query = PreProcess(graph,  //
-                       prefix_ + "_emb",
-                       opsEmb,
-                       query,
-                       dropProb);
+    query = PreProcess(graph, prefix_ + "_emb", opsEmb, query, dropProb);
 
     rnn::States decoderStates;
     int dimTrgWords = query->shape()[0];
@@ -577,7 +537,7 @@ public:
       decoderStates.push_back({values, nullptr});
 
       // TODO: do not recompute matrix multiplies
-      query = LayerAttention(graph,  //
+      query = LayerAttention(graph,
                              options_,
                              prefix_ + "_l" + std::to_string(i) + "_self",
                              query,
@@ -587,7 +547,7 @@ public:
                              inference_);
 
       if(encoderContexts.size() > 0) {
-        query = LayerAttention(graph,  //
+        query = LayerAttention(graph,
                                options_,
                                prefix_ + "_l" + std::to_string(i) + "_context",
                                query,
@@ -597,7 +557,7 @@ public:
                                inference_);
       }
 
-      query = LayerFFN(graph,  //
+      query = LayerFFN(graph,
                        options_,
                        prefix_ + "_l" + std::to_string(i) + "_ffn",
                        query,

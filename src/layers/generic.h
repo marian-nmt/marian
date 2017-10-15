@@ -91,9 +91,8 @@ public:
       if(tiedParams_.count(nameB))
         b = tiedParams_[nameB];
       else
-        b = g->param(name + "_" + nameB,  //
-                     {1, dim},
-                     keywords::init = inits::zeros);
+        b = g->param(
+            name + "_" + nameB, {1, dim}, keywords::init = inits::zeros);
 
       params_.push_back(W);
       params_.push_back(b);
@@ -157,27 +156,22 @@ public:
     if(tiedParams_.count(nameB))
       b = tiedParams_[nameB];
     else
-      b = g->param(name + "_" + nameB,  //
-                   {1, dim},
-                   keywords::init = inits::zeros);
+      b = g->param(name + "_" + nameB, {1, dim}, keywords::init = inits::zeros);
 
     params_ = {W, b};
 
     Expr out;
     if(layerNorm) {
       if(nematusNorm) {
-        auto ln_s = g->param(name + "_ln_s",  //
-                             {1, dim},
-                             keywords::init = inits::from_value(1.f));
-        auto ln_b = g->param(name + "_ln_b",  //
-                             {1, dim},
-                             keywords::init = inits::zeros);
+        auto ln_s = g->param(
+            name + "_ln_s", {1, dim}, keywords::init = inits::from_value(1.f));
+        auto ln_b
+            = g->param(name + "_ln_b", {1, dim}, keywords::init = inits::zeros);
 
         out = layer_norm(affine(input, W, b), ln_s, ln_b, NEMATUS_LN_EPS);
       } else {
-        auto gamma = g->param(name + "_gamma",  //
-                              {1, dim},
-                              keywords::init = inits::from_value(1.0));
+        auto gamma = g->param(
+            name + "_gamma", {1, dim}, keywords::init = inits::from_value(1.0));
 
         params_.push_back(gamma);
         out = layer_norm(dot(input, W), gamma, b);

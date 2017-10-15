@@ -105,8 +105,7 @@ public:
         for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
           std::string paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell"
                                     + std::to_string(j);
-          stacked.push_back(rnn::cell(graph)  //
-                            ("prefix", paramPrefix));
+          stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
         }
         rnnUni.push_back(stacked);
       }
@@ -226,8 +225,7 @@ private:
       for(int j = 1; j <= decoderHighDepth; j++) {
         auto paramPrefix
             = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
-        highCell.push_back(rnn::cell(graph)  //
-                           ("prefix", paramPrefix));
+        highCell.push_back(rnn::cell(graph)("prefix", paramPrefix));
       }
 
       // Add cell to RNN (more layers)
