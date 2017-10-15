@@ -7,9 +7,11 @@ Marian
 
 **Marian** is a C++ GPU-specific parallel automatic differentiation library
 with operator overloading. It is the training framework used in the Marian
-toolkit. This repository is the development repo of https://github.com/marian-nmt/marian, use it at your own risk.
+toolkit. This repository is the development repo of
+https://github.com/marian-nmt/marian, use it at your own risk.
 
-https://github.com/marian-nmt/marian is updated with stable versions of this repository.
+https://github.com/marian-nmt/marian is updated with stable versions of this
+repository.
 
 Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
@@ -18,8 +20,13 @@ Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 More information on https://marian-nmt.github.io
 
 ## Mailing lists
+
 * General google group: https://groups.google.com/forum/#!forum/marian-nmt (for users and developers)
 * Google group for commit messages: https://groups.google.com/forum/#!forum/marian-nmt-commits (for developers)
+
+## Contributions
+
+See [CONTRIBUTING.md](https://github.com/marian-nmt/marian-dev/blob/master/CONTRIBUTING.md)
 
 ## Acknowledgements
 

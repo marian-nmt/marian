@@ -8,7 +8,7 @@ Did you find a bug or want to ask a question? Great!
 
 * Ensure the bug was not already reported or the question was not asked
 * For bugs check the [github
-  issues](http://github.com/marian-nmt/marian-dev/issues)
+  issues](https://github.com/marian-nmt/marian-dev/issues)
 * For answers to your question search posts on the [Google discussion
   group](https://groups.google.com/forum/#!forum/marian-nmt)
 * Open a new issue/question if you're unable to find yours
@@ -55,9 +55,8 @@ Main code style rules:
 * `camelCase` for variables, methods and functions
 * `UPPERCASE_WITH_UNDERSCORES` for constants
 
-Ideally, plase use the provided `.clang-format` file for
-[ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) to format your new code
-fragments or entire files, e.g.
+Ideally, use the provided `.clang-format` file (in the root directory) for
+[ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) to format your code, e.g.
 
-  clang-format-3.8 <path_to_file>
+    clang-format-3.8 <path_to_file>
 
