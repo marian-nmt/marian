@@ -14,8 +14,6 @@ namespace GPU {
     } \
   }
 
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
-
 __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
                             const mblas::MatrixWrapper<float> probsWrap,
                             const mblas::MatrixWrapper<uint> batchPositionWrap,
