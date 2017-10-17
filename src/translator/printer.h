@@ -19,8 +19,10 @@ void Printer(Ptr<Config> options,
 
     for(size_t i = 0; i < nbl.size(); ++i) {
       const auto& result = nbl[i];
-      const auto& words = result.first;
-      const auto& hypo = result.second;
+      const auto& words = std::get<0>(result);
+      const auto& hypo = std::get<1>(result);
+
+      float realCost = std::get<2>(result);
 
       std::string translation = Join((*vocab)(words));
 
@@ -34,11 +36,7 @@ void Printer(Ptr<Config> options,
         }
       }
 
-      if(options->get<bool>("normalize")) {
-        bestn << " ||| " << hypo->GetCost() / words.size();
-      } else {
-        bestn << " ||| " << hypo->GetCost();
-      }
+      bestn << " ||| " << realCost;
 
       if(i < nbl.size() - 1)
         bestn << std::endl;
@@ -48,7 +46,7 @@ void Printer(Ptr<Config> options,
   }
 
   auto bestTranslation = history->Top();
-  std::string translation = Join((*vocab)(bestTranslation.first));
+  std::string translation = Join((*vocab)(std::get<0>(bestTranslation)));
   best1 << translation << std::flush;
 }
 }

@@ -54,7 +54,7 @@ public:
       }
 
       std::reverse(targetWords.begin(), targetWords.end());
-      nbest.emplace_back(targetWords, history_[bestHypCoord.i][bestHypCoord.j]);
+      nbest.emplace_back(targetWords, history_[bestHypCoord.i][bestHypCoord.j], bestHypCoord.cost);
     }
     return nbest;
   }
