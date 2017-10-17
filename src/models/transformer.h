@@ -263,6 +263,24 @@ public:
     return output;
   }
 
+   Expr LayerAttention(Ptr<ExpressionGraph> graph,
+                      Ptr<Options> options,
+                      std::string prefix,
+                      Expr input,
+                      Expr keys,
+                      Expr values,
+                      Expr mask,
+                      bool inference=false) {
+    return LayerAttention(graph,
+                          options,
+                          prefix,
+                          input,
+                          std::vector<Expr>{keys},
+                          std::vector<Expr>{values},
+                          std::vector<Expr>{mask},
+                          inference);
+  }
+
   Expr LayerAttention(Ptr<ExpressionGraph> graph,
                       Ptr<Options> options,
                       std::string prefix,
@@ -424,9 +442,9 @@ public:
       layer = LayerAttention(graph, options_,
                              prefix_ + "_l" + std::to_string(i) + "_self",
                              layer,
-                             {layer},
-                             {layer},
-                             {layerMask},
+                             layer,
+                             layer,
+                             layerMask,
                              inference_);
 
       layer = LayerFFN(graph, options_,
@@ -555,19 +573,44 @@ public:
       query = LayerAttention(graph, options_,
                              prefix_ + "_l" + std::to_string(i) + "_self",
                              query,
-                             {values},
-                             {values},
-                             {selfMask},
+                             values,
+                             values,
+                             selfMask,
                              inference_);
 
       if(encoderContexts.size() > 0) {
-        query = LayerAttention(graph, options_,
-                               prefix_ + "_l" + std::to_string(i) + "_context",
-                               query,
-                               encoderContexts,
-                               encoderContexts,
-                               encoderMasks,
-                               inference_);
+        //auto comb = opt<std::string>("transformer-multi-encoder");
+        std::string comb = "stack";
+        if(comb == "concat") {
+
+          query = LayerAttention(graph, options_,
+                                 prefix_ + "_l" + std::to_string(i) + "_context",
+                                 query,
+                                 encoderContexts,
+                                 encoderContexts,
+                                 encoderMasks,
+                                 inference_);
+
+        }
+        else if(comb == "stack") {
+          for(int j = 0; j < encoderContexts.size(); ++j) {
+            std::string prefix = prefix_ + "_l" + std::to_string(i) + "_context";
+            if(j > 0)
+              prefix += "_enc" + std::to_string(j + 1);
+
+            query = LayerAttention(graph, options_,
+                                   prefix,
+                                   query,
+                                   encoderContexts[j],
+                                   encoderContexts[j],
+                                   encoderMasks[j],
+                                   inference_);
+
+          }
+        }
+        else {
+          UTIL_THROW2("Unknown value for transformer-multi-encoder: " << comb);
+        }
       }
 
       query = LayerFFN(graph, options_,

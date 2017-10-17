@@ -478,8 +478,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
      "Path to store the translation")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
-    ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
-      "Normalize translation score by translation length")
+    ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
+      "Divide translation score by pow(translation length, arg) ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -502,8 +502,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --input")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search")
-    ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
-      "Normalize translation score by translation length")
+    ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
+      "Divide translation score by pow(translation length, arg) ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("max-length", po::value<size_t>()->default_value(1000),
@@ -750,7 +750,7 @@ void ConfigParser::parseOptions(
   if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("beam-size", size_t);
-    SET_OPTION("normalize", bool);
+    SET_OPTION("normalize", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
@@ -774,7 +774,7 @@ void ConfigParser::parseOptions(
 
     SET_OPTION_NONDEFAULT("trans-output", std::string);
     SET_OPTION("beam-size", size_t);
-    SET_OPTION("normalize", bool);
+    SET_OPTION("normalize", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
   }
