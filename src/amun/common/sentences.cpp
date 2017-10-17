@@ -54,10 +54,6 @@ class LineNumOrderer{
     }
 };
 
-void Sentences::SortByLineNum() {
-  std::sort(coll_.begin(), coll_.end(), LineNumOrderer());
-}
-
 SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
 {
   SentencesPtr sentences(new Sentences());

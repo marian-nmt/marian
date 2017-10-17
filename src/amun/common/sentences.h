@@ -22,8 +22,6 @@ class Sentences {
 
     void SortByLength();
 
-    void SortByLineNum();
-
     SentencesPtr NextMiniBatch(size_t batchsize, int batchWords);
 
   protected:
