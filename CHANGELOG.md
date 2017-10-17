@@ -14,14 +14,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Cyclic learning rate warmup
 - More options for learning rate decay, including: optimizer history reset, repeated
 warmup.
-- Continuous inverted square root decay of learning rate (--lr-decay-inv-sqrt)
+- Continuous inverted square root decay of learning rate (`--lr-decay-inv-sqrt`)
 rate based on number of updates.
-- Exposed optimizer parameters (e.g. momentum etc. for Adam with --optimizer-params)
-- Version of deep RNN-based models compatible with Nematus (--type nematus).
-- Synchronous SGD training for multi-gpu (enable with --sync-sgd).
+- Exposed optimizer parameters (e.g. momentum etc. for Adam with `--optimizer-params`)
+- Version of deep RNN-based models compatible with Nematus (`--type nematus`).
+- Synchronous SGD training for multi-gpu (enable with `--sync-sgd`).
 - Dynamic construction of complex models with different encoders and decoders,
 currently only available through the C++ API.
-- Option --quiet to suppress output to stderr
+- Option `--quiet` to suppress output to stderr
 - Option to choose different variants of optimization criterion:
 mean cross-entropy, perplexity, cross-entopry sum.
 - In-process translation for validation, uses the same memory as training.
@@ -29,11 +29,12 @@ mean cross-entropy, perplexity, cross-entopry sum.
 - Added CHANGELOG.md
 
 ### Changed
-- Renamed "s2s" binary to marian-decoder
-- Renamed "rescorer" binary to marian-scorer
-- Renamed option name --dynamic-batching to --mini-batch-fit
+- Renamed "s2s" binary to "marian-decoder"
+- Renamed "rescorer" binary to "marian-scorer"
+- Renamed option name `--dynamic-batching` to `--mini-batch-fit`
 - Unified cross-entropy-based validation, supports now perplexity and other
-CE variants.
+- Changed `--normalize (bool)` to `--normalize (float)arg`, allow to change length
+normalization weight as `score / pow(length, arg)`.
 
 ### Removed
-- Temporarily removed gradient dropping (--drop-rate X) until refactoring.
+- Temporarily removed gradient dropping (`--drop-rate X`) until refactoring.
