@@ -17,6 +17,7 @@ struct isnan_test {
 };
 
 bool IsNan(Tensor in) {
+  cudaSetDevice(in->getDevice());
   thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
   thrust::device_ptr<float> end = thrust::device_pointer_cast(in->data() + in->size());
   return thrust::transform_reduce(begin, end, isnan_test(), 0, thrust::plus<bool>());
@@ -26,46 +27,40 @@ __global__ void gConcatN(float* out,
                          ShapeGPU outShape,
                          float** ins,
                          ShapeGPU inShape,
-                         size_t* lengths,
+                         int* lengths,
                          size_t num,
-                         size_t axis) {
+                         int axis) {
 
-  int dims[4];
   int length = outShape.elements();
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int offset = 0;
-      size_t i = 0;
-      const float* in = ins[0];
-      size_t inLength = lengths[0];
-
+      int dims[4];
       outShape.dims(index, dims);
 
-      while(dims[axis] >= offset + lengths[i] && i < num) {
-        offset += lengths[i];
-        inLength = lengths[i + 1];
-        in = ins[i + 1];
-        i++;
-      }
+      int i = 0;
+      while(dims[axis] >= lengths[i])
+        dims[axis] -= lengths[i++];
 
-      inShape.set(axis, inLength);
-      dims[axis] -= offset;
+      inShape.set(axis, lengths[i]);
       int inIndex = inShape.bindex(dims);
 
+      const float* in = ins[i];
       out[index] = in[inIndex];
     }
   }
 }
 
 void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
+  cudaSetDevice(out->getDevice());
+
   int length = out->size();
 
   size_t num = ins.size();
 
   std::vector<float*> vins;
-  std::vector<size_t> vlengths;
+  std::vector<int> vlengths;
   for(auto in : ins) {
     vins.push_back(in->data());
     vlengths.push_back(in->shape()[axis]);
@@ -78,11 +73,11 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
-  size_t* d_lengths;
-  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(size_t)));
+  int* d_lengths;
+  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(int)));
   CUDA_CHECK(cudaMemcpy(d_lengths,
                         vlengths.data(),
-                        num * sizeof(size_t),
+                        num * sizeof(int),
                         cudaMemcpyHostToDevice));
 
   int threads = std::min(MAX_THREADS, length);
@@ -107,46 +102,39 @@ __global__ void gSplitN(float* in,
                         ShapeGPU inShape,
                         float** outs,
                         ShapeGPU outShape,
-                        size_t* lengths,
+                        int* lengths,
                         size_t num,
-                        size_t axis) {
-
-  int dims[4];
+                        int axis) {
   int length = inShape.elements();
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int offset = 0;
-      size_t i = 0;
-      float* out = outs[0];
-      size_t outLength = lengths[0];
-
+      int dims[4];
       inShape.dims(index, dims);
 
-      while(dims[axis] >= offset + lengths[i] && i < num) {
-        offset += lengths[i];
-        outLength = lengths[i + 1];
-        out = outs[i + 1];
-        i++;
-      }
+      int i = 0;
+      while(dims[axis] >= lengths[i])
+        dims[axis] -= lengths[i++];
 
-      outShape.set(axis, outLength);
-      dims[axis] -= offset;
+      outShape.set(axis, lengths[i]);
       int outIndex = outShape.bindex(dims);
 
+      float* out = outs[i];
       out[outIndex] = in[index];
     }
   }
 }
 
 void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
+  cudaSetDevice(in->getDevice());
+
   int length = in->size();
 
   size_t num = outs.size();
 
   std::vector<float*> vouts;
-  std::vector<size_t> vlengths;
+  std::vector<int> vlengths;
   for(auto out : outs) {
     vouts.push_back(out->data());
     vlengths.push_back(out->shape()[axis]);
@@ -159,11 +147,11 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
-  size_t* d_lengths;
-  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(size_t)));
+  int* d_lengths;
+  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(int)));
   CUDA_CHECK(cudaMemcpy(d_lengths,
                         vlengths.data(),
-                        num * sizeof(size_t),
+                        num * sizeof(int),
                         cudaMemcpyHostToDevice));
 
   int threads = std::min(MAX_THREADS, length);

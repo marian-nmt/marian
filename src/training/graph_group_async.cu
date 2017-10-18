@@ -21,7 +21,7 @@ void AsyncGraphGroup::fetchParams(Tensor oldParams, const std::vector<Tensor>& p
   std::vector<std::thread> threads;
   for(int idx = 0; idx < devices_.size(); idx++) {
     threads.emplace_back(std::thread(
-        [=](int idx, int pos) {
+        [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
           oldParams->subtensor(pos, params[idx]->size())
@@ -43,7 +43,7 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads, size_t batch_words) {
   int pos = 0;
   for(int idx = 0; idx < devices_.size(); idx++) {
     threads.emplace_back(std::thread(
-        [=](int idx, int pos) {
+        [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
           grads_[idx]->copyFrom(

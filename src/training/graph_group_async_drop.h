@@ -504,8 +504,8 @@ public:
         shardSync_{devices_.size()},
         movingAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")},
-        drop_rate_{options_->get<double>("drop-rate")},
-        tau_{options_->get<size_t>("tau")} {
+        //drop_rate_{options_->get<double>("drop-rate")},
+        tau_{options_->get<size_t>("optimizer-delay")} {
     if(drop_rate_ > 0.0) {
       history_size_ = devices_.size() * 1.5;
     }

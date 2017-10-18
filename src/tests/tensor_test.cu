@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
 
   debug(in1, "in1");
   debug(in2, "in2");
+  debug(in3, "in3");
+  debug(in4, "in4");
   debug(out, "out");
 
   graph->forward();
