@@ -45,9 +45,10 @@ __global__ void gConcatN(float* out,
 
       inShape.set(axis, lengths[i]);
       int inIndex = inShape.bindex(dims);
-
-      const float* in = ins[i];
-      out[index] = in[inIndex];
+      if(inIndex >= 0 && inIndex < inShape.elements()) {
+        const float* in = ins[i];
+        out[index] = in[inIndex];
+      }
     }
   }
 }
@@ -120,8 +121,10 @@ __global__ void gSplitN(float* in,
       outShape.set(axis, lengths[i]);
       int outIndex = outShape.bindex(dims);
 
-      float* out = outs[i];
-      out[outIndex] = in[index];
+      if(outIndex >= 0 && outIndex < outShape.elements()) {
+        float* out = outs[i];
+        out[outIndex] = in[index];
+      }
     }
   }
 }
