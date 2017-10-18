@@ -44,7 +44,7 @@ __global__ void gConcatN(float* out,
         dims[axis] -= lengths[i++];
 
       inShape.set(axis, lengths[i]);
-      int inIndex = inShape.bindex(dims);
+      int inIndex = inShape.index(dims);
 
       const float* in = ins[i];
       out[index] = in[inIndex];
@@ -118,7 +118,7 @@ __global__ void gSplitN(float* in,
         dims[axis] -= lengths[i++];
 
       outShape.set(axis, lengths[i]);
-      int outIndex = outShape.bindex(dims);
+      int outIndex = outShape.index(dims);
 
       float* out = outs[i];
       out[outIndex] = in[index];
@@ -190,7 +190,7 @@ __global__ void gTranspose4D(float* out,
       for(int i = 0; i < 4; ++i)
         dims2[i] = dims1[permute[i]];
 
-      int inIndex = inShape.bindex(dims2);
+      int inIndex = inShape.index(dims2);
 
       out[index] = in[inIndex];
     }
@@ -869,7 +869,7 @@ __global__ void gSelect(float* out,
     if(index < length) {
       outShape.dims(index, dims);
       dims[axis] = d_indices[dims[axis]];
-      int inIndex = inShape.bindex(dims);
+      int inIndex = inShape.index(dims);
       out[index] = in[inIndex];
     }
   }
@@ -890,7 +890,7 @@ __global__ void gInsert(float* out,
     if(index < length) {
       inShape.dims(index, dims);
       dims[axis] = d_indices[dims[index]];
-      int outIndex = outShape.bindex(dims);
+      int outIndex = outShape.index(dims);
       out[outIndex] = in[index];
     }
   }
