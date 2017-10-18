@@ -9,6 +9,7 @@
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
+#include "gpu/dl4mt/cellstate.h"
 
 using namespace std;
 
@@ -25,8 +26,8 @@ EncoderDecoder::EncoderDecoder(
         const Weights& model)
   : Scorer(god, name, config, tab),
     model_(model),
-    encoder_(new Encoder(model_)),
-    decoder_(new Decoder(god, model_)),
+    encoder_(new Encoder(model_, config)),
+    decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {
@@ -119,7 +120,13 @@ void EncoderDecoder::AssembleBeamState(const State& in,
       cudaMemcpyHostToDevice);
   //cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
 
-  mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
+  CellState& outstates = edOut.GetStates();
+  const CellState& instates = edIn.GetStates();
+
+  mblas::Assemble(*(outstates.output), *(instates.output), indices_);
+  if (instates.cell->size() > 0) {
+    mblas::Assemble(*(outstates.cell), *(instates.cell), indices_);
+  }
   //cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
 
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;

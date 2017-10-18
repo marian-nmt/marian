@@ -6,15 +6,16 @@ namespace GPU {
 
 #define SHARED_SIZE 512
 
-#define UNROLL_MAXARG_LOOP( n, max ) \
-  if (tid < (n) && tid + (n) < ( max ) ) { \
-    if (sdata[tid + ( n ) ] > sdata[tid]) { \
-      sdata[tid] = sdata[tid + ( n ) ]; \
-      indices[tid] = indices[tid + ( n ) ]; \
-    } \
+__device__
+void UnrollMaxArgLoop(uint n, uint max, uint tid, float *sdata, uint *indices)
+{
+  if (tid < (n) && tid + (n) < ( max ) ) {
+    if (sdata[tid + ( n ) ] > sdata[tid]) {
+      sdata[tid] = sdata[tid + ( n ) ];
+      indices[tid] = indices[tid + ( n ) ];
+    }
   }
-
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
+}
 
 __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
                             const mblas::MatrixWrapper<float> probsWrap,
@@ -80,12 +81,12 @@ __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
       __syncthreads();
     }
 
-    UNROLL_MAXARG_LOOP(32, end);
-    UNROLL_MAXARG_LOOP(16, end);
-    UNROLL_MAXARG_LOOP(8, end);
-    UNROLL_MAXARG_LOOP(4, end);
-    UNROLL_MAXARG_LOOP(2, end);
-    UNROLL_MAXARG_LOOP(1, end);
+    UnrollMaxArgLoop(32, end, tid, sdata, indices);
+    UnrollMaxArgLoop(16, end, tid, sdata, indices);
+    UnrollMaxArgLoop(8, end, tid, sdata, indices);
+    UnrollMaxArgLoop(4, end, tid, sdata, indices);
+    UnrollMaxArgLoop(2, end, tid, sdata, indices);
+    UnrollMaxArgLoop(1, end, tid, sdata, indices);
 
     if (tid == 0) {
       out[blockIdx.x + batchIdx * gridDim.x] = {indices[0], sdata[0]};
@@ -165,12 +166,12 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
       __syncthreads();
     }
 
-    UNROLL_MAXARG_LOOP(32, num_bins);
-    UNROLL_MAXARG_LOOP(16, num_bins);
-    UNROLL_MAXARG_LOOP(8, num_bins);
-    UNROLL_MAXARG_LOOP(4, num_bins);
-    UNROLL_MAXARG_LOOP(2, num_bins);
-    UNROLL_MAXARG_LOOP(1, num_bins);
+    UnrollMaxArgLoop(32, num_bins, tid, sdata, indices);
+    UnrollMaxArgLoop(16, num_bins, tid, sdata, indices);
+    UnrollMaxArgLoop(8, num_bins, tid, sdata, indices);
+    UnrollMaxArgLoop(4, num_bins, tid, sdata, indices);
+    UnrollMaxArgLoop(2, num_bins, tid, sdata, indices);
+    UnrollMaxArgLoop(1, num_bins, tid, sdata, indices);
 
     if (tid == 0) {
       bestBinCost = sdata[0];
@@ -236,12 +237,12 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
       __syncthreads();
     }
 
-    UNROLL_MAXARG_LOOP(32, batchPositionWrap[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(16, batchPositionWrap[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(8, batchPositionWrap[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(4, batchPositionWrap[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(2, batchPositionWrap[batchIdx + 1]);
-    UNROLL_MAXARG_LOOP(1, batchPositionWrap[batchIdx + 1]);
+    UnrollMaxArgLoop(32, batchPositionWrap[batchIdx + 1], tid, sdata, indices);
+    UnrollMaxArgLoop(16, batchPositionWrap[batchIdx + 1], tid, sdata, indices);
+    UnrollMaxArgLoop(8, batchPositionWrap[batchIdx + 1], tid, sdata, indices);
+    UnrollMaxArgLoop(4, batchPositionWrap[batchIdx + 1], tid, sdata, indices);
+    UnrollMaxArgLoop(2, batchPositionWrap[batchIdx + 1], tid, sdata, indices);
+    UnrollMaxArgLoop(1, batchPositionWrap[batchIdx + 1], tid, sdata, indices);
 
     if (tid == 0) {
       out[bestBinCostIdx] = {indices[0], sdata[0]};

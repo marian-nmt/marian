@@ -83,7 +83,7 @@ elseif (APPLE)
       set(BOOST_PYTHON_VERSION_NAME "python")
     endif(NOT PYTHON_VERSION_NORMALIZED EQUAL 27)
 
-    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread chrono)
 endif (UNIX AND NOT APPLE)
 
 if(Boost_FOUND)

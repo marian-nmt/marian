@@ -33,7 +33,7 @@ void EncoderDecoderLoader::Load(const God &god) {
     devicePool.enqueue([d, &path, this] {
         LOG(info->info("Loading model {} onto gpu {}", path, d));
         HANDLE_ERROR(cudaSetDevice(d));
-        weights_[d].reset(new Weights(path, d));
+        weights_[d].reset(new Weights(path, config_, d));
       });
   }
 }

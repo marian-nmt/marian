@@ -6,11 +6,39 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
-Encoder::Encoder(const Weights& model)
-: embeddings_(model.encEmbeddings_),
-  forwardRnn_(model.encForwardGRU_),
-  backwardRnn_(model.encBackwardGRU_)
-{
+Encoder::Encoder(const Weights& model, const YAML::Node& config)
+  : embeddings_(model.encEmbeddings_),
+    forwardRnn_(InitForwardCell(model, config)),
+    backwardRnn_(InitBackwardCell(model, config))
+{}
+
+std::unique_ptr<Cell> Encoder::InitForwardCell(const Weights& model, const YAML::Node& config){
+  std::string celltype = config["enc-cell"] ? config["enc-cell"].as<std::string>() : "gru";
+  if (celltype == "lstm") {
+    return unique_ptr<Cell>(new LSTM<Weights::EncForwardLSTM>(*(model.encForwardLSTM_)));
+  } else if (celltype == "mlstm") {
+    return unique_ptr<Cell>(new Multiplicative<LSTM, Weights::EncForwardLSTM>(*model.encForwardMLSTM_));
+  } else if (celltype == "gru") {
+    return unique_ptr<Cell>(new GRU<Weights::EncForwardGRU>(*(model.encForwardGRU_)));
+  }
+
+  assert(false);
+  return unique_ptr<Cell>(nullptr);
+}
+
+std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML::Node& config){
+  std::string enccell = config["enc-cell"] ? config["enc-cell"].as<std::string>() : "gru";
+  std::string celltype = config["enc-cell-r"] ? config["enc-cell-r"].as<std::string>() : enccell;
+  if (celltype == "lstm") {
+    return unique_ptr<Cell>(new LSTM<Weights::EncBackwardLSTM>(*(model.encBackwardLSTM_)));
+  } else if (celltype == "mlstm") {
+    return unique_ptr<Cell>(new Multiplicative<LSTM, Weights::EncBackwardLSTM>(*model.encBackwardMLSTM_));
+  } else if (celltype == "gru") {
+    return unique_ptr<Cell>(new GRU<Weights::EncBackwardGRU>(*(model.encBackwardGRU_)));
+  }
+
+  assert(false);
+  return unique_ptr<Cell>(nullptr);
 }
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
@@ -55,7 +83,7 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
   context.NewSize(maxSentenceLength,
-                 forwardRnn_.GetStateLength() + backwardRnn_.GetStateLength(),
+                 forwardRnn_.GetStateLength().output + backwardRnn_.GetStateLength().output,
                  1,
                  source.size());
   //cerr << "GetContext2=" << context.Debug(1) << endl;
