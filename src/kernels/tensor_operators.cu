@@ -25,7 +25,7 @@ bool IsNan(Tensor in) {
 
 __global__ void gConcatN(float* out,
                          ShapeGPU outShape,
-                         float** ins,
+                         const float** ins,
                          ShapeGPU inShape,
                          int* lengths,
                          size_t num,
@@ -40,7 +40,7 @@ __global__ void gConcatN(float* out,
       outShape.dims(index, dims);
 
       int i = 0;
-      while(dims[axis] >= lengths[i] && i < num - 1)
+      while(dims[axis] >= lengths[i])
         dims[axis] -= lengths[i++];
 
       inShape.set(axis, lengths[i]);
@@ -58,25 +58,25 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
   int length = out->size();
 
   size_t num = ins.size();
+  float* h_ins[num];
+  int h_lengths[num];
 
-  std::vector<float*> vins;
-  std::vector<int> vlengths;
-  for(auto in : ins) {
-    vins.push_back(in->data());
-    vlengths.push_back(in->shape()[axis]);
+  for(int i = 0; i < num; ++i) {
+    h_ins[i] = ins[i]->data();
+    h_lengths[i] = ins[i]->shape()[axis];
   }
 
-  float** d_ins;
-  CUDA_CHECK(cudaMalloc(&d_ins, num * sizeof(float*)));
+  const float** d_ins;
+  CUDA_CHECK(cudaMalloc((void**)&d_ins, num * sizeof(float*)));
   CUDA_CHECK(cudaMemcpy(d_ins,
-                        vins.data(),
+                        h_ins,
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
   int* d_lengths;
-  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_lengths, num * sizeof(int)));
   CUDA_CHECK(cudaMemcpy(d_lengths,
-                        vlengths.data(),
+                        h_lengths,
                         num * sizeof(int),
                         cudaMemcpyHostToDevice));
 
@@ -98,7 +98,7 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
   CUDA_CHECK(cudaFree(d_lengths));
 }
 
-__global__ void gSplitN(float* in,
+__global__ void gSplitN(const float* in,
                         ShapeGPU inShape,
                         float** outs,
                         ShapeGPU outShape,
@@ -114,7 +114,7 @@ __global__ void gSplitN(float* in,
       inShape.dims(index, dims);
 
       int i = 0;
-      while(dims[axis] >= lengths[i] && i < num - 1)
+      while(dims[axis] >= lengths[i])
         dims[axis] -= lengths[i++];
 
       outShape.set(axis, lengths[i]);
@@ -132,25 +132,25 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
   int length = in->size();
 
   size_t num = outs.size();
+  float* h_outs[num];
+  int h_lengths[num];
 
-  std::vector<float*> vouts;
-  std::vector<int> vlengths;
-  for(auto out : outs) {
-    vouts.push_back(out->data());
-    vlengths.push_back(out->shape()[axis]);
+  for(int i = 0; i < num; ++i) {
+    h_outs[i] = outs[i]->data();
+    h_lengths[i] = outs[i]->shape()[axis];
   }
 
   float** d_outs;
-  CUDA_CHECK(cudaMalloc(&d_outs, num * sizeof(float*)));
+  CUDA_CHECK(cudaMalloc((void**)&d_outs, num * sizeof(float*)));
   CUDA_CHECK(cudaMemcpy(d_outs,
-                        vouts.data(),
+                        h_outs,
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
   int* d_lengths;
-  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&d_lengths, num * sizeof(int)));
   CUDA_CHECK(cudaMemcpy(d_lengths,
-                        vlengths.data(),
+                        h_lengths,
                         num * sizeof(int),
                         cudaMemcpyHostToDevice));
 
