@@ -12,10 +12,10 @@ int main(int argc, char** argv) {
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto in1 = graph->constant({1, 3, 2, 2}, init=inits::from_value(1));
-  auto in2 = graph->constant({1, 3, 2, 2}, init=inits::from_value(2));
-  auto in3 = graph->constant({1, 3, 2, 2}, init=inits::from_value(3));
-  auto in4 = graph->constant({1, 3, 2, 2}, init=inits::from_value(4));
+  auto in1 = graph->constant({2, 3, 2, 1}, init=inits::from_value(1));
+  auto in2 = graph->constant({2, 3, 2, 1}, init=inits::from_value(2));
+  auto in3 = graph->constant({2, 3, 2, 1}, init=inits::from_value(3));
+  auto in4 = graph->constant({2, 3, 2, 1}, init=inits::from_value(4));
 
   auto out = concatenate({in1, in2, in3, in4}, axis=1);
 

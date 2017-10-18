@@ -40,15 +40,14 @@ __global__ void gConcatN(float* out,
       outShape.dims(index, dims);
 
       int i = 0;
-      while(dims[axis] >= lengths[i])
+      while(dims[axis] >= lengths[i] && i < num - 1)
         dims[axis] -= lengths[i++];
 
       inShape.set(axis, lengths[i]);
       int inIndex = inShape.bindex(dims);
-      if(inIndex >= 0 && inIndex < inShape.elements()) {
-        const float* in = ins[i];
-        out[index] = in[inIndex];
-      }
+
+      const float* in = ins[i];
+      out[index] = in[inIndex];
     }
   }
 }
@@ -115,16 +114,14 @@ __global__ void gSplitN(float* in,
       inShape.dims(index, dims);
 
       int i = 0;
-      while(dims[axis] >= lengths[i])
+      while(dims[axis] >= lengths[i] && i < num - 1)
         dims[axis] -= lengths[i++];
 
       outShape.set(axis, lengths[i]);
       int outIndex = outShape.bindex(dims);
 
-      if(outIndex >= 0 && outIndex < outShape.elements()) {
-        float* out = outs[i];
-        out[outIndex] = in[index];
-      }
+      float* out = outs[i];
+      out[outIndex] = in[index];
     }
   }
 }
