@@ -49,33 +49,45 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
   }
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
-  UTIL_THROW_IF2(maxVocabs.size() != vocabPaths.size(),
-                 "number of vocabularies and specification of vocabulary sizes "
-                 "does not match!");
-  // If vocabularies exist, can't we get the dimensions from them and require
-  // dim-vocabs only when they don't? [UG]
+
   if(training) {
     std::vector<Vocab> vocabs;
 
     if(vocabPaths.empty()) {
+      if(maxVocabs.size() < paths_.size())
+        maxVocabs.resize(paths_.size(), 0);
+
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
-        vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
+        int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
+        LOG(data)->info("Setting vocabulary size for input {} to {}", i, vocSize);
+        options_->get()["dim-vocabs"][i] = vocSize;
+
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
         vocabs_.emplace_back(vocab);
       }
     } else {
       // Load all vocabs
+      if(maxVocabs.size() < vocabPaths.size())
+        maxVocabs.resize(paths_.size(), 0);
+
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
-        vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+        int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+        LOG(data)->info("Setting vocabulary size for input {} to {}", i, vocSize);
+        options_->get()["dim-vocabs"][i] = vocSize;
+
         vocabs_.emplace_back(vocab);
       }
     }
-  } else {  // i.e., if translating
-    UTIL_THROW_IF2(vocabPaths.empty(),
-                   "translating but vocabularies are missing!");
+  } else { // i.e., if translating
+    UTIL_THROW_IF2(vocabPaths.empty(), "translating but vocabularies are
+        missing!");
+
+    if(maxVocabs.size() < vocabPaths.size())
+        maxVocabs.resize(paths_.size(), 0);
+
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);

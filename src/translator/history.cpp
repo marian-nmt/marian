@@ -2,6 +2,6 @@
 
 namespace marian {
 
-History::History(size_t lineNo, bool normalize)
-    : normalize_(normalize), lineNo_(lineNo) {}
+History::History(size_t lineNo, float alpha)
+    : lineNo_(lineNo), alpha_(alpha) {}
 }

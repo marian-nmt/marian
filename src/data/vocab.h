@@ -26,12 +26,11 @@ public:
 
   size_t size() const;
 
-  void loadOrCreate(const std::string& vocabPath,
-                    const std::string& textPath,
-                    int max = 0);
-  void load(const std::string& vocabPath, int max = 0);
+  int loadOrCreate(const std::string& vocabPath,
+                   const std::string& textPath,
+                   int max = 0);
+  int load(const std::string& vocabPath, int max = 0);
   void create(const std::string& vocabPath,
-              int max,
               const std::string& trainPath);
 
 private:

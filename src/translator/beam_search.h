@@ -66,7 +66,7 @@ public:
                       size_t sentenceId = 0) {
     auto history = New<History>(
         sentenceId,
-        options_->has("normalize") ? options_->get<bool>("normalize") : false);
+        options_->get<float>("normalize"));
     Beam beam(1, New<Hypothesis>());
     bool first = true;
     bool final = false;

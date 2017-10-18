@@ -60,28 +60,26 @@ size_t Vocab::size() const {
   return id2str_.size();
 }
 
-void Vocab::loadOrCreate(const std::string& vocabPath,
+int Vocab::loadOrCreate(const std::string& vocabPath,
                          const std::string& trainPath,
                          int max) {
   if(vocabPath.empty()) {
     if(boost::filesystem::exists(trainPath + ".json")) {
-      load(trainPath + ".json", max);
-      return;
+      return load(trainPath + ".json", max);
     }
     if(boost::filesystem::exists(trainPath + ".yml")) {
-      load(trainPath + ".yml", max);
-      return;
+      return load(trainPath + ".yml", max);
     }
-    create(trainPath + ".yml", max, trainPath);
-    load(trainPath + ".yml", max);
+    create(trainPath + ".yml", trainPath);
+    return load(trainPath + ".yml", max);
   } else {
     if(!boost::filesystem::exists(vocabPath))
-      create(vocabPath, max, trainPath);
-    load(vocabPath, max);
+      create(vocabPath, trainPath);
+    return load(vocabPath, max);
   }
 }
 
-void Vocab::load(const std::string& vocabPath, int max) {
+int Vocab::load(const std::string& vocabPath, int max) {
   LOG(data)->info("Loading vocabulary from {}", vocabPath);
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
 
@@ -108,6 +106,8 @@ void Vocab::load(const std::string& vocabPath, int max) {
   id2str_[UNK_ID] = UNK_STR;
   for(auto id : seenSpecial)
     id2str_[id] = SYM2SPEC.at(id);
+
+  return id2str_.size();
 }
 
 class Vocab::VocabFreqOrderer {
@@ -124,13 +124,11 @@ public:
 };
 
 void Vocab::create(const std::string& vocabPath,
-                   int max,
                    const std::string& trainPath) {
   LOG(data)
-      ->info("Creating vocabulary {} from {} (max: {})",
+      ->info("Creating vocabulary {} from {}",
              vocabPath,
-             trainPath,
-             max);
+             trainPath);
 
   UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
                  "Vocab file " << vocabPath << " exists. Not overwriting");

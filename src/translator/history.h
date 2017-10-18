@@ -17,14 +17,17 @@ private:
   };
 
 public:
-  History(size_t lineNo, bool normalize = false);
+  History(size_t lineNo, float alpha = 1.f);
+
+  float LengthPenalty(size_t length) {
+    return std::pow((float)length, alpha_);
+  }
 
   void Add(const Beam& beam, bool last = false) {
     if(beam.back()->GetPrevHyp() != nullptr) {
       for(size_t j = 0; j < beam.size(); ++j)
         if(beam[j]->GetWord() == 0 || last) {
-          float cost = normalize_ ? beam[j]->GetCost() / history_.size()
-                                  : beam[j]->GetCost();
+          float cost = beam[j]->GetCost() / LengthPenalty(history_.size());
           topHyps_.push({history_.size(), j, cost});
         }
     }
@@ -51,7 +54,7 @@ public:
       }
 
       std::reverse(targetWords.begin(), targetWords.end());
-      nbest.emplace_back(targetWords, history_[bestHypCoord.i][bestHypCoord.j]);
+      nbest.emplace_back(targetWords, history_[bestHypCoord.i][bestHypCoord.j], bestHypCoord.cost);
     }
     return nbest;
   }
@@ -63,8 +66,8 @@ public:
 private:
   std::vector<Beam> history_;
   std::priority_queue<HypothesisCoord> topHyps_;
-  bool normalize_;
   size_t lineNo_;
+  float alpha_;
 };
 
 typedef std::vector<History> Histories;

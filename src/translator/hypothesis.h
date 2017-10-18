@@ -37,6 +37,6 @@ private:
 typedef std::vector<Ptr<Hypothesis>> Beam;
 typedef std::vector<Beam> Beams;
 typedef std::vector<size_t> Words;
-typedef std::pair<Words, Ptr<Hypothesis>> Result;
+typedef std::tuple<Words, Ptr<Hypothesis>, float> Result;
 typedef std::vector<Result> NBestList;
 }
