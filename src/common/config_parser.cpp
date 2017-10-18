@@ -232,11 +232,11 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
 
   model.add_options()
     ("type", po::value<std::string>()->default_value("amun"),
-      "Model type (possible values: amun, nematus, s2s, multi-s2s)")
+      "Model type (possible values: amun, nematus, s2s, multi-s2s, transformer)")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
-      ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
-     "Maximum items in vocabulary ordered by rank")
+      ->default_value(std::vector<int>({0, 0}), "0 0"),
+     "Maximum items in vocabulary ordered by rank, 0 uses all items in the provided/created vocabulary file")
     ("dim-emb", po::value<int>()->default_value(512),
      "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024),
