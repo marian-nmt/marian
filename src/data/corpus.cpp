@@ -82,8 +82,8 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       }
     }
   } else { // i.e., if translating
-    UTIL_THROW_IF2(vocabPaths.empty(), "translating but vocabularies are
-        missing!");
+    UTIL_THROW_IF2(vocabPaths.empty(),
+                   "translating but vocabularies are missing!");
 
     if(maxVocabs.size() < vocabPaths.size())
         maxVocabs.resize(paths_.size(), 0);
