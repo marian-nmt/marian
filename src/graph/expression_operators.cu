@@ -157,11 +157,11 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
 }
 
 Expr transpose(Expr a) {
-  return Expression<TransposeNodeOp>(a);
+  return Expression<TransposeNodeOp>(a, Shape({1, 0, 2, 3}));
 }
 
 Expr transpose(Expr a, Shape permute) {
-  return Expression<Transpose4DNodeOp>(a, permute);
+  return Expression<TransposeNodeOp>(a, permute);
 }
 
 Expr step(Expr a, size_t step) {

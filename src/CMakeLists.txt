@@ -13,6 +13,7 @@ cuda_add_library(marian
   graph/node_operators.cu
   tensors/tensor.cu
   tensors/device_gpu.cu
+  tensors/memory_piece.cu
   kernels/tensor_operators.cu
   kernels/dropout.cu
   kernels/sparse.cu
