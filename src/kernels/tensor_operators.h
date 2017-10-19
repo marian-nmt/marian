@@ -8,6 +8,8 @@
 
 #include "kernels/shape_gpu.h"
 #include "tensors/tensor.h"
+#include "tensors/allocator.h"
+#include "tensors/device_gpu.h"
 
 namespace marian {
 
@@ -23,11 +25,17 @@ cublasHandle_t create_handle(size_t);
 
 void Transpose4D(Tensor out, Tensor in, Shape tranpose);
 
-void Select(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
-void Insert(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+void Select(Ptr<Allocator<DeviceGPU>> allocator,
+            Tensor out, Tensor in, int axis, const std::vector<size_t>&);
 
-void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis);
-void SplitN(std::vector<Tensor>& outs, const Tensor in, int axis);
+void Insert(Ptr<Allocator<DeviceGPU>> allocator,
+            Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+
+void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
+             Tensor out, const std::vector<Tensor>& ins, int axis);
+
+void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
+            std::vector<Tensor>& outs, const Tensor in, int axis);
 
 template <class Functor>
 __global__ void gAddR2(Functor functor,
@@ -1075,12 +1083,6 @@ void PasteRows(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
-
-void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
-
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
-
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
 void LSTMCellForward(Tensor out, std::vector<Tensor> inputs);
 void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs);

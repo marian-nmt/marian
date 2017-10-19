@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 namespace marian {
 
 class MemoryPiece {
@@ -12,6 +14,17 @@ public:
 
   uint8_t* data() const { return data_; }
   uint8_t* data() { return data_; }
+
+  template <typename T>
+  T* data() const {
+    return (T*)data_;
+  }
+
+  template <typename T>
+  T* data() {
+    return (T*)data_;
+  }
+
   size_t size() const { return size_; }
 
   void set(uint8_t* data, size_t size) {
@@ -20,6 +33,13 @@ public:
   }
 
   void setPtr(uint8_t* data) { data_ = data; }
+
+  template <typename T>
+  void insert(T* ptr, size_t num) {
+    insert((uint8_t*)ptr, num * sizeof(T));
+  }
+
+  void insert(uint8_t* ptr, size_t num);
 
   friend std::ostream& operator<<(std::ostream& out, const MemoryPiece mp) {
     out << "MemoryPiece - ptr: " << std::hex << (size_t)mp.data() << std::dec

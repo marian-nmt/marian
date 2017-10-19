@@ -1,4 +1,3 @@
-
 #include <thrust/transform_reduce.h>
 
 #include "kernels/cuda_helpers.h"
@@ -15,6 +14,7 @@ struct isnan_test {
 };
 
 bool IsNan(Tensor in) {
+  cudaSetDevice(in->getDevice());
   thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
   thrust::device_ptr<float> end
       = thrust::device_pointer_cast(in->data() + in->size());
@@ -24,63 +24,54 @@ bool IsNan(Tensor in) {
 
 __global__ void gConcatN(float* out,
                          ShapeGPU outShape,
-                         float** ins,
+                         const float** ins,
                          ShapeGPU inShape,
-                         size_t* lengths,
+                         int* lengths,
                          size_t num,
-                         size_t axis) {
-  int dims[4];
+                         int axis) {
   int length = outShape.elements();
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int offset = 0;
-      size_t i = 0;
-      const float* in = ins[0];
-      size_t inLength = lengths[0];
-
+      int dims[4];
       outShape.dims(index, dims);
 
-      while(dims[axis] >= offset + lengths[i] && i < num) {
-        offset += lengths[i];
-        inLength = lengths[i + 1];
-        in = ins[i + 1];
-        i++;
-      }
+      int i = 0;
+      while(dims[axis] >= lengths[i])
+        dims[axis] -= lengths[i++];
 
-      inShape.set(axis, inLength);
-      dims[axis] -= offset;
-      int inIndex = inShape.bindex(dims);
+      inShape.set(axis, lengths[i]);
+      int inIndex = inShape.index(dims);
 
+      const float* in = ins[i];
       out[index] = in[inIndex];
     }
   }
 }
 
-void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
+void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
+             Tensor out,
+             const std::vector<Tensor>& ins,
+             int axis) {
+  cudaSetDevice(out->getDevice());
+
   int length = out->size();
 
   size_t num = ins.size();
+  float* h_ins[num];
+  int h_lengths[num];
 
-  std::vector<float*> vins;
-  std::vector<size_t> vlengths;
-  for(auto in : ins) {
-    vins.push_back(in->data());
-    vlengths.push_back(in->shape()[axis]);
+  for(int i = 0; i < num; ++i) {
+    h_ins[i] = ins[i]->data();
+    h_lengths[i] = ins[i]->shape()[axis];
   }
 
-  float** d_ins;
-  CUDA_CHECK(cudaMalloc(&d_ins, num * sizeof(float*)));
-  CUDA_CHECK(cudaMemcpy(
-      d_ins, vins.data(), num * sizeof(float*), cudaMemcpyHostToDevice));
+  auto mp_ins = allocator->alloc<float*>(num);
+  mp_ins->insert(h_ins, num);
 
-  size_t* d_lengths;
-  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_lengths,
-                        vlengths.data(),
-                        num * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
+  auto mp_lengths = allocator->alloc<int>(num);
+  mp_lengths->insert(h_lengths, num);
 
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
@@ -88,72 +79,68 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
   auto inShape = ins[0]->shape();
   inShape.set(axis, 1);
 
-  gConcatN<<<blocks, threads>>>(
-      out->data(), out->shape(), d_ins, inShape, d_lengths, num, axis);
+  gConcatN<<<blocks, threads>>>(out->data(),
+                                out->shape(),
+                                mp_ins->data<const float*>(),
+                                inShape,
+                                mp_lengths->data<int>(),
+                                num,
+                                axis);
 
-  CUDA_CHECK(cudaFree(d_ins));
-  CUDA_CHECK(cudaFree(d_lengths));
+  allocator->free(mp_ins);
+  allocator->free(mp_lengths);
 }
 
-__global__ void gSplitN(float* in,
+__global__ void gSplitN(const float* in,
                         ShapeGPU inShape,
                         float** outs,
                         ShapeGPU outShape,
-                        size_t* lengths,
+                        int* lengths,
                         size_t num,
-                        size_t axis) {
-  int dims[4];
+                        int axis) {
   int length = inShape.elements();
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int offset = 0;
-      size_t i = 0;
-      float* out = outs[0];
-      size_t outLength = lengths[0];
-
+      int dims[4];
       inShape.dims(index, dims);
 
-      while(dims[axis] >= offset + lengths[i] && i < num) {
-        offset += lengths[i];
-        outLength = lengths[i + 1];
-        out = outs[i + 1];
-        i++;
-      }
+      int i = 0;
+      while(dims[axis] >= lengths[i])
+        dims[axis] -= lengths[i++];
 
-      outShape.set(axis, outLength);
-      dims[axis] -= offset;
-      int outIndex = outShape.bindex(dims);
+      outShape.set(axis, lengths[i]);
+      int outIndex = outShape.index(dims);
 
+      float* out = outs[i];
       out[outIndex] = in[index];
     }
   }
 }
 
-void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
+void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
+            std::vector<Tensor>& outs,
+            Tensor in,
+            int axis) {
+  cudaSetDevice(in->getDevice());
+
   int length = in->size();
 
   size_t num = outs.size();
+  float* h_outs[num];
+  int h_lengths[num];
 
-  std::vector<float*> vouts;
-  std::vector<size_t> vlengths;
-  for(auto out : outs) {
-    vouts.push_back(out->data());
-    vlengths.push_back(out->shape()[axis]);
+  for(int i = 0; i < num; ++i) {
+    h_outs[i] = outs[i]->data();
+    h_lengths[i] = outs[i]->shape()[axis];
   }
 
-  float** d_outs;
-  CUDA_CHECK(cudaMalloc(&d_outs, num * sizeof(float*)));
-  CUDA_CHECK(cudaMemcpy(
-      d_outs, vouts.data(), num * sizeof(float*), cudaMemcpyHostToDevice));
+  auto mp_outs = allocator->alloc<float*>(num);
+  mp_outs->insert(h_outs, num);
 
-  size_t* d_lengths;
-  CUDA_CHECK(cudaMalloc(&d_lengths, num * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_lengths,
-                        vlengths.data(),
-                        num * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
+  auto mp_lengths = allocator->alloc<int>(num);
+  mp_lengths->insert(h_lengths, num);
 
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
@@ -161,11 +148,16 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
   auto outShape = outs[0]->shape();
   outShape.set(axis, 1);
 
-  gSplitN<<<blocks, threads>>>(
-      in->data(), in->shape(), d_outs, outShape, d_lengths, num, axis);
+  gSplitN<<<blocks, threads>>>(in->data(),
+                               in->shape(),
+                               mp_outs->data<float*>(),
+                               outShape,
+                               mp_lengths->data<int>(),
+                               num,
+                               axis);
 
-  CUDA_CHECK(cudaFree(d_outs));
-  CUDA_CHECK(cudaFree(d_lengths));
+  allocator->free(mp_outs);
+  allocator->free(mp_lengths);
 }
 
 __global__ void gTranspose4D(float* out,
@@ -185,7 +177,7 @@ __global__ void gTranspose4D(float* out,
       for(int i = 0; i < 4; ++i)
         dims2[i] = dims1[permute[i]];
 
-      int inIndex = inShape.bindex(dims2);
+      int inIndex = inShape.index(dims2);
 
       out[index] = in[inIndex];
     }
@@ -854,7 +846,7 @@ __global__ void gSelect(float* out,
     if(index < length) {
       outShape.dims(index, dims);
       dims[axis] = d_indices[dims[axis]];
-      int inIndex = inShape.bindex(dims);
+      int inIndex = inShape.index(dims);
       out[index] = in[inIndex];
     }
   }
@@ -874,13 +866,14 @@ __global__ void gInsert(float* out,
     if(index < length) {
       inShape.dims(index, dims);
       dims[axis] = d_indices[dims[index]];
-      int outIndex = outShape.bindex(dims);
+      int outIndex = outShape.index(dims);
       out[outIndex] = in[index];
     }
   }
 }
 
-void Select(Tensor out,
+void Select(Ptr<Allocator<DeviceGPU>> allocator,
+            Tensor out,
             const Tensor in,
             int axis,
             const std::vector<size_t>& indices) {
@@ -891,20 +884,21 @@ void Select(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, indices.size() * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        indices.size() * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
+  auto mp_indices = allocator->alloc<size_t>(indices.size());
+  mp_indices->insert(indices.data(), indices.size());
 
-  gSelect<<<blocks, threads>>>(
-      out->data(), out->shape(), in->data(), in->shape(), axis, d_indices);
+  gSelect<<<blocks, threads>>>(out->data(),
+                               out->shape(),
+                               in->data(),
+                               in->shape(),
+                               axis,
+                               mp_indices->data<size_t>());
 
-  CUDA_CHECK(cudaFree(d_indices));
+  allocator->free(mp_indices);
 }
 
-void Insert(Tensor out,
+void Insert(Ptr<Allocator<DeviceGPU>> allocator,
+            Tensor out,
             const Tensor in,
             int axis,
             const std::vector<size_t>& indices) {
@@ -915,234 +909,17 @@ void Insert(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, indices.size() * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        indices.size() * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
+  auto mp_indices = allocator->alloc<size_t>(indices.size());
+  mp_indices->insert(indices.data(), indices.size());
 
-  gInsert<<<blocks, threads>>>(
-      out->data(), out->shape(), in->data(), in->shape(), axis, d_indices);
+  gInsert<<<blocks, threads>>>(out->data(),
+                               out->shape(),
+                               in->data(),
+                               in->shape(),
+                               axis,
+                               mp_indices->data<size_t>());
 
-  CUDA_CHECK(cudaFree(d_indices));
-}
-
-//////////////
-
-void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in) {
-  cudaSetDevice(out->getDevice());
-  size_t steps = in->shape()[2] * in->shape()[3];
-  for(int i = 0; i < steps; i++) {
-    size_t m = in->shape()[0];
-    size_t n = in->shape()[1];
-    float alpha = 1.0;
-    float beta = 0.0;
-
-    size_t offset = i * m * n;
-
-    cublasSgeam(cublasHandle,
-                CUBLAS_OP_T,
-                CUBLAS_OP_T,
-                m,
-                n,
-                &alpha,
-                in->data() + offset,
-                n,
-                &beta,
-                in->data() + offset,
-                n,
-                out->data() + offset,
-                m);
-  }
-}
-
-void Concatenate0(Tensor out, const std::vector<Tensor>& inputs) {
-  cudaSetDevice(out->getDevice());
-
-  size_t offset = 0;
-  for(auto in : inputs) {
-    UTIL_THROW_IF2(out->shape()[1] != in->shape()[1],
-                   "Second dimension must be equal");
-    cudaMemcpy(out->data() + offset,
-               in->data(),
-               in->size() * sizeof(float),
-               cudaMemcpyDeviceToDevice);
-    offset += in->size();
-  }
-}
-
-__global__ void gInsertCols(float* out,
-                            const float* in,
-                            size_t rows,
-                            size_t cols,
-                            size_t cols_out,
-                            size_t cols_in,
-                            size_t offset_out,
-                            size_t offset_in) {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols_out + offset_out;
-      const float* rowIn = in + j * cols_in + offset_in;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = rowIn[i];
-      }
-    }
-  }
-}
-
-__global__ void gConcatenateAx1(float* out,
-                                size_t rows,
-                                const float* in1,
-                                const float* in2,
-                                size_t colsIn1,
-                                size_t colsIn2) {
-  size_t cols = colsIn1 + colsIn2;
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn1 = in1 + j * colsIn1;
-      const float* rowIn2 = in2 + j * colsIn2;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < colsIn1)
-          rowOut[i] = rowIn1[i];
-        else if(i >= colsIn1 && i < colsIn1 + colsIn2)
-          rowOut[i] = rowIn2[i - colsIn1];
-      }
-    }
-  }
-}
-
-__global__ void gConcatenateAx1(float* out,
-                                size_t rows,
-                                const float* in1,
-                                const float* in2,
-                                const float* in3,
-                                size_t colsIn1,
-                                size_t colsIn2,
-                                size_t colsIn3) {
-  size_t cols = colsIn1 + colsIn2 + colsIn3;
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-      const float* rowIn1 = in1 + j * colsIn1;
-      const float* rowIn2 = in2 + j * colsIn2;
-      const float* rowIn3 = in3 + j * colsIn3;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < colsIn1)
-          rowOut[i] = rowIn1[i];
-        else if(i >= colsIn1 && i < colsIn1 + colsIn2)
-          rowOut[i] = rowIn2[i - colsIn1];
-        else if(i >= colsIn1 + colsIn2 && i < colsIn1 + colsIn2 + colsIn3)
-          rowOut[i] = rowIn3[i - colsIn1 - colsIn2];
-      }
-    }
-  }
-}
-
-void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
-  cudaSetDevice(out->getDevice());
-
-  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  if(inputs.size() == 2) {
-    int cols = out->shape()[1];
-    int blocks = std::min(MAX_BLOCKS, rows);
-    int threads = std::min(MAX_THREADS, cols);
-    gConcatenateAx1<<<blocks, threads>>>(out->data(),
-                                         rows,
-                                         inputs[0]->data(),
-                                         inputs[1]->data(),
-                                         inputs[0]->shape()[1],
-                                         inputs[1]->shape()[1]);
-    return;
-  }
-  if(inputs.size() == 3) {
-    int cols = out->shape()[1];
-    int blocks = std::min(MAX_BLOCKS, rows);
-    int threads = std::min(MAX_THREADS, cols);
-    gConcatenateAx1<<<blocks, threads>>>(out->data(),
-                                         rows,
-                                         inputs[0]->data(),
-                                         inputs[1]->data(),
-                                         inputs[2]->data(),
-                                         inputs[0]->shape()[1],
-                                         inputs[1]->shape()[1],
-                                         inputs[2]->shape()[1]);
-    return;
-  }
-
-  size_t offset = 0;
-  int cols_out = out->shape()[1];
-
-  for(auto in : inputs) {
-    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
-                   "First dimension must be equal");
-    int cols_in = in->shape()[1];
-
-    int blocks = std::min(MAX_BLOCKS, rows);
-    int threads = std::min(MAX_THREADS, cols_in);
-
-    gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0);
-    offset += cols_in;
-  }
-}
-
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
-  if(ax == 1)
-    Concatenate1(out, inputs);
-  else
-    Concatenate0(out, inputs);
-}
-
-void Deconcatenate0(std::vector<Tensor>& outputs, const Tensor in) {
-  cudaSetDevice(in->getDevice());
-
-  size_t offset = 0;
-  for(auto out : outputs) {
-    cudaMemcpy(out->data(),
-               in->data() + offset,
-               out->size() * sizeof(float),
-               cudaMemcpyDeviceToDevice);
-    offset += out->size();
-  }
-}
-
-void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
-  cudaSetDevice(in->getDevice());
-
-  size_t offset = 0;
-  int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
-  int cols_in = in->shape()[1];
-  for(auto out : outputs) {
-    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
-                   "First dimension must be equal");
-    int cols_out = out->shape()[1];
-
-    int blocks = std::min(MAX_BLOCKS, rows);
-    int threads = std::min(MAX_THREADS, cols_out);
-
-    gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset);
-    offset += cols_out;
-  }
-}
-
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
-  if(ax == 1)
-    Deconcatenate1(outputs, in);
-  else
-    Deconcatenate0(outputs, in);
+  allocator->free(mp_indices);
 }
 
 __global__ void gGRUFastForward(float* out,

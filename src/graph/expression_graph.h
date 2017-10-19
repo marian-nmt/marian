@@ -419,6 +419,8 @@ public:
       tensors_->free(t);
   }
 
+  Ptr<Allocator<DeviceGPU>> allocator() { return tensors_->allocator(); }
+
   void clear() {
     // clear everything apart from parameters
     count_ = 0;

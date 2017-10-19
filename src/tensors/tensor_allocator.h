@@ -70,5 +70,7 @@ public:
   }
 
   size_t size() { return allocator_->size() / sizeof(float); }
+
+  Ptr<Allocator<DeviceGPU>> allocator() { return allocator_; }
 };
 }

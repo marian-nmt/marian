@@ -13,6 +13,7 @@ cuda_add_library(marian
   graph/node_operators.cu
   tensors/tensor.cu
   tensors/device_gpu.cu
+  tensors/memory_piece.cu
   kernels/tensor_operators.cu
   kernels/dropout.cu
   kernels/sparse.cu
@@ -48,13 +49,13 @@ cuda_add_library(marian
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-cuda_add_executable(marian_train command/marian.cpp)
+add_executable(marian_train command/marian.cpp)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
 
 add_executable(marian_decoder command/marian_decoder.cpp)
 set_target_properties(marian_decoder PROPERTIES OUTPUT_NAME marian-decoder)
 
-cuda_add_executable(marian_scorer command/marian_scorer.cpp)
+add_executable(marian_scorer command/marian_scorer.cpp)
 set_target_properties(marian_scorer PROPERTIES OUTPUT_NAME marian-scorer)
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer)

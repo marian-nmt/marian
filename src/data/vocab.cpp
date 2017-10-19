@@ -107,7 +107,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
   for(auto id : seenSpecial)
     id2str_[id] = SYM2SPEC.at(id);
 
-  return id2str_.size();
+  return std::max((int)id2str_.size(), max);
 }
 
 class Vocab::VocabFreqOrderer {
