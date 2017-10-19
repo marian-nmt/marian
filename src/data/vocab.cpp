@@ -61,8 +61,8 @@ size_t Vocab::size() const {
 }
 
 int Vocab::loadOrCreate(const std::string& vocabPath,
-                         const std::string& trainPath,
-                         int max) {
+                        const std::string& trainPath,
+                        int max) {
   if(vocabPath.empty()) {
     if(boost::filesystem::exists(trainPath + ".json")) {
       return load(trainPath + ".json", max);
@@ -123,12 +123,8 @@ public:
   }
 };
 
-void Vocab::create(const std::string& vocabPath,
-                   const std::string& trainPath) {
-  LOG(data)
-      ->info("Creating vocabulary {} from {}",
-             vocabPath,
-             trainPath);
+void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
+  LOG(data)->info("Creating vocabulary {} from {}", vocabPath, trainPath);
 
   UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
                  "Vocab file " << vocabPath << " exists. Not overwriting");

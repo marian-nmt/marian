@@ -162,12 +162,10 @@ public:
       W_ = concatenate({W, Wx}, keywords::axis = 1);
     }
 
-    auto b = graph->param(prefix + "_b",
-                         {1, 2 * dimState},
-                         keywords::init = inits::zeros);
-    auto bx = graph->param(prefix + "_bx",
-                           {1, dimState},
-                           keywords::init = inits::zeros);
+    auto b = graph->param(
+        prefix + "_b", {1, 2 * dimState}, keywords::init = inits::zeros);
+    auto bx = graph->param(
+        prefix + "_bx", {1, dimState}, keywords::init = inits::zeros);
     b_ = concatenate({b, bx}, keywords::axis = 1);
 
     // @TODO use this and adjust Amun model type saving and loading
@@ -472,7 +470,8 @@ public:
     Expr xW;
     if(transition_) {
       if(!fakeInput_ || fakeInput_->shape() != sU->shape())
-        fakeInput_ = sU->graph()->constant(sU->shape(), keywords::init = inits::zeros);
+        fakeInput_
+            = sU->graph()->constant(sU->shape(), keywords::init = inits::zeros);
       xW = fakeInput_;
     } else {
       xW = xWs.front();

@@ -61,7 +61,8 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
-        LOG(data)->info("Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(data)
+            ->info("Setting vocabulary size for input {} to {}", i, vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
@@ -74,19 +75,21 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
 
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
-        int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-        LOG(data)->info("Setting vocabulary size for input {} to {}", i, vocSize);
+        int vocSize
+            = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+        LOG(data)
+            ->info("Setting vocabulary size for input {} to {}", i, vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
       }
     }
-  } else { // i.e., if translating
+  } else {  // i.e., if translating
     UTIL_THROW_IF2(vocabPaths.empty(),
                    "translating but vocabularies are missing!");
 
     if(maxVocabs.size() < vocabPaths.size())
-        maxVocabs.resize(paths_.size(), 0);
+      maxVocabs.resize(paths_.size(), 0);
 
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();

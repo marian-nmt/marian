@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdlib>
 
-#include "common/logging.h"
 #include "3rd_party/exception.h"
+#include "common/logging.h"
 
 #define CUDA_CHECK(ans) \
   { gpuAssert((ans), __FILE__, __LINE__); }
@@ -12,10 +12,8 @@ inline void gpuAssert(cudaError_t code,
                       int line,
                       bool abort = true) {
   if(code != cudaSuccess) {
-    LOG(info)->critical("Error: {} - {}:{}",
-                        cudaGetErrorString(code),
-                        file,
-                        line);
+    LOG(info)
+        ->critical("Error: {} - {}:{}", cudaGetErrorString(code), file, line);
     std::abort();
   }
 }

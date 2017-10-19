@@ -30,8 +30,7 @@ public:
                    const std::string& textPath,
                    int max = 0);
   int load(const std::string& vocabPath, int max = 0);
-  void create(const std::string& vocabPath,
-              const std::string& trainPath);
+  void create(const std::string& vocabPath, const std::string& trainPath);
 
 private:
   typedef std::map<std::string, size_t> Str2Id;

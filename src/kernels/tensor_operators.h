@@ -6,8 +6,9 @@
 #include <thrust/host_vector.h>
 #include <thrust/pair.h>
 
-#include "kernels/shape_gpu.h"
 #include "tensors/tensor.h"
+
+#include "kernels/shape_gpu.h"
 #include "tensors/allocator.h"
 #include "tensors/device_gpu.h"
 
@@ -26,16 +27,26 @@ cublasHandle_t create_handle(size_t);
 void Transpose4D(Tensor out, Tensor in, Shape tranpose);
 
 void Select(Ptr<Allocator<DeviceGPU>> allocator,
-            Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+            Tensor out,
+            Tensor in,
+            int axis,
+            const std::vector<size_t>&);
 
 void Insert(Ptr<Allocator<DeviceGPU>> allocator,
-            Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+            Tensor out,
+            Tensor in,
+            int axis,
+            const std::vector<size_t>&);
 
 void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
-             Tensor out, const std::vector<Tensor>& ins, int axis);
+             Tensor out,
+             const std::vector<Tensor>& ins,
+             int axis);
 
 void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
-            std::vector<Tensor>& outs, const Tensor in, int axis);
+            std::vector<Tensor>& outs,
+            const Tensor in,
+            int axis);
 
 template <class Functor>
 __global__ void gAddR2(Functor functor,

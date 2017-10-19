@@ -6,9 +6,6 @@
 namespace marian {
 
 void MemoryPiece::insert(uint8_t* ptr, size_t num) {
-  CUDA_CHECK(cudaMemcpy(data_,
-                        ptr,
-                        num * sizeof(uint8_t),
-                        cudaMemcpyDefault));
+  CUDA_CHECK(cudaMemcpy(data_, ptr, num * sizeof(uint8_t), cudaMemcpyDefault));
 }
 }

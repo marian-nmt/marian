@@ -259,14 +259,14 @@ public:
     return output;
   }
 
-   Expr LayerAttention(Ptr<ExpressionGraph> graph,
+  Expr LayerAttention(Ptr<ExpressionGraph> graph,
                       Ptr<Options> options,
                       std::string prefix,
                       Expr input,
                       Expr keys,
                       Expr values,
                       Expr mask,
-                      bool inference=false) {
+                      bool inference = false) {
     return LayerAttention(graph,
                           options,
                           prefix,
@@ -565,36 +565,36 @@ public:
                              inference_);
 
       if(encoderContexts.size() > 0) {
-        //auto comb = opt<std::string>("transformer-multi-encoder");
+        // auto comb = opt<std::string>("transformer-multi-encoder");
         std::string comb = "stack";
         if(comb == "concat") {
+          query
+              = LayerAttention(graph,
+                               options_,
+                               prefix_ + "_l" + std::to_string(i) + "_context",
+                               query,
+                               encoderContexts,
+                               encoderContexts,
+                               encoderMasks,
+                               inference_);
 
-          query = LayerAttention(graph, options_,
-                                 prefix_ + "_l" + std::to_string(i) + "_context",
-                                 query,
-                                 encoderContexts,
-                                 encoderContexts,
-                                 encoderMasks,
-                                 inference_);
-
-        }
-        else if(comb == "stack") {
+        } else if(comb == "stack") {
           for(int j = 0; j < encoderContexts.size(); ++j) {
-            std::string prefix = prefix_ + "_l" + std::to_string(i) + "_context";
+            std::string prefix
+                = prefix_ + "_l" + std::to_string(i) + "_context";
             if(j > 0)
               prefix += "_enc" + std::to_string(j + 1);
 
-            query = LayerAttention(graph, options_,
+            query = LayerAttention(graph,
+                                   options_,
                                    prefix,
                                    query,
                                    encoderContexts[j],
                                    encoderContexts[j],
                                    encoderMasks[j],
                                    inference_);
-
           }
-        }
-        else {
+        } else {
           UTIL_THROW2("Unknown value for transformer-multi-encoder: " << comb);
         }
       }

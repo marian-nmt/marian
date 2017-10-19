@@ -19,9 +19,7 @@ private:
 public:
   History(size_t lineNo, float alpha = 1.f);
 
-  float LengthPenalty(size_t length) {
-    return std::pow((float)length, alpha_);
-  }
+  float LengthPenalty(size_t length) { return std::pow((float)length, alpha_); }
 
   void Add(const Beam& beam, bool last = false) {
     if(beam.back()->GetPrevHyp() != nullptr) {
@@ -54,7 +52,9 @@ public:
       }
 
       std::reverse(targetWords.begin(), targetWords.end());
-      nbest.emplace_back(targetWords, history_[bestHypCoord.i][bestHypCoord.j], bestHypCoord.cost);
+      nbest.emplace_back(targetWords,
+                         history_[bestHypCoord.i][bestHypCoord.j],
+                         bestHypCoord.cost);
     }
     return nbest;
   }
