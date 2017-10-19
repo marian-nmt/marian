@@ -83,7 +83,7 @@ boost::python::list translate(boost::python::list& in)
   for (size_t i = 0; i < allHistories.size(); ++i) {
     const History& history = *allHistories.at(i).get();
     std::stringstream ss;
-    Printer(god_, history, ss);
+    Printer(god_, history, ss, *maxiBatch);
     string str = ss.str();
 
     output.append(str);

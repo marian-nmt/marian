@@ -63,7 +63,7 @@ std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis) {
 
 std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, size_t linenum) {
   std::vector<SoftAlignment> aligns;
-  HypothesisPtr last = hypothesis->GetPrevHyp();
+  HypothesisPtr last = hypothesis;
   while (last->GetPrevHyp().get() != nullptr) {
     aligns.push_back(*(last->GetAlignment(0)));
     last = last->GetPrevHyp();
@@ -71,9 +71,8 @@ std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::stri
   //<Sentence Number> ||| <Translation> ||| 0 ||| <Source> ||| <Source word count> <Translation word count>
   std::stringstream firstline;
   int srcspaces = std::count_if(source.begin(), source.end(), [](unsigned char c){ return std::isspace(c); });
-  int tgtspaces = std::count_if(best.begin(), best.end(), [](unsigned char c){ return std::isspace(c); });
   
-  firstline << linenum << " ||| " << best << " ||| " << hypothesis->GetCost() << " ||| " << source << " ||| " << srcspaces+2 << " " << tgtspaces+2;
+  firstline << linenum << " ||| " << best << " ||| " << hypothesis->GetCost() << " ||| " << source << " ||| " << srcspaces+2 << " " << aligns.size();
 
   std::stringstream alignString;
   for (auto it = aligns.rbegin(); it != aligns.rend(); ++it) {
@@ -82,14 +81,6 @@ std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::stri
       if (i>0) alignString << " ";
       alignString << (*it)[i];
     }
-  }
-  //print 0 attentions for the <EOS> tag in the hypothesis translation
-  for (size_t i = 0; i < srcspaces+2; ++i) {
-    if (i>0) 
-	  alignString << " ";
-	else
-	  alignString << "\n";
-    alignString << "0";
   }
   alignString << "\n";
 
