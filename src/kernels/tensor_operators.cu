@@ -52,7 +52,10 @@ __global__ void gConcatN(float* out,
   }
 }
 
-void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
+void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
+             Tensor out,
+             const std::vector<Tensor>& ins,
+             int axis) {
   cudaSetDevice(out->getDevice());
 
   int length = out->size();
@@ -66,16 +69,15 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
     h_lengths[i] = ins[i]->shape()[axis];
   }
 
-  const float** d_ins;
-  CUDA_CHECK(cudaMalloc((void**)&d_ins, num * sizeof(float*)));
-  CUDA_CHECK(cudaMemcpy(d_ins,
+  auto mp_ins = allocator->alloc<float*>(num);
+  auto mp_lengths = allocator->alloc<int>(num);
+
+  CUDA_CHECK(cudaMemcpy(mp_ins->data(),
                         h_ins,
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
-  int* d_lengths;
-  CUDA_CHECK(cudaMalloc((void**)&d_lengths, num * sizeof(int)));
-  CUDA_CHECK(cudaMemcpy(d_lengths,
+  CUDA_CHECK(cudaMemcpy(mp_lengths->data(),
                         h_lengths,
                         num * sizeof(int),
                         cudaMemcpyHostToDevice));
@@ -88,14 +90,14 @@ void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis) {
 
   gConcatN<<<blocks, threads>>>(out->data(),
                                 out->shape(),
-                                d_ins,
+                                mp_ins->data<const float*>(),
                                 inShape,
-                                d_lengths,
+                                mp_lengths->data<int>(),
                                 num,
                                 axis);
 
-  CUDA_CHECK(cudaFree(d_ins));
-  CUDA_CHECK(cudaFree(d_lengths));
+  allocator->free(mp_ins);
+  allocator->free(mp_lengths);
 }
 
 __global__ void gSplitN(const float* in,
@@ -126,7 +128,8 @@ __global__ void gSplitN(const float* in,
   }
 }
 
-void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
+void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
+            std::vector<Tensor>& outs, Tensor in, int axis) {
   cudaSetDevice(in->getDevice());
 
   int length = in->size();
@@ -140,19 +143,19 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
     h_lengths[i] = outs[i]->shape()[axis];
   }
 
-  float** d_outs;
-  CUDA_CHECK(cudaMalloc((void**)&d_outs, num * sizeof(float*)));
-  CUDA_CHECK(cudaMemcpy(d_outs,
+  auto mp_outs = allocator->alloc<float*>(num);
+  auto mp_lengths = allocator->alloc<int>(num);
+
+  CUDA_CHECK(cudaMemcpy(mp_outs->data(),
                         h_outs,
                         num * sizeof(float*),
                         cudaMemcpyHostToDevice));
 
-  int* d_lengths;
-  CUDA_CHECK(cudaMalloc((void**)&d_lengths, num * sizeof(int)));
-  CUDA_CHECK(cudaMemcpy(d_lengths,
+  CUDA_CHECK(cudaMemcpy(mp_lengths->data(),
                         h_lengths,
                         num * sizeof(int),
                         cudaMemcpyHostToDevice));
+
 
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
@@ -162,14 +165,14 @@ void SplitN(std::vector<Tensor>& outs, Tensor in, int axis) {
 
   gSplitN<<<blocks, threads>>>(in->data(),
                                in->shape(),
-                               d_outs,
+                               mp_outs->data<float*>(),
                                outShape,
-                               d_lengths,
+                               mp_lengths->data<int>(),
                                num,
                                axis);
 
-  CUDA_CHECK(cudaFree(d_outs));
-  CUDA_CHECK(cudaFree(d_lengths));
+  allocator->free(mp_outs);
+  allocator->free(mp_lengths);
 }
 
 __global__ void gTranspose4D(float* out,

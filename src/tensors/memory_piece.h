@@ -13,6 +13,13 @@ class MemoryPiece {
 
     uint8_t* data() const { return data_; }
     uint8_t* data() { return data_; }
+
+    template <typename T>
+    T* data() const { return (T*)data_; }
+
+    template <typename T>
+    T* data() { return (T*)data_; }
+
     size_t size() const { return size_; }
 
     void set(uint8_t* data, size_t size) {

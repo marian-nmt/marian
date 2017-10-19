@@ -8,6 +8,8 @@
 
 #include "kernels/shape_gpu.h"
 #include "tensors/tensor.h"
+#include "tensors/allocator.h"
+#include "tensors/device_gpu.h"
 
 namespace marian {
 
@@ -26,8 +28,11 @@ void Transpose4D(Tensor out, Tensor in, Shape tranpose);
 void Select(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
 void Insert(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
 
-void ConcatN(Tensor out, const std::vector<Tensor>& ins, int axis);
-void SplitN(std::vector<Tensor>& outs, const Tensor in, int axis);
+void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
+             Tensor out, const std::vector<Tensor>& ins, int axis);
+
+void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
+            std::vector<Tensor>& outs, const Tensor in, int axis);
 
 template <class Functor>
 __global__ void gAddR2(Functor functor,
