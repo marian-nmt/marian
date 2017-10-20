@@ -28,7 +28,7 @@ std::shared_ptr<spdlog::logger> stderrLogger(
   return logger;
 }
 
-bool set_loglevel(spdlog::logger& logger, std::string const level) {
+bool setLoggingLevel(spdlog::logger& logger, std::string const level) {
   if(level == "trace")
     logger.set_level(spdlog::level::trace);
   else if(level == "debug")
@@ -53,6 +53,7 @@ bool set_loglevel(spdlog::logger& logger, std::string const level) {
 void createLoggers(const marian::Config* options) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
+
   if(options && options->has("log")) {
     generalLogs.push_back(options->get<std::string>("log"));
     validLogs.push_back(options->get<std::string>("log"));
@@ -65,29 +66,13 @@ void createLoggers(const marian::Config* options) {
   // @TODO: remove unused loggers
   bool quiet = options && options->get<bool>("quiet");
   Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
-  Logger warn{
-      stderrLogger("warn", "[%Y-%m-%d %T] [warn] %v", generalLogs, quiet)};
-  Logger config{
-      stderrLogger("config", "[%Y-%m-%d %T] [config] %v", generalLogs, quiet)};
-  Logger memory{
-      stderrLogger("memory", "[%Y-%m-%d %T] [memory] %v", generalLogs, quiet)};
-  Logger data{
-      stderrLogger("data", "[%Y-%m-%d %T] [data] %v", generalLogs, quiet)};
   Logger valid{
       stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs, quiet)};
-  Logger translate{stderrLogger("translate", "%v", generalLogs, quiet)};
-  Logger devnull{stderrLogger("devnull", "%v", {}, quiet)};
-  devnull->set_level(spdlog::level::off);
 
   if(options && options->has("log-level")) {
     std::string loglevel = options->get<std::string>("log-level");
-    if(!set_loglevel(*info, loglevel))
+    if(!setLoggingLevel(*info, loglevel))
       return;
-    set_loglevel(*warn, loglevel);
-    set_loglevel(*config, loglevel);
-    set_loglevel(*memory, loglevel);
-    set_loglevel(*data, loglevel);
-    set_loglevel(*valid, loglevel);
-    set_loglevel(*translate, loglevel);
+    setLoggingLevel(*valid, loglevel);
   }
 }
