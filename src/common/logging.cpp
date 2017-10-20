@@ -50,16 +50,6 @@ bool set_loglevel(spdlog::logger& logger, std::string const level) {
   return true;
 }
 
-Logger checkedLog(std::string logger) {
-  Logger ret = spdlog::get(logger);
-  if(ret) {
-    return ret;
-  } else {
-    auto null_sink = std::make_shared<spdlog::sinks::null_sink_st>();
-    return std::make_shared<spdlog::logger>("null_logger", null_sink);
-  }
-}
-
 void createLoggers(const marian::Config* options) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
@@ -72,6 +62,7 @@ void createLoggers(const marian::Config* options) {
     validLogs.push_back(options->get<std::string>("valid-log"));
   }
 
+  // @TODO: remove unused loggers
   bool quiet = options && options->get<bool>("quiet");
   Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
   Logger warn{

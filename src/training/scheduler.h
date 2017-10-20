@@ -49,16 +49,16 @@ public:
   }
 
   void increaseEpoch() {
-    LOG(info)->info("Seen {} samples", samples);
+    LOG(info, "Seen {} samples", samples);
 
     state_->newEpoch();
     samples = 0;
 
-    LOG(info)->info("Starting epoch {}", state_->epochs);
+    LOG(info, "Starting epoch {}", state_->epochs);
   }
 
-  void started() { LOG(info)->info("Training started"); }
-  void finished() { LOG(info)->info("Training finished"); }
+  void started() { LOG(info, "Training started"); }
+  void finished() { LOG(info, "Training finished"); }
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
@@ -85,18 +85,18 @@ public:
       size_t stalledPrev = validator->stalled();
       float value = validator->validate(graph);
       if(validator->stalled() > 0)
-        LOG(valid)
-            ->info("{} : {} : {} : stalled {} times",
-                   state_->batches,
-                   validator->type(),
-                   value,
-                   validator->stalled());
+        LOG_VALID(info,
+                  "{} : {} : {} : stalled {} times",
+                  state_->batches,
+                  validator->type(),
+                  value,
+                  validator->stalled());
       else
-        LOG(valid)
-            ->info("{} : {} : {} : new best",
-                   state_->batches,
-                   validator->type(),
-                   value);
+        LOG_VALID(info,
+                  "{} : {} : {} : new best",
+                  state_->batches,
+                  validator->type(),
+                  value);
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
@@ -121,28 +121,26 @@ public:
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(options_->get<bool>("lr-report")) {
-        LOG(info)
-            ->info(
-                "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-                "words/s : L.r. {:.4e}",
-                state_->epochs,
-                state_->batches,
-                samples,
-                costSum / samplesDisp,
-                timer.format(2, "%ws"),
-                wordsDisp / std::stof(timer.format(5, "%w")),
-                state_->eta);
+        LOG(info,
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+            "words/s : L.r. {:.4e}",
+            state_->epochs,
+            state_->batches,
+            samples,
+            costSum / samplesDisp,
+            timer.format(2, "%ws"),
+            wordsDisp / std::stof(timer.format(5, "%w")),
+            state_->eta);
       } else {
-        LOG(info)
-            ->info(
-                "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-                "words/s",
-                state_->epochs,
-                state_->batches,
-                samples,
-                costSum / samplesDisp,
-                timer.format(2, "%ws"),
-                wordsDisp / std::stof(timer.format(5, "%w")));
+        LOG(info,
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+            "words/s",
+            state_->epochs,
+            state_->batches,
+            samples,
+            costSum / samplesDisp,
+            timer.format(2, "%ws"),
+            wordsDisp / std::stof(timer.format(5, "%w")));
       }
       timer.start();
       costSum = 0;
@@ -238,17 +236,17 @@ public:
       if(decay) {
         state.factor *= factor;
         state.eta = baselr * state.factor;
-        LOG(info)
-            ->info("Decaying learning rate to {} in epoch {}",
-                   state.eta,
-                   state.epochs);
+        LOG(info,
+            "Decaying learning rate to {} in epoch {}",
+            state.eta,
+            state.epochs);
 
         state.reset = options_->get<bool>("lr-decay-reset-optimizer");
         if(state.reset)
-          LOG(info)->info("Resetting optimizer statistics");
+          LOG(info, "Resetting optimizer statistics");
 
         if(options_->get<bool>("lr-decay-repeat-warmup")) {
-          LOG(info)->info("Restarting learning rate warmup");
+          LOG(info, "Restarting learning rate warmup");
           state.warmupStart = state.batches;
         }
       }
@@ -272,17 +270,17 @@ public:
            && ((state.batches - start) % freq == 0)) {
           state.factor *= factor;
           state.eta = baselr * state.factor;
-          LOG(info)
-              ->info("Decaying learning rate to {} after {} batches",
-                     state.eta,
-                     state.batches);
+          LOG(info,
+              "Decaying learning rate to {} after {} batches",
+              state.eta,
+              state.batches);
 
           state.reset = options_->get<bool>("lr-decay-reset-optimizer");
           if(state.reset)
-            LOG(info)->info("Resetting optimizer statistics");
+            LOG(info, "Resetting optimizer statistics");
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
-            LOG(info)->info("Restarting learning rate warmup");
+            LOG(info, "Restarting learning rate warmup");
             state.warmupStart = state.batches;
           }
         }
@@ -290,7 +288,7 @@ public:
     }
 
     if(first_ && options_->get<bool>("lr-warmup-at-reload")) {
-      LOG(info)->info("Restarting learning rate warmup");
+      LOG(info, "Restarting learning rate warmup");
       state.warmupStart = state.batches;
     }
 
@@ -317,16 +315,16 @@ public:
         if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
           state.eta = baselr * state.factor;
-          LOG(info)
-              ->info("Decaying learning rate to {} after stalled {} time(s)",
-                     state.eta,
-                     state.stalled);
+          LOG(info,
+              "Decaying learning rate to {} after stalled {} time(s)",
+              state.eta,
+              state.stalled);
           state.reset = options_->get<bool>("lr-decay-reset-optimizer");
           if(state.reset)
-            LOG(info)->info("Resetting optimizer statistics");
+            LOG(info, "Resetting optimizer statistics");
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
-            LOG(info)->info("Restarting learning rate warmup");
+            LOG(info, "Restarting learning rate warmup");
             state.warmupStart = state.batches;
           }
         }

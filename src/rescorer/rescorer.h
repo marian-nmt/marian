@@ -54,7 +54,7 @@ public:
     try {
       modelOptions->loadModelParameters(modelFile);
     } catch(std::runtime_error& e) {
-      LOG(warn)->warn("No model settings found in model file");
+      LOG(warn, "No model settings found in model file");
     }
 
     Ptr<Options> temp = New<Options>();
@@ -67,7 +67,7 @@ public:
   }
 
   void run() {
-    LOG(info)->info("Scoring");
+    LOG(info, "Scoring");
 
     auto batchGenerator = New<BatchGenerator<Corpus>>(corpus_, options_);
     batchGenerator->prepare(false);
@@ -114,7 +114,7 @@ public:
       else
         cost = -sumCost / sumSamples;
 
-      LOG(info)->info("Reporting {} summary", summary);
+      LOG(info, "Reporting {} summary", summary);
       std::cout << cost << std::endl;
     }
   }

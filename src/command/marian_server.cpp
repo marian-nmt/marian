@@ -24,22 +24,20 @@ int main(int argc, char **argv) {
 
     auto message_short = message_str;
     boost::algorithm::trim_right(message_short);
-    LOG(info)->error("Message received: " + message_short);
+    LOG(error, "Message received: {}", message_short);
 
     auto send_stream = std::make_shared<WsServer::SendStream>();
     boost::timer::cpu_timer timer;
     for(auto &transl : task->run({message_str})) {
-      LOG(info)->critical("Best translation: " + transl);
+      LOG(info, "Best translation: {}", transl);
       *send_stream << transl << std::endl;
     }
-    LOG(info)->info("Translation took: {}", timer.format(5, "%ws"));
+    LOG(info, "Translation took: {}", timer.format(5, "%ws"));
 
     connection->send(send_stream, [](const SimpleWeb::error_code &ec) {
       if(ec) {
         auto ec_str = std::to_string(ec.value());
-        LOG(warn)
-            ->critical("Error sending message: (" + ec_str + ") "
-                       + ec.message());
+        LOG(error, "Error sending message: ({}) {}", ec_str, ec.message());
       }
     });
   };
@@ -49,14 +47,12 @@ int main(int argc, char **argv) {
   translate.on_error = [](Ptr<WsServer::Connection> connection,
                           const SimpleWeb::error_code &ec) {
     auto ec_str = std::to_string(ec.value());
-    LOG(warn)->critical("Connection error: (" + ec_str + ") " + ec.message());
+    LOG(error, "Connection error: ({}) {}", ec_str, ec.message());
   };
 
   // start server
   std::thread server_thread([&server]() {
-    LOG(info)
-        ->info("Server is listening on port "
-               + std::to_string(server.config.port));
+    LOG(info, "Server is listening on port {}", server.config.port);
     server.start();
   });
 

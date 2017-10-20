@@ -60,7 +60,7 @@ public:
     rowIndices_.resize(nonzeros);
     colIndices_.resize(nonzeros);
 
-    LOG(info)->info("Building dictionary of {} pairs from lexical table", nonzeros);
+    LOG(info, "Building dictionary of {} pairs from lexical table", nonzeros);
 
     size_t ind = 0;
     for(size_t sid = 0; sid < data.size() && sid < srcDim; ++sid) {
@@ -88,7 +88,7 @@ public:
 
   void buildProbs(size_t device) {
     if(!lexProbs_) {
-      LOG(info)->info("Building sparse matrix for lexical probabilities");
+      LOG(info, "Building sparse matrix for lexical probabilities");
       lexProbs_ = New<sparse::CSR>(
           srcDim_, trgDim_, values_, rowIndices_, colIndices_, device);
     }

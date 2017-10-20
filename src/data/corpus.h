@@ -242,7 +242,7 @@ public:
     std::string line;
     size_t c = 0;
 
-    LOG(data)->info("Loading word alignment from {}", fname);
+    LOG(info, "[data] Loading word alignment from {}", fname);
 
     while(std::getline((std::istream&)aStream, line)) {
       data_.emplace_back();
@@ -252,7 +252,7 @@ public:
       c++;
     }
 
-    LOG(data)->info("Done");
+    LOG(info, "[data] Done");
   }
 
   std::vector<std::string> split(const std::string& input,

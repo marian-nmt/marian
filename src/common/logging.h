@@ -2,11 +2,9 @@
 
 #include "spdlog/spdlog.h"
 
-#define LOG(logger) checkedLog(#logger)
+#define LOG(level, ...) checkedLog("info", #level, __VA_ARGS__)
 
-#define LOG2(level, ...) checkedLog2("info", #level, __VA_ARGS__)
-
-#define LOG2_VALID(level, ...) checkedLog2("valid", #level, __VA_ARGS__)
+#define LOG_VALID(level, ...) checkedLog("valid", #level, __VA_ARGS__)
 
 typedef std::shared_ptr<spdlog::logger> Logger;
 Logger stderrLogger(const std::string&,
@@ -18,11 +16,8 @@ namespace marian {
 class Config;
 }
 
-// TODO: remove
-Logger checkedLog(std::string logger);
-
 template <class... Args>
-void checkedLog2(std::string logger, std::string level, Args... args) {
+void checkedLog(std::string logger, std::string level, Args... args) {
   Logger log = spdlog::get(logger);
   if(!log)
     return;
