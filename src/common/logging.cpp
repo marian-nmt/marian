@@ -65,13 +65,13 @@ void createLoggers(const marian::Config* options) {
 
   // @TODO: remove unused loggers
   bool quiet = options && options->get<bool>("quiet");
-  Logger info{stderrLogger("info", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
+  Logger general{stderrLogger("general", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
   Logger valid{
       stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs, quiet)};
 
   if(options && options->has("log-level")) {
     std::string loglevel = options->get<std::string>("log-level");
-    if(!setLoggingLevel(*info, loglevel))
+    if(!setLoggingLevel(*general, loglevel))
       return;
     setLoggingLevel(*valid, loglevel);
   }

@@ -2,7 +2,7 @@
 
 #include "spdlog/spdlog.h"
 
-#define LOG(level, ...) checkedLog("info", #level, __VA_ARGS__)
+#define LOG(level, ...) checkedLog("general", #level, __VA_ARGS__)
 
 #define LOG_VALID(level, ...) checkedLog("valid", #level, __VA_ARGS__)
 
