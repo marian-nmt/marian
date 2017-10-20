@@ -57,7 +57,6 @@ typedef Ptr<RunBase> RunBasePtr;
 
 class LexProbs;
 
-
 /**
  * @brief Defines a set of keywords.
  *
@@ -94,5 +93,4 @@ KEY(lex_probs, Ptr<LexProbs>);
 }
 
 const float NEMATUS_LN_EPS = 1e-5;
-
 }

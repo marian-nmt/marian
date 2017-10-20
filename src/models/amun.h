@@ -9,7 +9,6 @@ namespace marian {
 class Amun : public EncoderDecoder {
 public:
   Amun(Ptr<Options> options) : EncoderDecoder(options) {
-
     UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
                    "--type amun does not currently support multiple encoder "
                    "layers, use --type s2s");
@@ -28,12 +27,14 @@ public:
     UTIL_THROW_IF2(options_->get<int>("dec-cell-high-depth") > 1,
                    "--type amun does not currently support multiple decoder "
                    "high cells, use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru",
-                   "--type amun does not currently support other rnn cells than gru, "
-                   "use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru",
-                   "--type amun does not currently support other rnn cells than gru, "
-                   "use --type s2s");
+    UTIL_THROW_IF2(
+        options_->get<std::string>("enc-cell") != "gru",
+        "--type amun does not currently support other rnn cells than gru, "
+        "use --type s2s");
+    UTIL_THROW_IF2(
+        options_->get<std::string>("dec-cell") != "gru",
+        "--type amun does not currently support other rnn cells than gru, "
+        "use --type s2s");
   }
 
   void load(Ptr<ExpressionGraph> graph, const std::string& name) {

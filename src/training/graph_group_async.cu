@@ -1,7 +1,7 @@
 #include "training/graph_group_async.h"
 
-#include "kernels/thrust_functions.h"
 #include "kernels/tensor_operators.h"
+#include "kernels/thrust_functions.h"
 
 namespace marian {
 
@@ -14,7 +14,8 @@ void AsyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_->registerTrainingObserver(opt);
 }
 
-void AsyncGraphGroup::fetchParams(Tensor oldParams, const std::vector<Tensor>& params) {
+void AsyncGraphGroup::fetchParams(Tensor oldParams,
+                                  const std::vector<Tensor>& params) {
   // @TODO read guard on parameters
   int pos = 0;
 
@@ -24,8 +25,7 @@ void AsyncGraphGroup::fetchParams(Tensor oldParams, const std::vector<Tensor>& p
         [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
-          oldParams->subtensor(pos, params[idx]->size())
-              ->copyFrom(params[idx]);
+          oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
         },
         idx,
         pos));
@@ -46,20 +46,18 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads, size_t batch_words) {
         [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
-          grads_[idx]->copyFrom(
-              newGrads->subtensor(pos, grads_[idx]->size()));
+          grads_[idx]->copyFrom(newGrads->subtensor(pos, grads_[idx]->size()));
 
           if(scaleLearningRate_) {
-            shardOpt_[idx]->update(params_[idx],
-                                   grads_[idx],
-                                   batch_words / avgBatchWords_);
+            shardOpt_[idx]->update(
+                params_[idx], grads_[idx], batch_words / avgBatchWords_);
           } else {
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
           }
 
           if(movingAvg_)
-            updateMovingAverage(paramsAvg_[idx], params_[idx],
-                                scheduler_->numberOfBatches());
+            updateMovingAverage(
+                paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
         },
         idx,
         pos));
@@ -70,7 +68,9 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads, size_t batch_words) {
     t.join();
 }
 
-void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches) {
+void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
+                                          Tensor params,
+                                          size_t batches) {
   float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
   Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
 }
@@ -172,7 +172,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     float cost = costNode->scalar();
     graph->backward();
 
-    //Get batch stats
+    // Get batch stats
     size_t batch_words = batch->words();
 
     Tensor gradients;
@@ -187,10 +187,9 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       Element(_1 += _2, accGradients, graph->params()->grads());
       gradients = accGradients;
 
-      //Keep track of how many words we've calculated the error from
+      // Keep track of how many words we've calculated the error from
       num_seen_words += batch_words;
-    }
-    else {
+    } else {
       gradients = graph->params()->grads();
       num_seen_words = batch_words;
     }
@@ -199,7 +198,8 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     if(t % tau_ == 0) {
       pushGradients(gradients, num_seen_words);
-      num_seen_words = 0; //Reset the counter of seen words after gradient update
+      // Reset the counter of seen words after gradient update
+      num_seen_words = 0;
 
       if(tau_ > 1)
         gradients->set(0);
@@ -230,5 +230,4 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
   pool_.enqueue(task, batch);
 }
-
 }

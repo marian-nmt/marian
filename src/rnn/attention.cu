@@ -75,6 +75,5 @@ Expr attOps(Expr va, Expr context, Expr state, Expr coverage) {
   return reshape(Expression<AttentionNodeOp>(nodes),
                  {dimWords, dimBatch, 1, dimBeam});
 }
-
 }
 }

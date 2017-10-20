@@ -1,5 +1,5 @@
-#include "training/graph_group_singleton.h"
 #include "kernels/tensor_operators.h"
+#include "training/graph_group_singleton.h"
 
 namespace marian {
 
@@ -10,8 +10,9 @@ void SingletonGraph::setScheduler(Ptr<Scheduler> scheduler) {
   scheduler_->registerTrainingObserver(opt_);
 }
 
-
-void SingletonGraph::updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches) {
+void SingletonGraph::updateMovingAverage(Tensor mvAvgParams,
+                                         Tensor params,
+                                         size_t batches) {
   float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
   Element(_1 = (decay * _1) + ((1.f - decay) * _2), mvAvgParams, params);
 }
@@ -26,8 +27,8 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   // Get batch stats
   size_t batch_words = batch->words();
 
-  if (scaleLearningRate_) {
-    opt_->update(graph_, batch_words/avgBatchWords_);
+  if(scaleLearningRate_) {
+    opt_->update(graph_, batch_words / avgBatchWords_);
   } else {
     opt_->update(graph_);
   }
@@ -58,5 +59,4 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
     }
   }
 }
-
 }

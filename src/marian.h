@@ -1,5 +1,6 @@
 #pragma once
 
+// clang-format off
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/logging.h"
@@ -25,3 +26,4 @@
 #include "rnn/rnn.h"
 
 #include "optimizers/optimizers.h"
+// clang-format on

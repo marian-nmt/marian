@@ -32,7 +32,8 @@ private:
   std::vector<decoder> decoders_;
 
 public:
-  EncoderDecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
+  EncoderDecoderFactory(Ptr<ExpressionGraph> graph = nullptr)
+      : Factory(graph) {}
 
   Accumulator<EncoderDecoderFactory> push_back(encoder enc) {
     encoders_.push_back(enc);
@@ -49,12 +50,10 @@ public:
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
 
-Ptr<ModelBase> by_type(std::string type,
-                       Ptr<Options> options);
+Ptr<ModelBase> by_type(std::string type, Ptr<Options> options);
 
 Ptr<ModelBase> from_options(Ptr<Options> options);
 
 Ptr<ModelBase> from_config(Ptr<Config> config);
-
 }
 }

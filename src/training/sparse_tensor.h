@@ -120,7 +120,7 @@ public:
     t->set(0);
     gScatterAdd<<<blocks, threads>>>(
         t->data(), data_, indices_, t->size(), size_, offset);
-    cudaStreamSynchronize(0); 
+    cudaStreamSynchronize(0);
   }
 
   void scatterAdd(Tensor t, int offset = 0) {

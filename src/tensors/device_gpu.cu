@@ -34,5 +34,4 @@ void DeviceGPU::reserve(size_t size) {
 
   size_ = size;
 }
-
 }

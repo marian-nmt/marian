@@ -37,7 +37,9 @@ int main(int argc, char **argv) {
     connection->send(send_stream, [](const SimpleWeb::error_code &ec) {
       if(ec) {
         auto ec_str = std::to_string(ec.value());
-        LOG(warn)->critical("Error sending message: (" + ec_str + ") " + ec.message());
+        LOG(warn)
+            ->critical("Error sending message: (" + ec_str + ") "
+                       + ec.message());
       }
     });
   };
@@ -52,8 +54,9 @@ int main(int argc, char **argv) {
 
   // start server
   std::thread server_thread([&server]() {
-    LOG(info)->info("Server is listening on port "
-                    + std::to_string(server.config.port));
+    LOG(info)
+        ->info("Server is listening on port "
+               + std::to_string(server.config.port));
     server.start();
   });
 

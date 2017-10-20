@@ -24,22 +24,23 @@ protected:
     auto graph = srcEmbeddings->graph();
     auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
 
-    auto batchEmbeddings = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
-    auto batchMask = graph->constant({dimBatch, 1, dimWords},
-                                     init = inits::from_vector(subBatch->mask()));
+    auto batchEmbeddings
+        = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
+    auto batchMask = graph->constant(
+        {dimBatch, 1, dimWords}, init = inits::from_vector(subBatch->mask()));
 
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
 public:
   EncoderBase(Ptr<Options> options)
-  : options_(options),
-    prefix_(options->get<std::string>("prefix", "encoder")),
-    inference_(options->get<bool>("inference", false)),
-    batchIndex_(options->get<size_t>("index", 0)) {}
+      : options_(options),
+        prefix_(options->get<std::string>("prefix", "encoder")),
+        inference_(options->get<bool>("inference", false)),
+        batchIndex_(options->get<size_t>("index", 0)) {}
 
-  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>,
-                                  Ptr<data::CorpusBatch>) = 0;
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>)
+      = 0;
 
   template <typename T>
   T opt(const std::string& key) {
@@ -65,7 +66,8 @@ public:
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph>,
                                        Ptr<data::CorpusBatch> batch,
-                                       std::vector<Ptr<EncoderState>>&) = 0;
+                                       std::vector<Ptr<EncoderState>>&)
+      = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
@@ -77,9 +79,9 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
-    auto yEmbFactory = embedding(graph)
-                       ("dimVocab", dimVoc)
-                       ("dimEmb", dimEmb);
+    auto yEmbFactory = embedding(graph)  //
+        ("dimVocab", dimVoc)             //
+        ("dimEmb", dimEmb);
 
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       yEmbFactory("prefix", "Wemb");
@@ -91,9 +93,8 @@ public:
 
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      yEmbFactory
-        ("embFile", embFiles[batchIndex_])
-        ("normalization", opt<bool>("embedding-normalization"));
+      yEmbFactory("embFile", embFiles[batchIndex_])  //
+          ("normalization", opt<bool>("embedding-normalization"));
     }
 
     auto yEmb = yEmbFactory.construct();
@@ -104,7 +105,8 @@ public:
 
     auto chosenEmbeddings = rows(yEmb, subBatch->indices());
 
-    auto y = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
+    auto y
+        = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
 
     auto yMask = graph->constant({dimBatch, 1, dimWords},
                                  init = inits::from_vector(subBatch->mask()));
@@ -130,13 +132,12 @@ public:
 
     Expr selectedEmbs;
     if(embIdx.empty()) {
-      selectedEmbs = graph->constant({1, dimTrgEmb},
-                                     init = inits::zeros);
+      selectedEmbs = graph->constant({1, dimTrgEmb}, init = inits::zeros);
     } else {
       // embeddings are loaded from model during translation, no fixing required
-      auto yEmbFactory = embedding(graph)
-                  ("dimVocab", dimTrgVoc)
-                  ("dimEmb", dimTrgEmb);
+      auto yEmbFactory = embedding(graph)  //
+          ("dimVocab", dimTrgVoc)          //
+          ("dimEmb", dimTrgEmb);
 
       if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
         yEmbFactory("prefix", "Wemb");
@@ -152,9 +153,7 @@ public:
     state->setTargetEmbeddings(selectedEmbs);
   }
 
-  virtual const std::vector<Expr> getAlignments(int i = 0) {
-    return {};
-  };
+  virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; };
 
   template <typename T>
   T opt(const std::string& key) {
@@ -162,20 +161,20 @@ public:
   }
 
   virtual void clear() = 0;
-
-
 };
 
 class EncoderDecoderBase : public models::ModelBase {
 public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
-                                const std::vector<size_t>&) = 0;
+                                const std::vector<size_t>&)
+      = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState>,
                                  const std::vector<size_t>&,
-                                 const std::vector<size_t>&) = 0;
+                                 const std::vector<size_t>&)
+      = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
@@ -213,26 +212,25 @@ public:
       : options_(options),
         prefix_(options->get<std::string>("prefix", "")),
         inference_(options->get<bool>("inference", false)) {
-
     modelFeatures_ = {
-      "type",
-      "dim-vocabs",
-      "dim-emb",
-      "dim-rnn",
-      "enc-cell",
-      "enc-type",
-      "enc-cell-depth",
-      "enc-depth",
-      "dec-depth",
-      "dec-cell",
-      "dec-cell-base-depth",
-      "dec-cell-high-depth",
-      "skip",
-      "layer-normalization",
-      "special-vocab",
-      "tied-embeddings",
-      "tied-embeddings-src",
-      "tied-embeddings-all",
+        "type",
+        "dim-vocabs",
+        "dim-emb",
+        "dim-rnn",
+        "enc-cell",
+        "enc-type",
+        "enc-cell-depth",
+        "enc-depth",
+        "dec-depth",
+        "dec-cell",
+        "dec-cell-base-depth",
+        "dec-cell-high-depth",
+        "skip",
+        "layer-normalization",
+        "special-vocab",
+        "tied-embeddings",
+        "tied-embeddings-src",
+        "tied-embeddings-all",
     };
 
     modelFeatures_.push_back("transformer-heads");
@@ -240,20 +238,15 @@ public:
     modelFeatures_.push_back("transformer-preprocess");
     modelFeatures_.push_back("transformer-postprocess");
     modelFeatures_.push_back("transformer-postprocess-emb");
-
   }
 
   std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
 
-  void push_back(Ptr<EncoderBase> encoder) {
-    encoders_.push_back(encoder);
-  }
+  void push_back(Ptr<EncoderBase> encoder) { encoders_.push_back(encoder); }
 
   std::vector<Ptr<DecoderBase>>& getDecoders() { return decoders_; }
 
-  void push_back(Ptr<DecoderBase> decoder) {
-    decoders_.push_back(decoder);
-  }
+  void push_back(Ptr<DecoderBase> decoder) { decoders_.push_back(decoder); }
 
   virtual void load(Ptr<ExpressionGraph> graph, const std::string& name) {
     graph->load(name);
@@ -280,7 +273,6 @@ public:
     for(auto& dec : decoders_)
       dec->clear();
   }
-
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) {
@@ -324,22 +316,19 @@ public:
     auto state = startState(graph, batch);
 
     Expr trgMask, trgIdx;
-    std::tie(trgMask, trgIdx)
-      = decoders_[0]->groundTruth(state, graph, batch);
+    std::tie(trgMask, trgIdx) = decoders_[0]->groundTruth(state, graph, batch);
 
     auto nextState = step(graph, state);
 
     std::string costType = opt<std::string>("cost-type");
     float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
-    auto cost = Cost(nextState->getProbs(),
-                     trgIdx,
-                     trgMask,
-                     costType, ls);
+    auto cost = Cost(nextState->getProbs(), trgIdx, trgMask, costType, ls);
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();
-      UTIL_THROW_IF2(alignments.empty(), "Model does not seem to support alignments");
+      UTIL_THROW_IF2(alignments.empty(),
+                     "Model does not seem to support alignments");
       auto att = concatenate(alignments, axis = 3);
       return cost + guidedAlignmentCost(graph, batch, options_, att);
     } else {

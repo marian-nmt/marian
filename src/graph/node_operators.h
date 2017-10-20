@@ -34,9 +34,7 @@ struct ConstantNode : public Node {
     return seed;
   }
 
-  virtual bool equal(Expr node) {
-    return this == node.get();
-  }
+  virtual bool equal(Expr node) { return this == node.get(); }
 
 private:
   std::function<void(Tensor)> init_;
@@ -73,9 +71,7 @@ struct ParamNode : public Node {
     return seed;
   }
 
-  virtual bool equal(Expr node) {
-    return name() == node->name();
-  }
+  virtual bool equal(Expr node) { return name() == node->name(); }
 
 private:
   std::function<void(Tensor&)> init_;

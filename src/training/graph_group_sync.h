@@ -42,8 +42,7 @@ public:
       : GraphGroup(options),
         devices_{options_->get<std::vector<size_t>>("devices")},
         movingAvg_{options_->get<bool>("moving-average")},
-        mvDecay_{(float)options_->get<double>("moving-decay")}
-  {
+        mvDecay_{(float)options_->get<double>("moving-decay")} {
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);
@@ -94,8 +93,8 @@ public:
 
       if(!final) {
         std::string numberOfBatches
-            = scheduler_ ? std::to_string(scheduler_->numberOfBatches()) :
-                           "unknown";
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                         : "unknown";
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
@@ -115,5 +114,4 @@ public:
     return builders_[0]->collectStats(graphs_[0], devices_.size());
   }
 };
-
 }

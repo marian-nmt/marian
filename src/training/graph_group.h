@@ -20,9 +20,9 @@ protected:
 public:
   GraphGroup(Ptr<Config> options)
       : options_(options),
-      opt_(Optimizer(options)),
-      scaleLearningRate_(options->get<bool>("batch-flexible-lr")),
-      avgBatchWords_(options->get<float>("batch-normal-words")) {}
+        opt_(Optimizer(options)),
+        scaleLearningRate_(options->get<bool>("batch-flexible-lr")),
+        avgBatchWords_(options->get<float>("batch-normal-words")) {}
 
   virtual ~GraphGroup() {}
 
@@ -32,9 +32,8 @@ public:
 
   virtual void save(bool = false) = 0;
 
-  virtual void setScheduler(Ptr<Scheduler> scheduler)  = 0;
+  virtual void setScheduler(Ptr<Scheduler> scheduler) = 0;
 
   virtual Ptr<data::BatchStats> collectStats() = 0;
 };
-
 }

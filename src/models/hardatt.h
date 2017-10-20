@@ -56,46 +56,46 @@ protected:
   std::unordered_set<Word> specialSymbols_;
 
 public:
-  DecoderHardAtt(Ptr<Options> options)
-      : DecoderBase(options) {
+  DecoderHardAtt(Ptr<Options> options) : DecoderBase(options) {
     if(options->has("special-vocab")) {
       auto spec = options->get<std::vector<size_t>>("special-vocab");
       specialSymbols_.insert(spec.begin(), spec.end());
     }
   }
 
-  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
-                                       Ptr<data::CorpusBatch> batch,
-                                       std::vector<Ptr<EncoderState>>& encStates) {
+  virtual Ptr<DecoderState> startState(
+      Ptr<ExpressionGraph> graph,
+      Ptr<data::CorpusBatch> batch,
+      std::vector<Ptr<EncoderState>>& encStates) {
     using namespace keywords;
 
     std::vector<Expr> meanContexts;
     for(auto& encState : encStates) {
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
-      meanContexts.push_back(weighted_average(encState->getContext(),
-                                              encState->getMask(),
-                                              axis = 2));
+      meanContexts.push_back(weighted_average(
+          encState->getContext(), encState->getMask(), axis = 2));
     }
 
     Expr start;
     if(!meanContexts.empty()) {
       // apply single layer network to mean to map into decoder space
-      auto mlp = mlp::mlp(graph)
-                 .push_back(mlp::dense(graph)
-                            ("prefix", prefix_ + "_ff_state")
-                            ("dim", opt<int>("dim-rnn"))
-                            ("activation", mlp::act::tanh)
-                            ("layer-normalization", opt<bool>("layer-normalization")));
+      auto mlp = mlp::mlp(graph)                                   //
+                     .push_back(mlp::dense(graph)                  //
+                                ("prefix", prefix_ + "_ff_state")  //
+                                ("dim", opt<int>("dim-rnn"))       //
+                                ("activation", mlp::act::tanh)     //
+                                ("layer-normalization",
+                                 opt<bool>("layer-normalization")));
       start = mlp->apply(meanContexts);
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderStateHardAtt>(startStates, nullptr, encStates,
-                                    std::vector<size_t>({0}));
+    return New<DecoderStateHardAtt>(
+        startStates, nullptr, encStates, std::vector<size_t>({0}));
   }
 
-virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) {
     using namespace keywords;
 
@@ -142,43 +142,41 @@ virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
     int dimInput = rnnInputs->shape()[1];
 
     if(!rnn_) {
-      auto rnn = rnn::rnn(graph)
-                 ("type", cellType)
-                 ("dimInput", dimInput)
-                 ("dimState", dimDecState)
-                 ("dropout", dropoutRnn)
-                 ("layer-normalization", layerNorm)
-                 ("skip", skipDepth);
+      auto rnn = rnn::rnn(graph)              //
+          ("type", cellType)                  //
+          ("dimInput", dimInput)              //
+          ("dimState", dimDecState)           //
+          ("dropout", dropoutRnn)             //
+          ("layer-normalization", layerNorm)  //
+          ("skip", skipDepth);
 
       if(type == "hard-soft-att") {
-        auto attCell = rnn::stacked_cell(graph)
-                       .push_back(rnn::cell(graph)
-                                  ("prefix", prefix_ + "_cell1"));
+        auto attCell = rnn::stacked_cell(graph)         //
+                           .push_back(rnn::cell(graph)  //
+                                      ("prefix", prefix_ + "_cell1"));
         for(int i = 0; i < state->getEncoderStates().size(); ++i) {
           std::string prefix = prefix_;
           if(state->getEncoderStates().size() > 1)
             prefix += "_att" + std::to_string(i + 1);
 
-          attCell.push_back(rnn::attention(graph)
-                            ("prefix", prefix)
-                            .set_state(state->getEncoderStates()[i]));
+          attCell.push_back(rnn::attention(graph)  //
+                            ("prefix", prefix)     //
+                                .set_state(state->getEncoderStates()[i]));
         }
 
-        attCell.push_back(rnn::cell(graph)
-                          ("prefix", prefix_ + "_cell2")
+        attCell.push_back(rnn::cell(graph)                //
+                          ("prefix", prefix_ + "_cell2")  //
                           ("final", true));
         rnn.push_back(attCell);
-      }
-      else {
+      } else {
         rnn.push_back(rnn::cell(graph)("prefix", prefix_));
       }
 
       for(int i = 0; i < decoderLayers - 1; ++i)
-        rnn.push_back(rnn::cell(graph)
+        rnn.push_back(rnn::cell(graph)  //
                       ("prefix", prefix_ + "_l" + std::to_string(i)));
 
       rnn_ = rnn.construct();
-
     }
 
     auto decContext = rnn_->transduce(rnnInputs, stateHardAtt->getStates());
@@ -186,33 +184,35 @@ virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
 
     //// 2-layer feedforward network for outputs and cost
     auto out = mlp::mlp(graph)
-               .push_back(mlp::dense(graph)
-                          ("prefix", prefix_ + "_ff_logit_l1")
-                          ("dim", dimTrgEmb)
-                          ("activation", mlp::act::tanh)
-                          ("layer-normalization", layerNorm))
-               .push_back(mlp::dense(graph)
-                          ("prefix", prefix_ + "_ff_logit_l2")
-                          ("dim", dimTrgVoc));
+                   .push_back(mlp::dense(graph)                     //
+                              ("prefix", prefix_ + "_ff_logit_l1")  //
+                              ("dim", dimTrgEmb)                    //
+                              ("activation", mlp::act::tanh)        //
+                              ("layer-normalization", layerNorm))   //
+                   .push_back(mlp::dense(graph)                     //
+                              ("prefix", prefix_ + "_ff_logit_l2")  //
+                              ("dim", dimTrgVoc));
 
     Expr logits;
     if(type == "hard-soft-att") {
       std::vector<Expr> alignedContexts;
       for(int k = 0; k < state->getEncoderStates().size(); ++k) {
         // retrieve all the aligned contexts computed by the attention mechanism
-        auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(k + 1)->as<rnn::Attention>();
+        auto att = rnn_->at(0)
+                       ->as<rnn::StackedCell>()
+                       ->at(k + 1)
+                       ->as<rnn::Attention>();
         alignedContexts.push_back(att->getContext());
       }
 
       Expr alignedContext;
       if(alignedContexts.size() > 1)
-        alignedContext = concatenate(alignedContexts, axis=1);
+        alignedContext = concatenate(alignedContexts, axis = 1);
       else if(alignedContexts.size() == 1)
         alignedContext = alignedContexts[0];
 
       logits = out->apply(rnnInputs, decContext, alignedContext);
-    }
-    else {
+    } else {
       logits = out->apply(rnnInputs, decContext);
     }
 
@@ -278,9 +278,6 @@ virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
     }
   }
 
-  void clear() {
-    rnn_ = nullptr;
-  }
+  void clear() { rnn_ = nullptr; }
 };
-
 }

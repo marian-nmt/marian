@@ -115,11 +115,13 @@ public:
       step = 0;
     }
 
-    // drop the gradients in t->data(). Also fills in feedback with the propagated error
-    // fills temp_d with binary flag. 0 means that gradient in that position is dropped, 1 otherwise
+    // drop the gradients in t->data(). Also fills in feedback with the
+    // propagated error fills temp_d with binary flag. 0 means that gradient in
+    // that position is dropped, 1 otherwise
     grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
 
-    //do inclusive sum on temp_d, to obtain the sparse matrix location of non-dropped gradients
+    // do inclusive sum on temp_d, to obtain the sparse matrix location of
+    // non-dropped gradients
     thrust::device_ptr<float> mask_ptr(temp_d);
     int denseSize = t->size();
     thrust::inclusive_scan(mask_ptr, mask_ptr + denseSize, mask_ptr);

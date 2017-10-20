@@ -44,7 +44,6 @@ public:
       : CellInput(options),
         encState_(encState),
         contextDropped_(encState->getContext()) {
-
     int dimDecState = options_->get<int>("dimState");
     dropout_ = options_->get<float>("dropout", 0);
     layerNorm_ = options_->get<bool>("layer-normalization", false);
@@ -126,7 +125,6 @@ public:
     int srcWords = contextDropped_->shape()[2];
     int dimBeam = recState->shape()[3];
 
-
     if(dropMaskState_)
       recState = dropout(recState, keywords::mask = dropMaskState_);
 
@@ -145,7 +143,8 @@ public:
                      {dimBatch, 1, srcWords, dimBeam});
     // <- horrible
 
-    auto alignedSource = weighted_average(encState_->getAttended(), e, axis = 2);
+    auto alignedSource
+        = weighted_average(encState_->getAttended(), e, axis = 2);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -154,9 +153,7 @@ public:
 
   std::vector<Expr>& getContexts() { return contexts_; }
 
-  Expr getContext() {
-    return concatenate(contexts_, keywords::axis=2);
-  }
+  Expr getContext() { return concatenate(contexts_, keywords::axis = 2); }
 
   std::vector<Expr>& getAlignments() { return alignments_; }
 
@@ -169,7 +166,5 @@ public:
 };
 
 using Attention = GlobalAttention;
-
 }
-
 }

@@ -52,6 +52,5 @@ private:
   void addOptionsTranslate(boost::program_options::options_description&);
 
   void validateOptions() const;
-
 };
 }

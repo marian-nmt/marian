@@ -6,7 +6,6 @@ Ptr<Scorer> scorerByType(std::string fname,
                          float weight,
                          std::string model,
                          Ptr<Config> config) {
-
   Ptr<Options> options = New<Options>();
   options->merge(config);
   options->set("inference", true);
@@ -53,5 +52,4 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
 
   return scorers;
 }
-
 }

@@ -93,8 +93,10 @@ public:
                    validator->stalled());
       else
         LOG(valid)
-            ->info(
-                "{} : {} : {} : new best", state_->batches, validator->type(), value);
+            ->info("{} : {} : {} : new best",
+                   state_->batches,
+                   validator->type(),
+                   value);
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
@@ -130,8 +132,7 @@ public:
                 timer.format(2, "%ws"),
                 wordsDisp / std::stof(timer.format(5, "%w")),
                 state_->eta);
-      }
-      else {
+      } else {
         LOG(info)
             ->info(
                 "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
@@ -189,7 +190,8 @@ public:
     size_t decayGoogle = options_->get<size_t>("lr-decay-inv-sqrt");
     float mult2 = 1.f;
     if(decayGoogle > 0) {
-      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle) / std::sqrt(state.batches)));
+      mult2 = std::min(
+          1.f, (float)(std::sqrt(decayGoogle) / std::sqrt(state.batches)));
     }
 
     baselr = baselr * mult1 * mult2;

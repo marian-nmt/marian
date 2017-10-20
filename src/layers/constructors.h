@@ -34,21 +34,23 @@ protected:
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  Accumulator<DenseFactory> tie(const std::string& param, const std::string& tied) {
+  Accumulator<DenseFactory> tie(const std::string& param,
+                                const std::string& tied) {
     tiedParams_.push_back({param, tied});
     return Accumulator<DenseFactory>(*this);
   }
 
-  Accumulator<DenseFactory> tie_transposed(const std::string& param, const std::string& tied) {
+  Accumulator<DenseFactory> tie_transposed(const std::string& param,
+                                           const std::string& tied) {
     tiedParamsTransposed_.push_back({param, tied});
     return Accumulator<DenseFactory>(*this);
   }
 
   Ptr<Layer> construct() {
     auto dense = New<Dense>(graph_, options_);
-    for(auto& p: tiedParams_)
+    for(auto& p : tiedParams_)
       dense->tie(p.first, p.second);
-    for(auto& p: tiedParamsTransposed_)
+    for(auto& p : tiedParamsTransposed_)
       dense->tie_transposed(p.first, p.second);
     return dense;
   }
@@ -65,11 +67,10 @@ protected:
 
 public:
   MLP(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-   : graph_(graph), options_(options)
-  {}
+      : graph_(graph), options_(options) {}
 
-  template <typename ...Args>
-  Expr apply(Args ...args) {
+  template <typename... Args>
+  Expr apply(Args... args) {
     std::vector<Expr> av = {args...};
 
     Expr output;
@@ -84,9 +85,7 @@ public:
     return output;
   }
 
-  void push_back(Ptr<Layer> layer) {
-    layers_.push_back(layer);
-  }
+  void push_back(Ptr<Layer> layer) { layers_.push_back(layer); }
 };
 
 class MLPFactory : public Factory {
@@ -105,9 +104,7 @@ public:
     return mlp;
   }
 
-  Ptr<MLP> operator->() {
-    return construct();
-  }
+  Ptr<MLP> operator->() { return construct(); }
 
   template <class LF>
   Accumulator<MLPFactory> push_back(const LF& lf) {
@@ -117,6 +114,5 @@ public:
 };
 
 typedef Accumulator<MLPFactory> mlp;
-
 }
 }

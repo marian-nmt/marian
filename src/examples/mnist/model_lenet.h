@@ -41,7 +41,7 @@ protected:
                    pool->shape()[1] * pool->shape()[2] * pool->shape()[3],
                    1,
                    1});
-    auto drop1 = dropout(flatten, keywords::dropout_prob=0.25);
+    auto drop1 = dropout(flatten, keywords::dropout_prob = 0.25);
     std::vector<Expr> layers, weights, biases;
 
     for(size_t i = 0; i < dims.size() - 1; ++i) {
@@ -58,7 +58,8 @@ protected:
         // Take the result, and perform matrix addition on biases[i-1].
         // Wrap the result in rectified linear activation function,
         // and finally wrap that in a dropout node
-        layers.emplace_back(relu(affine(layers.back(), weights.back(), biases.back())));
+        layers.emplace_back(
+            relu(affine(layers.back(), weights.back(), biases.back())));
       }
 
       // Construct a weight node for the outgoing connections from layer i
@@ -90,6 +91,5 @@ protected:
     }
   }
 };
-
 }
 }

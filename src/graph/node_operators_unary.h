@@ -11,13 +11,23 @@
 
 #include <cudnn.h>
 
-#define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
-      printf("Error at %s:%d\n",__FILE__,__LINE__);     \
-      return EXIT_FAILURE;}} while(0)
+#define CUDA_CALL(x)                                  \
+  do {                                                \
+    if((x) != cudaSuccess) {                          \
+      printf("Error at %s:%d\n", __FILE__, __LINE__); \
+      return EXIT_FAILURE;                            \
+    }                                                 \
+  } while(0)
 
-#define CUDNN_CALL(x) do { if((x) != CUDNN_STATUS_SUCCESS) { \
-      printf("Error (%s) at %s:%d\n",cudnnGetErrorString(x),__FILE__,__LINE__);     \
-      }} while(0)
+#define CUDNN_CALL(x)                 \
+  do {                                \
+    if((x) != CUDNN_STATUS_SUCCESS) { \
+      printf("Error (%s) at %s:%d\n", \
+             cudnnGetErrorString(x),  \
+             __FILE__,                \
+             __LINE__);               \
+    }                                 \
+  } while(0)
 
 #endif
 
@@ -84,11 +94,11 @@ struct LogitNodeOp : public UnaryNodeOp {
   const std::string type() { return "logit"; }
 };
 
-//struct Scalar2PowNodeOp : public UnaryNodeOp {
-//private:
+// struct Scalar2PowNodeOp : public UnaryNodeOp {
+// private:
 //  float scalar_{0};
 //
-//public:
+// public:
 //  template <typename... Args>
 //  Scalar2PowNodeOp(Expr a, float scalar, Args... args)
 //      : UnaryNodeOp(a, args...), scalar_{scalar} {}
@@ -98,17 +108,18 @@ struct LogitNodeOp : public UnaryNodeOp {
 //  }
 //
 //  NodeOps backwardOps() {
-//    return {NodeOp(Add(scalar_ * Pow(_1, scalar_ - 1.f) * _2, child(0)->grad(), child(0)->val(), adj_))};
+//    return {NodeOp(Add(scalar_ * Pow(_1, scalar_ - 1.f) * _2,
+//    child(0)->grad(), child(0)->val(), adj_))};
 //  }
 //
 //  const std::string type() { return "scalar_pow2"; }
 //};
 //
-//struct Scalar1PowNodeOp : public UnaryNodeOp {
-//private:
+// struct Scalar1PowNodeOp : public UnaryNodeOp {
+// private:
 //  float scalar_{0};
 //
-//public:
+// public:
 //  template <typename... Args>
 //  Scalar1PowNodeOp(float scalar, Expr a, Args... args)
 //      : UnaryNodeOp(a, args...), scalar_{scalar} {}
@@ -118,7 +129,8 @@ struct LogitNodeOp : public UnaryNodeOp {
 //  }
 //
 //  NodeOps backwardOps() {
-//    return {NodeOp(Add(Pow(scalar_, _1) * log(scalar_) * _2, child(0)->grad(), child(0)->val(), adj_))};
+//    return {NodeOp(Add(Pow(scalar_, _1) * log(scalar_) * _2, child(0)->grad(),
+//    child(0)->val(), adj_))};
 //  }
 //
 //  const std::string type() { return "scalar_pow1"; }
@@ -608,22 +620,17 @@ struct ColsNodeOp : public UnaryNodeOp {
 struct SelectNodeOp : public UnaryNodeOp {
   SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indeces)
       : UnaryNodeOp(a, keywords::shape = newShape(a, axis, indeces)),
-        indeces_(indeces), axis_(axis) {}
+        indeces_(indeces),
+        axis_(axis) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Select(graph()->allocator(),
-                          val_,
-                          child(0)->val(),
-                          axis_,
-                          indeces_))};
+    return {NodeOp(
+        Select(graph()->allocator(), val_, child(0)->val(), axis_, indeces_))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(Insert(graph()->allocator(),
-                          child(0)->grad(),
-                          adj_,
-                          axis_,
-                          indeces_))};
+    return {NodeOp(
+        Insert(graph()->allocator(), child(0)->grad(), adj_, axis_, indeces_))};
   }
 
   Shape newShape(Expr a, int axis, const std::vector<size_t>& indeces) {
@@ -672,11 +679,11 @@ struct TransposeNodeOp : public UnaryNodeOp {
         permute_{permute} {}
 
   NodeOps forwardOps() {
-    return { NodeOp(Transpose4D(val_, child(0)->val(), permute_)) };
+    return {NodeOp(Transpose4D(val_, child(0)->val(), permute_))};
   }
 
   NodeOps backwardOps() {
-    return { NodeOp(Transpose4D(child(0)->grad(), adj_, permute_)) };
+    return {NodeOp(Transpose4D(child(0)->grad(), adj_, permute_))};
   }
 
   template <class... Args>
@@ -702,7 +709,8 @@ struct TransposeNodeOp : public UnaryNodeOp {
   virtual bool equal(Expr node) {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<TransposeNodeOp> cnode = std::dynamic_pointer_cast<TransposeNodeOp>(node);
+    Ptr<TransposeNodeOp> cnode
+        = std::dynamic_pointer_cast<TransposeNodeOp>(node);
     if(!cnode)
       return false;
     if(permute_ != cnode->permute_)
@@ -889,7 +897,7 @@ struct ShiftNodeOp : public UnaryNodeOp {
   Shape shift_;
 };
 
-//struct LexicalProbNodeOp : public NaryNodeOp {
+// struct LexicalProbNodeOp : public NaryNodeOp {
 //  template <typename... Args>
 //  LexicalProbNodeOp(
 //      Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf, Args... args)
@@ -928,128 +936,128 @@ struct ShiftNodeOp : public UnaryNodeOp {
 #ifdef CUDNN
 
 class PoolingOp : public UnaryNodeOp {
-  public:
-    enum class Mode {MAX_POOLING, AVERAGE_POOLING};
+public:
+  enum class Mode { MAX_POOLING, AVERAGE_POOLING };
 
-    PoolingOp(
-        Expr x,
-        int height, int width,
-        int padHeight, int padWidth,
-        int strideHeight, int strideWidth,
-        Mode mode = Mode::AVERAGE_POOLING)
-      : UnaryNodeOp(x)
-    {
-      CUDNN_CALL( cudnnCreate(&cudnnHandle_) );
+  PoolingOp(Expr x,
+            int height,
+            int width,
+            int padHeight,
+            int padWidth,
+            int strideHeight,
+            int strideWidth,
+            Mode mode = Mode::AVERAGE_POOLING)
+      : UnaryNodeOp(x) {
+    CUDNN_CALL(cudnnCreate(&cudnnHandle_));
 
+    CUDNN_CALL(cudnnCreateTensorDescriptor(&xDesc_));
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(xDesc_,
+                                          CUDNN_TENSOR_NCHW,
+                                          CUDNN_DATA_FLOAT,
+                                          x->shape()[0],
+                                          x->shape()[1],
+                                          x->shape()[2],
+                                          x->shape()[3]));
 
-      CUDNN_CALL( cudnnCreateTensorDescriptor(&xDesc_) );
-      CUDNN_CALL( cudnnSetTensor4dDescriptor(xDesc_,
-                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                x->shape()[0], x->shape()[1],
-                                x->shape()[2], x->shape()[3]
-      ));
+    cudnnPoolingMode_t cudnnPoolingMode;
+    switch(mode) {
+      case Mode::MAX_POOLING: cudnnPoolingMode = CUDNN_POOLING_MAX; break;
+      case Mode::AVERAGE_POOLING:
+        cudnnPoolingMode = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
+        break;
+      default: break;
+    };
 
+    height = std::min(height, x->shape()[2]);
+    strideHeight = std::min(strideHeight, x->shape()[2]);
 
-      cudnnPoolingMode_t cudnnPoolingMode;
-      switch (mode) {
-        case Mode::MAX_POOLING:
-          cudnnPoolingMode = CUDNN_POOLING_MAX;
-          break;
-        case Mode::AVERAGE_POOLING:
-          cudnnPoolingMode = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
-          break;
-        default:
-          break;
-      };
+    CUDNN_CALL(cudnnCreatePoolingDescriptor(&poolingDesc_));
+    CUDNN_CALL(cudnnSetPooling2dDescriptor(poolingDesc_,
+                                           cudnnPoolingMode,
+                                           CUDNN_NOT_PROPAGATE_NAN,
+                                           height,
+                                           width,
+                                           padHeight,
+                                           padWidth,
+                                           strideHeight,
+                                           strideWidth));
 
-      height = std::min(height, x->shape()[2]);
-      strideHeight = std::min(strideHeight, x->shape()[2]);
+    CUDNN_CALL(cudnnGetPooling2dForwardOutputDim(poolingDesc_,
+                                                 xDesc_,
+                                                 shape_.begin(),
+                                                 shape_.begin() + 1,
+                                                 shape_.begin() + 2,
+                                                 shape_.begin() + 3));
 
-      CUDNN_CALL( cudnnCreatePoolingDescriptor(&poolingDesc_) );
-      CUDNN_CALL( cudnnSetPooling2dDescriptor(poolingDesc_,
-            cudnnPoolingMode,
-            CUDNN_NOT_PROPAGATE_NAN,
-            height, width,
-            padHeight, padWidth,
-            strideHeight, strideWidth
-      ));
+    CUDNN_CALL(cudnnCreateTensorDescriptor(&yDesc_));
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(yDesc_,
+                                          CUDNN_TENSOR_NCHW,
+                                          CUDNN_DATA_FLOAT,
+                                          shape_[0],
+                                          shape_[1],
+                                          shape_[2],
+                                          shape_[3]));
+    CUDNN_CALL(cudnnCreateTensorDescriptor(&adjDesc_));
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(adjDesc_,
+                                          CUDNN_TENSOR_NCHW,
+                                          CUDNN_DATA_FLOAT,
+                                          shape_[0],
+                                          shape_[1],
+                                          shape_[2],
+                                          shape_[3]));
+  }
 
-      CUDNN_CALL(cudnnGetPooling2dForwardOutputDim(
-            poolingDesc_,
-            xDesc_,
-            shape_.begin(), shape_.begin() + 1, shape_.begin() + 2, shape_.begin() + 3
-      ));
+  NodeOps forwardOps() {
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
 
-      CUDNN_CALL( cudnnCreateTensorDescriptor(&yDesc_) );
-      CUDNN_CALL( cudnnSetTensor4dDescriptor(yDesc_,
-                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                shape_[0], shape_[1],
-                                shape_[2], shape_[3])
-      );
-      CUDNN_CALL( cudnnCreateTensorDescriptor(&adjDesc_) );
-      CUDNN_CALL( cudnnSetTensor4dDescriptor(adjDesc_,
-                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                shape_[0], shape_[1],
-                                shape_[2], shape_[3])
-      );
-    }
+    cudaSetDevice(val_->getDevice());
 
+    return {NodeOp(CUDNN_CALL(cudnnPoolingForward(cudnnHandle_,
+                                                  poolingDesc_,
+                                                  &alpha,
+                                                  xDesc_,
+                                                  children_[0]->val()->data(),
+                                                  &beta,
+                                                  yDesc_,
+                                                  val_->data())))};
+  }
 
-    NodeOps forwardOps() {
-      const float alpha = 1.0f;
-      const float beta = 0.0f;
+  NodeOps backwardOps() {
+    cudaSetDevice(adj_->getDevice());
+    const float alpha = 1.0f;
+    const float beta = 1.0f;
+    return {
+        NodeOp(CUDNN_CALL(cudnnPoolingBackward(cudnnHandle_,
+                                               poolingDesc_,
+                                               &alpha,
+                                               yDesc_,
+                                               val_->data(),
+                                               adjDesc_,
+                                               adj_->data(),
+                                               xDesc_,
+                                               children_[0]->val()->data(),
+                                               &beta,
+                                               xDesc_,
+                                               children_[0]->grad()->data())))};
+  }
 
-      cudaSetDevice(val_->getDevice());
+  const std::string type() { return "layer_max_pooling"; }
 
-      return {
-        NodeOp(
-          CUDNN_CALL( cudnnPoolingForward(cudnnHandle_,
-                        poolingDesc_,
-                        &alpha,
-                        xDesc_, children_[0]->val()->data(),
-                        &beta,
-                        yDesc_, val_->data()))
-          )
-      };
-    }
+  virtual ~PoolingOp() {
+    CUDNN_CALL(cudnnDestroy(cudnnHandle_));
+    CUDNN_CALL(cudnnDestroyPoolingDescriptor(poolingDesc_));
+    CUDNN_CALL(cudnnDestroyTensorDescriptor(xDesc_));
+    CUDNN_CALL(cudnnDestroyTensorDescriptor(yDesc_));
+    CUDNN_CALL(cudnnDestroyTensorDescriptor(adjDesc_));
+  }
 
-    NodeOps backwardOps() {
-      cudaSetDevice(adj_->getDevice());
-      const float alpha = 1.0f;
-      const float beta = 1.0f;
-      return {
-        NodeOp(
-          CUDNN_CALL( cudnnPoolingBackward(cudnnHandle_,
-                        poolingDesc_,
-                        &alpha,
-                        yDesc_, val_->data(),
-                        adjDesc_, adj_->data(),
-                        xDesc_, children_[0]->val()->data(),
-                        &beta,
-                        xDesc_, children_[0]->grad()->data()
-          )))
-      };
-    }
-
-    const std::string type() {
-      return "layer_max_pooling";
-    }
-
-    virtual ~PoolingOp() {
-      CUDNN_CALL( cudnnDestroy(cudnnHandle_) );
-      CUDNN_CALL( cudnnDestroyPoolingDescriptor(poolingDesc_) );
-      CUDNN_CALL( cudnnDestroyTensorDescriptor(xDesc_) );
-      CUDNN_CALL( cudnnDestroyTensorDescriptor(yDesc_) );
-      CUDNN_CALL( cudnnDestroyTensorDescriptor(adjDesc_) );
-    }
-
-  protected:
-    cudnnHandle_t cudnnHandle_;
-    cudnnPoolingDescriptor_t poolingDesc_;
-    cudnnTensorDescriptor_t xDesc_;
-    cudnnTensorDescriptor_t yDesc_;
-    cudnnTensorDescriptor_t adjDesc_;
-
+protected:
+  cudnnHandle_t cudnnHandle_;
+  cudnnPoolingDescriptor_t poolingDesc_;
+  cudnnTensorDescriptor_t xDesc_;
+  cudnnTensorDescriptor_t yDesc_;
+  cudnnTensorDescriptor_t adjDesc_;
 };
 
 #endif

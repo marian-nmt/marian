@@ -105,9 +105,7 @@ public:
 
   std::string path() { return file_.string(); }
 
-  bool empty() {
-    return ifstream_.peek() == std::ifstream::traits_type::eof();
-  }
+  bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
 
 private:
   boost::filesystem::path file_;

@@ -1,5 +1,5 @@
-#include "training/graph_group_sync.h"
 #include "kernels/tensor_operators.h"
+#include "training/graph_group_sync.h"
 
 namespace marian {
 
@@ -12,22 +12,25 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_->registerTrainingObserver(opt);
 }
 
-void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches) {
+void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
+                                         Tensor params,
+                                         size_t batches) {
   float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
   Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
 }
 
-void SyncGraphGroup::fetchParams(Tensor oldParams, const std::vector<Tensor>& params) {
+void SyncGraphGroup::fetchParams(Tensor oldParams,
+                                 const std::vector<Tensor>& params) {
   // @TODO read guard on parameters
   int pos = 0;
   std::vector<std::thread> threads;
   for(int idx = 0; idx < devices_.size(); idx++) {
     threads.emplace_back(std::thread(
-      [=](int idx, int pos) {
-        oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
-      },
-      idx,
-      pos));
+        [=](int idx, int pos) {
+          oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
+        },
+        idx,
+        pos));
     pos += shardSize_;
   }
   for(auto&& t : threads) {
@@ -39,13 +42,10 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
 
   if(first_) {
-
     for(size_t i = 0; i < graphs_.size(); ++i) {
       // takes care of thead_local stuff
-      THREAD_GUARD(
-        builders_[i]->build(graphs_[i], batches[0]);
-        graphs_[i]->forward();
-      );
+      THREAD_GUARD(builders_[i]->build(graphs_[i], batches[0]);
+                   graphs_[i]->forward(););
 
       if(i > 0)
         graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
@@ -138,8 +138,8 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
       if(movingAvg_)
-        updateMovingAverage(paramsAvg_[idx], params_[idx],
-                            scheduler_->numberOfBatches());
+        updateMovingAverage(
+            paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
 
       for(auto graph : graphs_) {
         auto subParam = graph->params()->vals()->subtensor(pos, size);
@@ -178,5 +178,4 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
     }
   }
 }
-
 }

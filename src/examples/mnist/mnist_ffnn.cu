@@ -11,8 +11,8 @@
 #include "examples/mnist/model.h"
 #include "examples/mnist/training.h"
 #include "training/graph_group_async.h"
-#include "training/graph_group_sync.h"
 #include "training/graph_group_singleton.h"
+#include "training/graph_group_sync.h"
 
 const std::vector<std::string> TRAIN_SET
     = {"../src/examples/mnist/train-images-idx3-ubyte",

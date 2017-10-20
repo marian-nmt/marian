@@ -6,8 +6,9 @@
 #include <thrust/host_vector.h>
 #include <thrust/pair.h>
 
-#include "kernels/shape_gpu.h"
 #include "tensors/tensor.h"
+
+#include "kernels/shape_gpu.h"
 #include "tensors/allocator.h"
 #include "tensors/device_gpu.h"
 
@@ -26,16 +27,26 @@ cublasHandle_t create_handle(size_t);
 void Transpose4D(Tensor out, Tensor in, Shape tranpose);
 
 void Select(Ptr<Allocator<DeviceGPU>> allocator,
-            Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+            Tensor out,
+            Tensor in,
+            int axis,
+            const std::vector<size_t>&);
 
 void Insert(Ptr<Allocator<DeviceGPU>> allocator,
-            Tensor out, Tensor in, int axis, const std::vector<size_t>&);
+            Tensor out,
+            Tensor in,
+            int axis,
+            const std::vector<size_t>&);
 
 void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
-             Tensor out, const std::vector<Tensor>& ins, int axis);
+             Tensor out,
+             const std::vector<Tensor>& ins,
+             int axis);
 
 void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
-            std::vector<Tensor>& outs, const Tensor in, int axis);
+            std::vector<Tensor>& outs,
+            const Tensor in,
+            int axis);
 
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
@@ -1067,13 +1078,13 @@ void Prod(cublasHandle_t handle,
           float scalar = 1);
 
 void ProdBatched(cublasHandle_t handle,
-          Tensor C,
-          const Tensor A,
-          const Tensor B,
-          bool transA,
-          bool transB,
-          float beta = 0,
-          float scalar = 1);
+                 Tensor C,
+                 const Tensor A,
+                 const Tensor B,
+                 bool transA,
+                 bool transB,
+                 float beta = 0,
+                 float scalar = 1);
 
 void CopyRowsByIndex(Tensor out,
                      const Tensor in,
@@ -1090,8 +1101,12 @@ void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void LSTMCellForward(Tensor out, std::vector<Tensor> inputs);
 void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs);
-void LSTMCellBackward(std::vector<Tensor> outputs, std::vector<Tensor> inputs, Tensor adj);
-void LSTMOutputBackward(std::vector<Tensor> outputs, std::vector<Tensor> inputs, Tensor adj);
+void LSTMCellBackward(std::vector<Tensor> outputs,
+                      std::vector<Tensor> inputs,
+                      Tensor adj);
+void LSTMOutputBackward(std::vector<Tensor> outputs,
+                        std::vector<Tensor> inputs,
+                        Tensor adj);
 
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final = false);
 
@@ -1130,9 +1145,15 @@ void SetSparse(float*,
                const std::vector<float>& values);
 
 void HighwayForward(Tensor out,
-                    const Tensor in1, const Tensor in2, const Tensor t);
+                    const Tensor in1,
+                    const Tensor in2,
+                    const Tensor t);
 
-void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
-                     const Tensor in1, const Tensor in2, const Tensor t,
+void HighwayBackward(Tensor out1,
+                     Tensor out2,
+                     Tensor outt,
+                     const Tensor in1,
+                     const Tensor in2,
+                     const Tensor t,
                      const Tensor adj);
 }

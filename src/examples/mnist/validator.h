@@ -66,5 +66,4 @@ private:
     return numCorrect;
   }
 };
-
 }

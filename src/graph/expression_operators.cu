@@ -88,20 +88,19 @@ Expr operator/(Expr a, float b) {
   return Expression<ScalarMultNodeOp>(a, 1.f / b);
 }
 
-//Expr pow(float a, Expr b) {
+// Expr pow(float a, Expr b) {
 //  return Expression<Scalar1PowNodeOp>(a, b);
 //
 //}
 //
-//Expr pow(Expr a, float b) {
+// Expr pow(Expr a, float b) {
 //  return Expression<Scalar2PowNodeOp>(a, b);
 //
 //}
 //
-//Expr pow(Expr a, Expr b) {
+// Expr pow(Expr a, Expr b) {
 //  return Expression<PowNodeOp>(a, b);
 //}
-
 
 /*********************************************************/
 
@@ -180,7 +179,7 @@ Expr cross_entropy(Expr a, Expr b) {
   sOut.set(1, 1);
   return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
 
-  //return Expression<CrossEntropyNodeOp>(a, b);
+  // return Expression<CrossEntropyNodeOp>(a, b);
 }
 
 Expr affine(Expr a, Expr b, Expr c) {
@@ -212,7 +211,10 @@ Expr square(Expr a) {
   return Expression<SquareNodeOp>(a);
 }
 
-Expr layer_norm(Expr x, Expr gamma, Expr beta /*= nullptr*/, float eps /*= 1e-9*/) {
+Expr layer_norm(Expr x,
+                Expr gamma,
+                Expr beta /*= nullptr*/,
+                float eps /*= 1e-9*/) {
   std::vector<Expr> nodes = {x, gamma};
   if(beta)
     nodes.push_back(beta);
@@ -239,7 +241,7 @@ Expr shift(Expr a, Shape shift) {
   return Expression<ShiftNodeOp>(a, shift);
 }
 
-//Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
+// Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
 
@@ -250,6 +252,7 @@ Expr convolution(Expr x, Expr filters, Expr bias) {
   return Expression<ConvolutionOp>(nodes);
 }
 
+// clang-format off
 Expr avg_pooling(
     Expr x,
     int height, int width,
@@ -275,7 +278,7 @@ Expr max_pooling(
       strideHeight, strideWidth,
       PoolingOp::Mode::MAX_POOLING);
 }
+// clang-format on
 
 #endif
-
 }
