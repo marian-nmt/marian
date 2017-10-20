@@ -56,6 +56,7 @@ Expr transpose(Expr a);
 Expr transpose(Expr a, Shape permute);
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
+Expr concatenate2(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
 
 Expr reshape(Expr a, Shape shape);
 

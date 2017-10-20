@@ -173,8 +173,8 @@ public:
     int dimBeamQ = q->shape()[3];
     int dimBeamK = k->shape()[3];
     if(dimBeamQ != dimBeamK) {
-      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis=3);
-      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis=3);
+      k = concatenate2(std::vector<Expr>(dimBeamQ, k), axis=3);
+      v = concatenate2(std::vector<Expr>(dimBeamQ, v), axis=3);
     }
 
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
@@ -248,7 +248,7 @@ public:
 
     Expr output;
     if(outputs.size() > 1)
-      output = concatenate(outputs, axis=1);
+      output = concatenate2(outputs, axis=1);
     else
       output = outputs.front();
 
@@ -566,7 +566,7 @@ public:
 
       auto values = query;
       if(prevDecoderStates.size() > 0)
-        values = concatenate({prevDecoderStates[i - 1].output, query}, axis=0);
+        values = concatenate2({prevDecoderStates[i - 1].output, query}, axis=0);
       decoderStates.push_back({values, nullptr});
 
       // TODO: do not recompute matrix multiplies

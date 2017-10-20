@@ -2106,5 +2106,192 @@ void HighwayBackward(Tensor out1, Tensor out2, Tensor outt,
                                         length);
 }
 
+void Concatenate0(Tensor out, const std::vector<Tensor>& inputs) {
+  cudaSetDevice(out->getDevice());
+
+  size_t offset = 0;
+  for(auto in : inputs) {
+    UTIL_THROW_IF2(out->shape()[1] != in->shape()[1],
+                   "Second dimension must be equal");
+    cudaMemcpy(out->data() + offset,
+               in->data(),
+               in->size() * sizeof(float),
+               cudaMemcpyDeviceToDevice);
+    offset += in->size();
+  }
+}
+
+__global__ void gInsertCols(float* out,
+                            const float* in,
+                            size_t rows,
+                            size_t cols,
+                            size_t cols_out,
+                            size_t cols_in,
+                            size_t offset_out,
+                            size_t offset_in) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols_out + offset_out;
+      const float* rowIn = in + j * cols_in + offset_in;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[i] = rowIn[i];
+      }
+    }
+  }
+}
+
+__global__ void gConcatenateAx1(float* out,
+                                size_t rows,
+                                const float* in1,
+                                const float* in2,
+                                size_t colsIn1,
+                                size_t colsIn2) {
+  size_t cols = colsIn1 + colsIn2;
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+      const float* rowIn1 = in1 + j * colsIn1;
+      const float* rowIn2 = in2 + j * colsIn2;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < colsIn1)
+          rowOut[i] = rowIn1[i];
+        else if(i >= colsIn1 && i < colsIn1 + colsIn2)
+          rowOut[i] = rowIn2[i - colsIn1];
+      }
+    }
+  }
+}
+
+__global__ void gConcatenateAx1(float* out,
+                                size_t rows,
+                                const float* in1,
+                                const float* in2,
+                                const float* in3,
+                                size_t colsIn1,
+                                size_t colsIn2,
+                                size_t colsIn3) {
+  size_t cols = colsIn1 + colsIn2 + colsIn3;
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+      const float* rowIn1 = in1 + j * colsIn1;
+      const float* rowIn2 = in2 + j * colsIn2;
+      const float* rowIn3 = in3 + j * colsIn3;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < colsIn1)
+          rowOut[i] = rowIn1[i];
+        else if(i >= colsIn1 && i < colsIn1 + colsIn2)
+          rowOut[i] = rowIn2[i - colsIn1];
+        else if(i >= colsIn1 + colsIn2 && i < colsIn1 + colsIn2 + colsIn3)
+          rowOut[i] = rowIn3[i - colsIn1 - colsIn2];
+      }
+    }
+  }
+}
+
+void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
+  cudaSetDevice(out->getDevice());
+
+  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  if(inputs.size() == 2) {
+    int cols = out->shape()[1];
+    int blocks = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols);
+    gConcatenateAx1<<<blocks, threads>>>(out->data(),
+                                         rows,
+                                         inputs[0]->data(),
+                                         inputs[1]->data(),
+                                         inputs[0]->shape()[1],
+                                         inputs[1]->shape()[1]);
+    return;
+  }
+  if(inputs.size() == 3) {
+    int cols = out->shape()[1];
+    int blocks = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols);
+    gConcatenateAx1<<<blocks, threads>>>(out->data(),
+                                         rows,
+                                         inputs[0]->data(),
+                                         inputs[1]->data(),
+                                         inputs[2]->data(),
+                                         inputs[0]->shape()[1],
+                                         inputs[1]->shape()[1],
+                                         inputs[2]->shape()[1]);
+    return;
+  }
+
+  size_t offset = 0;
+  int cols_out = out->shape()[1];
+
+  for(auto in : inputs) {
+    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
+                   "First dimension must be equal");
+    int cols_in = in->shape()[1];
+
+    int blocks = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols_in);
+
+    gInsertCols<<<blocks, threads>>>(
+        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0);
+    offset += cols_in;
+  }
+}
+
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
+  if(ax == 1)
+    Concatenate1(out, inputs);
+  else
+    Concatenate0(out, inputs);
+}
+
+void Deconcatenate0(std::vector<Tensor>& outputs, const Tensor in) {
+  cudaSetDevice(in->getDevice());
+
+  size_t offset = 0;
+  for(auto out : outputs) {
+    cudaMemcpy(out->data(),
+               in->data() + offset,
+               out->size() * sizeof(float),
+               cudaMemcpyDeviceToDevice);
+    offset += out->size();
+  }
+}
+
+void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
+  cudaSetDevice(in->getDevice());
+
+  size_t offset = 0;
+  int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
+  int cols_in = in->shape()[1];
+  for(auto out : outputs) {
+    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
+                   "First dimension must be equal");
+    int cols_out = out->shape()[1];
+
+    int blocks = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols_out);
+
+    gInsertCols<<<blocks, threads>>>(
+        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset);
+    offset += cols_out;
+  }
+}
+
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
+  if(ax == 1)
+    Deconcatenate1(outputs, in);
+  else
+    Deconcatenate0(outputs, in);
+}
 
 }  // namespace marian

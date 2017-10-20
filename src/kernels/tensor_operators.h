@@ -37,6 +37,10 @@ void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
 void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
             std::vector<Tensor>& outs, const Tensor in, int axis);
 
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
+
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
+
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
