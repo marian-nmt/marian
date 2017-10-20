@@ -65,9 +65,9 @@ void createLoggers(const marian::Config* options) {
     validLogs.push_back(options->get<std::string>("valid-log"));
   }
 
-  // @TODO: remove unused loggers
   bool quiet = options && options->get<bool>("quiet");
-  Logger general{stderrLogger("general", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
+  Logger general{
+      stderrLogger("general", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
   Logger valid{
       stderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs, quiet)};
 

@@ -2,8 +2,27 @@
 
 #include "spdlog/spdlog.h"
 
+/**
+ * @brief Prints logging message into stderr and a file specified with `--log`
+ * option.
+ *
+ * Example usage: `LOG(info, "[data] Vocab size: {}", vocabSize)`
+ *
+ * A good practise is to put `[namespace]` at the beginning of your message.
+ *
+ * @param level Logging level: trace, debug, info, warn, error, critical
+ * @param ...
+ */
 #define LOG(level, ...) checkedLog("general", #level, __VA_ARGS__)
 
+/**
+ * @brief Prints logging message regarding validation into stderr and a file
+ * specified with `--valid-log` option.
+ *
+ * The message is automatically preceded by "[valid] ".
+ *
+ * @see \def LOG(level, ...)
+ */
 #define LOG_VALID(level, ...) checkedLog("valid", #level, __VA_ARGS__)
 
 typedef std::shared_ptr<spdlog::logger> Logger;
