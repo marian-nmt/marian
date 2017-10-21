@@ -232,7 +232,7 @@ public:
       fileName = tempFile->getFileName();
     }
 
-    LOG(info, "Translating validation set...");
+    LOG_VALID(info, "Translating validation set...");
 
     graph->setInference(true);
     boost::timer::cpu_timer timer;
@@ -266,7 +266,7 @@ public:
       }
     }
 
-    LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
+    LOG_VALID(info, "Total translation time: {}", timer.format(5, "%ws"));
     graph->setInference(false);
 
     float val = 0.0f;
