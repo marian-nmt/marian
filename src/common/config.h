@@ -56,7 +56,7 @@ public:
         try {
           loadModelParameters(get<std::string>("model"));
         } catch(std::runtime_error& e) {
-          LOG(info)->info("No model settings found in model file");
+          LOG(info, "[config] No model settings found in model file");
         }
       }
     } else {
@@ -64,7 +64,7 @@ public:
       try {
         loadModelParameters(model);
       } catch(std::runtime_error& e) {
-        LOG(info)->info("No model settings found in model file");
+        LOG(info, "[config] No model settings found in model file");
       }
     }
     log();

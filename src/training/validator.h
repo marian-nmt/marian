@@ -192,8 +192,8 @@ public:
     builder_ = models::from_options(opts);
 
     if(!options_->has("valid-script-path"))
-      LOG(warn)
-          ->info("No post-processing script given for validating translator");
+      LOG_VALID(warn,
+                "No post-processing script given for validating translator");
   }
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
@@ -232,7 +232,7 @@ public:
       fileName = tempFile->getFileName();
     }
 
-    LOG(valid)->info("Translating validation set...");
+    LOG_VALID(info, "Translating validation set...");
 
     graph->setInference(true);
     boost::timer::cpu_timer timer;
@@ -260,13 +260,13 @@ public:
                          options_->get<bool>("n-best"));
 
         // int id = batch->getSentenceIds()[0];
-        // LOG(valid)->info("Best translation {}: {}", id, best1.str());
+        // LOG(info, "Best translation {}: {}", id, best1.str());
 
         sentenceId++;
       }
     }
 
-    LOG(valid)->info("Total translation time: {}", timer.format(5, "%ws"));
+    LOG_VALID(info, "Total translation time: {}", timer.format(5, "%ws"));
     graph->setInference(false);
 
     float val = 0.0f;

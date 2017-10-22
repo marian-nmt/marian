@@ -16,7 +16,7 @@ Ptr<TranslateServiceMultiGPU<BeamSearch>> task;
 void init(const std::string& argopts) {
   auto options = New<Config>(argopts, ConfigMode::translating);
   task = New<TranslateServiceMultiGPU<BeamSearch>>(options);
-  LOG(info)->info("Translator initialized");
+  LOG(info, "Translator initialized");
 }
 
 boost::python::list translate(boost::python::list& pyinput) {

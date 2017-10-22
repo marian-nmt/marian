@@ -20,7 +20,7 @@ Ptr<Scorer> scorerByType(std::string fname,
 
   auto encdec = models::from_options(options);
 
-  LOG(info)->info("Loading scorer of type {} as feature {}", type, fname);
+  LOG(info, "Loading scorer of type {} as feature {}", type, fname);
 
   return New<ScorerWrapper>(encdec, fname, weight, model);
 }
@@ -43,7 +43,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
     try {
       modelOptions->loadModelParameters(model);
     } catch(std::runtime_error& e) {
-      LOG(warn)->warn("No model settings found in model file");
+      LOG(warn, "No model settings found in model file");
     }
 
     scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));

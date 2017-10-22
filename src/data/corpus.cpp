@@ -61,8 +61,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
-        LOG(data)
-            ->info("Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(info, "[data] Setting vocabulary size for input {} to {}", i, vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
@@ -77,8 +76,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize
             = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-        LOG(data)
-            ->info("Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(info, "[data] Setting vocabulary size for input {} to {}", i, vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
@@ -94,7 +92,10 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
       int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-      LOG(data)->info("Setting vocabulary size for input {} to {}", i, vocSize);
+      LOG(info,
+          "[data] Setting vocabulary size for input {} to {}",
+          i,
+          vocSize);
       options_->get()["dim-vocabs"][i] = vocSize;
 
       vocabs_.emplace_back(vocab);
@@ -178,7 +179,7 @@ void Corpus::reset() {
 }
 
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
-  LOG(data)->info("Shuffling files");
+  LOG(info, "[data] Shuffling files");
 
   std::vector<std::vector<std::string>> corpus;
 
@@ -224,7 +225,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     files_.emplace_back(new InputFileStream(*tempFiles_[i]));
   }
 
-  LOG(data)->info("Done");
+  LOG(info, "[data] Done");
 }
 }
 }

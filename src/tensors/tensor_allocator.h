@@ -31,18 +31,20 @@ public:
 
   void reserve(size_t bytes = 0) {
     float mult = bytes / GROW + 1;
-    LOG(memory)
-        ->info("Extending reserved space to {} MB (device {})",
-               mult * CHUNK,
-               allocator_->getDevice());
+    LOG(info,
+        "[memory] Extending reserved space to {} MB (device {})",
+        mult * CHUNK,
+        allocator_->getDevice());
 
     allocator_->reserve(mult * GROW);
   }
 
   void reserveExact(size_t bytes = 0) {
     size_t mbytes = bytes / MBYTE;
-    LOG(memory)
-        ->info("Reserving {} MB, device {}", mbytes, allocator_->getDevice());
+    LOG(info,
+        "[memory] Reserving {} MB, device {}",
+        mbytes,
+        allocator_->getDevice());
 
     allocator_->reserve(bytes);
   }

@@ -36,7 +36,7 @@ void Config::log() {
   std::vector<std::string> results;
   boost::algorithm::split(results, configString, boost::is_any_of("\n"));
   for(auto& r : results)
-    LOG(config)->info(r);
+    LOG(info, "[config] {}", r);
 }
 
 void Config::override(const YAML::Node& params) {

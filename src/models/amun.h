@@ -40,7 +40,7 @@ public:
   void load(Ptr<ExpressionGraph> graph, const std::string& name) {
     using namespace keywords;
 
-    LOG(info)->info("Loading model from {}", name);
+    LOG(info, "Loading model from {}", name);
 
     auto numpy = cnpy::npz_load(name);
 
@@ -146,7 +146,7 @@ public:
   }
 
   void save(Ptr<ExpressionGraph> graph, const std::string& name) {
-    LOG(info)->info("Saving model to {}", name);
+    LOG(info, "Saving model to {}", name);
 
     unsigned shape[2];
     std::string mode = "w";

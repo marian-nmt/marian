@@ -25,11 +25,11 @@ public:
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("mini-batch-fit")) {
-      LOG(info)->info("[batching] Collecting statistics for batch fitting");
+      LOG(info, "[batching] Collecting statistics for batch fitting");
       // @TODO, better fake batch with vocabulary
       auto model = New<ModelWrapper>(options_);
       THREAD_GUARD(stats = model->collectStats());
-      LOG(info)->info("[batching] Done");
+      LOG(info, "[batching] Done");
     }
 
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));

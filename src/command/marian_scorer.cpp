@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
   boost::timer::cpu_timer timer;
   // @TODO: support multi-gpu rescoring
   New<Rescore<Rescorer>>(options)->run();
-  LOG(info)->info("Total time: {}", timer.format());
+  LOG(info, "Total time: {}", timer.format());
 
   return 0;
 }

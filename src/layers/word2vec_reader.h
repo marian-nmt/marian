@@ -18,7 +18,7 @@ public:
   Word2VecReader() {}
 
   std::vector<float> read(const std::string& fileName, int dimVoc, int dimEmb) {
-    LOG(data)->info("Loading embedding vectors from {}", fileName);
+    LOG(info, "[data] Loading embedding vectors from {}", fileName);
 
     std::ifstream embFile(fileName);
     UTIL_THROW_IF2(!embFile.is_open(),
