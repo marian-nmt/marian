@@ -338,7 +338,7 @@ public:
     auto b2 = graph->param(prefix + "_b2", {1, dimModel}, init = inits::zeros);
 
     output = affine(output, W1, b1);
-    output = relu(output);
+    output = swish(output);
     output = affine(output, W2, b2);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
@@ -551,7 +551,7 @@ public:
       auto values = query;
       if(prevDecoderStates.size() > 0)
         values = concatenate2({prevDecoderStates[i - 1].output, query}, axis=0);
-        
+
       decoderStates.push_back({values, nullptr});
 
       // TODO: do not recompute matrix multiplies

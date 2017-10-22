@@ -228,6 +228,22 @@ struct ReLUNodeOp : public UnaryNodeOp {
   const std::string type() { return "ReLU"; }
 };
 
+struct SwishNodeOp : public UnaryNodeOp {
+  template <typename... Args>
+  SwishNodeOp(Args... args) : UnaryNodeOp(args...) {}
+
+  NodeOps forwardOps() {
+    return {NodeOp(Element(_1 = _2 * Sigma(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(
+        Add(_1 * (_3 + Sigma(_2) * (1.f - _3)), child(0)->grad(), adj_, child(0)->val(), val_))};
+  }
+
+  const std::string type() { return "swish"; }
+};
+
 struct SoftmaxNodeOp : public NaryNodeOp {
   template <typename... Args>
   SoftmaxNodeOp(Expr a, Args... args)

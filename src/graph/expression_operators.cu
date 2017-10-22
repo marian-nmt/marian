@@ -28,6 +28,10 @@ Expr exp(Expr a) {
   return Expression<ExpNodeOp>(a);
 };
 
+Expr swish(Expr a) {
+  return Expression<SwishNodeOp>(a);
+}
+
 Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
@@ -188,6 +192,10 @@ Expr affine(Expr a, Expr b, Expr c) {
 }
 
 Expr plus(const std::vector<Expr>&) {
+  UTIL_THROW2("Not implemented");
+}
+
+Expr swish(const std::vector<Expr>&) {
   UTIL_THROW2("Not implemented");
 }
 

@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - In-process translation for validation, uses the same memory as training
 - Label Smoothing
 - Added CHANGELOG.md
+- Swish activation function default for Transformer
+(https://arxiv.org/pdf/1710.05941.pdf)
 
 ### Changed
 - Renamed "s2s" binary to "marian-decoder"

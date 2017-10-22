@@ -10,6 +10,9 @@ Expr plus(const std::vector<Expr>&);
 Expr logit(Expr a);
 Expr logit(const std::vector<Expr>&);
 
+Expr swish(Expr a);
+Expr swish(const std::vector<Expr>&);
+
 Expr tanh(const std::vector<Expr>&);
 
 template <typename... Args>
