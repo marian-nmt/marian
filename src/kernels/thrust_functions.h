@@ -34,7 +34,14 @@ Log(const actor<Eval> &_1) {
 template <typename T>
 struct unary_sigma : public thrust::unary_function<T, T> {
   __host__ __device__ T operator()(const T &x) const {
-    return 1.0 / (1.0 + expf(-x));
+    if(x >= 0) {
+      float z = expf(-x);
+      return 1.0 / (1.0 + z);
+    }
+    else {
+      float z = expf(x);
+      return z / (1.0 + z);
+    }
   }
 };
 

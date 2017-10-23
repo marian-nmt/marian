@@ -13,6 +13,17 @@ struct isnan_test {
   __host__ __device__ bool operator()(const float a) const { return isnan(a); }
 };
 
+__device__ inline float stableLogit(float x) {
+  if(x >= 0) {
+    float z = expf(-x);
+    return 1.0 / (1.0 + z);
+  }
+  else {
+    float z = expf(x);
+    return z / (1.0 + z);
+  }
+}
+
 bool IsNan(Tensor in) {
   cudaSetDevice(in->getDevice());
   thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
@@ -944,12 +955,12 @@ __global__ void gGRUFastForward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float ev1 = expf(-(xWrow[i] + sUrow[i] + b[i]));
-          float r = 1.0f / (1.0f + ev1);
+
+          float r = stableLogit(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
-          float ev2 = expf(-(xWrow[k] + sUrow[k] + b[k]));
-          float z = 1.0f / (1.0f + ev2);
+
+          float z = stableLogit(xWrow[k] + sUrow[k] + b[k]);
 
           int l = i + 2 * cols;
           float h;
@@ -1020,11 +1031,8 @@ __global__ void gGRUFastBackward(float* outState,
           int k = i + cols;
           int l = i + 2 * cols;
 
-          float ev1 = expf(-(rowXW[i] + rowSU[i] + b[i]));
-          float r = 1.0f / (1.0f + ev1);
-
-          float ev2 = expf(-(rowXW[k] + rowSU[k] + b[k]));
-          float z = 1.0f / (1.0f + ev2);
+          float r = stableLogit(rowXW[i] + rowSU[i] + b[i]);
+          float z = stableLogit(rowXW[k] + rowSU[k] + b[k]);
 
           float h;
           if(final)
@@ -1737,10 +1745,6 @@ void SetSparse(float* out,
 
 /******************************************************************************/
 
-__device__ inline float logit(float x) {
-  return 1.0f / (1.0f + expf(-x));
-}
-
 __global__ void gLSTMCellForward(float* out,
                                  const float* cell,
                                  const float* xW,
@@ -1763,10 +1767,10 @@ __global__ void gLSTMCellForward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float gf = logit(xWrow[i] + sUrow[i] + b[i]);
+          float gf = stableLogit(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
-          float gi = logit(xWrow[k] + sUrow[k] + b[k]);
+          float gi = stableLogit(xWrow[k] + sUrow[k] + b[k]);
 
           int l = i + 2 * cols;
           float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
@@ -1819,7 +1823,7 @@ __global__ void gLSTMOutputForward(float* out,
         int i = tid + threadIdx.x;
         if(i < cols) {
           int k = i + 3 * cols;
-          float go = logit(xWrow[k] + sUrow[k] + b[k]);
+          float go = stableLogit(xWrow[k] + sUrow[k] + b[k]);
 
           rowOut[i] = go * tanhf(rowCell[i]);
         }
@@ -1876,10 +1880,10 @@ __global__ void gLSTMCellBackward(float* outCell,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float gf = logit(xWrow[i] + sUrow[i] + b[i]);
+          float gf = stableLogit(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
-          float gi = logit(xWrow[k] + sUrow[k] + b[k]);
+          float gi = stableLogit(xWrow[k] + sUrow[k] + b[k]);
 
           int l = i + 2 * cols;
           float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
@@ -1976,7 +1980,7 @@ __global__ void gLSTMOutputBackward(float* outCell,
         int i = tid + threadIdx.x;
         if(i < cols) {
           int k = i + 3 * cols;
-          float go = logit(xWrow[k] + sUrow[k] + b[k]);
+          float go = stableLogit(xWrow[k] + sUrow[k] + b[k]);
 
           float t = tanhf(rowCell[i]);
 
@@ -2033,7 +2037,7 @@ __global__ void gHighwayForward(float* out,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      float sigma = 1.f / (1.f + expf(-t[index]));
+      float sigma = stableLogit(t[index]);
       out[index] = in1[index] * sigma + in2[index] * (1.f - sigma);
     }
   }
@@ -2065,7 +2069,7 @@ __global__ void gHighwayBackward(float* out1,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      float sigma = 1.f / (1.f + expf(-t[index]));
+      float sigma = stableLogit(t[index]);
       out1[index] = sigma * adj[index];
       out2[index] = (1.f - sigma) * adj[index];
       outt[index]
