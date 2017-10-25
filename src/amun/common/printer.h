@@ -81,10 +81,9 @@ void Printer(const God &god, const History& history, OStream& out, const Sentenc
 }
 
 template <class OStream>
-void Printer(const God &god, const Histories& histories, OStream& out, const Sentences& sentences) {
+void Printer(const God &god, const Histories& histories, OStream& out, const Sentence& sentence) {
   for (size_t i = 0; i < histories.size(); ++i) {
     const History& history = *histories.at(i).get();
-	const Sentence &sentence = *sentences.at(0).get();
     Printer(god, history, out, sentence);
   }
 }
