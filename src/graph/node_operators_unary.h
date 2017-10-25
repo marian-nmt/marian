@@ -336,10 +336,9 @@ struct SumNodeOp : public UnaryNodeOp {
     if(ax != -1) {
       shape.set(ax, 1);
     } else {
-      shape.set(0, 1);
-      shape.set(1, 1);
-      shape.set(2, 1);
-      shape.set(3, 1);
+      for(int i = 0; i < shape.size(); ++i) {
+        shape.set(i, 1);
+      }
     }
     return shape;
   }
@@ -397,10 +396,9 @@ struct MeanNodeOp : public UnaryNodeOp {
     if(ax != -1) {
       shape.set(ax, 1);
     } else {
-      shape.set(0, 1);
-      shape.set(1, 1);
-      shape.set(2, 1);
-      shape.set(3, 1);
+      for(int i = 0; i < shape.size(); ++i) {
+        shape.set(i, 1);
+      }
     }
     return shape;
   }

@@ -480,7 +480,7 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();
-    shape1.set(1, 1);
+    shape1.set(a->shape().size() - 1, 1);
     return shape1;
   }
 

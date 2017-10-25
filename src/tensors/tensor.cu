@@ -88,7 +88,7 @@ std::string TensorBase::debug() {
   std::vector<float> values(totSize);
   get(values);
 
-  size_t dispCols = 3;
+  size_t dispCols = 5;
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');
 
   for(int i = 0; i < values.size(); ++i) {
@@ -119,7 +119,7 @@ std::string TensorBase::debug() {
            << values[i]
            << " ";
 
-      if(dims.back() + 1 == shape()[-1]) {
+      if(dims.back() + 1 == shape().back()) {
         for(int j = dims.size() - 1; j >= 0; --j) {
           if(dims[j] + 1 != shape()[j])
             break;

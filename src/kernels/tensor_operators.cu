@@ -34,18 +34,18 @@ bool IsNan(Tensor in) {
 }
 
 __global__ void gConcatN(float* out,
-                         ShapeGPU outShape,
+                         const ShapeGPU outShape,
                          const float** ins,
                          ShapeGPU inShape,
                          int* lengths,
                          size_t num,
                          int axis) {
   int length = outShape.elements();
+  int* dims = new int[outShape.size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int dims[4];
       outShape.dims(index, dims);
 
       int i = 0;
@@ -59,6 +59,8 @@ __global__ void gConcatN(float* out,
       out[index] = in[inIndex];
     }
   }
+
+  delete[] dims;
 }
 
 void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
@@ -569,22 +571,22 @@ void Prod(cublasHandle_t handle,
   cudaSetDevice(C->getDevice());
   float alpha = scalar;
 
-  size_t m = A->shape()[0] * A->shape()[2] * A->shape()[3];
-  size_t k = A->shape()[1];
+  size_t m = A->shape().elements() / A->shape().back();
+  size_t k = A->shape().back();
   if(transA)
     std::swap(m, k);
 
-  size_t l = B->shape()[0];
-  size_t n = B->shape()[1];
+  size_t l = B->shape().elements() / B->shape().back();
+  size_t n = B->shape().back();
   if(transB)
     std::swap(l, n);
 
-  size_t lda = A->shape()[1];
-  size_t ldb = B->shape()[1];
-  size_t ldc = B->shape()[1];
+  size_t lda = A->shape().back();
+  size_t ldb = B->shape().back();
+  size_t ldc = B->shape().back();
 
   if(transB)
-    ldc = B->shape()[0];
+    ldc = B->shape().elements() / B->shape().back();
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
@@ -1120,8 +1122,9 @@ __global__ void gCrossEntropyPick(float* out,
                                   const float* in,
                                   const ShapeGPU inShape,
                                   const float* pick) {
-  int rows = inShape[0];
-  int cols = inShape[1];
+  int rows = inShape.elements() / inShape.back();
+  int cols = inShape.back();
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -1187,11 +1190,11 @@ __global__ void gCrossEntropyPick(float* out,
 void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = in->shape()[0] * in->shape()[2] * in->shape()[3];
-  size_t k = in->shape()[1];
+  int rows = in->shape().elements() / in->shape().back();
+  int cols = in->shape().back();
 
-  int blocks = std::min(MAX_BLOCKS, (int)m);
-  int threads = std::min(MAX_THREADS, (int)k);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPick<<<blocks, threads, shared>>>(
@@ -1203,8 +1206,8 @@ __global__ void gCrossEntropyPickBackward(float* out,
                                           const float* adj,
                                           const float* in,
                                           const float* pick) {
-  int rows = outShape[0];
-  int cols = outShape[1];
+  int rows = outShape.elements() / outShape.back();
+  int cols = outShape.back();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -1273,11 +1276,11 @@ __global__ void gCrossEntropyPickBackward(float* out,
 void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  size_t k = out->shape()[1];
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
-  int blocks = std::min(MAX_BLOCKS, (int)m);
-  int threads = std::min(MAX_THREADS, (int)k);
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPickBackward<<<blocks, threads, shared>>>(
@@ -1687,7 +1690,7 @@ __global__ void gShift(float* out, const float* in, int length, int offset) {
   }
 }
 
-void Shift(Tensor out, Tensor in, ShapeGPU shift, bool invert) {
+void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
   int offset
       = in->shape().stride(0) * shift[0] + in->shape().stride(1) * shift[1]
         + in->shape().stride(2) * shift[2] + in->shape().stride(3) * shift[3];

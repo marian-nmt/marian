@@ -14,8 +14,8 @@ namespace marian {
  * Note: this class currently is hard-coded to four dimensions.
  */
 
-class Shape {
-  private:
+struct Shape {
+  public:
     std::vector<int> shape_;
     std::vector<int> stride_;
     std::vector<int> bstride_;
@@ -53,12 +53,7 @@ class Shape {
       updateStrides();
     }
 
-    inline int& dim(int i) {
-      if(i < 0)
-        return shape_[shape_.size() + i];
-      else
-        return shape_[i];
-    }
+    inline int& dim(int i) { return shape_[i]; }
 
     inline const int& dim(int i) const { return const_cast<Shape&>(*this).dim(i); }
 

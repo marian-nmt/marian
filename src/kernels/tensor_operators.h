@@ -63,42 +63,102 @@ __global__ void gAddR2(Functor functor,
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
 
-  int I = full[0] / outShape[0];
-  int J = full[1] / outShape[1];
-  int K = full[2] / outShape[2];
-  int L = full[3] / outShape[3];
+  size_t num = full.size();
 
-  int dims[4];
-  int dimsFull[4];
+  int* len = new int[num];
+  for(int i = 0; i < num; ++i)
+    len[i] = full[i] / outShape[i];
+
+  int* dims = new int[num];
+  int* dimsFull = new int[num];
+
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
       if(same) {
         out[index] += functor(in1[index]) * scale;
       } else {
+
         outShape.dims(index, dims);
         float sum = 0;
-        for(int i = 0; i < I; ++i) {
-          for(int j = 0; j < J; ++j) {
-            for(int k = 0; k < K; ++k) {
-              for(int l = 0; l < L; ++l) {
-                dimsFull[0] = dims[0] + i;
-                dimsFull[1] = dims[1] + j;
-                dimsFull[2] = dims[2] + k;
-                dimsFull[3] = dims[3] + l;
 
-                int in1Index = in1Shape.bindex(dimsFull);
-                sum += functor(in1[in1Index]);
-              }
-            }
+        for(int i = 0; i < full.elements() / outShape.elements(); ++i) {
+
+          int l = i;
+          for(int j = num - 1; j >= 0; --j) {
+            int shift = l % len[j];
+            dimsFull[j] = dims[j] + shift;
+            if(j == num - 1)
+              l -= shift;
+            else
+              l -= shift * len[j + 1];
           }
+
+          int in1Index = in1Shape.bindex(dimsFull);
+          sum += functor(in1[in1Index]);
         }
-        if(sum)
+
+        if(sum) {
           out[index] += sum * scale;
+        }
+
       }
     }
   }
+  delete[] dims;
+  delete[] dimsFull;
+  delete[] len;
 }
+
+
+//template <class Functor>
+//__global__ void gAddR2(Functor functor,
+//                       float* out,
+//                       ShapeGPU outShape,
+//                       const float* in1,
+//                       const ShapeGPU in1Shape,
+//                       const ShapeGPU full,
+//                       float scale = 1.0) {
+//  int outLength = outShape.elements();
+//  bool same = outLength == full.elements() && outLength == in1Shape.elements();
+//
+//  int I = full[0] / outShape[0];
+//  int J = full[1] / outShape[1];
+//  int K = full[2] / outShape[2];
+//  int L = full[3] / outShape[3];
+//
+//  int dims[4];
+//  int dimsFull[4];
+//  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
+//    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+//    if(index < outLength) {
+//      if(same) {
+//        out[index] += functor(in1[index]) * scale;
+//      } else {
+//        outShape.dims(index, dims);
+//        float sum = 0;
+//        for(int i = 0; i < I; ++i) {
+//          for(int j = 0; j < J; ++j) {
+//            for(int k = 0; k < K; ++k) {
+//              for(int l = 0; l < L; ++l) {
+//                dimsFull[0] = dims[0] + i;
+//                dimsFull[1] = dims[1] + j;
+//                dimsFull[2] = dims[2] + k;
+//                dimsFull[3] = dims[3] + l;
+//
+//                int in1Index = in1Shape.bindex(dimsFull);
+//                sum += functor(in1[in1Index]);
+//              }
+//            }
+//          }
+//        }
+//        if(sum) {
+//          out[index] += sum * scale;
+//        }
+//      }
+//    }
+//  }
+//}
 
 template <class Functor>
 __global__ void gAddR2Eq(Functor functor,
@@ -109,7 +169,8 @@ __global__ void gAddR2Eq(Functor functor,
                          float scale,
                          bool broadcast) {
   int length = outShape.elements();
-  int dims[4];
+  int* dims = new int[outShape.size()];
+
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
@@ -121,6 +182,8 @@ __global__ void gAddR2Eq(Functor functor,
       out[index] += functor(in1[inIndex1]) * scale;
     }
   }
+
+  delete[] dims;
 }
 
 template <class Functor>
@@ -131,9 +194,11 @@ __global__ void gAdd1R2(Functor functor,
                         const ShapeGPU in1Shape,
                         const ShapeGPU full,
                         float scale = 1.0) {
-  int rows = full[0] * full[2] * full[3];
-  int cols = full[1];
+  int rows = full.elements() / full.back();
+  int cols = full.back();
   bool same = in1Shape.elements() == full.elements();
+
+  int* dims = new int[full.size()];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -151,7 +216,6 @@ __global__ void gAdd1R2(Functor functor,
           }
         }
       } else {
-        int dims[4];
         _sum[threadIdx.x] = 0;
 
         for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -177,6 +241,8 @@ __global__ void gAdd1R2(Functor functor,
       out[j] += _sum[0] * scale;
     }
   }
+
+  delete[] dims;
 }
 
 template <class Functor>
@@ -189,9 +255,9 @@ void Add(Functor functor, Tensor out, Tensor in, float scale = 1.0) {
 
   int length = out->shape().elements();
 
-  if(full[1] != 1 && out->shape()[1] == 1) {
+  if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
-    size_t k = full[1];
+    size_t k = full.back();
 
     int blocks = std::min(MAX_BLOCKS, (int)m);
     int threads = std::min(MAX_THREADS, (int)k);
@@ -1138,7 +1204,7 @@ void LayerNormalizationGrad(Tensor gradX,
                             Tensor beta,
                             float eps = 1e-9);
 
-void Shift(Tensor out, Tensor in, ShapeGPU shift, bool invert = false);
+void Shift(Tensor out, Tensor in, Shape shift, bool invert = false);
 
 void SetSparse(float*,
                const std::vector<size_t>& indeces,
