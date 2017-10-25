@@ -13,6 +13,7 @@ namespace marian {
  *
  * Note: this class currently is hard-coded to four dimensions.
  */
+const int SHAPE_SIZE = 4;
 
 struct ShapeGPU {
   int shape_[SHAPE_SIZE];

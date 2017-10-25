@@ -14,173 +14,117 @@ namespace marian {
  * Note: this class currently is hard-coded to four dimensions.
  */
 
-const size_t SHAPE_SIZE = 4;
+class Shape {
+  private:
+    std::vector<int> shape_;
+    std::vector<int> stride_;
+    std::vector<int> bstride_;
 
-struct Shape {
-  int shape_[SHAPE_SIZE];
-  int stride_[SHAPE_SIZE];
-  int bstride_[SHAPE_SIZE];
+  public:
+    Shape() : shape_{1}, stride_{1}, bstride_{0} {}
 
-  /**
-   * @brief Constructs a default shape.
-   *
-   * This default shape has four dimensions.
-   * The size of each dimension is 1.
-   */
-  Shape() : shape_{1, 1, 1, 1}, stride_{1, 1, 1, 1}, bstride_{0, 0, 0, 0} {}
+    Shape(std::initializer_list<int> il) : Shape() {
+      shape_.resize(il.size());
+      std::copy(il.begin(), il.end(), begin());
+      updateStrides();
+    }
 
-  /**
-   * @brief Constructs a shape.
-   *
-   * @param i A list of integers representing the size of each dimension.
-   */
-  Shape(std::initializer_list<int> il) : Shape() {
-    std::copy(il.begin(), il.end(), begin());
-    updateStrides();
-  }
+    void updateStrides() {
+      stride_.resize(shape_.size());
+      bstride_.resize(shape_.size());
 
-  void updateStrides() {
-    stride_[0] = shape_[1];
-    stride_[1] = 1;
-    stride_[2] = shape_[0] * shape_[1];
-    stride_[3] = shape_[0] * shape_[1] * shape_[2];
+      stride_.back() = 1;
+      bstride_.back() = shape_.back() == 1 ? 0 : stride_.back();
 
-    bstride_[0] = shape_[0] == 1 ? 0 : stride_[0];
-    bstride_[1] = shape_[1] == 1 ? 0 : stride_[1];
-    bstride_[2] = shape_[2] == 1 ? 0 : stride_[2];
-    bstride_[3] = shape_[3] == 1 ? 0 : stride_[3];
-  }
+      for(int i = size() - 2; i >= 0; --i) {
+        stride_[i] = stride_[i + 1] * shape_[i + 1];
+        bstride_[i] = shape_[i] == 1 ? 0 : stride_[i];
+      }
+    }
 
-  Shape(const Shape& shape) : Shape() {
-    shape_[0] = shape.shape_[0];
-    shape_[1] = shape.shape_[1];
-    shape_[2] = shape.shape_[2];
-    shape_[3] = shape.shape_[3];
-    updateStrides();
-  }
+    Shape(const Shape& shape) : Shape() {
+      shape_.resize(shape.size());
+      std::copy(shape.begin(), shape.end(), begin());
+      updateStrides();
+    }
 
-  inline void set(int i, int dim) {
-    shape_[i] = dim;
-    updateStrides();
-  }
-  /**
-   * @brief Gets a reference to the int representing the size of the
-   * <code>i</code>th dimension represented by this object.
-   *
-   * @return a reference to the int representing the size of the
-   * <code>i</code>th dimension represented by this object
-   */
-  inline int dim(int i) { return shape_[i]; }
+    inline void set(int i, int val) {
+      dim(i) = val;
+      updateStrides();
+    }
 
-  /**
-   * @brief Gets the size of the <code>i</code>th dimension represented by this
-   * object.
-   *
-   * @return the size of the <code>i</code>th dimension represented by this
-   * object
-   */
-  inline int dim(int i) const { return const_cast<Shape&>(*this).dim(i); }
+    inline int& dim(int i) {
+      if(i < 0)
+        return shape_[shape_.size() + i];
+      else
+        return shape_[i];
+    }
 
-  /**
-   * @brief Gets a reference to the int representing the size of the
-   * <code>i</code>th dimension represented by this object.
-   *
-   * @return a reference to the int representing the size of the
-   * <code>i</code>th dimension represented by this object
-   */
-  inline int operator[](int i) { return dim(i); }
+    inline const int& dim(int i) const { return const_cast<Shape&>(*this).dim(i); }
 
-  /**
-   * @brief Gets the size of the <code>i</code>th dimension represented by this
-   * object.
-   *
-   * @return the size of the <code>i</code>th dimension represented by this
-   * object
-   */
-  inline int operator[](int i) const { return dim(i); }
+    inline int operator[](int i) { return dim(i); }
 
-  inline int stride(int i) const { return stride_[i]; }
+    inline int operator[](int i) const { return dim(i); }
 
-  inline int bstride(int i) const { return bstride_[i]; }
+    inline int& back() { return shape_.back(); }
 
-  /**
-   * @brief Gets the number of dimensions represented by this object
-   *
-   * @return the number of dimensions represented by this object
-   */
-  inline size_t size() const { return SHAPE_SIZE; }
+    inline int stride(int i) const {
+      return stride_[i];
+    }
 
-  /**
-   * @brief Gets the total number of elements in a tensor of this shape.
-   *
-   * For example, if this shape represents a 5x100 tensor, this method would
-   * return 500.
-   *
-   * @return the total number of elements in a tensor of this shape
-   */
-  inline int elements() const {
-    return shape_[0] * shape_[1] * shape_[2] * shape_[3];
-  }
+    inline int bstride(int i) const {
+      return bstride_[i];
+    }
 
-  inline int index(int* d) const {
-    return d[0] * stride(0) + d[1] * stride(1) + d[2] * stride(2)
-           + d[3] * stride(3);
-  }
+    inline size_t size() const { return shape_.size(); }
 
-  inline int bindex(int* d) const {
-    return d[0] * bstride(0) + d[1] * bstride(1) + d[2] * bstride(2)
-           + d[3] * bstride(3);
-  }
+    inline int elements() const {
+      int el = 1;
+      for(auto s : shape_)
+        el *= s;
+      return el;
+    }
 
-  inline void dims(int i, int* d) const {
-    d[0] = (i / stride_[0]) % shape_[0];
-    d[1] = (i / stride_[1]) % shape_[1];
-    d[2] = (i / stride_[2]) % shape_[2];
-    d[3] = i / stride_[3];
-  }
+    inline int index(const std::vector<int>& d) const {
+      int i = 0;
+      for(int j = 0; j < shape_.size(); ++j)
+        i += d[j] * stride_[j];
+      return i;
+    }
 
-  /** @brief Gets a pointer to an int that specifies the size of the first
-   * dimension represented by this object */
-  int* begin() { return shape_; }
+    inline int bindex(const std::vector<int>& d) const {
+      int i = 0;
+      for(int j = 0; j < shape_.size(); ++j)
+        i += d[j] * bstride_[j];
+      return i;
+    }
 
-  /** @brief Gets a pointer to an int that specifies the size of the last
-   * dimension represented by this object */
-  int* end() { return shape_ + SHAPE_SIZE; }
+    inline void dims(int i, std::vector<int>& d) const {
+      d.resize(shape_.size());
+      for(int j = 0; j < d.size(); ++j)
+        d[j] = (i / stride_[j]) % shape_[j];
+    }
 
-  /** @brief Gets a const pointer to an int that specifies the size of the first
-   * dimension represented by this object */
-  const int* begin() const { return shape_; }
+    auto begin() -> decltype(shape_.begin()) { return shape_.begin(); }
+    auto begin() const -> decltype(shape_.begin()) { return shape_.begin(); }
 
-  /** @brief Gets a const pointer to an int that specifies the size of the last
-   * dimension represented by this object */
-  const int* end() const { return shape_ + SHAPE_SIZE; }
+    auto end() -> decltype(shape_.end()) { return shape_.end(); }
+    auto end() const -> decltype(shape_.end()) { return shape_.end(); }
 
-  /**
-   * @brief Tests this object for equality against another <code>Shape</code>
-   * object.
-   *
-   * @return <code>true</code> if the size of each dimension in this object
-   *         is equal to the size of the corresponding dimension in the other
-   * object,
-   *         <code>false</code> otherwise
-   */
-  bool operator==(const Shape& other) const {
-    return std::equal(begin(), end(), other.begin());
-  }
+    bool operator==(const Shape& other) const {
+      return size() == other.size() && std::equal(begin(), end(), other.begin());
+    }
 
-  /**
-   * @brief Tests this object for inequality against another <code>Shape</code>
-   * object.
-   */
-  bool operator!=(const Shape& other) const { return !(*this == other); }
+    bool operator!=(const Shape& other) const { return !(*this == other); }
 
-  friend std::ostream& operator<<(std::ostream& strm, const Shape& shape) {
-    strm << "shape=" << shape[0];
-    for(int i = 1; i < shape.size(); ++i)
-      strm << "x" << shape[i];
-    strm << " size=" << shape.elements() << " ("
-         << shape.elements() * sizeof(float) << "B)";
-    return strm;
-  }
+    friend std::ostream& operator<<(std::ostream& strm, const Shape& shape) {
+      strm << "shape=" << shape[0];
+      for(int i = 1; i < shape.size(); ++i)
+        strm << "x" << shape[i];
+      strm << " size=" << shape.elements() << " ("
+           << shape.elements() * sizeof(float) << "B)";
+      return strm;
+    }
 };
+
 }

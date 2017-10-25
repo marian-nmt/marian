@@ -88,102 +88,63 @@ std::string TensorBase::debug() {
   std::vector<float> values(totSize);
   get(values);
 
-  size_t dispCols = 5;
+  size_t dispCols = 3;
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');
-  for(size_t l = 0; l < shape()[3]; ++l) {
-    for(size_t k = 0; k < shape()[2]; ++k) {
-      strm << "[ ";
-      if(shape()[0] > 10) {
-        for(size_t i = 0; i < shape()[0] && i < dispCols; ++i) {
-          if(i > 0)
-            strm << std::endl << "  ";
 
-          float sum = 0;
-          for(size_t j = 0; j < shape()[1]; ++j)
-            sum += values[i * shape().stride(0) + j * shape().stride(1)
-                          + k * shape().stride(2)
-                          + l * shape().stride(3)];
-          strm << std::setw(12) << sum << " | ";
+  for(int i = 0; i < values.size(); ++i) {
+    std::vector<int> dims;
+    shape().dims(i, dims);
 
-          for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
-            strm << std::setw(12)
-                 << values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)]
-                 << " ";
-          }
-          if(shape()[1] > dispCols)
-            strm << "... ";
-          for(size_t j = shape()[1] - dispCols; j < shape()[1]; ++j) {
-            strm << std::setw(12)
-                 << values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)]
-                 << " ";
-          }
+    bool disp = true;
+    for(int j = 0; j < dims.size(); ++j)
+      disp = disp && (dims[j] < dispCols || dims[j] >= shape()[j] - dispCols);
+
+    if(disp) {
+
+      if(dims.back() == 0) {
+        bool par = true;
+        std::vector<std::string> p;
+        for(int j = dims.size() - 1; j >= 0; --j) {
+          if(dims[j] != 0)
+            par = false;
+
+          p.push_back(par ? "[" : " ");
         }
-        strm << std::endl << "  ...";
-        for(size_t i = shape()[0] - dispCols; i < shape()[0]; ++i) {
-          if(i > 0)
-            strm << std::endl << "  ";
+        for(auto it = p.rbegin(); it != p.rend(); ++it)
+          strm << *it;
+        strm << " ";
+      }
 
-          float sum = 0;
-          for(size_t j = 0; j < shape()[1]; ++j)
-            sum += values[i * shape().stride(0) + j * shape().stride(1)
-                          + k * shape().stride(2)
-                          + l * shape().stride(3)];
-          strm << std::setw(12) << sum << " | ";
+      strm << std::setw(12)
+           << values[i]
+           << " ";
 
-          for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
-            strm << std::setw(12)
-                 << values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)]
-                 << " ";
-          }
-          if(shape()[1] > dispCols)
-            strm << "... ";
-          for(size_t j = shape()[1] - dispCols; j < shape()[1]; ++j) {
-            strm << std::setw(12)
-                 << values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)]
-                 << " ";
-          }
+      if(dims.back() + 1 == shape()[-1]) {
+        for(int j = dims.size() - 1; j >= 0; --j) {
+          if(dims[j] + 1 != shape()[j])
+            break;
+          strm << "]";
         }
-      } else {
-        for(size_t i = 0; i < shape()[0] && i < 10; ++i) {
-          if(i > 0)
-            strm << std::endl << "  ";
+        strm << std::endl;
+      }
 
-          float sum = 0;
-          for(size_t j = 0; j < shape()[1]; ++j)
-            sum += values[i * shape().stride(0) + j * shape().stride(1)
-                          + k * shape().stride(2)
-                          + l * shape().stride(3)];
-          strm << std::setw(12) << sum << " | ";
-
-          for(size_t j = 0; j < shape()[1] && j < dispCols; ++j) {
-            strm << std::setw(12)
-                 << values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)]
-                 << " ";
-          }
-          if(shape()[1] > dispCols)
-            strm << "... ";
-          for(size_t j = shape()[1] - dispCols; j < shape()[1]; ++j) {
-            strm << std::setw(12)
-                 << values[i * shape().stride(0) + j * shape().stride(1)
-                           + k * shape().stride(2)
-                           + l * shape().stride(3)]
-                 << " ";
-          }
+      bool prev = true;
+      for(int j = dims.size() - 1; j >= 0; --j) {
+        if(j < dims.size() - 1)
+          prev = prev && dims[j + 1] + 1 == shape()[j + 1];
+        if(prev && dims[j] + 1 == dispCols && shape()[j] > 2 * dispCols) {
+          if(j < dims.size() - 1)
+            for(int k = 0; k <= j; ++k)
+              strm << " ";
+          strm << "... ";
+          if(j < dims.size() - 1)
+            strm << std::endl;
+          break;
         }
       }
-      strm << "]" << std::endl;
     }
   }
+  strm << std::endl;
   return strm.str();
 }
 
