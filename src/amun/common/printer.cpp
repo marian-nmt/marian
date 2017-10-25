@@ -72,7 +72,8 @@ std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::stri
   std::stringstream firstline;
   int srcspaces = std::count_if(source.begin(), source.end(), [](unsigned char c){ return std::isspace(c); });
   
-  firstline << linenum << " ||| " << best << " ||| " << hypothesis->GetCost() / aligns.size() * -1 << " ||| " << source << " ||| " << srcspaces+2 << " " << aligns.size();
+  firstline << linenum << " ||| " << best << " ||| " << hypothesis->GetCost() / aligns.size() * -1 
+  << " ||| " << source << " ||| " << srcspaces+2 << " " << aligns.size();
 
   std::stringstream alignString;
   for (auto it = aligns.rbegin(); it != aligns.rend(); ++it) {
