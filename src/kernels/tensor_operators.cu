@@ -214,11 +214,11 @@ __global__ void gSoftmax(float* out,
                          const float* in,
                          const float* mask,
                          const ShapeGPU maskShape) {
-  int rows = outShape[0] * outShape[2] * outShape[3];
-  int cols = outShape[1];
+  int rows = outShape.elements() / outShape.back();
+  int cols = outShape.back();
 
   bool broadcast = outShape != maskShape;
-  int dims[4];
+  int* dims = new int[outShape.size()];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -305,13 +305,15 @@ __global__ void gSoftmax(float* out,
       }
     }
   }
+
+  delete[] dims;
 }
 
 void Softmax(Tensor out, Tensor in, Tensor mask) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  size_t k = out->shape()[1];
+  size_t m = out->shape().elements() / out->shape().back();
+  size_t k = out->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
   int threads = std::min(MAX_THREADS, (int)k);
@@ -323,14 +325,14 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
   else
     gSoftmax<<<blocks, threads, shared>>>(
         out->data(), out->shape(), in->data(), 0, out->shape());
-  // cudaStreamSynchronize(0);
 }
 
 __global__ void gLogSoftmax(float* out,
                             const ShapeGPU outShape,
                             const float* in) {
-  int rows = outShape[0] * outShape[2] * outShape[3];
-  int cols = outShape[1];
+  int rows = outShape.elements() / outShape.back();
+  int cols = outShape.back();
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -398,8 +400,8 @@ __global__ void gLogSoftmax(float* out,
 void LogSoftmax(Tensor out, Tensor in) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  size_t k = out->shape()[1];
+  size_t m = out->shape().elements() / out->shape().back();
+  size_t k = out->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
   int threads = std::min(MAX_THREADS, (int)k);

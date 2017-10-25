@@ -174,6 +174,62 @@ public:
   const std::string color() { return "orange"; }
 };
 
+struct AffineNodeOp : public NaryNodeOp {
+  AffineNodeOp(const std::vector<Expr>& nodes)
+      : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}
+
+  Shape newShape(const std::vector<Expr>& nodes) {
+    Shape shape1 = nodes[0]->shape();
+    Shape shape2 = nodes[1]->shape();
+    UTIL_THROW_IF2(shape1[shape1.size() - 1] != shape2[shape2.size() - 2],
+                   "matrix product requires dimensions to match");
+    shape1.set(shape1.size() - 1, shape2[shape2.size() - 1]);
+    return shape1;
+  }
+
+  NodeOps forwardOps() {
+    return {
+      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                      ->getCublasHandle(),
+                  val_,
+                  child(0)->val(),
+                  child(1)->val(),
+                  false,
+                  false);
+             Add(_1, val_, child(2)->val());)
+    };
+  }
+
+  NodeOps backwardOps() {
+    // D is the adjoint, the matrix of derivatives
+    // df/dA += D*B.T
+    // df/dB += A.T*D
+    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
+    // to sum gradients from different graph parts
+
+    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(0)->grad(),
+                        adj_,
+                        child(1)->val(),
+                        false,
+                        true,
+                        1.0)),
+            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                            ->getCublasHandle(),
+                        child(1)->grad(),
+                        child(0)->val(),
+                        adj_,
+                        true,
+                        false,
+                        1.0)),
+            NodeOp(Add(_1, child(2)->grad(), adj_))};
+  }
+
+  const std::string type() { return "affine"; }
+};
+
+
 class DotBatchedNodeOp : public NaryNodeOp {
 private:
   bool transA_;
@@ -654,61 +710,6 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
 
 };
 */
-
-struct AffineNodeOp : public NaryNodeOp {
-  AffineNodeOp(const std::vector<Expr>& nodes)
-      : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}
-
-  Shape newShape(const std::vector<Expr>& nodes) {
-    Shape shape1 = nodes[0]->shape();
-    Shape shape2 = nodes[1]->shape();
-    UTIL_THROW_IF2(shape1[1] != shape2[0],
-                   "matrix product requires dimensions to match");
-    shape1.set(1, shape2[1]);
-    return shape1;
-  }
-
-  NodeOps forwardOps() {
-    return {
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
-                      ->getCublasHandle(),
-                  val_,
-                  child(0)->val(),
-                  child(1)->val(),
-                  false,
-                  false);
-             Add(_1, val_, child(2)->val());)
-    };
-  }
-
-  NodeOps backwardOps() {
-    // D is the adjoint, the matrix of derivatives
-    // df/dA += D*B.T
-    // df/dB += A.T*D
-    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
-    // to sum gradients from different graph parts
-
-    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
-                            ->getCublasHandle(),
-                        child(0)->grad(),
-                        adj_,
-                        child(1)->val(),
-                        false,
-                        true,
-                        1.0)),
-            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
-                            ->getCublasHandle(),
-                        child(1)->grad(),
-                        child(0)->val(),
-                        adj_,
-                        true,
-                        false,
-                        1.0)),
-            NodeOp(Add(_1, child(2)->grad(), adj_))};
-  }
-
-  const std::string type() { return "affine"; }
-};
 
 struct LayerNormalizationOp : public NaryNodeOp {
 public:
