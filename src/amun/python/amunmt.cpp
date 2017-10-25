@@ -33,6 +33,7 @@ boost::python::list translate(boost::python::list& in)
 
   std::vector<std::future< std::shared_ptr<Histories> >> results;
   SentencesPtr maxiBatch(new Sentences());
+  SentencesPtr maxiBatchCopy(new Sentences());
 
   for(int lineNum = 0; lineNum < boost::python::len(in); ++lineNum) {
     std::string line = boost::python::extract<std::string>(boost::python::object(in[lineNum]));
@@ -45,6 +46,7 @@ boost::python::list translate(boost::python::list& in)
       maxiBatch->SortByLength();
       while (maxiBatch->size()) {
         SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
+        maxiBatchCopy->push_back(miniBatch->at(0));
 
         results.emplace_back(
           god_.GetThreadPool().enqueue(
@@ -62,6 +64,7 @@ boost::python::list translate(boost::python::list& in)
     maxiBatch->SortByLength();
     while (maxiBatch->size()) {
       SentencesPtr miniBatch = maxiBatch->NextMiniBatch(miniSize, miniWords);
+      maxiBatchCopy->push_back(miniBatch->at(0));
       results.emplace_back(
         god_.GetThreadPool().enqueue(
             [miniBatch]{ return TranslationTask(::god_, miniBatch); }
@@ -82,7 +85,7 @@ boost::python::list translate(boost::python::list& in)
   boost::python::list output;
   for (size_t i = 0; i < allHistories.size(); ++i) {
     const History& history = *allHistories.at(i).get();
-    const Sentence& sentence = *maxiBatch.at(0).get();
+    const Sentence& sentence = *maxiBatchCopy->at(i).get();
     std::stringstream ss;
     Printer(god_, history, ss, sentence);
     string str = ss.str();
