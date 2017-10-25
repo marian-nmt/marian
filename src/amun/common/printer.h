@@ -8,6 +8,8 @@
 #include "common/utils.h"
 #include "common/vocab.h"
 #include "common/soft_alignment.h"
+#include "common/sentence.h"
+#include "common/sentences.h"
 
 namespace amunmt {
 
@@ -15,18 +17,25 @@ std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 
 std::string GetAlignmentString(const std::vector<size_t>& alignment);
 std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
+std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, size_t linenum);
 
 template <class OStream>
-void Printer(const God &god, const History& history, OStream& out) {
+void Printer(const God &god, const History& history, OStream& out, const Sentence& sentence) { 
   auto bestTranslation = history.Top();
   std::vector<std::string> bestSentenceWords = god.Postprocess(god.GetTargetVocab()(bestTranslation.first));
 
   std::string best = Join(bestSentenceWords);
-  if (god.Get<bool>("return-alignment")) {
-    best += GetAlignmentString(GetAlignment(bestTranslation.second));
-  }
-  if (god.Get<bool>("return-soft-alignment")) {
-    best += GetSoftAlignmentString(bestTranslation.second);
+  if (god.Get<bool>("return-nematus-alignment")) {
+	//Get the source sentence for printing Nematus style soft alignments
+	std::string source = Join(god.Postprocess(god.GetSourceVocab()(sentence.GetWords(0))));
+    best = GetNematusAlignmentString(bestTranslation.second, best, source, history.GetLineNum());
+  }else{
+    if (god.Get<bool>("return-alignment")) {
+      best += GetAlignmentString(GetAlignment(bestTranslation.second));
+    }
+    if (god.Get<bool>("return-soft-alignment")) {
+      best += GetSoftAlignmentString(bestTranslation.second);
+    }
   }
 
   if (god.Get<bool>("n-best")) {
@@ -72,10 +81,11 @@ void Printer(const God &god, const History& history, OStream& out) {
 }
 
 template <class OStream>
-void Printer(const God &god, const Histories& histories, OStream& out) {
+void Printer(const God &god, const Histories& histories, OStream& out, const Sentences& sentences) {
   for (size_t i = 0; i < histories.size(); ++i) {
     const History& history = *histories.at(i).get();
-    Printer(god, history, out);
+	const Sentence &sentence = *sentences.at(0).get();
+    Printer(god, history, out, sentence);
   }
 }
 
