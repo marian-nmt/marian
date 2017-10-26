@@ -6,7 +6,7 @@ using namespace marian;
 
 TEST_CASE("Expression graph supports basic math operations", "[operator]") {
 
-  auto floatApprox = [](float x, float y) -> bool { return x == Approx(y); };
+  auto floatApprox = [](float x, float y) { return x == Approx(y); };
 
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
@@ -129,11 +129,13 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     std::vector<float> vT4({1, 5, 3, 7, 2, 6, 4, 8});
     std::vector<float> vT5({1, 2, 5, 6, 3, 4, 7, 8});
 
+
     auto a = graph->constant({2, 4}, keywords::init = inits::from_vector(vA));
 
     auto t1 = transpose(a);
     auto t2 = transpose(t1);
     auto t3 = transpose(reshape(t1, {2, 2, 2}));
+
     auto t4 = transpose(reshape(a, {2, 1, 2, 2}), {1, 3, 2, 0});
     auto t5 = transpose(reshape(a, {2, 1, 2, 2}), {2, 0, 1, 3});
 
@@ -159,5 +161,50 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
 
     t5->val()->get(values);
     CHECK( values == vT5 );
+  }
+
+  SECTION("reductions") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8});
+    std::vector<float> vS1({6, 8, 10, 12});
+    std::vector<float> vS2({10, 26});
+
+    std::vector<float> vW({2.77778f, 6.77778f});
+
+
+    auto a = graph->constant({2, 4}, keywords::init = inits::from_vector(vA));
+
+    auto s1 = sum(a, keywords::axis=0);
+    auto s2 = sum(a, keywords::axis=1);
+
+    auto m3 = mean(s1, keywords::axis=1);
+
+    auto sp = scalar_product(s2, s2, keywords::axis=0);
+
+    auto wa = weighted_average(a, s1, keywords::axis=1);
+
+    debug(wa, "wa");
+    graph->forward();
+
+    CHECK(s1->shape() == Shape({1, 4}));
+    CHECK(s2->shape() == Shape({2, 1}));
+    CHECK(m3->shape() == Shape({1, 1}));
+    CHECK(sp->shape() == Shape({1, 1}));
+    CHECK(wa->shape() == Shape({2, 1}));
+
+    s1->val()->get(values);
+    CHECK( values == vS1 );
+
+    s2->val()->get(values);
+    CHECK( values == vS2 );
+
+    CHECK( m3->val()->scalar() == 9 );
+    CHECK( sp->val()->scalar() == 776 );
+
+    wa->val()->get(values);
+    CHECK( std::equal(values.begin(), values.end(),
+                      vW.begin(), floatApprox) );
   }
 }
