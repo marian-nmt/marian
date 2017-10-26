@@ -21,12 +21,12 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     values.clear();
     std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
 
-    auto A = graph->param("A", {4, 3}, keywords::init = inits::from_vector(vA));
+    auto A = graph->param("A", {2, 3, 2}, keywords::init = inits::from_vector(vA));
     auto B = graph->param("B", {3, 2}, keywords::init = inits::from_vector(vB));
     auto C = dot(A, B);
     graph->forward();
 
-    CHECK(C->shape() == Shape({4, 2}));
+    CHECK(C->shape() == Shape({2, 2, 2}));
     C->val()->get(values);
     CHECK(values == vC);
   }
@@ -45,7 +45,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     CHECK(values == vB2);
   }
 
-  SECTION("softmax") {
+  SECTION("softmax and logsoftmax") {
     graph->clear();
     values.clear();
     std::vector<float> in({-.2, -.3, 4.5, 5.2, -10, 101.45, -100.05, 1.05e-5});
@@ -116,5 +116,48 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     div->val()->get(values);
     CHECK( std::equal(values.begin(), values.end(),
                       vDiv.begin(), floatApprox) );
+  }
+
+  SECTION("transposing and reshaping") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8});
+
+    std::vector<float> vT1({1, 5, 2, 6, 3, 7, 4, 8});
+    std::vector<float> vT3({1, 2, 5, 6, 3, 4, 7, 8});
+    std::vector<float> vT4({1, 5, 3, 7, 2, 6, 4, 8});
+    std::vector<float> vT5({1, 3, 2, 4, 5, 7, 6, 8});
+
+    auto a = graph->constant({2, 4}, keywords::init = inits::from_vector(vA));
+
+    auto t1 = transpose(a);
+    auto t2 = transpose(t1);
+    auto t3 = transpose(reshape(t1, {2, 2, 2}));
+    auto t4 = transpose(reshape(a, {2, 2, 1, 2}), {2, 3, 0, 1});
+    auto t5 = transpose(reshape(a, {2, 2, 1, 2}), {1, 2, 3, 0});
+
+    graph->forward();
+
+    CHECK(t1->shape() == Shape({4, 2}));
+    CHECK(t2->shape() == Shape({2, 4}));
+    CHECK(t3->shape() == Shape({2, 2, 2}));
+    CHECK(t4->shape() == Shape({1, 2, 2, 2}));
+    CHECK(t5->shape() == Shape({2, 1, 2, 2}));
+
+    t1->val()->get(values);
+    CHECK( values == vT1 );
+
+    t2->val()->get(values);
+    CHECK( values == vA );
+
+    t3->val()->get(values);
+    CHECK( values == vT3 );
+
+    t4->val()->get(values);
+    CHECK( values == vT4 );
+
+    t5->val()->get(values);
+    CHECK( values == vT5 );
   }
 }
