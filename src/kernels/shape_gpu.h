@@ -15,28 +15,30 @@ namespace marian {
  */
 
 template <const int N>
-struct ShapeN {
+struct ConstantShapeGPU {
   int shape_[N];
   int stride_[N];
   int bstride_[N];
-  const size_t filled_;
 
-  ShapeN(const ShapeN& shape) : filled_{shape.filled_} {
+  ConstantShapeGPU(const ConstantShapeGPU& shape) {
     std::copy(shape.shape_, shape.shape_ + N, shape_);
     std::copy(shape.stride_, shape.stride_ + N, stride_);
     std::copy(shape.bstride_, shape.bstride_ + N, bstride_);
   }
 
-  ShapeN(const Shape& shape) : filled_{shape.size()} {
+  ConstantShapeGPU(const Shape& shape) {
+    size_t filled = shape.size();
 
-    std::copy(shape.shape_.begin(), shape.shape_.end(), shape_ + N - filled_);
-    std::copy(shape.stride_.begin(), shape.stride_.end(), stride_ + N - filled_);
-    std::copy(shape.bstride_.begin(), shape.bstride_.end(), bstride_ + N - filled_);
+    UTIL_THROW_IF2(filled > N, "Recompile with larger GPU shape size");
 
-    if(N - filled_) {
-      std::fill_n(shape_, N - filled_, 1);
-      std::fill_n(stride_, N - filled_, stride_[N - filled_]);
-      std::fill_n(bstride_, N - filled_, 0);
+    std::copy(shape.shape_.begin(), shape.shape_.end(), shape_ + N - filled);
+    std::copy(shape.stride_.begin(), shape.stride_.end(), stride_ + N - filled);
+    std::copy(shape.bstride_.begin(), shape.bstride_.end(), bstride_ + N - filled);
+
+    if(N - filled) {
+      std::fill_n(shape_, N - filled, 1);
+      std::fill_n(stride_, N - filled, stride_[N - filled]);
+      std::fill_n(bstride_, N - filled, 0);
     }
   }
 
@@ -59,7 +61,7 @@ struct ShapeN {
   __device__ inline int dim(int i) { return shape_[i]; }
 
   __device__ inline int dim(int i) const {
-    return const_cast<ShapeN&>(*this).dim(i);
+    return const_cast<ConstantShapeGPU&>(*this).dim(i);
   }
 
   __device__ inline int back() const { return dim(N - 1); }
@@ -72,7 +74,7 @@ struct ShapeN {
 
   __device__ inline int bstride(int i) const { return bstride_[i]; }
 
-  __device__ static inline constexpr size_t size() { return N; }
+  __host__ __device__ static inline constexpr size_t size() { return N; }
 
   __device__ inline int elements() const {
     int el = 1;
@@ -100,18 +102,18 @@ struct ShapeN {
       d[j] = (i / stride_[j]) % shape_[j];
     }
 
-  __device__ bool operator==(const ShapeN& other) const {
+  __device__ bool operator==(const ConstantShapeGPU& other) const {
     for(int i = 0; i < N; ++i)
       if(shape_[i] != other[i])
         return false;
     return true;
   }
 
-  __device__ bool operator!=(const ShapeN& other) const {
+  __device__ bool operator!=(const ConstantShapeGPU& other) const {
     return !(*this == other);
   }
 };
 
-typedef ShapeN<4> ShapeGPU;
+typedef ConstantShapeGPU<4> ShapeGPU;
 
 }

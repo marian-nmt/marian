@@ -41,7 +41,7 @@ __global__ void gConcatN(float* out,
                          size_t num,
                          int axis) {
   int length = outShape.elements();
-  int dims[4];
+  int dims[ShapeGPU::size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -90,13 +90,14 @@ void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
   auto inShape = ins[0]->shape();
   inShape.set(axis, 1);
 
+  int axisGPU = axis + ShapeGPU::size() - out->shape().size();
   gConcatN<<<blocks, threads>>>(out->data(),
                                 out->shape(),
                                 mp_ins->data<const float*>(),
                                 inShape,
                                 mp_lengths->data<int>(),
                                 num,
-                                axis);
+                                axisGPU);
 
   allocator->free(mp_ins);
   allocator->free(mp_lengths);
@@ -114,7 +115,7 @@ __global__ void gSplitN(const float* in,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int dims[4];
+      int dims[ShapeGPU::size()];
       inShape.dims(index, dims);
 
       int i = 0;
@@ -159,13 +160,14 @@ void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
   auto outShape = outs[0]->shape();
   outShape.set(axis, 1);
 
+  int axisGPU = axis + ShapeGPU::size() - in->shape().size();
   gSplitN<<<blocks, threads>>>(in->data(),
                                in->shape(),
                                mp_outs->data<float*>(),
                                outShape,
                                mp_lengths->data<int>(),
                                num,
-                               axis);
+                               axisGPU);
 
   allocator->free(mp_outs);
   allocator->free(mp_lengths);
@@ -177,15 +179,17 @@ __global__ void gTranspose4D(float* out,
                              const ShapeGPU inShape,
                              const ShapeGPU permute) {
   int length = outShape.elements();
-  int dims1[4];
-  int dims2[4];
+
+  constexpr int num = ShapeGPU::size();
+  int dims1[num];
+  int dims2[num];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
       outShape.dims(index, dims1);
 
-      for(int i = 0; i < 4; ++i)
+      for(int i = 0; i < num; ++i)
         dims2[i] = dims1[permute[i]];
 
       int inIndex = inShape.index(dims2);
@@ -216,7 +220,7 @@ __global__ void gSoftmax(float* out,
   int cols = outShape.back();
 
   bool broadcast = outShape != maskShape;
-  int dims[4];
+  int dims[ShapeGPU::size()];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -850,7 +854,7 @@ __global__ void gSelect(float* out,
                         int axis,
                         size_t* d_indices) {
   int length = outShape.elements();
-  int dims[4];
+  int dims[ShapeGPU::size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -870,7 +874,7 @@ __global__ void gInsert(float* out,
                         int axis,
                         size_t* d_indices) {
   int length = inShape.elements();
-  int dims[4];
+  int dims[ShapeGPU::size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
