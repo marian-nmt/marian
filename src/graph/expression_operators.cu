@@ -165,7 +165,15 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
 }
 
 Expr transpose(Expr a) {
-  return Expression<TransposeNodeOp>(a, Shape({1, 0, 2, 3}));
+  Shape s = a->shape();
+  for(int i = 0; i < s.size(); ++i) {
+    s.set(i, i);
+  }
+  if(s.size() > 1) {
+    s.set(s.size() - 1, s.size() - 2);
+    s.set(s.size() - 2, s.size() - 1);
+  }
+  return Expression<TransposeNodeOp>(a, s);
 }
 
 Expr transpose(Expr a, Shape permute) {

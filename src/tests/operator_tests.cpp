@@ -21,7 +21,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     values.clear();
     std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
 
-    auto A = graph->param("A", {2, 3, 2}, keywords::init = inits::from_vector(vA));
+    auto A = graph->param("A", {2, 2, 3}, keywords::init = inits::from_vector(vA));
     auto B = graph->param("B", {3, 2}, keywords::init = inits::from_vector(vB));
     auto C = dot(A, B);
     graph->forward();
@@ -127,15 +127,15 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     std::vector<float> vT1({1, 5, 2, 6, 3, 7, 4, 8});
     std::vector<float> vT3({1, 2, 5, 6, 3, 4, 7, 8});
     std::vector<float> vT4({1, 5, 3, 7, 2, 6, 4, 8});
-    std::vector<float> vT5({1, 3, 2, 4, 5, 7, 6, 8});
+    std::vector<float> vT5({1, 2, 5, 6, 3, 4, 7, 8});
 
     auto a = graph->constant({2, 4}, keywords::init = inits::from_vector(vA));
 
     auto t1 = transpose(a);
     auto t2 = transpose(t1);
     auto t3 = transpose(reshape(t1, {2, 2, 2}));
-    auto t4 = transpose(reshape(a, {2, 2, 1, 2}), {2, 3, 0, 1});
-    auto t5 = transpose(reshape(a, {2, 2, 1, 2}), {1, 2, 3, 0});
+    auto t4 = transpose(reshape(a, {2, 1, 2, 2}), {1, 3, 2, 0});
+    auto t5 = transpose(reshape(a, {2, 1, 2, 2}), {2, 0, 1, 3});
 
     graph->forward();
 
@@ -143,7 +143,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     CHECK(t2->shape() == Shape({2, 4}));
     CHECK(t3->shape() == Shape({2, 2, 2}));
     CHECK(t4->shape() == Shape({1, 2, 2, 2}));
-    CHECK(t5->shape() == Shape({2, 1, 2, 2}));
+    CHECK(t5->shape() == Shape({2, 2, 1, 2}));
 
     t1->val()->get(values);
     CHECK( values == vT1 );

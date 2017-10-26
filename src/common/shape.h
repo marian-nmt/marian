@@ -29,6 +29,11 @@ struct Shape {
       updateStrides();
     }
 
+    void resize(size_t n) {
+      shape_.resize(n, 1);
+      updateStrides();
+    }
+
     void updateStrides() {
       stride_.resize(shape_.size());
       bstride_.resize(shape_.size());

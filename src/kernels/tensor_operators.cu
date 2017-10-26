@@ -190,7 +190,7 @@ __global__ void gTranspose4D(float* out,
       outShape.dims(index, dims1);
 
       for(int i = 0; i < num; ++i)
-        dims2[i] = dims1[permute[i]];
+        dims2[permute[i]] = dims1[i];
 
       int inIndex = inShape.index(dims2);
 
@@ -207,8 +207,18 @@ void Transpose4D(Tensor out, Tensor in, Shape permute) {
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
+  Shape permuteGPU;
+  permuteGPU.resize(ShapeGPU::size());
+
+  int diff = ShapeGPU::size() - permute.size();
+  for(int i = 0; i < permuteGPU.size(); ++i)
+    if(i < diff)
+      permuteGPU.set(i, i);
+    else
+      permuteGPU.set(i, permute[i - diff] + diff);
+
   gTranspose4D<<<blocks, threads>>>(
-      out->data(), out->shape(), in->data(), in->shape(), permute);
+      out->data(), out->shape(), in->data(), in->shape(), permuteGPU);
 }
 
 __global__ void gSoftmax(float* out,

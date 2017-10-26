@@ -702,9 +702,12 @@ struct TransposeNodeOp : public UnaryNodeOp {
 
   template <class... Args>
   Shape newShape(Expr a, Shape permute) {
-    Shape shape;
+    Shape shape = a->shape();
 
-    for(int i = 0; i < 4; ++i)
+    UTIL_THROW_IF2(shape.size() != permute.size(),
+                   "Shape and transpose axis have different number of dimensions");
+
+    for(int i = 0; i < shape.size(); ++i)
       shape.set(i, a->shape()[permute[i]]);
 
     return shape;

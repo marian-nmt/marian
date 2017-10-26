@@ -52,19 +52,19 @@ public:
   Shape newShape(Expr a, Expr b, bool transA, bool transB) {
     auto shapeA = a->shape();
     if(transA) {
-      shapeA.set(0, a->shape()[1]);
-      shapeA.set(1, a->shape()[0]);
+      shapeA.set(shapeA.size() - 2, a->shape()[shapeA.size() - 1]);
+      shapeA.set(shapeA.size() - 1, a->shape()[shapeA.size() - 2]);
     }
 
     auto shapeB = b->shape();
     if(transB) {
-      shapeB.set(0, b->shape()[1]);
-      shapeB.set(1, b->shape()[0]);
+      shapeB.set(shapeB.size() - 2, b->shape()[shapeB.size() - 1]);
+      shapeB.set(shapeB.size() - 1, b->shape()[shapeB.size() - 2]);
     }
 
     Shape outShape = shapeA;
-    outShape.set(1, shapeB[1]);
-    UTIL_THROW_IF2(shapeA[1] != shapeB[0],
+    outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
+    UTIL_THROW_IF2(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
                    "matrix product requires dimensions to match");
     return outShape;
   }
