@@ -462,8 +462,9 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
   // adj is multiplied for each element to get backward step in autodiff
-  int m = grad->shape()[0] * grad->shape()[2] * grad->shape()[3];
-  int k = grad->shape()[1];
+  int m = grad->shape().elements() / grad->shape().back();
+  int k = grad->shape().back();
+
 
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
@@ -519,8 +520,8 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
   // adj is multiplied for each element to get backward step in autodiff
-  int m = grad->shape()[0] * grad->shape()[2] * grad->shape()[3];
-  int k = grad->shape()[1];
+  int m = grad->shape().elements() / grad->shape().back();
+  int k = grad->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
@@ -548,17 +549,6 @@ __global__ void gArgmax(float* out,
   }
   out[row] = maxInd;
 }
-
-// void Argmax(Tensor* Out, const Tensor* In) {
-//  size_t m = In->shape()[0];
-//  size_t k = In->shape()[1];
-//
-//  int blocks = m; //std::min(MAX_BLOCKS, (int) m);
-//  int threads = k; //std::min(MAX_THREADS, (int) k);
-//  //int shared = sizeof(float) * threads * 2;
-//  gArgmax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
-//
-//}
 
 ///////////////////////////////////////////////////////
 
@@ -689,7 +679,7 @@ __global__ void gCopyRows(float* out,
 void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice());
 
-  size_t cols = in->shape()[1];
+  size_t cols = in->shape().back();
   size_t rowsToCopy = indices.size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
@@ -736,7 +726,7 @@ void PasteRows(Tensor out,
                const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice());
 
-  size_t cols = in->shape()[1];
+  size_t cols = in->shape().back();
   size_t rowsToCopy = indices.size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
@@ -781,8 +771,9 @@ __global__ void gCopyCols(float* out,
 void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice());
 
-  size_t rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
-  size_t cols = in->shape()[1];
+  size_t rows = in->shape().elements() / in->shape().back();
+  size_t cols = in->shape().back();
+
   size_t colsToCopy = indices.size();
 
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
@@ -827,8 +818,9 @@ void PasteCols(Tensor out,
                const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice());
 
-  size_t rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  size_t cols = out->shape()[1];
+  size_t rows = in->shape().elements() / in->shape().back();
+  size_t cols = in->shape().back();
+
   size_t colsToCopy = indices.size();
 
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
@@ -902,11 +894,12 @@ void Select(Ptr<Allocator<DeviceGPU>> allocator,
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   mp_indices->insert(indices.data(), indices.size());
 
+  int axisGPU = axis + ShapeGPU::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
                                in->shape(),
-                               axis,
+                               axisGPU,
                                mp_indices->data<size_t>());
 
   allocator->free(mp_indices);
@@ -927,11 +920,12 @@ void Insert(Ptr<Allocator<DeviceGPU>> allocator,
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   mp_indices->insert(indices.data(), indices.size());
 
+  int axisGPU = axis + ShapeGPU::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
                                in->shape(),
-                               axis,
+                               axisGPU,
                                mp_indices->data<size_t>());
 
   allocator->free(mp_indices);
@@ -984,8 +978,8 @@ __global__ void gGRUFastForward(float* out,
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final) {
   cudaSetDevice(out->getDevice());
 
-  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  int cols = out->shape()[1];
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
@@ -1097,8 +1091,8 @@ void GRUFastBackward(std::vector<Tensor> outputs,
                      bool final) {
   cudaSetDevice(adj->getDevice());
 
-  int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
-  int cols = adj->shape()[1];
+  int rows = adj->shape().elements() / adj->shape().back();
+  int cols = adj->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
@@ -1355,11 +1349,12 @@ __global__ void gAtt(float* out,
 void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage) {
   cudaSetDevice(out->getDevice());
 
-  size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  size_t m = out->shape().elements() / out->shape().back();
 
-  size_t b = context->shape()[0];
-  size_t k = context->shape()[1];
-  size_t t = context->shape()[2];
+  size_t dims = context->shape().size();
+  size_t k = context->shape()[dims - 1];
+  size_t b = context->shape()[dims - 2];
+  size_t t = context->shape()[dims - 3];
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
   int threads = std::min(MAX_THREADS, (int)k);
@@ -1434,10 +1429,11 @@ void AttBack(Tensor gVa,
              Tensor adj) {
   cudaSetDevice(adj->getDevice());
 
-  size_t m = context->shape()[0] * context->shape()[2] * context->shape()[3];
-  size_t k = context->shape()[1];
+  size_t m = adj->shape().elements() / adj->shape().back();
 
-  size_t n = context->shape()[0];
+  size_t dims = context->shape().size();
+  size_t k = context->shape()[dims - 1];
+  size_t n = context->shape()[dims - 2];
 
   int blocks = std::min(MAX_BLOCKS, (int)n);
   int threads = std::min(MAX_THREADS, (int)k);
@@ -1535,8 +1531,8 @@ void LayerNormalization(
     Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps) {
   cudaSetDevice(out->getDevice());
 
-  int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
-  int cols = in->shape()[1];
+  int rows = in->shape().elements() / in->shape().back();
+  int cols = in->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, (int)rows);
   int threads = std::min(MAX_THREADS, (int)cols);
@@ -1659,8 +1655,8 @@ void LayerNormalizationGrad(Tensor gradX,
                             Tensor beta,
                             float eps) {
   cudaSetDevice(adj->getDevice());
-  int rows = y->shape()[0] * y->shape()[2] * y->shape()[3];
-  int cols = y->shape()[1];
+  int rows = y->shape().elements() / y->shape().back();
+  int cols = y->shape().back();
 
   int threads = std::min(MAX_THREADS, cols);
   int blocks = std::min(MAX_BLOCKS, rows);
@@ -1693,9 +1689,12 @@ __global__ void gShift(float* out, const float* in, int length, int offset) {
 }
 
 void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
-  int offset
-      = in->shape().stride(0) * shift[0] + in->shape().stride(1) * shift[1]
-        + in->shape().stride(2) * shift[2] + in->shape().stride(3) * shift[3];
+
+  UTIL_THROW_IF2(in->shape().size() != shift.size(), "bad dimensions");
+
+  int offset = 0;
+  for(int i = 0; i < shift.size(); ++i)
+    offset += in->shape().stride(i) * shift[i];
 
   if(invert)
     offset = -offset;
@@ -1791,8 +1790,8 @@ __global__ void gLSTMCellForward(float* out,
 void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
   cudaSetDevice(out->getDevice());
 
-  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  int cols = out->shape()[1];
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
@@ -1840,8 +1839,8 @@ __global__ void gLSTMOutputForward(float* out,
 void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
   cudaSetDevice(out->getDevice());
 
-  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
-  int cols = out->shape()[1];
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
@@ -1936,8 +1935,8 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
                       Tensor adj) {
   cudaSetDevice(adj->getDevice());
 
-  int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
-  int cols = adj->shape()[1];
+  int rows = adj->shape().elements() / adj->shape().back();
+  int cols = adj->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
@@ -2014,8 +2013,8 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
                         Tensor adj) {
   cudaSetDevice(adj->getDevice());
 
-  int rows = adj->shape()[0] * adj->shape()[2] * adj->shape()[3];
-  int cols = adj->shape()[1];
+  int rows = adj->shape().elements() / adj->shape().back();
+  int cols = adj->shape().back();
 
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
@@ -2204,9 +2203,10 @@ __global__ void gConcatenateAx1(float* out,
 void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaSetDevice(out->getDevice());
 
-  int rows = out->shape()[0] * out->shape()[2] * out->shape()[3];
+  int rows = out->shape().elements() / out->shape().back();
+
   if(inputs.size() == 2) {
-    int cols = out->shape()[1];
+    int cols = out->shape().back();
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols);
     gConcatenateAx1<<<blocks, threads>>>(out->data(),
@@ -2218,7 +2218,7 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     return;
   }
   if(inputs.size() == 3) {
-    int cols = out->shape()[1];
+    int cols = out->shape().back();
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols);
     gConcatenateAx1<<<blocks, threads>>>(out->data(),
@@ -2233,12 +2233,12 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   }
 
   size_t offset = 0;
-  int cols_out = out->shape()[1];
+  int cols_out = out->shape().back();
 
   for(auto in : inputs) {
-    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
-                   "First dimension must be equal");
-    int cols_in = in->shape()[1];
+    UTIL_THROW_IF2(rows != in->shape().elements() / in->shape().back(),
+                   "Rows must be equal");
+    int cols_in = in->shape().back();
 
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_in);
@@ -2274,12 +2274,14 @@ void Deconcatenate1(std::vector<Tensor>& outputs, const Tensor in) {
   cudaSetDevice(in->getDevice());
 
   size_t offset = 0;
-  int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
-  int cols_in = in->shape()[1];
+
+  int rows = in->shape().elements() / in->shape().back();
+  int cols_in = in->shape().back();
+
   for(auto out : outputs) {
-    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
+    UTIL_THROW_IF2(rows != out->shape().elements() / out->shape().back(),
                    "First dimension must be equal");
-    int cols_out = out->shape()[1];
+    int cols_out = out->shape().back();
 
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_out);
