@@ -186,7 +186,7 @@ __global__ void gTranspose4D(float* out,
       outShape.dims(index, dims1);
 
       for(int i = 0; i < 4; ++i)
-        dims2[i] = dims1[permute[i]];
+        dims2[permute[i]] = dims1[i];
 
       int inIndex = inShape.index(dims2);
 
