@@ -55,7 +55,7 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
-                       ShapeGPU outShape,
+                       const ShapeGPU outShape,
                        const float* in1,
                        const ShapeGPU in1Shape,
                        const ShapeGPU full,
@@ -63,14 +63,14 @@ __global__ void gAddR2(Functor functor,
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
 
-  size_t num = full.size();
+  constexpr size_t num = ShapeGPU::size();
 
-  int* len = new int[num];
+  int len[num];
   for(int i = 0; i < num; ++i)
     len[i] = full[i] / outShape[i];
 
-  int* dims = new int[num];
-  int* dimsFull = new int[num];
+  int dims[num];
+  int dimsFull[num];
 
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -105,9 +105,7 @@ __global__ void gAddR2(Functor functor,
       }
     }
   }
-  delete[] dims;
-  delete[] dimsFull;
-  delete[] len;
+
 }
 
 
@@ -163,13 +161,14 @@ __global__ void gAddR2(Functor functor,
 template <class Functor>
 __global__ void gAddR2Eq(Functor functor,
                          float* out,
-                         ShapeGPU outShape,
+                         const ShapeGPU outShape,
                          const float* in1,
                          const ShapeGPU inShape1,
                          float scale,
                          bool broadcast) {
   int length = outShape.elements();
-  int* dims = new int[outShape.size()];
+
+  int dims[ShapeGPU::size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -182,8 +181,6 @@ __global__ void gAddR2Eq(Functor functor,
       out[index] += functor(in1[inIndex1]) * scale;
     }
   }
-
-  delete[] dims;
 }
 
 template <class Functor>
@@ -198,7 +195,7 @@ __global__ void gAdd1R2(Functor functor,
   int cols = full.back();
   bool same = in1Shape.elements() == full.elements();
 
-  int* dims = new int[full.size()];
+  int dims[ShapeGPU::size()];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -241,8 +238,6 @@ __global__ void gAdd1R2(Functor functor,
       out[j] += _sum[0] * scale;
     }
   }
-
-  delete[] dims;
 }
 
 template <class Functor>
@@ -274,6 +269,7 @@ void Add(Functor functor, Tensor out, Tensor in, float scale = 1.0) {
     int threads = std::min(MAX_THREADS, length);
     int blocks
         = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
     gAddR2Eq<<<blocks, threads>>>(functor,
                                   out->data(),
                                   out->shape(),

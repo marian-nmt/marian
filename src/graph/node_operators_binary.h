@@ -196,7 +196,7 @@ struct AffineNodeOp : public NaryNodeOp {
                   child(1)->val(),
                   false,
                   false);
-             //Add(_1, val_, child(2)->val());
+             Add(_1, val_, child(2)->val());
              )
     };
   }
@@ -224,7 +224,7 @@ struct AffineNodeOp : public NaryNodeOp {
                         true,
                         false,
                         1.0)),
-            //NodeOp(Add(_1, child(2)->grad(), adj_))
+            NodeOp(Add(_1, child(2)->grad(), adj_))
             };
   }
 

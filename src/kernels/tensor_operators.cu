@@ -41,7 +41,7 @@ __global__ void gConcatN(float* out,
                          size_t num,
                          int axis) {
   int length = outShape.elements();
-  int* dims = new int[outShape.size()];
+  int dims[4];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -59,8 +59,6 @@ __global__ void gConcatN(float* out,
       out[index] = in[inIndex];
     }
   }
-
-  delete[] dims;
 }
 
 void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
@@ -218,7 +216,7 @@ __global__ void gSoftmax(float* out,
   int cols = outShape.back();
 
   bool broadcast = outShape != maskShape;
-  int* dims = new int[outShape.size()];
+  int dims[4];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -305,8 +303,6 @@ __global__ void gSoftmax(float* out,
       }
     }
   }
-
-  delete[] dims;
 }
 
 void Softmax(Tensor out, Tensor in, Tensor mask) {
