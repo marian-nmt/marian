@@ -14,43 +14,24 @@ namespace marian {
  * Note: this class currently is hard-coded to four dimensions.
  */
 
+template <int N>
 struct ShapeN {
-  int* shape_;
-  int* stride_;
-  int* bstride_;
-  size_t size_;
+  int shape_[N]{1};
+  int stride_[N]{1};
+  int bstride_[N]{0};
+  const size_t size_{N};
+  const size_t filled_;
 
-  ShapeN(const ShapeN& shape) {
-    size_ = shape.size();
-
-    cudaMalloc((void**)&shape_, sizeof(int) * size_);
-    cudaMemcpy(shape_, shape.shape_, sizeof(int) * size_, cudaMemcpyDefault);
-
-    cudaMalloc((void**)&stride_, sizeof(int) * size_);
-    cudaMemcpy(stride_, shape.stride_, sizeof(int) * size_, cudaMemcpyDefault);
-
-    cudaMalloc((void**)&bstride_, sizeof(int) * size_);
-    cudaMemcpy(bstride_, shape.bstride_, sizeof(int) * size_, cudaMemcpyDefault);
+  ShapeN(const ShapeN& shape) : filled_{shape.filled_} {
+    std::copy(shape.shape_, shape.shape_ + N, shape_);
+    std::copy(shape.stride_, shape.stride_ + N, stride_);
+    std::copy(shape.bstride_, shape.bstride_ + N, bstride_);
   }
 
-  ShapeN(const Shape& shape) {
-    size_ = shape.size();
-
-    cudaMalloc((void**)&shape_, sizeof(int) * size_);
-    cudaMemcpy(shape_, shape.shape_.data(), sizeof(int) * size_, cudaMemcpyDefault);
-
-    cudaMalloc((void**)&stride_, sizeof(int) * size_);
-    cudaMemcpy(stride_, shape.stride_.data(), sizeof(int) * size_, cudaMemcpyDefault);
-
-    cudaMalloc((void**)&bstride_, sizeof(int) * size_);
-    cudaMemcpy(bstride_, shape.bstride_.data(), sizeof(int) * size_, cudaMemcpyDefault);
-  }
-
-  ~ShapeN() {
-    size_ = 0;
-    cudaFree(shape_);
-    cudaFree(stride_);
-    cudaFree(bstride_);
+  ShapeN(const Shape& shape) : filled_{shape.size()} {
+    std::copy(shape.shape_.begin(), shape.shape_.end(), shape_ + N - filled_);
+    std::copy(shape.stride_.begin(), shape.stride_.end(), stride_ + N - filled_);
+    std::copy(shape.bstride_.begin(), shape.bstride_.end(), bstride_ + N - filled_);
   }
 
   __device__ inline void updateStrides() {
@@ -125,6 +106,6 @@ struct ShapeN {
   }
 };
 
-typedef ShapeN ShapeGPU;
+typedef ShapeN<4> ShapeGPU;
 
 }
