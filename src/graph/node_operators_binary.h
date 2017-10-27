@@ -614,64 +614,6 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   int ax_;
 };
 
-struct Concatenate2NodeOp : public NaryNodeOp {
-  template <typename... Args>
-  Concatenate2NodeOp(const std::vector<Expr>& nodes, Args... args)
-      : NaryNodeOp(nodes,
-                   keywords::shape
-                   = newShape(nodes, keywords::Get(keywords::axis, 0, args...)),
-                   args...),
-        ax_(keywords::Get(keywords::axis, 0, args...)) {}
-
-  Shape newShape(const std::vector<Expr>& nodes, int ax) {
-    Shape shape = nodes.back()->shape();
-    shape.set(ax, 0);
-    for(auto child : nodes)
-      shape.set(ax, shape[ax] + child->shape()[ax]);
-    // std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
-    return shape;
-  }
-
-  void forward() {
-    std::vector<Tensor> concatenees;
-    for(int i = 0; i < children_.size(); ++i)
-      concatenees.push_back(child(i)->val());
-    ConcatN(graph()->allocator(), val_, concatenees, ax_);
-  }
-
-  void backward() {
-    std::vector<Tensor> deconcatenees;
-    for(int i = 0; i < children_.size(); ++i) {
-      auto childPtr = child(i);
-      childPtr
-          ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
-      deconcatenees.push_back(childPtr->grad());
-    }
-    SplitN(graph()->allocator(), deconcatenees, adj_, ax_);
-  }
-
-  virtual size_t hash() {
-    size_t seed = NaryNodeOp::hash();
-    boost::hash_combine(seed, ax_);
-    return seed;
-  }
-
-  virtual bool equal(Expr node) {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    auto cnode = std::dynamic_pointer_cast<Concatenate2NodeOp>(node);
-    if(!cnode)
-      return false;
-    if(ax_ != cnode->ax_)
-      return false;
-    return true;
-  }
-
-  const std::string type() { return "concat2"; }
-
-  int ax_;
-};
-
 /*
 struct TanhPlus3NodeOp : public NaryNodeOp {
   TanhPlus3NodeOp(const std::vector<Expr>& nodes)

@@ -109,12 +109,7 @@ Expr operator/(Expr a, float b) {
 /*********************************************************/
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {
-  //return Expression<Concatenate2NodeOp>(concats, ax);
   return Expression<ConcatenateNodeOp>(concats, ax);
-}
-
-Expr concatenate2(const std::vector<Expr>& concats, keywords::axis_k ax) {
-  return Expression<Concatenate2NodeOp>(concats, ax);
 }
 
 Expr reshape(Expr a, Shape shape) {

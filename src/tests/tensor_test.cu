@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   auto in3 = graph->constant({2, 2, 4}, init=inits::from_value(3));
   auto in4 = graph->constant({2, 2, 4}, init=inits::from_value(4));
 
-  auto out = concatenate2({in1, in2, in3, in4}, axis=1);
+  auto out = concatenate({in1, in2, in3, in4}, axis=1);
 
   debug(in1, "in1");
   debug(in2, "in2");
