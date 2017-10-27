@@ -386,6 +386,7 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   template <typename... Args>
   Shape newShape(Expr a, Expr b, Args... args) {
     int ax = keywords::Get(keywords::axis, -1, args...);
+
     Shape full = a->shape();
     for(int i = 0; i < b->shape().size(); ++i)
       full.set(i, std::max(full[i], b->shape()[i]));

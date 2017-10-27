@@ -185,7 +185,6 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
 
     auto wa = weighted_average(a, s1, keywords::axis=1);
 
-    debug(wa, "wa");
     graph->forward();
 
     CHECK(s1->shape() == Shape({1, 4}));
