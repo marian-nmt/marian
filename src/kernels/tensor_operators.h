@@ -38,16 +38,6 @@ void Insert(Ptr<Allocator<DeviceGPU>> allocator,
             int axis,
             const std::vector<size_t>&);
 
-void ConcatN(Ptr<Allocator<DeviceGPU>> allocator,
-             Tensor out,
-             const std::vector<Tensor>& ins,
-             int axis);
-
-void SplitN(Ptr<Allocator<DeviceGPU>> allocator,
-            std::vector<Tensor>& outs,
-            const Tensor in,
-            int axis);
-
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);

@@ -204,4 +204,58 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     CHECK( std::equal(values.begin(), values.end(),
                       vW.begin(), floatApprox) );
   }
+
+  SECTION("concatenation") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vO1({ 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+                             3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4,
+                             1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+                             3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4});
+
+    std::vector<float> vO2({1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
+                            1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
+                            1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4,
+                            1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4});
+
+    std::vector<float> vO3({1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
+
+    std::vector<float> vO4({1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
+
+    auto in1 = graph->constant({2, 3, 2, 1}, keywords::init=inits::from_value(1));
+    auto in2 = graph->constant({2, 3, 2, 1}, keywords::init=inits::from_value(2));
+    auto in3 = graph->constant({2, 3, 2, 1}, keywords::init=inits::from_value(3));
+    auto in4 = graph->constant({2, 3, 2, 1}, keywords::init=inits::from_value(4));
+
+    auto c1out1 = concatenate({in1, in2, in3, in4}, keywords::axis=0);
+    auto c1out2 = concatenate({in1, in2, in3, in4}, keywords::axis=1);
+    auto c1out3 = concatenate({in1, in2, in3, in4}, keywords::axis=2);
+    auto c1out4 = concatenate({in1, in2, in3, in4}, keywords::axis=3);
+
+    graph->forward();
+
+    CHECK(c1out1->shape() == Shape({8, 3, 2, 1}));
+    CHECK(c1out2->shape() == Shape({2, 12, 2, 1}));
+    CHECK(c1out3->shape() == Shape({2, 3, 8, 1}));
+    CHECK(c1out4->shape() == Shape({2, 3, 2, 4}));
+
+    c1out1->val()->get(values);
+    CHECK( values == vO1 );
+
+    c1out2->val()->get(values);
+    CHECK( values == vO2 );
+
+    c1out3->val()->get(values);
+    CHECK( values == vO3 );
+
+    c1out4->val()->get(values);
+    CHECK( values == vO4 );
+  }
 }
