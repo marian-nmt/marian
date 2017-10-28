@@ -109,7 +109,7 @@ Expr dropout(Expr x, Args... args) {
   auto mask = Get(keywords::mask, nullptr, args...);
   float dropout_prob = Get(keywords::dropout_prob, 0.0f, args...);
 
-  UTIL_THROW_IF2(!mask && !dropout_prob, "Neither mask nor dropout prob given");
+  ABORT_IF(!mask && !dropout_prob, "Neither mask nor dropout prob given");
   if(!mask) {
     auto graph = x->graph();
     mask = graph->dropout(dropout_prob, x->shape());

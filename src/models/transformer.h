@@ -595,7 +595,7 @@ public:
                                    inference_);
           }
         } else {
-          UTIL_THROW2("Unknown value for transformer-multi-encoder: " << comb);
+          ABORT("Unknown value for transformer-multi-encoder: {}", comb);
         }
       }
 

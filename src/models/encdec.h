@@ -327,8 +327,8 @@ public:
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();
-      UTIL_THROW_IF2(alignments.empty(),
-                     "Model does not seem to support alignments");
+      ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
+
       auto att = concatenate(alignments, axis = 3);
       return cost + guidedAlignmentCost(graph, batch, options_, att);
     } else {

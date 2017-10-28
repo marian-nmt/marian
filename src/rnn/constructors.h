@@ -63,7 +63,7 @@ public:
       cell->setLazyInputs(inputs_);
       return cell;
     } else {
-      UTIL_THROW2("Unknown RNN cell type");
+      ABORT("Unknown RNN cell type");
     }
   }
 
@@ -140,7 +140,7 @@ public:
   AttentionFactory(Ptr<ExpressionGraph> graph) : InputFactory(graph) {}
 
   Ptr<CellInput> construct() {
-    UTIL_THROW_IF2(!state_, "EncoderState not set");
+    ABORT_IF(!state_, "EncoderState not set");
     return New<Attention>(graph_, options_, state_);
   }
 
@@ -150,7 +150,7 @@ public:
   }
 
   int dimAttended() {
-    UTIL_THROW_IF2(!state_, "EncoderState not set");
+    ABORT_IF(!state_, "EncoderState not set");
     return state_->getAttended()->shape()[1];
   }
 };

@@ -178,8 +178,8 @@ public:
    *    and that all backward pass computations have been performed.
    */
   void backward() {
-    UTIL_THROW_IF2(topNodes_.size() > 1,
-                   "There are more than one top most node for backward step");
+    ABORT_IF(topNodes_.size() > 1,
+             "There are more than one top most node for backward step");
 
     params_->allocateBackward();
     params_->set_zero_adjoint();
@@ -269,23 +269,22 @@ public:
     if(p) {
       // if yes add to tape and return
 
-      UTIL_THROW_IF2(shape != p->shape(),
-                     "Requested shape for existing parameter "
-                         << name
-                         << " does not match original shape");
+      ABORT_IF(shape != p->shape(),
+               "Requested shape for existing parameter '{}' does not match "
+               "original shape",
+               name);
 
       add(p);
       return p;
     }
 
     // if graph was reloaded do not allow creation of new parameters
-    UTIL_THROW_IF2(reloaded_,
-                   "Graph was reloaded and parameter " << name
-                                                       << " is newly created");
+    ABORT_IF(reloaded_,
+             "Graph was reloaded and parameter '{}' is newly created",
+             name);
 
     // if not check if name is not taken by other node
-    UTIL_THROW_IF2(get(name),
-                   "Non-parameter with name " << name << "already exists");
+    ABORT_IF(get(name), "Non-parameter with name '{}' already exists", name);
 
     // create parameter node (adds to tape)
     p = Expression<ParamNode>(

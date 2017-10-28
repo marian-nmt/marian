@@ -22,7 +22,7 @@ public:
       while(it != map_.end() && it->first[i] < lengths[i])
         it++;
 
-    UTIL_THROW_IF2(it == map_.end(), "Missing batch statistics");
+    ABORT_IF(it == map_.end(), "Missing batch statistics");
     return it->second;
   }
 

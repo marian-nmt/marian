@@ -101,8 +101,8 @@ void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf) {
   for(size_t i = 0; i < nonzeros; ++i) {
     int r = (i % batch) + (i / (srcWords * batch)) * batch;
     int c = i % (srcWords * batch);
-    UTIL_THROW_IF2(r >= trgWords * batch, "Row index too large");
-    UTIL_THROW_IF2(c >= srcWords * batch, "Column index too large");
+    ABORT_IF(r >= trgWords * batch, "Row index too large");
+    ABORT_IF(c >= srcWords * batch, "Column index too large");
     coo.emplace_back(r, c, values[i]);
   }
   std::sort(coo.begin(), coo.end());

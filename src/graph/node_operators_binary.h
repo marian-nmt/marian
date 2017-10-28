@@ -64,8 +64,8 @@ public:
 
     Shape outShape = shapeA;
     outShape.set(1, shapeB[1]);
-    UTIL_THROW_IF2(shapeA[1] != shapeB[0],
-                   "matrix product requires dimensions to match");
+    ABORT_IF(shapeA[1] != shapeB[0],
+             "matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -205,8 +205,8 @@ public:
 
     Shape outShape = shapeA;
     outShape.set(1, shapeB[1]);
-    UTIL_THROW_IF2(shapeA[1] != shapeB[0],
-                   "matrix product requires dimensions to match");
+    ABORT_IF(shapeA[1] != shapeB[0],
+             "matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -366,8 +366,8 @@ struct ElementBinaryNodeOp : public NaryNodeOp {
     Shape shape1 = a->shape();
     Shape shape2 = b->shape();
     for(int i = 0; i < shape1.size(); ++i) {
-      UTIL_THROW_IF2(shape1[i] != shape2[i] && shape1[i] != 1 && shape2[i] != 1,
-                     "Shapes cannot be broadcasted");
+      ABORT_IF(shape1[i] != shape2[i] && shape1[i] != 1 && shape2[i] != 1,
+               "Shapes cannot be broadcasted");
       shape1.set(i, std::max(shape1[i], shape2[i]));
     }
     return shape1;
@@ -566,7 +566,7 @@ struct TanhPlus3NodeOp : public NaryNodeOp {
     for(int n = 1; n < nodes.size(); ++n) {
       Shape shapen = nodes[n]->shape();
       for(int i = 0; i < shapen.size(); ++i) {
-        UTIL_THROW_IF2(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
+        ABORT_IF(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
                        "Shapes cannot be broadcasted");
         shape.set(i, std::max(shape[i], shapen[i]));
       }
@@ -604,8 +604,8 @@ struct AffineNodeOp : public NaryNodeOp {
   Shape newShape(const std::vector<Expr>& nodes) {
     Shape shape1 = nodes[0]->shape();
     Shape shape2 = nodes[1]->shape();
-    UTIL_THROW_IF2(shape1[1] != shape2[0],
-                   "matrix product requires dimensions to match");
+    ABORT_IF(shape1[1] != shape2[0],
+             "matrix product requires dimensions to match");
     shape1.set(1, shape2[1]);
     return shape1;
   }

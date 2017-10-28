@@ -146,8 +146,8 @@ struct TanhNodeOp : public NaryNodeOp {
     for(int n = 1; n < nodes.size(); ++n) {
       Shape shapen = nodes[n]->shape();
       for(int i = 0; i < shapen.size(); ++i) {
-        UTIL_THROW_IF2(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
-                       "Shapes cannot be broadcasted");
+        ABORT_IF(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
+                 "Shapes cannot be broadcasted");
         shape.set(i, std::max(shape[i], shapen[i]));
       }
     }

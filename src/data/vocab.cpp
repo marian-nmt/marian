@@ -52,7 +52,7 @@ std::vector<std::string> Vocab::operator()(const Words& sentence,
 }
 
 const std::string& Vocab::operator[](size_t id) const {
-  UTIL_THROW_IF2(id >= id2str_.size(), "Unknown word id: " << id);
+  ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
   return id2str_[id];
 }
 
@@ -100,7 +100,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
       id2str_[id] = str;
     }
   }
-  UTIL_THROW_IF2(id2str_.empty(), "Empty vocabulary " << vocabPath);
+  ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
   id2str_[EOS_ID] = EOS_STR;
   id2str_[UNK_ID] = UNK_STR;
@@ -126,8 +126,9 @@ public:
 void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   LOG(info, "[data] Creating vocabulary {} from {}", vocabPath, trainPath);
 
-  UTIL_THROW_IF2(boost::filesystem::exists(vocabPath),
-                 "Vocab file " << vocabPath << " exists. Not overwriting");
+  ABORT_IF(boost::filesystem::exists(vocabPath),
+           "Vocab file '{}' exists. Not overwriting",
+           vocabPath);
 
   InputFileStream trainStrm(trainPath);
 

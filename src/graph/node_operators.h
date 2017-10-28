@@ -11,8 +11,7 @@ struct ConstantNode : public Node {
       : Node(args...),
         init_(Get(keywords::init, [](Tensor) {})),
         initialized_(false) {
-    UTIL_THROW_IF2(!Has(keywords::shape),
-                   "Constant items require shape information");
+    ABORT_IF(!Has(keywords::shape), "Constant items require shape information");
     setTrainable(false);
   }
 
@@ -47,8 +46,7 @@ struct ParamNode : public Node {
       : Node(args...),
         init_(Get(keywords::init, [](Tensor) {})),
         initialized_(false) {
-    UTIL_THROW_IF2(!Has(keywords::shape),
-                   "Param items require shape information");
+    ABORT_IF(!Has(keywords::shape), "Param items require shape information");
     setTrainable(!Get(keywords::fixed, false));
   }
 

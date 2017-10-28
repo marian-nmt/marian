@@ -135,7 +135,7 @@ public:
   void push_back(Ptr<Cell> cell) { cell_ = cell; }
 
   virtual Ptr<Cell> at(int i) {
-    UTIL_THROW_IF2(i > 0, "SingleRNN only has one cell");
+    ABORT_IF(i > 0, "SingleRNN only has one cell");
     return cell_;
   }
 };
@@ -160,7 +160,7 @@ public:
   }
 
   Expr transduce(Expr input, Expr mask = nullptr) {
-    UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
+    ABORT_IF(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
     Expr layerInput = input;
@@ -187,7 +187,7 @@ public:
   }
 
   Expr transduce(Expr input, States states, Expr mask = nullptr) {
-    UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
+    ABORT_IF(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
     Expr layerInput = input;
@@ -216,7 +216,7 @@ public:
   }
 
   Expr transduce(Expr input, State state, Expr mask = nullptr) {
-    UTIL_THROW_IF2(rnns_.empty(), "0 layers in RNN");
+    ABORT_IF(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
     Expr layerInput = input;

@@ -63,7 +63,7 @@ private:
   typedef TensorCPU tensor_type;
 
   void reserve(size_t size) {
-    UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
+    ABORT_IF(size < size_, "New size must be larger than old size");
     float* temp = new float[size];
 
     if(data_) {

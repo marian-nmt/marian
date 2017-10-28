@@ -89,8 +89,8 @@ void svd(std::vector<float>& vec, Shape shape) {
   int n = std::min(rows, cols);
   int m = std::max(rows, cols);
 
-  UTIL_THROW_IF2(m % n != 0,
-                 "Matrix dimensions must be equal or multiples of each other");
+  ABORT_IF(m % n != 0,
+           "Matrix dimensions must be equal or multiples of each other");
 
   for(int i = 0; i < shape.elements(); i += n * n) {
     std::vector<float> t1(n);

@@ -9,7 +9,8 @@
 
 #include <sys/stat.h>
 
-#include "exception.h"
+#include "3rd_party/exception.h"
+#include "common/logging.h"
 
 namespace io = boost::iostreams;
 
@@ -22,7 +23,7 @@ private:
   int mkstemp_and_unlink(char* tmpl) {
     int ret = mkstemp(tmpl);
     if(unlink_ && ret != -1) {
-      UTIL_THROW_IF2(unlink(tmpl), "while deleting " << tmpl);
+      ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
     }
     return ret;
   }
@@ -32,8 +33,9 @@ private:
     name += "marian.XXXXXX";
     name.push_back(0);
     int ret;
-    UTIL_THROW_IF2(-1 == (ret = mkstemp_and_unlink(&name[0])),
-                   "while making a temporary based on " << base);
+    ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
+             "Error while making a temporary based on '{}'",
+             base);
     name_ = name;
     return ret;
   }
@@ -61,7 +63,7 @@ public:
 
   ~TemporaryFile() {
     if(fd_ != -1 && !unlink_) {
-      UTIL_THROW_IF2(unlink(name_.c_str()), "while deleting " << name_);
+      ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
     }
     if(fd_ != -1 && close(fd_)) {
       std::cerr << "Could not close file " << fd_ << std::endl;
@@ -77,8 +79,8 @@ public:
 class InputFileStream {
 public:
   InputFileStream(const std::string& file) : file_(file), ifstream_(file_) {
-    UTIL_THROW_IF2(!boost::filesystem::exists(file_),
-                   "File " << file << " does not exist");
+    ABORT_IF(
+        !boost::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == ".gz")
       istream_.push(io::gzip_decompressor());
@@ -117,8 +119,8 @@ private:
 class OutputFileStream {
 public:
   OutputFileStream(const std::string& file) : file_(file), ofstream_(file_) {
-    UTIL_THROW_IF2(!boost::filesystem::exists(file_),
-                   "File " << file << " does not exist");
+    ABORT_IF(
+        !boost::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == ".gz")
       ostream_.push(io::gzip_compressor());

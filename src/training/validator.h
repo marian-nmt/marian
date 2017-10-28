@@ -154,8 +154,8 @@ public:
     opts->set("inference", true);
     builder_ = models::from_options(opts);
 
-    UTIL_THROW_IF2(!options_->has("valid-script-path"),
-                   "valid-script metric but no script given");
+    ABORT_IF(!options_->has("valid-script-path"),
+             "valid-script metric but no script given");
   }
 
   virtual float validate(Ptr<ExpressionGraph> graph) {

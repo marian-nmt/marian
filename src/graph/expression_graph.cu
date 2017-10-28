@@ -49,6 +49,6 @@ Expr ExpressionGraph::gaussian(float mean, float stddev, Shape shape) {
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
-  UTIL_THROW_IF2(throwNaN_ && IsNan(t), "Tensor has NaN");
+  ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 }

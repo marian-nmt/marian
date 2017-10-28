@@ -19,13 +19,13 @@ struct AttentionNodeOp : public NaryNodeOp {
     Shape stateShape = nodes[2]->shape();
 
     for(int i = 0; i < stateShape.size(); ++i) {
-      UTIL_THROW_IF2(ctxShape[i] != stateShape[i] && ctxShape[i] != 1
-                         && stateShape[i] != 1,
-                     "Shapes cannot be broadcasted");
+      ABORT_IF(ctxShape[i] != stateShape[i] && ctxShape[i] != 1
+                   && stateShape[i] != 1,
+               "Shapes cannot be broadcasted");
       shape.set(i, std::max(ctxShape[i], stateShape[i]));
     }
 
-    UTIL_THROW_IF2(vaShape[0] != shape[1] || vaShape[1] != 1, "Wrong size");
+    ABORT_IF(vaShape[0] != shape[1] || vaShape[1] != 1, "Wrong size");
 
     shape.set(1, 1);
     return shape;

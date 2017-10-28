@@ -242,15 +242,15 @@ public:
   }
 
   virtual std::vector<Expr> getLazyInputs(Ptr<rnn::RNN> parent) {
-    UTIL_THROW_IF2(!stackables_[0]->is<Cell>(),
+    ABORT_IF(!stackables_[0]->is<Cell>(),
                    "First stackable should be of type Cell");
     return stackables_[0]->as<Cell>()->getLazyInputs(parent);
   }
 
   virtual void setLazyInputs(
       std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
-    UTIL_THROW_IF2(!stackables_[0]->is<Cell>(),
-                   "First stackable should be of type Cell");
+    ABORT_IF(!stackables_[0]->is<Cell>(),
+             "First stackable should be of type Cell");
     stackables_[0]->as<Cell>()->setLazyInputs(lazy);
   }
 };

@@ -18,7 +18,7 @@ void DeviceGPU::reserve(size_t size) {
   size = align(size);
   cudaSetDevice(device_);
 
-  UTIL_THROW_IF2(size < size_, "New size must be larger than old size");
+  ABORT_IF(size < size_, "New size must be larger than old size");
 
   if(data_) {
     // Allocate memory by going through host memory

@@ -107,7 +107,7 @@ public:
     std::vector<int> colIndices(rows);
 
     for(size_t i = 0; i < rows; ++i) {
-      UTIL_THROW_IF2(indices[i] >= srcDim_, "column index to large");
+      ABORT_IF(indices[i] >= srcDim_, "Column index to large");
       values[i] = 1;
       rowIndices[i] = i;
       colIndices[i] = indices[i];

@@ -21,7 +21,7 @@ Ptr<EncoderBase> EncoderFactory::construct() {
   if(options_->get<std::string>("type") == "transformer")
     return New<EncoderTransformer>(options_);
 
-  UTIL_THROW2("Unknown encoder type");
+  ABORT("Unknown encoder type");
 }
 
 Ptr<DecoderBase> DecoderFactory::construct() {
@@ -34,7 +34,7 @@ Ptr<DecoderBase> DecoderFactory::construct() {
   if(options_->get<std::string>("type") == "hard-soft-att")
     return New<DecoderHardAtt>(options_);
 
-  UTIL_THROW2("Unknown decoder type");
+  ABORT("Unknown decoder type");
 }
 
 Ptr<EncoderDecoder> EncoderDecoderFactory::construct() {
@@ -174,7 +174,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   }
 #endif
 
-  UTIL_THROW2("Unknown model type: " + type);
+  ABORT("Unknown model type: {}", type);
 }
 
 Ptr<ModelBase> from_options(Ptr<Options> options) {
