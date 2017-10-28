@@ -61,7 +61,10 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
-        LOG(info, "[data] Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(info,
+            "[data] Setting vocabulary size for input {} to {}",
+            i,
+            vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
@@ -76,7 +79,10 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize
             = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-        LOG(info, "[data] Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(info,
+            "[data] Setting vocabulary size for input {} to {}",
+            i,
+            vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);

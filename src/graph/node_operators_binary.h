@@ -41,10 +41,15 @@ private:
 
 public:
   template <typename... Args>
-  DotNodeOp(
-      Expr a, Expr b, bool transA, bool transB, float scalar, Args... args)
-      : NaryNodeOp(
-            {a, b}, keywords::shape = newShape(a, b, transA, transB), args...),
+  DotNodeOp(Expr a,
+            Expr b,
+            bool transA,
+            bool transB,
+            float scalar,
+            Args... args)
+      : NaryNodeOp({a, b},
+                   keywords::shape = newShape(a, b, transA, transB),
+                   args...),
         transA_(transA),
         transB_(transB),
         scalar_(scalar) {}
@@ -182,10 +187,15 @@ private:
 
 public:
   template <typename... Args>
-  DotBatchedNodeOp(
-      Expr a, Expr b, bool transA, bool transB, float scalar, Args... args)
-      : NaryNodeOp(
-            {a, b}, keywords::shape = newShape(a, b, transA, transB), args...),
+  DotBatchedNodeOp(Expr a,
+                   Expr b,
+                   bool transA,
+                   bool transB,
+                   float scalar,
+                   Args... args)
+      : NaryNodeOp({a, b},
+                   keywords::shape = newShape(a, b, transA, transB),
+                   args...),
         transA_(transA),
         transB_(transB),
         scalar_(scalar) {}

@@ -237,8 +237,11 @@ struct SwishNodeOp : public UnaryNodeOp {
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(
-        Add(_1 * (_3 + Sigma(_2) * (1.f - _3)), child(0)->grad(), adj_, child(0)->val(), val_))};
+    return {NodeOp(Add(_1 * (_3 + Sigma(_2) * (1.f - _3)),
+                       child(0)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       val_))};
   }
 
   const std::string type() { return "swish"; }

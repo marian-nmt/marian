@@ -12,8 +12,11 @@
 
 namespace marian {
 
-__global__ void grad_drop(
-    float* data, float* tmp, float* errors, float cut_off, int max_size) {
+__global__ void grad_drop(float* data,
+                          float* tmp,
+                          float* errors,
+                          float cut_off,
+                          int max_size) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= max_size)
     return;
@@ -63,8 +66,11 @@ __global__ void buildIndices(float* denseData,
   }
 }
 
-__global__ void randomSampling(
-    float* originalData, float* data, int size, int scale, int fullSize) {
+__global__ void randomSampling(float* originalData,
+                               float* data,
+                               int size,
+                               int scale,
+                               int fullSize) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= size)
     return;
@@ -78,8 +84,11 @@ class GradientDropBase {
   int step;
   int _device;
 
-  void grad_drop_do(
-      float* data, float* errors, float* tmp, int len, float rate) {
+  void grad_drop_do(float* data,
+                    float* errors,
+                    float* tmp,
+                    int len,
+                    float rate) {
     int threads = 512;
     int blocks = 1 + len / threads;
     cudaSetDevice(_device);

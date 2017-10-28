@@ -48,7 +48,7 @@
 #define ABORT_IF(condition, ...) \
   do {                           \
     if(condition) {              \
-      ABORT(__VA_ARGS__);       \
+      ABORT(__VA_ARGS__);        \
     }                            \
   } while(0)
 

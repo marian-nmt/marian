@@ -243,7 +243,7 @@ public:
 
   virtual std::vector<Expr> getLazyInputs(Ptr<rnn::RNN> parent) {
     ABORT_IF(!stackables_[0]->is<Cell>(),
-                   "First stackable should be of type Cell");
+             "First stackable should be of type Cell");
     return stackables_[0]->as<Cell>()->getLazyInputs(parent);
   }
 

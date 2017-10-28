@@ -197,8 +197,11 @@ public:
   }
 };
 
-void multiply(
-    Ptr<CSR>, const Ptr<CSR>, const Ptr<CSR>, bool = false, bool = false);
+void multiply(Ptr<CSR>,
+              const Ptr<CSR>,
+              const Ptr<CSR>,
+              bool = false,
+              bool = false);
 
 void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf);
 
