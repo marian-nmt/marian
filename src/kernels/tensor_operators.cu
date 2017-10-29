@@ -92,8 +92,8 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   int cols_out = out->shape()[1];
 
   for(auto in : inputs) {
-    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
-                   "First dimension must be equal");
+    ABORT_IF(out->shape()[0] != in->shape()[0],
+             "First dimension must be equal");
     int cols_in = in->shape()[1];
 
     int blocks = std::min(MAX_BLOCKS, rows);
@@ -120,8 +120,8 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
   int rows = in->shape()[0] * in->shape()[2] * in->shape()[3];
   int cols_in = in->shape()[1];
   for(auto out : outputs) {
-    UTIL_THROW_IF2(out->shape()[0] != in->shape()[0],
-                   "First dimension must be equal");
+    ABORT_IF(out->shape()[0] != in->shape()[0],
+             "First dimension must be equal");
     int cols_out = out->shape()[1];
 
     int blocks = std::min(MAX_BLOCKS, rows);
