@@ -65,8 +65,13 @@ class Config;
 template <class... Args>
 void checkedLog(std::string logger, std::string level, Args... args) {
   Logger log = spdlog::get(logger);
-  if(!log)
+  if(!log) {
+    if(level == "critical") {
+      auto stderr = stderrLogger("error", "Error: %v - aborting");
+      stderr->critical(args...);
+    }
     return;
+  }
 
   if(level == "trace")
     log->trace(args...);

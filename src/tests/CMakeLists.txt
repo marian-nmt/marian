@@ -2,6 +2,7 @@
 set(TEST_SOURCES
     graph_tests.cpp
     operator_tests.cpp
+    rnn_tests.cpp
 )
 
 add_executable(run_tests run_tests.cpp ${TEST_SOURCES})
