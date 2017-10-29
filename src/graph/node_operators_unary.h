@@ -234,6 +234,46 @@ struct ReLUNodeOp : public UnaryNodeOp {
 };
 
 /**
+ * Represents a <a
+ * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">leaky
+ * rectified linear unit</a> node in an expression graph.
+ * It is equivalent to the parametric ReLU with \f$ \alpha = 0.01 \f$.
+ *
+ * This node implements the activation function:
+ * \f[
+ *   f(x) =
+ *   \begin{cases}
+ *     0.01 & \text{if } x < 0 \\
+ *     x    & \text{if } x \geq 0
+ *   \end{cases}
+ * \f]
+ *
+ * and its derivative:
+ * \f[
+ *   f^\prime(x) =
+ *   \begin{cases}
+ *     0.01 & \text{if } x < 0 \\
+ *     1    & \text{if } x \geq 0
+ *   \end{cases}
+ * \f]
+ */
+struct LeakyReLUNodeOp : public UnaryNodeOp {
+  template <typename... Args>
+  LeakyReLUNodeOp(Args... args) : UnaryNodeOp(args...) {}
+
+  NodeOps forwardOps() {
+    return {NodeOp(Element(_1 = LeakyReLU(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(
+        Add(_1 * LeakyReLUback(_2), child(0)->grad(), adj_, child(0)->val()))};
+  }
+
+  const std::string type() { return "LeakyReLU"; }
+};
+
+/**
  * Represents a <a href="https://arxiv.org/pdf/1710.05941.pdf">swish</a> node
  * in an expression graph.
  *

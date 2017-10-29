@@ -80,6 +80,8 @@ __host__ __device__
       binary_operator<thrust::maximum>(), make_actor(_1), make_actor(_2));
 }
 
+//*******************************************************************
+
 template <typename T>
 struct unary_relu : public thrust::unary_function<T, T> {
   __host__ __device__ T operator()(const T &x) const {
@@ -106,6 +108,37 @@ __host__ __device__
     ReLUback(const actor<Eval> &_1) {
   return compose(unary_operator<unary_reluback>(), _1);
 }
+
+//*******************************************************************
+
+template <typename T>
+struct unary_leakyrelu : public thrust::unary_function<T, T> {
+  __host__ __device__ T operator()(const T &x) const {
+    return x > 0.0f ? x : 0.01f;
+  }
+};
+
+template <typename Eval>
+__host__ __device__ actor<composite<unary_operator<unary_leakyrelu>, actor<Eval>>>
+LeakyReLU(const actor<Eval> &_1) {
+  return compose(unary_operator<unary_leakyrelu>(), _1);
+}
+
+template <typename T>
+struct unary_leakyreluback : public thrust::unary_function<T, T> {
+  __host__ __device__ T operator()(const T &x) const {
+    return x > 0.0f ? 1.0f : 0.01f;
+  }
+};
+
+template <typename Eval>
+__host__ __device__
+    actor<composite<unary_operator<unary_leakyreluback>, actor<Eval>>>
+    LeakyReLUback(const actor<Eval> &_1) {
+  return compose(unary_operator<unary_leakyreluback>(), _1);
+}
+
+//*******************************************************************
 
 template <typename T>
 __host__ __device__ int sgn(T val) {

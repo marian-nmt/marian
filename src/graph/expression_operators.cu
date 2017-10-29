@@ -20,6 +20,10 @@ Expr relu(Expr a) {
   return Expression<ReLUNodeOp>(a);
 }
 
+Expr leakyrelu(Expr a) {
+  return Expression<LeakyReLUNodeOp>(a);
+}
+
 Expr log(Expr a) {
   return Expression<LogNodeOp>(a);
 };
@@ -203,6 +207,10 @@ Expr logit(const std::vector<Expr>&) {
 }
 
 Expr relu(const std::vector<Expr>&) {
+  ABORT("Not implemented");
+}
+
+Expr leakyrelu(const std::vector<Expr>&) {
   ABORT("Not implemented");
 }
 
