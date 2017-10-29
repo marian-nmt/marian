@@ -8,11 +8,12 @@
 
 namespace marian {
 
+#define GPU_SHAPE_DIMS 4
+
 /**
  * @brief Represents the size of each dimension in a tensor.
- *
- * Note: this class currently is hard-coded to four dimensions.
  */
+
 
 template <const int N>
 struct ConstantShapeGPU {
@@ -29,7 +30,8 @@ struct ConstantShapeGPU {
   ConstantShapeGPU(const Shape& shape) {
     size_t filled = shape.size();
 
-    UTIL_THROW_IF2(filled > N, "Recompile with larger GPU shape size");
+    ABORT_IF(filled > N,
+             "Recompile with GPU_SHAPE_DIMS >= " + std::to_string(filled));
 
     std::copy(shape.shape_.begin(), shape.shape_.end(), shape_ + N - filled);
     std::copy(shape.stride_.begin(), shape.stride_.end(), stride_ + N - filled);
@@ -114,6 +116,6 @@ struct ConstantShapeGPU {
   }
 };
 
-typedef ConstantShapeGPU<4> ShapeGPU;
+typedef ConstantShapeGPU<GPU_SHAPE_DIMS> ShapeGPU;
 
 }
