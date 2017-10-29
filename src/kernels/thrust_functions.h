@@ -114,7 +114,7 @@ __host__ __device__
 template <typename T>
 struct unary_leakyrelu : public thrust::unary_function<T, T> {
   __host__ __device__ T operator()(const T &x) const {
-    return x > 0.0f ? x : 0.01f;
+    return x > 0.0f ? x : 0.01f * x;
   }
 };
 
