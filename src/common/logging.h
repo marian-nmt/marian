@@ -24,16 +24,28 @@
  */
 #define LOG_VALID(level, ...) checkedLog("valid", #level, __VA_ARGS__)
 
+#ifdef __GNUC__
+#define FUNCTION_NAME __PRETTY_FUNCTION__
+#else
+#ifdef _WIN32
+#define FUNCTION_NAME __FUNCTION__
+#else
+#define FUNCTION_NAME "???"
+#endif
+#endif
+
 /**
  * Prints critical error message and causes abnormal program termination by
  * calling std::abort().
  *
  * @param ... Message text and variables
  */
-#define ABORT(...)                                  \
-  do {                                              \
-    checkedLog("general", "critical", __VA_ARGS__); \
-    std::abort();                                   \
+#define ABORT(...)                                                      \
+  do {                                                                  \
+    checkedLog("general", "critical", __VA_ARGS__);                     \
+    std::cerr << "Aborted from " << FUNCTION_NAME << " in " << __FILE__ \
+              << ": " << __LINE__ << std::endl;                         \
+    std::abort();                                                       \
   } while(0)
 
 /**
