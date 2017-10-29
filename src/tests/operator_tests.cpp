@@ -90,7 +90,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     std::vector<float> vDiv({2.0f, -1.33333f, 6.0f, -2.66667f});
 
     auto a = graph->constant({2, 2, 1}, keywords::init = inits::from_vector(vA));
-    auto b = graph->constant({1, 2, 1}, keywords::init = inits::from_vector(vB));
+    auto b = graph->constant({2, 1}, keywords::init = inits::from_vector(vB));
 
     auto add = a + b;
     auto minus = b - a;
@@ -183,7 +183,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
 
     auto sp = scalar_product(s2, s2, keywords::axis=0);
 
-    auto wa = weighted_average(a, s1, keywords::axis=1);
+    auto wa = weighted_average(a, s1, keywords::axis=-1);
 
     graph->forward();
 
@@ -237,8 +237,8 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     auto in4 = graph->constant({1, 2, 2, 3}, keywords::init=inits::from_value(4));
 
     auto c1out1 = concatenate({in1, in2, in3, in4}, keywords::axis=2);
-    auto c1out2 = concatenate({in1, in2, in3, in4}, keywords::axis=3);
-    auto c1out3 = concatenate({in1, in2, in3, in4}, keywords::axis=1);
+    auto c1out2 = concatenate({in1, in2, in3, in4}, keywords::axis=-1);
+    auto c1out3 = concatenate({in1, in2, in3, in4}, keywords::axis=-3);
     auto c1out4 = concatenate({in1, in2, in3, in4}, keywords::axis=0);
 
     graph->forward();

@@ -175,8 +175,8 @@ Expr transpose(Expr a, Shape permute) {
   return Expression<TransposeNodeOp>(a, permute);
 }
 
-Expr step(Expr a, size_t step) {
-  return Expression<TimestepNodeOp>(a, step);
+Expr step(Expr a, int step, int axis) {
+  return Expression<StepNodeOp>(a, step, axis);
 }
 
 Expr cross_entropy(Expr a, Expr b) {

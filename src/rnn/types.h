@@ -48,7 +48,7 @@ public:
     for(auto s : states_)
       outputs.push_back(s.output);
     if(outputs.size() > 1)
-      return concatenate(outputs, keywords::axis = 2);
+      return concatenate(outputs, keywords::axis = -3);
     else
       return outputs[0];
   }
@@ -172,7 +172,7 @@ public:
       outputs.push_back(input->apply(state));
 
     if(outputs.size() > 1)
-      return concatenate(outputs, keywords::axis = 1);
+      return concatenate(outputs, keywords::axis = -1);
     else
       return outputs[0];
   }

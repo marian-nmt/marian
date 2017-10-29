@@ -58,7 +58,12 @@ struct Shape {
       updateStrides();
     }
 
-    inline int& dim(int i) { return shape_[i]; }
+    inline int& dim(int i) {
+      if(i >= 0)
+        return shape_[i];
+      else
+        return shape_[size() + i];
+    }
 
     inline const int& dim(int i) const { return const_cast<Shape&>(*this).dim(i); }
 
@@ -69,11 +74,17 @@ struct Shape {
     inline int& back() { return shape_.back(); }
 
     inline int stride(int i) const {
-      return stride_[i];
+      if(i >= 0)
+        return stride_[i];
+      else
+        return stride_[size() + i];
     }
 
     inline int bstride(int i) const {
-      return bstride_[i];
+      if(i >= 0)
+        return bstride_[i];
+      else
+        return bstride_[size() + i];
     }
 
     inline size_t size() const { return shape_.size(); }
@@ -124,6 +135,58 @@ struct Shape {
       strm << " size=" << shape.elements() << " ("
            << shape.elements() * sizeof(float) << "B)";
       return strm;
+    }
+
+    int axis(int ax) {
+      if(ax < 0)
+        return size() + ax;
+      else
+        return ax;
+    }
+
+    static Shape broadcast(const std::vector<Shape>& shapes) {
+      int maxDims = 0;
+      for(auto& s : shapes)
+        if(s.size() > maxDims)
+          maxDims = s.size();
+
+      Shape shape;
+      shape.resize(maxDims);
+
+      for(auto& s : shapes) {
+        for(int i = 0; i < s.size(); ++i) {
+          ABORT_IF(shape[-i] != s[-i] && shape[-i] != 1 && s[-i] != 1,
+                   "Shapes cannot be broadcasted");
+          shape.set(-i, std::max(shape[-i], s[-i]));
+        }
+      }
+      return shape;
+    }
+
+    template <typename T>
+    static Shape broadcast(const std::initializer_list<T>& il) {
+      return broadcast(std::vector<T>(il));
+    }
+
+    template <typename T>
+    static Shape broadcast(const std::vector<T>& nodes) {
+      int maxDims = 0;
+      for(auto& n : nodes)
+        if(n->shape().size() > maxDims)
+          maxDims = n->shape().size();
+
+      Shape shape;
+      shape.resize(maxDims);
+
+      for(auto& node : nodes) {
+        Shape shapen = node->shape();
+        for(int i = 0; i < shapen.size(); ++i) {
+          ABORT_IF(shape[-i] != shapen[-i] && shape[-i] != 1 && shapen[-i] != 1,
+                   "Shapes cannot be broadcasted");
+          shape.set(-i, std::max(shape[-i], shapen[-i]));
+        }
+      }
+      return shape;
     }
 };
 

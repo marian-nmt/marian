@@ -185,9 +185,7 @@ void Add(Functor functor, Tensor out, Tensor in, float scale = 1.0) {
   UTIL_THROW_IF2(out->shape().size() != in->shape().size(),
                  "Number of dimensions does not match");
 
-  auto full = out->shape();
-  for(int i = 0; i < in->shape().size(); ++i)
-    full.set(i, std::max(full[i], in->shape()[i]));
+  auto full = Shape::broadcast({out, in});
 
   int length = out->shape().elements();
 
@@ -396,16 +394,7 @@ void Add(Functor functor,
          float scale = 1.0) {
   cudaSetDevice(out->getDevice());
 
-  UTIL_THROW_IF2(out->shape().size() != in1->shape().size(),
-                 "Number of dimensions does not match");
-  UTIL_THROW_IF2(out->shape().size() != in2->shape().size(),
-                 "Number of dimensions does not match");
-
-  auto full = out->shape();
-  for(int i = 0; i < in1->shape().size(); ++i)
-    full.set(i, std::max(full[i], in1->shape()[i]));
-  for(int i = 0; i < in2->shape().size(); ++i)
-    full.set(i, std::max(full[i], in2->shape()[i]));
+  Shape full = Shape::broadcast({out, in1, in2});
 
   int length = out->shape().elements();
 
@@ -628,20 +617,7 @@ template <class Functor>
 void Add(Functor functor, Tensor out, Tensor in1, Tensor in2, Tensor in3) {
   cudaSetDevice(out->getDevice());
 
-  UTIL_THROW_IF2(out->shape().size() != in1->shape().size(),
-                 "Number of dimensions does not match");
-  UTIL_THROW_IF2(out->shape().size() != in2->shape().size(),
-                 "Number of dimensions does not match");
-  UTIL_THROW_IF2(out->shape().size() != in3->shape().size(),
-                 "Number of dimensions does not match");
-
-  auto full = out->shape();
-  for(int i = 0; i < in1->shape().size(); ++i)
-    full.set(i, std::max(full[i], in1->shape()[i]));
-  for(int i = 0; i < in2->shape().size(); ++i)
-    full.set(i, std::max(full[i], in2->shape()[i]));
-  for(int i = 0; i < in3->shape().size(); ++i)
-    full.set(i, std::max(full[i], in3->shape()[i]));
+  Shape full = Shape::broadcast({out, in1, in2, in3});
 
   int length = out->shape().elements();
 

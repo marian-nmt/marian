@@ -86,7 +86,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
                               bool layerNorm=false,
                               bool skip=false) {
 
-      int dimEmb = input->shape()[1];
+      int dimEmb = input->shape()[-1];
 
       int first, second;
       if(type == "bidirectional" || type == "alternating") {
@@ -154,7 +154,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
 
       auto context = concatenate({rnnFw->transduce(input, mask),
                                   rnnBw->transduce(input, mask)},
-                                 axis = 1);
+                                 axis = input->shape().size() - 1);
 
       if(second > 0) {
         // add more layers (unidirectional) by transducing the output of the
@@ -227,6 +227,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     });
 
     contextSum1->val()->get(values);
+
     CHECK( std::equal(values.begin(), values.end(),
                       vContextSum1.begin(), floatApprox) );
 

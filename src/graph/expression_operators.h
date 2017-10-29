@@ -95,7 +95,7 @@ Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax = 0);
 
-Expr step(Expr a, size_t step);
+Expr step(Expr a, int step, int axis);
 
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);

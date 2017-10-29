@@ -397,18 +397,10 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   Shape newShape(Expr a, Expr b, Args... args) {
     int ax = keywords::Get(keywords::axis, -1, args...);
 
-    Shape full = a->shape();
-    for(int i = 0; i < b->shape().size(); ++i)
-      full.set(i, std::max(full[i], b->shape()[i]));
+    Shape full = Shape::broadcast({a, b});
+    ax = full.axis(ax);
 
-    if(ax != -1) {
-      full.set(ax, 1);
-    } else {
-      full.set(0, 1);
-      full.set(1, 1);
-      full.set(2, 1);
-      full.set(3, 1);
-    }
+    full.set(ax, 1);
     return full;
   }
 
@@ -432,14 +424,7 @@ struct ElementBinaryNodeOp : public NaryNodeOp {
       : NaryNodeOp({a, b}, keywords::shape = newShape(a, b), args...) {}
 
   Shape newShape(Expr a, Expr b) {
-    Shape shape1 = a->shape();
-    Shape shape2 = b->shape();
-    for(int i = 0; i < shape1.size(); ++i) {
-      ABORT_IF(shape1[i] != shape2[i] && shape1[i] != 1 && shape2[i] != 1,
-               "Shapes cannot be broadcasted");
-      shape1.set(i, std::max(shape1[i], shape2[i]));
-    }
-    return shape1;
+    return Shape::broadcast({a, b});
   }
 
   const std::string color() { return "yellow"; }
@@ -572,15 +557,17 @@ struct ConcatenateNodeOp : public NaryNodeOp {
       : NaryNodeOp(nodes,
                    keywords::shape
                    = newShape(nodes, keywords::Get(keywords::axis, 0, args...)),
-                   args...),
-        ax_(keywords::Get(keywords::axis, 0, args...)) {}
+                   args...) {}
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
-    shape.set(ax, 0);
+    ax_ = shape.axis(ax);
+
+    int sum = 0;
     for(auto child : nodes)
-      shape.set(ax, shape[ax] + child->shape()[ax]);
-    // std::cerr << ax << " : " << shape[0] << " " << shape[1] << std::endl;
+      sum += child->shape()[ax_];
+    shape.set(ax_, sum);
+
     return shape;
   }
 

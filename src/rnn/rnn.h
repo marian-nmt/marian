@@ -68,7 +68,7 @@ private:
 
     auto xWs = cell_->applyInput({input});
 
-    size_t timeSteps = input->shape()[2];
+    size_t timeSteps = input->shape()[-3];
 
     States outputs;
     for(size_t i = 0; i < timeSteps; ++i) {
@@ -78,12 +78,13 @@ private:
         j = timeSteps - i - 1;
 
       std::vector<Expr> steps(xWs.size());
-      std::transform(xWs.begin(), xWs.end(), steps.begin(), [j](Expr e) {
-        return step(e, j);
-      });
+      std::transform(xWs.begin(),
+                     xWs.end(),
+                     steps.begin(),
+                     [j](Expr e) { return step(e, j, -3); });
 
       if(mask)
-        state = cell_->applyState(steps, state, step(mask, j));
+        state = cell_->applyState(steps, state, step(mask, j, -3));
       else
         state = cell_->applyState(steps, state);
 
@@ -100,10 +101,11 @@ private:
 
   States apply(const Expr input, const Expr mask = nullptr) {
     auto graph = input->graph();
-    int dimBatch = input->shape()[0];
+
+    int dimBatch = input->shape()[-2];
     int dimState = cell_->getOptions()->get<int>("dimState");
 
-    auto output = graph->zeros(keywords::shape = {dimBatch, dimState});
+    auto output = graph->zeros(keywords::shape = {1, dimBatch, dimState});
     Expr cell = output;
     State startState{output, cell};
 
@@ -171,7 +173,7 @@ public:
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
       if(!lazyInputs.empty()) {
         lazyInputs.push_back(layerInput);
-        lazyInput = concatenate(lazyInputs, keywords::axis = 1);
+        lazyInput = concatenate(lazyInputs, keywords::axis = -1);
       }
 
       auto layerOutput = rnns_[i]->transduce(lazyInput, mask);
@@ -197,7 +199,7 @@ public:
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
       if(!lazyInputs.empty()) {
         lazyInputs.push_back(layerInput);
-        lazyInput = concatenate(lazyInputs, keywords::axis = 1);
+        lazyInput = concatenate(lazyInputs, keywords::axis = -1);
       } else {
         lazyInput = layerInput;
       }
@@ -227,7 +229,7 @@ public:
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
       if(!lazyInputs.empty()) {
         lazyInputs.push_back(layerInput);
-        lazyInput = concatenate(lazyInputs, keywords::axis = 1);
+        lazyInput = concatenate(lazyInputs, keywords::axis = -1);
       }
 
       auto layerOutput = rnns_[i]->transduce(lazyInput, States({state}), mask);
