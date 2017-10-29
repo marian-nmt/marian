@@ -38,7 +38,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
 
     std::vector<float> values;
 
-    auto input = graph->constant({1, 4, 4},
+    auto input = graph->constant({4, 1, 4},
                                  keywords::init=inits::glorot_uniform);
 
     auto rnn = rnn::rnn(graph)         //
@@ -53,7 +53,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
 
     graph->forward();
 
-    CHECK(output->shape() == Shape({1, 4, 4}));
+    CHECK(output->shape() == Shape({4, 1, 4}));
 
     std::vector<float> vOutput({
       0.108774, 0.237905, -0.819769, -0.212601,
@@ -192,16 +192,16 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
                             {128, dimEmb},
                             keywords::init=inits::glorot_uniform);
 
-    auto input = reshape(rows(emb, vWords), {dimBatch, dimEmb, dimTime});
-    auto mask = graph->constant({dimBatch, 1, dimTime},
+    auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
+    auto mask = graph->constant({dimTime, dimBatch, 1},
                                 keywords::init=inits::from_vector(vMask));
 
     int dimRnn = 32;
     auto context1 = buildRnn("enc1", input, mask, dimRnn);
-    auto contextSum1 = sum(context1, keywords::axis=1);
+    auto contextSum1 = sum(context1, keywords::axis=2);
 
     auto context2 = buildRnn("enc2", input, mask, dimRnn, 2, 2);
-    auto contextSum2 = sum(context2, keywords::axis=1);
+    auto contextSum2 = sum(context2, keywords::axis=2);
 
     // @TODO: why is this numerically instable on different machines?
     //auto context3 = buildRnn("enc3", input, mask,
@@ -212,8 +212,8 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
 
     graph->forward();
 
-    CHECK(context1->shape() == Shape({dimBatch, 2 * dimRnn, dimTime}));
-    CHECK(contextSum1->shape() == Shape({dimBatch, 1, dimTime}));
+    CHECK(context1->shape() == Shape({dimTime, dimBatch, 2 * dimRnn}));
+    CHECK(contextSum1->shape() == Shape({dimTime, dimBatch, 1}));
 
     std::vector<float> vContextSum1({
       0.14076, -0.102, 0.22832, -0.42283,
@@ -230,8 +230,8 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     CHECK( std::equal(values.begin(), values.end(),
                       vContextSum1.begin(), floatApprox) );
 
-    CHECK(context2->shape() == Shape({dimBatch, 2 * dimRnn, dimTime}));
-    CHECK(contextSum2->shape() == Shape({dimBatch, 1, dimTime}));
+    CHECK(context2->shape() == Shape({dimTime, dimBatch, 2 * dimRnn}));
+    CHECK(contextSum2->shape() == Shape({dimTime, dimBatch, 1}));
 
     std::vector<float> vContextSum2({
       -0.0168112, -0.0524664, -0.0196701, -0.0118004,

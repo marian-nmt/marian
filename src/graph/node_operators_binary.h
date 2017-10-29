@@ -69,8 +69,8 @@ public:
 
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
-    UTIL_THROW_IF2(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-                   "matrix product requires dimensions to match");
+    ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
+             "matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -186,8 +186,8 @@ struct AffineNodeOp : public NaryNodeOp {
   Shape newShape(const std::vector<Expr>& nodes) {
     Shape shape1 = nodes[0]->shape();
     Shape shape2 = nodes[1]->shape();
-    UTIL_THROW_IF2(shape1[shape1.size() - 1] != shape2[shape2.size() - 2],
-                   "matrix product requires dimensions to match");
+    ABORT_IF(shape1[shape1.size() - 1] != shape2[shape2.size() - 2],
+              "matrix product requires dimensions to match");
     shape1.set(shape1.size() - 1, shape2[shape2.size() - 1]);
     return shape1;
   }
