@@ -89,7 +89,7 @@ public:
     std::vector<std::string> vals
         = options_->get<std::vector<std::string>>("filter");
 
-    UTIL_THROW_IF2(vals.empty(), "No path to filter path given");
+    ABORT_IF(vals.empty(), "No path to filter path given");
     std::string fname = vals[0];
 
     firstNum_ = vals.size() > 1 ? std::stoi(vals[1]) : 100;

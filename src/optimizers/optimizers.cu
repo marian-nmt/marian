@@ -97,7 +97,7 @@ Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
   } else if(opt == "adam") {
     return Optimizer<Adam>(lrate, clipper, params);
   } else {
-    UTIL_THROW2("Unknown optimizer: " << opt);
+    ABORT("Unknown optimizer: {}", opt);
   }
 }
 }

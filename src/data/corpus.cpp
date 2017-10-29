@@ -44,8 +44,8 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
   if(training) {
-    UTIL_THROW_IF2(!vocabPaths.empty() && paths_.size() != vocabPaths.size(),
-                   "Number of corpus files and vocab files does not agree");
+    ABORT_IF(!vocabPaths.empty() && paths_.size() != vocabPaths.size(),
+             "Number of corpus files and vocab files does not agree");
   }
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
@@ -61,7 +61,10 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
-        LOG(info, "[data] Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(info,
+            "[data] Setting vocabulary size for input {} to {}",
+            i,
+            vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
@@ -76,15 +79,17 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
         Ptr<Vocab> vocab = New<Vocab>();
         int vocSize
             = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-        LOG(info, "[data] Setting vocabulary size for input {} to {}", i, vocSize);
+        LOG(info,
+            "[data] Setting vocabulary size for input {} to {}",
+            i,
+            vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
       }
     }
   } else {  // i.e., if translating
-    UTIL_THROW_IF2(vocabPaths.empty(),
-                   "translating but vocabularies are missing!");
+    ABORT_IF(vocabPaths.empty(), "Translating but vocabularies are missing!");
 
     if(maxVocabs.size() < vocabPaths.size())
       maxVocabs.resize(paths_.size(), 0);
@@ -107,7 +112,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       files_.emplace_back(new InputFileStream(std::cin));
     else {
       files_.emplace_back(new InputFileStream(path));
-      UTIL_THROW_IF2(files_.back()->empty(), "File " << path << " is empty");
+      ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
     }
   }
 }
@@ -120,8 +125,8 @@ Corpus::Corpus(std::vector<std::string> paths,
       options_(options),
       vocabs_(vocabs),
       maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
-  UTIL_THROW_IF2(paths_.size() != vocabs_.size(),
-                 "Number of corpus files and vocab files does not agree");
+  ABORT_IF(paths_.size() != vocabs_.size(),
+           "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
     files_.emplace_back(new InputFileStream(path));

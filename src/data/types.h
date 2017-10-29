@@ -27,10 +27,16 @@ const std::string DEL_STR = "<d>";
 const std::string RPL_STR = "<r>";
 
 const std::unordered_map<std::string, Word> SPEC2SYM = {
-    {STP_STR, STP_ID}, {CPY_STR, CPY_ID}, {DEL_STR, DEL_ID}, {RPL_STR, RPL_ID},
+    {STP_STR, STP_ID},
+    {CPY_STR, CPY_ID},
+    {DEL_STR, DEL_ID},
+    {RPL_STR, RPL_ID},
 };
 
 const std::unordered_map<Word, std::string> SYM2SPEC = {
-    {STP_ID, STP_STR}, {CPY_ID, CPY_STR}, {DEL_ID, DEL_STR}, {RPL_ID, RPL_STR},
+    {STP_ID, STP_STR},
+    {CPY_ID, CPY_STR},
+    {DEL_ID, DEL_STR},
+    {RPL_ID, RPL_STR},
 };
 }

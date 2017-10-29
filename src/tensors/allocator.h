@@ -186,7 +186,7 @@ public:
   bool free(uint8_t* ptr, size_t bytes) {
     bytes = align(bytes);
 
-    UTIL_THROW_IF2(ptr == 0, "Double free?");
+    ABORT_IF(ptr == 0, "Double free?");
 
     if(!ptr)
       return false;

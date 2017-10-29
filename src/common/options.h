@@ -62,8 +62,7 @@ public:
 
   template <typename T>
   T get(const std::string& key) {
-    UTIL_THROW_IF2(!has(key),
-                   "Required option \"" << key << "\" has not been set");
+    ABORT_IF(!has(key), "Required option '{}' has not been set", key);
     return options_[key].as<T>();
   }
 

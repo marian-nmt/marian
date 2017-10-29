@@ -195,11 +195,11 @@ Expr affine(Expr a, Expr b, Expr c) {
 }
 
 Expr plus(const std::vector<Expr>&) {
-  UTIL_THROW2("Not implemented");
+  ABORT("Not implemented");
 }
 
 Expr swish(const std::vector<Expr>&) {
-  UTIL_THROW2("Not implemented");
+  ABORT("Not implemented");
 }
 
 Expr tanh(const std::vector<Expr>& nodes) {
@@ -207,11 +207,11 @@ Expr tanh(const std::vector<Expr>& nodes) {
 }
 
 Expr logit(const std::vector<Expr>&) {
-  UTIL_THROW2("Not implemented");
+  ABORT("Not implemented");
 }
 
 Expr relu(const std::vector<Expr>&) {
-  UTIL_THROW2("Not implemented");
+  ABORT("Not implemented");
 }
 
 Expr sqrt(Expr a, float eps) {

@@ -17,8 +17,7 @@ __device__ inline float stableLogit(float x) {
   if(x >= 0) {
     float z = expf(-x);
     return 1.0 / (1.0 + z);
-  }
-  else {
+  } else {
     float z = expf(x);
     return z / (1.0 + z);
   }
@@ -161,7 +160,6 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
   else
     SplitCont(outputs, in, ax);
 }
-
 
 __global__ void gTranspose4D(float* out,
                              ShapeGPU outShape,
@@ -953,7 +951,6 @@ __global__ void gGRUFastForward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-
           float r = stableLogit(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
@@ -1527,8 +1524,11 @@ __global__ void gLNormalization(float* out,
   }
 }
 
-void LayerNormalization(
-    Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps) {
+void LayerNormalization(Tensor out,
+                        Tensor in,
+                        Tensor gamma,
+                        Tensor beta,
+                        float eps) {
   cudaSetDevice(out->getDevice());
 
   int rows = in->shape().elements() / in->shape().back();

@@ -35,7 +35,7 @@ public:
   virtual size_t size() { return shape_.elements(); }
 
   virtual float scalar() {
-    UTIL_THROW_IF2(size() != 1, "Tensor is not a scalar");
+    ABORT_IF(size() != 1, "Tensor is not a scalar");
     return get(0);
   }
 

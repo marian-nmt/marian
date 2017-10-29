@@ -59,7 +59,7 @@ public:
   }
 
   Expr apply(const std::vector<Expr>& inputs) {
-    UTIL_THROW_IF2(inputs.empty(), "No inputs");
+    ABORT_IF(inputs.empty(), "No inputs");
 
     if(inputs.size() == 1)
       return apply(inputs[0]);

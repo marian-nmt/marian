@@ -7,8 +7,11 @@ namespace marian {
 
 namespace sparse {
 
-void multiply(
-    Ptr<CSR> C, const Ptr<CSR> A, const Ptr<CSR> B, bool transA, bool transB) {
+void multiply(Ptr<CSR> C,
+              const Ptr<CSR> A,
+              const Ptr<CSR> B,
+              bool transA,
+              bool transB) {
   cudaSetDevice(C->getDevice());
   int nnzTotal;
   C->allocRowIndices(A->rows());
@@ -101,8 +104,8 @@ void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf) {
   for(size_t i = 0; i < nonzeros; ++i) {
     int r = (i % batch) + (i / (srcWords * batch)) * batch;
     int c = i % (srcWords * batch);
-    UTIL_THROW_IF2(r >= trgWords * batch, "Row index too large");
-    UTIL_THROW_IF2(c >= srcWords * batch, "Column index too large");
+    ABORT_IF(r >= trgWords * batch, "Row index too large");
+    ABORT_IF(c >= srcWords * batch, "Column index too large");
     coo.emplace_back(r, c, values[i]);
   }
   std::sort(coo.begin(), coo.end());
@@ -130,8 +133,11 @@ void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf) {
   sparseLfa->toTensor(out);
 }
 
-__global__ void gCollapseAtt(
-    float* out, const float* in, int batch, int srcWords, int nonzeros) {
+__global__ void gCollapseAtt(float* out,
+                             const float* in,
+                             int batch,
+                             int srcWords,
+                             int nonzeros) {
   for(int bid = 0; bid < nonzeros; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < nonzeros) {

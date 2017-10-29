@@ -31,7 +31,7 @@ public:
   }
 
   virtual std::vector<size_t>& getAttentionIndices() {
-    UTIL_THROW_IF2(attentionIndices_.empty(), "Empty attention indices");
+    ABORT_IF(attentionIndices_.empty(), "Empty attention indices");
     return attentionIndices_;
   }
 

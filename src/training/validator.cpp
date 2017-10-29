@@ -3,7 +3,8 @@
 namespace marian {
 
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
-    std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config) {
+    std::vector<Ptr<Vocab>> vocabs,
+    Ptr<Config> config) {
   std::vector<Ptr<Validator<data::Corpus>>> validators;
 
   auto validMetrics = config->get<std::vector<std::string>>("valid-metrics");

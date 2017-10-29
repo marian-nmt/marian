@@ -31,13 +31,11 @@ public:
   }
 
   void loadData() {
-    UTIL_THROW_IF2(paths_.size() != 2,
-                   "Paths to MNIST data files are not specified");
+    ABORT_IF(paths_.size() != 2, "Paths to MNIST data files are not specified");
 
     auto features = ReadImages(paths_[0]);
     auto labels = ReadLabels(paths_[1]);
-    UTIL_THROW_IF2(features.size() != labels.size(),
-                   "Features do not match labels");
+    ABORT_IF(features.size() != labels.size(), "Features do not match labels");
 
     for(size_t i = 0; i < features.size(); ++i) {
       Example ex = {features[i], labels[i]};
@@ -57,14 +55,13 @@ private:
 
   std::vector<Data> ReadImages(const std::string &full_path) {
     std::ifstream file(full_path);
-    UTIL_THROW_IF2(!file.is_open(), "Cannot open file `" + full_path + "`!");
+    ABORT_IF(!file.is_open(), "Cannot open file `" + full_path + "`!");
 
     int magic_number = 0;
     file.read((char *)&magic_number, sizeof(magic_number));
     magic_number = reverseInt(magic_number);
 
-    UTIL_THROW_IF2(magic_number != IMAGE_MAGIC_NUMBER,
-                   "Invalid MNIST image file!");
+    ABORT_IF(magic_number != IMAGE_MAGIC_NUMBER, "Invalid MNIST image file!");
 
     int number_of_images;
     int n_rows = 0;

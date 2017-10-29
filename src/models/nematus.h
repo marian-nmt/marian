@@ -11,29 +11,28 @@ public:
   template <class... Args>
   Nematus(Ptr<Options> options)
       : EncoderDecoder(options), nameMap_(createNameMap()) {
-    UTIL_THROW_IF2(options_->get<std::string>("enc-type") != "bidirectional",
-                   "--type nematus does not currently support other encoder "
-                   "type than bidirectional, use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("enc-depth") > 1,
-                   "--type nematus does not currently support multiple encoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(
-        options_->get<bool>("skip"),
-        "--type nematus does not currently support skip connections, "
-        "use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("dec-depth") > 1,
-                   "--type nematus does not currently support multiple decoder "
-                   "layers, use --type s2s");
-    UTIL_THROW_IF2(options_->get<int>("dec-cell-high-depth") > 1,
-                   "--type nematus does not currently support multiple decoder "
-                   "high cells, use --type s2s");
+    ABORT_IF(options_->get<std::string>("enc-type") != "bidirectional",
+             "--type nematus does not currently support other encoder "
+             "type than bidirectional, use --type s2s");
+    ABORT_IF(options_->get<int>("enc-depth") > 1,
+             "--type nematus does not currently support multiple encoder "
+             "layers, use --type s2s");
+    ABORT_IF(options_->get<bool>("skip"),
+             "--type nematus does not currently support skip connections, "
+             "use --type s2s");
+    ABORT_IF(options_->get<int>("dec-depth") > 1,
+             "--type nematus does not currently support multiple decoder "
+             "layers, use --type s2s");
+    ABORT_IF(options_->get<int>("dec-cell-high-depth") > 1,
+             "--type nematus does not currently support multiple decoder "
+             "high cells, use --type s2s");
 
-    UTIL_THROW_IF2(options_->get<std::string>("enc-cell") != "gru-nematus",
-                   "--type nematus does not currently support other rnn cells "
-                   "than gru-nematus, use --type s2s");
-    UTIL_THROW_IF2(options_->get<std::string>("dec-cell") != "gru-nematus",
-                   "--type nematus does not currently support other rnn cells "
-                   "than gru-nematus, use --type s2s");
+    ABORT_IF(options_->get<std::string>("enc-cell") != "gru-nematus",
+             "--type nematus does not currently support other rnn cells "
+             "than gru-nematus, use --type s2s");
+    ABORT_IF(options_->get<std::string>("dec-cell") != "gru-nematus",
+             "--type nematus does not currently support other rnn cells "
+             "than gru-nematus, use --type s2s");
   }
 
   void load(Ptr<ExpressionGraph> graph, const std::string& name) {

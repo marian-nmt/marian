@@ -138,8 +138,7 @@ public:
   operator bool() const { return !bufferedBatches_.empty(); }
 
   BatchPtr next() {
-    UTIL_THROW_IF2(bufferedBatches_.empty(),
-                   "No batches to fetch, run prepare()");
+    ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
     currentBatch_ = bufferedBatches_.front();
     bufferedBatches_.pop_front();
 

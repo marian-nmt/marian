@@ -154,8 +154,8 @@ public:
     opts->set("inference", true);
     builder_ = models::from_options(opts);
 
-    UTIL_THROW_IF2(!options_->has("valid-script-path"),
-                   "valid-script metric but no script given");
+    ABORT_IF(!options_->has("valid-script-path"),
+             "valid-script metric but no script given");
   }
 
   virtual float validate(Ptr<ExpressionGraph> graph) {
@@ -305,5 +305,6 @@ protected:
  * @return Vector of validator objects
  */
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
-    std::vector<Ptr<Vocab>> vocabs, Ptr<Config> config);
+    std::vector<Ptr<Vocab>> vocabs,
+    Ptr<Config> config);
 }

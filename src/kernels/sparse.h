@@ -130,7 +130,7 @@ public:
 
   void toTensor(Tensor dense) {
     cudaSetDevice(device_);
-    UTIL_THROW_IF2(dense->size() != rows_ * cols_, "Matrix sizes do not match");
+    ABORT_IF(dense->size() != rows_ * cols_, "Matrix sizes do not match");
 
     cusparseScsc2dense(handle_,
                        cols_,
@@ -197,8 +197,11 @@ public:
   }
 };
 
-void multiply(
-    Ptr<CSR>, const Ptr<CSR>, const Ptr<CSR>, bool = false, bool = false);
+void multiply(Ptr<CSR>,
+              const Ptr<CSR>,
+              const Ptr<CSR>,
+              bool = false,
+              bool = false);
 
 void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf);
 

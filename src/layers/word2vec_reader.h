@@ -21,8 +21,8 @@ public:
     LOG(info, "[data] Loading embedding vectors from {}", fileName);
 
     std::ifstream embFile(fileName);
-    UTIL_THROW_IF2(!embFile.is_open(),
-                   "Unable to open file with embeddings: " + fileName);
+    ABORT_IF(!embFile.is_open(),
+             "Unable to open file with embeddings: " + fileName);
 
     std::string line;
     std::vector<std::string> values;
@@ -32,10 +32,10 @@ public:
     // vocabulary and the length of embedding vectors
     std::getline(embFile, line);
     Split(line, values);
-    UTIL_THROW_IF2(values.size() != 2,
-                   "Unexpected format of the first line in embedding file");
-    UTIL_THROW_IF2(stoi(values[1]) != dimEmb,
-                   "Unexpected length of embedding vectors");
+    ABORT_IF(values.size() != 2,
+             "Unexpected format of the first line in embedding file");
+    ABORT_IF(stoi(values[1]) != dimEmb,
+             "Unexpected length of embedding vectors");
 
     // Read embedding vectors into a map
     std::unordered_map<Word, std::vector<float>> word2vec;

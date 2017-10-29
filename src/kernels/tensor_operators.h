@@ -389,8 +389,11 @@ __global__ void gAdd1R3(Functor functor,
 }
 
 template <class Functor>
-void Add(
-    Functor functor, Tensor out, Tensor in1, Tensor in2, float scale = 1.0) {
+void Add(Functor functor,
+         Tensor out,
+         Tensor in1,
+         Tensor in2,
+         float scale = 1.0) {
   cudaSetDevice(out->getDevice());
 
   UTIL_THROW_IF2(out->shape().size() != in1->shape().size(),
@@ -454,8 +457,11 @@ void Add(
 }
 
 template <class Functor>
-void Reduce(
-    Functor functor, Tensor out, Tensor in1, Tensor in2, float scale = 1.0) {
+void Reduce(Functor functor,
+            Tensor out,
+            Tensor in1,
+            Tensor in2,
+            float scale = 1.0) {
   out->set(0);
   Add(functor, out, in1, in2, scale);
 }
@@ -934,8 +940,11 @@ void AttBack(Tensor gva,
              Tensor coverage,
              Tensor adj);
 
-void LayerNormalization(
-    Tensor out, Tensor in, Tensor gamma, Tensor beta, float eps = 1e-9);
+void LayerNormalization(Tensor out,
+                        Tensor in,
+                        Tensor gamma,
+                        Tensor beta,
+                        float eps = 1e-9);
 void LayerNormalizationGrad(Tensor gradX,
                             Tensor gradGamma,
                             Tensor gradBeta,

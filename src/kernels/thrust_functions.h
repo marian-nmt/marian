@@ -37,8 +37,7 @@ struct unary_sigma : public thrust::unary_function<T, T> {
     if(x >= 0) {
       float z = expf(-x);
       return 1.0 / (1.0 + z);
-    }
-    else {
+    } else {
       float z = expf(x);
       return z / (1.0 + z);
     }

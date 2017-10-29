@@ -643,7 +643,7 @@ public:
   }
 
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    UTIL_THROW_IF2(inputs.empty(), "Multiplicative LSTM expects input");
+    ABORT_IF(inputs.empty(), "Multiplicative LSTM expects input");
 
     Expr input;
     if(inputs.size() > 1)
@@ -738,7 +738,7 @@ public:
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    UTIL_THROW_IF2(inputs.empty(), "Slow LSTM expects input");
+    ABORT_IF(inputs.empty(), "Slow LSTM expects input");
 
     Expr input;
     if(inputs.size() > 1)
@@ -836,7 +836,7 @@ public:
   }
 
   std::vector<Expr> applyInput(std::vector<Expr> inputs) {
-    UTIL_THROW_IF2(inputs.empty(), "Test LSTM expects input");
+    ABORT_IF(inputs.empty(), "Test LSTM expects input");
 
     Expr input;
     if(inputs.size() > 1)
