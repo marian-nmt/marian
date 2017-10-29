@@ -196,21 +196,19 @@ struct TanhNodeOp : public NaryNodeOp {
 
 /**
  * Represents a <a
-href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified
-linear</a> node
- *        in an expression graph.
+ * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified
+ * linear</a> node in an expression graph.
  *
- * This node implements the <a
-href="https://en.wikipedia.org/wiki/Activation_function">activation function</a>
- *        \f$f(x) = \max(0, x)\f$ and its derivative:
+ * This node implements the activationfunction \f$ f(x) = \max(0, x) \f$ and
+ * its derivative:
  *
- \f[
- f^\prime(x) =
-  \begin{cases}
-   0 & \text{if } x \leq 0 \\
-   1 & \text{if } x > 0
-  \end{cases}
-\f]
+ * \f[
+ *   f^\prime(x) =
+ *   \begin{cases}
+ *     0 & \text{if } x \leq 0 \\
+ *     1 & \text{if } x > 0
+ *   \end{cases}
+ * \f]
  */
 struct ReLUNodeOp : public UnaryNodeOp {
   template <typename... Args>
@@ -228,6 +226,16 @@ struct ReLUNodeOp : public UnaryNodeOp {
   const std::string type() { return "ReLU"; }
 };
 
+/**
+ * Represents a <a href="https://arxiv.org/pdf/1710.05941.pdf">swish</a> node
+ * in an expression graph.
+ *
+ * This node implements the activation function
+ * \f$ f(x) = x \cdot \sigma(x) \f$
+ * and its derivative
+ * \f$ f^\prime(x) = f(x) + \sigma(x)(1 - f(x)) \f$ .
+ *
+ */
 struct SwishNodeOp : public UnaryNodeOp {
   template <typename... Args>
   SwishNodeOp(Args... args) : UnaryNodeOp(args...) {}
