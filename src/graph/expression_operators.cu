@@ -21,7 +21,7 @@ Expr relu(Expr a) {
 }
 
 Expr leakyrelu(Expr a) {
-  return Expression<LeakyReLUNodeOp>(a);
+  return Expression<PReLUNodeOp>(0.01f, a);
 }
 
 Expr prelu(Expr a, float alpha) {

@@ -235,46 +235,6 @@ struct ReLUNodeOp : public UnaryNodeOp {
 
 /**
  * Represents a <a
- * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">leaky
- * rectified linear unit</a> node in an expression graph.
- * It is equivalent to the parametric ReLU with \f$ \alpha = 0.01 \f$.
- *
- * This node implements the activation function:
- * \f[
- *   f(x) =
- *   \begin{cases}
- *     0.01 & \text{if } x \leq 0 \\
- *     x    & \text{if } x > 0
- *   \end{cases}
- * \f]
- *
- * and its derivative:
- * \f[
- *   f^\prime(x) =
- *   \begin{cases}
- *     0.01 & \text{if } x \leq 0 \\
- *     1    & \text{if } x > 0
- *   \end{cases}
- * \f]
- */
-struct LeakyReLUNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  LeakyReLUNodeOp(Args... args) : UnaryNodeOp(args...) {}
-
-  NodeOps forwardOps() {
-    return {NodeOp(Element(_1 = LeakyReLU(_2), val_, child(0)->val()))};
-  }
-
-  NodeOps backwardOps() {
-    return {NodeOp(
-        Add(_1 * LeakyReLUback(_2), child(0)->grad(), adj_, child(0)->val()))};
-  }
-
-  const std::string type() { return "LeakyReLU"; }
-};
-
-/**
- * Represents a <a
  * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">parametric
  * rectified linear unit</a> node in an expression graph.
  * For \f$ \alpha = 0.01 \f$ (the default value) it is equivalent to Leaky
@@ -308,8 +268,8 @@ struct PReLUNodeOp : public UnaryNodeOp {
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(
-        Add(_1 * PReLUback(_2, alpha_), child(0)->grad(), adj_, child(0)->val()))};
+    return {NodeOp(Add(
+        _1 * PReLUback(_2, alpha_), child(0)->grad(), adj_, child(0)->val()))};
   }
 
   const std::string type() { return "PReLU"; }
@@ -809,8 +769,8 @@ struct TransposeNodeOp : public UnaryNodeOp {
   Shape newShape(Expr a, Shape permute) {
     Shape shape = a->shape();
 
-    UTIL_THROW_IF2(shape.size() != permute.size(),
-                   "Shape and transpose axis have different number of dimensions");
+    ABORT_IF(shape.size() != permute.size(),
+             "Shape and transpose axis have different number of dimensions");
 
     for(int i = 0; i < shape.size(); ++i)
       shape.set(i, a->shape()[permute[i]]);

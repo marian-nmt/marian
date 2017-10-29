@@ -112,35 +112,6 @@ __host__ __device__
 //*******************************************************************
 
 template <typename T>
-struct unary_leakyrelu : public thrust::unary_function<T, T> {
-  __host__ __device__ T operator()(const T &x) const {
-    return x > 0.0f ? x : 0.01f * x;
-  }
-};
-
-template <typename Eval>
-__host__ __device__ actor<composite<unary_operator<unary_leakyrelu>, actor<Eval>>>
-LeakyReLU(const actor<Eval> &_1) {
-  return compose(unary_operator<unary_leakyrelu>(), _1);
-}
-
-template <typename T>
-struct unary_leakyreluback : public thrust::unary_function<T, T> {
-  __host__ __device__ T operator()(const T &x) const {
-    return x > 0.0f ? 1.0f : 0.01f;
-  }
-};
-
-template <typename Eval>
-__host__ __device__
-    actor<composite<unary_operator<unary_leakyreluback>, actor<Eval>>>
-    LeakyReLUback(const actor<Eval> &_1) {
-  return compose(unary_operator<unary_leakyreluback>(), _1);
-}
-
-//*******************************************************************
-
-template <typename T>
 struct binary_prelu : public thrust::binary_function<T, T, T> {
   __host__ __device__ T operator()(const T &x, const T &alpha) const {
     return x > 0.0f ? x : alpha * x;
