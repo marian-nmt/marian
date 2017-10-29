@@ -243,8 +243,8 @@ struct ReLUNodeOp : public UnaryNodeOp {
  * \f[
  *   f(x) =
  *   \begin{cases}
- *     0.01 & \text{if } x < 0 \\
- *     x    & \text{if } x \geq 0
+ *     0.01 & \text{if } x \leq 0 \\
+ *     x    & \text{if } x > 0
  *   \end{cases}
  * \f]
  *
@@ -252,8 +252,8 @@ struct ReLUNodeOp : public UnaryNodeOp {
  * \f[
  *   f^\prime(x) =
  *   \begin{cases}
- *     0.01 & \text{if } x < 0 \\
- *     1    & \text{if } x \geq 0
+ *     0.01 & \text{if } x \leq 0 \\
+ *     1    & \text{if } x > 0
  *   \end{cases}
  * \f]
  */
@@ -271,6 +271,51 @@ struct LeakyReLUNodeOp : public UnaryNodeOp {
   }
 
   const std::string type() { return "LeakyReLU"; }
+};
+
+/**
+ * Represents a <a
+ * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">parametric
+ * rectified linear unit</a> node in an expression graph.
+ * For \f$ \alpha = 0.01 \f$ (the default value) it is equivalent to Leaky
+ * ReLU.
+ *
+ * This node implements the activation function:
+ * \f[
+ *   f(x, \alpha) =
+ *   \begin{cases}
+ *     \alpha x & \text{if } x \leq 0 \\
+ *     x        & \text{if } x > 0
+ *   \end{cases}
+ * \f]
+ *
+ * and its derivative:
+ * \f[
+ *   f^\prime(x, \alpha) =
+ *   \begin{cases}
+ *     \alpha & \text{if } x \leq 0 \\
+ *     1      & \text{if } x > 0
+ *   \end{cases}
+ * \f]
+ */
+struct PReLUNodeOp : public UnaryNodeOp {
+  template <typename... Args>
+  PReLUNodeOp(float alpha, Args... args)
+      : UnaryNodeOp(args...), alpha_(alpha) {}
+
+  NodeOps forwardOps() {
+    return {NodeOp(Element(_1 = PReLU(_2, alpha_), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(
+        Add(_1 * PReLUback(_2, alpha_), child(0)->grad(), adj_, child(0)->val()))};
+  }
+
+  const std::string type() { return "PReLU"; }
+
+private:
+  float alpha_{0.01};
 };
 
 /**
