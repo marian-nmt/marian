@@ -24,6 +24,12 @@ Expr tanh(Args... args) {
 Expr relu(Expr a);
 Expr relu(const std::vector<Expr>&);
 
+Expr leakyrelu(Expr a);
+Expr leakyrelu(const std::vector<Expr>&);
+
+Expr prelu(Expr a, float alpha = 0.01);
+Expr prelu(const std::vector<Expr>&, float alpha = 0.01);
+
 Expr log(Expr a);
 
 Expr exp(Expr a);

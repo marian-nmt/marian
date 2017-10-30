@@ -196,38 +196,98 @@ struct TanhNodeOp : public NaryNodeOp {
 
 /**
  * Represents a <a
-href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified
-linear</a> node
- *        in an expression graph.
+ * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified
+ * linear</a> node in an expression graph.
  *
- * This node implements the <a
-href="https://en.wikipedia.org/wiki/Activation_function">activation function</a>
- *        \f$f(x) = \max(0, x)\f$ and its derivative:
- *
- \f[
- f^\prime(x) =
-  \begin{cases}
-   0 & \text{if } x \leq 0 \\
-   1 & \text{if } x > 0
-  \end{cases}
-\f]
+ * This node implements the activation function \f$ f(x) = \max(0, x) \f$ and
+ * its derivative:
+ * \f[
+ *   f^\prime(x) =
+ *   \begin{cases}
+ *     0 & \text{if } x \leq 0 \\
+ *     1 & \text{if } x > 0
+ *   \end{cases}
+ * \f]
  */
 struct ReLUNodeOp : public UnaryNodeOp {
   template <typename... Args>
   ReLUNodeOp(Args... args) : UnaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Element(_1 = ReLU(_2), val_, child(0)->val()))};
+    // f(x) = max(0, x)
+    return {NodeOp(Element(_1 = ReLU(_2),
+                           val_,            // _1 := f(x) to be calculated
+                           child(0)->val()  // _2 := x
+                           ))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(
-        Add(_1 * ReLUback(_2), child(0)->grad(), adj_, child(0)->val()))};
+    // dJ/dx += dJ/df * binarystep(x)
+    return {NodeOp(Add(_1 * ReLUback(_2),
+                       child(0)->grad(),  // dJ/dx
+                       adj_,              // _1 := dJ/df
+                       child(0)->val()    // _2 := f(x) = max(0, x)
+                       ))};
   }
 
   const std::string type() { return "ReLU"; }
 };
 
+/**
+ * Represents a <a
+ * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">parametric
+ * rectified linear unit</a> node in an expression graph.
+ * For \f$ \alpha = 0.01 \f$ (the default value) it is equivalent to Leaky
+ * ReLU.
+ *
+ * This node implements the activation function:
+ * \f[
+ *   f(x, \alpha) =
+ *   \begin{cases}
+ *     \alpha x & \text{if } x \leq 0 \\
+ *     x        & \text{if } x > 0
+ *   \end{cases}
+ * \f]
+ *
+ * and its derivative:
+ * \f[
+ *   f^\prime(x, \alpha) =
+ *   \begin{cases}
+ *     \alpha & \text{if } x \leq 0 \\
+ *     1      & \text{if } x > 0
+ *   \end{cases}
+ * \f]
+ */
+struct PReLUNodeOp : public UnaryNodeOp {
+  template <typename... Args>
+  PReLUNodeOp(float alpha, Args... args)
+      : UnaryNodeOp(args...), alpha_(alpha) {}
+
+  NodeOps forwardOps() {
+    return {NodeOp(Element(_1 = PReLU(_2, alpha_), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(Add(
+        _1 * PReLUback(_2, alpha_), child(0)->grad(), adj_, child(0)->val()))};
+  }
+
+  const std::string type() { return "PReLU"; }
+
+private:
+  float alpha_{0.01};
+};
+
+/**
+ * Represents a <a href="https://arxiv.org/pdf/1710.05941.pdf">swish</a> node
+ * in an expression graph.
+ *
+ * This node implements the activation function
+ * \f$ f(x) = x \cdot \sigma(x) \f$
+ * and its derivative
+ * \f$ f^\prime(x) = f(x) + \sigma(x)(1 - f(x)) \f$ .
+ *
+ */
 struct SwishNodeOp : public UnaryNodeOp {
   template <typename... Args>
   SwishNodeOp(Args... args) : UnaryNodeOp(args...) {}
@@ -237,11 +297,13 @@ struct SwishNodeOp : public UnaryNodeOp {
   }
 
   NodeOps backwardOps() {
+    // dJ/dx += dJ/df * ( f(x) + sigma(x) * (1 - f(x)) )
     return {NodeOp(Add(_1 * (_3 + Sigma(_2) * (1.f - _3)),
-                       child(0)->grad(),
-                       adj_,
-                       child(0)->val(),
-                       val_))};
+                       child(0)->grad(),  // dJ/dx
+                       adj_,              // _1 := dJ/df
+                       child(0)->val(),   // _2 := x
+                       val_               // _3 := f(x) = x*sigma(x)
+                       ))};
   }
 
   const std::string type() { return "swish"; }
@@ -707,8 +769,8 @@ struct TransposeNodeOp : public UnaryNodeOp {
   Shape newShape(Expr a, Shape permute) {
     Shape shape = a->shape();
 
-    UTIL_THROW_IF2(shape.size() != permute.size(),
-                   "Shape and transpose axis have different number of dimensions");
+    ABORT_IF(shape.size() != permute.size(),
+             "Shape and transpose axis have different number of dimensions");
 
     for(int i = 0; i < shape.size(); ++i)
       shape.set(i, a->shape()[permute[i]]);
