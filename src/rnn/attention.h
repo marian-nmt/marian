@@ -50,7 +50,7 @@ public:
     nematusNorm_ = options_->get<bool>("nematus-normalization", false);
     std::string prefix = options_->get<std::string>("prefix");
 
-    int dimEncState = encState_->getContext()->shape()[1];
+    int dimEncState = encState_->getContext()->shape()[-1];
 
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
@@ -112,7 +112,7 @@ public:
 
     auto softmaxMask = encState_->getMask();
     if(softmaxMask) {
-      Shape shape = {softmaxMask->shape()[2], softmaxMask->shape()[0]};
+      Shape shape = {softmaxMask->shape()[-3], softmaxMask->shape()[-2]};
       softmaxMask_ = transpose(reshape(softmaxMask, shape));
     }
   }
@@ -121,9 +121,11 @@ public:
     using namespace keywords;
     auto recState = state.output;
 
-    int dimBatch = contextDropped_->shape()[0];
-    int srcWords = contextDropped_->shape()[2];
-    int dimBeam = recState->shape()[3];
+    int dimBatch = contextDropped_->shape()[-2];
+    int srcWords = contextDropped_->shape()[-3];
+    int dimBeam = 1;
+    if(recState->shape().size() > 3)
+      dimBeam = recState->shape()[-4];
 
     if(dropMaskState_)
       recState = dropout(recState, keywords::mask = dropMaskState_);
@@ -140,11 +142,11 @@ public:
 
     // @TODO: horrible ->
     auto e = reshape(transpose(softmax(transpose(attReduce), softmaxMask_)),
-                     {dimBatch, 1, srcWords, dimBeam});
+                     {dimBeam, srcWords, dimBatch, 1});
     // <- horrible
 
     auto alignedSource
-        = weighted_average(encState_->getAttended(), e, axis = 2);
+        = weighted_average(encState_->getAttended(), e, axis = -3);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -153,7 +155,7 @@ public:
 
   std::vector<Expr>& getContexts() { return contexts_; }
 
-  Expr getContext() { return concatenate(contexts_, keywords::axis = 2); }
+  Expr getContext() { return concatenate(contexts_, keywords::axis = -3); }
 
   std::vector<Expr>& getAlignments() { return alignments_; }
 
@@ -162,7 +164,7 @@ public:
     alignments_.clear();
   }
 
-  int dimOutput() { return encState_->getContext()->shape()[1]; }
+  int dimOutput() { return encState_->getContext()->shape()[-1]; }
 };
 
 using Attention = GlobalAttention;

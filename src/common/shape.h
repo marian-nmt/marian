@@ -180,7 +180,7 @@ struct Shape {
 
       for(auto& node : nodes) {
         Shape shapen = node->shape();
-        for(int i = 0; i < shapen.size(); ++i) {
+        for(int i = 1; i <= shapen.size(); ++i) {
           ABORT_IF(shape[-i] != shapen[-i] && shape[-i] != 1 && shapen[-i] != 1,
                    "Shapes cannot be broadcasted");
           shape.set(-i, std::max(shape[-i], shapen[-i]));

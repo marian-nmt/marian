@@ -12,22 +12,12 @@ struct AttentionNodeOp : public NaryNodeOp {
       : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}
 
   Shape newShape(const std::vector<Expr>& nodes) {
-    Shape shape = nodes[1]->shape();
+    Shape shape = Shape::broadcast({nodes[1], nodes[2]});
 
     Shape vaShape = nodes[0]->shape();
-    Shape ctxShape = nodes[1]->shape();
-    Shape stateShape = nodes[2]->shape();
+    ABORT_IF(vaShape[-2] != shape[-1] || vaShape[-1] != 1, "Wrong size");
 
-    for(int i = 0; i < stateShape.size(); ++i) {
-      ABORT_IF(ctxShape[i] != stateShape[i] && ctxShape[i] != 1
-                   && stateShape[i] != 1,
-               "Shapes cannot be broadcasted");
-      shape.set(i, std::max(ctxShape[i], stateShape[i]));
-    }
-
-    ABORT_IF(vaShape[0] != shape[1] || vaShape[1] != 1, "Wrong size");
-
-    shape.set(1, 1);
+    shape.set(-1, 1);
     return shape;
   }
 
@@ -69,11 +59,14 @@ Expr attOps(Expr va, Expr context, Expr state, Expr coverage) {
   if(coverage)
     nodes.push_back(coverage);
 
-  int dimBatch = context->shape()[0];
-  int dimWords = context->shape()[2];
-  int dimBeam = state->shape()[3];
+  int dimBatch = context->shape()[-2];
+  int dimWords = context->shape()[-3];
+  int dimBeam = 1;
+  if(state->shape().size() > 3)
+    dimBeam = state->shape()[-4];
+
   return reshape(Expression<AttentionNodeOp>(nodes),
-                 {dimWords, dimBatch, 1, dimBeam});
+                 {dimBeam, 1, dimWords, dimBatch});
 }
 }
 }

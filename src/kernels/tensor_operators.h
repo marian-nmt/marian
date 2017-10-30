@@ -182,9 +182,6 @@ template <class Functor>
 void Add(Functor functor, Tensor out, Tensor in, float scale = 1.0) {
   cudaSetDevice(out->getDevice());
 
-  UTIL_THROW_IF2(out->shape().size() != in->shape().size(),
-                 "Number of dimensions does not match");
-
   auto full = Shape::broadcast({out, in});
 
   int length = out->shape().elements();
