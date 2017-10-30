@@ -54,7 +54,7 @@ TEST_CASE("Model components, Attention", "[attention]") {
           ("prefix", "rnntest")        //
           ("type", "gru")              //
           ("dimInput", 16)             //
-          ("dimState", 8)             //
+          ("dimState", 8)              //
           .push_back(rnn::cell(graph)) //
           .construct();
 
@@ -68,8 +68,12 @@ TEST_CASE("Model components, Attention", "[attention]") {
 
     auto att = New<rnn::Attention>(graph, options, encState);
 
+    std::vector<float> vState(64);
+    std::generate(vState.begin(), vState.end(),
+                  [](){ static int n = -32; return  n++ / 64.f; });
+
     rnn::State state({graph->constant({4, 16, 1},
-                                     keywords::init=inits::glorot_uniform),
+                                     keywords::init=inits::from_vector(vState)),
                       nullptr});
 
     auto aligned = att->apply(state);
@@ -79,17 +83,24 @@ TEST_CASE("Model components, Attention", "[attention]") {
     CHECK(aligned->shape() == Shape({4, 8, 1}));
 
     std::vector<float> vAligned({
-      -0.0338987, -0.0146153, -0.00579572, -0.0406731,
-      0.0190828, 0.0339625, 0.0206139, 0.0693264,
-      -0.0108943, -0.0284214, 0.0651774, 0.027579,
-      0.0362864, -0.0320309, -0.00822382, 0.0244689,
-      -0.0399934, 0.00202525, -0.0283427, -0.0180207,
-      -0.0284016, 0.00583279, -0.000959444, 0.073175,
-      0.0276376, -0.0298874, 0.0427888, 0.0431906,
-      0.034185, -0.0224177, 0.00124145, -0.0046362
+      -0.0340144, -0.0146283, -0.00580449, -0.0407178,
+      0.0188505, 0.0338587, 0.0208132, 0.0693136,
+      -0.0112407, -0.0281177, 0.0645477, 0.0274245,
+      0.0360024, -0.0322742, -0.00826242, 0.0249615,
+      -0.0400672, 0.00215977, -0.0283565, -0.0179272,
+      -0.0283309, 0.00586264, -0.00111255, 0.0732812,
+      0.0277454, -0.0299964, 0.0428718, 0.0431121,
+      0.0342281, -0.0223563, 0.00132206, -0.00461199
     });
 
     aligned->val()->get(values);
+
+    //for(int i = 0; i < values.size(); ++i) {
+    //  if(i && i % 4 == 0)
+    //    std::cout << std::endl;
+    //  std::cout << values[i] << ", ";
+    //}
+
     CHECK( std::equal(values.begin(), values.end(),
                       vAligned.begin(), floatApprox) );
   }
