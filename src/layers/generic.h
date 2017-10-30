@@ -83,7 +83,7 @@ public:
         W = tiedParams_[nameW];
       else
         W = g->param(name + "_" + nameW,
-                     {in->shape()[1], dim},
+                     {in->shape()[-1], dim},
                      keywords::init = inits::glorot_uniform);
 
       Expr b;
@@ -149,7 +149,7 @@ public:
       W = tiedParams_[nameW];
     else
       W = g->param(name + "_" + nameW,
-                   {input->shape()[1], dim},
+                   {input->shape()[-1], dim},
                    keywords::init = inits::glorot_uniform);
 
     Expr b;

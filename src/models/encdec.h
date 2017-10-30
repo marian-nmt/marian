@@ -18,16 +18,16 @@ protected:
     auto subBatch = (*batch)[batchIndex_];
 
     int dimBatch = subBatch->batchSize();
-    int dimEmb = srcEmbeddings->shape()[1];
+    int dimEmb = srcEmbeddings->shape()[-1];
     int dimWords = subBatch->batchWidth();
 
     auto graph = srcEmbeddings->graph();
     auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
 
     auto batchEmbeddings
-        = reshape(chosenEmbeddings, {dimBatch, dimEmb, dimWords});
+        = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
     auto batchMask = graph->constant(
-        {dimBatch, 1, dimWords}, init = inits::from_vector(subBatch->mask()));
+        {dimWords, dimBatch, 1}, init = inits::from_vector(subBatch->mask()));
 
     return std::make_tuple(batchEmbeddings, batchMask);
   }
@@ -106,15 +106,15 @@ public:
     auto chosenEmbeddings = rows(yEmb, subBatch->indices());
 
     auto y
-        = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
+        = reshape(chosenEmbeddings, {dimWords, dimBatch, opt<int>("dim-emb")});
 
-    auto yMask = graph->constant({dimBatch, 1, dimWords},
+    auto yMask = graph->constant({dimWords, dimBatch, 1},
                                  init = inits::from_vector(subBatch->mask()));
 
     auto yIdx = graph->constant({(int)subBatch->indices().size(), 1},
                                 init = inits::from_vector(subBatch->indices()));
 
-    auto yShifted = shift(y, {0, 0, 1, 0});
+    auto yShifted = shift(y, {1, 0, 0});
 
     state->setTargetEmbeddings(yShifted);
     state->setTargetMask(yMask);
@@ -148,7 +148,7 @@ public:
       selectedEmbs = rows(yEmb, embIdx);
 
       selectedEmbs
-          = reshape(selectedEmbs, {1, dimTrgEmb, 1, (int)embIdx.size()});
+          = reshape(selectedEmbs, {(int)embIdx.size(), 1, 1, dimTrgEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);
   }

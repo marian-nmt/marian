@@ -13,7 +13,7 @@ Expr Cost(Expr logits,
 
   if(smoothing > 0) {
     // @TODO: add this to CE kernels instead
-    auto ceq = mean(logsoftmax(logits), axis = 1);
+    auto ceq = mean(logsoftmax(logits), axis = -1);
     ce = (1 - smoothing) * ce - smoothing * ceq;
   }
 
@@ -22,19 +22,19 @@ Expr Cost(Expr logits,
 
   Expr cost;
   if(costType == "ce-mean" || costType == "cross-entropy") {
-    cost = mean(sum(ce, axis = 2), axis = 0);
+    cost = mean(sum(ce, axis = -3), axis = -2);
   } else if(costType == "ce-mean-words") {
     cost
-        = sum(sum(ce, axis = 2), axis = 0) / sum(sum(mask, axis = 2), axis = 0);
+        = sum(sum(ce, axis = -3), axis = -2) / sum(sum(mask, axis = -3), axis = -2);
   } else if(costType == "ce-sum") {
-    cost = sum(sum(ce, axis = 2), axis = 0);
+    cost = sum(sum(ce, axis = -3), axis = -2);
   } else if(costType == "perplexity") {
-    cost = exp(sum(sum(ce, axis = 2), axis = 0)
-               / sum(sum(mask, axis = 2), axis = 0));
+    cost = exp(sum(sum(ce, axis = -3), axis = -2)
+               / sum(sum(mask, axis = -3), axis = -2));
   } else if(costType == "ce-rescore") {
-    cost = -sum(ce, axis = 2);
+    cost = -sum(ce, axis = -3);
   } else {  // same as ce-mean
-    cost = mean(sum(ce, axis = 2), axis = 0);
+    cost = mean(sum(ce, axis = -3), axis = -2);
   }
 
   return cost;

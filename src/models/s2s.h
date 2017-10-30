@@ -85,7 +85,7 @@ public:
 
     auto context = concatenate({rnnFw->transduce(embeddings, mask),
                                 rnnBw->transduce(embeddings, mask)},
-                               axis = 1);
+                               axis = -1);
 
     if(second > 0) {
       // add more layers (unidirectional) by transducing the output of the
@@ -155,8 +155,8 @@ public:
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {
-      int srcWords = batchEmbeddings->shape()[2];
-      auto dropMask = graph->dropout(dropProb, {1, 1, srcWords});
+      int srcWords = batchEmbeddings->shape()[-3];
+      auto dropMask = graph->dropout(dropProb, {srcWords, 1, 1});
       batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
     }
 
@@ -249,7 +249,7 @@ public:
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
       meanContexts.push_back(weighted_average(
-          encState->getContext(), encState->getMask(), axis = 2));
+          encState->getContext(), encState->getMask(), axis = -3));
     }
 
     Expr start;
@@ -286,8 +286,8 @@ public:
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
-      int trgWords = embeddings->shape()[2];
-      auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+      int trgWords = embeddings->shape()[-3];
+      auto trgWordDrop = graph->dropout(dropoutTrg, {trgWords, 1, 1});
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
@@ -314,7 +314,7 @@ public:
 
     Expr alignedContext;
     if(alignedContexts.size() > 1)
-      alignedContext = concatenate(alignedContexts, axis = 1);
+      alignedContext = concatenate(alignedContexts, axis = -1);
     else if(alignedContexts.size() == 1)
       alignedContext = alignedContexts[0];
 
