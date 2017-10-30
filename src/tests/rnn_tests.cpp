@@ -203,8 +203,8 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     auto context2 = buildRnn("enc2", input, mask, dimRnn, 2, 2);
     auto contextSum2 = sum(context2, keywords::axis=1);
 
-  
-    // @TODO: why is this numerically instable on different machines?
+
+    //// @TODO: why is this numerically instable on different machines?
     //auto context3 = buildRnn("enc3", input, mask,
     //                         dimRnn, 4, 4,
     //                         "alternating", "lstm",
@@ -253,24 +253,24 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     //CHECK(contextSum3->shape() == Shape({dimBatch, 1, dimTime}));
     //
     //std::vector<float> vContextSum3({
-    //  4.79443, 1.52788, 2.32984, 2.59648,
-    //  -1.04159, -4.89242, 4.13013, -1.42554,
-    //  2.59088, 0.165236, -4.05358, -2.30649,
-    //  3.6943, -2.13945, -4.50602, 2.39471,
-    //  -2.17873, 0.994103, -3.78782, 0.549939,
-    //  -0.830426, -3.83337, -7.88747, 0.757133,
-    //  -12.4974, -1.73116, -4.51886, 0.336533,
-    //  -1.92069, -1.91202, 0.468423, 0.336285
+    //  1.135, 2.40939, 2.37631, 2.03765,
+    //  0.0583942, -4.89241, 5.31731, -1.52973,
+    //  3.52754, 1.02098, -4.05162, -1.11594,
+    //  6.28777, -5.55708, -4.09155, 2.00661,
+    //  -0.571597, 0.153122, -3.46678, 0.0771322,
+    //  -2.10868, -3.58708, -6.3728, 1.77672,
+    //  -10.9653, -2.02775, -5.70838, 0.944819,
+    //  -1.81441, -1.84383, 0.790335, 0.941206
     //});
     //
     //contextSum3->val()->get(values);
     //
-    ////for(int i = 0; i < values.size(); ++i) {
-    ////  if(i && i % 4 == 0)
-    ////    std::cout << std::endl;
-    ////
-    ////  std::cout << values[i] << ", ";
-    ////}
+    //for(int i = 0; i < values.size(); ++i) {
+    //  if(i && i % 4 == 0)
+    //    std::cout << std::endl;
+    //
+    //  std::cout << values[i] << ", ";
+    //}
     //
     //CHECK( std::equal(values.begin(), values.end(),
     //                  vContextSum3.begin(), floatApprox) );

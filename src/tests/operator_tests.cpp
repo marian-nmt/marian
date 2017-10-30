@@ -258,4 +258,43 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     c1out4->val()->get(values);
     CHECK( values == vO4 );
   }
+
+  SECTION("layer normalization") {
+    graph->clear();
+    values.clear();
+
+    Config::seed = 1234;
+
+    std::vector<float> vLn({
+      -1.20521, -0.321409, -0.0363369, 1.56296,
+      0.332987, -0.613398, -1.17766, 1.45807,
+      -0.731601, -0.187812, -0.766431, 1.68584,
+      -1.31923, -0.059028, 1.49732, -0.119065
+    });
+
+    auto a = graph->constant({2, 4, 2}, keywords::init=inits::glorot_uniform);
+
+    auto gamma = graph->param("gamma", {1, 4}, keywords::init=inits::ones);
+    auto beta = graph->param("beta", {1, 4}, keywords::init=inits::zeros);
+
+    auto ln = layer_norm(a, gamma, beta);
+
+    graph->forward();
+
+    CHECK(ln->shape() == Shape({2, 4, 2}));
+
+
+    ln->val()->get(values);
+    CHECK( std::equal(values.begin(), values.end(),
+                      vLn.begin(), floatApprox) );
+
+    //for(int i = 0; i < values.size(); ++i) {
+    //  if(i && i % 4 == 0)
+    //    std::cout << std::endl;
+    //
+    //  std::cout << values[i] << ", ";
+    //}
+
+  }
+
 }
