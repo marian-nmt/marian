@@ -241,6 +241,7 @@ public:
       auto collector = options_->has("trans-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
+      collector->setPrintingStrategy(New<GeometricPrinting>());
 
       size_t sentenceId = 0;
 
