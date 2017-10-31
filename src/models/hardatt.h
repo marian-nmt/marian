@@ -37,7 +37,7 @@ public:
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
     auto attentionIdx = getAttentionIndices();
-    int dimVoc = totalCosts->shape()[1];
+    int dimVoc = totalCosts->shape()[-1];
     for(int i = 0; i < attentionIdx.size(); i++) {
       if(batch->front()->indices()[attentionIdx[i]] != 0) {
         totalCosts->val()->set(i * dimVoc + EOS_ID,
@@ -74,7 +74,7 @@ public:
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
       meanContexts.push_back(weighted_average(
-          encState->getContext(), encState->getMask(), axis = 2));
+          encState->getContext(), encState->getMask(), axis = -3));
     }
 
     Expr start;
@@ -120,15 +120,15 @@ public:
     auto trgEmbeddings = stateHardAtt->getTargetEmbeddings();
 
     auto context = stateHardAtt->getEncoderStates()[0]->getContext();
-    int dimContext = context->shape()[1];
-    int dimSrcWords = context->shape()[2];
+    int dimContext = context->shape()[-1];
+    int dimSrcWords = context->shape()[-3];
 
-    int dimBatch = context->shape()[0];
-    int dimTrgWords = trgEmbeddings->shape()[2];
-    int dimBeam = trgEmbeddings->shape()[3];
+    int dimBatch = context->shape()[-2];
+    int dimTrgWords = trgEmbeddings->shape()[-3];
+    int dimBeam = trgEmbeddings->shape()[-4];
 
     if(dropoutTrg) {
-      auto trgWordDrop = graph->dropout(dropoutTrg, {dimBatch, 1, dimTrgWords});
+      auto trgWordDrop = graph->dropout(dropoutTrg, {dimTrgWords, dimBatch, 1});
       trgEmbeddings = dropout(trgEmbeddings, mask = trgWordDrop);
     }
 
@@ -136,10 +136,10 @@ public:
     auto attendedContext
         = rows(flatContext, stateHardAtt->getAttentionIndices());
     attendedContext = reshape(attendedContext,
-                              {dimBatch, dimContext, dimTrgWords, dimBeam});
+                              {dimBeam, dimTrgWords, dimBatch, dimContext});
 
-    auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis = 1);
-    int dimInput = rnnInputs->shape()[1];
+    auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis = -1);
+    int dimInput = rnnInputs->shape()[-1];
 
     if(!rnn_) {
       auto rnn = rnn::rnn(graph)              //
@@ -207,7 +207,7 @@ public:
 
       Expr alignedContext;
       if(alignedContexts.size() > 1)
-        alignedContext = concatenate(alignedContexts, axis = 1);
+        alignedContext = concatenate(alignedContexts, axis = -1);
       else if(alignedContexts.size() == 1)
         alignedContext = alignedContexts[0];
 
@@ -264,7 +264,7 @@ public:
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 
-    int dimSrcWords = state->getEncoderStates()[0]->getContext()->shape()[2];
+    int dimSrcWords = state->getEncoderStates()[0]->getContext()->shape()[-3];
 
     if(embIdx.empty()) {
       stateHardAtt->setAttentionIndices({0});

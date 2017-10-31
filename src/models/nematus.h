@@ -53,9 +53,11 @@ public:
 
       Shape shape;
       if(numpy[name].shape.size() == 2) {
+        shape.resize(2);
         shape.set(0, numpy[name].shape[0]);
         shape.set(1, numpy[name].shape[1]);
       } else if(numpy[name].shape.size() == 1) {
+        shape.resize(2);
         shape.set(0, 1);
         shape.set(1, numpy[name].shape[0]);
       }
