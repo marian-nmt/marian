@@ -100,7 +100,7 @@ public:
           beamCosts.push_back(hyp->GetCost());
         }
         prevCosts
-            = graph->constant({1, 1, 1, (int)beamCosts.size()},
+            = graph->constant({(int)beamCosts.size(), 1, 1, 1},
                               keywords::init = inits::from_vector(beamCosts));
       }
 
@@ -134,7 +134,7 @@ public:
       beamSizes[0] = first ? beamSize_ : beam.size();
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
-      int dimTrgVoc = totalCosts->shape()[1];
+      int dimTrgVoc = totalCosts->shape()[-1];
       beam = toHyps(outKeys, outCosts, dimTrgVoc, beam, states);
 
       final = history->size() >= 3 * batch->words();

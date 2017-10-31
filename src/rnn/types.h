@@ -16,16 +16,17 @@ struct State {
 
   State select(const std::vector<size_t>& indices) {
     int numSelected = indices.size();
-    int dimState = output->shape()[1];
-    int dimTime = output->shape()[2];
+    int dimState = output->shape()[-1];
+    int dimBatch = output->shape()[-2];
+    int dimTime = output->shape()[-3];
 
     if(cell) {
       return State{
-          reshape(rows(output, indices), {1, dimState, 1, numSelected}),
-          reshape(rows(cell, indices), {1, dimState, 1, numSelected})};
+          reshape(rows(output, indices), {numSelected, 1, dimBatch, dimState}),
+          reshape(rows(cell, indices), {numSelected, 1, dimBatch, dimState})};
     } else {
       return State{
-          reshape(rows(output, indices), {1, dimState, 1, numSelected}),
+          reshape(rows(output, indices), {numSelected, 1, dimBatch, dimState}),
           nullptr};
     }
   }
