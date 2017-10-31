@@ -28,19 +28,56 @@ class Encoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Row, const Words& words) {
-          std::vector<uint> knownWords(words.size(), 1);
+        void Lookup(mblas::Matrix& Row, const std::vector<std::vector<Word>>& words) {
+          std::vector<std::vector<uint>> knownWords(w_.Es_.size(),
+                                                    std::vector<uint>(words.size(), 1));
+          size_t factorCount = w_.Es_.size();
           for (size_t i = 0; i < words.size(); ++i) {
-            if (words[i] < w_.E_->dim(0)) {
-              knownWords[i] = words[i];
+            const std::vector<Word>& factors = words[i];
+            for (size_t factorIdx = 0; factorIdx < factors.size(); ++factorIdx) {
+              const Word& factor = factors[factorIdx];
+              const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(factorIdx);
+
+              if (factor < Emb->dim(0)) {
+                knownWords[factorIdx][i] = factor;
+              }
             }
           }
+          /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
+          /* std::cerr << "Embeddings::Lookup1" << std::endl; */
 
-          mblas::Vector<uint> dKnownWords(knownWords);
+          size_t wordCount = words.size() / factorCount;
+          //Row.NewSize(0, wordCount);
+          /* std::vector<std::shared_ptr<mblas::Matrix>>::iterator eit = w_.Es_.begin(); */
+          /* std::vector<HostVector<uint>>::iterator wit = knownWords.begin(); */
+          for (size_t i = 0; i < knownWords.size(); i++) {
+            const std::vector<uint>& factorWords = knownWords.at(i);
+            mblas::Vector<uint> dKnownWords(factorWords);
 
-          Row.NewSize(words.size(), w_.E_->dim(1));
-          mblas::Assemble(Row, *w_.E_, dKnownWords);
+            const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(i);
+            mblas::Matrix factorRow;
+            factorRow.NewSize(wordCount, Emb->dim(1));
+            mblas::Assemble(factorRow, *Emb, dKnownWords);
+            mblas::Transpose(factorRow);
+
+            if (i > 0) {
+              mblas::Concat(Row, factorRow);
+            } else {
+              mblas::Copy(Row, factorRow);
+            }
+
+            /* eit++; */
+            /* wit++; */
+          }
+          mblas::Transpose(Row);
+
+          /* Row.NewSize(words.size(), w_.E_->dim(1)); */
+          /* mblas::Assemble(Row, *w_.E_, dKnownWords); */
           //std::cerr << "Row3=" << Row.Debug(1) << std::endl;
+        }
+
+        size_t FactorCount() {
+          return w_.Es_.size();
         }
 
       private:
