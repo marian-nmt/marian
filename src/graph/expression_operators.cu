@@ -116,6 +116,30 @@ Expr reshape(Expr a, Shape shape) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
+Expr atleast_1d(Expr a, size_t dims) {
+  return atleast_nd(a, 1);
+}
+
+Expr atleast_2d(Expr a, size_t dims) {
+  return atleast_nd(a, 2);
+}
+
+Expr atleast_3d(Expr a, size_t dims) {
+  return atleast_nd(a, 3);
+}
+
+Expr atleast_nd(Expr a, size_t dims) {
+  if(a->shape().size() >= dims)
+    return a;
+
+  Shape nShape;
+  nShape.resize(dims);
+  for(int i = 1; i <= a->shape().size(); ++i)
+    nShape.set(-i, a->shape()[-i]);
+
+  return reshape(a, nShape);
+}
+
 Expr flatten(Expr a) {
   Shape shape = {a->shape().elements()};
   return Expression<ReshapeNodeOp>(a, shape);

@@ -608,25 +608,25 @@ void ProdBatched(cublasHandle_t handle,
   cudaSetDevice(C->getDevice());
   float alpha = scalar;
 
-  size_t batchA = A->shape()[2] * A->shape()[3];
-  size_t batchB = B->shape()[2] * B->shape()[3];
+  size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
+  size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
 
-  size_t m = A->shape()[0];
-  size_t k = A->shape()[1];
+  size_t m = A->shape()[-2];
+  size_t k = A->shape()[-1];
   if(transA)
     std::swap(m, k);
 
-  size_t l = B->shape()[0];
-  size_t n = B->shape()[1];
+  size_t l = B->shape()[-2];
+  size_t n = B->shape()[-1];
   if(transB)
     std::swap(l, n);
 
-  size_t lda = A->shape()[1];
-  size_t ldb = B->shape()[1];
-  size_t ldc = B->shape()[1];
+  size_t lda = A->shape()[-1];
+  size_t ldb = B->shape()[-1];
+  size_t ldc = B->shape()[-1];
 
   if(transB)
-    ldc = B->shape()[0];
+    ldc = B->shape()[-2];
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;

@@ -6,15 +6,15 @@ namespace marian {
 
 class Transformer {
 public:
-  Expr TransposeTimeBatch(Expr input) { return transpose(input, {2, 1, 0, 3}); }
+  Expr TransposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
   Expr AddPositionalEmbeddings(Ptr<ExpressionGraph> graph,
                                Expr input,
                                int start = 0) {
     using namespace keywords;
 
-    int dimEmb = input->shape()[1];
-    int dimWords = input->shape()[2];
+    int dimEmb = input->shape()[-1];
+    int dimWords = input->shape()[-3];
 
     float num_timescales = dimEmb / 2;
     float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
@@ -29,9 +29,8 @@ public:
     }
 
     // shared across batch entries
-    auto signal = graph->constant({1, dimEmb, dimWords},
+    auto signal = graph->constant({dimWords, 1, dimEmb},
                                   init = inits::from_vector(vPos));
-    // debug(signal, "signal");
     return input + signal;
   }
 
@@ -43,7 +42,7 @@ public:
     for(int i = 0; i < length; ++i)
       for(int j = 0; j <= i; ++j)
         vMask[i * length + j] = 1.f;
-    return graph->constant({length, length, 1},
+    return graph->constant({1, length, length},
                            init = inits::from_vector(vMask));
   }
 
@@ -51,35 +50,35 @@ public:
     // convert 0/1 mask to transformer style -inf mask
     auto ms = mask->shape();
     mask = (1 - mask) * -99999999.f;
-    return reshape(mask, {ms[0], ms[1], 1, ms[2]});
+    return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]});
   }
 
   Expr SplitHeads(Expr input, int dimHeads) {
-    int dimSteps = input->shape()[0];
-    int dimModel = input->shape()[1];
-    int dimBatch = input->shape()[2];
-    int dimBeam = input->shape()[3];
+    int dimModel = input->shape()[-1];
+    int dimSteps = input->shape()[-2];
+    int dimBatch = input->shape()[-3];
+    int dimBeam = input->shape()[-4];
 
     int dimDepth = dimModel / dimHeads;
 
     auto output
-        = reshape(input, {dimHeads, dimDepth, dimSteps, dimBatch * dimBeam});
+        = reshape(input, {dimBatch * dimBeam, dimSteps, dimHeads, dimDepth});
 
-    return transpose(output, {2, 1, 0, 3});
+    return transpose(output, {0, 2, 1, 3});
   }
 
   Expr JoinHeads(Expr input, int dimBeam = 1) {
-    int dimSteps = input->shape()[0];
-    int dimDepth = input->shape()[1];
-    int dimHeads = input->shape()[2];
-    int dimBatchBeam = input->shape()[3];
+    int dimDepth = input->shape()[-1];
+    int dimSteps = input->shape()[-2];
+    int dimHeads = input->shape()[-3];
+    int dimBatchBeam = input->shape()[-4];
 
     int dimModel = dimHeads * dimDepth;
     int dimBatch = dimBatchBeam / dimBeam;
 
-    auto output = transpose(input, {2, 1, 0, 3});
+    auto output = transpose(input, {0, 2, 1, 3});
 
-    return reshape(output, {dimSteps, dimModel, dimBatch, dimBeam});
+    return reshape(output, {dimBeam, dimBatch, dimSteps, dimModel});
   }
 
   Expr PreProcess(Ptr<ExpressionGraph> graph,
@@ -89,7 +88,7 @@ public:
                   float dropProb = 0.0f) {
     using namespace keywords;
 
-    int dimModel = input->shape()[1];
+    int dimModel = input->shape()[-1];
     auto output = input;
     for(auto op : ops) {
       // dropout
@@ -117,7 +116,7 @@ public:
                    float dropProb = 0.0f) {
     using namespace keywords;
 
-    int dimModel = input->shape()[1];
+    int dimModel = input->shape()[-1];
     auto output = input;
     for(auto op : ops) {
       // dropout
@@ -161,7 +160,7 @@ public:
                  bool inference = false) {
     using namespace keywords;
 
-    float dk = k->shape()[1];
+    float dk = k->shape()[-1];
 
     // scaling to avoid extreme values due to matrix multiplication
     float scale = 1.0 / std::sqrt(dk);
@@ -170,11 +169,11 @@ public:
     // time steps and batch entries), also add mask for illegal connections
 
     // @TODO: do this better
-    int dimBeamQ = q->shape()[3];
-    int dimBeamK = k->shape()[3];
+    int dimBeamQ = q->shape()[-4];
+    int dimBeamK = k->shape()[-4];
     if(dimBeamQ != dimBeamK) {
-      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis = 3);
-      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis = 3);
+      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis = -4);
+      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis = -4);
     }
 
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
@@ -203,7 +202,7 @@ public:
                  bool inference = false) {
     using namespace keywords;
 
-    int dimModel = q->shape()[1];
+    int dimModel = q->shape()[-1];
 
     auto Wq = graph->param(
         prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
@@ -238,18 +237,18 @@ public:
       // apply multi-head attention to downscaled inputs
       auto output
           = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference);
-      output = JoinHeads(output, q->shape()[3]);
+      output = JoinHeads(output, q->shape()[-4]);
 
       outputs.push_back(output);
     }
 
     Expr output;
     if(outputs.size() > 1)
-      output = concatenate(outputs, axis = 1);
+      output = concatenate(outputs, axis = -1);
     else
       output = outputs.front();
 
-    int dimAtt = output->shape()[1];
+    int dimAtt = output->shape()[-1];
 
     auto Wo = graph->param(
         prefix + "_Wo", {dimAtt, dimOut}, init = inits::glorot_uniform);
@@ -287,7 +286,7 @@ public:
                       bool inference = false) {
     using namespace keywords;
 
-    int dimModel = input->shape()[1];
+    int dimModel = input->shape()[-1];
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
@@ -321,7 +320,7 @@ public:
                 bool inference = false) {
     using namespace keywords;
 
-    int dimModel = input->shape()[1];
+    int dimModel = input->shape()[-1];
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
@@ -398,8 +397,8 @@ public:
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
-      int srcWords = batchEmbeddings->shape()[2];
-      auto dropMask = graph->dropout(dropoutSrc, {1, 1, srcWords});
+      int srcWords = batchEmbeddings->shape()[-3];
+      auto dropMask = graph->dropout(dropoutSrc, {srcWords, 1, 1});
       batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
     }
 
@@ -408,9 +407,13 @@ public:
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
 
     // reorganize batch and timestep
+    int dims = scaledEmbeddings->shape().size();
+    scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
+    batchMask = atleast_nd(batchMask, 4);
+
     auto layer = TransposeTimeBatch(scaledEmbeddings);
     auto layerMask
-        = reshape(TransposeTimeBatch(batchMask), {1, dimSrcWords, dimBatch});
+        = reshape(TransposeTimeBatch(batchMask), {1, dimBatch, 1, dimSrcWords});
 
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
 
@@ -460,7 +463,7 @@ public:
 
     for(auto state : states_)
       selectedStates.push_back(
-          {marian::select(state.output, 3, selIdx), nullptr});
+          {marian::select(state.output, -4, selIdx), nullptr});
 
     return New<TransformerState>(selectedStates, probs_, encStates_);
   }
@@ -488,14 +491,14 @@ public:
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
-      int trgWords = embeddings->shape()[2];
-      auto trgWordDrop = graph->dropout(dropoutTrg, {1, 1, trgWords});
+      int trgWords = embeddings->shape()[-3];
+      auto trgWordDrop = graph->dropout(dropoutTrg, {trgWords, 1, 1});
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
     //************************************************************************//
 
-    int dimEmb = embeddings->shape()[1];
+    int dimEmb = embeddings->shape()[-1];
 
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
@@ -503,10 +506,13 @@ public:
     int startPos = 0;
     auto prevDecoderStates = state->getStates();
     if(prevDecoderStates.size() > 0)
-      startPos = prevDecoderStates[0].output->shape()[0];
+      startPos = prevDecoderStates[0].output->shape()[-2];
 
     scaledEmbeddings
         = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
+
+    scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
+    decoderMask = atleast_nd(decoderMask, 4);
 
     // reorganize batch and timestep
     auto query = TransposeTimeBatch(scaledEmbeddings);
@@ -517,12 +523,12 @@ public:
     query = PreProcess(graph, prefix_ + "_emb", opsEmb, query, dropProb);
 
     rnn::States decoderStates;
-    int dimTrgWords = query->shape()[0];
-    int dimBatch = query->shape()[2];
+    int dimTrgWords = query->shape()[-2];
+    int dimBatch = query->shape()[-3];
     auto selfMask = TriangleMask(graph, dimTrgWords);
     if(decoderMask) {
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
-                            {1, dimTrgWords, dimBatch});
+                            {1, dimBatch, 1, dimTrgWords});
       selfMask = selfMask * decoderMask;
     }
 
@@ -537,9 +543,12 @@ public:
 
       encoderContext = TransposeTimeBatch(encoderContext);
 
-      int dimSrcWords = encoderContext->shape()[0];
+      int dimSrcWords = encoderContext->shape()[-2];
+
+      int dims = encoderMask->shape().size();
+      encoderMask = atleast_nd(encoderMask, 4);
       encoderMask = reshape(TransposeTimeBatch(encoderMask),
-                            {1, dimSrcWords, dimBatch});
+                            {1, dimBatch, 1, dimSrcWords});
       encoderMask = InverseMask(encoderMask);
 
       encoderContexts.push_back(encoderContext);
@@ -551,7 +560,7 @@ public:
       auto values = query;
       if(prevDecoderStates.size() > 0)
         values
-            = concatenate({prevDecoderStates[i - 1].output, query}, axis = 0);
+            = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
 
       decoderStates.push_back({values, nullptr});
 

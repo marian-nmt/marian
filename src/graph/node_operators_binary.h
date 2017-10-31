@@ -261,19 +261,19 @@ public:
   Shape newShape(Expr a, Expr b, bool transA, bool transB) {
     auto shapeA = a->shape();
     if(transA) {
-      shapeA.set(0, a->shape()[1]);
-      shapeA.set(1, a->shape()[0]);
+      shapeA.set(-2, a->shape()[-1]);
+      shapeA.set(-1, a->shape()[-2]);
     }
 
     auto shapeB = b->shape();
     if(transB) {
-      shapeB.set(0, b->shape()[1]);
-      shapeB.set(1, b->shape()[0]);
+      shapeB.set(-2, b->shape()[-1]);
+      shapeB.set(-1, b->shape()[-2]);
     }
 
     Shape outShape = shapeA;
-    outShape.set(1, shapeB[1]);
-    ABORT_IF(shapeA[1] != shapeB[0],
+    outShape.set(-1, shapeB[-1]);
+    ABORT_IF(shapeA[-1] != shapeB[-2],
              "matrix product requires dimensions to match");
     return outShape;
   }
