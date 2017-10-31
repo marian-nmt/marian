@@ -407,10 +407,8 @@ public:
     scaledEmbeddings = AddPositionalEmbeddings(graph, scaledEmbeddings);
 
     // reorganize batch and timestep
-    int dims = scaledEmbeddings->shape().size();
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
     batchMask = atleast_nd(batchMask, 4);
-
     auto layer = TransposeTimeBatch(scaledEmbeddings);
     auto layerMask
         = reshape(TransposeTimeBatch(batchMask), {1, dimBatch, 1, dimSrcWords});
