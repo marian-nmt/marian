@@ -63,10 +63,16 @@ struct Shape {
     }
 
     inline int& dim(int i) {
-      if(i >= 0)
+      if(i >= 0) {
+        ABORT_IF(i >= size(),
+                 "Index {} is out of bounds, shape has {} dimension", i, size());
         return shape_[i];
-      else
+      }
+      else {
+        ABORT_IF((int)size() + i < 0,
+                 "Negative index {} is out of bounds, shape has {} dimension", i, size());
         return shape_[size() + i];
+      }
     }
 
     inline const int& dim(int i) const { return const_cast<Shape&>(*this).dim(i); }
