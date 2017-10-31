@@ -132,7 +132,7 @@ public:
 
     Expr selectedEmbs;
     if(embIdx.empty()) {
-      selectedEmbs = graph->constant({1, dimTrgEmb}, init = inits::zeros);
+      selectedEmbs = graph->constant({1, 1, 1, dimTrgEmb}, init = inits::zeros);
     } else {
       // embeddings are loaded from model during translation, no fixing required
       auto yEmbFactory = embedding(graph)  //
