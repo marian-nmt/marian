@@ -18,10 +18,22 @@ struct Weights {
     EncEmbeddings(const EncEmbeddings&) = delete;
 
     EncEmbeddings(const NpzConverter& model)
-    : E_(model.get("Wemb", true))
-    {}
+    {
+      Es_.emplace_back(model.get("Wemb", true));
 
-    const std::shared_ptr<mblas::Matrix> E_;
+      for(int i=1; true; i++) {
+        std::string factorKey = "Wemb" + std::to_string(i);
+        std::shared_ptr<mblas::Matrix> factorEmb = model.get(factorKey, false);
+        if (factorEmb->size() <= 0){
+          break;
+        }
+        Es_.emplace_back(factorEmb);
+      }
+    }
+
+    // Embedding matrices for word factors. The first factor is the word
+    // surface form. The rest are optional.
+    std::vector<std::shared_ptr<mblas::Matrix>> Es_;
   };
 
   struct EncForwardGRU {

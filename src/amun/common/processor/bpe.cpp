@@ -10,6 +10,10 @@
 
 namespace amunmt {
 
+std::vector<bpeFactors> BPE::Preprocess(const std::vector<bpeFactors> input) const {
+  return Encode(input);
+}
+
 std::vector<std::string> BPE::Preprocess(const std::vector<std::string> input) const {
   return Encode(input);
 }
@@ -189,15 +193,30 @@ std::vector<std::string>& BPE::Encode(const std::string& word) const {
   return cache_[word];
 }
 
+std::vector<bpeFactors> BPE::Encode(const std::vector<bpeFactors>& words) const {
+  // split the word into it's BPE parts and append a copy of word's factors to
+  // each of the parts
+  std::vector<std::vector<std::string>> result;
+  for (const bpeFactors& factorlist : words) {
+    std::string word = factorlist[0];
+    std::vector<std::string>& encoded = Encode(word);
+    for (const auto& bpePart : encoded)
+    {
+      result.push_back(bpeFactors());
+      bpeFactors& current = result.back();
+      current.push_back(bpePart);
+      current.insert(current.end(), ++factorlist.begin(), factorlist.end());
+    }
+  }
+  return result;
+}
+
 std::vector<std::string> BPE::Encode(const std::vector<std::string>& words) const {
   std::vector<std::string> result;
   for (const auto& word : words) {
     auto& encoded = Encode(word);
     result.insert(result.end(), encoded.begin(), encoded.end());
   }
-  // std::cerr << "BPE: ";
-  // for (auto& code: result) std::cerr << code << " " ;
-  // std::cerr << std::endl;
   return result;
 }
 

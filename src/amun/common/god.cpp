@@ -62,11 +62,22 @@ God& God::Init(int argc, char** argv) {
   config_.LogOptions();
 
   if (Get("source-vocab").IsSequence()) {
-    for (auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab")) {
-      sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
+    YAML::Node tabVocabs = Get("source-vocab");
+    for (size_t i = 0; i < tabVocabs.size(); i++) {
+      sourceVocabs_.emplace_back(std::vector<VocabPtr>());
+
+      if (tabVocabs[i].IsSequence()) {
+        for (auto factorVocabPath : tabVocabs[i].as<std::vector<std::string>>()) {
+          sourceVocabs_[i].emplace_back(new Vocab(factorVocabPath));
+        }
+      } else {
+        std::string tabVocabPath = tabVocabs[i].as<std::string>();
+        sourceVocabs_[i].emplace_back(new Vocab(tabVocabPath));
+      }
     }
   } else {
-    sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));
+    sourceVocabs_.emplace_back(std::vector<VocabPtr>());
+    sourceVocabs_[0].emplace_back(new Vocab(Get<std::string>("source-vocab")));
   }
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
@@ -153,19 +164,19 @@ void God::LoadFiltering() {
     if (filterOptions.size() >= 3) {
       const size_t numNFirst = stoi(filterOptions[1]);
       const size_t maxNumTranslation = stoi(filterOptions[2]);
-      filter = new Filter(GetSourceVocab(0),
+      filter = new Filter(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile,
                           numNFirst,
                           maxNumTranslation);
     } else if (filterOptions.size() == 2) {
       const size_t numNFirst = stoi(filterOptions[1]);
-      filter = new Filter(GetSourceVocab(0),
+      filter = new Filter(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile,
                           numNFirst);
     } else {
-      filter = new Filter(GetSourceVocab(0),
+      filter = new Filter(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile);
     }
@@ -198,8 +209,8 @@ void God::LoadPrePostProcessing() {
   }
 }
 
-Vocab& God::GetSourceVocab(size_t i) const {
-  return *sourceVocabs_[i];
+Vocab& God::GetSourceVocab(size_t tab, size_t factor) const {
+  return *sourceVocabs_[tab][factor];
 }
 
 Vocab& God::GetTargetVocab() const {
@@ -269,6 +280,18 @@ std::vector<std::string> God::GetScorerNames() const {
 
 const std::map<std::string, float>& God::GetScorerWeights() const {
   return weights_;
+}
+
+std::vector<std::vector<std::string>> God::Preprocess (
+  size_t i, const std::vector<std::vector<std::string>>& input
+) const {
+  std::vector<std::vector<std::string>> processed = input;
+  if (preprocessors_.size() >= i + 1) {
+    for (const auto& processor : preprocessors_[i]) {
+      processed = processor->Preprocess(processed);
+    }
+  }
+  return processed;
 }
 
 std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) const {

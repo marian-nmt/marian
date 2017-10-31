@@ -50,7 +50,7 @@ class God {
       return config_.Get(key);
     }
 
-    Vocab& GetSourceVocab(size_t i = 0) const;
+    Vocab& GetSourceVocab(size_t tab = 0, size_t factor = 0) const;
     Vocab& GetTargetVocab() const;
 
     std::istream& GetInputStream() const;
@@ -64,6 +64,8 @@ class God {
     std::vector<std::string> GetScorerNames() const;
     const std::map<std::string, float>& GetScorerWeights() const;
 
+    std::vector<std::vector<std::string>> Preprocess
+      (size_t i, const std::vector<std::vector<std::string>>& input) const;
     std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input) const;
     std::vector<std::string> Postprocess(const std::vector<std::string>& input) const;
 
@@ -85,7 +87,11 @@ class God {
 
     Config config_;
 
-    mutable std::vector<std::unique_ptr<Vocab>> sourceVocabs_;
+    typedef std::unique_ptr<Vocab> VocabPtr;
+    // a vocabulary for each of the source side factors
+    typedef std::vector<VocabPtr> FactorVocabs;
+    // a list of source side factor vocabularies for each of the tabs
+    mutable std::vector<FactorVocabs> sourceVocabs_;
     mutable std::unique_ptr<Vocab> targetVocab_;
 
     std::shared_ptr<const Filter> filter_;

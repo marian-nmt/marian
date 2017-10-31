@@ -33,4 +33,3 @@ using SentencePtr = std::shared_ptr<Sentence>;
 
 
 }
-
