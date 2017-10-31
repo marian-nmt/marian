@@ -510,7 +510,6 @@ public:
         = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
 
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
-    decoderMask = atleast_nd(decoderMask, 4);
 
     // reorganize batch and timestep
     auto query = TransposeTimeBatch(scaledEmbeddings);
@@ -525,6 +524,7 @@ public:
     int dimBatch = query->shape()[-3];
     auto selfMask = TriangleMask(graph, dimTrgWords);
     if(decoderMask) {
+      decoderMask = atleast_nd(decoderMask, 4);
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
                             {1, dimBatch, 1, dimTrgWords});
       selfMask = selfMask * decoderMask;
