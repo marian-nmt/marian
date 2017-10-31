@@ -102,9 +102,11 @@ public:
 
       Shape shape;
       if(numpy[name].shape.size() == 2) {
+        shape.resize(2);
         shape.set(0, numpy[name].shape[0]);
         shape.set(1, numpy[name].shape[1]);
       } else if(numpy[name].shape.size() == 1) {
+        shape.resize(2);
         shape.set(0, 1);
         shape.set(1, numpy[name].shape[0]);
       }
@@ -145,9 +147,6 @@ public:
 
   void save(Ptr<ExpressionGraph> graph, const std::string& name) {
     LOG(info, "Saving model to {}", name);
-
-    unsigned shape[2];
-    std::string mode = "w";
 
     std::map<std::string, std::string> nameMap
         = {{"decoder_cell1_U", "decoder_U"},
@@ -196,6 +195,9 @@ public:
            {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
     graph->getBackend()->setDevice(graph->getDevice());
+
+    unsigned shape[2];
+    std::string mode = "w";
 
     for(auto p : graph->params()->getMap()) {
       std::vector<float> v;

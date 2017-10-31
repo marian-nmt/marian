@@ -453,9 +453,11 @@ public:
 
       Shape shape;
       if(it.second.shape.size() == 1) {
+        shape.resize(2);
         shape.set(0, 1);
         shape.set(1, it.second.shape[0]);
       } else {
+        shape.resize(it.second.shape.size());
         for(int i = 0; i < it.second.shape.size(); ++i)
           shape.set(i, it.second.shape[i]);
       }
@@ -482,34 +484,41 @@ public:
 
       std::vector<float> v;
       p.second->val() >> v;
+      auto& pShape = p.second->shape();
 
-      unsigned shape[4];
-      unsigned dim;
+      unsigned dim = pShape.size();
+      unsigned* shape = new unsigned[dim];
+      for(int i = 0; i < dim; ++i)
+        shape[i] = pShape[i];
 
-      auto ps = p.second->shape();
-      if(ps[0] == 1 && ps[2] == 1 && ps[3] == 1) {
-        shape[0] = ps[1];
-        dim = 1;
-        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
-      } else if(ps[2] == 1 && ps[3] == 1) {
-        shape[0] = ps[0];
-        shape[1] = ps[1];
-        dim = 2;
-        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
-      } else if(ps[3] == 1) {
-        shape[0] = ps[0];
-        shape[1] = ps[1];
-        shape[2] = ps[2];
-        dim = 3;
-        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
-      } else {
-        shape[0] = ps[0];
-        shape[1] = ps[1];
-        shape[2] = ps[2];
-        shape[3] = ps[3];
-        dim = 4;
-        cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
-      }
+      cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+
+      delete[] shape;
+
+      //auto ps = p.second->shape();
+      //if(ps[0] == 1 && ps[2] == 1 && ps[3] == 1) {
+      //  shape[0] = ps[1];
+      //  dim = 1;
+      //  cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      //} else if(ps[2] == 1 && ps[3] == 1) {
+      //  shape[0] = ps[0];
+      //  shape[1] = ps[1];
+      //  dim = 2;
+      //  cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      //} else if(ps[3] == 1) {
+      //  shape[0] = ps[0];
+      //  shape[1] = ps[1];
+      //  shape[2] = ps[2];
+      //  dim = 3;
+      //  cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      //} else {
+      //  shape[0] = ps[0];
+      //  shape[1] = ps[1];
+      //  shape[2] = ps[2];
+      //  shape[3] = ps[3];
+      //  dim = 4;
+      //  cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
+      //}
       mode = "a";
     }
   }

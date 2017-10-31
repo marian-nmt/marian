@@ -34,6 +34,10 @@ struct Shape {
       updateStrides();
     }
 
+    const int* data() const {
+      return shape_.data();
+    }
+
     void updateStrides() {
       stride_.resize(shape_.size());
       bstride_.resize(shape_.size());
