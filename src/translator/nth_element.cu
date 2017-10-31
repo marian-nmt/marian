@@ -354,6 +354,7 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes,
   std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
   const size_t vocabSize = Probs->shape()[-1];
+
   for(size_t i = 0; i < beamSizes.size(); ++i) {
     cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
     batchFirstElementIdxs[i + 1]

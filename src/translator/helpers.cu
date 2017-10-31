@@ -21,8 +21,8 @@ __global__ void gSetColumn(float* d_in,
 }
 
 void SetColumn(Tensor in, size_t col, float value) {
-  int nRows = in->shape()[0] * in->shape()[2] * in->shape()[3];
-  int nColumns = in->shape()[1];
+  int nRows = in->shape().elements() / in->shape()[-1];
+  int nColumns = in->shape()[-1];
 
   int nBlocks = nRows / 512 + ((nRows % 512 == 0) ? 0 : 1);
   int nThreads = std::min(512, nRows);

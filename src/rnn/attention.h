@@ -146,7 +146,7 @@ public:
     // <- horrible
 
     auto alignedSource
-        = weighted_average(encState_->getAttended(), e, axis = -3);
+        = scalar_product(encState_->getAttended(), e, axis = -3);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);

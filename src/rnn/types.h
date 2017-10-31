@@ -15,19 +15,24 @@ struct State {
   Expr cell;
 
   State select(const std::vector<size_t>& indices) {
-    int numSelected = indices.size();
-    int dimState = output->shape()[-1];
-    int dimBatch = output->shape()[-2];
-    int dimTime = output->shape()[-3];
+    if(output->shape().size() < 4) {
+      int dimState = output->shape()[-1];
+      int dimBatch = output->shape()[-2];
+      int dimTime = output->shape()[-3];
+
+      output = reshape(output, {1, dimTime, dimBatch, dimState});
+      if(cell)
+        cell = reshape(cell, {1, dimTime, dimBatch, dimState});
+    }
 
     if(cell) {
       return State{
-          reshape(rows(output, indices), {numSelected, 1, dimBatch, dimState}),
-          reshape(rows(cell, indices), {numSelected, 1, dimBatch, dimState})};
+          marian::select(output, 0, indices),
+          marian::select(cell, 0, indices)};
     } else {
       return State{
-          reshape(rows(output, indices), {numSelected, 1, dimBatch, dimState}),
-          nullptr};
+        marian::select(output, 0, indices),
+        nullptr};
     }
   }
 };
