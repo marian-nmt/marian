@@ -4,8 +4,6 @@
 #include <iostream>
 #include <string>
 
-// #include "exception.h"
-
 namespace marian {
 
 /**
@@ -17,49 +15,30 @@ namespace marian {
 struct Shape {
   public:
     std::vector<int> shape_;
-    std::vector<int> stride_;
-    std::vector<int> bstride_;
 
   public:
-    Shape() : shape_{1}, stride_{1}, bstride_{0} {}
+    Shape() : shape_{1} {}
 
     Shape(std::initializer_list<int> il) : Shape() {
       shape_.resize(il.size());
       std::copy(il.begin(), il.end(), begin());
-      updateStrides();
     }
 
     void resize(size_t n) {
       shape_.resize(n, 1);
-      updateStrides();
     }
 
     const int* data() const {
       return shape_.data();
     }
 
-    void updateStrides() {
-      stride_.resize(shape_.size());
-      bstride_.resize(shape_.size());
-
-      stride_.back() = 1;
-      bstride_.back() = shape_.back() == 1 ? 0 : stride_.back();
-
-      for(int i = size() - 2; i >= 0; --i) {
-        stride_[i] = stride_[i + 1] * shape_[i + 1];
-        bstride_[i] = shape_[i] == 1 ? 0 : stride_[i];
-      }
-    }
-
     Shape(const Shape& shape) : Shape() {
       shape_.resize(shape.size());
       std::copy(shape.begin(), shape.end(), begin());
-      updateStrides();
     }
 
     inline void set(int i, int val) {
       dim(i) = val;
-      updateStrides();
     }
 
     inline int& dim(int i) {
@@ -84,17 +63,14 @@ struct Shape {
     inline int& back() { return shape_.back(); }
 
     inline int stride(int i) const {
-      if(i >= 0)
-        return stride_[i];
-      else
-        return stride_[size() + i];
-    }
+      std::vector<int> stride(shape_.size(), 1);
+      for(int j = shape_.size() - 2; j >= 0; --j)
+        stride[j] = stride[j + 1] * shape_[j + 1];
 
-    inline int bstride(int i) const {
       if(i >= 0)
-        return bstride_[i];
+        return stride[i];
       else
-        return bstride_[size() + i];
+        return stride[size() + i];
     }
 
     inline size_t size() const { return shape_.size(); }
@@ -106,24 +82,15 @@ struct Shape {
       return el;
     }
 
-    inline int index(const std::vector<int>& d) const {
-      int i = 0;
-      for(int j = 0; j < shape_.size(); ++j)
-        i += d[j] * stride_[j];
-      return i;
-    }
-
-    inline int bindex(const std::vector<int>& d) const {
-      int i = 0;
-      for(int j = 0; j < shape_.size(); ++j)
-        i += d[j] * bstride_[j];
-      return i;
-    }
-
     inline void dims(int i, std::vector<int>& d) const {
       d.resize(shape_.size());
+
+      std::vector<int> stride(shape_.size(), 1);
+      for(int j = shape_.size() - 2; j >= 0; --j)
+        stride[j] = stride[j + 1] * shape_[j + 1];
+
       for(int j = 0; j < d.size(); ++j)
-        d[j] = (i / stride_[j]) % shape_[j];
+        d[j] = (i / stride[j]) % shape_[j];
     }
 
     auto begin() -> decltype(shape_.begin()) { return shape_.begin(); }

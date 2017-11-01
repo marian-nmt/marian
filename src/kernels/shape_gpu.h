@@ -34,17 +34,12 @@ struct ConstantShapeGPU {
              "Recompile with GPU_SHAPE_DIMS >= " + std::to_string(filled));
 
     std::copy(shape.shape_.begin(), shape.shape_.end(), shape_ + N - filled);
-    std::copy(shape.stride_.begin(), shape.stride_.end(), stride_ + N - filled);
-    std::copy(shape.bstride_.begin(), shape.bstride_.end(), bstride_ + N - filled);
-
-    if(N - filled) {
+    if(N - filled)
       std::fill_n(shape_, N - filled, 1);
-      std::fill_n(stride_, N - filled, stride_[N - filled]);
-      std::fill_n(bstride_, N - filled, 0);
-    }
+    updateStrides();
   }
 
-  __device__ inline void updateStrides() {
+  __host__ __device__ inline void updateStrides() {
 
     stride_[N - 1] = 1;
     bstride_[N - 1] = shape_[N - 1] == 1 ? 0 : stride_[N - 1];

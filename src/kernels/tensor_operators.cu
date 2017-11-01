@@ -183,17 +183,13 @@ __global__ void gTranspose4D(float* out,
       int inIndex = inShape.index(dims2);
 
       out[index] = in[inIndex];
+      out[index] = in[index];
     }
   }
 }
 
 void Transpose4D(Tensor out, Tensor in, Shape permute) {
   cudaSetDevice(out->getDevice());
-
-  int length = out->shape().elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
   Shape permuteGPU;
   permuteGPU.resize(ShapeGPU::size());
@@ -205,8 +201,11 @@ void Transpose4D(Tensor out, Tensor in, Shape permute) {
     else
       permuteGPU.set(i, permute[i - diff] + diff);
 
+  int length = out->shape().elements();
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
   gTranspose4D<<<blocks, threads>>>(
-      out->data(), out->shape(), in->data(), in->shape(), permuteGPU);
+    out->data(), out->shape(), in->data(), in->shape(), permuteGPU);
 }
 
 __global__ void gSoftmax(float* out,
