@@ -88,9 +88,10 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   int cols_out = out->shape().back();
 
   for(auto in : inputs) {
-    UTIL_THROW_IF2(rows != in->shape().elements() / in->shape().back(),
+    ABORT_IF(rows != in->shape().elements() / in->shape().back(),
                    "First dimension must be equal");
     int cols_in = in->shape().back();
+
 
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_in);
@@ -116,8 +117,8 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
   int rows = in->shape().elements() / in->shape().back();
   int cols_in = in->shape().back();
   for(auto out : outputs) {
-    UTIL_THROW_IF2(rows != out->shape().elements() / out->shape().back(),
-                   "First dimension must be equal");
+    ABORT_IF(rows != out->shape().elements() / out->shape().back(),
+            "First dimension must be equal");
     int cols_out = out->shape().back();
 
     int blocks = std::min(MAX_BLOCKS, rows);

@@ -232,7 +232,7 @@ public:
       fileName = tempFile->getFileName();
     }
 
-    LOG_VALID(info, "Translating validation set...");
+    LOG(info, "Translating validation set...");
 
     graph->setInference(true);
     boost::timer::cpu_timer timer;
@@ -241,6 +241,7 @@ public:
       auto collector = options_->has("trans-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
+      collector->setPrintingStrategy(New<GeometricPrinting>());
 
       size_t sentenceId = 0;
 
@@ -266,7 +267,7 @@ public:
       }
     }
 
-    LOG_VALID(info, "Total translation time: {}", timer.format(5, "%ws"));
+    LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
     graph->setInference(false);
 
     float val = 0.0f;

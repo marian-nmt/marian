@@ -94,6 +94,13 @@ TEST_CASE("Model components, Attention", "[attention]") {
     });
 
     aligned->val()->get(values);
+
+    //for(int i = 0; i < values.size(); ++i) {
+    //  if(i && i % 4 == 0)
+    //    std::cout << std::endl;
+    //  std::cout << values[i] << ", ";
+    //}
+
     CHECK( std::equal(values.begin(), values.end(),
                       vAligned.begin(), floatApprox) );
   }

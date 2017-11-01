@@ -80,6 +80,8 @@ __host__ __device__
       binary_operator<thrust::maximum>(), make_actor(_1), make_actor(_2));
 }
 
+//*******************************************************************
+
 template <typename T>
 struct unary_relu : public thrust::unary_function<T, T> {
   __host__ __device__ T operator()(const T &x) const {
@@ -106,6 +108,42 @@ __host__ __device__
     ReLUback(const actor<Eval> &_1) {
   return compose(unary_operator<unary_reluback>(), _1);
 }
+
+//*******************************************************************
+
+template <typename T>
+struct binary_prelu : public thrust::binary_function<T, T, T> {
+  __host__ __device__ T operator()(const T &x, const T &alpha) const {
+    return x > 0.0f ? x : alpha * x;
+  }
+};
+
+template <typename T1, typename T2>
+__host__ __device__ actor<composite<binary_operator<binary_prelu>,
+                                    actor<T1>,
+                                    typename as_actor<T2>::type>>
+PReLU(const actor<T1> &_1, const T2 &_2) {
+  return compose(
+      binary_operator<binary_prelu>(), make_actor(_1), make_actor(_2));
+}
+
+template <typename T>
+struct binary_preluback : public thrust::binary_function<T, T, T> {
+  __host__ __device__ T operator()(const T &x, const T &alpha) const {
+    return x > 0.0f ? 1.0f : alpha;
+  }
+};
+
+template <typename T1, typename T2>
+__host__ __device__ actor<composite<binary_operator<binary_preluback>,
+                                    actor<T1>,
+                                    typename as_actor<T2>::type>>
+PReLUback(const actor<T1> &_1, const T2 &_2) {
+  return compose(
+      binary_operator<binary_preluback>(), make_actor(_1), make_actor(_2));
+}
+
+//*******************************************************************
 
 template <typename T>
 __host__ __device__ int sgn(T val) {
