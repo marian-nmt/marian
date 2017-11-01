@@ -184,19 +184,19 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
 }
 
 Expr transpose(Expr a) {
-  Shape s = a->shape();
-  for(int i = 0; i < s.size(); ++i) {
-    s.set(i, i);
+  std::vector<int> axes(a->shape().size());
+  for(int i = 0; i < axes.size(); ++i) {
+    axes[i] = i;
   }
-  if(s.size() > 1) {
-    s.set(s.size() - 1, s.size() - 2);
-    s.set(s.size() - 2, s.size() - 1);
+  if(axes.size() > 1) {
+    axes[axes.size() - 1] = axes.size() - 2;
+    axes[axes.size() - 2] = axes.size() - 1;
   }
-  return Expression<TransposeNodeOp>(a, s);
+  return Expression<TransposeNodeOp>(a, axes);
 }
 
-Expr transpose(Expr a, Shape permute) {
-  return Expression<TransposeNodeOp>(a, permute);
+Expr transpose(Expr a, const std::vector<int>& axes) {
+  return Expression<TransposeNodeOp>(a, axes);
 }
 
 Expr step(Expr a, int step, int axis) {

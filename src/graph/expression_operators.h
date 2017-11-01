@@ -64,7 +64,7 @@ Expr bdot(Expr a,
           float scalar = 1.f);
 
 Expr transpose(Expr a);
-Expr transpose(Expr a, Shape permute);
+Expr transpose(Expr a, const std::vector<int>& axes);
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
 

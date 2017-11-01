@@ -23,6 +23,14 @@ struct Tensor {
   __HDI__ float& operator[](size_t i) { return data_[i]; }
   __HDI__ const float& operator[](size_t i) const { return data_[i]; }
 
+  __HDI__ float& operator[](const gpu::Array<int, gpu::Shape::size()>& indices) {
+    return data_[shape_.index(indices)];
+  }
+
+  __HDI__ const float& operator[](const gpu::Array<int, gpu::Shape::size()>& indices) const {
+    return data_[shape_.index(indices)];
+  }
+
   __HDI__ T* data() { return data_; }
   __HDI__ const T* data() const { return data_; }
 

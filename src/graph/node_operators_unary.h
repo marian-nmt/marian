@@ -666,29 +666,29 @@ struct SelectNodeOp : public UnaryNodeOp {
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {
-  Shape permute_;
+  std::vector<int> axes_;
 
-  TransposeNodeOp(Expr a, Shape permute)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, permute)),
-        permute_{permute} {}
+  TransposeNodeOp(Expr a, const std::vector<int>& axes)
+      : UnaryNodeOp(a, keywords::shape = newShape(a, axes)),
+        axes_{axes} {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Transpose4D(val_, child(0)->val(), permute_))};
+    return {NodeOp(TransposeND(val_, child(0)->val(), axes_))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(Transpose4D(child(0)->grad(), adj_, permute_))};
+    return {NodeOp(TransposeND(child(0)->grad(), adj_, axes_))};
   }
 
   template <class... Args>
-  Shape newShape(Expr a, Shape permute) {
+  Shape newShape(Expr a, const std::vector<int>& axes) {
     Shape shape = a->shape();
 
-    ABORT_IF(shape.size() != permute.size(),
-            "Shape and transpose axis have different number of dimensions");
+    ABORT_IF(shape.size() != axes.size(),
+            "Shape and transpose axes have different number of dimensions");
 
     for(int i = 0; i < shape.size(); ++i)
-      shape.set(i, a->shape()[permute[i]]);
+      shape.set(i, a->shape()[axes[i]]);
 
     return shape;
   }
@@ -696,8 +696,8 @@ struct TransposeNodeOp : public UnaryNodeOp {
   virtual size_t hash() {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
-      for(auto s : permute_)
-        boost::hash_combine(seed, s);
+      for(auto ax : axes_)
+        boost::hash_combine(seed, ax);
       hash_ = seed;
     }
     return hash_;
@@ -710,7 +710,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
         = std::dynamic_pointer_cast<TransposeNodeOp>(node);
     if(!cnode)
       return false;
-    if(permute_ != cnode->permute_)
+    if(axes_ != cnode->axes_)
       return false;
     return true;
   }

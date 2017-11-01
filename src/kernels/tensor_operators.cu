@@ -161,50 +161,42 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
     SplitCont(outputs, in, ax);
 }
 
-__global__ void gTranspose4D(float* out,
-                             gpu::Shape outShape,
-                             const float* in,
-                             const gpu::Shape inShape,
-                             const gpu::Shape permute) {
-  int length = outShape.elements();
+__global__ void gTransposeND(gpu::Tensor<float> out,
+                             const gpu::Tensor<float> in,
+                             const gpu::Array<int, gpu::Shape::size()> permute) {
 
   constexpr size_t N = gpu::Shape::size();
-  gpu::Array<int, N> dims1;
-  gpu::Array<int, N> dims2;
+  gpu::Array<int, N> oDims;
+  gpu::Array<int, N> pDims;
 
+  int length = out.shape().elements();
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      outShape.dims(index, dims1);
-
+      out.shape().dims(index, oDims);
       for(int i = 0; i < N; ++i)
-        dims2[permute[i]] = dims1[i];
-
-      int inIndex = inShape.index(dims2);
-
-      out[index] = in[inIndex];
+        pDims[permute[i]] = oDims[i];
+      out[index] = in[pDims];
     }
   }
 }
 
-void Transpose4D(Tensor out, Tensor in, Shape permute) {
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   cudaSetDevice(out->getDevice());
 
-  Shape permuteGPU;
-  permuteGPU.resize(gpu::Shape::size());
-
-  int diff = gpu::Shape::size() - permute.size();
-  for(int i = 0; i < permuteGPU.size(); ++i)
+  gpu::Array<int, gpu::Shape::size()> axes;
+  int diff = gpu::Shape::size() - vAxis.size();
+  for(int i = 0; i < axes.size(); ++i)
     if(i < diff)
-      permuteGPU.set(i, i);
+      axes[i] = i;
     else
-      permuteGPU.set(i, permute[i - diff] + diff);
+      axes[i] = vAxis[i - diff] + diff;
 
   int length = out->shape().elements();
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-  gTranspose4D<<<blocks, threads>>>(
-    out->data(), out->shape(), in->data(), in->shape(), permuteGPU);
+
+  gTransposeND<<<blocks, threads>>>(out, in, axes);
 }
 
 __global__ void gSoftmax(float* out,

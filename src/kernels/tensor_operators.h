@@ -23,8 +23,6 @@ using namespace thrust::placeholders;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 
-class TensorGPU;
-
 cublasHandle_t create_handle(size_t);
 
 template <size_t K, class Functor>
@@ -71,7 +69,7 @@ void Element(Functor functor, Tensor out, Tensors ...tensors) {
   gElement<<<blocks, threads>>>(functor, gTensors, broadcast);
 }
 
-void Transpose4D(Tensor out, Tensor in, Shape tranpose);
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis);
 
 void Select(Ptr<Allocator<DeviceGPU>> allocator,
             Tensor out,
@@ -221,7 +219,7 @@ void Add(Functor functor,
 
   gpu::Tensor<float> gOut = out;
   gpu::Array<gpu::Tensor<float>, K> gIns = {tensors ...};
-  
+
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
     size_t k = full.back();
