@@ -365,14 +365,14 @@ struct MeanNodeOp : public UnaryNodeOp {
     int left = child(0)->shape().elements() / val_->shape().elements();
     float scale = 1.f / left;
 
-    return {NodeOp(Reduce(_1, val_, child(0)->val(), scale))};
+    return {NodeOp(Reduce(_1, scale, val_, child(0)->val()))};
   }
 
   NodeOps backwardOps() {
     int left = child(0)->shape().elements() / val_->shape().elements();
     float scale = 1.f / left;
 
-    return {NodeOp(Add(_1, child(0)->grad(), adj_, scale))};
+    return {NodeOp(Add(_1, scale, child(0)->grad(), adj_))};
   }
 
   template <class... Args>

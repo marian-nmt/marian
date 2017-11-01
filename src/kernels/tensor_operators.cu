@@ -168,16 +168,16 @@ __global__ void gTranspose4D(float* out,
                              const gpu::Shape permute) {
   int length = outShape.elements();
 
-  constexpr int num = gpu::Shape::size();
-  int dims1[num];
-  int dims2[num];
+  constexpr size_t N = gpu::Shape::size();
+  gpu::Array<int, N> dims1;
+  gpu::Array<int, N> dims2;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
       outShape.dims(index, dims1);
 
-      for(int i = 0; i < num; ++i)
+      for(int i = 0; i < N; ++i)
         dims2[permute[i]] = dims1[i];
 
       int inIndex = inShape.index(dims2);
@@ -216,7 +216,7 @@ __global__ void gSoftmax(float* out,
   int cols = outShape.back();
 
   bool broadcast = outShape != maskShape;
-  int dims[gpu::Shape::size()];
+  gpu::Array<int, gpu::Shape::size()> dims;
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -842,7 +842,7 @@ __global__ void gSelect(float* out,
                         int axis,
                         size_t* d_indices) {
   int length = outShape.elements();
-  int dims[gpu::Shape::size()];
+  gpu::Array<int, gpu::Shape::size()> dims;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -862,7 +862,7 @@ __global__ void gInsert(float* out,
                         int axis,
                         size_t* d_indices) {
   int length = inShape.elements();
-  int dims[gpu::Shape::size()];
+  gpu::Array<int, gpu::Shape::size()> dims;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;

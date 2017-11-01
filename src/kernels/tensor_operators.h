@@ -8,9 +8,12 @@
 
 #include "tensors/tensor.h"
 
-#include "kernels/shape_gpu.h"
 #include "tensors/allocator.h"
 #include "tensors/device_gpu.h"
+
+#include "gpu/shape.h"
+#include "gpu/tmp.h"
+#include "gpu/tensor.h"
 
 namespace marian {
 
@@ -42,195 +45,78 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
-template <int K, class Functor>
-struct FApply {};
+template <size_t K, class Functor>
+__global__ void gAddGeneric(Functor functor,
+                            const gpu::Shape full,
+                            gpu::Tensor<float> out,
+                            gpu::Array<gpu::Tensor<float>, K> ins,
+                            float scale = 1.0) {
 
-template <class Functor>
-struct FApply<1, Functor> {
-  __device__ static inline float apply(Functor functor, const float** in, int* indices) {
-    return functor(in[0][indices[0]]);
-  }
-
-  __device__ static inline float apply(Functor functor, const float** in, int index) {
-    return functor(in[0][index]);
-  }
-};
-
-template <class Functor>
-struct FApply<2, Functor> {
-  __device__ static inline float apply(Functor functor, const float** in, int* indices) {
-    return functor(in[0][indices[0]], in[1][indices[1]]);
-  }
-
-  __device__ static inline float apply(Functor functor, const float** in, int index) {
-    return functor(in[0][index], in[1][index]);
-  }
-};
-
-template <class Functor>
-struct FApply<3, Functor> {
-  __device__ static inline float apply(Functor functor, const float** in, int* indices) {
-    return functor(in[0][indices[0]], in[1][indices[1]], in[2][indices[2]]);
-  }
-
-  __device__ static inline float apply(Functor functor, const float** in, int index) {
-    return functor(in[0][index], in[1][index], in[2][index]);
-  }
-};
-
-template <int K, class Functor>
-__device__ inline float apply(Functor functor, const float** in, int* indices) {
-  return FApply<K, Functor>::apply(functor, in, indices);
-}
-
-template <int K, class Functor>
-__device__ inline float apply(Functor functor, const float** in, int index) {
-  return FApply<K, Functor>::apply(functor, in, index);
-}
-
-
-template <int N, int K>
-struct Loop {
-  template <class Functor>
-  __device__ static float result(Functor functor,
-                                 const float** in,
-                                 const int** strides,
-                                 int* pAcc,
-                                 const int* length,
-                                 const int* dim) {
-    float sum = 0;
-    int acc[K];
-    const int* nStrides[K];
-    for(int i = 0; i < *length; ++i) {
-      for(int j = 0; j < K; ++j) {
-        acc[j] = pAcc[j] + (*dim + i) * *strides[j];
-        nStrides[j] = strides[j] + 1;
-      }
-
-      sum += Loop<N - 1, K>::result(functor,
-                                    in,
-                                    nStrides,
-                                    acc,
-                                    length + 1,
-                                    dim + 1);
-    }
-    return sum;
-  }
-};
-
-template <int K>
-struct Loop<1, K> {
-  template <class Functor>
-  __device__ static float result(Functor functor,
-                                 const float** in,
-                                 const int** strides,
-                                 int* pAcc,
-                                 const int* length,
-                                 const int* dim) {
-    float sum = 0;
-    int acc[K];
-    for(int i = 0; i < *length; ++i) {
-      for(int j = 0; j < K; ++j)
-        acc[j] = pAcc[j] + (*dim + i) * *strides[j];
-
-      sum += apply<K>(functor, in, acc);
-    }
-    return sum;
-  }
-};
-
-template <int N, int K, class Functor>
-__device__ inline float loops(Functor functor,
-                              const float** in,
-                              const int** strides,
-                              const int* length,
-                              const int* dim) {
-  int pAcc[K] = {0};
-  return Loop<N, K>::result(functor,
-                            in, strides, pAcc,
-                            length, dim);
-}
-
-template <class Functor>
-__global__ void gAddR2(Functor functor,
-                       float* out,
-                       gpu::Shape outShape,
-
-                       const float* in1,
-                       const gpu::Shape in1Shape,
-
-                       const gpu::Shape full,
-                       float scale = 1.0) {
-  int outLength = outShape.elements();
-
+  int outLength = out.shape().elements();
   bool same = outLength == full.elements();
+  for(int i = 0; i < K; ++i)
+    same = same && outLength == ins[i].shape().elements();
 
-  constexpr int N = gpu::Shape::size();
-  int len[N];
+  constexpr size_t N = gpu::Shape::size();
+  gpu::Array<int, N> len;
   for(int i = 0; i < N; ++i)
-    len[i] = full[i] / outShape[i];
+    len[i] = full[i] / out.shape()[i];
 
-  constexpr int K = 1;
-  same = same && outLength == in1Shape.elements();
-  const float* ins[K] = { in1 };
-  const int* bstrides[K] = { in1Shape.bstride_ };
-
-  int dims[N];
+  gpu::Array<int, N> dims;
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
+
       if(same) {
-        out[index] += apply<K>(functor, ins, index) * scale;
+        out[index] += gpu::apply(functor, ins, index) * scale;
       } else {
-        outShape.dims(index, dims);
-        float sum = loops<N, K>(functor,
-                                ins, bstrides,
-                                len, dims);
-        if(sum)
-          out[index] += sum * scale;
+        out.shape().dims(index, dims);
+        out[index] += gpu::loops(functor, ins, len, dims) * scale;
       }
+
     }
   }
 }
 
-
-template <class Functor>
-__global__ void gAddR2Eq(Functor functor,
-                         float* out,
-                         const gpu::Shape outShape,
-                         const float* in1,
-                         const gpu::Shape inShape1,
-                         float scale,
-                         bool broadcast) {
-  int length = outShape.elements();
-  int dims[gpu::Shape::size()];
+template <size_t K, class Functor>
+__global__ void gAddEqual(Functor functor,
+                          gpu::Tensor<float> out,
+                          gpu::Array<gpu::Tensor<float>, K> ins,
+                          float scale,
+                          bool broadcast) {
+  int length = out.shape().elements();
+  gpu::Array<int, gpu::Shape::size()> dims;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int inIndex1 = index;
+      gpu::Array<int, K> indices;
+      indices.fill(index);
+
       if(broadcast) {
-        outShape.dims(index, dims);
-        inIndex1 = inShape1.bindex(dims);
+        out.shape().dims(index, dims);
+        for(size_t i = 0; i < K; ++i)
+          indices[i] = ins[i].shape().bindex(dims);
       }
-      out[index] += functor(in1[inIndex1]) * scale;
+
+      out[index] += gpu::apply(functor, ins, indices) * scale;
     }
   }
 }
 
-template <class Functor>
-__global__ void gAdd1R2(Functor functor,
-                        float* out,
-                        gpu::Shape outShape,
-                        const float* in1,
-                        const gpu::Shape in1Shape,
-                        const gpu::Shape full,
-                        float scale = 1.0) {
+template <size_t K, class Functor>
+__global__ void gAddReduce(Functor functor,
+                           const gpu::Shape full,
+                           gpu::Tensor<float> out,
+                           gpu::Array<gpu::Tensor<float>, K> ins,
+                           float scale = 1.0) {
+
   int rows = full.elements() / full.back();
   int cols = full.back();
-  bool same = in1Shape.elements() == full.elements();
 
-  int dims[gpu::Shape::size()];
+  bool same = true;
+  for(int i = 0; i < K; ++i)
+    same = same && ins[i].shape().elements() == full.elements();
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -239,23 +125,24 @@ __global__ void gAdd1R2(Functor functor,
       float* _sum = _share + blockDim.x;
 
       if(same) {
-        const float* sp1 = in1 + j * cols;
         _sum[threadIdx.x] = 0;
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
-          if(id < cols) {
-            _sum[threadIdx.x] += functor(sp1[id]);
-          }
+          if(id < cols)
+            _sum[threadIdx.x] += gpu::apply(functor, ins, j * cols + id);
         }
       } else {
+        gpu::Array<int, gpu::Shape::size()> dims;
         _sum[threadIdx.x] = 0;
 
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
           if(id < cols) {
             full.dims(j * cols + id, dims);
-            int in1Index = in1Shape.bindex(dims);
-            _sum[threadIdx.x] += functor(in1[in1Index]);
+            gpu::Array<int, K> indices;
+            for(int i = 0; i < K; ++i)
+              indices[i] = ins[i].shape().bindex(dims);
+            _sum[threadIdx.x] += gpu::apply(functor, ins, indices);
           }
         }
       }
@@ -275,13 +162,26 @@ __global__ void gAdd1R2(Functor functor,
   }
 }
 
-template <class Functor>
-void Add(Functor functor, Tensor out, Tensor in, float scale = 1.0) {
+template <class Functor, class ...Tensors>
+void Add(Functor functor,
+         float scale,
+         Tensor out,
+         Tensors... tensors) {
   cudaSetDevice(out->getDevice());
 
-  auto full = Shape::broadcast({out, in});
+  std::vector<Tensor> vTensors({tensors...});
+  vTensors.push_back(out);
+
+  Shape full = Shape::broadcast(vTensors);
 
   int length = out->shape().elements();
+
+  constexpr size_t K = sizeof...(Tensors);
+
+  gpu::Tensor<float> gOut = out;
+  gpu::Array<gpu::Tensor<float>, K> gIns;
+  for(int i = 0; i < K; ++i)
+    gIns[i] = vTensors[i];
 
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
@@ -291,621 +191,93 @@ void Add(Functor functor, Tensor out, Tensor in, float scale = 1.0) {
     int threads = std::min(MAX_THREADS, (int)k);
     int shared = sizeof(float) * threads * 2;
 
-    gAdd1R2<<<blocks, threads, shared>>>(functor,
-                                         out->data(),
-                                         out->shape(),
-                                         in->data(),
-                                         in->shape(),
-                                         full,
-                                         scale);
+    gAddReduce<<<blocks, threads, shared>>>(functor, full, gOut, gIns, scale);
+
   } else if(out->shape() == full) {
     int threads = std::min(MAX_THREADS, length);
     int blocks
         = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-    gAddR2Eq<<<blocks, threads>>>(functor,
-                                  out->data(),
-                                  out->shape(),
-                                  in->data(),
-                                  in->shape(),
-                                  scale,
-                                  out->shape() != in->shape());
+    bool broadcast = false;
+    for(int i = 0; i < K; ++i)
+      broadcast = broadcast || gOut.shape() != gIns[i].shape();
+
+    gAddEqual<<<blocks, threads>>>(functor, gOut, gIns, scale, broadcast);
   } else {
     int threads = std::min(MAX_THREADS, length);
     int blocks
         = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-    gAddR2<<<blocks, threads>>>(functor,
-                                out->data(),
-                                out->shape(),
-                                in->data(),
-                                in->shape(),
-                                full,
-                                scale);
+
+    gAddGeneric<<<blocks, threads>>>(functor, full, gOut, gIns, scale);
   }
 }
 
-template <class Functor, class T1, class T2>
-void Reduce(Functor functor, T1 out, T2 in, float scale = 1.0) {
-  out->set(0);
-  Add(functor, out, in, scale);
-}
-
-
-template <class Functor>
-__global__ void gAddR3(Functor functor,
-                       float* out,
-                       gpu::Shape outShape,
-                       const float* in1,
-                       const gpu::Shape in1Shape,
-                       const float* in2,
-                       const gpu::Shape in2Shape,
-                       const gpu::Shape full,
-                       float scale = 1.0) {
-
-  int outLength = outShape.elements();
-  bool same = outLength == full.elements()
-              && outLength == in1Shape.elements()
-              && outLength == in2Shape.elements();
-
-  constexpr size_t num = gpu::Shape::size();
-
-  int len[num];
-  for(int i = 0; i < num; ++i)
-    len[i] = full[i] / outShape[i];
-
-  const float* ins[2] = { in1, in2 };
-  const int* strides[2] = { in1Shape.bstride_, in2Shape.bstride_ };
-
-  int dims[num];
-
-  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < outLength) {
-      if(same) {
-        out[index] += apply<2>(functor, ins, index) * scale;
-      } else {
-
-        outShape.dims(index, dims);
-
-        float sum = loops<num, 2>(functor,
-                                  ins, strides,
-                                  len, dims);
-
-        if(sum)
-          out[index] += sum * scale;
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gAddR3Eq(Functor functor,
-                         float* out,
-                         gpu::Shape outShape,
-                         const float* in1,
-                         const gpu::Shape inShape1,
-                         const float* in2,
-                         const gpu::Shape inShape2,
-                         float scale,
-                         bool broadcast) {
-  int length = outShape.elements();
-  int dims[gpu::Shape::size()];
-
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      int inIndex1 = index;
-      int inIndex2 = index;
-      if(broadcast) {
-        outShape.dims(index, dims);
-        inIndex1 = inShape1.bindex(dims);
-        inIndex2 = inShape2.bindex(dims);
-      }
-      out[index] += functor(in1[inIndex1], in2[inIndex2]) * scale;
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gAdd1R3(Functor functor,
-                        float* out,
-                        gpu::Shape outShape,
-                        const float* in1,
-                        const gpu::Shape in1Shape,
-                        const float* in2,
-                        const gpu::Shape in2Shape,
-                        const gpu::Shape full,
-                        float scale = 1.0) {
-  int rows = full.elements() / full.back();
-  int cols = full.back();
-  bool same = in1Shape.elements() == full.elements()
-              && in2Shape.elements() == full.elements();
-
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
-
-      if(same) {
-        const float* sp1 = in1 + j * cols;
-        const float* sp2 = in2 + j * cols;
-        _sum[threadIdx.x] = 0;
-        for(int tid = 0; tid < cols; tid += blockDim.x) {
-          int id = tid + threadIdx.x;
-          if(id < cols) {
-            _sum[threadIdx.x] += functor(sp1[id], sp2[id]);
-          }
-        }
-      } else {
-        int dims[gpu::Shape::size()];
-        _sum[threadIdx.x] = 0;
-
-        for(int tid = 0; tid < cols; tid += blockDim.x) {
-          int id = tid + threadIdx.x;
-          if(id < cols) {
-            full.dims(j * cols + id, dims);
-            int in1Index = in1Shape.bindex(dims);
-            int in2Index = in2Shape.bindex(dims);
-            _sum[threadIdx.x] += functor(in1[in1Index], in2[in2Index]);
-          }
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      out[j] += _sum[0] * scale;
-    }
-  }
-}
-
-template <class Functor>
+template <class Functor, class ...Tensors>
 void Add(Functor functor,
          Tensor out,
-         Tensor in1,
-         Tensor in2,
-         float scale = 1.0) {
-  cudaSetDevice(out->getDevice());
-
-  Shape full = Shape::broadcast({out, in1, in2});
-
-  int length = out->shape().elements();
-
-  if(full.back() != 1 && out->shape().back() == 1) {
-    size_t m = full.elements() / length;
-    size_t k = full.back();
-
-    int blocks = std::min(MAX_BLOCKS, (int)m);
-    int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads * 2;
-
-    gAdd1R3<<<blocks, threads, shared>>>(functor,
-                                         out->data(),
-                                         out->shape(),
-                                         in1->data(),
-                                         in1->shape(),
-                                         in2->data(),
-                                         in2->shape(),
-                                         full,
-                                         scale);
-  } else if(out->shape() == full) {
-    int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-    gAddR3Eq<<<blocks, threads>>>(
-        functor,
-        out->data(),
-        out->shape(),
-        in1->data(),
-        in1->shape(),
-        in2->data(),
-        in2->shape(),
-        scale,
-        out->shape() != in1->shape() || out->shape() != in2->shape());
-  } else {
-    int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-    gAddR3<<<blocks, threads>>>(functor,
-                                out->data(),
-                                out->shape(),
-                                in1->data(),
-                                in1->shape(),
-                                in2->data(),
-                                in2->shape(),
-                                full,
-                                scale);
-  }
+         Tensors... tensors) {
+  Add(functor, 1, out, tensors...);
 }
 
-template <class Functor>
+template <class Functor, class ...Tensors>
+void Reduce(Functor functor,
+            float scale,
+            Tensor out,
+            Tensors... tensors) {
+  out->set(0);
+  Add(functor, scale, out, tensors...);
+}
+
+template <class Functor, class ...Tensors>
 void Reduce(Functor functor,
             Tensor out,
-            Tensor in1,
-            Tensor in2,
-            float scale = 1.0) {
+            Tensors... tensors) {
   out->set(0);
-  Add(functor, out, in1, in2, scale);
+  Add(functor, out, tensors...);
 }
 
-template <class Functor>
-__global__ void gAddR4(Functor functor,
-                       float* out,
-                       gpu::Shape outShape,
-                       const float* in1,
-                       const gpu::Shape in1Shape,
-                       const float* in2,
-                       const gpu::Shape in2Shape,
-                       const float* in3,
-                       const gpu::Shape in3Shape,
-                       const gpu::Shape full) {
-
-  int outLength = outShape.elements();
-
-  bool same = outLength == full.elements() && outLength == in1Shape.elements()
-              && outLength == in2Shape.elements()
-              && outLength == in3Shape.elements();
-
-  constexpr size_t num = gpu::Shape::size();
-
-  int len[num];
-  for(int i = 0; i < num; ++i)
-    len[i] = full[i] / outShape[i];
-
-  const float* ins[3] = { in1, in2, in3 };
-  const int* strides[3] = { in1Shape.bstride_, in2Shape.bstride_, in3Shape.bstride_ };
-
-  int dims[num];
-
-  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < outLength) {
-      if(same) {
-        out[index] += apply<3>(functor, ins, index);
-      } else {
-
-        outShape.dims(index, dims);
-
-        float sum = loops<num, 3>(functor,
-                                  ins, strides,
-                                  len, dims);
-        if(sum)
-          out[index] += sum;
-      }
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gAdd1R4(Functor functor,
-                        float* out,
-                        gpu::Shape outShape,
-                        const float* in1,
-                        const gpu::Shape in1Shape,
-                        const float* in2,
-                        const gpu::Shape in2Shape,
-                        const float* in3,
-                        const gpu::Shape in3Shape,
-                        const gpu::Shape full) {
-  int rows = full.elements() / full.back();
-  int cols = full.back();
-
-  bool same = in1Shape.elements() == full.elements()
-              && in2Shape.elements() == full.elements()
-              && in3Shape.elements() == full.elements();
-
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
-
-      if(same) {
-        const float* sp1 = in1 + j * cols;
-        const float* sp2 = in2 + j * cols;
-        const float* sp3 = in3 + j * cols;
-        _sum[threadIdx.x] = 0;
-        for(int tid = 0; tid < cols; tid += blockDim.x) {
-          int id = tid + threadIdx.x;
-          if(id < cols) {
-            _sum[threadIdx.x] += functor(sp1[id], sp2[id], sp3[id]);
-          }
-        }
-      } else {
-        int dims[gpu::Shape::size()];
-        _sum[threadIdx.x] = 0;
-
-        for(int tid = 0; tid < cols; tid += blockDim.x) {
-          int id = tid + threadIdx.x;
-          if(id < cols) {
-            full.dims(j * cols + id, dims);
-            int in1Index = in1Shape.bindex(dims);
-            int in2Index = in2Shape.bindex(dims);
-            int in3Index = in3Shape.bindex(dims);
-            _sum[threadIdx.x]
-                += functor(in1[in1Index], in2[in2Index], in3[in3Index]);
-          }
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      out[j] += _sum[0];
-    }
-  }
-}
-
-template <class Functor>
-__global__ void gAddR4Eq(Functor functor,
-                         float* out,
-                         gpu::Shape outShape,
-                         const float* in1,
-                         const gpu::Shape inShape1,
-                         const float* in2,
-                         const gpu::Shape inShape2,
-                         const float* in3,
-                         const gpu::Shape inShape3,
-                         bool broadcast) {
-  int length = outShape.elements();
-  int dims[gpu::Shape::size()];
-
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      int inIndex1 = index;
-      int inIndex2 = index;
-      int inIndex3 = index;
-      if(broadcast) {
-        outShape.dims(index, dims);
-        inIndex1 = inShape1.bindex(dims);
-        inIndex2 = inShape2.bindex(dims);
-        inIndex3 = inShape3.bindex(dims);
-      }
-      out[index] += functor(in1[inIndex1], in2[inIndex2], in3[inIndex3]);
-    }
-  }
-}
-
-template <class Functor>
-void Add(Functor functor, Tensor out, Tensor in1, Tensor in2, Tensor in3) {
-  cudaSetDevice(out->getDevice());
-
-  Shape full = Shape::broadcast({out, in1, in2, in3});
-
-  int length = out->shape().elements();
-
-  if(full.back() != 1 && out->shape().back() == 1) {
-    size_t m = full.elements() / length;
-    size_t k = full.back();
-
-    int blocks = std::min(MAX_BLOCKS, (int)m);
-    int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads * 2;
-
-    gAdd1R4<<<blocks, threads, shared>>>(functor,
-                                         out->data(),
-                                         out->shape(),
-                                         in1->data(),
-                                         in1->shape(),
-                                         in2->data(),
-                                         in2->shape(),
-                                         in3->data(),
-                                         in3->shape(),
-                                         full);
-  } else if(out->shape() == full) {
-    int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-    gAddR4Eq<<<blocks, threads>>>(functor,
-                                  out->data(),
-                                  out->shape(),
-                                  in1->data(),
-                                  in1->shape(),
-                                  in2->data(),
-                                  in2->shape(),
-                                  in3->data(),
-                                  in3->shape(),
-                                  out->shape() != in1->shape()
-                                      || out->shape() != in2->shape()
-                                      || out->shape() != in3->shape());
-  } else {
-    int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-    gAddR4<<<blocks, threads>>>(functor,
-                                out->data(),
-                                out->shape(),
-                                in1->data(),
-                                in1->shape(),
-                                in2->data(),
-                                in2->shape(),
-                                in3->data(),
-                                in3->shape(),
-                                full);
-  }
-}
-
-template <class Functor>
-void Reduce(Functor functor, Tensor out, Tensor in1, Tensor in2, Tensor in3) {
-  out->set(0);
-  Add(functor, out, in1, in2, in3);
-}
-
-template <class Functor>
+template <size_t K, class Functor>
 __global__ void gElement(Functor functor,
-                         float* out,
-                         gpu::Shape outShape,
-                         const float* in,
-                         const gpu::Shape inShape,
+                         gpu::Array<gpu::Tensor<float>, K> tensors,
                          bool broadcast) {
-  int length = outShape.elements();
-  int dims[gpu::Shape::size()];
+
+  int length = tensors[0].shape().elements();
+  gpu::Array<int, gpu::Shape::size()> dims;
+  gpu::Array<int, K> indices;
+
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      int inIndex = index;
       if(broadcast) {
-        outShape.dims(index, dims);
-        inIndex = inShape.bindex(dims);
+        tensors[0].shape().dims(index, dims);
+        indices[0] = index;
+        for(int i = 1; i < K; ++i)
+          indices[i] = tensors[i].shape().bindex(dims);
+        tensors[0][index] = gpu::apply(functor, tensors, indices);
       }
-      out[index] = functor(out[index], in[inIndex]);
-    }
-  }
-}
-
-template <class Functor, class T1, class T2>
-void Element(Functor functor, T1 out, T2 in) {
-  cudaSetDevice(out->getDevice());
-
-  int length = out->shape().elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-  gElement<<<blocks, threads>>>(functor,
-                                out->data(),
-                                out->shape(),
-                                in->data(),
-                                in->shape(),
-                                out->shape() != in->shape());
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         float* out,
-                         gpu::Shape outShape,
-                         const float* in1,
-                         const gpu::Shape inShape1,
-                         const float* in2,
-                         const gpu::Shape inShape2,
-                         bool broadcast) {
-  int length = outShape.elements();
-  int dims[gpu::Shape::size()];
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      int inIndex1 = index;
-      int inIndex2 = index;
-      if(broadcast) {
-        outShape.dims(index, dims);
-        inIndex1 = inShape1.bindex(dims);
-        inIndex2 = inShape2.bindex(dims);
+      else {
+        tensors[0][index] = gpu::apply(functor, tensors, index);
       }
-      out[index] = functor(out[index], in1[inIndex1], in2[inIndex2]);
     }
   }
 }
 
-template <class Functor, class T1, class T2, class T3>
-void Element(Functor functor, T1 out, T2 in1, T3 in2) {
+template <class Functor, class ...Tensors>
+void Element(Functor functor, Tensor out, Tensors ...tensors) {
   cudaSetDevice(out->getDevice());
 
-  int length = out->shape().elements();
+  constexpr size_t K = sizeof...(tensors) + 1;
+  gpu::Array<gpu::Tensor<float>, K> gTensors = {out, tensors...};
 
+  int length = gTensors[0].shape().elements();
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gElement<<<blocks, threads>>>(
-      functor,
-      out->data(),
-      out->shape(),
-      in1->data(),
-      in1->shape(),
-      in2->data(),
-      in2->shape(),
-      out->shape() != in1->shape() || out->shape() != in2->shape());
-}
+  bool broadcast = false;
+  for(int i = 1; i < K; ++i)
+    broadcast = broadcast || gTensors[0].shape() != gTensors[i].shape();
 
-template <class Functor>
-__global__ void gElement(Functor functor,
-                         float* out,
-                         gpu::Shape outShape,
-                         const float* in1,
-                         const gpu::Shape inShape1,
-                         const float* in2,
-                         const gpu::Shape inShape2,
-                         const float* in3,
-                         const gpu::Shape inShape3,
-                         bool broadcast) {
-  int length = outShape.elements();
-  int dims[gpu::Shape::size()];
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      int inIndex1 = index;
-      int inIndex2 = index;
-      int inIndex3 = index;
-      if(broadcast) {
-        outShape.dims(index, dims);
-        inIndex1 = inShape1.bindex(dims);
-        inIndex2 = inShape2.bindex(dims);
-        inIndex3 = inShape3.bindex(dims);
-      }
-      out[index]
-          = functor(out[index], in1[inIndex1], in2[inIndex2], in3[inIndex3]);
-    }
-  }
-}
-
-template <class Functor, class T1, class T2, class T3, class T4>
-void Element(Functor functor, T1 out, T2 in1, T3 in2, T4 in3) {
-  cudaSetDevice(out->getDevice());
-
-  int length = out->shape().elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-  gElement<<<blocks, threads>>>(functor,
-                                out->data(),
-                                out->shape(),
-                                in1->data(),
-                                in1->shape(),
-                                in2->data(),
-                                in2->shape(),
-                                in3->data(),
-                                in3->shape(),
-                                out->shape() != in1->shape()
-                                    || out->shape() != in2->shape()
-                                    || out->shape() != in3->shape());
-}
-
-template <class Functor>
-__global__ void gElement(Functor functor, float* out, int length) {
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      out[index] = functor(out[index]);
-    }
-  }
-}
-
-template <class Functor, class T1>
-void Element(Functor functor, T1 out) {
-  cudaSetDevice(out->getDevice());
-
-  int length = out->shape().elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-  gElement<<<blocks, threads>>>(functor, out->data(), length);
+  gElement<<<blocks, threads>>>(functor, gTensors, broadcast);
 }
 
 float L2Norm(Tensor in);

@@ -27,7 +27,7 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 # Find packages
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
-  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
+  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} tcmalloc_minimal)
 endif(CUDA_FOUND)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
