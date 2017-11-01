@@ -775,13 +775,15 @@ public:
                                           nodes[2]->shape()[2],
                                           nodes[2]->shape()[3]));
 
+    /* @TODO: does not compile
     CUDNN_CALL(cudnnGetConvolution2dForwardOutputDim(convDesc_,
                                                      xDesc_,
                                                      kernelDesc_,
-                                                     shape_.begin(),
-                                                     shape_.begin() + 1,
-                                                     shape_.begin() + 2,
-                                                     shape_.begin() + 3));
+                                                     shape_.data(),
+                                                     shape_.data() + 1,
+                                                     shape_.data() + 2,
+                                                     shape_.data() + 3));
+  */
 
     CUDNN_CALL(cudnnCreateTensorDescriptor(&yDesc_));
     CUDNN_CALL(cudnnSetTensor4dDescriptor(yDesc_,

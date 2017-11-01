@@ -1047,14 +1047,14 @@ public:
                                            padWidth,
                                            strideHeight,
                                            strideWidth));
-
+   /* @TODO: does not compile
     CUDNN_CALL(cudnnGetPooling2dForwardOutputDim(poolingDesc_,
                                                  xDesc_,
                                                  shape_.begin(),
                                                  shape_.begin() + 1,
                                                  shape_.begin() + 2,
                                                  shape_.begin() + 3));
-
+*/
     CUDNN_CALL(cudnnCreateTensorDescriptor(&yDesc_));
     CUDNN_CALL(cudnnSetTensor4dDescriptor(yDesc_,
                                           CUDNN_TENSOR_NCHW,
