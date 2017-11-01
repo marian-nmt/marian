@@ -42,24 +42,225 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
+
+template <int N>
+struct Loop1 {
+  template <class Functor>
+  __device__ static float result(Functor functor,
+                                 const float* in1,
+                                 const int* in1Stride,
+                                 int in1pAcc,
+                                 const int* length,
+                                 const int* dim) {
+    float sum = 0;
+    for(int i = 0; i < *length; ++i) {
+      int in1Acc = in1pAcc + (*dim + i) * *in1Stride;
+      sum += Loop1<N - 1>::result(functor,
+                                  in1,
+                                  in1Stride + 1,
+                                  in1Acc,
+                                  length + 1,
+                                  dim + 1);
+    }
+    return sum;
+  }
+};
+
+template <>
+struct Loop1<1> {
+  template <class Functor>
+  __device__ static float result(Functor functor,
+                                 const float* in1,
+                                 const int* in1Stride,
+                                 int in1pAcc,
+                                 const int* length,
+                                 const int* dim) {
+    float sum = 0;
+    for(int i = 0; i < *length; ++i) {
+      int in1Acc = in1pAcc + (*dim + i) * *in1Stride;
+      sum += functor(in1[in1Acc]);
+    }
+    return sum;
+  }
+};
+
+template <int N, class Functor>
+__device__ inline float loops(Functor functor,
+                              const float* in1,
+                              const int* in1Stride,
+                              const int* length,
+                              const int* dim) {
+  return Loop1<N>::result(functor, in1, in1Stride, 0, length, dim);
+}
+
+
+template <int N>
+struct Loop2 {
+  template <class Functor>
+  __device__ static float result(Functor functor,
+                                 const float* in1,
+                                 const int* in1Stride,
+                                 int in1pAcc,
+                                 const float* in2,
+                                 const int* in2Stride,
+                                 int in2pAcc,
+                                 const int* length,
+                                 const int* dim) {
+    float sum = 0;
+    for(int i = 0; i < *length; ++i) {
+      int in1Acc = in1pAcc + (*dim + i) * *in1Stride;
+      int in2Acc = in2pAcc + (*dim + i) * *in2Stride;
+      sum += Loop2<N - 1>::result(functor,
+                                  in1,
+                                  in1Stride + 1,
+                                  in1Acc,
+                                  in2,
+                                  in2Stride + 1,
+                                  in2Acc,
+                                  length + 1,
+                                  dim + 1);
+    }
+    return sum;
+  }
+};
+
+template <>
+struct Loop2<1> {
+  template <class Functor>
+  __device__ static float result(Functor functor,
+                                 const float* in1,
+                                 const int* in1Stride,
+                                 int in1pAcc,
+                                 const float* in2,
+                                 const int* in2Stride,
+                                 int in2pAcc,
+                                 const int* length,
+                                 const int* dim) {
+    float sum = 0;
+    for(int i = 0; i < *length; ++i) {
+      int in1Acc = in1pAcc + (*dim + i) * *in1Stride;
+      int in2Acc = in2pAcc + (*dim + i) * *in2Stride;
+      sum += functor(in1[in1Acc], in2[in2Acc]);
+    }
+    return sum;
+  }
+};
+
+template <int N, class Functor>
+__device__ inline float loops(Functor functor,
+                              const float* in1,
+                              const int* in1Stride,
+                              const float* in2,
+                              const int* in2Stride,
+                              const int* length,
+                              const int* dim) {
+  return Loop2<N>::result(functor,
+                          in1, in1Stride, 0,
+                          in2, in2Stride, 0,
+                          length, dim);
+}
+
+template <int N>
+struct Loop3 {
+  template <class Functor>
+  __device__ static float result(Functor functor,
+                                 const float* in1,
+                                 const int* in1Stride,
+                                 int in1pAcc,
+                                 const float* in2,
+                                 const int* in2Stride,
+                                 int in2pAcc,
+                                 const float* in3,
+                                 const int* in3Stride,
+                                 int in3pAcc,
+                                 const int* length,
+                                 const int* dim) {
+    float sum = 0;
+    for(int i = 0; i < *length; ++i) {
+      int in1Acc = in1pAcc + (*dim + i) * *in1Stride;
+      int in2Acc = in2pAcc + (*dim + i) * *in2Stride;
+      int in3Acc = in3pAcc + (*dim + i) * *in3Stride;
+      sum += Loop3<N - 1>::result(functor,
+                                  in1,
+                                  in1Stride + 1,
+                                  in1Acc,
+                                  in2,
+                                  in2Stride + 1,
+                                  in2Acc,
+                                  in3,
+                                  in3Stride + 1,
+                                  in3Acc,
+                                  length + 1,
+                                  dim + 1);
+    }
+    return sum;
+  }
+};
+
+template <>
+struct Loop3<1> {
+  template <class Functor>
+  __device__ static float result(Functor functor,
+                                 const float* in1,
+                                 const int* in1Stride,
+                                 int in1pAcc,
+                                 const float* in2,
+                                 const int* in2Stride,
+                                 int in2pAcc,
+                                 const float* in3,
+                                 const int* in3Stride,
+                                 int in3pAcc,
+                                 const int* length,
+                                 const int* dim) {
+    float sum = 0;
+    for(int i = 0; i < *length; ++i) {
+      int in1Acc = in1pAcc + (*dim + i) * *in1Stride;
+      int in2Acc = in2pAcc + (*dim + i) * *in2Stride;
+      int in3Acc = in3pAcc + (*dim + i) * *in3Stride;
+      sum += functor(in1[in1Acc], in2[in2Acc], in3[in3Acc]);
+    }
+    return sum;
+  }
+};
+
+template <int N, class Functor>
+__device__ inline float loops(Functor functor,
+                              const float* in1,
+                              const int* in1Stride,
+                              const float* in2,
+                              const int* in2Stride,
+                              const float* in3,
+                              const int* in3Stride,
+                              const int* length,
+                              const int* dim) {
+  return Loop3<N>::result(functor,
+                          in1, in1Stride, 0,
+                          in2, in2Stride, 0,
+                          in3, in3Stride, 0,
+                          length, dim);
+}
+
+
+
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
                        ShapeGPU outShape,
+
                        const float* in1,
                        const ShapeGPU in1Shape,
+
                        const ShapeGPU full,
                        float scale = 1.0) {
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
 
-  int I = full[0] / outShape[0];
-  int J = full[1] / outShape[1];
-  int K = full[2] / outShape[2];
-  int L = full[3] / outShape[3];
+  constexpr size_t num = ShapeGPU::size();
+  int len[num];
+  for(int i = 0; i < num; ++i)
+    len[i] = full[i] / outShape[i];
 
-  int dims[4];
-  int dimsFull[4];
+  int dims[num];
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
@@ -67,22 +268,11 @@ __global__ void gAddR2(Functor functor,
         out[index] += functor(in1[index]) * scale;
       } else {
         outShape.dims(index, dims);
-        float sum = 0;
-        for(int i = 0; i < I; ++i) {
-          for(int j = 0; j < J; ++j) {
-            for(int k = 0; k < K; ++k) {
-              for(int l = 0; l < L; ++l) {
-                dimsFull[0] = dims[0] + i;
-                dimsFull[1] = dims[1] + j;
-                dimsFull[2] = dims[2] + k;
-                dimsFull[3] = dims[3] + l;
 
-                int in1Index = in1Shape.bindex(dimsFull);
-                sum += functor(in1[in1Index]);
-              }
-            }
-          }
-        }
+        float sum = loops<num>(functor,
+                               in1, in1Shape.bstride_,
+                               len, dims);
+
         if(sum)
           out[index] += sum * scale;
       }
@@ -90,61 +280,6 @@ __global__ void gAddR2(Functor functor,
   }
 }
 
-
-//template <class Functor>
-//__global__ void gAddR2(Functor functor,
-//                       float* out,
-//                       const ShapeGPU outShape,
-//                       const float* in1,
-//                       const ShapeGPU in1Shape,
-//                       const ShapeGPU full,
-//                       float scale = 1.0) {
-//  int outLength = outShape.elements();
-//  bool same = outLength == full.elements() && outLength == in1Shape.elements();
-//
-//  constexpr size_t num = ShapeGPU::size();
-//
-//  int len[num];
-//  for(int i = 0; i < num; ++i)
-//    len[i] = full[i] / outShape[i];
-//
-//  int dims[num];
-//  int dimsFull[num];
-//
-//  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
-//    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-//    if(index < outLength) {
-//      if(same) {
-//        out[index] += functor(in1[index]) * scale;
-//      } else {
-//
-//        outShape.dims(index, dims);
-//        float sum = 0;
-//
-//        for(int i = 0; i < full.elements() / outShape.elements(); ++i) {
-//
-//          int l = i;
-//          for(int j = num - 1; j >= 0; --j) {
-//            int shift = l % len[j];
-//            dimsFull[j] = dims[j] + shift;
-//            if(j == num - 1)
-//              l -= shift;
-//            else
-//              l -= shift * len[j + 1];
-//          }
-//
-//          int in1Index = in1Shape.bindex(dimsFull);
-//          sum += functor(in1[in1Index]);
-//        }
-//
-//        if(sum) {
-//          out[index] += sum * scale;
-//        }
-//
-//      }
-//    }
-//  }
-//}
 
 template <class Functor>
 __global__ void gAddR2Eq(Functor functor,
@@ -305,7 +440,6 @@ __global__ void gAddR3(Functor functor,
     len[i] = full[i] / outShape[i];
 
   int dims[num];
-  int dimsFull[num];
 
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -315,24 +449,11 @@ __global__ void gAddR3(Functor functor,
       } else {
 
         outShape.dims(index, dims);
-        float sum = 0;
 
-        for(int i = 0; i < full.elements() / outShape.elements(); ++i) {
-
-          int l = i;
-          for(int j = num - 1; j >= 0; --j) {
-            int shift = l % len[j];
-            dimsFull[j] = dims[j] + shift;
-            if(j == num - 1)
-              l -= shift;
-            else
-              l -= shift * len[j + 1];
-          }
-
-          int in1Index = in1Shape.bindex(dimsFull);
-          int in2Index = in2Shape.bindex(dimsFull);
-          sum += functor(in1[in1Index], in2[in2Index]);
-        }
+        float sum = loops<num>(functor,
+                               in1, in1Shape.bstride_,
+                               in2, in2Shape.bstride_,
+                               len, dims);
 
         if(sum) {
           out[index] += sum * scale;
@@ -526,7 +647,6 @@ __global__ void gAddR4(Functor functor,
     len[i] = full[i] / outShape[i];
 
   int dims[num];
-  int dimsFull[num];
 
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -536,24 +656,12 @@ __global__ void gAddR4(Functor functor,
       } else {
 
         outShape.dims(index, dims);
-        float sum = 0;
-        for(int i = 0; i < full.elements() / outShape.elements(); ++i) {
 
-          int l = i;
-          for(int j = num - 1; j >= 0; --j) {
-            int shift = l % len[j];
-            dimsFull[j] = dims[j] + shift;
-            if(j == num - 1)
-              l -= shift;
-            else
-              l -= shift * len[j + 1];
-          }
-
-          int in1Index = in1Shape.bindex(dimsFull);
-          int in2Index = in2Shape.bindex(dimsFull);
-          int in3Index = in3Shape.bindex(dimsFull);
-          sum += functor(in1[in1Index], in2[in2Index], in3[in3Index]);
-        }
+        float sum = loops<num>(functor,
+                               in1, in1Shape.bstride_,
+                               in2, in2Shape.bstride_,
+                               in3, in3Shape.bstride_,
+                               len, dims);
         if(sum)
           out[index] += sum;
       }
