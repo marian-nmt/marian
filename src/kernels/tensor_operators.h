@@ -27,6 +27,50 @@ class TensorGPU;
 
 cublasHandle_t create_handle(size_t);
 
+template <size_t K, class Functor>
+__global__ void gElement(Functor functor,
+                         gpu::Array<gpu::Tensor<float>, K> tensors,
+                         bool broadcast) {
+
+  int length = tensors[0].shape().elements();
+  gpu::Array<int, gpu::Shape::size()> dims;
+  gpu::Array<int, K> indices;
+
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      if(broadcast) {
+        tensors[0].shape().dims(index, dims);
+        indices[0] = index;
+        for(int i = 1; i < K; ++i)
+          indices[i] = tensors[i].shape().bindex(dims);
+        tensors[0][index] = gpu::apply(functor, tensors, indices);
+      }
+      else {
+        tensors[0][index] = gpu::apply(functor, tensors, index);
+      }
+    }
+  }
+}
+
+template <class Functor, class ...Tensors>
+void Element(Functor functor, Tensor out, Tensors ...tensors) {
+  cudaSetDevice(out->getDevice());
+
+  constexpr size_t K = sizeof...(tensors) + 1;
+  gpu::Array<gpu::Tensor<float>, K> gTensors = {out, tensors...};
+
+  int length = gTensors[0].shape().elements();
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  bool broadcast = false;
+  for(int i = 1; i < K; ++i)
+    broadcast = broadcast || gTensors[0].shape() != gTensors[i].shape();
+
+  gElement<<<blocks, threads>>>(functor, gTensors, broadcast);
+}
+
 void Transpose4D(Tensor out, Tensor in, Shape tranpose);
 
 void Select(Ptr<Allocator<DeviceGPU>> allocator,
@@ -169,20 +213,15 @@ void Add(Functor functor,
          Tensors... tensors) {
   cudaSetDevice(out->getDevice());
 
-  std::vector<Tensor> vTensors({tensors...});
-  vTensors.push_back(out);
-
-  Shape full = Shape::broadcast(vTensors);
+  Shape full = Shape::broadcast({tensors...});
 
   int length = out->shape().elements();
 
   constexpr size_t K = sizeof...(Tensors);
 
   gpu::Tensor<float> gOut = out;
-  gpu::Array<gpu::Tensor<float>, K> gIns;
-  for(int i = 0; i < K; ++i)
-    gIns[i] = vTensors[i];
-
+  gpu::Array<gpu::Tensor<float>, K> gIns = {tensors...};
+  
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
     size_t k = full.back();
@@ -234,50 +273,6 @@ void Reduce(Functor functor,
             Tensors... tensors) {
   out->set(0);
   Add(functor, out, tensors...);
-}
-
-template <size_t K, class Functor>
-__global__ void gElement(Functor functor,
-                         gpu::Array<gpu::Tensor<float>, K> tensors,
-                         bool broadcast) {
-
-  int length = tensors[0].shape().elements();
-  gpu::Array<int, gpu::Shape::size()> dims;
-  gpu::Array<int, K> indices;
-
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      if(broadcast) {
-        tensors[0].shape().dims(index, dims);
-        indices[0] = index;
-        for(int i = 1; i < K; ++i)
-          indices[i] = tensors[i].shape().bindex(dims);
-        tensors[0][index] = gpu::apply(functor, tensors, indices);
-      }
-      else {
-        tensors[0][index] = gpu::apply(functor, tensors, index);
-      }
-    }
-  }
-}
-
-template <class Functor, class ...Tensors>
-void Element(Functor functor, Tensor out, Tensors ...tensors) {
-  cudaSetDevice(out->getDevice());
-
-  constexpr size_t K = sizeof...(tensors) + 1;
-  gpu::Array<gpu::Tensor<float>, K> gTensors = {out, tensors...};
-
-  int length = gTensors[0].shape().elements();
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-  bool broadcast = false;
-  for(int i = 1; i < K; ++i)
-    broadcast = broadcast || gTensors[0].shape() != gTensors[i].shape();
-
-  gElement<<<blocks, threads>>>(functor, gTensors, broadcast);
 }
 
 float L2Norm(Tensor in);
