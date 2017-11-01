@@ -45,7 +45,7 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 template <class Functor>
 __global__ void gAddR2(Functor functor,
                        float* out,
-                       const ShapeGPU outShape,
+                       ShapeGPU outShape,
                        const float* in1,
                        const ShapeGPU in1Shape,
                        const ShapeGPU full,
@@ -53,49 +53,98 @@ __global__ void gAddR2(Functor functor,
   int outLength = outShape.elements();
   bool same = outLength == full.elements() && outLength == in1Shape.elements();
 
-  constexpr size_t num = ShapeGPU::size();
+  int I = full[0] / outShape[0];
+  int J = full[1] / outShape[1];
+  int K = full[2] / outShape[2];
+  int L = full[3] / outShape[3];
 
-  int len[num];
-  for(int i = 0; i < num; ++i)
-    len[i] = full[i] / outShape[i];
-
-  int dims[num];
-  int dimsFull[num];
-
+  int dims[4];
+  int dimsFull[4];
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
       if(same) {
         out[index] += functor(in1[index]) * scale;
       } else {
-
         outShape.dims(index, dims);
         float sum = 0;
+        for(int i = 0; i < I; ++i) {
+          for(int j = 0; j < J; ++j) {
+            for(int k = 0; k < K; ++k) {
+              for(int l = 0; l < L; ++l) {
+                dimsFull[0] = dims[0] + i;
+                dimsFull[1] = dims[1] + j;
+                dimsFull[2] = dims[2] + k;
+                dimsFull[3] = dims[3] + l;
 
-        for(int i = 0; i < full.elements() / outShape.elements(); ++i) {
-
-          int l = i;
-          for(int j = num - 1; j >= 0; --j) {
-            int shift = l % len[j];
-            dimsFull[j] = dims[j] + shift;
-            if(j == num - 1)
-              l -= shift;
-            else
-              l -= shift * len[j + 1];
+                int in1Index = in1Shape.bindex(dimsFull);
+                sum += functor(in1[in1Index]);
+              }
+            }
           }
-
-          int in1Index = in1Shape.bindex(dimsFull);
-          sum += functor(in1[in1Index]);
         }
-
-        if(sum) {
+        if(sum)
           out[index] += sum * scale;
-        }
-
       }
     }
   }
 }
+
+
+//template <class Functor>
+//__global__ void gAddR2(Functor functor,
+//                       float* out,
+//                       const ShapeGPU outShape,
+//                       const float* in1,
+//                       const ShapeGPU in1Shape,
+//                       const ShapeGPU full,
+//                       float scale = 1.0) {
+//  int outLength = outShape.elements();
+//  bool same = outLength == full.elements() && outLength == in1Shape.elements();
+//
+//  constexpr size_t num = ShapeGPU::size();
+//
+//  int len[num];
+//  for(int i = 0; i < num; ++i)
+//    len[i] = full[i] / outShape[i];
+//
+//  int dims[num];
+//  int dimsFull[num];
+//
+//  for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
+//    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+//    if(index < outLength) {
+//      if(same) {
+//        out[index] += functor(in1[index]) * scale;
+//      } else {
+//
+//        outShape.dims(index, dims);
+//        float sum = 0;
+//
+//        for(int i = 0; i < full.elements() / outShape.elements(); ++i) {
+//
+//          int l = i;
+//          for(int j = num - 1; j >= 0; --j) {
+//            int shift = l % len[j];
+//            dimsFull[j] = dims[j] + shift;
+//            if(j == num - 1)
+//              l -= shift;
+//            else
+//              l -= shift * len[j + 1];
+//          }
+//
+//          int in1Index = in1Shape.bindex(dimsFull);
+//          sum += functor(in1[in1Index]);
+//        }
+//
+//        if(sum) {
+//          out[index] += sum * scale;
+//        }
+//
+//      }
+//    }
+//  }
+//}
 
 template <class Functor>
 __global__ void gAddR2Eq(Functor functor,

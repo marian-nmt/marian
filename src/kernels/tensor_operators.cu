@@ -183,7 +183,6 @@ __global__ void gTranspose4D(float* out,
       int inIndex = inShape.index(dims2);
 
       out[index] = in[inIndex];
-      out[index] = in[index];
     }
   }
 }
