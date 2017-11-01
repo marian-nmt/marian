@@ -10,6 +10,30 @@
 
 namespace marian {
 
+class PrintingStrategy {
+public:
+  virtual bool shouldBePrinted(long) = 0;
+};
+
+class GeometricPrinting : public PrintingStrategy {
+public:
+  bool shouldBePrinted(long id) {
+    if(id == 0)
+      next_ = start_;
+    if(id <= 5)
+      return true;
+    if(next_ == id) {
+      next_ += next_;
+      return true;
+    }
+    return false;
+  }
+
+private:
+  size_t start_{10};
+  long next_{10};
+};
+
 class OutputCollector {
 public:
   OutputCollector();
@@ -24,6 +48,10 @@ public:
              const std::string& bestn,
              bool nbest);
 
+  void setPrintingStrategy(Ptr<PrintingStrategy> strategy) {
+    printing_ = strategy;
+  }
+
 protected:
   UPtr<OutputFileStream> outStrm_;
   boost::mutex mutex_;
@@ -31,6 +59,8 @@ protected:
 
   typedef std::map<long, std::pair<std::string, std::string>> Outputs;
   Outputs outputs_;
+
+  Ptr<PrintingStrategy> printing_;
 };
 
 class StringCollector {
