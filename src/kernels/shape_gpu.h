@@ -8,6 +8,8 @@
 
 namespace marian {
 
+namespace gpu {
+
 #define GPU_SHAPE_DIMS 4
 
 /**
@@ -16,18 +18,18 @@ namespace marian {
 
 
 template <const int N>
-struct ConstantShapeGPU {
+struct ConstantShape {
   int shape_[N];
   int stride_[N];
   int bstride_[N];
 
-  ConstantShapeGPU(const ConstantShapeGPU& shape) {
+  ConstantShape(const ConstantShape& shape) {
     std::copy(shape.shape_, shape.shape_ + N, shape_);
     std::copy(shape.stride_, shape.stride_ + N, stride_);
     std::copy(shape.bstride_, shape.bstride_ + N, bstride_);
   }
 
-  ConstantShapeGPU(const Shape& shape) {
+  ConstantShape(const Shape& shape) {
     size_t filled = shape.size();
 
     ABORT_IF(filled > N,
@@ -58,7 +60,7 @@ struct ConstantShapeGPU {
   __device__ inline int dim(int i) { return shape_[i]; }
 
   __device__ inline int dim(int i) const {
-    return const_cast<ConstantShapeGPU&>(*this).dim(i);
+    return const_cast<ConstantShape&>(*this).dim(i);
   }
 
   __device__ inline int back() const { return dim(N - 1); }
@@ -99,18 +101,20 @@ struct ConstantShapeGPU {
       d[j] = (i / stride_[j]) % shape_[j];
     }
 
-  __device__ bool operator==(const ConstantShapeGPU& other) const {
+  __device__ bool operator==(const ConstantShape& other) const {
     for(int i = 0; i < N; ++i)
       if(shape_[i] != other[i])
         return false;
     return true;
   }
 
-  __device__ bool operator!=(const ConstantShapeGPU& other) const {
+  __device__ bool operator!=(const ConstantShape& other) const {
     return !(*this == other);
   }
 };
 
-typedef ConstantShapeGPU<GPU_SHAPE_DIMS> ShapeGPU;
+typedef ConstantShape<GPU_SHAPE_DIMS> Shape;
+
+}
 
 }

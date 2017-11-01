@@ -162,13 +162,13 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
 }
 
 __global__ void gTranspose4D(float* out,
-                             ShapeGPU outShape,
+                             gpu::Shape outShape,
                              const float* in,
-                             const ShapeGPU inShape,
-                             const ShapeGPU permute) {
+                             const gpu::Shape inShape,
+                             const gpu::Shape permute) {
   int length = outShape.elements();
 
-  constexpr int num = ShapeGPU::size();
+  constexpr int num = gpu::Shape::size();
   int dims1[num];
   int dims2[num];
 
@@ -191,9 +191,9 @@ void Transpose4D(Tensor out, Tensor in, Shape permute) {
   cudaSetDevice(out->getDevice());
 
   Shape permuteGPU;
-  permuteGPU.resize(ShapeGPU::size());
+  permuteGPU.resize(gpu::Shape::size());
 
-  int diff = ShapeGPU::size() - permute.size();
+  int diff = gpu::Shape::size() - permute.size();
   for(int i = 0; i < permuteGPU.size(); ++i)
     if(i < diff)
       permuteGPU.set(i, i);
@@ -208,15 +208,15 @@ void Transpose4D(Tensor out, Tensor in, Shape permute) {
 }
 
 __global__ void gSoftmax(float* out,
-                         ShapeGPU outShape,
+                         gpu::Shape outShape,
                          const float* in,
                          const float* mask,
-                         const ShapeGPU maskShape) {
+                         const gpu::Shape maskShape) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
 
   bool broadcast = outShape != maskShape;
-  int dims[ShapeGPU::size()];
+  int dims[gpu::Shape::size()];
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -324,7 +324,7 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
 }
 
 __global__ void gLogSoftmax(float* out,
-                            const ShapeGPU outShape,
+                            const gpu::Shape outShape,
                             const float* in) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
@@ -836,13 +836,13 @@ void PasteCols(Tensor out,
 }
 
 __global__ void gSelect(float* out,
-                        ShapeGPU outShape,
+                        gpu::Shape outShape,
                         const float* in,
-                        const ShapeGPU inShape,
+                        const gpu::Shape inShape,
                         int axis,
                         size_t* d_indices) {
   int length = outShape.elements();
-  int dims[ShapeGPU::size()];
+  int dims[gpu::Shape::size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -856,13 +856,13 @@ __global__ void gSelect(float* out,
 }
 
 __global__ void gInsert(float* out,
-                        ShapeGPU outShape,
+                        gpu::Shape outShape,
                         const float* in,
-                        const ShapeGPU inShape,
+                        const gpu::Shape inShape,
                         int axis,
                         size_t* d_indices) {
   int length = inShape.elements();
-  int dims[ShapeGPU::size()];
+  int dims[gpu::Shape::size()];
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -890,7 +890,7 @@ void Select(Ptr<Allocator<DeviceGPU>> allocator,
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   mp_indices->insert(indices.data(), indices.size());
 
-  int axisGPU = axis + ShapeGPU::size() - out->shape().size();
+  int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
@@ -916,7 +916,7 @@ void Insert(Ptr<Allocator<DeviceGPU>> allocator,
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   mp_indices->insert(indices.data(), indices.size());
 
-  int axisGPU = axis + ShapeGPU::size() - out->shape().size();
+  int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
@@ -1109,9 +1109,9 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 }
 
 __global__ void gCrossEntropyPick(float* out,
-                                  const ShapeGPU outShape,
+                                  const gpu::Shape outShape,
                                   const float* in,
-                                  const ShapeGPU inShape,
+                                  const gpu::Shape inShape,
                                   const float* pick) {
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
@@ -1193,7 +1193,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
-                                          const ShapeGPU outShape,
+                                          const gpu::Shape outShape,
                                           const float* adj,
                                           const float* in,
                                           const float* pick) {
