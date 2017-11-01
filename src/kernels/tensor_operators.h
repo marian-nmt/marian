@@ -213,14 +213,14 @@ void Add(Functor functor,
          Tensors... tensors) {
   cudaSetDevice(out->getDevice());
 
-  Shape full = Shape::broadcast({tensors...});
+  Shape full = Shape::broadcast({out, tensors...});
 
   int length = out->shape().elements();
 
   constexpr size_t K = sizeof...(Tensors);
 
   gpu::Tensor<float> gOut = out;
-  gpu::Array<gpu::Tensor<float>, K> gIns = {tensors...};
+  gpu::Array<gpu::Tensor<float>, K> gIns = {tensors ...};
   
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
