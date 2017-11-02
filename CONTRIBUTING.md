@@ -34,10 +34,10 @@ The changes from `develop` are merged with `master`, and after that the
 `VERSION` file should be updated.
 
 Ideally test your changes by running [Marian regression
-tests](http://github.com/marian-nmt/marian-dev-regression-tests.git) locally:
+tests](http://github.com/marian-nmt/marian-regression-tests.git) locally:
 
-    git clone http://github.com/marian-nmt/marian-dev-regression-tests.git
-    cd marian-dev-regression-tests.git
+    git clone http://github.com/marian-nmt/marian-regression-tests.git
+    cd marian-regression-tests.git
     make BRANCH=<your_branch_name> install
     ./run_mrt.sh
 
