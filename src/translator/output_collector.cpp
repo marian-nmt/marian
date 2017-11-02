@@ -14,7 +14,7 @@ void OutputCollector::Write(long sourceId,
                             bool nbest) {
   boost::mutex::scoped_lock lock(mutex_);
   if(sourceId == nextId_) {
-    if(printing_ && printing_->shouldBePrinted(sourceId))
+    if(!printing_ || printing_->shouldBePrinted(sourceId))
       LOG(info, "Best translation {} : {}", sourceId, best1);
 
     if(nbest)
@@ -32,7 +32,7 @@ void OutputCollector::Write(long sourceId,
       if(currId == nextId_) {
         // 1st element in the map is the next
         const auto& currOutput = iter->second;
-        if(printing_ && printing_->shouldBePrinted(sourceId))
+        if(!printing_ || printing_->shouldBePrinted(sourceId))
           LOG(info, "Best translation {} : {}", currId, currOutput.first);
         if(nbest)
           ((std::ostream&)*outStrm_) << currOutput.second << std::endl;
