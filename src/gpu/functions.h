@@ -111,6 +111,8 @@ namespace marian {
       return (float(0) < val) - (val < float(0));
     }
 
+    UNARY(Sgn, sgn, sgn(x));
+
     BINARY(Pow, pow, pow(x, y));
 
     BINARY(Clip, clip, fabs(x) >= y ? sgn(x) * y : x);

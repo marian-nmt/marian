@@ -9,14 +9,11 @@ int main(int argc, char** argv) {
 
   ref<1> x;
   ref<2> y;
-  auto func = x = if_then_else(x > y, x + y, y);
+  auto clip = if_then_else(abs(x) > 1, sgn(x), x);
 
-  float a = 1;
-  float b = 1;
-  std::cerr << func(a, 0.1f) << " " << sizeof(func) << std::endl;
-  std::cerr << func(b, 1.2f) << " " << sizeof(func) << std::endl;
-
-  std::cerr << a << " " << b << std::endl;
+  std::cerr << clip(2.f) << " " << sizeof(clip) << std::endl;
+  std::cerr << clip(-2.f) << " " << sizeof(clip) << std::endl;
+  std::cerr << clip(-0.2f) << " " << sizeof(clip) << std::endl;
 
   return 0;
 }
