@@ -7,11 +7,17 @@ int main(int argc, char** argv) {
 
   using namespace marian::functional;
 
-  auto func = _1 = tanh(_2) * 3;
+  ref<1> x;
+  ref<2> y;
+  auto func = x = if_then_else(x > y, x + y, y);
 
-  float z;
-  std::cerr << func(z, 2.f) << " " << sizeof(func) << std::endl;
-  std::cerr << z << " " << std::endl;
+  float a = 1;
+  float b = 1;
+  std::cerr << func(a, 0.1f) << " " << sizeof(func) << std::endl;
+  std::cerr << func(b, 1.2f) << " " << sizeof(func) << std::endl;
+
+  std::cerr << a << " " << b << std::endl;
+
   return 0;
 }
 
