@@ -1,11 +1,12 @@
 #include "optimizers.h"
 
 #include "kernels/tensor_operators.h"
-#include "kernels/thrust_functions.h"
+#include "gpu/functions.h"
 
 namespace marian {
 void Sgd::updateImpl(Tensor params, Tensor grads) {
-  Element(_1 -= (multiplyFactor_ * eta_) * _2, params, grads);
+  using namespace functional;
+  Element(_1 = _1 - (multiplyFactor_ * eta_) * _2, params, grads);
 
   cudaStreamSynchronize(0);
 }
@@ -21,9 +22,11 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
     gt_->set(0);
   }
 
-  Element(_1 += (_2 * _2), gt_, grads);
+  using namespace functional;
 
-  Element(_1 -= ((multiplyFactor_ * eta_) / (Sqrt(_2) + eps_)) * _3,
+  Element(_1 = _1 + (_2 * _2), gt_, grads);
+
+  Element(_1 = _1 - ((multiplyFactor_ * eta_) / (sqrt(_2) + eps_)) * _3,
           params,
           gt_,
           grads);
@@ -55,11 +58,13 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
   float denom1 = 1 - std::pow(beta1_, t_);
   float denom2 = 1 - std::pow(beta2_, t_);
 
+  using namespace functional;
+
   Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2), mt_, grads);
   Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)), vt_, grads);
 
-  Element(_1 -= (multiplyFactor_ * eta_) * (_2 / denom1)
-                / (Sqrt(_3 / denom2) + eps_),
+  Element(_1 = _1 - (multiplyFactor_ * eta_) * (_2 / denom1)
+                / (sqrt(_3 / denom2) + eps_),
           params,
           mt_,
           vt_);

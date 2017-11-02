@@ -1,17 +1,10 @@
 #pragma once
 
-#include <cuda.h>
+#include "gpu/defs.h"
 
 namespace marian {
 
 namespace gpu {
-
-#define __H__ __host__
-#define __D__ __device__
-#define __HI__ __host__ inline
-#define __DI__ __device__ inline
-#define __HD__ __host__ __device__
-#define __HDI__ __host__ __device__ inline
 
 template <typename T, size_t N>
 struct Array {

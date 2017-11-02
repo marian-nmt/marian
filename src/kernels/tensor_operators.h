@@ -2,7 +2,6 @@
 
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
-#include <thrust/functional.h>
 #include <thrust/host_vector.h>
 #include <thrust/pair.h>
 
@@ -25,10 +24,9 @@ const int MAX_BLOCKS = 65535;
 
 cublasHandle_t create_handle(size_t);
 
-template <size_t K, class Functor>
+template <size_t K, bool broadcast, class Functor>
 __global__ void gElement(Functor functor,
-                         gpu::Array<gpu::Tensor<float>, K> tensors,
-                         bool broadcast) {
+                         gpu::Array<gpu::Tensor<float>, K> tensors) {
 
   int length = tensors[0].shape().elements();
   gpu::Array<int, gpu::Shape::size()> dims;
@@ -37,16 +35,16 @@ __global__ void gElement(Functor functor,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
+
+      indices.fill(index);
+
       if(broadcast) {
         tensors[0].shape().dims(index, dims);
-        indices[0] = index;
         for(int i = 1; i < K; ++i)
           indices[i] = tensors[i].shape().bindex(dims);
-        tensors[0][index] = gpu::apply(functor, tensors, indices);
       }
-      else {
-        tensors[0][index] = gpu::apply(functor, tensors, index);
-      }
+
+      tensors[0][index] = gpu::apply(functor, tensors, indices);
     }
   }
 }
@@ -66,7 +64,10 @@ void Element(Functor functor, Tensor out, Tensors ...tensors) {
   for(int i = 1; i < K; ++i)
     broadcast = broadcast || gTensors[0].shape() != gTensors[i].shape();
 
-  gElement<<<blocks, threads>>>(functor, gTensors, broadcast);
+  if(broadcast)
+    gElement<K, true><<<blocks, threads>>>(functor, gTensors);
+  else
+    gElement<K, false><<<blocks, threads>>>(functor, gTensors);
 }
 
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis);

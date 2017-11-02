@@ -1,31 +1,44 @@
-#include <boost/timer/timer.hpp>
 #include <iostream>
-#include <map>
 
-#include "marian.h"
-#include "rnn/rnn.h"
+#include "gpu/placeholders.h"
+#include "gpu/functions.h"
 
 int main(int argc, char** argv) {
-  using namespace marian;
-  using namespace keywords;
 
-  auto graph = New<ExpressionGraph>();
-  graph->setDevice(0);
+  using namespace marian::functional;
 
-  auto in1 = graph->constant({2, 2, 4}, init=inits::from_value(1));
-  auto in2 = graph->constant({2, 2, 4}, init=inits::from_value(2));
-  auto in3 = graph->constant({2, 2, 4}, init=inits::from_value(3));
-  auto in4 = graph->constant({2, 2, 4}, init=inits::from_value(4));
+  auto func = _1 = tanh(_2) * 3;
 
-  auto out = concatenate({in1, in2, in3, in4}, axis=1);
-
-  debug(in1, "in1");
-  debug(in2, "in2");
-  debug(in3, "in3");
-  debug(in4, "in4");
-  debug(out, "out");
-
-  graph->forward();
-
+  float z;
+  std::cerr << func(z, 2.f) << " " << sizeof(func) << std::endl;
+  std::cerr << z << " " << std::endl;
   return 0;
 }
+
+/*
+
+struct SwishNodeOp : public UnaryNodeOp {
+  template <typename... Args>
+  SwishNodeOp(Args... args) : UnaryNodeOp(args...) {}
+
+  NodeOps forwardOps() {
+
+    using namespace gpu::m;
+    ref<1> x;
+    auto swish = x * logit(x);
+
+    return {NodeOp(Element(swish, val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() {
+
+    using namespace gpu::m;
+    ref<0> dJdf;
+    ref<1> x;
+    ref<2> f;
+    auto dJdx = dJdf * (f + logit(x) * (1 - f));
+
+    return {NodeOp(Add(dJdx, child(0)->grad(), adj_, child(0)->val(), val_))};
+  }
+
+ */

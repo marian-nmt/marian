@@ -1,7 +1,7 @@
 #include "training/graph_group_async.h"
 
 #include "kernels/tensor_operators.h"
-#include "kernels/thrust_functions.h"
+#include "gpu/functions.h"
 
 namespace marian {
 
@@ -72,6 +72,7 @@ void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                           Tensor params,
                                           size_t batches) {
   float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
+  using namespace functional;
   Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
 }
 

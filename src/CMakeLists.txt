@@ -16,7 +16,7 @@ cuda_add_library(marian
   tensors/memory_piece.cu
   kernels/tensor_operators.cu
   kernels/dropout.cu
-  kernels/sparse.cu
+#  kernels/sparse.cu
   layers/param_initializers.cu
   layers/generic.cpp
   layers/guided_alignment.cpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/defs.h"
 #include "gpu/tensor.h"
 #include "gpu/array.h"
 
