@@ -90,7 +90,7 @@ reduceBlock(volatile float *sdata, float mySum, const unsigned int tid)
 
 template <unsigned int blockSize, bool nIsPow2, class Functor>
 __device__ void
-reduceBlocks(Functor f, const float *g_idata, float *g_odata, unsigned int n)
+reduceBlocks(Functor f, float *g_idata, float *g_odata, unsigned int n)
 {
     extern __shared__ float sdata[];
 
@@ -147,7 +147,7 @@ cudaError_t setRetirementCount(int retCnt)
 // the "reduction" sample in the CUDA SDK.
 
 template <unsigned int blockSize, bool nIsPow2, class Functor>
-__global__ void reduceSinglePass(Functor f, const float *g_idata, float *g_odata, unsigned int n)
+__global__ void reduceSinglePass(Functor f, float *g_idata, float *g_odata, unsigned int n)
 {
 
     //

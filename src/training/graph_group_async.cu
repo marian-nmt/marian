@@ -185,7 +185,8 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         accGradients->set(0);
       }
 
-      Element(_1 += _2, accGradients, graph->params()->grads());
+      using namespace functional;
+      Element(_1 = _1 + _2, accGradients, graph->params()->grads());
       gradients = accGradients;
 
       // Keep track of how many words we've calculated the error from

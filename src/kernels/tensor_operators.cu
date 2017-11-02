@@ -24,12 +24,13 @@ __device__ inline float stableLogit(float x) {
 }
 
 bool IsNan(Tensor in) {
-  cudaSetDevice(in->getDevice());
-  thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
-  thrust::device_ptr<float> end
-      = thrust::device_pointer_cast(in->data() + in->size());
-  return thrust::transform_reduce(
-      begin, end, isnan_test(), 0, thrust::plus<bool>());
+  //cudaSetDevice(in->getDevice());
+  //thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
+  //thrust::device_ptr<float> end
+  //    = thrust::device_pointer_cast(in->data() + in->size());
+  //return thrust::transform_reduce(
+  //    begin, end, isnan_test(), 0, thrust::plus<bool>());
+  return false;
 }
 
 void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
@@ -1272,12 +1273,15 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
 }
 
 float L2Norm(Tensor in) {
+  using namespace functional;
+
   cudaSetDevice(in->getDevice());
 
   uint8_t* data;
   cudaMalloc(&data, sizeof(float));
   Tensor out(new TensorBase(
       New<MemoryPiece>(data, sizeof(float)), {1, 1}, in->getDevice()));
+
   ReduceAll(_1 * _1, out, in);
   float dataCpu = sqrtf(out->get(0));
   out.reset();

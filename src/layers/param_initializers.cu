@@ -142,6 +142,8 @@ std::function<void(Tensor)> from_word2vec(const std::string& file,
                                           int dimVoc,
                                           int dimEmb,
                                           bool normalize /*= false*/) {
+  using namespace functional;
+
   return [file, dimVoc, dimEmb, normalize](Tensor t) {
     auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
     t->set(embs);

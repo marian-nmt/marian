@@ -15,6 +15,7 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                          Tensor params,
                                          size_t batches) {
+  using namespace functional;
   float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
   Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
 }
@@ -130,7 +131,9 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
         if(batches[i]->size() > 0) {
           auto subGrad = graph->params()->grads()->subtensor(pos, size);
           tmpTensors_[idx]->copyFrom(subGrad);
-          Element(_1 += _2, grads_[idx], tmpTensors_[idx]);
+
+          using namespace functional;
+          Element(_1 = _1 + _2, grads_[idx], tmpTensors_[idx]);
         }
         i++;
       }

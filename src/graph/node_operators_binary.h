@@ -193,6 +193,8 @@ struct AffineNodeOp : public NaryNodeOp {
   }
 
   NodeOps forwardOps() {
+    using namespace functional;
+
     return {
       NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
                       ->getCublasHandle(),
@@ -207,6 +209,8 @@ struct AffineNodeOp : public NaryNodeOp {
   }
 
   NodeOps backwardOps() {
+    using namespace functional;
+
     // D is the adjoint, the matrix of derivatives
     // df/dA += D*B.T
     // df/dB += A.T*D
@@ -405,10 +409,14 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   }
 
   NodeOps forwardOps() {
+    using namespace functional;
+
     return {NodeOp(Reduce(_1 * _2, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
+    using namespace functional;
+
     return {NodeOp(Add(_1 * _2, child(0)->grad(), child(1)->val(), adj_)),
             NodeOp(Add(_1 * _2, child(1)->grad(), child(0)->val(), adj_))};
   }
@@ -435,11 +443,15 @@ struct PlusNodeOp : public ElementBinaryNodeOp {
   PlusNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
+    using namespace functional;
+
     return {
         NodeOp(Element(_1 = _2 + _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
+    using namespace functional;
+
     return {NodeOp(Add(_1, child(0)->grad(), adj_)),
             NodeOp(Add(_1, child(1)->grad(), adj_))};
   }
@@ -452,11 +464,15 @@ struct MinusNodeOp : public ElementBinaryNodeOp {
   MinusNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
+    using namespace functional;
+
     return {
         NodeOp(Element(_1 = _2 - _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
+    using namespace functional;
+
     return {NodeOp(Add(_1, child(0)->grad(), adj_)),
             NodeOp(Add(-_1, child(1)->grad(), adj_))};
   }
@@ -469,11 +485,15 @@ struct MultNodeOp : public ElementBinaryNodeOp {
   MultNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
+    using namespace functional;
+
     return {
         NodeOp(Element(_1 = _2 * _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
+    using namespace functional;
+
     return {NodeOp(Add(_1 * _2, child(0)->grad(), adj_, child(1)->val())),
             NodeOp(Add(_1 * _2, child(1)->grad(), adj_, child(0)->val()))};
   }
@@ -486,11 +506,15 @@ struct DivNodeOp : public ElementBinaryNodeOp {
   DivNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
 
   NodeOps forwardOps() {
+    using namespace functional;
+
     return {
         NodeOp(Element(_1 = _2 / _3, val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
+    using namespace functional;
+
     return {
         NodeOp(Add(_1 * 1.0f / _2, child(0)->grad(), adj_, child(1)->val())),
         NodeOp(Add(-_1 * _2 / (_3 * _3),

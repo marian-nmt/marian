@@ -1,8 +1,7 @@
 #pragma once
 
 #include <cublas_v2.h>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
+
 #include <thrust/pair.h>
 
 #include "tensors/tensor.h"
@@ -13,12 +12,12 @@
 #include "gpu/shape.h"
 #include "gpu/tmp.h"
 #include "gpu/tensor.h"
+#include "gpu/functions.h"
 
 namespace marian {
 
 bool IsNan(Tensor in);
 
-using namespace thrust::placeholders;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 
