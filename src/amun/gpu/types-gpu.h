@@ -32,10 +32,10 @@ namespace iteralgo = thrust;
 /////////////////////////////////////////////////////////////////////////////////////
 extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 
-#define BEGIN_TIMER(str) {}
-#define PAUSE_TIMER(str) {}
-//#define BEGIN_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
-//#define PAUSE_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
+//#define BEGIN_TIMER(str) {}
+//#define PAUSE_TIMER(str) {}
+#define BEGIN_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
+#define PAUSE_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
 							timers[str].stop(); }
 
 }
