@@ -1,7 +1,6 @@
 #include "training/graph_group_async.h"
 
 #include "kernels/tensor_operators.h"
-#include "gpu/functions.h"
 
 namespace marian {
 
@@ -186,7 +185,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       }
 
       using namespace functional;
-      Element(_1 = _1 + _2, accGradients, graph->params()->grads());
+      Element(_1 += _2, accGradients, graph->params()->grads());
       gradients = accGradients;
 
       // Keep track of how many words we've calculated the error from

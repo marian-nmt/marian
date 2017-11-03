@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gpu/defs.h"
-#include "gpu/placeholders.h"
+#include "functional/operands.h"
 
 namespace marian {
   namespace functional {
@@ -11,7 +11,7 @@ namespace marian {
       X x;
 
       template <class Arg>
-      __HD__ UnaryFunctor(Arg a) : x(a) {}
+      UnaryFunctor(Arg a) : x(a) {}
 
       template <typename ...Args>
       __HDI__ float operator()(Args&&... args) {
@@ -25,7 +25,7 @@ namespace marian {
       Y y;
 
       template <class Arg1, class Arg2>
-      __HD__ BinaryFunctor(Arg1 arg1, Arg2 arg2) : x(arg1), y(arg2) {}
+      BinaryFunctor(Arg1 arg1, Arg2 arg2) : x(arg1), y(arg2) {}
 
       template <typename ...Args>
       __HDI__ float operator()(Args&&... args) {
@@ -41,8 +41,11 @@ namespace marian {
     }\
     template <class X> using name = UnaryFunctor<elem::name, X>;\
     template <typename X>\
-    __HDI__ Op<name<X>> name2(Op<X> x) {\
-      return Op<name<X>>(name<X>(x.f));\
+    name<IsClass<X>> name2(X x) {\
+      return name<X>(x);\
+    }\
+    static name<Capture> name2(Capture x) {\
+      return name<Capture>(x);\
     }
 
     #define BINARY(name, name2, func) \
@@ -52,17 +55,17 @@ namespace marian {
       }; \
     }\
     template <class X, class Y> using name = BinaryFunctor<elem::name, X, Y>;\
-    template <typename X, typename Y>\
-    __HDI__ Op<name<X, Y>> name2(Op<X> x, Op<Y> y) {\
-      return Op<name<X, Y>>(name<X, Y>(x.f, y.f));\
+    template <class X, class Y>\
+    name<IsClass<X>, IsClass<Y>> name2(X x, Y y) {\
+      return name<X, Y>(x, y);\
     }\
-    template <typename X>\
-    __HDI__ Op<name<X, C>> name2(Op<X> x, float y) {\
-      return name2(x, Op<C>(y));\
+    template <class Y>\
+    name<Capture, IsClass<Y>> name2(Capture x, Y y) {\
+      return name<Capture, Y>(x, y);\
     }\
-    template <typename Y>\
-    __HDI__ Op<name<C, Y>> name2(float x, Op<Y> y) {\
-      return name2(Op<C>(x), y);\
+    template <class X>\
+    name<IsClass<X>, Capture> name2(X x, Capture y) {\
+      return name<X, Capture>(x, y);\
     }
 
     UNARY(Tanh, tanh, tanhf(x));
@@ -80,21 +83,6 @@ namespace marian {
     BINARY(Minus, operator-, x - y);
     BINARY(Mult, operator*, x * y);
     BINARY(Div, operator/, x / y);
-
-    #define COMPOUND(name, op) \
-    template <typename X, typename Y> \
-    __HDI__ auto name(Op<X> x, Op<Y> y) -> decltype(x = x op y) { \
-      return x = x op y; \
-    }\
-    template <typename X> \
-    __HDI__ auto name(Op<X> x, float y) -> decltype(x = x op y) { \
-      return x = x op y; \
-    }
-
-    COMPOUND(operator+=, +);
-    COMPOUND(operator-=, -);
-    COMPOUND(operator*=, *);
-    COMPOUND(operator/=, /);
 
     UNARY(Negate, operator!, !x);
     BINARY(Eq, operator==, x == y);
@@ -122,7 +110,6 @@ namespace marian {
     BINARY(sPReLU, PReLU, x > 0.f ? x : x * y);
     BINARY(sPReLUBack, PReLUback, x > 0.f ? 1.f : y);
 
-
     template <class Function, class X, class Y, class Z>
     struct TernaryFunctor {
       X x;
@@ -130,7 +117,7 @@ namespace marian {
       Z z;
 
       template <class Arg1, class Arg2, class Arg3>
-      __HD__ TernaryFunctor(Arg1 arg1, Arg2 arg2, Arg3 arg3)
+      TernaryFunctor(Arg1 arg1, Arg2 arg2, Arg3 arg3)
       : x(arg1), y(arg2), z(arg3) {}
 
       template <typename ...Args>
@@ -147,31 +134,91 @@ namespace marian {
     }\
     template <class X, class Y, class Z> using name = TernaryFunctor<elem::name, X, Y, Z>;\
     template <typename X, typename Y, typename Z>\
-    __HDI__ Op<name<X, Y, Z>> name2(Op<X> x, Op<Y> y, Op<Z> z) {\
-      return Op<name<X, Y, Z>>(name<X, Y, Z>(x.f, y.f, z.f));\
+    name<IsClass<X>, IsClass<Y>, IsClass<Z>> name2(X x, Y y, Z z) {\
+      return name<X, Y, Z>(x, y, z);\
     }\
     template <typename X, typename Z>\
-    __HDI__ Op<name<X, C, Z>> name2(Op<X> x, float y, Op<Z> z) {\
-      return name2(x, Op<C>(y), z);\
+    name<IsClass<X>, Capture, IsClass<Z>> name2(X x, Capture y, Z z) {\
+      return name2(x, y, z);\
     }\
     template <typename Y, typename Z>\
-    __HDI__ Op<name<C, Y, Z>> name2(float x, Op<Y> y, Op<Z> z) {\
-      return name2(Op<C>(x), y, z);\
+    name<Capture, IsClass<Y>, IsClass<Z>> name2(Capture x, Y y, Z z) {\
+      return name2(x, y, z);\
     }\
     template <typename X>\
-    __HDI__ Op<name<X, C, C>> name2(Op<X> x, float y, float z) {\
-      return name2(x, Op<C>(y), Op<C>(z));\
+    name<IsClass<X>, Capture, Capture> name2(X x, Capture y, Capture z) {\
+      return name2(x, y, z);\
     }\
     template <typename Y>\
-    __HDI__ Op<name<C, Y, C>> name2(float x, Op<Y> y, float z) {\
-      return name2(Op<C>(x), y, Op<C>(z));\
+    name<Capture, IsClass<Y>, Capture> name2(Capture x, Y y, Capture z) {\
+      return name2(x, y, z);\
     }\
     template <typename Z>\
-    __HDI__ Op<name<C, C, Z>> name2(float x, float y, Op<Z> z) {\
-      return name2(Op<C>(x), Op<C>(y), z);\
+    name<Capture, Capture, IsClass<Z>> name2(Capture x, Capture y, Z z) {\
+      return name2(x, y, z);\
     }
 
     TERNARY(IfThenElse, if_then_else, x ? y : z);
+
+
+
+    template <class X, class Y>
+    struct Assign {
+      X x;
+      Y y;
+
+      template <class Arg1, class Arg2>
+      Assign(Arg1 arg1, Arg2 arg2) : x(arg1), y(arg2) {}
+
+      template <typename ...Args>
+      __HDI__ float operator()(Args&&... args) {
+        return x(args...) = y(args...);
+      }
+    };
+
+    template <int N>
+    struct Assignee {
+      Var<N> var;
+
+      Assignee() {}
+      Assignee(Var<N> v) : var(v) {}
+
+      template <typename ...Args>
+      __HDI__ float& operator()(Args&&... args) {
+        return var(args...);
+      }
+
+      template <class X>
+      Assign<Var<N>, IsClass<X>> operator=(X x) {
+        return Assign<Var<N>, X>(var, x);
+      }
+
+      Assign<Var<N>, Capture> operator=(Capture x) {
+        return Assign<Var<N>, Capture>(var, x);
+      }
+
+      template <class X>
+      auto operator+=(X x)->decltype(*this = *this + x)  {
+        return *this = *this + x;
+      }
+
+      template <class X>
+      auto operator-=(X x)->decltype(*this = *this - x)  {
+        return *this = *this - x;
+      }
+
+      template <class X>
+      auto operator*=(X x)->decltype(*this = *this * x)  {
+        return *this = *this * x;
+      }
+
+      template <class X>
+      auto operator/=(X x)->decltype(*this = *this / x)  {
+        return *this = *this / x;
+      }
+    };
+
+/******************************************************************************/
 
   }
 }

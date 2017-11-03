@@ -12,7 +12,7 @@
 #include "gpu/shape.h"
 #include "gpu/tmp.h"
 #include "gpu/tensor.h"
-#include "gpu/functions.h"
+#include "functional/functional.h"
 
 namespace marian {
 

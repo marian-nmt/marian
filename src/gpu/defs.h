@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #ifdef __CUDA_ARCH__
 
 #include <cuda.h>

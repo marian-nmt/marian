@@ -5,7 +5,7 @@
 #include "graph/backend_gpu.h"
 #include "graph/node.h"
 #include "kernels/tensor_operators.h"
-#include "gpu/functions.h"
+#include "functional/functional.h"
 
 #ifdef CUDNN
 

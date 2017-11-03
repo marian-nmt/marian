@@ -5,7 +5,7 @@
 #include "kernels/sparse.h"
 #include "kernels/tensor_operators.h"
 #include "tensors/tensor.h"
-#include "gpu/functions.h"
+#include "functional/functional.h"
 
 #ifdef CUDNN
 
