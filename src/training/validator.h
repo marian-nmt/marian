@@ -128,36 +128,38 @@ protected:
     size_t words = 0;
 
     size_t batchId = 0;
-    ThreadPool threadPool(graphs.size(), graphs.size());
 
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options_);
-    opts->set("inference", true);
-    opts->set("cost-type", "ce-sum");
+    {
+      ThreadPool threadPool(graphs.size(), graphs.size());
+      Ptr<Options> opts = New<Options>();
+      opts->merge(options_);
+      opts->set("inference", true);
+      opts->set("cost-type", "ce-sum");
 
-    while(*batchGenerator) {
-      auto batch = batchGenerator->next();
+      while(*batchGenerator) {
+        auto batch = batchGenerator->next();
 
-      auto task = [&](size_t id) {
-        thread_local Ptr<ExpressionGraph> graph;
-        thread_local auto builder = models::from_options(opts);
+        auto task = [&](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local auto builder = models::from_options(opts);
 
-        if(!graph) {
-          graph = graphs[id % graphs.size()];
-          graph->getBackend()->setDevice(graph->getDevice());
-        }
+          if(!graph) {
+            graph = graphs[id % graphs.size()];
+            graph->getBackend()->setDevice(graph->getDevice());
+          }
 
-        auto costNode = builder->build(graph, batch);
-        graph->forward();
+          auto costNode = builder->build(graph, batch);
+          graph->forward();
 
-        std::unique_lock<std::mutex> lock(mutex_);
-        cost += costNode->scalar();
-        samples += batch->size();
-        words += batch->back()->batchWords();
-      };
+          std::unique_lock<std::mutex> lock(mutex_);
+          cost += costNode->scalar();
+          samples += batch->size();
+          words += batch->back()->batchWords();
+        };
 
-      threadPool.enqueue(task, batchId);
-      batchId++;
+        threadPool.enqueue(task, batchId);
+        batchId++;
+      }
     }
 
     if(ctype == "perplexity")
