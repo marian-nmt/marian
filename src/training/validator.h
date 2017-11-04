@@ -260,15 +260,15 @@ public:
 
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local std::vector<Ptr<Scorer>> scorers;
+          thread_local Ptr<Scorer> scorer;
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
             graph->getBackend()->setDevice(graph->getDevice());
-            scorers = { scorers[id % graphs.size()] };
+            scorer = scorers[id % graphs.size()];
           }
 
-          auto search = New<BeamSearch>(options_, scorers);
+          auto search = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer});
           auto history = search->search(graph, batch, id);
 
           std::stringstream best1;
