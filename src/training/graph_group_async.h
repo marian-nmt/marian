@@ -29,7 +29,7 @@ private:
 
   std::mutex schedulerMutex_;
   size_t waiting_{0};
-  bool continueValidation_{false};
+  bool continueValidation_{true};
 
   std::condition_variable validationCondition_;
 
