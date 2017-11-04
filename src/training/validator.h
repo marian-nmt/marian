@@ -139,7 +139,7 @@ protected:
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
-        auto task = [&](size_t id) {
+        auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder = models::from_options(opts);
 
