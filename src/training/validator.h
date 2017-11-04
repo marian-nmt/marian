@@ -27,7 +27,7 @@ public:
         lastBest_{lowerIsBetter_ ? std::numeric_limits<float>::max()
                                  : std::numeric_limits<float>::lowest()} {}
 
-  virtual float validate(Ptr<ExpressionGraph> graph) = 0;
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
   virtual std::string type() = 0;
 
   size_t stalled() { return stalled_; }
@@ -46,10 +46,11 @@ public:
             bool lowerIsBetter = true)
       : ValidatorBase(lowerIsBetter), options_(options), vocabs_(vocabs) {}
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     using namespace data;
 
-    graph->setInference(true);
+    for(auto graph : graphs)
+      graph->setInference(true);
 
     // Update validation options
     auto opts = New<Config>(*options_);
@@ -66,10 +67,11 @@ public:
     batchGenerator->prepare(false);
 
     // Validate on batches
-    float val = validateBG(graph, batchGenerator);
-    updateStalled(graph, val);
+    float val = validateBG(graphs, batchGenerator);
+    updateStalled(graphs, val);
 
-    graph->setInference(false);
+    for(auto graph : graphs)
+      graph->setInference(false);
 
     return val;
   };
@@ -79,25 +81,25 @@ protected:
   Ptr<Config> options_;
   Ptr<models::ModelBase> builder_;
 
-  virtual float validateBG(Ptr<ExpressionGraph>,
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&,
                            Ptr<data::BatchGenerator<DataSet>>)
       = 0;
 
-  void updateStalled(Ptr<ExpressionGraph> graph, float val) {
+  void updateStalled(const std::vector<Ptr<ExpressionGraph>>& graphs, float val) {
     if((lowerIsBetter_ && lastBest_ > val)
        || (!lowerIsBetter_ && lastBest_ < val)) {
       stalled_ = 0;
       lastBest_ = val;
       if(options_->get<bool>("keep-best"))
-        keepBest(graph);
+        keepBest(graphs);
     } else {
       stalled_++;
     }
   }
 
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+  virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
+    builder_->save(graphs[0], model + ".best-" + type() + ".npz", true);
   }
 };
 
@@ -116,7 +118,7 @@ public:
 
 protected:
   virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
+      const std::vector<Ptr<ExpressionGraph>>& graphs,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
     auto ctype = options_->get<std::string>("cost-type");
 
@@ -126,8 +128,8 @@ protected:
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
-      auto costNode = builder_->build(graph, batch);
-      graph->forward();
+      auto costNode = builder_->build(graphs[0], batch);
+      graphs[0]->forward();
 
       cost += costNode->scalar();
       samples += batch->size();
@@ -158,15 +160,15 @@ public:
              "valid-script metric but no script given");
   }
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     using namespace data;
     auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".dev.npz", true);
+    builder_->save(graphs[0], model + ".dev.npz", true);
 
     auto command = options_->get<std::string>("valid-script-path");
     auto valStr = Exec(command);
     float val = std::atof(valStr.c_str());
-    updateStalled(graph, val);
+    updateStalled(graphs, val);
 
     return val;
   };
@@ -175,7 +177,7 @@ public:
 
 protected:
   virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
+      const std::vector<Ptr<ExpressionGraph>>& graphs,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
     return 0;
   }
@@ -186,17 +188,13 @@ public:
   template <class... Args>
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options, false) {
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    builder_ = models::from_options(opts);
 
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
                 "No post-processing script given for validating translator");
   }
 
-  virtual float validate(Ptr<ExpressionGraph> graph) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     using namespace data;
 
     // Temporary options for translation
@@ -217,8 +215,17 @@ public:
 
     // Create scorer
     auto model = options_->get<std::string>("model");
-    Ptr<Scorer> scorer = New<ScorerWrapper>(builder_, "", 1.0f, model);
-    std::vector<Ptr<Scorer>> scorers = {scorer};
+
+    auto mopts = New<Options>();
+    mopts->merge(options_);
+    mopts->set("inference", true);
+
+    std::vector<Ptr<Scorer>> scorers;
+    for(auto graph : graphs) {
+      auto builder = models::from_options(mopts);
+      Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
+      scorers.push_back(scorer);
+    }
 
     // Set up output file
     std::string fileName;
@@ -234,9 +241,10 @@ public:
 
     LOG(info, "Translating validation set...");
 
-    graph->setInference(true);
-    boost::timer::cpu_timer timer;
+    for(auto graph : graphs)
+      graph->setInference(true);
 
+    boost::timer::cpu_timer timer;
     {
       auto collector = options_->has("trans-output")
                            ? New<OutputCollector>(fileName)
@@ -245,30 +253,41 @@ public:
 
       size_t sentenceId = 0;
 
+      ThreadPool threadPool(graphs.size(), graphs.size());
+
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
-        graph->clear();
-        auto search = New<BeamSearch>(options_, scorers);
-        auto history = search->search(graph, batch, sentenceId);
+        auto task = [=](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local std::vector<Ptr<Scorer>> scorers;
 
-        std::stringstream best1;
-        std::stringstream bestn;
-        Printer(options_, vocabs_.back(), history, best1, bestn);
-        collector->Write(history->GetLineNum(),
-                         best1.str(),
-                         bestn.str(),
-                         options_->get<bool>("n-best"));
+          if(!graph) {
+            graph = graphs[id % graphs.size()];
+            graph->getBackend()->setDevice(graph->getDevice());
+            scorers = { scorers[id % graphs.size()] };
+          }
 
-        // int id = batch->getSentenceIds()[0];
-        // LOG(info, "Best translation {}: {}", id, best1.str());
+          auto search = New<BeamSearch>(options_, scorers);
+          auto history = search->search(graph, batch, id);
 
+          std::stringstream best1;
+          std::stringstream bestn;
+          Printer(options_, vocabs_.back(), history, best1, bestn);
+          collector->Write(history->GetLineNum(),
+                           best1.str(),
+                           bestn.str(),
+                           options_->get<bool>("n-best"));
+        };
+
+        threadPool.enqueue(task, sentenceId);
         sentenceId++;
       }
     }
 
     LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
-    graph->setInference(false);
+    for(auto graph : graphs)
+      graph->setInference(false);
 
     float val = 0.0f;
 
@@ -278,7 +297,7 @@ public:
           = options_->get<std::string>("valid-script-path") + " " + fileName;
       auto valStr = Exec(command);
       val = std::atof(valStr.c_str());
-      updateStalled(graph, val);
+      updateStalled(graphs, val);
     }
 
     return val;
@@ -288,7 +307,7 @@ public:
 
 protected:
   virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
+      const std::vector<Ptr<ExpressionGraph>>& graphs,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
     return 0;
   }

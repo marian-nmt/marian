@@ -172,12 +172,15 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     if(scheduler_->validating()) {
       if(movingAvg_)
-        fetchParams(graphs_[0]->params()->vals(), paramsAvg_);
+        for(auto graph : graphs_)
+          fetchParams(graph->params()->vals(), paramsAvg_);
 
-      scheduler_->validate(graphs_[0]);
+      // safe, because all graphs are idle during validation with sync sgd
+      scheduler_->validate(graphs_);
 
       if(movingAvg_)
-        fetchParams(graphs_[0]->params()->vals(), params_);
+        for(auto graph : graphs_)
+          fetchParams(graph->params()->vals(), params_);
     }
   }
 }

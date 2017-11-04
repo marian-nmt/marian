@@ -54,9 +54,9 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
 
     if(scheduler_->validating()) {
       if(mvAvg_)
-        scheduler_->validate(mvAvgGraph_);
+        scheduler_->validate({mvAvgGraph_});
       else
-        scheduler_->validate(graph_);
+        scheduler_->validate({graph_});
     }
   }
 }

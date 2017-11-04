@@ -22,24 +22,24 @@ public:
     builder_ = models::from_options(temp);
   }
 
-  virtual void keepBest(Ptr<ExpressionGraph> graph) {
+  virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     auto model = options_->get<std::string>("model");
-    builder_->save(graph, model + ".best-" + type() + ".npz", true);
+    builder_->save(graphs[0], model + ".best-" + type() + ".npz", true);
   }
 
   std::string type() { return "accuracy"; }
 
 protected:
   virtual float validateBG(
-      Ptr<ExpressionGraph> graph,
+      const std::vector<Ptr<ExpressionGraph>>& graphs,
       Ptr<data::BatchGenerator<data::MNISTData>> batchGenerator) {
     float correct = 0;
     size_t samples = 0;
 
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
-      auto probs = builder_->build(graph, batch, true);
-      graph->forward();
+      auto probs = builder_->build(graphs[0], batch, true);
+      graphs[0]->forward();
 
       std::vector<float> scores;
       probs->val()->get(scores);

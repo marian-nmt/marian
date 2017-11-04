@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include "gpu/defs.h"
 
 namespace marian {
@@ -28,8 +29,14 @@ namespace marian {
 
     template <int V>
     struct C {
+      static constexpr auto value = V;
+
       template <typename ...Args>
       __HDI__ float operator()(Args&&... args) { return V; }
+
+      std::string to_string() {
+        return "C<" + std::to_string(V) + ">";
+      }
     };
 
 /******************************************************************************/
@@ -41,16 +48,25 @@ namespace marian {
 
       template <typename ...Args>
       __HDI__ float operator()(Args&&... args) { return value; }
+
+      std::string to_string() {
+        return "Cap(" + std::to_string(value) + ")";
+      }
     };
 
 /******************************************************************************/
 
     template <int N>
     struct Var {
+      static constexpr auto index = N;
 
       template <typename ...Args>
       __HDI__ float& operator()(Args&&... args) {
         return Select<N-1>::apply(args...);
+      }
+
+      std::string to_string() {
+        return "Var<" + std::to_string(N) + ">";
       }
     };
 

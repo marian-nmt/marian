@@ -19,5 +19,10 @@ namespace marian {
     static ref<8> _8;
     static ref<9> _9;
 
+    static C<0> _0c;
+    static C<1> _1c;
+    static C<2> _2c;
+    static C<-1> _1cneg;
+    static C<-2> _2cneg;
   }
 }

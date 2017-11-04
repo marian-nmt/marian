@@ -224,7 +224,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
         if(movingAvg_)
           fetchParams(graph->params()->vals(), paramsAvg_);
-        scheduler_->validate(graph);
+        scheduler_->validate({graph});
       }
     }
   };
