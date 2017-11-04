@@ -224,6 +224,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       }
 
       if(scheduler_->validating()) {
+        
         continueValidation_ = false;
         // wait with validation until all other threads are done with update
         validationCondition_.wait(lock, [this]{
