@@ -2,6 +2,7 @@
 
 #include <future>
 #include <thread>
+#include <condition_variable>
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/locks.hpp>
@@ -26,7 +27,11 @@ private:
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
 
-  boost::shared_mutex schedulerMutex_;
+  std::mutex schedulerMutex_;
+  size_t waiting_{0};
+  bool continueValidation_{false};
+
+  std::condition_variable validationCondition_;
 
   std::vector<Tensor> params_;
   std::vector<Ptr<TensorAllocator>> paramsAlloc_;

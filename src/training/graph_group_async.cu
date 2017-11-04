@@ -207,24 +207,36 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     if(scheduler_) {
-      boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
-      {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-        scheduler_->update(cost, batch);
-      }
+      std::unique_lock<std::mutex> lock(schedulerMutex_);
+
+      // wait until thread doing validation is finished
+      waiting_++;
+      validationCondition_.notify_all();
+      validationCondition_.wait(lock, [this]{ return continueValidation_; });
+      waiting_--;
+
+      scheduler_->update(cost, batch);
 
       if(scheduler_->saving()) {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
         if(movingAvg_)
           fetchParams(graph->params()->vals(), paramsAvg_);
         this->save(graph);
       }
 
       if(scheduler_->validating()) {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+        continueValidation_ = false;
+        // wait with validation until all other threads are done with update
+        validationCondition_.wait(lock, [this]{
+          return waiting_ == graphs_.size() - 1;
+        });
+
         if(movingAvg_)
-          fetchParams(graph->params()->vals(), paramsAvg_);
-        scheduler_->validate({graph});
+          for(auto g : graphs_)
+            fetchParams(g->params()->vals(), paramsAvg_);
+        scheduler_->validate(graphs_);
+
+        continueValidation_ = true;
+        validationCondition_.notify_all();
       }
     }
   };
