@@ -101,9 +101,19 @@ public:
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
 
-      auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int j) {
-        auto costNode = models_[j]->build(graphs_[j], batch);
-        graphs_[j]->forward();
+      auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int id) {
+
+        thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Model> builder;
+
+        if(!graph) {
+          graph = graphs_[id % graphs_.size()];
+          graph->getBackend()->setDevice(graph->getDevice());
+          builder = models_[id % graphs_.size()];
+        }
+
+        auto costNode = builder->build(graph, batch);
+        graph->forward();
 
         std::vector<float> scores;
         costNode->val()->get(scores);
