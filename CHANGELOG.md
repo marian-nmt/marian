@@ -8,13 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Added CONTRIBUTING.md
 
 ## [1.0.0] - 2017-11-05
 
 ### Added
 - Multi-gpu validation, scorer and in-training translation
 - summary-mode for scorer
+- Added CONTRIBUTING.md
 - New "transformer" model based on [Attention is all you
   need](https://arxiv.org/abs/1706.03762)
 - Options specific for the transformer model
@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 (https://arxiv.org/pdf/1710.05941.pdf)
 
 ### Changed
+- Changed shape organization to follow numpy. 
 - Changed option `--moving-average` to `--exponential-smoothing` and inverted 
 formula to `s_t = (1 - \alpha) * s_{t-1} + \alpha * x_t`, `\alpha` is now `1-e4` by
 default
