@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Changed option `--moving-average` to `--exponential-smoothing` and inverted 
-formula to s_t = (1 - \alpha) * s_{t-1} + \alpha * x_t, \alpha is now 1-e4 by
+formula to `s_t = (1 - \alpha) * s_{t-1} + \alpha * x_t`, `\alpha` is now `1-e4` by
 default
 - Got rid of thrust for compile-time mathematical expressions
 - Changed boolean option `--normalize` to `--normalize [arg=1] (=0)`. New
