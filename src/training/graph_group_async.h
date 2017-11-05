@@ -62,7 +62,7 @@ public:
         devices_{options_->get<std::vector<size_t>>("devices")},
         pool_{devices_.size(), devices_.size()},
         shardSync_{devices_.size()},
-        movingAvg_{options_->get<bool>("exponential-smoothing") > 0},
+        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         tau_{options_->get<size_t>("optimizer-delay")} {
     for(auto device : devices_) {
