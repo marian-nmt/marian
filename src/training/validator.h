@@ -257,8 +257,8 @@ public:
     std::string fileName;
     Ptr<TemporaryFile> tempFile;
 
-    if(options_->has("trans-output")) {
-      fileName = options_->get<std::string>("trans-output");
+    if(options_->has("valid-translation-output")) {
+      fileName = options_->get<std::string>("valid-translation-output");
     } else {
       tempFile.reset(
           new TemporaryFile(options_->get<std::string>("tempdir"), false));
@@ -272,7 +272,7 @@ public:
 
     boost::timer::cpu_timer timer;
     {
-      auto collector = options_->has("trans-output")
+      auto collector = options_->has("valid-translation-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
       collector->setPrintingStrategy(New<GeometricPrinting>());

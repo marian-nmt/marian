@@ -84,7 +84,7 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-sets",
                                      "valid-script-path",
                                      "valid-log",
-                                     "trans-output",
+                                     "valid-translation-output",
                                      "log"};
 
 void ProcessPaths(YAML::Node& node,
@@ -466,7 +466,7 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
     ("valid-log", po::value<std::string>(),
      "Log validation scores to file given by  arg")
 
-    ("trans-output", po::value<std::string>(),
+    ("valid-translation-output", po::value<std::string>(),
      "Path to store the translation")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
@@ -762,7 +762,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("keep-best", bool);
     SET_OPTION_NONDEFAULT("valid-log", std::string);
 
-    SET_OPTION_NONDEFAULT("trans-output", std::string);
+    SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
     SET_OPTION("allow-unk", bool);
