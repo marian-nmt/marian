@@ -29,7 +29,7 @@ private:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
-  float mvDecay_{0.9999};
+  float mvDecay_{1e-4};
 
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
@@ -41,8 +41,8 @@ public:
   SyncGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
         devices_{options_->get<std::vector<size_t>>("devices")},
-        movingAvg_{options_->get<bool>("moving-average")},
-        mvDecay_{(float)options_->get<double>("moving-decay")} {
+        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+        mvDecay_{options_->get<float>("exponential-smoothing")} {
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);

@@ -28,10 +28,6 @@ private:
   std::vector<std::mutex> shardSync_;
 
   std::mutex schedulerMutex_;
-  size_t waiting_{0};
-  bool continueValidation_{true};
-
-  std::condition_variable validationCondition_;
 
   std::vector<Tensor> params_;
   std::vector<Ptr<TensorAllocator>> paramsAlloc_;
@@ -46,7 +42,7 @@ private:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
-  float mvDecay_{0.9999};
+  float mvDecay_{1e-4};
 
   ThreadPool pool_;
 
@@ -66,8 +62,8 @@ public:
         devices_{options_->get<std::vector<size_t>>("devices")},
         pool_{devices_.size(), devices_.size()},
         shardSync_{devices_.size()},
-        movingAvg_{options_->get<bool>("moving-average")},
-        mvDecay_{(float)options_->get<double>("moving-decay")},
+        movingAvg_{options_->get<bool>("exponential-smoothing") > 0},
+        mvDecay_{options_->get<float>("exponential-smoothing")},
         tau_{options_->get<size_t>("optimizer-delay")} {
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();

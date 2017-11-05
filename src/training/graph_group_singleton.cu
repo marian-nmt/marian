@@ -14,8 +14,8 @@ void SingletonGraph::updateMovingAverage(Tensor mvAvgParams,
                                          Tensor params,
                                          size_t batches) {
   using namespace functional;
-  float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
-  Element(_1 = (decay * _1) + ((1.f - decay) * _2), mvAvgParams, params);
+  float decay = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  Element(_1 = ((1.f - decay) * _1) + (decay * _2), mvAvgParams, params);
 }
 
 void SingletonGraph::execute(Ptr<data::Batch> batch) {

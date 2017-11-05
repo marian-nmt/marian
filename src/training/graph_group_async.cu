@@ -70,9 +70,10 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads, size_t batch_words) {
 void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                           Tensor params,
                                           size_t batches) {
-  float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
   using namespace functional;
-  Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
+  float decay = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
+
 }
 
 void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
@@ -210,10 +211,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       std::unique_lock<std::mutex> lock(schedulerMutex_);
 
       // wait until thread doing validation is finished
-      waiting_++;
-      validationCondition_.notify_all();
-      validationCondition_.wait(lock, [this]{ return continueValidation_; });
-      waiting_--;
+      pool_.wait_for_one();
 
       scheduler_->update(cost, batch);
 
@@ -224,20 +222,16 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       }
 
       if(scheduler_->validating()) {
-        
-        continueValidation_ = false;
         // wait with validation until all other threads are done with update
-        validationCondition_.wait(lock, [this]{
-          return waiting_ == graphs_.size() - 1;
-        });
+        pool_.wait_for_others();
 
         if(movingAvg_)
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_);
         scheduler_->validate(graphs_);
 
-        continueValidation_ = true;
-        validationCondition_.notify_all();
+        // tell other threads to continue work
+        pool_.notify_others();
       }
     }
   };
