@@ -62,7 +62,7 @@ class ThreadPool {
 
     void wait_for_others(std::unique_lock<std::mutex>& lock) {
       sync_condition.wait(lock, [this]{
-        return waiting_threads == workers.size() - 1;
+        return waiting_threads == bound - 1;
       });
     }
 
@@ -79,7 +79,6 @@ class ThreadPool {
 
     // synchronization
     std::mutex queue_mutex;
-    std::mutex sync_mutex;
     std::condition_variable condition;
     std::size_t bound;
     std::condition_variable bounded_condition;
