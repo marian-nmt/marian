@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Added CONTRIBUTING.md
 
-## [1.0.0] - 2017-10-15
+## [1.0.0] - 2017-11-05
 
 ### Added
+- Multi-gpu validation, scorer and in-training translation
+- summary-mode for scorer
 - New "transformer" model based on [Attention is all you
   need](https://arxiv.org/abs/1706.03762)
 - Options specific for the transformer model
@@ -37,6 +39,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 (https://arxiv.org/pdf/1710.05941.pdf)
 
 ### Changed
+- Changed option `--moving-average` to `--exponential-smoothing` and inverted 
+formula to s_t = (1 - \alpha) * s_{t-1} + \alpha * x_t, \alpha is now 1-e4 by
+default
+- Got rid of thrust for compile-time mathematical expressions
+- Changed boolean option `--normalize` to `--normalize [arg=1] (=0)`. New
+behaviour is backwards-compatible and can also be specified as `--normalize=0.6`
 - Renamed "s2s" binary to "marian-decoder"
 - Renamed "rescorer" binary to "marian-scorer"
 - Renamed "server" binary to "marian-server"
