@@ -18,7 +18,7 @@ private:
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
-  float mvDecay_{0.9999};
+  float mvDecay_{1e-4};
 
   void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches);
 
@@ -27,8 +27,8 @@ private:
 public:
   SingletonGraph(Ptr<Config> options)
       : GraphGroup(options),
-        mvAvg_{options_->get<bool>("moving-average")},
-        mvDecay_{(float)options_->get<double>("moving-decay")} {
+        mvAvg_{options_->get<float>("exponential-smoothing") > 0},
+        mvDecay_{options_->get<float>("exponential-smoothing")} {
     size_t device = options_->get<std::vector<size_t>>("devices")[0];
 
     graph_ = New<ExpressionGraph>();

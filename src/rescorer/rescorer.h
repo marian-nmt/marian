@@ -35,19 +35,22 @@ class Rescore : public ModelTask {
 private:
   Ptr<Config> options_;
   Ptr<Corpus> corpus_;
-  Ptr<ExpressionGraph> graph_;
-  Ptr<Model> model_;
+  std::vector<Ptr<ExpressionGraph>> graphs_;
+  std::vector<Ptr<Model>> models_;
 
 public:
   Rescore(Ptr<Config> options)
       : options_(options),
-        corpus_(New<Corpus>(options_)),
-        graph_(New<ExpressionGraph>(true)) {
+        corpus_(New<Corpus>(options_)) {
     corpus_->prepare();
 
-    auto device = options_->get<std::vector<size_t>>("devices").front();
-    graph_->setDevice(device);
-    graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+    auto devices = options_->get<std::vector<size_t>>("devices");
+    for(auto device : devices) {
+      auto graph = New<ExpressionGraph>(true);
+      graph->setDevice(device);
+      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      graphs_.push_back(graph);
+    }
 
     auto modelFile = options_->get<std::string>("model");
     auto modelOptions = New<Config>(*options);
@@ -61,9 +64,17 @@ public:
     temp->merge(options);
     temp->set("inference", true);
     temp->set("cost-type", "ce-rescore");
-    model_ = New<Model>(temp);
 
-    model_->load(graph_, modelFile);
+    models_.resize(graphs_.size());
+    ThreadPool pool(graphs_.size(), graphs_.size());
+    for(int i = 0; i < graphs_.size(); ++i) {
+
+      pool.enqueue([=](int j) {
+        models_[j] = New<Model>(temp);
+        models_[j]->load(graphs_[j], modelFile);
+      }, i);
+
+    }
   }
 
   void run() {
@@ -82,25 +93,46 @@ public:
     size_t sumWords = 0;
     size_t sumSamples = 0;
 
+    size_t batchId = 0;
+
+    std::mutex smutex;
+    ThreadPool pool(graphs_.size(), graphs_.size());
+
     while(*batchGenerator) {
       auto batch = batchGenerator->next();
 
-      auto costNode = model_->build(graph_, batch);
-      graph_->forward();
+      auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int id) {
 
-      std::vector<float> scores;
-      costNode->val()->get(scores);
+        thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Model> builder;
 
-      for(auto s : scores)
-        sumCost += s;
-      sumWords += batch->back()->batchWords();
-      sumSamples += batch->size();
-
-      if(!summarize) {
-        for(size_t i = 0; i < batch->size(); ++i) {
-          output->Write(batch->getSentenceIds()[i], scores[i]);
+        if(!graph) {
+          graph = graphs_[id % graphs_.size()];
+          graph->getBackend()->setDevice(graph->getDevice());
+          builder = models_[id % graphs_.size()];
         }
-      }
+
+        auto costNode = builder->build(graph, batch);
+        graph->forward();
+
+        std::vector<float> scores;
+        costNode->val()->get(scores);
+
+        std::unique_lock<std::mutex> lock(smutex);
+        for(auto s : scores)
+          sumCost += s;
+        sumWords += batch->back()->batchWords();
+        sumSamples += batch->size();
+
+        if(!summarize) {
+          for(size_t i = 0; i < batch->size(); ++i) {
+            output->Write(batch->getSentenceIds()[i], scores[i]);
+          }
+        }
+      };
+
+      pool.enqueue(task, batchId % graphs_.size());
+      batchId++;
     }
 
     if(summarize) {

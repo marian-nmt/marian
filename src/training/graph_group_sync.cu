@@ -16,8 +16,8 @@ void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                          Tensor params,
                                          size_t batches) {
   using namespace functional;
-  float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
-  Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
+  float decay = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
 }
 
 void SyncGraphGroup::fetchParams(Tensor oldParams,
@@ -172,12 +172,15 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     if(scheduler_->validating()) {
       if(movingAvg_)
-        fetchParams(graphs_[0]->params()->vals(), paramsAvg_);
+        for(auto graph : graphs_)
+          fetchParams(graph->params()->vals(), paramsAvg_);
 
-      scheduler_->validate(graphs_[0]);
+      // safe, because all graphs are idle during validation with sync sgd
+      scheduler_->validate(graphs_);
 
       if(movingAvg_)
-        fetchParams(graphs_[0]->params()->vals(), params_);
+        for(auto graph : graphs_)
+          fetchParams(graph->params()->vals(), params_);
     }
   }
 }

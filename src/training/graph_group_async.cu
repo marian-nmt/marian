@@ -70,9 +70,10 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads, size_t batch_words) {
 void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                           Tensor params,
                                           size_t batches) {
-  float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
   using namespace functional;
-  Element(_1 = (decay * _1) + ((1.f - decay) * _2), paramsAvg, params);
+  float decay = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
+
 }
 
 void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
@@ -207,24 +208,32 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     if(scheduler_) {
-      boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
-      {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-        scheduler_->update(cost, batch);
-      }
+      std::unique_lock<std::mutex> lock(schedulerMutex_);
+
+      // Wait until the thread that wants to do validation is finished.
+      pool_.wait_for_one(lock);
+
+      scheduler_->update(cost, batch);
 
       if(scheduler_->saving()) {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
         if(movingAvg_)
           fetchParams(graph->params()->vals(), paramsAvg_);
         this->save(graph);
       }
 
       if(scheduler_->validating()) {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+        // Wait with validation until all other threads are done with update.
+        // We want to reuse the graphs for validation, so they need to be in
+        // a safe state.
+        pool_.wait_for_others(lock);
+
         if(movingAvg_)
-          fetchParams(graph->params()->vals(), paramsAvg_);
-        scheduler_->validate(graph);
+          for(auto g : graphs_)
+            fetchParams(g->params()->vals(), paramsAvg_);
+        scheduler_->validate(graphs_);
+
+        // Validation is done, tell other threads to continue work.
+        pool_.notify_others();
       }
     }
   };

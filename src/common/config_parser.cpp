@@ -400,11 +400,9 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Epsilon for label smoothing (0 to disable)")
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
-    ("moving-average", po::value<bool>()->zero_tokens()->default_value(false),
-     "Maintain and save moving average of parameters")
-    ("moving-decay", po::value<double>()->default_value(0.9999, "0.9999"),
-     "Decay factor for moving average")
-
+    ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4, "1e-4"),
+     "Maintain smoothed version of parameters for validation and saving with smoothing factor arg. "
+     " 0 to disable.")
     ("guided-alignment", po::value<std::string>(),
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
@@ -719,8 +717,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
     SET_OPTION("label-smoothing", double);
     SET_OPTION("clip-norm", double);
-    SET_OPTION("moving-average", bool);
-    SET_OPTION("moving-decay", double);
+    SET_OPTION("exponential-smoothing", float);
 
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);

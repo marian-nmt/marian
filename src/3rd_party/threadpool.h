@@ -53,6 +53,25 @@ class ThreadPool {
       return tasks.size();
     }
 
+    void wait_for_one(std::unique_lock<std::mutex>& lock) {
+      waiting_threads++;
+      sync_condition.notify_all();
+      sync_condition.wait(lock, [this]{ return continue_work; });
+      waiting_threads--;
+    }
+
+    void wait_for_others(std::unique_lock<std::mutex>& lock) {
+      continue_work = false;
+      sync_condition.wait(lock, [this]{
+        return waiting_threads == workers.size() - 1;
+      });
+    }
+
+    void notify_others() {
+      continue_work = true;
+      sync_condition.notify_all();
+    }
+
  private:
     // need to keep track of threads so we can join them
     std::vector<std::thread> workers;
@@ -65,6 +84,9 @@ class ThreadPool {
     std::size_t bound;
     std::condition_variable bounded_condition;
     bool stop;
+    std::condition_variable sync_condition;
+    bool continue_work{true};
+    size_t waiting_threads{0};
 };
 
 // the constructor just launches some amount of workers
@@ -132,4 +154,3 @@ inline ThreadPool::~ThreadPool() {
 }
 
 }
-

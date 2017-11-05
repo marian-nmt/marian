@@ -73,7 +73,7 @@ public:
     return (state_->batches % options_->get<size_t>("save-freq") == 0);
   }
 
-  void validate(Ptr<ExpressionGraph> graph) {
+  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     if(state_->batches % options_->get<size_t>("valid-freq") != 0)
       return;
 
@@ -83,7 +83,7 @@ public:
         continue;
 
       size_t stalledPrev = validator->stalled();
-      float value = validator->validate(graph);
+      float value = validator->validate(graphs);
       if(validator->stalled() > 0)
         LOG_VALID(info,
                   "{} : {} : {} : stalled {} times",

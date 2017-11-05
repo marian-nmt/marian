@@ -502,7 +502,7 @@ public:
         devices_{options_->get<std::vector<size_t>>("devices")},
         pool_{devices_.size(), devices_.size()},
         shardSync_{devices_.size()},
-        movingAvg_{options_->get<bool>("moving-average")},
+        movingAvg_{options_->get<bool>("exponential-smoothing")},
         mvDecay_{(float)options_->get<double>("moving-decay")},
         //drop_rate_{options_->get<double>("drop-rate")},
         tau_{options_->get<size_t>("optimizer-delay")} {

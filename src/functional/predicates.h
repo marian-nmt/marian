@@ -17,6 +17,10 @@ namespace marian {
       __HDI__ float operator()(Args&&... args) {
         return Function::apply(x(args...));
       }
+
+      std::string to_string() {
+        return Function::n() + "<" + x.to_string() + ">";
+      }
     };
 
     template <class Function, class X, class Y>
@@ -31,12 +35,19 @@ namespace marian {
       __HDI__ float operator()(Args&&... args) {
         return Function::apply(x(args...), y(args...));
       }
+
+      std::string to_string() {
+        return Function::n() +
+          "<" + x.to_string() +
+          "," + y.to_string() + ">";
+      }
     };
 
     #define UNARY(name, name2, func) \
     namespace elem { \
       struct name { \
         __HDI__ static float apply(float x) { return func; } \
+        static std::string n() { return #name; }\
       }; \
     }\
     template <class X> using name = UnaryFunctor<elem::name, X>;\
@@ -52,6 +63,7 @@ namespace marian {
     namespace elem { \
       struct name { \
         __HDI__ static float apply(float x, float y) { return func; } \
+        static std::string n() { return #name; }\
       }; \
     }\
     template <class X, class Y> using name = BinaryFunctor<elem::name, X, Y>;\
@@ -215,6 +227,10 @@ namespace marian {
       template <class X>
       auto operator/=(X x)->decltype(*this = *this / x)  {
         return *this = *this / x;
+      }
+
+      std::string to_string() {
+        return var.to_string();
       }
     };
 
