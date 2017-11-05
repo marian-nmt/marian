@@ -210,7 +210,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     if(scheduler_) {
       std::unique_lock<std::mutex> lock(schedulerMutex_);
 
-      // wait until thread doing validation is finished
+      // Wait until the thread that wants to do validation is finished.
       pool_.wait_for_one(lock);
 
       scheduler_->update(cost, batch);
@@ -222,7 +222,9 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       }
 
       if(scheduler_->validating()) {
-        // wait with validation until all other threads are done with update
+        // Wait with validation until all other threads are done with update.
+        // We want to reuse the graphs for validation, so they need to be in
+        // a safe state.
         pool_.wait_for_others(lock);
 
         if(movingAvg_)
@@ -230,7 +232,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
             fetchParams(g->params()->vals(), paramsAvg_);
         scheduler_->validate(graphs_);
 
-        // tell other threads to continue work
+        // Validation is done, tell other threads to continue work.
         pool_.notify_others();
       }
     }
