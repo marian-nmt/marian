@@ -53,18 +53,14 @@ class ThreadPool {
       return tasks.size();
     }
 
-    void wait_for_one() {
-      std::unique_lock<std::mutex> lock(sync_mutex);
-      // wait until thread doing validation is finished
+    void wait_for_one(std::unique_lock<std::mutex>& lock) {
       waiting_threads++;
       sync_condition.notify_all();
       sync_condition.wait(lock, [this]{ return continue_work; });
       waiting_threads--;
     }
 
-    void wait_for_others() {
-      std::unique_lock<std::mutex> lock(sync_mutex);
-      // wait with validation until all other threads are done with update
+    void wait_for_others(std::unique_lock<std::mutex>& lock) {
       sync_condition.wait(lock, [this]{
         return waiting_threads == workers.size() - 1;
       });

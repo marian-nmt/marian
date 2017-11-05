@@ -211,7 +211,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       std::unique_lock<std::mutex> lock(schedulerMutex_);
 
       // wait until thread doing validation is finished
-      pool_.wait_for_one();
+      pool_.wait_for_one(lock);
 
       scheduler_->update(cost, batch);
 
@@ -223,7 +223,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       if(scheduler_->validating()) {
         // wait with validation until all other threads are done with update
-        pool_.wait_for_others();
+        pool_.wait_for_others(lock);
 
         if(movingAvg_)
           for(auto g : graphs_)
