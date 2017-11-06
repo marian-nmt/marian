@@ -32,7 +32,7 @@ void OutputCollector::Write(long sourceId,
       if(currId == nextId_) {
         // 1st element in the map is the next
         const auto& currOutput = iter->second;
-        if(!printing_ || printing_->shouldBePrinted(sourceId))
+        if(!printing_ || printing_->shouldBePrinted(currId))
           LOG(info, "Best translation {} : {}", currId, currOutput.first);
         if(nbest)
           ((std::ostream&)*outStrm_) << currOutput.second << std::endl;
