@@ -12,9 +12,10 @@ class ModelBase {
 public:
   virtual void load(Ptr<ExpressionGraph>, const std::string&) = 0;
 
-  virtual void save(Ptr<ExpressionGraph>, const std::string&) = 0;
-
-  virtual void save(Ptr<ExpressionGraph>, const std::string&, bool) = 0;
+  virtual void save(Ptr<ExpressionGraph>,
+                    const std::string&,
+                    bool saveTranslatorConfig = false)
+      = 0;
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,

@@ -123,31 +123,7 @@ public:
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveTranslatorConfig) {
-    save(graph, name);
-
-    if(saveTranslatorConfig) {
-      YAML::Node amun;
-      auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-      amun["source-vocab"] = vocabs[0];
-      amun["target-vocab"] = vocabs[1];
-      amun["devices"] = options_->get<std::vector<int>>("devices");
-      amun["normalize"] = true;
-      amun["beam-size"] = 12;
-      amun["relative-paths"] = false;
-
-      amun["scorers"]["F0"]["path"] = name;
-      amun["scorers"]["F0"]["type"] = "Nematus";
-      amun["weights"]["F0"] = 1.0f;
-
-      OutputFileStream out(name + ".amun.yml");
-      (std::ostream&)out << amun;
-
-      createDecoderConfig(name);
-    }
-  }
-
-  void save(Ptr<ExpressionGraph> graph, const std::string& name) {
+            bool saveTranslatorConfig = false) {
     LOG(info, "Saving model to {}", name);
 
     std::map<std::string, std::string> nameMap
@@ -228,6 +204,30 @@ public:
     cnpy::npz_save(name, "decoder_c_tt", &ctt, shape, 1, mode);
 
     saveModelParameters(name);
+
+    if(saveTranslatorConfig) {
+      createAmunConfig(name);
+      createDecoderConfig(name);
+    }
+  }
+
+private:
+  void createAmunConfig(const std::string& name) {
+    YAML::Node amun;
+    auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+    amun["source-vocab"] = vocabs[0];
+    amun["target-vocab"] = vocabs[1];
+    amun["devices"] = options_->get<std::vector<int>>("devices");
+    amun["normalize"] = true;
+    amun["beam-size"] = 12;
+    amun["relative-paths"] = false;
+
+    amun["scorers"]["F0"]["path"] = name;
+    amun["scorers"]["F0"]["type"] = "Nematus";
+    amun["weights"]["F0"] = 1.0f;
+
+    OutputFileStream out(name + ".amun.yml");
+    (std::ostream&)out << amun;
   }
 };
 }
