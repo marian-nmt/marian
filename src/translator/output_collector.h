@@ -15,6 +15,11 @@ public:
   virtual bool shouldBePrinted(long) = 0;
 };
 
+class DefaultPrinting : public PrintingStrategy {
+public:
+  bool shouldBePrinted(long) { return true; }
+};
+
 class GeometricPrinting : public PrintingStrategy {
 public:
   bool shouldBePrinted(long id) {
