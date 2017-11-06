@@ -258,6 +258,20 @@ public:
     // ignore config for now
     graph->save(name);
     saveModelParameters(name);
+    if(saveTranslatorConfig)
+      createDecoderConfig(name);
+  }
+
+  virtual void createDecoderConfig(const std::string& name) {
+    YAML::Node decoder;
+    decoder["model"] = name;
+    decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
+    decoder["normalize"] = 1.0f;
+    decoder["beam-size"] = 12;
+    decoder["relative-paths"] = false;
+
+    OutputFileStream out(name + ".decoder.yml");
+    (std::ostream&)out << decoder;
   }
 
   virtual void save(Ptr<ExpressionGraph> graph, const std::string& name) {

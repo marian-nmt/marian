@@ -142,6 +142,8 @@ public:
 
       OutputFileStream out(name + ".amun.yml");
       (std::ostream&)out << amun;
+
+      createDecoderConfig(name);
     }
   }
 
