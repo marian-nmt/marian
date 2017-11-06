@@ -20,6 +20,11 @@ public:
   bool shouldBePrinted(long) { return true; }
 };
 
+class QuietPrinting : public PrintingStrategy {
+public:
+  bool shouldBePrinted(long) { return false; }
+};
+
 class GeometricPrinting : public PrintingStrategy {
 public:
   bool shouldBePrinted(long id) {

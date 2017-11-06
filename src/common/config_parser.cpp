@@ -468,6 +468,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
 
     ("valid-translation-output", po::value<std::string>(),
      "Path to store the translation")
+    ("quiet-translation", po::value<bool>()->zero_tokens()->default_value(false),
+     "Suppress logging for validating translation")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
@@ -763,6 +765,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-log", std::string);
 
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
+    SET_OPTION("quiet-translation", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
     SET_OPTION("allow-unk", bool);

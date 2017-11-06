@@ -213,8 +213,8 @@ class TranslationValidator : public Validator<data::Corpus> {
 public:
   template <class... Args>
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
-      : Validator(vocabs, options, false) {
-
+      : Validator(vocabs, options, false),
+        quiet_(options_->has("quiet-translation")) {
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
                 "No post-processing script given for validating translator");
@@ -265,17 +265,21 @@ public:
       fileName = tempFile->getFileName();
     }
 
-    LOG(info, "Translating validation set...");
-
     for(auto graph : graphs)
       graph->setInference(true);
+
+    if(!quiet_)
+      LOG(info, "Translating validation set...");
 
     boost::timer::cpu_timer timer;
     {
       auto collector = options_->has("valid-translation-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
-      collector->setPrintingStrategy(New<GeometricPrinting>());
+      if(quiet_)
+        collector->setPrintingStrategy(New<QuietPrinting>());
+      else
+        collector->setPrintingStrategy(New<GeometricPrinting>());
 
       size_t sentenceId = 0;
 
@@ -311,7 +315,9 @@ public:
       }
     }
 
-    LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
+    if(!quiet_)
+      LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
+
     for(auto graph : graphs)
       graph->setInference(false);
 
@@ -332,6 +338,8 @@ public:
   std::string type() { return "translation"; }
 
 protected:
+  bool quiet_{false};
+
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
