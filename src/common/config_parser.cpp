@@ -258,7 +258,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
      "Enable layer normalization")
     ("best-deep", po::value<bool>()->zero_tokens()->default_value(false),
-     "Use WMT-2017-style deep configuration (s2s)")
+     "Use Edinburgh deep RNN configuration (s2s)")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
      "Model-specific special vocabulary ids")
     ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
