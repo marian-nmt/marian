@@ -350,6 +350,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("optimizer-params",  po::value<std::vector<float>>()
        ->multitoken(),
      "Parameters for optimization algorithm, e.g. betas for adam")
+    ("optimizer-delay", po::value<size_t>()->default_value(1),
+     "SGD update delay, 1 = no delay")
     ("learn-rate,l", po::value<double>()->default_value(0.0001),
      "Learning rate")
     ("lr-decay", po::value<double>()->default_value(0.0),
@@ -392,8 +394,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
       "Set number of words per batch that the learning rate corresponds to. "
       "The option is only active when batch-flexible-lr is on")
-    ("optimizer-delay", po::value<size_t>()->default_value(1),
-     "SGD update delay, 1 = no delay")
     ("sync-sgd", po::value<bool>()->zero_tokens()->default_value(false),
      "Use synchronous SGD instead of asynchronous for multi-gpu training")
     ("label-smoothing", po::value<double>()->default_value(0),

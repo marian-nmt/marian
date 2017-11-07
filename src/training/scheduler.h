@@ -319,6 +319,7 @@ public:
               "Decaying learning rate to {} after stalled {} time(s)",
               state.eta,
               state.stalled);
+
           state.reset = options_->get<bool>("lr-decay-reset-optimizer");
           if(state.reset)
             LOG(info, "Resetting optimizer statistics");
