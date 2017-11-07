@@ -194,8 +194,9 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   const MatrixWrapper<float> in2Wrap(In);
   const MatrixWrapper<uint> batchMappingWrap(batchMapping);
 
-  int threads = MAX_THREADS;
-  int blocks  = (OutNew.size() / threads) + ((OutNew.size() % threads == 0) ?  0 : 1);
+  uint size = OutNew.size();
+  uint threads = std::min((uint) MAX_THREADS, (uint)size);
+  uint blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
@@ -319,8 +320,9 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out)
 {
-  int threads = MAX_THREADS;
-  int blocks  = Out.size() / threads + ((Out.size() % threads == 0) ?  0 : 1);
+  uint size = Out.size();
+  uint threads = std::min((uint) MAX_THREADS, (uint)size);
+  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -348,8 +350,9 @@ Matrix& Element(Functor functor,
 {
   assert(Out.size() == In.size());
 
-  int threads = MAX_THREADS;
-  int blocks  = Out.size() / threads + ((Out.size() % threads == 0) ?  0 : 1);
+  uint size = Out.size();
+  uint threads = std::min((uint) MAX_THREADS, (uint)size);
+  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -384,8 +387,9 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In1.size());
   assert(Out.size() == In2.size());
 
-  int threads = MAX_THREADS;
-  int blocks  = Out.size() / threads + ((Out.size() % threads == 0) ?  0 : 1);
+  uint size = Out.size();
+  uint threads = std::min((uint) MAX_THREADS, (uint)size);
+  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   //std::cerr << "Element3=" << Out.Debug(0) << std::endl;
