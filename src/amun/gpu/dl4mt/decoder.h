@@ -198,10 +198,7 @@ class Decoder {
           }
           //std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
 
-          Copy(Temp1_, SCU_);
-          //std::cerr << "1Temp1_=" << Temp1_.Debug() << std::endl;
-
-          Broadcast(Tanh(_1 + _2), Temp1_, Temp2_, dBatchMapping_, srcSize);
+          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, srcSize);
 
           //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;

@@ -180,21 +180,26 @@ __global__ void gBroadcast(Functor functor,
 }
 
 template <class Functor>
-Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const DeviceVector<uint>& batchMapping, size_t srcSize) {
-  size_t sumOfBeamSizes = In.dim(0);
+Matrix& Broadcast(Functor functor,
+                  Matrix& out,
+                  const Matrix& in1,
+                  const Matrix& in2,
+                  const DeviceVector<uint>& batchMapping,
+                  size_t srcSize)
+{
+  size_t sumOfBeamSizes = in2.dim(0);
 
   //size_t rows = srcSize * sumOfBeamSizes;
-  size_t cols  = OutOrig.dim(1);
+  size_t cols  = in1.dim(1);
 
-  thread_local static Matrix OutNew;
-  OutNew.NewSize(sumOfBeamSizes, cols, srcSize);
+  out.NewSize(sumOfBeamSizes, cols, srcSize);
 
-  MatrixWrapper<float> outWrap(OutNew);
-  const MatrixWrapper<float> in1Wrap(OutOrig);
-  const MatrixWrapper<float> in2Wrap(In);
+  MatrixWrapper<float> outWrap(out);
+  const MatrixWrapper<float> in1Wrap(in1);
+  const MatrixWrapper<float> in2Wrap(in2);
   const MatrixWrapper<uint> batchMappingWrap(batchMapping);
 
-  uint size = OutNew.size();
+  uint size = out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
   uint blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
 
@@ -215,8 +220,7 @@ Matrix& Broadcast(Functor functor, Matrix& OutOrig, const Matrix& In, const Devi
   HANDLE_ERROR(cudaDeviceSynchronize());
   */
 
-  Swap(OutOrig, OutNew);
-  return OutOrig;
+  return out;
 }
 
 template <class Functor>
