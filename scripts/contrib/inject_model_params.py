@@ -9,7 +9,7 @@ import json
 import yaml
 
 
-DESC = "Adds special node including s2s options to Nematus model.npz file."
+DESC = "Adds special node including Marian options to Nematus model.npz file."
 S2S_SPECIAL_NODE = "special:model.yml"
 
 
