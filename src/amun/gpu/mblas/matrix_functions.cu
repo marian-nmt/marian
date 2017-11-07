@@ -65,11 +65,13 @@ void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask)
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
+  //cerr << "outWrap=" << outWrap.Debug() << endl;
 
   MatrixWrapper<uint> mappingWrap(sentencesMask, false);
 
-  size_t threads = MAX_THREADS;
-  size_t blocks =  (outWrap.size() / threads) + ((outWrap.size() % threads == 0) ?  0 : 1);
+  uint size = outWrap.size();
+  uint threads = std::min((uint)MAX_THREADS, size);
+  uint blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, mappingWrap);
@@ -113,8 +115,9 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Dev
   MatrixWrapper<float> inWrap(In);
   MatrixWrapper<uint> mappingWrap(mapping);
 
-  int nThreads = MAX_THREADS;
-  int nBlocks =  (Out.size() / nThreads) + ((Out.size() % nThreads == 0) ?  0 : 1);
+  uint size = Out.size();
+  uint nThreads = std::min((uint) MAX_THREADS, (uint)size);
+  uint nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, weightsWrap, inWrap, mappingWrap);
@@ -195,8 +198,9 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
 
-  int nThreads = MAX_THREADS;
-  int nBlocks =  (In.size() / nThreads) + ((In.size() % nThreads == 0) ?  0 : 1);
+  uint size = In.size();
+  uint nThreads = std::min((uint) MAX_THREADS, (uint)size);
+  uint nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, rowNo, colNo);
@@ -275,7 +279,7 @@ Matrix& CopyRows(Matrix& Out,
   //cerr << "size=" << size << endl;
 
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  int blocks = size / threads + ((size % threads == 0) ?  0 : 1);
+  uint blocks = size / threads + ((size % threads == 0) ?  0 : 1);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, indicesWrap);
