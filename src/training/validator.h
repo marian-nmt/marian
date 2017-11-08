@@ -213,7 +213,7 @@ class TranslationValidator : public Validator<data::Corpus> {
 public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options, false),
-        quiet_(options_->has("quiet-translation")) {
+        quiet_(options_->get<bool>("quiet-translation")) {
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
                 "No post-processing script given for validating translator");
