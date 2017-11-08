@@ -196,6 +196,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
      "(trace - debug - info - warn - err(or) - critical - off)")
     ("quiet", po::value<bool>()->zero_tokens()->default_value(false),
      "Suppress all logging to stderr. Logging to files still works")
+    ("quiet-translation", po::value<bool>()->zero_tokens()->default_value(false),
+     "Suppress logging for translation")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -468,8 +470,6 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
 
     ("valid-translation-output", po::value<std::string>(),
      "Path to store the translation")
-    ("quiet-translation", po::value<bool>()->zero_tokens()->default_value(false),
-     "Suppress logging for validating translation")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search with validating translator")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
@@ -765,7 +765,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-log", std::string);
 
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
-    SET_OPTION("quiet-translation", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
     SET_OPTION("allow-unk", bool);
@@ -787,6 +786,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("workspace", size_t);
   SET_OPTION("log-level", std::string);
   SET_OPTION("quiet", bool);
+  SET_OPTION("quiet-translation", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);

@@ -62,8 +62,10 @@ public:
     auto devices = options_->get<std::vector<int>>("devices");
     ThreadPool threadPool(devices.size(), devices.size());
 
-    auto collector = New<OutputCollector>();
     size_t sentenceId = 0;
+    auto collector = New<OutputCollector>();
+    if(options_->get<bool>("quiet-translation"))
+        collector->setPrintingStrategy(New<QuietPrinting>());
 
     bg.prepare(false);
 
