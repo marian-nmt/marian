@@ -47,7 +47,7 @@ then
         --seed 1234 \
         --type transformer \
         --model model.model.npz \
-        --train-sets data/corpus.en data/corpus.de \
+        --train-sets data/corpus.bpe.en data/corpus.bpe.de \
         --vocabs model/vocab.en.yml model/vocab.de.yml \
         --max-length 100 \
         --mini-batch-fit -w 7000 --maxi-batch 1000 \
