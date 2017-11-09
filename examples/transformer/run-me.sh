@@ -39,8 +39,6 @@ then
     ./scripts/preprocess-data.sh
 fi
 
-exit
-
 # train model
 if [ ! -e "model/model.npz" ]
 then
