@@ -15,8 +15,8 @@ then
 fi
 
 # download dependencies and data
-if cd moses-scripts; then git pull; cd .. else git clone https://github.com/amunmt/moses-scripts; fi
-if cd subword-nmt;   then git pull; cd .. else git clone https://github.com/rsennrich/subword-nmt; fi
+if [ ! -e moses-scripts ]; then git clone https://github.com/amunmt/moses-scripts; fi
+if [ ! -e subword-nmt ];   then git clone https://github.com/rsennrich/subword-nmt; fi
 
 if [ ! -e "data/corpus.en" ]
 then
