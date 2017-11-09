@@ -134,7 +134,9 @@ void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   create(trainStrm, vocabStrm);
 }
 
-void Vocab::create(InputFileStream& trainStrm, OutputFileStream& vocabStrm) {
+void Vocab::create(InputFileStream& trainStrm,
+                   OutputFileStream& vocabStrm,
+                   size_t maxSize) {
   std::string line;
   std::unordered_map<std::string, size_t> counter;
 
@@ -176,7 +178,11 @@ void Vocab::create(InputFileStream& trainStrm, OutputFileStream& vocabStrm) {
     if(i > maxSpec)
       maxSpec = i;
 
-  for(size_t i = 0; i < vocabVec.size(); ++i)
+  auto vocabSize = vocabVec.size();
+  if(maxSize > maxSpec)
+    vocabSize = std::min(maxSize - maxSpec - 1, vocabVec.size());
+
+  for(size_t i = 0; i < vocabSize; ++i)
     vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
   (std::ostream&)vocabStrm << vocabYaml;

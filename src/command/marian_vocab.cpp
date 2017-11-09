@@ -14,8 +14,8 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
-    //("max-size", po::value<size_t>(),
-     //"Generate only  arg  most common vocabulary items")
+    ("max-size", po::value<size_t>()->default_value(0),
+     "Generate only  arg  most common vocabulary items")
     ("help,h", "Print this message and exit")
     ;
   // clang-format on
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   auto vocab = New<Vocab>();
   InputFileStream corpusStrm(std::cin);
   OutputFileStream vocabStrm(std::cout);
-  vocab->create(corpusStrm, vocabStrm);
+  vocab->create(corpusStrm, vocabStrm, vm["max-size"].as<size_t>());
 
   LOG(info, "Finished");
 

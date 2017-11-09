@@ -32,7 +32,9 @@ public:
                    int max = 0);
   int load(const std::string& vocabPath, int max = 0);
   void create(const std::string& vocabPath, const std::string& trainPath);
-  void create(InputFileStream& trainStrm, OutputFileStream& vocabStrm);
+  void create(InputFileStream& trainStrm,
+              OutputFileStream& vocabStrm,
+              size_t maxSize = 0);
 
 private:
   typedef std::map<std::string, size_t> Str2Id;
