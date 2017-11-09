@@ -39,6 +39,12 @@ then
     ./scripts/preprocess-data.sh
 fi
 
+# create common vocabulary
+if [ ! -e "model/vocab.ende.yml" ]
+then
+    cat data/corpus.bpe.en data/corpus.bpe.de | ../../build/marian-vocab --max-size 36000 > model/vocab.ende.yml
+fi
+
 # train model
 if [ ! -e "model/model.npz" ]
 then
@@ -48,7 +54,7 @@ then
         --type transformer \
         --model model.model.npz \
         --train-sets data/corpus.bpe.en data/corpus.bpe.de \
-        --vocabs model/vocab.en.yml model/vocab.de.yml \
+        --vocabs model/vocab.ende.yml model/vocab.ende.yml \
         --max-length 100 \
         --mini-batch-fit -w 7000 --maxi-batch 1000 \
         --early-stopping 10 \
