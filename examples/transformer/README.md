@@ -4,7 +4,7 @@ Files and scripts in this folder shows how to run transformer model ([Vaswani
 et al, 2017](https://arxiv.org/abs/1706.03762)) on WMT-17 English-German data.
 The problem-set is adapted from
 [tensor2tensor](https://github.com/tensorflow/tensor2tensor) repository from
-Google, i.e. 32,000 common BPE subwords for both languages.
+Google, i.e. 36,000 common BPE subwords for both languages.
 No back-translations are used.
 
 
@@ -23,8 +23,8 @@ It executes a training run with `marian` using the following command:
     --seed 1234 \
     --type transformer \
     --model model.model.npz \
-    --train-sets data/corpus.en data/corpus.de \
-    --vocabs model/vocab.en.yml model/vocab.de.yml \
+    --train-sets data/corpus.bpe.en data/corpus.bpe.de \
+    --vocabs model/vocab.ende.yml model/vocab.ende.yml \
     --max-length 100 \
     --mini-batch-fit -w 7000 --maxi-batch 1000 \
     --early-stopping 10 \
