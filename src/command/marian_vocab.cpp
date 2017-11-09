@@ -10,6 +10,7 @@ int main(int argc, char** argv) {
            "wrong number of arguments.\nUsage: {} <corpus-path> <vocab-path>",
            argv[0]);
 
+  createLoggers();
   auto vocab = New<Vocab>();
   vocab->create(argv[2], argv[1]);
 
