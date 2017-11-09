@@ -22,7 +22,7 @@ It executes a training run with `marian` using the following command:
     --devices $GPUS \
     --seed 1234 \
     --type transformer \
-    --model model.model.npz \
+    --model model/model.npz \
     --train-sets data/corpus.en data/corpus.de \
     --vocabs model/vocab.en.yml model/vocab.de.yml \
     --max-length 100 \
@@ -31,7 +31,7 @@ It executes a training run with `marian` using the following command:
     --valid-freq 5000 --save-freq 5000 --disp-freq 500 \
     --valid-metrics ce-mean perplexity ce-mean-words translation \
     --valid-sets data/valid.bpe.en data/valid.bpe.de \
-    --valid-script-path ./script/evaluate.sh \
+    --valid-script-path ./scripts/evaluate.sh \
     --valid-max-length 100 \
     --log model/train.log --valid-log model/valid.log \
     --transformer-postprocess-emb d \
