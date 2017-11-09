@@ -5,7 +5,6 @@
 
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
-#include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
 #include "data/vocab.h"
@@ -131,7 +130,11 @@ void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
            vocabPath);
 
   InputFileStream trainStrm(trainPath);
+  OutputFileStream vocabStrm(vocabPath);
+  create(trainStrm, vocabStrm);
+}
 
+void Vocab::create(InputFileStream& trainStrm, OutputFileStream& vocabStrm) {
   std::string line;
   std::unordered_map<std::string, size_t> counter;
 
@@ -176,7 +179,6 @@ void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   for(size_t i = 0; i < vocabVec.size(); ++i)
     vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-  OutputFileStream vocabStrm(vocabPath);
   (std::ostream&)vocabStrm << vocabYaml;
 }
 }

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/file_stream.h"
 #include "data/types.h"
 
 namespace marian {
@@ -31,6 +32,7 @@ public:
                    int max = 0);
   int load(const std::string& vocabPath, int max = 0);
   void create(const std::string& vocabPath, const std::string& trainPath);
+  void create(InputFileStream& trainStrm, OutputFileStream& vocabStrm);
 
 private:
   typedef std::map<std::string, size_t> Str2Id;

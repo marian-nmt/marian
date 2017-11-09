@@ -1,18 +1,50 @@
 #include "marian.h"
 
+#include <boost/program_options.hpp>
+
 #include "common/logging.h"
 #include "data/vocab.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
 
-  ABORT_IF(argc != 3,
-           "wrong number of arguments.\nUsage: {} <corpus-path> <vocab-path>",
-           argv[0]);
-
   createLoggers();
+
+  namespace po = boost::program_options;
+  po::options_description desc("Allowed options");
+  // clang-format off
+  desc.add_options()
+    //("max-size", po::value<size_t>(),
+     //"Generate only  arg  most common vocabulary items")
+    ("help,h", "Print this message and exit")
+    ;
+  // clang-format on
+
+  po::variables_map vm;
+  try {
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+  } catch(std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl << std::endl;
+    std::cerr << "Usage: " << argv[0] << " [options]" << std::endl << std::endl;
+    std::cerr << desc << std::endl;
+    exit(1);
+  }
+
+  if(vm.count("help")) {
+    std::cerr << "Usage: " << argv[0] << " [options]" << std::endl << std::endl;
+    std::cerr << desc << std::endl;
+    exit(0);
+  }
+
+  LOG(info, "Creating vocabulary...");
+
   auto vocab = New<Vocab>();
-  vocab->create(argv[2], argv[1]);
+  InputFileStream corpusStrm(std::cin);
+  OutputFileStream vocabStrm(std::cout);
+  vocab->create(corpusStrm, vocabStrm);
+
+  LOG(info, "Finished");
 
   return 0;
 }
