@@ -58,7 +58,10 @@ set_target_properties(marian_decoder PROPERTIES OUTPUT_NAME marian-decoder)
 add_executable(marian_scorer command/marian_scorer.cpp)
 set_target_properties(marian_scorer PROPERTIES OUTPUT_NAME marian-scorer)
 
-set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer)
+add_executable(marian_vocab command/marian_vocab.cpp)
+set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
+
+set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
 if(COMPILE_SERVER)
   add_executable(marian_server command/marian_server.cpp)
