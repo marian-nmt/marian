@@ -32,6 +32,10 @@ struct Shape {
       return shape_.data();
     }
 
+    int* data() {
+      return shape_.data();
+    }
+
     Shape(const Shape& shape) : Shape() {
       shape_.resize(shape.size());
       std::copy(shape.begin(), shape.end(), begin());
