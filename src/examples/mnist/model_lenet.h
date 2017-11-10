@@ -38,9 +38,7 @@ protected:
     auto flatten
         = reshape(pool,
                   {pool->shape()[0],
-                   pool->shape()[1] * pool->shape()[2] * pool->shape()[3],
-                   1,
-                   1});
+                   pool->shape()[1] * pool->shape()[2] * pool->shape()[3]});
     auto drop1 = dropout(flatten, keywords::dropout_prob = 0.25);
     std::vector<Expr> layers, weights, biases;
 
