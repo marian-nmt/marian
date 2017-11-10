@@ -296,8 +296,6 @@ Expr shift(Expr a, Shape shift) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
 
-#ifdef CUDNN
-
 Expr convolution(Expr x, Expr filters, Expr bias) {
   std::vector<Expr> nodes = {x, filters, bias};
   return Expression<ConvolutionOp>(nodes);
@@ -341,5 +339,4 @@ Expr max_pooling(
       "max");
 }
 
-#endif
 }
