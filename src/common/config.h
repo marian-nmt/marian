@@ -98,8 +98,7 @@ public:
     (std::ostream&)out << *this;
   }
 
-  template <class OStream>
-  friend OStream& operator<<(OStream& out, const Config& config) {
+  friend std::ostream& operator<<(std::ostream& out, const Config& config) {
     YAML::Emitter outYaml;
     OutputYaml(config.get(), outYaml);
     out << outYaml.c_str();
