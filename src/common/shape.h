@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <vector>
+
+#include "common/logging.h"
 
 namespace marian {
 
