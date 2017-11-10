@@ -21,7 +21,8 @@ CUDNNWrapper::CUDNNWrapper() {
 }
 
 CUDNNWrapper::~CUDNNWrapper() {
-  cudnnDestroy(cudnnHandle_);
+  // std::cerr << "destroy wrapper" << std::endl;
+  CUDNN_CALL(cudnnDestroy(cudnnHandle_));
 }
 
 void CUDNNWrapper::setCudnnTensor(cudnnTensorDescriptor_t& desc, Tensor x) {
@@ -171,6 +172,7 @@ void ConvolutionWrapper::backward(
 }
 
 ConvolutionWrapper::~ConvolutionWrapper() {
+  // std::cerr << "destroy conv-wrapper" << std::endl;
   cudnnDestroyConvolutionDescriptor(convDesc_);
   cudnnDestroyFilterDescriptor(kernelDesc_);
   cudnnDestroyTensorDescriptor(biasDesc_);
@@ -336,6 +338,7 @@ void PoolingWrapper::setPoolingDescriptor(
 }
 
 PoolingWrapper::~PoolingWrapper() {
+  // std::cerr << "destroy pool-wrapper" << std::endl;
   CUDNN_CALL(cudnnDestroyPoolingDescriptor(poolingDesc_));
 }
 
