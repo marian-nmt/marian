@@ -712,18 +712,23 @@ class ConvolutionOp : public NaryNodeOp {
 public:
   ConvolutionOp(const std::vector<Expr>& nodes)
     : NaryNodeOp(nodes),
-      conv_(nodes[1]->val(), nodes[2]->val()) {
-    conv_.getOutputShape(nodes[0]->val(), shape_);
+      conv_(nodes[1]->shape(), nodes[2]->shape()) {
+    conv_.getOutputShape(nodes[0]->shape(), shape_);
   }
 
   NodeOps forwardOps() {
-    return {NodeOp(conv_.forward(child(0)->val(), val_))};
+    return {NodeOp(conv_.forward(
+          child(0)->val(),
+          child(1)->val(),
+          child(2)->val(),
+          val_))};
   }
 
   NodeOps backwardOps() {
     return {NodeOp(conv_.backward(
           child(0)->val(),
           child(0)->grad(),
+          child(1)->val(),
           child(1)->grad(),
           child(2)->grad(),
           adj_))};

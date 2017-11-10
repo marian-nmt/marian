@@ -76,13 +76,14 @@ void ConvolutionWrapper::forward(
     Tensor kernels,
     Tensor bias,
     Tensor y) {
+  cudaSetDevice(x->getDevice());
+
   cudnnTensorDescriptor_t xDesc, yDesc;
   setCudnnTensor(xDesc, x);
   setCudnnTensor(yDesc, y);
 
   const float alpha = 1.0f;
   const float beta = 0.0f;
-  cudaSetDevice(x->getDevice());
 
   CUDNN_CALL(cudnnConvolutionForward(
         cudnnHandle_,
@@ -217,6 +218,125 @@ void ConvolutionWrapper::setKernelDescriptor(const Shape& shape) {
         layerIn,
         kernelH,
         kernelW));
+}
+
+
+/******************************************************************************
+ * PoolingWrapper
+ *****************************************************************************/
+
+PoolingWrapper::PoolingWrapper(
+    int height,
+    int width,
+    int padHeight,
+    int padWidth,
+    int strideHeight,
+    int strideWidth,
+    std::string mode) {
+  if (mode == "max") {
+    poolingMode_ = CUDNN_POOLING_MAX;
+  } else if (mode == "avg") {
+    poolingMode_ = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
+  } else {
+      ABORT("Unknown pooling mode.");
+  }
+
+  setPoolingDescriptor(height, width,
+      padHeight, padWidth,
+      strideHeight, strideWidth);
+}
+
+void PoolingWrapper::getOutputShape(
+    const Shape& xShape,
+    Shape& shape) {
+  cudnnTensorDescriptor_t xDesc;
+  setCudnnTensor(xDesc, xShape);
+  shape.resize(4);
+  CUDNN_CALL(cudnnGetPooling2dForwardOutputDim(
+        poolingDesc_,
+        xDesc,
+        shape.data(),
+        shape.data() + 1,
+        shape.data() + 2,
+        shape.data() + 3));
+  cudnnDestroyTensorDescriptor(xDesc);
+}
+
+void PoolingWrapper::forward(Tensor x, Tensor y) {
+  cudaSetDevice(x->getDevice());
+
+  cudnnTensorDescriptor_t xDesc, yDesc;
+  setCudnnTensor(xDesc, x);
+  setCudnnTensor(yDesc, y);
+
+  const float alpha = 1.0f;
+  const float beta = 0.0f;
+
+  CUDNN_CALL(cudnnPoolingForward(
+        cudnnHandle_,
+        poolingDesc_,
+        &alpha,
+        xDesc,
+        x->data(),
+        &beta,
+        yDesc,
+        y->data()));
+  cudnnDestroyTensorDescriptor(xDesc);
+  cudnnDestroyTensorDescriptor(yDesc);
+}
+
+void PoolingWrapper::backward(
+    Tensor x,
+    Tensor xGrad,
+    Tensor y,
+    Tensor yGrad) {
+  cudaSetDevice(x->getDevice());
+
+  cudnnTensorDescriptor_t xDesc, yDesc;
+  setCudnnTensor(xDesc, x);
+  setCudnnTensor(yDesc, y);
+
+  const float alpha = 1.0f;
+  const float beta = 1.0f;
+
+  CUDNN_CALL(cudnnPoolingBackward(
+        cudnnHandle_,
+        poolingDesc_,
+        &alpha,
+        yDesc,
+        y->data(),
+        yDesc,
+        yGrad->data(),
+        xDesc,
+        x->data(),
+        &beta,
+        xDesc,
+        xGrad->data()));
+  cudnnDestroyTensorDescriptor(xDesc);
+  cudnnDestroyTensorDescriptor(yDesc);
+}
+
+void PoolingWrapper::setPoolingDescriptor(
+    int height,
+    int width,
+    int padHeight,
+    int padWidth,
+    int strideHeight,
+    int strideWidth) {
+  CUDNN_CALL(cudnnCreatePoolingDescriptor(&poolingDesc_));
+  CUDNN_CALL(cudnnSetPooling2dDescriptor(poolingDesc_,
+                                          poolingMode_,
+                                          CUDNN_NOT_PROPAGATE_NAN,
+                                          height,
+                                          width,
+                                          padHeight,
+                                          padWidth,
+                                          strideHeight,
+                                          strideWidth));
+}
+
+PoolingWrapper::~PoolingWrapper() {
+  CUDNN_CALL(cudnnDestroyPoolingDescriptor(poolingDesc_));
 }
 
 }
