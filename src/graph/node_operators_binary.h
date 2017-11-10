@@ -6,30 +6,7 @@
 #include "graph/node.h"
 #include "kernels/tensor_operators.h"
 #include "functional/functional.h"
-
-#ifdef CUDNN
-
-#include <cudnn.h>
-
-#define CUDA_CALL(x)                                  \
-  do {                                                \
-    if((x) != cudaSuccess) {                          \
-      printf("Error at %s:%d\n", __FILE__, __LINE__); \
-      return EXIT_FAILURE;                            \
-    }                                                 \
-  } while(0)
-
-#define CUDNN_CALL(x)                 \
-  do {                                \
-    if((x) != CUDNN_STATUS_SUCCESS) { \
-      printf("Error (%s) at %s:%d\n", \
-             cudnnGetErrorString(x),  \
-             __FILE__,                \
-             __LINE__);               \
-    }                                 \
-  } while(0)
-
-#endif
+#include "kernels/cudnn_wrappers.h"
 
 namespace marian {
 
@@ -731,195 +708,31 @@ struct HighwayNodeOp : public NaryNodeOp {
   const std::string type() { return "highway"; }
 };
 
-#ifdef CUDNN
 class ConvolutionOp : public NaryNodeOp {
 public:
-  ConvolutionOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {
-    CUDNN_CALL(cudnnCreate(&cudnnHandle_));
-
-    CUDNN_CALL(cudnnCreateTensorDescriptor(&xDesc_));
-    CUDNN_CALL(cudnnSetTensor4dDescriptor(xDesc_,
-                                          CUDNN_TENSOR_NCHW,
-                                          CUDNN_DATA_FLOAT,
-                                          nodes[0]->shape()[0],
-                                          nodes[0]->shape()[1],
-                                          nodes[0]->shape()[2],
-                                          nodes[0]->shape()[3]));
-
-    int widthPad = 1;
-    int heightPad = 1;
-    int heightStride = 1;
-    int widthStride = 1;
-
-    CUDNN_CALL(cudnnCreateConvolutionDescriptor(&convDesc_));
-#if CUDNN_MAJOR > 5
-    CUDNN_CALL(cudnnSetConvolution2dDescriptor(convDesc_,
-                                               heightPad,
-                                               widthPad,
-                                               heightStride,
-                                               widthStride,
-                                               1,
-                                               1,  // upscales
-                                               CUDNN_CROSS_CORRELATION,
-                                               CUDNN_DATA_FLOAT));
-#else
-    CUDNN_CALL(cudnnSetConvolution2dDescriptor(convDesc_,
-                                               heightPad,
-                                               widthPad,
-                                               heightStride,
-                                               widthStride,
-                                               1,
-                                               1,  // upscales
-                                               CUDNN_CROSS_CORRELATION));
-#endif
-
-    // std::cerr << "data: " << nodes[0]->shape() << std::endl;
-    // std::cerr << "filter: " << nodes[1]->shape() << std::endl;
-    // std::cerr << "bias: " << nodes[2]->shape() << std::endl;
-
-    int layerIn = nodes[1]->shape()[0];
-    int layerOut = nodes[1]->shape()[1];
-    kernelH_ = nodes[1]->shape()[2];
-    kernelW_ = nodes[1]->shape()[3];
-    CUDNN_CALL(cudnnCreateFilterDescriptor(&kernelDesc_));
-    CUDNN_CALL(cudnnSetFilter4dDescriptor(kernelDesc_,
-                                          CUDNN_DATA_FLOAT,
-                                          CUDNN_TENSOR_NCHW,
-                                          layerOut,
-                                          layerIn,
-                                          kernelH_,
-                                          kernelW_));
-
-    CUDNN_CALL(cudnnCreateTensorDescriptor(&biasDesc_));
-    CUDNN_CALL(cudnnSetTensor4dDescriptor(biasDesc_,
-                                          CUDNN_TENSOR_NCHW,
-                                          CUDNN_DATA_FLOAT,
-                                          nodes[2]->shape()[0],
-                                          nodes[2]->shape()[1],
-                                          nodes[2]->shape()[2],
-                                          nodes[2]->shape()[3]));
-
-    /* @TODO: does not compile
-    CUDNN_CALL(cudnnGetConvolution2dForwardOutputDim(convDesc_,
-                                                     xDesc_,
-                                                     kernelDesc_,
-                                                     shape_.data(),
-                                                     shape_.data() + 1,
-                                                     shape_.data() + 2,
-                                                     shape_.data() + 3));
-  */
-
-    CUDNN_CALL(cudnnCreateTensorDescriptor(&yDesc_));
-    CUDNN_CALL(cudnnSetTensor4dDescriptor(yDesc_,
-                                          CUDNN_TENSOR_NCHW,
-                                          CUDNN_DATA_FLOAT,
-                                          shape_[0],
-                                          shape_[1],
-                                          shape_[2],
-                                          shape_[3]));
-    CUDNN_CALL(cudnnCreateTensorDescriptor(&adjDesc_));
-    CUDNN_CALL(cudnnSetTensor4dDescriptor(adjDesc_,
-                                          CUDNN_TENSOR_NCHW,
-                                          CUDNN_DATA_FLOAT,
-                                          shape_[0],
-                                          shape_[1],
-                                          shape_[2],
-                                          shape_[3]));
+  ConvolutionOp(const std::vector<Expr>& nodes)
+    : NaryNodeOp(nodes),
+      conv_(nodes[1]->val(), nodes[2]->val()) {
+    conv_.getOutputShape(nodes[0]->val(), shape_);
   }
 
   NodeOps forwardOps() {
-    const float alpha = 1.0f;
-    const float beta = 0.0f;
-    cudaSetDevice(val_->getDevice());
-
-    return {NodeOp(CUDNN_CALL(cudnnConvolutionForward(
-                cudnnHandle_,
-                &alpha,
-                xDesc_,
-                children_[0]->val()->data(),
-                kernelDesc_,
-                children_[1]->val()->data(),
-                convDesc_,
-                CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM,
-                nullptr,
-                0,
-                &beta,
-                yDesc_,
-                val_->data()))),
-            NodeOp(CUDNN_CALL(cudnnAddTensor(cudnnHandle_,
-                                             &alpha,
-                                             biasDesc_,
-                                             children_[2]->val()->data(),
-                                             &alpha,
-                                             yDesc_,
-                                             val_->data())))};
+    return {NodeOp(conv_.forward(child(0)->val(), val_))};
   }
 
   NodeOps backwardOps() {
-    // const float alpha = 1.0f / std::sqrt(float(kernelH_ * kernelW_));
-    const float alpha = 1.0f;
-    const float beta = 1.0f;
-    // std::cerr << "BACKWARD" << std::endl;
-    return {NodeOp(CUDNN_CALL(
-                cudnnConvolutionBackwardData(cudnnHandle_,
-                                             &alpha,
-                                             kernelDesc_,
-                                             children_[1]->val()->data(),
-                                             adjDesc_,
-                                             adj_->data(),
-                                             convDesc_,
-                                             CUDNN_CONVOLUTION_BWD_DATA_ALGO_0,
-                                             nullptr,
-                                             0,
-                                             &beta,
-                                             xDesc_,
-                                             children_[0]->grad()->data()))),
-            NodeOp(CUDNN_CALL(cudnnConvolutionBackwardFilter(
-                cudnnHandle_,
-                &alpha,
-                xDesc_,
-                children_[0]->val()->data(),
-                adjDesc_,
-                adj_->data(),
-                convDesc_,
-                CUDNN_CONVOLUTION_BWD_FILTER_ALGO_0,
-                nullptr,
-                0,
-                &beta,
-                kernelDesc_,
-                children_[1]->grad()->data()))),
-            NodeOp(CUDNN_CALL(
-                cudnnConvolutionBackwardBias(cudnnHandle_,
-                                             &alpha,
-                                             adjDesc_,
-                                             adj_->data(),
-                                             &beta,
-                                             biasDesc_,
-                                             children_[2]->grad()->data())))};
+    return {NodeOp(conv_.backward(
+          child(0)->val(),
+          child(0)->grad(),
+          child(1)->grad(),
+          child(2)->grad(),
+          adj_))};
   }
 
   const std::string type() { return "layer_convolution"; }
 
-  virtual ~ConvolutionOp() {
-    cudnnDestroyConvolutionDescriptor(convDesc_);
-    cudnnDestroyFilterDescriptor(kernelDesc_);
-    cudnnDestroy(cudnnHandle_);
-    cudnnDestroyTensorDescriptor(xDesc_);
-    cudnnDestroyTensorDescriptor(yDesc_);
-    cudnnDestroyTensorDescriptor(biasDesc_);
-  }
-
 protected:
-  cudnnHandle_t cudnnHandle_;
-  cudnnConvolutionDescriptor_t convDesc_;
-  cudnnFilterDescriptor_t kernelDesc_;
-  cudnnTensorDescriptor_t biasDesc_;
-  cudnnTensorDescriptor_t xDesc_;
-  cudnnTensorDescriptor_t yDesc_;
-  cudnnTensorDescriptor_t adjDesc_;
-  int kernelH_;
-  int kernelW_;
+  ConvolutionWrapper conv_;
 };
 
-#endif
 }
