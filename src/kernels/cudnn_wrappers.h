@@ -59,5 +59,39 @@ protected:
 
 };
 
+class PoolingWrapper : public CUDNNWrapper {
+public:
+  PoolingWrapper(
+      int height,
+      int width,
+      int padHeight,
+      int padWidth,
+      int strideHeight,
+      int strideWidth,
+      std::string mode);
+
+  void getOutputShape(const Shape& xShape, Shape& shape);
+
+  void forward(Tensor x, Tensor y);
+
+  void backward(Tensor x, Tensor xGrad, Tensor y, Tensor yGrad);
+
+  virtual ~PoolingWrapper();
+
+protected:
+  void setPoolingDescriptor(
+      int height,
+      int width,
+      int padHeight,
+      int padWidth,
+      int strideHeight,
+      int strideWidth);
+
+protected:
+  cudnnPoolingDescriptor_t poolingDesc_;
+  cudnnPoolingMode_t poolingMode_;
+
+};
+
 }
 
