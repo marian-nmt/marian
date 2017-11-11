@@ -32,9 +32,8 @@ protected:
     // Construct hidden layers
 
     auto conv_1 = Convolution("Conv1", 3, 3, 32)(x);
-    // auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
-    // auto pool = MaxPooling("MaxPooling", 2, 2)(conv_2);
-    auto pool = conv_1;
+    auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
+    auto pool = MaxPooling("MaxPooling", 2, 2)(conv_2);
 
     auto flatten
         = reshape(pool,
