@@ -1,5 +1,7 @@
 #include "kernels/cudnn_wrappers.h"
 
+namespace marian {
+
 #ifdef CUDNN
 
 #include <cudnn.h>
@@ -14,7 +16,6 @@
     }                                 \
   } while(0)
 
-namespace marian {
 
 CUDNNWrapper::CUDNNWrapper() {
   CUDNN_CALL(cudnnCreate(&cudnnHandle_));
@@ -42,6 +43,10 @@ void CUDNNWrapper::setCudnnTensor(
         shape[2],
         shape[3]));
 }
+
+/******************************************************************************
+ * ConvolutionWrapper
+ *****************************************************************************/
 
 ConvolutionWrapper::ConvolutionWrapper(
     const Shape& kernelShape,
@@ -342,6 +347,58 @@ PoolingWrapper::~PoolingWrapper() {
   CUDNN_CALL(cudnnDestroyPoolingDescriptor(poolingDesc_));
 }
 
+
+#else
+
+
+CUDNNWrapper::CUDNNWrapper() {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+CUDNNWrapper::~CUDNNWrapper() {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+ConvolutionWrapper::ConvolutionWrapper(const Shape&, const Shape&, int, int,
+                                       int, int) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+void ConvolutionWrapper::getOutputShape(const Shape&, Shape&) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+void ConvolutionWrapper::forward(Tensor, Tensor, Tensor, Tensor) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+void ConvolutionWrapper::backward( Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+ConvolutionWrapper::~ConvolutionWrapper() {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+PoolingWrapper::PoolingWrapper(int, int, int, int, int, int, std::string) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+void PoolingWrapper::getOutputShape(const Shape&, Shape&) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+void PoolingWrapper::forward(Tensor x, Tensor y) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+void PoolingWrapper::backward(Tensor, Tensor, Tensor, Tensor) {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
+}
+
+PoolingWrapper::~PoolingWrapper() {
+  ABORT("To use convolution and pooling, recompile with CUDNN (cmake flag -DUSE_CUDNN=on)");
 }
 
 #endif
+}
