@@ -1,10 +1,13 @@
 #pragma once
 
-#include <cudnn.h>
 #include <iostream>
 
 #include "common/shape.h"
 #include "tensors/tensor.h"
+
+#ifdef CUDNN
+
+#include <cudnn.h>
 
 namespace marian {
 
@@ -94,4 +97,65 @@ protected:
 };
 
 }
+
+#else
+
+namespace marian {
+
+class CUDNNWrapper {
+public:
+  CUDNNWrapper();
+  virtual ~CUDNNWrapper();
+};
+
+
+class ConvolutionWrapper : public CUDNNWrapper {
+public:
+  ConvolutionWrapper(
+      const Shape& kernelShape,
+      const Shape& biasShape,
+      int hPad = 1,
+      int wPad = 1,
+      int hStride = 1,
+      int wStride = 1);
+
+  void getOutputShape(const Shape& xShape, Shape& shape);
+
+  virtual ~ConvolutionWrapper();
+
+  void forward(Tensor x, Tensor Kernels, Tensor bias, Tensor y);
+
+  void backward(
+      Tensor x,
+      Tensor xGrad,
+      Tensor kernels,
+      Tensor kernelGrad,
+      Tensor biasGrad,
+      Tensor yGrad);
+
+};
+
+class PoolingWrapper : public CUDNNWrapper {
+public:
+  PoolingWrapper(
+      int height,
+      int width,
+      int padHeight,
+      int padWidth,
+      int strideHeight,
+      int strideWidth,
+      std::string mode);
+
+  void getOutputShape(const Shape& xShape, Shape& shape);
+
+  void forward(Tensor x, Tensor y);
+
+  void backward(Tensor x, Tensor xGrad, Tensor y, Tensor yGrad);
+
+  virtual ~PoolingWrapper();
+};
+
+}
+
+#endif
 
