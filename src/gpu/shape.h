@@ -32,9 +32,9 @@ struct ConstantShape {
   }
 
   __HD__ ConstantShape(const ConstantShape& shape)
-  : shape_{shape.shape_},
-    stride_{shape.stride_},
-    bstride_{shape.bstride_},
+  : shape_(shape.shape_),
+    stride_(shape.stride_),
+    bstride_(shape.bstride_),
     elements_(shape.elements_) {}
 
   ConstantShape(const Shape& shape) {

@@ -451,7 +451,7 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Metric to use during validation: cross-entropy, perplexity, "
       "valid-script, translation. "
       "Multiple metrics can be specified")
-    ("valid-mini-batch", po::value<int>()->default_value(64),
+    ("valid-mini-batch", po::value<int>()->default_value(32),
       "Size of mini-batch used during validation")
     ("valid-max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a validating sentence pair")
