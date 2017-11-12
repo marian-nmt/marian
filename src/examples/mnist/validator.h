@@ -23,8 +23,7 @@ public:
   }
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
-    auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".best-" + type() + ".npz", true);
+    LOG(warn, "Keeping best model for MNIST examples is not supported");
   }
 
   std::string type() { return "accuracy"; }

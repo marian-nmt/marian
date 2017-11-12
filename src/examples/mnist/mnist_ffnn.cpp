@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   auto devices = options->get<std::vector<size_t>>("devices");
 
   if(devices.size() > 1) {
-    if(options->get<bool>("sync"))
+    if(options->get<bool>("sync-sgd"))
       New<TrainMNIST<SyncGraphGroup>>(options)->run();
     else
       New<TrainMNIST<AsyncGraphGroup>>(options)->run();
