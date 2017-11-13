@@ -33,7 +33,7 @@ protected:
 
     auto conv_1 = Convolution("Conv1", 3, 3, 32)(x);
     auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
-    auto pool = MaxPooling("MaxPooling", 2, 2)(conv_2);
+    auto pool = max_pooling(conv_2, 2, 2, 1, 1, 1, 1);
 
     auto flatten
         = reshape(pool,
