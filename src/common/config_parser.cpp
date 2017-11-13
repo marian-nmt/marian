@@ -134,6 +134,8 @@ bool ConfigParser::has(const std::string& key) const {
 }
 
 void ConfigParser::validateOptions() const {
+  ABORT_IF(!has("vocabs"), "No vocabularies provided");
+
   if(mode_ == ConfigMode::translating)
     return;
 

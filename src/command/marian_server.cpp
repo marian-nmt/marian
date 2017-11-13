@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   using namespace marian;
 
   // initialize translation model task
-  auto options = New<Config>(argc, argv, ConfigMode::translating);
+  auto options = New<Config>(argc, argv, ConfigMode::translating, true);
   auto task = New<TranslateServiceMultiGPU<BeamSearch>>(options);
 
   // create web service server
