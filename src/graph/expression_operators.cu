@@ -277,6 +277,18 @@ Expr highway(Expr y, Expr x, Expr t) {
   return Expression<HighwayNodeOp>(nodes);
 }
 
+Expr highway(const std::string prefix, Expr x) {
+  size_t out_dim = x->shape()[-1];
+  auto g = Dense(prefix + "_highway_d1",
+                 out_dim,
+                 keywords::activation = act::logit)(x);
+  auto dense_2 = Dense(prefix+ "_highway_d2",
+                       out_dim,
+                       keywords::activation = act::linear)(x);
+  auto rr = relu(dense_2);
+  return (g * rr) + ((1 - g) * x);
+}
+
 // Expr batch_norm(Expr x, Expr gamma, Expr beta) {
 //  auto mju = mean(x, keywords::axis=0);
 //  auto xmmju = x - mju;

@@ -114,6 +114,7 @@ Expr square(Expr a);
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 Expr highway(Expr y, Expr x, Expr t);
+Expr highway(const std::string prefix, Expr x);
 
 template <typename... Args>
 Expr dropout(Expr x, Args... args) {
