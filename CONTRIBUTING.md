@@ -29,10 +29,6 @@ Please follow our coding convention (below) and make sure all of your commits
 are atomic (learn more about _git squash_ to merge multiple commits and _git
 rebase -i_ to split a single huge commit into smaller pieces).
 
-The most recent branch to start working with usually is the `develop` branch.
-The changes from `develop` are merged with `master`, and after that the
-`VERSION` file should be updated.
-
 Ideally test your changes by running [Marian regression
 tests](http://github.com/marian-nmt/marian-regression-tests.git) locally:
 
