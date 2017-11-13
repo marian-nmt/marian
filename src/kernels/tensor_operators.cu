@@ -1272,15 +1272,20 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
       out->data(), out->shape(), adj->data(), a->data(), pick->data());
 }
 
+
 float L2Norm(Tensor in) {
   using namespace functional;
 
   cudaSetDevice(in->getDevice());
 
+  int size = in->shape().elements();
+  int threads = std::min(MAX_THREADS, size);
+  int blocks  = std::min(MAX_BLOCKS, size / threads  + (size % threads != 0));
+
   uint8_t* data;
-  cudaMalloc(&data, sizeof(float));
+  cudaMalloc(&data, blocks * sizeof(float));
   Tensor out(new TensorBase(
-      New<MemoryPiece>(data, sizeof(float)), {1, 1}, in->getDevice()));
+      New<MemoryPiece>(data, blocks * sizeof(float)), {1, blocks}, in->getDevice()));
 
   ReduceAll(_1 * _1, out, in);
   float dataCpu = sqrtf(out->get(0));
