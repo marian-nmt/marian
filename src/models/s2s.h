@@ -116,12 +116,7 @@ public:
     return context;
   }
 
-  EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
-
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch) {
-    using namespace keywords;
-
+  Expr buildSourceEmbeddings(Ptr<ExpressionGraph> graph) {
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -145,8 +140,16 @@ public:
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
-    auto embeddings = embFactory.construct();
+    return embFactory.construct();
+  }
 
+  EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
+
+  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                          Ptr<data::CorpusBatch> batch) {
+    auto embeddings = buildSourceEmbeddings(graph);
+
+    using namespace keywords;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
