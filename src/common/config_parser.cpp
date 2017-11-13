@@ -134,51 +134,57 @@ bool ConfigParser::has(const std::string& key) const {
 }
 
 void ConfigParser::validateOptions() const {
-  ABORT_IF(!has("vocabs"), "No vocabularies provided");
+  UTIL_THROW_IF2(!has("vocabs"), "No vocabularies provided");
 
   if(mode_ == ConfigMode::translating)
     return;
 
-  ABORT_IF(
+  UTIL_THROW_IF2(
       !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
       "No train sets given in config file or on command line");
-  ABORT_IF(has("vocabs")
-               && get<std::vector<std::string>>("vocabs").size()
-                      != get<std::vector<std::string>>("train-sets").size(),
-           "There should be as many vocabularies as training sets");
-  ABORT_IF(has("embedding-vectors")
-               && get<std::vector<std::string>>("embedding-vectors").size()
-                      != get<std::vector<std::string>>("train-sets").size(),
-           "There should be as many files with embedding vectors as "
-           "training sets");
+  UTIL_THROW_IF2(
+      has("vocabs")
+          && get<std::vector<std::string>>("vocabs").size()
+                 != get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many vocabularies as training sets");
+  UTIL_THROW_IF2(
+      has("embedding-vectors")
+          && get<std::vector<std::string>>("embedding-vectors").size()
+                 != get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many files with embedding vectors as "
+      "training sets");
 
   if(mode_ == ConfigMode::rescoring)
     return;
 
   boost::filesystem::path modelPath(get<std::string>("model"));
   auto modelDir = modelPath.parent_path();
-  ABORT_IF(!modelDir.empty() && !boost::filesystem::is_directory(modelDir),
-           "Model directory does not exist");
+  UTIL_THROW_IF2(
+      !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
+      "Model directory does not exist");
 
-  ABORT_IF(has("valid-sets")
-               && get<std::vector<std::string>>("valid-sets").size()
-                      != get<std::vector<std::string>>("train-sets").size(),
-           "There should be as many validation sets as training sets");
+  UTIL_THROW_IF2(
+      has("valid-sets")
+          && get<std::vector<std::string>>("valid-sets").size()
+                 != get<std::vector<std::string>>("train-sets").size(),
+      "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
-  ABORT_IF(get<double>("lr-decay") > 1.0,
-           "Learning rate decay factor greater than 1.0 is unusual");
-  ABORT_IF((get<std::string>("lr-decay-strategy") == "epoch+batches"
-            || get<std::string>("lr-decay-strategy") == "epoch+stalled")
-               && get<std::vector<size_t>>("lr-decay-start").size() != 2,
-           "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
-           "values specified with --lr-decay-start options");
-  ABORT_IF((get<std::string>("lr-decay-strategy") == "epoch"
-            || get<std::string>("lr-decay-strategy") == "batches"
-            || get<std::string>("lr-decay-strategy") == "stalled")
-               && get<std::vector<size_t>>("lr-decay-start").size() != 1,
-           "Single decay strategies require only one value specified with "
-           "--lr-decay-start option");
+  UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
+                 "Learning rate decay factor greater than 1.0 is unusual");
+  UTIL_THROW_IF2(
+      (get<std::string>("lr-decay-strategy") == "epoch+batches"
+       || get<std::string>("lr-decay-strategy") == "epoch+stalled")
+          && get<std::vector<size_t>>("lr-decay-start").size() != 2,
+      "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
+      "values specified with --lr-decay-start options");
+  UTIL_THROW_IF2(
+      (get<std::string>("lr-decay-strategy") == "epoch"
+       || get<std::string>("lr-decay-strategy") == "batches"
+       || get<std::string>("lr-decay-strategy") == "stalled")
+          && get<std::vector<size_t>>("lr-decay-start").size() != 1,
+      "Single decay strategies require only one value specified with "
+      "--lr-decay-start option");
 }
 
 void ConfigParser::addOptionsCommon(po::options_description& desc) {
