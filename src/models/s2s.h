@@ -145,8 +145,8 @@ public:
 
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch) {
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch) {
     auto embeddings = buildSourceEmbeddings(graph);
 
     using namespace keywords;
