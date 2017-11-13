@@ -1,4 +1,4 @@
 [submodule "src/marian"]
 	path = src/marian
-	url = https://github.com/marian-nmt/marian-train
-	branch = amunmt-stable
+	url = https://github.com/marian-nmt/marian-dev
+	branch = stable
