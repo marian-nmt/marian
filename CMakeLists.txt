@@ -40,7 +40,7 @@ list(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 if(USE_CUDNN)
-  find_package(CUDNN "5.0")
+  find_package(CUDNN "7.0")
   if(CUDNN_FOUND)
     include_directories(${CUDNN_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${CUDNN_LIBRARIES})
