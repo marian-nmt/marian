@@ -131,21 +131,25 @@ Expr dropout(Expr x, Args... args) {
 
 Expr shift(Expr, Shape);
 
+Expr convert2cudnnFormat(Expr x);
+
+Expr convertFromcudnnFormat(Expr x);
+
 Expr convolution(Expr x, Expr filters, Expr bias);
 
 Expr avg_pooling(Expr x,
                  int height,
                  int width,
-                 int padHeight,
-                 int padWidth,
-                 int strideHeight,
-                 int strideWidth);
+                 int padHeight = 0,
+                 int padWidth = 0,
+                 int strideHeight = 1,
+                 int strideWidth = 1);
 
 Expr max_pooling(Expr x,
                  int height,
                  int width,
-                 int padHeight,
-                 int padWidth,
-                 int strideHeight,
-                 int strideWidth);
+                 int padHeight = 0,
+                 int padWidth = 0,
+                 int strideHeight = 1,
+                 int strideWidth = 1);
 }
