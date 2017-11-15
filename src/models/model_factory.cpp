@@ -175,6 +175,14 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
     return New<MnistLeNet>(options);
   }
 
+  if(type == "char-s2s") {
+    return models::encoder_decoder()(options)
+        ("original-type", type)
+            .push_back(models::encoder()("type", "char-s2s"))
+            .push_back(models::decoder()("type", "s2s"))
+            .construct();
+  }
+
   // clang-format on
   ABORT("Unknown model type: {}", type);
 }
