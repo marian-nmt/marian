@@ -83,7 +83,7 @@ God& God::Init(int argc, char** argv) {
   LoadScorers();
   LoadFiltering();
 
-  useFusedSoftmax_ = false;
+  useFusedSoftmax_ = true;
 
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));

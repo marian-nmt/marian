@@ -253,6 +253,7 @@ class Decoder {
         }
 
         void GetProbs(mblas::Matrix& Probs,
+            std::shared_ptr<mblas::Matrix> &b4,
                   const CellState& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
@@ -298,7 +299,7 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
           //PAUSE_TIMER("GetProbs.Element");
 
-          std::shared_ptr<mblas::Matrix> w4, b4;
+          std::shared_ptr<mblas::Matrix> w4;
           if(!filtered_) {
             w4 = w_.W4_;
             b4 = w_.B4_;
@@ -470,7 +471,7 @@ class Decoder {
     void GetProbs(const CellState& State,
                   const mblas::Matrix& Embedding,
                   const mblas::Matrix& AlignedSourceContext) {
-      softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
+      softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext);
     }
 
     std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){
