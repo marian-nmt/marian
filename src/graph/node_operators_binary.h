@@ -710,9 +710,19 @@ struct HighwayNodeOp : public NaryNodeOp {
 
 class ConvolutionOp : public NaryNodeOp {
 public:
-  ConvolutionOp(const std::vector<Expr>& nodes)
+  ConvolutionOp(
+      const std::vector<Expr>& nodes,
+      int hPad = 0,
+      int wPad = 0,
+      int hStride = 1,
+      int wStride = 1)
     : NaryNodeOp(nodes),
-      conv_(nodes[1]->shape(), nodes[2]->shape()) {
+      conv_(nodes[1]->shape(),
+            nodes[2]->shape(),
+            hPad,
+            wPad,
+            hStride,
+            wStride) {
     conv_.getOutputShape(nodes[0]->shape(), shape_);
   }
 

@@ -135,8 +135,6 @@ Expr convert2cudnnFormat(Expr x);
 
 Expr convertFromcudnnFormat(Expr x);
 
-Expr convolution(Expr x, Expr filters, Expr bias);
-
 Expr avg_pooling(Expr x,
                  int height,
                  int width,
@@ -152,4 +150,7 @@ Expr max_pooling(Expr x,
                  int padWidth = 0,
                  int strideHeight = 1,
                  int strideWidth = 1);
+
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven=false);
+
 }

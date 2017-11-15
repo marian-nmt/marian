@@ -1,5 +1,6 @@
 #include "graph/expression_operators.h"
 #include "kernels/sparse.h"
+#include "layers/constructors.h"
 
 #include "graph/node_operators.h"
 #include "graph/node_operators_binary.h"
@@ -278,15 +279,18 @@ Expr highway(Expr y, Expr x, Expr t) {
 }
 
 Expr highway(const std::string prefix, Expr x) {
-  size_t out_dim = x->shape()[-1];
-  auto g = Dense(prefix + "_highway_d1",
-                 out_dim,
-                 keywords::activation = act::logit)(x);
-  auto dense_2 = Dense(prefix+ "_highway_d2",
-                       out_dim,
-                       keywords::activation = act::linear)(x);
-  auto rr = relu(dense_2);
-  return (g * rr) + ((1 - g) * x);
+  size_t outDim = x->shape()[-1];
+  auto g = mlp::dense(x->graph())
+      ("prefix", prefix + "_highway_d1")
+      ("dim", outDim)
+      ("activation", mlp::act::logit)
+      .construct()->apply(x);
+  auto relued = mlp::dense(x->graph())
+      ("prefix", prefix + "_highway_d2")
+      ("dim", outDim)
+      ("activation", mlp::act::ReLU)
+      .construct()->apply(x);
+  return (g * relued) + ((1 - g) * x);
 }
 
 // Expr batch_norm(Expr x, Expr gamma, Expr beta) {
@@ -307,11 +311,6 @@ Expr shift(Expr a, Shape shift) {
 // Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
-
-Expr convolution(Expr x, Expr filters, Expr bias) {
-  std::vector<Expr> nodes = {x, filters, bias};
-  return Expression<ConvolutionOp>(nodes);
-}
 
 Expr avg_pooling(
     Expr x,
@@ -384,6 +383,10 @@ Expr convertFromcudnnFormat(Expr x) {
 
   Shape shape({batchDim, sentenceDim, embSize});
   return reshape(rows(reshapedX, newIndeces), shape);
+}
+
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
+  return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
 }
 
 }

@@ -2117,4 +2117,133 @@ void HighwayBackward(Tensor out1,
                                         length);
 }
 
+__global__ void gMaxPoolingForward(float* out,
+                                   int outRows,
+                                   int outCols,
+                                   float* in,
+                                   int inRows,
+                                   int inCols,
+                                   float* mask,
+                                   int numKernels,
+                                   int maskCols,
+                                   int width,
+                                   int lastWidth) {
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (tid >= outRows * outCols) return;
+
+  int rowId = tid / outRows;
+  int colId = tid % outRows;
+
+  float* b = in + (rowId * inCols) + (colId * width);
+
+  if (colId == outRows - 1) {
+    width = lastWidth;
+  }
+
+  float* localMask = mask  + (rowId / numKernels) * maskCols + colId * width;
+  float currentMax = b[0] * localMask[0];
+  for (int i = 1; i < width; ++i) {
+    if (b[i] * localMask[i] > currentMax) {
+      currentMax = b[i] * localMask[i];
+    }
+  }
+
+  out[rowId + (colId * outCols)] = currentMax;
+}
+
+void PoolingWithMaskingForward(Tensor out,
+                               Tensor in,
+                               Tensor mask,
+                               int width,
+                               bool isEven) {
+  int n = out->shape().elements();
+  int threads = std::min(n, MAX_THREADS);
+  int blocks = n / threads + (n % threads != 0);
+
+  Shape& inShape = in->shape();
+  int inRows = inShape[0] * inShape[1];
+  int inCols = inShape[2];
+
+  Shape& outShape = out->shape();
+  int outRows = outShape[2];
+  int outCols = outShape[0] * outShape[1];
+
+  int lastWidth = ((inCols - isEven) % width == 0)
+                  ? width
+                  : (inCols - isEven) % width;
+
+  gMaxPoolingForward<<<blocks, threads>>>(
+      out->data(), outRows, outCols,
+      in->data(), inRows, inCols,
+      mask->data(), outShape[1], mask->shape()[2],
+      width, lastWidth);
+}
+
+__global__ void gMaxPoolingBackward(float* adj,
+                                    int adjRows,
+                                    int adjCols,
+                                    float* in,
+                                    float* adjIn,
+                                    int inRows,
+                                    int inCols,
+                                    float* mask,
+                                    int numKernels,
+                                    int maskCols,
+                                    int width,
+                                    int lastWidth)
+{
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (tid >= adjRows * adjCols) return;
+
+  int rowId = tid / adjRows;
+  int colId = tid % adjRows;
+
+  float* b = in + (rowId * inCols) + (colId * width);
+
+  if (colId == adjRows - 1) {
+    width = lastWidth;
+  }
+
+  float* localMask = mask + (rowId / numKernels) * maskCols + colId * width;
+  size_t currentMaxIdx = 0;
+  for (int i = 1; i < width; ++i) {
+    if (b[i] * localMask[i] > b[currentMaxIdx] * localMask[currentMaxIdx]) {
+      currentMaxIdx = i;
+    }
+  }
+
+  adjIn[(rowId * inCols) + (colId * width) + currentMaxIdx] += adj[rowId + (colId * adjCols)];
+}
+
+void PoolingWithMaskingBackward(Tensor adj,
+                                Tensor adjIn,
+                                Tensor in,
+                                Tensor mask,
+                                int width,
+                                bool isEven) {
+  int n = adj->shape().elements();
+  int threads = std::min(n, 512);
+  int blocks = n / threads + (n % threads != 0);
+
+  Shape& inShape = in->shape();
+  int inRows = inShape[0] * inShape[1];
+  int inCols = inShape[2];
+
+  Shape& adjShape = adj->shape();
+  int adjRows = adjShape[2];
+  int adjCols = adjShape[0] * adjShape[1];
+
+  int lastWidth = ((inCols - isEven) % width == 0)
+                  ? width
+                  : (inCols - isEven) % width;
+
+  gMaxPoolingBackward<<<blocks, threads>>>(
+      adj->data(), adjRows, adjCols,
+      in->data(), adjIn->data(), inRows, inCols,
+      mask->data(), adjShape[1], mask->shape()[2],
+      width, lastWidth);
+}
+
 }  // namespace marian

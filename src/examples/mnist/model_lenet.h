@@ -31,9 +31,19 @@ protected:
 
     // Construct hidden layers
 
-    auto conv_1 = Convolution("Conv1", 3, 3, 32)(x);
-    auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
-    auto pool = max_pooling(conv_2, 2, 2, 1, 1, 1, 1);
+    auto conv_1 = convolution(g)
+                    ("prefix", "conv_1")
+                    ("kernel-dims", std::make_pair(3,3))
+                    ("kernel-num", 32)
+                    .apply(x);
+
+    auto conv_2 = convolution(g)
+                    ("prefix", "conv_2")
+                    ("kernel-dims", std::make_pair(3,3))
+                    ("kernel-num", 64)
+                    .apply(conv_1);
+    auto relued = relu(conv_2);
+    auto pool = max_pooling(relued, 2, 2, 1, 1, 1, 1);
 
     auto flatten
         = reshape(pool,

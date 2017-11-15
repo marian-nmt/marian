@@ -29,8 +29,8 @@ class ConvolutionWrapper : public CUDNNWrapper {
 public:
   ConvolutionWrapper(const Shape& kernelShape,
                      const Shape& biasShape,
-                     int hPad = 1,
-                     int wPad = 1,
+                     int hPad = 0,
+                     int wPad = 0,
                      int hStride = 1,
                      int wStride = 1);
 
