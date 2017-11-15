@@ -573,6 +573,9 @@ void Prod(cublasHandle_t handle,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
+#if CUDA_VERSION >= 9000
+  cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+#endif
   cublasSgemm(handle,
               opB,
               opA,
@@ -587,6 +590,9 @@ void Prod(cublasHandle_t handle,
               &beta,
               C->data(),
               ldc);
+#if CUDA_VERSION >= 9000
+  cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
+#endif
 }
 
 void ProdBatched(cublasHandle_t handle,
@@ -623,6 +629,9 @@ void ProdBatched(cublasHandle_t handle,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
+#if CUDA_VERSION >= 9000
+  cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+#endif
   cublasSgemmStridedBatched(handle,
                             opB,
                             opA,
@@ -641,6 +650,9 @@ void ProdBatched(cublasHandle_t handle,
                             ldc,
                             n * m,
                             std::max(batchA, batchB));
+#if CUDA_VERSION >= 9000
+  cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
+#endif
 }
 
 __global__ void gCopyRows(float* out,
