@@ -296,40 +296,47 @@ Expr shift(Expr a, Shape shift) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
 
-#ifdef CUDNN
-
 Expr convolution(Expr x, Expr filters, Expr bias) {
   std::vector<Expr> nodes = {x, filters, bias};
   return Expression<ConvolutionOp>(nodes);
 }
 
-// clang-format off
 Expr avg_pooling(
     Expr x,
-    int height, int width,
-    int padHeight, int padWidth,
-    int strideHeight, int strideWidth)
+    int height,
+    int width,
+    int padHeight,
+    int padWidth,
+    int strideHeight,
+    int strideWidth)
 {
   return Expression<PoolingOp>(x,
-      height, width,
-      padHeight, padWidth,
-      strideHeight, strideWidth,
-      PoolingOp::Mode::AVERAGE_POOLING);
+      height,
+      width,
+      padHeight,
+      padWidth,
+      strideHeight,
+      strideWidth,
+      "avg");
 }
 
 Expr max_pooling(
     Expr x,
-    int height, int width,
-    int padHeight, int padWidth,
-    int strideHeight, int strideWidth)
+    int height,
+    int width,
+    int padHeight,
+    int padWidth,
+    int strideHeight,
+    int strideWidth)
 {
   return Expression<PoolingOp>(x,
-      height, width,
-      padHeight, padWidth,
-      strideHeight, strideWidth,
-      PoolingOp::Mode::MAX_POOLING);
+      height,
+      width,
+      padHeight,
+      padWidth,
+      strideHeight,
+      strideWidth,
+      "max");
 }
-// clang-format on
 
-#endif
 }

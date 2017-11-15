@@ -1,5 +1,4 @@
-#include <thrust/transform_reduce.h>
-
+#include <thrust/transform_reduce.h> 
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
 
