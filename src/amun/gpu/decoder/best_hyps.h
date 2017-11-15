@@ -31,12 +31,23 @@ class BestHyps : public BestHypsBase
 
     std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
                                                 size_t hypIndex);
+
+    // standard nth_element
     void CalcBeam(
         const Beam& prevHyps,
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes);
+
+    // fast fused softmax-nth_element
+    void CalcBeam(
+        const Beam& prevHyps,
+        const ScorerPtr scorer,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<uint>& beamSizes);
+
 
   private:
     NthElement nthElement_;

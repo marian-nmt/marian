@@ -52,6 +52,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
   return alignments;
 }
 
+// standard nth_element
 void  BestHyps::CalcBeam(
     const Beam& prevHyps,
     const std::vector<ScorerPtr>& scorers,
@@ -59,7 +60,7 @@ void  BestHyps::CalcBeam(
     std::vector<Beam>& beams,
     std::vector<uint>& beamSizes)
 {
-  BEGIN_TIMER("CalcBeam");
+  BEGIN_TIMER("CalcBeam standard");
 
   using namespace mblas;
 
@@ -159,7 +160,18 @@ void  BestHyps::CalcBeam(
     beams[batchMap[i]].push_back(hyp);
   }
 
-  PAUSE_TIMER("CalcBeam");
+  PAUSE_TIMER("CalcBeam standard");
+}
+
+// fast fused softmax-nth_element
+void BestHyps::CalcBeam(
+    const Beam& prevHyps,
+    const ScorerPtr scorer,
+    const Words& filterIndices,
+    std::vector<Beam>& beams,
+    std::vector<uint>& beamSizes)
+{
+
 }
 
 } // namespace
