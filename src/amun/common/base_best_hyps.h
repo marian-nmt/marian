@@ -9,16 +9,20 @@
 
 namespace amunmt {
 
+class God;
+
 class BestHypsBase
 {
   public:
     BestHypsBase(
+        const God &god,
         bool forbidUNK,
         bool returnNBestList,
         bool isInputFiltered,
         bool returnAttentionWeights,
         const std::map<std::string, float>& weights)
-    : forbidUNK_(forbidUNK),
+    : god_(god),
+      forbidUNK_(forbidUNK),
       returnNBestList_(returnNBestList),
       isInputFiltered_(isInputFiltered),
       returnAttentionWeights_(returnAttentionWeights),
@@ -35,6 +39,7 @@ class BestHypsBase
         std::vector<uint>& beamSizes) = 0;
 
   protected:
+    const God &god_;
     const bool forbidUNK_;
     const bool returnNBestList_;
     const bool isInputFiltered_;

@@ -4,7 +4,7 @@ namespace amunmt {
 namespace GPU {
 
 BestHyps::BestHyps(const God &god)
-      : BestHypsBase(
+      : BestHypsBase(god,
           !god.Get<bool>("allow-unk"),
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
@@ -12,7 +12,8 @@ BestHyps::BestHyps(const God &god)
           god.GetScorerWeights()),
         nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
         keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
+        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        maxBeamSize_(god.Get<uint>("beam-size"))
 {}
 
 void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
@@ -25,6 +26,16 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
                const bool isFirst)
 {
   nthElement_.getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
+}
+
+// fast fused softmax and nth_element
+void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+               DeviceVector<NthOutBatch> &nBest,
+               std::vector<float>& outCosts,
+               std::vector<unsigned>& outKeys,
+               const bool isFirst)
+{
+  nthElement_.getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
@@ -78,26 +89,39 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
-  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
-
-  BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
-
-  for (size_t i = 1; i < scorers.size(); ++i) {
-    mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
-
-    Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
-  }
-
-  if (forbidUNK_) {
-    DisAllowUNK(Probs);
-  }
-
   size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
 
-  FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
+
+  if (god_.UseFusedSoftmax()) {
+    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetB4());
+    DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorers[0]->GetNBest());
+
+    BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, Costs, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
+    PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
+    //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+
+    FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
+  }
+  else {
+    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
+
+    for (size_t i = 1; i < scorers.size(); ++i) {
+      mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+
+      Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
+    }
+
+    if (forbidUNK_) {
+      DisAllowUNK(Probs);
+    }
+
+    FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+  }
 
   std::vector<HostVector<float>> breakDowns;
   if (returnNBestList_) {
@@ -163,24 +187,6 @@ void  BestHyps::CalcBeam(
   PAUSE_TIMER("CalcBeam standard");
 }
 
-// fast fused softmax-nth_element
-void BestHyps::CalcBeam(
-    const Beam& prevHyps,
-    const ScorerPtr scorer,
-    const Words& filterIndices,
-    std::vector<Beam>& beams,
-    std::vector<uint>& beamSizes)
-{
-  BEGIN_TIMER("CalcBeam");
-
-  using namespace mblas;
-
-  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer->GetProbs());
-  const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer->GetB4());
-  DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorer->GetNBest());
-  std::cerr << "4Probs=" << Probs.Debug(1) << std::endl;
-
-}
 
 } // namespace
 }

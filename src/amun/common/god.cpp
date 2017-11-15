@@ -83,6 +83,8 @@ God& God::Init(int argc, char** argv) {
   LoadScorers();
   LoadFiltering();
 
+  useFusedSoftmax_ = false;
+
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));
     inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));

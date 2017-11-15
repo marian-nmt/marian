@@ -26,7 +26,7 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const God &god)
-      : BestHypsBase(
+      : BestHypsBase(god,
           !god.Get<bool>("allow-unk"),
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
