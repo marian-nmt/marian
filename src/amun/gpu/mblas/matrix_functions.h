@@ -232,7 +232,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
   size_t rows  = outWrap.dim(0);
   size_t cols = outWrap.dim(1);
 
-  MatrixWrapper<float> sdata(sdataOrig, rows);
+  MatrixWrapper<float> sdata(sdataOrig, rows, 1, 1, 1);
 
   if (threadIdx.x == 0) {
     for (int i = 0; i < rows; ++i)
@@ -421,8 +421,6 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
                    float eps);
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
-
-void RandomizeMemory();
 
 } // namespace mblas
 } // namespace GPU
