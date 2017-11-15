@@ -445,7 +445,7 @@ class Decoder {
       return nBest_;
     }
 
-    const mblas::Matrix *GetB4() const {
+    const mblas::Matrix *GetBias() const {
       return b4_.get();
     }
 

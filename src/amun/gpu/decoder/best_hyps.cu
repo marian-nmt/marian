@@ -97,7 +97,7 @@ void  BestHyps::CalcBeam(
   const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
   if (god_.UseFusedSoftmax()) {
-    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetB4());
+    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetBias());
     DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorers[0]->GetNBest());
     nBest.resize(beamSizeSum);
 

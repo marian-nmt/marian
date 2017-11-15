@@ -149,9 +149,9 @@ void *EncoderDecoder::GetNBest()
   return &decoder_->GetNBest();
 }
 
-const BaseMatrix *EncoderDecoder::GetB4() const
+const BaseMatrix *EncoderDecoder::GetBias() const
 {
-  return decoder_->GetB4();
+  return decoder_->GetBias();
 }
 
 mblas::Matrix& EncoderDecoder::GetAttention() {

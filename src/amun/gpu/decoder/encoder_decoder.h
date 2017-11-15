@@ -51,7 +51,7 @@ class EncoderDecoder : public Scorer {
     virtual BaseMatrix& GetProbs();
 
     virtual void *GetNBest();
-    virtual const BaseMatrix *GetB4() const;
+    virtual const BaseMatrix *GetBias() const;
 
     size_t GetVocabSize() const;
 
