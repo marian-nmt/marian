@@ -1,0 +1,486 @@
+\documentclass[11pt]{article}
+\usepackage{iwslt15}
+\usepackage{times}
+\usepackage{url}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{forest}
+\usepackage{subcaption}
+\usepackage{textcomp}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{enumitem}
+\setlist{noitemsep}
+
+%\usetikzlibrary{external}
+%\tikzexternalize[optimize=false]
+
+\pgfplotsset{compat=newest}
+\usepgfplotslibrary{groupplots}
+
+\pgfplotsset{try min ticks=6}
+
+\definecolor{bblue}{HTML}{4F81BD}
+\definecolor{rred}{HTML}{C0504D}
+\definecolor{ggreen}{HTML}{9BBB59}
+\definecolor{ppurple}{HTML}{9F4C7C}
+\definecolor{oorange}{HTML}{F08000}
+  
+\emergencystretch 3em
+
+\title{Is Neural Machine Translation Ready for Deployment? \\ A Case Study on 30 Translation Directions}
+
+%\name{Marcin Junczys-Dowmunt\textsuperscript{1,2}, Tomasz Dwojak\textsuperscript{1,2}, Hieu Hoang\textsuperscript{3}}
+ 
+
+\address{%
+Address = Line 1\\
+Address = Line 1\\
+Address = Line 1\\[5mm]
+}
+
+% \address{%
+% \textsuperscript{1}Faculty of Mathematics and Computer Science, Adam Mickiewicz University in Pozna\'{n}\\
+% \textsuperscript{2}School of Informatics, University of Edinburgh \\
+% \textsuperscript{3}Moses Machine Translation CIC\\
+% {\tt \normalsize \{junczys,t.dwojak\}@amu.edu.pl} \;
+% {\tt \normalsize hieu@hoang.co.uk }}
+
+\date{}
+
+\begin{document}
+ \maketitle
+
+ \begin{abstract}
+In this paper we provide the largest published comparison of translation quality for phrase-based SMT and neural machine translation across 30 translation directions. For ten directions we also include hierarchical phrase-based MT. Experiments are performed for the recently published United Nations Parallel Corpus v1.0 and its large six-way sentence-aligned subcorpus. 
+In the second part of the paper we investigate aspects of translation speed, introducing OurWork, our efficient neural machine translation decoder. We demonstrate that current neural machine translation could already be used for in-production systems when comparing words-per-second ratios.
+
+\end{abstract}
+
+\section{Introduction}
+
+We compare the performance of phrase-based SMT, hierarchical phrase-based, and neural machine translation (NMT) across fifteen language pairs and thirty translation directions. \cite{ZIEMSKI16.1195} recently published the United Nations Parallel Corpus v1.0. It contains a subcorpus of ca.~11M sentences fully aligned across six languages (Arabic, Chinese, English, French, Russian, and Spanish) and official development and test sets, which makes this an ideal resource for experiments across multiple language pairs. It is also a compelling use case for in-domain translation with large bilingual in-house resources. We provide BLEU scores for the entire translation matrix for all official languages from the fully aligned subcorpus. 
+
+We also introduce OurWork\footnote{Anonymized, but available on github}, our efficient neural machine translation decoder and demonstrate that the current set-up could already be used instead of Moses in terms of translation speed when a single GPU per machine is available. Multiple GPUs would surpass the speed of the proposed in-production Moses configuration by far. 
+
+\section{Training data}
+
+\subsection{The UN corpus}
+
+The United Nations Parallel Corpus v1.0 \cite{ZIEMSKI16.1195} consists of human translated UN documents from the last 25 years (1990 to 2014) for the six official UN languages, Arabic, Chinese, English, French, Russian, and Spanish. Apart from the pairwise aligned documents, a fully aligned subcorpus for the six official UN languages is distributed. This subcorpus consists of sentences that are consistently aligned across all languages with the English primary documents. Statistics for the data are provided below:
+
+\begin{table}[h]
+\centering \setlength{\arrayrulewidth}{1pt}
+\begin{tabular}{ccc}
+\toprule
+Documents & Lines & English Tokens \\ \midrule
+86,307 & 11,365,709 & 334,953,817 \\ \bottomrule
+\end{tabular} 
+\caption{Statistics for fully aligned subcorpus}
+\label{tab.statistics.fully}
+\end{table}
+
+Documents released in 2015 (excluded from the main corpus) were used to create official development and test sets for machine translation tasks. Development data was randomly selected from documents that were released in the first quarter of 2015, test data was selected from the second quarter. 
+Both sets comprise 4,000 sentences that are 1-1 alignments across all official languages. As in the case of the fully aligned subcorpus, any translation direction can be evaluated.
+
+\subsection{Preprocessing}
+
+Sentences longer than 100 words were discarded. We lowercased the training data as it was done in \cite{ZIEMSKI16.1195}; the data was tokenized with the Moses tokenizer. For Chinese segmentation we applied Jieba\footnote{\url{https://github.com/fxsjy/jieba}} first. 
+
+\subsection{Subword units}
+
+To avoid the large-vocabulary problem in NMT models \cite{44929}, we use byte-pair-encoding (BPE) to achieve open-vocabulary translation with a fixed vocabulary of subword symbols \cite{DBLP:journals/corr/SennrichHB15}. For all languages we set the number of subword units to 30,000. Segmentation into subword units is applied after any other preprocessing step. During evaluation, subwords are reassembled. 
+
+\section{Phrase-based SMT baselines}
+\label{pbmtbaselines}
+\cite{ZIEMSKI16.1195} provided baseline BLEU scores for Moses \cite{Koehn:2007:MOS:1557769.1557821} configurations that were trained on the 6-way subcorpus. Their configurations were the following:
+
+The training corpora were split into four equally sized parts that were aligned with MGIZA++ \cite{gao-vogel:2008:SETQANLP}, running 5 iterations of Model 1 and the HMM model on each part.
+A 5-gram language model was trained from the target parallel data, with 3-grams or higher order being pruned if they occured only once. Apart from the default configuration with a lexical reordering model, a 5-gram operation sequence model \cite{conf/acl/DurraniFSHK13} (all n-grams pruned if they occur only once) and a 9-gram word-class language model with word-classes produced by word2vec \cite{journals/corr/abs-1301-3781} (3-grams and 4-grams are pruned if they occur only once, 5-grams and 6-grams if they occur only twice, etc.) were added, both trained with KenLM \cite{Heafield-estimate}. Significance pruning \cite{DBLP:conf/emnlp/JohnsonMFK07} was applied to the phrase-table and the compact phrase-table and reordering data structures \cite{junczys_mtm_2012} were used.
+During decoding with cube-pruning algorithm, stack size and cube-pruning pop limits of 1,000 were chose. This configuration resembles the in-house translation systems deployed at the United Nations.
+
+\begin{figure*}[p]
+\centering
+\begin{tikzpicture}
+
+\begin{groupplot}[group style={group size=1 by 3},ymajorgrids,
+ybar=0pt,
+ ymin=0,
+ width=\textwidth,
+ height=0.3\textheight,
+ ymin=21, ymax=69,
+ xtick=data,% crucial line for the xticklabels directive
+ nodes near coords={\pgfmathprintnumber[fixed zerofill, precision=1]{\pgfplotspointmeta}},
+ every node near coord/.append style={
+  white,  
+  rotate=90, anchor=west, xshift=-10.5mm, font=\boldmath
+ },
+ xticklabels from table={compare.dat}{lp},
+ xticklabel style={text height=2ex}]
+
+\nextgroupplot[xmin=0.5,xmax=10.5,bar width=15pt,legend style={cells={anchor=west}}]
+\addplot[bblue,fill=bblue,mark=none] table[y=pb,x=xpos]{compare.dat};
+\addplot[rred,fill=rred,mark=none] table[y=nmt4,x=xpos]{compare.dat};
+\legend{\strut\; Pb-SMT, \strut\; NMT 1.2M}
+
+\nextgroupplot[xmin=10.5,xmax=20.5,bar width=15pt]
+\addplot[bblue,fill=bblue,mark=none] table[y=pb,x=xpos]{compare.dat};
+\addplot[rred,fill=rred,mark=none] table[y=nmt4,x=xpos]{compare.dat};
+
+\nextgroupplot[xmin=20.5,xmax=30.5,bar width=15pt]
+\addplot[bblue,fill=bblue,mark=none] table[y=pb,x=xpos]{compare.dat};
+\addplot[rred,fill=rred,mark=none] table[y=nmt4,x=xpos]{compare.dat};
+
+\end{groupplot}
+\end{tikzpicture}
+\caption{Comparison between Moses baseline systems and neural models for the full language pair matrix of the 6-way corpus.}\label{pbsmtnmt1}
+\end{figure*}
+
+\section{Neural translation systems}
+
+The neural machine translation system is an attentional encoder-decoder \cite{DBLP:journals/corr/BahdanauCB14}, which has been trained with Nematus  \cite{DBLP:conf/wmt/SennrichHB16}.
+We used mini-batches of size 40, a maximum sentence length of 100, word embeddings of size 500, and hidden layers of size 1024.
+We clip the gradient norm to 1.0 \cite{DBLP:conf/icml/PascanuMB13}.
+Models were trained with Adadelta \cite{DBLP:journals/corr/abs-1212-5701}, reshuffling the training corpus between epochs.
+The models have been trained model for 1.2M iterations (one iteration corresponds to one mini-batch), saving every $30,000$ iterations. On our NVidia GTX 1080 this corresponds to roughly 4 epochs and 8 days of training time. Models with English as their source or target data were later trained for another 1.2M iterations (another 2 epochs, 8 days). For ensembling, we chose the last four model checkpoints.
+
+\section{Phrase-based vs. NMT -- full matrix}
+In Figure~\ref{pbsmtnmt1} we present the results for all thirty language pairs in the United Nations parallel corpus for the officially included test set. BLEU results are case-insensitive, tokenized with the Moses tokenizer. For Chinese we applied Jieba for segmentation. BPE-subwords were concatenated. 
+
+Here we compare with NMT models that were trained for 4 epochs or 1.2M iterations. With the exception of fr-es and ru-en the neural system is always comparable or better than the phrase-based system. The differences where NMT is worse are very small. Especially in cases where Chinese is one of the languages in a language pair, the improvement of NMT over PB-SMT is dramatic with between 7 and 9 BLEU points. 
+We also see large improvements for translations out of and into Arabic. No special preprocessing has been applied for Arabic. Improvements are also present in the case of the highest scoring translation directions, en-es and es-en.
+
+\section{Phrase-based vs. Hiero vs. NMT -- language pairs with English}
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 2},ymajorgrids,
+ybar=0pt,
+ ymin=0,
+ width=\textwidth,
+ height=0.3\textheight,
+ ymin=31, ymax=69,
+nodes near coords={\pgfmathprintnumber[fixed zerofill, precision=1]{\pgfplotspointmeta}},
+ every node near coord/.append style={
+  white, 
+  rotate=90, anchor=west, xshift=-10.5mm, font=\boldmath
+ },
+ xtick=data,% crucial line for the xticklabels directive
+ xticklabels from table={hiero.dat}{lp},
+ xticklabel style={text height=2ex}]
+
+\nextgroupplot[xmin=0.5,xmax=5.5,bar width=15pt,legend style={cells={anchor=west}}]
+\addplot[bblue,fill=bblue,mark=none] table[y=pb,x=xpos]{hiero.dat};
+\addplot[ppurple,fill=ppurple,mark=none] table[y=hiero,x=xpos]{hiero.dat};
+\addplot[rred,fill=rred,mark=none] table[y=nmt4,x=xpos]{hiero.dat};
+\addplot[oorange,fill=oorange,mark=none] table[y=2nmt4,x=xpos]{hiero.dat};
+\legend{\strut\; Pb-SMT, \strut\; Hiero, \strut\; NMT 1.2M, \strut\; NMT 2.4M}
+
+\nextgroupplot[xmin=5.5,xmax=10.5,bar width=15pt]
+\addplot[bblue,fill=bblue,mark=none] table[y=pb,x=xpos]{hiero.dat};
+\addplot[ppurple,fill=ppurple,mark=none] table[y=hiero,x=xpos]{hiero.dat};
+\addplot[rred,fill=rred,mark=none] table[y=nmt4,x=xpos]{hiero.dat};
+\addplot[oorange,fill=oorange,mark=none] table[y=2nmt4,x=xpos]{hiero.dat};
+
+\end{groupplot}
+\end{tikzpicture}
+\caption{For all language pairs involving English, we experimented also with hierarchal machine translation and more training iterations for the neural models. NMT 1.2M means 1.2 million iterations with a batch size of 40, training time ca. 8 days. NMT 2.4 means 2.4 million iterations accordingly. (Missing results in preparation.)}\label{pbsmtnmt2}
+\end{figure*}
+
+The impressive results for any translation direction involving Chinese motivated us to experiment with hierarchical phrase-based machine translation (Hiero) as implemented in Moses . Hiero has been confirmed to outperform phrase-based SMT for the Chinese-English language pair. We decided to expand our experiment with all language pairs that include English as these are the main translation directions the UN are working with. For these ten translation directions we created a hierarchical PB-SMT system with the same preprocessing settings as the shallow PB-SMT system. To test the effects of prolonged training time, we also continued training of our neural systems for another four epochs or 1.2M iterations (2.4M in total) which increased training time to 16 days in total per neural system. 
+
+
+\begin{figure*}[t]
+\centering
+\begin{subfigure}[t]{0.7\textwidth}
+ \begin{tikzpicture}
+\begin{axis}[
+enlargelimits=0.1,
+width=\textwidth,
+height=0.3\textheight,
+xlabel=Beam size,
+ytick pos=left,
+ymin=50, ymax=600,
+xmin=1, xmax=50,
+ylabel=Words per second (Wps)]
+\addplot[bblue,mark=o,thick] plot coordinates {
+( 1, 561.5) %18.9 - 17
+( 2, 494.8)
+( 3, 445.9)
+( 4, 438.1)
+( 5, 409.4)
+( 6, 347.2)
+( 7, 319.7)
+( 8, 296.3)
+(10, 280.2)
+(12, 275.1)
+(15, 244.4)
+(20, 239.0)
+(30, 210.5)
+(40, 197.8)
+(50, 176.4)
+};\label{words}
+\end{axis}
+\begin{axis}[
+legend style={at={(0.95,0.5)},anchor=east},
+y tick label style={
+        /pgf/number format/.cd,
+            fixed,
+            fixed zerofill,
+            precision=1,
+        /tikz/.cd
+    },
+enlargelimits=0.1,
+width=\textwidth,
+height=0.3\textheight,
+ymin=48, ymax=50,
+xmin=1, xmax=50,
+axis y line*=right]
+\addlegendimage{/pgfplots/refstyle=words}\addlegendentry{Wps}
+\addplot[rred,mark=*,thick] plot coordinates {
+( 1, 47.99)
+( 2, 49.27)
+( 3, 49.52) 
+( 4, 49.59)
+( 5, 49.68)
+( 6, 49.75)
+( 7, 49.78)
+( 8, 49.83)
+(10, 49.77)
+(12, 49.78)
+(15, 49.83)
+(20, 49.85)
+(30, 49.85)
+(40, 49.86)
+(50, 49.90)
+}; \addlegendentry{Bleu}
+\end{axis}
+\end{tikzpicture}
+\end{subfigure}
+\caption{Beam size versus speed and quality for a single English-French model. Speed was evaluated with OurWork on a single GPU.}\label{beam}
+\end{figure*}
+
+Figure \ref{pbsmtnmt2} summarizes the results. As expected, Hiero outperforms PB-SMT by a significant margin for Chinese-English and English-Chinese, but does not reach half the improvement of the NMT systems. For other languages pairs we see mixed results; for French-English and Russian-English, where results for PB-SMT and NMT are close, Hiero is the best system. 
+
+Training the NMT system for another eight days improves the performance, but gains are rather small, between 0.4 and 0.7 BLEU. We did not observe any improvements beyond 2M iterations. For our setting, it seems that stopping training after 8-10 days is a viable heuristic with little loss in terms of BLEU. Training with other corpus sizes, architectures, and sets of hyper-parameters may behave differently.
+% It seems choosing NMT over PB-SMT is a good bet as results reach from comparable to far superior in terms of BLEU. 
+
+\section{Efficient decoding with OurWork}
+OurWork is a ground-up neural MT toolkit implementation, developed in C++. It currently consist of an efficient beam-search inference engine for models trained with Nematus. We focused mainly on efficiency and usability. Features of the OurWork decoder include:
+
+\begin{itemize}
+ \item Multi-GPU, multi-CPU and mixed GPU/CPU mode with sentence-wise threads (different sentences are decoded in different threads);
+  \item Low-latency CPU-based decoding with intra-sentence multi-threading (one sentence makes use of multiple threads during matrix operations);
+ \item Compatibility with Nematus \cite{DBLP:conf/wmt/SennrichHB16};
+ \item Ensembling of multiple models;
+ \item Vocabulary selection in the output layer \cite{DBLP:conf/acl/JeanCMB15,DBLP:conf/acl/MiWI16};
+ \item Integrated segmentation into subword units \cite{DBLP:journals/corr/SennrichHB15}.
+ %\item A clean and documented C++ code-base.
+\end{itemize}
+
+
+\begin{figure*}[t]
+\centering
+\begin{subfigure}[t]{0.3\textwidth}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=\textwidth,
+    ymajorgrids,
+    height=0.3\textheight,
+	bar width=15pt,
+    enlargelimits=0.1,
+    ylabel={Words per second},
+    xtick={1 ,2 ,3 },
+    xticklabels={Google CPU x88,
+Google GPU T-K80,
+Google TPU},
+    xmin=0.75, xmax=3.25,
+    ymin=50, ymax=1550,
+    x tick label style={rotate=45,anchor=east, yshift=-0.2cm},
+    ]
+\addplot+[ybar, ppurple, nodes near coords, text=black] plot coordinates {
+(1, 104.2)
+(2, 45.5)
+(3, 358.8)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Words per second for Google NMT system reported by \cite{google}. We only give this as an example for a production-ready system.}\label{speedgoogle}
+\end{subfigure}\hspace{4mm}
+\begin{subfigure}[t]{0.65\textwidth}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=\textwidth,
+    ymajorgrids,
+    height=0.3\textheight,
+	bar width=15pt,
+    enlargelimits=0.1,
+    %ylabel={Words per second},
+    xtick={1 ,2 ,3, 4 ,5, 6, 7, 8, 9},
+    xticklabels={
+    Moses CPU-16,
+    Nematus CPU-16,
+    Nematus GPU-1,
+    OurWork CPU-16,
+    OurWork* CPU-16,
+    OurWork GPU-1,
+    OurWork* GPU-1,
+    OurWork GPU-4,
+    OurWork* GPU-4,
+    },
+    xmin=0.75, xmax=9.25,
+    ymin=50, ymax=1550,
+    x tick label style={rotate=45,anchor=east, yshift=-0.2cm},
+    ]
+\addplot+[ybar, oorange, nodes near coords={\pgfmathprintnumber[fixed zerofill, fixed, precision=1]{\pgfplotspointmeta}}, text=black] plot coordinates {
+% 118553
+(1, 455.3)
+(2, 47.4)
+(3, 269.4)
+(4, 140.9) 
+(5, 265.3)
+(6, 409.4) 
+(7, 490.1)
+% 533.7
+(8, 1252.3) 
+(9, 1510.2)
+};
+%100 100 502.4
+\end{axis}
+\end{tikzpicture}
+\caption{Moses vs. Nematus vs.~OurWork: Our CPUs are Intel Xeon E5-2620 2.40GHz, our GPUs are GeForce GTX 1080. CPU-16 means 16 CPU threads, GPU-1 means single GPU, GPU-4 means multi-GPU mode. All NMT systems were run with a beam size of 5. Systems marked with * use vocabulary selection.}\label{speedamun}
+\end{subfigure}
+\caption{Comparison of translation speed in words per second}\label{speed1}
+\end{figure*}
+
+\subsection{Checkpoint ensembling and averaging}
+
+\begin{table}[t]\centering
+\begin{tabular}{lccc}
+\toprule
+System & BLEU & Wps & Memory \\ \midrule
+Single best & 49.68 & \texttildelow 400 & 301M \\
+Last-4 ensemble & 51.38 & \texttildelow 115 & 2.1G \\
+Last-4 average & 51.13 & \texttildelow 400 & 301M\\
+Last-8 average & 51.35 & \texttildelow 400 & 301M\\ \bottomrule
+\end{tabular}
+\caption{Checkpoint ensembling and averaging. Wps is translation speed as words-per-second, one GPU. Memory is memory consumption or total model size.}\label{average}
+\end{table}
+
+Results in Figures~\ref{pbsmtnmt1} and \ref{pbsmtnmt2} are reported for ensembles of the last four model checkpoints. Generally, this improves quality by up to 2 BLEU points, but reduces translation speed with growing ensemble size. An alternative found to work by \cite{junczysdowmunt-dwojak-sennrich:2016:WMT} is checkpoint averaging, where a single model is produced by element-wise averaging of all corresponding model parameters, producing a single model.\footnote{In later experiments and discussions with collegues,
+%Rico Sennrich, 
+we have found that this effect seems to be an artifact of the Adadelta algorithm. Training with Adam results in better single models and seems to make checkpoint ensembling or averaging obsolete.}
+We observed that averaging over 8 last checkpoints yields similar quality as ensembling of the last 4 checkpoints (Table~\ref{average}). Results for averaging more models are uneven as increasingly weaker models are used. 
+We did not investigate ensembles of models produced by separate training runs which would likely yield more improvements.
+
+\subsection{Vocabulary selection}
+Our vocabulary size is already greatly reduced due to the use of subword units ($30$k items), but especially for the CPU version of OurWork decoding time is dominated by the calculations in the final output layer. 
+Previous work \cite{DBLP:conf/acl/JeanCMB15} proposed to clip the per-sentence vocabulary to the $K=30$k (out of $500$k) most common target words and $K^{\prime}=10$ most probable translations for each source word. We re-use Moses lexical translation tables trained on data segmented into subword units to obtain the translation probabilities.
+
+Our implementation is based on \cite{DBLP:conf/acl/JeanCMB15}, however, similar as \cite{DBLP:conf/acl/MiWI16}, we find that relying mostly on $K^{\prime}$  does not result in  deterioration of translation quality and that $K$ can be greatly reduced. We empirically chose $K=75$ and $K^{\prime}=75$, which results on average in ca.~$1250$ vocabulary items per sentence.  
+BLEU scores remain the same although translations are slightly changed. For performance comparisons see Section \ref{comparespeed}.
+
+\subsection{Beam size vs. speed and quality}
+
+Beam size has a large impact on decoding speed. In Figure~\ref{beam} we plot the influence of beam size on decoding speed (as words per second) and translation quality (in BLEU) for the English-French model. The English part of the UN test set consists or ca. 120.000 tokens, the whole test sets was translated for each experiment. As can be seen, beam sizes beyond 5-7 do not result in significant improvements as the quality for a beam size of 5 is only 0.2 BLEU below the maximum. However, decoding speed is significantly slower. We therefore choose a beam-size of 5 for our experiments.  
+
+\subsection{OurWork vs. Moses and Nematus}
+\label{comparespeed}
+In Figure~\ref{speedgoogle} we report speed in terms of words per second as provided by \cite{google}. Although their models are more complex than ours, we quote these figures as a reference of deployment-ready performance for NMT. 
+
+We ran our experiments on an Intel Xeon E5-2620 2.40GHz server with four NVIDIA GeForce GTX 1080 GPUs. The phrase-based parameters are described in Section~\ref{pbmtbaselines} which is guided by best practices to achieving reasonable speed vs. quality trade-off \cite{junczys_mtsummit_2013}. The neural MT models are as described in the previous section.
+
+We present the words-per-second ratio for our NMT models using OurWork and Nematus, executed on the CPU and GPU, Figure~\ref{speedamun}. For the CPU version we use 16 threads, translating one sentence per thread. We restrict the number of OpenBLAS threads to 1 per main Nematus thread. For the GPU version of Nematus we use 5 processes to maximize GPU saturation. As a baseline, the phrase-based model reaches 455 words per second using 16 threads. 
+
+The CPU-bound execution of Nematus reaches 47 words per second while the GPU-bound achieved 270 words per second. In similar settings, CPU-bound OurWork is three times faster than Nematus CPU, but three times slower than Moses. With vocabulary selection we can nearly double the speed of OurWork CPU. The GPU-executed version of OurWork is 1.5 time faster than Nematus and is almost as fast as Moses, achieving 409 words per second, with vocabulary selection we surpass the speed of Moses. The similar translation speed would allow us to replace a Moses-based SMT system with an OurWork-based NMT system in a production environment without severely affecting translation throughput. 
+
+OurWork can parallelize to multiple GPUs processing one sentence per GPU. Translation speed increases to 1,200 words per second with four GPUs, to 1,510 with vocabulary selection. 
+OurWork has a start-up time of less than 10 seconds, while Nematus may need several minutes until the first translation can be produced. Nevertheless, the model used in OurWork is an exact implementation of the Nematus model.
+
+The size of the NMT model with the chosen parameters is approximately 300 MB, which means about 24 models could be loaded onto a single GPU with 8GB of RAM. Hardly any overhead is required during translation. With multiple GPUs, access could be parallelized and optimally scheduled in a query-based server setting. 
+
+\subsection{Low-latency translation}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=0.45\textwidth,
+    ymajorgrids,
+    height=0.3\textheight,
+	bar width=15pt,
+   enlargelimits=0.15,
+   ymax=1600,
+    ylabel={Latency -- ms per sentence},
+    xtick={1 ,2 ,3, 4 ,5, 6},
+    xticklabels={
+    Moses CPU,
+ %   Nematus CPU,
+    Nematus GPU,
+    OurWork CPU,
+    OurWork* CPU,
+    OurWork GPU,
+    OurWork* GPU,
+    },
+    %xmin=0.75, xmax=5.25,
+    x tick label style={rotate=45,anchor=east, yshift=-0.2cm},
+%     y tick label style={
+%         /pgf/number format/.cd,
+%             fixed,
+%             fixed zerofill,
+%         /tikz/.cd
+%     },
+    ]
+\addplot+[ybar, oorange, nodes near coords, text=black] plot coordinates {
+(1, 712)
+%(2, 8545)
+(2, 610)
+(3, 1561)
+(4, 886)
+(5, 82)
+(6, 69)
+};
+%\node at (2, 840) [rotate=90] {More than 8,500 ms};
+\end{axis}
+\end{tikzpicture}
+\caption{Latency measured in milliseconds per sentence. NMT systems were run with a beam size of 5. Lower is better. Translations were executed serially. Nematus CPU exceeded 8,500 ms and was omitted.}\label{latency}
+\end{figure}
+
+Until now, we have evaluated translation speed as the time it takes to translate a large test set using a large number of cores on a powerful server. This bulk-throughput measure is useful for judging the performance of the MT system for batch translation of large number of documents.
+ 
+However, there are use-cases where the latency for a single sentence may be important, for example predictive translation \cite{Knowles}. 
+To compare per-sentence latency, we translate our test set with all tools serially, using at most one CPU thread or process. We do not aim at full GPU saturation as this would not improve latency. We then average time over the number of sentences and report milliseconds per sentence in Figure~\ref{latency}, lower values are better. Here OurWork GPU compares very favourably against all other solutions with a 10 times lower latency than Moses and a more than 8 times lower latency than Nematus. Latency between the CPU-only variants shows similar ratios as for bulk-translation. 
+
+\section{Conclusions and future work}
+
+Although NMT systems are known to generalize better than phrase-based systems for out-of-domain data, it was unclear how they perform in a purely in-domain setting which is of interest for any organization with significant resources of their own data, such as the UN or other governmental bodies.
+
+We evaluated the performance of neural machine translation on all thirty translation directions of the United Nations Parallel Corpus v1.0. We showed that for nearly all translation directions NMT is either on par with or surpasses phrase-based SMT. For some language pairs, the gains in BLEU are substantial. These include all pairs that have Chinese as a source or target language. Very respectable gains can also be observed for Arabic. For other language pairs there is generally some improvement.  In the future we would like to verify these results with human evaluation.
+
+We introduced our efficient neural machine translation beam-search decoder, OurWork, and demonstrated that high-quality and high-performance neural machine translation can be achieved on commodity hardware; the GPUs we tested on are available to the general public for gaming PCs and graphics workstations. A single GPU matches the performance of 16 CPU threads on server-grade Intel Xeon CPUs. We can take advantage of multiple GPUs to increase translation speed even further. Access to specialized hardware like Google's Tensor Processing Units seems unnecessary when planning to switch to neural machine translation with lower-parametrized models. 
+
+Even the performance of the CPU-only version of OurWork allows to set-up demo systems and can be a viable solution for low-throughput settings. Training, however, requires a GPU. Still, one might start with one GPU for training and reuse the CPU machines on which Moses has been running  for first deployment. For future work, we plan to further improve the performance of OurWork, especially for CPU-only settings.
+
+We did not cover architecture-related questions. Reducing the hidden state size by half could improve performance 4-fold. Determining the influence on translation quality would require more experiments.
+
+% \section{Acknowledgments}
+% This project has received funding from the European Union's Horizon 2020 research and innovation
+% programme under grant agreement 688139 (SUMMA).
+
+
+\bibliography{references}
+\bibliographystyle{IEEEtran}
+
+
+\end{document}
