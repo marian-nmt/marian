@@ -13,6 +13,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
+#include "gpu/mblas/nth_element_kernels.h"
 
 namespace amunmt {
 namespace GPU {
@@ -421,6 +422,16 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
                    float eps);
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
+
+void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+                const Matrix& in,
+                const Matrix& b4,
+                const DeviceVector<float> &costs,
+                bool forbidUNK,
+                uint maxBeamSize,
+                const std::vector<uint>& beamSizes,
+                uint beamSizeSum,
+                bool isFirst);
 
 } // namespace mblas
 } // namespace GPU

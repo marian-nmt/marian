@@ -1,6 +1,5 @@
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/handles.h"
-#include "gpu/mblas/nth_element_kernels.h"
 
 using namespace std;
 
