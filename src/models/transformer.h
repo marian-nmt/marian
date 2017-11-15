@@ -442,6 +442,7 @@ public:
     // to make RNN-based decoders and beam search work with this. We are looking
     // into makeing this more natural.
     auto context = TransposeTimeBatch(layer);
+    debug(context, "context");
 
     return New<EncoderState>(context, batchMask, batch);
   }
@@ -485,6 +486,8 @@ public:
 
     auto embeddings = state->getTargetEmbeddings();
     auto decoderMask = state->getTargetMask();
+
+    debug(embeddings, "embeddings");
 
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
@@ -636,6 +639,9 @@ public:
     auto output = mlp::mlp(graph).push_back(layerOut);
 
     Expr logits = output->apply(decoderContext);
+
+    debug(logits, "logits");
+
 
     // return unormalized(!) probabilities
     return New<TransformerState>(

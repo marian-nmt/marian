@@ -130,9 +130,17 @@ public:
     int dimTrgEmb = opt<int>("dim-emb");
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
+    int dimBatch = 1;
+    if(state->getEncoderStates().size() > 0)
+      dimBatch = state->getEncoderStates()[0]->getContext()->shape()[-2];
+
+    int dimBeam = embIdx.size() / dimBatch;
+    std::cerr << "beam: " << dimBeam << std::endl;
+
     Expr selectedEmbs;
     if(embIdx.empty()) {
-      selectedEmbs = graph->constant({1, 1, 1, dimTrgEmb}, init = inits::zeros);
+      selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb},
+                                     init = inits::zeros);
     } else {
       // embeddings are loaded from model during translation, no fixing required
       auto yEmbFactory = embedding(graph)  //
@@ -144,11 +152,14 @@ public:
       else
         yEmbFactory("prefix", prefix_ + "_Wemb");
 
+      for(auto e : embIdx)
+        std::cerr << "e: " << e << std::endl;
+
       auto yEmb = yEmbFactory.construct();
       selectedEmbs = rows(yEmb, embIdx);
 
       selectedEmbs
-          = reshape(selectedEmbs, {(int)embIdx.size(), 1, 1, dimTrgEmb});
+          = reshape(selectedEmbs, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);
   }
