@@ -5,6 +5,7 @@
 #include "models/model_base.h"
 #include "models/nematus.h"
 #include "models/s2s.h"
+#include "models/charS2S.h"
 #include "models/transformer.h"
 
 #include "examples/mnist/model.h"
@@ -16,6 +17,8 @@ namespace models {
 Ptr<EncoderBase> EncoderFactory::construct() {
   if(options_->get<std::string>("type") == "s2s")
     return New<EncoderS2S>(options_);
+  if(options_->get<std::string>("type") == "char-s2s")
+    return New<CharS2SEncoder>(options_);
   if(options_->get<std::string>("type") == "transformer")
     return New<EncoderTransformer>(options_);
 

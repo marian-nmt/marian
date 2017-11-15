@@ -28,12 +28,14 @@ class CharConvPooling {
       const std::string& prefix,
       int kernelHeight,
       std::vector<int> kernelWidths,
-      std::vector<int> kernelNums)
+      std::vector<int> kernelNums,
+      int stride)
       : name_(prefix),
         size_(kernelNums.size()),
         kernelHeight_(kernelHeight),
         kernelWidths_(kernelWidths),
-        kernelNums_(kernelNums) {}
+        kernelNums_(kernelNums),
+        stride_(stride) {}
 
     Expr operator()(Expr x, Expr mask) {
       auto graph = x->graph();
@@ -42,7 +44,6 @@ class CharConvPooling {
       auto xNCHW = convert2cudnnFormat(masked);
       auto maskNCHW = convert2cudnnFormat(mask);
 
-      int layerIn = xNCHW->shape()[1];
       Expr input = xNCHW;
       std::vector<Expr> outputs;
 
@@ -59,7 +60,8 @@ class CharConvPooling {
           ("paddings", std::make_pair(padWidth, 0))
           .apply(input);;
         auto relued = relu(output);
-        auto output2 = pooling_with_masking(relued, maskNCHW, 5, kernelWidth % 2 == 0);
+        auto output2 = pooling_with_masking(relued,
+            maskNCHW, stride_, kernelWidth % 2 == 0);
 
         outputs.push_back(output2);
       }
@@ -69,14 +71,13 @@ class CharConvPooling {
       return concated;
     }
 
-  private:
-    std::string name_;
-    int size_;
-
-  protected:
-    int kernelHeight_;
-    std::vector<int> kernelWidths_;
-    std::vector<int> kernelNums_;
+protected:
+  std::string name_;
+  int size_;
+  int kernelHeight_;
+  std::vector<int> kernelWidths_;
+  std::vector<int> kernelNums_;
+  int stride_;
 };
 
 }
