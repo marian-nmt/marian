@@ -71,7 +71,7 @@ void  BestHyps::CalcBeam(
     std::vector<Beam>& beams,
     std::vector<uint>& beamSizes)
 {
-  BEGIN_TIMER("CalcBeam standard");
+  BEGIN_TIMER("CalcBeam");
 
   using namespace mblas;
 
@@ -99,6 +99,7 @@ void  BestHyps::CalcBeam(
   if (god_.UseFusedSoftmax()) {
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetB4());
     DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorers[0]->GetNBest());
+    nBest.resize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
     mblas::LogSoftmaxAndNBest(nBest, Probs, b4, Costs, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
@@ -184,7 +185,7 @@ void  BestHyps::CalcBeam(
     beams[batchMap[i]].push_back(hyp);
   }
 
-  PAUSE_TIMER("CalcBeam standard");
+  PAUSE_TIMER("CalcBeam");
 }
 
 
