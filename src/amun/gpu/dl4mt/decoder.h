@@ -256,7 +256,9 @@ class Decoder {
             std::shared_ptr<mblas::Matrix> &b4,
                   const CellState& State,
                   const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
+                  const mblas::Matrix& AlignedSourceContext,
+                  bool useFusedSoftmax)
+        {
           using namespace mblas;
 
           //BEGIN_TIMER("GetProbs.Prod");
@@ -316,13 +318,15 @@ class Decoder {
           Prod(Probs, T1_, *w4);
           PAUSE_TIMER("GetProbs.Prod4");
 
-          BEGIN_TIMER("GetProbs.BroadcastVec");
-          BroadcastVec(_1 + _2, Probs, *b4);
-          PAUSE_TIMER("GetProbs.BroadcastVec");
+          if (!useFusedSoftmax) {
+            BEGIN_TIMER("GetProbs.BroadcastVec");
+            BroadcastVec(_1 + _2, Probs, *b4);
+            PAUSE_TIMER("GetProbs.BroadcastVec");
 
-          BEGIN_TIMER("GetProbs.LogSoftMax");
-          mblas::LogSoftmax(Probs);
-          PAUSE_TIMER("GetProbs.LogSoftMax");
+            BEGIN_TIMER("GetProbs.LogSoftMax");
+            mblas::LogSoftmax(Probs);
+            PAUSE_TIMER("GetProbs.LogSoftMax");
+          }
         }
 
         void Filter(const std::vector<size_t>& ids) {
@@ -367,7 +371,8 @@ class Decoder {
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
                   const mblas::IMatrix &sentencesMask,
-                  const std::vector<uint>& beamSizes)
+                  const std::vector<uint>& beamSizes,
+                  bool useFusedSoftmax)
     {
       //BEGIN_TIMER("Decode");
 
@@ -390,7 +395,7 @@ class Decoder {
       //PAUSE_TIMER("GetNextState");
 
       //BEGIN_TIMER("GetProbs");
-      GetProbs(NextState, Embeddings, AlignedSourceContext_);
+      GetProbs(NextState, Embeddings, AlignedSourceContext_, useFusedSoftmax);
       //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetProbs");
 
@@ -470,8 +475,10 @@ class Decoder {
 
     void GetProbs(const CellState& State,
                   const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
-      softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext);
+                  const mblas::Matrix& AlignedSourceContext,
+                  bool useFusedSoftmax)
+    {
+      softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext, useFusedSoftmax);
     }
 
     std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){

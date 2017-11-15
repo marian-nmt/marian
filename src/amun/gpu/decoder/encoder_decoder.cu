@@ -71,7 +71,8 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      edIn.GetEmbeddings(),
                      *SourceContext_,
                      sentencesMask_,
-                     beamSizes);
+                     beamSizes,
+                     god_.UseFusedSoftmax());
   PAUSE_TIMER("Decode");
 }
 

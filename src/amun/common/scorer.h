@@ -68,6 +68,7 @@ class Scorer {
     virtual const BaseMatrix *GetB4() const = 0;
 
   protected:
+    const God &god_;
     const std::string& name_;
     const YAML::Node& config_;
     size_t tab_;
