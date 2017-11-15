@@ -171,6 +171,14 @@ void BestHyps::CalcBeam(
     std::vector<Beam>& beams,
     std::vector<uint>& beamSizes)
 {
+  BEGIN_TIMER("CalcBeam");
+
+  using namespace mblas;
+
+  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer->GetProbs());
+  const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer->GetB4());
+  DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorer->GetNBest());
+  std::cerr << "4Probs=" << Probs.Debug(1) << std::endl;
 
 }
 

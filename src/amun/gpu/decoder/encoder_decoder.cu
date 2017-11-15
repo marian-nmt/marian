@@ -143,6 +143,16 @@ BaseMatrix& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 
+void *EncoderDecoder::GetNBest()
+{
+  return &decoder_->GetNBest();
+}
+
+const BaseMatrix *EncoderDecoder::GetB4() const
+{
+  return decoder_->GetB4();
+}
+
 mblas::Matrix& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }

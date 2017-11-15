@@ -50,6 +50,9 @@ class EncoderDecoder : public Scorer {
     mblas::Matrix& GetAttention();
     virtual BaseMatrix& GetProbs();
 
+    virtual void *GetNBest();
+    virtual const BaseMatrix *GetB4() const;
+
     size_t GetVocabSize() const;
 
     void Filter(const std::vector<size_t>& filterIds);

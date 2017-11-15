@@ -435,6 +435,14 @@ class Decoder {
       return alignment_.GetAttention();
     }
 
+    DeviceVector<NthOutBatch>& GetNBest() {
+      return nBest_;
+    }
+
+    const mblas::Matrix *GetB4() const {
+      return b4_.get();
+    }
+
   private:
 
     void GetHiddenState(CellState& HiddenState,
@@ -504,6 +512,9 @@ class Decoder {
     RNNFinal rnn2_;
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
+
+    DeviceVector<NthOutBatch> nBest_;
+    std::shared_ptr<mblas::Matrix> b4_;
 
     Decoder(const Decoder&) = delete;
 };

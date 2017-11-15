@@ -64,6 +64,8 @@ class Scorer {
     }
 
     virtual BaseMatrix& GetProbs() = 0;
+    virtual void *GetNBest() = 0; // hack - need to return matrix<NthOut> but NthOut contain cuda code
+    virtual const BaseMatrix *GetB4() const = 0;
 
   protected:
     const std::string& name_;
