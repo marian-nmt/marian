@@ -8,7 +8,6 @@ BestHyps::BestHyps(const God &god)
           !god.Get<bool>("allow-unk"),
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
           god.GetScorerWeights()),
         keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
@@ -129,7 +128,7 @@ void  BestHyps::CalcBeam(
   }
 
   std::vector<HostVector<float>> breakDowns;
-  if (returnNBestList_) {
+  if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
       for (size_t i = 1; i < scorers.size(); ++i) {
         std::vector<float> modelCosts(beamSizeSum);
@@ -165,7 +164,7 @@ void  BestHyps::CalcBeam(
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
 
-    if(returnNBestList_) {
+    if(god_.ReturnNBestList()) {
       hyp->GetCostBreakdown().resize(scorers.size());
       float sum = 0;
       for (size_t j = 0; j < scorers.size(); ++j) {

@@ -83,7 +83,14 @@ God& God::Init(int argc, char** argv) {
   LoadScorers();
   LoadFiltering();
 
+  returnNBestList_ = Get<bool>("return-alignment")
+                   || Get<bool>("return-soft-alignment")
+                   || Get<bool>("return-nematus-alignment");
+
   useFusedSoftmax_ = true;
+  if (returnNBestList_) {
+    useFusedSoftmax_ = false;
+  }
 
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));

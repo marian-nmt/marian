@@ -77,6 +77,9 @@ class God {
     ThreadPool &GetThreadPool()
     { return *pool_; }
 
+    bool ReturnNBestList() const
+    { return returnNBestList_; }
+
     bool UseFusedSoftmax() const
     { return useFusedSoftmax_; }
 
@@ -111,6 +114,7 @@ class God {
 
     std::unique_ptr<ThreadPool> pool_;
 
+    bool returnNBestList_;
     bool useFusedSoftmax_;
 };
 

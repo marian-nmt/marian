@@ -17,13 +17,11 @@ class BestHypsBase
     BestHypsBase(
         const God &god,
         bool forbidUNK,
-        bool returnNBestList,
         bool isInputFiltered,
         bool returnAttentionWeights,
         const std::map<std::string, float>& weights)
     : god_(god),
       forbidUNK_(forbidUNK),
-      returnNBestList_(returnNBestList),
       isInputFiltered_(isInputFiltered),
       returnAttentionWeights_(returnAttentionWeights),
       weights_(weights)
@@ -41,7 +39,6 @@ class BestHypsBase
   protected:
     const God &god_;
     const bool forbidUNK_;
-    const bool returnNBestList_;
     const bool isInputFiltered_;
     const bool returnAttentionWeights_;
     const std::map<std::string, float> weights_;
