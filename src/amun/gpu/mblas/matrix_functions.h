@@ -120,7 +120,7 @@ Matrix& CopyRow(Matrix& Out,
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
-              const mblas::IMatrix &sentencesMask,
+              const mblas::IMatrix &sentenceLengths,
               size_t i);
 
 Matrix& CopyRows(Matrix& Out,

@@ -71,8 +71,9 @@ class Encoder {
         }
 
         template <class It>
-        void Encode(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
-                        const mblas::IMatrix *sentencesMask=nullptr)
+        void Encode(It it, It end, mblas::Matrix& Context,
+                    size_t batchSize, bool invert,
+                    const mblas::IMatrix *sentenceLengths=nullptr)
         {
           InitializeState(batchSize);
 
@@ -86,12 +87,12 @@ class Encoder {
 
             //std::cerr << "invert=" << invert << std::endl;
             if(invert) {
-              assert(sentencesMask);
+              assert(sentenceLengths);
 
               //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
               //std::cerr << "mapping=" << mblas::Debug(*mapping) << std::endl;
               //mblas::MapMatrix(*(State_.cell), *sentencesMask, n - i - 1);
-              mblas::MapMatrix(*(State_.output), *sentencesMask, n - i - 1);
+              mblas::MapMatrix(*(State_.output), *sentenceLengths, n - i - 1);
               //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
               mblas::PasteRows(Context, *(State_.output), (n - i - 1), gru_->GetStateLength().output);
@@ -124,7 +125,7 @@ class Encoder {
     Encoder(const Weights& model, const YAML::Node& config);
 
     void Encode(const Sentences& words, size_t tab, mblas::Matrix& context,
-                    mblas::IMatrix &sentencesMask, mblas::IMatrix &sentenceLengths);
+                    mblas::IMatrix &sentenceLengths);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);
