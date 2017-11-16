@@ -28,8 +28,8 @@ public:
     }
 
     int dimEmb = opt<int>("dim-emb");
-    auto convSizes = options_->get<std::vector<int>>("char-conv-filters");
-    auto convWidths = options_->get<std::vector<int>>("char-conv-widths");
+    auto convSizes = options_->get<std::vector<int>>("char-conv-filters-num");
+    auto convWidths = options_->get<std::vector<int>>("char-conv-filters-widths");
     int stride = opt<int>("char-stride");
     int highwayNum = opt<int>("char-highway");
 
@@ -50,7 +50,7 @@ public:
     Expr context = applyEncoderRNN(
         graph, inHighway, batchMask, opt<std::string>("enc-type"));
 
-    return New<EncoderState>(context, batchMask, batch);
+    return New<EncoderState>(context, stridedMask, batch);
   }
 protected:
   Expr getStridedMask(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch,
@@ -66,7 +66,7 @@ protected:
       }
     }
     int dimWords = strided.size() / dimBatch;
-    auto stridedMask = graph->constant({dimBatch, 1, dimWords},
+    auto stridedMask = graph->constant({dimWords, dimBatch, 1},
                                        keywords::init = inits::from_vector(strided));
     return stridedMask;
   }
