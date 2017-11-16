@@ -54,7 +54,7 @@ class CharConvPooling {
 
 
         auto output = convolution(graph)
-          ("prefix", name_)
+          ("prefix", name_ + "_width_" + std::to_string(kernelWidth))
           ("kernel-dims", std::make_pair(kernelWidth, x->shape()[-1]))
           ("kernel-num", kernelNum)
           ("paddings", std::make_pair(padWidth, 0))
@@ -63,10 +63,13 @@ class CharConvPooling {
         auto output2 = pooling_with_masking(relued,
             maskNCHW, stride_, kernelWidth % 2 == 0);
 
+        output2 = reshape(output2, {output2->shape()[-1],
+                                    output2->shape()[0],
+                                    output2->shape()[1]});
         outputs.push_back(output2);
       }
 
-      auto concated = concatenate(outputs, 1);
+      auto concated = concatenate(outputs, -1);
 
       return concated;
     }
