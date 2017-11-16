@@ -52,6 +52,18 @@ class BestHyps : public BestHypsBase
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
+
+    void getNBestList(const std::vector<uint>& beamSizes,
+                      mblas::Matrix& Probs,
+                      DeviceVector<NthOutBatch> &nBest,
+                      std::vector<float>& outCosts,
+                      std::vector<uint>& outKeys,
+                      const bool isFirst=false) const;
+
+    void GetPairs(DeviceVector<NthOutBatch> &nBest,
+                  std::vector<uint>& outKeys,
+                  std::vector<float>& outValues) const;
+
 };
 
 }

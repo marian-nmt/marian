@@ -25,14 +25,6 @@ class NthElement {
                       std::vector<uint>& outKeys,
                       const bool isFirst=false);
 
-    // fast fused softmax and nth_element
-    void getNBestList(const std::vector<uint>& beamSizes,
-                      mblas::Matrix& Probs,
-                      DeviceVector<NthOutBatch> &nBest,
-                      std::vector<float>& outCosts,
-                      std::vector<uint>& outKeys,
-                      const bool isFirst=false);
-
     void GetPairs(uint number,
                   std::vector<uint>& outKeys,
                   std::vector<float>& outValues);
@@ -58,10 +50,6 @@ class NthElement {
                       const HostVector<uint>& batchFirstElementIdxs,
                       const HostVector<uint>& cummulatedBeamSizes);
 
-
-    void GetPairs(DeviceVector<NthOutBatch> &nBest,
-                  std::vector<uint>& outKeys,
-                  std::vector<float>& outValues);
 
 };
 

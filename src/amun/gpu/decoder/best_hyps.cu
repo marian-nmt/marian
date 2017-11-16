@@ -35,7 +35,7 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
                std::vector<unsigned>& outKeys,
                const bool isFirst)
 {
-  nthElement_.getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
+  getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
@@ -188,6 +188,43 @@ void  BestHyps::CalcBeam(
   PAUSE_TIMER("CalcBeam");
 }
 
+//////////////////////////////////////////////////////////////////////////
+void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
+                  mblas::Matrix& Probs,
+                  DeviceVector<NthOutBatch> &nBest,
+                  std::vector<float>& outCosts,
+                  std::vector<uint>& outKeys,
+                  const bool isFirst) const
+{
+  GetPairs(nBest, outKeys, outCosts);
+  assert(outCosts.size() == outKeys.size());
+
+  /*
+  cerr << "outCosts/outKeys=";
+  for (size_t i = 0; i < outKeys.size(); ++i) {
+    cerr << "(" << outCosts[i] << "," << outKeys[i] << ") ";
+  }
+  cerr << endl;
+  */
+  //cerr << endl;
+}
+
+void BestHyps::GetPairs(DeviceVector<NthOutBatch> &nBest,
+              std::vector<uint>& outKeys,
+              std::vector<float>& outValues) const
+{
+  //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
+  outKeys.resize(nBest.size());
+  outValues.resize(nBest.size());
+
+  HostVector<NthOutBatch> hostVec(nBest.size());
+  mblas::copy(thrust::raw_pointer_cast(nBest.data()), nBest.size(), thrust::raw_pointer_cast(hostVec.data()), cudaMemcpyDeviceToHost);
+
+  for (size_t i = 0; i < nBest.size(); ++i) {
+    outKeys[i] = hostVec[i].ind;
+    outValues[i] = hostVec[i].score;
+  }
+}
 
 } // namespace
 }

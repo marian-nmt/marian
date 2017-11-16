@@ -167,44 +167,6 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
 }
 
 //////////////////////////////////////////////////////////////////////////
-void NthElement::getNBestList(const std::vector<uint>& beamSizes,
-                  mblas::Matrix& Probs,
-                  DeviceVector<NthOutBatch> &nBest,
-                  std::vector<float>& outCosts,
-                  std::vector<uint>& outKeys,
-                  const bool isFirst)
-{
-  GetPairs(nBest, outKeys, outCosts);
-  assert(outCosts.size() == outKeys.size());
-
-  /*
-  cerr << "outCosts/outKeys=";
-  for (size_t i = 0; i < outKeys.size(); ++i) {
-    cerr << "(" << outCosts[i] << "," << outKeys[i] << ") ";
-  }
-  cerr << endl;
-  */
-  //cerr << endl;
-
-  return;
-}
-
-void NthElement::GetPairs(DeviceVector<NthOutBatch> &nBest,
-              std::vector<uint>& outKeys,
-              std::vector<float>& outValues)
-{
-  //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
-  outKeys.resize(nBest.size());
-  outValues.resize(nBest.size());
-
-  HostVector<NthOutBatch> hostVec(nBest.size());
-  mblas::copy(thrust::raw_pointer_cast(nBest.data()), nBest.size(), thrust::raw_pointer_cast(hostVec.data()), cudaMemcpyDeviceToHost);
-
-  for (size_t i = 0; i < nBest.size(); ++i) {
-    outKeys[i] = hostVec[i].ind;
-    outValues[i] = hostVec[i].score;
-  }
-}
 
 }  // namespace GPU
 } // namespace amunmt
