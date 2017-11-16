@@ -94,34 +94,6 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(DeviceVector<T> &vec, uint a, uint b, uint c, uint d)
-  {
-    dim_[0] = a;
-    dim_[1] = b;
-    dim_[2] = c;
-    dim_[3] = d;
-    updateStridesRowMajor();
-
-    assert(size() == vec.size());
-
-    data_ = thrust::raw_pointer_cast(vec.data());
-    dataConst_ = data_;
-  }
-
-  MatrixWrapper(const DeviceVector<T> &vec, uint a, uint b, uint c, uint d)
-  {
-    dim_[0] = a;
-    dim_[1] = b;
-    dim_[2] = c;
-    dim_[3] = d;
-    updateStridesRowMajor();
-
-    assert(size() == vec.size());
-
-    data_ = nullptr;
-    dataConst_ = thrust::raw_pointer_cast(vec.data());
-  }
-
   __device__
   MatrixWrapper(T *ptr, uint a, uint b, uint c, uint d)
   {

@@ -88,10 +88,8 @@ God& God::Init(int argc, char** argv) {
                    || Get<bool>("return-nematus-alignment");
 
   useFusedSoftmax_ = true;
-  if (returnNBestList_) {
-    useFusedSoftmax_ = false;
-  }
-  else if (gpuLoaders_.size() != 1) {
+  if (returnNBestList_ ||
+      gpuLoaders_.size() != 1) {
     useFusedSoftmax_ = false;
   }
   //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
