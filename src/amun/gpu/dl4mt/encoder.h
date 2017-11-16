@@ -92,6 +92,9 @@ class Encoder {
               //std::cerr << "mapping=" << mblas::Debug(*mapping) << std::endl;
               //mblas::MapMatrix(*(State_.cell), *sentencesMask, n - i - 1);
               mblas::MapMatrix(*(State_.output), *sentencesMask, n - i - 1);
+              if (State_.cell->size()) {
+                mblas::MapMatrix(*(State_.cell), *sentencesMask, n - i - 1);
+              }
               //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
               mblas::PasteRows(Context, *(State_.output), (n - i - 1), gru_->GetStateLength().output);
