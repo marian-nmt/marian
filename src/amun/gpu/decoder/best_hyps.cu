@@ -10,11 +10,15 @@ BestHyps::BestHyps(const God &god)
           god.Get<std::vector<std::string>>("softmax-filter").size(),
           god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
           god.GetScorerWeights()),
-        nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
         keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
-{}
+{
+  if (god_.UseFusedSoftmax()) {
+    NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
+    nthElement_.reset(obj);
+  }
+}
 
 void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
@@ -25,7 +29,7 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
                std::vector<unsigned>& outKeys,
                const bool isFirst)
 {
-  nthElement_.getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
+  nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
 }
 
 // fast fused softmax and nth_element
@@ -131,7 +135,7 @@ void  BestHyps::CalcBeam(
         std::vector<float> modelCosts(beamSizeSum);
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-        nthElement_.getValueByKey(modelCosts, currProbs);
+        nthElement_->getValueByKey(modelCosts, currProbs);
         breakDowns.push_back(modelCosts);
       }
   }

@@ -41,7 +41,7 @@ class BestHyps : public BestHypsBase
         std::vector<uint>& beamSizes);
 
   private:
-    NthElement nthElement_;
+    std::unique_ptr<NthElement> nthElement_;
     DeviceVector<unsigned> keys;
     DeviceVector<float> Costs;
     uint maxBeamSize_;
