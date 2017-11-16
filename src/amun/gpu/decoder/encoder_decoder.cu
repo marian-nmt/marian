@@ -90,7 +90,7 @@ void EncoderDecoder::Encode(const Sentences& source) {
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentencesMask_);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");

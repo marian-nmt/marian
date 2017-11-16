@@ -17,7 +17,7 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
 
 __global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
-                      const MatrixWrapper<uint>  mapping)
+                      const MatrixWrapper<uint> sentenceLengths)
 {
   // out = batches * states
   // in = max sentence length * states * 1 * batches
@@ -37,7 +37,7 @@ __global__ void gMean(MatrixWrapper<float> out,
     float sum = 0.0f;
     int counter = 0;
     for (size_t row = 0; row < in.dim(0); ++row) {
-      int isWord = mapping(row, batch, 0, 0);
+      bool isWord = row < sentenceLengths[batch];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
       if (isWord) {
         sum += in(row, state, 0, batch);
@@ -50,13 +50,14 @@ __global__ void gMean(MatrixWrapper<float> out,
   }
 }
 
-void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask)
+void Mean(Matrix& Out,
+          const Matrix& In,
+          const mblas::IMatrix &sentenceLengths)
 {
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
   assert(Out.dim(0) == In.dim(3));
   assert(Out.dim(1) == In.dim(1));
-  assert(In.dim(0) * In.dim(3) == sentencesMask.size());
 
   // mean of each ROW
   size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
@@ -67,14 +68,14 @@ void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask)
   MatrixWrapper<float> inWrap(In);
   //cerr << "outWrap=" << outWrap.Debug() << endl;
 
-  MatrixWrapper<uint> mappingWrap(sentencesMask, false);
+  MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths, false);
 
   uint size = outWrap.size();
   uint threads = std::min((uint)MAX_THREADS, size);
   uint blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, mappingWrap);
+    (outWrap, inWrap, sentenceLengthsWrap);
 
 }
 

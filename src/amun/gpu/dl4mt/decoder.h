@@ -66,7 +66,7 @@ class Decoder {
         void InitializeState(CellState& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize,
-                             const mblas::IMatrix &sentencesMask)
+                             const mblas::IMatrix &sentenceLengths)
         {
           using namespace mblas;
 
@@ -81,7 +81,7 @@ class Decoder {
 
           //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
           //std::cerr << "mapping=" << Debug(mapping, 2) << std::endl;
-          Mean(Temp2_, SourceContext, sentencesMask);
+          Mean(Temp2_, SourceContext, sentenceLengths);
 
           //std::cerr << "1State=" << State.Debug(1) << std::endl;
           //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
@@ -416,9 +416,9 @@ class Decoder {
     void EmptyState(CellState& State,
                     const mblas::Matrix& SourceContext,
                     size_t batchSize,
-                    const mblas::IMatrix &sentencesMask)
+                    const mblas::IMatrix &sentenceLengths)
     {
-      rnn1_.InitializeState(State, SourceContext, batchSize, sentencesMask);
+      rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
       alignment_.Init(SourceContext);
     }
 
