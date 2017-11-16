@@ -30,7 +30,6 @@ class BestHyps : public BestHypsBase
           !god.Get<bool>("allow-unk"),
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
           god.GetScorerWeights())
     {}
 
@@ -83,7 +82,7 @@ class BestHyps : public BestHypsBase
       }
 
       std::vector<std::vector<float>> breakDowns;
-      if (returnNBestList_) {
+      if (god_.ReturnNBestList()) {
         breakDowns.push_back(bestCosts);
         for (auto& scorer : scorers) {
           std::vector<float> modelCosts(beamSize);
@@ -123,7 +122,7 @@ class BestHyps : public BestHypsBase
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         }
 
-        if (returnNBestList_) {
+        if (god_.ReturnNBestList()) {
           hyp->GetCostBreakdown().resize(scorers.size());
           float sum = 0;
           for(size_t j = 0; j < scorers.size(); ++j) {
