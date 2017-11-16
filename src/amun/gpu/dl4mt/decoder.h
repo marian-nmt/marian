@@ -156,7 +156,7 @@ class Decoder {
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
-                                     const mblas::IMatrix &sentencesMask,
+                                     const mblas::IMatrix &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
@@ -165,6 +165,7 @@ class Decoder {
 
           using namespace mblas;
 
+          size_t maxLength = SourceContext.dim(0);
           size_t batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
@@ -182,11 +183,13 @@ class Decoder {
               batchMapping.size(),
               thrust::raw_pointer_cast(dBatchMapping_.data()),
               cudaMemcpyHostToDevice);
-          //std::cerr << "mapping=" << Debug(mapping, 2) << std::endl;
-          //std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
-          //std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_, 2) << std::endl;
 
-          const size_t srcSize = sentencesMask.size() / beamSizes.size();
+          /*
+          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
+          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug(0) << std::endl;
+          std::cerr << "A_=" << A_.Debug(0) << std::endl;
+          std::cerr << "sentenceLengths=" << sentenceLengths.Debug(2) << std::endl;
+          */
 
           Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_);
           //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
@@ -198,14 +201,14 @@ class Decoder {
           }
           //std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
 
-          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, srcSize);
+          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
 
           //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
 
           Prod(A_, *w_.V_, Temp1_, false, true);
 
-          mblas::Softmax(A_, dBatchMapping_, sentencesMask, batchSize);
+          mblas::Softmax(A_, dBatchMapping_, sentenceLengths, batchSize);
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
           /*
@@ -370,7 +373,7 @@ class Decoder {
                   const CellState& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
-                  const mblas::IMatrix &sentencesMask,
+                  const mblas::IMatrix &sentenceLengths,
                   const std::vector<uint>& beamSizes,
                   bool useFusedSoftmax)
     {
@@ -385,7 +388,11 @@ class Decoder {
       //PAUSE_TIMER("GetHiddenState");
 
       //BEGIN_TIMER("GetAlignedSourceContext");
-      GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext, sentencesMask, beamSizes);
+      GetAlignedSourceContext(AlignedSourceContext_,
+                              HiddenState_,
+                              SourceContext,
+                              sentenceLengths,
+                              beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetAlignedSourceContext");
 
@@ -460,10 +467,13 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
                                   const mblas::Matrix& SourceContext,
-                                  const mblas::IMatrix &sentencesMask,
+                                  const mblas::IMatrix &sentenceLengths,
                                   const std::vector<uint>& beamSizes) {
-      alignment_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext,
-                                         sentencesMask, beamSizes);
+      alignment_.GetAlignedSourceContext(AlignedSourceContext,
+                                        HiddenState,
+                                        SourceContext,
+                                        sentenceLengths,
+                                        beamSizes);
     }
 
     void GetNextState(CellState& State,

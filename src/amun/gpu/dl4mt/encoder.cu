@@ -63,7 +63,7 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
 }
 
 void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context,
-                         mblas::IMatrix &sentencesMask)
+                         mblas::IMatrix &sentencesMask, mblas::IMatrix &sentenceLengths)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
@@ -79,6 +79,17 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
   mblas::copy(thrust::raw_pointer_cast(hMapping.data()),
               hMapping.size(),
               sentencesMask.data(),
+              cudaMemcpyHostToDevice);
+
+  HostVector<uint> hSentenceLengths(source.size());
+  for (size_t i = 0; i < source.size(); ++i) {
+    hSentenceLengths[i] = source.at(i)->GetWords(tab).size();
+  }
+
+  sentenceLengths.NewSize(source.size(), 1, 1, 1);
+  mblas::copy(thrust::raw_pointer_cast(hSentenceLengths.data()),
+              hSentenceLengths.size(),
+              sentenceLengths.data(),
               cudaMemcpyHostToDevice);
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;

@@ -124,7 +124,7 @@ class Encoder {
     Encoder(const Weights& model, const YAML::Node& config);
 
     void Encode(const Sentences& words, size_t tab, mblas::Matrix& context,
-                    mblas::IMatrix &sentencesMask);
+                    mblas::IMatrix &sentencesMask, mblas::IMatrix &sentenceLengths);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);

@@ -70,7 +70,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
                      *SourceContext_,
-                     sentencesMask_,
+                     sentenceLengths_,
                      beamSizes,
                      god_.UseFusedSoftmax());
   PAUSE_TIMER("Decode");
@@ -82,7 +82,7 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::Encode(const Sentences& source) {
   BEGIN_TIMER("Encode");
-  encoder_->Encode(source, tab_, *SourceContext_, sentencesMask_);
+  encoder_->Encode(source, tab_, *SourceContext_, sentencesMask_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("Encode");
 }

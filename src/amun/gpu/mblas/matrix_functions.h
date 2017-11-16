@@ -136,7 +136,10 @@ Matrix& Slice(Matrix& Out,
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const mblas::IMatrix &sentencesMask, size_t batchSize);
+Matrix& Softmax(Matrix& Out,
+                const DeviceVector<uint>& batchIds,
+                const mblas::IMatrix &sentenceLengths,
+                size_t batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
 
