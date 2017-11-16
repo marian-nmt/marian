@@ -91,6 +91,10 @@ God& God::Init(int argc, char** argv) {
   if (returnNBestList_) {
     useFusedSoftmax_ = false;
   }
+  else if (gpuLoaders_.size() != 1) {
+    useFusedSoftmax_ = false;
+  }
+  //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
 
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));
