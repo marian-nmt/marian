@@ -941,7 +941,8 @@ void AddElement(float &minScore,
   const float score = ele.score;
 
   if (forbidUNK && vocabInd == UNK_ID) {
-    // do nothing
+    arr[i].score = -1111111111111;
+    minScore = -1111111111111;
   }
   else {
     arr[i] = ele;
