@@ -13,7 +13,7 @@ BestHyps::BestHyps(const God &god)
         Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
 {
-  if (god_.UseFusedSoftmax()) {
+  if (!god_.UseFusedSoftmax()) {
     NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
     nthElement_.reset(obj);
   }
