@@ -920,7 +920,7 @@ __device__
 float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
 {
   float ret = -1111111111111;
-  for (uint i = 1; i < nBestMatrix.dim(1); ++i) {
+  for (uint i = 0; i < nBestMatrix.dim(1); ++i) {
       const NthOutBatch &curr = nBestMatrix[i];
       if (curr.score > ret) {
         ret = curr.score;
