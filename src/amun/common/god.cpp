@@ -89,7 +89,9 @@ God& God::Init(int argc, char** argv) {
 
   useFusedSoftmax_ = true;
   if (returnNBestList_ ||
-      gpuLoaders_.size() != 1) {
+      gpuLoaders_.size() != 1 || // more than 1 scorer
+      God::Get<size_t>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
+      ) {
     useFusedSoftmax_ = false;
   }
   //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
