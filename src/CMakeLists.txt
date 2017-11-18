@@ -16,6 +16,7 @@ cuda_add_library(marian
   tensors/memory_piece.cu
   kernels/tensor_operators.cu
   kernels/dropout.cu
+  kernels/cudnn_wrappers.cu
 #  kernels/sparse.cu
   layers/param_initializers.cu
   layers/generic.cpp

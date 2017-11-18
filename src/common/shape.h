@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <vector>
+
+#include "common/logging.h"
 
 namespace marian {
 
@@ -30,6 +33,10 @@ struct Shape {
     }
 
     const int* data() const {
+      return shape_.data();
+    }
+
+    int* data() {
       return shape_.data();
     }
 
@@ -106,12 +113,18 @@ struct Shape {
 
     bool operator!=(const Shape& other) const { return !(*this == other); }
 
+    std::string toString() const {
+      std::stringstream strm;
+      strm << "shape=" << (*this)[0];
+      for(int i = 1; i < size(); ++i)
+        strm << "x" << (*this)[i];
+      strm << " size=" << elements() << " ("
+           << elements() * sizeof(float) << "B)";
+      return strm.str();
+    }
+
     friend std::ostream& operator<<(std::ostream& strm, const Shape& shape) {
-      strm << "shape=" << shape[0];
-      for(int i = 1; i < shape.size(); ++i)
-        strm << "x" << shape[i];
-      strm << " size=" << shape.elements() << " ("
-           << shape.elements() * sizeof(float) << "B)";
+      strm << shape.toString();
       return strm;
     }
 

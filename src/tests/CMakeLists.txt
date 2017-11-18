@@ -37,11 +37,9 @@ endforeach(exec)
 
 if(CUDNN_FOUND)
     cuda_add_executable(conv_test conv_test.cu)
-    # cuda_add_executable(conv_char_test conv_char_test.cu)
 
     foreach(exec
             conv_test
-            # conv_char_test
     )
         target_link_libraries(${exec} marian ${EXT_LIBS})
         cuda_add_cublas_to_target(${exec})

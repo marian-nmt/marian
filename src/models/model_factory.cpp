@@ -8,9 +8,7 @@
 #include "models/transformer.h"
 
 #include "examples/mnist/model.h"
-#ifdef CUDNN
 #include "examples/mnist/model_lenet.h"
-#endif
 
 namespace marian {
 namespace models {
@@ -169,11 +167,10 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   if(type == "mnist-ffnn") {
     return New<MnistFeedForwardNet>(options);
   }
-#ifdef CUDNN
+
   if(type == "mnist-lenet") {
     return New<MnistLeNet>(options);
   }
-#endif
 
   // clang-format on
   ABORT("Unknown model type: {}", type);
