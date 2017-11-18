@@ -298,15 +298,17 @@ public:
           }
 
           auto search = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer});
-          auto history = search->search(graph, batch, id);
+          auto histories = search->search(graph, batch);
 
-          std::stringstream best1;
-          std::stringstream bestn;
-          Printer(options_, vocabs_.back(), history, best1, bestn);
-          collector->Write(history->GetLineNum(),
-                           best1.str(),
-                           bestn.str(),
-                           options_->get<bool>("n-best"));
+          for(auto history : histories) {
+            std::stringstream best1;
+            std::stringstream bestn;
+            Printer(options_, vocabs_.back(), history, best1, bestn);
+            collector->Write(history->GetLineNum(),
+                             best1.str(),
+                             bestn.str(),
+                             options_->get<bool>("n-best"));
+          }
         };
 
         threadPool.enqueue(task, sentenceId);

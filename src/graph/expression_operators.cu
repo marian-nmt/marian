@@ -136,6 +136,10 @@ Expr atleast_3d(Expr a, size_t dims) {
   return atleast_nd(a, 3);
 }
 
+Expr atleast_4d(Expr a) {
+  return atleast_nd(a, 4);
+}
+
 Expr atleast_nd(Expr a, size_t dims) {
   if(a->shape().size() >= dims)
     return a;
@@ -150,6 +154,15 @@ Expr atleast_nd(Expr a, size_t dims) {
 
 Expr flatten(Expr a) {
   Shape shape = {a->shape().elements()};
+  return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr flatten_2d(Expr a) {
+  Shape shape = {
+    a->shape().elements() / a->shape()[-1],
+    a->shape()[-1]
+  };
+
   return Expression<ReshapeNodeOp>(a, shape);
 }
 

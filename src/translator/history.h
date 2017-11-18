@@ -70,5 +70,5 @@ private:
   float alpha_;
 };
 
-typedef std::vector<History> Histories;
+typedef std::vector<Ptr<History>> Histories;
 }

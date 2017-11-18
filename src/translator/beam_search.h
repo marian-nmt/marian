@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 
 #include "marian.h"
 #include "translator/history.h"
@@ -27,38 +28,43 @@ public:
                       : 3) {}
 
   Beams toHyps(const std::vector<uint> keys,
-              const std::vector<float> costs,
-              size_t vocabSize,
-              const Beams& beams,
-              std::vector<Ptr<ScorerState>>& states) {
+               const std::vector<float> costs,
+               size_t vocabSize,
+               const Beams& beams,
+               std::vector<Ptr<ScorerState>>& states) {
 
     Beams newBeams(beams.size());
     for(int i = 0; i < keys.size(); ++i) {
       int embIdx  = keys[i] % vocabSize;
       int beamIdx  = i / beamSize_;
-      int hypIdx = keys[i] / vocabSize;
-      int beamHypIdx = hypIdx % beams[beamIdx].size();
-      float cost  = costs[i];
 
-      std::cerr
-        << embIdx << " "
-        << beamIdx << " "
-        << hypIdx << " "
-        << beamHypIdx << " "
-        << cost << std::endl;
+      if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
+        auto& beam = beams[beamIdx];
 
-      auto& beam = beams[beamIdx];
+        int hypIdx = keys[i] / vocabSize;
+        int beamHypIdx = hypIdx % beam.size();
+        float cost  = costs[i];
 
-      std::vector<float> breakDown(states.size(), 0);
-      beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
+        std::cerr
+          << beam.size() << " "
+          << embIdx << " "
+          << beamIdx << " "
+          << hypIdx << " "
+          << beamHypIdx << " "
+          << cost << std::endl;
 
-      for(int j = 0; j < states.size(); ++j)
-        breakDown[j] = states[j]->breakDown(keys[i])
-                       + beam[beamHypIdx]->GetCostBreakdown()[j];
 
-      auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdx, cost);
-      hyp->GetCostBreakdown() = breakDown;
-      newBeams[beamIdx].push_back(hyp);
+        std::vector<float> breakDown(states.size(), 0);
+        beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
+
+        for(int j = 0; j < states.size(); ++j)
+          breakDown[j] = states[j]->breakDown(keys[i])
+                         + beam[beamHypIdx]->GetCostBreakdown()[j];
+
+        auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdx, cost);
+        hyp->GetCostBreakdown() = breakDown;
+        newBeams[beamIdx].push_back(hyp);
+      }
     }
     return newBeams;
   }
@@ -77,22 +83,28 @@ public:
     return newBeams;
   }
 
-  Ptr<History> search(Ptr<ExpressionGraph> graph,
-                      Ptr<data::CorpusBatch> batch,
-                      size_t sentenceId = 0) {
+  Histories search(Ptr<ExpressionGraph> graph,
+                   Ptr<data::CorpusBatch> batch) {
 
-    auto history = New<History>(sentenceId, options_->get<float>("normalize"));
+    int dimBatch = batch->size();
+    Histories histories;
+    for(int i = 0; i < dimBatch; ++i) {
+      size_t sentId = batch->getSentenceIds()[i];
+      auto history = New<History>(sentId, options_->get<float>("normalize"));
+      histories.push_back(history);
+    }
 
-    Beams beams(batch->size());
+    Beams beams(dimBatch);
     for(auto& beam : beams)
-      beam.resize(1, New<Hypothesis>());
+      beam.resize(beamSize_, New<Hypothesis>());
 
     bool first = true;
-    bool final = false;
+    bool stop = false;
 
-    std::vector<size_t> beamSizes(batch->size(), beamSize_);
-    auto nth = New<NthElement>(beamSize_, batch->size());
-    history->Add(beams[0]);
+    std::vector<size_t> beamSizes(dimBatch, beamSize_);
+    auto nth = New<NthElement>(beamSize_, dimBatch);
+    for(int i = 0; i < dimBatch; ++i)
+      histories[i]->Add(beams[i]);
 
     std::vector<Ptr<ScorerState>> states;
 
@@ -116,15 +128,24 @@ public:
                                     keywords::init = inits::from_value(0));
       } else {
         std::vector<float> beamCosts;
+
+        int dimBatch = batch->size();
+
         for(auto& beam : beams) {
           for(auto hyp : beam) {
             hypIndices.push_back(hyp->GetPrevStateIndex());
             embIndices.push_back(hyp->GetWord());
             beamCosts.push_back(hyp->GetCost());
           }
+          for(int i = beam.size(); i < beamSize_; ++i) {
+            hypIndices.push_back(0);
+            embIndices.push_back(0);
+            beamCosts.push_back(-99);
+          }
         }
+
         prevCosts
-            = graph->constant({(int)beamCosts.size(), 1, 1, 1},
+            = graph->constant({(int)beamSize_, 1, dimBatch, 1},
                               keywords::init = inits::from_vector(beamCosts));
       }
 
@@ -133,10 +154,12 @@ public:
       auto totalCosts = prevCosts;
 
       for(int i = 0; i < scorers_.size(); ++i) {
-        states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices);
+        states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices, beamSize_);
         totalCosts
             = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
       }
+
+      totalCosts = transpose(totalCosts, {2, 1, 0, 3});
 
       if(first)
         graph->forward();
@@ -155,21 +178,29 @@ public:
       std::vector<unsigned> outKeys;
       std::vector<float> outCosts;
 
-      //beamSizes[0] = first ? beamSize_ : beam.size();
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
       int dimTrgVoc = totalCosts->shape()[-1];
       beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states);
 
-      final = history->size() >= 3 * batch->words();
-      history->Add(beams[0], final);
-      beams = pruneBeam(beams);
-
+      bool final = false;
+      auto prunedBeams = pruneBeam(beams);
+      for(int i = 0; i < dimBatch; ++i) {
+        if(!beams[i].empty()) {
+          final = final || histories[i]->size() >= 3 * batch->words();
+          histories[i]->Add(beams[i], prunedBeams[i].empty() || final);
+        }
+      }
+      beams = prunedBeams;
       first = false;
 
-    } while(!beams[0].empty() && !final);
+      stop = std::all_of(beams.begin(), beams.end(),
+                         [](const Beam& beam) { return beam.empty(); })
+             || final;
 
-    return history;
+    } while(!stop);
+
+    return histories;
   }
 };
 }
