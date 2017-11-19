@@ -51,7 +51,10 @@ public:
         if(first)
           hypIdx2 = hypIdx;
 
-        int beamHypIdx = hypIdx % beam.size();
+        int beamHypIdx = hypIdx % beamSize_;
+        if(beamHypIdx >= beam.size())
+          beamHypIdx = beamHypIdx % beam.size();
+
         if(first)
           beamHypIdx = 0;
 
