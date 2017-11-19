@@ -46,34 +46,26 @@ public:
         int hypIdx = keys[i] / vocabSize;
         float cost  = costs[i];
 
-        int hypIdx2 = (hypIdx / beamSize_) + (hypIdx % beamSize_) * beams.size();
+        int hypIdx2 = (hypIdx / beamSize_) +
+                      (hypIdx % beamSize_) * beams.size();
         if(first)
           hypIdx2 = hypIdx;
 
-        int beamHypIdx = hypIdx % beamSize_;
+        int beamHypIdx = hypIdx % beam.size();
         if(first)
           beamHypIdx = 0;
 
-        //std::cerr
-        //  << beam.size() << " "
-        //  << beamHypIdx << " "
-        //  << embIdx << " "
-        //  << beamIdx << " "
-        //  << hypIdx << " "
-        //  << hypIdx2 << " "
-        //  << cost << std::endl;
-
-        // make this optional
-        //std::vector<float> breakDown(states.size(), 0);
-        //beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
-        //
-        //for(int j = 0; j < states.size(); ++j)
-        //  breakDown[j] = states[j]->breakDown(keys[i])
-        //                 + beam[beamHypIdx]->GetCostBreakdown()[j];
-        //
         auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdx2, cost);
-        //hyp->GetCostBreakdown() = breakDown;
-
+        if(options_->get<bool>("n-best")) {
+          std::vector<float> breakDown(states.size(), 0);
+          beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
+          for(int j = 0; j < states.size(); ++j) {
+            int key = embIdx + hypIdx2 * vocabSize;
+            breakDown[j] = states[j]->breakDown(key)
+                           + beam[beamHypIdx]->GetCostBreakdown()[j];
+          }
+          hyp->GetCostBreakdown() = breakDown;
+        }
         newBeam.push_back(hyp);
       }
     }
@@ -175,7 +167,8 @@ public:
             = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
       }
 
-      totalCosts = transpose(totalCosts, {2, 1, 0, 3});
+      if(dimBatch > 1 && beamSize_ > 1)
+        totalCosts = transpose(totalCosts, {2, 1, 0, 3});
 
       if(first)
         graph->forward();
