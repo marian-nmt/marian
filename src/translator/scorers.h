@@ -83,7 +83,8 @@ public:
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
                                       Ptr<data::CorpusBatch> batch) {
     graph->switchParams(getName());
-    return New<ScorerWrapperState>(encdec_->startState(graph, batch));
+    auto state = encdec_->startState(graph, batch);
+    return New<ScorerWrapperState>(state);
   }
 
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,

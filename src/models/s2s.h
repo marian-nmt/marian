@@ -282,8 +282,6 @@ public:
     using namespace keywords;
 
     auto embeddings = state->getTargetEmbeddings();
-    debug(embeddings, "embeddings");
-
 
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
@@ -300,11 +298,7 @@ public:
     // decoder space
 
     auto states = state->getStates();
-    for(auto s : states)
-      debug(s.output, "prevState");
-
     auto decoderContext = rnn_->transduce(embeddings, state->getStates());
-    debug(decoderContext, "postState");
 
     // retrieve the last state per layer. They are required during translation
     // in order to continue decoding for the next word
@@ -360,8 +354,6 @@ public:
       logits = output->apply(embeddings, decoderContext, alignedContext);
     else
       logits = output->apply(embeddings, decoderContext);
-
-    debug(logits, "logits");
 
     // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderStates());

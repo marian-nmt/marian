@@ -31,7 +31,8 @@ public:
                const std::vector<float> costs,
                size_t vocabSize,
                const Beams& beams,
-               std::vector<Ptr<ScorerState>>& states) {
+               std::vector<Ptr<ScorerState>>& states,
+               bool first) {
 
     Beams newBeams(beams.size());
     for(int i = 0; i < keys.size(); ++i) {
@@ -40,30 +41,40 @@ public:
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
+        auto& newBeam = newBeams[beamIdx];
 
         int hypIdx = keys[i] / vocabSize;
-        int beamHypIdx = hypIdx % beam.size();
         float cost  = costs[i];
 
-        std::cerr
-          << beam.size() << " "
-          << embIdx << " "
-          << beamIdx << " "
-          << hypIdx << " "
-          << beamHypIdx << " "
-          << cost << std::endl;
+        int hypIdx2 = (hypIdx / beamSize_) + (hypIdx % beamSize_) * beams.size();
+        if(first)
+          hypIdx2 = hypIdx;
 
+        int beamHypIdx = hypIdx % beamSize_;
+        if(first)
+          beamHypIdx = 0;
 
-        std::vector<float> breakDown(states.size(), 0);
-        beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
+        //std::cerr
+        //  << beam.size() << " "
+        //  << beamHypIdx << " "
+        //  << embIdx << " "
+        //  << beamIdx << " "
+        //  << hypIdx << " "
+        //  << hypIdx2 << " "
+        //  << cost << std::endl;
 
-        for(int j = 0; j < states.size(); ++j)
-          breakDown[j] = states[j]->breakDown(keys[i])
-                         + beam[beamHypIdx]->GetCostBreakdown()[j];
+        // make this optional
+        //std::vector<float> breakDown(states.size(), 0);
+        //beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
+        //
+        //for(int j = 0; j < states.size(); ++j)
+        //  breakDown[j] = states[j]->breakDown(keys[i])
+        //                 + beam[beamHypIdx]->GetCostBreakdown()[j];
+        //
+        auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdx2, cost);
+        //hyp->GetCostBreakdown() = breakDown;
 
-        auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdx, cost);
-        hyp->GetCostBreakdown() = breakDown;
-        newBeams[beamIdx].push_back(hyp);
+        newBeam.push_back(hyp);
       }
     }
     return newBeams;
@@ -103,6 +114,7 @@ public:
 
     std::vector<size_t> beamSizes(dimBatch, beamSize_);
     auto nth = New<NthElement>(beamSize_, dimBatch);
+
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->Add(beams[i]);
 
@@ -131,16 +143,20 @@ public:
 
         int dimBatch = batch->size();
 
-        for(auto& beam : beams) {
-          for(auto hyp : beam) {
-            hypIndices.push_back(hyp->GetPrevStateIndex());
-            embIndices.push_back(hyp->GetWord());
-            beamCosts.push_back(hyp->GetCost());
-          }
-          for(int i = beam.size(); i < beamSize_; ++i) {
-            hypIndices.push_back(0);
-            embIndices.push_back(0);
-            beamCosts.push_back(-99);
+        for(int i = 0; i < beamSize_; ++i) {
+          for(int j = 0; j < beams.size(); ++j) {
+            auto& beam = beams[j];
+            if(i < beam.size()) {
+              auto hyp = beam[i];
+              hypIndices.push_back(hyp->GetPrevStateIndex());
+              embIndices.push_back(hyp->GetWord());
+              beamCosts.push_back(hyp->GetCost());
+            }
+            else {
+              hypIndices.push_back(0);
+              embIndices.push_back(0);
+              beamCosts.push_back(-99);
+            }
           }
         }
 
@@ -181,7 +197,7 @@ public:
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
       int dimTrgVoc = totalCosts->shape()[-1];
-      beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states);
+      beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states, first);
 
       bool final = false;
       auto prunedBeams = pruneBeam(beams);
