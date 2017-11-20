@@ -32,12 +32,13 @@ public:
                size_t vocabSize,
                const Beams& beams,
                std::vector<Ptr<ScorerState>>& states,
+               size_t beamSize,
                bool first) {
 
     Beams newBeams(beams.size());
     for(int i = 0; i < keys.size(); ++i) {
       int embIdx  = keys[i] % vocabSize;
-      int beamIdx  = i / beamSize_;
+      int beamIdx  = i / beamSize;
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
@@ -46,12 +47,12 @@ public:
         int hypIdx = keys[i] / vocabSize;
         float cost  = costs[i];
 
-        int hypIdxTrans = (hypIdx / beamSize_) +
-                          (hypIdx % beamSize_) * beams.size();
+        int hypIdxTrans = (hypIdx / beamSize) +
+                          (hypIdx % beamSize) * beams.size();
         if(first)
           hypIdxTrans = hypIdx;
 
-        int beamHypIdx = hypIdx % beamSize_;
+        int beamHypIdx = hypIdx % beamSize;
         if(beamHypIdx >= beam.size())
           beamHypIdx = beamHypIdx % beam.size();
 
@@ -100,15 +101,15 @@ public:
       histories.push_back(history);
     }
 
+    size_t localBeamSize = beamSize_;
+    auto nth = New<NthElement>(localBeamSize, dimBatch);
+
     Beams beams(dimBatch);
     for(auto& beam : beams)
-      beam.resize(beamSize_, New<Hypothesis>());
+      beam.resize(1, New<Hypothesis>());
 
     bool first = true;
-    bool stop = false;
-
-    std::vector<size_t> beamSizes(dimBatch, beamSize_);
-    auto nth = New<NthElement>(beamSize_, dimBatch);
+    bool final = false;
 
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->Add(beams[i]);
@@ -138,7 +139,7 @@ public:
 
         int dimBatch = batch->size();
 
-        for(int i = 0; i < beamSize_; ++i) {
+        for(int i = 0; i < localBeamSize; ++i) {
           for(int j = 0; j < beams.size(); ++j) {
             auto& beam = beams[j];
             if(i < beam.size()) {
@@ -156,7 +157,7 @@ public:
         }
 
         prevCosts
-            = graph->constant({(int)beamSize_, 1, dimBatch, 1},
+            = graph->constant({(int)localBeamSize, 1, dimBatch, 1},
                               keywords::init = inits::from_vector(beamCosts));
       }
 
@@ -165,7 +166,7 @@ public:
       auto totalCosts = prevCosts;
 
       for(int i = 0; i < scorers_.size(); ++i) {
-        states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices, beamSize_);
+        states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices, localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
           totalCosts = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
@@ -174,7 +175,7 @@ public:
       }
 
       // make beams continuous
-      if(dimBatch > 1 && beamSize_ > 1)
+      if(dimBatch > 1 && localBeamSize > 1)
         totalCosts = transpose(totalCosts, {2, 1, 0, 3});
 
       if(first)
@@ -194,12 +195,12 @@ public:
       std::vector<unsigned> outKeys;
       std::vector<float> outCosts;
 
+      std::vector<size_t> beamSizes(dimBatch, localBeamSize);
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
       int dimTrgVoc = totalCosts->shape()[-1];
-      beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states, first);
+      beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first);
 
-      bool final = false;
       auto prunedBeams = pruneBeam(beams);
       for(int i = 0; i < dimBatch; ++i) {
         if(!beams[i].empty()) {
@@ -210,11 +211,13 @@ public:
       beams = prunedBeams;
       first = false;
 
-      stop = std::all_of(beams.begin(), beams.end(),
-                         [](const Beam& beam) { return beam.empty(); })
-             || final;
+      size_t maxBeam = 0;
+      for(auto& beam : beams)
+        if(beam.size() > maxBeam)
+          maxBeam = beam.size();
+      localBeamSize = maxBeam;
 
-    } while(!stop);
+    } while(localBeamSize != 0 && !final);
 
     return histories;
   }
