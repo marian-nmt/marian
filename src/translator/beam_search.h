@@ -199,7 +199,7 @@ public:
       auto prunedBeams = pruneBeam(beams);
       for(int i = 0; i < dimBatch; ++i) {
         if(!beams[i].empty()) {
-          final = final || histories[i]->size() >= 3 * batch->words();
+          final = final || histories[i]->size() >= 3 * batch->front()->batchWidth();
           histories[i]->Add(beams[i], prunedBeams[i].empty() || final);
         }
       }
