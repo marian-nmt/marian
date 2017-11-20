@@ -120,6 +120,13 @@ Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {
   return Expression<ConcatenateNodeOp>(concats, ax);
 }
 
+Expr repeat(Expr a, size_t repeats, keywords::axis_k ax) {
+  if(repeats == 1)
+    return a;
+  return concatenate(std::vector<Expr>(repeats, a), ax);
+}
+
+
 Expr reshape(Expr a, Shape shape) {
   return Expression<ReshapeNodeOp>(a, shape);
 }

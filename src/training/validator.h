@@ -224,8 +224,8 @@ public:
 
     // Temporary options for translation
     auto opts = New<Config>(*options_);
-    opts->set("mini-batch", 1);
-    opts->set("maxi-batch", 1);
+    //opts->set("mini-batch", 1);
+    //opts->set("maxi-batch", 1);
     opts->set("max-length", 1000);
 
     // Create corpus

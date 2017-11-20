@@ -34,7 +34,6 @@ bool IsNan(Tensor in) {
 
 void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
   cudaSetDevice(out->getDevice());
-
   int step = 1;
   for(int i = 0; i < axis; ++i)
     step *= out->shape()[i];
@@ -1355,7 +1354,7 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
   cudaSetDevice(out->getDevice());
 
   size_t m = out->shape().elements() / out->shape().back();
-  
+
   size_t dims = context->shape().size();
   size_t k = context->shape()[dims - 1];
   size_t b = context->shape()[dims - 2];
