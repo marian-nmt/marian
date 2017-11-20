@@ -36,16 +36,6 @@ struct State {
                 {beamSize, dimTime, dimBatch, dimDepth}),
         nullptr};
     }
-
-    //if(cell) {
-    //  return State{
-    //      marian::select(output, 0, indices),
-    //      marian::select(cell, 0, indices)};
-    //} else {
-    //  return State{
-    //    marian::select(output, 0, indices),
-    //    nullptr};
-    //}
   }
 };
 

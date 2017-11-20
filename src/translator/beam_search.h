@@ -46,10 +46,10 @@ public:
         int hypIdx = keys[i] / vocabSize;
         float cost  = costs[i];
 
-        int hypIdx2 = (hypIdx / beamSize_) +
-                      (hypIdx % beamSize_) * beams.size();
+        int hypIdxTrans = (hypIdx / beamSize_) +
+                          (hypIdx % beamSize_) * beams.size();
         if(first)
-          hypIdx2 = hypIdx;
+          hypIdxTrans = hypIdx;
 
         int beamHypIdx = hypIdx % beamSize_;
         if(beamHypIdx >= beam.size())
@@ -58,12 +58,12 @@ public:
         if(first)
           beamHypIdx = 0;
 
-        auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdx2, cost);
+        auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdxTrans, cost);
         if(options_->get<bool>("n-best")) {
           std::vector<float> breakDown(states.size(), 0);
           beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
           for(int j = 0; j < states.size(); ++j) {
-            int key = embIdx + hypIdx2 * vocabSize;
+            int key = embIdx + hypIdxTrans * vocabSize;
             breakDown[j] = states[j]->breakDown(key)
                            + beam[beamHypIdx]->GetCostBreakdown()[j];
           }
@@ -150,7 +150,7 @@ public:
             else {
               hypIndices.push_back(0);
               embIndices.push_back(0);
-              beamCosts.push_back(-99);
+              beamCosts.push_back(-9999);
             }
           }
         }
@@ -166,10 +166,14 @@ public:
 
       for(int i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices, beamSize_);
-        totalCosts
-            = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
+
+        if(scorers_[i]->getWeight() != 1.f)
+          totalCosts = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
+        else
+          totalCosts = totalCosts + states[i]->getProbs();
       }
 
+      // make beams continuous
       if(dimBatch > 1 && beamSize_ > 1)
         totalCosts = transpose(totalCosts, {2, 1, 0, 3});
 
