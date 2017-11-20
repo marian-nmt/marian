@@ -106,7 +106,7 @@ public:
 
     Beams beams(dimBatch);
     for(auto& beam : beams)
-      beam.resize(1, New<Hypothesis>());
+      beam.resize(localBeamSize, New<Hypothesis>());
 
     bool first = true;
     bool final = false;
@@ -209,13 +209,15 @@ public:
         }
       }
       beams = prunedBeams;
-      first = false;
 
-      size_t maxBeam = 0;
-      for(auto& beam : beams)
-        if(beam.size() > maxBeam)
-          maxBeam = beam.size();
-      localBeamSize = maxBeam;
+      if(!first) {
+        size_t maxBeam = 0;
+        for(auto& beam : beams)
+          if(beam.size() > maxBeam)
+            maxBeam = beam.size();
+        localBeamSize = maxBeam;
+      }
+      first = false;
 
     } while(localBeamSize != 0 && !final);
 
