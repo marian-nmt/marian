@@ -518,6 +518,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
+    ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
+      "Sorting strategy for maxi-batch: none (default) src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
     //("lexical-table", po::value<std::string>(),
