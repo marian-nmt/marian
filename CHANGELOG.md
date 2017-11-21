@@ -6,9 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Added support for CUBLAS_TENSOR_OP_MATH mode for cublas in cuda 9.0
+
+## [1.1.0] - 2017-11-21
 
 ### Added
+- Batched translation for all model types, significant translation speed-up
+- Batched translation during validation with translation
+- `--maxi-batch-sort` option for `marian-decoder`
+- Support for CUBLAS_TENSOR_OP_MATH mode for cublas in cuda 9.0
 
 ## [1.0.0] - 2017-11-13
 

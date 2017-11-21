@@ -58,6 +58,7 @@ public:
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
     if(options_->has("valid-mini-batch"))
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
+    opts->set("mini-batch-sort", "src");
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");

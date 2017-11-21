@@ -804,7 +804,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
 
-  if(mode_ == ConfigMode::training)
+  if(mode_ == ConfigMode::training || mode_ == ConfigMode::translating)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 
