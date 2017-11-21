@@ -70,8 +70,9 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
                      *SourceContext_,
-                     sentencesMask_,
-                     beamSizes);
+                     sentenceLengths_,
+                     beamSizes,
+                     god_.UseFusedSoftmax());
   PAUSE_TIMER("Decode");
 }
 
@@ -81,7 +82,7 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::Encode(const Sentences& source) {
   BEGIN_TIMER("Encode");
-  encoder_->Encode(source, tab_, *SourceContext_, sentencesMask_);
+  encoder_->Encode(source, tab_, *SourceContext_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("Encode");
 }
@@ -89,7 +90,7 @@ void EncoderDecoder::Encode(const Sentences& source) {
 void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentencesMask_);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");
@@ -141,6 +142,16 @@ void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
 
 BaseMatrix& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
+}
+
+void *EncoderDecoder::GetNBest()
+{
+  return &decoder_->GetNBest();
+}
+
+const BaseMatrix *EncoderDecoder::GetBias() const
+{
+  return decoder_->GetBias();
 }
 
 mblas::Matrix& EncoderDecoder::GetAttention() {

@@ -166,5 +166,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 }
 
+//////////////////////////////////////////////////////////////////////////
+
 }  // namespace GPU
 } // namespace amunmt

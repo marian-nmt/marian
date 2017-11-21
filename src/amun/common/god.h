@@ -77,6 +77,12 @@ class God {
     ThreadPool &GetThreadPool()
     { return *pool_; }
 
+    bool ReturnNBestList() const
+    { return returnNBestList_; }
+
+    bool UseFusedSoftmax() const
+    { return useFusedSoftmax_; }
+
   private:
     void LoadScorers();
     void LoadFiltering();
@@ -107,6 +113,9 @@ class God {
     mutable boost::shared_mutex accessLock_;
 
     std::unique_ptr<ThreadPool> pool_;
+
+    bool returnNBestList_;
+    bool useFusedSoftmax_;
 };
 
 }

@@ -2,3 +2,6 @@
 	path = src/marian
 	url = https://github.com/marian-nmt/marian-dev
 	branch = stable
+[submodule "examples"]
+	path = examples
+	url = https://github.com/marian-nmt/marian-examples.git

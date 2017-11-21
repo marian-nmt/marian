@@ -13,6 +13,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
+#include "gpu/mblas/nth_element_kernels.h"
 
 namespace amunmt {
 namespace GPU {
@@ -83,6 +84,26 @@ std::string Debug(const HostVector<T> &vec, size_t verbosity = 1)
   return strm.str();
 }
 
+template<typename T>
+std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
+{
+  std::stringstream strm;
+
+  strm << "size=" << vec.size();
+
+  if (verbosity) {
+    T sum = Sum(vec.data(), vec.size());
+    strm << " sum=" << sum;
+  }
+
+  if (verbosity == 2) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+      strm << " " << vec[i];
+    }
+  }
+
+  return strm.str();
+}
 
 template<typename T>
 void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
@@ -93,7 +114,9 @@ void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
 
-void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask);
+void Mean(Matrix& Out,
+          const Matrix& In,
+          const mblas::IMatrix &sentenceLengths);
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping);
 
@@ -117,7 +140,7 @@ Matrix& CopyRow(Matrix& Out,
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
-              const mblas::IMatrix &sentencesMask,
+              const mblas::IMatrix &sentenceLengths,
               size_t i);
 
 Matrix& CopyRows(Matrix& Out,
@@ -135,7 +158,10 @@ Matrix& Slice(Matrix& Out,
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const mblas::IMatrix &sentencesMask, size_t batchSize);
+Matrix& Softmax(Matrix& Out,
+                const DeviceVector<uint>& batchIds,
+                const mblas::IMatrix &sentenceLengths,
+                size_t batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
 
@@ -232,7 +258,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
   size_t rows  = outWrap.dim(0);
   size_t cols = outWrap.dim(1);
 
-  MatrixWrapper<float> sdata(sdataOrig, rows);
+  MatrixWrapper<float> sdata(sdataOrig, rows, 1, 1, 1);
 
   if (threadIdx.x == 0) {
     for (int i = 0; i < rows; ++i)
@@ -422,7 +448,15 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
 
-void RandomizeMemory();
+void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+                const Matrix& in,
+                const Matrix& b4,
+                const DeviceVector<float> &costs,
+                bool forbidUNK,
+                uint maxBeamSize,
+                const std::vector<uint>& beamSizes,
+                uint beamSizeSum,
+                bool isFirst);
 
 } // namespace mblas
 } // namespace GPU

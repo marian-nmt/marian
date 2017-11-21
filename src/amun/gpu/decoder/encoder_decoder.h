@@ -50,6 +50,9 @@ class EncoderDecoder : public Scorer {
     mblas::Matrix& GetAttention();
     virtual BaseMatrix& GetProbs();
 
+    virtual void *GetNBest();
+    virtual const BaseMatrix *GetBias() const;
+
     size_t GetVocabSize() const;
 
     void Filter(const std::vector<size_t>& filterIds);
@@ -59,7 +62,7 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
     DeviceVector<uint> indices_;
-    mblas::IMatrix sentencesMask_;
+    mblas::IMatrix sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 
     std::unique_ptr<mblas::Matrix> SourceContext_;

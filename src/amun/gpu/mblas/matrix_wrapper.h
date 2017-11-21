@@ -94,39 +94,14 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(DeviceVector<T> &vec, uint a, uint b, uint c, uint d)
-  {
-    dim_[0] = a;
-    dim_[1] = b;
-    dim_[2] = c;
-    dim_[3] = d;
-    updateStridesRowMajor();
-
-    assert(size() == vec.size());
-
-    data_ = thrust::raw_pointer_cast(vec.data());
-    dataConst_ = data_;
-  }
-
-  MatrixWrapper(const DeviceVector<T> &vec, uint a, uint b, uint c, uint d)
-  {
-    dim_[0] = a;
-    dim_[1] = b;
-    dim_[2] = c;
-    dim_[3] = d;
-    updateStridesRowMajor();
-
-    assert(size() == vec.size());
-
-    data_ = nullptr;
-    dataConst_ = thrust::raw_pointer_cast(vec.data());
-  }
-
   __device__
-  MatrixWrapper(T *ptr, uint size)
+  MatrixWrapper(T *ptr, uint a, uint b, uint c, uint d)
   {
-    dim_[0] = size;
-    size_ = size;
+    dim_[0] = a;
+    dim_[1] = b;
+    dim_[2] = c;
+    dim_[3] = d;
+    updateStrides();
 
     data_ = ptr;
     dataConst_ = ptr;
@@ -148,7 +123,7 @@ public:
     return stride_[i];
   }
 
-  __host__
+  __device__ __host__
   void updateStrides()
   {
     stride_[0] = dim_[1];
@@ -159,7 +134,7 @@ public:
     size_ = stride_[3] * dim_[3];
   }
 
-  __host__
+  __device__ __host__
   void updateStridesRowMajor()
   {
     stride_[0] = 1;

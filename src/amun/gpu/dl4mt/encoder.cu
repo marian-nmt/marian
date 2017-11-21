@@ -63,22 +63,19 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
 }
 
 void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context,
-                         mblas::IMatrix &sentencesMask)
+                         mblas::IMatrix &sentenceLengths)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
-  //cerr << "1dMapping=" << mblas::Debug(dMapping, 2) << endl;
-  HostVector<uint> hMapping(maxSentenceLength * source.size(), 0);
+  HostVector<uint> hSentenceLengths(source.size());
   for (size_t i = 0; i < source.size(); ++i) {
-    for (size_t j = 0; j < source.at(i)->GetWords(tab).size(); ++j) {
-      hMapping[i * maxSentenceLength + j] = 1;
-    }
+    hSentenceLengths[i] = source.at(i)->GetWords(tab).size();
   }
 
-  sentencesMask.NewSize(maxSentenceLength, source.size(), 1, 1);
-  mblas::copy(thrust::raw_pointer_cast(hMapping.data()),
-              hMapping.size(),
-              sentencesMask.data(),
+  sentenceLengths.NewSize(source.size(), 1, 1, 1);
+  mblas::copy(thrust::raw_pointer_cast(hSentenceLengths.data()),
+              hSentenceLengths.size(),
+              sentenceLengths.data(),
               cudaMemcpyHostToDevice);
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
@@ -106,7 +103,7 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
 
   backwardRnn_.Encode(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
-                          context, source.size(), true, &sentencesMask);
+                          context, source.size(), true, &sentenceLengths);
   //cerr << "GetContext5=" << context.Debug(1) << endl;
 }
 

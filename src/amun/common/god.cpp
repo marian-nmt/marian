@@ -83,6 +83,19 @@ God& God::Init(int argc, char** argv) {
   LoadScorers();
   LoadFiltering();
 
+  returnNBestList_ = Get<bool>("return-alignment")
+                   || Get<bool>("return-soft-alignment")
+                   || Get<bool>("return-nematus-alignment");
+
+  useFusedSoftmax_ = true;
+  if (returnNBestList_ ||
+      gpuLoaders_.size() != 1 || // more than 1 scorer
+      God::Get<size_t>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
+      ) {
+    useFusedSoftmax_ = false;
+  }
+  //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
+
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));
     inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));

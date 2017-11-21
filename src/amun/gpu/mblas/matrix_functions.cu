@@ -17,7 +17,7 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
 
 __global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
-                      const MatrixWrapper<uint>  mapping)
+                      const MatrixWrapper<uint> sentenceLengths)
 {
   // out = batches * states
   // in = max sentence length * states * 1 * batches
@@ -37,7 +37,7 @@ __global__ void gMean(MatrixWrapper<float> out,
     float sum = 0.0f;
     int counter = 0;
     for (size_t row = 0; row < in.dim(0); ++row) {
-      int isWord = mapping(row, batch, 0, 0);
+      bool isWord = row < sentenceLengths[batch];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
       if (isWord) {
         sum += in(row, state, 0, batch);
@@ -50,13 +50,14 @@ __global__ void gMean(MatrixWrapper<float> out,
   }
 }
 
-void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask)
+void Mean(Matrix& Out,
+          const Matrix& In,
+          const mblas::IMatrix &sentenceLengths)
 {
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
   assert(Out.dim(0) == In.dim(3));
   assert(Out.dim(1) == In.dim(1));
-  assert(In.dim(0) * In.dim(3) == sentencesMask.size());
 
   // mean of each ROW
   size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
@@ -67,14 +68,14 @@ void Mean(Matrix& Out, const Matrix& In, const IMatrix &sentencesMask)
   MatrixWrapper<float> inWrap(In);
   //cerr << "outWrap=" << outWrap.Debug() << endl;
 
-  MatrixWrapper<uint> mappingWrap(sentencesMask, false);
+  MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths, false);
 
   uint size = outWrap.size();
   uint threads = std::min((uint)MAX_THREADS, size);
   uint blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, mappingWrap);
+    (outWrap, inWrap, sentenceLengthsWrap);
 
 }
 
@@ -432,27 +433,27 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
                          const MatrixWrapper<uint> batchIdsWrap,
-                         const MatrixWrapper<uint> sentencesMappingWrap,
+                         const MatrixWrapper<uint> sentenceLengthsWrap,
                          uint shareSize)
 {
   extern __shared__ float _share[];
 
   size_t numHypos = out.dim(0);
-  size_t srcLen = out.dim(1);
+  size_t maxLength = out.dim(1);
 
   int hypoInd =  blockIdx.x;
   int origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
-    MatrixWrapper<float> _max(_share, shareSize);
+    MatrixWrapper<float> _max(_share, shareSize, 1, 1, 1);
     _max[origSrcPos] = out(hypoInd, origSrcPos, 0, 0);
-    for (int tid = 0; tid < srcLen; tid += blockDim.x) {
+    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
-      if (srcPos < srcLen) {
+      if (srcPos < maxLength) {
         float value = out(hypoInd, srcPos, 0, 0);
 
         int batch = batchIdsWrap[hypoInd];
-        value *= sentencesMappingWrap(srcPos, batch, 0, 0);
+        value *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0;
         if (value > _max[origSrcPos]) {
           _max[origSrcPos] = value;
         }
@@ -475,16 +476,16 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     __syncthreads();
 
     //float* _sum = _share;// + blockDim.x;
-    MatrixWrapper<float> _sum(_share, shareSize);
+    MatrixWrapper<float> _sum(_share, shareSize, 1, 1, 1);
 
     _sum[origSrcPos] = 0.0f;
-    for (int tid = 0; tid < srcLen; tid += blockDim.x) {
+    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
-      if (srcPos < srcLen) {
+      if (srcPos < maxLength) {
         out(hypoInd, srcPos, 0, 0) = __expf(out(hypoInd, srcPos, 0, 0) - max);
 
         int batch = batchIdsWrap[hypoInd];
-        out(hypoInd, srcPos, 0, 0) *= sentencesMappingWrap(srcPos, batch, 0, 0);
+        out(hypoInd, srcPos, 0, 0) *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0; // sentencesMappingWrap(srcPos, batch, 0, 0);
         _sum[origSrcPos] += out(hypoInd, srcPos, 0, 0);
       }
     }
@@ -504,9 +505,9 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 
     __syncthreads();
 
-    for (int tid = 0; tid < srcLen; tid += blockDim.x) {
+    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
-      if (srcPos < srcLen) {
+      if (srcPos < maxLength) {
         out(hypoInd, srcPos, 0, 0) /= _sum[0];
       }
     }
@@ -515,20 +516,23 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   }
 }
 
-Matrix& Softmax(Matrix& Out, const DeviceVector<uint>& batchIds, const mblas::IMatrix &sentencesMask, size_t batchSize)
+Matrix& Softmax(Matrix& Out,
+                const DeviceVector<uint>& batchIds,
+                const mblas::IMatrix &sentenceLengths,
+                size_t batchSize)
 {
-  size_t srcSize = Out.dim(1);
+  size_t maxLength = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<uint> batchIdsWrap(batchIds);
-  const MatrixWrapper<uint> sentencesMappingWrap(sentencesMask, false);
+  const MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths, false);
 
   int blocks = batchSize;
-  int threads = std::min(MAX_THREADS, (int)srcSize);
+  int threads = std::min(MAX_THREADS, (int)maxLength);
   int shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, batchIdsWrap, sentencesMappingWrap, threads);
+    (outWrap, batchIdsWrap, sentenceLengthsWrap, threads);
 
   return Out;
 }
@@ -544,7 +548,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, uint shareSize)
 
   while (rowIdx < rows) {
     //float* _max = _share;
-    MatrixWrapper<float> _max(_share, shareSize);
+    MatrixWrapper<float> _max(_share, shareSize, 1, 1, 1);
 
     _max[threadIdx.x] = out(rowIdx, threadIdx.x, 0, 0);
     for (int tid = 0; tid < cols; tid += blockDim.x) {
@@ -573,7 +577,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, uint shareSize)
     __syncthreads();
 
     //float* _sum = _share;// + blockDim.x;
-    MatrixWrapper<float> _sum(_share, shareSize);
+    MatrixWrapper<float> _sum(_share, shareSize, 1, 1, 1);
 
     _sum[threadIdx.x] = 0.0f;
     for (int tid = 0; tid < cols; tid += blockDim.x) {
@@ -675,8 +679,8 @@ void Fill(Matrix& In, float value) {
 
 __global__
 void gMapMatrix(MatrixWrapper<float> in,
-                const MatrixWrapper<uint> sentencesMappingWrap,
-                int mappingCols, int i)
+                const MatrixWrapper<uint> sentenceLengthsWrap,
+                int i)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid < in.size()) {
@@ -685,27 +689,28 @@ void gMapMatrix(MatrixWrapper<float> in,
     int col = tid % numCols;
 
     //in[tid] *= mappingWrap(i, batchIdx, 0, 0);
-    in(batchIdx, col, 0, 0) *= sentencesMappingWrap(i, batchIdx, 0, 0); // [mappingCols * batchIdx + i];
+    in(batchIdx, col, 0, 0) *= (i < sentenceLengthsWrap[batchIdx] ? 1 : 0);
   }
 }
 
-void MapMatrix(Matrix& state, const mblas::IMatrix &sentencesMask, size_t i)
+void MapMatrix(Matrix& state,
+              const mblas::IMatrix &sentenceLengths,
+              size_t i)
 {
   // blank out rows in the state matrix where the word position i does not exist
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
 
   int batchSize = state.dim(0);
   int stateLength = state.dim(1);
-  int sentenceLength = sentencesMask.size() / batchSize;
 
   int numThreads = std::min((int)state.size(), MAX_THREADS);
   int numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
 
   MatrixWrapper<float> stateWrap(state);
-  MatrixWrapper<uint> sentencesMappingWrap(sentencesMask, false);
+  MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
-    (stateWrap, sentencesMappingWrap, sentenceLength, i);
+    (stateWrap, sentenceLengthsWrap, i);
 
   /*
   cerr << "nBlocks=" << numBlocks << endl;
@@ -852,20 +857,569 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
   Normalization(out, in, alpha, nullptr, eps);
 }
 
-__global__ void gRandomizeMemory(int *data)
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+__global__
+void gBeamSizeInit(MatrixWrapper<uint> hypo2BeamSizeWrap,
+                  MatrixWrapper<uint> batch2HypoWrap,
+                  MatrixWrapper<uint> hypo2CandidateWrap,
+                  bool isFirst,
+                  uint beamSizeSum,
+                  const MatrixWrapper<uint> beamSizesWrap)
 {
-  clock_t start = clock();
+  uint hypoInd = 0;
+  uint candidateInd = 0;
+
+  uint a = 0, b = 0;
+  //printf("beamSizesWrap.size()=%u \n", beamSizesWrap.size());
+  for (size_t batchInd = 0; batchInd < beamSizesWrap.size(); ++batchInd) {
+    uint beamSize = beamSizesWrap[batchInd];
+    /*
+    printf("batchInd=%u ", batchInd);
+    printf("beamSize=%u ", beamSize);
+    printf("a=%u ", a);
+    printf("b=%u \n", b);
+    */
+
+    if (beamSize) {
+      if (isFirst) {
+        assert(a < hypo2BeamSizeWrap.size());
+        assert(a < hypo2CandidateWrap.size());
+        hypo2BeamSizeWrap[a] = beamSize;
+        hypo2CandidateWrap[a] = candidateInd;
+        ++a;
+
+        assert(b < batch2HypoWrap.size());
+        batch2HypoWrap[b] = batchInd;
+        ++b;
+
+        candidateInd += beamSize;
+      }
+      else {
+        for (size_t j = 0; j < beamSize; ++j) {
+          assert(a < hypo2BeamSizeWrap.size());
+          assert(a < hypo2CandidateWrap.size());
+          hypo2BeamSizeWrap[a] = beamSize;
+          hypo2CandidateWrap[a] = candidateInd;
+          ++a;
+
+          candidateInd += beamSize;
+        }
+
+        assert(b < batch2HypoWrap.size());
+        batch2HypoWrap[b] = hypoInd;
+        ++b;
+      }
+
+      hypoInd += beamSize;
+    }
+  }
 
 }
 
-void RandomizeMemory()
+__device__
+float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
 {
-  int *data;
-  HANDLE_ERROR( cudaMalloc((void**)&data, 8 * 1024 ^ 3) );
+  float ret = -1111111111111;
+  for (uint i = 0; i < nBestMatrix.dim(1); ++i) {
+      const NthOutBatch &curr = nBestMatrix[i];
+      if (curr.score > ret) {
+        ret = curr.score;
+    }
+  }
 
-  uint threads = 1024;
-  uint blocks = 8 * 1024 ^ 3 / threads;
-  gRandomizeMemory<<<blocks, threads>>>(data);
+  return ret;
+}
+
+__device__
+void AddElement(float &minScore,
+    uint &i,
+    NthOutBatch *arr,
+    bool forbidUNK,
+    uint vocabInd,
+    const NthOutBatch &ele)
+{
+  const float score = ele.score;
+
+  if (forbidUNK && vocabInd == UNK_ID) {
+    arr[i].score = -1111111111111;
+    minScore = -1111111111111;
+  }
+  else {
+    arr[i] = ele;
+
+    if (score < minScore) {
+      minScore = score;
+    }
+
+    ++i;
+  }
+
+}
+
+__device__
+void MergeElement(float &minScore,
+                  NthOutBatch *arr,
+                  uint arrSize,
+                  const NthOutBatch &ele)
+{
+  float newMinScore = +1111111111;
+  bool found = false;
+  for (uint i = 0; i < arrSize; ++i) {
+    NthOutBatch &currEle = arr[i];
+    if (!found && minScore == currEle.score) {
+      currEle = ele;
+      found = true;
+    }
+
+    // update min score
+    if (currEle.score < newMinScore) {
+      newMinScore = currEle.score;
+    }
+  }
+
+  minScore = newMinScore;
+}
+
+__device__
+void MergeElement(float &minScore,
+                  NthOutBatch *arr,
+                  uint arrSize,
+                  const NthOutBatch &ele,
+                  bool forbidUNK,
+                  uint vocabInd)
+{
+  if (forbidUNK && vocabInd == UNK_ID) {
+    // do nothing
+  }
+  else if (ele.score > minScore) {
+    // replace element with min score
+    MergeElement(minScore, arr, arrSize, ele);
+
+    /*
+    printf("arrInd=%d ind=%d vocabId=%d \n",
+          arrInd,
+          _max[threadIdx.x].ind,
+          _max[threadIdx.x].vocabId);
+    */
+  }
+}
+
+__device__
+void NBestAndMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+              float &topScore,
+              const MatrixWrapper<float> in,
+              const MatrixWrapper<float> b4Wrap,
+              uint hypoInd,
+              uint maxBeamSize,
+              bool forbidUNK,
+              const MatrixWrapper<uint> hypo2BeamSizeWrap,
+              const MatrixWrapper<uint> hypo2CandidateWrap)
+{
+  extern __shared__ char _sharePtr[];
+
+  MatrixWrapper<float> maxMatrix((float*)_sharePtr, blockDim.x, 1, 1, 1);
+
+  void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
+  MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
+  NthOutBatch *arr = &nBestMatrix(threadIdx.x, 0, 0, 0);
+
+  uint vocabSize = in.dim(1);
+
+  assert(hypoInd < hypo2BeamSizeWrap.size());
+  uint beamSize = hypo2BeamSizeWrap[hypoInd];
+
+  float minScore = +1111111111;
+
+  // init
+  uint vocabInd = threadIdx.x;
+  uint i = 0;
+  while (vocabInd < vocabSize && i < beamSize) {
+    const float score = in(hypoInd, vocabInd, 0, 0) + b4Wrap(0, vocabInd, 0, 0);
+
+    uint arrInd = hypoInd * vocabSize + vocabInd;
+    NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
+
+    AddElement(minScore, i, arr, forbidUNK, vocabInd, ele);
+
+    vocabInd += blockDim.x;
+  }
+
+  // MAIN LOOP
+  while (vocabInd < vocabSize) {
+    const float score = in(hypoInd, vocabInd, 0, 0) + b4Wrap(0, vocabInd, 0, 0);
+    uint arrInd = hypoInd * vocabSize + vocabInd;
+    NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
+
+    MergeElement(minScore, arr, beamSize, ele, forbidUNK, vocabInd);
+
+    vocabInd += blockDim.x;
+  } // while (vocabInd < vocabSize) {
+
+  // merge nbest from different threads
+  int len = blockDim.x;
+  while (len != 1) {
+    __syncthreads();
+    int skip = (len + 1) >> 1;
+    if (threadIdx.x < (len >> 1)) {
+      NthOutBatch *dest = &nBestMatrix(threadIdx.x, 0, 0, 0);
+
+      for (uint i = 0; i < beamSize; ++i) {
+        const NthOutBatch &ele = nBestMatrix(threadIdx.x + skip, i, 0, 0);
+        if (ele.score > minScore) {
+          MergeElement(minScore, dest, beamSize, ele);
+        }
+      }
+    }
+    len = (len + 1) >> 1;
+
+  }
+
+  __syncthreads();
+
+  if (threadIdx.x == 0) {
+    // copy to output array
+    assert(hypoInd < hypo2CandidateWrap.size());
+    uint candidateInd = hypo2CandidateWrap[hypoInd];
+    for (uint i = 0; i < beamSize; ++i) {
+      const NthOutBatch &curr = nBestMatrix(0, i, 0, 0);
+      //printf("vocabInd=%u \n", best.vocabInd);
+
+      assert(candidateInd + i < nBestCandidatesWrap.size());
+      nBestCandidatesWrap[candidateInd + i] = curr;
+    }
+  }
+
+  __syncthreads();
+  topScore = GetMaxScore(nBestMatrix);
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+__device__
+void SumAndLogSoftMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+                            const MatrixWrapper<float> in,
+                            const MatrixWrapper<float> b4Wrap,
+                            uint hypoInd,
+                            uint maxBeamSize,
+                            float topScore,
+                            const MatrixWrapper<uint> hypo2BeamSizeWrap,
+                            const MatrixWrapper<uint> hypo2CandidateWrap)
+{
+  extern __shared__ float _share[];
+
+  size_t vocabSize = in.dim(1);
+  //assert(nBestCandidatesWrap.dim(0) == rows);
+
+  //float* _sum = _share;// + blockDim.x;
+  MatrixWrapper<float> _sum(_share, blockDim.x, 1, 1, 1);
+
+  // calc sum
+  _sum[threadIdx.x] = 0.0f;
+  for (int id = threadIdx.x; id < vocabSize; id += blockDim.x) {
+    //row[id] = exp(row[id] - max);
+    float val = in(hypoInd, id, 0, 0) + b4Wrap(0, id, 0, 0);
+    val = __expf(val - topScore);
+    _sum[threadIdx.x] += val;
+  }
+
+  int len = blockDim.x;
+  while (len != 1) {
+    __syncthreads();
+
+    int skip = (len + 1) >> 1;
+    if (threadIdx.x < (len >> 1)) {
+      _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+    }
+    len = (len + 1) >> 1;
+  }
+
+  __syncthreads();
+
+  // apply partition and log to top
+  if (threadIdx.x == 0) {
+    //__syncthreads();
+    //printf("val=%f %f \n", in(rowIdx, ele.vocabId, 0, 0), val);
+
+    // nbest
+    uint beamSize = hypo2BeamSizeWrap[hypoInd];
+    uint startPos = hypo2CandidateWrap[hypoInd];
+    for (uint i = 0; i < beamSize; ++i) {
+      //__syncthreads();
+      NthOutBatch &ele = nBestCandidatesWrap[startPos + i];
+
+      float &val = ele.score;
+      val = __expf(val - topScore);
+      val = __logf(val /_sum[0]);
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+__global__ void gLogSoftMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+                        const MatrixWrapper<float> in,
+                        const MatrixWrapper<float> b4Wrap,
+                        uint maxBeamSize,
+                        bool forbidUNK,
+                        const MatrixWrapper<uint> hypo2BeamSizeWrap,
+                        const MatrixWrapper<uint> hypo2CandidateWrap)
+{
+  uint hypos = in.dim(0);
+  uint vocabSize = in.dim(1);
+
+  uint hypoInd =  blockIdx.x; // index of previous hypo
+  while (hypoInd < hypos) {
+    float topScore;
+
+    NBestAndMax(nBestCandidatesWrap,
+            topScore,
+            in,
+            b4Wrap,
+            hypoInd,
+            maxBeamSize,
+            forbidUNK,
+            hypo2BeamSizeWrap,
+            hypo2CandidateWrap);
+
+    SumAndLogSoftMax(nBestCandidatesWrap,
+                in,
+                b4Wrap,
+                hypoInd,
+                maxBeamSize,
+                topScore,
+                hypo2BeamSizeWrap,
+                hypo2CandidateWrap);
+
+
+    __syncthreads();
+    hypoInd += gridDim.x;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+__global__ void gNBestPerBatch(MatrixWrapper<NthOutBatch> nBestWrap,
+                        MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+                        const MatrixWrapper<float> in,
+                        const MatrixWrapper<float> costsWrap,
+                        uint maxBeamSize,
+                        bool forbidUNK,
+                        bool isFirst,
+                        const MatrixWrapper<uint> hypo2BeamSizeWrap,
+                        const MatrixWrapper<uint> batch2HypoWrap,
+                        const MatrixWrapper<uint> hypo2CandidateWrap)
+{
+  //uint rows = in.dim(0);
+  uint batchSize = batch2HypoWrap.dim(0);
+
+  uint batchInd =  blockIdx.x;
+  while (batchInd < batchSize) {
+    assert(batchInd < batch2HypoWrap.size());
+    assert(batchInd < hypo2BeamSizeWrap.size());
+    assert(batchInd < nBestWrap.size());
+
+    uint hypoInd = batch2HypoWrap[batchInd];
+    uint beamSize = hypo2BeamSizeWrap[hypoInd];
+    assert(beamSize);
+
+    uint nextHypoInd;
+    if (isFirst) {
+      nextHypoInd = batchInd * beamSize;
+    }
+    else {
+      nextHypoInd = hypoInd;
+    }
+
+    // candiate from 1st hypo
+    float minScore = +999999;
+    assert(hypoInd < hypo2CandidateWrap.size());
+    uint candidateInd = hypo2CandidateWrap[hypoInd];
+    for (uint i = 0; i < beamSize; ++i) {
+      float prevCost;
+      if (isFirst) {
+        assert(batchInd < costsWrap.size());
+        prevCost = costsWrap[batchInd];
+      }
+      else {
+        //printf("prevHypoInd=%, candidateInd=%d \n", prevHypoInd, candidateInd);
+        assert(hypoInd < costsWrap.size());
+        prevCost = costsWrap[hypoInd];
+      }
+
+      assert((nextHypoInd + i) < nBestWrap.size());
+      assert(candidateInd + i < nBestCandidatesWrap.size());
+      nBestWrap[nextHypoInd + i] = nBestCandidatesWrap[candidateInd + i];
+
+      float &score = nBestWrap[nextHypoInd + i].score;
+      score += prevCost;
+
+      if (score < minScore) {
+        minScore = score;
+      }
+    }
+
+    // candidates from other previous hypos
+    if (!isFirst) {
+      for (uint hypoOffset = 1; hypoOffset < beamSize; ++hypoOffset) {
+        //printf("hypoInd=%d \n", (hypoInd + hypoOffset));
+
+        //printf("prevHypoInd=%, candidateInd=%d \n", prevHypoInd, candidateInd);
+        assert((hypoInd + hypoOffset) < costsWrap.size());
+        float prevCost = costsWrap[hypoInd + hypoOffset];
+
+        assert((hypoInd + hypoOffset) < hypo2CandidateWrap.size());
+        uint candidateInd = hypo2CandidateWrap[hypoInd + hypoOffset];
+
+        for (uint candidateOffset = 0; candidateOffset < beamSize; ++candidateOffset) {
+          assert((candidateInd + candidateOffset) < nBestCandidatesWrap.size());
+          NthOutBatch &candidate = nBestCandidatesWrap[candidateInd + candidateOffset];
+          candidate.score += prevCost;
+
+          assert(nextHypoInd < nBestWrap.size());
+          NthOutBatch *arr = &nBestWrap[nextHypoInd];
+
+          if (candidate.score > minScore) {
+            MergeElement(minScore, arr, beamSize, candidate);
+          }
+        }
+      }
+    }
+
+    batchInd += gridDim.x;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+                const Matrix& in,
+                const Matrix& b4,
+                const DeviceVector<float> &costs,
+                bool forbidUNK,
+                uint maxBeamSize,
+                const std::vector<uint>& beamSizes,
+                uint beamSizeSum,
+                bool isFirst)
+{
+  //BEGIN_TIMER("LogSoftmax excl kernels");
+
+  //cerr << "in=" << in.Debug(0) << endl;
+  //cerr << "beamSizes=" << beamSizes.size() << endl;
+
+  // create beam size vectors on GPU but exclude empty beams
+  uint batchSize = 0;
+  uint candidateInd = 0;
+  for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
+    uint beamSize = beamSizes[batchInd];
+    //cerr << "(" << beamSize << "," << hypoInd << ") ";
+
+    if (beamSize) {
+      if (isFirst) {
+        candidateInd += beamSize;
+      }
+      else {
+        candidateInd += beamSize * beamSize;
+      }
+
+      ++batchSize;
+    }
+  }
+
+  DeviceVector<uint> d_beamSizes(beamSizes);
+  DeviceVector<uint> hypo2BeamSize(in.dim(0));
+  DeviceVector<uint> hypo2Candidate(in.dim(0));
+  DeviceVector<uint> batch2Hypo(batchSize);
+  DeviceVector<NthOutBatch> nBestCandidates(candidateInd);
+
+  /*
+  cerr << "in=" << in.Debug(0) << endl;
+  cerr << "beamSizes=" << beamSizes.size() << endl;
+  cerr << "beamSizeSum=" << beamSizeSum << endl;
+  cerr << "batchSize=" << batchSize << endl;
+  cerr << "candidateInd=" << candidateInd << endl;
+  cerr << "hypo2BeamSize=" << Debug(hypo2BeamSize, 0) << endl;
+  cerr << "hypo2Candidate=" << Debug(hypo2Candidate, 0) << endl;
+  cerr << "batch2Hypo=" << Debug(batch2Hypo, 0) << endl;
+  cerr << "nBest=" << Debug(nBest, 0) << endl;
+  cerr << "nBestCandidates=" << Debug(nBestCandidates, 0) << endl;
+  cerr << endl;
+  */
+  //DeviceVector<NthOutBatch> nBest(beamSizeSum);
+  //cerr << "nBest=" << nBest.size() << endl;
+
+  MatrixWrapper<float> inWrap(in);
+  MatrixWrapper<float> b4Wrap(b4);
+  MatrixWrapper<uint> hypo2BeamSizeWrap(hypo2BeamSize);
+  MatrixWrapper<uint> hypo2CandidateWrap(hypo2Candidate);
+  MatrixWrapper<uint> batch2HypoWrap(batch2Hypo);
+  MatrixWrapper<NthOutBatch> nBestWrap(nBest);
+  MatrixWrapper<NthOutBatch> nBestCandidatesWrap(nBestCandidates);
+  MatrixWrapper<float> costsWrap(costs);
+
+  MatrixWrapper<uint> beamSizesWrap(d_beamSizes);
+
+  //PAUSE_TIMER("LogSoftmax excl kernels");
+
+  int blocks = std::min(MAX_BLOCKS, (int)in.dim(0));
+  int threads = std::min(MAX_THREADS, (int)in.dim(1));
+  int shared = sizeof(NthOutBatch) * threads * maxBeamSize
+             + sizeof(float) * threads;
+  //cerr << "shared=" << shared << endl;
+
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "step0" << endl;
+
+  //BEGIN_TIMER("gBeamSizeInit");
+  gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
+    (hypo2BeamSizeWrap,
+    batch2HypoWrap,
+    hypo2CandidateWrap,
+    isFirst,
+    beamSizeSum,
+    beamSizesWrap
+    );
+  //PAUSE_TIMER("gBeamSizeInit");
+
+  /*
+  cerr << "hypo2BeamSize=" << Debug(hypo2BeamSize, 2) << endl;
+  cerr << "hypo2Candidate=" << Debug(hypo2Candidate, 2) << endl;
+  cerr << "batch2Hypo=" << Debug(batch2Hypo, 2) << endl;
+  cerr << endl;
+  */
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "step1" << endl;
+
+  //BEGIN_TIMER("gLogSoftMax");
+  gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
+    (nBestCandidatesWrap,
+     inWrap,
+     b4Wrap,
+     maxBeamSize,
+     forbidUNK,
+     hypo2BeamSizeWrap,
+     hypo2CandidateWrap);
+  //PAUSE_TIMER("gLogSoftMax");
+
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "step2" << endl;
+
+  threads = 1;
+
+  //BEGIN_TIMER("gNBestPerBatch");
+  gNBestPerBatch<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (nBestWrap,
+     nBestCandidatesWrap,
+     inWrap,
+     costsWrap,
+     maxBeamSize,
+     forbidUNK,
+     isFirst,
+     hypo2BeamSizeWrap,
+     batch2HypoWrap,
+     hypo2CandidateWrap);
+  //PAUSE_TIMER("gNBestPerBatch");
+
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "step3" << endl;
+  //cerr << "3costs=" << Debug(costs, 0) << endl;
 }
 
 }  // namespace mblas

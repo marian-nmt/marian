@@ -4,16 +4,20 @@ namespace amunmt {
 namespace GPU {
 
 BestHyps::BestHyps(const God &god)
-      : BestHypsBase(
+      : BestHypsBase(god,
           !god.Get<bool>("allow-unk"),
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
           god.GetScorerWeights()),
-        nthElement_(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch")),
         keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch"))
-{}
+        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        maxBeamSize_(god.Get<uint>("beam-size"))
+{
+  if (!god_.UseFusedSoftmax()) {
+    NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
+    nthElement_.reset(obj);
+  }
+}
 
 void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
@@ -24,7 +28,17 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
                std::vector<unsigned>& outKeys,
                const bool isFirst)
 {
-  nthElement_.getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
+  nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
+}
+
+// fast fused softmax and nth_element
+void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+               DeviceVector<NthOutBatch> &nBest,
+               std::vector<float>& outCosts,
+               std::vector<unsigned>& outKeys,
+               const bool isFirst)
+{
+  getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
@@ -52,6 +66,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
   return alignments;
 }
 
+// standard nth_element
 void  BestHyps::CalcBeam(
     const Beam& prevHyps,
     const std::vector<ScorerPtr>& scorers,
@@ -77,35 +92,49 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
 
-  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
-
-  BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
-
-  for (size_t i = 1; i < scorers.size(); ++i) {
-    mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
-
-    Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
-  }
-
-  if (forbidUNK_) {
-    DisAllowUNK(Probs);
-  }
-
   size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
 
-  FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
+
+  if (god_.UseFusedSoftmax()) {
+    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetBias());
+    DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorers[0]->GetNBest());
+    nBest.resize(beamSizeSum);
+
+    BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, Costs, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
+    PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
+    //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+
+    FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
+  }
+  else {
+    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
+
+    for (size_t i = 1; i < scorers.size(); ++i) {
+      mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+
+      Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
+    }
+
+    if (forbidUNK_) {
+      DisAllowUNK(Probs);
+    }
+
+    FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+  }
 
   std::vector<HostVector<float>> breakDowns;
-  if (returnNBestList_) {
+  if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
       for (size_t i = 1; i < scorers.size(); ++i) {
         std::vector<float> modelCosts(beamSizeSum);
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-        nthElement_.getValueByKey(modelCosts, currProbs);
+        nthElement_->getValueByKey(modelCosts, currProbs);
         breakDowns.push_back(modelCosts);
       }
   }
@@ -135,7 +164,7 @@ void  BestHyps::CalcBeam(
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
 
-    if(returnNBestList_) {
+    if(god_.ReturnNBestList()) {
       hyp->GetCostBreakdown().resize(scorers.size());
       float sum = 0;
       for (size_t j = 0; j < scorers.size(); ++j) {
@@ -160,6 +189,44 @@ void  BestHyps::CalcBeam(
   }
 
   PAUSE_TIMER("CalcBeam");
+}
+
+//////////////////////////////////////////////////////////////////////////
+void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
+                  mblas::Matrix& Probs,
+                  DeviceVector<NthOutBatch> &nBest,
+                  std::vector<float>& outCosts,
+                  std::vector<uint>& outKeys,
+                  const bool isFirst) const
+{
+  GetPairs(nBest, outKeys, outCosts);
+  assert(outCosts.size() == outKeys.size());
+
+  /*
+  cerr << "outCosts/outKeys=";
+  for (size_t i = 0; i < outKeys.size(); ++i) {
+    cerr << "(" << outCosts[i] << "," << outKeys[i] << ") ";
+  }
+  cerr << endl;
+  */
+  //cerr << endl;
+}
+
+void BestHyps::GetPairs(DeviceVector<NthOutBatch> &nBest,
+              std::vector<uint>& outKeys,
+              std::vector<float>& outValues) const
+{
+  //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
+  outKeys.resize(nBest.size());
+  outValues.resize(nBest.size());
+
+  HostVector<NthOutBatch> hostVec(nBest.size());
+  mblas::copy(thrust::raw_pointer_cast(nBest.data()), nBest.size(), thrust::raw_pointer_cast(hostVec.data()), cudaMemcpyDeviceToHost);
+
+  for (size_t i = 0; i < nBest.size(); ++i) {
+    outKeys[i] = hostVec[i].ind;
+    outValues[i] = hostVec[i].score;
+  }
 }
 
 } // namespace

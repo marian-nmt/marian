@@ -1,3 +1,5 @@
+#pragma once
+
 #include "matrix_wrapper.h"
 
 namespace amunmt {
@@ -34,9 +36,74 @@ struct NthOut
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+struct NthOutBatch
+{
+  uint ind;
+  float score;
+  //uint hypoInd;
+  //uint vocabInd;
+
+  __device__ __host__
+  NthOutBatch(const float& rhs)
+  {
+    // only to be used to init variable in matrix.h gSum
+    assert(rhs == 0.0f);
+    ind = rhs;
+    score = rhs;
+    //hypoInd = rhs;
+    //vocabInd = rhs;
+  }
+
+  __device__ __host__
+  NthOutBatch() {}
+
+  __device__ __host__
+  NthOutBatch(uint vInd, float vScore, uint vHypoInd, uint vVocabInd)
+  :ind(vInd)
+  ,score(vScore)
+  //,hypoInd(vHypoInd)
+  //,vocabInd(vVocabInd)
+  {}
+
+  __device__ __host__
+  NthOutBatch& operator=(const NthOutBatch& rhs)
+  {
+    ind = rhs.ind;
+    score = rhs.score;
+    //hypoInd = rhs.hypoInd;
+    //vocabInd = rhs.vocabInd;
+    return *this;
+  }
+
+  __device__ __host__
+  NthOutBatch& operator+=(const NthOutBatch& rhs)
+  {
+    ind += rhs.ind;
+    score += rhs.score;
+    //hypoInd += rhs.hypoInd;
+    //vocabInd += rhs.vocabInd;
+    return *this;
+  }
+
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 inline std::ostream& operator<<(std::ostream &out, const NthOut &obj)
 {
   out << "(" << obj.ind << "," << obj.score << ")";
+  return out;
+}
+
+inline std::ostream& operator<<(std::ostream &out, const NthOutBatch &obj)
+{
+  out << "("
+      << obj.ind << ","
+      << obj.score << ","
+      //<< obj.hypoInd << ","
+      //<< obj.vocabInd
+      << ")";
   return out;
 }
 
