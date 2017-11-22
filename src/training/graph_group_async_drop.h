@@ -9,6 +9,12 @@
 namespace marian {
 
 class AsyncGraphGroupDrop : public AsyncGraphGroup {
+
+  std::vector<int> fetchStep_;
+  std::vector<int> pushStep_;
+  const int FETCH_WARMUP = 1;
+  const int PUSH_WARMUP = 0;
+
   bool drop_first = 1;
   float droping_rate;
   std::vector<GradientDrop> pushDropper_;

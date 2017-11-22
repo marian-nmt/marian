@@ -8,6 +8,7 @@
 
 
 namespace marian {
+
 Tensor AsyncGraphGroupDrop::newTensor(int size, int device) {
   Tensor t;
   Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
@@ -19,6 +20,10 @@ Tensor AsyncGraphGroupDrop::newTensor(int size, int device) {
 }
 
 void AsyncGraphGroupDrop::fetchParams(Tensor oldParams, const std::vector<Tensor>& params, int device_id) {
+  if (fetchStep_[device_id]++ < FETCH_WARMUP){
+    AsyncGraphGroup::fetchParams(oldParams, params, device_id); return;
+  }
+
   using namespace functional;
   // @TODO read guard on parameters
   int pos = 0;
@@ -60,6 +65,10 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams, const std::vector<Tensor
 }
 
 void AsyncGraphGroupDrop::pushGradients(Tensor newGrads, size_t batch_words, int device_id) {
+  if (pushStep_[device_id]++ < PUSH_WARMUP){
+    AsyncGraphGroup::pushGradients(newGrads, batch_words, device_id); return;
+  }
+
   // get the sparse gradient
   pushDropper_[device_id]->dropGraph(
               newGrads, pushSparseGradient_[device_id], droping_rate);
@@ -119,20 +128,21 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       for(int i = 0; i < devices_.size(); i++)
         paramsLocal_.push_back(std::vector<Tensor>());
 
-      int pos = 0; 
+      for(int i = 0; i < devices_.size(); i++) {
+        //warm-up counter
+        fetchStep_.push_back(0);
+        pushStep_.push_back(0);
 
-      for(auto device : devices_) {
+        int device = devices_[i];
         // temporary tensor to compute parameter delta before fetching
         paramsDelta_.push_back(newTensor(shardSize, device));
 
         // tensors to store local params history
         for(int h_id = 0; h_id < devices_.size(); h_id++) {
-          Tensor tmp = newTensor(shardSize, device);
-          tmp->copyFrom(
-              graphs_[0]->params()->vals()->subtensor(pos, shardSize));
+          Tensor tmp = newTensor(params_[i]->size(), device);
+          tmp->copyFrom(params_[i]);
           paramsLocal_[h_id].push_back(tmp);
         }
-        pos += shardSize;
         
         //individual Gradient dropper per-device
         pushDropper_.push_back(GradientDrop(new GradientDropBase()));
