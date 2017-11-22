@@ -337,7 +337,7 @@ class Decoder {
           filtered_ = true;
           using namespace mblas;
 
-          DeviceVector<uint> d_ids(ids);
+          mblas::Array<uint> d_ids(ids);
           Assemble(FilteredW4_, TempW4, d_ids);
           Assemble(FilteredB4_, TempB4, d_ids);
 
