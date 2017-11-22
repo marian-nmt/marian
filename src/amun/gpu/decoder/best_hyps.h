@@ -10,6 +10,7 @@
 #include "common/utils.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/nth_element.h"
+#include "gpu/mblas/array.h"
 
 #include "gpu/decoder/encoder_decoder.h"
 
@@ -42,8 +43,8 @@ class BestHyps : public BestHypsBase
 
   private:
     std::unique_ptr<NthElement> nthElement_;
-    DeviceVector<unsigned> keys;
-    DeviceVector<float> Costs;
+    mblas::Array<unsigned> keys_;
+    DeviceVector<float> costs_;
     uint maxBeamSize_;
 
     // fast fused softmax and nth_element

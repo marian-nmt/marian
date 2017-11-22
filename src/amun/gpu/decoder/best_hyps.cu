@@ -9,8 +9,8 @@ BestHyps::BestHyps(const God &god)
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
           god.GetScorerWeights()),
-        keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        keys_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
 {
   if (!god_.UseFusedSoftmax()) {
@@ -88,9 +88,9 @@ void  BestHyps::CalcBeam(
 
   mblas::copy(thrust::raw_pointer_cast(vCosts.data()),
               vCosts.size(),
-              thrust::raw_pointer_cast(Costs.data()),
+              thrust::raw_pointer_cast(costs_.data()),
               cudaMemcpyHostToDevice);
-  //mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+  //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 
   size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
@@ -105,14 +105,14 @@ void  BestHyps::CalcBeam(
     nBest.resize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, Costs, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
     FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
   }
   else {
-    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
+    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, costs_);
 
     for (size_t i = 1; i < scorers.size(); ++i) {
       mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
