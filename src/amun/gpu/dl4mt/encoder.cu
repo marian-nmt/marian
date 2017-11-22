@@ -67,13 +67,13 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
-  HostVector<uint> hSentenceLengths(source.size());
+  std::vector<uint> hSentenceLengths(source.size());
   for (size_t i = 0; i < source.size(); ++i) {
     hSentenceLengths[i] = source.at(i)->GetWords(tab).size();
   }
 
   sentenceLengths.NewSize(source.size(), 1, 1, 1);
-  mblas::copy(thrust::raw_pointer_cast(hSentenceLengths.data()),
+  mblas::copy(hSentenceLengths.data(),
               hSentenceLengths.size(),
               sentenceLengths.data(),
               cudaMemcpyHostToDevice);

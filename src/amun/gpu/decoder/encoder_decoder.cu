@@ -101,7 +101,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out) {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<size_t> beamWords;
+  std::vector<uint> beamWords;
   std::vector<uint> beamStateIds;
   for (const HypothesisPtr &h : beam) {
      beamWords.push_back(h->GetWord());
@@ -113,9 +113,8 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
   indices_.resize(beamStateIds.size());
-  HostVector<uint> tmp = beamStateIds;
 
-  mblas::copy(thrust::raw_pointer_cast(tmp.data()),
+  mblas::copy(beamStateIds.data(),
       beamStateIds.size(),
       indices_.data(),
       cudaMemcpyHostToDevice);

@@ -80,13 +80,12 @@ void  BestHyps::CalcBeam(
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
 
-  HostVector<float> vCosts;
+  std::vector<float> vCosts;
   for (auto& h : prevHyps) {
     vCosts.push_back(h->GetCost());
   }
 
-
-  mblas::copy(thrust::raw_pointer_cast(vCosts.data()),
+  mblas::copy(vCosts.data(),
               vCosts.size(),
               costs_.data(),
               cudaMemcpyHostToDevice);
@@ -127,7 +126,7 @@ void  BestHyps::CalcBeam(
     FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
   }
 
-  std::vector<HostVector<float>> breakDowns;
+  std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
       for (size_t i = 1; i < scorers.size(); ++i) {
@@ -220,8 +219,8 @@ void BestHyps::GetPairs(mblas::Array<NthOutBatch> &nBest,
   outKeys.resize(nBest.size());
   outValues.resize(nBest.size());
 
-  HostVector<NthOutBatch> hostVec(nBest.size());
-  mblas::copy(nBest.data(), nBest.size(), thrust::raw_pointer_cast(hostVec.data()), cudaMemcpyDeviceToHost);
+  std::vector<NthOutBatch> hostVec(nBest.size());
+  mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
 
   for (size_t i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;

@@ -24,15 +24,15 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids) {
           using namespace mblas;
-          HostVector<uint> tids = ids;
+          std::vector<uint> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
           indices_.resize(tids.size());
 
-          mblas::copy(thrust::raw_pointer_cast(tids.data()),
+          mblas::copy(tids.data(),
               tids.size(),
               indices_.data(),
               cudaMemcpyHostToDevice);
@@ -171,7 +171,7 @@ class Decoder {
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
 
-          HostVector<uint> batchMapping(HiddenState.output->dim(0));
+          std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
@@ -180,7 +180,7 @@ class Decoder {
           }
 
           dBatchMapping_.resize(batchMapping.size());
-          mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
+          mblas::copy(batchMapping.data(),
               batchMapping.size(),
               dBatchMapping_.data(),
               cudaMemcpyHostToDevice);
@@ -430,7 +430,7 @@ class Decoder {
     }
 
     void Lookup(mblas::Matrix& Embedding,
-                const std::vector<size_t>& w) {
+                const std::vector<uint>& w) {
       embeddings_.Lookup(Embedding, w);
     }
 

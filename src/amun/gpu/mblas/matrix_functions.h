@@ -64,27 +64,6 @@ std::string Debug(const mblas::Array<T> &vec, size_t verbosity = 1)
 }
 
 template<typename T>
-std::string Debug(const HostVector<T> &vec, size_t verbosity = 1)
-{
-  std::stringstream strm;
-
-  strm << "size=" << vec.size();
-
-  if (verbosity) {
-    T sum = Sum(vec.data(), vec.size());
-    strm << " sum=" << sum;
-  }
-
-  if (verbosity == 2) {
-    for (size_t i = 0; i < vec.size(); ++i) {
-      strm << " " << vec[i];
-    }
-  }
-
-  return strm.str();
-}
-
-template<typename T>
 std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;

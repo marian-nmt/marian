@@ -40,8 +40,8 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   cerr << "isFirst=" << isFirst << endl;
   cerr << endl;
   */
-  HostVector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
-  HostVector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
+  std::vector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
+  std::vector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 
@@ -75,8 +75,8 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs,
-                              const HostVector<uint>& batchFirstElementIdxs,
-                              const HostVector<uint>& cummulatedBeamSizes)
+                              const std::vector<uint>& batchFirstElementIdxs,
+                              const std::vector<uint>& cummulatedBeamSizes)
 {
   const uint vocabSize = probs.dim(1);
   const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
