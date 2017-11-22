@@ -50,8 +50,8 @@ size_t GetMaxLength(const Sentences& source, size_t tab) {
   return maxLength;
 }
 
-std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
-  std::vector<std::vector<size_t>> matrix(maxLen, std::vector<size_t>(source.size(), 0));
+std::vector<std::vector<uint>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
+  std::vector<std::vector<uint>> matrix(maxLen, std::vector<uint>(source.size(), 0));
 
   for (size_t j = 0; j < source.size(); ++j) {
     for (size_t i = 0; i < source.at(j)->GetWords(tab).size(); ++i) {

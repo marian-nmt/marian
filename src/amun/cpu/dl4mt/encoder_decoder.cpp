@@ -50,8 +50,8 @@ void EncoderDecoder::Encode(const Sentences& sources) {
 void EncoderDecoder::AssembleBeamState(const State& in,
                                        const Beam& beam,
                                        State& out) {
-  std::vector<size_t> beamWords;
-  std::vector<size_t> beamStateIds;
+  std::vector<uint> beamWords;
+  std::vector<uint> beamStateIds;
   for(auto h : beam) {
       beamWords.push_back(h->GetWord());
       beamStateIds.push_back(h->GetPrevStateIndex());
@@ -80,7 +80,7 @@ size_t EncoderDecoder::GetVocabSize() const {
 }
 
 
-void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
   decoder_->Filter(filterIds);
 }
 

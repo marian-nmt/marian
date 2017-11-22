@@ -35,7 +35,7 @@ public:
 
   virtual void Encode(const Sentences& sources);
 
-  virtual void Filter(const std::vector<size_t>&);
+  virtual void Filter(const std::vector<uint>&);
 
   virtual State* NewState() const;
 

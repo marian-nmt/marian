@@ -332,7 +332,7 @@ class Decoder {
           }
         }
 
-        void Filter(const std::vector<size_t>& ids) {
+        void Filter(const std::vector<uint>& ids) {
           filtered_ = true;
           using namespace mblas;
 
@@ -432,7 +432,7 @@ class Decoder {
       embeddings_.Lookup(Embedding, w);
     }
 
-    void Filter(const std::vector<size_t>& ids) {
+    void Filter(const std::vector<uint>& ids) {
       softmax_.Filter(ids);
     }
 

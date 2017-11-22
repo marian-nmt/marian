@@ -162,7 +162,7 @@ size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
   decoder_->Filter(filterIds);
 }
 

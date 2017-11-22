@@ -55,7 +55,7 @@ class EncoderDecoder : public Scorer {
 
     size_t GetVocabSize() const;
 
-    void Filter(const std::vector<size_t>& filterIds);
+    void Filter(const std::vector<uint>& filterIds);
 
   private:
     const Weights& model_;
