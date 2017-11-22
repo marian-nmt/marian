@@ -19,37 +19,18 @@ class Array
 public:
   __host__ __device__
   Array()
+  :m_size(0)
+  ,m_maxSize(0)
+  ,m_arr(nullptr)
   {
-    m_size = 0;
-    m_maxSize = 0;
-    m_arr = nullptr;
   }
 
-  __device__
   Array(size_t size)
-  {
-    m_size = size;
-    m_maxSize = size;
-    m_arr = (T*) malloc(sizeof(T) * size);
-  }
-
-  __host__
-  Array(const thrust::host_vector<T> &vec)
   :m_maxSize(0)
   {
-    resize(vec.size());
+    resize(size);
   }
 
-  __host__
-  Array(const std::vector<T> &vec)
-  :m_maxSize(0)
-  {
-    resize(vec.size());
-
-    HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
-  }
-
-  __host__
   Array(size_t size, const T &val)
   :m_maxSize(0)
   {
@@ -63,6 +44,19 @@ public:
     }
   }
 
+  Array(const thrust::host_vector<T> &vec)
+  :m_maxSize(0)
+  {
+    resize(vec.size());
+  }
+
+  Array(const std::vector<T> &vec)
+  :m_maxSize(0)
+  {
+    resize(vec.size());
+
+    HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
+  }
 
   __device__
   ~Array()

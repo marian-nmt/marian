@@ -44,7 +44,7 @@ class BestHyps : public BestHypsBase
   private:
     std::unique_ptr<NthElement> nthElement_;
     mblas::Array<unsigned> keys_;
-    DeviceVector<float> costs_;
+    mblas::Array<float> costs_;
     uint maxBeamSize_;
 
     // fast fused softmax and nth_element

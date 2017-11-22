@@ -88,7 +88,7 @@ void  BestHyps::CalcBeam(
 
   mblas::copy(thrust::raw_pointer_cast(vCosts.data()),
               vCosts.size(),
-              thrust::raw_pointer_cast(costs_.data()),
+              costs_.data(),
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 

@@ -276,7 +276,8 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<float>& In) {
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Array<float>& In)
+{
   size_t rows  = Out.dim(0);
   size_t cols = Out.dim(1);
 
@@ -451,7 +452,7 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
 void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
-                const DeviceVector<float> &costs,
+                const mblas::Array<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const std::vector<uint>& beamSizes,
