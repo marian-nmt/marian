@@ -34,7 +34,7 @@ class Decoder {
 
           mblas::copy(thrust::raw_pointer_cast(tids.data()),
               tids.size(),
-              thrust::raw_pointer_cast(indices_.data()),
+              indices_.data(),
               cudaMemcpyHostToDevice);
 
           Assemble(Rows, *w_.E_, indices_);
@@ -50,7 +50,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        DeviceVector<uint> indices_;
+        mblas::Array<uint> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };
