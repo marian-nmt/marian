@@ -40,7 +40,7 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
-std::string Debug(const DeviceVector<T> &vec, size_t verbosity = 1)
+std::string Debug(const mblas::Array<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
@@ -142,14 +142,6 @@ Matrix& Concat(Matrix& Out, const Matrix& In);
 void MapMatrix(Matrix& state,
               const mblas::IMatrix &sentenceLengths,
               size_t i);
-
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const DeviceVector<uint>& indices);
-
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const DeviceVector<uint>& indices);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,

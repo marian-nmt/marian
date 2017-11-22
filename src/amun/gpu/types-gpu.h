@@ -18,9 +18,6 @@ void HandleError(cudaError_t err, const char *file, int line );
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<class T>
-using DeviceVector = thrust::device_vector<T>;
-
-template<class T>
 using HostVector = thrust::host_vector<T>;
 //using HostVector = std::vector<T>;
 
@@ -46,9 +43,6 @@ extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 /*
 #include <vector>
 #include <algorithm>
-
-template<class T>
-using DeviceVector = std::vector<T>;
 
 template<class T>
 using HostVector = std::vector<T>;

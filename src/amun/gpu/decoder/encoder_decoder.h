@@ -9,6 +9,7 @@
 #include "gpu/types-gpu.h"
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/handles.h"
+#include "gpu/mblas/array.h"
 
 
 namespace amunmt {
@@ -61,7 +62,7 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    DeviceVector<uint> indices_;
+    mblas::Array<uint> indices_;
     mblas::IMatrix sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 

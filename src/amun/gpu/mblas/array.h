@@ -17,7 +17,6 @@ template<typename T>
 class Array
 {
 public:
-  __host__ __device__
   Array()
   :m_size(0)
   ,m_maxSize(0)
@@ -48,17 +47,16 @@ public:
   :m_maxSize(0)
   {
     resize(vec.size());
+    HANDLE_ERROR( cudaMemcpyAsync(m_arr, thrust::raw_pointer_cast(vec.data()), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
   Array(const std::vector<T> &vec)
   :m_maxSize(0)
   {
     resize(vec.size());
-
     HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
-  __device__
   ~Array()
   {
 	cudaFree(m_arr);

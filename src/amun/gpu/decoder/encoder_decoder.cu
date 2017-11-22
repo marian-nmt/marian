@@ -117,7 +117,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
 
   mblas::copy(thrust::raw_pointer_cast(tmp.data()),
       beamStateIds.size(),
-      thrust::raw_pointer_cast(indices_.data()),
+      indices_.data(),
       cudaMemcpyHostToDevice);
   //cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
 

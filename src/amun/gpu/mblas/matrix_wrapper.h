@@ -67,34 +67,6 @@ public:
     updateStrides();
   }
 
-  MatrixWrapper(const DeviceVector<T> &vec)
-  {
-    dim_[0] = vec.size();
-    dim_[1] = 1;
-    dim_[2] = 1;
-    dim_[3] = 1;
-    updateStrides();
-
-    assert(size() == vec.size());
-
-    data_ = nullptr;
-    dataConst_ = thrust::raw_pointer_cast(vec.data());
-  }
-
-  MatrixWrapper(DeviceVector<T> &vec)
-  {
-    dim_[0] = vec.size();
-    dim_[1] = 1;
-    dim_[2] = 1;
-    dim_[3] = 1;
-    updateStrides();
-
-    assert(size() == vec.size());
-
-    data_ = thrust::raw_pointer_cast(vec.data());
-    dataConst_ = data_;
-  }
-
   MatrixWrapper(const Array<T> &vec)
   {
     dim_[0] = vec.size();
