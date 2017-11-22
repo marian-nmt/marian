@@ -300,6 +300,54 @@ Matrix& Assemble(Matrix& Out,
   return Out;
 }
 
+Matrix& CopyRows(Matrix& Out,
+                 const Matrix& In,
+                 const mblas::Array<uint>& indices)
+{
+  assert(In.dim(1) == Out.dim(1));
+  assert(Out.dim(0) == indices.size());
+
+  assert(In.dim(2) == 1);
+  assert(In.dim(3) == 1);
+  assert(Out.dim(2) == 1);
+  assert(Out.dim(3) == 1);
+
+  /*
+  cerr << "Out=" << Out.Debug(0) << endl;
+  cerr << "In=" << In.Debug(0) << endl;
+  cerr << "indices=" << Debug(indices, 2) << endl;
+  cerr << endl;
+  */
+
+  size_t size = Out.size();
+
+  size_t numPairs = indices.size();
+
+  MatrixWrapper<float> outWrap(Out);
+  const MatrixWrapper<float> inWrap(In);
+  const MatrixWrapper<uint> indicesWrap(indices);
+  //cerr << "size=" << size << endl;
+
+  uint threads = std::min((uint) MAX_THREADS, (uint)size);
+  uint blocks = size / threads + ((size % threads == 0) ?  0 : 1);
+
+  gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (outWrap, inWrap, indicesWrap);
+
+  return Out;
+}
+
+
+Matrix& Assemble(Matrix& Out,
+                 const Matrix& In,
+                 const mblas::Array<uint>& indices) {
+  Out.NewSize(indices.size(), In.dim(1));
+  //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
+
+  CopyRows(Out, In, indices);
+  return Out;
+}
+
 __global__ void gSlice(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
                        size_t n, size_t dim)

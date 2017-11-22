@@ -151,6 +151,14 @@ Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
                  const DeviceVector<uint>& indices);
 
+Matrix& CopyRows(Matrix& Out,
+                 const Matrix& In,
+                 const mblas::Array<uint>& indices);
+
+Matrix& Assemble(Matrix& Out,
+                 const Matrix& In,
+                 const mblas::Array<uint>& indices);
+
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
               size_t n, size_t dim);

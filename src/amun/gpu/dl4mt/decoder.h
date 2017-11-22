@@ -337,8 +337,9 @@ class Decoder {
           filtered_ = true;
           using namespace mblas;
 
-          Assemble(FilteredW4_, TempW4, ids);
-          Assemble(FilteredB4_, TempB4, ids);
+          DeviceVector<uint> d_ids(ids);
+          Assemble(FilteredW4_, TempW4, d_ids);
+          Assemble(FilteredB4_, TempB4, d_ids);
 
           Transpose(FilteredW4_);
           Transpose(FilteredB4_);
