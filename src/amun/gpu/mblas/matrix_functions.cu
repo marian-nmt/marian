@@ -1289,7 +1289,7 @@ __global__ void gNBestPerBatch(MatrixWrapper<NthOutBatch> nBestWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
                 const mblas::Array<float> &costs,

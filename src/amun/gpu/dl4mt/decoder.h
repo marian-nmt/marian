@@ -2,6 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "gpu/mblas/array.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
@@ -448,7 +449,7 @@ class Decoder {
       return alignment_.GetAttention();
     }
 
-    DeviceVector<NthOutBatch>& GetNBest() {
+    mblas::Array<NthOutBatch>& GetNBest() {
       return nBest_;
     }
 
@@ -531,7 +532,7 @@ class Decoder {
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
 
-    DeviceVector<NthOutBatch> nBest_;
+    mblas::Array<NthOutBatch> nBest_;
     std::shared_ptr<mblas::Matrix> b4_;
 
     Decoder(const Decoder&) = delete;

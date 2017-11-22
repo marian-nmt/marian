@@ -61,7 +61,7 @@ public:
   __device__
   ~Array()
   {
-    free(m_arr);
+	cudaFree(m_arr);
   }
 
   __host__ __device__

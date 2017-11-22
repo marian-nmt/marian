@@ -449,7 +449,7 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
 
-void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
                 const mblas::Array<float> &costs,

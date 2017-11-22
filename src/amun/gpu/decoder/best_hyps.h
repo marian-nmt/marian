@@ -49,19 +49,19 @@ class BestHyps : public BestHypsBase
 
     // fast fused softmax and nth_element
     void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-                   DeviceVector<NthOutBatch> &nBest,
+    		mblas::Array<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
 
     void getNBestList(const std::vector<uint>& beamSizes,
                       mblas::Matrix& Probs,
-                      DeviceVector<NthOutBatch> &nBest,
+                      mblas::Array<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,
                       std::vector<uint>& outKeys,
                       const bool isFirst=false) const;
 
-    void GetPairs(DeviceVector<NthOutBatch> &nBest,
+    void GetPairs(mblas::Array<NthOutBatch> &nBest,
                   std::vector<uint>& outKeys,
                   std::vector<float>& outValues) const;
 
