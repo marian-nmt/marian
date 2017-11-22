@@ -163,6 +163,10 @@ void ConfigParser::validateOptions() const {
       !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
       "Model directory does not exist");
 
+  UTIL_THROW_IF2(!(boost::filesystem::status(modelDir).permissions()
+                   & boost::filesystem::owner_write),
+                 "No write permission in model directory");
+
   UTIL_THROW_IF2(
       has("valid-sets")
           && get<std::vector<std::string>>("valid-sets").size()
