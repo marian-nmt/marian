@@ -118,7 +118,7 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::IMatrix &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -159,7 +159,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const DeviceVector<uint>& batchIds,
+                const mblas::Array<uint>& batchIds,
                 const mblas::IMatrix &sentenceLengths,
                 size_t batchSize);
 
@@ -210,7 +210,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const DeviceVector<uint>& batchMapping,
+                  const mblas::Array<uint>& batchMapping,
                   size_t srcSize)
 {
   size_t sumOfBeamSizes = in2.dim(0);

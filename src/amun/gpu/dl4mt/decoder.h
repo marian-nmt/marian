@@ -182,7 +182,7 @@ class Decoder {
           dBatchMapping_.resize(batchMapping.size());
           mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
               batchMapping.size(),
-              thrust::raw_pointer_cast(dBatchMapping_.data()),
+              dBatchMapping_.data(),
               cudaMemcpyHostToDevice);
 
           /*
@@ -233,7 +233,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        DeviceVector<uint> dBatchMapping_;
+        mblas::Array<uint> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;

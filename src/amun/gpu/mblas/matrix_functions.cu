@@ -105,7 +105,8 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping) {
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping)
+{
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
 
@@ -517,7 +518,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 }
 
 Matrix& Softmax(Matrix& Out,
-                const DeviceVector<uint>& batchIds,
+                const mblas::Array<uint>& batchIds,
                 const mblas::IMatrix &sentenceLengths,
                 size_t batchSize)
 {
