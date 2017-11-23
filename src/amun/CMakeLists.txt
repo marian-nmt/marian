@@ -61,6 +61,7 @@ add_library(libcommon OBJECT
   common/types.cpp
   common/utils.cpp
   common/vocab.cpp
+  common/factor_vocab.cpp
   common/translation_task.cpp
 )
 
