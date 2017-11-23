@@ -16,6 +16,7 @@ class Sentence {
 		Sentence(God &god, size_t lineNum, const std::vector<size_t>& words);
 
     const Words& GetWords(size_t index = 0) const;
+    const FactWords& GetFactors(size_t index = 0) const;
     size_t size(size_t index = 0) const;
 
     size_t GetLineNum() const;
@@ -23,6 +24,7 @@ class Sentence {
 
   private:
     std::vector<Words> words_;
+    std::vector<FactWords> factors_;
     size_t lineNum_;
 
     Sentence(const Sentence &) = delete;

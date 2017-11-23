@@ -7,6 +7,7 @@
 
 #include "common/god.h"
 #include "common/vocab.h"
+#include "common/factor_vocab.h"
 #include "common/config.h"
 #include "common/threadpool.h"
 #include "common/file_stream.h"
@@ -47,7 +48,7 @@ God& God::Init(const std::string& options) {
 }
 
 
-  
+
 God& God::Init(int argc, char** argv) {
 
   config_.AddOptions(argc, argv);
@@ -58,26 +59,22 @@ God& God::Init(int argc, char** argv) {
   progress_ = spdlog::stderr_logger_mt("progress");
   progress_->set_pattern("%v");
   set_loglevel(*progress_, config_.Get<string>("log-progress"));
-  
+
   config_.LogOptions();
 
   if (Get("source-vocab").IsSequence()) {
     YAML::Node tabVocabs = Get("source-vocab");
     for (size_t i = 0; i < tabVocabs.size(); i++) {
-      sourceVocabs_.emplace_back(std::vector<VocabPtr>());
-
       if (tabVocabs[i].IsSequence()) {
-        for (auto factorVocabPath : tabVocabs[i].as<std::vector<std::string>>()) {
-          sourceVocabs_[i].emplace_back(new Vocab(factorVocabPath));
-        }
+        auto paths = tabVocabs[i].as<std::vector<std::string>>();
+        sourceVocabs_.emplace_back(FactorVocab(paths));
       } else {
-        std::string tabVocabPath = tabVocabs[i].as<std::string>();
-        sourceVocabs_[i].emplace_back(new Vocab(tabVocabPath));
+        std::string path = tabVocabs[i].as<std::string>();
+        sourceVocabs_.emplace_back(FactorVocab(path));
       }
     }
   } else {
-    sourceVocabs_.emplace_back(std::vector<VocabPtr>());
-    sourceVocabs_[0].emplace_back(new Vocab(Get<std::string>("source-vocab")));
+    sourceVocabs_.emplace_back(FactorVocab(Get<std::string>("source-vocab")));
   }
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
@@ -210,7 +207,11 @@ void God::LoadPrePostProcessing() {
 }
 
 Vocab& God::GetSourceVocab(size_t tab, size_t factor) const {
-  return *sourceVocabs_[tab][factor];
+  return sourceVocabs_[tab].GetVocab(factor);
+}
+
+FactorVocab& God::GetSourceVocabs(size_t tab) const {
+  return sourceVocabs_[tab];
 }
 
 Vocab& God::GetTargetVocab() const {

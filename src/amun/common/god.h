@@ -13,6 +13,7 @@
 #include "common/base_best_hyps.h"
 #include "common/output_collector.h"
 #include "common/vocab.h"
+#include "common/factor_vocab.h"
 #include "common/threadpool.h"
 #include "common/file_stream.h"
 #include "common/filter.h"
@@ -24,6 +25,7 @@ namespace amunmt {
 class Search;
 class Weights;
 class Vocab;
+class FactorVocab;
 class Filter;
 class InputFileStream;
 
@@ -51,6 +53,7 @@ class God {
     }
 
     Vocab& GetSourceVocab(size_t tab = 0, size_t factor = 0) const;
+    FactorVocab& GetSourceVocabs(size_t tab=0) const;
     Vocab& GetTargetVocab() const;
 
     std::istream& GetInputStream() const;
@@ -87,11 +90,8 @@ class God {
 
     Config config_;
 
-    typedef std::unique_ptr<Vocab> VocabPtr;
-    // a vocabulary for each of the source side factors
-    typedef std::vector<VocabPtr> FactorVocabs;
     // a list of source side factor vocabularies for each of the tabs
-    mutable std::vector<FactorVocabs> sourceVocabs_;
+    mutable std::vector<FactorVocab> sourceVocabs_;
     mutable std::unique_ptr<Vocab> targetVocab_;
 
     std::shared_ptr<const Filter> filter_;

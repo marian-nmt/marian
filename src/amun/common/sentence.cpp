@@ -33,27 +33,12 @@ Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)
     }
 
     auto processed = god.Preprocess(i, lineFactors);
-    // TODO: refactor the rest of the code to use the structured
-    // vector of vector of factor representation everywhere.
-    // Currently we merge it into a single (periodic) vector
-    // of factors, i.e., w11 f11 f12 f13 w21 f21 f22 f23 ...
-    // for compatability reasons
-    // std::vector<std::string> merged;
-    words_.push_back(std::vector<Word>());
-    for (const std::vector<std::string>& wordFactors : processed) {
-      size_t vocabIdx = 0;
-      for (const std::string& factor : wordFactors) {
-        words_.back().push_back(god.GetSourceVocab(i, vocabIdx++)[factor]);
-      }
-      // merged.insert(merged.end(), wordFactors.begin(), wordFactors.end());
-      // words_.push_back(god.GetSourceVocab(i++)(merged));
+    factors_.emplace_back(god.GetSourceVocabs(i)(processed));
+    Words lineWords(factors_.back().size());
+    for (size_t i = 0; i < factors_.back().size(); ++i) {
+      lineWords[i] = factors_.back()[i][0];
     }
-    // previously EOS_ID was added when calling vocab's () operator
-    // now we add them manually but should refactor it back when
-    // factor related stuff is properly refactored
-    for (size_t i = 0; i < processed.back().size(); ++i) {
-      words_.back().push_back(EOS_ID);
-    }
+    words_.emplace_back(lineWords);
     i++;
   }
 }
@@ -76,6 +61,10 @@ size_t Sentence::GetLineNum() const {
 
 const Words& Sentence::GetWords(size_t index) const {
   return words_[index];
+}
+
+const FactWords& Sentence::GetFactors(size_t index) const {
+  return factors_[index];
 }
 
 size_t Sentence::size(size_t index) const {

@@ -50,12 +50,12 @@ size_t GetMaxLength(const Sentences& source, size_t tab) {
   return maxLength;
 }
 
-std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
-  std::vector<std::vector<size_t>> matrix(maxLen, std::vector<size_t>(source.size(), 0));
+std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
+  std::vector<std::vector<FactWord>> matrix(maxLen, std::vector<FactWord>(source.size()));
 
-  for (size_t j = 0; j < source.size(); ++j) {
-    for (size_t i = 0; i < source.at(j)->GetWords(tab).size(); ++i) {
-        matrix[i][j] = source.at(j)->GetWords(tab)[i];
+  for (size_t batchIdx = 0; batchIdx < source.size(); ++batchIdx) {
+    for (size_t wordIdx = 0; wordIdx < source.at(batchIdx)->GetFactors(tab).size(); ++wordIdx) {
+        matrix[wordIdx][batchIdx] = source.at(batchIdx)->GetFactors(tab)[wordIdx];
     }
   }
 
@@ -66,65 +66,45 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
                          mblas::IMatrix &sentencesMask)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
-  size_t maxMergedLength = maxSentenceLength / embeddings_.FactorCount();
 
   //cerr << "1dMapping=" << mblas::Debug(dMapping, 2) << endl;
-  HostVector<uint> hMapping(maxMergedLength * source.size(), 0);
+  HostVector<uint> hMapping(maxSentenceLength * source.size(), 0);
   for (size_t i = 0; i < source.size(); ++i) {
-    for (size_t j = 0; j < source.at(i)->GetWords(tab).size() / embeddings_.FactorCount(); ++j) {
-      hMapping[i * maxMergedLength + j] = 1;
+    for (size_t j = 0; j < source.at(i)->GetWords(tab).size(); ++j) {
+      hMapping[i * maxSentenceLength + j] = 1;
     }
   }
 
-  sentencesMask.NewSize(maxMergedLength, source.size(), 1, 1);
+  sentencesMask.NewSize(maxSentenceLength, source.size(), 1, 1);
   mblas::copy(thrust::raw_pointer_cast(hMapping.data()),
               hMapping.size(),
               sentencesMask.data(),
               cudaMemcpyHostToDevice);
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
-  context.NewSize(maxMergedLength,
+  context.NewSize(maxSentenceLength,
                  forwardRnn_.GetStateLength().output + backwardRnn_.GetStateLength().output,
                  1,
                  source.size());
   //cerr << "GetContext2=" << context.Debug(1) << endl;
 
   auto input = GetBatchInput(source, tab, maxSentenceLength);
-  // input is a sentence; sentence is a vector of batches; batch is a vector of words
-  // we'll convert each word into a vector of factors by combining every number-of-factors
-  // batches together
-  std::vector<std::vector<std::vector<size_t>>> mergedInput(input.size() / embeddings_.FactorCount());
-  for (size_t i = 0; i < input.size(); ) {
-    std::vector<std::vector<size_t>> newbatch
-      // asume that batchsize is the same for each of the factors of a single word
-      (input[i].size(), std::vector<size_t>(embeddings_.FactorCount()));
 
-    for (size_t factorIdx = 0; factorIdx < embeddings_.FactorCount(); ++factorIdx) {
-      const std::vector<size_t>& batch = input[i];
-
-      for (size_t j = 0; j < batch.size(); ++j) {
-        newbatch.at(j)[factorIdx] = batch[j];
-      }
-      ++i;
-    }
-    mergedInput[i / embeddings_.FactorCount() - 1] = newbatch;
-  }
-
-  for (size_t i = 0; i < mergedInput.size(); ++i) {
+  for (size_t i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
       embeddedWords_.emplace_back();
     }
-    embeddings_.Lookup(embeddedWords_[i], mergedInput[i]);
+    embeddings_.Lookup(embeddedWords_[i], input[i]);
     //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
   }
 
   //cerr << "GetContext3=" << context.Debug(1) << endl;
   forwardRnn_.Encode(embeddedWords_.cbegin(),
-                         embeddedWords_.cbegin() + maxMergedLength,
+                         embeddedWords_.cbegin() + maxSentenceLength,
                          context, source.size(), false);
   //cerr << "GetContext4=" << context.Debug(1) << endl;
 
-  backwardRnn_.Encode(embeddedWords_.crend() - maxMergedLength,
+  backwardRnn_.Encode(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
                           context, source.size(), true, &sentencesMask);
   //cerr << "GetContext5=" << context.Debug(1) << endl;

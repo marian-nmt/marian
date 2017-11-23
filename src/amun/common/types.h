@@ -7,6 +7,10 @@
 
 namespace amunmt {
 
+typedef size_t Factor;
+typedef std::vector<Factor> FactWord;
+typedef std::vector<FactWord> FactWords;
+
 typedef size_t Word;
 typedef std::vector<Word> Words;
 
