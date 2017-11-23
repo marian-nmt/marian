@@ -47,13 +47,26 @@ Sentence::Sentence(const God &god, size_t lineNum, const std::vector<std::string
   : lineNum_(lineNum) {
     auto processed = god.Preprocess(0, words);
     words_.push_back(god.GetSourceVocab(0)(processed));
+    // fill in the factors as well so that there aren't any surprises
+    // if somebody decides to look up the factors in the decoder or something
+    FillDummyFactors(words_.back());
 }
 
 Sentence::Sentence(God&, size_t lineNum, const std::vector<size_t>& words)
   : lineNum_(lineNum) {
     words_.push_back(words);
+    // fill in the factors as well so that there aren't any surprises
+    // if somebody decides to look up the factors in the decoder or something
+    FillDummyFactors(words_.back());
 }
 
+void Sentence::FillDummyFactors(const Words& line) {
+  factors_.emplace_back(FactWords(line.size(), FactWord(1)));
+  FactWords& factline = factors_.back();
+  for (size_t i = 0; i < line.size(); ++i) {
+    factline[i][0] = line[i];
+  }
+}
 
 size_t Sentence::GetLineNum() const {
   return lineNum_;

@@ -23,6 +23,8 @@ class Sentence {
 
 
   private:
+    void FillDummyFactors(const Words& line);
+
     std::vector<Words> words_;
     std::vector<FactWords> factors_;
     size_t lineNum_;
