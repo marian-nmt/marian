@@ -1,6 +1,7 @@
 #include "translation_task.h"
 
 #include <string>
+#include <thrust/system_error.h>
 
 #include "search.h"
 #include "output_collector.h"
