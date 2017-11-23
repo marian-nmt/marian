@@ -339,15 +339,13 @@ void GRUFastBackward(std::vector<Tensor> outputs,
                      Tensor adj,
                      bool final = false);
 
-void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage);
+void Att(Tensor out, Tensor va, Tensor context, Tensor state);
 void AttBack(Tensor gva,
              Tensor gContext,
              Tensor gState,
-             Tensor gCoverage,
              Tensor va,
              Tensor context,
              Tensor state,
-             Tensor coverage,
              Tensor adj);
 
 void LayerNormalization(Tensor out,

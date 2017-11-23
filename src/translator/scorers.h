@@ -33,7 +33,8 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph>,
                                 Ptr<ScorerState>,
                                 const std::vector<size_t>&,
-                                const std::vector<size_t>&)
+                                const std::vector<size_t>&,
+                                int beamSize)
       = 0;
 
   virtual void init(Ptr<ExpressionGraph> graph) {}
@@ -88,12 +89,13 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
                                 const std::vector<size_t>& hypIndices,
-                                const std::vector<size_t>& embIndices) {
+                                const std::vector<size_t>& embIndices,
+                                int beamSize) {
     graph->switchParams(getName());
     auto wrappedState
         = std::dynamic_pointer_cast<ScorerWrapperState>(state)->getState();
     return New<ScorerWrapperState>(
-        encdec_->step(graph, wrappedState, hypIndices, embIndices));
+        encdec_->step(graph, wrappedState, hypIndices, embIndices, beamSize));
   }
 };
 
@@ -138,7 +140,8 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
                                 const std::vector<size_t>& hypIndices,
-                                const std::vector<size_t>& embIndices) {
+                                const std::vector<size_t>& embIndices,
+                                int beamSize) {
     return state;
   }
 };
@@ -173,7 +176,8 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
                                 const std::vector<size_t>& hypIndices,
-                                const std::vector<size_t>& embIndices) {
+                                const std::vector<size_t>& embIndices,
+                                int beamSize) {
     return state;
   }
 };

@@ -16,13 +16,13 @@ public:
       : DecoderState(states, probs, encStates),
         attentionIndices_(attentionIndices) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx) {
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx, int beamSize) {
     std::vector<size_t> selectedAttentionIndices;
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
     return New<DecoderStateHardAtt>(
-        states_.select(selIdx), probs_, encStates_, selectedAttentionIndices);
+        states_.select(selIdx, beamSize), probs_, encStates_, selectedAttentionIndices);
   }
 
   virtual void setAttentionIndices(
@@ -259,8 +259,9 @@ public:
 
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
-                                const std::vector<size_t>& embIdx) {
-    DecoderBase::selectEmbeddings(graph, state, embIdx);
+                                const std::vector<size_t>& embIdx,
+                                int beamSize) {
+    DecoderBase::selectEmbeddings(graph, state, embIdx, beamSize);
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 

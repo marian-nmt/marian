@@ -73,15 +73,18 @@ Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
+Expr repeat(Expr a, size_t repeats, keywords::axis_k ax = 0);
 
 Expr reshape(Expr a, Shape shape);
 
 Expr atleast_1d(Expr a);
 Expr atleast_2d(Expr a);
 Expr atleast_3d(Expr a);
+Expr atleast_4d(Expr a);
 Expr atleast_nd(Expr a, size_t dims);
 
 Expr flatten(Expr a);
+Expr flatten_2d(Expr a);
 
 Expr rows(Expr a, const std::vector<size_t>& indices);
 Expr cols(Expr a, const std::vector<size_t>& indices);

@@ -58,6 +58,7 @@ public:
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
     if(options_->has("valid-mini-batch"))
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
+    opts->set("mini-batch-sort", "src");
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
@@ -224,8 +225,8 @@ public:
 
     // Temporary options for translation
     auto opts = New<Config>(*options_);
-    opts->set("mini-batch", 1);
-    opts->set("maxi-batch", 1);
+    //opts->set("mini-batch", 1);
+    //opts->set("maxi-batch", 1);
     opts->set("max-length", 1000);
 
     // Create corpus
@@ -298,15 +299,17 @@ public:
           }
 
           auto search = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer});
-          auto history = search->search(graph, batch, id);
+          auto histories = search->search(graph, batch);
 
-          std::stringstream best1;
-          std::stringstream bestn;
-          Printer(options_, vocabs_.back(), history, best1, bestn);
-          collector->Write(history->GetLineNum(),
-                           best1.str(),
-                           bestn.str(),
-                           options_->get<bool>("n-best"));
+          for(auto history : histories) {
+            std::stringstream best1;
+            std::stringstream bestn;
+            Printer(options_, vocabs_.back(), history, best1, bestn);
+            collector->Write(history->GetLineNum(),
+                             best1.str(),
+                             bestn.str(),
+                             options_->get<bool>("n-best"));
+          }
         };
 
         threadPool.enqueue(task, sentenceId);

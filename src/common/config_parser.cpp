@@ -163,6 +163,10 @@ void ConfigParser::validateOptions() const {
       !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
       "Model directory does not exist");
 
+  UTIL_THROW_IF2(!(boost::filesystem::status(modelDir).permissions()
+                   & boost::filesystem::owner_write),
+                 "No write permission in model directory");
+
   UTIL_THROW_IF2(
       has("valid-sets")
           && get<std::vector<std::string>>("valid-sets").size()
@@ -518,6 +522,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
+    ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
+      "Sorting strategy for maxi-batch: none (default) src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
     //("lexical-table", po::value<std::string>(),
@@ -802,7 +808,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
 
-  if(mode_ == ConfigMode::training)
+  if(mode_ == ConfigMode::training || mode_ == ConfigMode::translating)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
 
