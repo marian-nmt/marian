@@ -19,6 +19,39 @@ namespace amunmt {
 namespace GPU {
 namespace mblas {
 
+template<typename T>
+void TestMemCpy(size_t size, const T *data1)
+{
+  using namespace std;
+
+  vector<T> h_vec2(size);
+
+  int *d_vec;
+  cudaMalloc(&d_vec, size * sizeof(T));
+
+  // copy
+  //cudaMemcpy(d_vec, h_vec1.data(), NUM * sizeof(float), cudaMemcpyHostToDevice);
+  //cudaMemcpy(h_vec2.data(), d_vec, NUM * sizeof(float), cudaMemcpyDeviceToHost);
+
+  cudaStream_t stream = mblas::CudaStreamHandler::GetStream();
+  cudaStreamCreate(&stream);
+
+  cudaMemcpyAsync(d_vec, data1, size * sizeof(T), cudaMemcpyHostToDevice, stream);
+  cudaMemcpyAsync(h_vec2.data(), d_vec, size * sizeof(T), cudaMemcpyDeviceToHost, stream);
+
+  cerr << "h_vec2=";
+  T sum = 0;
+  for (size_t i = 0; i < size; ++i) {
+    //cerr << h_vec2[i] << " ";
+    sum += h_vec2[i];
+  }
+  cerr << sum;
+  cerr << endl;
+  //cudaStreamDestroy(stream);
+
+}
+
+void TestMemCpy();
 
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 8) {
