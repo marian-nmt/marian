@@ -1,7 +1,10 @@
 #include "translation_task.h"
 
 #include <string>
+
+#ifdef CUDA
 #include <thrust/system_error.h>
+#endif
 
 #include "search.h"
 #include "output_collector.h"
