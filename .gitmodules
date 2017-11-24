@@ -4,4 +4,4 @@
 	branch = stable
 [submodule "examples"]
 	path = examples
-	url = https://github.com/marian-nmt/marian-examples.git
+	url = https://github.com/marian-nmt/marian-examples
