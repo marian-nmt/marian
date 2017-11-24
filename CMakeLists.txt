@@ -31,9 +31,9 @@ if(CUDA_FOUND)
 endif(CUDA_FOUND)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_35;)
+  list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_61,code=compute_61 ;)
 else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_35;)
+  list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O3; --use_fast_math; -Xcompiler '-fPIC'; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_61,code=compute_61 ;)
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 list(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
