@@ -291,6 +291,19 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Operation after transformer embedding layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess", po::value<std::string>()->default_value("dan"),
      "Operation after each transformer layer: d = dropout, a = add, n = normalize")
+    ("char-stride", po::value<int>()->default_value(5),
+     "Width of max-pooling layer after convolution layer in char-s2s model")
+    ("char-highway", po::value<int>()->default_value(4),
+     "Number of highway network layers after max-pooling in char-s2s model")
+    ("char-conv-filters-num", po::value<std::vector<int>>()
+      ->default_value(std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}),
+                                      "200 200 250 250 300 300 300 300")
+      ->multitoken(),
+     "Numbers of convolution filters of correspoding width in char-s2s model")
+    ("char-conv-filters-widths", po::value<std::vector<int>>()
+     ->default_value(std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}), "1 2 3 4 5 6 7 8")
+      ->multitoken(),
+     "Convolution window widths in char-s2s model")
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -679,6 +692,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
+  SET_OPTION("transformer-dim-ffn", int);
+
+  SET_OPTION("char-stride", int);
+  SET_OPTION("char-highway", int);
+  SET_OPTION("char-conv-filters-num", std::vector<int>);
+  SET_OPTION("char-conv-filters-widths", std::vector<int>);
 
   SET_OPTION("best-deep", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
