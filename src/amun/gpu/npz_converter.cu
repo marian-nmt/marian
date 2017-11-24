@@ -39,8 +39,11 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
   auto it = model_.find(key);
   if(it != model_.end()) {
     NpyMatrixWrapper np(it->second);
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+
     mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
     mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
     std::cerr << "np=" << np.data() << " " << np.size() << " " << Debug(np.data(), np.size()) << std::endl;
     std::cerr << key << "=" << matrix->Debug(1) << std::endl;

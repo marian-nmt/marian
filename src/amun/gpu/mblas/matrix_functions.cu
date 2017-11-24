@@ -10,22 +10,6 @@ namespace mblas {
 thread_local CudaStreamHandler CudaStreamHandler::instance_;
 thread_local CublasHandler CublasHandler::instance_;
 
-void TestMemCpy()
-{
-  using namespace std;
-
-  cerr << "Starting" << endl;
-
-  size_t NUM = 10;
-  vector<float> h_vec1(NUM);
-  for (size_t i = 0; i < NUM; ++i) {
-    h_vec1[i] = i * 3;
-  }
-
-  TestMemCpy(NUM, h_vec1.data());
-
-  cerr << "Finished" << endl;
-}
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   Out.swap(In);
@@ -1435,6 +1419,23 @@ void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step3" << endl;
   //cerr << "3costs=" << Debug(costs, 0) << endl;
+}
+
+void TestMemCpy()
+{
+  using namespace std;
+
+  cerr << "Starting" << endl;
+
+  size_t NUM = 10;
+  vector<float> h_vec1(NUM);
+  for (size_t i = 0; i < NUM; ++i) {
+    h_vec1[i] = i * 3;
+  }
+
+  TestMemCpy(NUM, h_vec1.data());
+
+  cerr << "Finished" << endl;
 }
 
 }  // namespace mblas
