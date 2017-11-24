@@ -468,6 +468,7 @@ void TestMemCpy(size_t size, const T *data1)
   cerr << sum;
   cerr << endl;
   //cudaStreamDestroy(stream);
+  cudaFree(d_vec);
 
 }
 
