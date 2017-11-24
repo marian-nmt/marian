@@ -91,7 +91,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
-void EncoderDecoder::Filter(const std::vector<size_t>&)
+void EncoderDecoder::Filter(const std::vector<uint>&)
 {
 
 }

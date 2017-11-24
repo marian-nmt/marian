@@ -45,7 +45,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
     BaseMatrix& GetProbs();
 
-    void Filter(const std::vector<size_t>& filterIds);
+    void Filter(const std::vector<uint>& filterIds);
 
   protected:
     const Nematus::Weights& model_;

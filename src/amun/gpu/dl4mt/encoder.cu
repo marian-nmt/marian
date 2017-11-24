@@ -50,8 +50,8 @@ size_t GetMaxLength(const Sentences& source, size_t tab) {
   return maxLength;
 }
 
-std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
-  std::vector<std::vector<size_t>> matrix(maxLen, std::vector<size_t>(source.size(), 0));
+std::vector<std::vector<uint>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
+  std::vector<std::vector<uint>> matrix(maxLen, std::vector<uint>(source.size(), 0));
 
   for (size_t j = 0; j < source.size(); ++j) {
     for (size_t i = 0; i < source.at(j)->GetWords(tab).size(); ++i) {
@@ -67,13 +67,13 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
-  HostVector<uint> hSentenceLengths(source.size());
+  std::vector<uint> hSentenceLengths(source.size());
   for (size_t i = 0; i < source.size(); ++i) {
     hSentenceLengths[i] = source.at(i)->GetWords(tab).size();
   }
 
   sentenceLengths.NewSize(source.size(), 1, 1, 1);
-  mblas::copy(thrust::raw_pointer_cast(hSentenceLengths.data()),
+  mblas::copy(hSentenceLengths.data(),
               hSentenceLengths.size(),
               sentenceLengths.data(),
               cudaMemcpyHostToDevice);

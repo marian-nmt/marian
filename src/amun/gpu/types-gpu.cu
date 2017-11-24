@@ -1,4 +1,5 @@
 #include "types-gpu.h"
+#include "mblas/handles.h"
 
 namespace amunmt {
 namespace GPU {
@@ -9,6 +10,7 @@ void HandleError(cudaError_t err, const char *file, int line ) {
     exit( EXIT_FAILURE );
   }
 }
+
 
 }
 }

@@ -7,7 +7,7 @@
 
 namespace amunmt {
 
-typedef size_t Word;
+typedef uint Word;
 typedef std::vector<Word> Words;
 
 const Word EOS_ID = 0;

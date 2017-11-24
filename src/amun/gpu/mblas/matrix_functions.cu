@@ -10,6 +10,7 @@ namespace mblas {
 thread_local CudaStreamHandler CudaStreamHandler::instance_;
 thread_local CublasHandler CublasHandler::instance_;
 
+
 Matrix& Swap(Matrix& Out, Matrix& In) {
   Out.swap(In);
   return Out;
@@ -105,7 +106,8 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping) {
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping)
+{
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
 
@@ -253,7 +255,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<uint>& indices)
+                 const mblas::Array<uint>& indices)
 {
   assert(In.dim(1) == Out.dim(1));
   assert(Out.dim(0) == indices.size());
@@ -291,7 +293,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<uint>& indices) {
+                 const mblas::Array<uint>& indices) {
   Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
@@ -517,7 +519,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 }
 
 Matrix& Softmax(Matrix& Out,
-                const DeviceVector<uint>& batchIds,
+                const mblas::Array<uint>& batchIds,
                 const mblas::IMatrix &sentenceLengths,
                 size_t batchSize)
 {
@@ -1289,10 +1291,10 @@ __global__ void gNBestPerBatch(MatrixWrapper<NthOutBatch> nBestWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
-                const DeviceVector<float> &costs,
+                const mblas::Array<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const std::vector<uint>& beamSizes,
@@ -1323,11 +1325,11 @@ void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
     }
   }
 
-  DeviceVector<uint> d_beamSizes(beamSizes);
-  DeviceVector<uint> hypo2BeamSize(in.dim(0));
-  DeviceVector<uint> hypo2Candidate(in.dim(0));
-  DeviceVector<uint> batch2Hypo(batchSize);
-  DeviceVector<NthOutBatch> nBestCandidates(candidateInd);
+  mblas::Array<uint> d_beamSizes(beamSizes);
+  mblas::Array<uint> hypo2BeamSize(in.dim(0));
+  mblas::Array<uint> hypo2Candidate(in.dim(0));
+  mblas::Array<uint> batch2Hypo(batchSize);
+  mblas::Array<NthOutBatch> nBestCandidates(candidateInd);
 
   /*
   cerr << "in=" << in.Debug(0) << endl;
@@ -1342,9 +1344,6 @@ void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
   cerr << "nBestCandidates=" << Debug(nBestCandidates, 0) << endl;
   cerr << endl;
   */
-  //DeviceVector<NthOutBatch> nBest(beamSizeSum);
-  //cerr << "nBest=" << nBest.size() << endl;
-
   MatrixWrapper<float> inWrap(in);
   MatrixWrapper<float> b4Wrap(b4);
   MatrixWrapper<uint> hypo2BeamSizeWrap(hypo2BeamSize);
@@ -1420,6 +1419,23 @@ void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step3" << endl;
   //cerr << "3costs=" << Debug(costs, 0) << endl;
+}
+
+void TestMemCpy()
+{
+  using namespace std;
+
+  cerr << "Starting" << endl;
+
+  size_t NUM = 10;
+  vector<float> h_vec1(NUM);
+  for (size_t i = 0; i < NUM; ++i) {
+    h_vec1[i] = i * 3;
+  }
+
+  TestMemCpy(NUM, h_vec1.data());
+
+  cerr << "Finished" << endl;
 }
 
 }  // namespace mblas

@@ -10,6 +10,7 @@
 #include "common/utils.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/nth_element.h"
+#include "gpu/mblas/array.h"
 
 #include "gpu/decoder/encoder_decoder.h"
 
@@ -42,25 +43,25 @@ class BestHyps : public BestHypsBase
 
   private:
     std::unique_ptr<NthElement> nthElement_;
-    DeviceVector<unsigned> keys;
-    DeviceVector<float> Costs;
+    mblas::Array<unsigned> keys_;
+    mblas::Array<float> costs_;
     uint maxBeamSize_;
 
     // fast fused softmax and nth_element
     void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-                   DeviceVector<NthOutBatch> &nBest,
+    		mblas::Array<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
 
     void getNBestList(const std::vector<uint>& beamSizes,
                       mblas::Matrix& Probs,
-                      DeviceVector<NthOutBatch> &nBest,
+                      mblas::Array<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,
                       std::vector<uint>& outKeys,
                       const bool isFirst=false) const;
 
-    void GetPairs(DeviceVector<NthOutBatch> &nBest,
+    void GetPairs(mblas::Array<NthOutBatch> &nBest,
                   std::vector<uint>& outKeys,
                   std::vector<float>& outValues) const;
 
