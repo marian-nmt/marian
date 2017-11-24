@@ -41,28 +41,8 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
     NpyMatrixWrapper np(it->second);
     size_t size = np.size();
 
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    std::cerr << "np=" << np.data() << " " << size << " " << Debug(np.data(), size) << std::endl;
-
-    mblas::TestMemCpy(size, np.data());
-
     mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
     mblas::copy(np.data(), size, matrix->data(), cudaMemcpyHostToDevice);
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-
-    std::cerr << key << "=" << matrix->Debug(1) << std::endl;
-
-    std::vector<float> h_vec2(size);
-    mblas::copy(matrix->data(), size, h_vec2.data(), cudaMemcpyDeviceToHost);
-    std::cerr << "h_vec2=";
-    float sum = 0;
-    for (size_t i = 0; i < size; ++i) {
-      //cerr << h_vec2[i] << " ";
-      sum += h_vec2[i];
-    }
-    std::cerr << sum;
-
-    std::cerr << std::endl;
 
     if (transpose) {
       mblas::Transpose(*matrix);

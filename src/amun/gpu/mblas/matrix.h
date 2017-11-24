@@ -21,7 +21,6 @@ using namespace thrust::placeholders;
 template<typename T>
 __global__ void gSum(const T *data, size_t count, T &ret)
 {
-  printf("in gSum \n");
   ret = 0;
   for (size_t i = 0; i < count; ++i) {
     ret += data[i];
@@ -31,7 +30,6 @@ __global__ void gSum(const T *data, size_t count, T &ret)
 template<typename T>
 T Sum(const T *data, size_t count)
 {
-  std::cerr << "Sum1=" << std::endl;
   T ret;
   T *d_ret;
   HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
@@ -45,7 +43,6 @@ T Sum(const T *data, size_t count)
   HANDLE_ERROR( cudaStreamSynchronize(stream));
   HANDLE_ERROR(cudaFree(d_ret));
 
-  std::cerr << "Sum2=" << std::endl;
   return ret;
 }
 
@@ -75,9 +72,7 @@ class TMatrix : public BaseMatrix {
       arrSize_ = size();
 
       HANDLE_ERROR( cudaMalloc(&data_, arrSize_ * sizeof(T)) );
-      std::cerr << "malloc data1:" << data_ << " " << arrSize_ << std::endl;
       if (zero) {
-        std::cerr << "zeroed" << std::endl;
         HANDLE_ERROR( cudaMemsetAsync(data_, 0, arrSize_ * sizeof(T), CudaStreamHandler::GetStream()) );
       }
     }
