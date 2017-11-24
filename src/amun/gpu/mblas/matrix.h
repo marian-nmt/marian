@@ -34,8 +34,9 @@ T Sum(const T *data, size_t count)
   T *d_ret;
   HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
 
-  const cudaStream_t& stream = CudaStreamHandler::GetStream();
+  const cudaStream_t stream = CudaStreamHandler::GetStream();
 
+  HANDLE_ERROR( cudaStreamSynchronize(stream));
   gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
   HANDLE_ERROR( cudaMemcpyAsync(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost, stream) );
 
@@ -71,7 +72,6 @@ class TMatrix : public BaseMatrix {
       arrSize_ = size();
 
       HANDLE_ERROR( cudaMalloc(&data_, arrSize_ * sizeof(T)) );
-      //std::cerr << "malloc data1:" << data_ << std::endl;
       if (zero) {
         HANDLE_ERROR( cudaMemsetAsync(data_, 0, arrSize_ * sizeof(T), CudaStreamHandler::GetStream()) );
       }

@@ -2,6 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "gpu/mblas/array.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
@@ -23,17 +24,17 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<size_t>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids) {
           using namespace mblas;
-          HostVector<uint> tids = ids;
+          std::vector<uint> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
           indices_.resize(tids.size());
 
-          mblas::copy(thrust::raw_pointer_cast(tids.data()),
+          mblas::copy(tids.data(),
               tids.size(),
-              thrust::raw_pointer_cast(indices_.data()),
+              indices_.data(),
               cudaMemcpyHostToDevice);
 
           Assemble(Rows, *w_.E_, indices_);
@@ -49,7 +50,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        DeviceVector<uint> indices_;
+        mblas::Array<uint> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };
@@ -170,7 +171,7 @@ class Decoder {
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
 
-          HostVector<uint> batchMapping(HiddenState.output->dim(0));
+          std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
             for (size_t j = 0; j < beamSizes[i]; ++j) {
@@ -179,9 +180,9 @@ class Decoder {
           }
 
           dBatchMapping_.resize(batchMapping.size());
-          mblas::copy(thrust::raw_pointer_cast(batchMapping.data()),
+          mblas::copy(batchMapping.data(),
               batchMapping.size(),
-              thrust::raw_pointer_cast(dBatchMapping_.data()),
+              dBatchMapping_.data(),
               cudaMemcpyHostToDevice);
 
           /*
@@ -232,7 +233,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        DeviceVector<uint> dBatchMapping_;
+        mblas::Array<uint> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
@@ -332,12 +333,13 @@ class Decoder {
           }
         }
 
-        void Filter(const std::vector<size_t>& ids) {
+        void Filter(const std::vector<uint>& ids) {
           filtered_ = true;
           using namespace mblas;
 
-          Assemble(FilteredW4_, TempW4, ids);
-          Assemble(FilteredB4_, TempB4, ids);
+          mblas::Array<uint> d_ids(ids);
+          Assemble(FilteredW4_, TempW4, d_ids);
+          Assemble(FilteredB4_, TempB4, d_ids);
 
           Transpose(FilteredW4_);
           Transpose(FilteredB4_);
@@ -428,11 +430,11 @@ class Decoder {
     }
 
     void Lookup(mblas::Matrix& Embedding,
-                const std::vector<size_t>& w) {
+                const std::vector<uint>& w) {
       embeddings_.Lookup(Embedding, w);
     }
 
-    void Filter(const std::vector<size_t>& ids) {
+    void Filter(const std::vector<uint>& ids) {
       softmax_.Filter(ids);
     }
 
@@ -448,7 +450,7 @@ class Decoder {
       return alignment_.GetAttention();
     }
 
-    DeviceVector<NthOutBatch>& GetNBest() {
+    mblas::Array<NthOutBatch>& GetNBest() {
       return nBest_;
     }
 
@@ -531,7 +533,7 @@ class Decoder {
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
 
-    DeviceVector<NthOutBatch> nBest_;
+    mblas::Array<NthOutBatch> nBest_;
     std::shared_ptr<mblas::Matrix> b4_;
 
     Decoder(const Decoder&) = delete;

@@ -51,7 +51,7 @@ class Scorer {
 
     virtual void Encode(const Sentences& sources) = 0;
 
-    virtual void Filter(const std::vector<size_t>&) = 0;
+    virtual void Filter(const std::vector<uint>&) = 0;
 
     virtual State* NewState() const = 0;
 

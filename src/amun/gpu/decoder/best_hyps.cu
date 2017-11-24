@@ -9,8 +9,8 @@ BestHyps::BestHyps(const God &god)
           god.Get<bool>("n-best"),
           god.Get<std::vector<std::string>>("softmax-filter").size(),
           god.GetScorerWeights()),
-        keys(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        Costs(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        keys_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
 {
   if (!god_.UseFusedSoftmax()) {
@@ -33,7 +33,7 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
 
 // fast fused softmax and nth_element
 void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-               DeviceVector<NthOutBatch> &nBest,
+               mblas::Array<NthOutBatch> &nBest,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
                const bool isFirst)
@@ -54,7 +54,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
       mblas::copy(
           attention.data() + hypIndex * attLength,
           attLength,
-          thrust::raw_pointer_cast(softAlignment->data()),
+          softAlignment->data(),
           cudaMemcpyDeviceToHost
       );
 
@@ -80,17 +80,16 @@ void  BestHyps::CalcBeam(
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
 
-  HostVector<float> vCosts;
+  std::vector<float> vCosts;
   for (auto& h : prevHyps) {
     vCosts.push_back(h->GetCost());
   }
 
-
-  mblas::copy(thrust::raw_pointer_cast(vCosts.data()),
+  mblas::copy(vCosts.data(),
               vCosts.size(),
-              thrust::raw_pointer_cast(Costs.data()),
+              costs_.data(),
               cudaMemcpyHostToDevice);
-  //mblas::copy(vCosts.begin(), vCosts.end(), Costs.begin());
+  //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 
   size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
@@ -101,18 +100,18 @@ void  BestHyps::CalcBeam(
 
   if (god_.UseFusedSoftmax()) {
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetBias());
-    DeviceVector<NthOutBatch> &nBest = *static_cast<DeviceVector<NthOutBatch>*>(scorers[0]->GetNBest());
+    mblas::Array<NthOutBatch> &nBest = *static_cast<mblas::Array<NthOutBatch>*>(scorers[0]->GetNBest());
     nBest.resize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, Costs, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
     FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
   }
   else {
-    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, Costs);
+    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, costs_);
 
     for (size_t i = 1; i < scorers.size(); ++i) {
       mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
@@ -127,7 +126,7 @@ void  BestHyps::CalcBeam(
     FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
   }
 
-  std::vector<HostVector<float>> breakDowns;
+  std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
       for (size_t i = 1; i < scorers.size(); ++i) {
@@ -194,7 +193,7 @@ void  BestHyps::CalcBeam(
 //////////////////////////////////////////////////////////////////////////
 void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
                   mblas::Matrix& Probs,
-                  DeviceVector<NthOutBatch> &nBest,
+                  mblas::Array<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
                   std::vector<uint>& outKeys,
                   const bool isFirst) const
@@ -212,7 +211,7 @@ void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
   //cerr << endl;
 }
 
-void BestHyps::GetPairs(DeviceVector<NthOutBatch> &nBest,
+void BestHyps::GetPairs(mblas::Array<NthOutBatch> &nBest,
               std::vector<uint>& outKeys,
               std::vector<float>& outValues) const
 {
@@ -220,8 +219,8 @@ void BestHyps::GetPairs(DeviceVector<NthOutBatch> &nBest,
   outKeys.resize(nBest.size());
   outValues.resize(nBest.size());
 
-  HostVector<NthOutBatch> hostVec(nBest.size());
-  mblas::copy(thrust::raw_pointer_cast(nBest.data()), nBest.size(), thrust::raw_pointer_cast(hostVec.data()), cudaMemcpyDeviceToHost);
+  std::vector<NthOutBatch> hostVec(nBest.size());
+  mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
 
   for (size_t i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;

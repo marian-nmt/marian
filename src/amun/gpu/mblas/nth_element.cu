@@ -40,8 +40,8 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   cerr << "isFirst=" << isFirst << endl;
   cerr << endl;
   */
-  HostVector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
-  HostVector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
+  std::vector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
+  std::vector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 
@@ -75,8 +75,8 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs,
-                              const HostVector<uint>& batchFirstElementIdxs,
-                              const HostVector<uint>& cummulatedBeamSizes)
+                              const std::vector<uint>& batchFirstElementIdxs,
+                              const std::vector<uint>& cummulatedBeamSizes)
 {
   const uint vocabSize = probs.dim(1);
   const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
@@ -89,11 +89,11 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   d_cumBeamSizes.NewSize(cummulatedBeamSizes.size(), 1, 1, 1);
   assert(d_batchPosition.size() == d_cumBeamSizes.size());
 
-  mblas::copy(thrust::raw_pointer_cast(batchFirstElementIdxs.data()),
+  mblas::copy(batchFirstElementIdxs.data(),
               batchFirstElementIdxs.size(),
               d_batchPosition.data(),
               cudaMemcpyHostToDevice);
-  mblas::copy(thrust::raw_pointer_cast(cummulatedBeamSizes.data()),
+  mblas::copy(cummulatedBeamSizes.data(),
               cummulatedBeamSizes.size(),
               d_cumBeamSizes.data(),
               cudaMemcpyHostToDevice);
@@ -141,7 +141,7 @@ void NthElement::GetPairs(uint number,
                     std::vector<uint>& outKeys,
                     std::vector<float>& outValues)
 {
-  mblas::copy(d_res.data(), d_res.size(), thrust::raw_pointer_cast(h_res.data()), cudaMemcpyDeviceToHost);
+  mblas::copy(d_res.data(), d_res.size(), h_res.data(), cudaMemcpyDeviceToHost);
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()) );
 
   for (uint i = 0; i < number; ++i) {

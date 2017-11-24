@@ -19,7 +19,6 @@ namespace amunmt {
 namespace GPU {
 namespace mblas {
 
-
 template <class M>
 void Debug(const M& m, size_t pos = 0, size_t l = 8) {
   std::cerr << m.dim(0) << " " << m.dim(1) << std::endl;
@@ -40,7 +39,7 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
-std::string Debug(const DeviceVector<T> &vec, size_t verbosity = 1)
+std::string Debug(const mblas::Array<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
@@ -51,27 +50,6 @@ std::string Debug(const DeviceVector<T> &vec, size_t verbosity = 1)
     for (size_t i = 0; i < vec.size(); ++i) {
       sum += vec[i];
     }
-    strm << " sum=" << sum;
-  }
-
-  if (verbosity == 2) {
-    for (size_t i = 0; i < vec.size(); ++i) {
-      strm << " " << vec[i];
-    }
-  }
-
-  return strm.str();
-}
-
-template<typename T>
-std::string Debug(const HostVector<T> &vec, size_t verbosity = 1)
-{
-  std::stringstream strm;
-
-  strm << "size=" << vec.size();
-
-  if (verbosity) {
-    T sum = Sum(vec.data(), vec.size());
     strm << " sum=" << sum;
   }
 
@@ -118,7 +96,7 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::IMatrix &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const DeviceVector<uint>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -145,11 +123,11 @@ void MapMatrix(Matrix& state,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<uint>& indices);
+                 const mblas::Array<uint>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const DeviceVector<uint>& indices);
+                 const mblas::Array<uint>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -159,7 +137,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const DeviceVector<uint>& batchIds,
+                const mblas::Array<uint>& batchIds,
                 const mblas::IMatrix &sentenceLengths,
                 size_t batchSize);
 
@@ -210,7 +188,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const DeviceVector<uint>& batchMapping,
+                  const mblas::Array<uint>& batchMapping,
                   size_t srcSize)
 {
   size_t sumOfBeamSizes = in2.dim(0);
@@ -276,7 +254,8 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const DeviceVector<float>& In) {
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Array<float>& In)
+{
   size_t rows  = Out.dim(0);
   size_t cols = Out.dim(1);
 
@@ -448,15 +427,53 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
 
-void LogSoftmaxAndNBest(DeviceVector<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
-                const DeviceVector<float> &costs,
+                const mblas::Array<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const std::vector<uint>& beamSizes,
                 uint beamSizeSum,
                 bool isFirst);
+
+template<typename T>
+void TestMemCpy(size_t size, const T *data1)
+{
+  using namespace std;
+
+  vector<T> h_vec2(size);
+
+  T *d_vec;
+  cudaMalloc(&d_vec, size * sizeof(T));
+
+  // copy
+  //cudaMemcpy(d_vec, h_vec1.data(), NUM * sizeof(float), cudaMemcpyHostToDevice);
+  //cudaMemcpy(h_vec2.data(), d_vec, NUM * sizeof(float), cudaMemcpyDeviceToHost);
+
+  cudaStream_t stream = mblas::CudaStreamHandler::GetStream();
+
+  //cudaMemcpyAsync(d_vec, data1, size * sizeof(T), cudaMemcpyHostToDevice, stream);
+  //cudaMemcpyAsync(h_vec2.data(), d_vec, size * sizeof(T), cudaMemcpyDeviceToHost, stream);
+
+  mblas::copy(data1, size, d_vec, cudaMemcpyHostToDevice);
+  mblas::copy(d_vec, size, h_vec2.data(), cudaMemcpyDeviceToHost);
+
+  cerr << "h_vec2=";
+  T sum = 0;
+  for (size_t i = 0; i < size; ++i) {
+    //cerr << h_vec2[i] << " ";
+    sum += h_vec2[i];
+  }
+  cerr << sum;
+  cerr << endl;
+  //cudaStreamDestroy(stream);
+  cudaFree(d_vec);
+
+}
+
+void TestMemCpy();
+
 
 } // namespace mblas
 } // namespace GPU

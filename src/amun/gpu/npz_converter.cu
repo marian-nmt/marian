@@ -1,5 +1,6 @@
 #include "npz_converter.h"
 #include "common/exception.h"
+#include "mblas/matrix_functions.h"
 
 namespace amunmt {
 namespace GPU {
@@ -20,14 +21,28 @@ void NpzConverter::Destruct() {
   destructed_ = true;
 }
 
+template<typename T>
+T Debug(const T *data, size_t size)
+{
+  T sum = 0;
+  for (size_t i = 0; i < size; ++i) {
+    sum += data[i];
+  }
+  return sum;
+}
+
 std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool mandatory, bool transpose) const
 {
+  //mblas::TestMemCpy();
+
   std::shared_ptr<mblas::Matrix> ret;
   auto it = model_.find(key);
   if(it != model_.end()) {
     NpyMatrixWrapper np(it->second);
+    size_t size = np.size();
+
     mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
-    mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+    mblas::copy(np.data(), size, matrix->data(), cudaMemcpyHostToDevice);
 
     if (transpose) {
       mblas::Transpose(*matrix);

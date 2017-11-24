@@ -37,7 +37,6 @@ class NthElement {
     mblas::TMatrix<NthOut> d_out;
 
     mblas::TMatrix<NthOut> d_res;
-    //HostVector<NthOut> h_res;
     std::vector<NthOut> h_res;
 
     mblas::TMatrix<float> d_breakdown;
@@ -47,8 +46,8 @@ class NthElement {
     uint maxBeamSize_, maxBatchSize_;
 
     void getNBestList(mblas::Matrix &probs,
-                      const HostVector<uint>& batchFirstElementIdxs,
-                      const HostVector<uint>& cummulatedBeamSizes);
+                      const std::vector<uint>& batchFirstElementIdxs,
+                      const std::vector<uint>& cummulatedBeamSizes);
 
 
 };

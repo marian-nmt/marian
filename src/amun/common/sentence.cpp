@@ -36,7 +36,7 @@ Sentence::Sentence(const God &god, size_t lineNum, const std::vector<std::string
     words_.push_back(god.GetSourceVocab(0)(processed));
 }
 
-Sentence::Sentence(God&, size_t lineNum, const std::vector<size_t>& words)
+Sentence::Sentence(God&, size_t lineNum, const std::vector<uint>& words)
   : lineNum_(lineNum) {
     words_.push_back(words);
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "matrix.h"
+#include "gpu/mblas/array.h"
 
 namespace amunmt {
 namespace GPU {
@@ -66,7 +67,7 @@ public:
     updateStrides();
   }
 
-  MatrixWrapper(const DeviceVector<T> &vec)
+  MatrixWrapper(const Array<T> &vec)
   {
     dim_[0] = vec.size();
     dim_[1] = 1;
@@ -77,10 +78,10 @@ public:
     assert(size() == vec.size());
 
     data_ = nullptr;
-    dataConst_ = thrust::raw_pointer_cast(vec.data());
+    dataConst_ = vec.data();
   }
 
-  MatrixWrapper(DeviceVector<T> &vec)
+  MatrixWrapper(Array<T> &vec)
   {
     dim_[0] = vec.size();
     dim_[1] = 1;
@@ -90,7 +91,7 @@ public:
 
     assert(size() == vec.size());
 
-    data_ = thrust::raw_pointer_cast(vec.data());
+    data_ = vec.data();
     dataConst_ = data_;
   }
 
