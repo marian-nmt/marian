@@ -14,6 +14,7 @@
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/mblas/nth_element_kernels.h"
+#include "gpu/mblas/vector_wrapper.h"
 
 namespace amunmt {
 namespace GPU {
@@ -236,7 +237,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
   size_t rows  = outWrap.dim(0);
   size_t cols = outWrap.dim(1);
 
-  MatrixWrapper<float> sdata(sdataOrig, rows, 1, 1, 1);
+  VectorWrapper<float> sdata(sdataOrig, rows);
 
   if (threadIdx.x == 0) {
     for (int i = 0; i < rows; ++i)

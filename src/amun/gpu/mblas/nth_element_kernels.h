@@ -1,6 +1,7 @@
 #pragma once
 
 #include "matrix_wrapper.h"
+#include "vector_wrapper.h"
 
 namespace amunmt {
 namespace GPU {

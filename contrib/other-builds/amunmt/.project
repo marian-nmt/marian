@@ -1596,6 +1596,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/vector.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/mblas/vector_wrapper.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/vector_wrapper.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/3rd_party/blaze/config/Assertion.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/3rd_party/blaze/config/Assertion.h</locationURI>

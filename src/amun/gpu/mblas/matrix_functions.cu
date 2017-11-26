@@ -447,7 +447,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   int origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
-    MatrixWrapper<float> _max(_share, shareSize, 1, 1, 1);
+    VectorWrapper<float> _max(_share, shareSize);
     _max[origSrcPos] = out(hypoInd, origSrcPos, 0, 0);
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
@@ -550,7 +550,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, uint shareSize)
 
   while (rowIdx < rows) {
     //float* _max = _share;
-    MatrixWrapper<float> _max(_share, shareSize, 1, 1, 1);
+    VectorWrapper<float> _max(_share, shareSize);
 
     _max[threadIdx.x] = out(rowIdx, threadIdx.x, 0, 0);
     for (int tid = 0; tid < cols; tid += blockDim.x) {
@@ -1019,7 +1019,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 {
   extern __shared__ char _sharePtr[];
 
-  MatrixWrapper<float> maxMatrix((float*)_sharePtr, blockDim.x, 1, 1, 1);
+  VectorWrapper<float> maxVec((float*)_sharePtr, blockDim.x);
 
   void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
   MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
@@ -1113,7 +1113,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
   //assert(nBestCandidatesWrap.dim(0) == rows);
 
   //float* _sum = _share;// + blockDim.x;
-  MatrixWrapper<float> _sum(_share, blockDim.x, 1, 1, 1);
+  VectorWrapper<float> _sum(_share, blockDim.x);
 
   // calc sum
   _sum[threadIdx.x] = 0.0f;
