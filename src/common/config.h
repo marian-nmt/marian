@@ -54,17 +54,19 @@ public:
       if(boost::filesystem::exists(get<std::string>("model"))
          && !get<bool>("no-reload")) {
         try {
-          loadModelParameters(get<std::string>("model"));
+          if(!get<bool>("ignore-model-config"))
+            loadModelParameters(get<std::string>("model"));
         } catch(std::runtime_error& e) {
-          LOG(info, "[config] No model settings found in model file");
+          LOG(info, "[config] No model configuration found in model file");
         }
       }
     } else {
       auto model = get<std::vector<std::string>>("models")[0];
       try {
-        loadModelParameters(model);
+        if(!get<bool>("ignore-model-config"))
+          loadModelParameters(model);
       } catch(std::runtime_error& e) {
-        LOG(info, "[config] No model settings found in model file");
+        LOG(info, "[config] No model configuration found in model file");
       }
     }
     log();

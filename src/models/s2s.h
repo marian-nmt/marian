@@ -296,8 +296,6 @@ public:
 
     // apply RNN to embeddings, initialized with encoder context mapped into
     // decoder space
-
-    auto states = state->getStates();
     auto decoderContext = rnn_->transduce(embeddings, state->getStates());
 
     // retrieve the last state per layer. They are required during translation
