@@ -148,7 +148,7 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
-                           const MatrixWrapper<uint> batchMappingWrap)
+                           const VectorWrapper<uint> batchMappingWrap)
 {
   size_t srcSize = outWrap.dim(2);
   size_t inRows = in2Wrap.dim(0);
@@ -201,7 +201,7 @@ Matrix& Broadcast(Functor functor,
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> in1Wrap(in1);
   const MatrixWrapper<float> in2Wrap(in2);
-  const MatrixWrapper<uint> batchMappingWrap(batchMapping);
+  const VectorWrapper<uint> batchMappingWrap(batchMapping);
 
   uint size = out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
@@ -230,7 +230,7 @@ Matrix& Broadcast(Functor functor,
 template <class Functor>
 __global__ void gBroadcastVecColumn(Functor functor,
                                     MatrixWrapper<float> outWrap,
-                                    const MatrixWrapper<float> inWrap) {
+                                    const VectorWrapper<float> inWrap) {
   extern __shared__ float sdataOrig[];
 
   size_t rows  = outWrap.dim(0);
@@ -260,7 +260,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<flo
   size_t cols = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
+  const VectorWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);

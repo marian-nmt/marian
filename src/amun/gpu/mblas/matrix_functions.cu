@@ -83,7 +83,7 @@ void Mean(Matrix& Out,
 __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const MatrixWrapper<float> weights,
                               const MatrixWrapper<float> in,
-                              const MatrixWrapper<uint> mapping
+                              const VectorWrapper<uint> mapping
                               )
 {
   int numHypos = weights.dim(0);
@@ -116,7 +116,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mbl
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> weightsWrap(Weights);
   MatrixWrapper<float> inWrap(In);
-  MatrixWrapper<uint> mappingWrap(mapping);
+  VectorWrapper<uint> mappingWrap(mapping);
 
   uint size = Out.size();
   uint nThreads = std::min((uint) MAX_THREADS, (uint)size);
@@ -237,7 +237,7 @@ Matrix& CopyRow(Matrix& Out,
 
 __global__ void gCopyRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
-                          const MatrixWrapper<uint> indicesWrap)
+                          const VectorWrapper<uint> indicesWrap)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -278,7 +278,7 @@ Matrix& CopyRows(Matrix& Out,
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
-  const MatrixWrapper<uint> indicesWrap(indices);
+  const VectorWrapper<uint> indicesWrap(indices);
   //cerr << "size=" << size << endl;
 
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
@@ -434,7 +434,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 }
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
-                         const MatrixWrapper<uint> batchIdsWrap,
+                         const VectorWrapper<uint> batchIdsWrap,
                          const MatrixWrapper<uint> sentenceLengthsWrap,
                          uint shareSize)
 {
@@ -526,7 +526,7 @@ Matrix& Softmax(Matrix& Out,
   size_t maxLength = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<uint> batchIdsWrap(batchIds);
+  const VectorWrapper<uint> batchIdsWrap(batchIds);
   const MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths, false);
 
   int blocks = batchSize;
@@ -861,12 +861,12 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__
-void gBeamSizeInit(MatrixWrapper<uint> hypo2BeamSizeWrap,
-                  MatrixWrapper<uint> batch2HypoWrap,
-                  MatrixWrapper<uint> hypo2CandidateWrap,
-                  bool isFirst,
-                  uint beamSizeSum,
-                  const MatrixWrapper<uint> beamSizesWrap)
+void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
+                    VectorWrapper<uint> batch2HypoWrap,
+                    VectorWrapper<uint> hypo2CandidateWrap,
+                    bool isFirst,
+                    uint beamSizeSum,
+                    const VectorWrapper<uint> beamSizesWrap)
 {
   uint hypoInd = 0;
   uint candidateInd = 0;
@@ -1007,15 +1007,15 @@ void MergeElement(float &minScore,
 }
 
 __device__
-void NBestAndMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
               float &topScore,
               const MatrixWrapper<float> in,
               const MatrixWrapper<float> b4Wrap,
               uint hypoInd,
               uint maxBeamSize,
               bool forbidUNK,
-              const MatrixWrapper<uint> hypo2BeamSizeWrap,
-              const MatrixWrapper<uint> hypo2CandidateWrap)
+              const VectorWrapper<uint> hypo2BeamSizeWrap,
+              const VectorWrapper<uint> hypo2CandidateWrap)
 {
   extern __shared__ char _sharePtr[];
 
@@ -1098,14 +1098,14 @@ void NBestAndMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __device__
-void SumAndLogSoftMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+void SumAndLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                             const MatrixWrapper<float> in,
                             const MatrixWrapper<float> b4Wrap,
                             uint hypoInd,
                             uint maxBeamSize,
                             float topScore,
-                            const MatrixWrapper<uint> hypo2BeamSizeWrap,
-                            const MatrixWrapper<uint> hypo2CandidateWrap)
+                            const VectorWrapper<uint> hypo2BeamSizeWrap,
+                            const VectorWrapper<uint> hypo2CandidateWrap)
 {
   extern __shared__ float _share[];
 
@@ -1157,13 +1157,13 @@ void SumAndLogSoftMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-__global__ void gLogSoftMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+__global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                         const MatrixWrapper<float> in,
                         const MatrixWrapper<float> b4Wrap,
                         uint maxBeamSize,
                         bool forbidUNK,
-                        const MatrixWrapper<uint> hypo2BeamSizeWrap,
-                        const MatrixWrapper<uint> hypo2CandidateWrap)
+                        const VectorWrapper<uint> hypo2BeamSizeWrap,
+                        const VectorWrapper<uint> hypo2CandidateWrap)
 {
   uint hypos = in.dim(0);
   uint vocabSize = in.dim(1);
@@ -1198,19 +1198,19 @@ __global__ void gLogSoftMax(MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-__global__ void gNBestPerBatch(MatrixWrapper<NthOutBatch> nBestWrap,
-                        MatrixWrapper<NthOutBatch> nBestCandidatesWrap,
+__global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
+                        VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                         const MatrixWrapper<float> in,
-                        const MatrixWrapper<float> costsWrap,
+                        const VectorWrapper<float> costsWrap,
                         uint maxBeamSize,
                         bool forbidUNK,
                         bool isFirst,
-                        const MatrixWrapper<uint> hypo2BeamSizeWrap,
-                        const MatrixWrapper<uint> batch2HypoWrap,
-                        const MatrixWrapper<uint> hypo2CandidateWrap)
+                        const VectorWrapper<uint> hypo2BeamSizeWrap,
+                        const VectorWrapper<uint> batch2HypoWrap,
+                        const VectorWrapper<uint> hypo2CandidateWrap)
 {
   //uint rows = in.dim(0);
-  uint batchSize = batch2HypoWrap.dim(0);
+  uint batchSize = batch2HypoWrap.size();
 
   uint batchInd =  blockIdx.x;
   while (batchInd < batchSize) {
@@ -1346,14 +1346,14 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   */
   MatrixWrapper<float> inWrap(in);
   MatrixWrapper<float> b4Wrap(b4);
-  MatrixWrapper<uint> hypo2BeamSizeWrap(hypo2BeamSize);
-  MatrixWrapper<uint> hypo2CandidateWrap(hypo2Candidate);
-  MatrixWrapper<uint> batch2HypoWrap(batch2Hypo);
-  MatrixWrapper<NthOutBatch> nBestWrap(nBest);
-  MatrixWrapper<NthOutBatch> nBestCandidatesWrap(nBestCandidates);
-  MatrixWrapper<float> costsWrap(costs);
+  VectorWrapper<uint> hypo2BeamSizeWrap(hypo2BeamSize);
+  VectorWrapper<uint> hypo2CandidateWrap(hypo2Candidate);
+  VectorWrapper<uint> batch2HypoWrap(batch2Hypo);
+  VectorWrapper<NthOutBatch> nBestWrap(nBest);
+  VectorWrapper<NthOutBatch> nBestCandidatesWrap(nBestCandidates);
+  VectorWrapper<float> costsWrap(costs);
 
-  MatrixWrapper<uint> beamSizesWrap(d_beamSizes);
+  VectorWrapper<uint> beamSizesWrap(d_beamSizes);
 
   //PAUSE_TIMER("LogSoftmax excl kernels");
 

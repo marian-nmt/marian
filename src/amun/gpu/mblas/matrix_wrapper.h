@@ -67,34 +67,6 @@ public:
     updateStrides();
   }
 
-  MatrixWrapper(const Vector<T> &vec)
-  {
-    dim_[0] = vec.size();
-    dim_[1] = 1;
-    dim_[2] = 1;
-    dim_[3] = 1;
-    updateStrides();
-
-    assert(size() == vec.size());
-
-    data_ = nullptr;
-    dataConst_ = vec.data();
-  }
-
-  MatrixWrapper(Vector<T> &vec)
-  {
-    dim_[0] = vec.size();
-    dim_[1] = 1;
-    dim_[2] = 1;
-    dim_[3] = 1;
-    updateStrides();
-
-    assert(size() == vec.size());
-
-    data_ = vec.data();
-    dataConst_ = data_;
-  }
-
   __device__
   MatrixWrapper(T *ptr, uint a, uint b, uint c, uint d)
   {
