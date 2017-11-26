@@ -67,7 +67,7 @@ class Decoder {
         void InitializeState(CellState& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize,
-                             const mblas::IMatrix &sentenceLengths)
+                             const mblas::Vector<uint> &sentenceLengths)
         {
           using namespace mblas;
 
@@ -157,7 +157,7 @@ class Decoder {
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
-                                     const mblas::IMatrix &sentenceLengths,
+                                     const mblas::Vector<uint> &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
@@ -375,7 +375,7 @@ class Decoder {
                   const CellState& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
-                  const mblas::IMatrix &sentenceLengths,
+                  const mblas::Vector<uint> &sentenceLengths,
                   const std::vector<uint>& beamSizes,
                   bool useFusedSoftmax)
     {
@@ -418,7 +418,7 @@ class Decoder {
     void EmptyState(CellState& State,
                     const mblas::Matrix& SourceContext,
                     size_t batchSize,
-                    const mblas::IMatrix &sentenceLengths)
+                    const mblas::Vector<uint> &sentenceLengths)
     {
       rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
       alignment_.Init(SourceContext);
@@ -469,7 +469,7 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
                                   const mblas::Matrix& SourceContext,
-                                  const mblas::IMatrix &sentenceLengths,
+                                  const mblas::Vector<uint> &sentenceLengths,
                                   const std::vector<uint>& beamSizes) {
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,

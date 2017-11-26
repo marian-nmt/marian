@@ -18,7 +18,7 @@ Matrix& Swap(Matrix& Out, Matrix& In) {
 
 __global__ void gMean(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
-                      const MatrixWrapper<uint> sentenceLengths)
+                      const VectorWrapper<uint> sentenceLengths)
 {
   // out = batches * states
   // in = max sentence length * states * 1 * batches
@@ -53,7 +53,7 @@ __global__ void gMean(MatrixWrapper<float> out,
 
 void Mean(Matrix& Out,
           const Matrix& In,
-          const mblas::IMatrix &sentenceLengths)
+          const mblas::Vector<uint> &sentenceLengths)
 {
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
@@ -69,7 +69,7 @@ void Mean(Matrix& Out,
   MatrixWrapper<float> inWrap(In);
   //cerr << "outWrap=" << outWrap.Debug() << endl;
 
-  MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths, false);
+  VectorWrapper<uint> sentenceLengthsWrap(sentenceLengths);
 
   uint size = outWrap.size();
   uint threads = std::min((uint)MAX_THREADS, size);
@@ -435,7 +435,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
                          const VectorWrapper<uint> batchIdsWrap,
-                         const MatrixWrapper<uint> sentenceLengthsWrap,
+                         const VectorWrapper<uint> sentenceLengthsWrap,
                          uint shareSize)
 {
   extern __shared__ float _share[];
@@ -520,14 +520,14 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<uint>& batchIds,
-                const mblas::IMatrix &sentenceLengths,
+                const mblas::Vector<uint> &sentenceLengths,
                 size_t batchSize)
 {
   size_t maxLength = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const VectorWrapper<uint> batchIdsWrap(batchIds);
-  const MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths, false);
+  const VectorWrapper<uint> sentenceLengthsWrap(sentenceLengths);
 
   int blocks = batchSize;
   int threads = std::min(MAX_THREADS, (int)maxLength);
@@ -681,7 +681,7 @@ void Fill(Matrix& In, float value) {
 
 __global__
 void gMapMatrix(MatrixWrapper<float> in,
-                const MatrixWrapper<uint> sentenceLengthsWrap,
+                const VectorWrapper<uint> sentenceLengthsWrap,
                 int i)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -696,7 +696,7 @@ void gMapMatrix(MatrixWrapper<float> in,
 }
 
 void MapMatrix(Matrix& state,
-              const mblas::IMatrix &sentenceLengths,
+              const mblas::Vector<uint> &sentenceLengths,
               size_t i)
 {
   // blank out rows in the state matrix where the word position i does not exist
@@ -709,7 +709,7 @@ void MapMatrix(Matrix& state,
   int numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
 
   MatrixWrapper<float> stateWrap(state);
-  MatrixWrapper<uint> sentenceLengthsWrap(sentenceLengths);
+  VectorWrapper<uint> sentenceLengthsWrap(sentenceLengths);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (stateWrap, sentenceLengthsWrap, i);

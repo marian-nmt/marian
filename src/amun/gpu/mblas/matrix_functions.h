@@ -95,7 +95,7 @@ Matrix& Swap(Matrix& Out, Matrix& In);
 
 void Mean(Matrix& Out,
           const Matrix& In,
-          const mblas::IMatrix &sentenceLengths);
+          const mblas::Vector<uint> &sentenceLengths);
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping);
 
@@ -119,7 +119,7 @@ Matrix& CopyRow(Matrix& Out,
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
-              const mblas::IMatrix &sentenceLengths,
+              const mblas::Vector<uint> &sentenceLengths,
               size_t i);
 
 Matrix& CopyRows(Matrix& Out,
@@ -139,7 +139,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<uint>& batchIds,
-                const mblas::IMatrix &sentenceLengths,
+                const mblas::Vector<uint> &sentenceLengths,
                 size_t batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);

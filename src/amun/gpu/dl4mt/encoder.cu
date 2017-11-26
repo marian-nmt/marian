@@ -63,7 +63,7 @@ std::vector<std::vector<uint>> GetBatchInput(const Sentences& source, size_t tab
 }
 
 void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context,
-                         mblas::IMatrix &sentenceLengths)
+                         mblas::Vector<uint> &sentenceLengths)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);
 
@@ -72,7 +72,7 @@ void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context
     hSentenceLengths[i] = source.at(i)->GetWords(tab).size();
   }
 
-  sentenceLengths.NewSize(source.size(), 1, 1, 1);
+  sentenceLengths.newSize(source.size());
   mblas::copy(hSentenceLengths.data(),
               hSentenceLengths.size(),
               sentenceLengths.data(),
