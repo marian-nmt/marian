@@ -36,7 +36,7 @@ class Encoder {
             }
           }
 
-          mblas::Array<uint> dKnownWords(knownWords);
+          mblas::Vector<uint> dKnownWords(knownWords);
 
           Row.NewSize(words.size(), w_.E_->dim(1));
           mblas::Assemble(Row, *w_.E_, dKnownWords);

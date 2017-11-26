@@ -67,7 +67,7 @@ public:
     updateStrides();
   }
 
-  MatrixWrapper(const Array<T> &vec)
+  MatrixWrapper(const Vector<T> &vec)
   {
     dim_[0] = vec.size();
     dim_[1] = 1;
@@ -81,7 +81,7 @@ public:
     dataConst_ = vec.data();
   }
 
-  MatrixWrapper(Array<T> &vec)
+  MatrixWrapper(Vector<T> &vec)
   {
     dim_[0] = vec.size();
     dim_[1] = 1;

@@ -1,5 +1,5 @@
 /*
- * Array.h
+ * Vector.h
  *
  *  Created on: 8 Dec 2016
  *      Author: hieu
@@ -14,23 +14,23 @@ namespace GPU {
 namespace mblas {
 
 template<typename T>
-class Array
+class Vector
 {
 public:
-  Array()
+  Vector()
   :m_size(0)
   ,m_maxSize(0)
   ,m_arr(nullptr)
   {
   }
 
-  Array(size_t size)
+  Vector(size_t size)
   :m_maxSize(0)
   {
     newSize(size);
   }
 
-  Array(size_t size, const T &val)
+  Vector(size_t size, const T &val)
   :m_maxSize(0)
   {
     newSize(size);
@@ -43,14 +43,14 @@ public:
     }
   }
 
-  Array(const std::vector<T> &vec)
+  Vector(const std::vector<T> &vec)
   :m_maxSize(0)
   {
     newSize(vec.size());
     HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
-  ~Array()
+  ~Vector()
   {
 	cudaFree(m_arr);
   }

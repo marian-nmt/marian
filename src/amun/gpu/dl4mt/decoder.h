@@ -50,7 +50,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        mblas::Array<uint> indices_;
+        mblas::Vector<uint> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };
@@ -233,7 +233,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        mblas::Array<uint> dBatchMapping_;
+        mblas::Vector<uint> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
@@ -337,7 +337,7 @@ class Decoder {
           filtered_ = true;
           using namespace mblas;
 
-          mblas::Array<uint> d_ids(ids);
+          mblas::Vector<uint> d_ids(ids);
           Assemble(FilteredW4_, TempW4, d_ids);
           Assemble(FilteredB4_, TempB4, d_ids);
 
@@ -450,7 +450,7 @@ class Decoder {
       return alignment_.GetAttention();
     }
 
-    mblas::Array<NthOutBatch>& GetNBest() {
+    mblas::Vector<NthOutBatch>& GetNBest() {
       return nBest_;
     }
 
@@ -533,7 +533,7 @@ class Decoder {
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
 
-    mblas::Array<NthOutBatch> nBest_;
+    mblas::Vector<NthOutBatch> nBest_;
     std::shared_ptr<mblas::Matrix> b4_;
 
     Decoder(const Decoder&) = delete;

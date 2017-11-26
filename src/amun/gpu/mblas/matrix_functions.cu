@@ -106,7 +106,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping)
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping)
 {
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
@@ -255,7 +255,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Array<uint>& indices)
+                 const mblas::Vector<uint>& indices)
 {
   assert(In.dim(1) == Out.dim(1));
   assert(Out.dim(0) == indices.size());
@@ -293,7 +293,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Array<uint>& indices) {
+                 const mblas::Vector<uint>& indices) {
   Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
@@ -519,7 +519,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 }
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Array<uint>& batchIds,
+                const mblas::Vector<uint>& batchIds,
                 const mblas::IMatrix &sentenceLengths,
                 size_t batchSize)
 {
@@ -1291,10 +1291,10 @@ __global__ void gNBestPerBatch(MatrixWrapper<NthOutBatch> nBestWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
-                const mblas::Array<float> &costs,
+                const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const std::vector<uint>& beamSizes,
@@ -1325,11 +1325,11 @@ void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
     }
   }
 
-  mblas::Array<uint> d_beamSizes(beamSizes);
-  mblas::Array<uint> hypo2BeamSize(in.dim(0));
-  mblas::Array<uint> hypo2Candidate(in.dim(0));
-  mblas::Array<uint> batch2Hypo(batchSize);
-  mblas::Array<NthOutBatch> nBestCandidates(candidateInd);
+  mblas::Vector<uint> d_beamSizes(beamSizes);
+  mblas::Vector<uint> hypo2BeamSize(in.dim(0));
+  mblas::Vector<uint> hypo2Candidate(in.dim(0));
+  mblas::Vector<uint> batch2Hypo(batchSize);
+  mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
 
   /*
   cerr << "in=" << in.Debug(0) << endl;

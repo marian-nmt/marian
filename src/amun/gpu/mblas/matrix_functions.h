@@ -39,7 +39,7 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
-std::string Debug(const mblas::Array<T> &vec, size_t verbosity = 1)
+std::string Debug(const mblas::Vector<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
@@ -96,7 +96,7 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::IMatrix &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -123,11 +123,11 @@ void MapMatrix(Matrix& state,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Array<uint>& indices);
+                 const mblas::Vector<uint>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Array<uint>& indices);
+                 const mblas::Vector<uint>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -137,7 +137,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Array<uint>& batchIds,
+                const mblas::Vector<uint>& batchIds,
                 const mblas::IMatrix &sentenceLengths,
                 size_t batchSize);
 
@@ -188,7 +188,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const mblas::Array<uint>& batchMapping,
+                  const mblas::Vector<uint>& batchMapping,
                   size_t srcSize)
 {
   size_t sumOfBeamSizes = in2.dim(0);
@@ -254,7 +254,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Array<float>& In)
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<float>& In)
 {
   size_t rows  = Out.dim(0);
   size_t cols = Out.dim(1);
@@ -427,10 +427,10 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
 
-void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
-                const mblas::Array<float> &costs,
+                const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const std::vector<uint>& beamSizes,
