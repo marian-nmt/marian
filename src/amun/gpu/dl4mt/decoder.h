@@ -2,7 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/array.h"
+#include "gpu/mblas/vector.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
@@ -30,7 +30,7 @@ class Decoder {
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
-          indices_.resize(tids.size());
+          indices_.newSize(tids.size());
 
           mblas::copy(tids.data(),
               tids.size(),
@@ -179,7 +179,7 @@ class Decoder {
             }
           }
 
-          dBatchMapping_.resize(batchMapping.size());
+          dBatchMapping_.newSize(batchMapping.size());
           mblas::copy(batchMapping.data(),
               batchMapping.size(),
               dBatchMapping_.data(),

@@ -112,7 +112,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
-  indices_.resize(beamStateIds.size());
+  indices_.newSize(beamStateIds.size());
 
   mblas::copy(beamStateIds.data(),
       beamStateIds.size(),

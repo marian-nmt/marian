@@ -9,7 +9,7 @@
 #include "gpu/types-gpu.h"
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/handles.h"
-#include "gpu/mblas/array.h"
+#include "gpu/mblas/vector.h"
 
 
 namespace amunmt {

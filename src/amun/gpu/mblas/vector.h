@@ -27,13 +27,13 @@ public:
   Array(size_t size)
   :m_maxSize(0)
   {
-    resize(size);
+    newSize(size);
   }
 
   Array(size_t size, const T &val)
   :m_maxSize(0)
   {
-    resize(size);
+    newSize(size);
 
     if (val) {
       abort();
@@ -46,7 +46,7 @@ public:
   Array(const std::vector<T> &vec)
   :m_maxSize(0)
   {
-    resize(vec.size());
+    newSize(vec.size());
     HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
@@ -64,7 +64,7 @@ public:
   const T *data() const
   { return m_arr; }
 
-  void resize(size_t newSize)
+  void newSize(size_t newSize)
   {
     reserve(newSize);
     m_size = newSize;

@@ -101,7 +101,7 @@ void  BestHyps::CalcBeam(
   if (god_.UseFusedSoftmax()) {
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetBias());
     mblas::Array<NthOutBatch> &nBest = *static_cast<mblas::Array<NthOutBatch>*>(scorers[0]->GetNBest());
-    nBest.resize(beamSizeSum);
+    nBest.newSize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
     mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);

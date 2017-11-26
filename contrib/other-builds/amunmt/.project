@@ -1536,11 +1536,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/model.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/gpu/mblas/array.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/array.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/gpu/mblas/handles.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/handles.h</locationURI>
@@ -1594,6 +1589,11 @@
 			<name>src/amun/gpu/mblas/thrust_functions.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/thrust_functions.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/vector.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/vector.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/3rd_party/blaze/config/Assertion.h</name>

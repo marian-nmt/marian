@@ -10,7 +10,7 @@
 #include "common/utils.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/nth_element.h"
-#include "gpu/mblas/array.h"
+#include "gpu/mblas/vector.h"
 
 #include "gpu/decoder/encoder_decoder.h"
 

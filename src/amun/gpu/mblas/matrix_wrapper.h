@@ -1,6 +1,6 @@
 #pragma once
 #include "matrix.h"
-#include "gpu/mblas/array.h"
+#include "gpu/mblas/vector.h"
 
 namespace amunmt {
 namespace GPU {
