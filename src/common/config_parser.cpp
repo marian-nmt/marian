@@ -331,6 +331,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "If these files do not exists they are created")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
       "Finish after this many epochs, 0 is infinity")
     ("after-batches", po::value<size_t>()->default_value(0),
@@ -514,6 +516,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Allow unknown words to appear in output")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -556,6 +560,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -811,6 +817,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(mode_ == ConfigMode::training || mode_ == ConfigMode::translating)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
+  SET_OPTION("max-length-crop", bool);
 
   if(vm_["best-deep"].as<bool>()) {
     config_["layer-normalization"] = true;
