@@ -54,7 +54,7 @@ public:
   Expr outputs() {
     std::vector<Expr> outputs;
     for(auto s : states_)
-      outputs.push_back(s.output);
+      outputs.push_back(atleast_3d(s.output));
     if(outputs.size() > 1)
       return concatenate(outputs, keywords::axis = -3);
     else
