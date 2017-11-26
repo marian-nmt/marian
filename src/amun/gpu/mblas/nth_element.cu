@@ -11,7 +11,7 @@ namespace amunmt {
 namespace GPU {
 
 NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
-: d_breakdown(maxBeamSize, 1, 1, 1)
+: d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
 {
@@ -54,7 +54,7 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   }
 
   uint numHypos = cummulatedBeamSizes.back();
-  d_res.NewSize(numHypos, 1, 1, 1);
+  d_res.newSize(numHypos);
   h_res.resize(numHypos);
 
   //cerr << endl;
@@ -83,11 +83,11 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
   const uint numBatches = batchFirstElementIdxs.size() - 1;
 
-  d_out.NewSize(maxBatchSize_ * numBlocks, 1, 1, 1);
+  d_out.newSize(maxBatchSize_ * numBlocks);
 
   //cerr << "cummulatedBeamSizes=" << cummulatedBeamSizes.size() << endl;
-  d_batchPosition.NewSize(batchFirstElementIdxs.size(), 1, 1, 1);
-  d_cumBeamSizes.NewSize(cummulatedBeamSizes.size(), 1, 1, 1);
+  d_batchPosition.newSize(batchFirstElementIdxs.size());
+  d_cumBeamSizes.newSize(cummulatedBeamSizes.size());
   assert(d_batchPosition.size() == d_cumBeamSizes.size());
 
   mblas::copy(batchFirstElementIdxs.data(),
@@ -99,11 +99,11 @@ void NthElement::getNBestList(mblas::Matrix &probs,
               d_cumBeamSizes.data(),
               cudaMemcpyHostToDevice);
 
-  mblas::MatrixWrapper<NthOut> outWrap(d_out);
+  mblas::VectorWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
-  mblas::MatrixWrapper<uint> batchPositionWrap(d_batchPosition);
-  mblas::MatrixWrapper<NthOut> resWrap(d_res, false);
-  mblas::MatrixWrapper<uint> cumBeamSizesWrap(d_cumBeamSizes);
+  mblas::VectorWrapper<uint> batchPositionWrap(d_batchPosition);
+  mblas::VectorWrapper<NthOut> resWrap(d_res);
+  mblas::VectorWrapper<uint> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), mblas::CudaStreamHandler::GetStream()>>>
     (outWrap, probsWrap, batchPositionWrap, numBatches);
@@ -156,7 +156,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   // need a model with multiple scorers to test this method
   assert(false);
 
-  mblas::MatrixWrapper<float> breakdownWrap(d_breakdown);
+  mblas::VectorWrapper<float> breakdownWrap(d_breakdown);
   const mblas::MatrixWrapper<float> inWrap(d_in);
 
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>

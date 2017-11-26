@@ -2,9 +2,10 @@
 
 #include <vector>
 #include <algorithm>
-
 #include <cuda.h>
+
 #include "gpu/mblas/matrix.h"
+#include "gpu/mblas/vector.h"
 #include "nth_element_kernels.h"
 
 namespace amunmt {
@@ -34,14 +35,14 @@ class NthElement {
   private:
     const uint BLOCK_SIZE = 512;
 
-    mblas::TMatrix<NthOut> d_out;
+    mblas::Vector<NthOut> d_out;
 
-    mblas::TMatrix<NthOut> d_res;
+    mblas::Vector<NthOut> d_res;
     std::vector<NthOut> h_res;
 
-    mblas::TMatrix<float> d_breakdown;
-    mblas::TMatrix<uint> d_batchPosition;
-    mblas::TMatrix<uint> d_cumBeamSizes;
+    mblas::Vector<float> d_breakdown;
+    mblas::Vector<uint> d_batchPosition;
+    mblas::Vector<uint> d_cumBeamSizes;
 
     uint maxBeamSize_, maxBatchSize_;
 

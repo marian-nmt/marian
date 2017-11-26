@@ -177,7 +177,7 @@ Matrix& Copy(Matrix& Out, const Matrix& In) {
   return Out;
 }
 
-__global__ void gPasteRows(  MatrixWrapper<float> out,
+__global__ void gPasteRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
                           int rowNo, int colNo)
 {
@@ -478,7 +478,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     __syncthreads();
 
     //float* _sum = _share;// + blockDim.x;
-    MatrixWrapper<float> _sum(_share, shareSize, 1, 1, 1);
+    VectorWrapper<float> _sum(_share, shareSize);
 
     _sum[origSrcPos] = 0.0f;
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
@@ -579,7 +579,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, uint shareSize)
     __syncthreads();
 
     //float* _sum = _share;// + blockDim.x;
-    MatrixWrapper<float> _sum(_share, shareSize, 1, 1, 1);
+    VectorWrapper<float> _sum(_share, shareSize);
 
     _sum[threadIdx.x] = 0.0f;
     for (int tid = 0; tid < cols; tid += blockDim.x) {

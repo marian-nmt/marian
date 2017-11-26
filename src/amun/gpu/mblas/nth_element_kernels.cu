@@ -17,9 +17,9 @@ void UnrollMaxArgLoop(uint n, uint max, uint tid, float *sdata, uint *indices)
   }
 }
 
-__global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
+__global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
                             const mblas::MatrixWrapper<float> probsWrap,
-                            const mblas::MatrixWrapper<uint> batchPositionWrap,
+                            const mblas::VectorWrapper<uint> batchPositionWrap,
                             uint numBatches) {
   extern __shared__ float sdata[];
   __shared__ uint indices[SHARED_SIZE];
@@ -95,11 +95,11 @@ __global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
   }
 }
 
-__global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
+__global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
                                   mblas::MatrixWrapper<float> probsWrap,
-                                  mblas::MatrixWrapper<NthOut> resNewWrap,
-                                  const mblas::MatrixWrapper<uint> batchPositionWrap,
-                                  const mblas::MatrixWrapper<uint> cumBeamSizesWrap,
+                                  mblas::VectorWrapper<NthOut> resWrap,
+                                  const mblas::VectorWrapper<uint> batchPositionWrap,
+                                  const mblas::VectorWrapper<uint> cumBeamSizesWrap,
                                   uint numBlocks) {
   extern __shared__ float sdata[];
   __shared__ uint indices[SHARED_SIZE];
@@ -179,8 +179,8 @@ __global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
 
       probsWrap[ out[bestBinCostIdx].ind ] = -3.40282e+38f;
 
-      resNewWrap[pos].ind = out[bestBinCostIdx].ind;
-      resNewWrap[pos].score = bestBinCost;
+      resWrap[pos].ind = out[bestBinCostIdx].ind;
+      resWrap[pos].score = bestBinCost;
     }
 
     __syncthreads();
