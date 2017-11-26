@@ -131,15 +131,15 @@ Expr reshape(Expr a, Shape shape) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr atleast_1d(Expr a, size_t dims) {
+Expr atleast_1d(Expr a) {
   return atleast_nd(a, 1);
 }
 
-Expr atleast_2d(Expr a, size_t dims) {
+Expr atleast_2d(Expr a) {
   return atleast_nd(a, 2);
 }
 
-Expr atleast_3d(Expr a, size_t dims) {
+Expr atleast_3d(Expr a) {
   return atleast_nd(a, 3);
 }
 

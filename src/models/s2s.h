@@ -328,7 +328,7 @@ public:
          options_->has("original-type")
              && opt<std::string>("original-type") == "nematus");
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
+    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     auto layer2 = mlp::dense(graph)           //
         ("prefix", prefix_ + "_ff_logit_l2")  //
