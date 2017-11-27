@@ -76,6 +76,11 @@ public:
   const T *data() const
   { return m_arr; }
 
+  void setdata(T *val)
+  {
+    m_arr = val;
+  }
+
   void resize(size_t newSize)
   {
     if (newSize > m_maxSize) {

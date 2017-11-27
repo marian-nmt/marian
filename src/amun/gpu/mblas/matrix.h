@@ -9,6 +9,7 @@
 #include "common/base_matrix.h"
 #include "gpu/types-gpu.h"
 #include "handles.h"
+#include "vector.h"
 
 namespace amunmt {
 namespace GPU {
@@ -266,6 +267,7 @@ class TMatrix : public BaseMatrix {
   private:
     size_t dim_[SHAPE_SIZE];
 
+    Vector<T> vec_;
     size_t arrSize_;
     T *data_;
 };
