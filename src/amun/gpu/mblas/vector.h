@@ -76,12 +76,6 @@ public:
   const T *data() const
   { return m_arr; }
 
-  void newSize(size_t newSize)
-  {
-    reserve(newSize);
-    m_size = newSize;
-  }
-
   void resize(size_t newSize)
   {
     if (newSize > m_maxSize) {
@@ -105,6 +99,12 @@ public:
       m_maxSize = newSize;
     }
 
+    m_size = newSize;
+  }
+
+  void newSize(size_t newSize)
+  {
+    reserve(newSize);
     m_size = newSize;
   }
 
