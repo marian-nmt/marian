@@ -84,11 +84,12 @@ public:
 
   void resize(size_t newSize)
   {
-    if (m_maxSize) {
-      assert(m_arr);
-      if (newSize > m_maxSize) {
-        T *newData;
-        HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
+    if (newSize > m_maxSize) {
+      T *newData;
+      HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
+
+      if (m_maxSize) {
+        assert(m_arr);
 
         HANDLE_ERROR( cudaMemcpyAsync(
             newData,
@@ -98,13 +99,10 @@ public:
             CudaStreamHandler::GetStream()) );
 
         HANDLE_ERROR(cudaFree(m_arr));
-
-        m_arr = newData;
-        m_maxSize = newSize;
       }
-    }
-    else {
-      assert(m_arr == nullptr);
+
+      m_arr = newData;
+      m_maxSize = newSize;
     }
 
     m_size = newSize;
