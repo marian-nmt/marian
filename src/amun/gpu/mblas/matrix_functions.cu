@@ -1019,10 +1019,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 {
   extern __shared__ char _sharePtr[];
 
-  VectorWrapper<float> maxVec((float*)_sharePtr, blockDim.x);
-
-  void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
-  MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
+  MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)_sharePtr, blockDim.x, maxBeamSize, 1, 1);
   NthOutBatch *arr = &nBestMatrix(threadIdx.x, 0, 0, 0);
 
   uint vocabSize = in.dim(1);
@@ -1076,9 +1073,9 @@ void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 
   }
 
-  __syncthreads();
-
   if (threadIdx.x == 0) {
+    __syncthreads();
+
     // copy to output array
     assert(hypoInd < hypo2CandidateWrap.size());
     uint candidateInd = hypo2CandidateWrap[hypoInd];
@@ -1108,12 +1105,12 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                             const VectorWrapper<uint> hypo2CandidateWrap)
 {
   extern __shared__ float _share[];
+  VectorWrapper<float> _sum(_share, blockDim.x);
 
   size_t vocabSize = in.dim(1);
   //assert(nBestCandidatesWrap.dim(0) == rows);
 
   //float* _sum = _share;// + blockDim.x;
-  VectorWrapper<float> _sum(_share, blockDim.x);
 
   // calc sum
   _sum[threadIdx.x] = 0.0f;
@@ -1135,11 +1132,9 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
     len = (len + 1) >> 1;
   }
 
-  __syncthreads();
-
   // apply partition and log to top
   if (threadIdx.x == 0) {
-    //__syncthreads();
+    __syncthreads();
     //printf("val=%f %f \n", in(rowIdx, ele.vocabId, 0, 0), val);
 
     // nbest
@@ -1181,6 +1176,8 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
             forbidUNK,
             hypo2BeamSizeWrap,
             hypo2CandidateWrap);
+
+    __syncthreads();
 
     SumAndLogSoftMax(nBestCandidatesWrap,
                 in,
@@ -1359,8 +1356,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
 
   int blocks = std::min(MAX_BLOCKS, (int)in.dim(0));
   int threads = std::min(MAX_THREADS, (int)in.dim(1));
-  int shared = sizeof(NthOutBatch) * threads * maxBeamSize
-             + sizeof(float) * threads;
+  int shared = sizeof(NthOutBatch) * threads * maxBeamSize;
   //cerr << "shared=" << shared << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
