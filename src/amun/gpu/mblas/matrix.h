@@ -55,8 +55,6 @@ class TMatrix : public BaseMatrix {
     typedef T value_type;
 
     TMatrix()
-    : arrSize_(0)
-    , data_(nullptr)
     {
       dim_[0] = 0;
       dim_[1] = 0;
@@ -70,11 +68,12 @@ class TMatrix : public BaseMatrix {
       dim_[1] = cols;
       dim_[2] = beam;
       dim_[3] = batches;
-      arrSize_ = size();
 
-      HANDLE_ERROR( cudaMalloc(&data_, arrSize_ * sizeof(T)) );
+      uint newSize = size();
+      vec_.newSize(newSize);
+
       if (zero) {
-        HANDLE_ERROR( cudaMemsetAsync(data_, 0, arrSize_ * sizeof(T), CudaStreamHandler::GetStream()) );
+        HANDLE_ERROR( cudaMemsetAsync(vec_.data(), 0, newSize * sizeof(T), CudaStreamHandler::GetStream()) );
       }
     }
 
@@ -85,26 +84,16 @@ class TMatrix : public BaseMatrix {
     }
 
     TMatrix(const TMatrix& m)
-    : arrSize_(m.arrSize_)
+    : vec_(m.vec_)
     {
       dim_[0] = m.dim_[0];
       dim_[1] = m.dim_[1];
       dim_[2] = m.dim_[2];
       dim_[3] = m.dim_[3];
-
-      HANDLE_ERROR( cudaMalloc(&data_, arrSize_ * sizeof(T)) );
-      //std::cerr << "malloc data2:" << data_ << std::endl;
-      HANDLE_ERROR( cudaMemcpyAsync(
-          data_,
-          m.data_,
-          arrSize_ * sizeof(T),
-          cudaMemcpyDeviceToDevice,
-          CudaStreamHandler::GetStream()) );
     }
 
     ~TMatrix()
     {
-      HANDLE_ERROR(cudaFree(data_));
     }
 
     virtual size_t dim(size_t i) const
@@ -114,41 +103,7 @@ class TMatrix : public BaseMatrix {
 
     void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
       size_t newSize = cols * rows * beam * batches;
-      if (data_) {
-        if (newSize > arrSize_) {
-          T *newData;
-          HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
-          //std::cerr << "malloc data3:" << data_ << std::endl;
-
-          //size_t count = std::min(arrSize_, newSize);
-
-          HANDLE_ERROR( cudaMemcpyAsync(
-              newData,
-              data_,
-              size() * sizeof(T),
-              cudaMemcpyDeviceToDevice,
-              CudaStreamHandler::GetStream()) );
-
-          //std::cerr << "free data1:" << data_ << std::endl;
-          HANDLE_ERROR(cudaFree(data_));
-          data_ = newData;
-          arrSize_ = newSize;
-        }
-        else if (rows == 0 || cols == 0) {
-            HANDLE_ERROR(cudaFree(data_));
-            data_ = nullptr;
-            dim_[0] = 0;
-            dim_[1] = 0;
-            dim_[2] = 0;
-            dim_[3] = 0;
-            arrSize_ = 0;
-        }
-      }
-      else {
-        HANDLE_ERROR( cudaMalloc(&data_, newSize * sizeof(T)) );
-        //std::cerr << "malloc data4:" << data_ << std::endl;
-        arrSize_ = newSize;
-      }
+      vec_.resize(newSize);
 
       dim_[0] = rows;
       dim_[1] = cols;
@@ -158,29 +113,7 @@ class TMatrix : public BaseMatrix {
 
     void NewSize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
       size_t newSize = cols * rows * beam * batches;
-      if (data_) {
-        if (newSize > arrSize_) {
-          T *newData;
-          HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
-          HANDLE_ERROR( cudaFree(data_));
-          data_ = newData;
-          arrSize_ = newSize;
-        }
-        else if (rows == 0 || cols == 0) {
-            HANDLE_ERROR( cudaFree(data_));
-            data_ = nullptr;
-            dim_[0] = 0;
-            dim_[1] = 0;
-            dim_[2] = 0;
-            dim_[3] = 0;
-            arrSize_ = 0;
-        }
-      }
-      else {
-        HANDLE_ERROR( cudaMalloc(&data_, newSize * sizeof(T)) );
-        //std::cerr << "malloc data4:" << data_ << std::endl;
-        arrSize_ = newSize;
-      }
+      vec_.newSize(newSize);
 
       dim_[0] = rows;
       dim_[1] = cols;
@@ -188,40 +121,13 @@ class TMatrix : public BaseMatrix {
       dim_[3] = batches;
     }
 
-    void reserve(size_t size)
-    {
-      assert(data_ == nullptr);
-      HANDLE_ERROR( cudaMalloc(&data_, size * sizeof(T)) );
-      arrSize_ = size;
-    }
-
-    /*
-    void ReduceDimensions()
-    {
-    	if (dim_[2] == 1) {
-    		dim_[2] = dim_[3];
-    		dim_[3] = 1;
-    	}
-    	if (dim_[0] == 1) {
-    		dim_[0] = dim_[2];
-    		dim_[2] = dim_[3];
-    		dim_[3] = 1;
-    	}
-    	if (dim_[1] == 1) {
-    		dim_[1] = dim_[0];
-    		dim_[0] = dim_[2];
-    		dim_[2] = dim_[3];
-    		dim_[3] = 1;
-    	}
-    }
-    */
-
     virtual std::string Debug(size_t verbosity = 1) const
     {
       std::stringstream strm;
       strm << BaseMatrix::Debug(verbosity) << " ";
-      strm << data_ << " "
-          << arrSize_ << " "
+      strm << vec_.data() << " "
+          << vec_.size() << " "
+          << vec_.maxSize() << " "
           << std::flush;
 
       if (verbosity) {
@@ -234,7 +140,7 @@ class TMatrix : public BaseMatrix {
 
           HANDLE_ERROR( cudaMemcpyAsync(
               &h_data,
-              data_,
+              vec_.data(),
               size() * sizeof(T),
               cudaMemcpyDeviceToHost,
               stream) );
@@ -250,26 +156,22 @@ class TMatrix : public BaseMatrix {
     }
 
     value_type* data() {
-      return data_;
+      return vec_.data();
     }
 
     const value_type* data() const {
-      return data_;
+      return vec_.data();
     }
 
     void swap(TMatrix &other)
     {
       std::swap(dim_, other.dim_);
-      std::swap(arrSize_, other.arrSize_);
-      std::swap(data_, other.data_);
+      vec_.swap(other.vec_);
     }
 
   private:
     size_t dim_[SHAPE_SIZE];
-
     Vector<T> vec_;
-    size_t arrSize_;
-    T *data_;
 };
 
 typedef TMatrix<float> Matrix;

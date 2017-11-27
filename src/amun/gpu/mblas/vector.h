@@ -17,20 +17,20 @@ class Vector
 {
 public:
   Vector()
-  :m_size(0)
-  ,m_maxSize(0)
-  ,m_arr(nullptr)
+  :size_(0)
+  ,maxSize_(0)
+  ,data_(nullptr)
   {
   }
 
   Vector(size_t size)
-  :m_maxSize(0)
+  :maxSize_(0)
   {
     newSize(size);
   }
 
   Vector(size_t size, const T &val)
-  :m_maxSize(0)
+  :maxSize_(0)
   {
     newSize(size);
 
@@ -38,109 +38,111 @@ public:
       abort();
     }
     else {
-      HANDLE_ERROR(cudaMemsetAsync(m_arr, 0, m_size * sizeof(float), CudaStreamHandler::GetStream()));
+      HANDLE_ERROR(cudaMemsetAsync(data_, 0, size_ * sizeof(float), CudaStreamHandler::GetStream()));
     }
   }
 
   Vector(const std::vector<T> &vec)
-  :m_maxSize(0)
+  :maxSize_(0)
   {
     newSize(vec.size());
-    HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
+    HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
   Vector(const Vector<T> &other)
-  :m_maxSize(other.m_size)
+  :maxSize_(other.size_)
+  ,size_(other.size_)
   {
-    HANDLE_ERROR( cudaMalloc(&m_arr, m_size * sizeof(T)) );
+    HANDLE_ERROR( cudaMalloc(&data_, size_ * sizeof(T)) );
     //std::cerr << "malloc data2:" << data_ << std::endl;
     HANDLE_ERROR( cudaMemcpyAsync(
-        m_arr,
-        other.m_arr,
-        m_size * sizeof(T),
+        data_,
+        other.data_,
+        size_ * sizeof(T),
         cudaMemcpyDeviceToDevice,
         CudaStreamHandler::GetStream()) );
   }
 
   ~Vector()
   {
-    HANDLE_ERROR(cudaFree(m_arr));
+    HANDLE_ERROR(cudaFree(data_));
   }
 
   size_t size() const
-  { return m_size; }
+  { return size_; }
+
+  size_t maxSize() const
+  { return maxSize_; }
 
   T *data()
-  { return m_arr; }
+  { return data_; }
 
   const T *data() const
-  { return m_arr; }
-
-  void setdata(T *val)
-  {
-    m_arr = val;
-  }
+  { return data_; }
 
   void resize(size_t newSize)
   {
-    if (newSize > m_maxSize) {
+    if (newSize > maxSize_) {
       T *newData;
       HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
 
-      if (m_maxSize) {
-        assert(m_arr);
+      if (maxSize_) {
+        assert(data_);
 
         HANDLE_ERROR( cudaMemcpyAsync(
             newData,
-            m_arr,
-            m_size * sizeof(T),
+            data_,
+            size_ * sizeof(T),
             cudaMemcpyDeviceToDevice,
             CudaStreamHandler::GetStream()) );
 
-        HANDLE_ERROR(cudaFree(m_arr));
+        HANDLE_ERROR(cudaFree(data_));
+      }
+      else {
+        assert(data_ == nullptr);
       }
 
-      m_arr = newData;
-      m_maxSize = newSize;
+      data_ = newData;
+      maxSize_ = newSize;
     }
 
-    m_size = newSize;
+    size_ = newSize;
   }
 
   void newSize(size_t newSize)
   {
     reserve(newSize);
-    m_size = newSize;
+    size_ = newSize;
   }
 
   void reserve(size_t newSize)
   {
-    if (newSize > m_maxSize) {
-      if (m_maxSize) {
-        HANDLE_ERROR(cudaFree(m_arr));
+    if (newSize > maxSize_) {
+      if (maxSize_) {
+        HANDLE_ERROR(cudaFree(data_));
       }
 
-      HANDLE_ERROR( cudaMalloc(&m_arr, newSize * sizeof(T)) );
+      HANDLE_ERROR( cudaMalloc(&data_, newSize * sizeof(T)) );
 
-      m_maxSize = newSize;
+      maxSize_ = newSize;
     }
   }
 
   void clear()
   {
-    m_size = 0;
+    size_ = 0;
   }
 
   void swap(Vector &other)
   {
-    std::swap(m_size, other.m_size);
-    std::swap(m_maxSize, other.m_maxSize);
-    std::swap(m_arr, other.m_arr);
+    std::swap(size_, other.size_);
+    std::swap(maxSize_, other.maxSize_);
+    std::swap(data_, other.data_);
   }
 
 protected:
-  size_t m_size, m_maxSize;
-  T *m_arr;
+  size_t size_, maxSize_;
+  T *data_;
 
 
 
