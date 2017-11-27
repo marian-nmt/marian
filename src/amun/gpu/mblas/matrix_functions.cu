@@ -1396,10 +1396,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step2" << endl;
 
-  threads = 1;
-
   //BEGIN_TIMER("gNBestPerBatch");
-  gNBestPerBatch<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+  gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
     (nBestWrap,
      nBestCandidatesWrap,
      inWrap,
