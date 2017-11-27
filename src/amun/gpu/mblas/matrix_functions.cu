@@ -1019,7 +1019,11 @@ void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 {
   extern __shared__ char _sharePtr[];
 
-  MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)_sharePtr, blockDim.x, maxBeamSize, 1, 1);
+  // placeholder for shared mem in subsequent function SumAndLogSoftMax
+  //MatrixWrapper<float> maxMatrix((float*)_sharePtr, blockDim.x, 1, 1, 1);
+
+  void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
+  MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
   NthOutBatch *arr = &nBestMatrix(threadIdx.x, 0, 0, 0);
 
   uint vocabSize = in.dim(1);
@@ -1177,7 +1181,7 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
             hypo2BeamSizeWrap,
             hypo2CandidateWrap);
 
-    __syncthreads();
+    //__syncthreads();
 
     SumAndLogSoftMax(nBestCandidatesWrap,
                 in,
@@ -1356,8 +1360,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
 
   int blocks = std::min(MAX_BLOCKS, (int)in.dim(0));
   int threads = std::min(MAX_THREADS, (int)in.dim(1));
-  int shared = sizeof(NthOutBatch) * threads * maxBeamSize;
-  //cerr << "shared=" << shared << endl;
+  int shared = sizeof(NthOutBatch) * threads * maxBeamSize
+             + sizeof(float) * threads;
+  cerr << "shared=" << shared << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step0" << endl;
