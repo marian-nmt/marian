@@ -50,6 +50,19 @@ public:
     HANDLE_ERROR( cudaMemcpyAsync(m_arr, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
+  Vector(const Vector<T> &other)
+  :m_maxSize(other.m_size)
+  {
+    HANDLE_ERROR( cudaMalloc(&m_arr, m_size * sizeof(T)) );
+    //std::cerr << "malloc data2:" << data_ << std::endl;
+    HANDLE_ERROR( cudaMemcpyAsync(
+        m_arr,
+        other.m_arr,
+        m_size * sizeof(T),
+        cudaMemcpyDeviceToDevice,
+        CudaStreamHandler::GetStream()) );
+  }
+
   ~Vector()
   {
 	cudaFree(m_arr);
