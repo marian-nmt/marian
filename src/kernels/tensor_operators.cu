@@ -1628,7 +1628,11 @@ __global__ void gLayerNormalizationGrad(float* gradX,
           grad_x -= sum_adj_x[0] * x_hat;
           grad_x /= (cols * sigma);
 
-          gradXRow[id] += gamma[id] * grad_x;
+          float valX = gamma[id] * grad_x;
+          float sign = (0.f < valX) - (valX < 0.f);
+          valX = fabs(valX) > 1000 ? sign * 1000 : valX;
+
+          gradXRow[id] += valX;
           atomicAdd(gradGamma + id, adjRow[id] * x_hat);
           if(beta) {
             atomicAdd(gradBeta + id, adjRow[id]);

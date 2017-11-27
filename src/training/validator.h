@@ -215,6 +215,12 @@ public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")) {
+
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts);
+
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
                 "No post-processing script given for validating translator");

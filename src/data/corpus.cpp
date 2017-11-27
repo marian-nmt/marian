@@ -31,6 +31,7 @@ const SentenceTuple& CorpusIterator::dereference() const {
 Corpus::Corpus(Ptr<Config> options, bool translate)
     : options_(options),
       maxLength_(options_->get<size_t>("max-length")),
+      maxLengthCrop_(options_->get<bool>("max-length-crop")),
       g_(Config::seed) {
   bool training = !translate;
 
@@ -124,7 +125,8 @@ Corpus::Corpus(std::vector<std::string> paths,
     : DatasetBase(paths),
       options_(options),
       vocabs_(vocabs),
-      maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")) {
+      maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")),
+      maxLengthCrop_(options_->get<bool>("max-length-crop")) {
   ABORT_IF(paths_.size() != vocabs_.size(),
            "Number of corpus files and vocab files does not agree");
 
@@ -149,8 +151,15 @@ SentenceTuple Corpus::next() {
       std::string line;
       if(std::getline((std::istream&)*files_[i], line)) {
         Words words = (*vocabs_[i])(line);
+
         if(words.empty())
           words.push_back(0);
+
+        if(maxLengthCrop_ && words.size() > maxLength_) {
+          words.resize(maxLength_);
+          words.back() = 0;
+        }
+
         tup.push_back(words);
       }
     }
