@@ -82,6 +82,34 @@ public:
     m_size = newSize;
   }
 
+  void resize(size_t newSize)
+  {
+    if (m_maxSize) {
+      assert(m_arr);
+      if (newSize > m_maxSize) {
+        T *newData;
+        HANDLE_ERROR( cudaMalloc(&newData, newSize * sizeof(T)) );
+
+        HANDLE_ERROR( cudaMemcpyAsync(
+            newData,
+            m_arr,
+            m_size * sizeof(T),
+            cudaMemcpyDeviceToDevice,
+            CudaStreamHandler::GetStream()) );
+
+        HANDLE_ERROR(cudaFree(m_arr));
+
+        m_arr = newData;
+        m_maxSize = newSize;
+      }
+    }
+    else {
+      assert(m_arr == nullptr);
+    }
+
+    m_size = newSize;
+  }
+
   void reserve(size_t newSize)
   {
     if (newSize > m_maxSize) {
