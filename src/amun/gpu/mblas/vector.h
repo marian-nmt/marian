@@ -126,6 +126,13 @@ public:
     m_size = 0;
   }
 
+  void swap(Vector &other)
+  {
+    std::swap(m_size, other.m_size);
+    std::swap(m_maxSize, other.m_maxSize);
+    std::swap(m_arr, other.m_arr);
+  }
+
 protected:
   size_t m_size, m_maxSize;
   T *m_arr;
