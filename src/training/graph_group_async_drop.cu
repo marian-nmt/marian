@@ -20,10 +20,6 @@ Tensor AsyncGraphGroupDrop::newTensor(int size, int device) {
 }
 
 void AsyncGraphGroupDrop::fetchParams(Tensor oldParams, const std::vector<Tensor>& params, int device_id) {
-  if (fetchStep_[device_id]++ < FETCH_WARMUP){
-    AsyncGraphGroup::fetchParams(oldParams, params, device_id); return;
-  }
-
   using namespace functional;
   // @TODO read guard on parameters
   int pos = 0;
@@ -31,10 +27,19 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams, const std::vector<Tensor
   std::vector<std::thread> threads;
   for(int i = 0; i < devices_.size(); i++) {
     threads.emplace_back(std::thread(
-        [=](int idx, int pos) {
+        [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
 
+          // normal fetch
+          if (fetchStep_[device_id] < FETCH_WARMUP ||
+            &params == &paramsAvg_){ // Do not use sparse fetch when fetching from paramsAvg
+            oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
+            paramsLocal_[device_id][idx]->copyFrom(params[idx]);
+            return;
+          }
+          
+          //sparse fetch
           // get delta : params latest version - current param (locally)
           Element(_1 = _2 - _3,
                   paramsDelta_[idx],
@@ -62,6 +67,7 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams, const std::vector<Tensor
   for(auto&& t : threads) {
     t.join();
   }
+  fetchStep_[device_id]++;
 }
 
 void AsyncGraphGroupDrop::pushGradients(Tensor newGrads, size_t batch_words, int device_id) {

@@ -12,8 +12,8 @@ class AsyncGraphGroupDrop : public AsyncGraphGroup {
 
   std::vector<int> fetchStep_;
   std::vector<int> pushStep_;
-  const int FETCH_WARMUP = 1;
-  const int PUSH_WARMUP = 0;
+  const int FETCH_WARMUP = 100;
+  const int PUSH_WARMUP = 100;
 
   bool drop_first = 1;
   float droping_rate;
