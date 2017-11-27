@@ -572,7 +572,7 @@ void Prod(cublasHandle_t handle,
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+  cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
 #endif
   cublasSgemm(handle,
               opB,
@@ -589,7 +589,7 @@ void Prod(cublasHandle_t handle,
               C->data(),
               ldc);
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
+  cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 
@@ -628,7 +628,7 @@ void ProdBatched(cublasHandle_t handle,
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+  cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
 #endif
   cublasSgemmStridedBatched(handle,
                             opB,
@@ -649,7 +649,7 @@ void ProdBatched(cublasHandle_t handle,
                             n * m,
                             std::max(batchA, batchB));
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
+  cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 
@@ -1628,7 +1628,11 @@ __global__ void gLayerNormalizationGrad(float* gradX,
           grad_x -= sum_adj_x[0] * x_hat;
           grad_x /= (cols * sigma);
 
-          gradXRow[id] += gamma[id] * grad_x;
+          float valX = gamma[id] * grad_x;
+          float sign = (0.f < valX) - (valX < 0.f);
+          valX = fabs(valX) > 1000 ? sign * 1000 : valX;
+
+          gradXRow[id] += valX;
           atomicAdd(gradGamma + id, adjRow[id] * x_hat);
           if(beta) {
             atomicAdd(gradBeta + id, adjRow[id]);
