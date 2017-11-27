@@ -62,14 +62,14 @@ class TMatrix : public BaseMatrix {
       dim_[3] = 0;
     }
 
-    TMatrix(size_t rows, size_t cols, size_t beam, size_t batches, bool zero = false)
+    TMatrix(size_t rows, size_t cols, size_t c, size_t d, bool zero = false)
     {
       dim_[0] = rows;
       dim_[1] = cols;
-      dim_[2] = beam;
-      dim_[3] = batches;
+      dim_[2] = c;
+      dim_[3] = d;
 
-      uint newSize = size();
+      uint newSize = rows * cols * c * d;
       vec_.newSize(newSize);
 
       if (zero) {
@@ -96,29 +96,34 @@ class TMatrix : public BaseMatrix {
     {
     }
 
+    virtual size_t size() const
+    {
+      return vec_.size();
+    }
+
     virtual size_t dim(size_t i) const
     {
       return dim_[i];
     }
 
-    void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
-      size_t newSize = cols * rows * beam * batches;
+    void Resize(size_t rows, size_t cols, size_t c = 1, size_t d = 1) {
+      size_t newSize = cols * rows * c * d;
       vec_.resize(newSize);
 
       dim_[0] = rows;
       dim_[1] = cols;
-      dim_[2] = beam;
-      dim_[3] = batches;
+      dim_[2] = c;
+      dim_[3] = d;
     }
 
-    void NewSize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) {
-      size_t newSize = cols * rows * beam * batches;
+    void NewSize(size_t rows, size_t cols, size_t c = 1, size_t d = 1) {
+      size_t newSize = cols * rows * c * d;
       vec_.newSize(newSize);
 
       dim_[0] = rows;
       dim_[1] = cols;
-      dim_[2] = beam;
-      dim_[3] = batches;
+      dim_[2] = c;
+      dim_[3] = d;
     }
 
     virtual std::string Debug(size_t verbosity = 1) const
