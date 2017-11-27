@@ -860,6 +860,9 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+#define LOWEST_FLOAT -1111111111111
+#define HIGHEST_FLOAT +999999999999
+
 __global__
 void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
                     VectorWrapper<uint> batch2HypoWrap,
@@ -921,7 +924,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
 __device__
 float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
 {
-  float ret = -1111111111111;
+  float ret = LOWEST_FLOAT;
   for (uint i = 0; i < nBestMatrix.dim(1); ++i) {
       const NthOutBatch &curr = nBestMatrix[i];
       if (curr.score > ret) {
@@ -943,8 +946,8 @@ void AddElement(float &minScore,
   const float score = ele.score;
 
   if (forbidUNK && vocabInd == UNK_ID) {
-    arr[i].score = -1111111111111;
-    minScore = -1111111111111;
+    arr[i].score = LOWEST_FLOAT;
+    minScore = LOWEST_FLOAT;
   }
   else {
     arr[i] = ele;
@@ -964,7 +967,7 @@ void MergeElement(float &minScore,
                   uint arrSize,
                   const NthOutBatch &ele)
 {
-  float newMinScore = +1111111111;
+  float newMinScore = HIGHEST_FLOAT;
   bool found = false;
   for (uint i = 0; i < arrSize; ++i) {
     NthOutBatch &currEle = arr[i];
@@ -1007,15 +1010,15 @@ void MergeElement(float &minScore,
 }
 
 __device__
-void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
+void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
               float &topScore,
-              const MatrixWrapper<float> in,
-              const MatrixWrapper<float> b4Wrap,
+              const MatrixWrapper<float> &in,
+              const MatrixWrapper<float> &b4Wrap,
               uint hypoInd,
               uint maxBeamSize,
               bool forbidUNK,
-              const VectorWrapper<uint> hypo2BeamSizeWrap,
-              const VectorWrapper<uint> hypo2CandidateWrap)
+              const VectorWrapper<uint> &hypo2BeamSizeWrap,
+              const VectorWrapper<uint> &hypo2CandidateWrap)
 {
   extern __shared__ char _sharePtr[];
 
@@ -1031,7 +1034,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
   assert(hypoInd < hypo2BeamSizeWrap.size());
   uint beamSize = hypo2BeamSizeWrap[hypoInd];
 
-  float minScore = +1111111111;
+  float minScore = HIGHEST_FLOAT;
 
   // init
   uint vocabInd = threadIdx.x;
@@ -1099,22 +1102,19 @@ void NBestAndMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __device__
-void SumAndLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
-                            const MatrixWrapper<float> in,
-                            const MatrixWrapper<float> b4Wrap,
+void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
+                            const MatrixWrapper<float> &in,
+                            const MatrixWrapper<float> &b4Wrap,
                             uint hypoInd,
                             uint maxBeamSize,
                             float topScore,
-                            const VectorWrapper<uint> hypo2BeamSizeWrap,
-                            const VectorWrapper<uint> hypo2CandidateWrap)
+                            const VectorWrapper<uint> &hypo2BeamSizeWrap,
+                            const VectorWrapper<uint> &hypo2CandidateWrap)
 {
   extern __shared__ float _share[];
   VectorWrapper<float> _sum(_share, blockDim.x);
 
   size_t vocabSize = in.dim(1);
-  //assert(nBestCandidatesWrap.dim(0) == rows);
-
-  //float* _sum = _share;// + blockDim.x;
 
   // calc sum
   _sum[threadIdx.x] = 0.0f;
@@ -1232,7 +1232,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
     }
 
     // candiate from 1st hypo
-    float minScore = +999999;
+    float minScore = HIGHEST_FLOAT;
     assert(hypoInd < hypo2CandidateWrap.size());
     uint candidateInd = hypo2CandidateWrap[hypoInd];
     for (uint i = 0; i < beamSize; ++i) {
@@ -1362,7 +1362,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   int threads = std::min(MAX_THREADS, (int)in.dim(1));
   int shared = sizeof(NthOutBatch) * threads * maxBeamSize
              + sizeof(float) * threads;
-  cerr << "shared=" << shared << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step0" << endl;
