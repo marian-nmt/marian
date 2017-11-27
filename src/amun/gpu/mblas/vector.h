@@ -1,3 +1,4 @@
+#pragma once
 /*
  * Vector.h
  *
@@ -5,9 +6,7 @@
  *      Author: hieu
  */
 
-#pragma once
-#include <cuda.h>
-#include <thrust/host_vector.h>
+#include "gpu/types-gpu.h"
 
 namespace amunmt {
 namespace GPU {
@@ -65,7 +64,7 @@ public:
 
   ~Vector()
   {
-	cudaFree(m_arr);
+    HANDLE_ERROR(cudaFree(m_arr));
   }
 
   size_t size() const
