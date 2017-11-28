@@ -53,13 +53,7 @@ public:
     }
 
     auto modelFile = options_->get<std::string>("model");
-    auto modelOptions = New<Config>(*options);
-    try {
-      modelOptions->loadModelParameters(modelFile);
-    } catch(std::runtime_error& e) {
-      LOG(warn, "No model settings found in model file");
-    }
-
+    
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);

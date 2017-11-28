@@ -47,7 +47,9 @@ struct ParamNode : public Node {
         init_(Get(keywords::init, [](Tensor) {})),
         initialized_(false) {
     ABORT_IF(!Has(keywords::shape), "Param items require shape information");
-    setTrainable(!Get(keywords::fixed, false));
+
+    bool fixed = Get(keywords::fixed, false);
+    setTrainable(!fixed);
   }
 
   ~ParamNode() {}

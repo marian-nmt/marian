@@ -239,6 +239,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
   }
 
   model.add_options()
+    ("ignore-model-config", po::value<bool>()->zero_tokens()->default_value(false),
+     "Ignore the model configuration saved in npz file")
     ("type", po::value<std::string>()->default_value("amun"),
       "Model type (possible values: amun, nematus, s2s, multi-s2s, transformer)")
     ("dim-vocabs", po::value<std::vector<int>>()
@@ -673,6 +675,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
 
+  SET_OPTION("ignore-model-config", bool);
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);

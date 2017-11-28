@@ -41,7 +41,8 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
     auto modelOptions = New<Config>(*options);
 
     try {
-      modelOptions->loadModelParameters(model);
+      if(!options->get<bool>("ignore-model-config"))
+        modelOptions->loadModelParameters(model);
     } catch(std::runtime_error& e) {
       LOG(warn, "No model settings found in model file");
     }
