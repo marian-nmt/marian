@@ -98,7 +98,7 @@ public:
     }
 
     auto yEmb = yEmbFactory.construct();
-
+    
     auto subBatch = (*batch)[batchIndex_];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
@@ -271,7 +271,7 @@ public:
   void push_back(Ptr<DecoderBase> decoder) { decoders_.push_back(decoder); }
 
   virtual void load(Ptr<ExpressionGraph> graph, const std::string& name) {
-    graph->load(name);
+    graph->load(name, !opt<bool>("ignore-model-config"));
   }
 
   virtual void save(Ptr<ExpressionGraph> graph,
