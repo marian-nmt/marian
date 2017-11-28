@@ -6,10 +6,6 @@ namespace amunmt {
 namespace CPU {
 namespace dl4mt {
 
-Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
-  : E_(model[key])
-{}
-
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::vector<std::pair<std::string, bool>> keys)
   : E_(model.getFirstOfMany(keys))
 {}
@@ -67,8 +63,10 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
   B2_(model("ff_logit_prev_b", true)),
   W3_(model["ff_logit_ctx_W"]),
   B3_(model("ff_logit_ctx_b", true)),
-  W4_(model.getFirstOfMany({std::pair<std::string, bool>(std::string("ff_logit_W"), false),
-             std::make_pair(std::string("Wemb_dec"), true)})),
+  W4_(model.getFirstOfMany({std::pair<std::string, bool>(
+             std::string("ff_logit_W"), false),
+             std::make_pair(std::string("Wemb_dec"), true),
+             std::make_pair(std::string("Wemb"), true)})),
   B4_(model("ff_logit_b", true)),
   Gamma_0_(model["ff_logit_l1_gamma0"]),
   Gamma_1_(model["ff_logit_l1_gamma1"]),
@@ -78,12 +76,15 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 //////////////////////////////////////////////////////////////////////////////
 
 Weights::Weights(const NpzConverter& model, size_t)
-: encEmbeddings_(model, "Wemb"),
+: encEmbeddings_(model, std::vector<std::pair<std::string, bool>>({
+                         std::make_pair(std::string("Wemb"), false),
+                         std::make_pair(std::string("Wemb_dec"), false)})),
   encForwardGRU_(model, {"encoder_W", "encoder_b", "encoder_U", "encoder_Wx", "encoder_bx",
                          "encoder_Ux", "encoder_gamma1", "encoder_gamma2"}),
   encBackwardGRU_(model, {"encoder_r_W", "encoder_r_b", "encoder_r_U", "encoder_r_Wx",
                           "encoder_r_bx", "encoder_r_Ux", "encoder_r_gamma1", "encoder_r_gamma2"}),
-  decEmbeddings_(model, std::vector<std::pair<std::string, bool>>({std::make_pair(std::string("Wemb_dec"), false),
+  decEmbeddings_(model, std::vector<std::pair<std::string, bool>>({
+                         std::make_pair(std::string("Wemb_dec"), false),
                          std::make_pair(std::string("Wemb"), false)})),
   decInit_(model),
   decGru1_(model, {"decoder_W", "decoder_b", "decoder_U", "decoder_Wx", "decoder_bx", "decoder_Ux",

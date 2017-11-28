@@ -60,10 +60,6 @@ std::string Weights::Transition::name(const std::string& prefix, std::string nam
   return prefix + name + infix + "_drt_" + std::to_string(index) + suffix;
 }
 
-Weights::Embeddings::Embeddings(const NpzConverter& model, const std::string &key)
-  : E_(model[key])
-{}
-
 Weights::Embeddings::Embeddings(const NpzConverter& model, const std::vector<std::pair<std::string, bool>> keys)
   : E_(model.getFirstOfMany(keys))
 {}
@@ -143,7 +139,8 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
     W3_(model["ff_logit_ctx_W"]),
     B3_(model("ff_logit_ctx_b", true)),
     W4_(model.getFirstOfMany({std::make_pair(std::string("ff_logit_W"), false),
-                              std::make_pair(std::string("Wemb_dec"), true)})),
+                              std::make_pair(std::string("Wemb_dec"), true),
+                              std::make_pair(std::string("Wemb"), true)})),
     B4_(model("ff_logit_b", true)),
     lns_1_(model["ff_logit_lstm_ln_s"]),
     lns_2_(model["ff_logit_prev_ln_s"]),
@@ -156,7 +153,9 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 //////////////////////////////////////////////////////////////////////////////
 
 Weights::Weights(const NpzConverter& model, size_t)
-  : encEmbeddings_(model, "Wemb"),
+  : encEmbeddings_(model, std::vector<std::pair<std::string, bool>>(
+          {std::make_pair(std::string("Wemb"), false),
+           std::make_pair(std::string("Wemb_dec"), false)})),
     decEmbeddings_(model, std::vector<std::pair<std::string, bool>>(
           {std::make_pair(std::string("Wemb_dec"), false),
            std::make_pair(std::string("Wemb"), false)})),

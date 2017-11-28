@@ -5,7 +5,8 @@ namespace GPU {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncEmbeddings::EncEmbeddings(const NpzConverter& model)
-: E_(model.get("Wemb", true))
+: E_(model.getFirstOfMany({std::make_pair("Wemb", false),
+                           std::make_pair("Wemb_dec", false)}, true))
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,7 +142,8 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
   W3_(model.get("ff_logit_ctx_W", true)),
   B3_(model.get("ff_logit_ctx_b", true, true)),
   W4_(model.getFirstOfMany({std::make_pair(std::string("ff_logit_W"), false),
-                            std::make_pair(std::string("Wemb_dec"), true)}, true)),
+                            std::make_pair(std::string("Wemb_dec"), true),
+                            std::make_pair(std::string("Wemb"), true)}, true)),
   B4_(model.get("ff_logit_b", true, true)),
   Gamma_0_(model.get("ff_logit_l1_gamma0", false)),
   Gamma_1_(model.get("ff_logit_l1_gamma1", false)),
