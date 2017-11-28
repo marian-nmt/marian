@@ -46,6 +46,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/CMakeLists.txt</locationURI>
 		</link>
 		<link>
+			<name>src/amun/Makefile</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/test/Makefile</locationURI>
+		</link>
+		<link>
 			<name>src/amun/common</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -77,6 +82,11 @@
 		</link>
 		<link>
 			<name>src/amun/python</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>src/amun/test</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
@@ -586,21 +596,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/types-gpu.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/half/Makefile</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/Makefile</locationURI>
-		</link>
-		<link>
-			<name>src/amun/half/fp16gemm.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/fp16gemm.cu</locationURI>
-		</link>
-		<link>
-			<name>src/amun/half/gemm.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/gemm.cu</locationURI>
-		</link>
-		<link>
 			<name>src/amun/plugin/hypo_info.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/plugin/hypo_info.cpp</locationURI>
@@ -654,6 +649,26 @@
 			<name>src/amun/python/test2.py</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/python/test2.py</locationURI>
+		</link>
+		<link>
+			<name>src/amun/test/Makefile</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/test/Makefile</locationURI>
+		</link>
+		<link>
+			<name>src/amun/test/fp16gemm.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/test/fp16gemm.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/test/gemm.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/test/gemm.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/test/memcpy.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/test/memcpy.cu</locationURI>
 		</link>
 		<link>
 			<name>src/amun/3rd_party/blaze/Blaze.h</name>
