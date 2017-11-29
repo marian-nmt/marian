@@ -93,6 +93,19 @@ cuda_add_executable(
   gpu/npz_converter.cu
   gpu/types-gpu.cu
 
+  half/decoder/best_hyps.cu
+  half/decoder/encoder_decoder.cu
+  half/decoder/encoder_decoder_loader.cu
+  half/decoder/encoder_decoder_state.cu
+  half/dl4mt/encoder.cu
+  half/dl4mt/gru.cu
+  half/dl4mt/model.cu
+  half/mblas/matrix.cu
+  half/mblas/matrix_functions.cu
+  half/mblas/nth_element.cu
+  half/mblas/nth_element_kernels.cu
+  half/npz_converter.cu
+  half/types-gpu.cu
 
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
@@ -104,6 +117,7 @@ cuda_add_executable(
 if(PYTHONLIBS_FOUND)
 cuda_add_library(python SHARED
   python/amunmt.cpp
+  
   gpu/decoder/best_hyps.cu
   gpu/decoder/encoder_decoder.cu
   gpu/decoder/encoder_decoder_loader.cu
@@ -117,6 +131,21 @@ cuda_add_library(python SHARED
   gpu/dl4mt/model.cu
   gpu/npz_converter.cu
   gpu/types-gpu.cu
+  
+  half/decoder/best_hyps.cu
+  half/decoder/encoder_decoder.cu
+  half/decoder/encoder_decoder_loader.cu
+  half/decoder/encoder_decoder_state.cu
+  half/dl4mt/encoder.cu
+  half/dl4mt/gru.cu
+  half/dl4mt/model.cu
+  half/mblas/matrix.cu
+  half/mblas/matrix_functions.cu
+  half/mblas/nth_element.cu
+  half/mblas/nth_element_kernels.cu
+  half/npz_converter.cu
+  half/types-gpu.cu
+  
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>
@@ -133,6 +162,8 @@ cuda_add_library(mosesplugin STATIC
   #plugin/nbest.cu
   plugin/nmt.cu
   plugin/neural_phrase.cpp
+  
+  gpu/decoder/best_hyps.cu
   gpu/decoder/encoder_decoder.cu
   gpu/decoder/encoder_decoder_loader.cu
   gpu/decoder/encoder_decoder_state.cu
@@ -145,6 +176,21 @@ cuda_add_library(mosesplugin STATIC
   gpu/dl4mt/model.cu
   gpu/npz_converter.cu
   gpu/types-gpu.cu
+  
+  half/decoder/best_hyps.cu
+  half/decoder/encoder_decoder.cu
+  half/decoder/encoder_decoder_loader.cu
+  half/decoder/encoder_decoder_state.cu
+  half/dl4mt/encoder.cu
+  half/dl4mt/gru.cu
+  half/dl4mt/model.cu
+  half/mblas/matrix.cu
+  half/mblas/matrix_functions.cu
+  half/mblas/nth_element.cu
+  half/mblas/nth_element_kernels.cu
+  half/npz_converter.cu
+  half/types-gpu.cu
+  
   common/loader_factory.cpp
   $<TARGET_OBJECTS:libcommon>
   $<TARGET_OBJECTS:libcnpy>

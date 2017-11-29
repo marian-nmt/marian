@@ -1546,6 +1546,26 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/language_model.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/dl4mt/cell.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cell.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/cell.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cell.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/cellstate.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cellstate.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/cellstate.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cellstate.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/dl4mt/decoder.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/decoder.h</locationURI>
@@ -1589,6 +1609,11 @@
 			<name>src/amun/gpu/dl4mt/model.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/model.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/multiplicative.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/multiplicative.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/gpu/mblas/handles.h</name>

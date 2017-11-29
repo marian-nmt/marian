@@ -42,7 +42,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
 {
   std::vector<SoftAlignmentPtr> alignments;
   for (auto& scorer : scorers) {
-    if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
+    if (EncoderDecoder* encdec = dynamic_cast<EncoderDecoder*>(scorer.get())) {
       const mblas::Matrix &attention = encdec->GetAttention();
       size_t attLength = attention.dim(1);
 

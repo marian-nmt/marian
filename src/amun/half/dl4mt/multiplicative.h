@@ -1,12 +1,12 @@
 #pragma once
 #include <boost/timer/timer.hpp>
 #include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/matrix_wrapper.h"
-#include "gpu/mblas/handles.h"
-#include "gpu/dl4mt/cell.h"
+#include "../mblas/matrix_wrapper.h"
+#include "../mblas/handles.h"
+#include "../dl4mt/cell.h"
 #include "cellstate.h"
-#include "gpu/dl4mt/lstm.h"
-#include "gpu/dl4mt/model.h"
+#include "lstm.h"
+#include "model.h"
 
 namespace amunmt {
 namespace GPUHalf {
