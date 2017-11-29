@@ -60,23 +60,25 @@ void SetElement(const float &val, float *arr, size_t ind)
 ///////////////////////////////////////////////////////////////////////////
 
 __global__
-void gProd(cublasHandle_t handle,
-          const float *A,
+void gProd(const float *A,
           const float *B,
           float *C,
           const int m,
           const int k,
-          const int n,
-          int lda,
-          int ldb,
-          int ldc,
-          float alpha,
-          float beta
-          )
+          const int n)
 {
+  cublasHandle_t handle;
+  cublasCreate(&handle);
+
+  int lda=m,ldb=k,ldc=m;
+
+  float alpha = 1.0;
+  float beta = 0.0;
+
   cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, &alpha,
       A, lda, B, ldb, &beta, C, ldc);
 
+  cublasDestroy(handle);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -216,31 +218,13 @@ void testResult()
   cerr << "testResult4" << endl;
 
   // in-kernel multiplication
-  int lda = nr_rows_A;
-  int ldb = nr_cols_A;
-  int ldc = nr_rows_A;
-  float alpha = 1.0;
-  float beta = 0.0;
-
-  gProd<<<1,1>>>(handle,
-                d_A,
-                d_B,
-                d_C,
-                nr_rows_A,
-                nr_cols_A,
-                nr_cols_B,
-                lda,
-                ldb,
-                ldc,
-                alpha,
-                beta
-                );
+  gProd<<<1,1>>>(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
   //gpu_blas_mmul(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
   cerr << "testResult5" << endl;
   cudaStreamSynchronize(stream);
   cerr << "testResult6" << endl;
 
-  //Output(d_C, 8);
+  Output(d_C, 8);
   cerr << "testResult7" << endl;
 
   //Free GPU memory
