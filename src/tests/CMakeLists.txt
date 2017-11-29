@@ -37,14 +37,14 @@ foreach(exec
     set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
 
-if(CUDNN_FOUND)
-    cuda_add_executable(conv_test conv_test.cu)
+# if(CUDNN_FOUND)
+    # cuda_add_executable(conv_test conv_test.cu)
 
-    foreach(exec
-            conv_test
-    )
-        target_link_libraries(${exec} marian ${EXT_LIBS})
-        cuda_add_cublas_to_target(${exec})
-        set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-    endforeach(exec)
-endif(CUDNN_FOUND)
+    # foreach(exec
+            # conv_test
+    # )
+        # target_link_libraries(${exec} marian ${EXT_LIBS})
+        # cuda_add_cublas_to_target(${exec})
+        # set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+    # endforeach(exec)
+# endif(CUDNN_FOUND)
