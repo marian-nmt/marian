@@ -1,5 +1,7 @@
 #include "model.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPUHalf {
 

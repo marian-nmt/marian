@@ -1,6 +1,8 @@
 #include "npz_converter.h"
 #include "common/exception.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPU {
 

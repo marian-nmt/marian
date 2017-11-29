@@ -5,6 +5,8 @@
 #include "common/threadpool.h"
 #include "common/god.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPUHalf {
 

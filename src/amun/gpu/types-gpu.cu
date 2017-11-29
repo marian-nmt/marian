@@ -2,6 +2,8 @@
 #include "types-gpu.h"
 #include "mblas/handles.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPU {
 

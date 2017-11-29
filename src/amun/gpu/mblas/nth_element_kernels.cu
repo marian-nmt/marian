@@ -1,8 +1,9 @@
 #include "nth_element_kernels.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPU {
-
 
 #define SHARED_SIZE 512
 

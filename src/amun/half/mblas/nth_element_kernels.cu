@@ -1,5 +1,7 @@
 #include "nth_element_kernels.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPUHalf {
 
