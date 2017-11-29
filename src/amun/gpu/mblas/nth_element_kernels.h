@@ -1,6 +1,7 @@
 #pragma once
 
 #include "matrix_wrapper.h"
+#include "vector_wrapper.h"
 
 namespace amunmt {
 namespace GPU {
@@ -109,16 +110,16 @@ inline std::ostream& operator<<(std::ostream &out, const NthOutBatch &obj)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-__global__ void gMaxElement(mblas::MatrixWrapper<NthOut> out,
+__global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
                             const mblas::MatrixWrapper<float> probsWrap,
-                            const mblas::MatrixWrapper<uint> batchPositionWrap,
+                            const mblas::VectorWrapper<uint> batchPositionWrap,
                             uint numBatches);
 
-__global__ void gMaxElementUpdate(mblas::MatrixWrapper<NthOut> out,
+__global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
                                   mblas::MatrixWrapper<float> probsWrap,
-                                  mblas::MatrixWrapper<NthOut> resNewWrap,
-                                  const mblas::MatrixWrapper<uint> batchPositionWrap,
-                                  const mblas::MatrixWrapper<uint> cumBeamSizesWrap,
+                                  mblas::VectorWrapper<NthOut> resWrap,
+                                  const mblas::VectorWrapper<uint> batchPositionWrap,
+                                  const mblas::VectorWrapper<uint> cumBeamSizesWrap,
                                   uint numBlocks);
 
 __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,

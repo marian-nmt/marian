@@ -36,7 +36,7 @@ class Encoder {
             }
           }
 
-          mblas::Array<uint> dKnownWords(knownWords);
+          mblas::Vector<uint> dKnownWords(knownWords);
 
           Row.NewSize(words.size(), w_.E_->dim(1));
           mblas::Assemble(Row, *w_.E_, dKnownWords);
@@ -73,7 +73,7 @@ class Encoder {
         template <class It>
         void Encode(It it, It end, mblas::Matrix& Context,
                     size_t batchSize, bool invert,
-                    const mblas::IMatrix *sentenceLengths=nullptr)
+                    const mblas::Vector<uint> *sentenceLengths=nullptr)
         {
           InitializeState(batchSize);
 
@@ -128,7 +128,7 @@ class Encoder {
     Encoder(const Weights& model, const YAML::Node& config);
 
     void Encode(const Sentences& words, size_t tab, mblas::Matrix& context,
-                    mblas::IMatrix &sentenceLengths);
+                    mblas::Vector<uint> &sentenceLengths);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);

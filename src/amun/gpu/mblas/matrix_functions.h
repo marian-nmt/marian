@@ -14,6 +14,7 @@
 #include "gpu/mblas/matrix_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/mblas/nth_element_kernels.h"
+#include "gpu/mblas/vector_wrapper.h"
 
 namespace amunmt {
 namespace GPU {
@@ -39,7 +40,7 @@ void Debug(const M& m, size_t pos = 0, size_t l = 8) {
 }
 
 template<typename T>
-std::string Debug(const mblas::Array<T> &vec, size_t verbosity = 1)
+std::string Debug(const mblas::Vector<T> &vec, size_t verbosity = 1)
 {
   std::stringstream strm;
 
@@ -94,9 +95,9 @@ Matrix& Swap(Matrix& Out, Matrix& In);
 
 void Mean(Matrix& Out,
           const Matrix& In,
-          const mblas::IMatrix &sentenceLengths);
+          const mblas::Vector<uint> &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Array<uint>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -118,16 +119,16 @@ Matrix& CopyRow(Matrix& Out,
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
-              const mblas::IMatrix &sentenceLengths,
+              const mblas::Vector<uint> &sentenceLengths,
               size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Array<uint>& indices);
+                 const mblas::Vector<uint>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Array<uint>& indices);
+                 const mblas::Vector<uint>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -137,8 +138,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transA = false, bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Array<uint>& batchIds,
-                const mblas::IMatrix &sentenceLengths,
+                const mblas::Vector<uint>& batchIds,
+                const mblas::Vector<uint> &sentenceLengths,
                 size_t batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
@@ -148,7 +149,7 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
-                           const MatrixWrapper<uint> batchMappingWrap)
+                           const VectorWrapper<uint> batchMappingWrap)
 {
   size_t srcSize = outWrap.dim(2);
   size_t inRows = in2Wrap.dim(0);
@@ -188,7 +189,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const mblas::Array<uint>& batchMapping,
+                  const mblas::Vector<uint>& batchMapping,
                   size_t srcSize)
 {
   size_t sumOfBeamSizes = in2.dim(0);
@@ -201,7 +202,7 @@ Matrix& Broadcast(Functor functor,
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> in1Wrap(in1);
   const MatrixWrapper<float> in2Wrap(in2);
-  const MatrixWrapper<uint> batchMappingWrap(batchMapping);
+  const VectorWrapper<uint> batchMappingWrap(batchMapping);
 
   uint size = out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
@@ -230,13 +231,13 @@ Matrix& Broadcast(Functor functor,
 template <class Functor>
 __global__ void gBroadcastVecColumn(Functor functor,
                                     MatrixWrapper<float> outWrap,
-                                    const MatrixWrapper<float> inWrap) {
+                                    const VectorWrapper<float> inWrap) {
   extern __shared__ float sdataOrig[];
 
   size_t rows  = outWrap.dim(0);
   size_t cols = outWrap.dim(1);
 
-  MatrixWrapper<float> sdata(sdataOrig, rows, 1, 1, 1);
+  VectorWrapper<float> sdata(sdataOrig, rows);
 
   if (threadIdx.x == 0) {
     for (int i = 0; i < rows; ++i)
@@ -254,13 +255,13 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Array<float>& In)
+Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<float>& In)
 {
   size_t rows  = Out.dim(0);
   size_t cols = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
+  const VectorWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
@@ -427,10 +428,10 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Mat
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
 
-void LogSoftmaxAndNBest(mblas::Array<NthOutBatch> &nBest,
+void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
-                const mblas::Array<float> &costs,
+                const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const std::vector<uint>& beamSizes,

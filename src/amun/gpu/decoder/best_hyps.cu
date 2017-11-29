@@ -33,7 +33,7 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
 
 // fast fused softmax and nth_element
 void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-               mblas::Array<NthOutBatch> &nBest,
+               mblas::Vector<NthOutBatch> &nBest,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
                const bool isFirst)
@@ -100,8 +100,8 @@ void  BestHyps::CalcBeam(
 
   if (god_.UseFusedSoftmax()) {
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetBias());
-    mblas::Array<NthOutBatch> &nBest = *static_cast<mblas::Array<NthOutBatch>*>(scorers[0]->GetNBest());
-    nBest.resize(beamSizeSum);
+    mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorers[0]->GetNBest());
+    nBest.newSize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
     mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
@@ -193,7 +193,7 @@ void  BestHyps::CalcBeam(
 //////////////////////////////////////////////////////////////////////////
 void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
                   mblas::Matrix& Probs,
-                  mblas::Array<NthOutBatch> &nBest,
+                  mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
                   std::vector<uint>& outKeys,
                   const bool isFirst) const
@@ -211,7 +211,7 @@ void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
   //cerr << endl;
 }
 
-void BestHyps::GetPairs(mblas::Array<NthOutBatch> &nBest,
+void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
               std::vector<uint>& outKeys,
               std::vector<float>& outValues) const
 {

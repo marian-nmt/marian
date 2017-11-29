@@ -1,3 +1,4 @@
+#include <iostream>
 #include "types-gpu.h"
 #include "mblas/handles.h"
 

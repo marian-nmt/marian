@@ -2,7 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/array.h"
+#include "gpu/mblas/vector.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
@@ -30,7 +30,7 @@ class Decoder {
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
-          indices_.resize(tids.size());
+          indices_.newSize(tids.size());
 
           mblas::copy(tids.data(),
               tids.size(),
@@ -50,7 +50,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        mblas::Array<uint> indices_;
+        mblas::Vector<uint> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };
@@ -67,7 +67,7 @@ class Decoder {
         void InitializeState(CellState& State,
                              const mblas::Matrix& SourceContext,
                              const size_t batchSize,
-                             const mblas::IMatrix &sentenceLengths)
+                             const mblas::Vector<uint> &sentenceLengths)
         {
           using namespace mblas;
 
@@ -157,7 +157,7 @@ class Decoder {
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
-                                     const mblas::IMatrix &sentenceLengths,
+                                     const mblas::Vector<uint> &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
@@ -179,7 +179,7 @@ class Decoder {
             }
           }
 
-          dBatchMapping_.resize(batchMapping.size());
+          dBatchMapping_.newSize(batchMapping.size());
           mblas::copy(batchMapping.data(),
               batchMapping.size(),
               dBatchMapping_.data(),
@@ -233,7 +233,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        mblas::Array<uint> dBatchMapping_;
+        mblas::Vector<uint> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
@@ -337,7 +337,7 @@ class Decoder {
           filtered_ = true;
           using namespace mblas;
 
-          mblas::Array<uint> d_ids(ids);
+          mblas::Vector<uint> d_ids(ids);
           Assemble(FilteredW4_, TempW4, d_ids);
           Assemble(FilteredB4_, TempB4, d_ids);
 
@@ -375,7 +375,7 @@ class Decoder {
                   const CellState& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
-                  const mblas::IMatrix &sentenceLengths,
+                  const mblas::Vector<uint> &sentenceLengths,
                   const std::vector<uint>& beamSizes,
                   bool useFusedSoftmax)
     {
@@ -418,7 +418,7 @@ class Decoder {
     void EmptyState(CellState& State,
                     const mblas::Matrix& SourceContext,
                     size_t batchSize,
-                    const mblas::IMatrix &sentenceLengths)
+                    const mblas::Vector<uint> &sentenceLengths)
     {
       rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
       alignment_.Init(SourceContext);
@@ -450,7 +450,7 @@ class Decoder {
       return alignment_.GetAttention();
     }
 
-    mblas::Array<NthOutBatch>& GetNBest() {
+    mblas::Vector<NthOutBatch>& GetNBest() {
       return nBest_;
     }
 
@@ -469,7 +469,7 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
                                   const mblas::Matrix& SourceContext,
-                                  const mblas::IMatrix &sentenceLengths,
+                                  const mblas::Vector<uint> &sentenceLengths,
                                   const std::vector<uint>& beamSizes) {
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,
@@ -533,7 +533,7 @@ class Decoder {
     Alignment<Weights::DecAlignment> alignment_;
     Softmax<Weights::DecSoftmax> softmax_;
 
-    mblas::Array<NthOutBatch> nBest_;
+    mblas::Vector<NthOutBatch> nBest_;
     std::shared_ptr<mblas::Matrix> b4_;
 
     Decoder(const Decoder&) = delete;
