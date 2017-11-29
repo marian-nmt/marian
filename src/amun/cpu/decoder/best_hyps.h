@@ -26,11 +26,7 @@ class BestHyps : public BestHypsBase
 {
   public:
     BestHyps(const God &god)
-      : BestHypsBase(god,
-          !god.Get<bool>("allow-unk"),
-          god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment") || god.Get<bool>("return-nematus-alignment"),
-          god.GetScorerWeights())
+      : BestHypsBase(god)
     {}
 
     void CalcBeam(

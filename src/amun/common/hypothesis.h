@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <cassert>
 #include "common/types.h"
 #include "common/soft_alignment.h"
 
@@ -55,6 +56,7 @@ class Hypothesis {
     }
 
     SoftAlignmentPtr GetAlignment(size_t i) {
+      assert(i < alignments_.size());
       return alignments_[i];
     }
 

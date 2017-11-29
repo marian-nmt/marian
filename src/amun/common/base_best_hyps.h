@@ -14,18 +14,7 @@ class God;
 class BestHypsBase
 {
   public:
-    BestHypsBase(
-        const God &god,
-        bool forbidUNK,
-        bool isInputFiltered,
-        bool returnAttentionWeights,
-        const std::map<std::string, float>& weights)
-    : god_(god),
-      forbidUNK_(forbidUNK),
-      isInputFiltered_(isInputFiltered),
-      returnAttentionWeights_(returnAttentionWeights),
-      weights_(weights)
-    {}
+    BestHypsBase(const God &god);
 
     BestHypsBase(const BestHypsBase&) = delete;
 
