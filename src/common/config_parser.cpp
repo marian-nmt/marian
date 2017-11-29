@@ -293,6 +293,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Operation after transformer embedding layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess", po::value<std::string>()->default_value("dan"),
      "Operation after each transformer layer: d = dropout, a = add, n = normalize")
+#ifdef CUDNN
     ("char-stride", po::value<int>()->default_value(5),
      "Width of max-pooling layer after convolution layer in char-s2s model")
     ("char-highway", po::value<int>()->default_value(4),
@@ -306,6 +307,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      ->default_value(std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}), "1 2 3 4 5 6 7 8")
       ->multitoken(),
      "Convolution window widths in char-s2s model")
+#endif
     ;
 
   if(mode_ == ConfigMode::training) {
