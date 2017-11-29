@@ -67,6 +67,8 @@ void gProd(const float *A,
           const int k,
           const int n)
 {
+  extern __shared__ float share[];
+
   cublasHandle_t handle;
   cublasCreate(&handle);
 
@@ -77,6 +79,8 @@ void gProd(const float *A,
 
   cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, &alpha,
       A, lda, B, ldb, &beta, C, ldc);
+  //cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, &alpha,
+  //    A, lda, B, ldb, &beta, share, ldc);
 
   cublasDestroy(handle);
 }
@@ -218,7 +222,9 @@ void testResult()
   cerr << "testResult4" << endl;
 
   // in-kernel multiplication
-  gProd<<<1,1>>>(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
+  int shared = 8 * sizeof(float);
+
+  gProd<<<1,1, shared>>>(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
   //gpu_blas_mmul(d_A, d_B, d_C, nr_rows_A, nr_cols_A, nr_cols_B);
   cerr << "testResult5" << endl;
   cudaStreamSynchronize(stream);
