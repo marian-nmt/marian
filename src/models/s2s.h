@@ -34,7 +34,7 @@ public:
     auto rnnFw = rnn::rnn(graph)                                   //
         ("type", opt<std::string>("enc-cell"))                     //
         ("direction", forward)                                     //
-        ("dimInput", embeddings->shape()[-1])                          //
+        ("dimInput", embeddings->shape()[-1])                      //
         ("dimState", opt<int>("dim-rnn"))                          //
         ("dropout", dropoutRnn)                                    //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
@@ -60,7 +60,7 @@ public:
     auto rnnBw = rnn::rnn(graph)                                   //
         ("type", opt<std::string>("enc-cell"))                     //
         ("direction", backward)                                    //
-        ("dimInput", embeddings->shape()[-1])                          //
+        ("dimInput", embeddings->shape()[-1])                      //
         ("dimState", opt<int>("dim-rnn"))                          //
         ("dropout", dropoutRnn)                                    //
         ("layer-normalization", opt<bool>("layer-normalization"))  //

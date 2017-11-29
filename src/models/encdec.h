@@ -98,7 +98,7 @@ public:
     }
 
     auto yEmb = yEmbFactory.construct();
-    
+
     auto subBatch = (*batch)[batchIndex_];
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
@@ -219,8 +219,13 @@ protected:
     YAML::Node decoder;
     decoder["models"] = std::vector<std::string>({name});
     decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
-    decoder["normalize"] = 1.0f;
-    decoder["beam-size"] = 12;
+    decoder["normalize"] = opt<float>("normalize");
+    decoder["beam-size"] = opt<size_t>("beam-size");
+
+    decoder["mini-batch"] = opt<size_t>("valid-mini-batch");
+    decoder["maxi-batch"] = opt<size_t>("valid-mini-batch") > 1 ? 100 : 1;
+    decoder["maxi-batch-sort"] = opt<size_t>("valid-mini-batch") > 1 ? "src" : "none";
+
     decoder["relative-paths"] = false;
 
     OutputFileStream out(name + ".decoder.yml");

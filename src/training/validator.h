@@ -149,6 +149,7 @@ protected:
             graph->getBackend()->setDevice(graph->getDevice());
           }
 
+          builder->clear(graph);
           auto costNode = builder->build(graph, batch);
           graph->forward();
 

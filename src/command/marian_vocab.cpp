@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
-    ("max-size", po::value<size_t>()->default_value(0),
+    ("max-size,m", po::value<size_t>()->default_value(0),
      "Generate only  arg  most common vocabulary items")
     ("help,h", "Print this message and exit")
     ;
