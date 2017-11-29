@@ -143,7 +143,7 @@ void God::LoadScorers() {
   if (gpuHalfThreads > 0 && devices.size() > 0) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
-      gpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, GPUHalfDevice));
+      gpuHalfLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, GPUHalfDevice));
     }
   }
 
@@ -243,7 +243,8 @@ OutputCollector& God::GetOutputCollector() const {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
+std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const
+{
   std::vector<ScorerPtr> scorers;
 
   if (deviceInfo.deviceType == CPUDevice) {
@@ -263,13 +264,14 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
   else {
-	amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
+    amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
   }
 
   return scorers;
 }
 
-BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
+BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const
+{
   if (deviceInfo.deviceType == CPUDevice) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
@@ -283,7 +285,7 @@ BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
     return fpgaLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
   else {
-	amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
+    amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);
   }
 }
 

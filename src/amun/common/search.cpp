@@ -22,7 +22,8 @@ Search::Search(const God &god)
     maxBeamSize_(god.Get<size_t>("beam-size")),
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
-{}
+{
+}
 
 
 Search::~Search() {
