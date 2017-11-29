@@ -1,5 +1,7 @@
 #include "types.h"
 
+using namespace std;
+
 namespace amunmt {
 
 std::ostream& operator<<(std::ostream& out, const DeviceInfo& obj)

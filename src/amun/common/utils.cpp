@@ -2,6 +2,8 @@
 #include <iostream>
 #include <sstream>
 
+using namespace std;
+
 namespace amunmt {
 
 void Trim(std::string& s) {

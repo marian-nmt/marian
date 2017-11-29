@@ -1,6 +1,8 @@
 #include "base_best_hyps.h"
 #include "god.h"
 
+using namespace std;
+
 namespace amunmt {
 
 BestHypsBase::BestHypsBase(const God &god)

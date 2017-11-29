@@ -1,5 +1,7 @@
 #include "scorer.h"
 
+using namespace std;
+
 namespace amunmt {
 
 Scorer::Scorer(const God &god,

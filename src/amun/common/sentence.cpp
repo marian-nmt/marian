@@ -3,6 +3,8 @@
 #include "utils.h"
 #include "common/vocab.h"
 
+using namespace std;
+
 namespace amunmt {
 
 Sentence::Sentence(const God &god, size_t vLineNum, const std::string& line)

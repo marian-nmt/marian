@@ -5,6 +5,8 @@
 #include "common/exception.h"
 #include "common/git_version.h"
 
+using namespace std;
+
 namespace amunmt {
 
 #define SET_OPTION(key, type) \

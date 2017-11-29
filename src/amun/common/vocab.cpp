@@ -7,6 +7,8 @@
 #include "common/file_stream.h"
 #include "common/exception.h"
 
+using namespace std;
+
 namespace amunmt {
 
 Vocab::Vocab(const std::string& path) {
