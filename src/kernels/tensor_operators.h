@@ -381,4 +381,17 @@ void HighwayBackward(Tensor out1,
                      const Tensor in2,
                      const Tensor t,
                      const Tensor adj);
+
+void PoolingWithMaskingForward(Tensor out,
+                               Tensor in,
+                               Tensor mask,
+                               int width,
+                               bool isEven=false);
+
+void PoolingWithMaskingBackward(Tensor adj,
+                                Tensor adjIn,
+                                Tensor in,
+                                Tensor mask,
+                                int width,
+                                bool isEven=false);
 }

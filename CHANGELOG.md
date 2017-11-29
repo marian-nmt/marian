@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+Option --max-length-crop to be used together with --max-length N to crop 
+sentences to length N rather than omitting them. 
+
 ## [1.1.0] - 2017-11-21
 
 ### Added

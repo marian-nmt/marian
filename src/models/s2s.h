@@ -34,7 +34,7 @@ public:
     auto rnnFw = rnn::rnn(graph)                                   //
         ("type", opt<std::string>("enc-cell"))                     //
         ("direction", forward)                                     //
-        ("dimInput", opt<int>("dim-emb"))                          //
+        ("dimInput", embeddings->shape()[-1])                          //
         ("dimState", opt<int>("dim-rnn"))                          //
         ("dropout", dropoutRnn)                                    //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
@@ -60,7 +60,7 @@ public:
     auto rnnBw = rnn::rnn(graph)                                   //
         ("type", opt<std::string>("enc-cell"))                     //
         ("direction", backward)                                    //
-        ("dimInput", opt<int>("dim-emb"))                          //
+        ("dimInput", embeddings->shape()[-1])                          //
         ("dimState", opt<int>("dim-rnn"))                          //
         ("dropout", dropoutRnn)                                    //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
@@ -116,12 +116,7 @@ public:
     return context;
   }
 
-  EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
-
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch) {
-    using namespace keywords;
-
+  Expr buildSourceEmbeddings(Ptr<ExpressionGraph> graph) {
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -145,8 +140,16 @@ public:
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
-    auto embeddings = embFactory.construct();
+    return embFactory.construct();
+  }
 
+  EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
+
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch) {
+    auto embeddings = buildSourceEmbeddings(graph);
+
+    using namespace keywords;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
@@ -296,8 +299,6 @@ public:
 
     // apply RNN to embeddings, initialized with encoder context mapped into
     // decoder space
-
-    auto states = state->getStates();
     auto decoderContext = rnn_->transduce(embeddings, state->getStates());
 
     // retrieve the last state per layer. They are required during translation
@@ -330,7 +331,7 @@ public:
          options_->has("original-type")
              && opt<std::string>("original-type") == "nematus");
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
+    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     auto layer2 = mlp::dense(graph)           //
         ("prefix", prefix_ + "_ff_logit_l2")  //

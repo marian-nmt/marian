@@ -21,6 +21,7 @@ cuda_add_library(marian
   layers/param_initializers.cu
   layers/generic.cpp
   layers/guided_alignment.cpp
+  layers/convolution.cu
   models/model_factory.cpp
   rnn/attention.cu
   rnn/cells.cu

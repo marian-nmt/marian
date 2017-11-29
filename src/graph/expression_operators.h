@@ -117,6 +117,7 @@ Expr square(Expr a);
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 Expr highway(Expr y, Expr x, Expr t);
+Expr highway(const std::string prefix, Expr x);
 
 template <typename... Args>
 Expr dropout(Expr x, Args... args) {
@@ -133,21 +134,26 @@ Expr dropout(Expr x, Args... args) {
 
 Expr shift(Expr, Shape);
 
-Expr convolution(Expr x, Expr filters, Expr bias);
+Expr convert2cudnnFormat(Expr x);
+
+Expr convertFromcudnnFormat(Expr x);
 
 Expr avg_pooling(Expr x,
                  int height,
                  int width,
-                 int padHeight,
-                 int padWidth,
-                 int strideHeight,
-                 int strideWidth);
+                 int padHeight = 0,
+                 int padWidth = 0,
+                 int strideHeight = 1,
+                 int strideWidth = 1);
 
 Expr max_pooling(Expr x,
                  int height,
                  int width,
-                 int padHeight,
-                 int padWidth,
-                 int strideHeight,
-                 int strideWidth);
+                 int padHeight = 0,
+                 int padWidth = 0,
+                 int strideHeight = 1,
+                 int strideWidth = 1);
+
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven=false);
+
 }

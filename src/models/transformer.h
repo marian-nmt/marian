@@ -102,7 +102,7 @@ public:
             prefix + "_ln_scale_pre", {1, dimModel}, init = inits::ones);
         auto bias = graph->param(
             prefix + "_ln_bias_pre", {1, dimModel}, init = inits::zeros);
-        output = layer_norm(output, scale, bias);
+        output = layer_norm(output, scale, bias, 1e-6);
       }
     }
     return output;
