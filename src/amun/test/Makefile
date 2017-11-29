@@ -8,7 +8,8 @@ gemm_fp16: fp16gemm.cu
 	nvcc $< -arch sm_61 -lcublas -lcurand -o $@ --std=c++11
 
 gemm_normal: gemm.cu
-	nvcc $< -arch sm_61 -lcublas -lcurand -o $@ --std=c++11
+#	nvcc $< -arch sm_61 -lcublas -lcurand -o $@ --std=c++11
+	nvcc $< -arch sm_61 -rdc=true -lcublas -lcurand -lcublas_device -lcudadevrt -o $@ --std=c++11
 
 memcpy_sm50: memcpy.cu
 	nvcc $< -arch sm_50 -lcublas -lcurand -o $@ --std=c++11
