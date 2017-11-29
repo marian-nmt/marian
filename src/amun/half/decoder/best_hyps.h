@@ -1,0 +1,71 @@
+#pragma once
+
+#include <map>
+#include <numeric>
+#include <boost/timer/timer.hpp>
+
+#include "common/scorer.h"
+#include "common/exception.h"
+#include "common/god.h"
+#include "common/utils.h"
+#include "../mblas/matrix_functions.h"
+#include "../mblas/nth_element.h"
+#include "../mblas/vector.h"
+#include "encoder_decoder.h"
+
+namespace amunmt {
+namespace GPU {
+
+class BestHyps : public BestHypsBase
+{
+  public:
+    BestHyps(const BestHyps &copy) = delete;
+    BestHyps(const God &god);
+
+    void DisAllowUNK(mblas::Matrix& Prob);
+
+    // standard nth_element
+    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+                   std::vector<float>& outCosts,
+                   std::vector<unsigned>& outKeys,
+                   const bool isFirst);
+
+    std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
+                                                size_t hypIndex);
+
+    void CalcBeam(
+        const Beam& prevHyps,
+        const std::vector<ScorerPtr>& scorers,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<uint>& beamSizes);
+
+  private:
+    std::unique_ptr<NthElement> nthElement_;
+    mblas::Vector<unsigned> keys_;
+    mblas::Vector<float> costs_;
+    uint maxBeamSize_;
+
+    // fast fused softmax and nth_element
+    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+    		mblas::Vector<NthOutBatch> &nBest,
+                   std::vector<float>& outCosts,
+                   std::vector<unsigned>& outKeys,
+                   const bool isFirst);
+
+    void getNBestList(const std::vector<uint>& beamSizes,
+                      mblas::Matrix& Probs,
+                      mblas::Vector<NthOutBatch> &nBest,
+                      std::vector<float>& outCosts,
+                      std::vector<uint>& outKeys,
+                      const bool isFirst=false) const;
+
+    void GetPairs(mblas::Vector<NthOutBatch> &nBest,
+                  std::vector<uint>& outKeys,
+                  std::vector<float>& outValues) const;
+
+};
+
+}
+}
+
