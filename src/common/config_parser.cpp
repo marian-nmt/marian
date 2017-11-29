@@ -134,10 +134,11 @@ bool ConfigParser::has(const std::string& key) const {
 }
 
 void ConfigParser::validateOptions() const {
-  UTIL_THROW_IF2(!has("vocabs"), "No vocabularies provided");
+  //UTIL_THROW_IF2(!has("vocabs"), "No vocabularies provided");
 
-  if(mode_ == ConfigMode::translating)
+  if(mode_ == ConfigMode::translating) {
     return;
+  }
 
   UTIL_THROW_IF2(
       !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
@@ -159,12 +160,15 @@ void ConfigParser::validateOptions() const {
 
   boost::filesystem::path modelPath(get<std::string>("model"));
   auto modelDir = modelPath.parent_path();
+  if(modelDir.empty())
+    modelDir = boost::filesystem::current_path();
+
   UTIL_THROW_IF2(
       !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
       "Model directory does not exist");
 
-  UTIL_THROW_IF2(!(boost::filesystem::status(modelDir).permissions()
-                   & boost::filesystem::owner_write),
+  UTIL_THROW_IF2(!modelDir.empty() && !(boost::filesystem::status(modelDir).permissions()
+                 & boost::filesystem::owner_write),
                  "No write permission in model directory");
 
   UTIL_THROW_IF2(

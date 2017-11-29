@@ -80,6 +80,10 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 
 int Vocab::load(const std::string& vocabPath, int max) {
   LOG(info, "[data] Loading vocabulary from {}", vocabPath);
+  ABORT_IF(!boost::filesystem::exists(vocabPath),
+           "Vocabulary {} does not exits",
+           vocabPath);
+
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
 
   std::unordered_set<Word> seenSpecial;
@@ -124,6 +128,20 @@ public:
 
 void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   LOG(info, "[data] Creating vocabulary {} from {}", vocabPath, trainPath);
+
+  boost::filesystem::path path(vocabPath);
+  auto dir = path.parent_path();
+  if(dir.empty())
+    dir = boost::filesystem::current_path();
+
+  ABORT_IF(!dir.empty() && !boost::filesystem::is_directory(dir),
+           "Specified vocab directory {} does not exist",
+           dir);
+
+  ABORT_IF(!dir.empty() && !(boost::filesystem::status(dir).permissions()
+           & boost::filesystem::owner_write),
+           "No write permission in vocab directory {}",
+           dir);
 
   ABORT_IF(boost::filesystem::exists(vocabPath),
            "Vocab file '{}' exists. Not overwriting",

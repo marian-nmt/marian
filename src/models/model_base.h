@@ -25,6 +25,8 @@ public:
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                              size_t multiplier = 1)
       = 0;
+
+  virtual void clear(Ptr<ExpressionGraph> graph) = 0;
 };
 }
 }

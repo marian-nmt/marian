@@ -49,6 +49,8 @@ public:
     return nullptr;
   }
 
+  virtual void clear(Ptr<ExpressionGraph> graph) { graph->clear(); };
+
 protected:
   Ptr<Options> options_;
   bool inference_{false};
@@ -70,7 +72,7 @@ protected:
     const std::vector<int> dims = {784, 2048, 2048, 10};
 
     // Start with an empty expression graph
-    g->clear();
+    clear(g);
 
     // Create an input layer of shape batchSize x numFeatures and populate it
     // with training features

@@ -9,28 +9,28 @@ namespace marian {
 class Amun : public EncoderDecoder {
 public:
   Amun(Ptr<Options> options) : EncoderDecoder(options) {
-    ABORT_IF(options_->get<int>("enc-depth") > 1,
+    ABORT_IF(opt<int>("enc-depth") > 1,
              "--type amun does not currently support multiple encoder "
              "layers, use --type s2s");
-    ABORT_IF(options_->get<int>("enc-cell-depth") > 1,
+    ABORT_IF(opt<int>("enc-cell-depth") > 1,
              "--type amun does not currently support stacked encoder "
              "cells, use --type s2s");
-    ABORT_IF(options_->get<bool>("skip"),
+    ABORT_IF(opt<bool>("skip"),
              "--type amun does not currently support skip connections, "
              "use --type s2s");
-    ABORT_IF(options_->get<int>("dec-depth") > 1,
+    ABORT_IF(opt<int>("dec-depth") > 1,
              "--type amun does not currently support multiple decoder "
              "layers, use --type s2s");
-    ABORT_IF(options_->get<int>("dec-cell-base-depth") != 2,
+    ABORT_IF(opt<int>("dec-cell-base-depth") != 2,
              "--type amun does not currently support multiple decoder "
              "base cells, use --type s2s");
-    ABORT_IF(options_->get<int>("dec-cell-high-depth") > 1,
+    ABORT_IF(opt<int>("dec-cell-high-depth") > 1,
              "--type amun does not currently support multiple decoder "
              "high cells, use --type s2s");
-    ABORT_IF(options_->get<std::string>("enc-cell") != "gru",
+    ABORT_IF(opt<std::string>("enc-cell") != "gru",
              "--type amun does not currently support other rnn cells than gru, "
              "use --type s2s");
-    ABORT_IF(options_->get<std::string>("dec-cell") != "gru",
+    ABORT_IF(opt<std::string>("dec-cell") != "gru",
              "--type amun does not currently support other rnn cells than gru, "
              "use --type s2s");
   }
@@ -89,6 +89,9 @@ public:
            {"encoder_r_bx", "encoder_bi_r_bx"},
            {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
            {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
+
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+      nameMap["Wemb"] = "Wemb";
 
     graph->setReloaded(false);
 
@@ -218,8 +221,8 @@ private:
     amun["source-vocab"] = vocabs[0];
     amun["target-vocab"] = vocabs[1];
     amun["devices"] = options_->get<std::vector<int>>("devices");
-    amun["normalize"] = true;
-    amun["beam-size"] = 12;
+    amun["normalize"] = opt<float>("normalize") > 0;
+    amun["beam-size"] = opt<size_t>("beam-size");
     amun["relative-paths"] = false;
 
     amun["scorers"]["F0"]["path"] = name;

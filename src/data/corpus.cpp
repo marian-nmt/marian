@@ -90,14 +90,14 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       }
     }
   } else {  // i.e., if translating
-    ABORT_IF(vocabPaths.empty(), "Translating but vocabularies are missing!");
+    ABORT_IF(vocabPaths.empty(), "Translating, but vocabularies are not given!");
 
     if(maxVocabs.size() < vocabPaths.size())
       maxVocabs.resize(paths_.size(), 0);
 
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
-      int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+      int vocSize = vocab->load(vocabPaths[i], maxVocabs[i]);
       LOG(info,
           "[data] Setting vocabulary size for input {} to {}",
           i,
@@ -115,6 +115,17 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
       files_.emplace_back(new InputFileStream(path));
       ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
     }
+  }
+
+  if(training) {
+    ABORT_IF(vocabs_.size() != files_.size(),
+             "Number of corpus files ({}) and vocab files ({}) does not agree",
+             files_.size(), vocabs_.size());
+  }
+  else {
+    ABORT_IF(vocabs_.size() != files_.size(),
+             "Number of input files ({}) and input vocab files ({}) does not agree",
+             files_.size(), vocabs_.size());
   }
 }
 
