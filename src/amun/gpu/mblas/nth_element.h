@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <cuda.h>
 
-#include "gpu/mblas/matrix.h"
-#include "gpu/mblas/vector.h"
+#include "matrix.h"
+#include "vector.h"
 #include "nth_element_kernels.h"
 
 namespace amunmt {

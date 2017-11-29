@@ -4,12 +4,12 @@
 #include "common/god.h"
 #include "common/sentences.h"
 
+#include "encoder_decoder_state.h"
+#include "best_hyps.h"
 #include "encoder_decoder.h"
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/dl4mt/dl4mt.h"
-#include "gpu/decoder/encoder_decoder_state.h"
-#include "gpu/decoder/best_hyps.h"
-#include "gpu/dl4mt/cellstate.h"
+#include "../mblas/matrix_functions.h"
+#include "../dl4mt/dl4mt.h"
+#include "../dl4mt/cellstate.h"
 
 using namespace std;
 

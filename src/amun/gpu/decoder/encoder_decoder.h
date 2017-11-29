@@ -6,10 +6,10 @@
 #include "common/scorer.h"
 #include "common/base_best_hyps.h"
 #include "common/threadpool.h"
-#include "gpu/types-gpu.h"
-#include "gpu/mblas/matrix.h"
-#include "gpu/mblas/handles.h"
-#include "gpu/mblas/vector.h"
+#include "../types-gpu.h"
+#include "../mblas/matrix.h"
+#include "../mblas/handles.h"
+#include "../mblas/vector.h"
 
 
 namespace amunmt {

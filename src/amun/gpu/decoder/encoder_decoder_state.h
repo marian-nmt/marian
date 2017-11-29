@@ -3,7 +3,7 @@
 #include <string>
 #include "common/scorer.h"
 
-#include "gpu/dl4mt/cellstate.h"
+#include "../dl4mt/cellstate.h"
 
 namespace amunmt {
 namespace GPU {

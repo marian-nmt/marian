@@ -64,7 +64,8 @@ LoaderPtr LoaderFactory::Create(
 Loader *LoaderFactory::CreateGPU(
     const God &god,
     const std::string& name,
-    const YAML::Node& config) {
+    const YAML::Node& config)
+{
   amunmt_UTIL_THROW_IF2(!config["type"],
 				 "Missing scorer type in config file");
 
@@ -72,10 +73,6 @@ Loader *LoaderFactory::CreateGPU(
   IF_MATCH_RETURN(god, type, "Nematus", GPU::EncoderDecoderLoader);
   IF_MATCH_RETURN(god, type, "nematus", GPU::EncoderDecoderLoader);
   IF_MATCH_RETURN(god, type, "NEMATUS", GPU::EncoderDecoderLoader);
-
-  // IF_MATCH_RETURN(type, "Ape", GPU::ApePenaltyLoader);
-  // IF_MATCH_RETURN(type, "ape", GPU::ApePenaltyLoader);
-  // IF_MATCH_RETURN(type, "APE", GPU::ApePenaltyLoader);
 
 #ifdef KENLM
   IF_MATCH_RETURN(god, type, "KenLM", GPU::KenLMLoader)
@@ -89,7 +86,14 @@ Loader *LoaderFactory::CreateGPU(
 Loader *LoaderFactory::CreateHalfGPU(const God &god, const std::string& name,
                         const YAML::Node& config)
 {
-  assert(false);
+  amunmt_UTIL_THROW_IF2(!config["type"],
+         "Missing scorer type in config file");
+
+  std::string type = config["type"].as<std::string>();
+  IF_MATCH_RETURN(god, type, "Nematus", GPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(god, type, "nematus", GPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(god, type, "NEMATUS", GPU::EncoderDecoderLoader);
+
   return nullptr;
 }
 

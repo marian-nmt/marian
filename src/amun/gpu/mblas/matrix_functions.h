@@ -9,12 +9,12 @@
 #include <thrust/functional.h>
 #include <iostream>
 
-#include "gpu/mblas/thrust_functions.h"
-#include "gpu/mblas/matrix.h"
-#include "gpu/mblas/matrix_wrapper.h"
-#include "gpu/mblas/handles.h"
-#include "gpu/mblas/nth_element_kernels.h"
-#include "gpu/mblas/vector_wrapper.h"
+#include "thrust_functions.h"
+#include "matrix.h"
+#include "matrix_wrapper.h"
+#include "handles.h"
+#include "nth_element_kernels.h"
+#include "vector_wrapper.h"
 
 namespace amunmt {
 namespace GPU {

@@ -8,11 +8,10 @@
 #include "common/exception.h"
 #include "common/god.h"
 #include "common/utils.h"
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/nth_element.h"
-#include "gpu/mblas/vector.h"
-
-#include "gpu/decoder/encoder_decoder.h"
+#include "../mblas/matrix_functions.h"
+#include "../mblas/nth_element.h"
+#include "../mblas/vector.h"
+#include "encoder_decoder.h"
 
 namespace amunmt {
 namespace GPU {

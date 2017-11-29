@@ -2,13 +2,13 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/vector.h"
-#include "gpu/mblas/matrix_functions.h"
+#include "common/god.h"
+#include "../types-gpu.h"
+#include "../mblas/vector.h"
+#include "../mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
 #include "lstm.h"
-#include "gpu/types-gpu.h"
-#include "common/god.h"
 #include "cell.h"
 #include "cellstate.h"
 

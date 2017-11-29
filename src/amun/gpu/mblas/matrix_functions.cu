@@ -1,5 +1,5 @@
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/handles.h"
+#include "matrix_functions.h"
+#include "handles.h"
 
 using namespace std;
 

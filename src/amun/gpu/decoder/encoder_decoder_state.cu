@@ -1,6 +1,6 @@
 #include <sstream>
-#include "gpu/decoder/encoder_decoder_state.h"
-#include "gpu/dl4mt/cellstate.h"
+#include "encoder_decoder_state.h"
+#include "../dl4mt/cellstate.h"
 
 using namespace std;
 

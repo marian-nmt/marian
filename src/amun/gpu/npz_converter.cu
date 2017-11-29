@@ -1,6 +1,5 @@
 #include "npz_converter.h"
 #include "common/exception.h"
-#include "mblas/matrix_functions.h"
 
 namespace amunmt {
 namespace GPU {

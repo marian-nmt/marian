@@ -6,7 +6,7 @@
  *      Author: hieu
  */
 
-#include "gpu/types-gpu.h"
+#include "../types-gpu.h"
 
 namespace amunmt {
 namespace GPU {

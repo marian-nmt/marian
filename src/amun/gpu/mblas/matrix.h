@@ -7,7 +7,7 @@
 
 #include "common/exception.h"
 #include "common/base_matrix.h"
-#include "gpu/types-gpu.h"
+#include "../types-gpu.h"
 #include "handles.h"
 #include "vector.h"
 

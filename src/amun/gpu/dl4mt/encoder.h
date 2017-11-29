@@ -2,11 +2,11 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/matrix_functions.h"
+#include "../types-gpu.h"
+#include "../mblas/matrix_functions.h"
 #include "model.h"
 #include "gru.h"
 #include "common/sentence.h"
-#include "gpu/types-gpu.h"
 #include "gru.h"
 #include "lstm.h"
 #include "multiplicative.h"

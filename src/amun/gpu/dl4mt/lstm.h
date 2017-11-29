@@ -1,9 +1,9 @@
 #pragma once
 #include <boost/timer/timer.hpp>
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/matrix_wrapper.h"
-#include "gpu/mblas/handles.h"
-#include "gpu/dl4mt/cell.h"
+#include "../mblas/matrix_functions.h"
+#include "../mblas/matrix_wrapper.h"
+#include "../mblas/handles.h"
+#include "cell.h"
 #include "cellstate.h"
 
 namespace amunmt {
