@@ -90,6 +90,7 @@ God& God::Init(int argc, char** argv) {
   useFusedSoftmax_ = true;
   if (returnNBestList_ ||
       gpuLoaders_.size() != 1 || // more than 1 scorer
+      gpuHalfLoaders_.size() != 1 ||
       God::Get<size_t>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
       ) {
     useFusedSoftmax_ = false;
@@ -121,20 +122,31 @@ void God::Cleanup()
   pool_.reset();
   cpuLoaders_.clear();
   gpuLoaders_.clear();
+  gpuHalfLoaders_.clear();
   fpgaLoaders_.clear();
 }
 
 void God::LoadScorers() {
   LOG(info)->info("Loading scorers...");
 #ifdef CUDA
+  std::vector<size_t> devices = God::Get<std::vector<size_t>>("devices");
+
   size_t gpuThreads = God::Get<size_t>("gpu-threads");
-  auto devices = God::Get<std::vector<size_t>>("devices");
   if (gpuThreads > 0 && devices.size() > 0) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
       gpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, GPUDevice));
     }
   }
+
+  size_t gpuHalfThreads = God::Get<size_t>("gpu-half-threads");
+  if (gpuHalfThreads > 0 && devices.size() > 0) {
+    for (auto&& pair : config_.Get()["scorers"]) {
+      std::string name = pair.first.as<std::string>();
+      gpuLoaders_.emplace(name, LoaderFactory::Create(*this, name, pair.second, GPUHalfDevice));
+    }
+  }
+
 #endif
 #ifdef HAS_CPU
   size_t cpuThreads = God::Get<size_t>("cpu-threads");
@@ -242,6 +254,10 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
   }
+  else if (deviceInfo.deviceType == GPUHalfDevice) {
+    for (auto&& loader : gpuHalfLoaders_ | boost::adaptors::map_values)
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
+  }
   else if (deviceInfo.deviceType == FPGADevice) {
     for (auto&& loader : fpgaLoaders_ | boost::adaptors::map_values)
       scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
@@ -260,6 +276,9 @@ BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
   else if (deviceInfo.deviceType == GPUDevice) {
     return gpuLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
+  else if (deviceInfo.deviceType == GPUHalfDevice) {
+    return gpuHalfLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
+  }
   else if (deviceInfo.deviceType == FPGADevice) {
     return fpgaLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
@@ -273,6 +292,8 @@ std::vector<std::string> God::GetScorerNames() const {
   for(auto&& name : cpuLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
   for(auto&& name : gpuLoaders_ | boost::adaptors::map_keys)
+    scorerNames.push_back(name);
+  for(auto&& name : gpuHalfLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
   for(auto&& name : fpgaLoaders_ | boost::adaptors::map_keys)
     scorerNames.push_back(name);
@@ -306,12 +327,14 @@ DeviceInfo God::GetNextDevice() const
 {
   DeviceInfo ret;
 
-  size_t cpuThreads = 0, gpuThreads = 0, fpgaThreads = 0;
+  size_t cpuThreads = 0, gpuThreads = 0, gpuHalfThreads = 0, fpgaThreads = 0;
   std::vector<size_t> gpuDevices, fpgaDevices;
 
 #ifdef CUDA
-  gpuThreads = Get<size_t>("gpu-threads");
   gpuDevices = Get<std::vector<size_t>>("devices");
+
+  gpuThreads = Get<size_t>("gpu-threads");
+  gpuHalfThreads = Get<size_t>("gpu-half-threads");
 #endif
 
 #ifdef HAS_CPU
@@ -323,7 +346,7 @@ DeviceInfo God::GetNextDevice() const
   fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
 #endif
 
-  size_t totGPUThreads = gpuThreads * gpuDevices.size();
+  size_t totGPUThreads = (gpuThreads + gpuHalfThreads) * gpuDevices.size();
   size_t totFPGAThreads = fpgaThreads * fpgaDevices.size();
 
   // start locking
@@ -334,7 +357,7 @@ DeviceInfo God::GetNextDevice() const
     ret.threadInd = threadIncr_;
   }
   else if (threadIncr_ < cpuThreads + totGPUThreads) {
-    ret.deviceType = GPUDevice;
+    ret.deviceType = gpuThreads ? GPUDevice : GPUHalfDevice;
     size_t threadIncr = threadIncr_ - cpuThreads;
 
     ret.threadInd = threadIncr / gpuDevices.size();
@@ -373,10 +396,15 @@ size_t God::GetTotalThreads() const
   size_t totalThreads = 0;
 
 #ifdef CUDA
-  size_t gpuThreads = Get<size_t>("gpu-threads");
   auto devices = Get<std::vector<size_t>>("devices");
+
+  size_t gpuThreads = Get<size_t>("gpu-threads");
   LOG(info)->info("Setting GPU thread count to {}", gpuThreads);
-  totalThreads += gpuThreads * devices.size();
+
+  size_t gpuHalfThreads = Get<size_t>("gpu-half-threads");
+  LOG(info)->info("Setting half-precision GPU thread count to {}", gpuHalfThreads);
+
+  totalThreads += (gpuThreads + gpuHalfThreads) * devices.size();
 #endif
 
 #ifdef HAS_CPU

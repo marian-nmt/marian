@@ -199,6 +199,9 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Implicitly sets minimal number of threads to number of devices.")
     ("gpu-threads", po::value<size_t>()->default_value(1),
      "Number of threads on a single GPU.")
+
+    ("gpu-half-threads", po::value<size_t>()->default_value(0),
+     "Number of threads on a single GPU (half precision.")
 #endif
 
 #ifdef HAS_CPU
@@ -321,8 +324,9 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("mini-batch-words", int);
   SET_OPTION("max-length", size_t);
 #ifdef CUDA
-  SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
+  SET_OPTION("gpu-threads", size_t);
+  SET_OPTION("gpu-half-threads", size_t);
 #endif
 #ifdef HAS_CPU
   SET_OPTION("cpu-threads", size_t);

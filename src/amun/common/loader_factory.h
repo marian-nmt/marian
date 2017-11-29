@@ -34,6 +34,9 @@ class LoaderFactory {
 
     static Loader *CreateFPGA(const God &god, const std::string& name,
                             const YAML::Node& config);
+
+    static Loader *CreateHalfGPU(const God &god, const std::string& name,
+                            const YAML::Node& config);
 };
 
 }

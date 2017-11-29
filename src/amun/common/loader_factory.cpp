@@ -34,6 +34,10 @@ LoaderPtr LoaderFactory::Create(
   if (deviceType == GPUDevice) {
     loader = CreateGPU(god, name, config);
   }
+
+  if (deviceType == GPUHalfDevice) {
+    loader = CreateHalfGPU(god, name, config);
+  }
 #endif
 
 #ifdef HAS_CPU
@@ -81,6 +85,14 @@ Loader *LoaderFactory::CreateGPU(
 
   return NULL;
 }
+
+Loader *LoaderFactory::CreateHalfGPU(const God &god, const std::string& name,
+                        const YAML::Node& config)
+{
+  assert(false);
+  return nullptr;
+}
+
 #endif
 
 
