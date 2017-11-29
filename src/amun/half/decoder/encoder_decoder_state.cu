@@ -5,7 +5,7 @@
 using namespace std;
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 ////////////////////////////////////////////
 std::string EncoderDecoderState::Debug(size_t verbosity) const

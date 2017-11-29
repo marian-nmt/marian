@@ -13,7 +13,7 @@
 #include "cellstate.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 class Decoder {
   private:

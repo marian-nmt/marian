@@ -1,7 +1,7 @@
 #include "model.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncEmbeddings::EncEmbeddings(const NpzConverter& model)

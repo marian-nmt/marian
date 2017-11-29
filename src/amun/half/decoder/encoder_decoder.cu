@@ -14,7 +14,7 @@
 using namespace std;
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 

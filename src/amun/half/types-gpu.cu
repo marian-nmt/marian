@@ -3,7 +3,7 @@
 #include "mblas/handles.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 void HandleError(cudaError_t err, const char *file, int line ) {
   if (err != cudaSuccess) {

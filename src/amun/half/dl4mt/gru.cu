@@ -1,7 +1,7 @@
 #include "gru.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 __global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
                                 const mblas::MatrixWrapper<float> stateWrap,

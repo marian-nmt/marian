@@ -4,7 +4,7 @@
 #include "mblas/matrix_functions.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 class NpzConverter {
   private:

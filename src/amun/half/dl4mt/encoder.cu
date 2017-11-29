@@ -4,7 +4,7 @@
 using namespace std;
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 Encoder::Encoder(const Weights& model, const YAML::Node& config)
   : embeddings_(model.encEmbeddings_),

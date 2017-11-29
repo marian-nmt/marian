@@ -13,7 +13,7 @@
 
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 class EncoderDecoderState;
 class Encoder;

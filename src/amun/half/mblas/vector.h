@@ -9,7 +9,7 @@
 #include "../types-gpu.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 namespace mblas {
 
 template<typename T>

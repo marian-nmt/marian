@@ -4,7 +4,7 @@
 #include "gpu/types-gpu.h"
 #include "gpu/decoder/best_hyps.h"
 
-namespace GPU {
+namespace GPUHalf {
 
 ApePenalty::ApePenalty(const std::string& name,
 		   const YAML::Node& config,

@@ -9,7 +9,7 @@
 #include "gpu/dl4mt/model.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 template <template<class> class CellType, class InnerWeights>
 class Multiplicative: public Cell {

@@ -6,7 +6,7 @@
 #include "../dl4mt/cellstate.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 class EncoderDecoderState : public State {
   public:

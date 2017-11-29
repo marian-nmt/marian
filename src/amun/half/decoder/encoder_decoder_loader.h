@@ -4,7 +4,7 @@
 #include "../dl4mt/model.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 ////////////////////////////////////////////
 class EncoderDecoderLoader : public Loader {

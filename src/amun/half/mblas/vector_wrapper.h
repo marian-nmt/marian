@@ -3,7 +3,7 @@
 #include "vector.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 namespace mblas {
 
 

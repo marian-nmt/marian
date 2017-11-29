@@ -4,7 +4,7 @@
 #include "gpu/mblas/handles.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 struct CellState {
   CellState(){

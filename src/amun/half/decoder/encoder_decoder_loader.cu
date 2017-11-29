@@ -6,7 +6,7 @@
 #include "common/god.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 ////////////////////////////////////////////
 EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,

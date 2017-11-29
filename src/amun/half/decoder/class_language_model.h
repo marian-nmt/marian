@@ -5,7 +5,7 @@
 #include "language_model.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 class ClassLanguageModel : public LanguageModel {
   private:

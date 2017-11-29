@@ -10,7 +10,7 @@
 
 #include "gpu/mblas/matrix.h"
 
-namespace GPU {
+namespace GPUHalf {
 
 typedef std::vector<Word> SrcTrgMap;
 typedef std::vector<float> Penalties;

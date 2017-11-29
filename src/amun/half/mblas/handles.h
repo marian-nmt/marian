@@ -4,7 +4,7 @@
 #include <cublas_v2.h>
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 namespace mblas {
 
 class CudaStreamHandler

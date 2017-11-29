@@ -8,7 +8,7 @@
 using namespace std;
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
 : d_breakdown(maxBeamSize)

@@ -2,7 +2,7 @@
 #include "matrix.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 namespace mblas {
 
 template <typename T>

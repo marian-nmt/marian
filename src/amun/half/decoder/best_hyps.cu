@@ -1,7 +1,7 @@
 #include "best_hyps.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 BestHyps::BestHyps(const God &god)
       : BestHypsBase(god),

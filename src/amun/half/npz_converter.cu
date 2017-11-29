@@ -2,7 +2,7 @@
 #include "common/exception.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 NpzConverter::NpzConverter(const std::string& file)
   : model_(cnpy::npz_load(file)),

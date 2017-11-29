@@ -17,7 +17,7 @@ namespace amunmt {
 
 class Sentences;
 
-namespace GPU {
+namespace GPUHalf {
 
 class Encoder {
   private:

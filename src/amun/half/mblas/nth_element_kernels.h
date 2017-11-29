@@ -4,7 +4,7 @@
 #include "vector_wrapper.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 struct NthOut
 {

@@ -12,7 +12,7 @@
 #include "vector.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 namespace mblas {
 
 using namespace thrust::placeholders;

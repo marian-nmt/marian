@@ -5,7 +5,7 @@
 #include "cellstate.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 struct CellLength {
   CellLength() = default;

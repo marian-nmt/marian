@@ -4,7 +4,7 @@
 using namespace std;
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 namespace mblas {
 
 thread_local CudaStreamHandler CudaStreamHandler::instance_;

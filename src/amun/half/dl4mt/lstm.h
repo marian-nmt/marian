@@ -7,7 +7,7 @@
 #include "cellstate.h"
 
 namespace amunmt {
-namespace GPU {
+namespace GPUHalf {
 
 template <class Weights>
 class SlowLSTM: public Cell {
