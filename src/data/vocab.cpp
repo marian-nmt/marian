@@ -80,6 +80,9 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 
 int Vocab::load(const std::string& vocabPath, int max) {
   LOG(info, "[data] Loading vocabulary from {}", vocabPath);
+  ABORT_IF(!boost::filesystem::exists(vocabPath),
+           "Vocabulary {} does not exits", vocabPath)
+  
   YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
 
   std::unordered_set<Word> seenSpecial;

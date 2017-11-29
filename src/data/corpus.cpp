@@ -96,7 +96,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
 
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>();
-      int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+      int vocSize = vocab->load(vocabPaths[i], paths_[i], maxVocabs[i]);
       LOG(info,
           "[data] Setting vocabulary size for input {} to {}",
           i,
