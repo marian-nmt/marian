@@ -4,11 +4,7 @@ namespace amunmt {
 namespace GPU {
 
 BestHyps::BestHyps(const God &god)
-      : BestHypsBase(god,
-          !god.Get<bool>("allow-unk"),
-          god.Get<bool>("n-best"),
-          god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.GetScorerWeights()),
+      : BestHypsBase(god),
         keys_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
