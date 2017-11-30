@@ -180,7 +180,6 @@ class TMatrix : public BaseMatrix {
 };
 
 typedef TMatrix<float> Matrix;
-typedef TMatrix<uint> IMatrix;
 
 
 }  // namespace mblas
