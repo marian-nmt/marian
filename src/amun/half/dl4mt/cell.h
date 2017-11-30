@@ -1,5 +1,5 @@
 #pragma once
-#include "gpu/mblas/matrix_functions.h"
+#include "../mblas/matrix_functions.h"
 #include "../mblas/matrix_wrapper.h"
 #include "../mblas/handles.h"
 #include "cellstate.h"

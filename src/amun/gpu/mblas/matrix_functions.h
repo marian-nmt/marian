@@ -9,7 +9,7 @@
 #include <thrust/functional.h>
 #include <iostream>
 
-#include "thrust_functions.h"
+#include "common/thrust_functions.h"
 #include "matrix.h"
 #include "matrix_wrapper.h"
 #include "handles.h"
