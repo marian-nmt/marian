@@ -9,7 +9,6 @@
 #include "common/god.h"
 #include "common/utils.h"
 #include "../mblas/matrix_functions.h"
-#include "../mblas/nth_element.h"
 #include "../mblas/vector.h"
 #include "encoder_decoder.h"
 
@@ -41,7 +40,6 @@ class BestHyps : public BestHypsBase
         std::vector<uint>& beamSizes);
 
   private:
-    std::unique_ptr<NthElement> nthElement_;
     mblas::Vector<unsigned> keys_;
     mblas::Vector<float> costs_;
     uint maxBeamSize_;

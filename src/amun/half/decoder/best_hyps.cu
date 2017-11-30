@@ -11,10 +11,6 @@ BestHyps::BestHyps(const God &god)
         costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
 {
-  if (!god_.UseFusedSoftmax()) {
-    NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
-    nthElement_.reset(obj);
-  }
 }
 
 void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
@@ -26,7 +22,7 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
                std::vector<unsigned>& outKeys,
                const bool isFirst)
 {
-  nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
+  assert(false);
 }
 
 // fast fused softmax and nth_element
@@ -109,19 +105,7 @@ void  BestHyps::CalcBeam(
     FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
   }
   else {
-    BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, costs_);
-
-    for (size_t i = 1; i < scorers.size(); ++i) {
-      mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
-
-      Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
-    }
-
-    if (forbidUNK_) {
-      DisAllowUNK(Probs);
-    }
-
-    FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+    assert(false);
   }
 
   std::vector<std::vector<float>> breakDowns;
@@ -131,7 +115,9 @@ void  BestHyps::CalcBeam(
         std::vector<float> modelCosts(beamSizeSum);
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
-        nthElement_->getValueByKey(modelCosts, currProbs);
+        //nthElement_->getValueByKey(modelCosts, currProbs);
+        assert(false);
+
         breakDowns.push_back(modelCosts);
       }
   }
