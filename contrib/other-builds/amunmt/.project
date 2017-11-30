@@ -1856,16 +1856,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/matrix_wrapper.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/half/mblas/nth_element.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/nth_element.cu</locationURI>
-		</link>
-		<link>
-			<name>src/amun/half/mblas/nth_element.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/nth_element.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/half/mblas/nth_element_kernels.cu</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/nth_element_kernels.cu</locationURI>
