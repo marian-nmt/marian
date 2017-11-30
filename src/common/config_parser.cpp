@@ -709,10 +709,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-dim-ffn", int);
 
+#ifdef CUDNN
   SET_OPTION("char-stride", int);
   SET_OPTION("char-highway", int);
   SET_OPTION("char-conv-filters-num", std::vector<int>);
   SET_OPTION("char-conv-filters-widths", std::vector<int>);
+#endif
 
   SET_OPTION("best-deep", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
