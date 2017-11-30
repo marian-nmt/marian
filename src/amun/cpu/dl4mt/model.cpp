@@ -67,8 +67,10 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
   B2_(model("ff_logit_prev_b", true)),
   W3_(model["ff_logit_ctx_W"]),
   B3_(model("ff_logit_ctx_b", true)),
-  W4_(model.getFirstOfMany({std::pair<std::string, bool>(std::string("ff_logit_W"), false),
-             std::make_pair(std::string("Wemb_dec"), true)})),
+  W4_(model.getFirstOfMany({std::pair<std::string, bool>(
+                  std::string("ff_logit_W"), false),
+                  std::make_pair(std::string("Wemb_dec"),true),
+                  std::make_pair(std::string("Wemb"), true)})),
   B4_(model("ff_logit_b", true)),
   Gamma_0_(model["ff_logit_l1_gamma0"]),
   Gamma_1_(model["ff_logit_l1_gamma1"]),
