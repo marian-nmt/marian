@@ -1866,6 +1866,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/nth_element_kernels.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/half/mblas/thrust_functions.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/thrust_functions.cu</locationURI>
+		</link>
+		<link>
 			<name>src/amun/half/mblas/thrust_functions.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/half/mblas/thrust_functions.h</locationURI>

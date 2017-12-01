@@ -89,6 +89,10 @@ void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
 
+void Copy(const half *in, size_t count, float *out,  cudaMemcpyKind kind);
+
+void Copy(const float *in, size_t count, half *out,  cudaMemcpyKind kind);
+
 void Fill(Matrix& In, float value=0.0f);
 
 Matrix& Swap(Matrix& Out, Matrix& In);

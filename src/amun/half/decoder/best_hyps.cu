@@ -1,4 +1,5 @@
 #include "best_hyps.h"
+#include "../mblas/matrix_functions.h"
 
 using namespace std;
 
@@ -35,8 +36,9 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
   getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
 }
 
-std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
-                                            size_t hypIndex)
+std::vector<SoftAlignmentPtr>
+BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
+                        size_t hypIndex)
 {
   std::vector<SoftAlignmentPtr> alignments;
   for (auto& scorer : scorers) {
@@ -45,15 +47,14 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
       size_t attLength = attention.dim(1);
 
       SoftAlignment *softAlignment = new SoftAlignment(attLength);
-      //HH
-      /*
-      mblas::copy(
-          attention.data() + hypIndex * attLength,
+
+      const half *in = attention.data() + hypIndex * attLength;
+      float *out = softAlignment->data();
+      mblas::Copy(in,
           attLength,
-          softAlignment->data(),
-          cudaMemcpyDeviceToHost
-      );
-      */
+          out,
+          cudaMemcpyDeviceToHost);
+
       alignments.emplace_back(softAlignment);
     } else {
       amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
@@ -80,13 +81,12 @@ void  BestHyps::CalcBeam(
   for (auto& h : prevHyps) {
     vCosts.push_back(h->GetCost());
   }
-  //HH
-  /*
-  mblas::copy(vCosts.data(),
+
+  mblas::Copy(vCosts.data(),
               vCosts.size(),
               costs_.data(),
               cudaMemcpyHostToDevice);
-  */
+
 
   size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
@@ -211,7 +211,7 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
 
   for (size_t i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;
-    //outValues[i] = hostVec[i].score; //HH
+    outValues[i] = half2float(hostVec[i].score);
   }
 }
 

@@ -103,6 +103,7 @@ cuda_add_executable(
   half/mblas/matrix.cu
   half/mblas/matrix_functions.cu
   half/mblas/nth_element_kernels.cu
+  half/mblas/thrust_functions.cu
   half/npz_converter.cu
   half/types-gpu.cu
 
@@ -140,6 +141,7 @@ cuda_add_library(python SHARED
   half/dl4mt/model.cu
   half/mblas/matrix.cu
   half/mblas/matrix_functions.cu
+  half/mblas/thrust_functions.cu
   half/mblas/nth_element_kernels.cu
   half/npz_converter.cu
   half/types-gpu.cu
@@ -185,6 +187,7 @@ cuda_add_library(mosesplugin STATIC
   half/mblas/matrix.cu
   half/mblas/matrix_functions.cu
   half/mblas/nth_element_kernels.cu
+  half/mblas/thrust_functions.cu
   half/npz_converter.cu
   half/types-gpu.cu
   

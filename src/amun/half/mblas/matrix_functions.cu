@@ -10,6 +10,17 @@ namespace mblas {
 thread_local CudaStreamHandler CudaStreamHandler::instance_;
 thread_local CublasHandler CublasHandler::instance_;
 
+void Copy(const half *in, size_t count, float *out,  cudaMemcpyKind kind)
+{
+  assert(kind == cudaMemcpyDeviceToHost);
+  //HH
+}
+
+void Copy(const float *in, size_t count, half *out,  cudaMemcpyKind kind)
+{
+  assert(kind == cudaMemcpyHostToDevice);
+  //HH
+}
 
 Matrix& Swap(Matrix& Out, Matrix& In) {
   Out.swap(In);
