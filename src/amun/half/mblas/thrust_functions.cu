@@ -69,10 +69,3 @@ __fp16 float2half_rn (float a)
     }
     return uint16_as_fp16 (ir);
 }
-
-float half2float(__fp16 a)
-{
-  //HH
-  assert(false);
-  return 0;
-}

@@ -1451,6 +1451,17 @@ void TestMemCpy()
   cerr << "Finished" << endl;
 }
 
+__global__
+void gCopyNthOutBatch(const VectorWrapper<NthOutBatch> nBest,
+                      VectorWrapper<uint> outKeys,
+                      VectorWrapper<float> outValues)
+{
+  for (uint i = 0; i < nBest.size(); ++i) {
+    outKeys[i] = nBest[i].ind;
+    outValues[i] = __half2float(nBest[i].score);
+  }
+}
+
 void CopyNthOutBatch(const mblas::Vector<NthOutBatch> &nBest,
               std::vector<uint>& outKeys,
               std::vector<float>& outValues)
@@ -1459,13 +1470,13 @@ void CopyNthOutBatch(const mblas::Vector<NthOutBatch> &nBest,
   outKeys.resize(nBest.size());
   outValues.resize(nBest.size());
 
-  std::vector<NthOutBatch> hostVec(nBest.size());
-  mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
+  Vector<uint> d_keys(nBest.size());
+  Vector<float> d_values(nBest.size());
 
-  for (size_t i = 0; i < nBest.size(); ++i) {
-    outKeys[i] = hostVec[i].ind;
-    outValues[i] = half2float(hostVec[i].score);
-  }
+  gCopyNthOutBatch<<<1,1>>>(nBest, d_keys, d_values);
+
+  copy(d_keys.data(), nBest.size(), outKeys.data(), cudaMemcpyDeviceToHost);
+  copy(d_values.data(), nBest.size(), outValues.data(), cudaMemcpyDeviceToHost);
 }
 
 }  // namespace mblas

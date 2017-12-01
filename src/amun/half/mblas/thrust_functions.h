@@ -6,4 +6,4 @@
 
 __fp16 float2half_rn (float a);
 
-float half2float(__fp16 a);
+
