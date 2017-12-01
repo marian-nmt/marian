@@ -7,6 +7,7 @@
  */
 
 #include "../types-gpu.h"
+#include <sstream>
 
 namespace amunmt {
 namespace GPUHalf {
@@ -143,6 +144,14 @@ public:
     std::swap(size_, other.size_);
     std::swap(maxSize_, other.maxSize_);
     std::swap(data_, other.data_);
+  }
+
+  virtual std::string Debug(size_t verbosity = 1) const
+  {
+    std::stringstream strm;
+    strm << maxSize_ << " " << size_;
+
+    return strm.str();
   }
 
 protected:
