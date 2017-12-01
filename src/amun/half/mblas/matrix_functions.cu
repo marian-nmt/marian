@@ -1461,9 +1461,11 @@ void gCopyNthOutBatch(const VectorWrapper<NthOutBatch> nBest,
                       VectorWrapper<uint> outKeys,
                       VectorWrapper<float> outValues)
 {
-  for (uint i = 0; i < nBest.size(); ++i) {
-    outKeys[i] = nBest[i].ind;
-    outValues[i] = __half2float(nBest[i].score);
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (id < nBest.size()) {
+    outKeys[id] = nBest[id].ind;
+    outValues[id] = __half2float(nBest[id].score);
   }
 }
 
@@ -1471,18 +1473,21 @@ void CopyNthOutBatch(const mblas::Vector<NthOutBatch> &nBest,
               std::vector<uint>& outKeys,
               std::vector<float>& outValues)
 {
-  cerr << "CopyNthOutBatch=" << nBest.size() << endl;
+  uint size = nBest.size();
   //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
-  outKeys.resize(nBest.size());
-  outValues.resize(nBest.size());
+  outKeys.resize(size);
+  outValues.resize(size);
 
-  Vector<uint> d_keys(nBest.size());
-  Vector<float> d_values(nBest.size());
+  Vector<uint> d_keys(size);
+  Vector<float> d_values(size);
 
-  gCopyNthOutBatch<<<1,1, 0, CudaStreamHandler::GetStream()>>>(nBest, d_keys, d_values);
+  uint threads = std::min((uint)MAX_THREADS, size);
+  uint blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
-  copy(d_keys.data(), nBest.size(), outKeys.data(), cudaMemcpyDeviceToHost);
-  copy(d_values.data(), nBest.size(), outValues.data(), cudaMemcpyDeviceToHost);
+  gCopyNthOutBatch<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(nBest, d_keys, d_values);
+
+  copy(d_keys.data(), size, outKeys.data(), cudaMemcpyDeviceToHost);
+  copy(d_values.data(), size, outValues.data(), cudaMemcpyDeviceToHost);
 }
 
 }  // namespace mblas

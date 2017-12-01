@@ -108,7 +108,6 @@ void Copy(const T1 *in, uint size, T2 *out,  cudaMemcpyKind kind)
   uint threads = std::min((uint)MAX_THREADS, size);
   uint blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
-  std::cerr << "Copy1=" << size << std::endl;
   if (kind == cudaMemcpyDeviceToHost) {
     const VectorWrapper<T1> inWrap(in, size);
 
