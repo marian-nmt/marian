@@ -8,9 +8,10 @@
 #endif
 
 #ifdef CUDA
-#include "gpu/decoder/encoder_decoder.h"
 #include "gpu/decoder/encoder_decoder_loader.h"
 // #include "gpu/decoder/ape_penalty.h"
+
+#include "half/decoder/encoder_decoder_loader.h"
 
 #ifdef KENLM
 #include "gpu/decoder/language_model.h"
@@ -92,9 +93,9 @@ Loader *LoaderFactory::CreateHalfGPU(const God &god, const std::string& name,
          "Missing scorer type in config file");
 
   std::string type = config["type"].as<std::string>();
-  IF_MATCH_RETURN(god, type, "Nematus", GPU::EncoderDecoderLoader);
-  IF_MATCH_RETURN(god, type, "nematus", GPU::EncoderDecoderLoader);
-  IF_MATCH_RETURN(god, type, "NEMATUS", GPU::EncoderDecoderLoader);
+  IF_MATCH_RETURN(god, type, "Nematus", GPUHalf::EncoderDecoderLoader);
+  IF_MATCH_RETURN(god, type, "nematus", GPUHalf::EncoderDecoderLoader);
+  IF_MATCH_RETURN(god, type, "NEMATUS", GPUHalf::EncoderDecoderLoader);
 
   return nullptr;
 }
