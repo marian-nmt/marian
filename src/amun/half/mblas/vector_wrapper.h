@@ -25,7 +25,15 @@ public:
     dataConst_ = vec.data();
   }
 
-  __device__
+  __device__ __host__
+  VectorWrapper(const T *ptr, uint size)
+  {
+    size_ = size;
+    data_ = nullptr;
+    dataConst_ = ptr;
+  }
+
+  __device__ __host__
   VectorWrapper(T *ptr, uint size)
   {
     size_ = size;

@@ -43,10 +43,15 @@ public:
   }
 
   Vector(const std::vector<T> &vec)
+  :Vector(vec.data(), vec.size())
+  {
+  }
+
+  Vector(const T *hostArr, size_t size)
   :maxSize_(0)
   {
-    newSize(vec.size());
-    HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
+    newSize(size);
+    HANDLE_ERROR( cudaMemcpyAsync(data_, hostArr, size * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
   Vector(const Vector<T> &other)
