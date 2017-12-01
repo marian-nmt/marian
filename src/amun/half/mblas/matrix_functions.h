@@ -479,6 +479,9 @@ void TestMemCpy(size_t size, const T *data1)
 
 void TestMemCpy();
 
+void CopyNthOutBatch(const mblas::Vector<NthOutBatch> &nBest,
+              std::vector<uint>& outKeys,
+              std::vector<float>& outValues);
 
 } // namespace mblas
 } // namespace GPU

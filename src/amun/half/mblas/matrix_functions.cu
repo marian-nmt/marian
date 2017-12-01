@@ -1451,6 +1451,23 @@ void TestMemCpy()
   cerr << "Finished" << endl;
 }
 
+void CopyNthOutBatch(const mblas::Vector<NthOutBatch> &nBest,
+              std::vector<uint>& outKeys,
+              std::vector<float>& outValues)
+{
+  //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
+  outKeys.resize(nBest.size());
+  outValues.resize(nBest.size());
+
+  std::vector<NthOutBatch> hostVec(nBest.size());
+  mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
+
+  for (size_t i = 0; i < nBest.size(); ++i) {
+    outKeys[i] = hostVec[i].ind;
+    outValues[i] = half2float(hostVec[i].score);
+  }
+}
+
 }  // namespace mblas
 }  // namespace GPU
 }  // namespace amunmt

@@ -58,7 +58,7 @@ class BestHyps : public BestHypsBase
                       std::vector<uint>& outKeys,
                       const bool isFirst=false) const;
 
-    void GetPairs(mblas::Vector<NthOutBatch> &nBest,
+    void GetPairs(const mblas::Vector<NthOutBatch> &nBest,
                   std::vector<uint>& outKeys,
                   std::vector<float>& outValues) const;
 

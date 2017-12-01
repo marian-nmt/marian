@@ -198,21 +198,11 @@ void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
   //cerr << endl;
 }
 
-void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
+void BestHyps::GetPairs(const mblas::Vector<NthOutBatch> &nBest,
               std::vector<uint>& outKeys,
               std::vector<float>& outValues) const
 {
-  //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
-  outKeys.resize(nBest.size());
-  outValues.resize(nBest.size());
-
-  std::vector<NthOutBatch> hostVec(nBest.size());
-  mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
-
-  for (size_t i = 0; i < nBest.size(); ++i) {
-    outKeys[i] = hostVec[i].ind;
-    outValues[i] = half2float(hostVec[i].score);
-  }
+  CopyNthOutBatch(nBest, outKeys, outValues);
 }
 
 } // namespace
