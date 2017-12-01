@@ -200,12 +200,13 @@ class Decoder {
           } else {
             BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
+
+          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
+
           std::cerr << "Temp1_=" << Temp1_.Debug(0) << std::endl;
           std::cerr << "SCU_=" << SCU_.Debug(0) << std::endl;
           std::cerr << "Temp2_=" << Temp2_.Debug(0) << std::endl;
           std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(0) << std::endl;
-
-          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
 
           //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
