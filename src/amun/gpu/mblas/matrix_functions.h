@@ -181,6 +181,8 @@ __global__ void gBroadcast(Functor functor,
 
     outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
                           in2Wrap[beamIdx * cols + stateIdx]);
+    //outWrap(beamIdx, stateIdx, srcId, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
+    //                                                in2Wrap(beamIdx, stateIdx, 0, 0));
   }
 }
 
@@ -192,6 +194,7 @@ Matrix& Broadcast(Functor functor,
                   const mblas::Vector<uint>& batchMapping,
                   size_t srcSize)
 {
+  BEGIN_TIMER("Broadcast");
   size_t sumOfBeamSizes = in2.dim(0);
 
   //size_t rows = srcSize * sumOfBeamSizes;
@@ -225,6 +228,7 @@ Matrix& Broadcast(Functor functor,
   HANDLE_ERROR(cudaDeviceSynchronize());
   */
 
+  PAUSE_TIMER("Broadcast");
   return out;
 }
 
