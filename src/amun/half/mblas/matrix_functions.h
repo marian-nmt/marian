@@ -89,9 +89,41 @@ void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
 
-void Copy(const half *in, size_t count, float *out,  cudaMemcpyKind kind);
+//////////////////////////////////////////////////////////////////////////////////////////////
 
-void Copy(const float *in, size_t count, half *out,  cudaMemcpyKind kind);
+template<typename T1, typename T2>
+__global__ void gCopy(const VectorWrapper<T1> in, VectorWrapper<T2> out)
+{
+  for (uint i = 0; i < in.size(); ++i) {
+    T2 val = in[i];
+    out[i] = val;
+  }
+}
+
+template<typename T1, typename T2>
+void Copy(const T1 *in, size_t count, T2 *out,  cudaMemcpyKind kind)
+{
+  std::cerr << "Copy1=" << count << std::endl;
+  if (kind == cudaMemcpyDeviceToHost) {
+    const VectorWrapper<T1> inWrap(in, count);
+
+    Vector<T2> d_out(count);
+    VectorWrapper<T2> outWrap(d_out);
+
+    gCopy<<<1,1,0, CudaStreamHandler::GetStream()>>>(inWrap, outWrap);
+    copy(d_out.data(), count, out, cudaMemcpyDeviceToHost);
+  }
+  else if (kind == cudaMemcpyHostToDevice) {
+    Vector<T1> d_in(in, count);
+    const VectorWrapper<T1> inWrap(d_in);
+
+    VectorWrapper<T2> outWrap(out, count);
+
+    gCopy<<<1,1,0, CudaStreamHandler::GetStream()>>>(inWrap, outWrap);
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 void Fill(Matrix& In, float value=0.0f);
 

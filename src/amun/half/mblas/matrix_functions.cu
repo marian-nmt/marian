@@ -10,41 +10,6 @@ namespace mblas {
 thread_local CudaStreamHandler CudaStreamHandler::instance_;
 thread_local CublasHandler CublasHandler::instance_;
 
-template<typename T1, typename T2>
-__global__ void gCopy(const VectorWrapper<T1> in, VectorWrapper<T2> out)
-{
-  for (uint i = 0; i < in.size(); ++i) {
-    T2 val = in[i];
-    out[i] = val;
-  }
-}
-
-void Copy(const half *in, size_t count, float *out,  cudaMemcpyKind kind)
-{
-  cerr << "Copy1=" << count << endl;
-  assert(kind == cudaMemcpyDeviceToHost);
-
-  const VectorWrapper<half> inWrap(in, count);
-
-  Vector<float> d_out(count);
-  VectorWrapper<float> outWrap(d_out);
-
-  gCopy<<<1,1,0, CudaStreamHandler::GetStream()>>>(inWrap, outWrap);
-  copy(d_out.data(), count, out, cudaMemcpyDeviceToHost);
-}
-
-void Copy(const float *in, size_t count, half *out,  cudaMemcpyKind kind)
-{
-  cerr << "Copy2=" << count << endl;
-  assert(kind == cudaMemcpyHostToDevice);
-  Vector<float> d_in(in, count);
-  const VectorWrapper<float> inWrap(d_in);
-
-  VectorWrapper<half> outWrap(out, count);
-
-  gCopy<<<1,1,0, CudaStreamHandler::GetStream()>>>(inWrap, outWrap);
-}
-
 Matrix& Swap(Matrix& Out, Matrix& In) {
   Out.swap(In);
   return Out;
