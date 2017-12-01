@@ -43,7 +43,8 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
     size_t size = np.size();
 
     mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
-    mblas::copy(np.data(), size, matrix->data(), cudaMemcpyHostToDevice);
+    //mblas::copy(np.data(), size, matrix->data(), cudaMemcpyHostToDevice);
+    //HH
 
     if (transpose) {
       mblas::Transpose(*matrix);
@@ -73,7 +74,8 @@ std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<st
     if(it != model_.end()) {
       NpyMatrixWrapper np(it->second);
       mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
-      mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+      //mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
+      //HH
 
       if (key.second) {
         mblas::Transpose(*matrix);

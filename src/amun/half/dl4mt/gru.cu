@@ -5,19 +5,21 @@ using namespace std;
 namespace amunmt {
 namespace GPUHalf {
 
-__global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
-                                const mblas::MatrixWrapper<float> stateWrap,
-                                const mblas::MatrixWrapper<float> ruhWrap,
-                                const mblas::MatrixWrapper<float> tempWrap,
-                                const mblas::MatrixWrapper<float> bWrap,
-                                const mblas::MatrixWrapper<float> bx1Wrap,
-                                const mblas::MatrixWrapper<float> bx2Wrap)
+__global__ void gElementwiseOps(mblas::MatrixWrapper<half> outWrap,
+                                const mblas::MatrixWrapper<half> stateWrap,
+                                const mblas::MatrixWrapper<half> ruhWrap,
+                                const mblas::MatrixWrapper<half> tempWrap,
+                                const mblas::MatrixWrapper<half> bWrap,
+                                const mblas::MatrixWrapper<half> bx1Wrap,
+                                const mblas::MatrixWrapper<half> bx2Wrap)
 {
   const uint rows = stateWrap.dim(0);
   const uint cols = stateWrap.dim(1);
   assert(blockIdx.x < rows);
   assert(ruhWrap.dim(1) == cols * 3);
 
+  //HH
+  /*
   for(int tid = 0; tid < cols; tid += blockDim.x) {
     int i = tid + threadIdx.x;
     if(i < cols) {
@@ -46,6 +48,7 @@ __global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
       outWrap(blockIdx.x, i, 0, 0) = (1.0f - u) * hv + u * stateWrap(blockIdx.x, i, 0, 0);
     }
   }
+  */
 }
 
 }

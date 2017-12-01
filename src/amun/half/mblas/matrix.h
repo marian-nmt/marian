@@ -24,7 +24,7 @@ __global__ void gSum(const T *data, size_t count, T &ret)
 {
   ret = 0;
   for (size_t i = 0; i < count; ++i) {
-    ret += data[i];
+    //ret += data[i];
   }
 }
 
@@ -137,7 +137,7 @@ class TMatrix : public BaseMatrix {
 
       if (verbosity) {
         T sum = Sum(data(), size());
-        strm << "sum=" << sum << std::flush;
+        //strm << "sum=" << sum << std::flush;
 
         if (verbosity == 2) {
           const cudaStream_t& stream = CudaStreamHandler::GetStream();
@@ -152,7 +152,7 @@ class TMatrix : public BaseMatrix {
           HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
           for (size_t i = 0; i < size(); ++i) {
-            strm << " " << h_data[i];
+            //strm << " " << h_data[i];
           }
         }
       }
@@ -179,7 +179,7 @@ class TMatrix : public BaseMatrix {
     Vector<T> vec_;
 };
 
-typedef TMatrix<float> Matrix;
+typedef TMatrix<half> Matrix;
 
 
 }  // namespace mblas

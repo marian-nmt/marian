@@ -40,7 +40,7 @@ struct NthOut
 struct NthOutBatch
 {
   uint ind;
-  float score;
+  half score;
   //uint hypoInd;
   //uint vocabInd;
 
@@ -50,7 +50,7 @@ struct NthOutBatch
     // only to be used to init variable in matrix.h gSum
     assert(rhs == 0.0f);
     ind = rhs;
-    score = rhs;
+    //score = rhs; //HH
     //hypoInd = rhs;
     //vocabInd = rhs;
   }
@@ -80,7 +80,7 @@ struct NthOutBatch
   NthOutBatch& operator+=(const NthOutBatch& rhs)
   {
     ind += rhs.ind;
-    score += rhs.score;
+    //score += rhs.score; //HH
     //hypoInd += rhs.hypoInd;
     //vocabInd += rhs.vocabInd;
     return *this;
@@ -101,7 +101,7 @@ inline std::ostream& operator<<(std::ostream &out, const NthOutBatch &obj)
 {
   out << "("
       << obj.ind << ","
-      << obj.score << ","
+      //<< obj.score << ","
       //<< obj.hypoInd << ","
       //<< obj.vocabInd
       << ")";

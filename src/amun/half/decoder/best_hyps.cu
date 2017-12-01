@@ -45,13 +45,15 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
       size_t attLength = attention.dim(1);
 
       SoftAlignment *softAlignment = new SoftAlignment(attLength);
+      //HH
+      /*
       mblas::copy(
           attention.data() + hypIndex * attLength,
           attLength,
           softAlignment->data(),
           cudaMemcpyDeviceToHost
       );
-
+      */
       alignments.emplace_back(softAlignment);
     } else {
       amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
@@ -78,12 +80,13 @@ void  BestHyps::CalcBeam(
   for (auto& h : prevHyps) {
     vCosts.push_back(h->GetCost());
   }
-
+  //HH
+  /*
   mblas::copy(vCosts.data(),
               vCosts.size(),
               costs_.data(),
               cudaMemcpyHostToDevice);
-  //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
+  */
 
   size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
@@ -208,7 +211,7 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
 
   for (size_t i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;
-    outValues[i] = hostVec[i].score;
+    //outValues[i] = hostVec[i].score; //HH
   }
 }
 

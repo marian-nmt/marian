@@ -41,7 +41,7 @@ class BestHyps : public BestHypsBase
 
   private:
     mblas::Vector<unsigned> keys_;
-    mblas::Vector<float> costs_;
+    mblas::Vector<half> costs_;
     uint maxBeamSize_;
 
     // fast fused softmax and nth_element
