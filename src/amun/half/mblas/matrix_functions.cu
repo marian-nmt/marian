@@ -407,11 +407,8 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 {
   assert((A.dim(2) == A.dim(3) == 1) || (B.dim(2) == B.dim(3) == 1));
 
-  //HH
-  //Matrix::value_type alpha = 1.0;
-  //Matrix::value_type beta = 0.0;
-  Matrix::value_type alpha;
-  Matrix::value_type beta;
+  Matrix::value_type alpha = float2half_rn(1.0);
+  Matrix::value_type beta = float2half_rn(0.0);
 
   size_t m = A.dim(0) * A.dim(2) * A.dim(3);
   size_t k = A.dim(1);
