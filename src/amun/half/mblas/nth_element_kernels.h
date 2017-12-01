@@ -2,6 +2,7 @@
 
 #include "matrix_wrapper.h"
 #include "vector_wrapper.h"
+#include "thrust_functions.h"
 
 namespace amunmt {
 namespace GPUHalf {
@@ -44,13 +45,24 @@ struct NthOutBatch
   //uint hypoInd;
   //uint vocabInd;
 
-  __device__ __host__
+  __host__
   NthOutBatch(const float& rhs)
   {
     // only to be used to init variable in matrix.h gSum
     assert(rhs == 0.0f);
     ind = rhs;
-    //score = rhs; //HH
+    score = float2half_rn(rhs);
+    //hypoInd = rhs;
+    //vocabInd = rhs;
+  }
+
+  __device__
+  NthOutBatch(const half& rhs)
+  {
+    // only to be used to init variable in matrix.h gSum
+    //assert(rhs == 0.0f);
+    ind = rhs;
+    score = rhs;
     //hypoInd = rhs;
     //vocabInd = rhs;
   }
@@ -76,11 +88,11 @@ struct NthOutBatch
     return *this;
   }
 
-  __device__ __host__
+  __device__
   NthOutBatch& operator+=(const NthOutBatch& rhs)
   {
     ind += rhs.ind;
-    //score += rhs.score; //HH
+    score += rhs.score;
     //hypoInd += rhs.hypoInd;
     //vocabInd += rhs.vocabInd;
     return *this;
