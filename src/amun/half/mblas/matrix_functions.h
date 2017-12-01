@@ -105,6 +105,7 @@ __global__ void gCopy(const VectorWrapper<T1> in, VectorWrapper<T2> out)
 template<typename T1, typename T2>
 void Copy(const T1 *in, uint size, T2 *out,  cudaMemcpyKind kind)
 {
+  BEGIN_TIMER("Copy");
   uint threads = std::min((uint)MAX_THREADS, size);
   uint blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
@@ -125,6 +126,7 @@ void Copy(const T1 *in, uint size, T2 *out,  cudaMemcpyKind kind)
 
     gCopy<<<blocks, threads ,0, CudaStreamHandler::GetStream()>>>(inWrap, outWrap);
   }
+  PAUSE_TIMER("Copy");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,6 +234,7 @@ Matrix& Broadcast(Functor functor,
                   const mblas::Vector<uint>& batchMapping,
                   size_t srcSize)
 {
+  BEGIN_TIMER("Broadcast");
   size_t sumOfBeamSizes = in2.dim(0);
 
   //size_t rows = srcSize * sumOfBeamSizes;
@@ -265,6 +268,7 @@ Matrix& Broadcast(Functor functor,
   HANDLE_ERROR(cudaDeviceSynchronize());
   */
 
+  PAUSE_TIMER("Broadcast");
   return out;
 }
 
@@ -297,6 +301,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
 template <class Functor>
 Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<half>& In)
 {
+  BEGIN_TIMER("BroadcastVecColumn");
   size_t rows  = Out.dim(0);
   size_t cols = Out.dim(1);
 
@@ -309,6 +314,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<hal
   gBroadcastVecColumn<<<blocks, threads, rows * sizeof(half), CudaStreamHandler::GetStream()>>>
     (functor, outWrap, inWrap);
 
+  PAUSE_TIMER("BroadcastVecColumn");
   return Out;
 }
 
@@ -338,6 +344,7 @@ __global__ void gBroadcastVec(Functor functor,
 template <class Functor>
 Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
 {
+  BEGIN_TIMER("BroadcastVec");
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In=" << In.Debug() << std::endl;
 
@@ -353,6 +360,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
   gBroadcastVec<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
 
+  PAUSE_TIMER("BroadcastVec");
   return Out;
 }
 
@@ -370,6 +378,7 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out)
 {
+  BEGIN_TIMER("Element1");
   uint size = Out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
   uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
@@ -380,6 +389,7 @@ Matrix& Element(Functor functor,
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap);
 
+  PAUSE_TIMER("Element1");
   return Out;
 }
 
@@ -398,6 +408,7 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In)
 {
+  BEGIN_TIMER("Element2");
   assert(Out.size() == In.size());
 
   uint size = Out.size();
@@ -411,6 +422,7 @@ Matrix& Element(Functor functor,
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
 
+  PAUSE_TIMER("Element2");
   return Out;
 }
 
@@ -430,6 +442,7 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out, const Matrix& In1, const Matrix& In2)
 {
+  BEGIN_TIMER("Element3");
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In1=" << In1.Debug() << std::endl;
   //std::cerr << "In2=" << In2.Debug() << std::endl;
@@ -458,6 +471,7 @@ Matrix& Element(Functor functor,
   //HANDLE_ERROR( cudaDeviceSynchronize() );
   //HANDLE_ERROR( cudaPeekAtLastError() );
 
+  PAUSE_TIMER("Element3");
   return Out;
 }
 
