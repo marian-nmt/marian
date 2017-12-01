@@ -54,6 +54,7 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::Vector<uint> &sentenceLengths)
 {
+  BEGIN_TIMER("Mean");
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
   assert(Out.dim(0) == In.dim(3));
@@ -77,6 +78,7 @@ void Mean(Matrix& Out,
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, sentenceLengthsWrap);
 
+  PAUSE_TIMER("Mean");
 }
 
 __global__ void gWeightedMean(MatrixWrapper<half> out,
@@ -107,6 +109,8 @@ __global__ void gWeightedMean(MatrixWrapper<half> out,
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping)
 {
+  BEGIN_TIMER("WeightedMean");
+
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
 
@@ -135,6 +139,8 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mbl
   }
   cerr << endl << endl;
   */
+
+  PAUSE_TIMER("WeightedMean");
 }
 
 /////////////////////////////////////////////////////////////////////////////
