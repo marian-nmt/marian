@@ -1,4 +1,5 @@
 #include "gru.h"
+#include "../mblas/thrust_functions.h"
 
 using namespace std;
 
@@ -18,37 +19,35 @@ __global__ void gElementwiseOps(mblas::MatrixWrapper<half> outWrap,
   assert(blockIdx.x < rows);
   assert(ruhWrap.dim(1) == cols * 3);
 
-  //HH
-  /*
   for(int tid = 0; tid < cols; tid += blockDim.x) {
     int i = tid + threadIdx.x;
     if(i < cols) {
-      float ev1 = expf(-(ruhWrap(blockIdx.x, i, 0, 0)
+      half ev1 = hexp(-(ruhWrap(blockIdx.x, i, 0, 0)
                          + bWrap[i]
                          + tempWrap(blockIdx.x, i, 0, 0)
                         )
                       );
-      float r = 1.0f / (1.0f + ev1);
+      half r = __float2half(1.0f) / (__float2half(1.0f) + ev1);
 
       int k = i + cols;
-      float ev2 = expf(-(ruhWrap(blockIdx.x, k, 0, 0)
+      half ev2 = hexp(-(ruhWrap(blockIdx.x, k, 0, 0)
                          + bWrap[k]
                          + tempWrap(blockIdx.x, k, 0, 0)
                         )
                       );
-      float u = 1.0f / (1.0f + ev2);
+      half u = __float2half(1.0f) / (__float2half(1.0f) + ev2);
 
-      float hv = ruhWrap(blockIdx.x, 2*cols + i, 0, 0)
+      half hv = ruhWrap(blockIdx.x, 2*cols + i, 0, 0)
                + bx1Wrap[i];
 
-      float t2v = tempWrap(blockIdx.x, 2*cols + i, 0, 0)
+      half t2v = tempWrap(blockIdx.x, 2*cols + i, 0, 0)
                 + bx2Wrap[i];
 
-      hv = tanhf(hv + r * t2v);
-      outWrap(blockIdx.x, i, 0, 0) = (1.0f - u) * hv + u * stateWrap(blockIdx.x, i, 0, 0);
+      hv = htanh(hv + r * t2v);
+      outWrap(blockIdx.x, i, 0, 0) = (__float2half(1.0f) - u) * hv + u * stateWrap(blockIdx.x, i, 0, 0);
     }
   }
-  */
+
 }
 
 }
