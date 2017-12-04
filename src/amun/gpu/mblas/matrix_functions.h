@@ -135,7 +135,7 @@ Matrix& Slice(Matrix& Out,
               size_t n, size_t dim);
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
+             bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<uint>& batchIds,
