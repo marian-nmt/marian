@@ -384,7 +384,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   if (transB) {
     // for GetAlignedSourceContext()
     assert((A.dim(2) == A.dim(3) == 1));
-    C.NewSize(nOut, B.dim(2), 1, 1);
+    C.NewSize(B.dim(2), nOut, 1, 1);
   }
   else {
     C.NewSize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));

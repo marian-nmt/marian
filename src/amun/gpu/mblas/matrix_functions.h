@@ -151,7 +151,7 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<float> in2Wrap,
                            const VectorWrapper<uint> batchMappingWrap)
 {
-  size_t srcSize = outWrap.dim(2);
+  size_t srcSize = outWrap.dim(0);
   size_t inRows = in2Wrap.dim(0);
   size_t cols  = in1Wrap.dim(1);
 
@@ -179,10 +179,10 @@ __global__ void gBroadcast(Functor functor,
 
     int batchIdx = batchMappingWrap[beamIdx];
 
-    outWrap[id] = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
-                          in2Wrap(beamIdx, stateIdx, 0, 0));
-    //outWrap(beamIdx, stateIdx, srcId, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
-    //                                                in2Wrap(beamIdx, stateIdx, 0, 0));
+    outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+                          in2Wrap[beamIdx * cols + stateIdx]);
+    //outWrap(srcId, stateIdx, beamIdx, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
+    //                                              in2Wrap(beamIdx, stateIdx, 0, 0));
   }
 }
 
@@ -200,7 +200,7 @@ Matrix& Broadcast(Functor functor,
   //size_t rows = srcSize * sumOfBeamSizes;
   size_t cols  = in1.dim(1);
 
-  out.NewSize(sumOfBeamSizes, cols, srcSize);
+  out.NewSize(srcSize, cols, sumOfBeamSizes);
 
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> in1Wrap(in1);
@@ -214,7 +214,7 @@ Matrix& Broadcast(Functor functor,
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
 
-
+  /*
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
@@ -224,7 +224,7 @@ Matrix& Broadcast(Functor functor,
   std::cerr << "srcSize=" << srcSize << std::endl;
   std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
-
+  */
   PAUSE_TIMER("Broadcast");
   return out;
 }
