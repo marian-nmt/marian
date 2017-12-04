@@ -186,10 +186,10 @@ __global__ void gBroadcast(Functor functor,
 
     //outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
     //                      in2Wrap[beamIdx * cols + stateIdx]);
-    outWrap[id] = functor(in1Wrap(indices[0], indices[1], 0, batchIdx),
-                          in2Wrap(indices[2], indices[1], 0, 0));
-    //outWrap(indices[0], indices[1], indices[2], 0) = functor(in1Wrap(indices[0], indices[1], 0, batchIdx),
-    //                                              in2Wrap(indices[2], indices[1], 0, 0));
+    //outWrap[id] = functor(in1Wrap(indices[0], indices[1], 0, batchIdx),
+    //                      in2Wrap(indices[2], indices[1], 0, 0));
+    outWrap(indices[0], indices[1], indices[2], 0) = functor(in1Wrap(indices[0], indices[1], 0, batchIdx),
+                                                  in2Wrap(indices[2], indices[1], 0, 0));
   }
 }
 
