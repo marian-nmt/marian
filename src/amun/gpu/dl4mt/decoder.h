@@ -212,6 +212,9 @@ class Decoder {
           Prod(A_, *w_.V_, Temp1_, false, true);
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           std::cerr << "GetAlignedSourceContext2" << std::endl;
+          std::cerr << "A_=" << A_.Debug(0) << std::endl;
+          std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
+          std::cerr << "Temp1_=" << Temp1_.Debug(0) << std::endl;
 
           mblas::Softmax(A_, dBatchMapping_, sentenceLengths, batchSize);
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
