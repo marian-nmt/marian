@@ -177,7 +177,7 @@ Matrix& Slice(Matrix& Out,
               size_t n, size_t dim);
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
+             bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<uint>& batchIds,
@@ -193,39 +193,35 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<half> in2Wrap,
                            const VectorWrapper<uint> batchMappingWrap)
 {
-  size_t srcSize = outWrap.dim(2);
-  size_t inRows = in2Wrap.dim(0);
-  size_t cols  = in1Wrap.dim(1);
-
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < outWrap.size()) {
     /*
-    size_t indices[SHAPE_SIZE];
+    uint indices[SHAPE_SIZE];
     outWrap.id2Indices(id, indices);
 
-    int row = id / cols; // len * batch for in1
-    int srcId = row % srcSize;  // source pos for in1
-
-    int batchMappingIdx = row / srcSize; // batch for in1
-    int batchIdx = batchMappingWrap[batchMappingIdx]; // batch id for in1
-
-    outWrap[id] = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
-                          in2Wrap(batchMappingIdx, indices[1], 0, 0) );
+    uint srcId = indices[0];
+    uint stateIdx = indices[1];
+    uint beamIdx = indices[2];
+    //assert(0 == indices[3]);
     */
 
-    int row = id / cols;
-    int stateIdx = id % cols;
+    uint cols  = in1Wrap.dim(1);
+    uint srcSize = outWrap.dim(0);
 
-    int beamIdx = row / srcSize;
-    int srcId = row % srcSize;
+    uint row = id / cols;
+    uint stateIdx = id % cols;
+    uint beamIdx = row / srcSize;
+    uint srcId = row % srcSize;
 
-    int batchIdx = batchMappingWrap[beamIdx];
+    uint batchIdx = batchMappingWrap[ beamIdx ];
+
 
     outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
                           in2Wrap[beamIdx * cols + stateIdx]);
-    //outWrap(beamIdx, stateIdx, srcId, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
-    //                                                in2Wrap(beamIdx, stateIdx, 0, 0));
-
+    //outWrap[id] = functor(in1Wrap(indices[0], indices[1], 0, batchIdx),
+    //                      in2Wrap(indices[2], indices[1], 0, 0));
+    //outWrap(srcId, stateIdx, beamIdx, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
+    //                                              in2Wrap(beamIdx, stateIdx, 0, 0));
   }
 }
 
@@ -243,7 +239,7 @@ Matrix& Broadcast(Functor functor,
   //size_t rows = srcSize * sumOfBeamSizes;
   size_t cols  = in1.dim(1);
 
-  out.NewSize(sumOfBeamSizes, cols, srcSize);
+  out.NewSize(srcSize, cols, sumOfBeamSizes);
 
   MatrixWrapper<half> outWrap(out);
   const MatrixWrapper<half> in1Wrap(in1);
@@ -263,14 +259,11 @@ Matrix& Broadcast(Functor functor,
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
   std::cerr << "in1Wrap=" << in1Wrap.Debug() << std::endl;
   std::cerr << "in2Wrap=" << in2Wrap.Debug() << std::endl;
-  std::cerr << "batchMapping=" << Debug(batchMapping, 2) << std::endl;
+  std::cerr << "batchMapping=" << batchMapping.Debug() << std::endl;
   std::cerr << "srcSize=" << srcSize << std::endl;
   std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
-
-  HANDLE_ERROR(cudaDeviceSynchronize());
   */
-
   PAUSE_TIMER("Broadcast");
   return out;
 }
