@@ -151,38 +151,28 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<float> in2Wrap,
                            const VectorWrapper<uint> batchMappingWrap)
 {
-  uint srcSize = outWrap.dim(0);
-  uint inRows = in2Wrap.dim(0);
-  uint cols  = in1Wrap.dim(1);
-
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < outWrap.size()) {
     /*
     uint indices[SHAPE_SIZE];
     outWrap.id2Indices(id, indices);
 
-    int row = id / cols; // len * batch for in1
-    int srcId = row % srcSize;  // source pos for in1
-
-    int batchMappingIdx = row / srcSize; // batch for in1
-    int batchIdx = batchMappingWrap[batchMappingIdx]; // batch id for in1
-
-    outWrap[id] = functor(in1Wrap(srcId, indices[1], 0, batchIdx),
-                          in2Wrap(batchMappingIdx, indices[1], 0, 0) );
+    uint srcId = indices[0];
+    uint stateIdx = indices[1];
+    uint beamIdx = indices[2];
+    //assert(0 == indices[3]);
     */
+
+    uint cols  = in1Wrap.dim(1);
+    uint srcSize = outWrap.dim(0);
 
     uint row = id / cols;
     uint stateIdx = id % cols;
     uint beamIdx = row / srcSize;
     uint srcId = row % srcSize;
+
     uint batchIdx = batchMappingWrap[ beamIdx ];
 
-    //uint batchIdx = batchMappingWrap[ indices[2] ];
-
-    //assert(srcId == indices[0]);
-    //assert(stateIdx == indices[1]);
-    //assert(beamIdx == indices[2]);
-    //assert(0 == indices[3]);
 
     outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
                           in2Wrap[beamIdx * cols + stateIdx]);
