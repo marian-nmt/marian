@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.2] - 2017-12-05
+
+### Fixed
+- Fixed ensembling with language model and batched decoding
+- Fixed attention reduction kernel with large matrices (added missing syncthreads()),
+  which should fix stability with large batches and beam-size during batched decoding.
+
 ## [1.1.1] - 2017-11-30
 
 ### Added
@@ -14,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 sentences to length N rather than omitting them.
 - Experimental model with convolution over input characters
 
-### Changed
+### Fixed
 - Fixed a number of bugs for vocabulary and directory handling
 
 ## [1.1.0] - 2017-11-21
