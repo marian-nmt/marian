@@ -44,7 +44,7 @@ class SlowGRU: public Cell {
       //std::cerr << "2RU_=" << RU_.Debug(1) << std::endl;
 
       //std::cerr << "Temp1_=" << Temp1_.Debug(1) << std::endl;
-      Element(Logit(_1 + _2), RU_, Temp1_);
+      Element(HalfLogit(_1 + _2), RU_, Temp1_);
       //std::cerr << "3RU_=" << RU_.Debug(1) << std::endl;
 
       //std::cerr << "cols=" << cols << std::endl;
@@ -65,7 +65,7 @@ class SlowGRU: public Cell {
       //std::cerr << "1H_=" << H_.Debug(1) << std::endl;
       //std::cerr << "R_=" << R_.Debug(1) << std::endl;
       //std::cerr << "Temp2__=" << Temp2_.Debug(1) << std::endl;
-      Element(Tanh(_1 + _2 * _3), H_, R_, Temp2_);
+      Element(HalfTanh(_1 + _2 * _3), H_, R_, Temp2_);
       //std::cerr << "2H_=" << H_.Debug(1) << std::endl;
 
       //std::cerr << "1U_=" << U_.Debug(1) << std::endl;

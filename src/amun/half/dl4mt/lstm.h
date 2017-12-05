@@ -38,12 +38,12 @@ class SlowLSTM: public Cell {
       Prod(Temp2_, *(State.output), *w_.Ux_);
 
       // compute the gates
-      Element(Logit(_1 + _2), FIO_, Temp1_);
+      Element(HalfLogit(_1 + _2), FIO_, Temp1_);
       Slice(F_, FIO_, 0, cols);
       Slice(I_, FIO_, 1, cols);
       Slice(O_, FIO_, 2, cols);
       // compute the input
-      Element(Tanh(_1 + _2), H_, Temp2_);
+      Element(HalfTanh(_1 + _2), H_, Temp2_);
 
       // apply the forget gate
       Copy(*NextState.cell, *State.cell);
@@ -53,7 +53,7 @@ class SlowLSTM: public Cell {
       // update the cell state with the input
       Element(_1 + _2, *NextState.cell, H_);
       // apply the output gate
-      Element(_1 * Tanh(_2), O_, *NextState.cell);
+      Element(_1 * HalfTanh(_2), O_, *NextState.cell);
       Swap(*(NextState.output), O_);
     }
 

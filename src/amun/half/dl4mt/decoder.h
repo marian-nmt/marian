@@ -94,9 +94,9 @@ class Decoder {
 
           if (w_.Gamma_->size()) {
             Normalization(*(State.output), *(State.output), *w_.Gamma_, *w_.Bi_, 1e-9);
-            Element(Tanh(_1), *(State.output));
+            Element(HalfTanh(_1), *(State.output));
           } else {
-            BroadcastVec(Tanh(_1 + _2), *(State.output), *w_.Bi_);
+            BroadcastVec(HalfTanh(_1 + _2), *(State.output), *w_.Bi_);
           }
           //std::cerr << "3State=" << State.Debug(1) << std::endl;
           //std::cerr << "\n";
@@ -201,7 +201,7 @@ class Decoder {
             BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
 
-          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
+          Broadcast(HalfTanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
 
           /*
           std::cerr << "Temp1_=" << Temp1_.Debug(0) << std::endl;
@@ -307,7 +307,7 @@ class Decoder {
           //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec3");
 
           //BEGIN_TIMER("GetProbs.Element");
-          Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
+          Element(HalfTanh(_1 + _2 + _3), T1_, T2_, T3_);
           //PAUSE_TIMER("GetProbs.Element");
 
           std::shared_ptr<mblas::Matrix> w4;
