@@ -85,10 +85,15 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "lm") {
     auto idx = options->has("index") ? options->get<size_t>("index") : 0;
+    std::vector<int> dimVocabs = options->get<std::vector<int>>("dim-vocabs");
+    if(idx > 0)
+      dimVocabs.resize(idx + 1, dimVocabs.back());
     return models::encoder_decoder()(options)
         ("type", "s2s")
         ("original-type", type)
-            .push_back(models::decoder()("index", idx))
+            .push_back(models::decoder()
+                       ("index", idx)
+                       ("dim-vocabs", dimVocabs))
             .construct();
   }
 

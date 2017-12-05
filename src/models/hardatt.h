@@ -260,8 +260,9 @@ public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>& embIdx,
+                                int dimBatch,
                                 int beamSize) {
-    DecoderBase::selectEmbeddings(graph, state, embIdx, beamSize);
+    DecoderBase::selectEmbeddings(graph, state, embIdx, dimBatch, beamSize);
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 

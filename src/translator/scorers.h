@@ -34,7 +34,7 @@ public:
                                 Ptr<ScorerState>,
                                 const std::vector<size_t>&,
                                 const std::vector<size_t>&,
-                                int beamSize)
+                                int dimBatch, int beamSize)
       = 0;
 
   virtual void init(Ptr<ExpressionGraph> graph) {}
@@ -90,12 +90,12 @@ public:
                                 Ptr<ScorerState> state,
                                 const std::vector<size_t>& hypIndices,
                                 const std::vector<size_t>& embIndices,
-                                int beamSize) {
+                                int dimBatch, int beamSize) {
     graph->switchParams(getName());
     auto wrappedState
         = std::dynamic_pointer_cast<ScorerWrapperState>(state)->getState();
     return New<ScorerWrapperState>(
-        encdec_->step(graph, wrappedState, hypIndices, embIndices, beamSize));
+        encdec_->step(graph, wrappedState, hypIndices, embIndices, dimBatch, beamSize));
   }
 };
 
@@ -141,7 +141,7 @@ public:
                                 Ptr<ScorerState> state,
                                 const std::vector<size_t>& hypIndices,
                                 const std::vector<size_t>& embIndices,
-                                int beamSize) {
+                                int dimBatch, int beamSize) {
     return state;
   }
 };
@@ -177,7 +177,7 @@ public:
                                 Ptr<ScorerState> state,
                                 const std::vector<size_t>& hypIndices,
                                 const std::vector<size_t>& embIndices,
-                                int beamSize) {
+                                int dimBatch, int beamSize) {
     return state;
   }
 };

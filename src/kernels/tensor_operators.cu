@@ -1346,6 +1346,7 @@ __global__ void gAtt(float* out,
       }
       __syncthreads();
       out[j] = _sum[0];
+      __syncthreads();
     }
   }
 }
@@ -1354,11 +1355,9 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
   cudaSetDevice(out->getDevice());
 
   size_t m = out->shape().elements() / out->shape().back();
-
-  size_t dims = context->shape().size();
-  size_t k = context->shape()[dims - 1];
-  size_t b = context->shape()[dims - 2];
-  size_t t = context->shape()[dims - 3];
+  size_t k = context->shape()[-1];
+  size_t b = context->shape()[-2];
+  size_t t = context->shape()[-3];
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
   int threads = std::min(MAX_THREADS, (int)k);

@@ -355,7 +355,7 @@ public:
       logits = output->apply(embeddings, decoderContext, alignedContext);
     else
       logits = output->apply(embeddings, decoderContext);
-
+      
     // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
   }
