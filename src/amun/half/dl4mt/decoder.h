@@ -201,7 +201,7 @@ class Decoder {
             BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
 
-          Broadcast(HalfTanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
+          Broadcast(HalfTanh(HalfAdd(_1, _2)), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
 
           /*
           std::cerr << "Temp1_=" << Temp1_.Debug(0) << std::endl;

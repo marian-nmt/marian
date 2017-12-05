@@ -57,16 +57,16 @@ namespace thrust
 
       //////////////////////////////////////////////////////////////////////////////////////////
       template<typename T>
-      struct half_unary_add : public thrust::binary_function<T,T,T> {
+      struct half_binary_add : public thrust::binary_function<T,T,T> {
         __host__ __device__
         T operator()(const T &x, const T &y) const { return x + y; }
       };
 
-      template<typename Eval>
+      template<typename Eval1, typename Eval2>
       __host__ __device__
-      actor<composite<binary_operator<half_unary_add>, actor<Eval>, actor<Eval>>>
-      HalfAdd(const actor<Eval> &_1, const actor<Eval> &_2) {
-        return compose(unary_operator<half_unary_add>(), _1, _2);
+      actor<composite<binary_operator<half_binary_add>, actor<Eval1>, actor<Eval2>>>
+      HalfAdd(const actor<Eval1> &_1, const actor<Eval2> &_2) {
+        return compose(binary_operator<half_binary_add>(), _1, _2);
       }
 
       //////////////////////////////////////////////////////////////////////////////////////////
