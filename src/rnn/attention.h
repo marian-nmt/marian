@@ -11,7 +11,7 @@ namespace marian {
 
 namespace rnn {
 
-Expr attOps(Expr va, Expr context, Expr state, Expr coverage = nullptr);
+Expr attOps(Expr va, Expr context, Expr state);
 
 class GlobalAttention : public CellInput {
 private:
@@ -147,7 +147,7 @@ public:
 
     auto alignedSource
         = scalar_product(encState_->getAttended(), e, axis = -3);
-
+    
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
     return alignedSource;

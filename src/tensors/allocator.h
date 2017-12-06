@@ -179,7 +179,6 @@ public:
     auto ptr = gap.data();
     auto mp = New<MemoryPiece>(ptr, bytes);
     allocated_[ptr] = mp;
-
     return mp;
   }
 

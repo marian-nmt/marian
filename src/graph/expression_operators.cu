@@ -1,5 +1,6 @@
 #include "graph/expression_operators.h"
 #include "kernels/sparse.h"
+#include "layers/constructors.h"
 
 #include "graph/node_operators.h"
 #include "graph/node_operators_binary.h"
@@ -120,20 +121,31 @@ Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {
   return Expression<ConcatenateNodeOp>(concats, ax);
 }
 
+Expr repeat(Expr a, size_t repeats, keywords::axis_k ax) {
+  if(repeats == 1)
+    return a;
+  return concatenate(std::vector<Expr>(repeats, a), ax);
+}
+
+
 Expr reshape(Expr a, Shape shape) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr atleast_1d(Expr a, size_t dims) {
+Expr atleast_1d(Expr a) {
   return atleast_nd(a, 1);
 }
 
-Expr atleast_2d(Expr a, size_t dims) {
+Expr atleast_2d(Expr a) {
   return atleast_nd(a, 2);
 }
 
-Expr atleast_3d(Expr a, size_t dims) {
+Expr atleast_3d(Expr a) {
   return atleast_nd(a, 3);
+}
+
+Expr atleast_4d(Expr a) {
+  return atleast_nd(a, 4);
 }
 
 Expr atleast_nd(Expr a, size_t dims) {
@@ -150,6 +162,15 @@ Expr atleast_nd(Expr a, size_t dims) {
 
 Expr flatten(Expr a) {
   Shape shape = {a->shape().elements()};
+  return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr flatten_2d(Expr a) {
+  Shape shape = {
+    a->shape().elements() / a->shape()[-1],
+    a->shape()[-1]
+  };
+
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
@@ -277,6 +298,21 @@ Expr highway(Expr y, Expr x, Expr t) {
   return Expression<HighwayNodeOp>(nodes);
 }
 
+Expr highway(const std::string prefix, Expr x) {
+  size_t outDim = x->shape()[-1];
+  auto g = mlp::dense(x->graph())
+      ("prefix", prefix + "_highway_d1")
+      ("dim", outDim)
+      ("activation", mlp::act::logit)
+      .construct()->apply(x);
+  auto relued = mlp::dense(x->graph())
+      ("prefix", prefix + "_highway_d2")
+      ("dim", outDim)
+      ("activation", mlp::act::ReLU)
+      .construct()->apply(x);
+  return (g * relued) + ((1 - g) * x);
+}
+
 // Expr batch_norm(Expr x, Expr gamma, Expr beta) {
 //  auto mju = mean(x, keywords::axis=0);
 //  auto xmmju = x - mju;
@@ -296,11 +332,6 @@ Expr shift(Expr a, Shape shift) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
 
-Expr convolution(Expr x, Expr filters, Expr bias) {
-  std::vector<Expr> nodes = {x, filters, bias};
-  return Expression<ConvolutionOp>(nodes);
-}
-
 Expr avg_pooling(
     Expr x,
     int height,
@@ -308,8 +339,7 @@ Expr avg_pooling(
     int padHeight,
     int padWidth,
     int strideHeight,
-    int strideWidth)
-{
+    int strideWidth) {
   return Expression<PoolingOp>(x,
       height,
       width,
@@ -337,6 +367,46 @@ Expr max_pooling(
       strideHeight,
       strideWidth,
       "max");
+}
+
+Expr convert2cudnnFormat(Expr x) {
+  int numWords = x->shape()[0];
+  int numExamples = x->shape()[1];
+  int embSize = x->shape()[2];
+
+  std::vector<size_t> newIndeces;
+  for (int b = 0; b < numExamples; ++b) {
+    for (int t = 0; t < numWords; ++t) {
+      newIndeces.push_back((t * numExamples) + b);
+    }
+  }
+
+  auto xRows = reshape(x, {x->shape()[0] * x ->shape()[1], x->shape()[2]});
+
+  Shape outShape({numExamples, 1, numWords, embSize});
+  return reshape(rows(xRows, newIndeces), outShape);
+}
+
+Expr convertFromcudnnFormat(Expr x) {
+  int batchDim = x->shape()[0];
+  int sentenceDim = x->shape()[2];
+  int embSize = x->shape()[3];
+
+  auto reshapedX = reshape(x, {batchDim * sentenceDim, embSize});
+
+  std::vector<size_t> newIndeces;
+  for (int t = 0; t < sentenceDim; ++t) {
+    for (int b = 0; b < batchDim; ++b) {
+      newIndeces.push_back(b * sentenceDim + t);
+    }
+  }
+
+  Shape shape({batchDim, sentenceDim, embSize});
+  return reshape(rows(reshapedX, newIndeces), shape);
+}
+
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
+  return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
 }
 
 }

@@ -5,7 +5,7 @@ using namespace marian;
 
 TEST_CASE("Model components, RNN etc.", "[model]") {
 
-  auto floatApprox = [](float x, float y) { return x == Approx(y); };
+  auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
 
   std::vector<size_t> vWords = {
     43, 2, 83, 78,

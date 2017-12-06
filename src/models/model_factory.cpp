@@ -5,6 +5,7 @@
 #include "models/model_base.h"
 #include "models/nematus.h"
 #include "models/s2s.h"
+#include "models/charS2S.h"
 #include "models/transformer.h"
 
 #include "examples/mnist/model.h"
@@ -16,6 +17,8 @@ namespace models {
 Ptr<EncoderBase> EncoderFactory::construct() {
   if(options_->get<std::string>("type") == "s2s")
     return New<EncoderS2S>(options_);
+  if(options_->get<std::string>("type") == "char-s2s")
+    return New<CharS2SEncoder>(options_);
   if(options_->get<std::string>("type") == "transformer")
     return New<EncoderTransformer>(options_);
 
@@ -82,10 +85,15 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "lm") {
     auto idx = options->has("index") ? options->get<size_t>("index") : 0;
+    std::vector<int> dimVocabs = options->get<std::vector<int>>("dim-vocabs");
+    if(idx > 0)
+      dimVocabs.resize(idx + 1, dimVocabs.back());
     return models::encoder_decoder()(options)
         ("type", "s2s")
         ("original-type", type)
-            .push_back(models::decoder()("index", idx))
+            .push_back(models::decoder()
+                       ("index", idx)
+                       ("dim-vocabs", dimVocabs))
             .construct();
   }
 
@@ -170,6 +178,14 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "mnist-lenet") {
     return New<MnistLeNet>(options);
+  }
+
+  if(type == "char-s2s") {
+    return models::encoder_decoder()(options)
+        ("original-type", type)
+            .push_back(models::encoder()("type", "char-s2s"))
+            .push_back(models::decoder()("type", "s2s"))
+            .construct();
   }
 
   // clang-format on

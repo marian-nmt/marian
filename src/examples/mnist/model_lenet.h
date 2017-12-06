@@ -12,6 +12,8 @@ public:
   MnistLeNet(Ptr<Options> options, Args... args)
       : MnistFeedForwardNet(options, args...) {}
 
+  virtual void clear(Ptr<ExpressionGraph> graph) { graph->clear(); };
+
 protected:
   virtual Expr construct(Ptr<ExpressionGraph> g,
                          Ptr<data::Batch> batch,
@@ -20,7 +22,7 @@ protected:
     const std::vector<int> dims = {784, 128, 10};
 
     // Start with an empty expression graph
-    g->clear();
+    clear(g);
 
     // Create an input layer of shape batchSize x numFeatures and populate it
     // with training features
@@ -31,9 +33,19 @@ protected:
 
     // Construct hidden layers
 
-    auto conv_1 = Convolution("Conv1", 3, 3, 32)(x);
-    auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
-    auto pool = MaxPooling("MaxPooling", 2, 2)(conv_2);
+    auto conv_1 = convolution(g)
+                    ("prefix", "conv_1")
+                    ("kernel-dims", std::make_pair(3,3))
+                    ("kernel-num", 32)
+                    .apply(x);
+
+    auto conv_2 = convolution(g)
+                    ("prefix", "conv_2")
+                    ("kernel-dims", std::make_pair(3,3))
+                    ("kernel-num", 64)
+                    .apply(conv_1);
+    auto relued = relu(conv_2);
+    auto pool = max_pooling(relued, 2, 2, 1, 1, 1, 1);
 
     auto flatten
         = reshape(pool,

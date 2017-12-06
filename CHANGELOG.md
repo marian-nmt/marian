@@ -6,9 +6,32 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Added support for CUBLAS_TENSOR_OP_MATH mode for cublas in cuda 9.0
+
+## [1.1.2] - 2017-12-05
+
+### Fixed
+- Fixed ensembling with language model and batched decoding
+- Fixed attention reduction kernel with large matrices (added missing syncthreads()),
+  which should fix stability with large batches and beam-size during batched decoding.
+
+## [1.1.1] - 2017-11-30
 
 ### Added
+- Option --max-length-crop to be used together with --max-length N to crop 
+sentences to length N rather than omitting them.
+- Experimental model with convolution over input characters
+
+### Fixed
+- Fixed a number of bugs for vocabulary and directory handling
+
+## [1.1.0] - 2017-11-21
+
+### Added
+- Batched translation for all model types, significant translation speed-up
+- Batched translation during validation with translation
+- `--maxi-batch-sort` option for `marian-decoder`
+- Support for CUBLAS_TENSOR_OP_MATH mode for cublas in cuda 9.0
+- The "marian-vocab" tool to create vocabularies
 
 ## [1.0.0] - 2017-11-13
 
@@ -29,7 +52,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Synchronous SGD training for multi-gpu (enable with `--sync-sgd`)
 - Dynamic construction of complex models with different encoders and decoders,
   currently only available through the C++ API
-- Option --quiet to suppress output to stderr
+- Option `--quiet` to suppress output to stderr
 - Option to choose different variants of optimization criterion: mean
   cross-entropy, perplexity, cross-entopry sum
 - In-process translation for validation, uses the same memory as training

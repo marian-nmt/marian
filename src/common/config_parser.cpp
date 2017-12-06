@@ -134,10 +134,11 @@ bool ConfigParser::has(const std::string& key) const {
 }
 
 void ConfigParser::validateOptions() const {
-  UTIL_THROW_IF2(!has("vocabs"), "No vocabularies provided");
+  //UTIL_THROW_IF2(!has("vocabs"), "No vocabularies provided");
 
-  if(mode_ == ConfigMode::translating)
+  if(mode_ == ConfigMode::translating) {
     return;
+  }
 
   UTIL_THROW_IF2(
       !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
@@ -159,9 +160,16 @@ void ConfigParser::validateOptions() const {
 
   boost::filesystem::path modelPath(get<std::string>("model"));
   auto modelDir = modelPath.parent_path();
+  if(modelDir.empty())
+    modelDir = boost::filesystem::current_path();
+
   UTIL_THROW_IF2(
       !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
       "Model directory does not exist");
+
+  UTIL_THROW_IF2(!modelDir.empty() && !(boost::filesystem::status(modelDir).permissions()
+                 & boost::filesystem::owner_write),
+                 "No write permission in model directory");
 
   UTIL_THROW_IF2(
       has("valid-sets")
@@ -235,6 +243,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
   }
 
   model.add_options()
+    ("ignore-model-config", po::value<bool>()->zero_tokens()->default_value(false),
+     "Ignore the model configuration saved in npz file")
     ("type", po::value<std::string>()->default_value("amun"),
       "Model type (possible values: amun, nematus, s2s, multi-s2s, transformer)")
     ("dim-vocabs", po::value<std::vector<int>>()
@@ -287,6 +297,21 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Operation after transformer embedding layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess", po::value<std::string>()->default_value("dan"),
      "Operation after each transformer layer: d = dropout, a = add, n = normalize")
+#ifdef CUDNN
+    ("char-stride", po::value<int>()->default_value(5),
+     "Width of max-pooling layer after convolution layer in char-s2s model")
+    ("char-highway", po::value<int>()->default_value(4),
+     "Number of highway network layers after max-pooling in char-s2s model")
+    ("char-conv-filters-num", po::value<std::vector<int>>()
+      ->default_value(std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}),
+                                      "200 200 250 250 300 300 300 300")
+      ->multitoken(),
+     "Numbers of convolution filters of correspoding width in char-s2s model")
+    ("char-conv-filters-widths", po::value<std::vector<int>>()
+     ->default_value(std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}), "1 2 3 4 5 6 7 8")
+      ->multitoken(),
+     "Convolution window widths in char-s2s model")
+#endif
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -329,6 +354,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "If these files do not exists they are created")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("after-epochs,e", po::value<size_t>()->default_value(0),
       "Finish after this many epochs, 0 is infinity")
     ("after-batches", po::value<size_t>()->default_value(0),
@@ -512,6 +539,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Allow unknown words to appear in output")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -520,6 +549,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
+    ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
+      "Sorting strategy for maxi-batch: none (default) src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
     //("lexical-table", po::value<std::string>(),
@@ -552,6 +583,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -650,6 +683,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
   }
 
+  SET_OPTION("ignore-model-config", bool);
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
   SET_OPTION("dim-emb", int);
@@ -675,6 +709,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
+  SET_OPTION("transformer-dim-ffn", int);
+
+#ifdef CUDNN
+  SET_OPTION("char-stride", int);
+  SET_OPTION("char-highway", int);
+  SET_OPTION("char-conv-filters-num", std::vector<int>);
+  SET_OPTION("char-conv-filters-widths", std::vector<int>);
+#endif
 
   SET_OPTION("best-deep", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
@@ -806,9 +848,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
 
-  if(mode_ == ConfigMode::training)
+  if(mode_ == ConfigMode::training || mode_ == ConfigMode::translating)
     SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
+  SET_OPTION("max-length-crop", bool);
 
   if(vm_["best-deep"].as<bool>()) {
     config_["layer-normalization"] = true;

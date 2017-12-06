@@ -14,24 +14,26 @@ struct State {
   Expr output;
   Expr cell;
 
-  State select(const std::vector<size_t>& indices) {
-    if(output->shape().size() < 4) {
-      int dimState = output->shape()[-1];
-      int dimBatch = output->shape()[-2];
-      int dimTime = output->shape()[-3];
+  State select(const std::vector<size_t>& indices, int beamSize) {
+    output = atleast_4d(output);
+    if(cell)
+      cell = atleast_4d(cell);
 
-      output = reshape(output, {1, dimTime, dimBatch, dimState});
-      if(cell)
-        cell = reshape(cell, {1, dimTime, dimBatch, dimState});
-    }
+    int dimDepth = output->shape()[-1];
+    int dimTime  = output->shape()[-3];
+
+    int dimBatch = indices.size() / beamSize;
 
     if(cell) {
       return State{
-          marian::select(output, 0, indices),
-          marian::select(cell, 0, indices)};
+          reshape(rows(flatten_2d(output), indices),
+                  {beamSize, dimTime, dimBatch, dimDepth}),
+          reshape(rows(flatten_2d(cell), indices),
+                  {beamSize, dimTime, dimBatch, dimDepth})};
     } else {
       return State{
-        marian::select(output, 0, indices),
+        reshape(rows(flatten_2d(output), indices),
+                {beamSize, dimTime, dimBatch, dimDepth}),
         nullptr};
     }
   }
@@ -52,7 +54,7 @@ public:
   Expr outputs() {
     std::vector<Expr> outputs;
     for(auto s : states_)
-      outputs.push_back(s.output);
+      outputs.push_back(atleast_3d(s.output));
     if(outputs.size() > 1)
       return concatenate(outputs, keywords::axis = -3);
     else
@@ -72,10 +74,10 @@ public:
 
   void push_back(const State& state) { states_.push_back(state); }
 
-  States select(const std::vector<size_t>& indices) {
+  States select(const std::vector<size_t>& indices, int beamSize) {
     States selected;
     for(auto& state : states_)
-      selected.push_back(state.select(indices));
+      selected.push_back(state.select(indices, beamSize));
     return selected;
   }
 

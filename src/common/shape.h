@@ -128,6 +128,12 @@ struct Shape {
       return strm;
     }
 
+    operator std::string() const {
+      std::stringstream ss;
+      ss << *this;
+      return ss.str();
+    }
+
     int axis(int ax) {
       if(ax < 0)
         return size() + ax;
@@ -147,7 +153,9 @@ struct Shape {
       for(auto& s : shapes) {
         for(int i = 0; i < s.size(); ++i) {
           ABORT_IF(shape[-i] != s[-i] && shape[-i] != 1 && s[-i] != 1,
-                   "Shapes cannot be broadcasted");
+                   "Shapes {} and {} cannot be broadcasted",
+                   (std::string)shape,
+                   (std::string)s);
           shape.set(-i, std::max(shape[-i], s[-i]));
         }
       }
@@ -170,10 +178,12 @@ struct Shape {
       shape.resize(maxDims);
 
       for(auto& node : nodes) {
-        Shape shapen = node->shape();
+        const Shape& shapen = node->shape();
         for(int i = 1; i <= shapen.size(); ++i) {
           ABORT_IF(shape[-i] != shapen[-i] && shape[-i] != 1 && shapen[-i] != 1,
-                   "Shapes cannot be broadcasted");
+                   "Shapes {} and {} cannot be broadcasted",
+                   (std::string)shape,
+                   (std::string)shapen);
           shape.set(-i, std::max(shape[-i], shapen[-i]));
         }
       }

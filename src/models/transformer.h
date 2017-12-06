@@ -50,7 +50,7 @@ public:
     // convert 0/1 mask to transformer style -inf mask
     auto ms = mask->shape();
     mask = (1 - mask) * -99999999.f;
-    return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]});
+    return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]}) ;
   }
 
   Expr SplitHeads(Expr input, int dimHeads) {
@@ -102,7 +102,7 @@ public:
             prefix + "_ln_scale_pre", {1, dimModel}, init = inits::ones);
         auto bias = graph->param(
             prefix + "_ln_bias_pre", {1, dimModel}, init = inits::zeros);
-        output = layer_norm(output, scale, bias);
+        output = layer_norm(output, scale, bias, 1e-6);
       }
     }
     return output;
@@ -171,9 +171,10 @@ public:
     // @TODO: do this better
     int dimBeamQ = q->shape()[-4];
     int dimBeamK = k->shape()[-4];
-    if(dimBeamQ != dimBeamK) {
-      k = concatenate(std::vector<Expr>(dimBeamQ, k), axis = -4);
-      v = concatenate(std::vector<Expr>(dimBeamQ, v), axis = -4);
+    int dimBeam = dimBeamQ / dimBeamK;
+    if(dimBeam > 1) {
+      k = repeat(k, dimBeam, axis = -4);
+      v = repeat(v, dimBeam, axis = -4);
     }
 
     auto weights = softmax(bdot(q, k, false, true, scale) + mask);
@@ -237,6 +238,7 @@ public:
       // apply multi-head attention to downscaled inputs
       auto output
           = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference);
+
       output = JoinHeads(output, q->shape()[-4]);
 
       outputs.push_back(output);
@@ -456,12 +458,23 @@ public:
                    std::vector<Ptr<EncoderState>> &encStates)
       : DecoderState(states, probs, encStates) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx) {
+  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx, int beamSize) {
     rnn::States selectedStates;
 
-    for(auto state : states_)
-      selectedStates.push_back(
-          {marian::select(state.output, -4, selIdx), nullptr});
+    int dimDepth = states_[0].output->shape()[-1];
+    int dimTime  = states_[0].output->shape()[-2];
+    int dimBatch = selIdx.size() / beamSize;
+
+    std::vector<size_t> selIdx2;
+    for(auto i : selIdx)
+      for(int j = 0; j < dimTime; ++j)
+        selIdx2.push_back(i * dimTime + j);
+
+    for(auto state : states_) {
+      auto sel = rows(flatten_2d(state.output), selIdx2);
+      sel = reshape(sel, {beamSize, dimBatch, dimTime, dimDepth});
+      selectedStates.push_back({sel, nullptr});
+    }
 
     return New<TransformerState>(selectedStates, probs_, encStates_);
   }
@@ -497,6 +510,9 @@ public:
     //************************************************************************//
 
     int dimEmb = embeddings->shape()[-1];
+    int dimBeam = 1;
+    if(embeddings->shape().size() > 3)
+      dimBeam = embeddings->shape()[-4];
 
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
@@ -528,6 +544,8 @@ public:
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
                             {1, dimBatch, 1, dimTrgWords});
       selfMask = selfMask * decoderMask;
+      //if(dimBeam > 1)
+      //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
 
     selfMask = InverseMask(selfMask);
@@ -548,6 +566,8 @@ public:
       encoderMask = reshape(TransposeTimeBatch(encoderMask),
                             {1, dimBatch, 1, dimSrcWords});
       encoderMask = InverseMask(encoderMask);
+      if(dimBeam > 1)
+        encoderMask = repeat(encoderMask, dimBeam, axis = -4);
 
       encoderContexts.push_back(encoderContext);
       encoderMasks.push_back(encoderMask);
@@ -557,8 +577,7 @@ public:
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
       auto values = query;
       if(prevDecoderStates.size() > 0)
-        values
-            = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
+        values = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
 
       decoderStates.push_back({values, nullptr});
 

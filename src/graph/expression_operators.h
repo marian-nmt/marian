@@ -73,15 +73,18 @@ Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
+Expr repeat(Expr a, size_t repeats, keywords::axis_k ax = 0);
 
 Expr reshape(Expr a, Shape shape);
 
 Expr atleast_1d(Expr a);
 Expr atleast_2d(Expr a);
 Expr atleast_3d(Expr a);
+Expr atleast_4d(Expr a);
 Expr atleast_nd(Expr a, size_t dims);
 
 Expr flatten(Expr a);
+Expr flatten_2d(Expr a);
 
 Expr rows(Expr a, const std::vector<size_t>& indices);
 Expr cols(Expr a, const std::vector<size_t>& indices);
@@ -114,6 +117,7 @@ Expr square(Expr a);
 Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 Expr highway(Expr y, Expr x, Expr t);
+Expr highway(const std::string prefix, Expr x);
 
 template <typename... Args>
 Expr dropout(Expr x, Args... args) {
@@ -130,21 +134,26 @@ Expr dropout(Expr x, Args... args) {
 
 Expr shift(Expr, Shape);
 
-Expr convolution(Expr x, Expr filters, Expr bias);
+Expr convert2cudnnFormat(Expr x);
+
+Expr convertFromcudnnFormat(Expr x);
 
 Expr avg_pooling(Expr x,
                  int height,
                  int width,
-                 int padHeight,
-                 int padWidth,
-                 int strideHeight,
-                 int strideWidth);
+                 int padHeight = 0,
+                 int padWidth = 0,
+                 int strideHeight = 1,
+                 int strideWidth = 1);
 
 Expr max_pooling(Expr x,
                  int height,
                  int width,
-                 int padHeight,
-                 int padWidth,
-                 int strideHeight,
-                 int strideWidth);
+                 int padHeight = 0,
+                 int padWidth = 0,
+                 int strideHeight = 1,
+                 int strideWidth = 1);
+
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven=false);
+
 }

@@ -3,177 +3,84 @@
 #include <string>
 
 #include "layers/generic.h"
+#include "graph/expression_graph.h"
 
 namespace marian {
 
-class Convolution {
+class Convolution : public Factory {
+protected:
+  Ptr<Options> getOptions() { return options_; }
+
 public:
-  Convolution(const std::string& name,
-              int kernelHeight = 3,
-              int kernelWidth = 3,
-              int kernelNum = 1,
-              int depth = 1)
-      : name_(name),
-        depth_(depth),
+  Convolution(Ptr<ExpressionGraph> graph);
+
+  Expr apply(Expr x);
+
+  virtual Expr apply(const std::vector<Expr>&);
+};
+
+typedef Accumulator<Convolution> convolution;
+
+
+class CharConvPooling {
+  public:
+    CharConvPooling(
+      const std::string& prefix,
+      int kernelHeight,
+      std::vector<int> kernelWidths,
+      std::vector<int> kernelNums,
+      int stride)
+      : name_(prefix),
+        size_(kernelNums.size()),
         kernelHeight_(kernelHeight),
-        kernelWidth_(kernelWidth),
-        kernelNum_(kernelNum) {}
+        kernelWidths_(kernelWidths),
+        kernelNums_(kernelNums),
+        stride_(stride) {}
 
-  Expr operator()(Expr x) {
-    params_.clear();
-    auto graph = x->graph();
+    Expr operator()(Expr x, Expr mask) {
+      auto graph = x->graph();
 
-    int layerIn = x->shape()[1];
+      auto masked = x * mask;
+      auto xNCHW = convert2cudnnFormat(masked);
+      auto maskNCHW = convert2cudnnFormat(mask);
 
-    auto kernel
-        = graph->param(name_ + "_kernels",
-                       {layerIn, kernelNum_, kernelHeight_, kernelWidth_},
-                       keywords::init = inits::glorot_uniform);
-    auto bias = graph->param(
-        name_ + "_bias", {1, kernelNum_, 1, 1}, keywords::init = inits::zeros);
-    params_.push_back(kernel);
-    params_.push_back(bias);
+      Expr input = xNCHW;
+      std::vector<Expr> outputs;
 
-    auto output = convolution(x, kernel, bias);
+      for (int i = 0; i < size_; ++i) {
+        int kernelWidth = kernelWidths_[i];
+        int kernelNum = kernelNums_[i];
+        int padWidth = kernelWidth / 2;
 
-    return output;
-  }
 
-  Expr operator()(Expr x, Expr mask) {
-    params_ = {};
+        auto output = convolution(graph)
+          ("prefix", name_ + "_width_" + std::to_string(kernelWidth))
+          ("kernel-dims", std::make_pair(kernelWidth, x->shape()[-1]))
+          ("kernel-num", kernelNum)
+          ("paddings", std::make_pair(padWidth, 0))
+          .apply(input);;
+        auto relued = relu(output);
+        auto output2 = pooling_with_masking(relued,
+            maskNCHW, stride_, kernelWidth % 2 == 0);
 
-    auto graph = x->graph();
-
-    std::vector<size_t> newIndeces;
-    int batchDim = x->shape()[0];
-    int sentenceDim = x->shape()[2];
-
-    for(int b = 0; b < batchDim; ++b) {
-      for(int t = 0; t < sentenceDim; ++t) {
-        newIndeces.push_back((t * batchDim) + b);
+        output2 = reshape(output2, {output2->shape()[-1],
+                                    output2->shape()[0],
+                                    output2->shape()[1]});
+        outputs.push_back(output2);
       }
+
+      auto concated = concatenate(outputs, -1);
+
+      return concated;
     }
-
-    auto masked = reshape(
-        x * mask, {batchDim * sentenceDim, x->shape()[1], 1, x->shape()[3]});
-    auto shuffled_X = reshape(rows(masked, newIndeces),
-                              {batchDim, 1, sentenceDim, x->shape()[1]});
-    auto shuffled_mask = reshape(rows(mask, newIndeces),
-                                 {batchDim, 1, sentenceDim, mask->shape()[1]});
-
-    Expr previousInput = shuffled_X;
-
-    std::string kernel_name = name_ + "kernels";
-    auto kernel = graph->param(kernel_name,
-                               {kernelNum_, kernelHeight_, kernelWidth_},
-                               keywords::init = inits::glorot_uniform);
-    auto bias = graph->param(
-        name_ + "_bias", {1, kernelNum_, 1, 1}, keywords::init = inits::zeros);
-    params_.push_back(kernel);
-    params_.push_back(bias);
-
-    auto input = previousInput * shuffled_mask;
-    previousInput = convolution(input, kernel, bias);
-
-    auto reshapedOutput
-        = reshape(previousInput,
-                  {previousInput->shape()[0] * previousInput->shape()[2],
-                   previousInput->shape()[1],
-                   1,
-                   x->shape()[3]});
-
-    newIndeces.clear();
-    for(int t = 0; t < sentenceDim; ++t) {
-      for(int b = 0; b < batchDim; ++b) {
-        newIndeces.push_back(b * previousInput->shape()[2] + t);
-      }
-    }
-
-    auto reshaped = reshape(rows(reshapedOutput, newIndeces),
-                            {x->shape()[0],
-                             previousInput->shape()[1],
-                             x->shape()[2],
-                             x->shape()[3]});
-    // debug(reshaped, "RESHAPED");
-    return reshaped * mask;
-  }
-
-private:
-  std::vector<Expr> params_;
-  std::string name_;
 
 protected:
-  int depth_;
+  std::string name_;
+  int size_;
   int kernelHeight_;
-  int kernelWidth_;
-  int kernelNum_;
+  std::vector<int> kernelWidths_;
+  std::vector<int> kernelNums_;
+  int stride_;
 };
 
-class MaxPooling {
-public:
-  MaxPooling(const std::string& name,
-             int height = 1,
-             int width = 1,
-             int strideHeight = 1,
-             int strideWidth = 1)
-      : name_(name),
-        height_(height),
-        width_(width),
-        strideHeight_(strideHeight),
-        strideWidth_(strideWidth) {}
-
-  Expr operator()(Expr x) {
-    params_ = {};
-    return max_pooling(x, height_, width_, 0, 0, strideHeight_, strideWidth_);
-  }
-
-private:
-  std::vector<Expr> params_;
-  std::string name_;
-
-protected:
-  int height_;
-  int width_;
-  int strideHeight_;
-  int strideWidth_;
-};
-
-// class Pooling : public Layer {
-// public:
-// Pooling(const std::string& name)
-// : Layer(name) {
-// }
-
-// Expr operator()(Expr x, Expr xMask) {
-// params_ = {};
-
-// std::vector<size_t> newIndeces;
-// int batchDim = x->shape()[0];
-// int sentenceDim = x->shape()[2];
-
-// for (int b = 0; b < batchDim; ++b) {
-// for (int t = 0; t < sentenceDim; ++t) {
-// newIndeces.push_back((t * batchDim) + b);
-// }
-// }
-
-// auto masked = reshape(x * xMask, {batchDim * sentenceDim, x->shape()[1], 1,
-// x->shape()[3]});
-// auto newX = reshape(rows(masked, newIndeces), {batchDim, x->shape()[1],
-// sentenceDim, 1});
-
-// auto pooled = reshape(avg_pooling(newX), {batchDim * sentenceDim,
-// x->shape()[1], 1, x->shape()[3]});
-
-// newIndeces.clear();
-// for (int t = 0; t < sentenceDim; ++t) {
-// for (int b = 0; b < batchDim; ++b) {
-// newIndeces.push_back(b * sentenceDim + t);
-// }
-// }
-
-// auto reshaped = reshape(rows(pooled, newIndeces), x->shape());
-// return reshaped * xMask;
-// }
-// };
 }

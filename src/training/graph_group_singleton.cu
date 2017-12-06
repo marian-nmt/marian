@@ -53,10 +53,13 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
       this->save();
 
     if(scheduler_->validating()) {
-      if(mvAvg_)
+      if(mvAvg_) {
+        mvAvgGraph_->reuseWorkspace(graph_);
         scheduler_->validate({mvAvgGraph_});
-      else
+      }
+      else {
         scheduler_->validate({graph_});
+      }
     }
   }
 }
