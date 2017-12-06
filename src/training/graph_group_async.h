@@ -1,8 +1,8 @@
 #pragma once
 
+#include <condition_variable>
 #include <future>
 #include <thread>
-#include <condition_variable>
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/locks.hpp>
@@ -17,7 +17,7 @@ class AsyncGraphGroup : public GraphGroup {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
-private:
+protected:
   bool first_{true};
 
   std::vector<Ptr<models::ModelBase>> builders_;
@@ -48,9 +48,15 @@ private:
 
   size_t tau_{1};
 
-  void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
+  virtual void init(Ptr<data::Batch> batch);
 
-  void pushGradients(Tensor newGrads, size_t batch_words);
+  virtual void fetchParams(Tensor oldParams,
+                           const std::vector<Tensor>& params,
+                           int device_id);
+
+  virtual void pushGradients(Tensor newGrads,
+                             size_t batch_words,
+                             int device_id);
 
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
