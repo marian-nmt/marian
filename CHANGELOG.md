@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.1.3] - 2017-12-06
 
+### Added
+- Added back gradient-dropping
+
 ### Fixed
 - Fixed parameters initializaiton for `--tied-embeddings` during translaton
 
