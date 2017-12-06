@@ -131,24 +131,24 @@ public:
     int dimTrgEmb = opt<int>("dim-emb");
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
+    // embeddings are loaded from model during translation, no fixing required
+    auto yEmbFactory = embedding(graph)  //
+        ("dimVocab", dimTrgVoc)          //
+        ("dimEmb", dimTrgEmb);
+
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+      yEmbFactory("prefix", "Wemb");
+    else
+      yEmbFactory("prefix", prefix_ + "_Wemb");
+
+    auto yEmb = yEmbFactory.construct();
+
     Expr selectedEmbs;
     if(embIdx.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb},
                                      init = inits::zeros);
     } else {
-      // embeddings are loaded from model during translation, no fixing required
-      auto yEmbFactory = embedding(graph)  //
-          ("dimVocab", dimTrgVoc)          //
-          ("dimEmb", dimTrgEmb);
-
-      if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-        yEmbFactory("prefix", "Wemb");
-      else
-        yEmbFactory("prefix", prefix_ + "_Wemb");
-
-      auto yEmb = yEmbFactory.construct();
       selectedEmbs = rows(yEmb, embIdx);
-
       selectedEmbs
           = reshape(selectedEmbs, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
