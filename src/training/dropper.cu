@@ -9,7 +9,6 @@
 #include "training/dropper.h"
 #include "training/sparse_tensor.h"
 
-
 namespace marian {
 
 __global__ void grad_drop(float* data,
@@ -78,73 +77,74 @@ __global__ void randomSampling(float* originalData,
 }
 
 void GradientDropBase::grad_drop_do(float* data,
-                    float* errors,
-                    float* tmp,
-                    int len,
-                    float rate) {
-    int threads = 512;
-    int blocks = 1 + len / threads;
-    cudaSetDevice(_device);
+                                    float* errors,
+                                    float* tmp,
+                                    int len,
+                                    float rate) {
+  int threads = 512;
+  int blocks = 1 + len / threads;
+  cudaSetDevice(_device);
 
-    grad_add_error<<<blocks, threads>>>(data, errors, len);
-    // full sort
-    // int sortSize = len;
-    int sortSize = min(100000, len);
-    int blocksSample = 1 + sortSize / threads;
-    randomSampling<<<blocksSample, threads>>>(
-        data, tmp, sortSize, len / sortSize, len);
+  grad_add_error<<<blocks, threads>>>(data, errors, len);
+  // full sort
+  // int sortSize = len;
+  int sortSize = min(100000, len);
+  int blocksSample = 1 + sortSize / threads;
+  randomSampling<<<blocksSample, threads>>>(
+      data, tmp, sortSize, len / sortSize, len);
 
-    thrust::device_ptr<float> dev_data_ptr(tmp);
-    thrust::sort(dev_data_ptr, dev_data_ptr + sortSize);
+  thrust::device_ptr<float> dev_data_ptr(tmp);
+  thrust::sort(dev_data_ptr, dev_data_ptr + sortSize);
 
-    int cut_index = std::max(0, (int)(sortSize * rate) - 1);
-    cudaMemcpy(
-        &cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost);
+  int cut_index = std::max(0, (int)(sortSize * rate) - 1);
+  cudaMemcpy(&cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost);
 
-    grad_drop<<<blocks, threads>>>(data, tmp, errors, cut_off, len);
+  grad_drop<<<blocks, threads>>>(data, tmp, errors, cut_off, len);
+}
+
+void GradientDropBase::dropGraph(Tensor t,
+                                 SparseTensor destination,
+                                 double rate) {
+  cudaSetDevice(t->getDevice());
+  if(!feedback) {
+    _device = t->getDevice();
+    CUDA_CHECK(cudaMalloc(&feedback, sizeof(float) * t->size()));
+    CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
+    cudaMemset(feedback, 0, sizeof(float) * t->size());
+    cudaMemset(temp_d, 0, sizeof(float) * t->size());
+
+    step = 0;
   }
 
-void GradientDropBase::dropGraph(Tensor t, SparseTensor destination, double rate) {
-    cudaSetDevice(t->getDevice());
-    if(!feedback) {
-      _device = t->getDevice();
-      CUDA_CHECK(cudaMalloc(&feedback, sizeof(float) * t->size()));
-      CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
-      cudaMemset(feedback, 0, sizeof(float) * t->size());
-      cudaMemset(temp_d, 0, sizeof(float) * t->size());
+  // drop the gradients in t->data(). Also fills in feedback with the
+  // propagated error fills temp_d with binary flag. 0 means that gradient in
+  // that position is dropped, 1 otherwise
+  grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
 
-      step = 0;
-    }
+  // do inclusive sum on temp_d, to obtain the sparse matrix location of
+  // non-dropped gradients
+  thrust::device_ptr<float> mask_ptr(temp_d);
+  int denseSize = t->size();
+  thrust::inclusive_scan(mask_ptr, mask_ptr + denseSize, mask_ptr);
+  float sparseSize;
 
-    // drop the gradients in t->data(). Also fills in feedback with the
-    // propagated error fills temp_d with binary flag. 0 means that gradient in
-    // that position is dropped, 1 otherwise
-    grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
+  cudaMemcpy(&sparseSize,
+             temp_d + denseSize - 1,
+             sizeof(float),
+             cudaMemcpyDeviceToHost);
 
-    // do inclusive sum on temp_d, to obtain the sparse matrix location of
-    // non-dropped gradients
-    thrust::device_ptr<float> mask_ptr(temp_d);
-    int denseSize = t->size();
-    thrust::inclusive_scan(mask_ptr, mask_ptr + denseSize, mask_ptr);
-    float sparseSize;
+  int threads = 512;
+  int blocks = 1 + denseSize / threads;
+  cudaSetDevice(t->getDevice());
+  buildIndices<<<blocks, threads>>>(t->data(),
+                                    temp_d,
+                                    destination->data(),
+                                    destination->indices(),
+                                    denseSize);
+  destination->setSize(sparseSize);
 
-    cudaMemcpy(&sparseSize,
-               temp_d + denseSize - 1,
-               sizeof(float),
-               cudaMemcpyDeviceToHost);
+  cudaStreamSynchronize(0);
 
-    int threads = 512;
-    int blocks = 1 + denseSize / threads;
-    cudaSetDevice(t->getDevice());
-    buildIndices<<<blocks, threads>>>(t->data(),
-                                      temp_d,
-                                      destination->data(),
-                                      destination->indices(),
-                                      denseSize);
-    destination->setSize(sparseSize);
-
-    cudaStreamSynchronize(0);
-
-    step++;
-  }
+  step++;
+}
 }

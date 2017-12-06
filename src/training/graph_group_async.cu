@@ -14,7 +14,8 @@ void AsyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 }
 
 void AsyncGraphGroup::fetchParams(Tensor oldParams,
-                                  const std::vector<Tensor>& params, int device_id) {
+                                  const std::vector<Tensor>& params,
+                                  int device_id) {
   // @TODO read guard on parameters
   int pos = 0;
 
@@ -36,7 +37,9 @@ void AsyncGraphGroup::fetchParams(Tensor oldParams,
   }
 }
 
-void AsyncGraphGroup::pushGradients(Tensor newGrads, size_t batch_words, int device_id) {
+void AsyncGraphGroup::pushGradients(Tensor newGrads,
+                                    size_t batch_words,
+                                    int device_id) {
   // add instead of copy?
   std::vector<std::thread> threads;
   int pos = 0;
@@ -71,9 +74,9 @@ void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                           Tensor params,
                                           size_t batches) {
   using namespace functional;
-  float decay = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  float decay
+      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
   Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
-
 }
 
 void AsyncGraphGroup::init(Ptr<data::Batch> batch) {

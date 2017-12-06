@@ -5,11 +5,9 @@
 #include "training/dropper.h"
 #include "training/sparse_tensor.h"
 
-
 namespace marian {
 
 class AsyncGraphGroupDrop : public AsyncGraphGroup {
-
   std::vector<int> fetchStep_;
   std::vector<int> pushStep_;
   const int FETCH_WARMUP = 100;
@@ -36,12 +34,13 @@ class AsyncGraphGroupDrop : public AsyncGraphGroup {
 protected:
   void init(Ptr<data::Batch> batch);
   void pushGradients(Tensor newGrads, size_t batch_words, int device_id);
-  void fetchParams(Tensor oldParams, const std::vector<Tensor>& params, int device_id);
-  
+  void fetchParams(Tensor oldParams,
+                   const std::vector<Tensor>& params,
+                   int device_id);
+
 public:
   AsyncGraphGroupDrop(Ptr<Config> options)
-    : AsyncGraphGroup(options),
-    droping_rate{options->get<float>("gradient-dropping")} {
-  }
+      : AsyncGraphGroup(options),
+        droping_rate{options->get<float>("gradient-dropping")} {}
 };
 }

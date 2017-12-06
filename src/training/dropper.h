@@ -4,7 +4,6 @@
 
 namespace marian {
 
-
 class GradientDropBase {
   float* feedback;
   float* temp_d;

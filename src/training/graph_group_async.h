@@ -1,8 +1,8 @@
 #pragma once
 
+#include <condition_variable>
 #include <future>
 #include <thread>
-#include <condition_variable>
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/locks.hpp>
@@ -50,9 +50,13 @@ protected:
 
   virtual void init(Ptr<data::Batch> batch);
 
-  virtual void fetchParams(Tensor oldParams, const std::vector<Tensor>& params, int device_id);
+  virtual void fetchParams(Tensor oldParams,
+                           const std::vector<Tensor>& params,
+                           int device_id);
 
-  virtual void pushGradients(Tensor newGrads, size_t batch_words, int device_id);
+  virtual void pushGradients(Tensor newGrads,
+                             size_t batch_words,
+                             int device_id);
 
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
