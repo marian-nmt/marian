@@ -322,6 +322,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
        "Dropout source words (0 = no dropout)")
       ("dropout-trg", po::value<float>()->default_value(0),
        "Dropout target words (0 = no dropout)")
+      ("gradient-dropping", po::value<float>()->default_value(0),
+       "Gradient Dropping rate (0 = no gradient Dropping)")
       ("transformer-dropout", po::value<float>()->default_value(0),
        "Dropout between transformer layers (0 = no dropout)")
       ("transformer-dropout-attention", po::value<float>()->default_value(0),
@@ -725,6 +727,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("dropout-rnn", float);
     SET_OPTION("dropout-src", float);
     SET_OPTION("dropout-trg", float);
+
+    SET_OPTION("gradient-dropping", float);
 
     SET_OPTION("transformer-dropout", float);
     SET_OPTION("transformer-dropout-attention", float);
