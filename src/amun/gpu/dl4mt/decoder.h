@@ -207,7 +207,7 @@ class Decoder {
           //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
 
-          Prod(A_, *w_.V_, Temp1_, false, true);
+          Prod(A_, *w_.V_, Temp1_, true);
 
           mblas::Softmax(A_, dBatchMapping_, sentenceLengths, batchSize);
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);

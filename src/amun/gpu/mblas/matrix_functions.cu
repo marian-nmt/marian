@@ -347,8 +347,7 @@ Matrix& Slice(Matrix& Out,
   return Out;
 }
 
-Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA, bool transB)
+Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B, bool transB)
 {
   assert((A.dim(2) == A.dim(3) == 1) || (B.dim(2) == B.dim(3) == 1));
 
@@ -359,11 +358,13 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   size_t k = A.dim(1);
   size_t mOut = A.dim(0);
   size_t kOut = A.dim(1);
+
+  /*
   if(transA) {
     std::swap(m, k);
     std::swap(mOut, kOut);
   }
-
+  */
   size_t l = B.dim(0) * B.dim(2) * B.dim(3);
   size_t n = B.dim(1);
   size_t lOut = B.dim(0);
@@ -380,10 +381,10 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   size_t ldc = transB ? B.dim(0) * B.dim(2) * B.dim(3) : B.dim(1);
 
   size_t dim2 = A.dim(2);
-  if (!transA && transB) {
+  if (transB) {
     // for GetAlignedSourceContext()
     assert((A.dim(2) == A.dim(3) == 1));
-    C.NewSize(nOut, B.dim(2), 1, 1);
+    C.NewSize(B.dim(2), nOut, 1, 1);
   }
   else {
     C.NewSize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));
@@ -397,19 +398,10 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   cerr << "transB=" << transB << endl;
   cerr << endl;
   */
+  bool transA = false;
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  /*
-   cublasStatus_t cublasSgemm(cublasHandle_t handle,
-                           cublasOperation_t transa, cublasOperation_t transb,
-                           int m, int n, int k,
-                           const float           *alpha,
-                           const float           *A, int lda,
-                           const float           *B, int ldb,
-                           const float           *beta,
-                           float           *C, int ldc)
-   */
   cublasSgemm(handle, opB, opA,
               n, m, k,
               &alpha,
@@ -421,13 +413,13 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 }
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA, bool transB) {
+             bool transB) {
 
   //std::cerr << "1C=" << C.Debug() << std::endl;
   //std::cerr << "1A=" << A.Debug() << std::endl;
   //std::cerr << "1B=" << B.Debug() << std::endl;
 
-  Matrix &ret = Prod(CublasHandler::GetHandle(), C, A, B, transA, transB);
+  Matrix &ret = Prod(CublasHandler::GetHandle(), C, A, B, transB);
 
   //std::cerr << "2C=" << C.Debug() << std::endl;
   return ret;
