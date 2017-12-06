@@ -135,7 +135,7 @@ Matrix& Slice(Matrix& Out,
               size_t n, size_t dim);
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
-             bool transA = false, bool transB = false);
+             bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<uint>& batchIds,
@@ -197,7 +197,7 @@ Matrix& Broadcast(Functor functor,
   //size_t rows = srcSize * sumOfBeamSizes;
   size_t cols  = in1.dim(1);
 
-  out.NewSize(sumOfBeamSizes, cols, srcSize);
+  out.NewSize(srcSize, cols, sumOfBeamSizes);
 
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> in1Wrap(in1);
