@@ -140,6 +140,14 @@ public:
     std::swap(data_, other.data_);
   }
 
+  virtual std::string Debug(size_t verbosity = 1) const
+  {
+    std::stringstream strm;
+    strm << size_; // maxSize_ << " " <<
+
+    return strm.str();
+  }
+
 protected:
   size_t size_, maxSize_;
   T *data_;
