@@ -20,19 +20,6 @@ inline half htanh(const half x)
   return ret;
 }
 
-__device__
-inline half2 htanh(const half2 x)
-{
-  half2 one = __float2half2_rn(1.0f);
-  half2 t1 = h2exp(__hmul2(__float2half2_rn(2.0f), x));
-  half2 t2 = __hsub2(one, t1);
-  half2 t3 = __hadd2(one, t1);
-  t3 = h2rcp(t3);
-  half2 ret = __hmul2(t1, t3);
-
-  return ret;
-}
-
 namespace thrust
 {
   namespace detail
@@ -73,12 +60,6 @@ namespace thrust
       struct half_binary_add : public thrust::binary_function<T,T,T> {
         __host__ __device__
         T operator()(const T &x, const T &y) const { return x + y; }
-      };
-
-      template<>
-      struct half_binary_add<half2> : public thrust::binary_function<half2,half2,half2> {
-        __device__
-        half2 operator()(const half2 &x, const half2 &y) const { return __hadd2(x, y); }
       };
 
       template<typename Eval1, typename Eval2>
