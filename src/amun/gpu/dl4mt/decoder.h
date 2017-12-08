@@ -170,6 +170,7 @@ class Decoder {
           size_t batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
 
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
