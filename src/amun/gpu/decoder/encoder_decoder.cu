@@ -70,6 +70,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
                      *SourceContext_,
+                     h_sentenceLengths_,
                      sentenceLengths_,
                      beamSizes,
                      god_.UseFusedSoftmax());

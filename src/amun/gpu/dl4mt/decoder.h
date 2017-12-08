@@ -157,6 +157,7 @@ class Decoder {
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
+                                     const std::vector<uint>& h_sentenceLengths,
                                      const mblas::Vector<uint> &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
         {
@@ -377,6 +378,7 @@ class Decoder {
                   const CellState& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
+                  const std::vector<uint>& h_sentenceLengths,
                   const mblas::Vector<uint> &sentenceLengths,
                   const std::vector<uint>& beamSizes,
                   bool useFusedSoftmax)
@@ -395,6 +397,7 @@ class Decoder {
       GetAlignedSourceContext(AlignedSourceContext_,
                               HiddenState_,
                               SourceContext,
+                              h_sentenceLengths,
                               sentenceLengths,
                               beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
@@ -471,11 +474,14 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
                                   const mblas::Matrix& SourceContext,
+                                  const std::vector<uint>& h_sentenceLengths,
                                   const mblas::Vector<uint> &sentenceLengths,
-                                  const std::vector<uint>& beamSizes) {
+                                  const std::vector<uint>& beamSizes)
+    {
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,
                                         SourceContext,
+                                        h_sentenceLengths,
                                         sentenceLengths,
                                         beamSizes);
     }
