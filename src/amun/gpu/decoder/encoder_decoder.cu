@@ -82,7 +82,7 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::Encode(const Sentences& source) {
   BEGIN_TIMER("Encode");
-  encoder_->Encode(source, tab_, *SourceContext_, sentenceLengths_);
+  encoder_->Encode(source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("Encode");
 }
