@@ -20,25 +20,6 @@ namespace amunmt {
 namespace GPU {
 namespace mblas {
 
-template <class M>
-void Debug(const M& m, size_t pos = 0, size_t l = 8) {
-  std::cerr << m.dim(0) << " " << m.dim(1) << std::endl;
-  for(size_t i = 0; i < m.dim(0); ++i) {
-    std::cerr << i << ": ";
-    for(size_t j = pos; j < m.dim(1) && j < pos + l; ++j) {
-      std::cerr << m.GetVec()[i * m.dim(1) + j] << " ";
-    }
-    std::cerr << " ... ";
-
-    for(size_t j = m.dim(1) - l; j < m.dim(1);  ++j) {
-      std::cerr << m.GetVec()[i * m.dim(1) + j] << " ";
-    }
-    std::cerr << std::endl;
-    // if(i == 4)
-      // break;
-  }
-}
-
 template<typename T>
 std::string Debug(const mblas::Vector<T> &vec, size_t verbosity = 1)
 {
@@ -71,7 +52,10 @@ std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
   strm << "size=" << vec.size();
 
   if (verbosity) {
-    T sum = Sum(vec.data(), vec.size());
+    T sum(0);
+    for (size_t i = 0; i < vec.size(); ++i) {
+      sum += vec[i];
+    }
     strm << " sum=" << sum;
   }
 
