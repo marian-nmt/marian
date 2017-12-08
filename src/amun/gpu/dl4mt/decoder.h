@@ -154,6 +154,21 @@ class Decoder {
           }
         }
 
+        uint GetMaxLength(const std::vector<uint>& h_sentenceLengths, const std::vector<uint>& beamSizes) const
+        {
+          assert(h_sentenceLengths.size() == beamSizes.size());
+
+          uint ret = 0;
+          for (size_t i = 0; i < beamSizes.size(); ++i) {
+            if (beamSizes[i]) {
+              if (ret < h_sentenceLengths[i]) {
+                ret = h_sentenceLengths[i];
+              }
+            }
+          }
+          return ret;
+        }
+
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
@@ -171,8 +186,11 @@ class Decoder {
           size_t batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
+          uint m = GetMaxLength(h_sentenceLengths, beamSizes);
+
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           std::cerr << "beamSizes=" << Debug(beamSizes, 2) << std::endl;
+          std::cerr << "m=" << m << std::endl;
 
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
