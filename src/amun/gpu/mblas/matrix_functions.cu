@@ -390,14 +390,14 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   else {
     C.NewSize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));
   }
-
+  /*
   cerr << "C=" << C.Debug(0) << endl;
   cerr << "A=" << A.Debug(0) << endl;
   cerr << "B=" << B.Debug(0) << endl;
   cerr << "transB=" << transB << endl;
   cerr << m << " " << n << " " << k << endl;
   cerr << endl;
-
+  */
   bool transA = false;
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
