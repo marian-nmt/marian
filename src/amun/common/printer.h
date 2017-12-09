@@ -5,6 +5,7 @@
 
 #include "common/god.h"
 #include "common/history.h"
+#include "common/histories.h"
 #include "common/utils.h"
 #include "common/vocab.h"
 #include "common/soft_alignment.h"

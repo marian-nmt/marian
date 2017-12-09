@@ -161,6 +161,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/decoder_main.cpp</locationURI>
 		</link>
 		<link>
+			<name>src/amun/common/enc_out.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/enc_out.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/common/enc_out.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/enc_out.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/common/exception.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/exception.cpp</locationURI>
@@ -204,6 +214,16 @@
 			<name>src/amun/common/god.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/god.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/common/histories.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/histories.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/common/histories.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/histories.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/common/history.cpp</name>

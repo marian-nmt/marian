@@ -3,6 +3,7 @@
 #include "common/sentences.h"
 #include "common/god.h"
 #include "common/history.h"
+#include "common/histories.h"
 #include "common/filter.h"
 #include "common/base_matrix.h"
 
