@@ -120,7 +120,7 @@ bool Search::CalcBeam(
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
     }
 
-    cerr << "survivors=" << survivors.size() << endl;
+    //cerr << "survivors=" << survivors.size() << endl;
     prevHyps.swap(survivors);
     return true;
 }
