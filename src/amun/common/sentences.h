@@ -14,6 +14,8 @@ class Sentences {
 
     void push_back(SentencePtr sentence);
 
+    const Sentence &Get(size_t id) const;
+
     SentencePtr at(size_t id) const;
 
     size_t size() const;
