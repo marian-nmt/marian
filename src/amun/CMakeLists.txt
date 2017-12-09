@@ -46,6 +46,7 @@ add_library(libcommon OBJECT
   common/base_matrix.cpp
   common/config.cpp
   common/enc_out.cpp
+  common/enc_outs.cpp
   common/exception.cpp
   common/filter.cpp
   common/god.cpp
