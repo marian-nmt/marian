@@ -181,16 +181,18 @@ class Decoder {
           // dBatchMapping_ = fixed length (batch*beam) version of dBatchMapping_
 
           using namespace mblas;
+          BEGIN_TIMER("GetAlignedSourceContext");
 
-          //size_t maxLength = SourceContext.dim(0);
-          size_t batchSize = SourceContext.dim(3);
+          uint maxLength = SourceContext.dim(0);
+          uint batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
-          uint maxLength = GetMaxLength(h_sentenceLengths, beamSizes);
-
+          //uint maxLength = GetMaxLength(h_sentenceLengths, beamSizes);
+          /*
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           std::cerr << "beamSizes=" << Debug(beamSizes, 2) << std::endl;
           std::cerr << "maxLength=" << SourceContext.dim(0) << " " << maxLength << std::endl;
+          */
 
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
@@ -241,6 +243,7 @@ class Decoder {
           std::cerr << "dBatchMapping_=" << Debug(dBatchMapping_, 2) << std::endl;
           std::cerr << std::endl;
           */
+          PAUSE_TIMER("GetAlignedSourceContext");
         }
 
         void GetAttention(mblas::Matrix& Attention) {
