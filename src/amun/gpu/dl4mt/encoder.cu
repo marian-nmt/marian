@@ -42,9 +42,9 @@ std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML
 }
 
 size_t GetMaxLength(const Sentences& source, size_t tab) {
-  size_t maxLength = source.at(0)->GetWords(tab).size();
+  size_t maxLength = source.Get(0).GetWords(tab).size();
   for (size_t i = 0; i < source.size(); ++i) {
-    const Sentence &sentence = *source.at(i);
+    const Sentence &sentence = source.Get(i);
     maxLength = std::max(maxLength, sentence.GetWords(tab).size());
   }
   return maxLength;
@@ -54,8 +54,8 @@ std::vector<std::vector<uint>> GetBatchInput(const Sentences& source, size_t tab
   std::vector<std::vector<uint>> matrix(maxLen, std::vector<uint>(source.size(), 0));
 
   for (size_t j = 0; j < source.size(); ++j) {
-    for (size_t i = 0; i < source.at(j)->GetWords(tab).size(); ++i) {
-        matrix[i][j] = source.at(j)->GetWords(tab)[i];
+    for (size_t i = 0; i < source.Get(j).GetWords(tab).size(); ++i) {
+        matrix[i][j] = source.Get(j).GetWords(tab)[i];
     }
   }
 
@@ -74,7 +74,7 @@ void Encoder::Encode(const Sentences& source,
   sentenceLengths.newSize(source.size());
 
   for (size_t i = 0; i < source.size(); ++i) {
-    h_sentenceLengths[i] = source.at(i)->GetWords(tab).size();
+    h_sentenceLengths[i] = source.Get(i).GetWords(tab).size();
   }
 
   mblas::copy(h_sentenceLengths.data(),

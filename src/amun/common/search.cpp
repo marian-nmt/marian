@@ -138,7 +138,7 @@ void Search::FilterTargetVocab(const Sentences& sentences) {
   size_t vocabSize = scorers_[0]->GetVocabSize();
   std::set<Word> srcWords;
   for (size_t i = 0; i < sentences.size(); ++i) {
-    const Sentence& sentence = *sentences.at(i);
+    const Sentence& sentence = sentences.Get(i);
     for (const auto& srcWord : sentence.GetWords()) {
       srcWords.insert(srcWord);
     }

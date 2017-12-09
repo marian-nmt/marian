@@ -17,10 +17,6 @@ const Sentence &Sentences::Get(size_t id) const
   return *coll_.at(id);
 }
 
-SentencePtr Sentences::at(size_t id) const {
-  return coll_.at(id);
-}
-
 size_t Sentences::size() const {
   return coll_.size();
 }
@@ -63,7 +59,7 @@ SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
 
     size_t ind = 0;
     while (ind < maxBatch) {
-      SentencePtr sentence = at(ind);
+      SentencePtr sentence = coll_[ind];
       size_t sentLen = sentence->GetWords(0).size();
 
       if (sentences->size() && (numWords + sentLen) > batchWords) {
@@ -76,7 +72,7 @@ SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
       // add next 32 sentences
       size_t endInd = std::min(size(), ind + 32);
       for (; ind < endInd; ++ind) {
-        sentence = at(ind);
+        sentence = coll_[ind];
         sentences->push_back(sentence);
 
         if (ind == maxBatch) {
@@ -92,7 +88,7 @@ SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
   else {
     size_t startInd = (batchsize > size()) ? 0 : size() - batchsize;
     for (size_t i = startInd; i < size(); ++i) {
-      SentencePtr sentence = at(i);
+      SentencePtr sentence = coll_[i];
       sentences->push_back(sentence);
     }
 

@@ -17,7 +17,7 @@ Histories::Histories(const Sentences& sentences, bool normalizeScore)
  : coll_(sentences.size())
 {
   for (size_t i = 0; i < sentences.size(); ++i) {
-    const Sentence &sentence = *sentences.at(i).get();
+    const Sentence &sentence = sentences.Get(i);
     History *history = new History(sentence.GetLineNum(), normalizeScore, 3 * sentence.size());
     coll_[i].reset(history);
   }
