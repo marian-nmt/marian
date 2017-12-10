@@ -25,7 +25,7 @@ class History {
     History(const History&) = delete;
 
   public:
-    History(size_t lineNo, bool normalizeScore, size_t maxLength);
+    History(const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
     void Add(const Beam& beam) {
       if (beam.back()->GetPrevHyp() != nullptr) {

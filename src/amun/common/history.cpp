@@ -5,12 +5,12 @@ using namespace std;
 
 namespace amunmt {
 
-History::History(size_t lineNo, bool normalizeScore, size_t maxLength)
+History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength)
   : normalize_(normalizeScore),
-    lineNo_(lineNo),
+    lineNo_(sentence.GetLineNum()),
    maxLength_(maxLength)
 {
-  Add({HypothesisPtr(new Hypothesis())});
+  Add({HypothesisPtr(new Hypothesis(sentence))});
 }
 
 }

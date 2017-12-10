@@ -7,32 +7,36 @@
 namespace amunmt {
 
 class Hypothesis;
+class Sentence;
 
 typedef std::shared_ptr<Hypothesis> HypothesisPtr;
 
 class Hypothesis {
   public:
-    Hypothesis()
-     : prevHyp_(nullptr),
+    Hypothesis(const Sentence &sentence)
+    : sentence_(sentence),
+       prevHyp_(nullptr),
        prevIndex_(0),
        word_(0),
        cost_(0.0)
     {}
 
     Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost)
-      : prevHyp_(prevHyp),
-        prevIndex_(prevIndex),
-        word_(word),
-        cost_(cost)
+    : sentence_(prevHyp->sentence_),
+      prevHyp_(prevHyp),
+      prevIndex_(prevIndex),
+      word_(word),
+      cost_(cost)
     {}
 
     Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost,
                std::vector<SoftAlignmentPtr> alignment)
-      : prevHyp_(prevHyp),
-        prevIndex_(prevIndex),
-        word_(word),
-        cost_(cost),
-        alignments_(alignment)
+    : sentence_(prevHyp->sentence_),
+      prevHyp_(prevHyp),
+      prevIndex_(prevIndex),
+      word_(word),
+      cost_(cost),
+      alignments_(alignment)
     {}
 
     const HypothesisPtr GetPrevHyp() const {
@@ -66,6 +70,7 @@ class Hypothesis {
 
   private:
     const HypothesisPtr prevHyp_;
+    const Sentence &sentence_;
     const size_t prevIndex_;
     const size_t word_;
     const float cost_;
