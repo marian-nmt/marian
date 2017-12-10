@@ -10,6 +10,7 @@
 #include "gpu/mblas/matrix.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/mblas/vector.h"
+#include "enc_out_buffer.h"
 
 
 namespace amunmt {
@@ -66,6 +67,8 @@ class EncoderDecoder : public Scorer {
     std::vector<uint> h_sentenceLengths_;
     mblas::Vector<uint> sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
+
+    EncOutBuffer encDecBuffer_;
 
     std::unique_ptr<mblas::Matrix> SourceContext_;
 

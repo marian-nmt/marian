@@ -29,7 +29,8 @@ EncoderDecoder::EncoderDecoder(
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<size_t>("beam-size")),
-    SourceContext_(new mblas::Matrix())
+    SourceContext_(new mblas::Matrix()),
+    encDecBuffer_(1)
 {
   BEGIN_TIMER("EncoderDecoder");
 }
