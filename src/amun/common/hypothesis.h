@@ -74,15 +74,11 @@ class Hypothesis {
     std::vector<float> costBreakdown_;
 };
 
-typedef std::vector<HypothesisPtr> Beam;
-typedef std::vector<Beam> Beams;
 typedef std::pair<Words, HypothesisPtr> Result;
 typedef std::vector<Result> NBestList;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::string Debug(const Beam &vec, size_t verbosity = 1);
-std::string Debug(const Beams &vec, size_t verbosity = 1);
 
 }
 
