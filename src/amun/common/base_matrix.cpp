@@ -1,6 +1,8 @@
 #include <sstream>
 #include "base_matrix.h"
 
+using namespace std;
+
 namespace amunmt {
 
 size_t BaseMatrix::size() const {

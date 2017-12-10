@@ -2,6 +2,8 @@
 #include "common/exception.h"
 #include "mblas/matrix_functions.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPU {
 

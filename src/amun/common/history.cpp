@@ -1,6 +1,7 @@
 #include "history.h"
-
 #include "sentences.h"
+
+using namespace std;
 
 namespace amunmt {
 

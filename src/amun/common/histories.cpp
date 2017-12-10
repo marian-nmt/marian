@@ -1,6 +1,8 @@
 #include "histories.h"
 #include "sentences.h"
 
+using namespace std;
+
 namespace amunmt {
 
 Histories::Histories(const Sentences& sentences, bool normalizeScore)

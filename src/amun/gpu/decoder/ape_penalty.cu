@@ -4,6 +4,8 @@
 #include "gpu/types-gpu.h"
 #include "gpu/decoder/best_hyps.h"
 
+using namespace std;
+
 namespace GPU {
 
 ApePenalty::ApePenalty(const std::string& name,

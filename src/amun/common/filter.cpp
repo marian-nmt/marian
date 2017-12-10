@@ -14,6 +14,8 @@
 #include "common/utils.h"
 #include "common/types.h"
 
+using namespace std;
+
 namespace amunmt {
 
 Filter::Filter(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}

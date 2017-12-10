@@ -1,5 +1,7 @@
 #include "printer.h"
 
+using namespace std;
+
 namespace amunmt {
 
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis) {

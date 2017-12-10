@@ -12,6 +12,8 @@
 #include <io.h>
 #endif
 
+using namespace std;
+
 namespace amunmt {
 namespace util {
 

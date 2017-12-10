@@ -1,5 +1,7 @@
 #include "best_hyps.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPU {
 

@@ -21,6 +21,8 @@
 #include "fpga/encoder_decoder_loader.h"
 #endif
 
+using namespace std;
+
 namespace amunmt {
 
 LoaderPtr LoaderFactory::Create(
