@@ -45,7 +45,6 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node) {
         ProcessPaths(sub, configPath, true);
-        break;
       }
     }
   }

@@ -6,9 +6,18 @@ namespace amunmt {
 namespace GPU {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Weights::EncEmbeddings::EncEmbeddings(const NpzConverter& model)
-: E_(model.get("Wemb", true))
-{}
+  Weights::EncEmbeddings::EncEmbeddings(const NpzConverter& model) {
+  Es_.emplace_back(model.get("Wemb", true));
+
+  for(int i=1; true; i++) {
+    std::string factorKey = "Wemb" + std::to_string(i);
+    std::shared_ptr<mblas::Matrix> factorEmb = model.get(factorKey, false);
+    if (factorEmb->size() <= 0){
+      break;
+    }
+    Es_.emplace_back(factorEmb);
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)

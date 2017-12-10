@@ -17,7 +17,9 @@ struct Weights {
     EncEmbeddings(const EncEmbeddings&) = delete;
     EncEmbeddings(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> E_;
+    // Embedding matrices for word factors. The first factor is the word
+    // surface form. The rest are optional.
+    std::vector<std::shared_ptr<mblas::Matrix>> Es_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
