@@ -33,6 +33,8 @@ namespace std
 
 namespace amunmt {
 
+typedef std::vector<std::string> bpeFactors;
+
 class BPE : public Processor {
   using BPEPair = std::pair<std::string, std::string>;
 
@@ -48,9 +50,11 @@ class BPE : public Processor {
 
     std::vector<std::string>& Encode(const std::string& word) const;
 
+    std::vector<bpeFactors> Encode(const std::vector<bpeFactors>& words) const;
     std::vector<std::string> Encode(const std::vector<std::string>& words) const;
 
     std::vector<std::string> Preprocess(const std::vector<std::string> input) const;
+    std::vector<bpeFactors> Preprocess(const std::vector<bpeFactors> input) const;
     std::vector<std::string> Postprocess(const std::vector<std::string> input) const;
 
     virtual ~BPE() {}

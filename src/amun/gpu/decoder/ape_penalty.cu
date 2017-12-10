@@ -65,7 +65,9 @@ ApePenaltyLoader::ApePenaltyLoader(const std::string& name,
 
 void ApePenaltyLoader::Load() {
   size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
-  const Vocab& svcb = God::GetSourceVocab(tab);
+  // TODO: is the word surface form vocabulary (0th factor) what is needed here?
+  const size_t factor = 0;
+  const Vocab& svcb = God::GetSourceVocab(tab, factor);
   const Vocab& tvcb = God::GetTargetVocab();
 
   srcTrgMap_.resize(svcb.size(), UNK);
