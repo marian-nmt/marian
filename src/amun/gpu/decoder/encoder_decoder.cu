@@ -180,7 +180,7 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 {
   size_t batchSize = beamSizes.size();
   Beams beams(batchSize);
-  bestHyps.CalcBeam(prevHyps, ScorerPtr(this), filterIndices, beams, beamSizes);
+  bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
   histories->Add(beams);
 
   Beam survivors;

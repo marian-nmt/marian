@@ -104,26 +104,23 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
 
 /////////////////////////////////////////////////////////////////////////////////////
 // const-batch2
-std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(ScorerPtr scorer,
+std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(Scorer &scorer,
                                             size_t hypIndex)
 {
   std::vector<SoftAlignmentPtr> alignments;
-  if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
-    const mblas::Matrix &attention = encdec->GetAttention();
-    size_t attLength = attention.dim(1);
+  GPU::EncoderDecoder &encdec = static_cast<GPU::EncoderDecoder&>(scorer);
+  const mblas::Matrix &attention = encdec.GetAttention();
+  size_t attLength = attention.dim(1);
 
-    SoftAlignment *softAlignment = new SoftAlignment(attLength);
-    mblas::copy(
-        attention.data() + hypIndex * attLength,
-        attLength,
-        softAlignment->data(),
-        cudaMemcpyDeviceToHost
-    );
+  SoftAlignment *softAlignment = new SoftAlignment(attLength);
+  mblas::copy(
+      attention.data() + hypIndex * attLength,
+      attLength,
+      softAlignment->data(),
+      cudaMemcpyDeviceToHost
+  );
 
-    alignments.emplace_back(softAlignment);
-  } else {
-    amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
-  }
+  alignments.emplace_back(softAlignment);
 
   return alignments;
 
@@ -132,7 +129,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(ScorerPtr scorer,
 // standard nth_element
 void  BestHyps::CalcBeam(
     const Beam& prevHyps,
-    ScorerPtr scorer,
+    Scorer &scorer,
     const Words& filterIndices,
     std::vector<Beam>& beams,
     std::vector<uint>& beamSizes)
@@ -141,7 +138,7 @@ void  BestHyps::CalcBeam(
   cerr << "using new calcbeam" << endl;
   using namespace mblas;
 
-  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer->GetProbs());
+  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
 
   std::vector<float> vCosts;
   for (auto& h : prevHyps) {
@@ -162,8 +159,8 @@ void  BestHyps::CalcBeam(
   const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
   if (god_.UseFusedSoftmax()) {
-    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer->GetBias());
-    mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer->GetNBest());
+    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
+    mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
     nBest.newSize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
@@ -174,7 +171,7 @@ void  BestHyps::CalcBeam(
     FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
   }
   else {
-    BroadcastVecColumn(weights_.at(scorer->GetName()) * _1 + _2, Probs, costs_);
+    BroadcastVecColumn(weights_.at(scorer.GetName()) * _1 + _2, Probs, costs_);
 
     if (forbidUNK_) {
       DisAllowUNK(Probs);
@@ -218,7 +215,7 @@ void  BestHyps::CalcBeam(
       float sum = 0;
       hyp->GetCostBreakdown()[0] = breakDowns[0][i];
       hyp->GetCostBreakdown()[0] -= sum;
-      hyp->GetCostBreakdown()[0] /= weights_.at(scorer->GetName());
+      hyp->GetCostBreakdown()[0] /= weights_.at(scorer.GetName());
     }
 
     beams[batchMap[i]].push_back(hyp);

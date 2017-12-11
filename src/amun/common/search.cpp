@@ -73,8 +73,8 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences)
     }
     //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
-    bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-    //bool hasSurvivors = scorers_[0]->CalcBeam(*bestHyps_, histories, beamSizes, prevHyps, *states[0], *nextStates[0], filterIndices_);
+    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+    bool hasSurvivors = scorers_[0]->CalcBeam(*bestHyps_, histories, beamSizes, prevHyps, *states[0], *nextStates[0], filterIndices_);
     if (!hasSurvivors) {
       break;
     }
@@ -108,7 +108,7 @@ bool Search::CalcBeam(
 {
     size_t batchSize = beamSizes.size();
     Beams beams(batchSize);
-    bestHyps_->CalcBeam(prevHyps, scorers_[0], filterIndices_, beams, beamSizes);
+    bestHyps_->CalcBeam(prevHyps, *scorers_[0], filterIndices_, beams, beamSizes);
     histories->Add(beams);
 
     Beam survivors;
