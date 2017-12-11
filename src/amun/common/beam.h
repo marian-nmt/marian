@@ -6,8 +6,6 @@
 #include "hypothesis.h"
 #include "sentences.h"
 
-using namespace std;
-
 namespace amunmt {
 
 typedef std::vector<HypothesisPtr> Beam;
