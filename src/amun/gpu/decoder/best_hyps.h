@@ -31,13 +31,6 @@ class BestHyps : public BestHypsBase
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
 
-    void CalcBeam(
-        const Beam& prevHyps,
-        const std::vector<ScorerPtr>& scorers,
-        const Words& filterIndices,
-        std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes);
-
     virtual void  CalcBeam(
         const Beam& prevHyps,
         ScorerPtr scorer,
