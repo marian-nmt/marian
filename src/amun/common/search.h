@@ -29,8 +29,8 @@ class Search {
     		std::shared_ptr<Histories>& histories,
     		std::vector<uint>& beamSizes,
         Beam& prevHyps,
-    		States& states,
-    		States& nextStates);
+    		State& state,
+    		State& nextState);
 
     Search(const Search&) = delete;
 
