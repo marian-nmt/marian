@@ -19,7 +19,7 @@ class Search {
 
     std::shared_ptr<Histories> Translate(const Search &search, const Sentences& sentences);
 
-    const BestHypsBase &GetBestHyps() const
+    BestHypsBase &GetBestHyps() const
     { return *bestHyps_; }
 
     std::shared_ptr<const FilterVocab> GetFilter() const
@@ -48,7 +48,7 @@ class Search {
     const size_t maxBeamSize_;
     bool normalizeScore_;
     Words filterIndices_;
-    BestHypsBasePtr bestHyps_;
+    mutable BestHypsBasePtr bestHyps_;
 };
 
 }
