@@ -48,9 +48,7 @@ class CPUEncoderDecoderBase : public Scorer {
       assert(false);
     }
 
-    virtual std::shared_ptr<Histories> Translate(std::shared_ptr<const FilterVocab> filter,
-                                                const Words &filterIndices,
-                                                const Sentences& sentences)
+    virtual std::shared_ptr<Histories> Translate(const Search &search, const Sentences& sentences)
     {
       assert(false);
     }

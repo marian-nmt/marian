@@ -13,7 +13,7 @@ namespace amunmt {
 class Sentences;
 class Histories;
 class BestHypsBase;
-class FilterVocab;
+class Search;
 
 class State {
   public:
@@ -78,8 +78,7 @@ class Scorer {
                           State& nextState,
                           const Words &filterIndices) = 0;
 
-    virtual std::shared_ptr<Histories> Translate(std::shared_ptr<const FilterVocab> filter,
-                                                const Words &filterIndices,
+    virtual std::shared_ptr<Histories> Translate(const Search &search,
                                                 const Sentences& sentences) = 0;
 
 
