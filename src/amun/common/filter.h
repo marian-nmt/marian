@@ -11,11 +11,11 @@ namespace amunmt {
 
 class Vocab;
 
-class Filter {
+class FilterVocab {
   public:
-    Filter(const size_t numFirstWords=10000);
+  FilterVocab(const size_t numFirstWords=10000);
 
-    Filter(const Vocab& srcVocab,
+  FilterVocab(const Vocab& srcVocab,
            const Vocab& trgVocab,
            const std::string& path,
            const size_t numFirstWords=10000,
@@ -57,7 +57,7 @@ class Filter {
     const std::vector<Words> mapper_;
 };
 
-typedef std::unique_ptr<Filter> FilterPtr;
+typedef std::unique_ptr<FilterVocab> FilterPtr;
 
 }
 

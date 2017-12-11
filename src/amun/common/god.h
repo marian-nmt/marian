@@ -26,7 +26,7 @@ class Search;
 class Weights;
 class Vocab;
 class FactorVocab;
-class Filter;
+class FilterVocab;
 class InputFileStream;
 
 class God {
@@ -59,7 +59,7 @@ class God {
     std::istream& GetInputStream() const;
     OutputCollector& GetOutputCollector() const;
 
-    std::shared_ptr<const Filter> GetFilter() const;
+    std::shared_ptr<const FilterVocab> GetFilter() const;
 
     BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 
@@ -100,7 +100,7 @@ class God {
     mutable std::vector<FactorVocab> sourceVocabs_;
     mutable std::unique_ptr<Vocab> targetVocab_;
 
-    std::shared_ptr<const Filter> filter_;
+    std::shared_ptr<const FilterVocab> filter_;
 
     std::vector<std::vector<PreprocessorPtr>> preprocessors_;
     std::vector<PostprocessorPtr> postprocessors_;

@@ -170,23 +170,23 @@ void God::LoadFiltering() {
     auto filterOptions = Get<std::vector<std::string>>("softmax-filter");
     std::string alignmentFile = filterOptions[0];
     LOG(info)->info("Reading target softmax filter file from {}", alignmentFile);
-    Filter* filter = nullptr;
+    FilterVocab* filter = nullptr;
     if (filterOptions.size() >= 3) {
       const size_t numNFirst = stoi(filterOptions[1]);
       const size_t maxNumTranslation = stoi(filterOptions[2]);
-      filter = new Filter(GetSourceVocab(0, 0),
+      filter = new FilterVocab(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile,
                           numNFirst,
                           maxNumTranslation);
     } else if (filterOptions.size() == 2) {
       const size_t numNFirst = stoi(filterOptions[1]);
-      filter = new Filter(GetSourceVocab(0, 0),
+      filter = new FilterVocab(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile,
                           numNFirst);
     } else {
-      filter = new Filter(GetSourceVocab(0, 0),
+      filter = new FilterVocab(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile);
     }
@@ -231,7 +231,7 @@ Vocab& God::GetTargetVocab() const {
   return *targetVocab_;
 }
 
-std::shared_ptr<const Filter> God::GetFilter() const {
+std::shared_ptr<const FilterVocab> God::GetFilter() const {
   return filter_;
 }
 

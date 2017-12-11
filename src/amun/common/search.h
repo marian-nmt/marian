@@ -10,7 +10,7 @@
 namespace amunmt {
 
 class Histories;
-class Filter;
+class FilterVocab;
 
 class Search {
   public:
@@ -30,7 +30,7 @@ class Search {
   protected:
     DeviceInfo deviceInfo_;
     std::vector<ScorerPtr> scorers_;
-    std::shared_ptr<const Filter> filter_;
+    std::shared_ptr<const FilterVocab> filter_;
     const size_t maxBeamSize_;
     bool normalizeScore_;
     Words filterIndices_;

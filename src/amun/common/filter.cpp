@@ -18,9 +18,9 @@ using namespace std;
 
 namespace amunmt {
 
-Filter::Filter(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}
+FilterVocab::FilterVocab(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}
 
-Filter::Filter(const Vocab& srcVocab,
+FilterVocab::FilterVocab(const Vocab& srcVocab,
                const Vocab& trgVocab,
                const std::string& path,
                const size_t numFirstWords,
@@ -32,7 +32,7 @@ Filter::Filter(const Vocab& srcVocab,
                                maxNumTranslation,
                                numFirstWords)) {}
 
-std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
+std::vector<Words> FilterVocab::ParseAlignmentFile(const Vocab& srcVocab,
                                               const Vocab& trgVocab,
                                               const std::string& path,
                                               const size_t maxNumTranslation,
@@ -61,7 +61,7 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
     std::vector<std::string> tokens;
     Split(line, tokens, delimiter);
     if (tokens.size() != 3) {
-      LOG(info)->info("Filter: broken line: {}", line);
+      LOG(info)->info("FilterVocab: broken line: {}", line);
       continue;
     }
     if (trgVocab[tokens[trgIndex]] != 1 && srcVocab[tokens[srcIndex]] != 1) {
@@ -88,7 +88,7 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
   return vecMapper;
 }
 
-// Words Filter::GetFilteredVocab(const Words& srcWords, const size_t maxVocabSize) const {
+// Words FilterVocab::GetFilteredVocab(const Words& srcWords, const size_t maxVocabSize) const {
   // std::set<Word> filtered;
 
   // for(size_t i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
@@ -114,11 +114,11 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
   // return output;
 // }
 
-size_t Filter::GetNumFirstWords() const {
+size_t FilterVocab::GetNumFirstWords() const {
   return numFirstWords_;
 }
 
-void Filter::SetNumFirstWords(const size_t numFirstWords) {
+void FilterVocab::SetNumFirstWords(const size_t numFirstWords) {
   numFirstWords_ = numFirstWords;
 }
 
