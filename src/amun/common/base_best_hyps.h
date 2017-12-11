@@ -25,9 +25,9 @@ class BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes) = 0;
 
-    virtual void CalcBeam(
+    virtual void  CalcBeam(
         const Beam& prevHyps,
-        const Scorer &scorer,
+        ScorerPtr scorer,
         const Words& filterIndices,
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes) = 0;

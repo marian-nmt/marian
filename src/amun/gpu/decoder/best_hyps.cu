@@ -156,7 +156,7 @@ void  BestHyps::CalcBeam(
     HypothesisPtr hyp;
     if (returnAttentionWeights_) {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
-                               GetAlignments(scorers[0], hypIndex)));
+                               GetAlignments(scorers, hypIndex)));
     } else {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
@@ -228,16 +228,6 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
 
 /////////////////////////////////////////////////////////////////////////////////////
 // const-batch2
-void BestHyps::CalcBeam(
-                const Beam& prevHyps,
-                const Scorer &scorer,
-                const Words& filterIndices,
-                std::vector<Beam>& beams,
-                std::vector<uint>& beamSizes)
-{
-  assert(false);
-}
-
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(ScorerPtr scorer,
                                             size_t hypIndex)
 {
@@ -261,6 +251,104 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(ScorerPtr scorer,
 
   return alignments;
 
+}
+
+// standard nth_element
+void  BestHyps::CalcBeam(
+    const Beam& prevHyps,
+    ScorerPtr scorer,
+    const Words& filterIndices,
+    std::vector<Beam>& beams,
+    std::vector<uint>& beamSizes)
+{
+  BEGIN_TIMER("CalcBeam");
+
+  using namespace mblas;
+
+  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer->GetProbs());
+
+  std::vector<float> vCosts;
+  for (auto& h : prevHyps) {
+    vCosts.push_back(h->GetCost());
+  }
+
+  mblas::copy(vCosts.data(),
+              vCosts.size(),
+              costs_.data(),
+              cudaMemcpyHostToDevice);
+  //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
+
+  size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
+
+  std::vector<float> bestCosts;
+  std::vector<unsigned> bestKeys;
+
+  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
+
+  if (god_.UseFusedSoftmax()) {
+    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer->GetBias());
+    mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer->GetNBest());
+    nBest.newSize(beamSizeSum);
+
+    BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
+    PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
+    //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
+
+    FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
+  }
+  else {
+    BroadcastVecColumn(weights_.at(scorer->GetName()) * _1 + _2, Probs, costs_);
+
+    if (forbidUNK_) {
+      DisAllowUNK(Probs);
+    }
+
+    FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+  }
+
+  std::vector<std::vector<float>> breakDowns;
+  if (god_.ReturnNBestList()) {
+      breakDowns.push_back(bestCosts);
+  }
+
+  std::map<size_t, size_t> batchMap;
+  size_t tmp = 0;
+  for (size_t batchID = 0; batchID < beamSizes.size(); ++batchID) {
+    for (size_t t = 0; t < beamSizes[batchID]; ++t) {
+      batchMap[tmp++] = batchID;
+    }
+  }
+
+  for (size_t i = 0; i < beamSizeSum; i++) {
+    size_t wordIndex = bestKeys[i] % Probs.dim(1);
+    if (isInputFiltered_) {
+      wordIndex = filterIndices[wordIndex];
+    }
+
+    size_t hypIndex  = bestKeys[i] / Probs.dim(1);
+    float cost = bestCosts[i];
+
+    HypothesisPtr hyp;
+    if (returnAttentionWeights_) {
+      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
+                               GetAlignments(scorer, hypIndex)));
+    } else {
+      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
+    }
+
+    if(god_.ReturnNBestList()) {
+      hyp->GetCostBreakdown().resize(1);
+      float sum = 0;
+      hyp->GetCostBreakdown()[0] = breakDowns[0][i];
+      hyp->GetCostBreakdown()[0] -= sum;
+      hyp->GetCostBreakdown()[0] /= weights_.at(scorer->GetName());
+    }
+
+    beams[batchMap[i]].push_back(hyp);
+  }
+
+  PAUSE_TIMER("CalcBeam");
 }
 
 } // namespace

@@ -142,14 +142,14 @@ class BestHyps : public BestHypsBase
       }
     }
 
-    virtual void CalcBeam(
-        const Beam& prevHyps,
-        const Scorer &scorer,
-        const Words& filterIndices,
-        std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes)
+    virtual void  CalcBeam(
+                          const Beam& prevHyps,
+                          ScorerPtr scorer,
+                          const Words& filterIndices,
+                          std::vector<Beam>& beams,
+                          std::vector<uint>& beamSizes)
     {
-      abort();
+      assert(false);
     }
 
 };
