@@ -11,6 +11,9 @@
 namespace amunmt {
 
 class Sentences;
+class Histories;
+class BestHypsBase;
+
 
 class State {
   public:
@@ -66,6 +69,8 @@ class Scorer {
     virtual BaseMatrix& GetProbs() = 0;
     virtual void *GetNBest() = 0; // hack - need to return matrix<NthOut> but NthOut contain cuda code
     virtual const BaseMatrix *GetBias() const = 0;
+
+    virtual std::shared_ptr<Histories> Translate(BestHypsBase &bestHyps, const Sentences& sentences) = 0;
 
   protected:
     const God &god_;

@@ -42,6 +42,12 @@ void Search::CleanAfterTranslation()
 }
 
 std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
+  assert(scorers_.size() == 1);
+  scorers_[0]->Translate(*bestHyps_, sentences);
+}
+
+/*
+std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
   boost::timer::cpu_timer timer;
 
   if (filter_) {
@@ -78,6 +84,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
   return histories;
 }
+*/
 
 States Search::Encode(const Sentences& sentences) {
   States states;

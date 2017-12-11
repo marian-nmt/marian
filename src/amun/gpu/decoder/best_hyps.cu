@@ -262,7 +262,7 @@ void  BestHyps::CalcBeam(
     std::vector<uint>& beamSizes)
 {
   BEGIN_TIMER("CalcBeam");
-
+  cerr << "using new calcbeam" << endl;
   using namespace mblas;
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer->GetProbs());

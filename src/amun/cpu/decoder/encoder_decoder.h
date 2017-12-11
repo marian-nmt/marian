@@ -37,6 +37,11 @@ class CPUEncoderDecoderBase : public Scorer {
       return nullptr;
     }
 
+    std::shared_ptr<Histories> Translate(BestHypsBase &bestHyps, const Sentences& sentences)
+    {
+      assert(false);
+    }
+
   protected:
     mblas::Matrix SourceContext_;
 };
