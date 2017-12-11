@@ -17,7 +17,10 @@ class Search {
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Translate(const Sentences& sentences);
+    std::shared_ptr<Histories> Translate(std::shared_ptr<const FilterVocab> filter, const Sentences& sentences);
+
+    std::shared_ptr<const FilterVocab> GetFilter()
+    { return filter_; }
 
   protected:
     States NewStates() const;
@@ -27,7 +30,6 @@ class Search {
 
     Search(const Search&) = delete;
 
-  protected:
     DeviceInfo deviceInfo_;
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const FilterVocab> filter_;

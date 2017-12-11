@@ -41,7 +41,7 @@ void Search::CleanAfterTranslation()
   }
 }
 
-std::shared_ptr<Histories> Search::Translate(const Sentences& sentences)
+std::shared_ptr<Histories> Search::Translate(std::shared_ptr<const FilterVocab> filter, const Sentences& sentences)
 {
   /*
   assert(scorers_.size() == 1);
