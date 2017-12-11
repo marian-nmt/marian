@@ -14,6 +14,9 @@
 
 
 namespace amunmt {
+
+class Histories;
+
 namespace GPU {
 
 class EncoderDecoderState;
@@ -58,6 +61,8 @@ class EncoderDecoder : public Scorer {
     size_t GetVocabSize() const;
 
     void Filter(const std::vector<uint>& filterIds);
+
+    std::shared_ptr<Histories> Translate(const Sentences& sentences);
 
   private:
     const Weights& model_;

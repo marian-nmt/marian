@@ -3,6 +3,7 @@
 
 #include "common/god.h"
 #include "common/sentences.h"
+#include "common/histories.h"
 
 #include "encoder_decoder.h"
 #include "gpu/mblas/matrix_functions.h"
@@ -167,6 +168,49 @@ void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+// const-batch2
+std::shared_ptr<Histories> EncoderDecoder::Translate(const Sentences& sentences)
+{
+  bool normalizeScore_ = true;
+  size_t maxBeamSize_ = 128;
+
+  boost::timer::cpu_timer timer;
+
+  //if (filter_) {
+  //  FilterTargetVocab(sentences);
+  //}
+
+  Encode(sentences);
+  State *state = NewState();
+  BeginSentenceState(*state, sentences.size());
+
+  State *nextState = NewState();
+  std::vector<uint> beamSizes(sentences.size(), 1);
+
+  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
+  Beam prevHyps = histories->GetFirstHyps();
+
+  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+    Decode(*state, *nextState, beamSizes);
+
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+        beamSize = maxBeamSize_;
+      }
+    }
+    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
+
+    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, states, nextStates);
+    //if (!hasSurvivors) {
+    //  break;
+    //}
+  }
+
+  CleanUpAfterSentence();
+  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+  return histories;
+}
 
 }
 }
