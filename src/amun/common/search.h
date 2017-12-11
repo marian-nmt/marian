@@ -17,10 +17,15 @@ class Search {
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Translate(std::shared_ptr<const FilterVocab> filter, const Sentences& sentences);
+    std::shared_ptr<Histories> Translate(std::shared_ptr<const FilterVocab> filter,
+                                        const Words &filterIndices,
+                                        const Sentences& sentences);
 
     std::shared_ptr<const FilterVocab> GetFilter()
     { return filter_; }
+
+    const Words &GetFilterIndices() const
+    { return filterIndices_; }
 
   protected:
     States NewStates() const;

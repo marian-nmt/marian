@@ -41,7 +41,9 @@ void Search::CleanAfterTranslation()
   }
 }
 
-std::shared_ptr<Histories> Search::Translate(std::shared_ptr<const FilterVocab> filter, const Sentences& sentences)
+std::shared_ptr<Histories> Search::Translate(std::shared_ptr<const FilterVocab> filter,
+                                            const Words &filterIndices,
+                                            const Sentences& sentences)
 {
   /*
   assert(scorers_.size() == 1);
@@ -50,7 +52,7 @@ std::shared_ptr<Histories> Search::Translate(std::shared_ptr<const FilterVocab> 
   */
   boost::timer::cpu_timer timer;
 
-  if (filter_) {
+  if (filter) {
     FilterTargetVocab(sentences);
   }
 
@@ -74,7 +76,7 @@ std::shared_ptr<Histories> Search::Translate(std::shared_ptr<const FilterVocab> 
     //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
     //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-    bool hasSurvivors = scorers_[0]->CalcBeam(*bestHyps_, histories, beamSizes, prevHyps, *states[0], *nextStates[0], filterIndices_);
+    bool hasSurvivors = scorers_[0]->CalcBeam(*bestHyps_, histories, beamSizes, prevHyps, *states[0], *nextStates[0], filterIndices);
     if (!hasSurvivors) {
       break;
     }
