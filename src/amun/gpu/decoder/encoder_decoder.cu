@@ -207,9 +207,9 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(BestHypsBase &bestHyps, con
                                   prevHyps,
                                   *state,
                                   *nextState);
-    //if (!hasSurvivors) {
-    //  break;
-    //}
+    if (!hasSurvivors) {
+      break;
+    }
   }
 
   CleanUpAfterSentence();
