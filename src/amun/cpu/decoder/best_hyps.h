@@ -141,6 +141,17 @@ class BestHyps : public BestHypsBase
         beams[0].push_back(hyp);
       }
     }
+
+    virtual void CalcBeam(
+        const Beam& prevHyps,
+        const Scorer &scorer,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<uint>& beamSizes)
+    {
+      abort();
+    }
+
 };
 
 }  // namespace CPU

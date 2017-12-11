@@ -41,6 +41,13 @@ class BestHyps : public BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes);
 
+    virtual void CalcBeam(
+        const Beam& prevHyps,
+        const Scorer &scorer,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<uint>& beamSizes);
+
   private:
     std::unique_ptr<NthElement> nthElement_;
     mblas::Vector<unsigned> keys_;

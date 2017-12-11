@@ -226,5 +226,15 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
   }
 }
 
+void BestHyps::CalcBeam(
+                const Beam& prevHyps,
+                const Scorer &scorer,
+                const Words& filterIndices,
+                std::vector<Beam>& beams,
+                std::vector<uint>& beamSizes)
+{
+
+}
+
 } // namespace
 }

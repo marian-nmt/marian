@@ -25,6 +25,13 @@ class BestHypsBase
         std::vector<Beam>& beams,
         std::vector<uint>& beamSizes) = 0;
 
+    virtual void CalcBeam(
+        const Beam& prevHyps,
+        const Scorer &scorer,
+        const Words& filterIndices,
+        std::vector<Beam>& beams,
+        std::vector<uint>& beamSizes) = 0;
+
   protected:
     const God &god_;
     const bool forbidUNK_;
