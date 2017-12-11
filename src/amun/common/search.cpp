@@ -74,6 +74,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences)
     //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
     bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+    //bool hasSurvivors = scorers_[0]->CalcBeam(*bestHyps_, histories, beamSizes, prevHyps, *states[0], *nextStates[0], filterIndices_);
     if (!hasSurvivors) {
       break;
     }

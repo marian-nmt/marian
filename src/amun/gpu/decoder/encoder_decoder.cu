@@ -170,20 +170,47 @@ void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 // const-batch2
+bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
+                      std::shared_ptr<Histories>& histories,
+                      std::vector<uint>& beamSizes,
+                      Beam& prevHyps,
+                      State& state,
+                      State& nextState,
+                      const Words &filterIndices)
+{
+  size_t batchSize = beamSizes.size();
+  Beams beams(batchSize);
+  bestHyps.CalcBeam(prevHyps, ScorerPtr(this), filterIndices, beams, beamSizes);
+  histories->Add(beams);
+
+  Beam survivors;
+  for (size_t batchId = 0; batchId < batchSize; ++batchId) {
+    for (auto& h : beams[batchId]) {
+      if (h->GetWord() != EOS_ID) {
+        survivors.push_back(h);
+      } else {
+        --beamSizes[batchId];
+      }
+    }
+  }
+
+  if (survivors.size() == 0) {
+    return false;
+  }
+
+  AssembleBeamState(nextState, survivors, state);
+
+  //cerr << "survivors=" << survivors.size() << endl;
+  prevHyps.swap(survivors);
+  return true;
+
+}
+
 std::shared_ptr<Histories> EncoderDecoder::Translate(BestHypsBase &bestHyps, const Sentences& sentences)
 {
   assert(false);
 }
 
-bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
-                              std::shared_ptr<Histories>& histories,
-                              std::vector<uint>& beamSizes,
-                              Beam& prevHyps,
-                              State& state,
-                              State& nextState)
-{
-  assert(false);
-}
 
 }
 }

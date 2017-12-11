@@ -37,6 +37,17 @@ class CPUEncoderDecoderBase : public Scorer {
       return nullptr;
     }
 
+    virtual bool CalcBeam(BestHypsBase &bestHyps,
+                          std::shared_ptr<Histories>& histories,
+                          std::vector<uint>& beamSizes,
+                          Beam& prevHyps,
+                          State& state,
+                          State& nextState,
+                          const Words &filterIndices)
+    {
+      assert(false);
+    }
+
     std::shared_ptr<Histories> Translate(BestHypsBase &bestHyps, const Sentences& sentences)
     {
       assert(false);

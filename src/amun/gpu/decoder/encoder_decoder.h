@@ -62,7 +62,15 @@ class EncoderDecoder : public Scorer {
 
     void Filter(const std::vector<uint>& filterIds);
 
-    std::shared_ptr<Histories> Translate(BestHypsBase &bestHyps, const Sentences& sentences);
+    virtual bool CalcBeam(BestHypsBase &bestHyps,
+                          std::shared_ptr<Histories>& histories,
+                          std::vector<uint>& beamSizes,
+                          Beam& prevHyps,
+                          State& state,
+                          State& nextState,
+                          const Words &filterIndices);
+
+    virtual std::shared_ptr<Histories> Translate(BestHypsBase &bestHyps, const Sentences& sentences);
 
   private:
     const Weights& model_;
@@ -82,12 +90,7 @@ class EncoderDecoder : public Scorer {
 
     /////////////////////////////////////////////////////////////////////////////////////
     // const-batch2
-    bool CalcBeam(BestHypsBase &bestHyps,
-        std::shared_ptr<Histories>& histories,
-        std::vector<uint>& beamSizes,
-        Beam& prevHyps,
-        State& state,
-        State& nextState);
+
 };
 
 }
