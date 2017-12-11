@@ -156,7 +156,7 @@ void  BestHyps::CalcBeam(
     HypothesisPtr hyp;
     if (returnAttentionWeights_) {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
-                               GetAlignments(scorers, hypIndex)));
+                               GetAlignments(scorers[0], hypIndex)));
     } else {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
@@ -226,6 +226,8 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+// const-batch2
 void BestHyps::CalcBeam(
                 const Beam& prevHyps,
                 const Scorer &scorer,
@@ -234,6 +236,31 @@ void BestHyps::CalcBeam(
                 std::vector<uint>& beamSizes)
 {
   assert(false);
+}
+
+std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(ScorerPtr scorer,
+                                            size_t hypIndex)
+{
+  std::vector<SoftAlignmentPtr> alignments;
+  if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
+    const mblas::Matrix &attention = encdec->GetAttention();
+    size_t attLength = attention.dim(1);
+
+    SoftAlignment *softAlignment = new SoftAlignment(attLength);
+    mblas::copy(
+        attention.data() + hypIndex * attLength,
+        attLength,
+        softAlignment->data(),
+        cudaMemcpyDeviceToHost
+    );
+
+    alignments.emplace_back(softAlignment);
+  } else {
+    amunmt_UTIL_THROW2("Return Alignment is allowed only with Nematus scorer.");
+  }
+
+  return alignments;
+
 }
 
 } // namespace
