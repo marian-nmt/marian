@@ -31,9 +31,6 @@ class BestHyps : public BestHypsBase
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
 
-    std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
-                                                size_t hypIndex);
-
     void CalcBeam(
         const Beam& prevHyps,
         const std::vector<ScorerPtr>& scorers,
@@ -71,6 +68,10 @@ class BestHyps : public BestHypsBase
     void GetPairs(mblas::Vector<NthOutBatch> &nBest,
                   std::vector<uint>& outKeys,
                   std::vector<float>& outValues) const;
+
+
+    std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
+                                                size_t hypIndex);
 
 };
 

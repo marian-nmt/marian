@@ -233,7 +233,7 @@ void BestHyps::CalcBeam(
                 std::vector<Beam>& beams,
                 std::vector<uint>& beamSizes)
 {
-
+  assert(false);
 }
 
 } // namespace
