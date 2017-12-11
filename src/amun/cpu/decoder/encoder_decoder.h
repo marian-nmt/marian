@@ -48,7 +48,9 @@ class CPUEncoderDecoderBase : public Scorer {
       assert(false);
     }
 
-    std::shared_ptr<Histories> Translate(BestHypsBase &bestHyps, const Sentences& sentences)
+    virtual std::shared_ptr<Histories> Translate(std::shared_ptr<const FilterVocab> filter,
+                                                const Words &filterIndices,
+                                                const Sentences& sentences)
     {
       assert(false);
     }
