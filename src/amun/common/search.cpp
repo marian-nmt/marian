@@ -99,41 +99,6 @@ States Search::Encode(const Sentences& sentences) {
   return states;
 }
 
-bool Search::CalcBeam(
-    std::shared_ptr<Histories>& histories,
-    std::vector<uint>& beamSizes,
-    Beam& prevHyps,
-    State& state,
-    State& nextState)
-{
-    size_t batchSize = beamSizes.size();
-    Beams beams(batchSize);
-    bestHyps_->CalcBeam(prevHyps, *scorers_[0], filterIndices_, beams, beamSizes);
-    histories->Add(beams);
-
-    Beam survivors;
-    for (size_t batchId = 0; batchId < batchSize; ++batchId) {
-      for (auto& h : beams[batchId]) {
-        if (h->GetWord() != EOS_ID) {
-          survivors.push_back(h);
-        } else {
-          --beamSizes[batchId];
-        }
-      }
-    }
-
-    if (survivors.size() == 0) {
-      return false;
-    }
-
-    scorers_[0]->AssembleBeamState(nextState, survivors, state);
-
-    //cerr << "survivors=" << survivors.size() << endl;
-    prevHyps.swap(survivors);
-    return true;
-}
-
-
 States Search::NewStates() const {
   States states;
   for (auto& scorer : scorers_) {

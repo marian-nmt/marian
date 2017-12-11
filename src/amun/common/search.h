@@ -25,13 +25,6 @@ class Search {
     States Encode(const Sentences& sentences);
     void CleanAfterTranslation();
 
-    bool CalcBeam(
-    		std::shared_ptr<Histories>& histories,
-    		std::vector<uint>& beamSizes,
-        Beam& prevHyps,
-    		State& state,
-    		State& nextState);
-
     Search(const Search&) = delete;
 
   protected:
