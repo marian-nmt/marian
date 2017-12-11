@@ -172,49 +172,7 @@ void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
 // const-batch2
 std::shared_ptr<Histories> EncoderDecoder::Translate(BestHypsBase &bestHyps, const Sentences& sentences)
 {
-  bool normalizeScore_ = true;
-  size_t maxBeamSize_ = 128;
-
-  boost::timer::cpu_timer timer;
-
-  //if (filter_) {
-  //  FilterTargetVocab(sentences);
-  //}
-
-  Encode(sentences);
-  State *state = NewState();
-  BeginSentenceState(*state, sentences.size());
-
-  State *nextState = NewState();
-  std::vector<uint> beamSizes(sentences.size(), 1);
-
-  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
-  Beam prevHyps = histories->GetFirstHyps();
-
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    Decode(*state, *nextState, beamSizes);
-
-    if (decoderStep == 0) {
-      for (auto& beamSize : beamSizes) {
-        beamSize = maxBeamSize_;
-      }
-    }
-    cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
-
-    bool hasSurvivors = CalcBeam(bestHyps,
-                                  histories,
-                                  beamSizes,
-                                  prevHyps,
-                                  *state,
-                                  *nextState);
-    if (!hasSurvivors) {
-      break;
-    }
-  }
-
-  CleanUpAfterSentence();
-  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
-  return histories;
+  assert(false);
 }
 
 bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
@@ -224,34 +182,7 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                               State& state,
                               State& nextState)
 {
-  Words filterIndices;
-
-  size_t batchSize = beamSizes.size();
-  Beams beams(batchSize);
-  bestHyps.CalcBeam(prevHyps, ScorerPtr(this), filterIndices, beams, beamSizes);
-  histories->Add(beams);
-
-  Beam survivors;
-  for (size_t batchId = 0; batchId < batchSize; ++batchId) {
-    for (auto& h : beams[batchId]) {
-      if (h->GetWord() != EOS_ID) {
-        survivors.push_back(h);
-      } else {
-        --beamSizes[batchId];
-      }
-    }
-  }
-
-  if (survivors.size() == 0) {
-    return false;
-  }
-
-  AssembleBeamState(nextState, survivors, state);
-
-  //cerr << "survivors=" << survivors.size() << endl;
-  prevHyps.swap(survivors);
-  return true;
-
+  assert(false);
 }
 
 }

@@ -107,7 +107,7 @@ bool Search::CalcBeam(
 {
     size_t batchSize = beamSizes.size();
     Beams beams(batchSize);
-    bestHyps_->CalcBeam(prevHyps, scorers_, filterIndices_, beams, beamSizes);
+    bestHyps_->CalcBeam(prevHyps, scorers_[0], filterIndices_, beams, beamSizes);
     histories->Add(beams);
 
     Beam survivors;
