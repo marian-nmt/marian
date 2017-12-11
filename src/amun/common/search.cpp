@@ -58,17 +58,15 @@ std::shared_ptr<Histories> Search::Translate(const Search &search, const Sentenc
   States nextStates = NewStates();
   std::vector<uint> beamSizes(sentences.size(), 1);
 
-  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
+  std::shared_ptr<Histories> histories(new Histories(sentences, search.NormalizeScore()));
   Beam prevHyps = histories->GetFirstHyps();
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    for (size_t i = 0; i < scorers_.size(); i++) {
-      scorers_[i]->Decode(*states[i], *nextStates[i], beamSizes);
-    }
+    scorers_[0]->Decode(*states[0], *nextStates[0], beamSizes);
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
-        beamSize = maxBeamSize_;
+        beamSize = search.MaxBeamSize();
       }
     }
     //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
