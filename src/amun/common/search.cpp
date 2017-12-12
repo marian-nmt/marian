@@ -37,7 +37,7 @@ Search::~Search() {
 void Search::CleanAfterTranslation()
 {
   for (auto scorer : scorers_) {
-    scorer->CleanUpAfterSentence();
+    scorer->CleanAfterTranslation();
   }
 }
 

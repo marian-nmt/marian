@@ -57,7 +57,7 @@ class Scorer {
 
     virtual size_t GetVocabSize() const = 0;
 
-    virtual void CleanUpAfterSentence() {}
+    virtual void CleanAfterTranslation() {}
 
     virtual const std::string& GetName() const {
       return name_;
