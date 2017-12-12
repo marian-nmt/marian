@@ -240,7 +240,7 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, const Sente
     }
   }
 
-  CleanUpAfterSentence();
+  CleanAfterTranslation();
 
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
   return histories;
