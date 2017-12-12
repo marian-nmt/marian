@@ -71,14 +71,14 @@ void EncoderDecoder::Decode(EncOutPtr encOut, const State& in, State& out, const
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  decoder_->Decode(edOut.GetStates(),
-                     edIn.GetStates(),
-                     edIn.GetEmbeddings(),
-                     encOut->GetSourceContext<mblas::Matrix&>(),
-                     h_sentenceLengths_,
-                     sentenceLengths_,
-                     beamSizes,
-                     god_.UseFusedSoftmax());
+  decoder_->Decode(encOut,
+                   edOut.GetStates(),
+                   edIn.GetStates(),
+                   edIn.GetEmbeddings(),
+                   h_sentenceLengths_,
+                   sentenceLengths_,
+                   beamSizes,
+                   god_.UseFusedSoftmax());
   PAUSE_TIMER("Decode");
 }
 

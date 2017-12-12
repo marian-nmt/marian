@@ -174,9 +174,9 @@ class Decoder {
           return ret;
         }
 
-        void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+        void GetAlignedSourceContext(EncOutPtr encOut,
+                                     mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const mblas::Matrix& SourceContext,
                                      const std::vector<uint>& h_sentenceLengths,
                                      const mblas::Vector<uint> &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
@@ -188,6 +188,7 @@ class Decoder {
           using namespace mblas;
           BEGIN_TIMER("GetAlignedSourceContext");
 
+          const mblas::Matrix& SourceContext = encOut->GetSourceContext<mblas::Matrix&>();
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
@@ -400,14 +401,14 @@ class Decoder {
       softmax_(model.decSoftmax_)
     {}
 
-    void Decode(CellState& NextState,
-                  const CellState& State,
-                  const mblas::Matrix& Embeddings,
-                  const mblas::Matrix& SourceContext,
-                  const std::vector<uint>& h_sentenceLengths,
-                  const mblas::Vector<uint> &sentenceLengths,
-                  const std::vector<uint>& beamSizes,
-                  bool useFusedSoftmax)
+    void Decode(EncOutPtr encOut,
+                CellState& NextState,
+                const CellState& State,
+                const mblas::Matrix& Embeddings,
+                const std::vector<uint>& h_sentenceLengths,
+                const mblas::Vector<uint> &sentenceLengths,
+                const std::vector<uint>& beamSizes,
+                bool useFusedSoftmax)
     {
       //BEGIN_TIMER("Decode");
 
@@ -420,9 +421,9 @@ class Decoder {
       //PAUSE_TIMER("GetHiddenState");
 
       //BEGIN_TIMER("GetAlignedSourceContext");
-      GetAlignedSourceContext(AlignedSourceContext_,
+      GetAlignedSourceContext(encOut,
+                              AlignedSourceContext_,
                               HiddenState_,
-                              SourceContext,
                               h_sentenceLengths,
                               sentenceLengths,
                               beamSizes);
@@ -497,16 +498,16 @@ class Decoder {
       rnn1_.GetNextState(HiddenState, PrevState, Embedding);
     }
 
-    void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+    void GetAlignedSourceContext(EncOutPtr encOut,
+                                  mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
-                                  const mblas::Matrix& SourceContext,
                                   const std::vector<uint>& h_sentenceLengths,
                                   const mblas::Vector<uint> &sentenceLengths,
                                   const std::vector<uint>& beamSizes)
     {
-      alignment_.GetAlignedSourceContext(AlignedSourceContext,
+      alignment_.GetAlignedSourceContext(encOut,
+                                        AlignedSourceContext,
                                         HiddenState,
-                                        SourceContext,
                                         h_sentenceLengths,
                                         sentenceLengths,
                                         beamSizes);
