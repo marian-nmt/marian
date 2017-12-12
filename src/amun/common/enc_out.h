@@ -50,14 +50,6 @@ public:
   { return h_sentenceLengths_; }
 
   template<class T>
-  T &GetSourceContext()
-  { return static_cast<T&>(GetSourceContextInternal()); }
-
-  template<class T>
-  const T &GetSourceContext() const
-  { return static_cast<const T&>(GetSourceContextInternal()); }
-
-  template<class T>
   const T &GetSentenceLengths() const
   { return static_cast<const T&>(GetSentenceLengthsInternal()); }
 
@@ -88,9 +80,6 @@ public:
 protected:
   SentencesPtr sentences_;
   std::vector<uint> h_sentenceLengths_;
-
-  virtual BaseMatrix &GetSourceContextInternal() = 0;
-  virtual const BaseMatrix &GetSourceContextInternal() const = 0;
 
   virtual const BaseMatrix &GetSentenceLengthsInternal() const = 0;
 

@@ -1,4 +1,5 @@
 #include "encoder.h"
+#include "gpu/decoder/enc_out_gpu.h"
 #include "common/sentences.h"
 
 using namespace std;
@@ -67,7 +68,7 @@ void Encoder::Encode(EncOutPtr encOut,
                     mblas::Vector<uint> &sentenceLengths)
 {
   const Sentences& sentences = encOut->GetSentences();
-  mblas::Matrix& context = encOut->GetSourceContext<mblas::Matrix&>();
+  mblas::Matrix& context = encOut->Get<EncOutGPU>().GetSourceContext();
 
   size_t maxSentenceLength = GetMaxLength(sentences, tab);
 

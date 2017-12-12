@@ -11,6 +11,11 @@ class EncOutGPU : public EncOut
 public:
   EncOutGPU(SentencesPtr sentences);
 
+  mblas::Matrix &GetSourceContext()
+  { return sourceContext_; }
+
+  const mblas::Matrix &GetSourceContext() const
+  { return sourceContext_; }
 
 protected:
   mblas::Matrix sourceContext_;
@@ -20,12 +25,6 @@ protected:
   mblas::Matrix embeddings_;
 
   mblas::Matrix SCU_;
-
-  BaseMatrix &GetSourceContextInternal()
-  { return sourceContext_; }
-
-  const BaseMatrix &GetSourceContextInternal() const
-  { return sourceContext_; }
 
   virtual const BaseMatrix &GetSentenceLengthsInternal() const
   { return sentenceLengths_; }

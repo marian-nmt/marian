@@ -71,7 +71,7 @@ class Decoder {
         {
           using namespace mblas;
 
-          const mblas::Matrix &SourceContext = encOut->GetSourceContext<const mblas::Matrix &>();
+          const mblas::Matrix &SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
@@ -149,7 +149,7 @@ class Decoder {
         {
           using namespace mblas;
 
-          const mblas::Matrix& SourceContext = encOut->GetSourceContext<const mblas::Matrix&>();
+          const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
 
           Prod(/*h_[0],*/ SCU_, SourceContext, *w_.U_);
           //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
@@ -187,7 +187,7 @@ class Decoder {
           using namespace mblas;
           BEGIN_TIMER("GetAlignedSourceContext");
 
-          const mblas::Matrix& SourceContext = encOut->GetSourceContext<mblas::Matrix&>();
+          const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
