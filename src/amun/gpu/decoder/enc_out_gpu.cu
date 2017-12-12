@@ -18,7 +18,11 @@ EncOutGPU::EncOutGPU(SentencesPtr sentences)
     h_sentenceLengths_[i] = sentences->Get(i).GetWords(tab).size();
   }
 
-  //sentenceLengths.newSize(sentences.size());
+  sentenceLengths_.newSize(sentences->size());
+  mblas::copy(h_sentenceLengths_.data(),
+              h_sentenceLengths_.size(),
+              sentenceLengths_.data(),
+              cudaMemcpyHostToDevice);
 
   //cerr << "sentenceLengths_=" << sentenceLengths_.Debug(2) << endl;
 }
