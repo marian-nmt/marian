@@ -4,6 +4,7 @@
 #include "common/god.h"
 #include "common/sentences.h"
 #include "common/histories.h"
+#include "common/search.h"
 
 #include "encoder_decoder.h"
 #include "gpu/mblas/matrix_functions.h"
@@ -208,7 +209,41 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 
 std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, const Sentences& sentences)
 {
-  assert(false);
+  cerr << "new Translate" << endl;
+  boost::timer::cpu_timer timer;
+
+  if (search.GetFilter()) {
+    search.FilterTargetVocab(sentences);
+  }
+
+  States states = search.Encode(sentences);
+  States nextStates = search.NewStates();
+  std::vector<uint> beamSizes(sentences.size(), 1);
+
+  std::shared_ptr<Histories> histories(new Histories(sentences, search.NormalizeScore()));
+  Beam prevHyps = histories->GetFirstHyps();
+
+  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+    Decode(*states[0], *nextStates[0], beamSizes);
+
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+        beamSize = search.MaxBeamSize();
+      }
+    }
+    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
+
+    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+    bool hasSurvivors = CalcBeam(search.GetBestHyps(), histories, beamSizes, prevHyps, *states[0], *nextStates[0], search.GetFilterIndices());
+    if (!hasSurvivors) {
+      break;
+    }
+  }
+
+  CleanUpAfterSentence();
+
+  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+  return histories;
 }
 
 

@@ -17,7 +17,7 @@ class Search {
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Translate(const Search &search, const Sentences& sentences);
+    std::shared_ptr<Histories> Translate(const Sentences& sentences);
 
     BestHypsBase &GetBestHyps() const
     { return *bestHyps_; }
@@ -34,11 +34,12 @@ class Search {
     size_t MaxBeamSize() const
     { return maxBeamSize_; }
 
-  protected:
     States NewStates() const;
     void FilterTargetVocab(const Sentences& sentences);
     States Encode(const Sentences& sentences);
     void CleanAfterTranslation();
+
+  protected:
 
     Search(const Search&) = delete;
 
