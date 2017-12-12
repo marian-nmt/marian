@@ -38,7 +38,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
 }
 
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize) {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), SourceContext_, batchSize);
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);

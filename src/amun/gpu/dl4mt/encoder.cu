@@ -62,11 +62,11 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
   return matrix;
 }
 
-void Encoder::Encode(size_t tab,
-                      mblas::Matrix& context,
-                      std::vector<uint> &h_sentenceLengths,
-                      mblas::Vector<uint> &sentenceLengths,
-                      EncOutPtr &encOut)
+void Encoder::Encode(EncOutPtr encOut,
+                    size_t tab,
+                    mblas::Matrix& context,
+                    std::vector<uint> &h_sentenceLengths,
+                    mblas::Vector<uint> &sentenceLengths)
 {
   const Sentences& sentences = encOut->GetSentences();
   size_t maxSentenceLength = GetMaxLength(sentences, tab);

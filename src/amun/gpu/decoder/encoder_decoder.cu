@@ -90,7 +90,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
   EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_, encOut);
+  encoder_->Encode(encOut, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
 
   encDecBuffer_.Add(encOut);
@@ -98,10 +98,10 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   PAUSE_TIMER("Encode");
 }
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize) {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
+  decoder_->EmptyState(encOut, edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");
@@ -226,9 +226,11 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPt
   // encode
   Encode(sentences);
   StatePtr state(NewState());
-  BeginSentenceState(*state, sentences->size());
 
   EncOutPtr encOut = encDecBuffer_.Get();
+
+  BeginSentenceState(encOut, *state, sentences->size());
+
 
   StatePtr nextState(NewState());
 

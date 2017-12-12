@@ -6,7 +6,7 @@
 namespace amunmt {
 
 class EncOut;
-typedef std::shared_ptr<EncOut> EncOutPtr;
+using EncOutPtr = std::shared_ptr<EncOut>;
 
 class EncOut
 {

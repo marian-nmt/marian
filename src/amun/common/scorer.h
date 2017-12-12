@@ -10,11 +10,15 @@
 
 namespace amunmt {
 
-class Sentences;
 class Histories;
 class BestHypsBase;
 class Search;
+
+class Sentences;
 using SentencesPtr = std::shared_ptr<Sentences>;
+
+class EncOut;
+using EncOutPtr = std::shared_ptr<EncOut>;
 
 class State {
   public:
@@ -49,7 +53,7 @@ class Scorer {
 
     virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize = 1) = 0;
+    virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize = 1) = 0;
 
     virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
