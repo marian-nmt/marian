@@ -90,7 +90,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
   EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(*source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_, encOut);
+  encoder_->Encode(tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_, encOut);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
 
   encDecBuffer_.Add(encOut);

@@ -62,20 +62,20 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
   return matrix;
 }
 
-void Encoder::Encode(const Sentences& source,
-                      size_t tab,
+void Encoder::Encode(size_t tab,
                       mblas::Matrix& context,
                       std::vector<uint> &h_sentenceLengths,
                       mblas::Vector<uint> &sentenceLengths,
                       EncOutPtr &encOut)
 {
-  size_t maxSentenceLength = GetMaxLength(encOut->GetSentences(), tab);
+  const Sentences& sentences = encOut->GetSentences();
+  size_t maxSentenceLength = GetMaxLength(sentences, tab);
 
-  h_sentenceLengths.resize(source.size());
-  sentenceLengths.newSize(source.size());
+  h_sentenceLengths.resize(sentences.size());
+  sentenceLengths.newSize(sentences.size());
 
-  for (size_t i = 0; i < source.size(); ++i) {
-    h_sentenceLengths[i] = source.Get(i).GetWords(tab).size();
+  for (size_t i = 0; i < sentences.size(); ++i) {
+    h_sentenceLengths[i] = sentences.Get(i).GetWords(tab).size();
   }
 
   mblas::copy(h_sentenceLengths.data(),
@@ -87,10 +87,10 @@ void Encoder::Encode(const Sentences& source,
   context.NewSize(maxSentenceLength,
                  forwardRnn_.GetStateLength().output + backwardRnn_.GetStateLength().output,
                  1,
-                 source.size());
+                 sentences.size());
   //cerr << "GetContext2=" << context.Debug(1) << endl;
 
-  auto input = GetBatchInput(source, tab, maxSentenceLength);
+  auto input = GetBatchInput(sentences, tab, maxSentenceLength);
 
   for (size_t i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
@@ -103,12 +103,12 @@ void Encoder::Encode(const Sentences& source,
   //cerr << "GetContext3=" << context.Debug(1) << endl;
   forwardRnn_.Encode(embeddedWords_.cbegin(),
                          embeddedWords_.cbegin() + maxSentenceLength,
-                         context, source.size(), false);
+                         context, sentences.size(), false);
   //cerr << "GetContext4=" << context.Debug(1) << endl;
 
   backwardRnn_.Encode(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
-                          context, source.size(), true, &sentenceLengths);
+                          context, sentences.size(), true, &sentenceLengths);
   //cerr << "GetContext5=" << context.Debug(1) << endl;
 }
 

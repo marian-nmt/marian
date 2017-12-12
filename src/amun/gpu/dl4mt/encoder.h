@@ -164,8 +164,7 @@ class Encoder {
   public:
     Encoder(const Weights& model, const YAML::Node& config);
 
-    void Encode(const Sentences& words,
-                size_t tab,
+    void Encode(size_t tab,
                 mblas::Matrix& context,
                 std::vector<uint> &h_sentenceLengths,
                 mblas::Vector<uint> &sentenceLengths,
