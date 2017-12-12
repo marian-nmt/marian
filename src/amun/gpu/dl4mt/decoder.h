@@ -150,12 +150,12 @@ class Decoder {
           using namespace mblas;
 
           const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+          mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
 
-          Prod(/*h_[0],*/ SCU_, SourceContext, *w_.U_);
-          //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
+          Prod(/*h_[0],*/ SCU, SourceContext, *w_.U_);
 
           if (w_.Gamma_1_->size()) {
-            Normalization(SCU_, SCU_, *w_.Gamma_1_, *w_.B_, 1e-9);
+            Normalization(SCU, SCU, *w_.Gamma_1_, *w_.B_, 1e-9);
           }
         }
 
@@ -188,6 +188,7 @@ class Decoder {
 
           const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
           const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+          mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
 
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
@@ -231,7 +232,7 @@ class Decoder {
           }
           //std::cerr << "2Temp2_=" << Temp2_.Debug() << std::endl;
 
-          Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
+          Broadcast(Tanh(_1 + _2), Temp1_, SCU, Temp2_, dBatchMapping_, maxLength);
 
           //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
           //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
@@ -265,7 +266,6 @@ class Decoder {
 
         mblas::Vector<uint> dBatchMapping_;
 
-        mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
         mblas::Matrix A_;
