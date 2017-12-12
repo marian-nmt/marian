@@ -66,11 +66,12 @@ class Decoder {
 
         void InitializeState(EncOutPtr encOut,
                              CellState& State,
-                             const mblas::Matrix& SourceContext,
                              const size_t batchSize,
                              const mblas::Vector<uint> &sentenceLengths)
         {
           using namespace mblas;
+
+          const mblas::Matrix &SourceContext = encOut->GetSourceContext<const mblas::Matrix &>();
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
@@ -144,9 +145,11 @@ class Decoder {
           , dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
         {}
 
-        void Init(EncOutPtr encOut, const mblas::Matrix& SourceContext)
+        void Init(EncOutPtr encOut)
         {
           using namespace mblas;
+
+          const mblas::Matrix& SourceContext = encOut->GetSourceContext<const mblas::Matrix&>();
 
           Prod(/*h_[0],*/ SCU_, SourceContext, *w_.U_);
           //std::cerr << "SCU_=" << SCU_.Debug(1) << std::endl;
@@ -445,12 +448,11 @@ class Decoder {
 
     void EmptyState(EncOutPtr encOut,
                     CellState& State,
-                    const mblas::Matrix& SourceContext,
                     size_t batchSize,
                     const mblas::Vector<uint> &sentenceLengths)
     {
-      rnn1_.InitializeState(encOut, State, SourceContext, batchSize, sentenceLengths);
-      alignment_.Init(encOut, SourceContext);
+      rnn1_.InitializeState(encOut, State, batchSize, sentenceLengths);
+      alignment_.Init(encOut);
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {

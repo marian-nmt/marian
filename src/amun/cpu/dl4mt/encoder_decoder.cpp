@@ -26,7 +26,11 @@ EncoderDecoder::EncoderDecoder(const God &god,
 {}
 
 
-void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>&) {
+void EncoderDecoder::Decode(EncOutPtr encOut,
+                            const State& in,
+                            State& out,
+                            const std::vector<uint>&)
+{
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 

@@ -33,7 +33,6 @@ EncoderDecoder::EncoderDecoder(
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<size_t>("beam-size")),
-    SourceContext_(new mblas::Matrix()),
     encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
 {
   BEGIN_TIMER("EncoderDecoder");
@@ -66,7 +65,8 @@ EncoderDecoder::~EncoderDecoder()
 
 }
 
-void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
+void EncoderDecoder::Decode(EncOutPtr encOut, const State& in, State& out, const std::vector<uint>& beamSizes)
+{
   BEGIN_TIMER("Decode");
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
@@ -74,7 +74,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
   decoder_->Decode(edOut.GetStates(),
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
-                     *SourceContext_,
+                     encOut->GetSourceContext<mblas::Matrix&>(),
                      h_sentenceLengths_,
                      sentenceLengths_,
                      beamSizes,
@@ -90,8 +90,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
   EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(encOut, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
-  //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
+  encoder_->Encode(encOut, tab_, h_sentenceLengths_, sentenceLengths_);
 
   encDecBuffer_.Add(encOut);
 
@@ -101,7 +100,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
 void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize) {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(encOut, edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
+  decoder_->EmptyState(encOut, edState.GetStates(), batchSize, sentenceLengths_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");
@@ -240,7 +239,7 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPt
   Beam prevHyps = histories->GetFirstHyps();
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences->GetMaxLength(); ++decoderStep) {
-    Decode(*state, *nextState, beamSizes);
+    Decode(encOut, *state, *nextState, beamSizes);
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {

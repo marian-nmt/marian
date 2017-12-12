@@ -51,7 +51,7 @@ class Scorer {
 
     virtual ~Scorer() {}
 
-    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
+    virtual void Decode(EncOutPtr encOut, const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
 
     virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize = 1) = 0;
 
