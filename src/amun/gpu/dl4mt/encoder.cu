@@ -64,22 +64,13 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
 }
 
 void Encoder::Encode(EncOutPtr encOut,
-                    size_t tab,
-                    mblas::Vector<uint> &sentenceLengths)
+                    size_t tab)
 {
   const Sentences& sentences = encOut->GetSentences();
   mblas::Matrix& context = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
   size_t maxSentenceLength = GetMaxLength(sentences, tab);
-
-  const std::vector<uint> &h_sentenceLengths = encOut->GetSentenceLengthsHost();
-  cerr << "h_sentenceLengths=" << h_sentenceLengths.size() << endl;
-
-  sentenceLengths.newSize(sentences.size());
-  mblas::copy(h_sentenceLengths.data(),
-              h_sentenceLengths.size(),
-              sentenceLengths.data(),
-              cudaMemcpyHostToDevice);
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
   context.NewSize(maxSentenceLength,

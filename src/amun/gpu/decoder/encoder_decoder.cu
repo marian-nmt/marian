@@ -75,7 +75,6 @@ void EncoderDecoder::Decode(EncOutPtr encOut, const State& in, State& out, const
                    edOut.GetStates(),
                    edIn.GetStates(),
                    edIn.GetEmbeddings(),
-                   sentenceLengths_,
                    beamSizes,
                    god_.UseFusedSoftmax());
   PAUSE_TIMER("Decode");
@@ -89,7 +88,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
   EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(encOut, tab_, sentenceLengths_);
+  encoder_->Encode(encOut, tab_);
 
   encDecBuffer_.Add(encOut);
 
@@ -99,7 +98,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
 void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize) {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(encOut, edState.GetStates(), batchSize, sentenceLengths_);
+  decoder_->EmptyState(encOut, edState.GetStates(), batchSize);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");

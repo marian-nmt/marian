@@ -164,9 +164,7 @@ class Encoder {
   public:
     Encoder(const Weights& model, const YAML::Node& config);
 
-    void Encode(EncOutPtr encOut,
-                size_t tab,
-                mblas::Vector<uint> &sentenceLengths);
+    void Encode(EncOutPtr encOut, size_t tab);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);

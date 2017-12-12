@@ -23,8 +23,6 @@ EncOutGPU::EncOutGPU(SentencesPtr sentences)
               h_sentenceLengths_.size(),
               sentenceLengths_.data(),
               cudaMemcpyHostToDevice);
-
-  //cerr << "sentenceLengths_=" << sentenceLengths_.Debug(2) << endl;
 }
 
 }

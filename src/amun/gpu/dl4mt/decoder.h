@@ -66,12 +66,12 @@ class Decoder {
 
         void InitializeState(EncOutPtr encOut,
                              CellState& State,
-                             const size_t batchSize,
-                             const mblas::Vector<uint> &sentenceLengths)
+                             const size_t batchSize)
         {
           using namespace mblas;
 
           const mblas::Matrix &SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+          const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
@@ -177,7 +177,6 @@ class Decoder {
         void GetAlignedSourceContext(EncOutPtr encOut,
                                      mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const mblas::Vector<uint> &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
@@ -188,6 +187,8 @@ class Decoder {
           BEGIN_TIMER("GetAlignedSourceContext");
 
           const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+          const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
@@ -404,7 +405,6 @@ class Decoder {
                 CellState& NextState,
                 const CellState& State,
                 const mblas::Matrix& Embeddings,
-                const mblas::Vector<uint> &sentenceLengths,
                 const std::vector<uint>& beamSizes,
                 bool useFusedSoftmax)
     {
@@ -422,7 +422,6 @@ class Decoder {
       GetAlignedSourceContext(encOut,
                               AlignedSourceContext_,
                               HiddenState_,
-                              sentenceLengths,
                               beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetAlignedSourceContext");
@@ -446,10 +445,9 @@ class Decoder {
 
     void EmptyState(EncOutPtr encOut,
                     CellState& State,
-                    size_t batchSize,
-                    const mblas::Vector<uint> &sentenceLengths)
+                    size_t batchSize)
     {
-      rnn1_.InitializeState(encOut, State, batchSize, sentenceLengths);
+      rnn1_.InitializeState(encOut, State, batchSize);
       alignment_.Init(encOut);
     }
 
@@ -498,13 +496,11 @@ class Decoder {
     void GetAlignedSourceContext(EncOutPtr encOut,
                                   mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
-                                  const mblas::Vector<uint> &sentenceLengths,
                                   const std::vector<uint>& beamSizes)
     {
       alignment_.GetAlignedSourceContext(encOut,
                                         AlignedSourceContext,
                                         HiddenState,
-                                        sentenceLengths,
                                         beamSizes);
     }
 
