@@ -63,8 +63,7 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
   return matrix;
 }
 
-void Encoder::Encode(EncOutPtr encOut,
-                    size_t tab)
+void Encoder::Encode(EncOutPtr encOut, size_t tab)
 {
   const Sentences& sentences = encOut->GetSentences();
   mblas::Matrix& context = encOut->Get<EncOutGPU>().GetSourceContext();
