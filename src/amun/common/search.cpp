@@ -34,13 +34,6 @@ Search::~Search() {
 #endif
 }
 
-void Search::CleanAfterTranslation()
-{
-  for (auto scorer : scorers_) {
-    scorer->CleanAfterTranslation();
-  }
-}
-
 std::shared_ptr<Histories> Search::Translate(const Sentences& sentences)
 {
   assert(scorers_.size() == 1);
@@ -48,25 +41,6 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences)
   return histories;
 }
 
-
-States Search::Encode(const Sentences& sentences) {
-  States states;
-  for (auto& scorer : scorers_) {
-    scorer->Encode(sentences);
-    auto state = scorer->NewState();
-    scorer->BeginSentenceState(*state, sentences.size());
-    states.emplace_back(state);
-  }
-  return states;
-}
-
-States Search::NewStates() const {
-  States states;
-  for (auto& scorer : scorers_) {
-    states.emplace_back(scorer->NewState());
-  }
-  return states;
-}
 
 void Search::FilterTargetVocab(const Sentences& sentences) {
   size_t vocabSize = scorers_[0]->GetVocabSize();

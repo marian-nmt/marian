@@ -34,10 +34,7 @@ class Search {
     size_t MaxBeamSize() const
     { return maxBeamSize_; }
 
-    States NewStates() const;
     void FilterTargetVocab(const Sentences& sentences);
-    States Encode(const Sentences& sentences);
-    void CleanAfterTranslation();
 
   protected:
 

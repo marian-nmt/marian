@@ -216,15 +216,20 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, const Sente
     search.FilterTargetVocab(sentences);
   }
 
-  States states = search.Encode(sentences);
-  States nextStates = search.NewStates();
+  // encode
+  Encode(sentences);
+  StatePtr state(NewState());
+  BeginSentenceState(*state, sentences.size());
+
+  StatePtr nextState(NewState());
+
   std::vector<uint> beamSizes(sentences.size(), 1);
 
   std::shared_ptr<Histories> histories(new Histories(sentences, search.NormalizeScore()));
   Beam prevHyps = histories->GetFirstHyps();
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    Decode(*states[0], *nextStates[0], beamSizes);
+    Decode(*state, *nextState, beamSizes);
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
@@ -234,7 +239,7 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, const Sente
     //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
     //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-    bool hasSurvivors = CalcBeam(search.GetBestHyps(), histories, beamSizes, prevHyps, *states[0], *nextStates[0], search.GetFilterIndices());
+    bool hasSurvivors = CalcBeam(search.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search.GetFilterIndices());
     if (!hasSurvivors) {
       break;
     }
