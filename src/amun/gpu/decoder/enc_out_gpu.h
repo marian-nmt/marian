@@ -19,15 +19,11 @@ public:
 
 protected:
   mblas::Matrix sourceContext_;
-  mblas::IMatrix sentenceLengths_;
 
   mblas::Matrix states_;
   mblas::Matrix embeddings_;
 
   mblas::Matrix SCU_;
-
-  virtual const BaseMatrix &GetSentenceLengthsInternal() const
-  { return sentenceLengths_; }
 
   BaseMatrix &GetStatesInternal()
   { return states_; }

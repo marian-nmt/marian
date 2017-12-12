@@ -50,10 +50,6 @@ public:
   { return h_sentenceLengths_; }
 
   template<class T>
-  const T &GetSentenceLengths() const
-  { return static_cast<const T&>(GetSentenceLengthsInternal()); }
-
-  template<class T>
   T &GetStates()
   { return static_cast<T&>(GetStatesInternal()); }
 
@@ -80,8 +76,6 @@ public:
 protected:
   SentencesPtr sentences_;
   std::vector<uint> h_sentenceLengths_;
-
-  virtual const BaseMatrix &GetSentenceLengthsInternal() const = 0;
 
   virtual BaseMatrix &GetStatesInternal() = 0;
   virtual const BaseMatrix &GetStatesInternal() const = 0;
