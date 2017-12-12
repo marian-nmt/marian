@@ -64,7 +64,6 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
 
 void Encoder::Encode(EncOutPtr encOut,
                     size_t tab,
-                    std::vector<uint> &h_sentenceLengths,
                     mblas::Vector<uint> &sentenceLengths)
 {
   const Sentences& sentences = encOut->GetSentences();
@@ -72,6 +71,7 @@ void Encoder::Encode(EncOutPtr encOut,
 
   size_t maxSentenceLength = GetMaxLength(sentences, tab);
 
+  std::vector<uint> &h_sentenceLengths = encOut->GetSentenceLengthsHost();
   h_sentenceLengths.resize(sentences.size());
   sentenceLengths.newSize(sentences.size());
 

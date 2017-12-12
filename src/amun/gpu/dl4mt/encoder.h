@@ -166,7 +166,6 @@ class Encoder {
 
     void Encode(EncOutPtr encOut,
                 size_t tab,
-                std::vector<uint> &h_sentenceLengths,
                 mblas::Vector<uint> &sentenceLengths);
 
   private:

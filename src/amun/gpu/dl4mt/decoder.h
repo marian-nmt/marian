@@ -177,7 +177,6 @@ class Decoder {
         void GetAlignedSourceContext(EncOutPtr encOut,
                                      mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const std::vector<uint>& h_sentenceLengths,
                                      const mblas::Vector<uint> &sentenceLengths,
                                      const std::vector<uint>& beamSizes)
         {
@@ -405,7 +404,6 @@ class Decoder {
                 CellState& NextState,
                 const CellState& State,
                 const mblas::Matrix& Embeddings,
-                const std::vector<uint>& h_sentenceLengths,
                 const mblas::Vector<uint> &sentenceLengths,
                 const std::vector<uint>& beamSizes,
                 bool useFusedSoftmax)
@@ -424,7 +422,6 @@ class Decoder {
       GetAlignedSourceContext(encOut,
                               AlignedSourceContext_,
                               HiddenState_,
-                              h_sentenceLengths,
                               sentenceLengths,
                               beamSizes);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
@@ -501,14 +498,12 @@ class Decoder {
     void GetAlignedSourceContext(EncOutPtr encOut,
                                   mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
-                                  const std::vector<uint>& h_sentenceLengths,
                                   const mblas::Vector<uint> &sentenceLengths,
                                   const std::vector<uint>& beamSizes)
     {
       alignment_.GetAlignedSourceContext(encOut,
                                         AlignedSourceContext,
                                         HiddenState,
-                                        h_sentenceLengths,
                                         sentenceLengths,
                                         beamSizes);
     }

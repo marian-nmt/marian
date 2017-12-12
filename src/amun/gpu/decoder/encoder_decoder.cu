@@ -75,7 +75,6 @@ void EncoderDecoder::Decode(EncOutPtr encOut, const State& in, State& out, const
                    edOut.GetStates(),
                    edIn.GetStates(),
                    edIn.GetEmbeddings(),
-                   h_sentenceLengths_,
                    sentenceLengths_,
                    beamSizes,
                    god_.UseFusedSoftmax());
@@ -90,7 +89,7 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
   EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(encOut, tab_, h_sentenceLengths_, sentenceLengths_);
+  encoder_->Encode(encOut, tab_, sentenceLengths_);
 
   encDecBuffer_.Add(encOut);
 
