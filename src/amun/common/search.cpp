@@ -37,7 +37,7 @@ Search::~Search() {
 std::shared_ptr<Histories> Search::Translate(SentencesPtr sentences)
 {
   assert(scorers_.size() == 1);
-  std::shared_ptr<Histories> histories = scorers_[0]->Translate(*this, *sentences);
+  std::shared_ptr<Histories> histories = scorers_[0]->Translate(*this, sentences);
   return histories;
 }
 

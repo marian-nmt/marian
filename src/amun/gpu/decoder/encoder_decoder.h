@@ -44,7 +44,7 @@ class EncoderDecoder : public Scorer {
 
     virtual void BeginSentenceState(State& state, size_t batchSize=1);
 
-    virtual void Encode(const Sentences& source);
+    virtual void Encode(SentencesPtr source);
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
@@ -70,7 +70,7 @@ class EncoderDecoder : public Scorer {
                           State& nextState,
                           const Words &filterIndices);
 
-    virtual std::shared_ptr<Histories> Translate(Search &search, const Sentences& sentences);
+    virtual std::shared_ptr<Histories> Translate(Search &search, SentencesPtr sentences);
 
   private:
     const Weights& model_;

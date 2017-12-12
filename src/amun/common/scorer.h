@@ -14,6 +14,7 @@ class Sentences;
 class Histories;
 class BestHypsBase;
 class Search;
+using SentencesPtr = std::shared_ptr<Sentences>;
 
 class State {
   public:
@@ -52,7 +53,7 @@ class Scorer {
 
     virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
-    virtual void Encode(const Sentences& sources) = 0;
+    virtual void Encode(SentencesPtr sources) = 0;
 
     virtual void Filter(const std::vector<uint>&) = 0;
 
@@ -78,8 +79,7 @@ class Scorer {
                           State& nextState,
                           const Words &filterIndices) = 0;
 
-    virtual std::shared_ptr<Histories> Translate(Search &search,
-                                                const Sentences& sentences) = 0;
+    virtual std::shared_ptr<Histories> Translate(Search &search, SentencesPtr sentences) = 0;
 
 
   protected:

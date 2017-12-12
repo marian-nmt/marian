@@ -86,11 +86,11 @@ State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
-void EncoderDecoder::Encode(const Sentences& source) {
+void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
   //EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
+  encoder_->Encode(*source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("Encode");
 }
@@ -211,28 +211,28 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 
 }
 
-std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, const Sentences& sentences)
+std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPtr sentences)
 {
   cerr << "new Translate" << endl;
   boost::timer::cpu_timer timer;
 
   if (search.GetFilter()) {
-    search.FilterTargetVocab(sentences);
+    search.FilterTargetVocab(*sentences);
   }
 
   // encode
   Encode(sentences);
   StatePtr state(NewState());
-  BeginSentenceState(*state, sentences.size());
+  BeginSentenceState(*state, sentences->size());
 
   StatePtr nextState(NewState());
 
-  std::vector<uint> beamSizes(sentences.size(), 1);
+  std::vector<uint> beamSizes(sentences->size(), 1);
 
-  std::shared_ptr<Histories> histories(new Histories(sentences, search.NormalizeScore()));
+  std::shared_ptr<Histories> histories(new Histories(*sentences, search.NormalizeScore()));
   Beam prevHyps = histories->GetFirstHyps();
 
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+  for (size_t decoderStep = 0; decoderStep < 3 * sentences->GetMaxLength(); ++decoderStep) {
     Decode(*state, *nextState, beamSizes);
 
     if (decoderStep == 0) {

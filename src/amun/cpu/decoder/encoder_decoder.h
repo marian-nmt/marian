@@ -48,7 +48,7 @@ class CPUEncoderDecoderBase : public Scorer {
       assert(false);
     }
 
-    virtual std::shared_ptr<Histories> Translate(Search &search, const Sentences& sentences)
+    virtual std::shared_ptr<Histories> Translate(Search &search, SentencesPtr sentences)
     {
       assert(false);
     }
