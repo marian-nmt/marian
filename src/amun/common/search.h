@@ -48,7 +48,7 @@ class Search {
     const size_t maxBeamSize_;
     bool normalizeScore_;
     Words filterIndices_;
-    mutable BestHypsBasePtr bestHyps_;
+    BestHypsBasePtr bestHyps_;
 };
 
 }

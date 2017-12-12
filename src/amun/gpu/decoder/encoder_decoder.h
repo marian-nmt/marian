@@ -70,7 +70,7 @@ class EncoderDecoder : public Scorer {
                           State& nextState,
                           const Words &filterIndices);
 
-    virtual std::shared_ptr<Histories> Translate(const Search &search, const Sentences& sentences);
+    virtual std::shared_ptr<Histories> Translate(Search &search, const Sentences& sentences);
 
   private:
     const Weights& model_;

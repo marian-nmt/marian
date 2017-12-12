@@ -78,7 +78,7 @@ class Scorer {
                           State& nextState,
                           const Words &filterIndices) = 0;
 
-    virtual std::shared_ptr<Histories> Translate(const Search &search,
+    virtual std::shared_ptr<Histories> Translate(Search &search,
                                                 const Sentences& sentences) = 0;
 
 

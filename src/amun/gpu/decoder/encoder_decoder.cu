@@ -206,7 +206,7 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 
 }
 
-std::shared_ptr<Histories> EncoderDecoder::Translate(const Search &search, const Sentences& sentences)
+std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, const Sentences& sentences)
 {
   assert(false);
 }
