@@ -72,14 +72,10 @@ void Encoder::Encode(EncOutPtr encOut,
 
   size_t maxSentenceLength = GetMaxLength(sentences, tab);
 
-  std::vector<uint> &h_sentenceLengths = encOut->GetSentenceLengthsHost();
-  h_sentenceLengths.resize(sentences.size());
+  const std::vector<uint> &h_sentenceLengths = encOut->GetSentenceLengthsHost();
+  cerr << "h_sentenceLengths=" << h_sentenceLengths.size() << endl;
+
   sentenceLengths.newSize(sentences.size());
-
-  for (size_t i = 0; i < sentences.size(); ++i) {
-    h_sentenceLengths[i] = sentences.Get(i).GetWords(tab).size();
-  }
-
   mblas::copy(h_sentenceLengths.data(),
               h_sentenceLengths.size(),
               sentenceLengths.data(),

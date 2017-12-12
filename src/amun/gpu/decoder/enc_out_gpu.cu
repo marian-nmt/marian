@@ -12,9 +12,15 @@ EncOutGPU::EncOutGPU(SentencesPtr sentences)
 {
   size_t tab = 0;
 
+  h_sentenceLengths_.resize(sentences->size());
+
+  for (size_t i = 0; i < sentences->size(); ++i) {
+    h_sentenceLengths_[i] = sentences->Get(i).GetWords(tab).size();
+  }
+
+  //sentenceLengths.newSize(sentences.size());
 
   //cerr << "sentenceLengths_=" << sentenceLengths_.Debug(2) << endl;
-  //cerr << "sentencesMask_=" << sentencesMask_.Debug(2) << endl;
 }
 
 }
