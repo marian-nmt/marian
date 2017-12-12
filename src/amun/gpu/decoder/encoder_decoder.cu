@@ -88,10 +88,13 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
-  //EncOutPtr encOut(new EncOutGPU(source));
+  EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(*source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
+  encoder_->Encode(*source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_, encOut);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
+
+  encDecBuffer_.Add(encOut);
+
   PAUSE_TIMER("Encode");
 }
 
@@ -224,6 +227,8 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPt
   Encode(sentences);
   StatePtr state(NewState());
   BeginSentenceState(*state, sentences->size());
+
+  EncOutPtr encOut = encDecBuffer_.Get();
 
   StatePtr nextState(NewState());
 

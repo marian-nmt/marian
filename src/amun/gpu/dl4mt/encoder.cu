@@ -66,9 +66,10 @@ void Encoder::Encode(const Sentences& source,
                       size_t tab,
                       mblas::Matrix& context,
                       std::vector<uint> &h_sentenceLengths,
-                      mblas::Vector<uint> &sentenceLengths)
+                      mblas::Vector<uint> &sentenceLengths,
+                      EncOutPtr &encOut)
 {
-  size_t maxSentenceLength = GetMaxLength(source, tab);
+  size_t maxSentenceLength = GetMaxLength(encOut->GetSentences(), tab);
 
   h_sentenceLengths.resize(source.size());
   sentenceLengths.newSize(source.size());

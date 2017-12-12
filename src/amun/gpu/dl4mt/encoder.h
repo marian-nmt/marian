@@ -2,11 +2,11 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "common/sentence.h"
+#include "common/enc_out.h"
+#include "gpu/types-gpu.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"
-#include "gru.h"
-#include "common/sentence.h"
-#include "gpu/types-gpu.h"
 #include "gru.h"
 #include "lstm.h"
 #include "multiplicative.h"
@@ -168,7 +168,8 @@ class Encoder {
                 size_t tab,
                 mblas::Matrix& context,
                 std::vector<uint> &h_sentenceLengths,
-                mblas::Vector<uint> &sentenceLengths);
+                mblas::Vector<uint> &sentenceLengths,
+                EncOutPtr &encOut);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);
