@@ -36,6 +36,10 @@ public:
 
   EncOut(SentencesPtr sentences);
 
+  template<class T>
+  T &Get()
+  { return static_cast<T&>(*this); }
+
   const Sentences &GetSentences() const
   { return *sentences_; }
 
