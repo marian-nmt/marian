@@ -7,11 +7,13 @@
 #include "common/search.h"
 
 #include "encoder_decoder.h"
+#include "enc_out_gpu.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
 #include "gpu/dl4mt/cellstate.h"
+
 
 using namespace std;
 
@@ -32,7 +34,7 @@ EncoderDecoder::EncoderDecoder(
     decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<size_t>("beam-size")),
     SourceContext_(new mblas::Matrix()),
-    encDecBuffer_(1)
+    encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
 {
   BEGIN_TIMER("EncoderDecoder");
 }
@@ -86,6 +88,8 @@ State* EncoderDecoder::NewState() const {
 
 void EncoderDecoder::Encode(const Sentences& source) {
   BEGIN_TIMER("Encode");
+  //EncOutPtr encOut(new EncOutGPU(source));
+
   encoder_->Encode(source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("Encode");

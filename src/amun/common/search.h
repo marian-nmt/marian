@@ -11,13 +11,15 @@ namespace amunmt {
 
 class Histories;
 class FilterVocab;
+class Sentences;
+using SentencesPtr = std::shared_ptr<Sentences>;
 
 class Search {
   public:
     Search(const God &god);
     virtual ~Search();
 
-    std::shared_ptr<Histories> Translate(const Sentences& sentences);
+    std::shared_ptr<Histories> Translate(SentencesPtr sentences);
 
     BestHypsBase &GetBestHyps() const
     { return *bestHyps_; }
