@@ -20,6 +20,7 @@ void TranslationTaskAndOutput(const God &god, SentencesPtr sentences) {
 
   std::shared_ptr<Histories> histories = TranslationTask(god, sentences);
 
+  /*
   for (size_t i = 0; i < histories->size(); ++i) {
     const History &history = *histories->at(i);
     size_t lineNum = history.GetLineNum();
@@ -30,6 +31,7 @@ void TranslationTaskAndOutput(const God &god, SentencesPtr sentences) {
 
     outputCollector.Write(lineNum, strm.str());
   }
+  */
 }
 
 std::shared_ptr<Histories> TranslationTask(const God &god, SentencesPtr sentences) {

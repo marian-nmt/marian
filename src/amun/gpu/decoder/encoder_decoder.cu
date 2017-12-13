@@ -105,7 +105,7 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPt
     }
   }
 
-  //histories->Output(god_);
+  histories->Output(god_);
 
   CleanAfterTranslation();
 
