@@ -36,6 +36,11 @@ EncoderDecoder::EncoderDecoder(
     encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
 {
   BEGIN_TIMER("EncoderDecoder");
+
+  cerr << "encoder-buffer-size=" << god.Get<size_t>("encoder-buffer-size") << endl;
+
+  std::thread *thread = new std::thread( [&]{ DecodeAsync(); });
+  decThread_.reset(thread);
 }
 
 EncoderDecoder::~EncoderDecoder()
@@ -115,11 +120,16 @@ void EncoderDecoder::Translate(SentencesPtr sentences)
 
 void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
+
+  cerr << "Encode1" << endl;
   EncOutPtr encOut(new EncOutGPU(source));
+  cerr << "Encode2" << endl;
 
   encoder_->Encode(encOut, tab_);
+  cerr << "Encode3" << endl;
 
   encDecBuffer_.Add(encOut);
+  cerr << "Encode4" << endl;
 
   PAUSE_TIMER("Encode");
 }
@@ -260,6 +270,83 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   prevHyps.swap(survivors);
   return true;
 
+}
+
+void EncoderDecoder::DecodeAsync()
+{
+  //cerr << "BeginSentenceState encOut->sourceContext_=" << encOut->sourceContext_.Debug(0) << endl;
+  try {
+    DecodeAsyncInternal();
+  }
+  catch(thrust::system_error &e)
+  {
+    std::cerr << "CUDA error during some_function: " << e.what() << std::endl;
+    abort();
+  }
+  catch(std::bad_alloc &e)
+  {
+    std::cerr << "Bad memory allocation during some_function: " << e.what() << std::endl;
+    abort();
+  }
+  catch(std::runtime_error &e)
+  {
+    std::cerr << "Runtime error during some_function: " << e.what() << std::endl;
+    abort();
+  }
+  catch(...)
+  {
+    std::cerr << "Some other kind of error during some_function" << std::endl;
+    abort();
+  }
+}
+
+void EncoderDecoder::DecodeAsyncInternal()
+{
+  boost::timer::cpu_timer timer;
+  cerr << "DecodeAsyncInternal1" << endl;
+
+  EncOutPtr encOut = encDecBuffer_.Get();
+  const Sentences &sentences = encOut->GetSentences();
+
+  //if (search_.GetFilter()) {
+  //  search_.FilterTargetVocab(*sentences);
+  //}
+
+  StatePtr state(NewState());
+
+
+  BeginSentenceState(encOut, *state, sentences.size());
+
+
+  StatePtr nextState(NewState());
+
+  std::vector<uint> beamSizes(sentences.size(), 1);
+
+  std::shared_ptr<Histories> histories(new Histories(sentences, search_.NormalizeScore()));
+  Beam prevHyps = histories->GetFirstHyps();
+
+  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+    Decode(encOut, *state, *nextState, beamSizes);
+
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+        beamSize = search_.MaxBeamSize();
+      }
+    }
+    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
+
+    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+    bool hasSurvivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
+    if (!hasSurvivors) {
+      break;
+    }
+  }
+
+  histories->Output(god_);
+
+  CleanAfterTranslation();
+
+  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
 }
 
 }

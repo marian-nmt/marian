@@ -80,12 +80,15 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<Decoder> decoder_;
 
     EncOutBuffer encDecBuffer_;
+    std::unique_ptr<std::thread> decThread_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
 
 
     /////////////////////////////////////////////////////////////////////////////////////
     // const-batch2
+    void DecodeAsync();
+    void DecodeAsyncInternal();
 
 };
 

@@ -37,7 +37,8 @@ Search::~Search() {
 void Search::Translate(SentencesPtr sentences)
 {
   assert(scorers_.size() == 1);
-  scorers_[0]->Translate(sentences);
+//  scorers_[0]->Translate(sentences);
+  scorers_[0]->Encode(sentences);
 }
 
 
