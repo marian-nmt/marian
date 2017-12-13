@@ -16,10 +16,6 @@ namespace amunmt {
 
 std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
 
-std::string GetAlignmentString(const std::vector<size_t>& alignment);
-std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
-std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, size_t linenum);
-
 template <class OStream>
 void Printer(const God &god, const History& history, OStream& out, const Sentence& sentence) { 
   auto bestTranslation = history.Top();

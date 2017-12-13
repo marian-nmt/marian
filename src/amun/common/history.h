@@ -8,6 +8,10 @@
 
 namespace amunmt {
 
+std::string GetAlignmentString(const std::vector<size_t>& alignment);
+std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
+std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, size_t linenum);
+
 class Sentences;
 
 class History {
@@ -45,6 +49,10 @@ class History {
 
     size_t GetLineNum() const
     { return lineNo_; }
+
+    void Output(const God &god) const;
+
+    void Output(const God &god, std::ostream& out) const;
 
   private:
     std::vector<Beam> history_;

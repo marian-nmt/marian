@@ -40,5 +40,9 @@ void Histories::Append(const Histories &other)
   }
 }
 
+void Histories::Output(const God &god) const
+{
+
+}
 
 }
