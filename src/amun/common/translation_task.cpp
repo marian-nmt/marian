@@ -15,31 +15,10 @@ using namespace std;
 
 namespace amunmt {
 
-void TranslationTaskAndOutput(const God &god, SentencesPtr sentences) {
-  OutputCollector &outputCollector = god.GetOutputCollector();
-
-  std::shared_ptr<Histories> histories = TranslationTask(god, sentences);
-
-  /*
-  for (size_t i = 0; i < histories->size(); ++i) {
-    const History &history = *histories->at(i);
-    size_t lineNum = history.GetLineNum();
-    const Sentence &sentence = sentences->Get(0);
-
-    std::stringstream strm;
-    Printer(god, history, strm, sentence);
-
-    outputCollector.Write(lineNum, strm.str());
-  }
-  */
-}
-
-std::shared_ptr<Histories> TranslationTask(const God &god, SentencesPtr sentences) {
+void TranslationTask(const God &god, SentencesPtr sentences) {
   try {
     Search& search = god.GetSearch();
-    auto histories = search.Translate(sentences);
-
-    return histories;
+    search.Translate(sentences);
   }
 #ifdef CUDA
   catch(thrust::system_error &e)
