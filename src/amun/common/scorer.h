@@ -55,7 +55,7 @@ class Scorer {
 
     virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize = 1) = 0;
 
-    virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
+    virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) const = 0;
 
     virtual void Encode(SentencesPtr sources) = 0;
 

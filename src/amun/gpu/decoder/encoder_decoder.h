@@ -56,7 +56,7 @@ class EncoderDecoder : public Scorer {
 
     virtual void AssembleBeamState(const State& state,
                                    const Beam& beam,
-                                   State& nextState);
+                                   State& nextState) const;
 
     virtual State* NewState() const;
 
@@ -77,7 +77,6 @@ class EncoderDecoder : public Scorer {
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    mblas::Vector<uint> indices_;
 
     EncOutBuffer encDecBuffer_;
 

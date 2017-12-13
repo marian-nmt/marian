@@ -32,7 +32,6 @@ EncoderDecoder::EncoderDecoder(
     model_(model),
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
-    indices_(god.Get<size_t>("beam-size")),
     encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
 {
   BEGIN_TIMER("EncoderDecoder");
@@ -67,7 +66,6 @@ EncoderDecoder::~EncoderDecoder()
 
 std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPtr sentences)
 {
-  cerr << "new Translate" << endl;
   boost::timer::cpu_timer timer;
 
   if (search.GetFilter()) {
@@ -150,7 +148,8 @@ void EncoderDecoder::Decode(EncOutPtr encOut, const State& state, State& nextSta
 
 void EncoderDecoder::AssembleBeamState(const State& state,
                                const Beam& beam,
-                               State& nextState) {
+                               State& nextState) const
+{
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;
   std::vector<uint> beamStateIds;
@@ -163,20 +162,23 @@ void EncoderDecoder::AssembleBeamState(const State& state,
 
   const EDState& edState = state.get<EDState>();
   EDState& edNextState = nextState.get<EDState>();
-  indices_.newSize(beamStateIds.size());
+
+  thread_local mblas::Vector<uint> indices;
+  indices.newSize(beamStateIds.size());
+  //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::copy(beamStateIds.data(),
               beamStateIds.size(),
-              indices_.data(),
+              indices.data(),
               cudaMemcpyHostToDevice);
-  //cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
+  //cerr << "indices=" << mblas::Debug(indices, 2) << endl;
 
   CellState& outstates = edNextState.GetStates();
   const CellState& instates = edState.GetStates();
 
-  mblas::Assemble(*(outstates.output), *(instates.output), indices_);
+  mblas::Assemble(*(outstates.output), *(instates.output), indices);
   if (instates.cell->size() > 0) {
-    mblas::Assemble(*(outstates.cell), *(instates.cell), indices_);
+    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
   }
   //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
 

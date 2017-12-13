@@ -41,7 +41,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
     virtual void AssembleBeamState(const State& in,
                                    const Beam& beam,
-                                   State& out);
+                                   State& out) const;
 
     void GetAttention(mblas::Matrix& Attention);
     mblas::Matrix& GetAttention();

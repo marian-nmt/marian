@@ -57,7 +57,8 @@ void EncoderDecoder::Encode(SentencesPtr sources) {
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                        const Beam& beam,
-                                       State& out) {
+                                       State& out) const
+{
   std::vector<uint> beamWords;
   std::vector<uint> beamStateIds;
   for(auto h : beam) {
