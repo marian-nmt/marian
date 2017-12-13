@@ -45,6 +45,7 @@ EncoderDecoder::EncoderDecoder(
 
 EncoderDecoder::~EncoderDecoder()
 {
+  decThread_->join();
   PAUSE_TIMER("EncoderDecoder");
 
   if (timers.size()) {

@@ -69,6 +69,9 @@ int main(int argc, char* argv[])
     }
   }
 
+  // empty batch to indicate end - async
+  //task.Exit(god);
+
   god.Cleanup();
   LOG(info)->info("Total time: {}", timer.format());
 
