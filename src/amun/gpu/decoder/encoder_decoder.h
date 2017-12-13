@@ -39,7 +39,7 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
-    virtual void Translate(Search &search, SentencesPtr sentences);
+    virtual void Translate(SentencesPtr sentences);
 
     virtual void Encode(SentencesPtr source);
 

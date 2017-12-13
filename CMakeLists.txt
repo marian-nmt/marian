@@ -21,7 +21,7 @@ endif(BUILD_STATIC)
 
 include_directories(${amunmt_SOURCE_DIR})
 
-option(CPU "Select to compile with CPU support" ON)
+option(CPU "Select to compile with CPU support" OFF)
 option(CUDA "Select to compile CUDA support by default if available" ON)
 option(FPGA "Select to compile with FPGA support" OFF)
 option(MARIAN "Select to compile with Marian library" OFF)

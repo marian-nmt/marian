@@ -49,7 +49,7 @@ class CPUEncoderDecoderBase : public Scorer {
       assert(false);
     }
 
-    virtual void Translate(Search &search, SentencesPtr sentences)
+    virtual void Translate(SentencesPtr sentences)
     {
       assert(false);
     }
