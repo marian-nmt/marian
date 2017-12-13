@@ -42,7 +42,11 @@ void Histories::Append(const Histories &other)
 
 void Histories::Output(const God &god) const
 {
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    const History &history = *coll_.at(i);
+    history.Output(god);
 
+  }
 }
 
 }

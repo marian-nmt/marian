@@ -105,6 +105,8 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPt
     }
   }
 
+  //histories->Output(god_);
+
   CleanAfterTranslation();
 
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
