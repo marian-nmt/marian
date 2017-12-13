@@ -1,14 +1,23 @@
 #pragma once
 
 #include <memory>
+#include "sentences.h"
+#include "history.h"
 
 namespace amunmt {
 
 class God;
 class Histories;
-class Sentences;
-using SentencesPtr = std::shared_ptr<Sentences>;
 
-void TranslationTask(const God &god, SentencesPtr sentences);
+class TranslationTask
+{
+public:
+  void Run(God &god, SentencesPtr maxiBatch, size_t miniSize, int miniWords);
+  void Exit(God &god);
+
+protected:
+  void Run(const God &god, SentencesPtr sentences);
+
+};
 
 }  // namespace amunmt
