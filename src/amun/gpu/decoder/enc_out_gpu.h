@@ -20,18 +20,6 @@ public:
   const mblas::Vector<uint> &GetSentenceLengths() const
   { return sentenceLengths_; }
 
-  mblas::Matrix &GetStates()
-  { return states_; }
-
-  const mblas::Matrix &GetStates() const
-  { return states_; }
-
-  mblas::Matrix &GetEmbeddings()
-  { return embeddings_; }
-
-  const mblas::Matrix &GetEmbeddings() const
-  { return embeddings_; }
-
   mblas::Matrix &GetSCU()
   { return SCU_; }
 
@@ -41,9 +29,6 @@ public:
 protected:
   mblas::Matrix sourceContext_;
   mblas::Vector<uint> sentenceLengths_;
-
-  mblas::Matrix states_;
-  mblas::Matrix embeddings_;
 
   mblas::Matrix SCU_;
 
