@@ -243,20 +243,21 @@ OutputCollector& God::GetOutputCollector() const {
   return outputCollector_;
 }
 
-std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
+std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo, const Search &search) const
+{
   std::vector<ScorerPtr> scorers;
 
   if (deviceInfo.deviceType == CPUDevice) {
     for (auto&& loader : cpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo, search));
   }
   else if (deviceInfo.deviceType == GPUDevice) {
     for (auto&& loader : gpuLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo, search));
   }
   else if (deviceInfo.deviceType == FPGADevice) {
     for (auto&& loader : fpgaLoaders_ | boost::adaptors::map_values)
-      scorers.emplace_back(loader->NewScorer(*this, deviceInfo));
+      scorers.emplace_back(loader->NewScorer(*this, deviceInfo, search));
   }
   else {
 	amunmt_UTIL_THROW2("Unknown device type:" << deviceInfo);

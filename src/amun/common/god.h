@@ -63,7 +63,7 @@ class God {
 
     BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 
-    std::vector<ScorerPtr> GetScorers(const DeviceInfo &deviceInfo) const;
+    std::vector<ScorerPtr> GetScorers(const DeviceInfo &deviceInfo, const Search &search) const;
     std::vector<std::string> GetScorerNames() const;
     const std::map<std::string, float>& GetScorerWeights() const;
 

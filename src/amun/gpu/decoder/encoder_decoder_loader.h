@@ -16,7 +16,7 @@ class EncoderDecoderLoader : public Loader {
 
     virtual void Load(const God &god);
 
-    virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
+    virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo, const Search &search) const;
     virtual BestHypsBasePtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const;
 
   private:

@@ -47,7 +47,8 @@ class Scorer {
   public:
     Scorer(const God &god,
            const std::string& name,
-           const YAML::Node& config, size_t tab);
+           const YAML::Node& config, size_t tab,
+           const Search &search);
 
     virtual ~Scorer() {}
 
@@ -88,6 +89,7 @@ class Scorer {
 
   protected:
     const God &god_;
+    const Search &search_;
     const std::string& name_;
     const YAML::Node& config_;
     size_t tab_;
@@ -96,8 +98,9 @@ class Scorer {
 class SourceIndependentScorer : public Scorer {
   public:
     SourceIndependentScorer(const God &god, const std::string& name,
-                            const YAML::Node& config, size_t)
-    : Scorer(god, name, config, 0) {}
+                            const YAML::Node& config, size_t,
+                            const Search &search)
+    : Scorer(god, name, config, 0, search) {}
 
     virtual ~SourceIndependentScorer() {}
 

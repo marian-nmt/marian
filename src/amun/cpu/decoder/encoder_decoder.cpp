@@ -15,8 +15,9 @@ CPUEncoderDecoderBase::CPUEncoderDecoderBase(
 	const God &god,
     const std::string& name,
     const YAML::Node& config,
-    size_t tab)
-  : Scorer(god, name, config, tab)
+    size_t tab,
+    const Search &search)
+  : Scorer(god, name, config, tab, search)
 {}
 
 State* CPUEncoderDecoderBase::NewState() const {

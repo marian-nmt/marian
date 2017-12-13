@@ -31,10 +31,11 @@ class EncoderDecoder : public Scorer {
 
   public:
     EncoderDecoder(const God &god,
-    			   const std::string& name,
+                   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
-                   const Weights& model);
+                   const Weights& model,
+                   const Search &search);
 
     virtual ~EncoderDecoder();
 

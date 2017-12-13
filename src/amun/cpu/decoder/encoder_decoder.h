@@ -18,7 +18,8 @@ class CPUEncoderDecoderBase : public Scorer {
     	const God &god,
         const std::string& name,
         const YAML::Node& config,
-        size_t tab);
+        size_t tab,
+        const Search &search);
 
     virtual State* NewState() const;
 

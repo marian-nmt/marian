@@ -18,8 +18,9 @@ EncoderDecoder::EncoderDecoder(const God &god,
 							   const std::string& name,
                                const YAML::Node& config,
                                size_t tab,
-                               const dl4mt::Weights& model)
-  : CPUEncoderDecoderBase(god, name, config, tab),
+                               const dl4mt::Weights& model,
+                               const Search &search)
+  : CPUEncoderDecoderBase(god, name, config, tab, search),
     model_(model),
     encoder_(new dl4mt::Encoder(model_)),
     decoder_(new dl4mt::Decoder(model_))

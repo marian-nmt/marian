@@ -21,8 +21,9 @@ EncoderDecoder::EncoderDecoder(const God &god,
 							   const std::string& name,
                                const YAML::Node& config,
                                size_t tab,
-                               const Nematus::Weights& model)
-  : CPUEncoderDecoderBase(god, name, config, tab),
+                               const Nematus::Weights& model,
+                               const Search &search)
+  : CPUEncoderDecoderBase(god, name, config, tab, search),
     model_(model),
     encoder_(new CPU::Nematus::Encoder(model_)),
     decoder_(new CPU::Nematus::Decoder(model_))

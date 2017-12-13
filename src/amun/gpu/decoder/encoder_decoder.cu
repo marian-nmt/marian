@@ -27,8 +27,9 @@ EncoderDecoder::EncoderDecoder(
 		const std::string& name,
         const YAML::Node& config,
         size_t tab,
-        const Weights& model)
-  : Scorer(god, name, config, tab),
+        const Weights& model,
+        const Search &search)
+  : Scorer(god, name, config, tab, search),
     model_(model),
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
