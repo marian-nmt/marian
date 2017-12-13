@@ -121,15 +121,11 @@ void EncoderDecoder::Translate(SentencesPtr sentences)
 void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
 
-  cerr << "Encode1" << endl;
   EncOutPtr encOut(new EncOutGPU(source));
-  cerr << "Encode2" << endl;
 
   encoder_->Encode(encOut, tab_);
-  cerr << "Encode3" << endl;
 
   encDecBuffer_.Add(encOut);
-  cerr << "Encode4" << endl;
 
   PAUSE_TIMER("Encode");
 }
@@ -302,10 +298,18 @@ void EncoderDecoder::DecodeAsync()
 
 void EncoderDecoder::DecodeAsyncInternal()
 {
-  boost::timer::cpu_timer timer;
-  cerr << "DecodeAsyncInternal1" << endl;
-
   EncOutPtr encOut = encDecBuffer_.Get();
+  while (encOut) {
+    DecodeAsyncInternal(encOut);
+    encOut = encDecBuffer_.Get();
+  }
+}
+
+void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
+{
+
+  boost::timer::cpu_timer timer;
+
   const Sentences &sentences = encOut->GetSentences();
 
   //if (search_.GetFilter()) {

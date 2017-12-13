@@ -89,6 +89,7 @@ class EncoderDecoder : public Scorer {
     // const-batch2
     void DecodeAsync();
     void DecodeAsyncInternal();
+    void DecodeAsyncInternal(EncOutPtr encOut);
 
 };
 
