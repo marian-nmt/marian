@@ -65,23 +65,52 @@ EncoderDecoder::~EncoderDecoder()
 
 }
 
-void EncoderDecoder::Decode(EncOutPtr encOut, const State& in, State& out, const std::vector<uint>& beamSizes)
+std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPtr sentences)
 {
-  BEGIN_TIMER("Decode");
-  const EDState& edIn = in.get<EDState>();
-  EDState& edOut = out.get<EDState>();
+  cerr << "new Translate" << endl;
+  boost::timer::cpu_timer timer;
 
-  decoder_->Decode(encOut,
-                   edOut.GetStates(),
-                   edIn.GetStates(),
-                   edIn.GetEmbeddings(),
-                   beamSizes,
-                   god_.UseFusedSoftmax());
-  PAUSE_TIMER("Decode");
-}
+  if (search.GetFilter()) {
+    search.FilterTargetVocab(*sentences);
+  }
 
-State* EncoderDecoder::NewState() const {
-  return new EDState();
+  // encode
+  Encode(sentences);
+  StatePtr state(NewState());
+
+  EncOutPtr encOut = encDecBuffer_.Get();
+
+  BeginSentenceState(encOut, *state, sentences->size());
+
+
+  StatePtr nextState(NewState());
+
+  std::vector<uint> beamSizes(sentences->size(), 1);
+
+  std::shared_ptr<Histories> histories(new Histories(*sentences, search.NormalizeScore()));
+  Beam prevHyps = histories->GetFirstHyps();
+
+  for (size_t decoderStep = 0; decoderStep < 3 * sentences->GetMaxLength(); ++decoderStep) {
+    Decode(encOut, *state, *nextState, beamSizes);
+
+    if (decoderStep == 0) {
+      for (auto& beamSize : beamSizes) {
+        beamSize = search.MaxBeamSize();
+      }
+    }
+    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
+
+    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+    bool hasSurvivors = CalcBeam(search.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search.GetFilterIndices());
+    if (!hasSurvivors) {
+      break;
+    }
+  }
+
+  CleanAfterTranslation();
+
+  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+  return histories;
 }
 
 void EncoderDecoder::Encode(SentencesPtr source) {
@@ -104,10 +133,24 @@ void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t b
   //PAUSE_TIMER("BeginSentenceState");
 }
 
+void EncoderDecoder::Decode(EncOutPtr encOut, const State& state, State& nextState, const std::vector<uint>& beamSizes)
+{
+  BEGIN_TIMER("Decode");
+  const EDState& edstate = state.get<EDState>();
+  EDState& ednextState = nextState.get<EDState>();
 
-void EncoderDecoder::AssembleBeamState(const State& in,
+  decoder_->Decode(encOut,
+                   ednextState.GetStates(),
+                   edstate.GetStates(),
+                   edstate.GetEmbeddings(),
+                   beamSizes,
+                   god_.UseFusedSoftmax());
+  PAUSE_TIMER("Decode");
+}
+
+void EncoderDecoder::AssembleBeamState(const State& state,
                                const Beam& beam,
-                               State& out) {
+                               State& nextState) {
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;
   std::vector<uint> beamStateIds;
@@ -118,29 +161,33 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
 
-  const EDState& edIn = in.get<EDState>();
-  EDState& edOut = out.get<EDState>();
+  const EDState& edState = state.get<EDState>();
+  EDState& edNextState = nextState.get<EDState>();
   indices_.newSize(beamStateIds.size());
 
   mblas::copy(beamStateIds.data(),
-      beamStateIds.size(),
-      indices_.data(),
-      cudaMemcpyHostToDevice);
+              beamStateIds.size(),
+              indices_.data(),
+              cudaMemcpyHostToDevice);
   //cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
 
-  CellState& outstates = edOut.GetStates();
-  const CellState& instates = edIn.GetStates();
+  CellState& outstates = edNextState.GetStates();
+  const CellState& instates = edState.GetStates();
 
   mblas::Assemble(*(outstates.output), *(instates.output), indices_);
   if (instates.cell->size() > 0) {
     mblas::Assemble(*(outstates.cell), *(instates.cell), indices_);
   }
-  //cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
+  //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
 
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
-  //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
+  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
+  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
   //PAUSE_TIMER("AssembleBeamState");
+}
+
+State* EncoderDecoder::NewState() const {
+  return new EDState();
 }
 
 void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
@@ -210,55 +257,6 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   return true;
 
 }
-
-std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPtr sentences)
-{
-  cerr << "new Translate" << endl;
-  boost::timer::cpu_timer timer;
-
-  if (search.GetFilter()) {
-    search.FilterTargetVocab(*sentences);
-  }
-
-  // encode
-  Encode(sentences);
-  StatePtr state(NewState());
-
-  EncOutPtr encOut = encDecBuffer_.Get();
-
-  BeginSentenceState(encOut, *state, sentences->size());
-
-
-  StatePtr nextState(NewState());
-
-  std::vector<uint> beamSizes(sentences->size(), 1);
-
-  std::shared_ptr<Histories> histories(new Histories(*sentences, search.NormalizeScore()));
-  Beam prevHyps = histories->GetFirstHyps();
-
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences->GetMaxLength(); ++decoderStep) {
-    Decode(encOut, *state, *nextState, beamSizes);
-
-    if (decoderStep == 0) {
-      for (auto& beamSize : beamSizes) {
-        beamSize = search.MaxBeamSize();
-      }
-    }
-    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
-
-    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-    bool hasSurvivors = CalcBeam(search.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search.GetFilterIndices());
-    if (!hasSurvivors) {
-      break;
-    }
-  }
-
-  CleanAfterTranslation();
-
-  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
-  return histories;
-}
-
 
 }
 }

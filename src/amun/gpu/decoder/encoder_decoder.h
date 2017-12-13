@@ -38,17 +38,27 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
-    virtual void Decode(EncOutPtr encOut, const State& in, State& out, const std::vector<uint>& beamSizes);
-
-    virtual State* NewState() const;
-
-    virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize=1);
+    virtual std::shared_ptr<Histories> Translate(Search &search, SentencesPtr sentences);
 
     virtual void Encode(SentencesPtr source);
 
-    virtual void AssembleBeamState(const State& in,
+    virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize=1);
+
+    virtual void Decode(EncOutPtr encOut, const State& state, State& nextState, const std::vector<uint>& beamSizes);
+
+    virtual bool CalcBeam(BestHypsBase &bestHyps,
+                          std::shared_ptr<Histories>& histories,
+                          std::vector<uint>& beamSizes,
+                          Beam& prevHyps,
+                          State& state,
+                          State& nextState,
+                          const Words &filterIndices);
+
+    virtual void AssembleBeamState(const State& state,
                                    const Beam& beam,
-                                   State& out);
+                                   State& nextState);
+
+    virtual State* NewState() const;
 
     void GetAttention(mblas::Matrix& Attention);
 
@@ -62,15 +72,6 @@ class EncoderDecoder : public Scorer {
 
     void Filter(const std::vector<uint>& filterIds);
 
-    virtual bool CalcBeam(BestHypsBase &bestHyps,
-                          std::shared_ptr<Histories>& histories,
-                          std::vector<uint>& beamSizes,
-                          Beam& prevHyps,
-                          State& state,
-                          State& nextState,
-                          const Words &filterIndices);
-
-    virtual std::shared_ptr<Histories> Translate(Search &search, SentencesPtr sentences);
 
   private:
     const Weights& model_;
