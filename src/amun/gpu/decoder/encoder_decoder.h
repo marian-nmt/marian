@@ -38,7 +38,7 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
-    virtual std::shared_ptr<Histories> Translate(Search &search, SentencesPtr sentences);
+    virtual void Translate(Search &search, SentencesPtr sentences);
 
     virtual void Encode(SentencesPtr source);
 

@@ -64,7 +64,7 @@ EncoderDecoder::~EncoderDecoder()
 
 }
 
-std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPtr sentences)
+void EncoderDecoder::Translate(Search &search, SentencesPtr sentences)
 {
   boost::timer::cpu_timer timer;
 
@@ -110,7 +110,6 @@ std::shared_ptr<Histories> EncoderDecoder::Translate(Search &search, SentencesPt
   CleanAfterTranslation();
 
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
-  return histories;
 }
 
 void EncoderDecoder::Encode(SentencesPtr source) {
