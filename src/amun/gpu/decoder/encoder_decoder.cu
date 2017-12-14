@@ -256,9 +256,12 @@ void EncoderDecoder::DecodeAsync()
 void EncoderDecoder::DecodeAsyncInternal()
 {
   EncOutPtr encOut = encDecBuffer_.Get();
-  while (encOut) {
+  assert(encOut);
+
+  while (encOut && encOut->GetSentences().size()) {
     DecodeAsyncInternal(encOut);
     encOut = encDecBuffer_.Get();
+    assert(encOut);
   }
 }
 
