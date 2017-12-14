@@ -156,9 +156,8 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   // need a model with multiple scorers to test this method
   out.resize(d_breakdown.size());
 
-  mblas::VectorWrapper<float> breakdownWrap(d_breakdown);
-  const mblas::MatrixWrapper<float> inWrap(d_in);
-
+  //mblas::VectorWrapper<float> breakdownWrap(d_breakdown);
+  //const mblas::MatrixWrapper<float> inWrap(d_in);
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
   /*
@@ -168,8 +167,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
       << h_res.size()
       << endl;
   */
-  HANDLE_ERROR( cudaMemcpyAsync(out.data(), d_breakdown.data(), d_breakdown.size() * sizeof(float),
-                                cudaMemcpyDeviceToHost, mblas::CudaStreamHandler::GetStream()) );
+  mblas::copy(d_breakdown.data(), d_breakdown.size(), out.data(), cudaMemcpyDeviceToHost);
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 }
 
