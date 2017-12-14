@@ -22,6 +22,7 @@ class BestHyps : public BestHypsBase
   public:
     BestHyps(const BestHyps &copy) = delete;
     BestHyps(const God &god);
+    ~BestHyps();
 
     void DisAllowUNK(mblas::Matrix& Prob);
 

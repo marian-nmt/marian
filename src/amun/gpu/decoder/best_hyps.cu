@@ -17,6 +17,11 @@ BestHyps::BestHyps(const God &god)
   }
 }
 
+BestHyps::~BestHyps()
+{
+  cerr << "~BestHyps" << endl;
+}
+
 void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }

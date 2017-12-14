@@ -15,7 +15,7 @@ BestHypsBase::BestHypsBase(const God &god)
 
 BestHypsBase::~BestHypsBase()
 {
-  cerr << "~Scorer" << endl;
+  cerr << "~BestHypsBase" << endl;
 }
 
 }
