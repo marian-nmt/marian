@@ -72,54 +72,6 @@ EncoderDecoder::~EncoderDecoder()
 
 }
 
-void EncoderDecoder::Translate(SentencesPtr sentences)
-{
-  boost::timer::cpu_timer timer;
-
-  //if (search_.GetFilter()) {
-  //  search_.FilterTargetVocab(*sentences);
-  //}
-
-  // encode
-  Encode(sentences);
-  StatePtr state(NewState());
-
-  EncOutPtr encOut = encDecBuffer_.Get();
-
-  BeginSentenceState(encOut, *state, sentences->size());
-
-
-  StatePtr nextState(NewState());
-
-  std::vector<uint> beamSizes(sentences->size(), 1);
-
-  std::shared_ptr<Histories> histories(new Histories(*sentences, search_.NormalizeScore()));
-  Beam prevHyps = histories->GetFirstHyps();
-
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences->GetMaxLength(); ++decoderStep) {
-    Decode(encOut, *state, *nextState, beamSizes);
-
-    if (decoderStep == 0) {
-      for (auto& beamSize : beamSizes) {
-        beamSize = search_.MaxBeamSize();
-      }
-    }
-    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
-
-    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-    bool hasSurvivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
-    if (!hasSurvivors) {
-      break;
-    }
-  }
-
-  histories->Output(god_);
-
-  CleanAfterTranslation();
-
-  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
-}
-
 void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
 
@@ -247,9 +199,7 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 {
   size_t batchSize = beamSizes.size();
   Beams beams(batchSize);
-  cerr << "CalcBeam1" << endl;
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
-  cerr << "CalcBeam2" << endl;
   histories->Add(beams);
 
   Beam survivors;

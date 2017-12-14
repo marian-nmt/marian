@@ -84,9 +84,6 @@ class Scorer {
                           State& nextState,
                           const Words &filterIndices) = 0;
 
-    virtual void Translate(SentencesPtr sentences) = 0;
-
-
   protected:
     const God &god_;
     const Search &search_;

@@ -39,8 +39,6 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
-    virtual void Translate(SentencesPtr sentences);
-
     virtual void Encode(SentencesPtr source);
 
     virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize=1);
