@@ -33,19 +33,20 @@ EncoderDecoder::EncoderDecoder(
     model_(model),
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
-    encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
+    //encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
+    encDecBuffer_(10)
 {
   BEGIN_TIMER("EncoderDecoder");
 
   cerr << "encoder-buffer-size=" << god.Get<size_t>("encoder-buffer-size") << endl;
 
-  std::thread *thread = new std::thread( [&]{ DecodeAsync(); });
-  decThread_.reset(thread);
+  //std::thread *thread = new std::thread( [&]{ DecodeAsync(); });
+  //decThread_.reset(thread);
 }
 
 EncoderDecoder::~EncoderDecoder()
 {
-  decThread_->join();
+  //decThread_->join();
   PAUSE_TIMER("EncoderDecoder");
 
   if (timers.size()) {
@@ -122,11 +123,25 @@ void EncoderDecoder::Translate(SentencesPtr sentences)
 void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
 
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "Encode1" << endl;
   EncOutPtr encOut(new EncOutGPU(source));
 
-  encoder_->Encode(encOut, tab_);
+  if (source->size()) {
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "Encode2" << endl;
+    encoder_->Encode(encOut, tab_);
 
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "Encode3" << endl;
+  }
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "Encode4" << endl;
   encDecBuffer_.Add(encOut);
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "Encode5" << endl;
 
   PAUSE_TIMER("Encode");
 }

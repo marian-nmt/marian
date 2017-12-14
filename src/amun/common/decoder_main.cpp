@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
   task.Run(god, maxiBatch, miniSize, miniWords);
 
   // empty batch to indicate end - async
-  //task.Exit(god);
+  task.Exit(god);
 
   god.Cleanup();
   LOG(info)->info("Total time: {}", timer.format());
