@@ -50,7 +50,7 @@ class Scorer {
            const YAML::Node& config, size_t tab,
            const Search &search);
 
-    virtual ~Scorer() {}
+    virtual ~Scorer();
 
     virtual void Decode(EncOutPtr encOut, const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
 

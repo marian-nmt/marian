@@ -13,5 +13,10 @@ BestHypsBase::BestHypsBase(const God &god)
   weights_(god.GetScorerWeights())
 {}
 
+BestHypsBase::~BestHypsBase()
+{
+  cerr << "~Scorer" << endl;
+}
+
 }
 

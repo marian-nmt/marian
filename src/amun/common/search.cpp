@@ -27,6 +27,7 @@ Search::Search(const God &god)
 
 
 Search::~Search() {
+  cerr << "~Search" << endl;
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);

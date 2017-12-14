@@ -243,7 +243,9 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 {
   size_t batchSize = beamSizes.size();
   Beams beams(batchSize);
+  cerr << "CalcBeam1" << endl;
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
+  cerr << "CalcBeam2" << endl;
   histories->Add(beams);
 
   Beam survivors;

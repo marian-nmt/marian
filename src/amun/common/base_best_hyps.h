@@ -15,8 +15,8 @@ class BestHypsBase
 {
   public:
     BestHypsBase(const God &god);
-
     BestHypsBase(const BestHypsBase&) = delete;
+    virtual ~BestHypsBase();
 
     virtual void  CalcBeam(
         const Beam& prevHyps,

@@ -39,9 +39,7 @@ int main(int argc, char* argv[])
   std::string line;
   std::size_t lineNum = 0;
 
-  cerr << "main1" << endl;
   while (std::getline(god.GetInputStream(), line)) {
-    cerr << "main2" << endl;
     maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, line)));
 
     if (maxiBatch->size() >= maxiSize) {
@@ -50,20 +48,16 @@ int main(int argc, char* argv[])
       maxiBatch.reset(new Sentences());
     }
 
-    cerr << "main3" << endl;
   }
 
-  cerr << "main4" << endl;
   // last batch
   task.Run(god, maxiBatch, miniSize, miniWords);
 
   // empty batch to indicate end - async
   //task.Exit(god);
 
-  cerr << "main5" << endl;
   god.Cleanup();
   LOG(info)->info("Total time: {}", timer.format());
 
-  cerr << "main6" << endl;
   return 0;
 }
