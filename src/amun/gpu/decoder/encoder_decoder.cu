@@ -40,13 +40,13 @@ EncoderDecoder::EncoderDecoder(
 
   cerr << "encoder-buffer-size=" << god.Get<size_t>("encoder-buffer-size") << endl;
 
-  //std::thread *thread = new std::thread( [&]{ DecodeAsync(); });
-  //decThread_.reset(thread);
+  std::thread *thread = new std::thread( [&]{ DecodeAsync(); });
+  decThread_.reset(thread);
 }
 
 EncoderDecoder::~EncoderDecoder()
 {
-  //decThread_->join();
+  decThread_->join();
   PAUSE_TIMER("EncoderDecoder");
 
   if (timers.size()) {
@@ -123,25 +123,14 @@ void EncoderDecoder::Translate(SentencesPtr sentences)
 void EncoderDecoder::Encode(SentencesPtr source) {
   BEGIN_TIMER("Encode");
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "Encode1" << endl;
   EncOutPtr encOut(new EncOutGPU(source));
 
   if (source->size()) {
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "Encode2" << endl;
     encoder_->Encode(encOut, tab_);
-
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "Encode3" << endl;
   }
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "Encode4" << endl;
   encDecBuffer_.Add(encOut);
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "Encode5" << endl;
 
   PAUSE_TIMER("Encode");
 }
@@ -294,22 +283,22 @@ void EncoderDecoder::DecodeAsync()
   }
   catch(thrust::system_error &e)
   {
-    std::cerr << "CUDA error during some_function: " << e.what() << std::endl;
+    std::cerr << "DecodeAsync: CUDA error during some_function: " << e.what() << std::endl;
     abort();
   }
   catch(std::bad_alloc &e)
   {
-    std::cerr << "Bad memory allocation during some_function: " << e.what() << std::endl;
+    std::cerr << "DecodeAsync: Bad memory allocation during some_function: " << e.what() << std::endl;
     abort();
   }
   catch(std::runtime_error &e)
   {
-    std::cerr << "Runtime error during some_function: " << e.what() << std::endl;
+    std::cerr << "DecodeAsync: Runtime error during some_function: " << e.what() << std::endl;
     abort();
   }
   catch(...)
   {
-    std::cerr << "Some other kind of error during some_function" << std::endl;
+    std::cerr << "DecodeAsync: Some other kind of error during some_function" << std::endl;
     abort();
   }
 }
