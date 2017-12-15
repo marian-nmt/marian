@@ -188,7 +188,7 @@ class Decoder {
 
           const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
           const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-          mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
+          const mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
 
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
