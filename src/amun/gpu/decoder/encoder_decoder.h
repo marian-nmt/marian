@@ -84,12 +84,6 @@ class EncoderDecoder : public Scorer {
     void DecodeAsync();
     void DecodeAsyncInternal();
     void DecodeAsyncInternal(EncOutPtr encOut);
-    void Decode(const State& state,
-                State& nextState,
-                const std::vector<uint>& beamSizes,
-                const mblas::Matrix& SourceContext,
-                const mblas::Matrix& SCU,
-                const mblas::Vector<uint> &sentenceLengths);
 
     void BeginSentenceState(size_t batchSize,
                             const mblas::Matrix &SourceContext,

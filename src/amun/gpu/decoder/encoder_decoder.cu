@@ -267,12 +267,17 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   Beam prevHyps = histories->GetFirstHyps();
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    Decode(*state,
-           *nextState,
-           beamSizes,
-           SourceContext,
-           SCU,
-           sentenceLengths);
+    const EDState& edstate = state->get<EDState>();
+    EDState& ednextState = nextState->get<EDState>();
+
+    decoder_->Decode(ednextState.GetStates(),
+                     edstate.GetStates(),
+                     edstate.GetEmbeddings(),
+                     beamSizes,
+                     god_.UseFusedSoftmax(),
+                     SourceContext,
+                     SCU,
+                     sentenceLengths);
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
@@ -309,27 +314,6 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   //PAUSE_TIMER("BeginSentenceState");
 }
 
-void EncoderDecoder::Decode(const State& state,
-                           State& nextState,
-                           const std::vector<uint>& beamSizes,
-                           const mblas::Matrix& SourceContext,
-                           const mblas::Matrix& SCU,
-                           const mblas::Vector<uint> &sentenceLengths)
-{
-  BEGIN_TIMER("Decode");
-  const EDState& edstate = state.get<EDState>();
-  EDState& ednextState = nextState.get<EDState>();
-
-  decoder_->Decode(ednextState.GetStates(),
-                   edstate.GetStates(),
-                   edstate.GetEmbeddings(),
-                   beamSizes,
-                   god_.UseFusedSoftmax(),
-                   SourceContext,
-                   SCU,
-                   sentenceLengths);
-  PAUSE_TIMER("Decode");
-}
 
 }
 }
