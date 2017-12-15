@@ -104,7 +104,8 @@ class Decoder {
 
         void GetNextState(CellState& NextState,
                           const CellState& State,
-                          const mblas::Matrix& Context) {
+                          const mblas::Matrix& Context) const
+        {
           gru_->GetNextState(NextState, State, Context);
         }
 
@@ -125,7 +126,8 @@ class Decoder {
 
         void GetNextState(CellState& NextState,
                           const CellState& State,
-                          const mblas::Matrix& Context) {
+                          const mblas::Matrix& Context) const
+        {
           gru_->GetNextState(NextState, State, Context);
         }
 
@@ -511,7 +513,8 @@ class Decoder {
 
     void GetNextState(CellState& State,
                       const CellState& HiddenState,
-                      const mblas::Matrix& AlignedSourceContext) {
+                      const mblas::Matrix& AlignedSourceContext) const
+    {
       rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
     }
 
