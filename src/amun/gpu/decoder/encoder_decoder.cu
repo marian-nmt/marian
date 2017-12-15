@@ -242,13 +242,12 @@ void EncoderDecoder::DecodeAsyncInternal()
 
 void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
 {
-  const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-  mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
-
   boost::timer::cpu_timer timer;
 
   const Sentences &sentences = encOut->GetSentences();
+  const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
 
   //if (search_.GetFilter()) {
   //  search_.FilterTargetVocab(*sentences);
@@ -257,7 +256,7 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   StatePtr state(NewState());
 
 
-  BeginSentenceState(encOut, *state, sentences.size(), SourceContext, sentenceLengths, SCU);
+  BeginSentenceState(*state, sentences.size(), SourceContext, sentenceLengths, SCU);
 
 
   StatePtr nextState(NewState());
@@ -296,8 +295,7 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
 }
 
-void EncoderDecoder::BeginSentenceState(EncOutPtr encOut,
-                                        State& state,
+void EncoderDecoder::BeginSentenceState(State& state,
                                         size_t batchSize,
                                         const mblas::Matrix &SourceContext,
                                         const mblas::Vector<uint> &sentenceLengths,
