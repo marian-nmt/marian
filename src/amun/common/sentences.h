@@ -10,6 +10,7 @@ using SentencesPtr = std::shared_ptr<Sentences>;
 class Sentences {
   public:
     Sentences();
+    Sentences(const Sentences &other);
     ~Sentences();
 
     void push_back(SentencePtr sentence);
@@ -28,8 +29,6 @@ class Sentences {
   protected:
     std::vector<SentencePtr> coll_;
     size_t maxLength_;
-
-    Sentences(const Sentences &) = delete;
 };
 
 }

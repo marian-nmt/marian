@@ -234,70 +234,68 @@ void EncoderDecoder::DecodeAsyncInternal()
   assert(encOut);
 
   while (encOut->GetSentences().size()) {
-    DecodeAsyncInternal(encOut);
-    encOut = encDecBuffer_.Get();
-    assert(encOut);
-  }
-}
+    boost::timer::cpu_timer timer;
 
-void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
-{
-  boost::timer::cpu_timer timer;
+    const Sentences sentences(encOut->GetSentences());
+    const mblas::Matrix SourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
+    const mblas::Vector<uint> sentenceLengths(encOut->Get<EncOutGPU>().GetSentenceLengths());
+    mblas::Matrix SCU(encOut->Get<EncOutGPU>().GetSCU());
 
-  const Sentences &sentences = encOut->GetSentences();
-  const mblas::Matrix SourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
-  const mblas::Vector<uint> sentenceLengths(encOut->Get<EncOutGPU>().GetSentenceLengths());
-  mblas::Matrix SCU(encOut->Get<EncOutGPU>().GetSCU());
+    //if (search_.GetFilter()) {
+    //  search_.FilterTargetVocab(*sentences);
+    //}
 
-  //if (search_.GetFilter()) {
-  //  search_.FilterTargetVocab(*sentences);
-  //}
-
-  StatePtr state(NewState());
+    StatePtr state(NewState());
 
 
-  BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
+    BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
 
 
-  StatePtr nextState(NewState());
+    StatePtr nextState(NewState());
 
-  std::vector<uint> beamSizes(sentences.size(), 1);
+    std::vector<uint> beamSizes(sentences.size(), 1);
 
-  std::shared_ptr<Histories> histories(new Histories(sentences, search_.NormalizeScore()));
-  Beam prevHyps = histories->GetFirstHyps();
+    std::shared_ptr<Histories> histories(new Histories(sentences, search_.NormalizeScore()));
+    Beam prevHyps = histories->GetFirstHyps();
 
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    const EDState& edstate = state->get<EDState>();
-    EDState& ednextState = nextState->get<EDState>();
+    for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+      const EDState& edstate = state->get<EDState>();
+      EDState& ednextState = nextState->get<EDState>();
 
-    decoder_->Decode(ednextState.GetStates(),
-                     edstate.GetStates(),
-                     edstate.GetEmbeddings(),
-                     beamSizes,
-                     god_.UseFusedSoftmax(),
-                     SourceContext,
-                     SCU,
-                     sentenceLengths);
+      decoder_->Decode(ednextState.GetStates(),
+                       edstate.GetStates(),
+                       edstate.GetEmbeddings(),
+                       beamSizes,
+                       god_.UseFusedSoftmax(),
+                       SourceContext,
+                       SCU,
+                       sentenceLengths);
 
-    if (decoderStep == 0) {
-      for (auto& beamSize : beamSizes) {
-        beamSize = search_.MaxBeamSize();
+      if (decoderStep == 0) {
+        for (auto& beamSize : beamSizes) {
+          beamSize = search_.MaxBeamSize();
+        }
+      }
+      //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
+
+      //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+      bool hasSurvivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
+      if (!hasSurvivors) {
+        break;
       }
     }
-    //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
-    //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-    bool hasSurvivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
-    if (!hasSurvivors) {
-      break;
-    }
+    histories->Output(god_);
+
+    CleanAfterTranslation();
+
+    LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+
+    // next batch
+    encOut = encDecBuffer_.Get();
+    assert(encOut);
+
   }
-
-  histories->Output(god_);
-
-  CleanAfterTranslation();
-
-  LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
 }
 
 void EncoderDecoder::BeginSentenceState(size_t batchSize,
