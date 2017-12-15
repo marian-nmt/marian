@@ -66,12 +66,11 @@ class Decoder {
 
         void InitializeState(EncOutPtr encOut,
                              CellState& State,
-                             const size_t batchSize)
+                             const size_t batchSize,
+                             const mblas::Matrix &SourceContext,
+                             const mblas::Vector<uint> &sentenceLengths)
         {
           using namespace mblas;
-
-          const mblas::Matrix &SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-          const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
@@ -447,9 +446,11 @@ class Decoder {
 
     void EmptyState(EncOutPtr encOut,
                     CellState& State,
-                    size_t batchSize)
+                    size_t batchSize,
+                    const mblas::Matrix &SourceContext,
+                    const mblas::Vector<uint> &sentenceLengths)
     {
-      rnn1_.InitializeState(encOut, State, batchSize);
+      rnn1_.InitializeState(encOut, State, batchSize, SourceContext, sentenceLengths);
       alignment_.Init(encOut);
     }
 

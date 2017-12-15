@@ -86,15 +86,6 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   PAUSE_TIMER("Encode");
 }
 
-void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize) {
-  //BEGIN_TIMER("BeginSentenceState");
-  EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(encOut, edState.GetStates(), batchSize);
-
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
-  //PAUSE_TIMER("BeginSentenceState");
-}
-
 void EncoderDecoder::AssembleBeamState(const State& state,
                                const Beam& beam,
                                State& nextState) const
@@ -303,6 +294,19 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   CleanAfterTranslation();
 
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+}
+
+void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize)
+{
+  //BEGIN_TIMER("BeginSentenceState");
+  const mblas::Matrix &SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+
+  EDState& edState = state.get<EDState>();
+  decoder_->EmptyState(encOut, edState.GetStates(), batchSize, SourceContext, sentenceLengths);
+
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+  //PAUSE_TIMER("BeginSentenceState");
 }
 
 void EncoderDecoder::Decode(const State& state,
