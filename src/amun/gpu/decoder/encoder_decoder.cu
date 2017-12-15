@@ -33,12 +33,9 @@ EncoderDecoder::EncoderDecoder(
     model_(model),
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
-    //encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
-    encDecBuffer_(10)
+    encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
 {
   BEGIN_TIMER("EncoderDecoder");
-
-  cerr << "encoder-buffer-size=" << god.Get<size_t>("encoder-buffer-size") << endl;
 
   std::thread *thread = new std::thread( [&]{ DecodeAsync(); });
   decThread_.reset(thread);
