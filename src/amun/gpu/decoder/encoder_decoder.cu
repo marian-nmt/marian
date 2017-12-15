@@ -105,6 +105,7 @@ void EncoderDecoder::AssembleBeamState(const State& state,
 
   thread_local mblas::Vector<uint> indices;
   indices.newSize(beamStateIds.size());
+  //mblas::Vector<uint> indices(beamStateIds.size());
   //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::copy(beamStateIds.data(),
@@ -247,9 +248,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     StatePtr state(NewState());
 
-
     BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
-
 
     StatePtr nextState(NewState());
 
