@@ -304,7 +304,7 @@ void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t b
   mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
 
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(encOut, edState.GetStates(), batchSize, SourceContext, sentenceLengths, SCU);
+  decoder_->EmptyState(edState.GetStates(), batchSize, SourceContext, sentenceLengths, SCU);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");

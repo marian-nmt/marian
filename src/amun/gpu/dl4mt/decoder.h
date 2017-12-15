@@ -143,8 +143,7 @@ class Decoder {
           , dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
         {}
 
-        void Init(EncOutPtr encOut,
-                  const mblas::Matrix& SourceContext,
+        void Init(const mblas::Matrix& SourceContext,
                   mblas::Matrix& SCU)
         {
           using namespace mblas;
@@ -442,15 +441,14 @@ class Decoder {
       return Probs_;
     }
 
-    void EmptyState(EncOutPtr encOut,
-                    CellState& State,
+    void EmptyState(CellState& State,
                     size_t batchSize,
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix& SCU)
     {
       rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
-      alignment_.Init(encOut, SourceContext, SCU);
+      alignment_.Init(SourceContext, SCU);
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
