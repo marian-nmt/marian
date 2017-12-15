@@ -174,10 +174,12 @@ class Decoder {
           return ret;
         }
 
-        void GetAlignedSourceContext(EncOutPtr encOut,
-                                     mblas::Matrix& AlignedSourceContext,
+        void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const std::vector<uint>& beamSizes)
+                                     const std::vector<uint>& beamSizes,
+                                     const mblas::Matrix& SourceContext,
+                                     const mblas::Matrix& SCU,
+                                     const mblas::Vector<uint> &sentenceLengths)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
           // batchMapping = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
@@ -185,10 +187,6 @@ class Decoder {
 
           using namespace mblas;
           BEGIN_TIMER("GetAlignedSourceContext");
-
-          const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-          const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-          const mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
 
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
@@ -401,12 +399,14 @@ class Decoder {
       softmax_(model.decSoftmax_)
     {}
 
-    void Decode(EncOutPtr encOut,
-                CellState& NextState,
+    void Decode(CellState& NextState,
                 const CellState& State,
                 const mblas::Matrix& Embeddings,
                 const std::vector<uint>& beamSizes,
-                bool useFusedSoftmax)
+                bool useFusedSoftmax,
+                const mblas::Matrix& SourceContext,
+                const mblas::Matrix& SCU,
+                const mblas::Vector<uint> &sentenceLengths)
     {
       //BEGIN_TIMER("Decode");
 
@@ -419,10 +419,12 @@ class Decoder {
       //PAUSE_TIMER("GetHiddenState");
 
       //BEGIN_TIMER("GetAlignedSourceContext");
-      GetAlignedSourceContext(encOut,
-                              AlignedSourceContext_,
+      GetAlignedSourceContext(AlignedSourceContext_,
                               HiddenState_,
-                              beamSizes);
+                              beamSizes,
+                              SourceContext,
+                              SCU,
+                              sentenceLengths);
       //std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetAlignedSourceContext");
 
@@ -493,15 +495,20 @@ class Decoder {
       rnn1_.GetNextState(HiddenState, PrevState, Embedding);
     }
 
-    void GetAlignedSourceContext(EncOutPtr encOut,
-                                  mblas::Matrix& AlignedSourceContext,
-                                  const CellState& HiddenState,
-                                  const std::vector<uint>& beamSizes)
+    void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+                                 const CellState& HiddenState,
+                                 const std::vector<uint>& beamSizes,
+                                 const mblas::Matrix& SourceContext,
+                                 const mblas::Matrix& SCU,
+                                 const mblas::Vector<uint> &sentenceLengths)
+
     {
-      alignment_.GetAlignedSourceContext(encOut,
-                                        AlignedSourceContext,
+      alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,
-                                        beamSizes);
+                                        beamSizes,
+                                        SourceContext,
+                                        SCU,
+                                        sentenceLengths);
     }
 
     void GetNextState(CellState& State,

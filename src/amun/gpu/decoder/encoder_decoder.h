@@ -43,8 +43,6 @@ class EncoderDecoder : public Scorer {
 
     virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize=1);
 
-    virtual void Decode(EncOutPtr encOut, const State& state, State& nextState, const std::vector<uint>& beamSizes);
-
     virtual bool CalcBeam(BestHypsBase &bestHyps,
                           std::shared_ptr<Histories>& histories,
                           std::vector<uint>& beamSizes,
@@ -88,6 +86,12 @@ class EncoderDecoder : public Scorer {
     void DecodeAsync();
     void DecodeAsyncInternal();
     void DecodeAsyncInternal(EncOutPtr encOut);
+    void Decode(const State& state,
+                State& nextState,
+                const std::vector<uint>& beamSizes,
+                const mblas::Matrix& SourceContext,
+                const mblas::Matrix& SCU,
+                const mblas::Vector<uint> &sentenceLengths);
 
 };
 

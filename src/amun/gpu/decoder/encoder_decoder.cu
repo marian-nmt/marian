@@ -95,21 +95,6 @@ void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t b
   //PAUSE_TIMER("BeginSentenceState");
 }
 
-void EncoderDecoder::Decode(EncOutPtr encOut, const State& state, State& nextState, const std::vector<uint>& beamSizes)
-{
-  BEGIN_TIMER("Decode");
-  const EDState& edstate = state.get<EDState>();
-  EDState& ednextState = nextState.get<EDState>();
-
-  decoder_->Decode(encOut,
-                   ednextState.GetStates(),
-                   edstate.GetStates(),
-                   edstate.GetEmbeddings(),
-                   beamSizes,
-                   god_.UseFusedSoftmax());
-  PAUSE_TIMER("Decode");
-}
-
 void EncoderDecoder::AssembleBeamState(const State& state,
                                const Beam& beam,
                                State& nextState) const
@@ -266,6 +251,9 @@ void EncoderDecoder::DecodeAsyncInternal()
 
 void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
 {
+  const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
+  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
   boost::timer::cpu_timer timer;
 
@@ -289,7 +277,12 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   Beam prevHyps = histories->GetFirstHyps();
 
   for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    Decode(encOut, *state, *nextState, beamSizes);
+    Decode(*state,
+           *nextState,
+           beamSizes,
+           SourceContext,
+           SCU,
+           sentenceLengths);
 
     if (decoderStep == 0) {
       for (auto& beamSize : beamSizes) {
@@ -310,6 +303,28 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   CleanAfterTranslation();
 
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+}
+
+void EncoderDecoder::Decode(const State& state,
+                           State& nextState,
+                           const std::vector<uint>& beamSizes,
+                           const mblas::Matrix& SourceContext,
+                           const mblas::Matrix& SCU,
+                           const mblas::Vector<uint> &sentenceLengths)
+{
+  BEGIN_TIMER("Decode");
+  const EDState& edstate = state.get<EDState>();
+  EDState& ednextState = nextState.get<EDState>();
+
+  decoder_->Decode(ednextState.GetStates(),
+                   edstate.GetStates(),
+                   edstate.GetEmbeddings(),
+                   beamSizes,
+                   god_.UseFusedSoftmax(),
+                   SourceContext,
+                   SCU,
+                   sentenceLengths);
+  PAUSE_TIMER("Decode");
 }
 
 }
