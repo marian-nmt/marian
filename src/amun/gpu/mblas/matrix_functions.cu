@@ -147,8 +147,8 @@ Matrix& Transpose(Matrix& Out, const Matrix& In) {
   float alpha = 1.0;
   float beta  = 0.0;
 
-  cublasSgeam(CublasHandler::GetHandle(), CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha, In.data(), n,
-              &beta, In.data(), n, Out.data(), m);
+  HANDLE_ERROR_CUBLAS(cublasSgeam(CublasHandler::GetHandle(), CUBLAS_OP_T, CUBLAS_OP_T, m, n, &alpha, In.data(), n,
+				&beta, In.data(), n, Out.data(), m));
 
   return Out;
 }
