@@ -25,12 +25,14 @@ public:
 
   Vector(size_t size)
   :maxSize_(0)
+  ,data_(nullptr)
   {
     newSize(size);
   }
 
   Vector(size_t size, const T &val)
   :maxSize_(0)
+  ,data_(nullptr)
   {
     newSize(size);
 
@@ -65,6 +67,7 @@ public:
 
   ~Vector()
   {
+    //std::cerr << "~Vector=" << this << std::endl;
     HANDLE_ERROR(cudaFree(data_));
   }
 
