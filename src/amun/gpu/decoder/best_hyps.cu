@@ -161,6 +161,7 @@ void  BestHyps::CalcBeam(
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
 
+    //cerr << "god_.ReturnNBestList()=" << god_.ReturnNBestList() << endl;
     if(god_.ReturnNBestList()) {
       hyp->GetCostBreakdown().resize(scorers.size());
       float sum = 0;
