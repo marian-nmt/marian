@@ -285,7 +285,7 @@ void EncoderDecoder::DecodeAsyncInternal()
         break;
       }
 
-      LOG(progress)->info("\tStep took {} survivors {}", timerBatch.format(3, "%w"), survivors);
+      LOG(progress)->info("\tStep took {} survivors {}", timerStep.format(3, "%w"), survivors);
     }
 
     histories->Output(god_);
