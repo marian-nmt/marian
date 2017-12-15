@@ -50,11 +50,14 @@ void Histories::Append(const Histories &other)
 
 Beam Histories::GetFirstHyps()
 {
-  Beam beam;
-  for (auto& history : coll_) {
-    beam.emplace_back(history->front()[0]);
+  Beam ret(coll_.size());
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    History &history = *coll_[i];
+    Beam &beam = history.front();
+    HypothesisPtr hypo = beam[0];
+    ret[i] = hypo;
   }
-  return beam;
+  return ret;
 }
 
 void Histories::Output(const God &god) const
