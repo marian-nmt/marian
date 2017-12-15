@@ -10,6 +10,7 @@ class EncOutGPU : public EncOut
 {
 public:
   EncOutGPU(SentencesPtr sentences);
+  ~EncOutGPU();
 
   mblas::Matrix &GetSourceContext()
   { return sourceContext_; }

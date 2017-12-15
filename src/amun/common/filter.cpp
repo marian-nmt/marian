@@ -18,7 +18,9 @@ using namespace std;
 
 namespace amunmt {
 
-FilterVocab::FilterVocab(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}
+FilterVocab::FilterVocab(const size_t numFirstWords)
+: numFirstWords_(numFirstWords)
+{}
 
 FilterVocab::FilterVocab(const Vocab& srcVocab,
                const Vocab& trgVocab,
@@ -30,7 +32,13 @@ FilterVocab::FilterVocab(const Vocab& srcVocab,
                                trgVocab,
                                path,
                                maxNumTranslation,
-                               numFirstWords)) {}
+                               numFirstWords))
+{}
+
+FilterVocab::~FilterVocab()
+{
+  cerr << "~FilterVocab" << endl;
+}
 
 std::vector<Words> FilterVocab::ParseAlignmentFile(const Vocab& srcVocab,
                                               const Vocab& trgVocab,

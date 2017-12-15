@@ -17,6 +17,11 @@ EncOutGPU::EncOutGPU(SentencesPtr sentences)
               cudaMemcpyHostToDevice);
 }
 
+EncOutGPU::~EncOutGPU()
+{
+  cerr << "~EncOutGPU" << endl;
+}
+
 }
 }
 

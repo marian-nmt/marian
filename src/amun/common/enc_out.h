@@ -35,6 +35,7 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   EncOut(SentencesPtr sentences);
+  virtual ~EncOut();
 
   template<class T>
   T &Get()

@@ -15,4 +15,9 @@ EncOut::EncOut(SentencesPtr sentences)
   }
 }
 
+EncOut::~EncOut()
+{
+  cerr << "~EncOut" << endl;
+}
+
 }

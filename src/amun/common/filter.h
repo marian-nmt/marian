@@ -20,37 +20,38 @@ class FilterVocab {
            const std::string& path,
            const size_t numFirstWords=10000,
            const size_t maxNumTranslation=1000);
+  virtual ~FilterVocab();
 
-    template<class T>
-    Words GetFilteredVocab(const T& srcWords, const size_t maxVocabSize) const {
-      std::set<Word> filtered;
+  template<class T>
+  Words GetFilteredVocab(const T& srcWords, const size_t maxVocabSize) const {
+    std::set<Word> filtered;
 
-      for(size_t i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
-        filtered.insert(i);
-      }
-
-      for (const auto& srcWord : srcWords) {
-        for (const auto& trgWord : mapper_[srcWord]) {
-          if (trgWord < maxVocabSize) {
-            filtered.insert(trgWord);
-          }
-        }
-      }
-
-      Words output(filtered.begin(), filtered.end());
-
-      return output;
+    for(size_t i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
+      filtered.insert(i);
     }
 
-    size_t GetNumFirstWords() const;
+    for (const auto& srcWord : srcWords) {
+      for (const auto& trgWord : mapper_[srcWord]) {
+        if (trgWord < maxVocabSize) {
+          filtered.insert(trgWord);
+        }
+      }
+    }
 
-    void SetNumFirstWords(size_t numFirstWords);
+    Words output(filtered.begin(), filtered.end());
 
-    static std::vector<Words> ParseAlignmentFile(const Vocab& srcVocab,
-                                                 const Vocab& trgVocab,
-                                                 const std::string& path,
-                                                 const size_t maxNumTranslation,
-                                                 const size_t numNFirst);
+    return output;
+  }
+
+  size_t GetNumFirstWords() const;
+
+  void SetNumFirstWords(size_t numFirstWords);
+
+  static std::vector<Words> ParseAlignmentFile(const Vocab& srcVocab,
+                                               const Vocab& trgVocab,
+                                               const std::string& path,
+                                               const size_t maxNumTranslation,
+                                               const size_t numNFirst);
 
   private:
     size_t numFirstWords_;

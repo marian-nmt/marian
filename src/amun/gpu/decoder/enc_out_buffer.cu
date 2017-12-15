@@ -1,11 +1,18 @@
 #include "enc_out_buffer.h"
 
+using namespace std;
+
 namespace amunmt {
 namespace GPU {
 
 EncOutBuffer::EncOutBuffer(unsigned int maxSize)
 :buffer_(maxSize)
 {
+}
+
+EncOutBuffer::~EncOutBuffer()
+{
+  cerr << "~EncOutBuffer" << endl;
 }
 
 void EncOutBuffer::Add(EncOutPtr obj)

@@ -9,6 +9,7 @@ class EncOutBuffer
 {
 public:
   EncOutBuffer(unsigned int maxSize);
+  virtual ~EncOutBuffer();
 
   void Add(EncOutPtr obj);
   EncOutPtr Get();

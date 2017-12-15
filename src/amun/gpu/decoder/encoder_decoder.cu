@@ -43,6 +43,7 @@ EncoderDecoder::EncoderDecoder(
 
 EncoderDecoder::~EncoderDecoder()
 {
+  cerr << "~EncoderDecoder1" << endl;
   decThread_->join();
   PAUSE_TIMER("EncoderDecoder");
 
@@ -67,6 +68,7 @@ EncoderDecoder::~EncoderDecoder()
     }
   }
 
+  cerr << "~EncoderDecoder2" << endl;
 }
 
 void EncoderDecoder::Encode(SentencesPtr source) {
