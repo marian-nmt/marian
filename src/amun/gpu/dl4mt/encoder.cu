@@ -42,15 +42,6 @@ std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML
   return unique_ptr<Cell>(nullptr);
 }
 
-size_t GetMaxLength(const Sentences& source, size_t tab) {
-  size_t maxLength = source.Get(0).GetWords(tab).size();
-  for (size_t i = 0; i < source.size(); ++i) {
-    const Sentence &sentence = source.Get(i);
-    maxLength = std::max(maxLength, sentence.GetWords(tab).size());
-  }
-  return maxLength;
-}
-
 std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
   std::vector<std::vector<FactWord>> matrix(maxLen, std::vector<FactWord>(source.size()));
 
@@ -69,7 +60,7 @@ void Encoder::Encode(EncOutPtr encOut, size_t tab)
   mblas::Matrix& context = encOut->Get<EncOutGPU>().GetSourceContext();
   const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
-  size_t maxSentenceLength = GetMaxLength(sentences, tab);
+  size_t maxSentenceLength = encOut->GetSentences().GetMaxLength();
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
   context.NewSize(maxSentenceLength,
