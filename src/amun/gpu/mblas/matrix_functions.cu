@@ -402,13 +402,13 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  cublasSgemm(handle, opB, opA,
-              n, m, k,
-              &alpha,
-              B.data(), ldb,
-              A.data(), lda,
-              &beta,
-              C.data(), ldc);
+  HANDLE_ERROR_CUBLAS(cublasSgemm(handle, opB, opA,
+                      n, m, k,
+                      &alpha,
+                      B.data(), ldb,
+                      A.data(), lda,
+                      &beta,
+                      C.data(), ldc));
   PAUSE_TIMER("Prod");
   return C;
 }

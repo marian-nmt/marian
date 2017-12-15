@@ -14,6 +14,12 @@ void HandleError(cudaError_t err, const char *file, int line ) {
   }
 }
 
+void HandleErrorCublas(cublasStatus_t err, const char *file, int line ) {
+  if (err != CUBLAS_STATUS_SUCCESS) {
+    std::cerr << "CUBLAS ERROR: " << err << " in " << file << " at line " << line << std::endl;
+    exit( EXIT_FAILURE );
+  }
+}
 
 }
 }
