@@ -51,7 +51,7 @@ public:
     HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
   }
 
-  Vector(const Vector<T> &other)
+  explicit Vector(const Vector<T> &other)
   :maxSize_(other.size_)
   ,size_(other.size_)
   {

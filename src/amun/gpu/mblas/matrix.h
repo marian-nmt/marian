@@ -83,7 +83,7 @@ class TMatrix : public BaseMatrix {
       swap(m);
     }
 
-    TMatrix(const TMatrix& m)
+    explicit TMatrix(const TMatrix& m)
     : vec_(m.vec_)
     {
       dim_[0] = m.dim_[0];
