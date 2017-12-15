@@ -64,8 +64,7 @@ class Decoder {
         , gru_(std::move(cell))
         {}
 
-        void InitializeState(EncOutPtr encOut,
-                             CellState& State,
+        void InitializeState(CellState& State,
                              const size_t batchSize,
                              const mblas::Matrix &SourceContext,
                              const mblas::Vector<uint> &sentenceLengths)
@@ -450,7 +449,7 @@ class Decoder {
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<uint> &sentenceLengths)
     {
-      rnn1_.InitializeState(encOut, State, batchSize, SourceContext, sentenceLengths);
+      rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
       alignment_.Init(encOut);
     }
 
