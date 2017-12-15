@@ -245,9 +245,9 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   boost::timer::cpu_timer timer;
 
   const Sentences &sentences = encOut->GetSentences();
-  const mblas::Matrix& SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-  mblas::Matrix& SCU = encOut->Get<EncOutGPU>().GetSCU();
+  const mblas::Matrix SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Vector<uint> sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  mblas::Matrix SCU = encOut->Get<EncOutGPU>().GetSCU();
 
   //if (search_.GetFilter()) {
   //  search_.FilterTargetVocab(*sentences);
