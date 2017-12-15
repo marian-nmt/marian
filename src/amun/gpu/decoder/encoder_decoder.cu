@@ -164,7 +164,7 @@ void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 // const-batch2
-bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
+size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       std::shared_ptr<Histories>& histories,
                       std::vector<uint>& beamSizes,
                       Beam& prevHyps,
@@ -189,14 +189,14 @@ bool EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   }
 
   if (survivors.size() == 0) {
-    return false;
+    return 0;
   }
 
   AssembleBeamState(nextState, survivors, state);
 
   //cerr << "survivors=" << survivors.size() << endl;
   prevHyps.swap(survivors);
-  return true;
+  return prevHyps.size();
 
 }
 
@@ -281,12 +281,12 @@ void EncoderDecoder::DecodeAsyncInternal()
       //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
       //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-      bool hasSurvivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
-      if (!hasSurvivors) {
+      size_t survivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
+      if (survivors == 0) {
         break;
       }
 
-      LOG(progress)->info("\tStep took {}", timerBatch.format(3, "%w"));
+      LOG(progress)->info("\tStep took {} survivors {}", timerBatch.format(3, "%w"), survivors);
     }
 
     histories->Output(god_);

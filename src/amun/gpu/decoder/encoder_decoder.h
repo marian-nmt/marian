@@ -41,14 +41,6 @@ class EncoderDecoder : public Scorer {
 
     virtual void Encode(SentencesPtr source);
 
-    virtual bool CalcBeam(BestHypsBase &bestHyps,
-                          std::shared_ptr<Histories>& histories,
-                          std::vector<uint>& beamSizes,
-                          Beam& prevHyps,
-                          State& state,
-                          State& nextState,
-                          const Words &filterIndices);
-
     virtual void AssembleBeamState(const State& state,
                                    const Beam& beam,
                                    State& nextState) const;
@@ -90,6 +82,14 @@ class EncoderDecoder : public Scorer {
                             const mblas::Vector<uint> &sentenceLengths,
                             State& state,
                             mblas::Matrix& SCU);
+
+    size_t CalcBeam(BestHypsBase &bestHyps,
+                          std::shared_ptr<Histories>& histories,
+                          std::vector<uint>& beamSizes,
+                          Beam& prevHyps,
+                          State& state,
+                          State& nextState,
+                          const Words &filterIndices);
 
 };
 

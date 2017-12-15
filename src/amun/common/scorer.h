@@ -72,14 +72,6 @@ class Scorer {
     virtual void *GetNBest() = 0; // hack - need to return matrix<NthOut> but NthOut contain cuda code
     virtual const BaseMatrix *GetBias() const = 0;
 
-    virtual bool CalcBeam(BestHypsBase &bestHyps,
-                          std::shared_ptr<Histories>& histories,
-                          std::vector<uint>& beamSizes,
-                          Beam& prevHyps,
-                          State& state,
-                          State& nextState,
-                          const Words &filterIndices) = 0;
-
   protected:
     const God &god_;
     const Search &search_;
