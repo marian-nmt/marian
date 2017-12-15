@@ -40,7 +40,7 @@ class Decoder {
           Assemble(Rows, *w_.E_, indices_);
         }
 
-        size_t GetCols() {
+        size_t GetCols() const {
           return w_.E_->dim(1);
         }
 
@@ -453,7 +453,8 @@ class Decoder {
       alignment_.Init(SourceContext, SCU);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
+    void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) const
+    {
       Embedding.NewSize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
