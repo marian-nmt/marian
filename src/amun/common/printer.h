@@ -55,6 +55,7 @@ void Printer(const God &god, const History& history, OStream& out, const Sentenc
       }
       out << history.GetLineNum() << " ||| " << translation << " |||";
 
+      //std::cerr << "hypo->GetCostBreakdown().size()=" << hypo->GetCostBreakdown().size() << std::endl;
       for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << std::setprecision(3) << std::fixed << hypo->GetCostBreakdown()[j];
       }

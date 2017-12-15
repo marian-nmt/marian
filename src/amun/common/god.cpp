@@ -91,13 +91,9 @@ God& God::Init(int argc, char** argv) {
   LoadScorers();
   LoadFiltering();
 
-  returnNBestList_ = Get<bool>("return-alignment")
-                   || Get<bool>("return-soft-alignment")
-                   || Get<bool>("return-nematus-alignment");
-
+  returnNBestList_ = Get<bool>("n-best");
   useFusedSoftmax_ = true;
-  if (returnNBestList_ ||
-      gpuLoaders_.size() != 1 || // more than 1 scorer
+  if (gpuLoaders_.size() != 1 || // more than 1 scorer
       God::Get<size_t>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
       ) {
     useFusedSoftmax_ = false;
