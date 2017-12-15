@@ -154,6 +154,8 @@ void NthElement::GetPairs(uint number,
 void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
 {
   // need a model with multiple scorers to test this method
+  assert(false);
+
   out.resize(d_breakdown.size());
 
   //mblas::VectorWrapper<float> breakdownWrap(d_breakdown);
