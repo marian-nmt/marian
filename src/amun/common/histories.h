@@ -16,25 +16,10 @@ class Histories {
       return coll_.size();
     }
 
-    void Add(const Beams& beams) {
-      for (size_t i = 0; i < size(); ++i) {
-        if (!beams[i].empty()) {
-          coll_[i]->Add(beams[i]);
-        }
-      }
-    }
-
+    void Add(const Beams& beams);
     void SortByLineNum();
     void Append(const Histories &other);
-
-    Beam GetFirstHyps() {
-      Beam beam;
-      for (auto& history : coll_) {
-        beam.emplace_back(history->front()[0]);
-      }
-      return beam;
-    }
-
+    Beam GetFirstHyps();
     void Output(const God &god) const;
 
   protected:
