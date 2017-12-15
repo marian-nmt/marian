@@ -12,7 +12,7 @@ EncOutBuffer::EncOutBuffer(unsigned int maxSize)
 
 EncOutBuffer::~EncOutBuffer()
 {
-  cerr << "~EncOutBuffer" << endl;
+//  cerr << "~EncOutBuffer" << endl;
 }
 
 void EncOutBuffer::Add(EncOutPtr obj)

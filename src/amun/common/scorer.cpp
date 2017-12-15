@@ -18,7 +18,7 @@ Scorer::Scorer(const God &god,
 
 Scorer::~Scorer()
 {
-  cerr << "~Scorer" << endl;
+  //cerr << "~Scorer" << endl;
 }
 
 }

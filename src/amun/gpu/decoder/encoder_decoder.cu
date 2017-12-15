@@ -43,7 +43,7 @@ EncoderDecoder::EncoderDecoder(
 
 EncoderDecoder::~EncoderDecoder()
 {
-  cerr << "~EncoderDecoder1" << endl;
+  //cerr << "~EncoderDecoder1" << endl;
   decThread_->join();
   PAUSE_TIMER("EncoderDecoder");
 
@@ -68,7 +68,7 @@ EncoderDecoder::~EncoderDecoder()
     }
   }
 
-  cerr << "~EncoderDecoder2" << endl;
+  //cerr << "~EncoderDecoder2" << endl;
 }
 
 void EncoderDecoder::Encode(SentencesPtr source) {
@@ -257,7 +257,7 @@ void EncoderDecoder::DecodeAsyncInternal()
   EncOutPtr encOut = encDecBuffer_.Get();
   assert(encOut);
 
-  while (encOut && encOut->GetSentences().size()) {
+  while (encOut->GetSentences().size()) {
     DecodeAsyncInternal(encOut);
     encOut = encDecBuffer_.Get();
     assert(encOut);

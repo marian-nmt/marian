@@ -19,7 +19,13 @@ EncOutGPU::EncOutGPU(SentencesPtr sentences)
 
 EncOutGPU::~EncOutGPU()
 {
-  cerr << "~EncOutGPU" << endl;
+  /*
+  cerr << "sentenceLengths_="
+      << &sentenceLengths_ << " "
+      << sentenceLengths_.size()
+      << endl;
+  */
+  //cerr << "~EncOutGPU" << endl;
 }
 
 }

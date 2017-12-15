@@ -19,7 +19,7 @@ BestHyps::BestHyps(const God &god)
 
 BestHyps::~BestHyps()
 {
-  cerr << "~BestHyps" << endl;
+  //cerr << "~BestHyps" << endl;
 }
 
 void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {

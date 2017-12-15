@@ -27,14 +27,14 @@ Search::Search(const God &god)
 
 
 Search::~Search() {
-  cerr << "~Search1" << endl;
+  //cerr << "~Search1" << endl;
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
 #endif
   scorers_.clear();
-  cerr << "~Search2" << endl;
+  //cerr << "~Search2" << endl;
 }
 
 void Search::Translate(SentencesPtr sentences)

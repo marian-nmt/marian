@@ -16,6 +16,9 @@ public:
 
   void Get(size_t num, std::vector<EncOut::SentenceElement> &ret);
 
+  size_t size() const
+  { return buffer_.size(); }
+
 protected:
   Buffer<EncOutPtr> buffer_;
 
