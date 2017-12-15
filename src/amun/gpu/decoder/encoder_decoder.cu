@@ -256,7 +256,7 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   StatePtr state(NewState());
 
 
-  BeginSentenceState(*state, sentences.size(), SourceContext, sentenceLengths, SCU);
+  BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
 
 
   StatePtr nextState(NewState());
@@ -295,10 +295,10 @@ void EncoderDecoder::DecodeAsyncInternal(EncOutPtr encOut)
   LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
 }
 
-void EncoderDecoder::BeginSentenceState(State& state,
-                                        size_t batchSize,
+void EncoderDecoder::BeginSentenceState(size_t batchSize,
                                         const mblas::Matrix &SourceContext,
                                         const mblas::Vector<uint> &sentenceLengths,
+                                        State& state,
                                         mblas::Matrix& SCU)
 {
   //BEGIN_TIMER("BeginSentenceState");
