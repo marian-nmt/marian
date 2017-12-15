@@ -234,7 +234,7 @@ void EncoderDecoder::DecodeAsyncInternal()
   assert(encOut);
 
   while (encOut->GetSentences().size()) {
-    boost::timer::cpu_timer timer;
+    boost::timer::cpu_timer timerBatch;
 
     const Sentences sentences(encOut->GetSentences());
     const mblas::Matrix SourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
@@ -259,6 +259,8 @@ void EncoderDecoder::DecodeAsyncInternal()
     Beam prevHyps = histories->GetFirstHyps();
 
     for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+      boost::timer::cpu_timer timerStep;
+
       const EDState& edstate = state->get<EDState>();
       EDState& ednextState = nextState->get<EDState>();
 
@@ -283,13 +285,15 @@ void EncoderDecoder::DecodeAsyncInternal()
       if (!hasSurvivors) {
         break;
       }
+
+      LOG(progress)->info("\tStep took {}", timerBatch.format(3, "%w"));
     }
 
     histories->Output(god_);
 
     CleanAfterTranslation();
 
-    LOG(progress)->info("Search took {}", timer.format(3, "%ws"));
+    LOG(progress)->info("Batch took {}", timerBatch.format(3, "%w"));
 
     // next batch
     encOut = encDecBuffer_.Get();
