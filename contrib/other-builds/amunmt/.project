@@ -171,26 +171,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/decoder_main.cpp</locationURI>
 		</link>
 		<link>
-			<name>src/amun/common/enc_out.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/enc_out.cpp</locationURI>
-		</link>
-		<link>
-			<name>src/amun/common/enc_out.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/enc_out.h</locationURI>
-		</link>
-		<link>
-			<name>src/amun/common/enc_outs.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/enc_outs.cpp</locationURI>
-		</link>
-		<link>
-			<name>src/amun/common/enc_outs.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/enc_outs.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/common/exception.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/exception.cpp</locationURI>
