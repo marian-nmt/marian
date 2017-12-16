@@ -168,7 +168,7 @@ void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
 // const-batch2
 size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       std::shared_ptr<Histories>& histories,
-                      std::vector<uint>& beamSizes,
+                      BeamSize& beamSizes,
                       Beam& prevHyps,
                       State& state,
                       State& nextState,
@@ -185,7 +185,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
       if (h->GetWord() != EOS_ID) {
         survivors.push_back(h);
       } else {
-        --beamSizes[batchId];
+        beamSizes.Decr(batchId);
       }
     }
   }
@@ -253,7 +253,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     StatePtr nextState(NewState());
 
-    std::vector<uint> beamSizes(sentences.size(), 1);
+    BeamSize beamSizes(sentences.size(), 1);
 
     std::shared_ptr<Histories> histories(new Histories(sentences, search_.NormalizeScore()));
     Beam prevHyps = histories->GetFirstHyps();
@@ -274,8 +274,8 @@ void EncoderDecoder::DecodeAsyncInternal()
                        sentenceLengths);
 
       if (decoderStep == 0) {
-        for (auto& beamSize : beamSizes) {
-          beamSize = search_.MaxBeamSize();
+        for (size_t i = 0; i < beamSizes.size(); ++i) {
+          beamSizes.Set(i, search_.MaxBeamSize());
         }
       }
       //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;

@@ -27,7 +27,8 @@ class BestHyps : public BestHypsBase
     void DisAllowUNK(mblas::Matrix& Prob);
 
     // standard nth_element
-    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+    void FindBests(const BeamSize& beamSizes,
+                   mblas::Matrix& Probs,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
@@ -37,7 +38,7 @@ class BestHyps : public BestHypsBase
         Scorer &scorer,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes);
+        BeamSize& beamSizes);
 
   private:
     std::unique_ptr<NthElement> nthElement_;
@@ -46,13 +47,13 @@ class BestHyps : public BestHypsBase
     uint maxBeamSize_;
 
     // fast fused softmax and nth_element
-    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+    void FindBests(const BeamSize& beamSizes, mblas::Matrix& Probs,
     		mblas::Vector<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
 
-    void getNBestList(const std::vector<uint>& beamSizes,
+    void getNBestList(const BeamSize& beamSizes,
                       mblas::Matrix& Probs,
                       mblas::Vector<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,

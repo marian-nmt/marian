@@ -10,6 +10,7 @@
 namespace amunmt {
 
 class God;
+class BeamSize;
 
 class BestHypsBase
 {
@@ -23,7 +24,7 @@ class BestHypsBase
         Scorer &scorer,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes) = 0;
+        BeamSize& beamSizes) = 0;
 
   protected:
     const God &god_;

@@ -16,6 +16,7 @@
 namespace amunmt {
 
 class Histories;
+class BeamSize;
 
 namespace GPU {
 
@@ -85,7 +86,7 @@ class EncoderDecoder : public Scorer {
 
     size_t CalcBeam(BestHypsBase &bestHyps,
                           std::shared_ptr<Histories>& histories,
-                          std::vector<uint>& beamSizes,
+                          BeamSize& beamSizes,
                           Beam& prevHyps,
                           State& state,
                           State& nextState,

@@ -34,7 +34,7 @@ class BestHyps : public BestHypsBase
                           Scorer &scorer,
                           const Words& filterIndices,
                           std::vector<Beam>& beams,
-                          std::vector<uint>& beamSizes)
+                          BeamSize& beamSizes)
     {
       assert(false);
     }

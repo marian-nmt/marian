@@ -1,3 +1,4 @@
+#include "common/beam_size.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/handles.h"
 
@@ -862,7 +863,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
                     VectorWrapper<uint> hypo2CandidateWrap,
                     bool isFirst,
                     uint beamSizeSum,
-                    const VectorWrapper<uint> beamSizesWrap)
+                    const VectorWrapper<size_t> beamSizesWrap)
 {
   uint hypoInd = 0;
   uint candidateInd = 0;
@@ -1291,7 +1292,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
-                const std::vector<uint>& beamSizes,
+                const BeamSize& beamSizes,
                 uint beamSizeSum,
                 bool isFirst)
 {
@@ -1304,7 +1305,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   uint batchSize = 0;
   uint candidateInd = 0;
   for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
-    uint beamSize = beamSizes[batchInd];
+    uint beamSize = beamSizes.Get(batchInd);
     //cerr << "(" << beamSize << "," << hypoInd << ") ";
 
     if (beamSize) {
@@ -1319,7 +1320,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     }
   }
 
-  mblas::Vector<uint> d_beamSizes(beamSizes);
+  mblas::Vector<size_t> d_beamSizes(beamSizes.Vec());
   mblas::Vector<uint> hypo2BeamSize(in.dim(0));
   mblas::Vector<uint> hypo2Candidate(in.dim(0));
   mblas::Vector<uint> batch2Hypo(batchSize);
@@ -1347,7 +1348,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   VectorWrapper<NthOutBatch> nBestCandidatesWrap(nBestCandidates);
   VectorWrapper<float> costsWrap(costs);
 
-  VectorWrapper<uint> beamSizesWrap(d_beamSizes);
+  VectorWrapper<size_t> beamSizesWrap(d_beamSizes);
 
   //PAUSE_TIMER("LogSoftmax excl kernels");
 

@@ -175,7 +175,7 @@ class Decoder {
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const std::vector<uint>& beamSizes,
+                                     const BeamSize& beamSizes,
                                      const mblas::Matrix& SourceContext,
                                      const mblas::Matrix& SCU,
                                      const mblas::Vector<uint> &sentenceLengths)
@@ -201,7 +201,7 @@ class Decoder {
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
-            for (size_t j = 0; j < beamSizes[i]; ++j) {
+            for (size_t j = 0; j < beamSizes.Get(i); ++j) {
               batchMapping[k++] = i;
             }
           }
@@ -401,7 +401,7 @@ class Decoder {
     void Decode(CellState& NextState,
                 const CellState& State,
                 const mblas::Matrix& Embeddings,
-                const std::vector<uint>& beamSizes,
+                const BeamSize& beamSizes,
                 bool useFusedSoftmax,
                 const mblas::Matrix& SourceContext,
                 const mblas::Matrix& SCU,
@@ -499,7 +499,7 @@ class Decoder {
 
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                  const CellState& HiddenState,
-                                 const std::vector<uint>& beamSizes,
+                                 const BeamSize& beamSizes,
                                  const mblas::Matrix& SourceContext,
                                  const mblas::Matrix& SCU,
                                  const mblas::Vector<uint> &sentenceLengths)

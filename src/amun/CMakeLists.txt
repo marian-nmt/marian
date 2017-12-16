@@ -44,6 +44,7 @@ add_library(libcommon OBJECT
   ${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp
   common/base_best_hyps.cpp
   common/base_matrix.cpp
+  common/beam_size.cpp
   common/config.cpp
   common/enc_out.cpp
   common/enc_outs.cpp

@@ -1,4 +1,5 @@
 #include "best_hyps.h"
+#include "common/beam_size.h"
 
 using namespace std;
 
@@ -26,20 +27,22 @@ void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-               std::vector<float>& outCosts,
-               std::vector<unsigned>& outKeys,
-               const bool isFirst)
+void BestHyps::FindBests(const BeamSize& beamSizes,
+                          mblas::Matrix& Probs,
+                          std::vector<float>& outCosts,
+                          std::vector<unsigned>& outKeys,
+                          const bool isFirst)
 {
   nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
 }
 
 // fast fused softmax and nth_element
-void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-               mblas::Vector<NthOutBatch> &nBest,
-               std::vector<float>& outCosts,
-               std::vector<unsigned>& outKeys,
-               const bool isFirst)
+void BestHyps::FindBests(const BeamSize& beamSizes,
+                        mblas::Matrix& Probs,
+                        mblas::Vector<NthOutBatch> &nBest,
+                        std::vector<float>& outCosts,
+                        std::vector<unsigned>& outKeys,
+                        const bool isFirst)
 {
   getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
 }
@@ -70,7 +73,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
 }
 
 //////////////////////////////////////////////////////////////////////////
-void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
+void BestHyps::getNBestList(const BeamSize& beamSizes,
                   mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
@@ -137,7 +140,7 @@ void  BestHyps::CalcBeam(
     Scorer &scorer,
     const Words& filterIndices,
     std::vector<Beam>& beams,
-    std::vector<uint>& beamSizes)
+    BeamSize& beamSizes)
 {
   BEGIN_TIMER("CalcBeam");
   using namespace mblas;
@@ -155,7 +158,7 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 
-  size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
+  size_t beamSizeSum = beamSizes.Sum();;
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
@@ -192,7 +195,7 @@ void  BestHyps::CalcBeam(
   std::map<size_t, size_t> batchMap;
   size_t tmp = 0;
   for (size_t batchID = 0; batchID < beamSizes.size(); ++batchID) {
-    for (size_t t = 0; t < beamSizes[batchID]; ++t) {
+    for (size_t t = 0; t < beamSizes.Get(batchID); ++t) {
       batchMap[tmp++] = batchID;
     }
   }

@@ -1,5 +1,6 @@
 #include <iostream>
 #include "common/utils.h"
+#include "common/beam_size.h"
 #include "matrix_wrapper.h"
 #include "vector_wrapper.h"
 #include "nth_element.h"
@@ -29,7 +30,7 @@ NthElement::~NthElement()
   //cerr << "FOO2" << endl;
 }
 
-void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void NthElement::getNBestList(const BeamSize& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<uint>& outKeys,
                   const bool isFirst) {
   /*
@@ -49,7 +50,7 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   const uint vocabSize = Probs.dim(1);
   for (uint i = 0; i < beamSizes.size(); ++i) {
 
-    cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
+    cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes.Get(i);
     batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
 

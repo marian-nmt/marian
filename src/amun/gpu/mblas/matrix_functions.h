@@ -17,6 +17,9 @@
 #include "gpu/mblas/vector_wrapper.h"
 
 namespace amunmt {
+
+class BeamSize;
+
 namespace GPU {
 namespace mblas {
 
@@ -418,7 +421,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
-                const std::vector<uint>& beamSizes,
+                const BeamSize& beamSizes,
                 uint beamSizeSum,
                 bool isFirst);
 
