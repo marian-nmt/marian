@@ -156,6 +156,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/beam.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/common/beam_size.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/beam_size.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/common/beam_size.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/beam_size.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/common/config.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/config.cpp</locationURI>

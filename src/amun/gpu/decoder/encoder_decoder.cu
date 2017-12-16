@@ -5,6 +5,7 @@
 #include "common/sentences.h"
 #include "common/histories.h"
 #include "common/search.h"
+#include "common/beam_size.h"
 
 #include "encoder_decoder.h"
 #include "enc_out_gpu.h"
