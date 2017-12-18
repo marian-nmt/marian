@@ -44,11 +44,6 @@ void BeamSize::Set(size_t ind, size_t val)
   coll_[ind].SetBeamSize(val);
 }
 
-void BeamSize::Decr(size_t ind)
-{
-  coll_[ind].Decr();
-}
-
 size_t BeamSize::Sum() const
 {
   size_t ret = 0;

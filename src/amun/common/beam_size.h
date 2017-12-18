@@ -32,12 +32,6 @@ public:
     size_ = size;
   }
 
-  void Decr()
-  {
-    assert(size_);
-    --size_;
-  }
-
   const History &GetHistory() const
   { return *history_; }
 
@@ -64,7 +58,6 @@ public:
 
   size_t Get(size_t ind) const;
   void Set(size_t ind, size_t val);
-  void Decr(size_t ind);
 
   size_t Sum() const;
 
