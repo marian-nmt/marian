@@ -19,9 +19,6 @@ void BeamElement::Add(const God &god, const Hypotheses &hypos, Hypotheses &survi
   assert(size_ >= numEOS);
   size_ -= numEOS;
 
-  if (hypos.size() && size_ == 0) {
-    history_.Output(god);
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +67,16 @@ Hypotheses BeamSize::Add(const God &god, const HypothesesBatch& beams)
 
   for (size_t i = 0; i < size(); ++i) {
     const Hypotheses &hypos = beams[i];
-    coll_[i]->Add(god, hypos, survivors);
+
+    if (hypos.size()) {
+      std::shared_ptr<BeamElement> &ele = coll_[i];
+      ele->Add(god, hypos, survivors);
+      unsigned beamSize = ele->GetBeamSize();
+
+      if (beamSize == 0) {
+        ele->GetHistory().Output(god);
+      }
+    }
   }
 
   return survivors;
