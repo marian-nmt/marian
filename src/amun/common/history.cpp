@@ -18,6 +18,10 @@ History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength
 }
 
 void History::Add(const Hypotheses& beam) {
+  if (beam.empty()) {
+    return;
+  }
+
   if (beam.back()->GetPrevHyp() != nullptr) {
     for (size_t j = 0; j < beam.size(); ++j)
       if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {

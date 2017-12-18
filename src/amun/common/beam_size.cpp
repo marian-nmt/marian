@@ -81,10 +81,7 @@ Hypotheses BeamSize::Add(const HypothesesBatch& beams)
 
   for (size_t i = 0; i < size(); ++i) {
     const Hypotheses &hypos = beams[i];
-
-    if (!hypos.empty()) {
-      coll_[i].Add(hypos, survivors);
-    }
+    coll_[i].Add(hypos, survivors);
   }
 
   return survivors;
