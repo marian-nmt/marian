@@ -16,6 +16,7 @@ class Scorer;
 class Hypothesis;
 using HypothesisPtr = std::shared_ptr<Hypothesis>;
 using Hypotheses = std::vector<HypothesisPtr>;
+using HypothesesBatch = std::vector<Hypotheses>;
 
 class BestHypsBase
 {
@@ -28,7 +29,7 @@ class BestHypsBase
         const Hypotheses& prevHyps,
         Scorer &scorer,
         const Words& filterIndices,
-        std::vector<Hypotheses>& beams,
+        HypothesesBatch& beams,
         BeamSize& beamSizes) = 0;
 
   protected:

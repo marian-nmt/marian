@@ -37,7 +37,7 @@ class BestHyps : public BestHypsBase
         const Hypotheses& prevHyps,
         Scorer &scorer,
         const Words& filterIndices,
-        std::vector<Hypotheses>& beams,
+        HypothesesBatch& beams,
         BeamSize& beamSizes);
 
   private:

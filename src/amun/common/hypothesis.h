@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <cassert>
-#include "god.h"
 #include "types.h"
 #include "soft_alignment.h"
 

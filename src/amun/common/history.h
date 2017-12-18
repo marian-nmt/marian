@@ -2,10 +2,11 @@
 
 #include <queue>
 #include <algorithm>
-
 #include "hypothesis.h"
 
 namespace amunmt {
+
+class God;
 
 std::string GetAlignmentString(const std::vector<size_t>& alignment);
 std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
@@ -54,7 +55,7 @@ class History {
     void Output(const God &god, std::ostream& out) const;
 
   private:
-    std::vector<Hypotheses> history_;
+    HypothesesBatch history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
     size_t lineNo_;

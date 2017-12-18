@@ -140,7 +140,7 @@ void  BestHyps::CalcBeam(
     const Hypotheses& prevHyps,
     Scorer &scorer,
     const Words& filterIndices,
-    std::vector<Hypotheses>& beams,
+    HypothesesBatch& beams,
     BeamSize& beamSizes)
 {
   BEGIN_TIMER("CalcBeam");
