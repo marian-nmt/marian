@@ -60,7 +60,7 @@ std::vector<size_t> BeamSize::Vec() const
   return ret;
 }
 
-void BeamSize::Add(const Beams& beams) {
+void BeamSize::Add(const HypothesesBatch& beams) {
   for (size_t i = 0; i < size(); ++i) {
     if (!beams[i].empty()) {
       coll_[i].GetHistory().Add(beams[i]);

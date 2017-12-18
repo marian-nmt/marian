@@ -250,7 +250,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       const Words &filterIndices)
 {
   size_t batchSize = beamSizes.size();
-  Beams beams(batchSize);
+  HypothesesBatch beams(batchSize);
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
   beamSizes.Add(beams);
   cerr << "beams=" << beams.size() << endl;

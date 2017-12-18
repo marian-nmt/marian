@@ -62,7 +62,7 @@ public:
 
   std::vector<size_t> Vec() const;
 
-  void Add(const Beams& beams);
+  void Add(const HypothesesBatch& beams);
   Hypotheses GetFirstHyps();
   void Output(const God &god) const;
 

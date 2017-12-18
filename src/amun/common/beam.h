@@ -12,7 +12,7 @@ using Hypotheses = std::vector<HypothesisPtr>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using Beams = std::vector<Hypotheses>;
+using HypothesesBatch = std::vector<Hypotheses>;
 
 }
 
