@@ -21,8 +21,9 @@ unsigned History::Add(const Hypotheses& beam, Hypotheses &survivors)
 {
   unsigned numEOS = 0;
   for (size_t j = 0; j < beam.size(); ++j) {
-    if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {
-      float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
+    const HypothesisPtr &hypo = beam[j];
+    if(hypo->GetWord() == EOS_ID || size() == maxLength_ ) {
+      float cost = normalize_ ? hypo->GetCost() / history_.size() : hypo->GetCost();
       topHyps_.push({ history_.size(), j, cost });
       ++numEOS;
     }
