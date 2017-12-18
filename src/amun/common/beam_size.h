@@ -35,9 +35,6 @@ public:
   const History &GetHistory() const
   { return *history_; }
 
-  History &GetHistory()
-  { return *history_; }
-
   void Add(const Hypotheses &hypos, Hypotheses &survivors);
 
 protected:

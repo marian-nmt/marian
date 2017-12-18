@@ -37,9 +37,8 @@ class History {
       return history_.size();
     }
 
-    Hypotheses& front() {
-      return history_.front();
-    }
+    const Hypotheses& front() const
+    { return history_.front(); }
 
     NBestList NBest(size_t n) const;
 

@@ -79,8 +79,8 @@ Hypotheses BeamSize::GetFirstHyps()
 {
   Hypotheses ret(coll_.size());
   for (size_t i = 0; i < coll_.size(); ++i) {
-    History &history = coll_[i].GetHistory();
-    Hypotheses &beam = history.front();
+    const History &history = coll_[i].GetHistory();
+    const Hypotheses &beam = history.front();
     HypothesisPtr hypo = beam[0];
     ret[i] = hypo;
   }
