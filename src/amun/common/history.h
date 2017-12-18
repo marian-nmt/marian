@@ -31,7 +31,7 @@ class History {
   public:
     History(const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
-    void Add(const Hypotheses& beam, Hypotheses &survivors);
+    unsigned Add(const Hypotheses& beam, Hypotheses &survivors);
 
     size_t size() const {
       return history_.size();

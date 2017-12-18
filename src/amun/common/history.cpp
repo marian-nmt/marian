@@ -17,19 +17,19 @@ History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength
   history_.push_back({HypothesisPtr(new Hypothesis(sentence))});
 }
 
-void History::Add(const Hypotheses& beam, Hypotheses &survivors)
+unsigned History::Add(const Hypotheses& beam, Hypotheses &survivors)
 {
-  if (beam.empty()) {
-    return;
-  }
-
+  unsigned numEOS = 0;
   for (size_t j = 0; j < beam.size(); ++j) {
     if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {
       float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
       topHyps_.push({ history_.size(), j, cost });
+      ++numEOS;
     }
   }
   history_.push_back(beam);
+
+  return numEOS;
 }
 
 NBestList History::NBest(size_t n) const
