@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <cassert>
 #include "god.h"
+#include "history.h"
 
 namespace amunmt {
 
@@ -19,9 +20,6 @@ using HypothesesBatch = std::vector<Hypotheses>;
 class BeamElement
 {
 public:
-  BeamElement()
-  {}
-
   BeamElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
   unsigned GetBeamSize() const
@@ -33,13 +31,13 @@ public:
   }
 
   const History &GetHistory() const
-  { return *history_; }
+  { return history_; }
 
   void Add(const Hypotheses &hypos, Hypotheses &survivors);
 
 protected:
   unsigned size_;  // beam size 0..beam
-  std::shared_ptr<History> history_;
+  History history_;
 
 };
 
@@ -67,7 +65,7 @@ public:
   virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
-  std::vector<BeamElement> coll_;
+  std::vector< std::shared_ptr<BeamElement> > coll_;
 
 };
 
