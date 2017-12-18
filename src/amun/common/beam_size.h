@@ -63,7 +63,7 @@ public:
   std::vector<size_t> Vec() const;
 
   void Add(const Beams& beams);
-  Beam GetFirstHyps();
+  Hypotheses GetFirstHyps();
   void Output(const God &god) const;
 
   virtual std::string Debug(size_t verbosity = 1) const;

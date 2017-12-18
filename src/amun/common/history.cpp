@@ -17,7 +17,7 @@ History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength
   Add({HypothesisPtr(new Hypothesis(sentence))});
 }
 
-void History::Add(const Beam& beam) {
+void History::Add(const Hypotheses& beam) {
   if (beam.back()->GetPrevHyp() != nullptr) {
     for (size_t j = 0; j < beam.size(); ++j)
       if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {

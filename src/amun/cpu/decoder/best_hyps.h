@@ -30,10 +30,10 @@ class BestHyps : public BestHypsBase
     {}
 
     virtual void  CalcBeam(
-                          const Beam& prevHyps,
+                          const Hypotheses& prevHyps,
                           Scorer &scorer,
                           const Words& filterIndices,
-                          std::vector<Beam>& beams,
+                          std::vector<Hypotheses>& beams,
                           BeamSize& beamSizes)
     {
       assert(false);

@@ -68,12 +68,12 @@ void BeamSize::Add(const Beams& beams) {
   }
 }
 
-Beam BeamSize::GetFirstHyps()
+Hypotheses BeamSize::GetFirstHyps()
 {
-  Beam ret(coll_.size());
+  Hypotheses ret(coll_.size());
   for (size_t i = 0; i < coll_.size(); ++i) {
     History &history = coll_[i].GetHistory();
-    Beam &beam = history.front();
+    Hypotheses &beam = history.front();
     HypothesisPtr hypo = beam[0];
     ret[i] = hypo;
   }

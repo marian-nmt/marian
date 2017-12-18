@@ -34,10 +34,10 @@ class BestHyps : public BestHypsBase
                    const bool isFirst);
 
     virtual void  CalcBeam(
-        const Beam& prevHyps,
+        const Hypotheses& prevHyps,
         Scorer &scorer,
         const Words& filterIndices,
-        std::vector<Beam>& beams,
+        std::vector<Hypotheses>& beams,
         BeamSize& beamSizes);
 
   private:

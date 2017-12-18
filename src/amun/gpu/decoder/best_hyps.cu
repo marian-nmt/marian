@@ -136,10 +136,10 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(Scorer &scorer,
 
 // standard nth_element
 void  BestHyps::CalcBeam(
-    const Beam& prevHyps,
+    const Hypotheses& prevHyps,
     Scorer &scorer,
     const Words& filterIndices,
-    std::vector<Beam>& beams,
+    std::vector<Hypotheses>& beams,
     BeamSize& beamSizes)
 {
   BEGIN_TIMER("CalcBeam");

@@ -175,7 +175,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     BeamSize beamSizes(sentences, 1, search_.NormalizeScore());
 
-    Beam prevHyps = beamSizes.GetFirstHyps();
+    Hypotheses prevHyps = beamSizes.GetFirstHyps();
     cerr << "prevHyps1=" << prevHyps.size() << endl;
 
     for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
@@ -244,7 +244,7 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
 
 size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       BeamSize& beamSizes,
-                      Beam& prevHyps,
+                      Hypotheses& prevHyps,
                       State& state,
                       State& nextState,
                       const Words &filterIndices)
@@ -256,7 +256,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   cerr << "beams=" << beams.size() << endl;
   assert(beams.size() == beamSizes.size());
 
-  Beam survivors;
+  Hypotheses survivors;
   for (size_t batchId = 0; batchId < batchSize; ++batchId) {
     for (auto& h : beams[batchId]) {
       if (h->GetWord() != EOS_ID) {
@@ -280,7 +280,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 }
 
 void EncoderDecoder::AssembleBeamState(const State& state,
-                               const Beam& beam,
+                               const Hypotheses& beam,
                                State& nextState) const
 {
   //BEGIN_TIMER("AssembleBeamState");

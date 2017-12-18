@@ -8,11 +8,11 @@
 
 namespace amunmt {
 
-typedef std::vector<HypothesisPtr> Beam;
+typedef std::vector<HypothesisPtr> Hypotheses;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef std::vector<Beam> Beams;
+typedef std::vector<Hypotheses> Beams;
 
 }
 

@@ -54,7 +54,7 @@ void EncoderDecoder::Encode(SentencesPtr sources) {
 
 
 void EncoderDecoder::AssembleBeamState(const State& in,
-                                       const Beam& beam,
+                                       const Hypotheses& beam,
                                        State& out) const
 {
   std::vector<uint> beamWords;

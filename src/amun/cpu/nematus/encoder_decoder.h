@@ -39,7 +39,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     virtual void Encode(SentencesPtr sources);
 
     virtual void AssembleBeamState(const State& in,
-                                   const Beam& beam,
+                                   const Hypotheses& beam,
                                    State& out) const;
 
     void GetAttention(mblas::Matrix& Attention);

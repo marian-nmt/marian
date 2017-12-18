@@ -52,7 +52,7 @@ class Scorer {
 
     virtual ~Scorer();
 
-    virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) const = 0;
+    virtual void AssembleBeamState(const State& in, const Hypotheses& beam, State& out) const = 0;
 
     virtual void Encode(SentencesPtr sources) = 0;
 

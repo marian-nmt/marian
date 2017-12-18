@@ -43,7 +43,7 @@ class EncoderDecoder : public Scorer {
     virtual void Encode(SentencesPtr source);
 
     virtual void AssembleBeamState(const State& state,
-                                   const Beam& beam,
+                                   const Hypotheses& beam,
                                    State& nextState) const;
 
     virtual State* NewState() const;
@@ -86,7 +86,7 @@ class EncoderDecoder : public Scorer {
 
     size_t CalcBeam(BestHypsBase &bestHyps,
                           BeamSize& beamSizes,
-                          Beam& prevHyps,
+                          Hypotheses& prevHyps,
                           State& state,
                           State& nextState,
                           const Words &filterIndices);

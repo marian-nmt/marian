@@ -25,7 +25,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
   public:
     EncoderDecoder(const God &god,
-    			   const std::string& name,
+                   const std::string& name,
                    const YAML::Node& config,
                    size_t tab,
                    const Weights& model,
@@ -41,7 +41,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     virtual void Encode(SentencesPtr sources);
 
     virtual void AssembleBeamState(const State& in,
-                                   const Beam& beam,
+                                   const Hypotheses& beam,
                                    State& out) const;
 
     void GetAttention(mblas::Matrix& Attention);

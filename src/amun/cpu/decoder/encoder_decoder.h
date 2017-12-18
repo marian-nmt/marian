@@ -41,7 +41,7 @@ class CPUEncoderDecoderBase : public Scorer {
     virtual bool CalcBeam(BestHypsBase &bestHyps,
                           std::shared_ptr<Histories>& histories,
                           std::vector<uint>& beamSizes,
-                          Beam& prevHyps,
+                          Hypotheses& prevHyps,
                           State& state,
                           State& nextState,
                           const Words &filterIndices)

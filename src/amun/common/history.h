@@ -31,13 +31,13 @@ class History {
   public:
     History(const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
-    void Add(const Beam& beam);
+    void Add(const Hypotheses& beam);
 
     size_t size() const {
       return history_.size();
     }
 
-    Beam& front() {
+    Hypotheses& front() {
       return history_.front();
     }
 
@@ -55,7 +55,7 @@ class History {
     void Output(const God &god, std::ostream& out) const;
 
   private:
-    std::vector<Beam> history_;
+    std::vector<Hypotheses> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
     size_t lineNo_;
