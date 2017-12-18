@@ -1,8 +1,21 @@
 #pragma once
 #include <vector>
 #include <stddef.h>
+#include <cassert>
 
 namespace amunmt {
+
+struct SentenceElement
+{
+  unsigned size;  // beam size 0..beam
+
+  void Decr()
+  {
+    assert(size);
+    --size;
+  }
+
+};
 
 class BeamSize
 {
@@ -18,11 +31,10 @@ public:
 
   size_t Sum() const;
 
-  const std::vector<size_t> &Vec() const
-  { return sentences_; }
+  std::vector<size_t> Vec() const;
 
 protected:
-  std::vector<size_t> sentences_;
+  std::vector<SentenceElement> sentences_;
 
 };
 
