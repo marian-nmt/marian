@@ -253,23 +253,12 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   size_t batchSize = beamSizes.size();
   HypothesesBatch beams(batchSize);
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
-  beamSizes.Add(beams);
 
   cerr << "beams=" << beams.size() << endl;
   assert(beams.size() == beamSizes.size());
   assert(beams.size() == batchSize);
 
-  Hypotheses survivors;
-  for (size_t batchId = 0; batchId < batchSize; ++batchId) {
-    const Hypotheses &hypos = beams[batchId];
-    for (const HypothesisPtr &h : hypos) {
-      if (h->GetWord() != EOS_ID) {
-        survivors.push_back(h);
-      } else {
-        beamSizes.Decr(batchId);
-      }
-    }
-  }
+  Hypotheses survivors = beamSizes.Add(beams);
 
   if (survivors.size() == 0) {
     return 0;

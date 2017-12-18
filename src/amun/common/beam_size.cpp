@@ -60,12 +60,28 @@ std::vector<size_t> BeamSize::Vec() const
   return ret;
 }
 
-void BeamSize::Add(const HypothesesBatch& beams) {
+Hypotheses BeamSize::Add(const HypothesesBatch& beams)
+{
+  Hypotheses survivors;
+
   for (size_t i = 0; i < size(); ++i) {
-    if (!beams[i].empty()) {
-      coll_[i].GetHistory().Add(beams[i]);
+    const Hypotheses &hypos = beams[i];
+
+    if (!hypos.empty()) {
+      coll_[i].GetHistory().Add(hypos);
+
+      for (const HypothesisPtr &h : hypos) {
+        if (h->GetWord() != EOS_ID) {
+          survivors.push_back(h);
+        }
+        else {
+          Decr(i);
+        }
+      }
     }
   }
+
+  return survivors;
 }
 
 Hypotheses BeamSize::GetFirstHyps()
