@@ -33,7 +33,7 @@ public:
   const History &GetHistory() const
   { return history_; }
 
-  void Add(const God &god, const Hypotheses &hypos, Hypotheses &survivors);
+  void Add(const Hypotheses &hypos, Hypotheses &survivors);
 
 protected:
   unsigned size_;  // beam size 0..beam

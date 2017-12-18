@@ -13,7 +13,7 @@ BeamElement::BeamElement(unsigned size, const Sentence &sentence, bool normalize
 ,history_(sentence, normalizeScore, 3 * sentence.size())
 {}
 
-void BeamElement::Add(const God &god, const Hypotheses &hypos, Hypotheses &survivors)
+void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 {
   unsigned numEOS = history_.Add(hypos, survivors);
   assert(size_ >= numEOS);
@@ -70,7 +70,7 @@ Hypotheses BeamSize::Add(const God &god, const HypothesesBatch& beams)
 
     if (hypos.size()) {
       std::shared_ptr<BeamElement> &ele = coll_[i];
-      ele->Add(god, hypos, survivors);
+      ele->Add(hypos, survivors);
       unsigned beamSize = ele->GetBeamSize();
 
       if (beamSize == 0) {
@@ -97,8 +97,9 @@ Hypotheses BeamSize::GetFirstHyps()
 void BeamSize::Output(const God &god) const
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
-    if (coll_[i]->GetBeamSize()) {
-      const History &history = coll_[i]->GetHistory();
+    const std::shared_ptr<BeamElement> &ele = coll_[i];
+    if (ele->GetBeamSize()) {
+      const History &history = ele->GetHistory();
       history.Output(god);
     }
   }

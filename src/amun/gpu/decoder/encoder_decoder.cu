@@ -203,6 +203,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
       //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
+      unsigned numPrevHyps = prevHyps.size();
       size_t survivors = CalcBeam(search_.GetBestHyps(), beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
       if (survivors == 0) {
         break;
@@ -213,7 +214,7 @@ void EncoderDecoder::DecodeAsyncInternal()
           << "beamSizes=" << beamSizes.size() << " "
           << endl;
       */
-      LOG(progress)->info("\tStep took {} survivors {}", timerStep.format(3, "%w"), survivors);
+      LOG(progress)->info("\tStep took {} prevHypos {} survivors {}", timerStep.format(3, "%w"), numPrevHyps, survivors);
     }
 
     beamSizes.Output(god_);
