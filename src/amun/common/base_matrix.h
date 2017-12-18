@@ -9,9 +9,6 @@ namespace amunmt {
 
 const size_t SHAPE_SIZE = 4;
 
-class Scorer;
-typedef std::shared_ptr<Scorer> ScorerPtr;
-
 class BaseMatrix {
   public:
 	BaseMatrix() {}
