@@ -10,18 +10,41 @@ namespace amunmt {
 class Sentences;
 class History;
 
-struct SentenceElement
+class BeamElement
 {
-  unsigned size;  // beam size 0..beam
-  std::shared_ptr<History> history;
+public:
+  BeamElement()
+  {}
+
+  BeamElement(unsigned size, History *history);
+
+  unsigned GetBeamSize() const
+  { return size_; }
+
+  void SetBeamSize(unsigned size)
+  {
+    size_ = size;
+  }
 
   void Decr()
   {
-    assert(size);
-    --size;
+    assert(size_);
+    --size_;
   }
 
+  const History &GetHistory() const
+  { return *history_; }
+
+  History &GetHistory()
+  { return *history_; }
+
+protected:
+  unsigned size_;  // beam size 0..beam
+  std::shared_ptr<History> history_;
+
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 class BeamSize
 {
@@ -29,7 +52,7 @@ public:
   BeamSize(const Sentences& sentences, size_t val, bool normalizeScore);
 
   size_t size() const
-  { return sentences_.size(); }
+  { return coll_.size(); }
 
   size_t Get(size_t ind) const;
   void Set(size_t ind, size_t val);
@@ -44,7 +67,7 @@ public:
   void Output(const God &god) const;
 
 protected:
-  std::vector<SentenceElement> sentences_;
+  std::vector<BeamElement> coll_;
 
 };
 
