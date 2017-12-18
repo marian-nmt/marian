@@ -16,7 +16,7 @@ BeamElement::BeamElement(unsigned size, History *history)
 void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 {
 
-  history_->Add(hypos);
+  history_->Add(hypos, survivors);
 
   for (const HypothesisPtr &h : hypos) {
     if (h->GetWord() != EOS_ID) {

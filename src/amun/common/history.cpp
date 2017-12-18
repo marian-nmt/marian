@@ -14,20 +14,20 @@ History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength
     lineNo_(sentence.GetLineNum()),
    maxLength_(maxLength)
 {
-  Add({HypothesisPtr(new Hypothesis(sentence))});
+  history_.push_back({HypothesisPtr(new Hypothesis(sentence))});
 }
 
-void History::Add(const Hypotheses& beam) {
+void History::Add(const Hypotheses& beam, Hypotheses &survivors)
+{
   if (beam.empty()) {
     return;
   }
 
-  if (beam.back()->GetPrevHyp() != nullptr) {
-    for (size_t j = 0; j < beam.size(); ++j)
-      if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {
-        float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
-        topHyps_.push({ history_.size(), j, cost });
-      }
+  for (size_t j = 0; j < beam.size(); ++j) {
+    if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {
+      float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
+      topHyps_.push({ history_.size(), j, cost });
+    }
   }
   history_.push_back(beam);
 }
