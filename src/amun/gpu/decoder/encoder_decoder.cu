@@ -177,7 +177,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     BeamSize beamSizes(sentences, 1, search_.NormalizeScore());
 
     Hypotheses prevHyps = beamSizes.GetFirstHyps();
-    cerr << "prevHyps1=" << prevHyps.size() << endl;
+    //cerr << "prevHyps1=" << prevHyps.size() << endl;
 
     for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
       boost::timer::cpu_timer timerStep;
@@ -199,8 +199,8 @@ void EncoderDecoder::DecodeAsyncInternal()
           beamSizes.Set(i, search_.MaxBeamSize());
         }
       }
-      cerr << "beamSizes=" << beamSizes.Debug() << endl;
-      cerr << "prevHyps2=" << prevHyps.size() << endl;
+      //cerr << "beamSizes=" << beamSizes.Debug() << endl;
+      //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
       //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
       size_t survivors = CalcBeam(search_.GetBestHyps(), beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
@@ -254,7 +254,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   HypothesesBatch beams(batchSize);
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
 
-  cerr << "beams=" << beams.size() << endl;
+  //cerr << "beams=" << beams.size() << endl;
   assert(beams.size() == beamSizes.size());
   assert(beams.size() == batchSize);
 
