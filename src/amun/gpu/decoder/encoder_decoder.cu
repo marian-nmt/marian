@@ -87,49 +87,6 @@ void EncoderDecoder::Encode(SentencesPtr source) {
   PAUSE_TIMER("Encode");
 }
 
-void EncoderDecoder::AssembleBeamState(const State& state,
-                               const Beam& beam,
-                               State& nextState) const
-{
-  //BEGIN_TIMER("AssembleBeamState");
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
-  for (const HypothesisPtr &h : beam) {
-     beamWords.push_back(h->GetWord());
-     beamStateIds.push_back(h->GetPrevStateIndex());
-  }
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
-
-  const EDState& edState = state.get<EDState>();
-  EDState& edNextState = nextState.get<EDState>();
-
-  thread_local mblas::Vector<uint> indices;
-  indices.newSize(beamStateIds.size());
-  //mblas::Vector<uint> indices(beamStateIds.size());
-  //cerr << "indices=" << indices.Debug(2) << endl;
-
-  mblas::copy(beamStateIds.data(),
-              beamStateIds.size(),
-              indices.data(),
-              cudaMemcpyHostToDevice);
-  //cerr << "indices=" << mblas::Debug(indices, 2) << endl;
-
-  CellState& outstates = edNextState.GetStates();
-  const CellState& instates = edState.GetStates();
-
-  mblas::Assemble(*(outstates.output), *(instates.output), indices);
-  if (instates.cell->size() > 0) {
-    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
-  }
-  //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
-
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
-  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
-  //PAUSE_TIMER("AssembleBeamState");
-}
-
 State* EncoderDecoder::NewState() const {
   return new EDState();
 }
@@ -166,42 +123,6 @@ void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 // const-batch2
-size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
-                      std::shared_ptr<Histories>& histories,
-                      BeamSize& beamSizes,
-                      Beam& prevHyps,
-                      State& state,
-                      State& nextState,
-                      const Words &filterIndices)
-{
-  size_t batchSize = beamSizes.size();
-  Beams beams(batchSize);
-  bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
-  histories->Add(beams);
-
-  Beam survivors;
-  for (size_t batchId = 0; batchId < batchSize; ++batchId) {
-    for (auto& h : beams[batchId]) {
-      if (h->GetWord() != EOS_ID) {
-        survivors.push_back(h);
-      } else {
-        beamSizes.Decr(batchId);
-      }
-    }
-  }
-
-  if (survivors.size() == 0) {
-    return 0;
-  }
-
-  AssembleBeamState(nextState, survivors, state);
-
-  //cerr << "survivors=" << survivors.size() << endl;
-  prevHyps.swap(survivors);
-  return prevHyps.size();
-
-}
-
 void EncoderDecoder::DecodeAsync()
 {
   //cerr << "BeginSentenceState encOut->sourceContext_=" << encOut->sourceContext_.Debug(0) << endl;
@@ -286,6 +207,13 @@ void EncoderDecoder::DecodeAsyncInternal()
         break;
       }
 
+      /*
+      cerr << "histories=" << histories->size() << " "
+          << "beamSizes=" << beamSizes.size() << " "
+          << endl;
+      */
+      assert(histories->size() == beamSizes.size());
+
       LOG(progress)->info("\tStep took {} survivors {}", timerStep.format(3, "%w"), survivors);
     }
 
@@ -316,6 +244,84 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   //PAUSE_TIMER("BeginSentenceState");
 }
 
+size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
+                      std::shared_ptr<Histories>& histories,
+                      BeamSize& beamSizes,
+                      Beam& prevHyps,
+                      State& state,
+                      State& nextState,
+                      const Words &filterIndices)
+{
+  size_t batchSize = beamSizes.size();
+  Beams beams(batchSize);
+  bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
+  histories->Add(beams);
+
+  Beam survivors;
+  for (size_t batchId = 0; batchId < batchSize; ++batchId) {
+    for (auto& h : beams[batchId]) {
+      if (h->GetWord() != EOS_ID) {
+        survivors.push_back(h);
+      } else {
+        beamSizes.Decr(batchId);
+      }
+    }
+  }
+
+  if (survivors.size() == 0) {
+    return 0;
+  }
+
+  AssembleBeamState(nextState, survivors, state);
+
+  //cerr << "survivors=" << survivors.size() << endl;
+  prevHyps.swap(survivors);
+  return prevHyps.size();
+
+}
+
+void EncoderDecoder::AssembleBeamState(const State& state,
+                               const Beam& beam,
+                               State& nextState) const
+{
+  //BEGIN_TIMER("AssembleBeamState");
+  std::vector<uint> beamWords;
+  std::vector<uint> beamStateIds;
+  for (const HypothesisPtr &h : beam) {
+     beamWords.push_back(h->GetWord());
+     beamStateIds.push_back(h->GetPrevStateIndex());
+  }
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+
+  const EDState& edState = state.get<EDState>();
+  EDState& edNextState = nextState.get<EDState>();
+
+  thread_local mblas::Vector<uint> indices;
+  indices.newSize(beamStateIds.size());
+  //mblas::Vector<uint> indices(beamStateIds.size());
+  //cerr << "indices=" << indices.Debug(2) << endl;
+
+  mblas::copy(beamStateIds.data(),
+              beamStateIds.size(),
+              indices.data(),
+              cudaMemcpyHostToDevice);
+  //cerr << "indices=" << mblas::Debug(indices, 2) << endl;
+
+  CellState& outstates = edNextState.GetStates();
+  const CellState& instates = edState.GetStates();
+
+  mblas::Assemble(*(outstates.output), *(instates.output), indices);
+  if (instates.cell->size() > 0) {
+    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
+  }
+  //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
+
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
+  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
+  //PAUSE_TIMER("AssembleBeamState");
+}
 
 }
 }
