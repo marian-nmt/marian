@@ -66,6 +66,8 @@ public:
   Beam GetFirstHyps();
   void Output(const God &god) const;
 
+  virtual std::string Debug(size_t verbosity = 1) const;
+
 protected:
   std::vector<BeamElement> coll_;
 

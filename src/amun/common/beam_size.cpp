@@ -1,3 +1,4 @@
+#include <sstream>
 #include <numeric>
 #include "beam_size.h"
 #include "sentences.h"
@@ -86,6 +87,29 @@ void BeamSize::Output(const God &god) const
     history.Output(god);
 
   }
+}
+
+std::string BeamSize::Debug(size_t verbosity) const
+{
+  stringstream strm;
+
+  strm << " coll_=" << coll_.size();
+  //strm << "total_=" << total_;
+  //strm << " maxLength_=" << maxLength_;
+
+  /*
+  if (verbosity) {
+    uint sum = 0;
+    for (size_t i = 0; i < coll_.size(); ++i) {
+      const BeamElement &ele = coll_[i];
+      strm << " (" << ele.sentenceInd << "," << ele.size << ")";
+
+      sum += ele.size;
+    }
+    assert(sum == total_);
+  }
+  */
+  return strm.str();
 }
 
 }
