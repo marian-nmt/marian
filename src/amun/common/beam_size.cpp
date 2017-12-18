@@ -13,6 +13,21 @@ BeamElement::BeamElement(unsigned size, History *history)
 ,history_(history)
 {}
 
+void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
+{
+
+  history_->Add(hypos);
+
+  for (const HypothesisPtr &h : hypos) {
+    if (h->GetWord() != EOS_ID) {
+      survivors.push_back(h);
+    }
+    else {
+      Decr();
+    }
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 BeamSize::BeamSize(const Sentences& sentences, size_t val, bool normalizeScore)
@@ -68,16 +83,7 @@ Hypotheses BeamSize::Add(const HypothesesBatch& beams)
     const Hypotheses &hypos = beams[i];
 
     if (!hypos.empty()) {
-      coll_[i].GetHistory().Add(hypos);
-
-      for (const HypothesisPtr &h : hypos) {
-        if (h->GetWord() != EOS_ID) {
-          survivors.push_back(h);
-        }
-        else {
-          Decr(i);
-        }
-      }
+      coll_[i].Add(hypos, survivors);
     }
   }
 

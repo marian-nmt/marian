@@ -44,6 +44,8 @@ public:
   History &GetHistory()
   { return *history_; }
 
+  void Add(const Hypotheses &hypos, Hypotheses &survivors);
+
 protected:
   unsigned size_;  // beam size 0..beam
   std::shared_ptr<History> history_;
