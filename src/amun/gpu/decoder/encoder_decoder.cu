@@ -174,10 +174,9 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     StatePtr nextState(NewState());
 
-    BeamSize beamSizes(sentences.size(), 1);
+    BeamSize beamSizes(sentences, 1, search_.NormalizeScore());
 
-    std::shared_ptr<Histories> histories(new Histories(sentences, search_.NormalizeScore()));
-    Beam prevHyps = histories->GetFirstHyps();
+    Beam prevHyps = beamSizes.GetFirstHyps();
 
     for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
       boost::timer::cpu_timer timerStep;
@@ -202,7 +201,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
       //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
-      size_t survivors = CalcBeam(search_.GetBestHyps(), histories, beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
+      size_t survivors = CalcBeam(search_.GetBestHyps(), beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
       if (survivors == 0) {
         break;
       }
@@ -212,12 +211,10 @@ void EncoderDecoder::DecodeAsyncInternal()
           << "beamSizes=" << beamSizes.size() << " "
           << endl;
       */
-      assert(histories->size() == beamSizes.size());
-
       LOG(progress)->info("\tStep took {} survivors {}", timerStep.format(3, "%w"), survivors);
     }
 
-    histories->Output(god_);
+    beamSizes.Output(god_);
 
     CleanAfterTranslation();
 
@@ -245,7 +242,6 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
 }
 
 size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
-                      std::shared_ptr<Histories>& histories,
                       BeamSize& beamSizes,
                       Beam& prevHyps,
                       State& state,
@@ -255,7 +251,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   size_t batchSize = beamSizes.size();
   Beams beams(batchSize);
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
-  histories->Add(beams);
+  beamSizes.Add(beams);
 
   Beam survivors;
   for (size_t batchId = 0; batchId < batchSize; ++batchId) {
