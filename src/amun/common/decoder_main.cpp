@@ -8,7 +8,6 @@
 #include "common/logging.h"
 #include "common/search.h"
 #include "common/threadpool.h"
-#include "common/printer.h"
 #include "common/sentence.h"
 #include "common/sentences.h"
 #include "common/exception.h"

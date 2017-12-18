@@ -3,7 +3,6 @@
 
 #include "common/god.h"
 #include "common/sentences.h"
-#include "common/histories.h"
 #include "common/search.h"
 #include "common/beam_size.h"
 

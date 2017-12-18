@@ -1,7 +1,7 @@
 #include <numeric>
 #include "beam_size.h"
 #include "sentences.h"
-#include "histories.h"
+#include "history.h"
 
 using namespace std;
 
