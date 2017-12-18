@@ -13,11 +13,15 @@ BeamElement::BeamElement(unsigned size, const Sentence &sentence, bool normalize
 ,history_(sentence, normalizeScore, 3 * sentence.size())
 {}
 
-void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
+void BeamElement::Add(const God &god, const Hypotheses &hypos, Hypotheses &survivors)
 {
   unsigned numEOS = history_.Add(hypos, survivors);
   assert(size_ >= numEOS);
   size_ -= numEOS;
+
+  if (hypos.size() && size_ == 0) {
+    history_.Output(god);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,13 +64,13 @@ std::vector<size_t> BeamSize::Vec() const
   return ret;
 }
 
-Hypotheses BeamSize::Add(const HypothesesBatch& beams)
+Hypotheses BeamSize::Add(const God &god, const HypothesesBatch& beams)
 {
   Hypotheses survivors;
 
   for (size_t i = 0; i < size(); ++i) {
     const Hypotheses &hypos = beams[i];
-    coll_[i]->Add(hypos, survivors);
+    coll_[i]->Add(god, hypos, survivors);
   }
 
   return survivors;
@@ -87,9 +91,10 @@ Hypotheses BeamSize::GetFirstHyps()
 void BeamSize::Output(const God &god) const
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
-    const History &history = coll_[i]->GetHistory();
-    history.Output(god);
-
+    if (coll_[i]->GetBeamSize()) {
+      const History &history = coll_[i]->GetHistory();
+      history.Output(god);
+    }
   }
 }
 

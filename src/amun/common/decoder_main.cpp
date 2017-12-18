@@ -21,7 +21,6 @@ int main(int argc, char* argv[])
   God god;
   god.Init(argc, argv);
 
-  cerr << "main3" << endl;
   std::setvbuf(stdout, NULL, _IONBF, 0);
   std::setvbuf(stdin, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
