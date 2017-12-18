@@ -18,15 +18,7 @@ void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 
   unsigned numEOS = history_->Add(hypos, survivors);
   assert(size_ >= numEOS);
-
-  for (const HypothesisPtr &h : hypos) {
-    if (h->GetWord() != EOS_ID) {
-      survivors.push_back(h);
-    }
-    else {
-      Decr();
-    }
-  }
+  size_ -= numEOS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

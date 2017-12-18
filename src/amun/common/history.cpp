@@ -27,6 +27,9 @@ unsigned History::Add(const Hypotheses& beam, Hypotheses &survivors)
       topHyps_.push({ history_.size(), j, cost });
       ++numEOS;
     }
+    else {
+      survivors.push_back(hypo);
+    }
   }
   history_.push_back(beam);
 
