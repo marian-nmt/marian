@@ -254,8 +254,10 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   HypothesesBatch beams(batchSize);
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
   beamSizes.Add(beams);
+
   cerr << "beams=" << beams.size() << endl;
   assert(beams.size() == beamSizes.size());
+  assert(beams.size() == batchSize);
 
   Hypotheses survivors;
   for (size_t batchId = 0; batchId < batchSize; ++batchId) {
