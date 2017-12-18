@@ -8,9 +8,9 @@ using namespace std;
 
 namespace amunmt {
 
-BeamElement::BeamElement(unsigned size, History *history)
+BeamElement::BeamElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength)
 :size_(size)
-,history_(history)
+,history_(new History(sentence, normalizeScore, 3 * sentence.size()))
 {}
 
 void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
@@ -28,9 +28,7 @@ BeamSize::BeamSize(const Sentences& sentences, size_t val, bool normalizeScore)
 {
   for (size_t i = 0; i < size(); ++i) {
     const Sentence &sentence = sentences.Get(i);
-    History *history = new History(sentence, normalizeScore, 3 * sentence.size());
-
-    coll_[i] = BeamElement(val, history);
+    coll_[i] = BeamElement(val, sentence, normalizeScore, 3 * sentence.size());
   }
 }
 

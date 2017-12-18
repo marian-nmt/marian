@@ -22,7 +22,7 @@ public:
   BeamElement()
   {}
 
-  BeamElement(unsigned size, History *history);
+  BeamElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
   unsigned GetBeamSize() const
   { return size_; }
