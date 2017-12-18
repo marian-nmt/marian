@@ -14,6 +14,8 @@ class Histories;
 class BestHypsBase;
 class Search;
 
+using Hypotheses = std::vector<HypothesisPtr>;
+
 class Sentences;
 using SentencesPtr = std::shared_ptr<Sentences>;
 

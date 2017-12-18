@@ -9,10 +9,6 @@ namespace amunmt {
 
 const size_t SHAPE_SIZE = 4;
 
-class Hypothesis;
-typedef std::shared_ptr<Hypothesis> HypothesisPtr;
-typedef std::vector<HypothesisPtr> Hypotheses;
-
 class Scorer;
 typedef std::shared_ptr<Scorer> ScorerPtr;
 

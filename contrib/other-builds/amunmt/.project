@@ -306,16 +306,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/output_collector.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/common/printer.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/printer.cpp</locationURI>
-		</link>
-		<link>
-			<name>src/amun/common/printer.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/printer.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/common/processor</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>

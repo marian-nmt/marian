@@ -9,7 +9,7 @@ namespace amunmt {
 class Hypothesis;
 class Sentence;
 
-typedef std::shared_ptr<Hypothesis> HypothesisPtr;
+using HypothesisPtr = std::shared_ptr<Hypothesis>;
 
 class Hypothesis {
   public:
