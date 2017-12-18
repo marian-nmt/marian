@@ -5,6 +5,7 @@
 #include "common/sentences.h"
 #include "common/search.h"
 #include "common/beam_size.h"
+#include "common/hypothesis.h"
 
 #include "encoder_decoder.h"
 #include "enc_out_gpu.h"
@@ -258,7 +259,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 
   Hypotheses survivors;
   for (size_t batchId = 0; batchId < batchSize; ++batchId) {
-    for (auto& h : beams[batchId]) {
+    for (const HypothesisPtr &h : beams[batchId]) {
       if (h->GetWord() != EOS_ID) {
         survivors.push_back(h);
       } else {

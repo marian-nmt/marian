@@ -4,6 +4,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "common/sentences.h"
+#include "common/hypothesis.h"
 #include "cpu/dl4mt/encoder.h"
 #include "cpu/dl4mt/decoder.h"
 

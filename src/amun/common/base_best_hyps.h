@@ -3,14 +3,19 @@
 #include <functional>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include "common/types.h"
-#include "scorer.h"
 
 namespace amunmt {
 
 class God;
 class BeamSize;
+class Scorer;
+
+class Hypothesis;
+using HypothesisPtr = std::shared_ptr<Hypothesis>;
+using Hypotheses = std::vector<HypothesisPtr>;
 
 class BestHypsBase
 {

@@ -1,14 +1,15 @@
 #pragma once
 #include <memory>
 #include <cassert>
-#include "common/types.h"
-#include "common/soft_alignment.h"
+#include "god.h"
+#include "types.h"
+#include "soft_alignment.h"
 
 namespace amunmt {
 
 class Sentence;
-class Hypothesis;
 
+class Hypothesis;
 using HypothesisPtr = std::shared_ptr<Hypothesis>;
 using Hypotheses = std::vector<HypothesisPtr>;
 using HypothesesBatch = std::vector<Hypotheses>;

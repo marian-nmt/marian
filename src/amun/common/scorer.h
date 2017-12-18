@@ -3,7 +3,6 @@
 #include <vector>
 #include <memory>
 
-#include "common/hypothesis.h"
 #include "common/sentence.h"
 #include "common/base_matrix.h"
 #include "yaml-cpp/node/node.h"
@@ -13,6 +12,10 @@ namespace amunmt {
 class Histories;
 class BestHypsBase;
 class Search;
+
+class Hypothesis;
+using HypothesisPtr = std::shared_ptr<Hypothesis>;
+using Hypotheses = std::vector<HypothesisPtr>;
 
 class Sentences;
 using SentencesPtr = std::shared_ptr<Sentences>;

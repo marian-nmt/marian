@@ -3,12 +3,18 @@
 #include <vector>
 #include <stddef.h>
 #include <cassert>
-#include "beam.h"
+#include "god.h"
 
 namespace amunmt {
 
 class Sentences;
 class History;
+
+class Hypothesis;
+using HypothesisPtr = std::shared_ptr<Hypothesis>;
+using Hypotheses = std::vector<HypothesisPtr>;
+using HypothesesBatch = std::vector<Hypotheses>;
+
 
 class BeamElement
 {

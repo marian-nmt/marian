@@ -5,7 +5,7 @@
 
 #include "common/sentence.h"
 #include "common/sentences.h"
-
+#include "common/hypothesis.h"
 #include "cpu/decoder/encoder_decoder_loader.h"
 #include "cpu/mblas/matrix.h"
 

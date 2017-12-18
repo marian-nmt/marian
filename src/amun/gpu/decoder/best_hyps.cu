@@ -1,5 +1,6 @@
 #include "best_hyps.h"
 #include "common/beam_size.h"
+#include "common/hypothesis.h"
 
 using namespace std;
 
@@ -148,7 +149,7 @@ void  BestHyps::CalcBeam(
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
 
   std::vector<float> vCosts;
-  for (auto& h : prevHyps) {
+  for (const HypothesisPtr &h : prevHyps) {
     vCosts.push_back(h->GetCost());
   }
 

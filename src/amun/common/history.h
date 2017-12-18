@@ -4,7 +4,6 @@
 #include <algorithm>
 
 #include "hypothesis.h"
-#include "beam.h"
 
 namespace amunmt {
 
