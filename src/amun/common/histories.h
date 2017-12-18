@@ -5,7 +5,7 @@ namespace amunmt {
 
 class Histories {
   public:
-    Histories() {} // for all histories in translation task
+    //Histories() {} // for all histories in translation task
     Histories(const Sentences& sentences, bool normalizeScore);
 
     std::shared_ptr<History> at(size_t id) const {

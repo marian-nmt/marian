@@ -22,13 +22,16 @@ int main(int argc, char* argv[])
   God god;
   god.Init(argc, argv);
 
+  cerr << "main3" << endl;
   std::setvbuf(stdout, NULL, _IONBF, 0);
   std::setvbuf(stdin, NULL, _IONBF, 0);
   boost::timer::cpu_timer timer;
 
 
-  size_t miniSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("mini-batch") : 1;
-  size_t maxiSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("maxi-batch") : 1;
+  //size_t miniSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("mini-batch") : 1;
+  //size_t maxiSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("maxi-batch") : 1;
+  size_t miniSize = god.Get<size_t>("mini-batch");
+  size_t maxiSize = god.Get<size_t>("maxi-batch");
   int miniWords = god.Get<int>("mini-batch-words");
 
   LOG(info)->info("Reading input");
