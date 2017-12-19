@@ -146,16 +146,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/base_matrix.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/common/beam.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/beam.cpp</locationURI>
-		</link>
-		<link>
-			<name>src/amun/common/beam.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/beam.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/common/config.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/config.cpp</locationURI>
@@ -234,6 +224,16 @@
 			<name>src/amun/common/god.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/god.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/common/histories.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/histories.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/common/histories.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/histories.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/common/history.cpp</name>

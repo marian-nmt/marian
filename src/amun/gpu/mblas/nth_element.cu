@@ -1,6 +1,6 @@
 #include <iostream>
 #include "common/utils.h"
-#include "common/beam.h"
+#include "common/histories.h"
 #include "matrix_wrapper.h"
 #include "vector_wrapper.h"
 #include "nth_element.h"

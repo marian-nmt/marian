@@ -2,7 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "common/beam.h"
+#include "common/histories.h"
 #include "gpu/mblas/vector.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "model.h"

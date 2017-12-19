@@ -4,7 +4,7 @@
 #include "common/god.h"
 #include "common/sentences.h"
 #include "common/search.h"
-#include "common/beam.h"
+#include "common/histories.h"
 #include "common/hypothesis.h"
 
 #include "encoder_decoder.h"

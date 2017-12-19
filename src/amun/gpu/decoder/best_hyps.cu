@@ -1,5 +1,5 @@
 #include "best_hyps.h"
-#include "common/beam.h"
+#include "common/histories.h"
 #include "common/hypothesis.h"
 
 using namespace std;
