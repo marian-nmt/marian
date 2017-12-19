@@ -203,7 +203,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
       if (decoderStep == 0) {
         for (size_t i = 0; i < beamSizes.size(); ++i) {
-          beamSizes.SetBeamSize(i, search_.MaxBeamSize());
+          beamSizes.SetBeamSize(i, maxBeamSize);
         }
       }
 

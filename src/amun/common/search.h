@@ -33,9 +33,6 @@ class Search {
     bool NormalizeScore() const
     { return normalizeScore_; }
 
-    size_t MaxBeamSize() const
-    { return maxBeamSize_; }
-
     void FilterTargetVocab(const Sentences& sentences);
 
   protected:
@@ -45,7 +42,6 @@ class Search {
     DeviceInfo deviceInfo_;
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const FilterVocab> filter_;
-    const size_t maxBeamSize_;
     bool normalizeScore_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;
