@@ -214,7 +214,7 @@ void EncoderDecoder::DecodeAsyncInternal()
           << "beamSizes=" << beamSizes.size() << " "
           << endl;
       */
-      LOG(progress)->info("  Step took {} prevHypos {} survivors {}", timerStep.format(5, "%w"), numPrevHyps, survivors);
+      LOG(progress)->info("  Step took {} sentences {} prevHypos {} survivors {}", timerStep.format(5, "%w"), beamSizes.GetNumActive(), numPrevHyps, survivors);
     }
 
     beamSizes.OutputAll(god_);
