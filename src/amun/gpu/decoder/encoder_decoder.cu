@@ -199,8 +199,6 @@ void EncoderDecoder::DecodeAsyncInternal()
           beamSizes.Set(i, search_.MaxBeamSize());
         }
       }
-      //cerr << "beamSizes=" << beamSizes.Debug() << endl;
-      //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
       //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
       unsigned numPrevHyps = prevHyps.size();
@@ -214,10 +212,10 @@ void EncoderDecoder::DecodeAsyncInternal()
           << "beamSizes=" << beamSizes.size() << " "
           << endl;
       */
-      LOG(progress)->info("\tStep took {} prevHypos {} survivors {}", timerStep.format(3, "%w"), numPrevHyps, survivors);
+      LOG(progress)->info("  Step took {} prevHypos {} survivors {}", timerStep.format(5, "%w"), numPrevHyps, survivors);
     }
 
-    beamSizes.Output(god_);
+    beamSizes.OutputAll(god_);
 
     CleanAfterTranslation();
 

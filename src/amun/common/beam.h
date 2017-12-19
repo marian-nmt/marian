@@ -53,6 +53,7 @@ public:
 
   size_t Get(size_t ind) const;
   void Set(size_t ind, size_t val);
+  bool Empty(size_t ind) const;
 
   size_t Sum() const;
 
@@ -60,7 +61,7 @@ public:
 
   Hypotheses Add(const God &god, const HypothesesBatch& beams);
   Hypotheses GetFirstHyps();
-  void Output(const God &god) const;
+  void OutputAll(const God &god) const;
 
   virtual std::string Debug(size_t verbosity = 1) const;
 
