@@ -21,6 +21,13 @@ void HistoriesElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 
 }
 
+void HistoriesElement::SetNewBeamSize(unsigned val)
+{
+  if (history_.size() == 1) {
+    size_ = val;
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 Histories::Histories(const Sentences& sentences, size_t val, bool normalizeScore)
@@ -36,13 +43,6 @@ Histories::Histories(const Sentences& sentences, size_t val, bool normalizeScore
 size_t Histories::GetBeamSize(size_t ind) const
 {
   return Empty(ind) ? 0 : coll_[ind]->GetBeamSize();
-}
-
-void Histories::SetBeamSize(size_t ind, size_t val)
-{
-  if (!Empty(ind)) {
-    coll_[ind]->SetBeamSize(val);
-  }
 }
 
 bool Histories::Empty(size_t ind) const
@@ -67,6 +67,16 @@ std::vector<size_t> Histories::GetBeamSizes() const
     ret[i] = GetBeamSize(i);
   }
   return ret;
+}
+
+void Histories::SetNewBeamSize(unsigned val)
+{
+  for (size_t i = 0; i < size(); ++i) {
+    if (!Empty(i)) {
+      coll_[i]->SetNewBeamSize(val);
+    }
+  }
+
 }
 
 Hypotheses Histories::Add(const God &god, const HypothesesBatch& beams)

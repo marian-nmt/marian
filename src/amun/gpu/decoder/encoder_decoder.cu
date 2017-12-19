@@ -201,11 +201,7 @@ void EncoderDecoder::DecodeAsyncInternal()
                        SCU,
                        sentenceLengths);
 
-      if (decoderStep == 0) {
-        for (size_t i = 0; i < beamSizes.size(); ++i) {
-          beamSizes.SetBeamSize(i, maxBeamSize);
-        }
-      }
+      beamSizes.SetNewBeamSize(maxBeamSize);
 
       //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
       unsigned numPrevHyps = prevHyps.size();

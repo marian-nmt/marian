@@ -25,10 +25,7 @@ public:
   unsigned GetBeamSize() const
   { return size_; }
 
-  void SetBeamSize(unsigned size)
-  {
-    size_ = size;
-  }
+  void SetNewBeamSize(unsigned val);
 
   const History &GetHistory() const
   { return history_; }
@@ -55,10 +52,11 @@ public:
   { return active_; }
 
   size_t GetBeamSize(size_t ind) const;
-  void SetBeamSize(size_t ind, size_t val);
   bool Empty(size_t ind) const;
 
   size_t Sum() const;
+
+  void SetNewBeamSize(unsigned val);
 
   std::vector<size_t> GetBeamSizes() const;
 
