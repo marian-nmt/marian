@@ -175,7 +175,7 @@ class Decoder {
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const Beams& beamSizes,
+                                     const Histories& beamSizes,
                                      const mblas::Matrix& SourceContext,
                                      const mblas::Matrix& SCU,
                                      const mblas::Vector<uint> &sentenceLengths)
@@ -401,7 +401,7 @@ class Decoder {
     void Decode(CellState& NextState,
                 const CellState& State,
                 const mblas::Matrix& Embeddings,
-                const Beams& beamSizes,
+                const Histories& beamSizes,
                 bool useFusedSoftmax,
                 const mblas::Matrix& SourceContext,
                 const mblas::Matrix& SCU,
@@ -499,7 +499,7 @@ class Decoder {
 
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                  const CellState& HiddenState,
-                                 const Beams& beamSizes,
+                                 const Histories& beamSizes,
                                  const mblas::Matrix& SourceContext,
                                  const mblas::Matrix& SCU,
                                  const mblas::Vector<uint> &sentenceLengths)

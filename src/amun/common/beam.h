@@ -17,10 +17,10 @@ using Hypotheses = std::vector<HypothesisPtr>;
 using HypothesesBatch = std::vector<Hypotheses>;
 
 
-class Beam
+class HistoriesElement
 {
 public:
-  Beam(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength);
+  HistoriesElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
   unsigned GetBeamSize() const
   { return size_; }
@@ -43,10 +43,10 @@ protected:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-class Beams
+class Histories
 {
 public:
-  Beams(const Sentences& sentences, size_t val, bool normalizeScore);
+  Histories(const Sentences& sentences, size_t val, bool normalizeScore);
 
   size_t size() const
   { return coll_.size(); }
@@ -69,7 +69,7 @@ public:
   virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
-  std::vector< std::shared_ptr<Beam> > coll_;
+  std::vector< std::shared_ptr<HistoriesElement> > coll_;
   unsigned active_;
 };
 

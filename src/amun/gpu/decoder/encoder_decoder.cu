@@ -174,7 +174,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     StatePtr nextState(NewState());
 
-    Beams beamSizes(sentences, 1, search_.NormalizeScore());
+    Histories beamSizes(sentences, 1, search_.NormalizeScore());
 
     Hypotheses prevHyps = beamSizes.GetFirstHyps();
     //cerr << "prevHyps1=" << prevHyps.size() << endl;
@@ -245,7 +245,7 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
 }
 
 size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
-                      Beams& beamSizes,
+                      Histories& beamSizes,
                       Hypotheses& prevHyps,
                       State& state,
                       State& nextState,

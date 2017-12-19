@@ -10,7 +10,7 @@
 namespace amunmt {
 
 class God;
-class Beams;
+class Histories;
 class Scorer;
 
 class Hypothesis;
@@ -30,7 +30,7 @@ class BestHypsBase
         Scorer &scorer,
         const Words& filterIndices,
         HypothesesBatch& beams,
-        Beams& beamSizes) = 0;
+        Histories& beamSizes) = 0;
 
   protected:
     const God &god_;

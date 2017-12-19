@@ -28,7 +28,7 @@ void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const Beams& beamSizes,
+void BestHyps::FindBests(const Histories& beamSizes,
                           mblas::Matrix& Probs,
                           std::vector<float>& outCosts,
                           std::vector<unsigned>& outKeys,
@@ -38,7 +38,7 @@ void BestHyps::FindBests(const Beams& beamSizes,
 }
 
 // fast fused softmax and nth_element
-void BestHyps::FindBests(const Beams& beamSizes,
+void BestHyps::FindBests(const Histories& beamSizes,
                         mblas::Matrix& Probs,
                         mblas::Vector<NthOutBatch> &nBest,
                         std::vector<float>& outCosts,
@@ -74,7 +74,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
 }
 
 //////////////////////////////////////////////////////////////////////////
-void BestHyps::getNBestList(const Beams& beamSizes,
+void BestHyps::getNBestList(const Histories& beamSizes,
                   mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
@@ -141,7 +141,7 @@ void  BestHyps::CalcBeam(
     Scorer &scorer,
     const Words& filterIndices,
     HypothesesBatch& beams,
-    Beams& beamSizes)
+    Histories& beamSizes)
 {
   BEGIN_TIMER("CalcBeam");
   using namespace mblas;

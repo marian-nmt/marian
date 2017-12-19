@@ -16,7 +16,6 @@
 namespace amunmt {
 
 class Histories;
-class Beams;
 
 namespace GPU {
 
@@ -85,7 +84,7 @@ class EncoderDecoder : public Scorer {
                             mblas::Matrix& SCU);
 
     size_t CalcBeam(BestHypsBase &bestHyps,
-                          Beams& beamSizes,
+        Histories& beamSizes,
                           Hypotheses& prevHyps,
                           State& state,
                           State& nextState,
