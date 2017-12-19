@@ -1305,7 +1305,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   uint batchSize = 0;
   uint candidateInd = 0;
   for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
-    uint beamSize = beamSizes.Get(batchInd);
+    uint beamSize = beamSizes.GetBeamSize(batchInd);
     //cerr << "(" << beamSize << "," << hypoInd << ") ";
 
     if (beamSize) {

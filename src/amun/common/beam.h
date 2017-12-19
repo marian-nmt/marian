@@ -51,8 +51,8 @@ public:
   size_t size() const
   { return coll_.size(); }
 
-  size_t Get(size_t ind) const;
-  void Set(size_t ind, size_t val);
+  size_t GetBeamSize(size_t ind) const;
+  void SetBeamSize(size_t ind, size_t val);
   bool Empty(size_t ind) const;
 
   size_t Sum() const;

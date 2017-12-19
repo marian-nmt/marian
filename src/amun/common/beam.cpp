@@ -32,17 +32,12 @@ Beams::Beams(const Sentences& sentences, size_t val, bool normalizeScore)
   }
 }
 
-size_t Beams::Get(size_t ind) const
+size_t Beams::GetBeamSize(size_t ind) const
 {
-  if (Empty(ind)) {
-    return 0;
-  }
-  else {
-    return coll_[ind]->GetBeamSize();
-  }
+  return Empty(ind) ? 0 : coll_[ind]->GetBeamSize();
 }
 
-void Beams::Set(size_t ind, size_t val)
+void Beams::SetBeamSize(size_t ind, size_t val)
 {
   if (!Empty(ind)) {
     coll_[ind]->SetBeamSize(val);
@@ -58,9 +53,7 @@ size_t Beams::Sum() const
 {
   size_t ret = 0;
   for (size_t i = 0; i < size(); ++i) {
-    if (!Empty(i)) {
-      ret += coll_[i]->GetBeamSize();
-    }
+    ret += GetBeamSize(i);
   }
 
   return ret;
@@ -70,7 +63,7 @@ std::vector<size_t> Beams::Vec() const
 {
   std::vector<size_t> ret(size());
   for (size_t i = 0; i < size(); ++i) {
-    ret[i] = Empty(i) ? 0 : coll_[i]->GetBeamSize();
+    ret[i] = GetBeamSize(i);
   }
   return ret;
 }

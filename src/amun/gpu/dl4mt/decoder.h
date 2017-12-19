@@ -201,7 +201,7 @@ class Decoder {
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           size_t k = 0;
           for (size_t i = 0; i < beamSizes.size(); ++i) {
-            for (size_t j = 0; j < beamSizes.Get(i); ++j) {
+            for (size_t j = 0; j < beamSizes.GetBeamSize(i); ++j) {
               batchMapping[k++] = i;
             }
           }
