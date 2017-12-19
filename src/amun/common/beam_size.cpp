@@ -8,12 +8,12 @@ using namespace std;
 
 namespace amunmt {
 
-BeamElement::BeamElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength)
+Beam::Beam(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength)
 :size_(size)
 ,history_(sentence, normalizeScore, 3 * sentence.size())
 {}
 
-void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
+void Beam::Add(const Hypotheses &hypos, Hypotheses &survivors)
 {
   unsigned numEOS = history_.Add(hypos, survivors);
   assert(size_ >= numEOS);
@@ -23,26 +23,26 @@ void BeamElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-BeamSize::BeamSize(const Sentences& sentences, size_t val, bool normalizeScore)
+Beams::Beams(const Sentences& sentences, size_t val, bool normalizeScore)
 :coll_(sentences.size())
 {
   for (size_t i = 0; i < size(); ++i) {
     const Sentence &sentence = sentences.Get(i);
-    coll_[i].reset(new BeamElement(val, sentence, normalizeScore, 3 * sentence.size()));
+    coll_[i].reset(new Beam(val, sentence, normalizeScore, 3 * sentence.size()));
   }
 }
 
-size_t BeamSize::Get(size_t ind) const
+size_t Beams::Get(size_t ind) const
 {
   return coll_[ind]->GetBeamSize();
 }
 
-void BeamSize::Set(size_t ind, size_t val)
+void Beams::Set(size_t ind, size_t val)
 {
   coll_[ind]->SetBeamSize(val);
 }
 
-size_t BeamSize::Sum() const
+size_t Beams::Sum() const
 {
   size_t ret = 0;
   for (size_t i = 0; i < size(); ++i) {
@@ -52,7 +52,7 @@ size_t BeamSize::Sum() const
   return ret;
 }
 
-std::vector<size_t> BeamSize::Vec() const
+std::vector<size_t> Beams::Vec() const
 {
   std::vector<size_t> ret(size());
   for (size_t i = 0; i < size(); ++i) {
@@ -61,7 +61,7 @@ std::vector<size_t> BeamSize::Vec() const
   return ret;
 }
 
-Hypotheses BeamSize::Add(const God &god, const HypothesesBatch& beams)
+Hypotheses Beams::Add(const God &god, const HypothesesBatch& beams)
 {
   Hypotheses survivors;
 
@@ -69,7 +69,7 @@ Hypotheses BeamSize::Add(const God &god, const HypothesesBatch& beams)
     const Hypotheses &hypos = beams[i];
 
     if (hypos.size()) {
-      std::shared_ptr<BeamElement> &ele = coll_[i];
+      std::shared_ptr<Beam> &ele = coll_[i];
       ele->Add(hypos, survivors);
       unsigned beamSize = ele->GetBeamSize();
 
@@ -82,7 +82,7 @@ Hypotheses BeamSize::Add(const God &god, const HypothesesBatch& beams)
   return survivors;
 }
 
-Hypotheses BeamSize::GetFirstHyps()
+Hypotheses Beams::GetFirstHyps()
 {
   Hypotheses ret(coll_.size());
   for (size_t i = 0; i < coll_.size(); ++i) {
@@ -94,10 +94,10 @@ Hypotheses BeamSize::GetFirstHyps()
   return ret;
 }
 
-void BeamSize::Output(const God &god) const
+void Beams::Output(const God &god) const
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
-    const std::shared_ptr<BeamElement> &ele = coll_[i];
+    const std::shared_ptr<Beam> &ele = coll_[i];
     if (ele->GetBeamSize()) {
       const History &history = ele->GetHistory();
       history.Output(god);
@@ -105,7 +105,7 @@ void BeamSize::Output(const God &god) const
   }
 }
 
-std::string BeamSize::Debug(size_t verbosity) const
+std::string Beams::Debug(size_t verbosity) const
 {
   stringstream strm;
 
@@ -117,7 +117,7 @@ std::string BeamSize::Debug(size_t verbosity) const
   if (verbosity) {
     uint sum = 0;
     for (size_t i = 0; i < coll_.size(); ++i) {
-      const BeamElement &ele = coll_[i];
+      const Beam &ele = coll_[i];
       strm << " (" << ele.sentenceInd << "," << ele.size << ")";
 
       sum += ele.size;

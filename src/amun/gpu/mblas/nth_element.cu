@@ -30,7 +30,7 @@ NthElement::~NthElement()
   //cerr << "FOO2" << endl;
 }
 
-void NthElement::getNBestList(const BeamSize& beamSizes, mblas::Matrix& Probs,
+void NthElement::getNBestList(const Beams& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<uint>& outKeys,
                   const bool isFirst) {
   /*

@@ -18,7 +18,7 @@
 
 namespace amunmt {
 
-class BeamSize;
+class Beams;
 
 namespace GPU {
 namespace mblas {
@@ -421,7 +421,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 uint maxBeamSize,
-                const BeamSize& beamSizes,
+                const Beams& beamSizes,
                 uint beamSizeSum,
                 bool isFirst);
 

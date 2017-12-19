@@ -10,7 +10,7 @@
 
 namespace amunmt {
 
-class BeamSize;
+class Beams;
 
 namespace GPU {
 
@@ -23,7 +23,7 @@ class NthElement {
     virtual ~NthElement();
 
     // standard nth_element
-    void getNBestList(const BeamSize& beamSizes,
+    void getNBestList(const Beams& beamSizes,
                       mblas::Matrix& Probs,
                       std::vector<float>& outCosts,
                       std::vector<uint>& outKeys,
