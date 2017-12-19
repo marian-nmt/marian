@@ -1,6 +1,6 @@
 #include <sstream>
 #include <numeric>
-#include "beam_size.h"
+#include "beam.h"
 #include "sentences.h"
 #include "history.h"
 

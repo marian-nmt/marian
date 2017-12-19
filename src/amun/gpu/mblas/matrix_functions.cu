@@ -1,4 +1,4 @@
-#include "common/beam_size.h"
+#include "common/beam.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/handles.h"
 
