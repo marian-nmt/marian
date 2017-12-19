@@ -51,8 +51,19 @@ void NthElement::getNBestList(const Histories& beamSizes, mblas::Matrix& Probs,
   for (uint i = 0; i < beamSizes.size(); ++i) {
     const HistoriesElementPtr &ele = beamSizes.Get(i);
 
-    cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes.GetBeamSize(i);
-    batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
+    if (ele) {
+      cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + ele->GetBeamSize();
+
+      uint batchIncr = (ele->IsFirst() ? 1 : ele->GetBeamSize()) * vocabSize;
+      batchFirstElementIdxs[i + 1] = batchFirstElementIdxs[i] + batchIncr;
+
+      //cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes.GetBeamSize(i);
+      //batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
+    }
+    else {
+      cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i];
+      batchFirstElementIdxs[i + 1] = batchFirstElementIdxs[i];
+    }
   }
 
   uint numHypos = cummulatedBeamSizes.back();
