@@ -861,7 +861,7 @@ __global__
 void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
                     VectorWrapper<uint> batch2HypoWrap,
                     VectorWrapper<uint> hypo2CandidateWrap,
-                    bool isFirst,
+                    VectorWrapper<unsigned> isFirstsWrap,
                     uint beamSizeSum,
                     const VectorWrapper<unsigned> beamSizesWrap)
 {
@@ -878,7 +878,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
     printf("a=%u ", a);
     printf("b=%u \n", b);
     */
-
+    bool isFirst = isFirstsWrap[batchInd];
     if (beamSize) {
       if (isFirst) {
         assert(a < hypo2BeamSizeWrap.size());
@@ -1199,7 +1199,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
                         const VectorWrapper<float> costsWrap,
                         uint maxBeamSize,
                         bool forbidUNK,
-                        bool isFirst,
+                        VectorWrapper<unsigned> isFirstsWrap,
                         const VectorWrapper<uint> hypo2BeamSizeWrap,
                         const VectorWrapper<uint> batch2HypoWrap,
                         const VectorWrapper<uint> hypo2CandidateWrap)
@@ -1218,6 +1218,9 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
     assert(beamSize);
 
     uint nextHypoInd;
+
+    bool isFirst = isFirstsWrap[batchInd];
+
     if (isFirst) {
       nextHypoInd = batchInd * beamSize;
     }
@@ -1293,13 +1296,14 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const Histories& beamSizes,
-                uint beamSizeSum,
-                bool isFirst)
+                uint beamSizeSum)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
 
   //cerr << "in=" << in.Debug(0) << endl;
   //cerr << "beamSizes=" << beamSizes.size() << endl;
+
+  std::vector<unsigned> isFirsts = beamSizes.GetIsFirsts();
 
   // create beam size vectors on GPU but exclude empty beams
   uint batchSize = 0;
@@ -1309,7 +1313,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     //cerr << "(" << beamSize << "," << hypoInd << ") ";
 
     if (beamSize) {
-      if (isFirst) {
+      if (isFirsts[batchInd]) {
         candidateInd += beamSize;
       }
       else {
@@ -1320,6 +1324,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     }
   }
 
+  mblas::Vector<unsigned> d_isFirsts(isFirsts);
   mblas::Vector<unsigned> d_beamSizes(beamSizes.GetBeamSizes());
   mblas::Vector<uint> hypo2BeamSize(in.dim(0));
   mblas::Vector<uint> hypo2Candidate(in.dim(0));
@@ -1348,6 +1353,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   VectorWrapper<NthOutBatch> nBestCandidatesWrap(nBestCandidates);
   VectorWrapper<float> costsWrap(costs);
 
+  VectorWrapper<unsigned> isFirstsWrap(d_isFirsts);
   VectorWrapper<unsigned> beamSizesWrap(d_beamSizes);
 
   //PAUSE_TIMER("LogSoftmax excl kernels");
@@ -1365,7 +1371,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     (hypo2BeamSizeWrap,
     batch2HypoWrap,
     hypo2CandidateWrap,
-    isFirst,
+    isFirstsWrap,
     beamSizeSum,
     beamSizesWrap
     );
@@ -1402,7 +1408,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      costsWrap,
      maxBeamSize,
      forbidUNK,
-     isFirst,
+     isFirstsWrap,
      hypo2BeamSizeWrap,
      batch2HypoWrap,
      hypo2CandidateWrap);

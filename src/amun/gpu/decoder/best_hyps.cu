@@ -41,10 +41,9 @@ void BestHyps::FindBests(const Histories& beamSizes,
                         mblas::Matrix& Probs,
                         mblas::Vector<NthOutBatch> &nBest,
                         std::vector<float>& outCosts,
-                        std::vector<unsigned>& outKeys,
-                        const bool isFirst)
+                        std::vector<unsigned>& outKeys)
 {
-  getNBestList(beamSizes, Probs, nBest, outCosts, outKeys, isFirst);
+  getNBestList(beamSizes, Probs, nBest, outCosts, outKeys);
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
@@ -77,8 +76,7 @@ void BestHyps::getNBestList(const Histories& beamSizes,
                   mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
-                  std::vector<uint>& outKeys,
-                  const bool isFirst) const
+                  std::vector<uint>& outKeys) const
 {
   GetPairs(nBest, outKeys, outCosts);
   assert(outCosts.size() == outKeys.size());
@@ -163,19 +161,17 @@ void  BestHyps::CalcBeam(
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
 
-  const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
-
   if (god_.UseFusedSoftmax()) {
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
     nBest.newSize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
-    FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys, isFirst);
+    FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys);
   }
   else {
     BroadcastVecColumn(weights_.at(scorer.GetName()) * _1 + _2, Probs, costs_);

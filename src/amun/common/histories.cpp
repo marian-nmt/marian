@@ -74,6 +74,15 @@ std::vector<unsigned> Histories::GetBeamSizes() const
   return ret;
 }
 
+std::vector<unsigned> Histories::GetIsFirsts() const
+{
+  std::vector<unsigned> ret(size());
+  for (size_t i = 0; i < size(); ++i) {
+    ret[i] = Empty(i) ? false : coll_[i]->IsFirst();
+  }
+  return ret;
+}
+
 void Histories::SetNewBeamSize(unsigned val)
 {
   for (size_t i = 0; i < size(); ++i) {

@@ -422,8 +422,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const Histories& beamSizes,
-                uint beamSizeSum,
-                bool isFirst);
+                uint beamSizeSum);
 
 template<typename T>
 void TestMemCpy(size_t size, const T *data1)

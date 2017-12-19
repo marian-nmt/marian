@@ -50,15 +50,13 @@ class BestHyps : public BestHypsBase
                    mblas::Matrix& Probs,
                    mblas::Vector<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
-                   std::vector<unsigned>& outKeys,
-                   const bool isFirst);
+                   std::vector<unsigned>& outKeys);
 
     void getNBestList(const Histories& beamSizes,
                       mblas::Matrix& Probs,
                       mblas::Vector<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,
-                      std::vector<uint>& outKeys,
-                      const bool isFirst=false) const;
+                      std::vector<uint>& outKeys) const;
 
     void GetPairs(mblas::Vector<NthOutBatch> &nBest,
                   std::vector<uint>& outKeys,
