@@ -65,9 +65,9 @@ size_t Histories::Sum() const
   return ret;
 }
 
-std::vector<size_t> Histories::GetBeamSizes() const
+std::vector<unsigned> Histories::GetBeamSizes() const
 {
-  std::vector<size_t> ret(size());
+  std::vector<unsigned> ret(size());
   for (size_t i = 0; i < size(); ++i) {
     ret[i] = GetBeamSize(i);
   }

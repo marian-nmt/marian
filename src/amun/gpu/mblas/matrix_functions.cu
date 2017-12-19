@@ -863,7 +863,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
                     VectorWrapper<uint> hypo2CandidateWrap,
                     bool isFirst,
                     uint beamSizeSum,
-                    const VectorWrapper<size_t> beamSizesWrap)
+                    const VectorWrapper<unsigned> beamSizesWrap)
 {
   uint hypoInd = 0;
   uint candidateInd = 0;
@@ -1320,7 +1320,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     }
   }
 
-  mblas::Vector<size_t> d_beamSizes(beamSizes.GetBeamSizes());
+  mblas::Vector<unsigned> d_beamSizes(beamSizes.GetBeamSizes());
   mblas::Vector<uint> hypo2BeamSize(in.dim(0));
   mblas::Vector<uint> hypo2Candidate(in.dim(0));
   mblas::Vector<uint> batch2Hypo(batchSize);
@@ -1348,7 +1348,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   VectorWrapper<NthOutBatch> nBestCandidatesWrap(nBestCandidates);
   VectorWrapper<float> costsWrap(costs);
 
-  VectorWrapper<size_t> beamSizesWrap(d_beamSizes);
+  VectorWrapper<unsigned> beamSizesWrap(d_beamSizes);
 
   //PAUSE_TIMER("LogSoftmax excl kernels");
 

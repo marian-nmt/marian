@@ -98,7 +98,7 @@ God& God::Init(int argc, char** argv) {
       ) {
     useFusedSoftmax_ = false;
   }
-  useFusedSoftmax_ = false;
+  //useFusedSoftmax_ = false;
   //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
 
   if (Has("input-file")) {
