@@ -66,7 +66,7 @@ public:
   void SetNewBeamSize(unsigned val);
 
   std::vector<unsigned> GetBeamSizes() const;
-  std::vector<unsigned> GetIsFirsts() const;
+  std::vector<char> GetIsFirsts() const;
 
   Hypotheses Add(const God &god, const HypothesesBatch& beams);
   Hypotheses GetFirstHyps();
