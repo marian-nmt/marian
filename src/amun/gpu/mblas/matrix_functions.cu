@@ -1320,7 +1320,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     }
   }
 
-  mblas::Vector<size_t> d_beamSizes(beamSizes.Vec());
+  mblas::Vector<size_t> d_beamSizes(beamSizes.GetBeamSizes());
   mblas::Vector<uint> hypo2BeamSize(in.dim(0));
   mblas::Vector<uint> hypo2Candidate(in.dim(0));
   mblas::Vector<uint> batch2Hypo(batchSize);

@@ -25,6 +25,7 @@ void Beam::Add(const Hypotheses &hypos, Hypotheses &survivors)
 
 Beams::Beams(const Sentences& sentences, size_t val, bool normalizeScore)
 :coll_(sentences.size())
+,active_(sentences.size())
 {
   for (size_t i = 0; i < size(); ++i) {
     const Sentence &sentence = sentences.Get(i);
@@ -59,7 +60,7 @@ size_t Beams::Sum() const
   return ret;
 }
 
-std::vector<size_t> Beams::Vec() const
+std::vector<size_t> Beams::GetBeamSizes() const
 {
   std::vector<size_t> ret(size());
   for (size_t i = 0; i < size(); ++i) {
@@ -89,6 +90,9 @@ Hypotheses Beams::Add(const God &god, const HypothesesBatch& beams)
       if (beamSize == 0) {
         ele->GetHistory().Output(god);
         ele.reset();
+
+        assert(active_);
+        --active_;
       }
     }
   }
@@ -108,15 +112,18 @@ Hypotheses Beams::GetFirstHyps()
   return ret;
 }
 
-void Beams::OutputAll(const God &god) const
+void Beams::OutputAll(const God &god)
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
-    const std::shared_ptr<Beam> &ele = coll_[i];
+    std::shared_ptr<Beam> &ele = coll_[i];
     if (ele && ele->GetBeamSize()) {
       const History &history = ele->GetHistory();
       history.Output(god);
+      ele.reset();
     }
   }
+
+  active_ = 0;
 }
 
 std::string Beams::Debug(size_t verbosity) const

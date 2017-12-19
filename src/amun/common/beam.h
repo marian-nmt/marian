@@ -51,23 +51,26 @@ public:
   size_t size() const
   { return coll_.size(); }
 
+  unsigned GetNumActive() const
+  { return active_; }
+
   size_t GetBeamSize(size_t ind) const;
   void SetBeamSize(size_t ind, size_t val);
   bool Empty(size_t ind) const;
 
   size_t Sum() const;
 
-  std::vector<size_t> Vec() const;
+  std::vector<size_t> GetBeamSizes() const;
 
   Hypotheses Add(const God &god, const HypothesesBatch& beams);
   Hypotheses GetFirstHyps();
-  void OutputAll(const God &god) const;
+  void OutputAll(const God &god);
 
   virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
   std::vector< std::shared_ptr<Beam> > coll_;
-
+  unsigned active_;
 };
 
 }
