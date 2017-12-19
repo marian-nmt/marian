@@ -323,6 +323,8 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("maxi-batch", size_t);
   SET_OPTION("mini-batch-words", int);
   SET_OPTION("max-length", size_t);
+  SET_OPTION("encoder-buffer-size", size_t);
+
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
@@ -340,7 +342,6 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION_NONDEFAULT("input-file", std::string);
   SET_OPTION("log-progress", std::string);
   SET_OPTION("log-info", std::string);
-  SET_OPTION("encoder-buffer-size", size_t);
 
   // @TODO: Apply complex overwrites
 

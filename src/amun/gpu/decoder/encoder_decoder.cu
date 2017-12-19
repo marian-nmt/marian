@@ -153,6 +153,12 @@ void EncoderDecoder::DecodeAsync()
 
 void EncoderDecoder::DecodeAsyncInternal()
 {
+  //BEGIN_TIMER("DecodeAsyncInternal.Total");
+  //BEGIN_TIMER("DecodeAsyncInternal.Init");
+
+  uint maxBeamSize = god_.Get<uint>("beam-size");
+  uint miniBatch = god_.Get<uint>("mini-batch");
+
   EncOutPtr encOut = encDecBuffer_.Get();
   assert(encOut);
 
