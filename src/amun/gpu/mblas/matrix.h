@@ -174,6 +174,15 @@ class TMatrix : public BaseMatrix {
       vec_.swap(other.vec_);
     }
 
+    TMatrix& operator=(const TMatrix& other)
+    {
+      if (this != &other) {
+        std::copy(other.dim_, other.dim_ + SHAPE_SIZE, dim_);
+        vec_ = other.vec_;
+      }
+      return *this;
+    }
+
   private:
     size_t dim_[SHAPE_SIZE];
     Vector<T> vec_;

@@ -13,9 +13,7 @@ Sentences::Sentences(const Sentences &other)
 :coll_(other.coll_)
 ,maxLength_(other.maxLength_)
 {
-
 }
-
 
 Sentences::~Sentences()
 {}

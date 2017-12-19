@@ -153,6 +153,90 @@ void EncoderDecoder::DecodeAsync()
 
 void EncoderDecoder::DecodeAsyncInternal()
 {
+  uint maxBeamSize = god_.Get<uint>("beam-size");
+  uint miniBatch = god_.Get<uint>("mini-batch");
+
+  Histories histories(search_.NormalizeScore());
+
+  EncOutPtr encOut = encDecBuffer_.Get();
+  assert(encOut);
+
+  Sentences sentences(encOut->GetSentences());
+  mblas::Matrix SourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
+  mblas::Vector<uint> sentenceLengths(encOut->Get<EncOutGPU>().GetSentenceLengths());
+  mblas::Matrix SCU(encOut->Get<EncOutGPU>().GetSCU());
+
+  StatePtr state(NewState());
+
+  BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
+
+  StatePtr nextState(NewState());
+
+  histories.Init(sentences);
+
+  Hypotheses prevHyps = histories.GetFirstHyps();
+
+  while (histories.GetNumActive()) {
+    boost::timer::cpu_timer timerStep;
+
+    cerr << "DecodeAsyncInternalA=" << survivors << endl;
+    const EDState& edstate = state->get<EDState>();
+    EDState& ednextState = nextState->get<EDState>();
+
+    cerr << "DecodeAsyncInternalB=" << survivors << endl;
+    decoder_->Decode(ednextState.GetStates(),
+                     edstate.GetStates(),
+                     edstate.GetEmbeddings(),
+                     histories,
+                     god_.UseFusedSoftmax(),
+                     SourceContext,
+                     SCU,
+                     sentenceLengths);
+    cerr << "DecodeAsyncInternalC=" << survivors << endl;
+
+    histories.SetNewBeamSize(maxBeamSize);
+    cerr << "DecodeAsyncInternalD=" << survivors << endl;
+
+    unsigned numPrevHyps = prevHyps.size();
+    size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
+    cerr << "DecodeAsyncInternal1=" << survivors << endl;
+
+    if (survivors == 0) {
+      cerr << "DecodeAsyncInternal2=" << survivors << endl;
+      encOut = encDecBuffer_.Get();
+      assert(encOut);
+      cerr << "DecodeAsyncInternal3=" << survivors << endl;
+
+      sentences = encOut->GetSentences();
+      cerr << "DecodeAsyncInternal4=" << survivors << endl;
+
+      SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+      cerr << "DecodeAsyncInternal5=" << survivors << endl;
+
+      sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+      cerr << "DecodeAsyncInternal6=" << survivors << endl;
+
+      SCU = encOut->Get<EncOutGPU>().GetSCU();
+      cerr << "DecodeAsyncInternal7=" << survivors << endl;
+
+      histories.Init(sentences);
+      cerr << "DecodeAsyncInternal8=" << survivors << endl;
+    }
+    cerr << "DecodeAsyncInternal9=" << survivors << endl;
+
+    /*
+    cerr << "histories=" << histories->size() << " "
+        << "histories=" << histories.size() << " "
+        << endl;
+    */
+    LOG(progress)->info("  Step took {} sentences {} prevHypos {} survivors {}", timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
+  }
+
+  cerr << "DecodeAsyncInternal10="<< endl;
+}
+
+void EncoderDecoder::DecodeAsyncInternalOLD()
+{
   //BEGIN_TIMER("DecodeAsyncInternal.Total");
   //BEGIN_TIMER("DecodeAsyncInternal.Init");
 

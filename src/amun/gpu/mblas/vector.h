@@ -143,6 +143,21 @@ public:
     std::swap(data_, other.data_);
   }
 
+  Vector& operator=(const Vector& other)
+  {
+    if (this != &other) {
+      newSize(other.size());
+
+      HANDLE_ERROR( cudaMemcpyAsync(
+          data_,
+          other.data_,
+          size_ * sizeof(T),
+          cudaMemcpyDeviceToDevice,
+          CudaStreamHandler::GetStream()) );
+    }
+    return *this;
+  }
+
   virtual std::string Debug(size_t verbosity = 1) const
   {
     std::stringstream strm;
