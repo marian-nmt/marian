@@ -185,7 +185,6 @@ void EncoderDecoder::DecodeAsyncInternal()
     Hypotheses prevHyps = beamSizes.GetFirstHyps();
     //cerr << "prevHyps1=" << prevHyps.size() << endl;
 
-    size_t decoderStep = 0;
     while (beamSizes.GetNumActive()) {
       boost::timer::cpu_timer timerStep;
 
@@ -210,7 +209,6 @@ void EncoderDecoder::DecodeAsyncInternal()
         break;
       }
 
-      ++decoderStep;
       /*
       cerr << "histories=" << histories->size() << " "
           << "beamSizes=" << beamSizes.size() << " "
