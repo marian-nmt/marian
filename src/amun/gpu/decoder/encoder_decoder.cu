@@ -159,6 +159,8 @@ void EncoderDecoder::DecodeAsyncInternal()
   uint maxBeamSize = god_.Get<uint>("beam-size");
   uint miniBatch = god_.Get<uint>("mini-batch");
 
+  Histories histories(search_.NormalizeScore());
+
   EncOutPtr encOut = encDecBuffer_.Get();
   assert(encOut);
 
@@ -180,12 +182,12 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     StatePtr nextState(NewState());
 
-    Histories beamSizes(sentences, 1, search_.NormalizeScore());
+    histories.Init(sentences);
 
-    Hypotheses prevHyps = beamSizes.GetFirstHyps();
+    Hypotheses prevHyps = histories.GetFirstHyps();
     //cerr << "prevHyps1=" << prevHyps.size() << endl;
 
-    while (beamSizes.GetNumActive()) {
+    while (histories.GetNumActive()) {
       boost::timer::cpu_timer timerStep;
 
       const EDState& edstate = state->get<EDState>();
@@ -194,30 +196,29 @@ void EncoderDecoder::DecodeAsyncInternal()
       decoder_->Decode(ednextState.GetStates(),
                        edstate.GetStates(),
                        edstate.GetEmbeddings(),
-                       beamSizes,
+                       histories,
                        god_.UseFusedSoftmax(),
                        SourceContext,
                        SCU,
                        sentenceLengths);
 
-      beamSizes.SetNewBeamSize(maxBeamSize);
+      histories.SetNewBeamSize(maxBeamSize);
 
-      //bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, *states[0], *nextStates[0]);
       unsigned numPrevHyps = prevHyps.size();
-      size_t survivors = CalcBeam(search_.GetBestHyps(), beamSizes, prevHyps, *state, *nextState, search_.GetFilterIndices());
+      size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
       if (survivors == 0) {
         break;
       }
 
       /*
       cerr << "histories=" << histories->size() << " "
-          << "beamSizes=" << beamSizes.size() << " "
+          << "histories=" << histories.size() << " "
           << endl;
       */
-      LOG(progress)->info("  Step took {} sentences {} prevHypos {} survivors {}", timerStep.format(5, "%w"), beamSizes.GetNumActive(), numPrevHyps, survivors);
+      LOG(progress)->info("  Step took {} sentences {} prevHypos {} survivors {}", timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
     }
 
-    beamSizes.OutputAll(god_);
+    histories.OutputAll(god_);
 
     CleanAfterTranslation();
 
@@ -245,21 +246,21 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
 }
 
 size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
-                      Histories& beamSizes,
+                      Histories& histories,
                       Hypotheses& prevHyps,
                       State& state,
                       State& nextState,
                       const Words &filterIndices)
 {
-  size_t batchSize = beamSizes.size();
+  size_t batchSize = histories.size();
   HypothesesBatch beams(batchSize);
-  bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, beamSizes);
+  bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, histories);
 
   //cerr << "beams=" << beams.size() << endl;
-  assert(beams.size() == beamSizes.size());
+  assert(beams.size() == histories.size());
   assert(beams.size() == batchSize);
 
-  Hypotheses survivors = beamSizes.Add(god_, beams);
+  Hypotheses survivors = histories.Add(god_, beams);
 
   if (survivors.size() == 0) {
     return 0;

@@ -20,10 +20,10 @@ using HypothesesBatch = std::vector<Hypotheses>;
 class HistoriesElement
 {
 public:
-  HistoriesElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength);
+  HistoriesElement(const Sentence &sentence, bool normalizeScore, size_t maxLength);
 
   unsigned GetBeamSize() const
-  { return size_; }
+  { return beamSize_; }
 
   void SetNewBeamSize(unsigned val);
 
@@ -35,7 +35,7 @@ public:
   bool IsFirst() const;
 
 protected:
-  unsigned size_;  // beam size 0..beam
+  unsigned beamSize_;  // beam size 0..beam
   History history_;
 
 };
@@ -47,7 +47,9 @@ using HistoriesElementPtr = std::shared_ptr<HistoriesElement>;
 class Histories
 {
 public:
-  Histories(const Sentences& sentences, size_t val, bool normalizeScore);
+  Histories(bool normalizeScore);
+
+  void Init(const Sentences& sentences);
 
   size_t size() const
   { return coll_.size(); }
@@ -75,6 +77,7 @@ public:
   virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
+  bool normalizeScore_;
   std::vector<HistoriesElementPtr> coll_;
   unsigned active_;
 };

@@ -84,7 +84,7 @@ class EncoderDecoder : public Scorer {
                             mblas::Matrix& SCU);
 
     size_t CalcBeam(BestHypsBase &bestHyps,
-        Histories& beamSizes,
+        Histories& histories,
                           Hypotheses& prevHyps,
                           State& state,
                           State& nextState,

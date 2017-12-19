@@ -8,23 +8,23 @@ using namespace std;
 
 namespace amunmt {
 
-HistoriesElement::HistoriesElement(unsigned size, const Sentence &sentence, bool normalizeScore, size_t maxLength)
-:size_(size)
+HistoriesElement::HistoriesElement(const Sentence &sentence, bool normalizeScore, size_t maxLength)
+:beamSize_(1)
 ,history_(sentence, normalizeScore, 3 * sentence.size())
 {}
 
 void HistoriesElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 {
   unsigned numEOS = history_.Add(hypos, survivors);
-  assert(size_ >= numEOS);
-  size_ -= numEOS;
+  assert(beamSize_ >= numEOS);
+  beamSize_ -= numEOS;
 
 }
 
 void HistoriesElement::SetNewBeamSize(unsigned val)
 {
   if (IsFirst()) {
-    size_ = val;
+    beamSize_ = val;
   }
 }
 
@@ -34,14 +34,19 @@ bool HistoriesElement::IsFirst() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-Histories::Histories(const Sentences& sentences, size_t val, bool normalizeScore)
-:coll_(sentences.size())
-,active_(sentences.size())
+Histories::Histories(bool normalizeScore)
+:normalizeScore_(normalizeScore)
 {
+}
+
+void Histories::Init(const Sentences& sentences)
+{
+  active_ = sentences.size();
+  coll_.resize(sentences.size());
+
   for (size_t i = 0; i < size(); ++i) {
     const Sentence &sentence = sentences.Get(i);
-    coll_[i].reset(new HistoriesElement(val, sentence, normalizeScore, 3 * sentence.size()));
+    coll_[i].reset(new HistoriesElement(sentence, normalizeScore_, 3 * sentence.size()));
   }
 }
 
