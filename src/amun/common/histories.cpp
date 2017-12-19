@@ -23,9 +23,14 @@ void HistoriesElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
 
 void HistoriesElement::SetNewBeamSize(unsigned val)
 {
-  if (history_.size() == 1) {
+  if (IsFirst()) {
     size_ = val;
   }
+}
+
+bool HistoriesElement::IsFirst() const
+{
+  return history_.size() == 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +130,7 @@ Hypotheses Histories::GetFirstHyps()
 void Histories::OutputAll(const God &god)
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
-    std::shared_ptr<HistoriesElement> &ele = coll_[i];
+    HistoriesElementPtr &ele = coll_[i];
     if (ele && ele->GetBeamSize()) {
       const History &history = ele->GetHistory();
       history.Output(god);

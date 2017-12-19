@@ -32,12 +32,16 @@ public:
 
   void Add(const Hypotheses &hypos, Hypotheses &survivors);
 
+  bool IsFirst() const;
+
 protected:
   unsigned size_;  // beam size 0..beam
   History history_;
 
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+using HistoriesElementPtr = std::shared_ptr<HistoriesElement>;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 class Histories
@@ -50,6 +54,9 @@ public:
 
   unsigned GetNumActive() const
   { return active_; }
+
+  const HistoriesElementPtr &Get(size_t ind) const
+  { return coll_[ind]; }
 
   size_t GetBeamSize(size_t ind) const;
   bool Empty(size_t ind) const;
@@ -67,7 +74,7 @@ public:
   virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
-  std::vector< std::shared_ptr<HistoriesElement> > coll_;
+  std::vector<HistoriesElementPtr> coll_;
   unsigned active_;
 };
 
