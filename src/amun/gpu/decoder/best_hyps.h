@@ -30,8 +30,7 @@ class BestHyps : public BestHypsBase
     void FindBests(const Histories& beamSizes,
                    mblas::Matrix& Probs,
                    std::vector<float>& outCosts,
-                   std::vector<unsigned>& outKeys,
-                   const bool isFirst);
+                   std::vector<unsigned>& outKeys);
 
     virtual void  CalcBeam(
         const Hypotheses& prevHyps,
@@ -47,8 +46,9 @@ class BestHyps : public BestHypsBase
     uint maxBeamSize_;
 
     // fast fused softmax and nth_element
-    void FindBests(const Histories& beamSizes, mblas::Matrix& Probs,
-    		mblas::Vector<NthOutBatch> &nBest,
+    void FindBests(const Histories& beamSizes,
+                   mblas::Matrix& Probs,
+                   mblas::Vector<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);

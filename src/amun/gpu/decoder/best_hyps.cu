@@ -31,10 +31,9 @@ void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
 void BestHyps::FindBests(const Histories& beamSizes,
                           mblas::Matrix& Probs,
                           std::vector<float>& outCosts,
-                          std::vector<unsigned>& outKeys,
-                          const bool isFirst)
+                          std::vector<unsigned>& outKeys)
 {
-  nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys, isFirst);
+  nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys);
 }
 
 // fast fused softmax and nth_element
@@ -185,7 +184,7 @@ void  BestHyps::CalcBeam(
       DisAllowUNK(Probs);
     }
 
-    FindBests(beamSizes, Probs, bestCosts, bestKeys, isFirst);
+    FindBests(beamSizes, Probs, bestCosts, bestKeys);
   }
 
   std::vector<std::vector<float>> breakDowns;

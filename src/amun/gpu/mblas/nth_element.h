@@ -26,8 +26,7 @@ class NthElement {
     void getNBestList(const Histories& beamSizes,
                       mblas::Matrix& Probs,
                       std::vector<float>& outCosts,
-                      std::vector<uint>& outKeys,
-                      const bool isFirst=false);
+                      std::vector<uint>& outKeys);
 
     void GetPairs(uint number,
                   std::vector<uint>& outKeys,
