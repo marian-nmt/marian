@@ -78,7 +78,7 @@ class EncoderDecoder : public Scorer {
     void DecodeAsyncInternal(EncOutPtr encOut);
 
     void BeginSentenceState(size_t batchSize,
-                            const mblas::Matrix &SourceContext,
+                            const mblas::Matrix &sourceContext,
                             const mblas::Vector<uint> &sentenceLengths,
                             State& state,
                             mblas::Matrix& SCU) const;
@@ -90,9 +90,11 @@ class EncoderDecoder : public Scorer {
                           State& nextState,
                           const Words &filterIndices);
 
-    void AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
+    std::vector<unsigned> AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
                     Sentences &sentences,
-                    Histories &histories);
+                    Histories &histories,
+                    mblas::Vector<uint> &sentenceLengths,
+                    mblas::Matrix &sourceContext);
 
 };
 

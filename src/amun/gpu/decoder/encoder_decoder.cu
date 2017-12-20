@@ -162,12 +162,12 @@ void EncoderDecoder::DecodeAsyncInternal()
   assert(encOut);
 
   Sentences sentences(encOut->GetSentences());
-  mblas::Matrix SourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
+  mblas::Matrix sourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
   mblas::Vector<uint> sentenceLengths(encOut->Get<EncOutGPU>().GetSentenceLengths());
   mblas::Matrix SCU;
 
   StatePtr state(NewState());
-  BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
+  BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
   StatePtr nextState(NewState());
 
   histories.Init(sentences);
@@ -186,7 +186,7 @@ void EncoderDecoder::DecodeAsyncInternal()
                      edstate.GetEmbeddings(),
                      histories,
                      god_.UseFusedSoftmax(),
-                     SourceContext,
+                     sourceContext,
                      SCU,
                      sentenceLengths);
 
@@ -200,7 +200,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       std::vector<EncOut::SentenceElement> newSentences;
       encDecBuffer_.Get(maxBeamSize, newSentences);
 
-      AddToBatch(newSentences,sentences, histories);
+      vector<unsigned> batchIds = AddToBatch(newSentences,sentences, histories, sentenceLengths, sourceContext);
       //*/
       /*
       encOut = encDecBuffer_.Get();
@@ -211,12 +211,12 @@ void EncoderDecoder::DecodeAsyncInternal()
         break;
       }
 
-      SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+      sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
       */
 
       //state.reset(NewState());
-      BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
+      BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
       //nextState.reset(NewState());
 
       histories.Init(sentences);
@@ -235,14 +235,14 @@ void EncoderDecoder::DecodeAsyncInternal()
 }
 
 void EncoderDecoder::BeginSentenceState(size_t batchSize,
-                                        const mblas::Matrix &SourceContext,
+                                        const mblas::Matrix &sourceContext,
                                         const mblas::Vector<uint> &sentenceLengths,
                                         State& state,
                                         mblas::Matrix& SCU) const
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), batchSize, SourceContext, sentenceLengths, SCU);
+  decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");
@@ -338,30 +338,40 @@ size_t FindNextEmptyIndex(size_t nextBatchInd,
 }
 ////////////////////////////////////////////////////////////////////////
 
-void EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
+vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
                                 Sentences &sentences,
-                                Histories &histories)
+                                Histories &histories,
+                                mblas::Vector<uint> &sentenceLengths,
+                                mblas::Matrix &sourceContext)
 {
+  cerr << "sentenceLengths=" << sentenceLengths.Debug() << endl;
+  cerr << "sourceContext=" << sourceContext.Debug() << endl;
+
+  vector<unsigned> ret(newSentences.size());
+
   size_t nextBatchInd = 0;
 
   for (size_t newInd = 0; newInd < newSentences.size(); ++newInd) {
     const EncOut::SentenceElement &eleSent = newSentences[newInd];
-    const EncOutPtr encOut = eleSent.encOut;
+    //const EncOutPtr &encOut = eleSent.encOut;
     const SentencePtr &sentence = eleSent.GetSentence();
 
     size_t batchInd = FindNextEmptyIndex(nextBatchInd, histories);
+
+    sentences.Set(batchInd, sentence);
 
     HistoriesElementPtr &eleHist = histories.Get(nextBatchInd);
     assert(eleHist == nullptr);
     eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore()));
 
-    sentences.Set(batchInd, sentence);
-
+    ret[newInd] = batchInd;
 
     nextBatchInd = batchInd + 1;
   }
 
   sentences.RecalcMaxLength();
+
+  return ret;
 }
 
 }
