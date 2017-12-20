@@ -24,7 +24,7 @@ const SentencePtr &Sentences::Get(size_t id) const
   return coll_.at(id);
 }
 
-void Sentences::Set(size_t id, SentencePtr sentence)
+void Sentences::Set(size_t id, const SentencePtr &sentence)
 {
   assert(id < coll_.size());
   coll_[id] = sentence;
@@ -43,7 +43,7 @@ void Sentences::RecalcMaxLength()
   assert(false);
 }
 
-void Sentences::push_back(SentencePtr sentence) {
+void Sentences::push_back(const SentencePtr &sentence) {
   const Words &words = sentence->GetWords(0);
   size_t len = words.size();
   if (len > maxLength_) {
@@ -106,7 +106,7 @@ SentencesPtr Sentences::NextMiniBatch(size_t batchsize, int batchWords)
   else {
     size_t startInd = (batchsize > size()) ? 0 : size() - batchsize;
     for (size_t i = startInd; i < size(); ++i) {
-      SentencePtr sentence = coll_[i];
+      const SentencePtr &sentence = coll_[i];
       sentences->push_back(sentence);
     }
 

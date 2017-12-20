@@ -13,11 +13,11 @@ class Sentences {
     Sentences(const Sentences &other);
     ~Sentences();
 
-    void push_back(SentencePtr sentence);
+    void push_back(const SentencePtr &sentence);
 
     const SentencePtr &Get(size_t id) const;
 
-    void Set(size_t id, SentencePtr sentence);
+    void Set(size_t id, const SentencePtr &sentence);
 
     size_t size() const;
 
