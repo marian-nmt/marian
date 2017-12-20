@@ -20,7 +20,7 @@ using HypothesesBatch = std::vector<Hypotheses>;
 class HistoriesElement
 {
 public:
-  HistoriesElement(const Sentence &sentence, bool normalizeScore);
+  HistoriesElement(const SentencePtr &sentence, bool normalizeScore);
 
   unsigned GetBeamSize() const
   { return beamSize_; }

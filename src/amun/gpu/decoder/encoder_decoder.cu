@@ -347,7 +347,7 @@ void EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newS
   for (size_t newInd = 0; newInd < newSentences.size(); ++newInd) {
     const EncOut::SentenceElement &eleSent = newSentences[newInd];
     const EncOutPtr encOut = eleSent.encOut;
-    const Sentence &sentence = eleSent.GetSentence();
+    const SentencePtr &sentence = eleSent.GetSentence();
 
     size_t batchInd = FindNextEmptyIndex(nextBatchInd, histories);
 

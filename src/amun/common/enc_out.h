@@ -24,10 +24,10 @@ public:
     ,sentenceInd(vsentenceInd)
     {}
 
-    const Sentence &GetSentence() const
+    const SentencePtr &GetSentence() const
     {
       const Sentences &sentences = encOut->GetSentences();
-      const Sentence &sentence = *sentences.Get(sentenceInd);
+      const SentencePtr &sentence = sentences.Get(sentenceInd);
       return sentence;
     }
 
