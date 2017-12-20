@@ -82,7 +82,7 @@ class EncoderDecoder : public Scorer {
                             const mblas::Matrix &SourceContext,
                             const mblas::Vector<uint> &sentenceLengths,
                             State& state,
-                            mblas::Matrix& SCU);
+                            mblas::Matrix& SCU) const;
 
     size_t CalcBeam(BestHypsBase &bestHyps,
         Histories& histories,

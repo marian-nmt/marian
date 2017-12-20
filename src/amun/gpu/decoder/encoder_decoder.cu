@@ -312,7 +312,7 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
                                         const mblas::Matrix &SourceContext,
                                         const mblas::Vector<uint> &sentenceLengths,
                                         State& state,
-                                        mblas::Matrix& SCU)
+                                        mblas::Matrix& SCU) const
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();

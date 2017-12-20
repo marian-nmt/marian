@@ -68,7 +68,7 @@ class Decoder {
         void InitializeState(CellState& State,
                              const size_t batchSize,
                              const mblas::Matrix &SourceContext,
-                             const mblas::Vector<uint> &sentenceLengths)
+                             const mblas::Vector<uint> &sentenceLengths) const
         {
           using namespace mblas;
 
@@ -78,17 +78,18 @@ class Decoder {
             mblas::Fill(*(State.cell), 0.0f);
           }
           //std::cerr << "1Temp2_=" << Temp2_.Debug(1) << std::endl;
-          Temp2_.NewSize(batchSize, SourceContext.dim(1), 1, 1);
-          //std::cerr << "2Temp2_=" << Temp2_.Debug(1) << std::endl;
+          thread_local mblas::Matrix Temp2;
+          Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
+          //std::cerr << "2Temp2_=" << Temp2.Debug(1) << std::endl;
 
           //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
           //std::cerr << "mapping=" << Debug(mapping, 2) << std::endl;
-          Mean(Temp2_, SourceContext, sentenceLengths);
+          Mean(Temp2, SourceContext, sentenceLengths);
 
           //std::cerr << "1State=" << State.Debug(1) << std::endl;
-          //std::cerr << "3Temp2_=" << Temp2_.Debug(1) << std::endl;
+          //std::cerr << "3Temp2_=" << Temp2.Debug(1) << std::endl;
           //std::cerr << "w_.Wi_=" << w_.Wi_->Debug(1) << std::endl;
-          Prod(*(State.output), Temp2_, *w_.Wi_);
+          Prod(*(State.output), Temp2, *w_.Wi_);
 
           //std::cerr << "2State=" << State.Debug(1) << std::endl;
           //State.ReduceDimensions();
@@ -113,8 +114,6 @@ class Decoder {
       private:
         const Weights& w_;
         std::unique_ptr<Cell> gru_;
-
-        mblas::Matrix Temp2_;
 
         RNNHidden(const RNNHidden&) = delete;
     };
@@ -447,7 +446,7 @@ class Decoder {
                     size_t batchSize,
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<uint> &sentenceLengths,
-                    mblas::Matrix& SCU)
+                    mblas::Matrix& SCU) const
     {
       rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
       alignment_.Init(SourceContext, SCU);
