@@ -197,6 +197,11 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     if (survivors == 0) {
 
+      std::vector<EncOut::SentenceElement> newSentences;
+      encDecBuffer_.Get(maxBeamSize, newSentences);
+
+      AddToBatch(newSentences,sentences);
+
       encOut = encDecBuffer_.Get();
       assert(encOut);
 
@@ -312,6 +317,30 @@ void EncoderDecoder::AssembleBeamState(const State& state,
   decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
   //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
   //PAUSE_TIMER("AssembleBeamState");
+}
+
+void FindNextEmptyIndex(size_t sentInd, const Sentences &sentences)
+{
+  for (size_t i = sentInd; i < sentences.size(); ++i) {
+
+  }
+
+  assert(false);
+}
+
+void EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
+                Sentences &sentences)
+{
+  size_t sentInd = 0;
+  FindNextEmptyIndex(sentInd, sentences);
+
+  for (size_t newInd = 0; newInd < newSentences.size(); ++newInd) {
+    const EncOut::SentenceElement &ele = newSentences[newInd];
+    const EncOutPtr encOut = ele.encOut;
+    size_t sentenceInd = ele.sentenceInd;
+
+    FindNextEmptyIndex(sentInd + 1, sentences);
+  }
 }
 
 }

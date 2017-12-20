@@ -90,6 +90,9 @@ class EncoderDecoder : public Scorer {
                           State& nextState,
                           const Words &filterIndices);
 
+    void AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
+                    Sentences &sentences);
+
 };
 
 }
