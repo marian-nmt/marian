@@ -1,3 +1,4 @@
+#include <cassert>
 #include <algorithm>
 #include "sentences.h"
 
@@ -28,12 +29,23 @@ const Sentence &Sentences::Get(size_t id) const
   return *coll_.at(id);
 }
 
+void Sentences::Set(size_t id, SentencePtr sentence)
+{
+  assert(id < coll_.size());
+  coll_[id] = sentence;
+}
+
 size_t Sentences::size() const {
   return coll_.size();
 }
 
 size_t Sentences::GetMaxLength() const {
   return maxLength_;
+}
+
+void Sentences::RecalcMaxLength()
+{
+  assert(false);
 }
 
 void Sentences::push_back(SentencePtr sentence) {

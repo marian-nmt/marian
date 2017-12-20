@@ -196,13 +196,13 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
-      /*
+      ///*
       std::vector<EncOut::SentenceElement> newSentences;
       encDecBuffer_.Get(maxBeamSize, newSentences);
 
       AddToBatch(newSentences,sentences, histories);
-      */
-      ///*
+      //*/
+      /*
       encOut = encDecBuffer_.Get();
       assert(encOut);
 
@@ -213,7 +213,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
       SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-      //*/
+      */
 
       //state.reset(NewState());
       BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
@@ -354,6 +354,9 @@ void EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newS
     HistoriesElementPtr &eleHist = histories.Get(nextBatchInd);
     assert(eleHist == nullptr);
     eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore()));
+
+    //sentences.Set(batchInd, sentence);
+
 
     nextBatchInd = batchInd + 1;
   }

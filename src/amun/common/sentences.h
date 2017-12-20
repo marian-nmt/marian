@@ -18,9 +18,13 @@ class Sentences {
     SentencePtr at(size_t id) const;
     const Sentence &Get(size_t id) const;
 
+    void Set(size_t id, SentencePtr sentence);
+
     size_t size() const;
 
     size_t GetMaxLength() const;
+
+    void RecalcMaxLength();
 
     void SortByLength();
 
