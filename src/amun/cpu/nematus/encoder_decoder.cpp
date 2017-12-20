@@ -51,7 +51,7 @@ void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t b
 
 
 void EncoderDecoder::Encode(SentencesPtr sources) {
-  encoder_->GetContext(sources->Get(0).GetWords(tab_),
+  encoder_->GetContext(sources->Get(0)->GetWords(tab_),
                         SourceContext_);
 }
 

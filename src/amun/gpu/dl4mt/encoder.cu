@@ -46,8 +46,8 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
   std::vector<std::vector<FactWord>> matrix(maxLen, std::vector<FactWord>(source.size()));
 
   for (size_t batchIdx = 0; batchIdx < source.size(); ++batchIdx) {
-    for (size_t wordIdx = 0; wordIdx < source.Get(batchIdx).GetFactors(tab).size(); ++wordIdx) {
-        matrix[wordIdx][batchIdx] = source.Get(batchIdx).GetFactors(tab)[wordIdx];
+    for (size_t wordIdx = 0; wordIdx < source.Get(batchIdx)->GetFactors(tab).size(); ++wordIdx) {
+        matrix[wordIdx][batchIdx] = source.Get(batchIdx)->GetFactors(tab)[wordIdx];
     }
   }
 

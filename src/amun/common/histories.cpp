@@ -45,7 +45,7 @@ void Histories::Init(const Sentences& sentences)
   coll_.resize(sentences.size());
 
   for (size_t i = 0; i < size(); ++i) {
-    const Sentence &sentence = sentences.Get(i);
+    const Sentence &sentence = *sentences.Get(i);
     coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
   }
 }

@@ -19,14 +19,9 @@ Sentences::Sentences(const Sentences &other)
 Sentences::~Sentences()
 {}
 
-SentencePtr Sentences::at(size_t id) const 
+const SentencePtr &Sentences::Get(size_t id) const
 {
   return coll_.at(id);
-}
-
-const Sentence &Sentences::Get(size_t id) const
-{
-  return *coll_.at(id);
 }
 
 void Sentences::Set(size_t id, SentencePtr sentence)
