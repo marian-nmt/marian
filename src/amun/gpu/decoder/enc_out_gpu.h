@@ -21,18 +21,9 @@ public:
   const mblas::Vector<uint> &GetSentenceLengths() const
   { return sentenceLengths_; }
 
-  mblas::Matrix &GetSCU()
-  { return SCU_; }
-
-  const mblas::Matrix &GetSCU() const
-  { return SCU_; }
-
 protected:
   mblas::Matrix sourceContext_;
   mblas::Vector<uint> sentenceLengths_;
-
-  mblas::Matrix SCU_;
-
 
 };
 

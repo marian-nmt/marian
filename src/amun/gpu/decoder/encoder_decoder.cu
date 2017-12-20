@@ -164,7 +164,7 @@ void EncoderDecoder::DecodeAsyncInternal()
   Sentences sentences(encOut->GetSentences());
   mblas::Matrix SourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
   mblas::Vector<uint> sentenceLengths(encOut->Get<EncOutGPU>().GetSentenceLengths());
-  mblas::Matrix SCU(encOut->Get<EncOutGPU>().GetSCU());
+  mblas::Matrix SCU;
 
   StatePtr state(NewState());
   BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
@@ -197,10 +197,10 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     if (survivors == 0) {
 
-      std::vector<EncOut::SentenceElement> newSentences;
-      encDecBuffer_.Get(maxBeamSize, newSentences);
+      //std::vector<EncOut::SentenceElement> newSentences;
+      //encDecBuffer_.Get(maxBeamSize, newSentences);
 
-      AddToBatch(newSentences,sentences);
+      //AddToBatch(newSentences,sentences);
 
       encOut = encDecBuffer_.Get();
       assert(encOut);
@@ -212,7 +212,6 @@ void EncoderDecoder::DecodeAsyncInternal()
 
       SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-      SCU = encOut->Get<EncOutGPU>().GetSCU();
 
       //state.reset(NewState());
       BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
