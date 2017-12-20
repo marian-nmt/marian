@@ -114,7 +114,6 @@ class Decoder {
         const Weights& w_;
         std::unique_ptr<Cell> gru_;
 
-        mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
 
         RNNHidden(const RNNHidden&) = delete;
