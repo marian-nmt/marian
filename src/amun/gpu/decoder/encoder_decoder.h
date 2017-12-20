@@ -76,7 +76,6 @@ class EncoderDecoder : public Scorer {
     void DecodeAsync();
     void DecodeAsyncInternal();
     void DecodeAsyncInternal(EncOutPtr encOut);
-    void DecodeAsyncInternalOLD();
 
     void BeginSentenceState(size_t batchSize,
                             const mblas::Matrix &SourceContext,
