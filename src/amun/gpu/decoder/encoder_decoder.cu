@@ -174,6 +174,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
   Hypotheses prevHyps = histories.GetFirstHyps();
 
+  unsigned step = 0;
   while (histories.GetNumActive()) {
     boost::timer::cpu_timer timerStep;
 
@@ -208,9 +209,9 @@ void EncoderDecoder::DecodeAsyncInternal()
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
       SCU = encOut->Get<EncOutGPU>().GetSCU();
 
-      state.reset(NewState());
+      //state.reset(NewState());
       BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
-      nextState.reset(NewState());
+      //nextState.reset(NewState());
 
       histories.Init(sentences);
 
@@ -222,7 +223,7 @@ void EncoderDecoder::DecodeAsyncInternal()
         << "histories=" << histories.size() << " "
         << endl;
     */
-    LOG(progress)->info("  Step took {} sentences {} prevHypos {} survivors {}", timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
+    LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
 
 }
