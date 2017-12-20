@@ -39,7 +39,7 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
-    virtual void Encode(SentencesPtr source);
+    virtual void Encode(const SentencesPtr &source);
 
     virtual void AssembleBeamState(const State& state,
                                    const Hypotheses& beam,

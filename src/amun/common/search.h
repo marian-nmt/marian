@@ -19,7 +19,7 @@ class Search {
     Search(const God &god);
     virtual ~Search();
 
-    void Translate(SentencesPtr sentences);
+    void Translate(const SentencesPtr &sentences);
 
     BestHypsBase &GetBestHyps() const
     { return *bestHyps_; }

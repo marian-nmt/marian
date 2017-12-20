@@ -4,7 +4,7 @@ using namespace std;
 
 namespace amunmt {
 
-EncOut::EncOut(SentencesPtr sentences)
+EncOut::EncOut(const SentencesPtr &sentences)
 :sentences_(sentences)
 ,h_sentenceLengths_(sentences->size())
 {

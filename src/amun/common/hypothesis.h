@@ -23,7 +23,7 @@ class Hypothesis {
        cost_(0.0)
     {}
 
-    Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost)
+    Hypothesis(const HypothesisPtr &prevHyp, size_t word, size_t prevIndex, float cost)
     : sentence_(prevHyp->sentence_),
       prevHyp_(prevHyp),
       prevIndex_(prevIndex),
@@ -31,7 +31,7 @@ class Hypothesis {
       cost_(cost)
     {}
 
-    Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost,
+    Hypothesis(const HypothesisPtr &prevHyp, size_t word, size_t prevIndex, float cost,
                std::vector<SoftAlignmentPtr> alignment)
     : sentence_(prevHyp->sentence_),
       prevHyp_(prevHyp),
@@ -41,7 +41,7 @@ class Hypothesis {
       alignments_(alignment)
     {}
 
-    const HypothesisPtr GetPrevHyp() const {
+    const HypothesisPtr &GetPrevHyp() const {
       return prevHyp_;
     }
 
@@ -61,7 +61,8 @@ class Hypothesis {
       return costBreakdown_;
     }
 
-    SoftAlignmentPtr GetAlignment(size_t i) {
+    const SoftAlignmentPtr &GetAlignment(size_t i) const
+    {
       assert(i < alignments_.size());
       return alignments_[i];
     }

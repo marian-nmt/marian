@@ -14,7 +14,7 @@ using namespace std;
 
 namespace amunmt {
 
-void TranslationTask::Run(God &god, SentencesPtr maxiBatch, size_t miniSize, int miniWords)
+void TranslationTask::Run(God &god, const SentencesPtr &maxiBatch, size_t miniSize, int miniWords)
 {
   maxiBatch->SortByLength();
   while (maxiBatch->size()) {
@@ -35,7 +35,7 @@ void TranslationTask::Exit(God &god)
       );
 }
 
-void TranslationTask::Run(const God &god, SentencesPtr sentences) {
+void TranslationTask::Run(const God &god, const SentencesPtr &sentences) {
   try {
     Search& search = god.GetSearch();
     search.Translate(sentences);

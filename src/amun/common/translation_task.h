@@ -12,11 +12,11 @@ class Histories;
 class TranslationTask
 {
 public:
-  void Run(God &god, SentencesPtr maxiBatch, size_t miniSize, int miniWords);
+  void Run(God &god, const SentencesPtr &maxiBatch, size_t miniSize, int miniWords);
   void Exit(God &god);
 
 protected:
-  void Run(const God &god, SentencesPtr sentences);
+  void Run(const God &god, const SentencesPtr &sentences);
 
 };
 

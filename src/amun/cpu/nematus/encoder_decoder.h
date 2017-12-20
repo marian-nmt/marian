@@ -36,7 +36,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
     virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize);
 
-    virtual void Encode(SentencesPtr sources);
+    virtual void Encode(const SentencesPtr &sources);
 
     virtual void AssembleBeamState(const State& in,
                                    const Hypotheses& beam,

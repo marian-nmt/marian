@@ -72,7 +72,7 @@ EncoderDecoder::~EncoderDecoder()
   //cerr << "~EncoderDecoder2" << endl;
 }
 
-void EncoderDecoder::Encode(SentencesPtr source) {
+void EncoderDecoder::Encode(const SentencesPtr &source) {
   BEGIN_TIMER("Encode");
 
   EncOutPtr encOut(new EncOutGPU(source));

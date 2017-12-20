@@ -50,7 +50,7 @@ void EncoderDecoder::BeginSentenceState(EncOutPtr encOut, State& state, size_t b
 }
 
 
-void EncoderDecoder::Encode(SentencesPtr sources) {
+void EncoderDecoder::Encode(const SentencesPtr &sources) {
   encoder_->GetContext(sources->Get(0)->GetWords(tab_),
                         SourceContext_);
 }

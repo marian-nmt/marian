@@ -34,7 +34,7 @@ public:
   };
   /////////////////////////////////////////////////////////////////////////////
 
-  EncOut(SentencesPtr sentences);
+  EncOut(const SentencesPtr &sentences);
   virtual ~EncOut();
 
   template<class T>
