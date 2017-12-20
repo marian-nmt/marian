@@ -8,7 +8,7 @@ using namespace std;
 
 namespace amunmt {
 
-HistoriesElement::HistoriesElement(const Sentence &sentence, bool normalizeScore, size_t maxLength)
+HistoriesElement::HistoriesElement(const Sentence &sentence, bool normalizeScore)
 :beamSize_(1)
 ,history_(sentence, normalizeScore, 3 * sentence.size())
 {}
@@ -46,7 +46,7 @@ void Histories::Init(const Sentences& sentences)
 
   for (size_t i = 0; i < size(); ++i) {
     const Sentence &sentence = sentences.Get(i);
-    coll_[i].reset(new HistoriesElement(sentence, normalizeScore_, 3 * sentence.size()));
+    coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
   }
 }
 
