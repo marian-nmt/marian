@@ -200,6 +200,10 @@ void EncoderDecoder::DecodeAsyncInternal()
       assert(encOut);
 
       sentences = encOut->GetSentences();
+      if (sentences.size() == 0) {
+        break;
+      }
+
       SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
       SCU = encOut->Get<EncOutGPU>().GetSCU();
