@@ -40,7 +40,13 @@ size_t Sentences::GetMaxLength() const {
 
 void Sentences::RecalcMaxLength()
 {
-  assert(false);
+  maxLength_ = 0;
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    const SentencePtr &sentence = coll_[i];
+    if (sentence->size() > maxLength_) {
+      maxLength_ = sentence->size();
+    }
+  }
 }
 
 void Sentences::push_back(const SentencePtr &sentence) {
