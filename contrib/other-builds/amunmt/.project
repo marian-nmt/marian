@@ -1441,16 +1441,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/fpga/kernels/square.cl</locationURI>
 		</link>
 		<link>
-			<name>src/amun/gpu/decoder/ape_penalty.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/ape_penalty.cu</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/decoder/ape_penalty.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/ape_penalty.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/gpu/decoder/best_hyps.cu</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/best_hyps.cu</locationURI>
@@ -1464,11 +1454,6 @@
 			<name>src/amun/gpu/decoder/buffer.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/buffer.h</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/decoder/class_language_model.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/class_language_model.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/gpu/decoder/enc_out_buffer.cu</name>
@@ -1519,26 +1504,6 @@
 			<name>src/amun/gpu/decoder/encoder_decoder_state.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/encoder_decoder_state.h</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/decoder/kenlm.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/kenlm.cpp</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/decoder/kenlm.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/kenlm.h</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/decoder/language_model.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/language_model.cu</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/decoder/language_model.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/language_model.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/gpu/dl4mt/decoder.h</name>

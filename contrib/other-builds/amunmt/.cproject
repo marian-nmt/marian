@@ -21,7 +21,7 @@
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.nine_zero.1638755272" name="CUDA Toolkit 9.0" superClass="com.nvidia.cuda.ide.toolchain.nine_zero">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1937032738" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
-							<builder buildPath="${workspace_loc:/amunmt}/Debug" id="com.nvidia.cuda.ide.builder.1339065213" keepEnvironmentInBuildfile="false" name="CUDA Toolkit 9.0 Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.nvidia.cuda.ide.builder"/>
+							<builder buildPath="${workspace_loc:/amunmt}/Debug" id="com.nvidia.cuda.ide.builder.1339065213" keepEnvironmentInBuildfile="false" name="CUDA Toolkit 9.1 Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.nvidia.cuda.ide.builder"/>
 							<tool id="nvcc.compiler.base.643910316" name="NVCC Compiler" superClass="nvcc.compiler.base">
 								<option id="nvcc.compiler.include.paths.887410048" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="${workspace_loc:/}/../../src/amun"/>
@@ -74,18 +74,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1282494096" name="/" resourcePath="src/amun/fpga">
-						<toolChain id="com.nvidia.cuda.ide.toolchain.nine_zero.320860755" name="CUDA Toolkit 9.0" superClass="com.nvidia.cuda.ide.toolchain.nine_zero" unusedChildren="">
-							<tool id="nvcc.compiler.base.1268954863" name="NVCC Compiler" superClass="nvcc.compiler.base.643910316"/>
-							<tool id="nvcc.linker.base.1868331965" name="NVCC Linker" superClass="nvcc.linker.base.290559804"/>
-							<tool id="nvcc.archiver.base.238664143" name="NVCC Archiver" superClass="nvcc.archiver.base.1511370560"/>
-							<tool id="com.nvidia.host.assembler.1190643994" name="Host Assembler" superClass="com.nvidia.host.assembler.1197170452"/>
-						</toolChain>
-					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.726231141" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.896636984" name="class_language_model.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/class_language_model.h" toolsToInvoke=""/>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1177572641" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/kenlm.h" toolsToInvoke=""/>
-					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.1910656954" name="language_model.h" rcbsApplicability="disable" resourcePath="src/amun/gpu/decoder/language_model.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.769555163" name="ape_penalty.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/ape_penalty.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.231195644" name="class_language_model.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/class_language_model.h" toolsToInvoke=""/>
 					<fileInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.2085852150.14115701" name="kenlm.h" rcbsApplicability="disable" resourcePath="src/gpu/decoder/kenlm.h" toolsToInvoke=""/>

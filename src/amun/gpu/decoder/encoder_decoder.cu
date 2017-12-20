@@ -179,11 +179,11 @@ void EncoderDecoder::DecodeAsyncInternal()
   while (histories.GetNumActive()) {
     boost::timer::cpu_timer timerStep;
 
-    cerr << "DecodeAsyncInternalA=" << survivors << endl;
+    cerr << "DecodeAsyncInternal1=" << endl;
     const EDState& edstate = state->get<EDState>();
     EDState& ednextState = nextState->get<EDState>();
 
-    cerr << "DecodeAsyncInternalB=" << survivors << endl;
+    cerr << "DecodeAsyncInternal2="  << endl;
     decoder_->Decode(ednextState.GetStates(),
                      edstate.GetStates(),
                      edstate.GetEmbeddings(),
@@ -192,37 +192,30 @@ void EncoderDecoder::DecodeAsyncInternal()
                      SourceContext,
                      SCU,
                      sentenceLengths);
-    cerr << "DecodeAsyncInternalC=" << survivors << endl;
+    cerr << "DecodeAsyncInternal3=" << endl;
 
     histories.SetNewBeamSize(maxBeamSize);
-    cerr << "DecodeAsyncInternalD=" << survivors << endl;
+    cerr << "DecodeAsyncInternal4=" << endl;
 
     unsigned numPrevHyps = prevHyps.size();
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
-    cerr << "DecodeAsyncInternal1=" << survivors << endl;
+    cerr << "DecodeAsyncInternal5=" << survivors << endl;
 
     if (survivors == 0) {
-      cerr << "DecodeAsyncInternal2=" << survivors << endl;
+      cerr << "DecodeAsyncInternal6=" << survivors << endl;
       encOut = encDecBuffer_.Get();
       assert(encOut);
-      cerr << "DecodeAsyncInternal3=" << survivors << endl;
 
       sentences = encOut->GetSentences();
-      cerr << "DecodeAsyncInternal4=" << survivors << endl;
 
       SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-      cerr << "DecodeAsyncInternal5=" << survivors << endl;
-
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-      cerr << "DecodeAsyncInternal6=" << survivors << endl;
-
       SCU = encOut->Get<EncOutGPU>().GetSCU();
-      cerr << "DecodeAsyncInternal7=" << survivors << endl;
 
       histories.Init(sentences);
-      cerr << "DecodeAsyncInternal8=" << survivors << endl;
+      cerr << "DecodeAsyncInternal7=" << survivors << endl;
     }
-    cerr << "DecodeAsyncInternal9=" << survivors << endl;
+    cerr << "DecodeAsyncInternal8=" << survivors << endl;
 
     /*
     cerr << "histories=" << histories->size() << " "
@@ -232,7 +225,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     LOG(progress)->info("  Step took {} sentences {} prevHypos {} survivors {}", timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
 
-  cerr << "DecodeAsyncInternal10="<< endl;
+  cerr << "DecodeAsyncInternal9="<< endl;
 }
 
 void EncoderDecoder::DecodeAsyncInternalOLD()
