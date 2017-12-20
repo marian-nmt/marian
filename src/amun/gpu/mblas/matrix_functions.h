@@ -424,6 +424,10 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Histories& beamSizes,
                 uint beamSizeSum);
 
+void UpdateSentenceLengths(const mblas::Vector<uint> &d_newSentenceSizes,
+                          const mblas::Vector<uint> &d_newBatchIds,
+                          mblas::Vector<uint> &sentenceLengths);
+
 template<typename T>
 void TestMemCpy(size_t size, const T *data1)
 {

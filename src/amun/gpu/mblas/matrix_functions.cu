@@ -1419,6 +1419,24 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //cerr << "3costs=" << Debug(costs, 0) << endl;
 }
 
+__global__
+void gUpdateSentenceLengths(const VectorWrapper<uint> newSentenceSizes,
+                            const VectorWrapper<uint> newBatchIds,
+                            VectorWrapper<uint> sentenceLengths)
+{
+
+}
+
+void UpdateSentenceLengths(const mblas::Vector<uint> &d_newSentenceSizes,
+                          const mblas::Vector<uint> &d_newBatchIds,
+                          mblas::Vector<uint> &sentenceLengths)
+{
+
+
+  gUpdateSentenceLengths<<<1, 1>>>(d_newSentenceSizes, d_newBatchIds, sentenceLengths);
+}
+
+
 void TestMemCpy()
 {
   using namespace std;

@@ -347,12 +347,13 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
   cerr << "sentenceLengths=" << sentenceLengths.Debug() << endl;
   cerr << "sourceContext=" << sourceContext.Debug() << endl;
 
-  vector<unsigned> ret(newSentences.size());
+  vector<uint> newSentenceSizes(newSentences.size());
+  vector<uint> newBatchIds(newSentences.size());
 
+  // update sentences & histories
   size_t nextBatchInd = 0;
-
-  for (size_t newInd = 0; newInd < newSentences.size(); ++newInd) {
-    const EncOut::SentenceElement &eleSent = newSentences[newInd];
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+    const EncOut::SentenceElement &eleSent = newSentences[i];
     //const EncOutPtr &encOut = eleSent.encOut;
     const SentencePtr &sentence = eleSent.GetSentence();
 
@@ -364,14 +365,20 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
     assert(eleHist == nullptr);
     eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore()));
 
-    ret[newInd] = batchInd;
+    newSentenceSizes[i] = sentence->size();
+    newBatchIds[i] = batchInd;
 
     nextBatchInd = batchInd + 1;
   }
 
   sentences.RecalcMaxLength();
 
-  return ret;
+  // update gpu data
+  mblas::Vector<uint> d_newSentenceSizes(newSentenceSizes);
+  mblas::Vector<uint> d_newBatchIds(newBatchIds);
+  UpdateSentenceLengths(d_newSentenceSizes, d_newBatchIds, sentenceLengths);
+
+  return newBatchIds;
 }
 
 }
