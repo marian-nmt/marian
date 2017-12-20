@@ -65,7 +65,7 @@ EncoderDecoder::~EncoderDecoder()
         cerr << " ";
       }
 
-      cerr << timer.format(2, "%w") << " (" << percent << ")" << endl;
+      cerr << timer.format(2, "%w") << " (" << percent << "%)" << endl;
     }
   }
 

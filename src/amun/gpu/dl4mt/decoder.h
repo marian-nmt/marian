@@ -147,7 +147,7 @@ class Decoder {
         {}
 
         void Init(const mblas::Matrix& SourceContext,
-                  mblas::Matrix& SCU)
+                  mblas::Matrix& SCU) const
         {
           using namespace mblas;
 
