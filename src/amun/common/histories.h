@@ -57,7 +57,13 @@ public:
   unsigned GetNumActive() const
   { return active_; }
 
+  bool NormalizeScore() const
+  { return normalizeScore_; }
+
   const HistoriesElementPtr &Get(size_t ind) const
+  { return coll_[ind]; }
+
+  HistoriesElementPtr &Get(size_t ind)
   { return coll_[ind]; }
 
   size_t GetBeamSize(size_t ind) const;

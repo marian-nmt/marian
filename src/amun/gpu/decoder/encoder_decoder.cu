@@ -197,11 +197,12 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     if (survivors == 0) {
 
-      //std::vector<EncOut::SentenceElement> newSentences;
-      //encDecBuffer_.Get(maxBeamSize, newSentences);
+      std::vector<EncOut::SentenceElement> newSentences;
+      encDecBuffer_.Get(maxBeamSize, newSentences);
 
-      //AddToBatch(newSentences,sentences);
+      AddToBatch(newSentences,sentences, histories);
 
+      /*
       encOut = encDecBuffer_.Get();
       assert(encOut);
 
@@ -212,6 +213,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
       SourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+      */
 
       //state.reset(NewState());
       BeginSentenceState(sentences.size(), SourceContext, sentenceLengths, *state, SCU);
@@ -318,27 +320,42 @@ void EncoderDecoder::AssembleBeamState(const State& state,
   //PAUSE_TIMER("AssembleBeamState");
 }
 
-void FindNextEmptyIndex(size_t sentInd, const Sentences &sentences)
+//////////////////////////////////////////////////////////////////////
+//helper fn
+size_t FindNextEmptyIndex(size_t nextBatchInd,
+                        Histories &histories)
 {
-  for (size_t i = sentInd; i < sentences.size(); ++i) {
-
+  while(nextBatchInd < histories.size()) {
+    const HistoriesElementPtr &ele = histories.Get(nextBatchInd);
+    if (ele == nullptr) {
+      return nextBatchInd;
+    }
+    ++nextBatchInd;
   }
 
   assert(false);
+  return 9999999;
 }
+////////////////////////////////////////////////////////////////////////
 
 void EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
-                Sentences &sentences)
+                                Sentences &sentences,
+                                Histories &histories)
 {
-  size_t sentInd = 0;
-  FindNextEmptyIndex(sentInd, sentences);
+  size_t nextBatchInd = 0;
 
   for (size_t newInd = 0; newInd < newSentences.size(); ++newInd) {
-    const EncOut::SentenceElement &ele = newSentences[newInd];
-    const EncOutPtr encOut = ele.encOut;
-    size_t sentenceInd = ele.sentenceInd;
+    const EncOut::SentenceElement &eleSent = newSentences[newInd];
+    const EncOutPtr encOut = eleSent.encOut;
+    const Sentence &sentence = eleSent.GetSentence();
 
-    FindNextEmptyIndex(sentInd + 1, sentences);
+    size_t batchInd = FindNextEmptyIndex(nextBatchInd, histories);
+
+    HistoriesElementPtr &eleHist = histories.Get(nextBatchInd);
+    assert(eleHist == nullptr);
+    eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore(), 44));
+
+    nextBatchInd = batchInd + 1;
   }
 }
 
